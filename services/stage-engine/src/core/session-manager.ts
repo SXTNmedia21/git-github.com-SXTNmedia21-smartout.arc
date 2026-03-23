@@ -312,9 +312,14 @@ export async function createSession(
   const current = firstStage ? 1 : 0;
   const progress = `${current}/${total}`;
 
+  // Persona prompt from client (WalkAi persona engine) overrides mission system_prompt.
+  // This lets the frontend control who the agent IS — name, personality, behavior rules.
+  const personaPrompt = typeof context.persona_prompt === "string" ? context.persona_prompt : null;
+  const basePrompt = personaPrompt ?? mission.system_prompt ?? null;
+
   const systemPrompt = firstStage
-    ? buildStagePrompt(firstStage, context, {}, mission.system_prompt)
-    : (mission.system_prompt ??
+    ? buildStagePrompt(firstStage, context, {}, basePrompt)
+    : (basePrompt ??
       "You are a helpful assistant. The mission is in free mode — choose a stage to start.");
 
   return {

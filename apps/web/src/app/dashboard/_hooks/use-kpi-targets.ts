@@ -1,8 +1,11 @@
 "use client";
 
+import { useContext } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
+import { emit } from "@smartout/telemetry";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { dashboardKeys } from "./dashboard-keys";
 
 export type KpiMetric =
@@ -33,6 +36,7 @@ export const DEFAULT_KPI_TARGETS: KpiTargets = {
 export function useKpiTargets() {
   const ctx = useWorkspaceOptional();
   const wsId = ctx?.workspace.workspace_id;
+  const { profileId } = useContext(DashboardContext);
   const supabase = createClient();
   const queryClient = useQueryClient();
 
@@ -72,7 +76,15 @@ export function useKpiTargets() {
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, { metric, value }) => {
+      void emit({
+        event: "kpi_target updated",
+        workspace_id: wsId ?? null,
+        actor_id: profileId ?? "",
+        properties: {
+          data: { metric, value },
+        },
+      });
       queryClient.invalidateQueries({ queryKey: dashboardKeys.kpiTargets(wsId!) });
     },
   });

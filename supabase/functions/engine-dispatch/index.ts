@@ -491,6 +491,54 @@ const ENTITY_PK: Record<string, string> = {
 };
 
 /**
+ * Resolve planned open/close for a department session by checking
+ * department_hours_override (date-specific) then department_operating_hours (weekly).
+ */
+async function resolveSessionHours(
+  supabase: ReturnType<typeof createClient>,
+  workspaceId: string,
+  departmentId: string,
+  date: string,
+): Promise<{ open: string | null; close: string | null }> {
+  // 1. Check date-specific override
+  const { data: override } = await supabase
+    .from("department_hours_override")
+    .select("open_time, close_time, is_closed")
+    .eq("workspace_id", workspaceId)
+    .eq("department_id", departmentId)
+    .eq("override_date", date)
+    .limit(1)
+    .maybeSingle();
+
+  if (override) {
+    if (override.is_closed) return { open: null, close: null };
+    return { open: override.open_time, close: override.close_time };
+  }
+
+  // 2. Fall back to weekly hours — JS getDay() 0=Sun, convert to 0=Mon
+  const jsDay = new Date(date + "T12:00:00Z").getUTCDay();
+  const dayOfWeek = jsDay === 0 ? 6 : jsDay - 1;
+
+  const { data: weekly } = await supabase
+    .from("department_operating_hours")
+    .select("open_time, close_time, is_closed")
+    .eq("workspace_id", workspaceId)
+    .eq("department_id", departmentId)
+    .eq("day_of_week", dayOfWeek)
+    .is("location_id", null)
+    .order("season_id", { ascending: true, nullsFirst: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (weekly) {
+    if (weekly.is_closed) return { open: null, close: null };
+    return { open: weekly.open_time, close: weekly.close_time };
+  }
+
+  return { open: null, close: null };
+}
+
+/**
  * Execute a single engine step. Updates state based on action_type.
  */
 async function executeStep(
@@ -683,19 +731,240 @@ async function executeStep(
       const deptIds =
         (ctxData.department_ids as string[]) ?? (ctx.department_ids as string[]) ?? [];
 
+      // Filter: only operational/hybrid departments create sessions (not administrative)
+      const { data: deptRows } = await supabase
+        .from("department")
+        .select("department_id, department_type")
+        .in("department_id", deptIds);
+      const eligibleDeptIds = (deptRows ?? [])
+        .filter(
+          (d: { department_type: string | null }) =>
+            !d.department_type ||
+            d.department_type === "operational" ||
+            d.department_type === "hybrid",
+        )
+        .map((d: { department_id: string }) => d.department_id);
+
       for (const date of dates) {
-        for (const deptId of deptIds) {
+        for (const deptId of eligibleDeptIds) {
+          // Resolve planned hours: override > weekly > null
+          const hours = await resolveSessionHours(supabase, state.workspace_id, deptId, date);
+
           await supabase.from("department_session").upsert(
             {
               workspace_id: state.workspace_id,
               department_id: deptId,
               session_date: date,
               status: "upcoming",
+              planned_open: hours.open,
+              planned_close: hours.close,
             },
             { onConflict: "workspace_id,department_id,session_date" },
           );
         }
       }
+      await advanceToNextStep(supabase, state, step);
+      break;
+    }
+
+    case "cascade_cost_snapshot": {
+      const ctx = state.context as Record<string, unknown>;
+      const ctxData = (ctx.data as Record<string, unknown>) ?? {};
+      const shiftIds = (ctxData.shift_ids as string[]) ?? [];
+      const basisRaw = (ctxData.basis as string) ?? "planned";
+      const basis = basisRaw === "actual" ? "actual" : "planned";
+      const sourceEvent = (ctxData.source_event as string) ?? null;
+
+      if (shiftIds.length === 0) {
+        await advanceToNextStep(supabase, state, step);
+        break;
+      }
+
+      // Load shifts from DB (authoritative data, not from payload)
+      const { data: shifts } = await supabase
+        .from("schedule_shift")
+        .select(
+          "schedule_shift_id, profile_id, department_id, shift_date, start_time, end_time, actual_start, actual_end",
+        )
+        .in("schedule_shift_id", shiftIds);
+
+      for (const shift of shifts ?? []) {
+        if (!shift.profile_id) continue;
+
+        // Load payroll profile for tariff context
+        const { data: payroll } = await supabase
+          .from("employee_payroll_profile")
+          .select("tariff_override_id, tariff_category, seniority_start_date, has_fagbrev")
+          .eq("profile_id", shift.profile_id)
+          .order("valid_from", { ascending: false })
+          .limit(1)
+          .single();
+
+        // Load tariff rates (workspace-level + platform baseline)
+        const { data: wsRates } = await supabase
+          .from("tariff_rate_table")
+          .select("id, rate_type, amount, unit, effective_from, effective_until")
+          .eq("workspace_id", state.workspace_id);
+
+        const { data: platformRates } = await supabase
+          .from("tariff_rate_table")
+          .select("id, rate_type, amount, unit, effective_from, effective_until")
+          .is("workspace_id", null);
+
+        // Determine effective times based on basis
+        const effectiveStart =
+          basis === "actual" && shift.actual_start
+            ? shift.actual_start
+            : `${shift.shift_date}T${shift.start_time}:00Z`;
+        const effectiveEnd =
+          basis === "actual" && shift.actual_end
+            ? shift.actual_end
+            : `${shift.shift_date}T${shift.end_time}:00Z`;
+
+        // Compute base hours
+        const startMs = new Date(effectiveStart).getTime();
+        const endMs = new Date(effectiveEnd).getTime();
+        let baseHours = (endMs - startMs) / (1000 * 60 * 60);
+        if (baseHours < 0) baseHours += 24; // overnight shift
+
+        // Resolve supplements from tariff rates (workspace overrides platform)
+        const allRates = [...(wsRates ?? []), ...(platformRates ?? [])];
+        const supplements: Array<{ type: string; amount: number; unit: string }> = [];
+        const shiftDate = new Date(effectiveStart);
+        const hour = shiftDate.getUTCHours();
+        const dayOfWeek = shiftDate.getUTCDay(); // 0=Sun
+
+        // Evening supplement: 21:00-06:00
+        if (hour >= 21 || hour < 6) {
+          const rate = allRates.find((r) => r.rate_type === "kveldstillegg");
+          if (rate)
+            supplements.push({ type: "kveldstillegg", amount: rate.amount, unit: rate.unit });
+        }
+
+        // Weekend supplement: Sat 15:00 - Sun 24:00 (Riksavtalen)
+        if (dayOfWeek === 0 || (dayOfWeek === 6 && hour >= 15)) {
+          const rate = allRates.find((r) => r.rate_type === "helgetillegg");
+          if (rate)
+            supplements.push({ type: "helgetillegg", amount: rate.amount, unit: rate.unit });
+        }
+
+        // Base rate: deferred — requires loading employment_contract.hourly_rate per employee.
+        // kr/t supplements (kveldstillegg, helgetillegg) are correct absolute amounts.
+        // % supplements (helligdagstillegg, overtime) will compute to 0 until baseRate is loaded.
+        const baseRate = 0;
+        const supplementCost = supplements.reduce((sum, s) => {
+          if (s.unit === "kr/t") return sum + s.amount * baseHours;
+          if (s.unit === "percent") return sum + (baseRate * baseHours * s.amount) / 100;
+          return sum;
+        }, 0);
+        const totalCost = baseHours * baseRate + supplementCost;
+
+        await supabase.from("shift_cost_snapshot").insert({
+          workspace_id: state.workspace_id,
+          schedule_shift_id: shift.schedule_shift_id,
+          profile_id: shift.profile_id,
+          base_hours: baseHours,
+          base_rate: baseRate,
+          base_cost: baseHours * baseRate,
+          supplements: supplements,
+          total_cost: totalCost,
+          basis,
+          source_event: sourceEvent,
+          effective_start: effectiveStart,
+          effective_end: effectiveEnd,
+        });
+      }
+
+      await advanceToNextStep(supabase, state, step);
+      break;
+    }
+
+    case "cascade_budget_propagation": {
+      const ctx = state.context as Record<string, unknown>;
+      const ctxData = (ctx.data as Record<string, unknown>) ?? {};
+      const seasonId = (ctxData.season_id as string) ?? (ctx.entity_id as string);
+
+      if (!seasonId || !state.workspace_id) {
+        await advanceToNextStep(supabase, state, step);
+        break;
+      }
+
+      // Load season date range
+      const { data: season } = await supabase
+        .from("season")
+        .select("start_date, end_date")
+        .eq("season_id", seasonId)
+        .single();
+
+      // Load budget parameters
+      const { data: budget } = await supabase
+        .from("season_budget")
+        .select("total_target_revenue, target_labor_percentage, avg_hourly_wage")
+        .eq("season_id", seasonId)
+        .single();
+
+      // Load day factors for this workspace
+      const { data: dayFactors } = await supabase
+        .from("day_factor")
+        .select("weekday, factor")
+        .eq("workspace_id", state.workspace_id);
+
+      if (!season || !budget || !dayFactors?.length) {
+        await advanceToNextStep(supabase, state, step);
+        break;
+      }
+
+      // Inline propagation logic (mirrors propagateBudgetTargets pure function)
+      const factorMap = new Map<number, number>();
+      for (const df of dayFactors) {
+        factorMap.set(df.weekday as number, df.factor as number);
+      }
+
+      // Enumerate dates
+      const dates: string[] = [];
+      const current = new Date(season.start_date + "T12:00:00Z");
+      const end = new Date(season.end_date + "T12:00:00Z");
+      while (current <= end) {
+        dates.push(current.toISOString().split("T")[0]);
+        current.setUTCDate(current.getUTCDate() + 1);
+      }
+
+      // Assign factors and compute sum
+      const daysWithFactors = dates.map((date) => {
+        const jsDay = new Date(date + "T12:00:00Z").getUTCDay();
+        const weekday = jsDay === 0 ? 6 : jsDay - 1; // 0=Mon...6=Sun
+        return { date, factor: factorMap.get(weekday) ?? 1.0 };
+      });
+      const factorSum = daysWithFactors.reduce((sum, d) => sum + d.factor, 0);
+      const totalRevenue = budget.total_target_revenue as number;
+      const laborPct = budget.target_labor_percentage as number;
+      const avgWage = budget.avg_hourly_wage as number;
+
+      // Upsert daily targets into workspace_budget
+      for (const { date, factor } of daysWithFactors) {
+        const targetRevenue =
+          factorSum > 0 ? totalRevenue * (factor / factorSum) : totalRevenue / dates.length;
+        const targetLaborCost = targetRevenue * laborPct;
+        const targetStaffHours = avgWage > 0 ? targetLaborCost / avgWage : 0;
+
+        await supabase.from("workspace_budget").upsert(
+          {
+            workspace_id: state.workspace_id,
+            location_id: null,
+            department_id: null,
+            period_type: "daily",
+            period_date: date,
+            hour_slot: null,
+            revenue_target: targetRevenue,
+            labor_cost_target: targetLaborCost,
+            labor_hours_target: targetStaffHours,
+          },
+          {
+            onConflict: "workspace_id,location_id,department_id,period_type,period_date,hour_slot",
+          },
+        );
+      }
+
       await advanceToNextStep(supabase, state, step);
       break;
     }

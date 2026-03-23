@@ -19,15 +19,9 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from "recharts";
-import {
-  WEEKLY_COVERAGE,
-  SHIFT_TYPES,
-  LABOR_HOURS_4W,
-  UNFILLED_SHIFTS,
-  CHART_COLORS,
-  chartTheme,
-} from "./report-data";
+import { CHART_COLORS, chartTheme } from "./report-data";
 import type { ReportInsightCard } from "./report-insight-types";
+import { useReportStaffing } from "../_hooks/use-report-staffing";
 
 type StaffingSectionProps = {
   isDark: boolean;
@@ -36,6 +30,30 @@ type StaffingSectionProps = {
 
 export function StaffingSection({ isDark, onOpenInsight }: StaffingSectionProps) {
   const theme = chartTheme(isDark);
+  const { data, isLoading } = useReportStaffing();
+
+  const weeklyCoverage = data?.weeklyCoverage ?? [];
+  const shiftTypes = data?.shiftTypes ?? [];
+  const laborHours4w = data?.laborHours4w ?? [];
+  const unfilledShifts = data?.unfilledShifts ?? [];
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-5">
+        <div
+          className={`h-64 animate-pulse rounded-2xl border ${isDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-zinc-100"}`}
+        />
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <div
+              key={i}
+              className={`h-48 animate-pulse rounded-2xl border ${isDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-zinc-100"}`}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-5">
@@ -84,7 +102,7 @@ export function StaffingSection({ isDark, onOpenInsight }: StaffingSectionProps)
         </div>
         <ResponsiveContainer width="100%" height={220}>
           <BarChart
-            data={WEEKLY_COVERAGE}
+            data={weeklyCoverage}
             margin={{ top: 5, right: 5, bottom: 0, left: -20 }}
             barGap={4}
           >
@@ -164,8 +182,8 @@ export function StaffingSection({ isDark, onOpenInsight }: StaffingSectionProps)
             </h3>
           </div>
           <div className="space-y-3">
-            {SHIFT_TYPES.map((shift) => {
-              const maxCount = Math.max(...SHIFT_TYPES.map((s) => s.count));
+            {shiftTypes.map((shift) => {
+              const maxCount = Math.max(...shiftTypes.map((s) => s.count), 1);
               const width = (shift.count / maxCount) * 100;
               return (
                 <div key={shift.type}>
@@ -200,7 +218,7 @@ export function StaffingSection({ isDark, onOpenInsight }: StaffingSectionProps)
             <span
               className={`text-[10px] font-semibold ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
             >
-              Totalt: {SHIFT_TYPES.reduce((s, t) => s + t.count, 0)} vakter denne uken
+              Totalt: {shiftTypes.reduce((s, t) => s + t.count, 0)} vakter denne uken
             </span>
           </div>
         </div>
@@ -251,7 +269,7 @@ export function StaffingSection({ isDark, onOpenInsight }: StaffingSectionProps)
             </div>
           </div>
           <ResponsiveContainer width="100%" height={180}>
-            <LineChart data={LABOR_HOURS_4W} margin={{ top: 5, right: 5, bottom: 0, left: -20 }}>
+            <LineChart data={laborHours4w} margin={{ top: 5, right: 5, bottom: 0, left: -20 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={theme.grid} vertical={false} />
               <XAxis
                 dataKey="week"
@@ -354,17 +372,17 @@ export function StaffingSection({ isDark, onOpenInsight }: StaffingSectionProps)
                 isDark ? "bg-orange-500/10 text-orange-400" : "bg-orange-50 text-orange-600"
               }`}
             >
-              {UNFILLED_SHIFTS.length}
+              {unfilledShifts.length}
             </span>
           </div>
         </div>
-        {UNFILLED_SHIFTS.length === 0 ? (
+        {unfilledShifts.length === 0 ? (
           <p className={`text-sm ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
             Alle vakter er dekket!
           </p>
         ) : (
           <div className="space-y-2">
-            {UNFILLED_SHIFTS.map((shift, i) => (
+            {unfilledShifts.map((shift, i) => (
               <div
                 key={i}
                 className={`flex items-center justify-between rounded-xl border p-3 ${

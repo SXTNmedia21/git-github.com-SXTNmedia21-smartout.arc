@@ -28,8 +28,20 @@ export async function authMiddleware(c: Context, next: Next): Promise<Response |
     return next();
   }
 
-  // Guardian WebSocket — auth handled in the upgrade handler (guardian.ts)
-  if (c.req.path.startsWith("/guardian/")) {
+  // Guardian WebSocket — auth handled in the upgrade handler (guardian.ts).
+  // Only bypass for actual WebSocket upgrades to prevent unauthenticated HTTP access.
+  if (c.req.path.startsWith("/guardian/") && c.req.header("upgrade") === "websocket") {
+    return next();
+  }
+
+  // Local dev — skip auth entirely when no real dev key is configured
+  const hasRealDevKey = config.DEV_API_KEY && !config.DEV_API_KEY.startsWith("op://");
+  if (process.env.NODE_ENV !== "production" && !hasRealDevKey) {
+    c.set("auth", {
+      method: "api_key",
+      workspaceId: undefined,
+      scopes: ["*"],
+    } satisfies AuthContext);
     return next();
   }
 
@@ -42,7 +54,7 @@ export async function authMiddleware(c: Context, next: Next): Promise<Response |
     if (config.DEV_API_KEY && apiKey === config.DEV_API_KEY) {
       c.set("auth", {
         method: "api_key",
-        workspaceId: "00000000-0000-0000-0000-000000000000",
+        workspaceId: undefined,
         scopes: ["*"],
       } satisfies AuthContext);
       return next();
@@ -119,14 +131,16 @@ async function validateJwt(token: string): Promise<AuthContext | null> {
     return null;
   }
 
-  // Get user's first active workspace (for workspace context)
+  // Get user's first active workspace (for workspace context).
+  // Uses maybeSingle() to handle users with 0 or multiple profiles gracefully.
   const { data: profile } = await supabaseAdmin
     .from("profile")
     .select("workspace_id")
     .eq("user_id", user.id)
     .eq("is_active", true)
+    .order("created_at", { ascending: true })
     .limit(1)
-    .single();
+    .maybeSingle();
 
   if (!profile) {
     return null;

@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { createClient } from "@smartout/supabase/server";
 import { emit } from "@smartout/telemetry";
 import { z } from "zod";
-import { apiRateLimit } from "@/lib/rate-limit";
+import { getApiRateLimit } from "@/lib/rate-limit";
 
 // Strict schema — rejects unknown events at the boundary
 const BeaconEventSchema = z.object({
@@ -16,9 +16,10 @@ const BeaconEventSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     // Rate limit by IP (when Upstash is configured)
-    if (apiRateLimit) {
+    const rateLimit = getApiRateLimit();
+    if (rateLimit) {
       const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "anonymous";
-      const { success } = await apiRateLimit.limit(ip);
+      const { success } = await rateLimit.limit(ip);
       if (!success) {
         return NextResponse.json({ error: "Too many requests" }, { status: 429 });
       }

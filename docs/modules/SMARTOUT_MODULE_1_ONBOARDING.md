@@ -5,7 +5,7 @@ version: "3.0"
 status: canonical
 layer: module
 created: 2026-02-24
-updated: 2026-03-03
+updated: 2026-03-22
 author: pontus
 supersedes:
   - SMARTOUT_ONBOARDING_FRAMEWORK.md
@@ -19,6 +19,7 @@ tags:
   - module-journeys
   - sandbox
   - ai-guided
+  - cascade
 tables:
   - invitation
   - onboarding_session
@@ -32,6 +33,16 @@ changelog:
   - date: 2026-03-03
     change: "v3.0: Audit against codebase. Updated wizard (15 steps), invitation table naming, SendGrid, emergency contact on user_identity. Added implementation status markers, Roadmap section. Created ADR-0043/44/45, Learning-0016/17."
 ---
+
+## Cascade Mapping
+
+> This module's relationship to the Cascade Core Foundation
+> (spec: `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`)
+
+| Dimension                          | Role                                                          |
+| ---------------------------------- | ------------------------------------------------------------- |
+| I1 Industry Intelligence Bootstrap | Primary — seeds workspace with industry defaults at signup    |
+| D2 Resource Availability           | Produces — creates profiles that become schedulable resources |
 
 # Module 1: Onboarding & Brukerregistrering
 
@@ -73,71 +84,48 @@ Onboarding in Smartout is split into **THREE distinct systems:**
 
 ## 2. Workspace Creation (First Run) ✅ IMPLEMENTED
 
-Before any employee can be onboarded, an admin must create a workspace. This is the **admin's own onboarding** — the first-time setup flow that creates the operational environment.
+Before any employee can be onboarded, an admin must create and finalize a workspace. In the current repo this happens across **three related surfaces**, not one monolithic wizard.
 
-> **Implementation:** 15-step wizard at `apps/web/src/app/onboarding/`, `useOnboardingWizard` hook, progressive save to `onboarding_session` table, atomic workspace creation via `activate_workspace_v3` RPC. See ADR-0041.
+> **Implementation contract (2026-03-22):**
+>
+> - `/join` is the public intake flow
+> - `/onboarding` is the authenticated bootstrap/finalization flow
+> - `/dashboard/setup` is the post-bootstrap setup guide
+> - `finalize-workspace` / `finalize_onboarding_workspace` own final workspace runtime truth
+> - `activate-workspace` still exists as a compatibility path and should not be treated as the canonical cascade-first contract
 
-### 2.1 Signup Flow
+### 2.1 Current flow ownership
 
-```
-Admin visits smartout.ai landing page
-  → "Start gratis prøveperiode" / "Get started"
-  → Enters website URL (optional) for AI-assisted setup
-  → AI scrapes website via gather-workspace-intelligence Edge Function
-      Extracts: departments, teams, branding, locations, procedures
-  → Create account (AuthStep — inline during wizard)
-      Email + password (Supabase Auth)
-      OR Google / Microsoft SSO
-      Skipped if already authenticated
-  → Verify company via Brreg API
-      Company name (required)
-      Org number (Norwegian: required for compliance)
-  → Configure workspace
-      Branding (logo, colors — pre-filled from website scrape)
-      Season setup (education + identity steps)
-      Departments, Locations, Teams (pre-filled from AI scrape)
-      Procedures (suggested based on industry)
-  → Review all entities (BattlefieldReviewStep)
-  → System creates atomically via activate_workspace_v3 RPC:
-      Company record
-      CompanyMember (role: owner)
-      Workspace (with default Season auto-created)
-      Profile (role: owner, status: active)
-      Departments, Locations, Teams
-      Policy → Protocol → Procedures
-  → Invite first employee (InviteStep)
-  → Done — redirect to dashboard
-```
+| Surface            | Purpose                                                           | Ownership                        |
+| ------------------ | ----------------------------------------------------------------- | -------------------------------- |
+| `/join`            | Capture account and raw business intake                           | Provisional input only           |
+| `/onboarding`      | Confirm business structure and finalize workspace runtime records | Canonical bootstrap/finalization |
+| `/dashboard/setup` | Guide admin through remaining operational completion work         | Post-bootstrap enrichment        |
 
-### 2.2 Workspace Setup Wizard (15 Steps)
-
-The wizard is implemented as 15 independent step components with 4 modal drawers, managed by `useOnboardingWizard` context hook. State is progressively saved to `onboarding_session` table (JSONB + step index) with 500ms debounce. See Learning-0017.
+### 2.2 Current onboarding sequence
 
 ```
-WORKSPACE SETUP (15 steps)
-│
-├── 1. InitStep          — Enter website URL or skip to manual setup
-├── 2. CrawlStep         — AI scrapes website, extracts intelligence
-├── 3. AuthStep           — Inline signup (skip if already authenticated)
-├── 4. OrgVerificationStep — Brreg API company lookup + verification
-├── 5. BrandingStep       — Logo, colors (pre-filled from scrape)
-├── 6. SeasonEducationStep — Explain season concept
-├── 7. SeasonIdentityStep  — Name and configure first season
-├── 8. DepartmentsStep    — Confirm/edit departments (+ DepartmentDrawer)
-├── 9. LocationsStep      — Confirm/edit locations (+ LocationDrawer)
-├── 10. TeamsStep          — Confirm/edit teams (+ TeamDrawer)
-├── 11. ProceduresStep     — Confirm/edit procedures (+ ProcedureDrawer)
-├── 12. BattlefieldReviewStep — Review all entities before creation
-├── 13. FinalizeStep       — Atomic workspace creation (activate_workspace_v3)
-├── 14. InviteStep         — Invite first employee (email/SMS/link)
-└── 15. DoneStep           — Redirect to dashboard
+Admin visits landing page
+  → Starts at /join
+  → Creates account and provides raw business input
+  → Intelligence pipeline and manual edits build provisional context
+  → Continues into /onboarding
+  → Confirms departments, locations, procedures, season, contract context
+  → finalize-workspace calls finalize_onboarding_workspace
+  → Workspace runtime truth is materialized
+  → Continues to /dashboard/setup for post-bootstrap completion work
 ```
 
-**AI assistance:** The wizard uses Mr. Botsson via voice (Ultravox) during the CrawlStep to conversationally extract workspace intelligence from the admin. The AI scrapes the business website and pre-fills departments, teams, locations, and branding.
+### 2.3 Important rules
 
-**Session resume:** If the browser closes mid-wizard, returning users resume at their last step with all data restored. Transient steps (CrawlStep, FinalizeStep) are skipped on resume.
+- `/join` may collect and prefill, but it does not own authoritative workspace runtime truth.
+- `/onboarding` is the place where provisional intake becomes real workspace records.
+- `/dashboard/setup` must be triggered by real setup completeness, not by `workspace.onboarding_completed` alone.
+- `workspace.onboarding_completed` means bootstrap/finalization status, not "show the guide" status.
 
-**Note:** Detailed workspace settings and configuration are covered in Module 11 (Settings & Administration). This section covers only the first-time flow.
+### 2.4 Historical note
+
+Older references in this module to a single 15-step setup wizard and atomic creation through `activate_workspace_v3` describe a legacy-compatible path that still exists in code. They should not be used as the canonical model for new onboarding work.
 
 ---
 

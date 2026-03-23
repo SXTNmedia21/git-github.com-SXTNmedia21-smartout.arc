@@ -9,6 +9,9 @@ import {
   calculateStaffingNeed,
 } from "@/lib/season-calculations";
 import { DollarSign, Users, Clock, TrendingUp } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { useWorkspaceOptional } from "@/lib/workspace-context";
+import { createClient } from "@smartout/supabase/client";
 
 function parseTimeToHour(time: string): number {
   return parseInt(time.split(":")[0] ?? "0", 10);
@@ -29,10 +32,30 @@ export function SeasonOverviewTab({
   seasonEndDate,
   isDark,
 }: Props) {
+  const ctx = useWorkspaceOptional();
+  const wsId = ctx?.workspace.workspace_id;
+  const supabase = createClient();
+
+  const { data: departments } = useQuery({
+    queryKey: ["departments", wsId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("department")
+        .select("department_id, name")
+        .eq("workspace_id", wsId!)
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true });
+      return data ?? [];
+    },
+    enabled: !!wsId,
+  });
+
+  const firstDeptId = departments?.[0]?.department_id;
+
   const { budget } = useSeasonBudget(seasonId);
   const { dayFactors } = useDayFactors(seasonBudgetId);
   const { hourFactors } = useHourFactors(seasonBudgetId);
-  const { hours: operatingHours } = useOperatingHours();
+  const { hours: operatingHours } = useOperatingHours(firstDeptId);
 
   // Derive operating hours
   const opHours = useMemo(() => {

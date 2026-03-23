@@ -25,6 +25,10 @@ export type Shift = {
   employeeId: string | null;
   dateId: string;
   role: string;
+  /** FK to department (cascade A1) */
+  departmentId?: string;
+  /** FK to location (cascade A1) */
+  locationId?: string;
   /** future FK to position table */
   positionId?: string;
   /** future FK to team table */
@@ -76,6 +80,7 @@ export type ShiftTemplate = {
   id: string;
   name: string;
   department: string;
+  departmentId: string | null;
   shifts: Omit<Shift, "id" | "dateId" | "createdAt" | "updatedAt" | "isPublished">[];
   /** MODULE_03 §13.1: optionally include/exclude staff when saving */
   includeAssignments: boolean;

@@ -91,7 +91,7 @@ export function WalkAiSticky({
             /* Start Emma */
             <button
               onClick={() => void agent.startSession()}
-              className="bg-brand-orange shadow-brand-orange/25 hover:shadow-brand-orange/40 flex h-9 w-9 items-center justify-center rounded-full text-white shadow-lg transition-all duration-150 hover:scale-110 active:scale-90"
+              className="bg-brand-orange flex h-9 w-9 items-center justify-center rounded-full text-white shadow-lg shadow-[oklch(0.65_0.22_40/0.25)] transition-all duration-150 hover:scale-110 hover:shadow-[oklch(0.65_0.22_40/0.4)] active:scale-90"
               aria-label="Start Emma"
             >
               <svg width="14" height="14" viewBox="0 0 20 20" fill="none">
@@ -114,7 +114,7 @@ export function WalkAiSticky({
                   "flex h-9 w-9 items-center justify-center rounded-full shadow-lg transition-all duration-150 hover:scale-110 active:scale-90",
                   agent.isMuted
                     ? "bg-card border-border/40 text-muted-foreground hover:text-foreground hover:border-border border"
-                    : "bg-brand-orange shadow-brand-orange/25 hover:shadow-brand-orange/40 text-white",
+                    : "bg-brand-orange text-white shadow-[oklch(0.65_0.22_40/0.25)] hover:shadow-[oklch(0.65_0.22_40/0.4)]",
                 ].join(" ")}
                 aria-label={agent.isMuted ? "Unmute" : "Mute"}
               >

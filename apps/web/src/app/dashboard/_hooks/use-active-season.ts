@@ -58,7 +58,7 @@ export function useActiveSeason() {
         .in("status", ["active", "draft"])
         .order("created_at", { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (seasonError || !season) return null;
 
@@ -71,7 +71,7 @@ export function useActiveSeason() {
         .eq("status", "active")
         .order("created_at", { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       // Determine current stage from engine session or infer from season status
       let currentStage = "seed";

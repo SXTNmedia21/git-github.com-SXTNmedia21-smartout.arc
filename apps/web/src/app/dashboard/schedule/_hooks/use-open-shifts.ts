@@ -8,10 +8,13 @@
  * useAssignOpenShift deletes the open shift AND creates a real shift — touches both tables.
  */
 
+import { useContext } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspace } from "@/lib/workspace-context";
+import { emit } from "@smartout/telemetry";
 import { createClient } from "@smartout/supabase/client";
 
 import type { OpenShift, Shift } from "../_components/schedule-types";
@@ -57,6 +60,7 @@ export function useOpenShifts(options?: { enabled?: boolean }) {
 export function useCreateOpenShift() {
   const queryClient = useQueryClient();
   const { workspace } = useWorkspace();
+  const { profileId } = useContext(DashboardContext);
   const queryKey = scheduleKeys.openShifts(workspace.workspace_id);
 
   return useMutation({
@@ -91,6 +95,24 @@ export function useCreateOpenShift() {
       return { previous };
     },
 
+    onSuccess: (data) => {
+      void emit({
+        event: "open_shift created",
+        workspace_id: workspace.workspace_id,
+        actor_id: profileId ?? "",
+        properties: {
+          entity: {
+            entity_type: "open_shift",
+            entity_id: data.id,
+          },
+          data: {
+            date: "",
+            department_id: data.department ?? "",
+          },
+        },
+      });
+    },
+
     onError: (_err, _newOpenShift, context) => {
       if (context?.previous) {
         queryClient.setQueryData(queryKey, context.previous);
@@ -111,6 +133,7 @@ export function useCreateOpenShift() {
 export function useDeleteOpenShift() {
   const queryClient = useQueryClient();
   const { workspace } = useWorkspace();
+  const { profileId } = useContext(DashboardContext);
   const queryKey = scheduleKeys.openShifts(workspace.workspace_id);
 
   return useMutation({
@@ -135,6 +158,21 @@ export function useDeleteOpenShift() {
       );
 
       return { previous };
+    },
+
+    onSuccess: (_data, openShiftId) => {
+      void emit({
+        event: "open_shift deleted",
+        workspace_id: workspace.workspace_id,
+        actor_id: profileId ?? "",
+        properties: {
+          entity: {
+            entity_type: "open_shift",
+            entity_id: openShiftId,
+          },
+          data: {},
+        },
+      });
     },
 
     onError: (_err, _openShiftId, context) => {
@@ -163,6 +201,7 @@ type AssignOpenShiftInput = {
 export function useAssignOpenShift(weekStart: string) {
   const queryClient = useQueryClient();
   const { workspace } = useWorkspace();
+  const { profileId } = useContext(DashboardContext);
   const openShiftsKey = scheduleKeys.openShifts(workspace.workspace_id);
   const shiftsKey = scheduleKeys.shifts(workspace.workspace_id, weekStart);
 
@@ -218,6 +257,23 @@ export function useAssignOpenShift(weekStart: string) {
       });
 
       return { previousOpenShifts, previousShifts };
+    },
+
+    onSuccess: (_data, { openShiftId, shift }) => {
+      void emit({
+        event: "open_shift assigned",
+        workspace_id: workspace.workspace_id,
+        actor_id: profileId ?? "",
+        properties: {
+          entity: {
+            entity_type: "open_shift",
+            entity_id: openShiftId,
+          },
+          data: {
+            assigned_to: shift.employeeId ?? "",
+          },
+        },
+      });
     },
 
     onError: (_err, _vars, context) => {

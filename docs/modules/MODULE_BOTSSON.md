@@ -1,11 +1,22 @@
 ---
 title: "Module: Botsson — Voice Agent System"
 status: in_progress
-updated: 2026-03-05
+updated: 2026-03-22
 created: 2026-03-05
 module: ai-agent
-tags: [botsson, voice, ultravox, agent, onboarding, mr-botsson, personality]
+tags: [botsson, voice, ultravox, agent, onboarding, mr-botsson, personality, cascade]
 ---
+
+## Cascade Mapping
+
+> This module's relationship to the Cascade Core Foundation
+> (spec: `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`)
+
+| Dimension                      | Role                                                 |
+| ------------------------------ | ---------------------------------------------------- |
+| C2 Context & Interaction       | Primary — voice-first conversational agent interface |
+| C1 Observability & Calibration | Consumes — belief state informs agent responses      |
+| C4 Policy & Governance         | Consumes — permissions gate what Botsson can do      |
 
 # Module: Botsson — Voice Agent System
 

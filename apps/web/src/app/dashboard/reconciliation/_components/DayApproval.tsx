@@ -58,8 +58,6 @@ export function DayApproval({ reconciliationId }: DayApprovalProps) {
   const shiftApprovals = (detail.shift_approval ?? []) as Array<{
     approval_id: string;
     shift_id: string;
-    punch_in: string | null;
-    punch_out: string | null;
     planned_hours: number;
     calculated_hours: number | null;
     approved_hours: number | null;

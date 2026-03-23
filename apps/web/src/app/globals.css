@@ -447,3 +447,52 @@
 @utility animate-wizard-step {
   animation: wizard-step-in 0.3s ease both;
 }
+
+/* Public site theme helpers */
+.site-bg-background {
+  background-color: var(--site-background);
+}
+
+.site-bg-muted {
+  background-color: var(--site-muted);
+}
+
+.site-bg-accent-soft {
+  background-color: color-mix(in srgb, var(--site-accent) 10%, transparent);
+}
+
+.site-bg-muted-soft {
+  background-color: color-mix(in srgb, var(--site-muted) 50%, transparent);
+}
+
+.site-text-primary {
+  color: var(--site-primary);
+}
+
+.site-text-foreground {
+  color: var(--site-foreground);
+}
+
+.site-text-muted-foreground {
+  color: var(--site-muted-foreground);
+}
+
+.site-border-muted {
+  border-color: var(--site-muted);
+}
+
+.site-border-primary {
+  border-color: var(--site-primary);
+}
+
+.site-border-foreground-soft {
+  border-color: color-mix(in srgb, var(--site-foreground) 10%, transparent);
+}
+
+.site-hover-text-primary:hover {
+  color: var(--site-primary);
+}
+
+.site-hover-bg-muted-soft:hover {
+  background-color: color-mix(in srgb, var(--site-muted) 50%, transparent);
+}

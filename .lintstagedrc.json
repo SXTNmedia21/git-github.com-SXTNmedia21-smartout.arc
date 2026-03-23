@@ -1,4 +1,8 @@
 {
-  "*.{ts,tsx}": ["eslint --fix --no-warn-ignored", "prettier --write"],
+  "!(apps/web/src/app/public-site/**)*.{ts,tsx}": [
+    "eslint --fix --no-warn-ignored",
+    "prettier --write"
+  ],
+  "apps/web/src/app/public-site/**/*.{ts,tsx}": ["prettier --write"],
   "*.{md,json,css}": ["prettier --write"]
 }

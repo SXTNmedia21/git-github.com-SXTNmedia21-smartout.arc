@@ -1,4 +1,5 @@
-import { ArrowRight, CheckCircle2, Zap, Star } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, CheckCircle2, GitCompareArrows, Zap, Star } from "lucide-react";
 import Navigation from "../../components/navigation";
 import Footer from "../../components/footer";
 import { WEB_APP_LINKS } from "../../lib/web-app-url";
@@ -161,6 +162,17 @@ export default function PricingPage() {
               </div>
             </TrackedCta>
           </div>
+        </div>
+
+        <div className="mt-16 text-center">
+          <Link
+            href="/compare"
+            className="group inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-6 py-3 text-sm font-semibold text-white shadow-xl backdrop-blur-md transition-all hover:border-orange-500/30 hover:bg-white/10"
+          >
+            <GitCompareArrows className="h-4 w-4 text-orange-400" />
+            Sammenlign med konkurrenter
+            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+          </Link>
         </div>
       </main>
 

@@ -22,7 +22,7 @@
 
 import Link from "next/link";
 import type { ComponentProps } from "react";
-import { usePageTracking, useTrackCta } from "../hooks/useTracking";
+import { usePageTracking, useTrackCta, getCurrentVariant } from "../hooks/useTracking";
 import { useScrollTracking } from "../hooks/useScrollTracking";
 import { useClickTracking } from "../hooks/useClickTracking";
 import { useSessionLifecycle } from "../hooks/useSessionLifecycle";
@@ -67,11 +67,19 @@ export function TrackedCta({ label, ...props }: ComponentProps<typeof Link> & { 
       {...props}
       onClick={(e) => {
         trackCta(label);
-        // Preserve any existing onClick handler
         if (typeof props.onClick === "function") {
           props.onClick(e);
         }
       }}
     />
   );
+}
+
+/**
+ * A wrapper around Next.js Link that used to append ?v= variant flags.
+ * Deprecated since Variant M is now the default app-wide.
+ * We just return a standard Link to avoid Hydration Mismatch issues.
+ */
+export function VariantLink(props: ComponentProps<typeof Link>) {
+  return <Link {...props} />;
 }

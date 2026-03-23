@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+# ============================================
+# start-local-next-app.sh
+# Starts a Next.js app for Playwright against
+# the local Supabase stack on a dedicated port.
+#
+# Why: local E2E must not depend on whichever
+# manual dev server is already running, and it
+# must point to the same local Supabase instance
+# as the Playwright verifier scripts.
+# ============================================
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
+
+if [[ $# -ne 2 ]]; then
+  echo "Usage: $0 <workspace-package> <port>" >&2
+  exit 1
+fi
+
+PACKAGE_NAME="$1"
+PORT="$2"
+
+bootstrap_local_app_env() {
+  local status_output=""
+
+  if ! status_output="$(npx supabase status -o env --workdir "${REPO_ROOT}" 2>/dev/null)"; then
+    cat >&2 <<'EOF'
+Local Playwright app bootstrap could not read Supabase status.
+Start the local Supabase stack with `npx supabase start` before
+running the dedicated Playwright web servers.
+EOF
+    exit 1
+  fi
+
+  local api_url
+  local anon_key
+  local service_role_key
+
+  api_url="$(
+    printf '%s\n' "${status_output}" |
+      sed -n 's/^API_URL="\([^"]*\)"$/\1/p'
+  )"
+  anon_key="$(
+    printf '%s\n' "${status_output}" |
+      sed -n 's/^ANON_KEY="\([^"]*\)"$/\1/p'
+  )"
+  service_role_key="$(
+    printf '%s\n' "${status_output}" |
+      sed -n 's/^SERVICE_ROLE_KEY="\([^"]*\)"$/\1/p'
+  )"
+
+  if [[ -z "${api_url}" || -z "${anon_key}" ]]; then
+    cat >&2 <<'EOF'
+Local Supabase did not return the public env values required to start
+the Playwright app servers.
+EOF
+    exit 1
+  fi
+
+  export NEXT_PUBLIC_SUPABASE_URL="${api_url}"
+  export NEXT_PUBLIC_SUPABASE_ANON_KEY="${anon_key}"
+  export SUPABASE_SERVICE_ROLE_KEY="${service_role_key:-}"
+  export SUPABASE_URL="${api_url}"
+  export SUPABASE_ANON_KEY="${anon_key}"
+  export NEXT_PUBLIC_ROOT_DOMAIN="localhost"
+  export NEXT_DIST_DIR=".next-e2e-${PACKAGE_NAME}"
+}
+
+main() {
+  bootstrap_local_app_env
+
+  exec pnpm --filter "${PACKAGE_NAME}" exec next dev -p "${PORT}"
+}
+
+main "$@"

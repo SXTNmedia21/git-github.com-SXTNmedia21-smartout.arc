@@ -6,10 +6,40 @@ import { Button } from "@smartout/ui";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@smartout/ui";
 import { Label } from "@smartout/ui";
+import { useQuery } from "@tanstack/react-query";
+import { useWorkspaceOptional } from "@/lib/workspace-context";
+import { createClient } from "@smartout/supabase/client";
 import { useOperatingHours, type OperatingHoursEntry } from "../_hooks/use-operating-hours";
 
 export function OpeningHoursSettings() {
-  const { hours, isLoading, upsertHours } = useOperatingHours();
+  const ctx = useWorkspaceOptional();
+  const wsId = ctx?.workspace.workspace_id;
+  const supabase = createClient();
+
+  const { data: departments } = useQuery({
+    queryKey: ["departments", wsId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("department")
+        .select("department_id, name")
+        .eq("workspace_id", wsId!)
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true });
+      return data ?? [];
+    },
+    enabled: !!wsId,
+  });
+
+  const [selectedDeptId, setSelectedDeptId] = useState<string | undefined>();
+
+  // Auto-select first department when data loads
+  useEffect(() => {
+    if (departments?.length && !selectedDeptId) {
+      setSelectedDeptId(departments[0]!.department_id);
+    }
+  }, [departments, selectedDeptId]);
+
+  const { hours, isLoading, upsertHours } = useOperatingHours(selectedDeptId);
   const [localHours, setLocalHours] = useState<OperatingHoursEntry[]>(hours);
   const [hasChanges, setHasChanges] = useState(false);
 
@@ -46,6 +76,23 @@ export function OpeningHoursSettings() {
           staffing calculations.
         </p>
       </div>
+
+      {departments && departments.length > 1 && (
+        <div className="flex items-center gap-2">
+          <Label className="text-sm font-medium">Department</Label>
+          <select
+            className="bg-card border-border text-foreground rounded-md border px-3 py-1.5 text-sm"
+            value={selectedDeptId ?? ""}
+            onChange={(e) => setSelectedDeptId(e.target.value)}
+          >
+            {departments.map((d) => (
+              <option key={d.department_id} value={d.department_id}>
+                {d.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="space-y-3">
         {localHours.map((entry, index) => (

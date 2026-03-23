@@ -39,7 +39,7 @@ export const GhostShiftCard = React.memo(function GhostShiftCard({
   if (isCompact) {
     // Matches ShiftCardView compact: flex items-center, rounded-md, px-2 py-1
     return (
-      <div className="group border-brand-orange/40 bg-brand-orange/[0.06] relative flex animate-[walkai-fade-in_200ms_ease-out] items-center gap-2 overflow-visible rounded-md border border-dashed px-2 py-1 transition-colors duration-200">
+      <div className="group border-brand-orange/40 bg-brand-orange/[0.06] relative flex animate-[walkai-fade-in_200ms_ease-out] items-center gap-2 overflow-hidden rounded-md border border-dashed px-2 py-1 transition-colors duration-200">
         <div className="bg-brand-orange/50 absolute top-1 bottom-1 left-0 w-0.5 rounded-r-full" />
         <span className="text-brand-orange/80 truncate pl-1 text-[11px] leading-tight font-semibold">
           {label}
@@ -48,8 +48,8 @@ export const GhostShiftCard = React.memo(function GhostShiftCard({
           {time}
         </span>
 
-        {/* Approve/reject on hover */}
-        <div className="absolute -top-1.5 -right-1 z-10 flex gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+        {/* Approve/reject on hover — inline to avoid overflow clipping */}
+        <div className="ml-auto flex shrink-0 gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -92,7 +92,7 @@ export const GhostShiftCard = React.memo(function GhostShiftCard({
 
   // Normal mode — matches ShiftCardView: flex-col gap-2.5, rounded-lg, p-2.5 xl:p-3
   return (
-    <div className="group border-brand-orange/40 bg-brand-orange/[0.06] hover:bg-brand-orange/[0.1] relative flex animate-[walkai-fade-in_200ms_ease-out] flex-col gap-2.5 overflow-visible rounded-lg border border-dashed p-2.5 transition-colors duration-200 xl:p-3">
+    <div className="group border-brand-orange/40 bg-brand-orange/[0.06] hover:bg-brand-orange/[0.1] relative flex animate-[walkai-fade-in_200ms_ease-out] flex-col gap-2.5 overflow-hidden rounded-lg border border-dashed p-2.5 transition-colors duration-200 xl:p-3">
       <div className="bg-brand-orange/50 absolute top-2.5 bottom-2.5 left-0 w-1 animate-[walkai-pulse_2s_ease-in-out_infinite] rounded-r-full" />
 
       {/* Ghost label */}
@@ -125,14 +125,15 @@ export const GhostShiftCard = React.memo(function GhostShiftCard({
         {time}
       </div>
 
-      {/* Approve / Reject buttons — visible on hover */}
-      <div className="mt-1 flex gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+      {/* Approve / Reject buttons — absolute overlay on hover, no extra height */}
+      <div className="absolute right-1.5 bottom-1.5 z-20 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
         <button
           onClick={(e) => {
             e.stopPropagation();
             onApprove();
           }}
-          className="flex flex-1 items-center justify-center gap-1 rounded-md bg-emerald-500/15 py-1 text-[10px] font-medium text-emerald-400 transition-colors hover:bg-emerald-500/25"
+          className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-white shadow-md transition-colors hover:bg-emerald-400"
+          aria-label="Godkjenn"
         >
           <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
             <path
@@ -143,14 +144,14 @@ export const GhostShiftCard = React.memo(function GhostShiftCard({
               strokeLinejoin="round"
             />
           </svg>
-          Godkjenn
         </button>
         <button
           onClick={(e) => {
             e.stopPropagation();
             onReject();
           }}
-          className="flex flex-1 items-center justify-center gap-1 rounded-md bg-red-500/10 py-1 text-[10px] font-medium text-red-400/70 transition-colors hover:bg-red-500/20"
+          className="flex h-6 w-6 items-center justify-center rounded-full bg-red-500/80 text-white shadow-md transition-colors hover:bg-red-400"
+          aria-label="Avvis"
         >
           <svg width="8" height="8" viewBox="0 0 10 10" fill="none">
             <path
@@ -160,7 +161,6 @@ export const GhostShiftCard = React.memo(function GhostShiftCard({
               strokeLinecap="round"
             />
           </svg>
-          Avvis
         </button>
       </div>
     </div>

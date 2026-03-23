@@ -1,87 +1,280 @@
 "use client";
 
-import { X, Mail, Phone, Building2, Briefcase, Plus, Loader2 } from "lucide-react";
-import { useState, useContext, useEffect } from "react";
+import {
+  X,
+  Mail,
+  Building2,
+  Briefcase,
+  Plus,
+  Loader2,
+  Upload,
+  FileSpreadsheet,
+  UserPlus,
+  Users,
+  AlertCircle,
+  Trash2,
+} from "lucide-react";
+import { useState, useContext, useEffect, useCallback, useRef } from "react";
+import Papa from "papaparse";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import { createClient } from "@smartout/supabase/client";
+import { emit } from "@smartout/telemetry";
 import { toast } from "sonner";
+import { CsvMappingDialog } from "@/components/dashboard/wizard-steps/csv-column-mapper";
+import type { Department } from "./types";
+
+// ─── Types ──────────────────────────────────────────────────
+
+type InviteMode = "single" | "csv";
+
+type InviteEmploymentType = "employee" | "guest";
+
+type InviteRow = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  departmentId: string;
+  role: "employee" | "manager" | "admin";
+  inviteEmploymentType: InviteEmploymentType;
+  employmentCategory: string;
+  salaryType: string;
+  intendedWeeklyHours: string;
+  startDate: string;
+  payrollTemplateId: string;
+  extraData: Record<string, string>;
+  errors: string[];
+};
 
 interface InviteMemberDialogProps {
   isOpen: boolean;
   onClose: () => void;
+  departments: Department[];
+  onRefresh: () => void;
 }
 
-const inviteSchema = z.object({
-  fullName: z.string().min(2, "Name must be at least 2 characters"),
-  emailOrPhone: z.string().min(5, "Contact info is required"),
-  department_id: z.string().optional(),
-  role: z.enum(["employee", "manager", "admin"]),
-});
+// ─── Helpers ────────────────────────────────────────────────
 
-type InviteFormValues = z.infer<typeof inviteSchema>;
+function createEmptyRow(): InviteRow {
+  return {
+    id: crypto.randomUUID(),
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    departmentId: "",
+    role: "employee",
+    inviteEmploymentType: "employee",
+    employmentCategory: "",
+    salaryType: "",
+    intendedWeeklyHours: "",
+    startDate: "",
+    payrollTemplateId: "",
+    extraData: {},
+    errors: [],
+  };
+}
 
-export function InviteMemberDialog({ isOpen, onClose }: InviteMemberDialogProps) {
-  const { isDark, workspaceData } = useContext(DashboardContext);
-  const [method, setMethod] = useState<"email" | "phone">("email");
+function validateEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function validateRow(row: InviteRow): string[] {
+  const errors: string[] = [];
+  if (!row.firstName.trim()) errors.push("Fornavn mangler");
+  if (!row.lastName.trim()) errors.push("Etternavn mangler");
+  if (!row.email.trim()) errors.push("E-post mangler");
+  else if (!validateEmail(row.email.trim())) errors.push("Ugyldig e-post");
+  return errors;
+}
+
+// ─── Component ──────────────────────────────────────────────
+
+export function InviteMemberDialog({
+  isOpen,
+  onClose,
+  departments,
+  onRefresh,
+}: InviteMemberDialogProps) {
+  const { isDark, workspaceData, profileId } = useContext(DashboardContext);
+  const [mode, setMode] = useState<InviteMode>("single");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const supabase = createClient();
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<InviteFormValues>({
-    resolver: zodResolver(inviteSchema),
-    defaultValues: {
-      role: "employee",
-    },
-  });
+  // Single mode state
+  const [singleRow, setSingleRow] = useState<InviteRow>(createEmptyRow);
 
+  // CSV mode state
+  const [csvRows, setCsvRows] = useState<InviteRow[]>([]);
+  const [csvMappingOpen, setCsvMappingOpen] = useState(false);
+  const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
+  const [csvPreviewRows, setCsvPreviewRows] = useState<Record<string, string>[]>([]);
+  const [csvRawData, setCsvRawData] = useState<Record<string, string>[]>([]);
+  const [csvTotalCount, setCsvTotalCount] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Reset on close
   useEffect(() => {
     if (!isOpen) {
-      reset();
-      setMethod("email");
+      setMode("single");
+      setSingleRow(createEmptyRow());
+      setCsvRows([]);
+      setCsvHeaders([]);
+      setCsvPreviewRows([]);
+      setCsvRawData([]);
+      setCsvTotalCount(0);
     }
-  }, [isOpen, reset]);
+  }, [isOpen]);
 
-  if (!isOpen || !workspaceData) return null;
+  // ── CSV file handling ──
 
-  const onSubmit = async (data: InviteFormValues) => {
+  const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    Papa.parse<Record<string, string>>(file, {
+      header: true,
+      skipEmptyLines: true,
+      transformHeader: (h) => h.trim(),
+      complete: (results) => {
+        if (!results.data.length || !results.meta.fields?.length) {
+          toast.error("Ingen data funnet i filen");
+          return;
+        }
+        setCsvHeaders(results.meta.fields);
+        setCsvRawData(results.data);
+        setCsvPreviewRows(results.data.slice(0, 3));
+        setCsvTotalCount(results.data.length);
+        setCsvMappingOpen(true);
+      },
+      error: () => {
+        toast.error("Kunne ikke lese filen. Sjekk at det er en gyldig CSV-fil.");
+      },
+    });
+
+    // Reset input so same file can be re-selected
+    e.target.value = "";
+  }, []);
+
+  const handleMappingConfirm = useCallback(
+    (mapping: Record<string, string>) => {
+      const deptNameToId = new Map(departments.map((d) => [d.name.toLowerCase(), d.department_id]));
+
+      const rows: InviteRow[] = csvRawData.map((raw) => {
+        const row: InviteRow = createEmptyRow();
+        const extra: Record<string, string> = {};
+
+        for (const [csvHeader, fieldKey] of Object.entries(mapping)) {
+          if (fieldKey === "_skip" || !raw[csvHeader]) continue;
+          const value = raw[csvHeader].trim();
+
+          switch (fieldKey) {
+            case "firstName":
+              row.firstName = value;
+              break;
+            case "lastName":
+              row.lastName = value;
+              break;
+            case "email":
+              row.email = value;
+              break;
+            case "phone":
+              row.phone = value;
+              break;
+            case "departmentId": {
+              const deptId = deptNameToId.get(value.toLowerCase());
+              if (deptId) row.departmentId = deptId;
+              break;
+            }
+            default:
+              extra[fieldKey] = value;
+          }
+        }
+
+        row.extraData = extra;
+        row.errors = validateRow(row);
+        return row;
+      });
+
+      setCsvRows(rows);
+      setCsvMappingOpen(false);
+    },
+    [csvRawData, departments],
+  );
+
+  const removeCsvRow = useCallback((id: string) => {
+    setCsvRows((prev) => prev.filter((r) => r.id !== id));
+  }, []);
+
+  // ── Submit ──
+
+  const handleSubmit = useCallback(async () => {
+    if (!workspaceData) return;
+
+    const rows = mode === "single" ? [singleRow] : csvRows;
+
+    // Validate
+    const validated = rows.map((r) => ({ ...r, errors: validateRow(r) }));
+    const hasErrors = validated.some((r) => r.errors.length > 0);
+
+    if (mode === "single") {
+      setSingleRow(validated[0]!);
+    } else {
+      setCsvRows(validated);
+    }
+
+    if (hasErrors) {
+      toast.error("Rett opp feil før du sender invitasjoner");
+      return;
+    }
+
+    if (rows.length === 0) {
+      toast.error("Legg til minst én person");
+      return;
+    }
+
     setIsSubmitting(true);
+    const supabase = createClient();
+
     try {
-      // Check auth session
       const {
         data: { session },
       } = await supabase.auth.getSession();
-      if (!session) throw new Error("Not authenticated");
+      if (!session) throw new Error("Ikke autentisert");
 
-      // Split name rudimentary logic
-      const nameParts = data.fullName.trim().split(" ");
-      const firstName = nameParts[0];
-      const lastName = nameParts.slice(1).join(" ");
+      // Resolve inviter profile
+      const { data: inviterProfile } = await supabase
+        .from("profile")
+        .select("profile_id")
+        .eq("workspace_id", workspaceData.workspace_id)
+        .eq("user_id", profileId ?? "")
+        .single();
 
-      // Assuming email method for now as SMS might need deeper integration setup
-      const email =
-        method === "email"
-          ? data.emailOrPhone
-          : `${data.emailOrPhone.replace(/\\s/g, "")}@placeholder-sms.smartout.io`;
+      const inviteRecords = rows.map((r) => ({
+        email: r.email.trim(),
+        first_name: r.firstName.trim(),
+        last_name: r.lastName.trim(),
+        role: r.role,
+        department_ids: r.departmentId ? [r.departmentId] : [],
+        invite_employment_type: r.inviteEmploymentType,
+        metadata:
+          r.inviteEmploymentType === "employee"
+            ? {
+                employment_category: r.employmentCategory || undefined,
+                salary_type: r.salaryType || undefined,
+                intended_weekly_hours: r.intendedWeeklyHours
+                  ? Number(r.intendedWeeklyHours)
+                  : undefined,
+                start_date: r.startDate || undefined,
+                payroll_template_id: r.payrollTemplateId || undefined,
+              }
+            : undefined,
+      }));
 
       const payload = {
         workspace_id: workspaceData.workspace_id,
         company_id: workspaceData.company_id,
-        invites: [
-          {
-            email,
-            first_name: firstName,
-            last_name: lastName,
-            role: data.role,
-            department_ids: data.department_id ? [data.department_id] : [],
-          },
-        ],
+        invites: inviteRecords,
       };
 
       const response = await supabase.functions.invoke("create-invitation", {
@@ -92,181 +285,552 @@ export function InviteMemberDialog({ isOpen, onClose }: InviteMemberDialogProps)
         throw new Error(response.error.message);
       }
 
-      toast.success("Invitation sent successfully!");
-      onClose();
+      void emit({
+        event: "button clicked",
+        workspace_id: workspaceData.workspace_id,
+        actor_id: inviterProfile?.profile_id ?? profileId ?? "",
+        properties: {
+          trackingId: mode === "csv" ? "bulk-invite-csv" : "single-invite",
+          context: `invited ${rows.length} members`,
+        },
+      });
 
-      // TODO: Ideally we should invalidate the people/invites cache here
+      toast.success(
+        rows.length === 1 ? "Invitasjon opprettet" : `${rows.length} invitasjoner opprettet`,
+      );
+      onRefresh();
+      onClose();
     } catch (error: unknown) {
-      console.error("Failed to send invite:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "Failed to send invitation. Please try again.";
-      toast.error(errorMessage);
+      console.error("Failed to create invitations:", error);
+      toast.error(error instanceof Error ? error.message : "Kunne ikke opprette invitasjoner");
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [mode, singleRow, csvRows, workspaceData, profileId, onRefresh, onClose]);
+
+  if (!isOpen || !workspaceData) return null;
+
+  const validCsvCount = csvRows.filter((r) => r.errors.length === 0).length;
 
   return (
-    <div
-      className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${isDark ? "bg-zinc-950/80" : "bg-zinc-800/30"} animate-in fade-in backdrop-blur-sm duration-200`}
-    >
+    <>
       <div
-        className={`animate-in zoom-in-95 flex w-full max-w-md flex-col overflow-hidden rounded-2xl border shadow-2xl duration-200 ${isDark ? "border-zinc-800 bg-zinc-900" : "border-zinc-200 bg-white"}`}
+        className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${
+          isDark ? "bg-zinc-950/80" : "bg-zinc-800/30"
+        } animate-in fade-in backdrop-blur-sm duration-200`}
       >
         <div
-          className={`flex items-center justify-between border-b px-6 py-5 ${isDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-zinc-50"}`}
+          className={`animate-in zoom-in-95 flex w-full flex-col overflow-hidden rounded-2xl border shadow-2xl duration-200 ${
+            mode === "csv" && csvRows.length > 0 ? "max-w-2xl" : "max-w-md"
+          } ${isDark ? "border-zinc-800 bg-zinc-900" : "border-zinc-200 bg-white"}`}
         >
-          <div>
-            <h2
-              className={`text-lg leading-tight font-bold ${isDark ? "text-white" : "text-zinc-900"}`}
-            >
-              Invite Team Member
-            </h2>
-            <p className={`text-sm ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
-              Send an invitation to join {workspaceData?.name || "the workspace"}.
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className={`rounded-full p-2 transition-colors ${isDark ? "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200" : "text-zinc-500 hover:bg-zinc-200 hover:text-zinc-900"}`}
+          {/* Header */}
+          <div
+            className={`flex items-center justify-between border-b px-6 py-5 ${
+              isDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-zinc-50"
+            }`}
           >
-            <X className="h-4 w-4" />
-          </button>
+            <div>
+              <h2
+                className={`text-lg leading-tight font-bold ${
+                  isDark ? "text-white" : "text-zinc-900"
+                }`}
+              >
+                Legg til ansatte
+              </h2>
+              <p className={`text-sm ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
+                Inviter til {workspaceData.name}
+              </p>
+            </div>
+            <button
+              onClick={onClose}
+              className={`rounded-full p-2 transition-colors ${
+                isDark
+                  ? "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
+                  : "text-zinc-500 hover:bg-zinc-200 hover:text-zinc-900"
+              }`}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          {/* Mode toggle */}
+          <div className="px-6 pt-5">
+            <div
+              className={`flex rounded-lg border p-1 ${
+                isDark ? "border-zinc-800 bg-zinc-950" : "border-zinc-200 bg-zinc-50"
+              }`}
+            >
+              <button
+                type="button"
+                onClick={() => setMode("single")}
+                className={`flex flex-1 items-center justify-center gap-2 rounded-md py-2 text-sm font-medium transition-all ${
+                  mode === "single"
+                    ? isDark
+                      ? "bg-zinc-800 text-white shadow-sm"
+                      : "bg-white text-zinc-900 shadow-sm"
+                    : isDark
+                      ? "text-zinc-400 hover:text-zinc-300"
+                      : "text-zinc-400 hover:text-zinc-700"
+                }`}
+              >
+                <UserPlus className="h-4 w-4" /> Enkelt
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode("csv")}
+                className={`flex flex-1 items-center justify-center gap-2 rounded-md py-2 text-sm font-medium transition-all ${
+                  mode === "csv"
+                    ? isDark
+                      ? "bg-zinc-800 text-white shadow-sm"
+                      : "bg-white text-zinc-900 shadow-sm"
+                    : isDark
+                      ? "text-zinc-400 hover:text-zinc-300"
+                      : "text-zinc-400 hover:text-zinc-700"
+                }`}
+              >
+                <FileSpreadsheet className="h-4 w-4" /> CSV-import
+              </button>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="max-h-[60vh] overflow-y-auto px-6 py-5">
+            {mode === "single" ? (
+              <SingleInviteForm
+                row={singleRow}
+                onChange={setSingleRow}
+                departments={departments}
+                isDark={isDark}
+              />
+            ) : (
+              <CsvImportView
+                rows={csvRows}
+                departments={departments}
+                isDark={isDark}
+                onUploadClick={() => fileInputRef.current?.click()}
+                onRemoveRow={removeCsvRow}
+              />
+            )}
+          </div>
+
+          {/* Footer */}
+          <div
+            className={`flex items-center justify-between border-t px-6 py-4 ${
+              isDark ? "border-zinc-800 bg-zinc-950" : "border-zinc-200 bg-zinc-50"
+            }`}
+          >
+            <div>
+              {mode === "csv" && csvRows.length > 0 && (
+                <span className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+                  {validCsvCount} av {csvRows.length} gyldige
+                </span>
+              )}
+            </div>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                  isDark
+                    ? "text-zinc-400 hover:bg-zinc-800 hover:text-white"
+                    : "text-zinc-600 hover:bg-zinc-200 hover:text-zinc-900"
+                }`}
+                disabled={isSubmitting}
+              >
+                Avbryt
+              </button>
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={
+                  isSubmitting ||
+                  (mode === "single" && !singleRow.firstName && !singleRow.email) ||
+                  (mode === "csv" && csvRows.length === 0)
+                }
+                className="flex items-center gap-2 rounded-lg bg-orange-500 px-5 py-2 text-sm font-semibold text-white transition-all hover:bg-orange-400 hover:shadow-[0_0_20px_rgba(249,115,22,0.3)] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isSubmitting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Plus className="h-4 w-4" />
+                )}
+                {isSubmitting
+                  ? "Sender..."
+                  : mode === "csv" && csvRows.length > 1
+                    ? `Send ${csvRows.length} invitasjoner`
+                    : "Send invitasjon"}
+              </button>
+            </div>
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <div className="space-y-6 p-6">
-            <div
-              className={`flex rounded-lg border p-1 ${isDark ? "border-zinc-800 bg-zinc-950" : "border-zinc-200 bg-white"}`}
-            >
-              <button
-                type="button"
-                onClick={() => setMethod("email")}
-                className={`flex flex-1 items-center justify-center gap-2 rounded-md py-2 text-sm font-medium transition-all ${
-                  method === "email"
-                    ? isDark
-                      ? "bg-zinc-800 text-white shadow-sm"
-                      : "bg-zinc-100 text-zinc-900 shadow-sm"
-                    : isDark
-                      ? "text-zinc-400 hover:text-zinc-300"
-                      : "text-zinc-400 hover:text-zinc-700"
-                }`}
-              >
-                <Mail className="h-4 w-4" /> Email
-              </button>
-              <button
-                type="button"
-                onClick={() => setMethod("phone")}
-                className={`flex flex-1 items-center justify-center gap-2 rounded-md py-2 text-sm font-medium transition-all ${
-                  method === "phone"
-                    ? isDark
-                      ? "bg-zinc-800 text-white shadow-sm"
-                      : "bg-zinc-100 text-zinc-900 shadow-sm"
-                    : isDark
-                      ? "text-zinc-400 hover:text-zinc-300"
-                      : "text-zinc-400 hover:text-zinc-700"
-                }`}
-              >
-                <Phone className="h-4 w-4" /> SMS
-              </button>
-            </div>
+        {/* Hidden file input for CSV */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".csv,.tsv,.txt"
+          className="hidden"
+          onChange={handleFileUpload}
+        />
+      </div>
 
-            <div className="space-y-4">
-              <div className="space-y-1.5">
-                <label
-                  className={`text-xs font-semibold tracking-wider uppercase ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
-                >
-                  Full Name
-                </label>
-                <input
-                  {...register("fullName")}
-                  type="text"
-                  placeholder="e.g. Kari Nordmann"
-                  className={`w-full rounded-lg px-4 py-2.5 text-sm transition-all focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none ${isDark ? "border-zinc-800 bg-zinc-950 text-white placeholder:text-zinc-600" : "border-zinc-200 bg-white text-zinc-900 placeholder:text-zinc-400"}`}
-                />
-                {errors.fullName && (
-                  <p className="mt-1 text-xs text-red-500">{errors.fullName.message}</p>
-                )}
-              </div>
+      {/* CSV Column Mapping Dialog */}
+      <CsvMappingDialog
+        open={csvMappingOpen}
+        onOpenChange={setCsvMappingOpen}
+        isDark={isDark}
+        csvHeaders={csvHeaders}
+        csvPreviewRows={csvPreviewRows}
+        totalRowCount={csvTotalCount}
+        onConfirm={handleMappingConfirm}
+      />
+    </>
+  );
+}
 
-              <div className="space-y-1.5">
-                <label
-                  className={`text-xs font-semibold tracking-wider uppercase ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
-                >
-                  {method === "email" ? "Email Address" : "Phone Number"}
-                </label>
-                <input
-                  {...register("emailOrPhone")}
-                  type={method === "email" ? "email" : "tel"}
-                  placeholder={method === "email" ? "kari@example.com" : "+47 900 00 000"}
-                  className={`w-full rounded-lg px-4 py-2.5 text-sm transition-all focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none ${isDark ? "border-zinc-800 bg-zinc-950 text-white placeholder:text-zinc-600" : "border-zinc-200 bg-white text-zinc-900 placeholder:text-zinc-400"}`}
-                />
-                {errors.emailOrPhone && (
-                  <p className="mt-1 text-xs text-red-500">{errors.emailOrPhone.message}</p>
-                )}
-              </div>
+// ─── Single Invite Form ─────────────────────────────────────
 
-              <div className="grid grid-cols-2 gap-4 pt-2">
-                <div className="space-y-1.5">
-                  <label
-                    className={`flex items-center gap-1.5 text-xs font-semibold tracking-wider uppercase ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
-                  >
-                    <Building2 className="h-3.5 w-3.5" /> Department
-                  </label>
-                  <select
-                    {...register("department_id")}
-                    className={`w-full appearance-none rounded-lg px-3 py-2.5 text-sm focus:border-orange-500/50 focus:outline-none ${isDark ? "border-zinc-800 bg-zinc-950 text-white" : "border-zinc-200 bg-white text-zinc-900"}`}
-                  >
-                    <option value="">No Department</option>
-                    {/* TODO: Map actual departments from DB */}
-                    <option value="dept-1">Kitchen</option>
-                    <option value="dept-2">Service</option>
-                  </select>
-                </div>
-                <div className="space-y-1.5">
-                  <label
-                    className={`flex items-center gap-1.5 text-xs font-semibold tracking-wider uppercase ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
-                  >
-                    <Briefcase className="h-3.5 w-3.5" /> System Role
-                  </label>
-                  <select
-                    {...register("role")}
-                    className={`w-full appearance-none rounded-lg px-3 py-2.5 text-sm focus:border-orange-500/50 focus:outline-none ${isDark ? "border-zinc-800 bg-zinc-950 text-white" : "border-zinc-200 bg-white text-zinc-900"}`}
-                  >
-                    <option value="employee">Employee</option>
-                    <option value="manager">Manager</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          </div>
+function SingleInviteForm({
+  row,
+  onChange,
+  departments,
+  isDark,
+}: {
+  row: InviteRow;
+  onChange: (row: InviteRow) => void;
+  departments: Department[];
+  isDark: boolean;
+}) {
+  const update = (field: Partial<InviteRow>) => onChange({ ...row, ...field });
 
-          <div
-            className={`flex justify-end gap-3 border-t px-6 py-4 ${isDark ? "border-zinc-800 bg-zinc-950" : "border-zinc-200 bg-zinc-50"}`}
+  const inputClass = `w-full rounded-lg px-4 py-2.5 text-sm transition-all focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none ${
+    isDark
+      ? "border-zinc-800 bg-zinc-950 text-white placeholder:text-zinc-600"
+      : "border-zinc-200 bg-white text-zinc-900 placeholder:text-zinc-400"
+  }`;
+
+  const labelClass = `text-xs font-semibold tracking-wider uppercase ${
+    isDark ? "text-zinc-400" : "text-zinc-500"
+  }`;
+
+  const selectClass = `w-full appearance-none rounded-lg px-3 py-2.5 text-sm focus:border-orange-500/50 focus:outline-none ${
+    isDark ? "border-zinc-800 bg-zinc-950 text-white" : "border-zinc-200 bg-white text-zinc-900"
+  }`;
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <label className={labelClass}>Fornavn</label>
+          <input
+            type="text"
+            value={row.firstName}
+            onChange={(e) => update({ firstName: e.target.value })}
+            placeholder="Kari"
+            className={inputClass}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <label className={labelClass}>Etternavn</label>
+          <input
+            type="text"
+            value={row.lastName}
+            onChange={(e) => update({ lastName: e.target.value })}
+            placeholder="Nordmann"
+            className={inputClass}
+          />
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <label className={`flex items-center gap-1.5 ${labelClass}`}>
+          <Mail className="h-3.5 w-3.5" /> E-post
+        </label>
+        <input
+          type="email"
+          value={row.email}
+          onChange={(e) => update({ email: e.target.value })}
+          placeholder="kari@example.com"
+          className={inputClass}
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <label className={labelClass}>Telefon</label>
+        <input
+          type="tel"
+          value={row.phone}
+          onChange={(e) => update({ phone: e.target.value })}
+          placeholder="+47 900 00 000"
+          className={inputClass}
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <label className={`flex items-center gap-1.5 ${labelClass}`}>
+            <Building2 className="h-3.5 w-3.5" /> Avdeling
+          </label>
+          <select
+            value={row.departmentId}
+            onChange={(e) => update({ departmentId: e.target.value })}
+            className={selectClass}
           >
+            <option value="">Ingen avdeling</option>
+            {departments.map((d) => (
+              <option key={d.department_id} value={d.department_id}>
+                {d.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="space-y-1.5">
+          <label className={`flex items-center gap-1.5 ${labelClass}`}>
+            <Briefcase className="h-3.5 w-3.5" /> Rolle
+          </label>
+          <select
+            value={row.role}
+            onChange={(e) => update({ role: e.target.value as InviteRow["role"] })}
+            className={selectClass}
+          >
+            <option value="employee">Ansatt</option>
+            <option value="manager">Leder</option>
+            <option value="admin">Administrator</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Employment type toggle */}
+      <div className="space-y-1.5">
+        <label className={labelClass}>Type</label>
+        <div className="grid grid-cols-2 gap-2">
+          {(["employee", "guest"] as const).map((type) => (
             <button
+              key={type}
               type="button"
-              onClick={onClose}
-              className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${isDark ? "text-zinc-400 hover:bg-zinc-800 hover:text-white" : "text-zinc-600 hover:bg-zinc-200 hover:text-zinc-900"}`}
-              disabled={isSubmitting}
+              onClick={() => update({ inviteEmploymentType: type })}
+              className={`rounded-lg px-3 py-2 text-sm font-medium transition-all ${
+                row.inviteEmploymentType === type
+                  ? "bg-orange-500 text-white"
+                  : isDark
+                    ? "border border-zinc-800 bg-zinc-950 text-zinc-400 hover:border-zinc-700"
+                    : "border border-zinc-200 bg-white text-zinc-500 hover:border-zinc-300"
+              }`}
             >
-              Cancel
+              {type === "employee" ? "Ansatt" : "Gjest"}
             </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="flex items-center gap-2 rounded-lg bg-orange-500 px-5 py-2 text-sm font-semibold text-white transition-all hover:bg-orange-400 hover:shadow-[0_0_20px_rgba(249,115,22,0.3)] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {isSubmitting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Plus className="h-4 w-4" />
-              )}
-              {isSubmitting ? "Sending..." : "Send Invite"}
-            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Employment fields — only for employee type */}
+      {row.inviteEmploymentType === "employee" && (
+        <div className="space-y-3 rounded-lg border border-dashed border-zinc-700/30 p-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className={labelClass}>Stillingstype</label>
+              <select
+                value={row.employmentCategory}
+                onChange={(e) => update({ employmentCategory: e.target.value })}
+                className={selectClass}
+              >
+                <option value="">Velg...</option>
+                <option value="fast">Fast</option>
+                <option value="deltid">Deltid</option>
+                <option value="tilkalling">Tilkalling</option>
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label className={labelClass}>Lønnstype</label>
+              <select
+                value={row.salaryType}
+                onChange={(e) => update({ salaryType: e.target.value })}
+                className={selectClass}
+              >
+                <option value="">Velg...</option>
+                <option value="hourly">Timelønn</option>
+                <option value="monthly">Månedslønn</option>
+              </select>
+            </div>
           </div>
-        </form>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className={labelClass}>Timer/uke</label>
+              <input
+                type="number"
+                value={row.intendedWeeklyHours}
+                onChange={(e) => update({ intendedWeeklyHours: e.target.value })}
+                placeholder="37.5"
+                className={inputClass}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className={labelClass}>Startdato</label>
+              <input
+                type="date"
+                value={row.startDate}
+                onChange={(e) => update({ startDate: e.target.value })}
+                className={inputClass}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {row.errors.length > 0 && (
+        <div className="flex items-start gap-2 rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-400">
+          <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          <span>{row.errors.join(", ")}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── CSV Import View ────────────────────────────────────────
+
+function CsvImportView({
+  rows,
+  departments,
+  isDark,
+  onUploadClick,
+  onRemoveRow,
+}: {
+  rows: InviteRow[];
+  departments: Department[];
+  isDark: boolean;
+  onUploadClick: () => void;
+  onRemoveRow: (id: string) => void;
+}) {
+  const deptMap = new Map(departments.map((d) => [d.department_id, d.name]));
+
+  if (rows.length === 0) {
+    return (
+      <div className="flex flex-col items-center gap-4 py-8">
+        <div
+          className={`rounded-2xl border-2 border-dashed p-6 ${
+            isDark ? "border-zinc-800" : "border-zinc-200"
+          }`}
+        >
+          <Upload className={`h-8 w-8 ${isDark ? "text-zinc-600" : "text-zinc-300"}`} />
+        </div>
+        <div className="text-center">
+          <p className={`text-sm font-medium ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
+            Last opp CSV-fil med ansatte
+          </p>
+          <p className={`mt-1 text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+            Obligatoriske kolonner: fornavn, etternavn, e-post
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onUploadClick}
+          className="flex items-center gap-2 rounded-lg bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-orange-400"
+        >
+          <Upload className="h-4 w-4" />
+          Velg fil
+        </button>
+      </div>
+    );
+  }
+
+  const errorCount = rows.filter((r) => r.errors.length > 0).length;
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Users className={`h-4 w-4 ${isDark ? "text-zinc-400" : "text-zinc-500"}`} />
+          <span className={`text-sm font-medium ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
+            {rows.length} rader importert
+          </span>
+          {errorCount > 0 && (
+            <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-[10px] font-medium text-red-400">
+              {errorCount} feil
+            </span>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={onUploadClick}
+          className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+            isDark
+              ? "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-300"
+              : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700"
+          }`}
+        >
+          <Upload className="h-3 w-3" />
+          Ny fil
+        </button>
+      </div>
+
+      <div
+        className={`overflow-hidden rounded-xl border ${
+          isDark ? "border-zinc-800" : "border-zinc-200"
+        }`}
+      >
+        <table className="w-full text-xs">
+          <thead>
+            <tr className={isDark ? "bg-zinc-900/70 text-zinc-500" : "bg-zinc-50 text-zinc-400"}>
+              <th className="px-3 py-2 text-left font-semibold">Navn</th>
+              <th className="px-3 py-2 text-left font-semibold">E-post</th>
+              <th className="px-3 py-2 text-left font-semibold">Avdeling</th>
+              <th className="px-3 py-2 text-left font-semibold">Rolle</th>
+              <th className="w-8 px-2 py-2" />
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => {
+              const hasError = row.errors.length > 0;
+              return (
+                <tr
+                  key={row.id}
+                  className={`border-t ${
+                    hasError
+                      ? isDark
+                        ? "border-red-500/20 bg-red-950/10"
+                        : "border-red-200 bg-red-50/50"
+                      : isDark
+                        ? "border-zinc-800"
+                        : "border-zinc-200"
+                  }`}
+                >
+                  <td className="px-3 py-2">
+                    <span className={isDark ? "text-zinc-300" : "text-zinc-700"}>
+                      {row.firstName} {row.lastName}
+                    </span>
+                    {hasError && (
+                      <p className="mt-0.5 text-[10px] text-red-400">{row.errors.join(", ")}</p>
+                    )}
+                  </td>
+                  <td className={`px-3 py-2 ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
+                    {row.email}
+                  </td>
+                  <td className={`px-3 py-2 ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
+                    {deptMap.get(row.departmentId) ?? "—"}
+                  </td>
+                  <td className={`px-3 py-2 ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
+                    {row.role === "admin" ? "Admin" : row.role === "manager" ? "Leder" : "Ansatt"}
+                  </td>
+                  <td className="px-2 py-2">
+                    <button
+                      type="button"
+                      onClick={() => onRemoveRow(row.id)}
+                      className={`rounded p-1 transition-colors ${
+                        isDark
+                          ? "text-zinc-600 hover:bg-zinc-800 hover:text-zinc-400"
+                          : "text-zinc-300 hover:bg-zinc-100 hover:text-zinc-500"
+                      }`}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
     </div>
   );

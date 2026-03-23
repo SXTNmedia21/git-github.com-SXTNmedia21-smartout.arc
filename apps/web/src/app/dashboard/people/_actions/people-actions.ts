@@ -66,6 +66,44 @@ export async function cancelInvitation(invitationId: string) {
   if (error) throw new Error(error.message);
 }
 
+export async function resendInvitation(workspaceId: string, invitationId: string) {
+  const supabase = await getClient();
+
+  // Fetch the original invitation details
+  const { data: original, error: fetchError } = await supabase
+    .from("invitation")
+    .select("email, phone, first_name, last_name, role, department_ids, team_ids, invite_type")
+    .eq("invitation_id", invitationId)
+    .eq("status", "pending")
+    .single();
+
+  if (fetchError || !original) {
+    throw new Error("Invitation not found or already accepted/cancelled");
+  }
+
+  // Cancel the old invitation
+  const { error: cancelError } = await supabase
+    .from("invitation")
+    .update({ status: "cancelled" } satisfies TablesUpdate<"invitation">)
+    .eq("invitation_id", invitationId);
+
+  if (cancelError) throw new Error(cancelError.message);
+
+  // Create a new invitation with fresh token via Edge Function
+  const { data, error } = await supabase.functions.invoke("create-invitation", {
+    body: {
+      workspace_id: workspaceId,
+      invite_type: original.invite_type ?? "email",
+      email: original.email,
+      phone: original.phone,
+      role: original.role,
+    },
+  });
+
+  if (error) throw new Error(`Failed to resend: ${error.message}`);
+  return data;
+}
+
 export async function bulkUpdateProfiles(
   profileIds: string[],
   workspaceId: string,

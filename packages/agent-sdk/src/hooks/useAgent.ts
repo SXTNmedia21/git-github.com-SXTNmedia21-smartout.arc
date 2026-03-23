@@ -87,6 +87,15 @@ export function useAgent(config: AgentConfig): AgentSession {
     configRef.current = config;
   }, [config]);
 
+  // Re-register tool implementations when tools change (e.g. page navigation adds schedule tools)
+  useEffect(() => {
+    const session = sessionRef.current;
+    if (!session || !config.tools?.implementations) return;
+    for (const [name, impl] of Object.entries(config.tools.implementations)) {
+      session.registerTool(name, impl);
+    }
+  }, [config.tools]);
+
   // Debug helper
   const addDebug = useCallback(
     (type: DebugEntry["type"], content: string) => {
@@ -115,6 +124,24 @@ export function useAgent(config: AgentConfig): AgentSession {
       if (currentTools?.implementations) {
         for (const [name, impl] of Object.entries(currentTools.implementations)) {
           session.registerTool(name, impl);
+        }
+      }
+
+      // Register fallback impls for any definitions without an implementation
+      // (e.g. schedule tools defined but page not yet mounted — impl arrives later via dynamic registration)
+      if (currentTools?.definitions) {
+        const implNames = new Set(Object.keys(currentTools.implementations ?? {}));
+        for (const def of currentTools.definitions) {
+          const toolName = (def as { temporaryTool?: { modelToolName?: string } }).temporaryTool
+            ?.modelToolName;
+          if (toolName && !implNames.has(toolName)) {
+            session.registerTool(
+              toolName,
+              () =>
+                `This tool requires navigating to the correct page first. ` +
+                `Tell the user: "Naviger til riktig side først, så kan jeg gjøre dette."`,
+            );
+          }
         }
       }
 

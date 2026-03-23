@@ -305,7 +305,7 @@ WITHIN 24 HOURS:
 | ------------------------- | --------------------------------------------------------- | ------------------------------------- |
 | Security Protocol         | `docs/protocols/SECURITY.md`                              | Rules and checklists (the law)        |
 | Secret API Infrastructure | `docs/architecture/SMARTOUT_SECRET_API_INFRASTRUCTURE.md` | DB schema, key generation, validation |
-| Admin Key Management      | `docs/architecture/SMARTOUT_ADMIN_KEY_MANAGEMENT.md`      | Dashboard UI flows                    |
+| Admin Key Management      | `docs/needs-rewrite/SMARTOUT_ADMIN_KEY_MANAGEMENT.md`     | Dashboard UI flows (pending rewrite)  |
 | Environment Variables     | `docs/reference/ENV_VARS.md`                              | Full variable list with validation    |
 | Vault helper              | `packages/supabase/src/vault.ts`                          | Shared `getServiceKey()`              |
 | Stage-engine secrets      | `services/stage-engine/src/secrets.ts`                    | Startup loader with env fallback      |

@@ -70,8 +70,13 @@ export async function POST(req: NextRequest) {
       const formData = new FormData();
       formData.append("file", fc.blob, fc.fileName);
 
+      const fetchHeaders: Record<string, string> = {};
+      const scraplingToken = process.env.SCRAPLING_AUTH_TOKEN;
+      if (scraplingToken) fetchHeaders["Authorization"] = `Bearer ${scraplingToken}`;
+
       const res = await fetch(`${scraplingUrl}/extract/document`, {
         method: "POST",
+        headers: fetchHeaders,
         body: formData,
       });
 

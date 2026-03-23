@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
+import { emit } from "@smartout/telemetry";
 import { dashboardKeys } from "./dashboard-keys";
 
 // ── Types ────────────────────────────────────────────────
@@ -86,8 +87,15 @@ export function useLeaderPulse() {
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, { pulseId }) => {
       queryClient.invalidateQueries({ queryKey });
+
+      void emit({
+        event: "leader_pulse answered",
+        workspace_id: workspaceId ?? null,
+        actor_id: "",
+        properties: { data: { pulse_id: pulseId } },
+      });
     },
   });
 
@@ -105,8 +113,15 @@ export function useLeaderPulse() {
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, { pulseId }) => {
       queryClient.invalidateQueries({ queryKey });
+
+      void emit({
+        event: "leader_pulse dismissed",
+        workspace_id: workspaceId ?? null,
+        actor_id: "",
+        properties: { data: { pulse_id: pulseId } },
+      });
     },
   });
 

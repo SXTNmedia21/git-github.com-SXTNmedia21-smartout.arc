@@ -1,8 +1,11 @@
 "use client";
 
+import { useContext } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
+import { emit } from "@smartout/telemetry";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { dashboardKeys } from "../../_hooks/dashboard-keys";
 import { toast } from "sonner";
 
@@ -18,6 +21,7 @@ export type Season = {
   color: string | null;
   icon: string | null;
   description: string | null;
+  planning_cycle_id: string | null;
 };
 
 type CreateSeasonInput = {
@@ -40,6 +44,7 @@ function toSlug(value: string): string {
 export function useSeasons() {
   const ctx = useWorkspaceOptional();
   const wsId = ctx?.workspace.workspace_id;
+  const { profileId } = useContext(DashboardContext);
   const supabase = createClient();
   const queryClient = useQueryClient();
 
@@ -49,7 +54,7 @@ export function useSeasons() {
       const { data, error } = await supabase
         .from("season")
         .select(
-          "season_id, name, slug, season_type, start_date, end_date, status, is_default, color, icon, description",
+          "season_id, name, slug, season_type, start_date, end_date, status, is_default, color, icon, description, planning_cycle_id",
         )
         .eq("workspace_id", wsId!)
         .order("start_date", { ascending: false });
@@ -86,14 +91,27 @@ export function useSeasons() {
           status: "draft",
         })
         .select(
-          "season_id, name, slug, season_type, start_date, end_date, status, is_default, color, icon, description",
+          "season_id, name, slug, season_type, start_date, end_date, status, is_default, color, icon, description, planning_cycle_id",
         )
         .single();
 
       if (error) throw new Error(error.message);
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data, { name }) => {
+      void emit({
+        event: "season created",
+        workspace_id: wsId ?? null,
+        actor_id: profileId ?? "",
+        properties: {
+          entity: {
+            entity_type: "season",
+            entity_id: data.season_id,
+            entity_label: name,
+          },
+          data: { name, status: "draft" },
+        },
+      });
       queryClient.invalidateQueries({
         queryKey: dashboardKeys.seasons(wsId ?? "none"),
       });

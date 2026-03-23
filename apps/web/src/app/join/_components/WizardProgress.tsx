@@ -5,12 +5,12 @@ import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const STEPS = [
-  { label: "Konto", optional: false },
-  { label: "Bedrift", optional: false },
-  { label: "Identitet", optional: false },
-  { label: "Drift", optional: false },
-  { label: "Meny", optional: true },
-  { label: "Team", optional: true },
+  { label: "Konto" },
+  { label: "Bedrift" },
+  { label: "Identitet" },
+  { label: "Drift" },
+  { label: "Meny" },
+  { label: "Team" },
 ];
 
 export function WizardProgress() {
@@ -55,9 +55,6 @@ export function WizardProgress() {
                 >
                   {step.label}
                 </span>
-                {step.optional && (
-                  <span className="text-muted-foreground text-[10px]">(valgfritt)</span>
-                )}
               </div>
 
               {/* Connecting line */}

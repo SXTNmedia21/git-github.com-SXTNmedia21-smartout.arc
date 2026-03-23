@@ -27,14 +27,18 @@ const SOURCE_TO_TABLE: Record<ReportDataSource, string> = {
  * These are the columns we fetch for building report data.
  */
 const SOURCE_COLUMNS: Record<ReportDataSource, string> = {
-  profiles:
-    "profile_id, first_name, last_name, email, role, status, department_id, team_id, created_at",
+  profiles: "profile_id, display_name, role, status, department_id, team_id, created_at",
   departments: "department_id, name, location_id, created_at",
   teams: "team_id, name, department_id, leader_profile_id, created_at",
   locations: "location_id, name, address, created_at",
   protocols: "protocol_id, title, type, department_id, is_active, created_at",
   protocol_assignments: "assignment_id, protocol_id, profile_id, status, completed_at, created_at",
 };
+
+/**
+ * Tables that lack a direct workspace_id column and need a join-through filter.
+ */
+const NEEDS_JOIN_FILTER = new Set<ReportDataSource>(["protocol_assignments"]);
 
 const ReportConfigSchema = z.object({
   data_source: z.enum([
@@ -263,12 +267,19 @@ export const previewReport = defineTool({
       return JSON.stringify({ error: `Unknown data source: ${config.data_source}` });
     }
 
-    const columns = SOURCE_COLUMNS[config.data_source as ReportDataSource];
-    let query = ctx.supabase
-      .from(table)
-      .select(columns)
-      .eq("workspace_id", ctx.workspaceId)
-      .limit(1000);
+    const dataSource = config.data_source as ReportDataSource;
+    const needsJoin = NEEDS_JOIN_FILTER.has(dataSource);
+    // protocol_assignment lacks workspace_id — join through profile for workspace scoping
+    const columns = needsJoin
+      ? `${SOURCE_COLUMNS[dataSource]}, profile!inner(workspace_id)`
+      : SOURCE_COLUMNS[dataSource];
+    let query = ctx.supabase.from(table).select(columns).limit(1000);
+
+    if (needsJoin) {
+      query = query.eq("profile.workspace_id", ctx.workspaceId);
+    } else {
+      query = query.eq("workspace_id", ctx.workspaceId);
+    }
 
     // Apply filters — cast to ReportFilter[] since Zod schema matches
     query = applyFilters(query, config.filters as ReportConfig["filters"]);

@@ -37,7 +37,7 @@ type PeopleRowActionsProps = {
   onRoleChange: (profileId: string, newRole: string) => void;
   onDepartmentChange: (profileId: string, departmentId: string) => void;
   onConfirmAction: (action: ConfirmAction) => void;
-  onResendInvite: (email: string) => void;
+  onResendInvite: (invitationId: string, email: string) => void;
 };
 
 const ROLE_HIERARCHY: Record<ProfileRole, ProfileRole[]> = {
@@ -105,7 +105,7 @@ export function PeopleRowActions({
             </DropdownMenuItem>
             {isAdmin && (
               <>
-                <DropdownMenuItem onClick={() => onResendInvite(employee.email)}>
+                <DropdownMenuItem onClick={() => onResendInvite(employee.id, employee.email)}>
                   <Send className="mr-2 h-4 w-4" />
                   Resend Invite
                 </DropdownMenuItem>

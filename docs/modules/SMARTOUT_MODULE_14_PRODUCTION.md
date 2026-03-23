@@ -5,7 +5,7 @@ version: "1.0"
 status: canonical
 layer: module
 created: 2026-02-24
-updated: 2026-02-28
+updated: 2026-03-22
 author: pontus
 supersedes: []
 superseded_by: null
@@ -19,6 +19,7 @@ tags:
   - bookings
   - waste-tracking
   - kitchen
+  - cascade
 tables:
   - ingredient
   - recipe
@@ -36,6 +37,17 @@ changelog:
   - date: 2026-02-28
     change: "Added YAML frontmatter"
 ---
+
+## Cascade Mapping
+
+> This module's relationship to the Cascade Core Foundation
+> (spec: `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`)
+
+| Dimension               | Role                                                        |
+| ----------------------- | ----------------------------------------------------------- |
+| D6 Production & Product | Primary — recipes, production plans, and kitchen operations |
+| D4 Demand Signal        | Consumes — bookings and forecasts drive production volumes  |
+| D5 Service Concept      | Consumes — menu structure reflects service concept          |
 
 # Module 14: Production & Menu Management
 

@@ -1,7 +1,10 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Onboarding Wizard Flow", () => {
-  // Crawling mock takes 3s, finalize mock takes time too
+  // Skip: onboarding wizard was rewritten with new UI/labels.
+  // These tests reference the old English wizard. See workspace-setup-flow.spec.ts for current tests.
+  test.skip(true, "Onboarding wizard rewritten — tests need update to match new Norwegian UI");
+
   test.setTimeout(60000);
 
   test("should complete entire wizard with fallback data (unauthenticated → skip auth)", async ({

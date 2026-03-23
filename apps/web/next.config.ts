@@ -31,7 +31,18 @@ const nextConfig: NextConfig = {
     "@smartout/utils",
     "@smartout/agent-sdk",
   ],
-  webpack: (config, { dir }) => {
+  webpack: (config, { dir, isServer }) => {
+    // posthog-node (via @smartout/telemetry dynamic import) uses node:fs and
+    // node:readline. Even though the import is isServer-guarded, webpack still
+    // resolves the module graph for client chunks. Mark posthog-node as external
+    // for client builds so webpack never follows into it.
+    if (!isServer) {
+      config.externals = [
+        ...(Array.isArray(config.externals) ? config.externals : []),
+        "posthog-node",
+      ];
+    }
+
     const aiDist = path.join(dir, "../../packages/ai/dist");
 
     // Exact file aliases — bypasses exports field resolution entirely

@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
+import { emit } from "@smartout/telemetry";
 import { hospitalityPackage } from "./packages/hospitality";
 import { defaultPackage } from "./packages/default";
 import type { IndustryPackage, IndustryType } from "./types";
@@ -105,6 +106,14 @@ export function useIndustryPackage(): UseIndustryPackageResult {
         .update({ intelligence_data: merged })
         .eq("workspace_id", workspace.workspace_id);
       if (error) throw error;
+    },
+    onSuccess: (_data, type) => {
+      void emit({
+        event: "industry_package loaded",
+        workspace_id: workspace.workspace_id,
+        actor_id: "",
+        properties: { data: { industry: type } },
+      });
     },
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey });

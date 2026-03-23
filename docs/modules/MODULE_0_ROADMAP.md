@@ -1,12 +1,21 @@
 ---
 title: "Module Zero — The Event Motor"
 status: draft
-updated: 2026-03-30
+updated: 2026-03-22
 created: 2026-03-30
 module: meta
-tags: [roadmap, event-motor, autonomy, implementation, vision]
+tags: [roadmap, event-motor, autonomy, implementation, vision, cascade]
 language: en
 ---
+
+## Cascade Mapping
+
+> This module's relationship to the Cascade Core Foundation
+> (spec: `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`)
+
+| Dimension      | Role                                          |
+| -------------- | --------------------------------------------- |
+| All Dimensions | Planning artifact spanning full cascade model |
 
 # Module Zero — The Event Motor
 

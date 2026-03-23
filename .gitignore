@@ -33,6 +33,9 @@ desktop.ini
 .vscode/launch.json
 .vscode/*.code-workspace
 .cursor/
+!.cursor/
+!.cursor/agents/
+!.cursor/agents/*.md
 
 # Local dev artifacts
 .local/
@@ -44,11 +47,18 @@ desktop.ini
 coverage/
 artifacts/
 .claude/*
+!.claude/settings.json
 !.claude/settings.local.json
 !.claude/skills/
+!.claude/agent-memory/
 
 .vercel
 .env*.local
 supabase/.env
 supabase/functions/.env
 client_secret_*.json
+.superpowers/
+
+# E2E build artifacts
+apps/landing/.next-e2e-landing/
+apps/web/.next-e2e-web/

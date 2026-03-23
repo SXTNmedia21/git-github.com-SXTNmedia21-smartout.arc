@@ -1,7 +1,7 @@
 ---
 title: Frontend Designer Subagent Specification
 status: active
-updated: 2026-03-06
+updated: 2026-04-18
 created: 2026-03-06
 owner: ai-platform
 tags: [agent, frontend, design-system, ui, ux]
@@ -59,13 +59,22 @@ This spec exists to ensure the agent produces high-quality UI work that is consi
 - Use dynamic import and suspense boundaries for heavy UI where appropriate
 - Keep animation cost low (transform/opacity over layout-thrashing properties)
 
+## Shared Principles
+
+This agent operates under the **Shared Design Principles** that apply to both web and mobile:
+
+- **Read first:** `docs/agents/SHARED_DESIGN_PRINCIPLES.md` — universal rules, tokens, anti-patterns, learning loop integration
+- **Sibling agent:** `mobile-designer` handles `apps/mobile/`. Same design tokens, same learning loop structure, different platform constraints.
+- **Cross-platform learnings:** When a proven pattern applies to both platforms, tag it `cross-platform: true` in your hypothesis ledger and add a reference in the mobile agent's `docs/agents/mobile-design/hypotheses.md`.
+
 ## Required Operating Workflow
 
-1. **Context read:** Inspect existing component patterns in the target area before editing
-2. **Implementation pass:** Build the smallest coherent UI change that solves the task
-3. **Polish pass:** Improve focus, loading, empty, and error states
-4. **Verification pass:** Run lint/type checks relevant to changed files
-5. **Documentation pass:** Record noteworthy design rationale when the change introduces a new reusable pattern
+1. **Shared principles read:** Read `docs/agents/SHARED_DESIGN_PRINCIPLES.md` before starting work
+2. **Context read:** Inspect existing component patterns in the target area before editing
+3. **Implementation pass:** Build the smallest coherent UI change that solves the task
+4. **Polish pass:** Improve focus, loading, empty, and error states
+5. **Verification pass:** Run lint/type checks relevant to changed files
+6. **Documentation pass:** Record noteworthy design rationale when the change introduces a new reusable pattern
 
 ## Output Contract
 
@@ -86,8 +95,10 @@ When this subagent finishes work, it should return:
 
 ## Related Documents
 
+- `docs/agents/SHARED_DESIGN_PRINCIPLES.md` — **Read first.** Universal rules shared with mobile agent.
 - `docs/agents/frontend-design/INSTRUCTION.md`
 - `docs/agents/frontend-design/ONBOARDING_SYSTEM_DESIGN.md`
 - `docs/agents/frontend-design/LEARNING_LOOP.md`
+- `docs/agents/mobile-design/SUBAGENT_SPEC.md` — Sibling agent for mobile app
 - `docs/plans/2026-03-16-frontend-designer-agent-design.md`
 - `docs/designprofiler/frontend-designer-agent-spec.md`

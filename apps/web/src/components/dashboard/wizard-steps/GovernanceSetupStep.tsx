@@ -399,11 +399,11 @@ export function GovernanceSetupStep({
 
         {(createdPolicies ?? []).length > 0 && (
           <div className="space-y-1.5">
-            {(createdPolicies ?? []).map((p) => {
+            {(createdPolicies ?? []).map((p, idx) => {
               const procCount = p.protocol?.procedure?.length ?? 0;
               return (
                 <div
-                  key={p.policy_id}
+                  key={p.policy_id ?? idx}
                   className={`flex items-center gap-3 rounded-lg px-4 py-2.5 ${
                     isDark ? "bg-zinc-900/40" : "bg-zinc-50"
                   }`}

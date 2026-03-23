@@ -29,7 +29,7 @@ const EmmaOverlay = dynamic(
 const ROUTE_MISSION_MAP: Record<string, MissionId> = {
   "/dashboard": "mr-botsson",
   "/dashboard/schedule": "shift-assistant",
-  "/dashboard/governance": "haccp-inspector",
+  "/dashboard/hms": "haccp-inspector",
   "/dashboard/operations": "mr-botsson",
   "/dashboard/chat": "mr-botsson",
   "/dashboard/people": "mr-botsson",
@@ -256,6 +256,7 @@ import {
   Moon,
   Gamepad2,
   MessageSquare,
+  Radio,
   Bot,
   HelpCircle,
   Building2,
@@ -271,6 +272,7 @@ import {
   LoaderCircle,
   Sparkles,
   BookOpen,
+  Globe,
 } from "lucide-react";
 
 import { ContractPendingBanner } from "./ContractPendingBanner";
@@ -679,10 +681,10 @@ export function DashboardShell({
         expectedPathname: "/dashboard/reports",
       },
       {
-        id: "governance",
-        label: "Open governance",
-        selector: '[data-autoplay="nav-/dashboard/governance"]',
-        expectedPathname: "/dashboard/governance",
+        id: "hms",
+        label: "Open HMS",
+        selector: '[data-autoplay="nav-/dashboard/hms"]',
+        expectedPathname: "/dashboard/hms",
       },
       {
         id: "season",
@@ -901,12 +903,15 @@ export function DashboardShell({
 
   const isSetupPage = pathname === "/dashboard/setup";
 
-  // ── Redirect to setup if onboarding not completed ──
+  // Route incomplete workspaces into the setup guide using live module status,
+  // not the legacy onboarding_completed flag from older onboarding narratives.
   useEffect(() => {
-    if (workspaceCtx?.workspace.onboarding_completed === false && !isSetupPage) {
-      window.location.href = "/dashboard/setup";
+    if (isSetupLoading || !isSetupMode || isSetupPage || isDashboardPage) {
+      return;
     }
-  }, [workspaceCtx?.workspace.onboarding_completed, isSetupPage]);
+
+    window.location.href = "/dashboard/setup";
+  }, [isSetupLoading, isSetupMode, isSetupPage, isDashboardPage]);
 
   // ── Setup mode: fullscreen, no chrome ──
   if ((isSetupMode && isDashboardPage) || isSetupPage) {
@@ -1315,11 +1320,11 @@ export function DashboardShell({
                         )}
                         {isSidebarCollapsed && <div className="mt-2" />}
                         <NavItem
-                          href="/dashboard/governance"
+                          href="/dashboard/hms"
                           icon={ShieldCheck}
                           label="HMS"
                           isDark={isDark}
-                          active={isActive("/dashboard/governance")}
+                          active={isActive("/dashboard/hms")}
                           isCollapsed={isSidebarCollapsed}
                         />
                         <NavItem
@@ -1336,6 +1341,14 @@ export function DashboardShell({
                           label="Organisasjon"
                           isDark={isDark}
                           active={isActive("/dashboard/organization")}
+                          isCollapsed={isSidebarCollapsed}
+                        />
+                        <NavItem
+                          href="/dashboard/website"
+                          icon={Globe}
+                          label="Nettside"
+                          isDark={isDark}
+                          active={isActive("/dashboard/website")}
                           isCollapsed={isSidebarCollapsed}
                         />
                         <NavItem
@@ -1416,6 +1429,14 @@ export function DashboardShell({
                         </div>
                       )}
                       {isSidebarCollapsed && <div className="mt-2" />}
+                      <NavItem
+                        href="/dashboard/komm"
+                        icon={Radio}
+                        label="Komm"
+                        isDark={isDark}
+                        active={isActive("/dashboard/komm")}
+                        isCollapsed={isSidebarCollapsed}
+                      />
                       <NavItem
                         href="/dashboard/chat"
                         icon={MessageSquare}
@@ -1549,6 +1570,7 @@ export function DashboardShell({
                             people: "Ansatte",
                             reports: "Rapporter",
                             operations: "Drift",
+                            hms: "HMS",
                             governance: "HMS",
                             season: "Sesong",
                             organization: "Organisasjon",

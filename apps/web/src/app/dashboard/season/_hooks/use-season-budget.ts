@@ -1,8 +1,11 @@
 "use client";
 
+import { useContext } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
+import { emit } from "@smartout/telemetry";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { dashboardKeys } from "../../_hooks/dashboard-keys";
 import { toast } from "sonner";
 import type { SeasonBudgetStatus } from "../_definitions/season-planning";
@@ -31,6 +34,7 @@ type UpsertSeasonBudgetInput = {
 export function useSeasonBudget(seasonId: string | null) {
   const ctx = useWorkspaceOptional();
   const wsId = ctx?.workspace.workspace_id;
+  const { profileId } = useContext(DashboardContext);
   const supabase = createClient();
   const queryClient = useQueryClient();
 
@@ -87,7 +91,22 @@ export function useSeasonBudget(seasonId: string | null) {
         if (error) throw new Error(error.message);
       }
     },
-    onSuccess: () => {
+    onSuccess: (_data, input) => {
+      void emit({
+        event: "season_budget updated",
+        workspace_id: wsId ?? null,
+        actor_id: profileId ?? "",
+        properties: {
+          entity: {
+            entity_type: "season_budget",
+            entity_id: seasonId ?? "",
+          },
+          data: {
+            season_id: seasonId ?? "",
+            total_target_revenue: input.total_target_revenue,
+          },
+        },
+      });
       queryClient.invalidateQueries({
         queryKey: dashboardKeys.seasonBudget(wsId!, seasonId!),
       });

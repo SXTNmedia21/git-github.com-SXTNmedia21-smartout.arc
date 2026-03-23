@@ -110,6 +110,102 @@ INSERT INTO auth.users (
    '{"provider": "email", "providers": ["email"]}',
    now(), now(), '', '', '', '', '', '+4798899000', '', '', '');
 
+-- 5b. Create Auth Identities
+-- ------------------------------------------------------------------------------
+INSERT INTO auth.identities (
+  provider_id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at
+) VALUES
+  (
+    'e0000000-0000-0000-0000-000000000000',
+    'e0000000-0000-0000-0000-000000000000',
+    '{"sub":"e0000000-0000-0000-0000-000000000000","email":"admin@smartout.local","email_verified":true}',
+    'email',
+    now(),
+    now(),
+    now()
+  ),
+  (
+    'e0000000-0000-0000-0000-000000000001',
+    'e0000000-0000-0000-0000-000000000001',
+    '{"sub":"e0000000-0000-0000-0000-000000000001","email":"anna@smartout.local","email_verified":true}',
+    'email',
+    now(),
+    now(),
+    now()
+  ),
+  (
+    'e0000000-0000-0000-0000-000000000002',
+    'e0000000-0000-0000-0000-000000000002',
+    '{"sub":"e0000000-0000-0000-0000-000000000002","email":"erik@smartout.local","email_verified":true}',
+    'email',
+    now(),
+    now(),
+    now()
+  ),
+  (
+    'e0000000-0000-0000-0000-000000000003',
+    'e0000000-0000-0000-0000-000000000003',
+    '{"sub":"e0000000-0000-0000-0000-000000000003","email":"lise@smartout.local","email_verified":true}',
+    'email',
+    now(),
+    now(),
+    now()
+  ),
+  (
+    'e0000000-0000-0000-0000-000000000004',
+    'e0000000-0000-0000-0000-000000000004',
+    '{"sub":"e0000000-0000-0000-0000-000000000004","email":"ole@smartout.local","email_verified":true}',
+    'email',
+    now(),
+    now(),
+    now()
+  ),
+  (
+    'e0000000-0000-0000-0000-000000000005',
+    'e0000000-0000-0000-0000-000000000005',
+    '{"sub":"e0000000-0000-0000-0000-000000000005","email":"kari@smartout.local","email_verified":true}',
+    'email',
+    now(),
+    now(),
+    now()
+  ),
+  (
+    'e0000000-0000-0000-0000-000000000006',
+    'e0000000-0000-0000-0000-000000000006',
+    '{"sub":"e0000000-0000-0000-0000-000000000006","email":"jon@smartout.local","email_verified":true}',
+    'email',
+    now(),
+    now(),
+    now()
+  ),
+  (
+    'e0000000-0000-0000-0000-000000000007',
+    'e0000000-0000-0000-0000-000000000007',
+    '{"sub":"e0000000-0000-0000-0000-000000000007","email":"sara@smartout.local","email_verified":true}',
+    'email',
+    now(),
+    now(),
+    now()
+  ),
+  (
+    'e0000000-0000-0000-0000-000000000008',
+    'e0000000-0000-0000-0000-000000000008',
+    '{"sub":"e0000000-0000-0000-0000-000000000008","email":"jonas@smartout.local","email_verified":true}',
+    'email',
+    now(),
+    now(),
+    now()
+  ),
+  (
+    'e0000000-0000-0000-0000-000000000009',
+    'e0000000-0000-0000-0000-000000000009',
+    '{"sub":"e0000000-0000-0000-0000-000000000009","email":"silje@smartout.local","email_verified":true}',
+    'email',
+    now(),
+    now(),
+    now()
+  );
+
 -- 6. Link Users to Company (Company Members)
 -- ------------------------------------------------------------------------------
 INSERT INTO public.company_member (user_id, company_id, role)

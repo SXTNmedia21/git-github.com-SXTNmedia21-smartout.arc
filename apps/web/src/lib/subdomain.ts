@@ -34,6 +34,7 @@ const RESERVED_SUBDOMAINS = new Set([
 ]);
 
 type SubdomainResult =
+  | { type: "public-site"; host: string }
   | { type: "workspace"; slug: string }
   | { type: "portal" }
   | { type: "reserved"; subdomain: string }
@@ -55,6 +56,17 @@ type SubdomainResult =
  */
 export function extractSubdomain(host: string): SubdomainResult {
   const hostname = host.split(":")[0]!;
+
+  // Public site: *.smartout.info (or configured public site domain)
+  const PUBLIC_SITE_DOMAIN = process.env.NEXT_PUBLIC_PUBLIC_SITE_DOMAIN ?? "smartout.info";
+  const LOCAL_PUBLIC_PREFIX = "public.localhost";
+
+  if (hostname.endsWith(`.${PUBLIC_SITE_DOMAIN}`) || hostname.includes(`.${LOCAL_PUBLIC_PREFIX}`)) {
+    const slug = hostname.split(".")[0];
+    if (slug) {
+      return { type: "public-site", host };
+    }
+  }
 
   // Development: *.localhost
   if (hostname.endsWith(".localhost") || hostname === "localhost") {

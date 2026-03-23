@@ -328,7 +328,7 @@ export default function LoginPage() {
               {showContent && mode === "login" && (
                 <motion.div
                   key="brand-login"
-                  variants={hasInteracted ? brandTextVariant : undefined}
+                  variants={brandTextVariant}
                   initial={hasInteracted ? "hidden" : false}
                   animate="visible"
                   exit="exit"
@@ -448,14 +448,14 @@ export default function LoginPage() {
             {showContent && mode === "login" && (
               <motion.div
                 key="form-login"
-                variants={hasInteracted ? loginContainer : undefined}
+                variants={loginContainer}
                 initial={hasInteracted ? "hidden" : false}
                 animate="visible"
                 exit="exit"
               >
                 {/* Heading */}
                 <motion.div
-                  variants={hasInteracted ? itemVariant : undefined}
+                  variants={itemVariant}
                   className={!hasInteracted ? "animate-auth-in" : undefined}
                   style={!hasInteracted ? { animationDelay: "0ms" } : undefined}
                 >
@@ -484,7 +484,7 @@ export default function LoginPage() {
 
                 {/* Google SSO */}
                 <motion.div
-                  variants={hasInteracted ? itemVariant : undefined}
+                  variants={itemVariant}
                   className={!hasInteracted ? "animate-auth-in" : undefined}
                   style={!hasInteracted ? { animationDelay: "80ms" } : undefined}
                 >
@@ -501,7 +501,7 @@ export default function LoginPage() {
 
                 {/* Divider */}
                 <motion.div
-                  variants={hasInteracted ? itemVariant : undefined}
+                  variants={itemVariant}
                   className={!hasInteracted ? "animate-auth-in" : undefined}
                   style={!hasInteracted ? { animationDelay: "140ms" } : undefined}
                 >
@@ -519,7 +519,7 @@ export default function LoginPage() {
 
                 {/* Form */}
                 <motion.div
-                  variants={hasInteracted ? itemVariant : undefined}
+                  variants={itemVariant}
                   className={!hasInteracted ? "animate-auth-in" : undefined}
                   style={!hasInteracted ? { animationDelay: "200ms" } : undefined}
                 >
@@ -584,7 +584,7 @@ export default function LoginPage() {
 
                 {/* Footer: Opprett konto */}
                 <motion.div
-                  variants={hasInteracted ? itemVariant : undefined}
+                  variants={itemVariant}
                   className={!hasInteracted ? "animate-auth-in" : undefined}
                   style={!hasInteracted ? { animationDelay: "280ms" } : undefined}
                 >

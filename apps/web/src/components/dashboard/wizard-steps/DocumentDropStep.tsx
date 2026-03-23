@@ -647,7 +647,7 @@ export function DocumentDropStep({
 
       if (error) throw error;
 
-      // Edge function returns { result, files } with per-file status
+      // Edge function returns { result, files, errorCode? } — always 200
       const response = data as {
         result: DocumentExtractionResult;
         files: Array<{
@@ -657,7 +657,23 @@ export function DocumentDropStep({
           error?: string;
           characters?: number;
         }>;
+        error?: string;
+        errorCode?: string;
       };
+
+      // Handle structured errors from Edge Function
+      if (response.errorCode) {
+        const errorMessages: Record<string, string> = {
+          STORAGE_DOWNLOAD_FAILED: "Filene kunne ikke lastes ned. Last opp på nytt og prøv igjen.",
+          SCRAPLING_AUTH_FAILED: "Dokumenttjenesten avviste forespørselen. Kontakt support.",
+          SCRAPLING_EXTRACTION_FAILED:
+            "Dokumenttjenesten er utilgjengelig. Prøv igjen om noen minutter.",
+          AI_ANALYSIS_FAILED: "AI-analysen feilet. Prøv igjen.",
+        };
+        toast.error(errorMessages[response.errorCode] ?? response.error ?? "Analyse feilet");
+        setIsAnalyzing(false);
+        return;
+      }
 
       const result = response.result ?? {};
       const fileStatuses = response.files ?? [];

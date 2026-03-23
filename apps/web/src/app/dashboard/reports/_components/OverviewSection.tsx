@@ -25,16 +25,10 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import {
-  OVERVIEW_KPIS,
-  TREND_7D,
-  DEPARTMENT_STATS,
-  TOP_INSIGHTS,
-  CHART_COLORS,
-  chartTheme,
-} from "./report-data";
+import { CHART_COLORS, chartTheme } from "./report-data";
 import type { ReportInsightCard } from "./report-insight-types";
 import { OverviewDeepInsights } from "./OverviewDeepInsights";
+import { useReportOverview } from "../_hooks/use-report-overview";
 
 // ── Color Config ────────────────────────────────────────────────────────
 
@@ -72,12 +66,38 @@ type OverviewSectionProps = {
 
 export function OverviewSection({ isDark, onOpenInsight }: OverviewSectionProps) {
   const theme = chartTheme(isDark);
+  const { data, isLoading } = useReportOverview();
+
+  // Use real data when available, fall back to empty arrays while loading
+  const overviewKpis = data?.kpis ?? [];
+  const trend7d = data?.trend7d ?? [];
+  const departmentStats = data?.departmentStats ?? [];
+  const topInsights = data?.insights ?? [];
+
+  // Loading skeleton — shown only while the first fetch is in flight
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-5">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div
+              key={i}
+              className={`h-28 animate-pulse rounded-2xl border ${isDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-zinc-100"}`}
+            />
+          ))}
+        </div>
+        <div
+          className={`h-64 animate-pulse rounded-2xl border ${isDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-zinc-100"}`}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-5">
       {/* KPI Strip */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {OVERVIEW_KPIS.map((kpi, i) => {
+        {overviewKpis.map((kpi, i) => {
           const colors = COLOR_MAP[kpi.colorKey];
           const Icon = KPI_ICONS[i]!;
           return (
@@ -201,7 +221,7 @@ export function OverviewSection({ isDark, onOpenInsight }: OverviewSectionProps)
             </div>
           </div>
           <ResponsiveContainer width="100%" height={220}>
-            <AreaChart data={TREND_7D} margin={{ top: 5, right: 5, bottom: 0, left: -20 }}>
+            <AreaChart data={trend7d} margin={{ top: 5, right: 5, bottom: 0, left: -20 }}>
               <defs>
                 <linearGradient id="gradBeredskap" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor={CHART_COLORS.emerald} stopOpacity={0.2} />
@@ -311,7 +331,7 @@ export function OverviewSection({ isDark, onOpenInsight }: OverviewSectionProps)
             Avdelinger
           </h3>
           <div className="space-y-4">
-            {DEPARTMENT_STATS.map((dept) => (
+            {departmentStats.map((dept) => (
               <div key={dept.name}>
                 <div className="mb-1.5 flex items-center justify-between">
                   <span
@@ -361,7 +381,7 @@ export function OverviewSection({ isDark, onOpenInsight }: OverviewSectionProps)
 
       {/* Quick Insights Strip */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {TOP_INSIGHTS.map((insight) => (
+        {topInsights.map((insight) => (
           <div
             key={insight.label}
             onClick={() =>

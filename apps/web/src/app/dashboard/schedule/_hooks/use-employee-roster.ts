@@ -7,10 +7,13 @@
  * Connected to: use-absences.ts (auto-fill skips days with absences)
  */
 
+import { useContext } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspace } from "@/lib/workspace-context";
+import { emit } from "@smartout/telemetry";
 import { createClient } from "@smartout/supabase/client";
 import type { Database } from "@smartout/supabase";
 
@@ -146,6 +149,7 @@ type UpsertRosterInput = {
 export function useUpsertRoster() {
   const queryClient = useQueryClient();
   const { workspace } = useWorkspace();
+  const { profileId } = useContext(DashboardContext);
 
   return useMutation({
     mutationFn: async (input: UpsertRosterInput) => {
@@ -195,7 +199,15 @@ export function useUpsertRoster() {
       return fromDbRoster(data as RosterRow);
     },
 
-    onSuccess: (_data, input) => {
+    onSuccess: (data, input) => {
+      void emit({
+        event: input.id ? "roster updated" : "roster created",
+        workspace_id: workspace.workspace_id,
+        actor_id: profileId ?? "",
+        properties: {
+          data: { department_id: "" },
+        },
+      });
       toast.success("Turnus lagret");
       queryClient.invalidateQueries({
         queryKey: scheduleKeys.roster(workspace.workspace_id, input.profileId),
@@ -223,6 +235,7 @@ type AutoFillInput = {
 export function useAutoFillShifts() {
   const queryClient = useQueryClient();
   const { workspace } = useWorkspace();
+  const { profileId } = useContext(DashboardContext);
 
   return useMutation({
     mutationFn: async (input: AutoFillInput) => {
@@ -316,6 +329,14 @@ export function useAutoFillShifts() {
     },
 
     onSuccess: (result) => {
+      void emit({
+        event: "roster created",
+        workspace_id: workspace.workspace_id,
+        actor_id: profileId ?? "",
+        properties: {
+          data: { department_id: "" },
+        },
+      });
       if (result.count > 0) {
         toast.success(`${result.count} vakter opprettet`);
       } else {

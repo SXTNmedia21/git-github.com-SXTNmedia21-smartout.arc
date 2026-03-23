@@ -1,72 +1,98 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, Settings2, Sparkles } from "lucide-react";
 import { useSignupWizard } from "../_hooks/useSignupWizard";
-import { useAiContent } from "../_hooks/useAiContent";
-import type { ScrapeStatus } from "../_hooks/useScrapedData";
+import { useWorkspaceIntelligence } from "../_hooks/useWorkspaceIntelligence";
+import { useTypewriterSequence } from "../_hooks/useTypewriter";
 import { step3Schema } from "../_lib/validation";
-import { AiBadge } from "./AiBadge";
 
-interface ScrapedDataInput {
-  about_us?: string;
-  our_history?: string;
-  our_concept?: string;
-  [key: string]: unknown;
-}
-
-interface Step3AboutProps {
-  scrapedData: ScrapedDataInput | null;
-  scrapeStatus: ScrapeStatus;
-  companyName: string;
-}
-
-export function Step3About({ scrapedData, scrapeStatus, companyName }: Step3AboutProps) {
+export function Step3About() {
   const { state, updateStep, nextStep, prevStep } = useSignupWizard();
-  const { aiContent, aiStatus, generateContent } = useAiContent();
+  const { content, status, enrichAndGenerate, rewriteField } = useWorkspaceIntelligence();
 
   const [aboutUs, setAboutUs] = useState(state.step3.aboutUs ?? "");
   const [ourHistory, setOurHistory] = useState(state.step3.ourHistory ?? "");
   const [ourConcept, setOurConcept] = useState(state.step3.ourConcept ?? "");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [userEdited, setUserEdited] = useState<Record<string, boolean>>({});
 
-  const [aboutUsAutoFilled, setAboutUsAutoFilled] = useState(false);
-  const [ourHistoryAutoFilled, setOurHistoryAutoFilled] = useState(false);
-  const [ourConceptAutoFilled, setOurConceptAutoFilled] = useState(false);
-
-  const hasTriggeredGeneration = useRef(false);
-
-  // Trigger AI content generation when scraped data is available
+  // Auto-trigger on mount (first time entering Step 3)
+  const hasTriggered = useRef(false);
   useEffect(() => {
-    if (hasTriggeredGeneration.current) return;
-    if (scrapeStatus === "scraping" || aiStatus === "generating") return;
-
-    if (scrapedData && (scrapeStatus === "success" || scrapeStatus === "partial")) {
-      hasTriggeredGeneration.current = true;
-      generateContent(companyName, scrapedData);
+    if (!hasTriggered.current && status === "idle") {
+      hasTriggered.current = true;
+      enrichAndGenerate();
     }
-  }, [scrapedData, scrapeStatus, aiStatus, companyName, generateContent]);
+  }, [status, enrichAndGenerate]);
 
-  // Fill fields when AI content arrives
+  // Build typewriter fields from content
+  const hasApplied = useRef(false);
+  const typewriterFields = useMemo(() => {
+    if (!content || hasApplied.current) return [];
+    const fields: Array<{ key: string; value: string }> = [];
+    if (content.about_us) fields.push({ key: "aboutUs", value: content.about_us });
+    if (content.our_history) fields.push({ key: "ourHistory", value: content.our_history });
+    if (content.our_concept) fields.push({ key: "ourConcept", value: content.our_concept });
+    return fields;
+  }, [content]);
+
+  const shouldType = typewriterFields.length > 0 && !hasApplied.current;
+  const {
+    values: typedValues,
+    activeIndex,
+    allDone,
+  } = useTypewriterSequence(typewriterFields, shouldType, {
+    initialDelay: 200,
+    speed: 12,
+    gap: 300,
+  });
+
+  // Sync typewriter output to state
   useEffect(() => {
-    if (!aiContent) return;
+    if (!shouldType) return;
+    if (typedValues.aboutUs && !userEdited.aboutUs) setAboutUs(typedValues.aboutUs);
+    if (typedValues.ourHistory && !userEdited.ourHistory) setOurHistory(typedValues.ourHistory);
+    if (typedValues.ourConcept && !userEdited.ourConcept) setOurConcept(typedValues.ourConcept);
+  }, [typedValues, shouldType, userEdited]);
 
-    if (aiContent.about_us && !aboutUs) {
-      setAboutUs(aiContent.about_us);
-      setAboutUsAutoFilled(true);
-    }
-    if (aiContent.our_history && !ourHistory) {
-      setOurHistory(aiContent.our_history);
-      setOurHistoryAutoFilled(true);
-    }
-    if (aiContent.our_concept && !ourConcept) {
-      setOurConcept(aiContent.our_concept);
-      setOurConceptAutoFilled(true);
-    }
-  }, [aiContent]); // eslint-disable-line
+  // Mark typewriter done
+  useEffect(() => {
+    if (allDone && shouldType) hasApplied.current = true;
+  }, [allDone, shouldType]);
+
+  // Sync content changes — for per-field rewrites, apply only the changed field
+  const prevContentRef = useRef(content);
+  useEffect(() => {
+    if (!content) return;
+    const prev = prevContentRef.current;
+    prevContentRef.current = content;
+
+    if (!prev) return;
+
+    if (content.about_us !== prev.about_us && content.about_us) setAboutUs(content.about_us);
+    if (content.our_history !== prev.our_history && content.our_history)
+      setOurHistory(content.our_history);
+    if (content.our_concept !== prev.our_concept && content.our_concept)
+      setOurConcept(content.our_concept);
+  }, [content]);
+
+  const markEdited = (field: string) => {
+    setUserEdited((prev) => ({ ...prev, [field]: true }));
+  };
+
+  const handleRewriteField = async (
+    contentKey: "about_us" | "our_history" | "our_concept",
+    stateKey: "aboutUs" | "ourHistory" | "ourConcept",
+    mode: "rewrite" | "longer" | "shorter" = "rewrite",
+  ) => {
+    const currentText =
+      stateKey === "aboutUs" ? aboutUs : stateKey === "ourHistory" ? ourHistory : ourConcept;
+    await rewriteField(contentKey, currentText, mode);
+  };
 
   const handleNext = () => {
     const result = step3Schema.safeParse({
@@ -89,7 +115,12 @@ export function Step3About({ scrapedData, scrapeStatus, companyName }: Step3Abou
     nextStep();
   };
 
-  const isGenerating = scrapeStatus === "scraping" || aiStatus === "generating";
+  const typingField =
+    activeIndex >= 0 && activeIndex < typewriterFields.length
+      ? typewriterFields[activeIndex]!.key
+      : null;
+
+  const isLoading = status === "enriching" || status === "generating";
 
   return (
     <div className="mx-auto w-full max-w-md space-y-6">
@@ -98,99 +129,78 @@ export function Step3About({ scrapedData, scrapeStatus, companyName }: Step3Abou
         <p className="text-muted-foreground mt-1 text-sm">
           Dette brukes til opplæring og onboarding av ansatte.
         </p>
-        {isGenerating && (
+        {isLoading && (
           <p className="text-muted-foreground mt-2 flex items-center gap-1.5 text-xs">
             <Loader2 className="h-3 w-3 animate-spin" />
-            {scrapeStatus === "scraping" ? "Leser nettsiden din..." : "Genererer innhold med AI..."}
+            {status === "enriching" ? "Henter informasjon..." : "Skriver utkast..."}
           </p>
         )}
-        {aiStatus === "failed" && (
+        {allDone && (
+          <p className="mt-2 flex items-center gap-1.5 text-xs text-orange-500">
+            <Sparkles className="h-3 w-3" />
+            Utkast fylt ut — rediger fritt
+          </p>
+        )}
+        {status === "failed" && (
           <p className="text-muted-foreground mt-2 text-xs">
-            AI-generering feilet. Du kan fylle inn feltene manuelt.
+            Kunne ikke generere utkast. Fyll inn manuelt.
           </p>
         )}
       </div>
 
       <div className="space-y-4">
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="aboutUs">Om oss</Label>
-            {aboutUsAutoFilled && (
-              <AiBadge
-                onClear={() => {
-                  setAboutUs("");
-                  setAboutUsAutoFilled(false);
-                }}
-              />
-            )}
-          </div>
-          <Textarea
-            id="aboutUs"
-            rows={4}
-            placeholder="Beskriv bedriften din..."
-            value={aboutUs}
-            onChange={(e) => {
-              setAboutUs(e.target.value);
-              setAboutUsAutoFilled(false);
-              setErrors((prev) => ({ ...prev, aboutUs: "" }));
-            }}
-            aria-invalid={!!errors.aboutUs}
-          />
-          {errors.aboutUs && <p className="text-destructive text-xs">{errors.aboutUs}</p>}
-        </div>
+        <TypewriterTextarea
+          label="Om oss"
+          id="aboutUs"
+          rows={3}
+          placeholder="Beskriv bedriften din..."
+          value={aboutUs}
+          typing={typingField === "aboutUs"}
+          autoFilled={allDone && !userEdited.aboutUs && !!content?.about_us}
+          isLoading={isLoading}
+          onChange={(val) => {
+            setAboutUs(val);
+            markEdited("aboutUs");
+            setErrors((prev) => ({ ...prev, aboutUs: "" }));
+          }}
+          onRewrite={(mode) => handleRewriteField("about_us", "aboutUs", mode)}
+          error={errors.aboutUs}
+        />
 
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="ourHistory">
-              Vår historie <span className="text-muted-foreground">(valgfritt)</span>
-            </Label>
-            {ourHistoryAutoFilled && (
-              <AiBadge
-                onClear={() => {
-                  setOurHistory("");
-                  setOurHistoryAutoFilled(false);
-                }}
-              />
-            )}
-          </div>
-          <Textarea
-            id="ourHistory"
-            rows={3}
-            placeholder="Fortell historien bak bedriften..."
-            value={ourHistory}
-            onChange={(e) => {
-              setOurHistory(e.target.value);
-              setOurHistoryAutoFilled(false);
-            }}
-          />
-        </div>
+        <TypewriterTextarea
+          label="Vår historie"
+          labelSuffix="(valgfritt)"
+          id="ourHistory"
+          rows={2}
+          placeholder="Fortell historien bak bedriften..."
+          value={ourHistory}
+          typing={typingField === "ourHistory"}
+          autoFilled={allDone && !userEdited.ourHistory && !!content?.our_history}
+          isLoading={isLoading}
+          onChange={(val) => {
+            setOurHistory(val);
+            markEdited("ourHistory");
+          }}
+          onRewrite={(mode) => handleRewriteField("our_history", "ourHistory", mode)}
+        />
 
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="ourConcept">Vårt konsept</Label>
-            {ourConceptAutoFilled && (
-              <AiBadge
-                onClear={() => {
-                  setOurConcept("");
-                  setOurConceptAutoFilled(false);
-                }}
-              />
-            )}
-          </div>
-          <Textarea
-            id="ourConcept"
-            rows={4}
-            placeholder="Hva gjør dere unike?"
-            value={ourConcept}
-            onChange={(e) => {
-              setOurConcept(e.target.value);
-              setOurConceptAutoFilled(false);
-              setErrors((prev) => ({ ...prev, ourConcept: "" }));
-            }}
-            aria-invalid={!!errors.ourConcept}
-          />
-          {errors.ourConcept && <p className="text-destructive text-xs">{errors.ourConcept}</p>}
-        </div>
+        <TypewriterTextarea
+          label="Vårt konsept"
+          id="ourConcept"
+          rows={3}
+          placeholder="Hva gjør dere unike?"
+          value={ourConcept}
+          typing={typingField === "ourConcept"}
+          autoFilled={allDone && !userEdited.ourConcept && !!content?.our_concept}
+          isLoading={isLoading}
+          onChange={(val) => {
+            setOurConcept(val);
+            markEdited("ourConcept");
+            setErrors((prev) => ({ ...prev, ourConcept: "" }));
+          }}
+          onRewrite={(mode) => handleRewriteField("our_concept", "ourConcept", mode)}
+          error={errors.ourConcept}
+        />
       </div>
 
       <div className="flex gap-3">
@@ -207,6 +217,135 @@ export function Step3About({ scrapedData, scrapeStatus, companyName }: Step3Abou
           <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       </div>
+    </div>
+  );
+}
+
+/* -- Typewriter textarea with gear menu -- */
+
+type AiAction = "rewrite" | "longer" | "shorter";
+
+function TypewriterTextarea({
+  label,
+  labelSuffix,
+  id,
+  rows,
+  placeholder,
+  value,
+  typing,
+  autoFilled,
+  isLoading,
+  onChange,
+  onRewrite,
+  error,
+}: {
+  label: string;
+  labelSuffix?: string;
+  id: string;
+  rows: number;
+  placeholder: string;
+  value: string;
+  typing: boolean;
+  autoFilled: boolean;
+  isLoading: boolean;
+  onChange: (val: string) => void;
+  onRewrite: (mode: AiAction) => void;
+  error?: string;
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close menu on outside click
+  useEffect(() => {
+    if (!menuOpen) return;
+    function handleClick(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [menuOpen]);
+
+  const handleAction = (action: AiAction) => {
+    setMenuOpen(false);
+    onRewrite(action);
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          <Label htmlFor={id}>
+            {label}
+            {labelSuffix && <span className="text-muted-foreground ml-1">{labelSuffix}</span>}
+          </Label>
+          {typing && (
+            <span className="flex animate-pulse items-center gap-0.5 text-[10px] text-orange-500">
+              <Sparkles className="h-2.5 w-2.5" />
+            </span>
+          )}
+          {autoFilled && !typing && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-600">
+              <Sparkles className="h-2.5 w-2.5" />
+              AI
+            </span>
+          )}
+        </div>
+
+        {/* Gear menu — visible when field has content and not typing */}
+        {value && !typing && (
+          <div className="relative" ref={menuRef}>
+            <button
+              type="button"
+              onClick={() => setMenuOpen((o) => !o)}
+              disabled={isLoading}
+              className="flex h-6 w-6 items-center justify-center rounded-md text-orange-400 transition-colors hover:bg-orange-50 hover:text-orange-600 disabled:opacity-40"
+            >
+              {isLoading ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Settings2 className="h-3.5 w-3.5" />
+              )}
+            </button>
+
+            {menuOpen && (
+              <div className="absolute right-0 z-20 mt-1 w-36 rounded-lg border border-orange-100 bg-white py-1 shadow-lg">
+                <button
+                  type="button"
+                  onClick={() => handleAction("rewrite")}
+                  className="flex w-full items-center px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-orange-50 hover:text-orange-700"
+                >
+                  Skriv om
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleAction("longer")}
+                  className="flex w-full items-center px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-orange-50 hover:text-orange-700"
+                >
+                  Gjør lengre
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleAction("shorter")}
+                  className="flex w-full items-center px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-orange-50 hover:text-orange-700"
+                >
+                  Gjør kortere
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+      <Textarea
+        id={id}
+        rows={rows}
+        placeholder={placeholder}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        aria-invalid={!!error}
+      />
+      {error && <p className="text-destructive text-xs">{error}</p>}
     </div>
   );
 }

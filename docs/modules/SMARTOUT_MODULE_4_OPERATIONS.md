@@ -5,7 +5,7 @@ version: "1.0"
 status: canonical
 layer: module
 created: 2026-02-24
-updated: 2026-02-28
+updated: 2026-03-22
 author: pontus
 supersedes: []
 superseded_by: null
@@ -20,6 +20,7 @@ tags:
   - tasks
   - gamification
   - sign-off
+  - cascade
 tables:
   - department_session
   - department_schedule
@@ -37,6 +38,20 @@ changelog:
 > Version 1.0 | February 2026
 >
 > **Scope change:** This module was originally titled "Oppgavehåndtering (Task Management)" in the index. After architectural analysis, it has been elevated to **Operations & Task Management** because it introduces the **Department Session** — the daily operational container that binds shifts, procedures, tasks, and accountability into a single auditable unit.
+
+## Cascade Mapping
+
+> This module's relationship to the Cascade Core Foundation
+> (spec: `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`)
+
+| Dimension               | Role                                                    |
+| ----------------------- | ------------------------------------------------------- |
+| D6 Production & Product | Primary — department sessions are live production state |
+| D1 Operational Envelope | Consumes — operating hours determine session lifecycle  |
+| C1 Calibration          | Produces — session outcomes feed plan-vs-actual         |
+| C4 Governance           | Enforces — session sign-off requires authorization      |
+
+**Implementation notes:** Department Session is the D6 runtime instance. Operating hours resolve via D1 through `resolve_hours()` (Phase B) — this module should use that function, not inline resolution logic. Session hooks relate to `framework_trigger` definitions (Phase A) but are separately admin-configurable. `planned_open`/`planned_close` fields (Phase A) are set from resolved operating hours at session creation.
 
 ---
 

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { VariantLink as Link } from "./tracking";
 import { Building2, ArrowUp } from "lucide-react";
 import { Suspense } from "react";
 import { VariantDropdown } from "./variant-dropdown";

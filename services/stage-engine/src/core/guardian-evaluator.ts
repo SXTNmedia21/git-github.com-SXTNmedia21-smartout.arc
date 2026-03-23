@@ -152,7 +152,15 @@ async function whisperToSession(
     data: { whisper: message },
   });
 
-  return { action: eventType.split(".")[1] as EvaluationResult["action"], whisper: message };
+  // Map event types to valid action enum values
+  const eventToAction: Record<string, EvaluationResult["action"]> = {
+    "guardian.nudge": "nudge",
+    "guardian.nudge_confirm": "nudge",
+    "guardian.timeout": "timeout",
+    "guardian.timeout_warning": "timeout",
+  };
+  const action = eventToAction[eventType] ?? "none";
+  return { action, whisper: message };
 }
 
 function hasNestedValue(obj: Record<string, unknown>, path: string): boolean {

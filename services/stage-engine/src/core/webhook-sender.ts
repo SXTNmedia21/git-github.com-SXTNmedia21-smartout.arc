@@ -41,11 +41,11 @@ export function sendWebhook(callbackUrl: string, payload: WebhookPayload): void 
 
 /**
  * Internal: attempts to POST the payload with exponential backoff.
- * 3 total attempts: initial + 2 retries at 1s, 4s delays.
+ * 3 total attempts with delays: 1s after first failure, 4s after second.
  */
 async function fireWithRetry(url: string, payload: WebhookPayload): Promise<void> {
   const maxAttempts = 3;
-  const delays = [1000, 4000];
+  const delays = [1000, 4000, 16000];
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {

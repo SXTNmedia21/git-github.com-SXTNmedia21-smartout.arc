@@ -90,7 +90,7 @@ test.describe("signup-flow", () => {
     await page.goto("http://localhost:3060");
     await page.evaluate((wsId) => localStorage.removeItem(`smartout_setup_skipped_${wsId}`), WS_ID);
 
-    await loginAsAdmin(page);
+    await loginAsAdmin(page, { skipOnboarding: false });
 
     // Wizard should show
     const wizardHeader = page.locator('text="Oppsett av arbeidsrom"');

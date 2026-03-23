@@ -80,6 +80,8 @@ export function GridContent({
         return shifts.filter((s) => s.status === "active");
       case "completed":
         return shifts.filter((s) => s.status === "completed");
+      case "open_shifts":
+        return shifts.filter((s) => !s.employeeId);
       default:
         return shifts;
     }
@@ -92,6 +94,22 @@ export function GridContent({
     if (activeStatusFilter === "absence") {
       const employeesWithAbsences = new Set(absences.map((a) => a.employeeId));
       return employees.filter((emp) => employeesWithAbsences.has(emp.id));
+    }
+    // Coverage risk: employees assigned to days with coverage alerts
+    if (activeStatusFilter === "coverage_risk") {
+      const daysWithAlerts = new Set(visibleDays.filter((d) => d.coverageAlert).map((d) => d.id));
+      const employeesOnAlertDays = new Set<string>();
+      for (const s of shifts) {
+        if (s.employeeId && daysWithAlerts.has(s.dateId)) {
+          employeesOnAlertDays.add(s.employeeId);
+        }
+      }
+      return employees.filter((emp) => employeesOnAlertDays.has(emp.id));
+    }
+    // Open shifts: show employees with unassigned shifts (no employeeId)
+    if (activeStatusFilter === "open_shifts") {
+      // Show all employees so they can be assigned to open shifts
+      return employees;
     }
     // Overtime risk: employees exceeding contracted hours
     if (activeStatusFilter === "overtime_risk") {
@@ -123,7 +141,7 @@ export function GridContent({
       return employees.filter((emp) => employeeIdsWithShifts.has(emp.id));
     }
     return employees;
-  }, [employees, activeStatusFilter, filteredShifts, absences, shifts]);
+  }, [employees, activeStatusFilter, filteredShifts, absences, shifts, visibleDays]);
 
   /** Index shifts by employee::day key for O(1) lookup in grid cells */
   const shiftsByEmployeeDay = React.useMemo(() => {
@@ -215,13 +233,23 @@ export function GridContent({
     setScrollElement(findScrollableParent(rowListRef.current));
   }, [scheduleView, filteredEmployees.length]);
 
+  const estimateRowSize = React.useCallback(
+    () => (scheduleCompactMode ? 56 : 100),
+    [scheduleCompactMode],
+  );
+
   const rowVirtualizer = useVirtualizer({
     count: scheduleView === "ansatt" ? filteredEmployees.length : 0,
     getScrollElement: () => scrollElement,
-    estimateSize: () => (scheduleCompactMode ? 56 : 108),
+    estimateSize: estimateRowSize,
     overscan: 4,
     enabled: scheduleView === "ansatt" && scrollElement !== null,
   });
+
+  // Force virtualizer to recalculate when compact mode toggles
+  React.useEffect(() => {
+    rowVirtualizer.measure();
+  }, [scheduleCompactMode, rowVirtualizer]);
 
   const virtualRows = scheduleView === "ansatt" ? rowVirtualizer.getVirtualItems() : [];
 
@@ -283,8 +311,11 @@ export function GridContent({
                 return (
                   <div
                     key={employee.id}
-                    className="absolute top-0 left-0 w-full"
-                    style={{ transform: `translateY(${virtualRow.start}px)` }}
+                    className="absolute top-0 left-0 w-full overflow-hidden"
+                    style={{
+                      transform: `translateY(${virtualRow.start}px)`,
+                      height: `${virtualRow.size}px`,
+                    }}
                   >
                     <SortableEmployeeRow
                       employee={employee}
@@ -310,12 +341,15 @@ export function GridContent({
                   {Array.from({ length: 3 }).map((_, skeletonIndex) => (
                     <div
                       key={`employee-virtual-skeleton-${skeletonIndex + 1}`}
-                      className="grid grid-cols-[260px_repeat(7,minmax(0,1fr))] gap-2"
+                      className={`grid gap-2`}
+                      style={{
+                        gridTemplateColumns: `260px repeat(${visibleDays.length}, minmax(0, 1fr))`,
+                      }}
                     >
                       <div
                         className={`h-[52px] animate-pulse rounded-lg ${isDark ? "bg-zinc-900/80" : "bg-zinc-200"}`}
                       />
-                      {Array.from({ length: 7 }).map((__, cellIndex) => (
+                      {Array.from({ length: visibleDays.length }).map((__, cellIndex) => (
                         <div
                           key={`employee-virtual-skeleton-cell-${skeletonIndex + 1}-${cellIndex + 1}`}
                           className={`h-[52px] animate-pulse rounded-lg ${isDark ? "bg-zinc-950/80" : "bg-zinc-100"}`}
@@ -431,13 +465,13 @@ const DayHeaders = React.memo(function DayHeaders({
         style={{ zIndex: SCHEDULE_LAYERS.stickyCorner }}
       >
         <div className="flex w-full items-center justify-between">
-          <div className="flex items-center gap-2 text-xs font-bold tracking-widest text-zinc-500 uppercase">
-            <Users className={`h-4 w-4 ${isDark ? "text-zinc-400" : "text-zinc-600"}`} />
+          <div className="text-foreground/60 flex items-center gap-2 text-xs font-bold tracking-widest uppercase">
+            <Users className="text-foreground/50 h-4 w-4" />
             {scheduleView === "ansatt" ? "Ansatte" : scheduleView === "jobb" ? "Roller" : "Team"}
           </div>
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className={`rounded-md p-1 text-zinc-500 hover:text-white ${isDark ? "hover:bg-white/10" : "hover:bg-zinc-200"} transition-colors`}
+            className="text-foreground/50 hover:text-foreground hover:bg-muted rounded-md p-1 transition-colors"
           >
             {isSidebarOpen ? (
               <PanelLeftClose className="h-4 w-4" />
@@ -494,7 +528,8 @@ function DroppableDayHeader({
     <div
       ref={setNodeRef}
       data-schedule-day-id={day.id}
-      className={`min-w-0 flex-1 border-r border-b border-white/[0.03] ${isDark ? "bg-[#0a0a0c]/90" : "bg-white/95"} group/day relative flex h-16 cursor-pointer flex-col justify-center p-2 transition-colors hover:bg-white/5 ${day.isToday ? "bg-orange-500/[0.06]" : ""} ${isOver ? "rounded-lg border-dashed border-orange-500/50 bg-orange-500/20" : ""} ${day.situation === "__dimmed__" ? "opacity-30" : ""} ${isHighlighted ? "shadow-[0_0_0_1px_rgba(251,146,60,0.35)] ring-2 ring-orange-400/70 ring-inset" : ""}`}
+      className={`flex-1 border-r border-b border-white/[0.03] ${isDark ? "bg-[#0a0a0c]/90" : "bg-white/95"} group/day relative flex h-16 cursor-pointer flex-col justify-center p-2 transition-colors hover:bg-white/5 ${day.isToday ? "bg-orange-500/[0.06]" : ""} ${isOver ? "rounded-lg border-dashed border-orange-500/50 bg-orange-500/20" : ""} ${day.situation === "__dimmed__" ? "opacity-30" : ""} ${isHighlighted ? "shadow-[inset_0_0_0_2px_rgba(251,146,60,0.7)]" : ""}`}
+      style={{ minWidth: "100px" }}
       onClick={() => onDateClick(day.id)}
     >
       {day.coverageAlert ? (
@@ -525,7 +560,7 @@ function DroppableDayHeader({
       </div>
 
       {/* Compact stats */}
-      <div className="mt-1 flex items-center gap-2 text-[10px] leading-none font-medium text-zinc-500/70">
+      <div className="text-foreground/50 mt-1 flex items-center gap-2 text-[10px] leading-none font-medium">
         <span className="flex items-center gap-0.5" title="Ansatte">
           <Users className="h-2.5 w-2.5" /> {day.staff}
         </span>
@@ -575,7 +610,8 @@ export const GroupHeader = React.memo(function GroupHeader({
       {days.map((day) => (
         <div
           key={day.id}
-          className={`min-w-0 flex-1 border-r border-b ${isDark ? "border-white/[0.04]" : "border-zinc-200"} h-9 bg-white/[0.01]`}
+          style={{ minWidth: "100px" }}
+          className={`flex-1 border-r border-b ${isDark ? "border-white/[0.04]" : "border-zinc-200"} h-9 bg-white/[0.01]`}
         />
       ))}
     </div>
@@ -678,7 +714,7 @@ export const EmployeeRow = React.memo(function EmployeeRow({
     <div className="group/row flex w-full">
       {/* Sticky employee info panel — clickable to open drawer */}
       <div
-        className={`w-[260px] shrink-0 border-r border-b border-white/[0.04] ${isDark ? "bg-[#0a0a0c]" : "bg-white"} sticky left-0 flex cursor-pointer items-center shadow-[2px_0_8px_-6px_rgba(0,0,0,0.35)] transition-colors group-hover/row:bg-white/[0.02] ${isCompact ? "h-[52px] min-h-0 gap-2 p-2" : "min-h-[100px] gap-3 p-3"}`}
+        className={`w-[260px] shrink-0 border-r border-b border-white/[0.04] ${isDark ? "bg-[#0a0a0c]" : "bg-white"} sticky left-0 flex cursor-pointer items-center shadow-[2px_0_8px_-6px_rgba(0,0,0,0.35)] transition-colors group-hover/row:bg-white/[0.02] ${isCompact ? "h-[52px] min-h-0 gap-2 p-2" : "h-[100px] gap-3 p-3"}`}
         style={{ zIndex: SCHEDULE_LAYERS.stickyHeaders }}
         onClick={() => onSelectEmployee?.(employee.id)}
       >
@@ -926,7 +962,8 @@ function MatrixCellBase({
     <div
       ref={containerRef}
       onContextMenu={onContextMenu}
-      className={`min-w-0 flex-1 border-r border-b border-white/[0.03] ${isDark ? "bg-[#050505]" : "bg-zinc-50"}/40 relative flex flex-col gap-1 overflow-hidden transition-colors ${isCompact ? "h-[52px] min-h-0 p-1" : "min-h-[100px] p-2"} ${isOver ? "z-10 rounded-lg border border-dashed border-orange-500/50 bg-orange-500/20" : "group-hover/row:bg-white/[0.02] hover:bg-white/[0.04]"} ${isToday ? "bg-orange-500/[0.06]" : ""} ${dimmed ? "opacity-30" : ""}`}
+      style={{ minWidth: "100px" }}
+      className={`flex-1 border-r border-b border-white/[0.03] ${isDark ? "bg-[#050505]" : "bg-zinc-50"}/40 relative flex flex-col gap-1 overflow-hidden transition-colors ${isCompact ? "h-[52px] min-h-0 p-1" : "h-[100px] p-2"} ${isOver ? "z-10 rounded-lg border border-dashed border-orange-500/50 bg-orange-500/20" : "group-hover/row:bg-white/[0.02] hover:bg-white/[0.04]"} ${isToday ? "bg-orange-500/[0.06]" : ""} ${dimmed ? "opacity-30" : ""}`}
     >
       {children ? (
         <>

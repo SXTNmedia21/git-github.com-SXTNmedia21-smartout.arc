@@ -5,12 +5,19 @@ import { z } from "zod";
 import { getRegisteredCapabilities } from "../capabilities/registry.js";
 
 let _openrouter: ReturnType<typeof createOpenRouter> | null = null;
+let _cachedKey: string | undefined;
 
+/**
+ * Gets or creates the OpenRouter client.
+ * Recreates the client if the API key has changed (supports runtime key rotation).
+ */
 function getOpenRouter(apiKey?: string) {
-  if (!_openrouter) {
-    const key = apiKey ?? process.env.OPENROUTER_API_KEY;
-    if (!key) throw new Error("OpenRouter API key required: pass apiKey or set OPENROUTER_API_KEY");
+  const key = apiKey ?? process.env.OPENROUTER_API_KEY;
+  if (!key) throw new Error("OpenRouter API key required: pass apiKey or set OPENROUTER_API_KEY");
+
+  if (!_openrouter || key !== _cachedKey) {
     _openrouter = createOpenRouter({ apiKey: key });
+    _cachedKey = key;
   }
   return _openrouter;
 }
@@ -27,6 +34,7 @@ export const intentSchema = z.object({
     "memory",
     "payroll",
     "ui",
+    "guardian",
     "general",
   ] as const),
   confidence: z.number().min(0).max(1),
@@ -58,6 +66,7 @@ Capabilities:
 - memory: Asking about past conversations or preferences
 - payroll: Salary, overtime, deductions, pay period
 - ui: Screen navigation, form filling, UI element highlighting, panel display, toast notifications
+- guardian: Workspace health monitoring, readiness alerts, maturity signals, system status
 - general: Greetings, small talk, unclear intent, meta-questions
 
 The user writes in Norwegian or English. Classify based on intent, not language.

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useContext, useLayoutEffect, useMemo } from "react";
+import { useState, useCallback, useContext, useLayoutEffect, useMemo, useRef } from "react";
 import { ChevronLeft, ChevronRight, Loader2, Rocket, SkipForward } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -231,21 +231,18 @@ export function WorkspaceSetupWizard({
   const isLast = currentStep === STEPS.length - 1;
   const [isFinishing, setIsFinishing] = useState(false);
 
+  const invitationsSentRef = useRef(false);
+
   const sendTeamInvitations = useCallback(async () => {
     const members = currentState.teamMembers;
-    if (members.length === 0) return;
+    if (members.length === 0 || invitationsSentRef.current) return;
+    invitationsSentRef.current = true;
 
     const supabase = createClient();
 
-    // Resolve inviter profile
-    const { data: inviterProfile } = await supabase
-      .from("profile")
-      .select("profile_id")
-      .eq("workspace_id", workspaceId)
-      .eq("user_id", profileId ?? "")
-      .single();
-
-    if (!inviterProfile) {
+    // Resolve inviter profile — profileId from DashboardContext is already a profile_id
+    const inviterProfileId = profileId;
+    if (!inviterProfileId) {
       console.error("[wizard] Could not resolve inviter profile");
       return;
     }
@@ -272,7 +269,7 @@ export function WorkspaceSetupWizard({
       department_ids: m.departmentId ? [m.departmentId] : [],
       status: "pending" as const,
       invite_type: "email" as const,
-      invited_by: inviterProfile.profile_id,
+      invited_by: inviterProfileId,
       metadata: {
         ...(m.phone ? { phone: m.phone } : {}),
         ...(m.positionId ? { positionId: m.positionId } : {}),
@@ -311,13 +308,19 @@ export function WorkspaceSetupWizard({
       },
     }).catch((e: unknown) => console.error("[wizard] emit failed:", e));
 
+    // Persist team invitations when leaving the team step
+    if (step.id === "team" && currentState.teamMembers.length > 0) {
+      try {
+        await sendTeamInvitations();
+      } catch {
+        // Error already toasted — don't block navigation
+      }
+    }
+
     if (isLast) {
       setIsFinishing(true);
 
       try {
-        // Create all team invitations
-        await sendTeamInvitations();
-
         // Emit wizard completed
         emit({
           event: "wizard completed",
@@ -335,7 +338,7 @@ export function WorkspaceSetupWizard({
         });
         onComplete();
       } catch {
-        // Error already toasted in sendTeamInvitations
+        // Error already toasted
       } finally {
         setIsFinishing(false);
       }
@@ -351,6 +354,7 @@ export function WorkspaceSetupWizard({
     profileId,
     step.id,
     currentStep,
+    currentState.teamMembers,
     sendTeamInvitations,
   ]);
 

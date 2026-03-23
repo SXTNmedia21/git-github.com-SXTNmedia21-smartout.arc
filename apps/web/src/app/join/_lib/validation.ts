@@ -2,8 +2,10 @@ import { z } from "zod";
 import { validateOrgNumber } from "./orgNumberValidator";
 
 export const step1Schema = z.object({
-  email: z.string().email(),
+  email: z.string().email("Ugyldig e-postadresse"),
   companyName: z.string().min(2, "Minimum 2 tegn"),
+  industry: z.string().min(1, "Velg bransje"),
+  city: z.string().min(2, "Oppgi by"),
   websiteUrl: z
     .string()
     .min(4, "Ugyldig URL")
@@ -17,7 +19,10 @@ export const step2Schema = z.object({
   street: z.string().min(2, "Påkrevd"),
   postalCode: z.string().regex(/^\d{4}$/, "Må være 4 siffer"),
   city: z.string().min(2, "Påkrevd"),
-  orgNumber: z.string().refine(validateOrgNumber, "Ugyldig organisasjonsnummer"),
+  orgNumber: z
+    .string()
+    .transform((v) => v.replace(/\s/g, ""))
+    .pipe(z.string().refine(validateOrgNumber, "Ugyldig organisasjonsnummer")),
 });
 
 export const step3Schema = z.object({

@@ -85,6 +85,7 @@ async function handleBatchInvites(
     status: "pending",
     invite_type: "email",
     invited_by: inviterProfile.profile_id,
+    invite_employment_type: (inv.invite_employment_type as string) || null,
     metadata: inv.metadata ?? null,
   }));
 

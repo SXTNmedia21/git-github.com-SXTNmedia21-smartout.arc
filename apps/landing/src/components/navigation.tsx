@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useState, useEffect } from "react";
-import Link from "next/link";
+import { VariantLink as Link } from "./tracking";
 import { usePathname } from "next/navigation";
 import { m, AnimatePresence } from "framer-motion";
 import { Building2, ArrowRight, Menu, X } from "lucide-react";

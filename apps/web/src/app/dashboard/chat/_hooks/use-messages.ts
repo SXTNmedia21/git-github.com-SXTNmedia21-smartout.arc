@@ -3,6 +3,7 @@
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
+import { emit } from "@smartout/telemetry";
 import { chatKeys } from "./chat-keys";
 import type { MessageWithSender } from "./chat-types";
 import { toast } from "sonner";
@@ -78,6 +79,15 @@ export function useSendMessage(conversationId: string | null, profileId: string)
 
       if (error) throw error;
       return data;
+    },
+
+    onSuccess: () => {
+      void emit({
+        event: "message sent",
+        workspace_id: workspaceId,
+        actor_id: profileId,
+        properties: { data: { conversation_id: conversationId ?? "" } },
+      });
     },
 
     onSettled: () => {

@@ -19,6 +19,9 @@ npx lint-staged
 # Allowlisted file patterns (docs that reference key formats):
 #   - docs/**/*.md, CLAUDE.md, *.md in docs/
 #   - .husky/* (this hook itself contains detection patterns)
+#   - infra/docker-compose.yml (env var mappings like DEV_API_KEY=${...})
+#   - supabase/config.toml (schema config, no secrets)
+#   - .env.template (op:// references, not real values)
 #   - These legitimately show key format examples like smo_sk_live_k7HjQ9...
 #
 # This hook does NOT catch:
@@ -33,6 +36,9 @@ STAGED_DIFF=$(git diff --cached --diff-filter=ACMRT -- . \
   ':!*.md' \
   ':!.husky/*' \
   ':!scripts/quality/*' \
+  ':!infra/docker-compose.yml' \
+  ':!supabase/config.toml' \
+  ':!.env.template' \
 )
 
 if [ -z "$STAGED_DIFF" ]; then

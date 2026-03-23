@@ -135,9 +135,22 @@ type WalkAiContextValue = {
   tasks: ScheduledTask[];
   completeTask: (taskId: string) => void;
   scheduleTask: (task: ScheduledTask) => void;
+  updateTask: (
+    taskId: string,
+    updates: Partial<Pick<ScheduledTask, "priority" | "dueAt" | "position">>,
+  ) => void;
+  reorderTask: (taskId: string, newPosition: number) => void;
   /** Count of unread items Emma has produced (notes, tasks) since last interaction */
   unreadCount: number;
   clearUnread: () => void;
+  /** Custom agent prompt — appended to persona prompt */
+  customPrompt: string;
+  setCustomPrompt: (prompt: string) => void;
+  /** The computed persona prompt (read-only) */
+  personaPrompt: string;
+  /** Saved arena size before settings expansion */
+  preSettingsSize: WalkAiSize | null;
+  setPreSettingsSize: (size: WalkAiSize | null) => void;
 };
 
 const WalkAiContext = createContext<WalkAiContextValue | null>(null);
@@ -188,6 +201,8 @@ export function WalkAiProvider({
   });
   const [voiceTuning, setVoiceTuningState] = useState<VoiceTuning>(DEFAULT_VOICE_TUNING);
   const [selectedVoice, setSelectedVoice] = useState(DEFAULT_VOICE_ID);
+  const [customPrompt, setCustomPromptState] = useState("");
+  const [preSettingsSize, setPreSettingsSize] = useState<WalkAiSize | null>(null);
   const [notes, setNotes] = useState<WalkAiNote[]>([]);
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
   const { events: telemetryEvents, clearEvents: clearTelemetry } = useEmmaTelemetry();
@@ -203,7 +218,25 @@ export function WalkAiProvider({
     setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: "done" as const } : t)));
   }, []);
 
+  const updateTask = useCallback(
+    (taskId: string, updates: Partial<Pick<ScheduledTask, "priority" | "dueAt" | "position">>) => {
+      setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, ...updates } : t)));
+    },
+    [],
+  );
+
+  const reorderTask = useCallback((taskId: string, newPosition: number) => {
+    setTasks((prev) => {
+      const task = prev.find((t) => t.id === taskId);
+      if (!task) return prev;
+      const without = prev.filter((t) => t.id !== taskId);
+      without.splice(newPosition, 0, { ...task, position: newPosition });
+      return without.map((t, i) => ({ ...t, position: i }));
+    });
+  }, []);
+
   const clearUnread = useCallback(() => setUnreadCount(0), []);
+  const setCustomPrompt = useCallback((prompt: string) => setCustomPromptState(prompt), []);
 
   const activeNote = useMemo(
     () => notes.find((n) => n.id === activeNoteId) ?? null,
@@ -330,7 +363,9 @@ export function WalkAiProvider({
       first_speaker: voiceTuning.firstSpeaker,
       context: {
         page: "dashboard.walkai",
-        persona_prompt: personaPrompt,
+        persona_prompt: customPrompt
+          ? `${personaPrompt}\n\n## Egendefinert instruks\n${customPrompt}`
+          : personaPrompt,
         identity: {
           rank: identity.rank,
           persona: identity.persona,
@@ -426,15 +461,38 @@ export function WalkAiProvider({
       switchView,
       currentView: () => activeView,
       appendNotepad: (text: string, topic?: string) => {
-        // Always create a NEW note — each write_notepad = new note
         createNoteRef.current(topic ?? "Notat", text);
       },
       getNotepadContent: () => notepadRef.current,
       scheduleTask: (task) => scheduleTaskRef.current(task),
       getCurrentPage: () => (typeof window !== "undefined" ? window.location.pathname : "/"),
       getWorkspaceId: () => workspaceId ?? null,
+      expandArena: () => dispatch({ type: "SET_DENSITY", density: "arena" }),
+      collapseArena: () => dispatch({ type: "SET_DENSITY", density: "orb" }),
+      getDensity: () => state.density,
+      navigateTo: (path: string) => {
+        if (typeof window !== "undefined") window.location.href = path;
+      },
+      completeTask: (taskId: string) => {
+        setTasks((prev) =>
+          prev.map((t) => (t.id === taskId ? { ...t, status: "done" as const } : t)),
+        );
+      },
+      updateTask: (taskId, updates) => {
+        setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, ...updates } : t)));
+      },
+      reorderTask: (taskId, newPosition) => {
+        setTasks((prev) => {
+          const task = prev.find((t) => t.id === taskId);
+          if (!task) return prev;
+          const without = prev.filter((t) => t.id !== taskId);
+          without.splice(newPosition, 0, { ...task, position: newPosition });
+          return without.map((t, i) => ({ ...t, position: i }));
+        });
+      },
+      getTasks: () => tasks,
     };
-  }, [switchView, activeView, workspaceId]);
+  }, [switchView, activeView, workspaceId, state.density, tasks]);
   const setPosition = useCallback(
     (position: WalkAiPosition) => dispatch({ type: "SET_POSITION", position }),
     [],
@@ -493,8 +551,15 @@ export function WalkAiProvider({
       tasks,
       completeTask,
       scheduleTask,
+      updateTask,
+      reorderTask,
       unreadCount,
       clearUnread,
+      customPrompt,
+      setCustomPrompt,
+      personaPrompt,
+      preSettingsSize,
+      setPreSettingsSize,
     }),
     [
       state,
@@ -531,8 +596,15 @@ export function WalkAiProvider({
       tasks,
       completeTask,
       scheduleTask,
+      updateTask,
+      reorderTask,
       unreadCount,
       clearUnread,
+      customPrompt,
+      setCustomPrompt,
+      personaPrompt,
+      preSettingsSize,
+      setPreSettingsSize,
     ],
   );
 

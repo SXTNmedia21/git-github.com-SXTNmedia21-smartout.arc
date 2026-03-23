@@ -17,12 +17,24 @@ interface ScrapedData {
   [key: string]: unknown;
 }
 
+export interface BrregData {
+  orgNumber: string;
+  name: string;
+  street: string;
+  postalCode: string;
+  city: string;
+  foundingDate?: string;
+  industry?: string;
+}
+
 const POLL_INTERVAL_MS = 3000;
 const MAX_POLL_ATTEMPTS = 10;
 
 export function useScrapedData() {
   const [scrapedData, setScrapedData] = useState<ScrapedData | null>(null);
   const [scrapeStatus, setScrapeStatus] = useState<ScrapeStatus>("idle");
+  const [brregData, setBrregData] = useState<BrregData | null>(null);
+  const [brregCandidates, setBrregCandidates] = useState<BrregData[]>([]);
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const attemptRef = useRef(0);
   const activeRunIdRef = useRef(0);
@@ -40,12 +52,36 @@ export function useScrapedData() {
     return () => cleanup();
   }, [cleanup]);
 
-  // Use a ref for the poll function so it can call itself without
-  // violating React Compiler's "no self-reference in useCallback" rule.
-  const pollStatusRef = useRef<(url: string, runId: number) => void>(undefined);
+  // BRREG lookup — triggered with user-entered company name + city
+  const lookupBrreg = useCallback(async (companyName: string, city?: string) => {
+    try {
+      const params = new URLSearchParams({ name: companyName });
+      if (city) params.set("city", city);
 
-  useEffect(() => {
-    pollStatusRef.current = (url: string, runId: number) => {
+      const res = await fetch(`/api/scrape/brreg?${params}`);
+      if (!res.ok) return;
+      const data = await res.json();
+
+      if (data.candidates && data.candidates.length > 0) {
+        setBrregCandidates(data.candidates);
+        setBrregData(data.candidates[0]);
+      } else if (data.match) {
+        setBrregData(data.match);
+        setBrregCandidates([data.match]);
+      }
+    } catch {
+      // BRREG lookup is best-effort — don't fail the flow
+    }
+  }, []);
+
+  const handleScrapeSuccess = useCallback((data: ScrapedData) => {
+    setScrapedData(data);
+    // Don't auto-trigger BRREG from scraped companyName — it's often a tagline.
+    // Instead, lookupBrreg is exposed and called with the user-entered name.
+  }, []);
+
+  const pollStatus = useCallback(
+    (url: string, runId: number) => {
       if (runId !== activeRunIdRef.current) return;
       attemptRef.current += 1;
 
@@ -73,15 +109,15 @@ export function useScrapedData() {
           const status = data.status;
 
           if (status === "success") {
-            setScrapedData(data.data ?? null);
+            handleScrapeSuccess(data.data ?? {});
             setScrapeStatus("success");
             cleanup();
           } else if (status === "partial") {
-            setScrapedData(data.data ?? null);
+            handleScrapeSuccess(data.data ?? {});
             setScrapeStatus("partial");
             cleanup();
           } else if (status === "scraping" || status === "pending" || status === "processing") {
-            pollStatusRef.current?.(url, runId);
+            pollStatus(url, runId);
           } else if (status === "failed") {
             setScrapeStatus("failed");
             cleanup();
@@ -94,8 +130,9 @@ export function useScrapedData() {
           cleanup();
         }
       }, POLL_INTERVAL_MS);
-    };
-  }); // updates pollStatusRef each render cycle inside effect
+    },
+    [cleanup, handleScrapeSuccess],
+  );
 
   const triggerScrape = useCallback(
     async (url: string) => {
@@ -104,6 +141,8 @@ export function useScrapedData() {
       cleanup();
       setScrapeStatus("scraping");
       setScrapedData(null);
+      setBrregData(null);
+      setBrregCandidates([]);
 
       try {
         const res = await fetch("/api/scrape/public", {
@@ -120,14 +159,14 @@ export function useScrapedData() {
         const data = await res.json();
 
         if (data.status === "success") {
-          setScrapedData(data.data ?? null);
+          handleScrapeSuccess(data.data ?? {});
           setScrapeStatus("success");
         } else if (
           data.status === "scraping" ||
           data.status === "pending" ||
           data.status === "processing"
         ) {
-          pollStatusRef.current?.(url, runId);
+          pollStatus(url, runId);
         } else {
           setScrapeStatus("failed");
         }
@@ -135,8 +174,20 @@ export function useScrapedData() {
         setScrapeStatus("failed");
       }
     },
-    [cleanup],
+    [cleanup, pollStatus, handleScrapeSuccess],
   );
 
-  return { scrapedData, scrapeStatus, triggerScrape };
+  const selectBrregCandidate = useCallback((candidate: BrregData) => {
+    setBrregData(candidate);
+  }, []);
+
+  return {
+    scrapedData,
+    scrapeStatus,
+    triggerScrape,
+    brregData,
+    brregCandidates,
+    selectBrregCandidate,
+    lookupBrreg,
+  };
 }

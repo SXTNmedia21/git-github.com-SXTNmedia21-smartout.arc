@@ -1,4 +1,5 @@
 import { createClient } from "@smartout/supabase/server";
+import { emit } from "@smartout/telemetry";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
@@ -18,6 +19,22 @@ export async function GET(request: Request) {
       } = await supabase.auth.getUser();
 
       if (user) {
+        // Emit signup completed event
+        try {
+          await emit({
+            event: "signup completed",
+            workspace_id: null,
+            actor_id: user.id,
+            properties: {
+              data: {
+                user_identity_id: user.id,
+              },
+            },
+          });
+        } catch (e) {
+          console.error("[auth/callback] Failed to emit signup.completed:", e);
+        }
+
         // Check if user already has a profile (existing user with workspace)
         const { data: profiles } = await supabase
           .from("profile")

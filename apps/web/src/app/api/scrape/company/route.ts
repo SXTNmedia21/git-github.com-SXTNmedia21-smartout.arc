@@ -118,9 +118,14 @@ export async function POST(request: Request) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 30_000);
 
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (env.SCRAPLING_AUTH_TOKEN) {
+      headers["Authorization"] = `Bearer ${env.SCRAPLING_AUTH_TOKEN}`;
+    }
+
     const upstream = await fetch(`${scraplingUrl}/extract`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify({
         url: normalizedUrl,
         config: {

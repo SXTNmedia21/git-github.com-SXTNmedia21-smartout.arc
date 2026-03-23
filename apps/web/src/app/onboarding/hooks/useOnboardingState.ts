@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@smartout/supabase/client";
 import { emit } from "@smartout/telemetry";
 import type { Json } from "@smartout/supabase";
@@ -69,6 +70,8 @@ export interface OnboardingActions {
 
 export function useOnboardingState(): OnboardingState & OnboardingActions {
   const supabase = createClient();
+  const searchParams = useSearchParams();
+  const requestedWorkspaceId = searchParams.get("ws") ?? searchParams.get("workspaceId");
 
   const [currentSection, setCurrentSection] = useState<OnboardingSection>("hero");
   const [sections, setSections] = useState(INITIAL_SECTIONS);
@@ -146,12 +149,21 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
         .limit(10);
 
       if (wsData) {
-        const onboardingProfile = wsData.find((p) => {
+        const onboardingProfiles = wsData.filter((p) => {
           const ws = p.workspace as unknown as {
             onboarding_completed: boolean;
+            workspace_id: string;
           } | null;
           return ws?.onboarding_completed === false;
         });
+
+        const onboardingProfile =
+          onboardingProfiles.find((p) => {
+            const ws = p.workspace as unknown as {
+              workspace_id: string;
+            } | null;
+            return ws?.workspace_id === requestedWorkspaceId;
+          }) ?? onboardingProfiles[0];
 
         if (onboardingProfile) {
           const ws = onboardingProfile.workspace as unknown as {
@@ -168,11 +180,20 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
             const scraped = intel.scraped as Record<string, unknown> | null;
             const brreg = intel.brreg as Record<string, unknown> | null;
             const places = intel.places as PlacesData | null;
+            const joinIntake = intel.join_intake as {
+              businessNarrative?: { aboutUs?: string; ourConcept?: string };
+            } | null;
 
             const merged = mergeBusinessData(scraped, brreg, places);
             const sourceUrl = intel.source_url as string | null;
             if (!merged.website && sourceUrl && !sourceUrl.startsWith("brreg:")) {
               merged.website = sourceUrl;
+            }
+            if (!merged.description) {
+              merged.description =
+                joinIntake?.businessNarrative?.aboutUs ??
+                joinIntake?.businessNarrative?.ourConcept ??
+                "";
             }
             setBusiness(merged);
             setScrapeStatus("done");
@@ -183,6 +204,31 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
             setDepartments(suggestedDepts);
             const suggestedProcs = getProceduresForIndustry(nace);
             setProcedures(suggestedProcs);
+
+            const restoredLocations = Array.isArray(scraped?.locations)
+              ? scraped.locations
+                  .filter(
+                    (location): location is { name: string; type?: string } =>
+                      typeof location === "object" &&
+                      location !== null &&
+                      typeof location.name === "string",
+                  )
+                  .map((location, index) => ({
+                    id: `loc-resume-${index}`,
+                    name: location.name,
+                    type:
+                      location.type === "outdoor" ||
+                      location.type === "satellite" ||
+                      location.type === "other"
+                        ? (location.type as LocationData["type"])
+                        : "main",
+                    zones: [],
+                  }))
+              : [];
+
+            if (restoredLocations.length > 0) {
+              setLocations(restoredLocations);
+            }
           }
 
           return; // Resumed from workspace
@@ -217,7 +263,7 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
     }
 
     resume();
-  }, [isAuthenticated, userId]);
+  }, [isAuthenticated, requestedWorkspaceId, userId]);
 
   // Auto-save with debounce — save to workspace intelligence_data if we have one
   const save = useCallback(

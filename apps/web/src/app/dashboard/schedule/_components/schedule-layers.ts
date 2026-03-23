@@ -21,6 +21,7 @@ export const SCHEDULE_LAYERS = {
   stickyHeaders: 20,
   stickyCorner: 30,
   floatingActionBar: 30,
+  contextMenu: 50,
   dayPlannerBackdrop: 60,
   dayPlannerSheet: 70,
 } as const;

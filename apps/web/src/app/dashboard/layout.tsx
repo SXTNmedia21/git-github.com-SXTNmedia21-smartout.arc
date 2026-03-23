@@ -27,7 +27,7 @@ const SHOWCASE_WORKSPACE: WorkspaceData = {
 
 /**
  * Enforces workspace access redirects for dashboard routes.
- * - Workspaces that haven't completed onboarding → /dashboard/setup
+ * - Workspaces that still need post-bootstrap setup may be routed to `/dashboard/setup`
  * - Deactivated workspaces → /blocked
  */
 function enforceWorkspaceAccess(workspace: WorkspaceData): void {

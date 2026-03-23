@@ -263,6 +263,192 @@ const closeDayPlanner = {
   },
 };
 
+// -- Reservation tools --------------------------------------------------------
+
+const addReservation = {
+  temporaryTool: {
+    modelToolName: "addReservation",
+    description:
+      "Add a table reservation/booking for a specific day. Use when the user says " +
+      "'legg til reservasjon', 'bordbestilling', 'det kommer gjester', or similar. " +
+      "Requires date, title (guest name), time, and guest count.",
+    dynamicParameters: [
+      {
+        name: "day",
+        location: body,
+        schema: { type: "string", description: "Day name or date (YYYY-MM-DD)" },
+        required: true,
+      },
+      {
+        name: "title",
+        location: body,
+        schema: { type: "string", description: "Guest name or booking title (e.g. 'Olsen')" },
+        required: true,
+      },
+      {
+        name: "guestCount",
+        location: body,
+        schema: { type: "number", description: "Number of guests" },
+        required: true,
+      },
+      {
+        name: "bookingTime",
+        location: body,
+        schema: { type: "string", description: "Reservation time in HH:MM format (e.g. '19:00')" },
+        required: true,
+      },
+      {
+        name: "contactPerson",
+        location: body,
+        schema: { type: "string", description: "Contact person name or phone. Optional." },
+      },
+      {
+        name: "location",
+        location: body,
+        schema: {
+          type: "string",
+          description: "Table number or seating area (e.g. 'Bord 20', 'Terrassen'). Optional.",
+        },
+      },
+      {
+        name: "menu",
+        location: body,
+        schema: { type: "string", description: "Pre-ordered menu or package name. Optional." },
+      },
+      {
+        name: "notes",
+        location: body,
+        schema: { type: "string", description: "Special requests or notes. Optional." },
+      },
+      {
+        name: "isVip",
+        location: body,
+        schema: { type: "boolean", description: "Whether this is a VIP booking. Optional." },
+      },
+    ],
+    client: {},
+  },
+};
+
+const updateReservation = {
+  temporaryTool: {
+    modelToolName: "updateReservation",
+    description:
+      "Update an existing reservation/booking. Find it by guest name + day. " +
+      "Use when the user says 'endre reservasjon', 'flytt til bord 20', 'endre antall gjester', " +
+      "'avbestill', 'kanseller reservasjon', or similar.",
+    dynamicParameters: [
+      {
+        name: "day",
+        location: body,
+        schema: { type: "string", description: "Day of the reservation" },
+        required: true,
+      },
+      {
+        name: "title",
+        location: body,
+        schema: {
+          type: "string",
+          description: "Guest name to find the reservation (partial match)",
+        },
+        required: true,
+      },
+      {
+        name: "guestCount",
+        location: body,
+        schema: { type: "number", description: "New guest count. Optional." },
+      },
+      {
+        name: "bookingTime",
+        location: body,
+        schema: { type: "string", description: "New time (HH:MM). Optional." },
+      },
+      {
+        name: "location",
+        location: body,
+        schema: { type: "string", description: "New table/area (e.g. 'Bord 20'). Optional." },
+      },
+      {
+        name: "status",
+        location: body,
+        schema: {
+          type: "string",
+          description: "New status: 'confirmed', 'pending', or 'cancelled'. Optional.",
+        },
+      },
+      {
+        name: "isVip",
+        location: body,
+        schema: { type: "boolean", description: "VIP flag. Optional." },
+      },
+      {
+        name: "notes",
+        location: body,
+        schema: { type: "string", description: "Updated notes. Optional." },
+      },
+      {
+        name: "contactPerson",
+        location: body,
+        schema: { type: "string", description: "Updated contact person. Optional." },
+      },
+      {
+        name: "menu",
+        location: body,
+        schema: { type: "string", description: "Updated menu. Optional." },
+      },
+    ],
+    client: {},
+  },
+};
+
+// -- Session task tools -------------------------------------------------------
+
+const addSessionTask = {
+  temporaryTool: {
+    modelToolName: "addSessionTask",
+    description:
+      "Add a task to a specific day's session (dagplan). Use when the user says " +
+      "'legg til oppgave på dagen', 'dagsoppgave', 'gjøremål for fredag', or similar. " +
+      "The task will appear in the day's session and can be assigned to an employee.",
+    dynamicParameters: [
+      {
+        name: "day",
+        location: body,
+        schema: { type: "string", description: "Day name or date (YYYY-MM-DD)" },
+        required: true,
+      },
+      {
+        name: "title",
+        location: body,
+        schema: { type: "string", description: "Task title (e.g. 'Rydd lageret', 'Bestill vin')" },
+        required: true,
+      },
+      {
+        name: "description",
+        location: body,
+        schema: { type: "string", description: "Detailed description. Optional." },
+      },
+      {
+        name: "assignTo",
+        location: body,
+        schema: {
+          type: "string",
+          description: "Employee name to assign task to. Optional — partial match.",
+        },
+      },
+      {
+        name: "isComplianceRequired",
+        location: body,
+        schema: {
+          type: "boolean",
+          description: "Whether this is a compliance/HACCP task. Optional.",
+        },
+      },
+    ],
+    client: {},
+  },
+};
+
 // -- Export -------------------------------------------------------------------
 
 export const SCHEDULE_TOOL_DEFINITIONS: ClientToolDefinition[] = [
@@ -277,4 +463,7 @@ export const SCHEDULE_TOOL_DEFINITIONS: ClientToolDefinition[] = [
   focusDay,
   openDayPlanner,
   closeDayPlanner,
+  addReservation,
+  updateReservation,
+  addSessionTask,
 ];

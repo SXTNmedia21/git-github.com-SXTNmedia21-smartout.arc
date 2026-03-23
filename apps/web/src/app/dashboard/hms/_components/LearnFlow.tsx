@@ -1,0 +1,273 @@
+"use client";
+
+import { useState } from "react";
+import {
+  BookOpen,
+  Play,
+  ClipboardCheck,
+  PenTool,
+  CheckCircle2,
+  ChevronRight,
+  ChevronLeft,
+  Sparkles,
+  ImageIcon,
+  VideoIcon,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Loader2 } from "lucide-react";
+import { useProcedureSteps, type ProcedureStepWithTraining } from "../_hooks/use-procedure-steps";
+
+// TODO: move to i18n
+const STRINGS = {
+  understand: "Forsta",
+  practice: "Ov",
+  test: "Test",
+  confirm: "Bekreft",
+  done: "Fullfort",
+  next: "Neste",
+  previous: "Forrige",
+  explainSimpler: "Forklar dette enklere",
+  noSteps: "Denne prosedyren har ingen steg enna.",
+  stepOf: "Steg",
+} as const;
+
+type Stage = "understand" | "practice" | "test" | "confirm" | "done";
+
+const STAGES: { id: Stage; label: string; icon: typeof BookOpen }[] = [
+  { id: "understand", label: STRINGS.understand, icon: BookOpen },
+  { id: "practice", label: STRINGS.practice, icon: Play },
+  { id: "test", label: STRINGS.test, icon: ClipboardCheck },
+  { id: "confirm", label: STRINGS.confirm, icon: PenTool },
+  { id: "done", label: STRINGS.done, icon: CheckCircle2 },
+];
+
+type Props = {
+  procedureId: string;
+  readOnly?: boolean;
+};
+
+export function LearnFlow({ procedureId, readOnly = false }: Props) {
+  const { data: steps, isLoading } = useProcedureSteps(procedureId);
+  const [activeStage, setActiveStage] = useState<Stage>("understand");
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="text-muted-foreground h-5 w-5 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!steps || steps.length === 0) {
+    return (
+      <div className="border-border rounded-xl border-2 border-dashed p-8 text-center">
+        <p className="text-muted-foreground text-sm">{STRINGS.noSteps}</p>
+      </div>
+    );
+  }
+
+  const currentStep = steps[currentStepIndex];
+  const stageIndex = STAGES.findIndex((s) => s.id === activeStage);
+
+  return (
+    <div className="space-y-6">
+      {/* Stage progress bar */}
+      <div className="flex items-center gap-1">
+        {STAGES.map((stage, i) => {
+          const Icon = stage.icon;
+          const isActive = stage.id === activeStage;
+          const isPast = i < stageIndex;
+
+          return (
+            <button
+              key={stage.id}
+              onClick={() => !readOnly && setActiveStage(stage.id)}
+              disabled={readOnly}
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-medium transition-all ${
+                isActive
+                  ? "bg-primary/10 text-primary border-primary/30 border"
+                  : isPast
+                    ? "bg-green-500/10 text-green-600"
+                    : "text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              <Icon className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">{stage.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Stage content */}
+      {activeStage === "understand" && currentStep && (
+        <StepContent
+          step={currentStep}
+          stepIndex={currentStepIndex}
+          totalSteps={steps.length}
+          onPrev={() => setCurrentStepIndex((i) => Math.max(0, i - 1))}
+          onNext={() => {
+            if (currentStepIndex < steps.length - 1) {
+              setCurrentStepIndex((i) => i + 1);
+            } else {
+              setActiveStage("practice");
+              setCurrentStepIndex(0);
+            }
+          }}
+        />
+      )}
+
+      {activeStage === "practice" && (
+        <div className="border-border rounded-xl border p-6 text-center">
+          <Play className="text-muted-foreground mx-auto mb-3 h-8 w-8" />
+          <p className="text-foreground font-semibold">Ovelse</p>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Praktisk ovelse kommer i en fremtidig fase.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-4"
+            onClick={() => setActiveStage("test")}
+          >
+            Ga til test <ChevronRight className="ml-1 h-3.5 w-3.5" />
+          </Button>
+        </div>
+      )}
+
+      {activeStage === "test" && (
+        <div className="border-border rounded-xl border p-6 text-center">
+          <ClipboardCheck className="text-muted-foreground mx-auto mb-3 h-8 w-8" />
+          <p className="text-foreground font-semibold">Kunnskapstest</p>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Kobles til KnowledgeTestView i neste iterasjon.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-4"
+            onClick={() => setActiveStage("confirm")}
+          >
+            Ga til bekreftelse <ChevronRight className="ml-1 h-3.5 w-3.5" />
+          </Button>
+        </div>
+      )}
+
+      {activeStage === "confirm" && (
+        <div className="border-border rounded-xl border p-6 text-center">
+          <PenTool className="text-muted-foreground mx-auto mb-3 h-8 w-8" />
+          <p className="text-foreground font-semibold">Bekreftelse</p>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Kobles til ConfirmationSign i neste iterasjon.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-4"
+            onClick={() => setActiveStage("done")}
+          >
+            Marker som fullfort <CheckCircle2 className="ml-1 h-3.5 w-3.5" />
+          </Button>
+        </div>
+      )}
+
+      {activeStage === "done" && (
+        <div className="rounded-xl border border-green-500/30 bg-green-500/5 p-6 text-center">
+          <CheckCircle2 className="mx-auto mb-3 h-8 w-8 text-green-500" />
+          <p className="text-foreground font-semibold">Fullfort!</p>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Du har gjennomgatt alle steg i denne prosedyren.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StepContent({
+  step,
+  stepIndex,
+  totalSteps,
+  onPrev,
+  onNext,
+}: {
+  step: ProcedureStepWithTraining;
+  stepIndex: number;
+  totalSteps: number;
+  onPrev: () => void;
+  onNext: () => void;
+}) {
+  return (
+    <div className="border-border rounded-xl border">
+      {/* Step header */}
+      <div className="border-b border-inherit p-4">
+        <div className="mb-1 flex items-center gap-2">
+          <Badge variant="outline" className="text-xs">
+            {STRINGS.stepOf} {stepIndex + 1}/{totalSteps}
+          </Badge>
+          {step.isRequired && (
+            <Badge variant="secondary" className="text-xs">
+              Pakrevd
+            </Badge>
+          )}
+          {step.estimatedMinutes && (
+            <span className="text-muted-foreground ml-auto text-xs">
+              ~{step.estimatedMinutes} min
+            </span>
+          )}
+        </div>
+        <h3 className="text-foreground text-lg font-bold">{step.title}</h3>
+      </div>
+
+      {/* Content */}
+      <div className="space-y-4 p-4">
+        {/* Training content (rich) or fallback to description */}
+        <div className="prose prose-sm dark:prose-invert max-w-none">
+          {step.trainingContent ? (
+            <div dangerouslySetInnerHTML={{ __html: step.trainingContent }} />
+          ) : (
+            <p>{step.description}</p>
+          )}
+        </div>
+
+        {/* Media */}
+        {step.mediaUrls && step.mediaUrls.length > 0 && (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {step.mediaUrls.map((media, i) => (
+              <div
+                key={i}
+                className="border-border bg-muted/30 flex items-center gap-3 rounded-lg border p-3"
+              >
+                {media.type === "image" ? (
+                  <ImageIcon className="text-muted-foreground h-5 w-5 shrink-0" />
+                ) : (
+                  <VideoIcon className="text-muted-foreground h-5 w-5 shrink-0" />
+                )}
+                <span className="text-foreground truncate text-sm">{media.caption}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* AI placeholder */}
+        <Button variant="ghost" size="sm" disabled className="text-muted-foreground">
+          <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+          {STRINGS.explainSimpler}
+        </Button>
+      </div>
+
+      {/* Navigation */}
+      <div className="flex items-center justify-between border-t border-inherit p-4">
+        <Button variant="outline" size="sm" onClick={onPrev} disabled={stepIndex === 0}>
+          <ChevronLeft className="mr-1 h-3.5 w-3.5" />
+          {STRINGS.previous}
+        </Button>
+        <Button size="sm" onClick={onNext}>
+          {stepIndex === totalSteps - 1 ? "Neste fase" : STRINGS.next}
+          <ChevronRight className="ml-1 h-3.5 w-3.5" />
+        </Button>
+      </div>
+    </div>
+  );
+}

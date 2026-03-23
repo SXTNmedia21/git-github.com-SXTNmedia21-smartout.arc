@@ -7,10 +7,13 @@
  * Connected to: schedule-types.ts (DayMessage, DayTask, DayBooking types)
  */
 
+import { useContext } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspace } from "@/lib/workspace-context";
+import { emit } from "@smartout/telemetry";
 import { createClient } from "@smartout/supabase/client";
 
 import type { DayBooking, DayMessage, DayTask } from "../_components/schedule-types";
@@ -66,6 +69,7 @@ export function useDayMessages(
 export function useCreateDayMessage(weekStart: string) {
   const queryClient = useQueryClient();
   const { workspace } = useWorkspace();
+  const { profileId } = useContext(DashboardContext);
   const queryKey = scheduleKeys.dayMessages(workspace.workspace_id, weekStart);
 
   return useMutation({
@@ -100,6 +104,17 @@ export function useCreateDayMessage(weekStart: string) {
       return { previous };
     },
 
+    onSuccess: (data) => {
+      void emit({
+        event: "day_info created",
+        workspace_id: workspace.workspace_id,
+        actor_id: profileId ?? "",
+        properties: {
+          data: { date: data.dateId, category: "message" },
+        },
+      });
+    },
+
     onError: (_err, _newMessage, context) => {
       if (context?.previous) {
         queryClient.setQueryData(queryKey, context.previous);
@@ -118,6 +133,7 @@ export function useCreateDayMessage(weekStart: string) {
 export function useDeleteDayMessage(weekStart: string) {
   const queryClient = useQueryClient();
   const { workspace } = useWorkspace();
+  const { profileId } = useContext(DashboardContext);
   const queryKey = scheduleKeys.dayMessages(workspace.workspace_id, weekStart);
 
   return useMutation({
@@ -142,6 +158,17 @@ export function useDeleteDayMessage(weekStart: string) {
       );
 
       return { previous };
+    },
+
+    onSuccess: (_data, messageId) => {
+      void emit({
+        event: "day_info deleted",
+        workspace_id: workspace.workspace_id,
+        actor_id: profileId ?? "",
+        properties: {
+          data: { day_info_id: messageId },
+        },
+      });
     },
 
     onError: (_err, _messageId, context) => {
@@ -193,6 +220,7 @@ export function useDayTasks(weekStart: string, weekEnd: string, options?: { enab
 export function useCreateDayTask(weekStart: string) {
   const queryClient = useQueryClient();
   const { workspace } = useWorkspace();
+  const { profileId } = useContext(DashboardContext);
   const queryKey = scheduleKeys.dayTasks(workspace.workspace_id, weekStart);
 
   return useMutation({
@@ -221,6 +249,17 @@ export function useCreateDayTask(weekStart: string) {
       return { previous };
     },
 
+    onSuccess: (data) => {
+      void emit({
+        event: "day_info created",
+        workspace_id: workspace.workspace_id,
+        actor_id: profileId ?? "",
+        properties: {
+          data: { date: data.dateId, category: "task" },
+        },
+      });
+    },
+
     onError: (_err, _newTask, context) => {
       if (context?.previous) {
         queryClient.setQueryData(queryKey, context.previous);
@@ -244,6 +283,7 @@ type UpdateDayTaskStatusInput = {
 export function useUpdateDayTaskStatus(weekStart: string) {
   const queryClient = useQueryClient();
   const { workspace } = useWorkspace();
+  const { profileId } = useContext(DashboardContext);
   const queryKey = scheduleKeys.dayTasks(workspace.workspace_id, weekStart);
 
   return useMutation({
@@ -285,6 +325,17 @@ export function useUpdateDayTaskStatus(weekStart: string) {
       return { previous };
     },
 
+    onSuccess: (_data, { id }) => {
+      void emit({
+        event: "day_info updated",
+        workspace_id: workspace.workspace_id,
+        actor_id: profileId ?? "",
+        properties: {
+          data: { date: "", category: "task" },
+        },
+      });
+    },
+
     onError: (_err, _vars, context) => {
       if (context?.previous) {
         queryClient.setQueryData(queryKey, context.previous);
@@ -303,6 +354,7 @@ export function useUpdateDayTaskStatus(weekStart: string) {
 export function useDeleteDayTask(weekStart: string) {
   const queryClient = useQueryClient();
   const { workspace } = useWorkspace();
+  const { profileId } = useContext(DashboardContext);
   const queryKey = scheduleKeys.dayTasks(workspace.workspace_id, weekStart);
 
   return useMutation({
@@ -327,6 +379,17 @@ export function useDeleteDayTask(weekStart: string) {
       );
 
       return { previous };
+    },
+
+    onSuccess: (_data, taskId) => {
+      void emit({
+        event: "day_info deleted",
+        workspace_id: workspace.workspace_id,
+        actor_id: profileId ?? "",
+        properties: {
+          data: { day_info_id: taskId },
+        },
+      });
     },
 
     onError: (_err, _taskId, context) => {
@@ -382,6 +445,7 @@ export function useDayBookings(
 export function useCreateDayBooking(weekStart: string) {
   const queryClient = useQueryClient();
   const { workspace } = useWorkspace();
+  const { profileId } = useContext(DashboardContext);
   const queryKey = scheduleKeys.dayBookings(workspace.workspace_id, weekStart);
 
   return useMutation({
@@ -408,6 +472,17 @@ export function useCreateDayBooking(weekStart: string) {
       queryClient.setQueryData<DayBooking[]>(queryKey, (old) => [...(old ?? []), newBooking]);
 
       return { previous };
+    },
+
+    onSuccess: (data) => {
+      void emit({
+        event: "day_info created",
+        workspace_id: workspace.workspace_id,
+        actor_id: profileId ?? "",
+        properties: {
+          data: { date: data.dateId, category: "booking" },
+        },
+      });
     },
 
     onError: (_err, _newBooking, context) => {

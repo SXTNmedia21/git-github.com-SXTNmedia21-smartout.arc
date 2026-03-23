@@ -1,6 +1,6 @@
 ---
 title: "Smartout Documentation Index"
-updated: 2026-03-14
+updated: 2026-03-22
 ---
 
 # Smartout Documentation Index
@@ -11,6 +11,8 @@ Master navigation map for all documentation. An agent reads this to find any doc
 
 1. **Code + database schema** -- implementation always wins
 2. **CLAUDE.md** -- conventions, rules, verified facts
+   2.5. **Cascade Core Foundation spec** -- canonical cascade architecture (`superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`)
+   2.5. **docs/STATE.md** -- current system state, gaps, weekly plan
 3. **docs/reference/** -- detailed lookup during coding
 4. **docs/engines/** -- industry engine packaging and event-layer specialization
 5. **docs/modules/** -- business logic per module
@@ -71,30 +73,39 @@ Master navigation map for all documentation. An agent reads this to find any doc
 
 ### Architecture (Layer 3)
 
-| id                 | File                                                       | Status                |
-| ------------------ | ---------------------------------------------------------- | --------------------- |
-| CORE_ARCH_V2       | architecture/SMARTOUT_CORE_ARCHITECTURE_v2.md              | canonical             |
-| UI_ARCH            | architecture/SMARTOUT_UI_ARCHITECTURE.md                   | draft                 |
-| PROD_ARCH          | architecture/SMARTOUT_PRODUCTION_ARCHITECTURE.md           | canonical             |
-| FOUND_ARCH         | architecture/SMARTOUT_FOUNDATION_ARCHITECTURE.md           | canonical             |
-| FOUND_DATA_MODEL   | architecture/SMARTOUT_FOUNDATION_DATA_MODEL.md             | canonical             |
-| FOUND_PRODUCT_ID   | architecture/SMARTOUT_FOUNDATION_PRODUCT_IDENTITY.md       | canonical             |
-| IMPL_GUIDE         | architecture/SMARTOUT_IMPLEMENTATION_GUIDE.md              | canonical             |
-| PACKAGES_ARCH      | architecture/SMARTOUT_PACKAGES_ARCHITECTURE.md             | canonical             |
-| CONTRACT_ARCH      | architecture/SMARTOUT_CONTRACT_SYSTEM.md                   | canonical             |
-| TELEMETRY_ARCH     | architecture/SMARTOUT_TELEMETRY_ARCHITECTURE.md            | canonical             |
-| SUBDOMAIN_ARCH     | architecture/SMARTOUT_Subdomain_Routing_Architecture.md    | canonical             |
-| WS_ONBOARD_ARCH    | architecture/SMARTOUT_WORKSPACE_ONBOARDING_ARCHITECTURE.md | canonical             |
-| NEXTRA_ARCH        | architecture/SMARTOUT_docs_NEXTRA_architecture.md          | superseded (ADR-0030) |
-| ORG_ROADMAP        | architecture/SMARTOUT_ORG_STRUCTURE_ROADMAP.md             | canonical             |
-| APPENDIX_ENUMS     | architecture/SMARTOUT_APPENDIX_ENUMS.md                    | canonical             |
-| ARCH_REPORTS_KPIS  | architecture/SMARTOUT_MODULE_10_REPORTS_AND_KPIS.md        | canonical             |
-| PERF_GOVERNANCE    | architecture/PERFORMANCE_BUILD_GOVERNANCE.md               | canonical             |
-| PRD_03             | architecture/PRD-03_Avstemmingssystem.md                   | canonical             |
-| SCHED_UX_AUDIT     | architecture/SCHEDULE_PAGE_UX_AUDIT_AND_WORKFLOWS.md       | canonical             |
-| AI_RUNTIME_DEF     | architecture/AI_RUNTIME_SYSTEM_DEFINITION_V1.md            | canonical             |
-| AI_RUNTIME_RUNBOOK | architecture/AI_RUNTIME_RUNBOOK.md                         | canonical             |
-| AGENT_FRAMEWORK    | architecture/agent-framework.md                            | reference             |
+| id                 | File                                                       | Status                                                   |
+| ------------------ | ---------------------------------------------------------- | -------------------------------------------------------- |
+| CORE_ARCH_V2       | architecture/SMARTOUT_CORE_ARCHITECTURE_v2.md              | canonical                                                |
+| UI_ARCH            | needs-rewrite/SMARTOUT_UI_ARCHITECTURE.md                  | pending rewrite                                          |
+| PROD_ARCH          | architecture/SMARTOUT_PRODUCTION_ARCHITECTURE.md           | canonical                                                |
+| FOUND_ARCH         | archive/SMARTOUT_FOUNDATION_ARCHITECTURE.md                | archived (merged into CORE_ARCH_V2)                      |
+| FOUND_DATA_MODEL   | archive/SMARTOUT_FOUNDATION_DATA_MODEL.md                  | archived (merged into CORE_ARCH_V2)                      |
+| FOUND_PRODUCT_ID   | architecture/SMARTOUT_FOUNDATION_PRODUCT_IDENTITY.md       | canonical                                                |
+| IMPL_GUIDE         | needs-rewrite/SMARTOUT_IMPLEMENTATION_GUIDE.md             | pending rewrite                                          |
+| PACKAGES_ARCH      | architecture/SMARTOUT_PACKAGES_ARCHITECTURE.md             | canonical                                                |
+| CONTRACT_ARCH      | architecture/SMARTOUT_CONTRACT_SYSTEM.md                   | canonical                                                |
+| TELEMETRY_ARCH     | architecture/SMARTOUT_TELEMETRY_ARCHITECTURE.md            | canonical                                                |
+| SUBDOMAIN_ARCH     | architecture/SMARTOUT_Subdomain_Routing_Architecture.md    | canonical                                                |
+| WS_ONBOARD_ARCH    | architecture/SMARTOUT_WORKSPACE_ONBOARDING_ARCHITECTURE.md | canonical                                                |
+| NEXTRA_ARCH        | archive/SMARTOUT_docs_NEXTRA_architecture.md               | archived (ADR-0030)                                      |
+| ORG_ROADMAP        | archive/SMARTOUT_ORG_STRUCTURE_ROADMAP.md                  | archived (cascade)                                       |
+| APPENDIX_ENUMS     | architecture/SMARTOUT_APPENDIX_ENUMS.md                    | canonical                                                |
+| ARCH_REPORTS_KPIS  | architecture/SMARTOUT_MODULE_10_REPORTS_AND_KPIS.md        | canonical                                                |
+| PERF_GOVERNANCE    | architecture/PERFORMANCE_BUILD_GOVERNANCE.md               | canonical                                                |
+| PRD_03             | architecture/PRD-03_Avstemmingssystem.md                   | canonical                                                |
+| SCHED_UX_AUDIT     | architecture/SCHEDULE_PAGE_UX_AUDIT_AND_WORKFLOWS.md       | canonical                                                |
+| AI_RUNTIME_DEF     | architecture/AI_RUNTIME_SYSTEM_DEFINITION_V1.md            | canonical                                                |
+| AI_RUNTIME_RUNBOOK | architecture/AI_RUNTIME_RUNBOOK.md                         | canonical                                                |
+| AGENT_FRAMEWORK    | archive/agent-framework.md                                 | archived (superseded by AI_RUNTIME_SYSTEM_DEFINITION_V1) |
+
+### Cascade Architecture
+
+| id                    | File                                                             | Status                                              | Description                                                                                              |
+| --------------------- | ---------------------------------------------------------------- | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| CASCADE_SPEC          | superpowers/specs/2026-03-21-cascade-scheduling-system-design.md | canonical                                           | Cascade Core Foundation spec — I1+6D+4C+K1a/K1b, framework model, proposal pipeline, bootstrap, adapters |
+| CASCADE_MASTER        | archive/cascade-spreadsheet-overview.md                          | archived (merged into CASCADE_SPEC)                 |
+| CASCADE_INVESTIGATION | archive/INVESTIGATION_OPERATING_HOURS_CORE_STRUCTURE.md          | archived (findings canonicalized into CASCADE_SPEC) |
+| CASCADE_ADR_DRAFT     | decisions/ADR-DRAFT-core-hierarchy-cascade.md                    | draft                                               | Draft ADR for core hierarchy changes                                                                     |
 
 ### Cross-Cutting
 
@@ -137,7 +148,7 @@ Reusable document templates in `docs/templates/`.
 
 ### Decisions (ADRs)
 
-See `docs/decisions/0000-decision-log.md` -- 51 ADRs (0001-0051).
+See `docs/decisions/0000-decision-log.md` -- 55 ADRs.
 
 | id       | File                                                     | Subject                                      |
 | -------- | -------------------------------------------------------- | -------------------------------------------- |

@@ -10,8 +10,6 @@ import { useApproveShiftHours } from "../_hooks/useReconciliation";
 type ShiftApprovalRow = {
   approval_id: string;
   shift_id: string;
-  punch_in: string | null;
-  punch_out: string | null;
   planned_hours: number;
   calculated_hours: number | null;
   approved_hours: number | null;
@@ -112,7 +110,8 @@ export function ShiftApprovalSection({ approvals, profileId }: ShiftApprovalSect
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 text-sm">
                     <span>
-                      {formatTime(approval.punch_in)} - {formatTime(approval.punch_out)}
+                      {formatTime(approval.schedule_shift?.start_time ?? null)} -{" "}
+                      {formatTime(approval.schedule_shift?.end_time ?? null)}
                     </span>
                     <Badge variant={statusConfig.variant} className="text-[10px]">
                       {statusConfig.label}

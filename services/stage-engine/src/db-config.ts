@@ -1,5 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
-import { config } from "./config.js";
+import { supabaseAdmin } from "./lib/supabase.js";
 
 let cachedConfig: Record<string, unknown> | null = null;
 let cacheExpires = 0;
@@ -9,16 +8,14 @@ const SERVICE_SLUG = "stage-engine";
 /**
  * Load runtime config from service_config table.
  * Cached for 60s. Falls back to empty object on failure.
- * This provides DB-first config for values that can change at runtime
- * without a restart (feature flags, URLs, etc.).
+ * Uses the shared supabaseAdmin singleton to avoid connection leaks.
  */
 export async function loadServiceConfig(): Promise<Record<string, unknown>> {
   const now = Date.now();
   if (cachedConfig && cacheExpires > now) return cachedConfig;
 
   try {
-    const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_SERVICE_ROLE_KEY);
-    const { data } = await supabase
+    const { data } = await supabaseAdmin
       .from("service_config")
       .select("config, host_url, port")
       .eq("slug", SERVICE_SLUG)

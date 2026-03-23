@@ -3,7 +3,6 @@
 import { useState, useCallback, useContext, useMemo } from "react";
 import { ChevronLeft, ChevronRight, Rocket } from "lucide-react";
 import { emit } from "@smartout/telemetry";
-import { createClient } from "@smartout/supabase/client";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { useOnboardingGuide } from "@/app/dashboard/_hooks/use-onboarding-guide";
@@ -125,7 +124,6 @@ export function OnboardingGuide() {
   const ctx = useWorkspaceOptional();
   const workspaceId = ctx?.workspace.workspace_id ?? "";
   const { isDark, profileId } = useContext(DashboardContext);
-  const supabase = createClient();
   const { package: industryPackage, detectedType, setIndustryType } = useIndustryPackage();
 
   const {
@@ -207,14 +205,8 @@ export function OnboardingGuide() {
           },
         },
       }).catch((e: unknown) => console.error("[onboarding-guide] emit failed:", e));
-
-      // Set onboarding_completed = true
-      void supabase
-        .from("workspace")
-        .update({ onboarding_completed: true })
-        .eq("workspace_id", workspaceId);
     }
-  }, [currentStep, markStepComplete, totalSteps, workspaceId, profileId, supabase]);
+  }, [currentStep, markStepComplete, totalSteps, workspaceId, profileId]);
 
   const handleBack = useCallback(() => {
     if (currentStep > 0) {

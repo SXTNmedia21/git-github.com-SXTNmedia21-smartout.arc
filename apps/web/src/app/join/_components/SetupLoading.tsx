@@ -6,6 +6,7 @@ import { Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSignupWizard } from "../_hooks/useSignupWizard";
 import { completeSignup } from "../_lib/setupActions";
+import { buildPostSignupRedirectPath } from "../_lib/onboarding-shell";
 import type {
   Step1Data,
   Step2Data,
@@ -50,16 +51,28 @@ export function SetupLoading() {
       flushPersist();
 
       try {
-        await completeSignup({
+        const result = await completeSignup({
           step1: state.step1 as Step1Data,
           step2: state.step2 as Step2Data,
           step3: state.step3 as Step3Data,
           step4: state.step4 as Step4Data,
           step5: state.step5 as Step5Data,
           step6: state.step6 as Step6Data,
+          intelligence: state.intelligence ?? null,
         });
 
-        router.push(`/dashboard`);
+        // Clear wizard state from localStorage — signup is complete
+        try {
+          localStorage.removeItem("smartout_signup_wizard");
+        } catch {
+          // localStorage might be unavailable
+        }
+
+        if (result?.workspaceId) {
+          router.push(buildPostSignupRedirectPath(result.workspaceId));
+        } else {
+          router.push("/onboarding");
+        }
       } catch (err) {
         console.error("[SetupLoading] Setup failed:", err);
         setError(err instanceof Error ? err.message : "Noe gikk galt under oppsettet.");

@@ -7,6 +7,11 @@ _extractors_dir = str(Path(__file__).parent.parent / "extractors")
 if _extractors_dir not in sys.path:
     sys.path.insert(0, _extractors_dir)
 
+# Add scrapling root to path so intelligence.py can be imported directly
+_scrapling_root = str(Path(__file__).parent.parent)
+if _scrapling_root not in sys.path:
+    sys.path.insert(0, _scrapling_root)
+
 import pytest
 
 

@@ -11,10 +11,14 @@
 import "./walkai.css";
 import { WalkAiProvider } from "./WalkAiProvider";
 import { WalkAiShell } from "./WalkAiShell";
+import { useWorkspaceOptional } from "@/lib/workspace-context";
 
 export function EmmaOverlay() {
+  const ctx = useWorkspaceOptional();
+  const workspaceId = ctx?.workspace.workspace_id ?? null;
+
   return (
-    <WalkAiProvider>
+    <WalkAiProvider workspaceId={workspaceId}>
       <WalkAiShell />
     </WalkAiProvider>
   );

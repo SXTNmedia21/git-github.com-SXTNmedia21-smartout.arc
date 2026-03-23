@@ -5,10 +5,8 @@ import { sendToPostHogClient } from "./providers/posthog-client";
 // ─── Shared Telemetry Event Router ──────────────────────────────
 //
 // Server-only providers (posthog-node, activity-trail, engine-event)
-// are loaded via dynamic import so they are never bundled into the
-// client chunk.  Turbopack / Next.js 16 Edge Runtime rejects any
-// static import that transitively touches `node:fs` or service-role
-// credentials.
+// are loaded via dynamic import so they are tree-shaken from the
+// client bundle. The isServer guard prevents client-side execution.
 export async function emit(event: SmartoutEvent): Promise<void> {
   const routing = EVENT_ROUTING[event.event];
 
@@ -32,7 +30,7 @@ export async function emit(event: SmartoutEvent): Promise<void> {
   // 1. Analytics
   if (routing.destinations.includes("posthog")) {
     if (isServer) {
-      const { sendToPostHogServer } = await import(/* webpackIgnore: true */ "./providers/posthog");
+      const { sendToPostHogServer } = await import("./providers/posthog");
       promises.push(sendToPostHogServer(event));
     } else {
       sendToPostHogClient(event);
@@ -42,7 +40,7 @@ export async function emit(event: SmartoutEvent): Promise<void> {
   // 2. Logging
   if (routing.destinations.includes("logger")) {
     if (isServer) {
-      const { logToStdout } = await import(/* webpackIgnore: true */ "./providers/logger");
+      const { logToStdout } = await import("./providers/logger");
       logToStdout(event, routing);
     } else {
       // eslint-disable-next-line no-console
@@ -52,15 +50,13 @@ export async function emit(event: SmartoutEvent): Promise<void> {
 
   // 3. Activity Trail (server-side only)
   if (routing.destinations.includes("activity_trail") && isServer) {
-    const { writeActivityTrail } = await import(
-      /* webpackIgnore: true */ "./providers/activity-trail"
-    );
+    const { writeActivityTrail } = await import("./providers/activity-trail");
     promises.push(writeActivityTrail(event, routing));
   }
 
   // 4. Engine Event
   if (routing.destinations.includes("engine_event")) {
-    const { sendToEngine } = await import(/* webpackIgnore: true */ "./providers/engine-event");
+    const { sendToEngine } = await import("./providers/engine-event");
     promises.push(sendToEngine(event));
   }
 

@@ -23,6 +23,7 @@ type UseUpdateShift = ReturnType<typeof import("../_hooks/use-shifts").useUpdate
 type ScheduleVoiceToolsBridgeProps = {
   weekStart: string;
   weekEnd: string;
+  workspaceId?: string;
   enrichedDays: Array<{ id: string; label: string; isToday?: boolean; isHoliday?: boolean }>;
   shifts: Shift[];
   absences: Absence[];
@@ -44,6 +45,7 @@ type ScheduleVoiceToolsBridgeProps = {
 export function ScheduleVoiceToolsBridge({
   weekStart,
   weekEnd,
+  workspaceId,
   enrichedDays,
   shifts,
   absences,
@@ -61,6 +63,7 @@ export function ScheduleVoiceToolsBridge({
   const voiceTools = useScheduleVoiceTools({
     weekStart,
     weekEnd,
+    workspaceId,
     days: enrichedDays,
     shifts,
     absences,

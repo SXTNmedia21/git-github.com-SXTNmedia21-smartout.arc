@@ -41,3 +41,8 @@ Archived historical split docs are stored in:
 Composition model:
 
 `System intelligence + Industry intelligence + Artificial intelligence -> Autonomous, safe execution`
+
+This composition is conceptual. For normative runtime behavior, always defer to
+`docs/architecture/AI_RUNTIME_SYSTEM_DEFINITION_V1.md`. For cascade-owned state,
+governance, and proposal/enforcement behavior, defer to the cascade spec and
+`ADR-0056`.

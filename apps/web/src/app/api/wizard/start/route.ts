@@ -54,8 +54,6 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}));
     const missionId = body.mission_id || "onboarding-interview";
-    const isShowcaseVoice =
-      typeof body.context?.page === "string" && body.context.page.startsWith("dashboard.");
     console.info("[wizard/start] session_start_requested", {
       request_id: requestId,
       mission_id: missionId,
@@ -63,8 +61,9 @@ export async function POST(request: NextRequest) {
       selected_tool_count: Array.isArray(body.selected_tools) ? body.selected_tools.length : 0,
     });
 
-    // Onboarding does not require auth — user has no account yet
-    if (!user && missionId !== "onboarding-interview" && !isShowcaseVoice) {
+    // Onboarding does not require auth — user has no account yet.
+    // All other missions require authentication (no client-controlled bypasses).
+    if (!user && missionId !== "onboarding-interview") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -82,7 +81,7 @@ export async function POST(request: NextRequest) {
       profileId = profile?.profile_id;
     }
 
-    if (!workspaceId && missionId !== "onboarding-interview" && !isShowcaseVoice) {
+    if (!workspaceId && missionId !== "onboarding-interview") {
       return NextResponse.json({ error: "No workspace found" }, { status: 400 });
     }
 
