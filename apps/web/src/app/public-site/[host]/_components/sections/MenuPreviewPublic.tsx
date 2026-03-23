@@ -31,7 +31,7 @@ export function MenuPreviewPublic({ content, assets }: PublicSectionProps) {
             return (
               <div
                 key={i}
-                className="overflow-hidden bg-[var(--site-muted)]"
+                className="site-bg-muted overflow-hidden"
                 style={{ borderRadius: "var(--site-radius)", boxShadow: "var(--site-shadow)" }}
               >
                 {image && (

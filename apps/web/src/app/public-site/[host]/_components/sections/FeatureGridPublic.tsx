@@ -25,7 +25,7 @@ export function FeatureGridPublic({ content }: PublicSectionProps) {
           {features.map((feature, i) => (
             <div
               key={i}
-              className="bg-[var(--site-muted)] p-6 transition-shadow hover:shadow-md"
+              className="site-bg-muted p-6 transition-shadow hover:shadow-md"
               style={{ borderRadius: "var(--site-radius)", boxShadow: "var(--site-shadow)" }}
             >
               {feature.icon && <span className="mb-3 block text-3xl">{feature.icon}</span>}

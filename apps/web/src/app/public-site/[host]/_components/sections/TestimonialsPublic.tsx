@@ -11,7 +11,7 @@ export function TestimonialsPublic({ content }: PublicSectionProps) {
   const testimonials = (content.testimonials as Testimonial[] | undefined) ?? [];
 
   return (
-    <section className="bg-[var(--site-muted)] py-12 md:py-16">
+    <section className="site-bg-muted py-12 md:py-16">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {heading && (
           <h2
@@ -25,7 +25,7 @@ export function TestimonialsPublic({ content }: PublicSectionProps) {
           {testimonials.map((t, i) => (
             <blockquote
               key={i}
-              className="bg-[var(--site-background)] p-6"
+              className="site-bg-background p-6"
               style={{ borderRadius: "var(--site-radius)", boxShadow: "var(--site-shadow)" }}
             >
               <p className="mb-4 text-[var(--site-muted-foreground)] italic">

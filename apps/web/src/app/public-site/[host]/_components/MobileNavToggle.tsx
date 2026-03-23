@@ -26,7 +26,7 @@ export function MobileNavToggle({ children }: { children: React.ReactNode }) {
         </svg>
       </button>
       {open && (
-        <div className="absolute top-full right-0 left-0 border-b border-[var(--site-muted)] bg-[var(--site-background)] shadow-md md:hidden">
+        <div className="site-bg-background site-border-muted absolute top-full right-0 left-0 border-b shadow-md md:hidden">
           <nav className="flex flex-col gap-2 p-4" onClick={() => setOpen(false)}>
             {children}
           </nav>

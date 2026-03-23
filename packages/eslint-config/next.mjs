@@ -6,7 +6,16 @@ import nextTs from "eslint-config-next/typescript";
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
-  globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts"]),
+  // public-site uses [host] dynamic route which ESLint treats as a glob
+  // character class, causing "rule definition not found" errors in lint-staged.
+  // These are server-rendered public pages — Next.js link rules don't apply.
+  globalIgnores([
+    ".next/**",
+    "out/**",
+    "build/**",
+    "next-env.d.ts",
+    "**/public-site/**",
+  ]),
   {
     files: ["**/*.{ts,tsx}"],
     rules: {

@@ -15,7 +15,7 @@ export function SiteNavigation({
   const sortedPages = [...pages].sort((a, b) => a.sortOrder - b.sortOrder);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[var(--site-muted)] bg-[var(--site-background)]">
+    <header className="site-bg-background site-border-muted sticky top-0 z-50 border-b">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="relative flex h-16 items-center justify-between">
           {/* Logo / Site name */}
@@ -42,7 +42,7 @@ export function SiteNavigation({
               <a
                 key={page.slug}
                 href={page.slug === "" ? "/" : `/${page.slug}`}
-                className="text-sm font-medium transition-colors hover:text-[var(--site-primary)]"
+                className="site-hover-text-primary text-sm font-medium transition-colors"
               >
                 {page.title}
               </a>
@@ -55,7 +55,7 @@ export function SiteNavigation({
               <a
                 key={page.slug}
                 href={page.slug === "" ? "/" : `/${page.slug}`}
-                className="py-2 text-sm font-medium transition-colors hover:text-[var(--site-primary)]"
+                className="site-hover-text-primary py-2 text-sm font-medium transition-colors"
               >
                 {page.title}
               </a>

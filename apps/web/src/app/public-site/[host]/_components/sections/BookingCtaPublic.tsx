@@ -9,7 +9,7 @@ export function BookingCtaPublic({ content }: PublicSectionProps) {
   if (!bookingUrl) return null;
 
   return (
-    <section className="bg-[var(--site-muted)] py-12 md:py-16">
+    <section className="site-bg-muted py-12 md:py-16">
       <div className="mx-auto max-w-3xl px-4 text-center sm:px-6 lg:px-8">
         {heading && (
           <h2
