@@ -53,14 +53,14 @@ const packageCards = [
     name: "Premium",
     price: "995 NOK",
     period: "launchpris",
-    description: "Kapasitetstak for en normal restaurant med omtrent ti ansatte.",
+    description: "Supercharge Smartout med AI og ny teknologi som sparer deg tid i hverdagen.",
     highlighted: true,
     ctaLabel: "Reserver premium",
     ctaHref: "#waitlist",
     badge: "Mest aktuell",
     features: [
       "14 dager premium inkludert fra start",
-      "Typisk nok for ca. 10 ansatte",
+      "Du betaler for spart tid, ikke for lisens",
       "300 AI-genererte vaktforslag / mnd",
       "400 AI-sammendrag / mnd",
       "Betalfunksjoner kan slås av og på med ett klikk",
@@ -120,16 +120,16 @@ const websiteTiers = [
 ] as const;
 
 const freeHighlights = [
-  "Smartout Core er gratis.",
+  "Smartout Core er gratis, og står seg mot andre systemer alene.",
   "Du kan skru betalfunksjoner av og på med ett klikk.",
-  "Du betaler først når du vil ha AI, automasjon eller nettsideoppgradering.",
+  "Du betaler først når Smartout begynner å spare deg tid med AI og automasjon.",
 ] as const;
 
 const faqs = [
   {
     question: "Er Smartout virkelig gratis?",
     answer:
-      "Ja. Smartout Core kan brukes gratis. Betalte funksjoner legges til når du vil ha mer AI, automasjon, signering eller bedre nettside.",
+      "Ja. Smartout Core kan brukes gratis, og er ment å være et reelt alternativ i seg selv. Betalte funksjoner legges til når du vil spare mer tid med AI, automasjon, signering eller bedre nettside.",
   },
   {
     question: "Hva betyr premiumplassen til 995 NOK?",
@@ -231,8 +231,9 @@ export default function FreeForeverPage() {
                 </h1>
 
                 <p className="text-muted-foreground mt-6 max-w-2xl text-lg leading-8 sm:text-xl">
-                  Core-produktet er gratis for alltid. Når du vil ha AI-vakter, AI-sammendrag,
-                  premium nettside eller enterprise-flyt, slår du det på med ett klikk.
+                  Smartout er gratis som system. Når du vil supercharge driften med AI-vakter,
+                  AI-sammendrag og ny teknologi som faktisk sparer deg tid, slår du det på med ett
+                  klikk.
                 </p>
 
                 <div className="mt-8 flex flex-col gap-4 sm:flex-row">
@@ -274,8 +275,9 @@ export default function FreeForeverPage() {
                   Begrensede premiumplasser til 995 NOK
                 </h2>
                 <p className="text-muted-foreground mt-4 text-base leading-7">
-                  Premium er laget for normal bruk i en mindre restaurant. Du får et tydelig tak,
-                  tydelig pris og null lisenskaos.
+                  Premium er ikke &quot;grunnpakken&quot;. Det er oppgraderingen for restauranter
+                  som vil hente ut mer fart, mer flyt og mer tidsbesparing fra Smartout uten å gå
+                  rett til Pro eller Enterprise.
                 </p>
 
                 <div className="mt-8 space-y-4">
@@ -284,7 +286,8 @@ export default function FreeForeverPage() {
                     <div>
                       <p className="text-foreground font-medium">Bygget for hverdagsbruk</p>
                       <p className="text-muted-foreground text-sm leading-6">
-                        Tenk normal drift for en restaurant med omtrent ti ansatte.
+                        For restauranter som vil bruke ny teknologi til a spare tid i drift, ikke
+                        bare erstatte et gammelt system.
                       </p>
                     </div>
                   </div>
@@ -293,8 +296,8 @@ export default function FreeForeverPage() {
                     <div>
                       <p className="text-foreground font-medium">Betalfunksjoner er valgfrie</p>
                       <p className="text-muted-foreground text-sm leading-6">
-                        Slå av og på AI, signering og nettsideoppgraderinger uten å røre
-                        gratisdelen.
+                        Gratisdelen står på egne bein. Du slår bare på AI, signering og
+                        nettsideoppgraderinger når de faktisk skaper verdi for deg.
                       </p>
                     </div>
                   </div>
@@ -320,9 +323,9 @@ export default function FreeForeverPage() {
                 Ett gratis system. Fire tydelige nivåer.
               </h2>
               <p className="text-muted-foreground mt-5 text-lg leading-8">
-                Vi selger ikke låst lisens. Vi selger kapasitet, automasjon og ambisjon. Derfor er
-                Free alltid der, mens Premium, Pro og Enterprise bygges rundt hvor mye du faktisk
-                vil slå på.
+                Vi selger ikke låst lisens. Vi selger spart tid. Derfor er Free alltid der som
+                gratis grunnsystem, mens Premium, Pro og Enterprise handler om hvor mye AI,
+                automasjon og fremdrift du vil skru på.
               </p>
             </div>
 
@@ -428,21 +431,21 @@ export default function FreeForeverPage() {
               <div>
                 <SectionLabel>Usage logic</SectionLabel>
                 <h2 className="text-foreground mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-                  Premium er tak med mening.
+                  Du betaler for tid. Ikke for tilgang.
                 </h2>
               </div>
               <div className="border-border bg-background/80 rounded-[1.75rem] border p-5">
                 <p className="text-foreground text-lg font-semibold">Premium</p>
                 <p className="text-muted-foreground mt-3 text-sm leading-7">
-                  Nok AI og automasjon til at en mindre restaurant kan jobbe smart uten å gå rett
-                  til enterprise-prising.
+                  Premium er laget for deg som vil supercharge Smartout med AI og ny teknologi, men
+                  fortsatt holde det enkelt og tydelig.
                 </p>
               </div>
               <div className="border-border bg-background/80 rounded-[1.75rem] border p-5">
                 <p className="text-foreground text-lg font-semibold">Pro</p>
                 <p className="text-muted-foreground mt-3 text-sm leading-7">
-                  Når bruken, ambisjonen eller nettsiden blir større, går du opp til Pro i stedet
-                  for å bli straffet i Free eller Premium.
+                  Når du vil ha høyere tak, bedre nettside og mer avansert flyt, går du opp til Pro
+                  uten å måtte bytte system eller betale for unødvendig lisens.
                 </p>
               </div>
             </div>
@@ -456,8 +459,9 @@ export default function FreeForeverPage() {
                   Sikre deg tidlig tilgang før plassene fylles.
                 </h2>
                 <p className="text-muted-foreground mt-5 text-lg leading-8">
-                  Dette er siden for deg som vil teste en smartere prismodell først. Legg inn
-                  bedriften din, så følger vi opp med riktig nivå og riktig launch-vindu.
+                  Dette er for restauranter som vil ha et gratis system i bunnen, men som også vil
+                  koble på AI når det faktisk sparer tid. Legg inn bedriften din, så følger vi opp
+                  med riktig nivå og riktig launch-vindu.
                 </p>
                 <ul className="text-muted-foreground mt-8 space-y-3 text-sm">
                   <li className="flex items-start gap-3">
@@ -500,7 +504,7 @@ export default function FreeForeverPage() {
           <div className="text-muted-foreground mx-auto flex max-w-7xl flex-col gap-6 px-6 py-8 text-sm sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-foreground font-medium">Smartout er alltid gratis i Core.</p>
-              <p className="mt-1">Slå på mer når du vil ha AI, nettside eller enterprise-flyt.</p>
+              <p className="mt-1">Slå på mer når du vil kjøpe tidsbesparing, ikke lisens.</p>
             </div>
             <div className="flex flex-wrap items-center gap-4">
               <Link href="/personvern" className="hover:text-foreground transition">
