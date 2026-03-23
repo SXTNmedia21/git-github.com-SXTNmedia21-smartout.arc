@@ -27,6 +27,7 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { FullTracker, TrackedCta } from "../../components/tracking";
 import { ThemeToggle } from "../../components/theme-toggle";
 import { WEB_APP_LINKS } from "../../lib/web-app-url";
@@ -81,7 +82,7 @@ const competitors: Competitor[] = [
     midPaid: "2 500 NOK/mnd",
     topPaid: "Custom",
     typicalCost: "0 kr",
-    color: "text-emerald-400",
+    color: "text-success",
     website: "smartout.ai",
   },
   {
@@ -159,7 +160,7 @@ const competitors: Competitor[] = [
     midPaid: "$79/loc/mnd",
     topPaid: "$129/loc/mnd",
     typicalCost: "~430 NOK/mnd",
-    color: "text-rose-400",
+    color: "text-destructive",
     website: "forkhr.com",
   },
   {
@@ -1556,11 +1557,11 @@ function CellValue({ value, isSmartout }: { value: FeatureValue; isSmartout: boo
   if (value === true) {
     return (
       <span
-        className={`inline-flex items-center justify-center rounded-full ${isSmartout ? "bg-emerald-500 shadow-sm" : "bg-emerald-500/10"}`}
+        className={`inline-flex items-center justify-center rounded-full ${isSmartout ? "bg-success shadow-sm" : "bg-success/10"}`}
         style={{ width: 28, height: 28 }}
       >
         <Check
-          className={`h-4 w-4 ${isSmartout ? "text-emerald-950" : "text-emerald-500/70"}`}
+          className={`h-4 w-4 ${isSmartout ? "text-background" : "text-success/70"}`}
           strokeWidth={isSmartout ? 3 : 2}
         />
       </span>
@@ -1569,10 +1570,10 @@ function CellValue({ value, isSmartout }: { value: FeatureValue; isSmartout: boo
   if (value === false) {
     return (
       <span
-        className="inline-flex items-center justify-center rounded-full bg-rose-500/10"
+        className="bg-destructive/10 inline-flex items-center justify-center rounded-full"
         style={{ width: 28, height: 28 }}
       >
-        <X className="h-3.5 w-3.5 text-rose-500" />
+        <X className="text-destructive h-3.5 w-3.5" />
       </span>
     );
   }
@@ -1652,11 +1653,15 @@ export default function ComparePage() {
     <div className="bg-background text-foreground relative min-h-screen overflow-x-hidden">
       <FullTracker />
 
-      {/* Background */}
+      {/* Background - Ren og Varm personality */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,oklch(1_0_0/0.05),transparent_40%)]" />
-        <div className="bg-brand-orange/8 absolute top-0 left-1/2 h-[28rem] w-[28rem] -translate-x-1/2 rounded-full blur-3xl" />
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,oklch(1_0_0/0.02)_1px,transparent_1px),linear-gradient(to_bottom,oklch(1_0_0/0.02)_1px,transparent_1px)] bg-[size:32px_32px]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,var(--color-brand-orange)_0%,transparent_35%)] opacity-10 dark:opacity-5" />
+        <motion.div
+          animate={{ scale: [1, 1.05, 1], opacity: [0.15, 0.25, 0.15] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+          className="bg-brand-orange absolute top-0 left-1/2 h-[32rem] w-[32rem] -translate-x-1/2 rounded-full blur-[120px]"
+        />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,var(--color-foreground)_1px,transparent_1px),linear-gradient(to_bottom,var(--color-foreground)_1px,transparent_1px)] bg-[size:32px_32px] opacity-[0.03]" />
       </div>
 
       <div className="relative z-10">
@@ -1680,6 +1685,7 @@ export default function ComparePage() {
               >
                 Se priser
               </Link>
+              <ThemeToggle />
               <TrackedCta
                 label="Compare CTA start free"
                 href={WEB_APP_LINKS.login}
@@ -1715,13 +1721,33 @@ export default function ComparePage() {
           {/* Cost comparison cards */}
           <section className="mx-auto max-w-7xl px-6 pb-16">
             <SectionLabel>Typisk kostnad — 20 ansatte, 1 lokasjon</SectionLabel>
-            <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+            <motion.div
+              initial="hidden"
+              animate="visible"
+              variants={{
+                hidden: {},
+                visible: { transition: { staggerChildren: 0.1 } },
+              }}
+              className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6"
+            >
               {competitors.map((c) => (
-                <div
+                <motion.div
                   key={c.id}
-                  className={`rounded-2xl border p-5 transition ${
+                  variants={{
+                    hidden: { opacity: 0, y: 20 },
+                    visible: {
+                      opacity: 1,
+                      y: 0,
+                      transition: { type: "spring", stiffness: 35, damping: 20, mass: 2.2 },
+                    },
+                  }}
+                  whileHover={{
+                    y: -4,
+                    transition: { type: "spring", stiffness: 400, damping: 25 },
+                  }}
+                  className={`rounded-2xl border p-5 shadow-sm transition-colors ${
                     c.id === "smartout_free" || c.id === "smartout_premium"
-                      ? "border-brand-orange/40 bg-brand-orange/10"
+                      ? "border-brand-orange/40 bg-brand-orange/10 dark:bg-brand-orange/5"
                       : "border-border bg-card/90"
                   }`}
                 >
@@ -1742,9 +1768,9 @@ export default function ComparePage() {
                       Gratis — ubegrenset ansatte
                     </p>
                   )}
-                </div>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           </section>
 
           {/* Filter toolbar */}
@@ -1818,78 +1844,94 @@ export default function ComparePage() {
           {/* Comparison matrix */}
           <section className="mx-auto max-w-7xl px-6 py-12">
             {/* Dynamic Competitor Alert */}
-            {visibleCompetitors.length === 3 &&
-              !visibleCompetitors.includes("smartout_premium") && (
-                <div className="mb-10 flex flex-col items-start justify-between gap-6 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-6 sm:flex-row sm:items-center sm:p-8">
-                  <div>
-                    <h3 className="text-foreground text-xl font-bold tracking-tight sm:text-2xl">
-                      Bruker du{" "}
-                      {
-                        competitors.find(
-                          (c) => c.id === visibleCompetitors.find((id) => id !== "smartout_free"),
-                        )?.name
-                      }{" "}
-                      i dag?
-                    </h3>
-                    <p className="text-muted-foreground mt-2 max-w-2xl">
-                      Bytt til Smartout Free og få flere funksjoner, ubegrenset antall ansatte og
-                      null lisenskostnader for basisdrift. Vi hjelper deg med import av data og
-                      onboarding av ansatte.
-                    </p>
-                  </div>
-                  <TrackedCta
-                    label="Switch competitor CTA"
-                    href={WEB_APP_LINKS.login}
-                    className="rounded-full bg-emerald-500 px-6 py-3 text-sm font-bold whitespace-nowrap text-emerald-950 transition hover:opacity-90"
+            <AnimatePresence>
+              {visibleCompetitors.length === 3 &&
+                !visibleCompetitors.includes("smartout_premium") && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -20, height: 0 }}
+                    animate={{ opacity: 1, y: 0, height: "auto" }}
+                    exit={{ opacity: 0, y: -20, height: 0 }}
+                    transition={{ type: "spring", stiffness: 35, damping: 20, mass: 2.2 }}
+                    className="border-success/30 bg-success/10 mb-10 flex flex-col items-start justify-between gap-6 rounded-2xl border p-6 sm:flex-row sm:items-center sm:p-8"
                   >
-                    Bytt til Smartout
-                  </TrackedCta>
-                </div>
-              )}
-            {visibleCompetitors.length === 4 && visibleCompetitors.includes("smartout_premium") && (
-              <div className="mb-10 flex flex-col items-start justify-between gap-6 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-6 sm:flex-row sm:items-center sm:p-8">
-                <div>
-                  <h3 className="text-foreground text-xl font-bold tracking-tight sm:text-2xl">
-                    Bruker du{" "}
-                    {
-                      competitors.find(
-                        (c) =>
-                          c.id ===
-                          visibleCompetitors.find(
-                            (id) => id !== "smartout_free" && id !== "smartout_premium",
-                          ),
-                      )?.name
-                    }{" "}
-                    i dag?
-                  </h3>
-                  <p className="text-muted-foreground mt-2 max-w-2xl">
-                    Bytt til Smartout Free og få flere funksjoner uten lisenskostnader. Trenger du
-                    enda mer fart? Slå på Premium og få AI-vakter og Lise Botsson.
-                  </p>
-                </div>
-                <TrackedCta
-                  label="Switch competitor CTA"
-                  href={WEB_APP_LINKS.login}
-                  className="rounded-full bg-emerald-500 px-6 py-3 text-sm font-bold whitespace-nowrap text-emerald-950 transition hover:opacity-90"
-                >
-                  Opprett gratis konto
-                </TrackedCta>
-              </div>
-            )}
+                    <div>
+                      <h3 className="text-foreground text-xl font-bold tracking-tight sm:text-2xl">
+                        Bruker du{" "}
+                        {
+                          competitors.find(
+                            (c) => c.id === visibleCompetitors.find((id) => id !== "smartout_free"),
+                          )?.name
+                        }{" "}
+                        i dag?
+                      </h3>
+                      <p className="text-muted-foreground mt-2 max-w-2xl">
+                        Bytt til Smartout Free og få flere funksjoner, ubegrenset antall ansatte og
+                        null lisenskostnader for basisdrift. Vi hjelper deg med import av data og
+                        onboarding av ansatte.
+                      </p>
+                    </div>
+                    <TrackedCta
+                      label="Switch competitor CTA"
+                      href={WEB_APP_LINKS.login}
+                      className="bg-success text-background rounded-full px-6 py-3 text-sm font-bold whitespace-nowrap transition hover:opacity-90"
+                    >
+                      Bytt til Smartout
+                    </TrackedCta>
+                  </motion.div>
+                )}
+              {visibleCompetitors.length === 4 &&
+                visibleCompetitors.includes("smartout_premium") && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -20, height: 0 }}
+                    animate={{ opacity: 1, y: 0, height: "auto" }}
+                    exit={{ opacity: 0, y: -20, height: 0 }}
+                    transition={{ type: "spring", stiffness: 35, damping: 20, mass: 2.2 }}
+                    className="border-success/30 bg-success/10 mb-10 flex flex-col items-start justify-between gap-6 rounded-2xl border p-6 sm:flex-row sm:items-center sm:p-8"
+                  >
+                    <div>
+                      <h3 className="text-foreground text-xl font-bold tracking-tight sm:text-2xl">
+                        Bruker du{" "}
+                        {
+                          competitors.find(
+                            (c) =>
+                              c.id ===
+                              visibleCompetitors.find(
+                                (id) => id !== "smartout_free" && id !== "smartout_premium",
+                              ),
+                          )?.name
+                        }{" "}
+                        i dag?
+                      </h3>
+                      <p className="text-muted-foreground mt-2 max-w-2xl">
+                        Bytt til Smartout Free og få flere funksjoner uten lisenskostnader. Trenger
+                        du enda mer fart? Slå på Premium og få AI-vakter og Lise Botsson.
+                      </p>
+                    </div>
+                    <TrackedCta
+                      label="Switch competitor CTA"
+                      href={WEB_APP_LINKS.login}
+                      className="bg-success text-background rounded-full px-6 py-3 text-sm font-bold whitespace-nowrap transition hover:opacity-90"
+                    >
+                      Opprett gratis konto
+                    </TrackedCta>
+                  </motion.div>
+                )}
+            </AnimatePresence>
 
             <div className="space-y-6">
               {categories.map((category) => {
                 const isExpanded = expandedCategories.has(category.id);
 
                 return (
-                  <div
+                  <motion.div
                     key={category.id}
+                    layout
                     className="border-border bg-card/60 overflow-hidden rounded-2xl border backdrop-blur"
                   >
                     {/* Category header */}
                     <button
                       onClick={() => toggleCategory(category.id)}
-                      className="text-foreground flex w-full items-center justify-between px-6 py-5 text-left transition hover:bg-white/[0.02]"
+                      className="text-foreground hover:bg-foreground/5 flex w-full items-center justify-between px-6 py-5 text-left transition"
                     >
                       <div className="flex items-center gap-3">
                         <span className="text-xl">{category.icon}</span>
@@ -1903,59 +1945,89 @@ export default function ComparePage() {
                       />
                     </button>
 
-                    {isExpanded && (
-                      <div className="overflow-x-auto">
-                        <table className="w-full min-w-[700px]">
-                          <thead>
-                            <tr className="border-border/50 border-t">
-                              <th className="text-muted-foreground px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
-                                Funksjon
-                              </th>
-                              {visibleCompetitorObjects.map((c) => (
-                                <th
-                                  key={c.id}
-                                  className={`px-3 py-3 text-center text-xs font-medium tracking-wider uppercase ${c.color}`}
-                                >
-                                  {c.name}
-                                </th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {category.features.map((feature, fi) => (
-                              <tr
-                                key={feature.name}
-                                className={`border-border/30 border-t transition hover:bg-white/[0.02] ${
-                                  fi % 2 === 0 ? "bg-white/[0.01]" : ""
-                                }`}
+                    <AnimatePresence initial={false}>
+                      {isExpanded && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ type: "spring", stiffness: 35, damping: 20, mass: 2.2 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="overflow-x-auto">
+                            <table className="w-full min-w-[700px]">
+                              <thead>
+                                <tr className="border-border/50 border-t">
+                                  <th className="text-muted-foreground px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
+                                    Funksjon
+                                  </th>
+                                  {visibleCompetitorObjects.map((c) => (
+                                    <th
+                                      key={c.id}
+                                      className={`px-3 py-3 text-center text-xs font-medium tracking-wider uppercase ${c.color}`}
+                                    >
+                                      {c.name}
+                                    </th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <motion.tbody
+                                initial="hidden"
+                                animate="visible"
+                                variants={{
+                                  hidden: {},
+                                  visible: { transition: { staggerChildren: 0.05 } },
+                                }}
                               >
-                                <td className="px-6 py-3.5">
-                                  <span className="text-foreground text-sm font-medium">
-                                    {feature.name}
-                                  </span>
-                                  {feature.note && (
-                                    <p className="text-muted-foreground mt-0.5 text-xs">
-                                      {feature.note}
-                                    </p>
-                                  )}
-                                </td>
-                                {visibleCompetitorObjects.map((c) => (
-                                  <td key={c.id} className="px-3 py-3.5 text-center">
-                                    <CellValue
-                                      value={feature.values[c.id]}
-                                      isSmartout={
-                                        c.id === "smartout_free" || c.id === "smartout_premium"
-                                      }
-                                    />
-                                  </td>
+                                {category.features.map((feature, fi) => (
+                                  <motion.tr
+                                    variants={{
+                                      hidden: { opacity: 0, x: -10 },
+                                      visible: {
+                                        opacity: 1,
+                                        x: 0,
+                                        transition: {
+                                          type: "spring",
+                                          stiffness: 35,
+                                          damping: 20,
+                                          mass: 2.2,
+                                        },
+                                      },
+                                    }}
+                                    key={feature.name}
+                                    className={`border-border/30 hover:bg-foreground/5 border-t transition ${
+                                      fi % 2 === 0 ? "bg-foreground/5" : ""
+                                    }`}
+                                  >
+                                    <td className="px-6 py-3.5">
+                                      <span className="text-foreground text-sm font-medium">
+                                        {feature.name}
+                                      </span>
+                                      {feature.note && (
+                                        <p className="text-muted-foreground mt-0.5 text-xs">
+                                          {feature.note}
+                                        </p>
+                                      )}
+                                    </td>
+                                    {visibleCompetitorObjects.map((c) => (
+                                      <td key={c.id} className="px-3 py-3.5 text-center">
+                                        <CellValue
+                                          value={feature.values[c.id]}
+                                          isSmartout={
+                                            c.id === "smartout_free" || c.id === "smartout_premium"
+                                          }
+                                        />
+                                      </td>
+                                    ))}
+                                  </motion.tr>
                                 ))}
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </div>
+                              </motion.tbody>
+                            </table>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
                 );
               })}
             </div>

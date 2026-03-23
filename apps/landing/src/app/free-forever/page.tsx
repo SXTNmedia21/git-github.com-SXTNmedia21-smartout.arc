@@ -24,6 +24,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { FullTracker, TrackedCta } from "../../components/tracking";
+import { ThemeToggle } from "../../components/theme-toggle";
 import { WEB_APP_LINKS } from "../../lib/web-app-url";
 import { FreeForeverWaitlistForm } from "./_components/FreeForeverWaitlistForm";
 
@@ -179,7 +180,7 @@ export default function FreeForeverPage() {
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,oklch(1_0_0/0.06),transparent_40%)]" />
         <div className="bg-brand-orange/10 absolute top-0 left-1/2 h-[32rem] w-[32rem] -translate-x-1/2 rounded-full blur-3xl" />
-        <div className="absolute top-40 right-[-10rem] h-[20rem] w-[20rem] rounded-full bg-white/6 blur-3xl" />
+        <div className="bg-foreground/5 absolute top-40 right-[-10rem] h-[20rem] w-[20rem] rounded-full blur-3xl" />
         <div className="bg-brand-orange/12 absolute bottom-10 left-[-8rem] h-[18rem] w-[18rem] rounded-full blur-3xl" />
         <div className="absolute inset-0 bg-[linear-gradient(to_right,oklch(1_0_0/0.03)_1px,transparent_1px),linear-gradient(to_bottom,oklch(1_0_0/0.03)_1px,transparent_1px)] bg-[size:32px_32px]" />
       </div>
@@ -205,6 +206,7 @@ export default function FreeForeverPage() {
               >
                 Åpne Smartout
               </TrackedCta>
+              <ThemeToggle />
               <TrackedCta
                 label="Reserve premium"
                 href="#waitlist"

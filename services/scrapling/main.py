@@ -22,6 +22,11 @@ import logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("scrapling")
 
+import logging
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+logger = logging.getLogger("scrapling")
+
 app = FastAPI(title="SmartOut Scrapling Microservice")
 
 DASHBOARD_HTML = (Path(__file__).parent / "dashboard.html").read_text()
