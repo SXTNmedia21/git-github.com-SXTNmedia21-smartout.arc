@@ -31,7 +31,7 @@ Smartout's cascade system spans 6 execution dimensions, 4 control planes, 2 know
 
 ### 2.1 What It Is
 
-A Hono microservice (`services/simulator/`, port 5013) that:
+A new Hono microservice (proposed: `services/simulator/`, port 5013) that:
 
 1. Asks the user to select a workspace or create a temporary one
 2. Scans the workspace and reports data gaps per cascade dimension
@@ -48,8 +48,21 @@ A Hono microservice (`services/simulator/`, port 5013) that:
 
 These are **sibling modes**, not one mode with a speed toggle. Same scenario definition, different execution guarantees.
 
-- **System proof** prioritizes reproducibility. No timing-dependent assertions. No AI agents (deterministic function calls instead). Suitable for CI.
-- **Demo** prioritizes realism. AI agents act as real users through real UI/API paths. Timing is organic. Suitable for stakeholder demos.
+- **System proof** prioritizes reproducibility. No timing-dependent assertions. No AI agents. Executes mutations through the same Supabase client code paths the app uses (not raw SQL), so `emit()` fires and engine processes trigger. But it does NOT exercise UI rendering, API route handlers, or browser-level flows — it proves algorithmic correctness and telemetry wiring, not product UX. Suitable for CI.
+- **Demo** prioritizes realism. AI agents act as real users through real UI/API paths. This is the mode that proves the product works end-to-end, including UI rendering, notifications, and dashboard animations. Suitable for stakeholder demos.
+
+**What each mode proves:**
+
+| Claim                                     | System proof | Demo |
+| ----------------------------------------- | :----------: | :--: |
+| Pure function correctness (cascade logic) |     Yes      | Yes  |
+| Telemetry events emitted on mutations     |     Yes      | Yes  |
+| Engine processes triggered correctly      |     Yes      | Yes  |
+| UI renders correct state                  |      No      | Yes  |
+| Real auth/RLS paths work                  |      No      | Yes  |
+| Notifications appear in dashboard         |      No      | Yes  |
+| Animations fire on state changes          |      No      | Yes  |
+| Botsson/Stage Engine conversations work   |      No      | Yes  |
 
 ### 2.3 Architecture Layers
 
@@ -235,18 +248,20 @@ This applies to: `run`, `clock_segment`, `run_scope`, `seed_manifest`, `mutation
 
 The `simulation` schema is **platform-admin-only**. No RLS policies. Access is restricted to:
 
-| Operation                               | Auth                                      | Client                                 | Justification                                         |
-| --------------------------------------- | ----------------------------------------- | -------------------------------------- | ----------------------------------------------------- |
-| Run lifecycle (create, control, delete) | `is_godmode` check OR service role        | Service role Supabase client           | Only platform admins run simulations                  |
-| Seeding into real app tables            | Service role                              | Service role Supabase client           | Seeding bypasses normal user flows intentionally      |
-| Swarm agent interactions (demo mode)    | Real JWT per persona                      | Anon key Supabase client with user JWT | Proving real auth flows work                          |
-| Cleanup                                 | Service role                              | Service role Supabase client           | Cleanup must reach all seeded rows regardless of RLS  |
-| SSE stream / UI reads                   | Authenticated user + workspace membership | Anon key with JWT                      | Dashboard panel only shows data for current workspace |
+| Operation                               | Auth                                 | Client                                                                        | Justification                                                                                                                                              |
+| --------------------------------------- | ------------------------------------ | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Run lifecycle (create, control, delete) | `is_godmode` check OR service role   | Service role Supabase client                                                  | Only platform admins run simulations                                                                                                                       |
+| Seeding into real app tables            | Service role                         | Service role Supabase client                                                  | Seeding bypasses normal user flows intentionally                                                                                                           |
+| Swarm agent interactions (demo mode)    | Real JWT per persona                 | Anon key Supabase client with user JWT                                        | Proving real auth flows work                                                                                                                               |
+| Cleanup                                 | Service role                         | Service role Supabase client                                                  | Cleanup must reach all seeded rows regardless of RLS                                                                                                       |
+| SSE stream / UI panel reads             | JWT passed to simulator Hono service | **Hono service proxies.** Dashboard never queries simulation tables directly. | Simulation schema has no RLS. The Hono service is the auth boundary — it validates the JWT, checks workspace membership, and streams only relevant events. |
 
 **Key rules:**
 
+- The simulation schema has NO RLS policies. All reads/writes go through the simulator Hono service, which acts as a proxy
+- The dashboard UI NEVER queries `simulation.*` tables directly via Supabase client. It connects to the Hono SSE endpoint (`GET /runs/:id/events`), which does the auth check
 - The service role client is NEVER exposed to UI components or swarm persona agents
-- Swarm agents in demo mode use real Supabase auth users (created during seeding, cleaned up after) to exercise honest RLS paths
+- Swarm agents in demo mode use real Supabase auth users (created during seeding, cleaned up after) to exercise honest RLS paths on real app tables
 - System proof mode uses service role with `set_config('app.workspace_id', ...)` for deterministic execution
 - The simulator service validates `is_godmode` on the requesting user before accepting `POST /runs`
 
@@ -394,19 +409,19 @@ export interface CoverageExpectation {
 
 ### 5.3 Timeline (10 Acts in 1 Simulated Week)
 
-| Act | Sim Time            | Real Time (1x) | Name            | What Happens                                                                                                                                                                                                                                                                                                       | Cascade Coverage        |
-| --- | ------------------- | -------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------- |
-| 1   | Mon 06:00-09:00     | 0:00-0:07      | Bootstrap       | Admin onboards Sjohuset via wizard. I1 template applied. Framework bound.                                                                                                                                                                                                                                          | I1, D1, D3, K1a         |
-| 2   | Mon 09:00-13:00     | 0:07-0:17      | Staff Up        | 12 employees created. Contracts, payroll profiles, teams. 2 trainees flagged.                                                                                                                                                                                                                                      | D2, D5                  |
-| 3   | Mon 13:00-17:00     | 0:17-0:27      | Season & Budget | Varsesong created. Revenue target set. Day/hour factors distributed. Budget propagated.                                                                                                                                                                                                                            | D4, C3                  |
-| 4   | Tue 08:00-16:00     | 0:31-0:44      | Schedule        | Week of shifts created across 3 departments. Framework rules evaluated. Violations: Sofia (under-18 test), Erik (rest period test), overtime request.                                                                                                                                                              | D3, D6, C4              |
-| 5   | Wed 06:00-10:00     | 0:56-1:03      | Day Opens       | Session hooks fire: pre_open (kitchen prep), open (all departments). Checklists created. Engine dispatch triggers.                                                                                                                                                                                                 | D6, engine dispatch     |
-| 6   | Wed 10:00-15:00     | 1:03-1:11      | Training        | Trainees (Sofia, Kristian) get protocol assignments. Procedure steps, knowledge test, confirmation signature. Sofia completes; Kristian partial.                                                                                                                                                                   | Governance, readiness   |
-| 7   | Wed 15:00-23:00     | 1:11-1:24      | Live Shift      | Clock-ins, service. Deviations: Erik 12 min late, Marte leaves 30 min early (child sick). Shift approvals by managers.                                                                                                                                                                                             | D6, C1                  |
-| 8   | Wed 23:00-Thu 01:00 | 1:24-1:28      | Day Closes      | pre_close and close hooks. Daily reconciliation. Settlement images. Cost snapshot (planned vs actual). Admin sign-off.                                                                                                                                                                                             | C1, C3, engine dispatch |
-| 9   | Thu 08:00-12:00     | 1:37-1:44      | Guardian        | Guardian sweep: stale session check, unresolved deviation flag, trainee escalation, Botsson conversations. **Note:** Guardian sweep depends on stage-engine guardian evaluator loop. If not running, this act fires what it can (Botsson chat, deviation queries) and marks guardian-specific events as `skipped`. | C2, stage engine, K1b   |
-| 10  | Thu-Sun             | 1:44-2:50      | Week Plays Out  | Acts 5-8 repeat with daily variation. New deviations, different employees, budget vs actual divergence grows. Micro-events between acts.                                                                                                                                                                           | All dimensions cycled   |
-| —   | Sun 23:00           | 2:50-3:00      | Final Report    | Coverage check: every telemetry event, every dimension, every process. Gap report updated. Dashboard shows full week KPIs.                                                                                                                                                                                         | Verification            |
+| Act | Sim Time            | Real Time (1x) | Name            | What Happens                                                                                                                                                                                                                                                                                                                                                                                                      | Cascade Coverage        |
+| --- | ------------------- | -------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| 1   | Mon 06:00-09:00     | 0:00-0:07      | Bootstrap       | Admin onboards Sjohuset via wizard. I1 template applied. Framework bound.                                                                                                                                                                                                                                                                                                                                         | I1, D1, D3, K1a         |
+| 2   | Mon 09:00-13:00     | 0:07-0:17      | Staff Up        | 12 employees created. Contracts, payroll profiles, teams. 2 trainees flagged.                                                                                                                                                                                                                                                                                                                                     | D2, D5                  |
+| 3   | Mon 13:00-17:00     | 0:17-0:27      | Season & Budget | Varsesong created. Revenue target set. Day/hour factors distributed. Budget propagated.                                                                                                                                                                                                                                                                                                                           | D4, C3                  |
+| 4   | Tue 08:00-16:00     | 0:31-0:44      | Schedule        | Week of shifts created across 3 departments. Framework rules evaluated. Violations: Sofia (under-18 test), Erik (rest period test), overtime request.                                                                                                                                                                                                                                                             | D3, D6, C4              |
+| 5   | Wed 06:00-10:00     | 0:56-1:03      | Day Opens       | Session hooks fire: pre_open (kitchen prep), open (all departments). Checklists created. Engine dispatch triggers.                                                                                                                                                                                                                                                                                                | D6, engine dispatch     |
+| 6   | Wed 10:00-15:00     | 1:03-1:11      | Training        | Trainees (Sofia, Kristian) get protocol assignments. Procedure steps, knowledge test, confirmation signature. Sofia completes; Kristian partial.                                                                                                                                                                                                                                                                  | Governance, readiness   |
+| 7   | Wed 15:00-23:00     | 1:11-1:24      | Live Shift      | Clock-ins, service. Deviations: Erik 12 min late, Marte leaves 30 min early (child sick). Shift approvals by managers.                                                                                                                                                                                                                                                                                            | D6, C1                  |
+| 8   | Wed 23:00-Thu 01:00 | 1:24-1:28      | Day Closes      | pre_close and close hooks. Daily reconciliation. Settlement images. Cost snapshot (planned vs actual). Admin sign-off.                                                                                                                                                                                                                                                                                            | C1, C3, engine dispatch |
+| 9   | Thu 08:00-12:00     | 1:37-1:44      | Guardian        | Guardian sweep: stale session check, unresolved deviation flag, trainee escalation, Botsson conversations. **Note:** Guardian sweep is the cron-driven `guardian-sweep` Edge Function (`supabase/functions/guardian-sweep/`), NOT the stage-engine runtime guardian. The simulator invokes this Edge Function directly to generate `guardian_signal` rows, then exercises the signal acknowledgment/dismissal UI. | C2, K1b                 |
+| 10  | Thu-Sun             | 1:44-2:50      | Week Plays Out  | Acts 5-8 repeat with daily variation. New deviations, different employees, budget vs actual divergence grows. Micro-events between acts.                                                                                                                                                                                                                                                                          | All dimensions cycled   |
+| —   | Sun 23:00           | 2:50-3:00      | Final Report    | Coverage check: every telemetry event, every dimension, every process. Gap report updated. Dashboard shows full week KPIs.                                                                                                                                                                                                                                                                                        | Verification            |
 
 **Between acts:** Micro-events keep the restaurant alive — notification pulses, telemetry heartbeats, Botsson conversations, guardian checks. No dead time.
 
@@ -649,12 +664,22 @@ Director Agent
 
 No swarm. No Director. The simulator service itself executes each timeline event:
 
-1. Calls the same business logic functions directly (e.g., `evaluateFrameworkRules()`, `propagateBudgetTargets()`)
-2. Inserts data via Supabase client with appropriate auth context
-3. Asserts expected outcomes (telemetry events emitted, correct evaluation results, etc.)
+1. Calls the same Supabase client code paths the app uses (mutations go through the same functions that call `emit()`)
+2. Inserts data with `set_config('app.workspace_id', ...)` + service role to bypass RLS deterministically
+3. Asserts: telemetry events emitted, engine processes triggered, cascade function return values correct
 4. Reports pass/fail per event
 
-This makes system proof deterministic and fast. No timing dependencies, no agent flakiness.
+**What system proof does NOT prove:**
+
+- UI rendering (no browser, no Playwright)
+- Real RLS policy enforcement (uses service role)
+- API route handler behavior (calls business logic directly, not via HTTP)
+- Notification delivery (tests emission, not rendering)
+- Dashboard animations or real-time updates
+
+These are explicitly **demo mode** responsibilities. System proof proves the data layer and cascade logic. Demo mode proves the product experience. Neither replaces the other.
+
+This makes system proof deterministic and fast. No timing dependencies, no agent flakiness, no browser.
 
 ---
 
@@ -732,15 +757,17 @@ Not every telemetry event is relevant to every scenario. The scenario definition
 
 ```typescript
 // In sjohuset.ts scenario config
+// IMPORTANT: Event names use space-separated format matching the telemetry registry
+// (e.g., "shift created" not "shift.created"). These are SmartoutEvent.event values.
 coverage: {
   telemetry_events: [
-    'shift.created', 'shift.published', 'shift.completed',
-    'session.opened', 'session.closed', 'session.hook_fired',
-    'protocol.assigned', 'protocol.step_completed', 'protocol.completed',
-    'deviation.reported', 'deviation.resolved',
-    'reconciliation.submitted', 'reconciliation.admin_action',
-    'season.created', 'season_budget.updated',
-    'contract.created', 'contract.signed',
+    'shift created', 'shift published', 'shift completed',
+    'session opened', 'session closed', 'session hook_fired',
+    'protocol assigned', 'protocol step_completed', 'protocol completed',
+    'deviation reported', 'deviation resolved',
+    'reconciliation submitted', 'reconciliation admin_action',
+    'season created', 'season_budget updated',
+    'contract created', 'contract signed',
     // ... filtered subset of 151
   ],
   action_types: [
@@ -857,13 +884,15 @@ Cleanup processes tables in reverse FK order. If a constraint violation occurs:
 
 ---
 
-## 14. Open Questions
+## 15. Open Questions
 
-1. **Auth for swarm agents in demo mode:** Create real Supabase auth users for each persona? Or use service role with `set_config` to impersonate? Real users are more honest but require email/password setup.
+1. ~~**Auth for swarm agents in demo mode**~~ **RESOLVED:** Real Supabase auth users created during seeding, cleaned up after. Decision #12.
 2. **Telemetry side effects:** Should PostHog events from simulation be tagged to avoid polluting analytics? Or use a separate PostHog project?
-3. **Stage Engine load:** 6 personas potentially chatting with Botsson simultaneously. Is the stage engine WebSocket server ready for this?
-4. **Notification rendering:** `send_notification` is currently a stub. Should the simulator mock notifications, or should we implement the real handler first?
+3. **Stage Engine load:** 5 personas potentially chatting with Botsson simultaneously. Is the stage engine WebSocket server ready for this?
+4. **Notification coverage:** The `send_notification` engine action type is a stub — it logs but does not deliver to `notification_outbox`. The simulator should: (a) verify the action type IS dispatched (telemetry/engine coverage), (b) NOT assert delivery to `notification_outbox` until the real handler is implemented, (c) flag notification delivery as a `blocking` gap in the gap report. This is NOT something the simulator should mock — the gap report should honestly report it as unimplemented.
 5. **Scenario extensibility:** When should we add a second scenario (e.g., hotel, retail)? After v1 is stable, or design for it now?
+6. **Mutation manifest atomicity:** Multi-column updates to a single row produce multiple `mutation_manifest` rows. Rollback must restore ALL columns for a row in a single UPDATE, not column-by-column. The cleanup engine should group manifest rows by `(target_schema, target_table, target_pk)` and issue one `UPDATE ... SET col1 = orig1, col2 = orig2` per row. If the row has been further modified outside the simulation (column value != `mutated_value`), skip that column and log a warning.
+7. **Temporary workspace lifecycle:** When mode = demo with `workspace_id = null`, the simulator creates a temporary workspace using the full I1 bootstrap path (same as real onboarding). This workspace is a test fixture, not a real tenant. It must be tagged in `seed_manifest` and fully removed during cleanup Phase 3. The workspace is NOT created via a second onboarding flow — it uses the `finalize_onboarding()` RPC directly with fixture data.
 
 ---
 
@@ -887,10 +916,12 @@ Exact counts from source-of-truth registries as of 2026-03-23:
 
 ---
 
-## Appendix B: File Structure
+## Appendix B: Proposed File Structure
+
+All paths below are **new — they do not exist yet**. The `simulate:test` and `simulate:demo` scripts will be added to root `package.json`.
 
 ```
-services/simulator/
+services/simulator/       # NEW — Hono microservice
   src/
     index.ts                    # Hono server entry
     routes/
