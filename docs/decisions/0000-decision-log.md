@@ -44,3 +44,9 @@ tags: [decisions]
 
 | #   | Date | Decision | Status |
 | --- | ---- | -------- | ------ |
+
+# Decision Log — sjohuset-simulator
+
+| #   | Date       | Decision                                                                                         | Status   |
+| --- | ---------- | ------------------------------------------------------------------------------------------------ | -------- |
+| 1   | 2026-03-23 | ADR-0058: Dedicated simulation schema + services/simulator Hono microservice for cascade testing | proposed |
