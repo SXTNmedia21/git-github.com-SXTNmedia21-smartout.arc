@@ -17,7 +17,7 @@ A real-time restaurant simulation microservice that exercises every cascade dime
 
 ## 1. Problem Statement
 
-Smartout's cascade system spans 6 execution dimensions, 4 control planes, 2 knowledge substrates, an industry bootstrap layer, 151 telemetry events, 18 engine action types, 7 engine processes, 6 AI missions, and 5 session hook types. No single test or manual walkthrough exercises the full system. Gaps accumulate silently.
+Smartout's cascade system spans 6 execution dimensions, 4 control planes, 2 knowledge substrates, an industry bootstrap layer, 151 telemetry events, 18 engine action types, 9 engine processes, 6 AI missions (Stage Engine voice/chat), and 5 session hook types. No single test or manual walkthrough exercises the full system. Gaps accumulate silently.
 
 **Three needs:**
 
@@ -53,13 +53,13 @@ These are **sibling modes**, not one mode with a speed toggle. Same scenario def
 
 ### 2.3 Architecture Layers
 
-| Layer                   | What                                                                                  | Location                                       |
-| ----------------------- | ------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| **Simulator Service**   | Hono server — timeline engine, gap analysis, seed/cleanup, swarm coordination         | `services/simulator/`                          |
-| **Simulation Schema**   | PostgreSQL control plane — run metadata, manifests, reports, timeline                 | `simulation` schema                            |
-| **Scenario Definition** | Typed TypeScript config — Sjohuset restaurant, cast, timeline, expected coverage      | `services/simulator/src/scenarios/sjohuset.ts` |
-| **Floating UI Panel**   | React component — play/pause/timewarp, act indicator, coverage counters, SSE consumer | `apps/web/src/components/simulation/`          |
-| **AI Swarm**            | 6 Claude Code agents (demo mode only) — personas interacting with the real system     | Spawned by Director agent                      |
+| Layer                   | What                                                                                                                                                                                                     | Location                                       |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| **Simulator Service**   | Hono server — timeline engine, gap analysis, seed/cleanup, swarm coordination                                                                                                                            | `services/simulator/`                          |
+| **Simulation Schema**   | PostgreSQL control plane — run metadata, manifests, reports, timeline                                                                                                                                    | `simulation` schema                            |
+| **Scenario Definition** | Typed TypeScript config — Sjohuset restaurant, cast, timeline, expected coverage                                                                                                                         | `services/simulator/src/scenarios/sjohuset.ts` |
+| **Floating UI Panel**   | React component — play/pause/timewarp, act indicator, coverage counters, SSE consumer                                                                                                                    | `apps/web/src/components/simulation/`          |
+| **AI Swarm**            | 1 Director + 5 persona agents (demo mode only) — Claude Code agents interacting with real system. Distinct from Stage Engine AI missions (Botsson, HACCP, etc.) which the swarm EXERCISES, not replaces. | Spawned by Director agent                      |
 
 ---
 
@@ -222,6 +222,34 @@ Cleanup progress tracking.
 | `started_at`     | timestamptz                                                    |                               |
 | `completed_at`   | timestamptz                                                    |                               |
 
+### 3.2 Column Conventions
+
+All simulation schema tables include:
+
+- `created_at timestamptz NOT NULL DEFAULT now()`
+- `updated_at timestamptz NOT NULL DEFAULT now()` with `set_updated_at()` trigger
+
+This applies to: `run`, `clock_segment`, `run_scope`, `seed_manifest`, `mutation_manifest`, `gap_report`, `timeline_event`, `agent_session`, `cleanup_job`. The `updated_at` column and trigger are omitted from the table definitions above for brevity but are mandatory in the migration.
+
+### 3.3 Auth & RLS Model
+
+The `simulation` schema is **platform-admin-only**. No RLS policies. Access is restricted to:
+
+| Operation                               | Auth                                      | Client                                 | Justification                                         |
+| --------------------------------------- | ----------------------------------------- | -------------------------------------- | ----------------------------------------------------- |
+| Run lifecycle (create, control, delete) | `is_godmode` check OR service role        | Service role Supabase client           | Only platform admins run simulations                  |
+| Seeding into real app tables            | Service role                              | Service role Supabase client           | Seeding bypasses normal user flows intentionally      |
+| Swarm agent interactions (demo mode)    | Real JWT per persona                      | Anon key Supabase client with user JWT | Proving real auth flows work                          |
+| Cleanup                                 | Service role                              | Service role Supabase client           | Cleanup must reach all seeded rows regardless of RLS  |
+| SSE stream / UI reads                   | Authenticated user + workspace membership | Anon key with JWT                      | Dashboard panel only shows data for current workspace |
+
+**Key rules:**
+
+- The service role client is NEVER exposed to UI components or swarm persona agents
+- Swarm agents in demo mode use real Supabase auth users (created during seeding, cleaned up after) to exercise honest RLS paths
+- System proof mode uses service role with `set_config('app.workspace_id', ...)` for deterministic execution
+- The simulator service validates `is_godmode` on the requesting user before accepting `POST /runs`
+
 ---
 
 ## 4. Gap Analysis Engine
@@ -239,19 +267,21 @@ Before seeding, the simulator runs a coverage scan against the target workspace.
 
 Mapped directly to the cascade model:
 
-| Bucket     | What's checked                                                                                    | Source of truth                                                                 |
-| ---------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| **I1/K1a** | Industry bootstrap applied? Framework rules seeded? Tariff rates present? Public holidays loaded? | `regulatory_framework`, `framework_rule`, `tariff_rate_table`, `public_holiday` |
-| **D1**     | Departments exist? Locations? Operating hours configured? Planning cycle?                         | `department`, `location`, `department_operating_hours`, `planning_cycle`        |
-| **D2**     | Profiles created? Contracts? Payroll profiles? Teams? At least 1 trainee?                         | `profile`, `employment_contract`, `employee_payroll_profile`, `team`            |
-| **D3**     | Framework rules/triggers bound to workspace? Override system functional?                          | `workspace_framework_binding`, `framework_rule`, `framework_trigger`            |
-| **D4**     | Active season? Budget set? Day/hour factors distributed?                                          | `season`, `season_budget`, `day_factor`, `hour_factor`                          |
-| **D5**     | Workspace config sufficient for scenario? Niche parameters? Authority config?                     | `engine_authority_config`, workspace settings                                   |
-| **D6**     | Sessions creatable? Hooks configured? Shifts assignable?                                          | `department_session`, `session_hook`, `schedule_shift`                          |
-| **C1**     | Reconciliation path testable? KPI targets set?                                                    | `daily_reconciliation`, `workspace_kpi_target`                                  |
-| **C3**     | Cost snapshot process seeded? Budget propagation wired?                                           | `engine_process` seeds for cost/budget                                          |
-| **C4**     | Authority config per capability? Proposal gates functional?                                       | `engine_authority_config`, `change_proposal`                                    |
-| **K1b**    | Workspace doc chunks present (for Botsson)? Engine memory initialized?                            | `workspace_doc_chunk`, `engine_memory`                                          |
+| Bucket     | What's checked                                                                                            | Source of truth tables                                                                                                             |
+| ---------- | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **I1/K1a** | Industry bootstrap applied? Framework rules seeded? Tariff rates present? Public holidays loaded?         | `regulatory_framework`, `framework_rule`, `framework_trigger`, `tariff_rate_table`, `public_holiday`                               |
+| **D1**     | Departments exist? Locations? Zones? Operating hours configured? Planning cycle? Overrides?               | `department`, `location`, `zone`, `department_operating_hours`, `department_hours_override`, `planning_cycle`, `position`, `asset` |
+| **D2**     | Profiles created? Contracts? Payroll profiles? Teams? At least 1 trainee? Absences?                       | `profile`, `employment_contract`, `employee_payroll_profile`, `team`, `schedule_absence`                                           |
+| **D3**     | Framework rules/triggers bound to workspace? Override system functional?                                  | `workspace_framework_binding`, `framework_rule`, `framework_trigger`, `workspace_rule_override`, `workspace_trigger_override`      |
+| **D4**     | Active season? Budget set? Day/hour factors distributed? KPI targets? Workspace budgets? Planning events? | `season`, `season_budget`, `day_factor`, `hour_factor`, `workspace_kpi_target`, `workspace_budget`, `planning_event`               |
+| **D5**     | Workspace config sufficient for scenario? Niche parameters? Authority config?                             | `engine_authority_config`, workspace settings                                                                                      |
+| **D6**     | Sessions creatable? Hooks configured? Shifts assignable? Deviations trackable?                            | `department_session`, `session_hook`, `session_task`, `schedule_shift`, `deviation`, `shift_approval`                              |
+| **C1**     | Reconciliation path testable?                                                                             | `daily_reconciliation`                                                                                                             |
+| **C3**     | Cost snapshot process seeded? Budget propagation wired?                                                   | `shift_cost_snapshot`, `engine_process` seeds for cost/budget                                                                      |
+| **C4**     | Authority config per capability? Proposal gates functional?                                               | `engine_authority_config`, `change_proposal`                                                                                       |
+| **K1b**    | Workspace doc chunks present (for Botsson)? Engine memory initialized?                                    | `workspace_doc_chunk`, `engine_memory`                                                                                             |
+
+Note: The tables listed are the **minimum viable subset** for each dimension. Some dimensions have additional tables (e.g., D6 has schedule templates, open shifts) that are not required for the Sjohuset scenario but could be added for more comprehensive coverage in future scenarios.
 
 ### 4.2 Report Output
 
@@ -364,19 +394,19 @@ export interface CoverageExpectation {
 
 ### 5.3 Timeline (10 Acts in 1 Simulated Week)
 
-| Act | Sim Time            | Real Time (1x) | Name            | What Happens                                                                                                                                          | Cascade Coverage        |
-| --- | ------------------- | -------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
-| 1   | Mon 06:00-09:00     | 0:00-0:07      | Bootstrap       | Admin onboards Sjohuset via wizard. I1 template applied. Framework bound.                                                                             | I1, D1, D3, K1a         |
-| 2   | Mon 09:00-13:00     | 0:07-0:17      | Staff Up        | 12 employees created. Contracts, payroll profiles, teams. 2 trainees flagged.                                                                         | D2, D5                  |
-| 3   | Mon 13:00-17:00     | 0:17-0:27      | Season & Budget | Varsesong created. Revenue target set. Day/hour factors distributed. Budget propagated.                                                               | D4, C3                  |
-| 4   | Tue 08:00-16:00     | 0:31-0:44      | Schedule        | Week of shifts created across 3 departments. Framework rules evaluated. Violations: Sofia (under-18 test), Erik (rest period test), overtime request. | D3, D6, C4              |
-| 5   | Wed 06:00-10:00     | 0:56-1:03      | Day Opens       | Session hooks fire: pre_open (kitchen prep), open (all departments). Checklists created. Engine dispatch triggers.                                    | D6, engine dispatch     |
-| 6   | Wed 10:00-15:00     | 1:03-1:11      | Training        | Trainees (Sofia, Kristian) get protocol assignments. Procedure steps, knowledge test, confirmation signature. Sofia completes; Kristian partial.      | Governance, readiness   |
-| 7   | Wed 15:00-23:00     | 1:11-1:24      | Live Shift      | Clock-ins, service. Deviations: Erik 12 min late, Marte leaves 30 min early (child sick). Shift approvals by managers.                                | D6, C1                  |
-| 8   | Wed 23:00-Thu 01:00 | 1:24-1:28      | Day Closes      | pre_close and close hooks. Daily reconciliation. Settlement images. Cost snapshot (planned vs actual). Admin sign-off.                                | C1, C3, engine dispatch |
-| 9   | Thu 08:00-12:00     | 1:37-1:44      | Guardian        | Guardian sweep: stale session check, unresolved deviation flag, trainee 48h escalation approaching, Botsson conversations.                            | C2, stage engine, K1b   |
-| 10  | Thu-Sun             | 1:44-2:50      | Week Plays Out  | Acts 5-8 repeat with daily variation. New deviations, different employees, budget vs actual divergence grows. Micro-events between acts.              | All dimensions cycled   |
-| —   | Sun 23:00           | 2:50-3:00      | Final Report    | Coverage check: every telemetry event, every dimension, every process. Gap report updated. Dashboard shows full week KPIs.                            | Verification            |
+| Act | Sim Time            | Real Time (1x) | Name            | What Happens                                                                                                                                                                                                                                                                                                       | Cascade Coverage        |
+| --- | ------------------- | -------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------- |
+| 1   | Mon 06:00-09:00     | 0:00-0:07      | Bootstrap       | Admin onboards Sjohuset via wizard. I1 template applied. Framework bound.                                                                                                                                                                                                                                          | I1, D1, D3, K1a         |
+| 2   | Mon 09:00-13:00     | 0:07-0:17      | Staff Up        | 12 employees created. Contracts, payroll profiles, teams. 2 trainees flagged.                                                                                                                                                                                                                                      | D2, D5                  |
+| 3   | Mon 13:00-17:00     | 0:17-0:27      | Season & Budget | Varsesong created. Revenue target set. Day/hour factors distributed. Budget propagated.                                                                                                                                                                                                                            | D4, C3                  |
+| 4   | Tue 08:00-16:00     | 0:31-0:44      | Schedule        | Week of shifts created across 3 departments. Framework rules evaluated. Violations: Sofia (under-18 test), Erik (rest period test), overtime request.                                                                                                                                                              | D3, D6, C4              |
+| 5   | Wed 06:00-10:00     | 0:56-1:03      | Day Opens       | Session hooks fire: pre_open (kitchen prep), open (all departments). Checklists created. Engine dispatch triggers.                                                                                                                                                                                                 | D6, engine dispatch     |
+| 6   | Wed 10:00-15:00     | 1:03-1:11      | Training        | Trainees (Sofia, Kristian) get protocol assignments. Procedure steps, knowledge test, confirmation signature. Sofia completes; Kristian partial.                                                                                                                                                                   | Governance, readiness   |
+| 7   | Wed 15:00-23:00     | 1:11-1:24      | Live Shift      | Clock-ins, service. Deviations: Erik 12 min late, Marte leaves 30 min early (child sick). Shift approvals by managers.                                                                                                                                                                                             | D6, C1                  |
+| 8   | Wed 23:00-Thu 01:00 | 1:24-1:28      | Day Closes      | pre_close and close hooks. Daily reconciliation. Settlement images. Cost snapshot (planned vs actual). Admin sign-off.                                                                                                                                                                                             | C1, C3, engine dispatch |
+| 9   | Thu 08:00-12:00     | 1:37-1:44      | Guardian        | Guardian sweep: stale session check, unresolved deviation flag, trainee escalation, Botsson conversations. **Note:** Guardian sweep depends on stage-engine guardian evaluator loop. If not running, this act fires what it can (Botsson chat, deviation queries) and marks guardian-specific events as `skipped`. | C2, stage engine, K1b   |
+| 10  | Thu-Sun             | 1:44-2:50      | Week Plays Out  | Acts 5-8 repeat with daily variation. New deviations, different employees, budget vs actual divergence grows. Micro-events between acts.                                                                                                                                                                           | All dimensions cycled   |
+| —   | Sun 23:00           | 2:50-3:00      | Final Report    | Coverage check: every telemetry event, every dimension, every process. Gap report updated. Dashboard shows full week KPIs.                                                                                                                                                                                         | Verification            |
 
 **Between acts:** Micro-events keep the restaurant alive — notification pulses, telemetry heartbeats, Botsson conversations, guardian checks. No dead time.
 
@@ -418,13 +448,21 @@ function currentSimTime(segments: ClockSegment[]): Duration {
 **Pause:** Close active segment. No new segment until resume.
 **Resume:** Open new segment at same speed, `sim_start` = accumulated.
 
-### 6.3 Timewarp Modes (Demo Only)
+### 6.3 Time Compression Math
 
-| Mode               | Speed | Behavior                                     |
-| ------------------ | ----- | -------------------------------------------- |
-| **Real-time (1x)** | 1.0   | 1 real min = ~39 sim min. Natural pace.      |
-| **Fast (4x)**      | 4.0   | 1 real min = ~156 sim min. Skips quiet gaps. |
-| **Pause**          | 0.0   | Frozen. User explores dashboard state.       |
+The scenario spans Mon 06:00 to Sun 23:00 = 161 simulated hours. Target: 3 real hours (180 min).
+
+**Base compression ratio:** 161 sim hours / 3 real hours = **53.7:1**. So 1x speed = 1 real minute = ~54 sim minutes.
+
+Verification: 180 real min \* 54 sim min/real min = 9,720 sim min = 162 sim hours. Covers the full week.
+
+### 6.4 Timewarp Modes (Demo Only)
+
+| Mode            | Multiplier | Effective ratio | Behavior                                          |
+| --------------- | ---------- | --------------- | ------------------------------------------------- |
+| **Normal (1x)** | 1.0        | 54:1            | 1 real min = 54 sim min. Base pace for 3h demo.   |
+| **Fast (2x)**   | 2.0        | 108:1           | 1 real min = 108 sim min. Demo finishes in ~1.5h. |
+| **Pause**       | 0.0        | frozen          | Timeline frozen. User explores dashboard state.   |
 
 System proof mode ignores the clock entirely — it processes events sequentially at system speed.
 
@@ -678,15 +716,15 @@ Coverage totals are NEVER hardcoded. They are computed at run initialization fro
 
 ### 11.1 Coverage Sources
 
-| Metric               | Registry Source                                          | Current Count                   | How Computed                               |
-| -------------------- | -------------------------------------------------------- | ------------------------------- | ------------------------------------------ |
-| Telemetry events     | `packages/telemetry/src/registry.ts` SmartoutEvent union | 151 total                       | Parse union type, filter by scenario scope |
-| Routing destinations | Registry routing map                                     | 5                               | Enum values                                |
-| Action types         | `supabase/functions/engine-dispatch/` handler switch     | 18                              | Parse handler cases                        |
-| Engine processes     | `engine_process` table (seeded via migrations)           | 7                               | Query DB at run start                      |
-| Session hook types   | `session_hook_type` enum                                 | 5                               | Query DB enum                              |
-| AI missions          | `packages/ai/src/missions/registry.ts`                   | 6                               | Import and count                           |
-| Cascade dimensions   | Scenario definition                                      | 14 (I1, D1-D6, C1-C4, K1a, K1b) | Scenario config                            |
+| Metric                | Registry Source                                          | Current Count                   | How Computed                                                                      |
+| --------------------- | -------------------------------------------------------- | ------------------------------- | --------------------------------------------------------------------------------- |
+| Telemetry events      | `packages/telemetry/src/registry.ts` SmartoutEvent union | 151 total                       | Parse union type, filter by scenario scope                                        |
+| Routing destinations  | Registry routing map                                     | 4 implemented (5 declared)      | Enum values; `notifications` destination declared but not yet handled in emit.ts  |
+| Action types          | `supabase/functions/engine-dispatch/` handler switch     | 18                              | Parse handler cases                                                               |
+| Engine processes      | `engine_process` table (seeded via migrations)           | 9                               | Query DB at run start                                                             |
+| Session hook types    | `session_hook_type` enum                                 | 5                               | Query DB enum                                                                     |
+| Stage Engine missions | `packages/ai/src/missions/registry.ts`                   | 6                               | Import and count (these are exercised BY swarm agents, not the agents themselves) |
+| Cascade dimensions    | Scenario definition                                      | 14 (I1, D1-D6, C1-C4, K1a, K1b) | Scenario config                                                                   |
 
 ### 11.2 Per-Run Expected Coverage
 
@@ -758,9 +796,10 @@ simulator:
     - STAGE_ENGINE_URL=http://stage-engine:5010
     - SIMULATOR_PORT=5013
   depends_on:
-    - supabase
     - stage-engine
 ```
+
+Note: Local Supabase runs via `npx supabase start` (external to Docker Compose), not as a Docker Compose service. The `SUPABASE_URL` env var points to the local instance. No `depends_on: supabase` — the service connects via URL.
 
 ### 12.4 Not In Scope
 
@@ -772,7 +811,33 @@ simulator:
 
 ---
 
-## 13. Decision Log
+## 13. Error Handling
+
+### 13.1 System Proof Mode
+
+- **Event failure:** Log error, mark event as `failed`, continue to next event. The run does NOT abort on individual failures — it completes all acts and reports a failure summary.
+- **Seeding failure:** Abort run. Mark as `failed`. Trigger cleanup of any partially seeded data.
+- **Cleanup failure:** Log to `cleanup_job.errors`. Retry up to 3 times with exponential backoff. If still failing, mark cleanup as `failed` and surface for manual resolution.
+
+### 13.2 Demo Mode
+
+- **Agent failure:** Director retries once. If still failing, marks event as `failed` and continues. Agent status set to `error` with heartbeat monitoring.
+- **Agent crash:** Director detects missing heartbeat (30s timeout). Marks agent as `error`. Remaining events for that persona are `skipped`. Other personas continue.
+- **Timeline drift:** If actual wall time deviates >10% from expected (e.g., slow Supabase), the Director logs a warning but does not auto-adjust speed.
+
+### 13.3 FK Constraint Violations During Cleanup
+
+Cleanup processes tables in reverse FK order. If a constraint violation occurs:
+
+1. Skip the offending row
+2. Log to `cleanup_job.errors` with table, PK, and constraint name
+3. Continue with remaining rows
+4. Re-attempt skipped rows after all other rows are processed (dependency may now be resolved)
+5. If still failing after 2 passes, mark as manual-resolution-required
+
+---
+
+## 14. Decision Log
 
 | #   | Decision                                                                                  | Rationale                                                                                                                             |
 | --- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
@@ -786,6 +851,9 @@ simulator:
 | 8   | Manifest tracks every insert for surgical cleanup                                         | No residual data after simulation. Safe to run against real workspaces.                                                               |
 | 9   | Hono microservice on port 5013                                                            | Consistent with stage-engine (5010), shift-mcp (5011), contract-service (5012).                                                       |
 | 10  | Real UI/API paths for demo, direct calls for system proof                                 | Demo proves the product works end-to-end. System proof proves the logic is correct.                                                   |
+| 11  | Platform-admin-only auth for simulation schema (no RLS)                                   | Simulation is a diagnostic/testing tool, not a user feature. Service role for seeding/cleanup, real JWTs for swarm personas.          |
+| 12  | Real Supabase auth users for swarm personas in demo mode                                  | Honest RLS testing. Service role impersonation would bypass the auth paths we're trying to prove.                                     |
+| 13  | ADR required before implementation                                                        | New microservice + new PostgreSQL schema. Per project conventions, requires architectural decision record.                            |
 
 ---
 
@@ -803,19 +871,19 @@ simulator:
 
 Exact counts from source-of-truth registries as of 2026-03-23:
 
-| Registry                      | Count                          | Source                                                                                                                                                                    |
-| ----------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Telemetry events              | 151                            | `packages/telemetry/src/registry.ts`                                                                                                                                      |
-| Telemetry destinations        | 5                              | posthog, logger, activity_trail, engine_event, notifications                                                                                                              |
-| Event categories              | 11                             | auth, onboarding, org_structure, scheduling, contracts, operations, haccp, training, communication, system, navigation                                                    |
-| Engine action types           | 18                             | `supabase/functions/engine-dispatch/index.ts`                                                                                                                             |
-| Engine processes (seeded)     | 7                              | Migrations (onboarding_journey, training_protocol, department_session_lifecycle, session_hook_dispatcher, daily_close, cascade_cost_snapshot, cascade_budget_propagation) |
-| Session hook types            | 5                              | pre_open, open, scheduled, pre_close, close                                                                                                                               |
-| AI missions                   | 6                              | onboarding-interview, landing-demo, mr-botsson, haccp-inspector, shift-assistant, walkai-session                                                                          |
-| Animated dashboard components | 3                              | ActivityView, ReconciliationView, SwipeReconciliation                                                                                                                     |
-| Notification tables           | 3                              | notification_outbox, notification_preference, channel_notification_policy                                                                                                 |
-| Cascade pure functions        | 6/8 complete                   | resolve-hours, compute-anchored-shift, evaluate-framework-rules, validate-proposal-freshness, resolveTariffRate, propagateBudgetTargets                                   |
-| Database migrations           | 167 total, 19 cascade-specific | `supabase/migrations/`                                                                                                                                                    |
+| Registry                      | Count                           | Source                                                                                                                                                                                                                                                                                          |
+| ----------------------------- | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Telemetry events              | 151                             | `packages/telemetry/src/registry.ts`                                                                                                                                                                                                                                                            |
+| Telemetry destinations        | 5 declared, **4 implemented**   | posthog, logger, activity_trail, engine_event (active); notifications (declared in type but NO handler in emit.ts)                                                                                                                                                                              |
+| Event categories              | 12                              | auth, onboarding, org_structure, scheduling, contracts, operations, haccp, training, communication, system, navigation, channels                                                                                                                                                                |
+| Engine action types           | 18                              | `supabase/functions/engine-dispatch/index.ts`                                                                                                                                                                                                                                                   |
+| Engine processes (seeded)     | 9                               | onboarding_journey, training_protocol, department_session_lifecycle, session_hook_dispatcher, daily_close, cascade_cost_snapshot, cascade_budget_propagation, signup_onboarding, workspace_setup                                                                                                |
+| Session hook types            | 5                               | pre_open, open, scheduled, pre_close, close                                                                                                                                                                                                                                                     |
+| AI missions (Stage Engine)    | 6                               | onboarding-interview, landing-demo, mr-botsson, haccp-inspector, shift-assistant, walkai-session. **Note:** These are Stage Engine voice/chat missions, distinct from the simulator's Claude Code swarm agents. The swarm EXERCISES these missions (e.g., Trainee persona talks to mr-botsson). |
+| Animated dashboard components | 3                               | ActivityView, ReconciliationView, SwipeReconciliation                                                                                                                                                                                                                                           |
+| Notification tables           | 3                               | notification_outbox, notification_preference, channel_notification_policy. **Note:** `send_notification` action type is a stub — handler exists but does not deliver.                                                                                                                           |
+| Cascade pure functions        | 9 files                         | resolve-hours, compute-anchored-shift, compute-proposal-preview, evaluate-framework-rules, get-tariff-context, propagate-budget-targets, resolve-tariff-rate, validate-proposal-freshness, build-entity-context                                                                                 |
+| Database migrations           | 188 total, ~19 cascade-specific | `supabase/migrations/`                                                                                                                                                                                                                                                                          |
 
 ---
 
