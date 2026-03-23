@@ -1,5 +1,7 @@
 -- Komm Redesign — Optimized RPCs (CTE-based, no correlated subqueries)
 -- Adds other_member_name/avatar for DM display names
+-- Must DROP first because return type changed (added other_member_name/avatar columns)
+DROP FUNCTION IF EXISTS get_my_channels(uuid);
 
 CREATE OR REPLACE FUNCTION get_my_channels(p_workspace_id uuid)
 RETURNS TABLE (
