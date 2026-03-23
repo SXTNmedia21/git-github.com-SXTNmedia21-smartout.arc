@@ -10,10 +10,11 @@
 // can follow up on premium interest.
 // ============================================
 
+import type { FormEvent } from "react";
 import { useMemo, useState } from "react";
 import { ArrowRight, CheckCircle2, LoaderCircle } from "lucide-react";
-import { getOrCreateVisitorId } from "../../../../lib/visitor-cookie";
-import { getCurrentVariant, getOrCreateSessionId, postEvent } from "../../../../hooks/useTracking";
+import { getOrCreateVisitorId } from "../../../lib/visitor-cookie";
+import { getCurrentVariant, getOrCreateSessionId, postEvent } from "../../../hooks/useTracking";
 
 type WaitlistPackage = "free" | "premium" | "pro" | "enterprise";
 
@@ -110,7 +111,7 @@ export function FreeForeverWaitlistForm() {
    *
    * @returns Nothing. The result updates the local form state.
    */
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErrorMessage(null);
 
@@ -176,7 +177,7 @@ export function FreeForeverWaitlistForm() {
 
   if (isSubmitted) {
     return (
-      <div className="border-brand-orange/30 bg-card/90 rounded-[2rem] border p-8 shadow-[0_18px_70px_-40px_color-mix(in_oklab,var(--brand-orange)_55%,transparent)] backdrop-blur">
+      <div className="border-brand-orange/30 bg-card/90 rounded-[2rem] border p-8 shadow-[0_18px_70px_-40px_rgba(0,0,0,0.45)] backdrop-blur">
         <div className="bg-brand-orange/15 text-brand-orange mb-5 inline-flex h-12 w-12 items-center justify-center rounded-full">
           <CheckCircle2 className="h-6 w-6" />
         </div>
@@ -298,7 +299,7 @@ export function FreeForeverWaitlistForm() {
         </label>
       </div>
 
-      <div className="border-brand-orange/20 bg-brand-orange/8 text-muted-foreground mt-5 rounded-2xl border px-4 py-3 text-sm leading-6">
+      <div className="border-brand-orange/20 bg-brand-orange/10 text-muted-foreground mt-5 rounded-2xl border px-4 py-3 text-sm leading-6">
         Du reserverer interesse for en begrenset premiumplass. Ingen betaling skjer i dette steget.
       </div>
 
