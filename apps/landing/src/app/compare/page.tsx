@@ -28,6 +28,7 @@ import {
   X,
 } from "lucide-react";
 import { FullTracker, TrackedCta } from "../../components/tracking";
+import { ThemeToggle } from "../../components/theme-toggle";
 import { WEB_APP_LINKS } from "../../lib/web-app-url";
 
 const instrumentSerif = Instrument_Serif({
@@ -39,7 +40,8 @@ const instrumentSerif = Instrument_Serif({
 // ── Competitor definitions ────────────────────────
 
 type CompetitorId =
-  | "smartout"
+  | "smartout_free"
+  | "smartout_premium"
   | "planday"
   | "7shifts"
   | "homebase"
@@ -70,8 +72,8 @@ type Competitor = {
 
 const competitors: Competitor[] = [
   {
-    id: "smartout",
-    name: "Smartout",
+    id: "smartout_free",
+    name: "Smartout Free",
     country: "Norge",
     pricingModel: "Flat / restaurang",
     freePrice: "0 kr",
@@ -79,7 +81,20 @@ const competitors: Competitor[] = [
     midPaid: "2 500 NOK/mnd",
     topPaid: "Custom",
     typicalCost: "0 kr",
-    color: "text-orange-400",
+    color: "text-emerald-400",
+    website: "smartout.ai",
+  },
+  {
+    id: "smartout_premium",
+    name: "Smartout Premium",
+    country: "Norge",
+    pricingModel: "Toggle av/på",
+    freePrice: "0 kr",
+    lowestPaid: "995 NOK/mnd",
+    midPaid: "2 500 NOK/mnd",
+    topPaid: "Custom",
+    typicalCost: "995 kr",
+    color: "text-brand-orange",
     website: "smartout.ai",
   },
   {
@@ -275,7 +290,8 @@ const categories: Category[] = [
       {
         name: "Vaktplan / drag-and-drop",
         values: {
-          smartout: true,
+          smartout_free: true,
+          smartout_premium: true,
           planday: true,
           "7shifts": true,
           homebase: true,
@@ -293,7 +309,8 @@ const categories: Category[] = [
       {
         name: "Skiftmaler / templates",
         values: {
-          smartout: true,
+          smartout_free: true,
+          smartout_premium: true,
           planday: paid("Plus ~75 NOK/u"),
           "7shifts": paid("Entrée $30"),
           homebase: paid("Ess. $30"),
@@ -311,7 +328,8 @@ const categories: Category[] = [
       {
         name: "Flerukersplanlegging",
         values: {
-          smartout: true,
+          smartout_free: true,
+          smartout_premium: true,
           planday: true,
           "7shifts": true,
           homebase: false,
@@ -329,7 +347,8 @@ const categories: Category[] = [
       {
         name: "Åpne skift / OpenShifts",
         values: {
-          smartout: true,
+          smartout_free: true,
+          smartout_premium: true,
           planday: true,
           "7shifts": true,
           homebase: false,
@@ -347,7 +366,8 @@ const categories: Category[] = [
       {
         name: "Skiftbytte mellom ansatte",
         values: {
-          smartout: true,
+          smartout_free: true,
+          smartout_premium: true,
           planday: true,
           "7shifts": true,
           homebase: paid("Ess. $30"),
@@ -365,7 +385,8 @@ const categories: Category[] = [
       {
         name: "Tilgjengelighet og fravær",
         values: {
-          smartout: true,
+          smartout_free: true,
+          smartout_premium: true,
           planday: paid("Plus ~75 NOK/u"),
           "7shifts": true,
           homebase: paid("Ess. $30"),
@@ -383,7 +404,8 @@ const categories: Category[] = [
       {
         name: "Multi-location støtte",
         values: {
-          smartout: true,
+          smartout_free: true,
+          smartout_premium: true,
           planday: true,
           "7shifts": paid("Kun 1 loc gratis"),
           homebase: paid("Kun 1 loc gratis"),
@@ -401,7 +423,8 @@ const categories: Category[] = [
       {
         name: "Arbeidsbudsjett / labor cost",
         values: {
-          smartout: paid("Pro"),
+          smartout_free: false,
+          smartout_premium: false,
           planday: paid("Plus ~75 NOK/u"),
           "7shifts": paid("Entrée $30"),
           homebase: paid("All-in-One $120"),
@@ -426,7 +449,8 @@ const categories: Category[] = [
       {
         name: "Stemplingsur / punch clock",
         values: {
-          smartout: true,
+          smartout_free: true,
+          smartout_premium: true,
           planday: true,
           "7shifts": true,
           homebase: true,
@@ -444,7 +468,8 @@ const categories: Category[] = [
       {
         name: "GPS / lokasjonskontroll",
         values: {
-          smartout: true,
+          smartout_free: true,
+          smartout_premium: true,
           planday: paid("Plus ~75 NOK/u"),
           "7shifts": false,
           homebase: paid("Ess. $30"),
@@ -462,7 +487,8 @@ const categories: Category[] = [
       {
         name: "Overtidsvarsler",
         values: {
-          smartout: true,
+          smartout_free: true,
+          smartout_premium: true,
           planday: true,
           "7shifts": false,
           homebase: paid("All-in-One $120"),
@@ -480,7 +506,8 @@ const categories: Category[] = [
       {
         name: "Pauseregistrering",
         values: {
-          smartout: true,
+          smartout_free: true,
+          smartout_premium: true,
           planday: false,
           "7shifts": false,
           homebase: false,
@@ -498,7 +525,8 @@ const categories: Category[] = [
       {
         name: "Grunnleggende lønnsrapport",
         values: {
-          smartout: true,
+          smartout_free: true,
+          smartout_premium: true,
           planday: true,
           "7shifts": false,
           homebase: false,
@@ -523,7 +551,8 @@ const categories: Category[] = [
       {
         name: "Ansattoversikt / profiler",
         values: {
-          smartout: true,
+          smartout_free: true,
+          smartout_premium: true,
           planday: true,
           "7shifts": "Maks 30",
           homebase: "Maks 10",
@@ -542,7 +571,8 @@ const categories: Category[] = [
         name: "Ubegrenset antall ansatte",
         note: "I gratis plan",
         values: {
-          smartout: true,
+          smartout_free: true,
+          smartout_premium: true,
           planday: "Min 5 (betalt)",
           "7shifts": false,
           homebase: false,
@@ -560,7 +590,8 @@ const categories: Category[] = [
       {
         name: "Digital kontraktshåndtering",
         values: {
-          smartout: true,
+          smartout_free: true,
+          smartout_premium: true,
           planday: paid("Plus docs"),
           "7shifts": false,
           homebase: false,
@@ -578,7 +609,8 @@ const categories: Category[] = [
       {
         name: "E-signering av kontrakter",
         values: {
-          smartout: true,
+          smartout_free: true,
+          smartout_premium: true,
           planday: false,
           "7shifts": false,
           homebase: false,
@@ -596,7 +628,8 @@ const categories: Category[] = [
       {
         name: "Automatisert onboarding",
         values: {
-          smartout: true,
+          smartout_free: true,
+          smartout_premium: true,
           planday: false,
           "7shifts": false,
           homebase: paid("All-in-One $120"),
@@ -614,7 +647,8 @@ const categories: Category[] = [
       {
         name: "Roller og tilgangsstyring",
         values: {
-          smartout: true,
+          smartout_free: true,
+          smartout_premium: true,
           planday: true,
           "7shifts": true,
           homebase: paid("Plus $70"),
@@ -632,7 +666,8 @@ const categories: Category[] = [
       {
         name: "Avdelinger og team",
         values: {
-          smartout: true,
+          smartout_free: true,
+          smartout_premium: true,
           planday: true,
           "7shifts": true,
           homebase: paid("Plus $70"),
@@ -650,7 +685,8 @@ const categories: Category[] = [
       {
         name: "Kompetanseregistrering",
         values: {
-          smartout: true,
+          smartout_free: true,
+          smartout_premium: true,
           planday: paid("Plus ~75 NOK/u"),
           "7shifts": false,
           homebase: false,
@@ -675,7 +711,8 @@ const categories: Category[] = [
       {
         name: "Arbeidstidsregler og varsler",
         values: {
-          smartout: true,
+          smartout_free: true,
+          smartout_premium: true,
           planday: true,
           "7shifts": false,
           homebase: false,
@@ -693,7 +730,8 @@ const categories: Category[] = [
       {
         name: "IK-mat / HACCP grunnleggende",
         values: {
-          smartout: true,
+          smartout_free: true,
+          smartout_premium: true,
           planday: false,
           "7shifts": false,
           homebase: false,
@@ -711,7 +749,8 @@ const categories: Category[] = [
       {
         name: "Rutiner og sjekklister (SOP)",
         values: {
-          smartout: true,
+          smartout_free: true,
+          smartout_premium: true,
           planday: false,
           "7shifts": paid("Gourmet $135"),
           homebase: false,
@@ -729,7 +768,8 @@ const categories: Category[] = [
       {
         name: "Policyer og personalhåndbok",
         values: {
-          smartout: true,
+          smartout_free: true,
+          smartout_premium: true,
           planday: false,
           "7shifts": false,
           homebase: false,
@@ -747,7 +787,8 @@ const categories: Category[] = [
       {
         name: "Kunnskapstest",
         values: {
-          smartout: true,
+          smartout_free: true,
+          smartout_premium: true,
           planday: false,
           "7shifts": false,
           homebase: false,
@@ -765,7 +806,8 @@ const categories: Category[] = [
       {
         name: "Norsk arbeidsmiljølov-støtte",
         values: {
-          smartout: true,
+          smartout_free: true,
+          smartout_premium: true,
           planday: "Delvis",
           "7shifts": false,
           homebase: false,
@@ -783,7 +825,8 @@ const categories: Category[] = [
       {
         name: "Avvikshåndtering",
         values: {
-          smartout: true,
+          smartout_free: true,
+          smartout_premium: true,
           planday: false,
           "7shifts": false,
           homebase: false,
@@ -802,7 +845,8 @@ const categories: Category[] = [
         name: "Temperaturovervåking",
         note: "Automatisk overvåking av kjøleskap/frysere med varsling",
         values: {
-          smartout: paid("Pro"),
+          smartout_free: false,
+          smartout_premium: false,
           planday: false,
           "7shifts": false,
           homebase: false,
@@ -827,7 +871,8 @@ const categories: Category[] = [
       {
         name: "Teamkommunikasjon / chat",
         values: {
-          smartout: true,
+          smartout_free: true,
+          smartout_premium: true,
           planday: true,
           "7shifts": paid("Entrée $30"),
           homebase: paid("Ess. $30"),
@@ -846,7 +891,8 @@ const categories: Category[] = [
         name: "Auto-oversettelse",
         note: "Automatisk oversettelse av meldinger mellom språk",
         values: {
-          smartout: true,
+          smartout_free: true,
+          smartout_premium: true,
           planday: false,
           "7shifts": false,
           homebase: false,
@@ -864,7 +910,8 @@ const categories: Category[] = [
       {
         name: "Push-varsler",
         values: {
-          smartout: true,
+          smartout_free: true,
+          smartout_premium: true,
           planday: true,
           "7shifts": true,
           homebase: true,
@@ -890,7 +937,8 @@ const categories: Category[] = [
         name: "Egen restaurantnettside",
         note: "Inkludert i systemet — ingen ekstern tjeneste nødvendig",
         values: {
-          smartout: true,
+          smartout_free: true,
+          smartout_premium: true,
           planday: false,
           "7shifts": false,
           homebase: false,
@@ -908,7 +956,8 @@ const categories: Category[] = [
       {
         name: "Menyvisning online",
         values: {
-          smartout: paid("Pro"),
+          smartout_free: false,
+          smartout_premium: false,
           planday: false,
           "7shifts": false,
           homebase: false,
@@ -926,7 +975,8 @@ const categories: Category[] = [
       {
         name: "Standard website med maler",
         values: {
-          smartout: paid("Pro"),
+          smartout_free: false,
+          smartout_premium: false,
           planday: false,
           "7shifts": false,
           homebase: false,
@@ -944,7 +994,8 @@ const categories: Category[] = [
       {
         name: "Advanced multipage nettsted",
         values: {
-          smartout: paid("Enterprise"),
+          smartout_free: false,
+          smartout_premium: false,
           planday: false,
           "7shifts": false,
           homebase: false,
@@ -962,7 +1013,8 @@ const categories: Category[] = [
       {
         name: "Eget domenenavn",
         values: {
-          smartout: paid("Enterprise"),
+          smartout_free: false,
+          smartout_premium: false,
           planday: false,
           "7shifts": false,
           homebase: false,
@@ -988,7 +1040,8 @@ const categories: Category[] = [
         name: "AI-assistent for ansatte og ledere",
         note: "Smartouts Lise AI Botsson — trent på din bedrifts rutiner",
         values: {
-          smartout: paid("Premium 995 NOK"),
+          smartout_free: false,
+          smartout_premium: true,
           planday: false,
           "7shifts": false,
           homebase: false,
@@ -1006,7 +1059,8 @@ const categories: Category[] = [
       {
         name: "AI-vaktforslag / auto-scheduling",
         values: {
-          smartout: paid("Premium 995 NOK"),
+          smartout_free: false,
+          smartout_premium: true,
           planday: paid("Pro custom"),
           "7shifts": paid("Gourmet $135"),
           homebase: paid("Plus $70"),
@@ -1024,7 +1078,8 @@ const categories: Category[] = [
       {
         name: "AI-sammendrag av drift",
         values: {
-          smartout: paid("Premium 995 NOK"),
+          smartout_free: false,
+          smartout_premium: true,
           planday: false,
           "7shifts": false,
           homebase: false,
@@ -1042,7 +1097,8 @@ const categories: Category[] = [
       {
         name: "AI-drevet onboarding",
         values: {
-          smartout: paid("Premium 995 NOK"),
+          smartout_free: false,
+          smartout_premium: true,
           planday: false,
           "7shifts": false,
           homebase: false,
@@ -1061,7 +1117,8 @@ const categories: Category[] = [
         name: "Toggle betalfunksjoner av/på",
         note: "Slå AI og automasjon av og på med ett klikk, uten å bytte plan",
         values: {
-          smartout: paid("Premium 995 NOK"),
+          smartout_free: false,
+          smartout_premium: true,
           planday: false,
           "7shifts": false,
           homebase: false,
@@ -1079,7 +1136,8 @@ const categories: Category[] = [
       {
         name: "Etterspørselsprognose",
         values: {
-          smartout: paid("Pro"),
+          smartout_free: false,
+          smartout_premium: false,
           planday: paid("Plus ~75 NOK/u"),
           "7shifts": false,
           homebase: false,
@@ -1097,7 +1155,8 @@ const categories: Category[] = [
       {
         name: "Sesongplanlegging med AI",
         values: {
-          smartout: paid("Pro"),
+          smartout_free: false,
+          smartout_premium: false,
           planday: false,
           "7shifts": false,
           homebase: false,
@@ -1122,7 +1181,8 @@ const categories: Category[] = [
       {
         name: "POS-integrasjon",
         values: {
-          smartout: paid("Pro"),
+          smartout_free: false,
+          smartout_premium: false,
           planday: paid("Plus ~75 NOK/u"),
           "7shifts": paid("Entrée $30"),
           homebase: true,
@@ -1140,7 +1200,8 @@ const categories: Category[] = [
       {
         name: "Lønnssystem-integrasjon",
         values: {
-          smartout: paid("Pro"),
+          smartout_free: false,
+          smartout_premium: false,
           planday: paid("Plus ~75 NOK/u"),
           "7shifts": false,
           homebase: paid("Tillegg $39+/mnd"),
@@ -1159,7 +1220,8 @@ const categories: Category[] = [
         name: "Tripletex-integrasjon",
         note: "Norsk regnskapssystem",
         values: {
-          smartout: paid("Pro"),
+          smartout_free: false,
+          smartout_premium: false,
           planday: false,
           "7shifts": false,
           homebase: false,
@@ -1177,7 +1239,8 @@ const categories: Category[] = [
       {
         name: "API-tilgang",
         values: {
-          smartout: paid("Enterprise"),
+          smartout_free: false,
+          smartout_premium: false,
           planday: paid("Plus ~75 NOK/u"),
           "7shifts": paid("Works $70"),
           homebase: paid("All-in-One $120"),
@@ -1195,7 +1258,8 @@ const categories: Category[] = [
       {
         name: "SSO / SAML",
         values: {
-          smartout: paid("Enterprise"),
+          smartout_free: false,
+          smartout_premium: false,
           planday: paid("Pro custom"),
           "7shifts": false,
           homebase: false,
@@ -1220,7 +1284,8 @@ const categories: Category[] = [
       {
         name: "Grunnrapporter",
         values: {
-          smartout: true,
+          smartout_free: true,
+          smartout_premium: true,
           planday: true,
           "7shifts": false,
           homebase: false,
@@ -1238,7 +1303,8 @@ const categories: Category[] = [
       {
         name: "Personalkostnadsrapport",
         values: {
-          smartout: paid("Pro"),
+          smartout_free: false,
+          smartout_premium: false,
           planday: paid("Plus ~75 NOK/u"),
           "7shifts": paid("Entrée $30"),
           homebase: paid("All-in-One $120"),
@@ -1256,7 +1322,8 @@ const categories: Category[] = [
       {
         name: "KPI-er og dashboards",
         values: {
-          smartout: paid("Pro"),
+          smartout_free: false,
+          smartout_premium: false,
           planday: paid("Pro custom"),
           "7shifts": false,
           homebase: false,
@@ -1274,7 +1341,8 @@ const categories: Category[] = [
       {
         name: "Sesonganalyser",
         values: {
-          smartout: paid("Pro"),
+          smartout_free: false,
+          smartout_premium: false,
           planday: false,
           "7shifts": false,
           homebase: false,
@@ -1299,7 +1367,8 @@ const categories: Category[] = [
       {
         name: "Mobilapp (iOS + Android)",
         values: {
-          smartout: true,
+          smartout_free: true,
+          smartout_premium: true,
           planday: true,
           "7shifts": true,
           homebase: true,
@@ -1317,7 +1386,8 @@ const categories: Category[] = [
       {
         name: "Dark mode",
         values: {
-          smartout: true,
+          smartout_free: true,
+          smartout_premium: true,
           planday: false,
           "7shifts": false,
           homebase: false,
@@ -1335,7 +1405,8 @@ const categories: Category[] = [
       {
         name: "Flerspråklig plattform",
         values: {
-          smartout: true,
+          smartout_free: true,
+          smartout_premium: true,
           planday: "Delvis",
           "7shifts": false,
           homebase: false,
@@ -1353,7 +1424,8 @@ const categories: Category[] = [
       {
         name: "Norsk språk (native)",
         values: {
-          smartout: true,
+          smartout_free: true,
+          smartout_premium: true,
           planday: true,
           "7shifts": false,
           homebase: false,
@@ -1371,7 +1443,8 @@ const categories: Category[] = [
       {
         name: "Gamification / poeng",
         values: {
-          smartout: paid("Premium 995 NOK"),
+          smartout_free: false,
+          smartout_premium: true,
           planday: false,
           "7shifts": false,
           homebase: false,
@@ -1396,7 +1469,8 @@ const categories: Category[] = [
       {
         name: "Gratis plan med alle kjernefunksjoner",
         values: {
-          smartout: true,
+          smartout_free: true,
+          smartout_premium: true,
           planday: false,
           "7shifts": "Delvis (30 pers)",
           homebase: "Delvis (10 pers)",
@@ -1414,7 +1488,8 @@ const categories: Category[] = [
       {
         name: "Ingen per-ansatt-kostnad",
         values: {
-          smartout: true,
+          smartout_free: true,
+          smartout_premium: true,
           planday: false,
           "7shifts": true,
           homebase: true,
@@ -1432,7 +1507,8 @@ const categories: Category[] = [
       {
         name: "Slå betalfunksjoner av/på",
         values: {
-          smartout: true,
+          smartout_free: true,
+          smartout_premium: true,
           planday: false,
           "7shifts": false,
           homebase: false,
@@ -1450,7 +1526,8 @@ const categories: Category[] = [
       {
         name: "Bygget for norsk marked",
         values: {
-          smartout: true,
+          smartout_free: true,
+          smartout_premium: true,
           planday: false,
           "7shifts": false,
           homebase: false,
@@ -1479,25 +1556,30 @@ function CellValue({ value, isSmartout }: { value: FeatureValue; isSmartout: boo
   if (value === true) {
     return (
       <span
-        className={`inline-flex items-center justify-center rounded-full ${isSmartout ? "bg-emerald-500/20" : "bg-emerald-500/10"}`}
+        className={`inline-flex items-center justify-center rounded-full ${isSmartout ? "bg-emerald-500 shadow-sm" : "bg-emerald-500/10"}`}
         style={{ width: 28, height: 28 }}
       >
-        <Check className={`h-4 w-4 ${isSmartout ? "text-emerald-400" : "text-emerald-500/70"}`} />
+        <Check
+          className={`h-4 w-4 ${isSmartout ? "text-emerald-950" : "text-emerald-500/70"}`}
+          strokeWidth={isSmartout ? 3 : 2}
+        />
       </span>
     );
   }
   if (value === false) {
     return (
       <span
-        className="inline-flex items-center justify-center rounded-full bg-white/5"
+        className="inline-flex items-center justify-center rounded-full bg-rose-500/10"
         style={{ width: 28, height: 28 }}
       >
-        <Minus className="h-3.5 w-3.5 text-zinc-600" />
+        <X className="h-3.5 w-3.5 text-rose-500" />
       </span>
     );
   }
   return (
-    <span className="text-muted-foreground inline-block max-w-[7rem] text-center text-xs leading-tight">
+    <span
+      className={`inline-block max-w-[7rem] text-center text-xs leading-tight font-medium ${isSmartout ? "text-brand-orange" : "text-muted-foreground"}`}
+    >
       {value}
     </span>
   );
@@ -1517,7 +1599,14 @@ function SectionLabel({ children }: { children: ReactNode }) {
 
 export default function ComparePage() {
   const allCompetitorIds = competitors.map((c) => c.id);
-  const [visibleCompetitors, setVisibleCompetitors] = useState<CompetitorId[]>(allCompetitorIds);
+  // Default to showing Smartout + Planday + Timegrip + Tidsbanken to keep it impactful and readable
+  const [visibleCompetitors, setVisibleCompetitors] = useState<CompetitorId[]>([
+    "smartout_free",
+    "smartout_premium",
+    "planday",
+    "tidsbanken",
+    "timegrip",
+  ]);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
     new Set(categories.map((c) => c.id)),
   );
@@ -1529,7 +1618,7 @@ export default function ComparePage() {
   );
 
   function toggleCompetitor(id: CompetitorId) {
-    if (id === "smartout") return;
+    if (id === "smartout_free" || id === "smartout_premium") return;
     setVisibleCompetitors((prev) =>
       prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id],
     );
@@ -1549,7 +1638,7 @@ export default function ComparePage() {
     let wins = 0;
     for (const cat of categories) {
       for (const feat of cat.features) {
-        const sv = feat.values.smartout;
+        const sv = feat.values.smartout_free;
         const cv = feat.values[competitorId];
         if (sv === true && cv !== true) wins++;
       }
@@ -1631,7 +1720,7 @@ export default function ComparePage() {
                 <div
                   key={c.id}
                   className={`rounded-2xl border p-5 transition ${
-                    c.id === "smartout"
+                    c.id === "smartout_free" || c.id === "smartout_premium"
                       ? "border-brand-orange/40 bg-brand-orange/10"
                       : "border-border bg-card/90"
                   }`}
@@ -1641,14 +1730,14 @@ export default function ComparePage() {
                     {c.typicalCost}
                   </p>
                   <p className="text-muted-foreground mt-1 text-xs">{c.pricingModel}</p>
-                  {c.id !== "smartout" && (
+                  {c.id !== "smartout_free" && c.id !== "smartout_premium" && (
                     <p className="text-muted-foreground mt-2 text-xs">
                       Smartout gratis inkluderer{" "}
                       <strong className="text-brand-orange">{countSmartoutWins(c.id)}</strong>{" "}
                       funksjoner de tar betalt for
                     </p>
                   )}
-                  {c.id === "smartout" && (
+                  {(c.id === "smartout_free" || c.id === "smartout_premium") && (
                     <p className="text-brand-orange mt-2 text-xs font-medium">
                       Gratis — ubegrenset ansatte
                     </p>
@@ -1706,19 +1795,19 @@ export default function ComparePage() {
                     <button
                       key={c.id}
                       onClick={() => toggleCompetitor(c.id)}
-                      disabled={c.id === "smartout"}
+                      disabled={c.id === "smartout_free" || c.id === "smartout_premium"}
                       className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition ${
                         visibleCompetitors.includes(c.id)
-                          ? c.id === "smartout"
+                          ? c.id === "smartout_free" || c.id === "smartout_premium"
                             ? "border-brand-orange/40 bg-brand-orange/15 text-brand-orange cursor-default"
                             : "border-border bg-card text-foreground hover:border-brand-orange/30"
                           : "border-border/50 text-muted-foreground hover:border-border bg-transparent"
                       }`}
                     >
                       {c.name}
-                      {c.id !== "smartout" && visibleCompetitors.includes(c.id) && (
-                        <X className="h-3 w-3" />
-                      )}
+                      {c.id !== "smartout_free" &&
+                        c.id !== "smartout_premium" &&
+                        visibleCompetitors.includes(c.id) && <X className="h-3 w-3" />}
                     </button>
                   ))}
                 </div>
@@ -1728,6 +1817,66 @@ export default function ComparePage() {
 
           {/* Comparison matrix */}
           <section className="mx-auto max-w-7xl px-6 py-12">
+            {/* Dynamic Competitor Alert */}
+            {visibleCompetitors.length === 3 &&
+              !visibleCompetitors.includes("smartout_premium") && (
+                <div className="mb-10 flex flex-col items-start justify-between gap-6 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-6 sm:flex-row sm:items-center sm:p-8">
+                  <div>
+                    <h3 className="text-foreground text-xl font-bold tracking-tight sm:text-2xl">
+                      Bruker du{" "}
+                      {
+                        competitors.find(
+                          (c) => c.id === visibleCompetitors.find((id) => id !== "smartout_free"),
+                        )?.name
+                      }{" "}
+                      i dag?
+                    </h3>
+                    <p className="text-muted-foreground mt-2 max-w-2xl">
+                      Bytt til Smartout Free og få flere funksjoner, ubegrenset antall ansatte og
+                      null lisenskostnader for basisdrift. Vi hjelper deg med import av data og
+                      onboarding av ansatte.
+                    </p>
+                  </div>
+                  <TrackedCta
+                    label="Switch competitor CTA"
+                    href={WEB_APP_LINKS.login}
+                    className="rounded-full bg-emerald-500 px-6 py-3 text-sm font-bold whitespace-nowrap text-emerald-950 transition hover:opacity-90"
+                  >
+                    Bytt til Smartout
+                  </TrackedCta>
+                </div>
+              )}
+            {visibleCompetitors.length === 4 && visibleCompetitors.includes("smartout_premium") && (
+              <div className="mb-10 flex flex-col items-start justify-between gap-6 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-6 sm:flex-row sm:items-center sm:p-8">
+                <div>
+                  <h3 className="text-foreground text-xl font-bold tracking-tight sm:text-2xl">
+                    Bruker du{" "}
+                    {
+                      competitors.find(
+                        (c) =>
+                          c.id ===
+                          visibleCompetitors.find(
+                            (id) => id !== "smartout_free" && id !== "smartout_premium",
+                          ),
+                      )?.name
+                    }{" "}
+                    i dag?
+                  </h3>
+                  <p className="text-muted-foreground mt-2 max-w-2xl">
+                    Bytt til Smartout Free og få flere funksjoner uten lisenskostnader. Trenger du
+                    enda mer fart? Slå på Premium og få AI-vakter og Lise Botsson.
+                  </p>
+                </div>
+                <TrackedCta
+                  label="Switch competitor CTA"
+                  href={WEB_APP_LINKS.login}
+                  className="rounded-full bg-emerald-500 px-6 py-3 text-sm font-bold whitespace-nowrap text-emerald-950 transition hover:opacity-90"
+                >
+                  Opprett gratis konto
+                </TrackedCta>
+              </div>
+            )}
+
             <div className="space-y-6">
               {categories.map((category) => {
                 const isExpanded = expandedCategories.has(category.id);
@@ -1794,7 +1943,9 @@ export default function ComparePage() {
                                   <td key={c.id} className="px-3 py-3.5 text-center">
                                     <CellValue
                                       value={feature.values[c.id]}
-                                      isSmartout={c.id === "smartout"}
+                                      isSmartout={
+                                        c.id === "smartout_free" || c.id === "smartout_premium"
+                                      }
                                     />
                                   </td>
                                 ))}
