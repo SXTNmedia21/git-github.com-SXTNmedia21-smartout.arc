@@ -78,7 +78,7 @@ EOF
 }
 
 ensure_local_e2e_fixture() {
-  node "${SCRIPT_DIR}/ensure-local-e2e-fixture.mjs"
+  node "${SCRIPT_DIR}/ensure-local-e2e-runtime-fixture.mjs"
 }
 
 ensure_local_libs() {

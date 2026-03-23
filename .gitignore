@@ -58,3 +58,7 @@ supabase/.env
 supabase/functions/.env
 client_secret_*.json
 .superpowers/
+
+# E2E build artifacts
+apps/landing/.next-e2e-landing/
+apps/web/.next-e2e-web/
