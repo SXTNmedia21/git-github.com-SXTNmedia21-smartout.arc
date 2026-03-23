@@ -71,18 +71,12 @@ export function TaskFeed({ tasks, profileId }: TaskFeedProps) {
       <FlatList
         data={sortedTasks}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <TaskRow task={item} onPress={() => handleSelectTask(item)} />
-        )}
+        renderItem={({ item }) => <TaskRow task={item} onPress={() => handleSelectTask(item)} />}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
       />
 
-      <TaskModal
-        task={selectedTask}
-        profileId={profileId}
-        onDismiss={handleDismiss}
-      />
+      <TaskModal task={selectedTask} profileId={profileId} onDismiss={handleDismiss} />
     </View>
   );
 }
@@ -111,9 +105,7 @@ function TaskRow({ task, onPress }: { task: SessionTask; onPress: () => void }) 
           </Text>
         )}
       </View>
-      {priority === "deadline" && (
-        <Text style={styles.deadlineLabel}>{strings.tasks.dueSoon}</Text>
-      )}
+      {priority === "deadline" && <Text style={styles.deadlineLabel}>{strings.tasks.dueSoon}</Text>}
     </Pressable>
   );
 }

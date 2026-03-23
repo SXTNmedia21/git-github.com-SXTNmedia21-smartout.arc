@@ -66,10 +66,7 @@ export async function cancelInvitation(invitationId: string) {
   if (error) throw new Error(error.message);
 }
 
-export async function resendInvitation(
-  workspaceId: string,
-  invitationId: string,
-) {
+export async function resendInvitation(workspaceId: string, invitationId: string) {
   const supabase = await getClient();
 
   // Fetch the original invitation details

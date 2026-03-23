@@ -5,14 +5,7 @@
  * and redirects to verify screen with invite context on confirmation.
  */
 import { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  ActivityIndicator,
-  Image,
-  StyleSheet,
-} from "react-native";
+import { View, Text, TouchableOpacity, ActivityIndicator, Image, StyleSheet } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
@@ -124,7 +117,9 @@ export default function InviteDeepLink() {
   if (!invite) return null;
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 24 }]}>
+    <View
+      style={[styles.container, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 24 }]}
+    >
       <View style={styles.content}>
         {invite.logoUrl ? (
           <Image source={{ uri: invite.logoUrl }} style={styles.logo} />

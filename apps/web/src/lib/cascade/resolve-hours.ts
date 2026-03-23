@@ -48,15 +48,10 @@ export function resolveEffectiveHours(
   // Prefer exact location match, then null-location fallback
   const exactLocOverride = overrides.find(
     (o) =>
-      o.department_id === departmentId &&
-      o.override_date === date &&
-      o.location_id === locationId,
+      o.department_id === departmentId && o.override_date === date && o.location_id === locationId,
   );
   const fallbackOverride = overrides.find(
-    (o) =>
-      o.department_id === departmentId &&
-      o.override_date === date &&
-      o.location_id === null,
+    (o) => o.department_id === departmentId && o.override_date === date && o.location_id === null,
   );
   const matchedOverride = exactLocOverride ?? fallbackOverride;
 
@@ -64,12 +59,7 @@ export function resolveEffectiveHours(
     if (matchedOverride.is_closed) {
       return { ...closedResult, source: "override" };
     }
-    return buildResult(
-      date,
-      matchedOverride.open_time!,
-      matchedOverride.close_time!,
-      "override",
-    );
+    return buildResult(date, matchedOverride.open_time!, matchedOverride.close_time!, "override");
   }
 
   // 2. Find weekly hours — resolution: season+location > season+null > null+location > null+null
@@ -110,9 +100,7 @@ function pickBestWeeklyRow(
     );
     if (seasonLoc) return { row: seasonLoc, source: "season_weekly" };
 
-    const seasonNull = rows.find(
-      (r) => r.season_id === seasonId && r.location_id === null,
-    );
+    const seasonNull = rows.find((r) => r.season_id === seasonId && r.location_id === null);
     if (seasonNull) return { row: seasonNull, source: "season_weekly" };
   }
 
@@ -122,9 +110,7 @@ function pickBestWeeklyRow(
   );
   if (defaultLoc) return { row: defaultLoc, source: "default_weekly" };
 
-  const defaultNull = rows.find(
-    (r) => r.season_id === null && r.location_id === null,
-  );
+  const defaultNull = rows.find((r) => r.season_id === null && r.location_id === null);
   if (defaultNull) return { row: defaultNull, source: "default_weekly" };
 
   return null;

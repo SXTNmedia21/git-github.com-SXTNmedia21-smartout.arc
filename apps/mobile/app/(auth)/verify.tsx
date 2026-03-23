@@ -241,14 +241,10 @@ export default function Verify() {
         <Text style={styles.backLinkText}>Tilbake</Text>
       </TouchableOpacity>
 
-      {params.workspaceName && (
-        <Text style={styles.workspaceLabel}>{params.workspaceName}</Text>
-      )}
+      {params.workspaceName && <Text style={styles.workspaceLabel}>{params.workspaceName}</Text>}
 
       <Text style={styles.heading}>Verifiser deg</Text>
-      <Text style={styles.subtitle}>
-        Bekreft identiteten din for a fortsette.
-      </Text>
+      <Text style={styles.subtitle}>Bekreft identiteten din for a fortsette.</Text>
 
       {/* Tab switcher */}
       <View style={styles.tabRow}>
@@ -259,9 +255,7 @@ export default function Verify() {
             setError(null);
           }}
         >
-          <Text style={[styles.tabText, activeTab === "phone" && styles.tabTextActive]}>
-            SMS
-          </Text>
+          <Text style={[styles.tabText, activeTab === "phone" && styles.tabTextActive]}>SMS</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, activeTab === "email" && styles.tabActive]}

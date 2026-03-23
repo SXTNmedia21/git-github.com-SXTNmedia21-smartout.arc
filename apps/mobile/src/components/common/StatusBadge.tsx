@@ -6,13 +6,7 @@ import React from "react";
 import { View, Text, type ViewStyle } from "react-native";
 import { createStyles, withOpacity, useTheme } from "@/theme";
 
-type StatusVariant =
-  | "success"
-  | "warning"
-  | "destructive"
-  | "info"
-  | "muted"
-  | "brand";
+type StatusVariant = "success" | "warning" | "destructive" | "info" | "muted" | "brand";
 
 type StatusBadgeProps = {
   /** Display label */

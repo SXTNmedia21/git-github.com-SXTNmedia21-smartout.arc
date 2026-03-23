@@ -31,7 +31,9 @@ export default function Welcome() {
 
   // Default: three-button welcome
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 24 }]}>
+    <View
+      style={[styles.container, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 24 }]}
+    >
       <View style={styles.header}>
         <Text style={styles.brandMark}>S</Text>
         <Text style={styles.title}>Velkommen til Smartout</Text>
@@ -39,26 +41,17 @@ export default function Welcome() {
       </View>
 
       <View style={styles.buttons}>
-        <TouchableOpacity
-          style={styles.pathButton}
-          onPress={() => setActivePath("invite")}
-        >
+        <TouchableOpacity style={styles.pathButton} onPress={() => setActivePath("invite")}>
           <Text style={styles.pathButtonText}>Jeg har en invitasjon</Text>
           <Text style={styles.pathButtonHint}>Apne lenken du fikk fra din leder</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.pathButton}
-          onPress={() => setActivePath("code")}
-        >
+        <TouchableOpacity style={styles.pathButton} onPress={() => setActivePath("code")}>
           <Text style={styles.pathButtonText}>Jeg har en kode</Text>
           <Text style={styles.pathButtonHint}>6-tegns kode fra din leder</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.pathButton}
-          onPress={() => setActivePath("search")}
-        >
+        <TouchableOpacity style={styles.pathButton} onPress={() => setActivePath("search")}>
           <Text style={styles.pathButtonText}>Finn min arbeidsplass</Text>
           <Text style={styles.pathButtonHint}>Sok etter arbeidsplassen din</Text>
         </TouchableOpacity>

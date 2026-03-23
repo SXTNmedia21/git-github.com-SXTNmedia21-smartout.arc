@@ -115,29 +115,19 @@ export function HACCPForm({ task, profileId, onComplete }: HACCPFormProps) {
         <View style={styles.toggleRow}>
           <Pressable
             onPress={() => handleToggleRange(true)}
-            style={[
-              styles.toggleOption,
-              isWithinRange && styles.toggleActive,
-            ]}
+            style={[styles.toggleOption, isWithinRange && styles.toggleActive]}
             accessibilityRole="button"
             accessibilityState={{ selected: isWithinRange }}
           >
-            <Text style={[styles.toggleText, isWithinRange && styles.toggleTextActive]}>
-              Ja
-            </Text>
+            <Text style={[styles.toggleText, isWithinRange && styles.toggleTextActive]}>Ja</Text>
           </Pressable>
           <Pressable
             onPress={() => handleToggleRange(false)}
-            style={[
-              styles.toggleOption,
-              !isWithinRange && styles.toggleDanger,
-            ]}
+            style={[styles.toggleOption, !isWithinRange && styles.toggleDanger]}
             accessibilityRole="button"
             accessibilityState={{ selected: !isWithinRange }}
           >
-            <Text style={[styles.toggleText, !isWithinRange && styles.toggleTextActive]}>
-              Nei
-            </Text>
+            <Text style={[styles.toggleText, !isWithinRange && styles.toggleTextActive]}>Nei</Text>
           </Pressable>
         </View>
       </View>

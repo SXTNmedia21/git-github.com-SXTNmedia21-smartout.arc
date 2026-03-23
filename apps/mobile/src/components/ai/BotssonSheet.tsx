@@ -12,8 +12,19 @@
  */
 
 import React, { useCallback, useRef, useMemo, useState } from "react";
-import { View, Text, FlatList, TextInput, Pressable, KeyboardAvoidingView, Platform } from "react-native";
-import GorhomBottomSheet, { BottomSheetBackdrop, type BottomSheetBackdropProps } from "@gorhom/bottom-sheet";
+import {
+  View,
+  Text,
+  FlatList,
+  TextInput,
+  Pressable,
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
+import GorhomBottomSheet, {
+  BottomSheetBackdrop,
+  type BottomSheetBackdropProps,
+} from "@gorhom/bottom-sheet";
 import * as Haptics from "expo-haptics";
 import { createStyles, useTheme } from "@/theme";
 import { strings } from "@/constants/strings";
@@ -201,7 +212,9 @@ export const BotssonSheet = React.forwardRef<GorhomBottomSheet, BotssonSheetProp
                 accessibilityLabel={strings.common.send}
                 accessibilityState={{ disabled: !canSend }}
               >
-                <Text style={[styles.sendIcon, !canSend && styles.sendIconDisabled]}>{"\u2191"}</Text>
+                <Text style={[styles.sendIcon, !canSend && styles.sendIconDisabled]}>
+                  {"\u2191"}
+                </Text>
               </Pressable>
             </View>
           </View>

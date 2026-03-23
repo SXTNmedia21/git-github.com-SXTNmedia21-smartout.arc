@@ -12,13 +12,13 @@
 
 ## File Structure
 
-| File | Action | Responsibility |
-|------|--------|---------------|
-| `supabase/functions/accept-invitation/index.ts` | Modify | Add company_member upsert, replace listUsers() with email lookup |
-| `supabase/migrations/YYYYMMDDHHMMSS_fix_invitation_gaps.sql` | Create | company_member INSERT RLS policy, expired invitation cleanup function |
-| `apps/web/src/app/dashboard/people/_actions/people-actions.ts` | Modify | Add `resendInvitation` server action |
-| `apps/web/src/app/dashboard/people/_components/people-data-table.tsx` | Modify | Wire resend handler to server action |
-| `supabase/functions/create-invitation/index.ts` | Modify | Add resend mode (cancel old + create new + dispatch) |
+| File                                                                  | Action | Responsibility                                                        |
+| --------------------------------------------------------------------- | ------ | --------------------------------------------------------------------- |
+| `supabase/functions/accept-invitation/index.ts`                       | Modify | Add company_member upsert, replace listUsers() with email lookup      |
+| `supabase/migrations/YYYYMMDDHHMMSS_fix_invitation_gaps.sql`          | Create | company_member INSERT RLS policy, expired invitation cleanup function |
+| `apps/web/src/app/dashboard/people/_actions/people-actions.ts`        | Modify | Add `resendInvitation` server action                                  |
+| `apps/web/src/app/dashboard/people/_components/people-data-table.tsx` | Modify | Wire resend handler to server action                                  |
+| `supabase/functions/create-invitation/index.ts`                       | Modify | Add resend mode (cancel old + create new + dispatch)                  |
 
 ---
 
@@ -29,6 +29,7 @@
 **Approach:** Use `listUsers` with page/perPage/filter params to fetch only the matching user. The `filter` param is supported by GoTrue and matches against email. This keeps the same admin API surface (no raw SQL needed).
 
 **Files:**
+
 - Modify: `supabase/functions/accept-invitation/index.ts:113-117`
 
 - [ ] **Step 1: Replace listUsers() with filtered lookup**
@@ -62,6 +63,7 @@ The rest of the function uses `existingUser` to decide whether to create or reus
 - [ ] **Step 3: Run local test**
 
 Start Supabase locally, create a test invitation, and hit the Edge Function endpoint:
+
 ```bash
 curl -X POST http://localhost:54321/functions/v1/accept-invitation \
   -H "Content-Type: application/json" \
@@ -84,6 +86,7 @@ git commit -m "fix(invitation): replace listUsers() with filtered email lookup f
 **Why:** When an employee accepts an invitation, a `profile` is created but no `company_member` row. This means the user is in the workspace but not linked to the company entity. Company-level queries (e.g., `company.company_id IN (SELECT ... FROM company_member)`) won't find them.
 
 **Files:**
+
 - Modify: `supabase/functions/accept-invitation/index.ts:193-218` (after profile insert)
 
 - [ ] **Step 1: Add company_member upsert after profile creation**
@@ -91,22 +94,20 @@ git commit -m "fix(invitation): replace listUsers() with filtered email lookup f
 After the profile insert block (line ~218, after `if (profileError || !profile)`), add:
 
 ```typescript
-    // ── 3b. Ensure company_member exists ──
-    // Links user to company (cross-workspace). Upsert to handle re-invites.
-    if (invitation.company_id) {
-      await adminClient
-        .from("company_member")
-        .upsert(
-          {
-            user_id: userId,
-            company_id: invitation.company_id,
-            role: "member",
-            is_active: true,
-            joined_at: new Date().toISOString(),
-          },
-          { onConflict: "user_id,company_id" },
-        );
-    }
+// ── 3b. Ensure company_member exists ──
+// Links user to company (cross-workspace). Upsert to handle re-invites.
+if (invitation.company_id) {
+  await adminClient.from("company_member").upsert(
+    {
+      user_id: userId,
+      company_id: invitation.company_id,
+      role: "member",
+      is_active: true,
+      joined_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id,company_id" },
+  );
+}
 ```
 
 - [ ] **Step 2: Check if company_member has a unique constraint on (user_id, company_id)**
@@ -120,6 +121,7 @@ grep -n "company_member" supabase/migrations/00001_identity_tables.sql
 - [ ] **Step 3: Test the happy path**
 
 After accepting an invitation:
+
 1. Check `profile` table — new row exists
 2. Check `company_member` table — new row exists with correct company_id
 3. Check `company` RLS policy — user can now read their company
@@ -138,6 +140,7 @@ git commit -m "fix(invitation): create company_member row on invite acceptance"
 **Why:** When a user re-clicks an accepted invitation link (existing profile found), the early return at line 166-184 skips company_member creation. This path also needs the company_member check.
 
 **Files:**
+
 - Modify: `supabase/functions/accept-invitation/index.ts:166-184`
 
 - [ ] **Step 1: Add company_member upsert to the idempotent (existing profile) path**
@@ -145,31 +148,29 @@ git commit -m "fix(invitation): create company_member row on invite acceptance"
 Before the early return at line 173, add the same upsert:
 
 ```typescript
-    if (existingProfile) {
-      // Ensure company_member exists even on re-click
-      if (invitation.company_id) {
-        await adminClient
-          .from("company_member")
-          .upsert(
-            {
-              user_id: userId,
-              company_id: invitation.company_id,
-              role: "member",
-              is_active: true,
-              joined_at: new Date().toISOString(),
-            },
-            { onConflict: "user_id,company_id" },
-          );
-      }
+if (existingProfile) {
+  // Ensure company_member exists even on re-click
+  if (invitation.company_id) {
+    await adminClient.from("company_member").upsert(
+      {
+        user_id: userId,
+        company_id: invitation.company_id,
+        role: "member",
+        is_active: true,
+        joined_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id,company_id" },
+    );
+  }
 
-      // Mark invitation as accepted
-      await adminClient
-        .from("invitation")
-        .update({ status: "accepted" })
-        .eq("invitation_id", invitation.invitation_id);
+  // Mark invitation as accepted
+  await adminClient
+    .from("invitation")
+    .update({ status: "accepted" })
+    .eq("invitation_id", invitation.invitation_id);
 
-      return new Response(/* ... existing response ... */);
-    }
+  return new Response(/* ... existing response ... */);
+}
 ```
 
 - [ ] **Step 2: Extract company_member upsert to a helper to avoid duplication**
@@ -183,18 +184,16 @@ async function ensureCompanyMember(
   companyId: string | null,
 ) {
   if (!companyId) return;
-  await client
-    .from("company_member")
-    .upsert(
-      {
-        user_id: userId,
-        company_id: companyId,
-        role: "member",
-        is_active: true,
-        joined_at: new Date().toISOString(),
-      },
-      { onConflict: "user_id,company_id" },
-    );
+  await client.from("company_member").upsert(
+    {
+      user_id: userId,
+      company_id: companyId,
+      role: "member",
+      is_active: true,
+      joined_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id,company_id" },
+  );
 }
 ```
 
@@ -212,11 +211,13 @@ git commit -m "refactor(invitation): extract ensureCompanyMember helper, fix ide
 ### Task 4: Migration — company_member unique constraint + RLS INSERT policy + cleanup function
 
 **Why:**
+
 1. company_member needs a unique constraint on (user_id, company_id) for the upsert to work
 2. company_member only has a SELECT RLS policy — needs INSERT for completeness (though accept-invitation uses service role, future JWT-based paths may need it)
 3. Expired invitations accumulate with no cleanup
 
 **Files:**
+
 - Create: `supabase/migrations/YYYYMMDDHHMMSS_fix_invitation_gaps.sql`
 
 - [ ] **Step 1: Write the migration**
@@ -320,6 +321,7 @@ git commit -m "fix(db): add company_member unique constraint, INSERT RLS, invita
 **Caution:** The `invitation` table has a UNIQUE constraint on `(workspace_id, email, status)`. The cancel (sets old to 'cancelled') must complete before creating the new one (status='pending'), otherwise a duplicate key violation occurs. The server action does this sequentially, so it's safe.
 
 **Files:**
+
 - Modify: `apps/web/src/app/dashboard/people/_actions/people-actions.ts`
 - Modify: `apps/web/src/app/dashboard/people/_components/people-data-table.tsx:168-169`
 
@@ -328,10 +330,7 @@ git commit -m "fix(db): add company_member unique constraint, INSERT RLS, invita
 In `people-actions.ts`, add after `cancelInvitation`:
 
 ```typescript
-export async function resendInvitation(
-  workspaceId: string,
-  invitationId: string,
-) {
+export async function resendInvitation(workspaceId: string, invitationId: string) {
   const supabase = await getClient();
 
   // 1. Fetch the original invitation details
@@ -407,7 +406,7 @@ Then update the `PeopleRowActions` call (around line 599) to pass `employee.id`:
 
 ```typescript
 // OLD
-onResendInvite={handleResendInvite}
+onResendInvite = { handleResendInvite };
 // The PeopleRowActions component calls: onResendInvite(employee.email)
 ```
 
@@ -424,7 +423,7 @@ onResendInvite: (invitationId: string, email: string) => void;
 And update the parent call in `people-data-table.tsx`:
 
 ```typescript
-onResendInvite={handleResendInvite}
+onResendInvite = { handleResendInvite };
 // No change needed — signature already matches (invitationId, email)
 ```
 
@@ -447,6 +446,7 @@ git commit -m "feat(people): implement invitation resend (cancel old + create ne
 ### Task 6: Typecheck and final verification
 
 **Files:**
+
 - All modified files
 
 - [ ] **Step 1: Run typecheck**

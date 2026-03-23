@@ -47,7 +47,9 @@ export default function WorkspaceSelect() {
 
     const { data, error: fetchError } = await supabase
       .from("profile")
-      .select("profile_id, display_name, role, workspace:workspace_id(workspace_id, name, logo_url)")
+      .select(
+        "profile_id, display_name, role, workspace:workspace_id(workspace_id, name, logo_url)",
+      )
       .eq("user_id", user.id)
       .eq("is_active", true);
 
@@ -107,9 +109,13 @@ export default function WorkspaceSelect() {
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 24 }]}>
+    <View
+      style={[styles.container, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 24 }]}
+    >
       <Text style={styles.heading}>Velg arbeidsplass</Text>
-      <Text style={styles.subtitle}>Du har tilgang til flere arbeidsplasser. Hvilken vil du apne?</Text>
+      <Text style={styles.subtitle}>
+        Du har tilgang til flere arbeidsplasser. Hvilken vil du apne?
+      </Text>
 
       <FlatList
         data={profiles}
@@ -117,10 +123,7 @@ export default function WorkspaceSelect() {
         style={styles.list}
         contentContainerStyle={styles.listContent}
         renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.workspaceRow}
-            onPress={() => handleSelectWorkspace(item)}
-          >
+          <TouchableOpacity style={styles.workspaceRow} onPress={() => handleSelectWorkspace(item)}>
             {item.workspace.logo_url ? (
               <Image source={{ uri: item.workspace.logo_url }} style={styles.logo} />
             ) : (

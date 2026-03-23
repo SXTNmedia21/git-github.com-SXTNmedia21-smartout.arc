@@ -132,9 +132,7 @@ export function InviteEntry({ initialToken, onBack }: InviteEntryProps) {
   return (
     <View style={styles.container}>
       <Text style={styles.heading}>Har du en invitasjon?</Text>
-      <Text style={styles.subtitle}>
-        Skriv inn invitasjonskoden du fikk fra din leder.
-      </Text>
+      <Text style={styles.subtitle}>Skriv inn invitasjonskoden du fikk fra din leder.</Text>
 
       <TextInput
         style={styles.input}

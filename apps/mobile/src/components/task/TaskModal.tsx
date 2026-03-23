@@ -8,7 +8,7 @@
  */
 import React, { useCallback, useMemo, useRef } from "react";
 import { View, Text } from "react-native";
-import GorhomBottomSheet from "@gorhom/bottom-sheet";
+import type GorhomBottomSheet from "@gorhom/bottom-sheet";
 
 import { BottomSheet } from "@/components/ui";
 import { createStyles } from "@/theme";
@@ -45,10 +45,7 @@ export function TaskModal({ task, profileId, onDismiss }: TaskModalProps) {
 
   const snapPoints = useMemo(() => ["75%", "90%"], []);
 
-  const taskType = useMemo<TaskType | null>(
-    () => (task ? resolveTaskType(task) : null),
-    [task],
-  );
+  const taskType = useMemo<TaskType | null>(() => (task ? resolveTaskType(task) : null), [task]);
 
   const handleDismiss = useCallback(() => {
     sheetRef.current?.close();
@@ -58,12 +55,7 @@ export function TaskModal({ task, profileId, onDismiss }: TaskModalProps) {
   if (!task || !taskType) return null;
 
   return (
-    <BottomSheet
-      ref={sheetRef}
-      snapPoints={snapPoints}
-      enablePanDownToClose
-      onClose={onDismiss}
-    >
+    <BottomSheet ref={sheetRef} snapPoints={snapPoints} enablePanDownToClose onClose={onDismiss}>
       <View style={styles.header}>
         <Text style={styles.title} numberOfLines={2}>
           {task.title}
@@ -94,45 +86,19 @@ function renderForm(
 ): React.ReactNode {
   switch (taskType) {
     case "haccp":
-      return (
-        <HACCPForm
-          task={task}
-          profileId={profileId}
-          onComplete={onComplete}
-        />
-      );
+      return <HACCPForm task={task} profileId={profileId} onComplete={onComplete} />;
 
     case "checklist":
-      return (
-        <PlaceholderForm
-          label="Sjekkboksliste"
-          onComplete={onComplete}
-        />
-      );
+      return <PlaceholderForm label="Sjekkboksliste" onComplete={onComplete} />;
 
     case "confirmation":
-      return (
-        <PlaceholderForm
-          label="Bekreftelse"
-          onComplete={onComplete}
-        />
-      );
+      return <PlaceholderForm label="Bekreftelse" onComplete={onComplete} />;
 
     case "procedure":
-      return (
-        <PlaceholderForm
-          label="Steg-for-steg"
-          onComplete={onComplete}
-        />
-      );
+      return <PlaceholderForm label="Steg-for-steg" onComplete={onComplete} />;
 
     case "general":
-      return (
-        <PlaceholderForm
-          label="Fritekst"
-          onComplete={onComplete}
-        />
-      );
+      return <PlaceholderForm label="Fritekst" onComplete={onComplete} />;
   }
 }
 

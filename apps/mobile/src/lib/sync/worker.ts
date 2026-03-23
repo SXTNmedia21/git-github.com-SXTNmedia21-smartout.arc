@@ -9,7 +9,8 @@
  *   409 (conflict) → mark as synced (data already exists on server)
  *   401 (unauthorized) → attempt token refresh, then retry once
  */
-import NetInfo, { NetInfoState } from "@react-native-community/netinfo";
+import type { NetInfoState } from "@react-native-community/netinfo";
+import NetInfo from "@react-native-community/netinfo";
 
 import { supabase } from "@/lib/supabase";
 
@@ -49,19 +50,17 @@ export class SyncWorker {
 
   /** Start listening for connectivity changes and begin processing. */
   start(): void {
-    this.unsubscribeNetInfo = NetInfo.addEventListener(
-      (state: NetInfoState) => {
-        const wasOffline = !this.isOnline;
-        this.isOnline = state.isConnected ?? false;
+    this.unsubscribeNetInfo = NetInfo.addEventListener((state: NetInfoState) => {
+      const wasOffline = !this.isOnline;
+      this.isOnline = state.isConnected ?? false;
 
-        /* When connectivity returns, flush the queue */
-        if (wasOffline && this.isOnline) {
-          void this.flush();
-        }
+      /* When connectivity returns, flush the queue */
+      if (wasOffline && this.isOnline) {
+        void this.flush();
+      }
 
-        this.onStatusChange?.();
-      },
-    );
+      this.onStatusChange?.();
+    });
 
     /* Process anything that was queued while the app was closed */
     void this.flush();
@@ -86,10 +85,7 @@ export class SyncWorker {
         const db = await getDb();
 
         /* Mark as syncing so other flush() calls skip it */
-        await db.runAsync(
-          `UPDATE pending_writes SET status = 'syncing' WHERE id = ?`,
-          [write.id],
-        );
+        await db.runAsync(`UPDATE pending_writes SET status = 'syncing' WHERE id = ?`, [write.id]);
 
         try {
           const payload = JSON.parse(write.payload) as Record<string, unknown>;
@@ -139,10 +135,7 @@ export class SyncWorker {
 
   /** Current pending + failed counts for the status indicator. */
   async getCounts(): Promise<{ pending: number; failed: number }> {
-    const [pending, failed] = await Promise.all([
-      getPendingCount(),
-      getFailedCount(),
-    ]);
+    const [pending, failed] = await Promise.all([getPendingCount(), getFailedCount()]);
     return { pending, failed };
   }
 

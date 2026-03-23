@@ -64,14 +64,8 @@ export function SyncIndicator() {
       /* Show "all synced" briefly then fade out */
       heightValue.value = withTiming(BANNER_HEIGHT, { duration: 200 });
       opacityValue.value = withTiming(1, { duration: 200 });
-      opacityValue.value = withDelay(
-        FADE_OUT_DELAY_MS,
-        withTiming(0, { duration: 300 }),
-      );
-      heightValue.value = withDelay(
-        FADE_OUT_DELAY_MS + 300,
-        withTiming(0, { duration: 200 }),
-      );
+      opacityValue.value = withDelay(FADE_OUT_DELAY_MS, withTiming(0, { duration: 300 }));
+      heightValue.value = withDelay(FADE_OUT_DELAY_MS + 300, withTiming(0, { duration: 200 }));
     } else {
       heightValue.value = withTiming(0, { duration: 200 });
       opacityValue.value = withTiming(0, { duration: 200 });
@@ -93,11 +87,7 @@ export function SyncIndicator() {
 
   return (
     <Animated.View
-      style={[
-        styles.container,
-        { backgroundColor: COLORS[bannerState] },
-        animatedStyle,
-      ]}
+      style={[styles.container, { backgroundColor: COLORS[bannerState] }, animatedStyle]}
     >
       <View style={styles.content}>
         <Text style={styles.text}>{label}</Text>
@@ -111,11 +101,7 @@ export function SyncIndicator() {
   );
 }
 
-function getBannerLabel(
-  state: BannerState,
-  pendingCount: number,
-  failedCount: number,
-): string {
+function getBannerLabel(state: BannerState, pendingCount: number, failedCount: number): string {
   switch (state) {
     case "syncing":
       return `Synkroniserer ${pendingCount} ${pendingCount === 1 ? "post" : "poster"}...`;

@@ -41,18 +41,16 @@ async function ensureCompanyMember(
   companyId: string | null,
 ) {
   if (!companyId) return;
-  await client
-    .from("company_member")
-    .upsert(
-      {
-        user_id: userId,
-        company_id: companyId,
-        role: "member",
-        is_active: true,
-        joined_at: new Date().toISOString(),
-      },
-      { onConflict: "user_id,company_id" },
-    );
+  await client.from("company_member").upsert(
+    {
+      user_id: userId,
+      company_id: companyId,
+      role: "member",
+      is_active: true,
+      joined_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id,company_id" },
+  );
 }
 
 Deno.serve(async (req: Request) => {

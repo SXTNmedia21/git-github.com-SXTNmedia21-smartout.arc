@@ -24,6 +24,7 @@ tags: [learnings]
 module: cross-cutting
 module: unspecified
 tags: [learnings]
+
 ---
 
 # Learning Log — cascade-foundation
@@ -37,6 +38,8 @@ tags: [learnings]
 | 5   | 2026-03-22 | actual_start/actual_end columns don't exist on schedule_shift yet — completion emit only sets status for now                                                                | Medium — needs schema addition before actual cost snapshots work |
 | 6   | 2026-03-22 | season_budget/day_factors events don't route to engine_event by default — must explicitly add destination in telemetry registry                                             | High — engine triggers won't fire without this                   |
 | 7   | 2026-03-22 | workspace_budget upsert needs 6-column unique constraint (NULLS NOT DISTINCT) including nullable location_id, department_id, hour_slot                                      | Medium — affects demand propagation upsert pattern               |
+
 # Learning Log — fix-invitation-flow
-| # | Date | Learning | Impact |
-|---|------|----------|--------|
+
+| #   | Date | Learning | Impact |
+| --- | ---- | -------- | ------ |

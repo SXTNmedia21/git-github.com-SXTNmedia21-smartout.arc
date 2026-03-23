@@ -89,10 +89,7 @@ export function ShiftCardRich({
           <View style={styles.colleagueRow}>
             {colleagues.slice(0, 5).map((c) => (
               <View key={c.profileId} style={styles.colleague}>
-                <Avatar
-                  name={`${c.firstName} ${c.lastName}`}
-                  size="sm"
-                />
+                <Avatar name={`${c.firstName} ${c.lastName}`} size="sm" />
                 <Text style={styles.colleagueName} numberOfLines={1}>
                   {c.firstName}
                 </Text>
@@ -126,9 +123,7 @@ export function ShiftCardRich({
             </Text>
           )}
           {dayInfo.deviations.length > 0 && (
-            <Text style={styles.deviationLine}>
-              {dayInfo.deviations.length} aktive avvik
-            </Text>
+            <Text style={styles.deviationLine}>{dayInfo.deviations.length} aktive avvik</Text>
           )}
 
           {/* Day messages from leaders */}

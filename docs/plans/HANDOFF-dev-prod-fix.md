@@ -16,6 +16,7 @@ tags: [handoff, deployment, testing]
 ## What was done (2026-03-18)
 
 ### Code changes (on `development`)
+
 1. **Auth headers added** to 3 platform-admin routes that call scrapling:
    - `apps/web/src/app/api/platform-admin/workspaces/lookup/route.ts`
    - `apps/web/src/app/api/platform-admin/workspaces/analyze-documents/route.ts`
@@ -23,6 +24,7 @@ tags: [handoff, deployment, testing]
 2. Commits: `fc1e1f6f` + `7a798ea7` (merged to development)
 
 ### Droplet (LIVE)
+
 - Pulled latest `development` (20+ commits)
 - Rebuilt all 6 containers — all healthy
 - Stage Engine no longer crash-looping (was `ERR_MODULE_NOT_FOUND`)
@@ -32,7 +34,9 @@ tags: [handoff, deployment, testing]
 - Docker cleanup reclaimed 19.14GB
 
 ### Supabase Cloud secrets (LIVE)
+
 Set on `yljaglomadbhyqpcigff`:
+
 - `SCRAPLING_AUTH_TOKEN` (re-synced from 1Password)
 - `SCRAPLING_SERVICE_URL` = `https://scrape.smartout.ai`
 - `OPENROUTER_API_KEY`
@@ -43,7 +47,9 @@ Set on `yljaglomadbhyqpcigff`:
 - `GOOGLE_VISION_API_KEY`
 
 ### Vercel env vars (SET, need deploy to activate)
+
 **smartout-web** — 12 vars added for production:
+
 - `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
 - `SENDGRID_API_KEY`, `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`
 - `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`
@@ -52,6 +58,7 @@ Set on `yljaglomadbhyqpcigff`:
 - `NEXT_PUBLIC_REVALIDATION_SECRET`
 
 **smartout-landing** — 2 vars added:
+
 - `NEXT_PUBLIC_WEB_APP_URL` = `https://app.smartout.ai`
 - `NEXT_PUBLIC_LANDING_VARIANT` = `T`
 
@@ -60,6 +67,7 @@ Set on `yljaglomadbhyqpcigff`:
 ## What's NOT done yet
 
 ### Deploy to production
+
 The code changes (auth headers) are on `development` only. To get them live on Vercel:
 
 1. Merge `development` → `main`
@@ -69,9 +77,11 @@ The code changes (auth headers) are on `development` only. To get them live on V
 ⚠️ **Only Pontus merges to main.** This is a hard rule.
 
 ### Manual testing (after deploy)
+
 Run the test journeys in `docs/journeys/MANUAL-TEST-dev-prod-fix.md`:
 
 **Priority order:**
+
 1. **Journey 8** — Comprehensive health check (`/platform-admin` → health/status). Tests ~15 env vars in one call.
 2. **Journey 3** — Service health dashboard. Visual check all Droplet services are reachable.
 3. **Journey 1** — Onboarding scrape flow. Tests the original 401 bug (scrapling auth).
@@ -83,6 +93,7 @@ Run the test journeys in `docs/journeys/MANUAL-TEST-dev-prod-fix.md`:
 9. **Journey 9** — Landing voice wizard.
 
 ### Remaining items
+
 - [ ] Pause unused Supabase project `hcmhwsewrcjmldjezaqk` (dashboard, saves cost)
 - [ ] Set Stripe test key for Vercel preview (1Password field `test_secret_key` doesn't exist — check actual field name)
 - [ ] Deploy `scrape-website` Edge Function (only `scrape-raw-data` is deployed)
@@ -93,6 +104,7 @@ Run the test journeys in `docs/journeys/MANUAL-TEST-dev-prod-fix.md`:
 ## Smoke test results (2026-03-18, pre-deploy)
 
 All 8 passed:
+
 - Scrapling health ✅
 - Stage Engine health ✅ (no more crash-loop!)
 - Contract Service health ✅
@@ -105,6 +117,7 @@ All 8 passed:
 ---
 
 ## Key files
+
 - Test plan: `docs/journeys/MANUAL-TEST-dev-prod-fix.md`
 - Worklog: `docs/worklogs/WORKLOG-dev-prod-fix.md`
 - Original plan: Located in main repo `docs/superpowers/plans/2026-03-18-infra-prod-alignment.md`

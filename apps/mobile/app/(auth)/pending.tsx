@@ -5,13 +5,7 @@
  * When accepted, redirects to workspace-select (which auto-routes to app).
  */
 import { useEffect, useCallback } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  ActivityIndicator,
-  StyleSheet,
-} from "react-native";
+import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
@@ -81,7 +75,9 @@ export default function Pending() {
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 24 }]}>
+    <View
+      style={[styles.container, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 24 }]}
+    >
       <View style={styles.content}>
         <View style={styles.iconCircle}>
           <ActivityIndicator size="small" color="#F97316" />
@@ -90,7 +86,8 @@ export default function Pending() {
         <Text style={styles.heading}>Forespørsel sendt</Text>
 
         <Text style={styles.body}>
-          Din forespørsel er sendt til arbeidsplassens administrator. Du far en melding nar den er godkjent.
+          Din forespørsel er sendt til arbeidsplassens administrator. Du far en melding nar den er
+          godkjent.
         </Text>
 
         <Text style={styles.hint}>

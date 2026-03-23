@@ -6,7 +6,9 @@ created: 2026-03-22
 module: core
 tags: [plan, invitation, auth, company-member]
 ---
+
 # Plan — fix-invitation-flow
+
 > Branch: `feat/fix-invitation-flow` | Module: core
 
 ## Goal
@@ -20,6 +22,7 @@ See: `docs/superpowers/plans/2026-03-22-fix-invitation-flow.md`
 ## Scope
 
 ### In scope
+
 - accept-invitation: create company_member row on acceptance
 - accept-invitation: replace listUsers() with filtered email lookup
 - company_member: unique constraint + INSERT RLS policy
@@ -27,20 +30,21 @@ See: `docs/superpowers/plans/2026-03-22-fix-invitation-flow.md`
 - Resend invite UI (wire existing stub button)
 
 ### Out of scope
+
 - Cron job for expiry (function only, hookup later)
 - Rate limiting on token acceptance
 - Bulk resend
 
 ## Tasks
 
-| # | Task | Status |
-|---|------|--------|
-| 1 | Replace listUsers() with filtered lookup | pending |
-| 2 | Create company_member row on invite accept | pending |
-| 3 | Handle idempotent path + extract helper | pending |
-| 4 | Migration: constraint + RLS + cleanup function | pending |
-| 5 | Implement invitation resend | pending |
-| 6 | Typecheck and final verification | pending |
+| #   | Task                                           | Status  |
+| --- | ---------------------------------------------- | ------- |
+| 1   | Replace listUsers() with filtered lookup       | pending |
+| 2   | Create company_member row on invite accept     | pending |
+| 3   | Handle idempotent path + extract helper        | pending |
+| 4   | Migration: constraint + RLS + cleanup function | pending |
+| 5   | Implement invitation resend                    | pending |
+| 6   | Typecheck and final verification               | pending |
 
 ## Acceptance Criteria
 

@@ -3,13 +3,7 @@
  * Provides haptic feedback on focus.
  */
 import React, { useState, useCallback, useRef } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  type TextInputProps,
-  type ViewStyle,
-} from "react-native";
+import { View, Text, TextInput, type TextInputProps, type ViewStyle } from "react-native";
 import * as Haptics from "expo-haptics";
 import { createStyles, useTheme } from "@/theme";
 
@@ -48,11 +42,7 @@ export function Input({ label, error, style, onFocus, onBlur, ...rest }: InputPr
     <View style={[styles.container, style]}>
       {label && <Text style={styles.label}>{label}</Text>}
       <TextInput
-        style={[
-          styles.input,
-          isFocused && styles.inputFocused,
-          error && styles.inputError,
-        ]}
+        style={[styles.input, isFocused && styles.inputFocused, error && styles.inputError]}
         placeholderTextColor={theme.colors.mutedForeground}
         onFocus={handleFocus}
         onBlur={handleBlur}

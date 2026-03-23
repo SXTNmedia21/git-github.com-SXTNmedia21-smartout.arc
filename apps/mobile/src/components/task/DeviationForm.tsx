@@ -157,10 +157,7 @@ export function DeviationForm({
             >
               <View style={[styles.severityDot, { backgroundColor: opt.color }]} />
               <Text
-                style={[
-                  styles.severityText,
-                  severity === opt.value && styles.severityTextSelected,
-                ]}
+                style={[styles.severityText, severity === opt.value && styles.severityTextSelected]}
               >
                 {opt.label}
               </Text>

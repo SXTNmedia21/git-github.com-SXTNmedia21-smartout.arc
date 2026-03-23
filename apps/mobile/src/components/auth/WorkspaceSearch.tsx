@@ -102,9 +102,7 @@ export function WorkspaceSearch({ onBack }: WorkspaceSearchProps) {
           <Image source={{ uri: selected.logo_url }} style={styles.logo} />
         ) : (
           <View style={styles.logoPlaceholder}>
-            <Text style={styles.logoPlaceholderText}>
-              {selected.name.charAt(0).toUpperCase()}
-            </Text>
+            <Text style={styles.logoPlaceholderText}>{selected.name.charAt(0).toUpperCase()}</Text>
           </View>
         )}
 
@@ -159,9 +157,7 @@ export function WorkspaceSearch({ onBack }: WorkspaceSearchProps) {
               <Image source={{ uri: item.logo_url }} style={styles.resultLogo} />
             ) : (
               <View style={styles.resultLogoPlaceholder}>
-                <Text style={styles.resultLogoText}>
-                  {item.name.charAt(0).toUpperCase()}
-                </Text>
+                <Text style={styles.resultLogoText}>{item.name.charAt(0).toUpperCase()}</Text>
               </View>
             )}
             <Text style={styles.resultName}>{item.name}</Text>

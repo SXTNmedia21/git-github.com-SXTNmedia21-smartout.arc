@@ -54,7 +54,16 @@ export function HandoffForm({
 
     await submitHandoff(payload);
     onComplete();
-  }, [canSubmit, isSubmitting, content, sessionId, profileId, workspaceId, submitHandoff, onComplete]);
+  }, [
+    canSubmit,
+    isSubmitting,
+    content,
+    sessionId,
+    profileId,
+    workspaceId,
+    submitHandoff,
+    onComplete,
+  ]);
 
   /* Already submitted — show confirmation */
   if (isSubmitted) {

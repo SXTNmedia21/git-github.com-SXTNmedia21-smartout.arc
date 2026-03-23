@@ -140,15 +140,13 @@ export function useBotssonChat() {
   const workspaceId = profile?.workspace_id ?? null;
 
   // Fetch the AI conversation for this profile
-  const {
-    data: conversation,
-    isLoading: isLoadingConversation,
-  } = useQuery<ChatConversation | null>({
-    queryKey: ["botsson-conversation", profileId],
-    queryFn: () => fetchAiConversation(profileId!),
-    enabled: !!profileId,
-    staleTime: STALE_TIME_MS,
-  });
+  const { data: conversation, isLoading: isLoadingConversation } =
+    useQuery<ChatConversation | null>({
+      queryKey: ["botsson-conversation", profileId],
+      queryFn: () => fetchAiConversation(profileId!),
+      enabled: !!profileId,
+      staleTime: STALE_TIME_MS,
+    });
 
   const conversationId = conversation?.id ?? null;
 
