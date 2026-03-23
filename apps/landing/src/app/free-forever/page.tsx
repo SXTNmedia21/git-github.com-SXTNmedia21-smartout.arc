@@ -18,6 +18,7 @@ import {
   Check,
   ChevronRight,
   Clock3,
+  GitCompareArrows,
   Layers3,
   LockKeyhole,
   Sparkles,
@@ -389,6 +390,16 @@ export default function FreeForeverPage() {
                   </TrackedCta>
                 </article>
               ))}
+            </div>
+
+            <div className="mt-8 flex justify-center">
+              <Link
+                href="/compare"
+                className="border-border text-foreground hover:border-brand-orange/30 hover:text-brand-orange inline-flex items-center gap-2 rounded-full border px-6 py-3 text-sm font-semibold transition"
+              >
+                <GitCompareArrows className="h-4 w-4" />
+                Sammenlign med konkurrenter
+              </Link>
             </div>
           </section>
 
