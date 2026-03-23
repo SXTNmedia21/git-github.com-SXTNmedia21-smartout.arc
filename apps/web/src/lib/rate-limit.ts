@@ -1,8 +1,13 @@
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 
-// Use Upstash in production, memory in dev
-export const apiRateLimit = process.env.UPSTASH_REDIS_REST_URL
+// Only init Upstash when a real URL is configured (must start with https://).
+// Vercel preview may have placeholder/op:// values that crash Redis.fromEnv().
+const hasUpstash =
+  process.env.UPSTASH_REDIS_REST_URL?.startsWith("https://") &&
+  process.env.UPSTASH_REDIS_REST_TOKEN;
+
+export const apiRateLimit = hasUpstash
   ? new Ratelimit({
       redis: Redis.fromEnv(),
       limiter: Ratelimit.slidingWindow(20, "60 s"),
@@ -11,7 +16,7 @@ export const apiRateLimit = process.env.UPSTASH_REDIS_REST_URL
     })
   : null;
 
-export const authRateLimit = process.env.UPSTASH_REDIS_REST_URL
+export const authRateLimit = hasUpstash
   ? new Ratelimit({
       redis: Redis.fromEnv(),
       limiter: Ratelimit.slidingWindow(5, "60 s"),
