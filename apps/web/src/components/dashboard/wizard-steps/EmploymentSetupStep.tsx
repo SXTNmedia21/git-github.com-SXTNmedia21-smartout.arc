@@ -313,6 +313,18 @@ export function EmploymentSetupStep({
       }
       return next;
     });
+
+    // Pre-fill notice period on all enabled employment forms
+    if (extractedTerms.noticePeriod) {
+      const periodStr = extractedTerms.noticePeriod.toLowerCase();
+      let noticeValue = parseInt(periodStr, 10);
+      let noticeUnit: "months" | "days" = "months";
+      if (periodStr.includes("dag") || periodStr.includes("day")) {
+        noticeUnit = "days";
+      }
+      if (isNaN(noticeValue)) noticeValue = 1;
+      setForms((prev) => prev.map((f) => (f.enabled ? { ...f, noticeValue, noticeUnit } : f)));
+    }
   }, [extractedTerms]);
 
   // ── Handlers ──

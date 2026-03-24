@@ -211,7 +211,7 @@ export function PayrollSetupStep({
     [tariffPresets, getHourlyRate],
   );
 
-  // Wire extracted payroll — pre-fill from extraction data
+  // Wire extracted payroll — pre-fill tariff and supplements from extraction data
   useEffect(() => {
     if (!extractedPayroll?.tariff) return;
     const match = tariffOptions.find((o) =>
@@ -219,6 +219,21 @@ export function PayrollSetupStep({
     );
     if (match) {
       handleTariffChange(match.value);
+    }
+
+    // Override supplements with extracted values if available
+    if (extractedPayroll.supplements && typeof extractedPayroll.supplements === "object") {
+      const ext = extractedPayroll.supplements as Record<string, unknown>;
+      setSupplements((prev) => {
+        const next = { ...prev };
+        if (typeof ext.kveldstillegg === "number")
+          next.kveldstillegg = { ...next.kveldstillegg, rate: ext.kveldstillegg };
+        if (typeof ext.helgetillegg === "number")
+          next.helgetillegg = { ...next.helgetillegg, rate: ext.helgetillegg };
+        if (typeof ext.helligdagstillegg === "number")
+          next.helligdagstillegg = { ...next.helligdagstillegg, rate: ext.helligdagstillegg };
+        return next;
+      });
     }
   }, [extractedPayroll, handleTariffChange]);
 
