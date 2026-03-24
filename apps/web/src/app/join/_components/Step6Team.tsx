@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, X } from "lucide-react";
+import { ArrowLeft, Plus, X } from "lucide-react";
 import type { WizardStepProps } from "@smartout/ui";
 import type { JoinState } from "../types";
 
@@ -35,9 +35,9 @@ export function Step6Team({ state, updateState, next, back }: WizardStepProps<Jo
   const removeInvite = (index: number) => {
     setInvites((prev) => prev.filter((_, i) => i !== index));
     setInviteErrors((prev) => {
-      const next = { ...prev };
-      delete next[index];
-      return next;
+      const updated = { ...prev };
+      delete updated[index];
+      return updated;
     });
   };
 

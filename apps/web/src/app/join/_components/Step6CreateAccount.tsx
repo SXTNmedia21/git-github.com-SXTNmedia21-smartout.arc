@@ -4,12 +4,12 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Loader2, Eye, EyeOff } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 import { createClient } from "@smartout/supabase/client";
 import type { WizardStepProps } from "@smartout/ui";
 import type { JoinState } from "../types";
 
-export function Step6CreateAccount({ state, updateState, next, back }: WizardStepProps<JoinState>) {
+export function Step6CreateAccount({ state, updateState, next }: WizardStepProps<JoinState>) {
   const email = state.account.email ?? "";
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -141,32 +141,20 @@ export function Step6CreateAccount({ state, updateState, next, back }: WizardSte
         {error && <p className="text-destructive text-sm">{error}</p>}
       </div>
 
-      <div className="flex gap-3">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={back}
-          className="flex-1"
-          disabled={loading}
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Tilbake
-        </Button>
-        <Button
-          type="submit"
-          disabled={loading || !password}
-          className="bg-brand-orange hover:bg-brand-orange-dark flex-1 text-white"
-        >
-          {loading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Oppretter...
-            </>
-          ) : (
-            "Opprett konto"
-          )}
-        </Button>
-      </div>
+      <Button
+        type="submit"
+        disabled={loading || !password}
+        className="bg-brand-orange hover:bg-brand-orange-dark w-full text-white"
+      >
+        {loading ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Oppretter...
+          </>
+        ) : (
+          "Opprett konto"
+        )}
+      </Button>
     </form>
   );
 }
