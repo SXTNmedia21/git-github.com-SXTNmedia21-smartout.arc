@@ -10,9 +10,10 @@
 
 import React, { useMemo } from "react";
 import { View, Text, Pressable } from "react-native";
-import { Menu, Bell, CheckSquare, GraduationCap, AlertTriangle, Clock } from "lucide-react-native";
+import { Menu, CheckSquare, GraduationCap, AlertTriangle, Clock } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import Animated, {
   FadeIn,
   FadeInDown,
@@ -28,7 +29,10 @@ import type { LucideIcon } from "lucide-react-native";
 type HomeHeaderProps = {
   displayName: string;
   avatarUrl?: string | null;
+  /** Profile id used to drive the notification bell badge */
+  profileId?: string;
   onMenuPress?: () => void;
+  /** @deprecated Pass profileId instead — NotificationBell handles navigation */
   onNotificationPress?: () => void;
 };
 
@@ -103,6 +107,7 @@ function QuickActionButton({ action, index }: { action: QuickActionItem; index: 
 export function HomeHeader({
   displayName,
   avatarUrl,
+  profileId,
   onMenuPress,
   onNotificationPress,
 }: HomeHeaderProps) {
@@ -126,17 +131,8 @@ export function HomeHeader({
         >
           <Menu size={22} color={styles.topBarIconColor.color} strokeWidth={1.6} />
         </Pressable>
-        <Pressable
-          onPress={() => {
-            Haptics.selectionAsync();
-            onNotificationPress?.();
-          }}
-          style={styles.topBarButton}
-          accessibilityRole="button"
-          accessibilityLabel="Varsler"
-        >
-          <Bell size={22} color={styles.topBarIconColor.color} strokeWidth={1.6} />
-        </Pressable>
+        {/* NotificationBell handles its own navigation and live badge */}
+        <NotificationBell profileId={profileId} />
       </Animated.View>
 
       {/* Avatar — the hero element */}

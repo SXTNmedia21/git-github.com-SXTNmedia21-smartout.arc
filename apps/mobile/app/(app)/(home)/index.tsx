@@ -37,6 +37,8 @@ export default function HomeScreen() {
   const { data: tasks } = useMyTasks();
   const { data: dayInfo } = useDayInfo();
 
+  // NotificationSheet ref kept for legacy bottom sheet — notifications now also
+  // accessible via NotificationBell which navigates to the full screen.
   const notificationSheetRef = useRef<GorhomBottomSheet>(null);
   const settingsSheetRef = useRef<GorhomBottomSheet>(null);
 
@@ -44,10 +46,6 @@ export default function HomeScreen() {
   const { data: colleagues } = useShiftColleagues(relevantShiftDate, profile?.profile_id ?? null);
 
   const firstName = profile?.display_name?.split(" ")[0] ?? "";
-
-  const handleNotificationPress = useCallback(() => {
-    notificationSheetRef.current?.snapToIndex(0);
-  }, []);
 
   const handleMenuPress = useCallback(() => {
     settingsSheetRef.current?.snapToIndex(0);
@@ -67,7 +65,7 @@ export default function HomeScreen() {
         <HomeHeader
           displayName={profile?.display_name ?? ""}
           avatarUrl={profile?.avatar_url}
-          onNotificationPress={handleNotificationPress}
+          profileId={profile?.profile_id}
           onMenuPress={handleMenuPress}
         />
 
