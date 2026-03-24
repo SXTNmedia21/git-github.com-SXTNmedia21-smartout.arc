@@ -1,23 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 /**
- * Legacy ?v= query parameter redirect.
- * Maps old variant URLs (/?v=E) to new perspective slugs (/drift).
- * 301 permanent redirect for SEO.
- */
-const LEGACY_VARIANT_TO_SLUG: Record<string, string> = {
-  E: "/drift",
-  T: "/tilsyn",
-  K: "/vekst",
-  A: "/tilhorighet",
-  F: "/opplaering",
-  S: "/handverk",
-  V: "/vaktliste",
-  I: "/ai",
-  M: "/kommunikasjon",
-};
-
-/**
  * Hostnames that should resolve directly to the free-forever pricing campaign.
  * Why: the campaign launches on a dedicated public subdomain while keeping the
  * main `/pricing` route intact on the root marketing domain.
@@ -36,26 +19,24 @@ function getHostname(request: NextRequest): string {
 
 export function middleware(request: NextRequest) {
   const hostname = getHostname(request);
+  const { pathname } = request.nextUrl;
 
-  if (request.nextUrl.pathname === "/" && FREE_FOREVER_HOSTNAMES.has(hostname)) {
+  // Free-forever subdomain rewrite
+  if (pathname === "/" && FREE_FOREVER_HOSTNAMES.has(hostname)) {
     const url = request.nextUrl.clone();
     url.pathname = "/free-forever";
     return NextResponse.rewrite(url);
   }
 
-  const { searchParams } = request.nextUrl;
-  const v = searchParams.get("v")?.toUpperCase();
+  // Locale detection: /en/ prefix = English, everything else = Norwegian
+  const isEnglish = pathname.startsWith("/en/") || pathname === "/en";
+  const locale = isEnglish ? "en" : "nb";
 
-  if (v && v in LEGACY_VARIANT_TO_SLUG) {
-    const url = request.nextUrl.clone();
-    url.pathname = LEGACY_VARIANT_TO_SLUG[v]!;
-    url.searchParams.delete("v");
-    return NextResponse.redirect(url, 301);
-  }
-
-  return NextResponse.next();
+  const response = NextResponse.next();
+  response.headers.set("x-locale", locale);
+  return response;
 }
 
 export const config = {
-  matcher: "/",
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|api/).*)"],
 };
