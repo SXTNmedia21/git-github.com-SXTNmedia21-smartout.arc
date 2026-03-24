@@ -74,8 +74,21 @@ export function SetupLoading() {
           router.push("/onboarding");
         }
       } catch (err) {
-        console.error("[SetupLoading] Setup failed:", err);
-        setError(err instanceof Error ? err.message : "Noe gikk galt under oppsettet.");
+        const message =
+          err instanceof Error
+            ? err.message
+            : typeof err === "string"
+              ? err
+              : "Noe gikk galt under oppsettet.";
+
+        console.error("[SetupLoading] Setup failed:", {
+          message,
+          error: err,
+          step1Email: state.step1?.email,
+          timestamp: new Date().toISOString(),
+        });
+
+        setError(message);
       }
     }
 
@@ -93,15 +106,26 @@ export function SetupLoading() {
           <h2 className="text-foreground text-xl font-semibold">Noe gikk galt</h2>
           <p className="text-muted-foreground mt-2 max-w-md text-sm">{error}</p>
         </div>
-        <Button
-          variant="outline"
-          onClick={() => {
-            // Go back to last step so user can retry — avoids duplicate creates
-            goToStep(6);
-          }}
-        >
-          Gå tilbake
-        </Button>
+        <div className="flex gap-3">
+          <Button
+            variant="outline"
+            onClick={() => {
+              // Go back to last step so user can retry — avoids duplicate creates
+              goToStep(6);
+            }}
+          >
+            Gå tilbake
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setError(null);
+              hasStarted.current = false;
+            }}
+          >
+            Prøv igjen
+          </Button>
+        </div>
       </div>
     );
   }
