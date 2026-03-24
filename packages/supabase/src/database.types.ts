@@ -13492,6 +13492,10 @@ export type Database = {
         Args: { uid: string; wid: string }
         Returns: boolean
       }
+      is_participant_in_conversation: {
+        Args: { conv_id: string }
+        Returns: boolean
+      }
       log_api_key_usage: {
         Args: { p_endpoint: string; p_key_id: string; p_status: number }
         Returns: undefined
