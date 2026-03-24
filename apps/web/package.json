@@ -37,6 +37,7 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "@sentry/nextjs": "^10.40.0",
     "@smartout/agent-sdk": "workspace:^",
+    "@smartout/shift-clock": "workspace:*",
     "@smartout/ai": "workspace:*",
     "@smartout/design-tokens": "workspace:^",
     "@smartout/hms": "workspace:*",

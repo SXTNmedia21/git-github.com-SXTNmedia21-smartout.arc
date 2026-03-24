@@ -179,9 +179,15 @@ export function useShiftChat({
     staleTime: 5 * 60 * 1000,
   });
 
-  // Sync resolved ids into refs so the send mutations can access them
-  if (sessionConvQuery.data) sessionConvId.current = sessionConvQuery.data;
-  if (shiftConvQuery.data) shiftConvId.current = shiftConvQuery.data;
+  // Sync resolved ids into refs so the send mutations can access them without
+  // creating new closures every render. Must run in effects, not during render.
+  useEffect(() => {
+    if (sessionConvQuery.data) sessionConvId.current = sessionConvQuery.data;
+  }, [sessionConvQuery.data]);
+
+  useEffect(() => {
+    if (shiftConvQuery.data) shiftConvId.current = shiftConvQuery.data;
+  }, [shiftConvQuery.data]);
 
   // ── Queries: messages ─────────────────────────────────────────
 
@@ -293,7 +299,7 @@ export function useShiftChat({
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [sessionConvId.current, departmentSessionId, queryClient]);
+  }, [sessionConvQuery.data, departmentSessionId, queryClient]);
 
   useEffect(() => {
     const convId = shiftConvId.current;
@@ -321,7 +327,7 @@ export function useShiftChat({
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [shiftConvId.current, scheduleShiftId, queryClient]);
+  }, [shiftConvQuery.data, scheduleShiftId, queryClient]);
 
   // ── Public API ────────────────────────────────────────────────
 

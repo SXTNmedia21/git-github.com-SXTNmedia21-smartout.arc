@@ -21,7 +21,6 @@ import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { emit } from "@smartout/telemetry";
 import {
   canTransition,
-  getNextPhase,
   type ShiftClockState,
   type GPSSnapshot,
   type PunchResult,
@@ -183,11 +182,11 @@ export function useShiftClock() {
 
       if (insertError) throw insertError;
 
-      // Update shift status to in_progress
+      // Update shift status to active
       await supabase
         .from("schedule_shift")
-        .update({ status: "in_progress" })
-        .eq("shift_id", shiftId);
+        .update({ status: "active" })
+        .eq("schedule_shift_id", shiftId);
 
       // Emit telemetry
       void emit({
@@ -242,7 +241,7 @@ export function useShiftClock() {
       // Calculate work and break minutes for telemetry
       const punchInMs = state.punchInTime ? new Date(state.punchInTime).getTime() : Date.now();
       const totalMinutes = Math.round((Date.now() - punchInMs) / 60_000);
-      const breakMinutes = state.breaks.reduce((sum, b) => {
+      const breakMinutes = state.breaks.reduce((sum: number, b: BreakEntry) => {
         if (!b.end) return sum;
         const start = new Date(b.start).getTime();
         const end = new Date(b.end).getTime();
@@ -265,7 +264,7 @@ export function useShiftClock() {
       await supabase
         .from("schedule_shift")
         .update({ status: "completed" })
-        .eq("shift_id", state.shiftId);
+        .eq("schedule_shift_id", state.shiftId);
 
       void emit({
         event: "shift punched_out",
@@ -527,8 +526,17 @@ export function useShiftClock() {
 
       return {
         allowed: true,
-        warnings: adhocRequiresApproval ? ["Vakten krever godkjenning fra leder"] : [],
-      };
+        blockReason: null,
+        warnings: adhocRequiresApproval
+          ? [
+              {
+                code: "approval_required",
+                message: "Vakten krever godkjenning fra leder",
+                severity: "warning" as const,
+              },
+            ]
+          : [],
+      } satisfies PunchResult;
     },
 
     onSuccess: (result) => {
@@ -608,7 +616,7 @@ export function useShiftClock() {
         },
       });
 
-      return { allowed: true, warnings: [] };
+      return { allowed: true, blockReason: null, warnings: [] } satisfies PunchResult;
     },
 
     onSuccess: (result) => {

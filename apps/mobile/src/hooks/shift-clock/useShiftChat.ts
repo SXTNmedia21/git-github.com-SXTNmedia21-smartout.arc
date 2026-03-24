@@ -44,12 +44,12 @@ function shiftConversationKey(shiftId: string) {
 }
 
 async function fetchShiftConversationId(shiftId: string): Promise<string | null> {
-  // Conversations are scoped by a reference_id = shift_id when type = 'shift'
+  // Conversations are scoped by source_id = shift_id when type = 'shift'
   const { data, error } = await supabase
-    .from("conversation")
+    .from("chat_conversation")
     .select("id")
-    .eq("reference_id", shiftId)
-    .eq("conversation_type", "shift")
+    .eq("source_id", shiftId)
+    .eq("source_type", "shift")
     .limit(1)
     .maybeSingle();
 

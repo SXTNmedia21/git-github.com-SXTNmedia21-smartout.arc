@@ -60,7 +60,8 @@ export function useGPSGuard() {
           config.referenceLat,
           config.referenceLng,
         );
-        withinRadius = distance <= config.radiusMeters;
+        // distance is guaranteed non-null here — assigned two lines above
+        withinRadius = (distance as number) <= config.radiusMeters;
       }
 
       return { snapshot, distance, withinRadius };

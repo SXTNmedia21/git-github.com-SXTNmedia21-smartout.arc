@@ -35,11 +35,11 @@ import type { Json } from "@smartout/supabase";
 // ══════════════════════════════════════════════════════════════
 
 type ScheduledEmployee = {
-  shift_id: string;
-  profile_id: string;
+  schedule_shift_id: string;
+  employee_id: string | null;
   start_time: string;
   end_time: string;
-  position: string | null;
+  role: string;
   department_id: string | null;
   profile: {
     first_name: string | null;
@@ -61,7 +61,7 @@ type ActiveEntry = {
 
 /** Resolved card model — one per scheduled employee */
 type EmployeeCard = {
-  shift_id: string;
+  schedule_shift_id: string;
   profile_id: string;
   name: string;
   role: string;
@@ -162,15 +162,15 @@ export function LeaderOverview() {
       const { data, error } = await supabase
         .from("schedule_shift")
         .select(
-          `shift_id, profile_id, start_time, end_time, position,
+          `schedule_shift_id, employee_id, start_time, end_time, role,
            department_id,
-           profile:profile_id ( first_name, last_name ),
+           profile:employee_id ( first_name, last_name ),
            department:department_id ( name )`,
         )
         .eq("workspace_id", workspace.workspace_id)
         .gte("start_time", from)
         .lte("start_time", to)
-        .not("profile_id", "is", null)
+        .not("employee_id", "is", null)
         .order("start_time", { ascending: true });
 
       if (error) throw error;
@@ -257,11 +257,11 @@ export function LeaderOverview() {
 
       if (error) throw error;
 
-      // Update shift status to in_progress so other views reflect reality
+      // Update shift status to active so other views reflect reality
       await supabase
         .from("schedule_shift")
-        .update({ status: "in_progress" })
-        .eq("shift_id", shiftId);
+        .update({ status: "active" })
+        .eq("schedule_shift_id", shiftId);
 
       void emit({
         event: "shift punched_in",
@@ -309,9 +309,10 @@ export function LeaderOverview() {
       const lastName = shift.profile?.last_name ?? "";
       const name = `${firstName} ${lastName}`.trim() || "Ukjent";
       const department = shift.department?.name ?? "—";
-      const role = shift.position ?? "—";
+      const role = shift.role ?? "—";
 
-      const entry = entryByProfile.get(shift.profile_id) ?? null;
+      // employee_id maps to profile.profile_id via FK schedule_shift_employee_id_fkey
+      const entry = entryByProfile.get(shift.employee_id ?? "") ?? null;
 
       let status: EmployeeCard["status"] = "waiting";
       let workDuration: string | null = null;
@@ -334,8 +335,8 @@ export function LeaderOverview() {
       const minsUntil = minutesUntil(shift.start_time);
 
       return {
-        shift_id: shift.shift_id,
-        profile_id: shift.profile_id,
+        schedule_shift_id: shift.schedule_shift_id,
+        profile_id: shift.employee_id ?? "",
         name,
         role,
         department,
@@ -404,12 +405,12 @@ export function LeaderOverview() {
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {cards.map((card) => (
             <EmployeeShiftCard
-              key={card.shift_id}
+              key={card.schedule_shift_id}
               card={card}
               onManualPunch={() =>
                 manualPunchMutation.mutate({
                   targetProfileId: card.profile_id,
-                  shiftId: card.shift_id,
+                  shiftId: card.schedule_shift_id,
                 })
               }
               isPunching={manualPunchMutation.isPending}
