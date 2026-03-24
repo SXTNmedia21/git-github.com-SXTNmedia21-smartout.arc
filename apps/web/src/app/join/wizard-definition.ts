@@ -92,6 +92,7 @@ export const joinWizard: WizardDefinition<JoinState> = {
       icon: Mail,
       component: Step1Account,
       validation: step1Schema,
+      validationKey: "account",
     },
     {
       id: "business",
@@ -99,6 +100,7 @@ export const joinWizard: WizardDefinition<JoinState> = {
       icon: Building2,
       component: Step2Business,
       validation: step2Schema,
+      validationKey: "business",
     },
     {
       id: "about",
@@ -106,6 +108,7 @@ export const joinWizard: WizardDefinition<JoinState> = {
       icon: FileText,
       component: Step3About,
       validation: step3Schema,
+      validationKey: "about",
       skippable: true,
     },
     {
@@ -114,6 +117,7 @@ export const joinWizard: WizardDefinition<JoinState> = {
       icon: Clock,
       component: Step4Hours,
       validation: step4Schema,
+      validationKey: "hours",
     },
     {
       id: "menu",
@@ -121,6 +125,7 @@ export const joinWizard: WizardDefinition<JoinState> = {
       icon: UtensilsCrossed,
       component: Step5Menu,
       validation: step5Schema,
+      validationKey: "menu",
       skippable: true,
     },
     {
@@ -129,6 +134,7 @@ export const joinWizard: WizardDefinition<JoinState> = {
       icon: KeyRound,
       component: Step6CreateAccount,
       validation: step6Schema,
+      validationKey: "createAccount",
     },
     {
       id: "team",

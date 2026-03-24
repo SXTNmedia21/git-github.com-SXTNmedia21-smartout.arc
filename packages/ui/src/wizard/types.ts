@@ -25,6 +25,8 @@ export interface WizardStepDef<TState> {
   icon?: LucideIcon;
   component: ComponentType<WizardStepProps<TState>>;
   validation?: ZodSchema;
+  /** Key in TState to validate (e.g. "account"). If omitted, validates full state. */
+  validationKey?: keyof TState;
   skippable?: boolean;
   estimatedMinutes?: number;
 }

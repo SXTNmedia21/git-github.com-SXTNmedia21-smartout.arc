@@ -29,7 +29,8 @@ export function useWizardState<TState extends Record<string, unknown>>(
     }
 
     if (step.validation) {
-      const result = step.validation.safeParse(data);
+      const dataToValidate = step.validationKey ? data[step.validationKey] : data;
+      const result = step.validation.safeParse(dataToValidate);
       if (!result.success) {
         return {
           success: false as const,
