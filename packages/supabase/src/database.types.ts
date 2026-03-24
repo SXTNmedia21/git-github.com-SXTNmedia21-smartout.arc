@@ -1,3 +1,6 @@
+WARN: environment variable is unset: SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID
+WARN: environment variable is unset: SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET
+Connecting to db 5432
 export type Json =
   | string
   | number
@@ -8125,6 +8128,69 @@ export type Database = {
         }
         Relationships: []
       }
+      notification: {
+        Row: {
+          action_url: string | null
+          body: string | null
+          created_at: string
+          group_key: string | null
+          icon_type: string
+          id: string
+          is_read: boolean
+          metadata: Json | null
+          read_at: string | null
+          recipient_id: string
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          action_url?: string | null
+          body?: string | null
+          created_at?: string
+          group_key?: string | null
+          icon_type?: string
+          id?: string
+          is_read?: boolean
+          metadata?: Json | null
+          read_at?: string | null
+          recipient_id: string
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          action_url?: string | null
+          body?: string | null
+          created_at?: string
+          group_key?: string | null
+          icon_type?: string
+          id?: string
+          is_read?: boolean
+          metadata?: Json | null
+          read_at?: string | null
+          recipient_id?: string
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "notification_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       notification_outbox: {
         Row: {
           action_url: string | null
@@ -8202,6 +8268,7 @@ export type Database = {
       }
       notification_preference: {
         Row: {
+          browser_enabled: boolean | null
           community_enabled: boolean | null
           created_at: string
           email_enabled: boolean | null
@@ -8216,6 +8283,7 @@ export type Database = {
           work_enabled: boolean | null
         }
         Insert: {
+          browser_enabled?: boolean | null
           community_enabled?: boolean | null
           created_at?: string
           email_enabled?: boolean | null
@@ -8230,6 +8298,7 @@ export type Database = {
           work_enabled?: boolean | null
         }
         Update: {
+          browser_enabled?: boolean | null
           community_enabled?: boolean | null
           created_at?: string
           email_enabled?: boolean | null
@@ -13492,6 +13561,10 @@ export type Database = {
         Args: { uid: string; wid: string }
         Returns: boolean
       }
+      is_participant_in_conversation: {
+        Args: { conv_id: string }
+        Returns: boolean
+      }
       log_api_key_usage: {
         Args: { p_endpoint: string; p_key_id: string; p_status: number }
         Returns: undefined
@@ -13819,7 +13892,7 @@ export type Database = {
         | "storage"
         | "other"
       message_visibility: "all_day" | "until_16" | "permanent"
-      notification_channel: "push" | "sms" | "email" | "voice"
+      notification_channel: "push" | "sms" | "email" | "voice" | "in_app"
       notification_mode: "training" | "work" | "community"
       notification_status:
         | "pending"
@@ -15232,7 +15305,7 @@ export const Constants = {
         "other",
       ],
       message_visibility: ["all_day", "until_16", "permanent"],
-      notification_channel: ["push", "sms", "email", "voice"],
+      notification_channel: ["push", "sms", "email", "voice", "in_app"],
       notification_mode: ["training", "work", "community"],
       notification_status: [
         "pending",
