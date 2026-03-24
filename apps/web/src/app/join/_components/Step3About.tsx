@@ -3,15 +3,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, Loader2, Settings2, Sparkles } from "lucide-react";
+import { Loader2, Settings2, Sparkles } from "lucide-react";
 import type { WizardStepProps } from "@smartout/ui";
 import type { JoinState } from "../types";
 import { useWorkspaceIntelligence } from "../_hooks/useWorkspaceIntelligence";
 import { useTypewriterSequence } from "../_hooks/useTypewriter";
-import { step3Schema } from "../_lib/validation";
 
-export function Step3About({ state, updateState, next, back }: WizardStepProps<JoinState>) {
+export function Step3About({ state, updateState }: WizardStepProps<JoinState>) {
   const { content, status, enrichAndGenerate, rewriteField } = useWorkspaceIntelligence(
     state,
     updateState,
@@ -97,26 +95,21 @@ export function Step3About({ state, updateState, next, back }: WizardStepProps<J
     await rewriteField(contentKey, currentText, mode);
   };
 
-  const handleNext = () => {
-    const result = step3Schema.safeParse({
-      aboutUs,
-      ourHistory: ourHistory || undefined,
-      ourConcept,
+  /**
+   * Sync local form fields to wizard state on every change.
+   * WizardNavBar handles navigation — the step no longer has its own buttons.
+   * WizardShell's validation runs against wizard state via the step's validationKey.
+   */
+  useEffect(() => {
+    updateState({
+      about: {
+        ...state.about,
+        aboutUs,
+        ourHistory: ourHistory || undefined,
+        ourConcept,
+      },
     });
-
-    if (!result.success) {
-      const fieldErrors: Record<string, string> = {};
-      for (const issue of result.error.issues) {
-        const field = issue.path[0] as string;
-        fieldErrors[field] = issue.message;
-      }
-      setErrors(fieldErrors);
-      return;
-    }
-
-    updateState({ about: { ...state.about, ...result.data } });
-    next();
-  };
+  }, [aboutUs, ourHistory, ourConcept]); // only sync when local fields change
 
   const typingField =
     activeIndex >= 0 && activeIndex < typewriterFields.length
@@ -204,21 +197,6 @@ export function Step3About({ state, updateState, next, back }: WizardStepProps<J
           onRewrite={(mode) => handleRewriteField("our_concept", "ourConcept", mode)}
           error={errors.ourConcept}
         />
-      </div>
-
-      <div className="flex gap-3">
-        <Button type="button" variant="outline" onClick={back} className="flex-1">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Tilbake
-        </Button>
-        <Button
-          type="button"
-          onClick={handleNext}
-          className="bg-brand-orange hover:bg-brand-orange-dark flex-1 text-white"
-        >
-          Neste
-          <ArrowRight className="ml-2 h-4 w-4" />
-        </Button>
       </div>
     </div>
   );

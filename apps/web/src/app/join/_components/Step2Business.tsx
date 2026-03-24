@@ -3,15 +3,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, Loader2, Sparkles } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
 import type { WizardStepProps } from "@smartout/ui";
 import type { JoinState } from "../types";
 import { useJoinScraping } from "../_context/JoinScrapingProvider";
 import { useTypewriterSequence } from "../_hooks/useTypewriter";
-import { step2Schema } from "../_lib/validation";
 
-export function Step2Business({ state, updateState, next, back }: WizardStepProps<JoinState>) {
+export function Step2Business({ state, updateState }: WizardStepProps<JoinState>) {
   const { scrapeStatus, brregData, brregCandidates, selectBrregCandidate } = useJoinScraping();
 
   const [firstName, setFirstName] = useState(state.business.firstName ?? "");
@@ -73,29 +71,20 @@ export function Step2Business({ state, updateState, next, back }: WizardStepProp
     setUserEdited({});
   };
 
-  const handleNext = () => {
-    const result = step2Schema.safeParse({
-      firstName,
-      lastName,
-      street,
-      postalCode,
-      city,
-      orgNumber,
+  // Sync local fields to wizard state so WizardNavBar validation sees current data
+  useEffect(() => {
+    updateState({
+      business: {
+        ...state.business,
+        firstName,
+        lastName,
+        street,
+        postalCode,
+        city,
+        orgNumber,
+      },
     });
-
-    if (!result.success) {
-      const fieldErrors: Record<string, string> = {};
-      for (const issue of result.error.issues) {
-        const field = issue.path[0] as string;
-        fieldErrors[field] = issue.message;
-      }
-      setErrors(fieldErrors);
-      return;
-    }
-
-    updateState({ business: { ...state.business, ...result.data } });
-    next();
-  };
+  }, [firstName, lastName, street, postalCode, city, orgNumber]); // sync local fields only
 
   const clearError = (field: string) => {
     setErrors((prev) => ({ ...prev, [field]: "" }));
@@ -276,21 +265,6 @@ export function Step2Business({ state, updateState, next, back }: WizardStepProp
           />
           {errors.orgNumber && <p className="text-destructive text-xs">{errors.orgNumber}</p>}
         </TypewriterField>
-      </div>
-
-      <div className="flex gap-3">
-        <Button type="button" variant="outline" onClick={back} className="flex-1">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Tilbake
-        </Button>
-        <Button
-          type="button"
-          onClick={handleNext}
-          className="bg-brand-orange hover:bg-brand-orange-dark flex-1 text-white"
-        >
-          Neste
-          <ArrowRight className="ml-2 h-4 w-4" />
-        </Button>
       </div>
     </div>
   );

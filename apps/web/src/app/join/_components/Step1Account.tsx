@@ -3,12 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Loader2, ArrowRight, Globe } from "lucide-react";
+import { Loader2, Globe } from "lucide-react";
 import type { WizardStepProps } from "@smartout/ui";
 import type { JoinState } from "../types";
 import { useJoinScraping } from "../_context/JoinScrapingProvider";
-import { step1Schema } from "../_lib/validation";
 
 const INDUSTRY_OPTIONS = [
   { value: "restaurant", label: "Restaurant", nace: "56.101" },
@@ -21,7 +19,7 @@ const INDUSTRY_OPTIONS = [
   { value: "other", label: "Annet", nace: "" },
 ] as const;
 
-export function Step1Account({ state, updateState, next }: WizardStepProps<JoinState>) {
+export function Step1Account({ state, updateState }: WizardStepProps<JoinState>) {
   const { scrapeStatus, triggerScrape, lookupBrreg } = useJoinScraping();
 
   const [email, setEmail] = useState(state.account.email ?? "");
@@ -32,6 +30,29 @@ export function Step1Account({ state, updateState, next }: WizardStepProps<JoinS
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Sync local fields to wizard state so WizardNavBar validation sees current data
+  useEffect(() => {
+    updateState({
+      account: {
+        ...state.account,
+        email,
+        companyName,
+        industry,
+        city,
+        websiteUrl,
+      },
+    });
+  }, [email, companyName, industry, city, websiteUrl]); // sync local fields only
+
+  // Trigger BRREG lookup when company name + city are both filled
+  const brregTriggeredRef = useRef(false);
+  useEffect(() => {
+    if (companyName && city && !brregTriggeredRef.current) {
+      brregTriggeredRef.current = true;
+      lookupBrreg(companyName, city);
+    }
+  }, [companyName, city, lookupBrreg]);
 
   // Debounced scrape trigger on URL change
   const handleUrlChange = useCallback(
@@ -61,41 +82,6 @@ export function Step1Account({ state, updateState, next }: WizardStepProps<JoinS
       }
     };
   }, []);
-
-  const handleNext = () => {
-    const result = step1Schema.safeParse({
-      email,
-      companyName,
-      industry,
-      city,
-      websiteUrl,
-    });
-
-    if (!result.success) {
-      const fieldErrors: Record<string, string> = {};
-      for (const issue of result.error.issues) {
-        const field = issue.path[0] as string;
-        fieldErrors[field] = issue.message;
-      }
-      setErrors(fieldErrors);
-      return;
-    }
-
-    updateState({
-      account: {
-        ...state.account,
-        email: result.data.email,
-        companyName: result.data.companyName,
-        industry: result.data.industry,
-        city: result.data.city,
-        websiteUrl: result.data.websiteUrl,
-      },
-    });
-
-    // Trigger BRREG lookup with company name + city for accurate matching
-    lookupBrreg(result.data.companyName, result.data.city);
-    next();
-  };
 
   return (
     <div className="mx-auto w-full max-w-md space-y-6">
@@ -202,15 +188,6 @@ export function Step1Account({ state, updateState, next }: WizardStepProps<JoinS
           )}
         </div>
       </div>
-
-      <Button
-        type="button"
-        onClick={handleNext}
-        className="bg-brand-orange hover:bg-brand-orange-dark w-full text-white"
-      >
-        Neste
-        <ArrowRight className="ml-2 h-4 w-4" />
-      </Button>
     </div>
   );
 }
