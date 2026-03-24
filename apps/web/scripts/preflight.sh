@@ -23,6 +23,44 @@ echo ""
 echo -e "${BOLD}${CYAN}--- Smartout Preflight Check ---${NC}"
 echo ""
 
+# ── 0. Detect vault from .env.template ──
+echo -e "${BOLD}1Password Vault${NC}"
+
+ENV_TEMPLATE="${BASH_SOURCE[0]%/*}/../../.env.template"
+if [ ! -f "$ENV_TEMPLATE" ]; then
+  ENV_TEMPLATE="$(git rev-parse --show-toplevel 2>/dev/null)/.env.template"
+fi
+
+if [ -f "$ENV_TEMPLATE" ]; then
+  # Extract vault name from op:// references (first match)
+  VAULT=$(grep -oP 'op://\K[^/]+' "$ENV_TEMPLATE" | head -1)
+  if [ -n "$VAULT" ]; then
+    if [[ "$VAULT" == *"prod"* ]]; then
+      echo -e "  Vault: ${RED}${BOLD}$VAULT${NC} ${RED}(PRODUCTION — are you sure?)${NC}"
+    else
+      echo -e "  Vault: ${GREEN}${BOLD}$VAULT${NC} (development)"
+    fi
+  else
+    echo -e "  Vault: ${WARN} (no op:// references found in .env.template)"
+  fi
+else
+  echo -e "  Vault: ${WARN} (.env.template not found)"
+fi
+
+# Detect if Supabase URL points to local or cloud
+SUPA_URL="${NEXT_PUBLIC_SUPABASE_URL:-}"
+if [ -n "$SUPA_URL" ]; then
+  if [[ "$SUPA_URL" == *"127.0.0.1"* ]] || [[ "$SUPA_URL" == *"localhost"* ]]; then
+    echo -e "  Supabase target: ${GREEN}LOCAL${NC} ($SUPA_URL)"
+  elif [[ "$SUPA_URL" == *"supabase.co"* ]]; then
+    echo -e "  Supabase target: ${YELLOW}${BOLD}CLOUD${NC} ($SUPA_URL)"
+  else
+    echo -e "  Supabase target: ${CYAN}$SUPA_URL${NC}"
+  fi
+fi
+
+echo ""
+
 # ── 1. Critical env vars ──
 echo -e "${BOLD}Environment Variables${NC}"
 
@@ -63,7 +101,6 @@ echo ""
 # ── 2. Supabase connectivity ──
 echo -e "${BOLD}Supabase${NC}"
 
-SUPA_URL="${NEXT_PUBLIC_SUPABASE_URL:-}"
 SUPA_KEY="${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}"
 
 if [ -n "$SUPA_URL" ] && [ -n "$SUPA_KEY" ] && [[ "$SUPA_URL" != op://* ]]; then
