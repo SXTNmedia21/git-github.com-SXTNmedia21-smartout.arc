@@ -414,6 +414,219 @@ export function useShiftClock() {
     },
   });
 
+  // ── Mutation: Create Ad-hoc Shift ────────────────────────
+  //
+  // Creates a new schedule_shift with is_adhoc=true, assigns it to the
+  // current profile, then punches in immediately. If adhocRequiresApproval
+  // is true the adhoc_approved_by column is left null (pending leader sign-off).
+  const createAdhocShiftMutation = useMutation({
+    mutationFn: async ({
+      departmentId,
+      adhocRequiresApproval,
+      gps,
+    }: {
+      departmentId: string | null;
+      adhocRequiresApproval: boolean;
+      gps?: GPSSnapshot | null;
+    }): Promise<PunchResult> => {
+      if (!canTransition(state.phase, "punch_in")) {
+        return { allowed: false, warnings: [], blockReason: "Invalid phase for punch-in" };
+      }
+
+      const supabase = createClient();
+      const now = new Date().toISOString();
+      const today = now.slice(0, 10); // YYYY-MM-DD
+
+      // Derive a simple day_category from the current hour to satisfy the NOT NULL constraint
+      const hour = new Date().getHours();
+      const dayCategory =
+        hour < 10
+          ? ("morning" as const)
+          : hour < 14
+            ? ("midday" as const)
+            : hour < 17
+              ? ("afternoon" as const)
+              : hour < 22
+                ? ("evening" as const)
+                : ("night" as const);
+
+      // Create the ad-hoc shift record
+      const { data: newShift, error: shiftError } = await supabase
+        .from("schedule_shift")
+        .insert({
+          workspace_id: workspace.workspace_id,
+          employee_id: profileId!,
+          department_id: departmentId,
+          shift_date: today,
+          start_time: now,
+          // End time is unknown — default 8 hours ahead; managers can adjust later
+          end_time: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(),
+          status: "active",
+          is_adhoc: true,
+          is_published: false,
+          day_category: dayCategory,
+          role: "employee",
+          // Leave adhoc_approved_by as null when approval is required — signals pending state
+          adhoc_approved_by: adhocRequiresApproval ? null : profileId!,
+          adhoc_approved_at: adhocRequiresApproval ? null : now,
+        })
+        .select("schedule_shift_id")
+        .single();
+
+      if (shiftError) throw shiftError;
+
+      const shiftId = newShift.schedule_shift_id;
+
+      // Punch in immediately after creating the shift
+      const { data: entry, error: insertError } = await supabase
+        .schema("timesheet")
+        .from("time_entry")
+        .insert({
+          shift_id: shiftId,
+          profile_id: profileId!,
+          workspace_id: workspace.workspace_id,
+          punch_in: now,
+          punch_in_location: (gps as unknown as Json) ?? null,
+          breaks: [] as unknown as Json,
+        })
+        .select("time_entry_id")
+        .single();
+
+      if (insertError) throw insertError;
+
+      void emit({
+        event: "shift adhoc_created",
+        workspace_id: workspace.workspace_id,
+        actor_id: profileId ?? "",
+        properties: {
+          entity: { entity_type: "shift" as const, entity_id: shiftId },
+          data: {
+            shift_id: shiftId,
+            department_id: departmentId ?? workspace.workspace_id,
+            requires_approval: adhocRequiresApproval,
+          },
+        },
+      });
+
+      void emit({
+        event: "shift punched_in",
+        workspace_id: workspace.workspace_id,
+        actor_id: profileId ?? "",
+        properties: {
+          entity: { entity_type: "shift" as const, entity_id: shiftId },
+          data: {
+            shift_id: shiftId,
+            time_entry_id: entry.time_entry_id,
+            punch_time: now,
+            is_adhoc: true,
+            gps_verified: !!gps,
+            gps_distance_meters: null,
+          },
+        },
+      });
+
+      return {
+        allowed: true,
+        warnings: adhocRequiresApproval ? ["Vakten krever godkjenning fra leder"] : [],
+      };
+    },
+
+    onSuccess: (result) => {
+      if (result.allowed) {
+        toast.success("Ad-hoc vakt startet");
+        void queryClient.invalidateQueries({
+          queryKey: shiftClockKeys.activeEntry(profileId ?? ""),
+        });
+      } else {
+        toast.error(result.blockReason ?? "Kunne ikke starte ad-hoc vakt");
+      }
+    },
+
+    onError: () => {
+      toast.error("Kunne ikke opprette ad-hoc vakt");
+    },
+  });
+
+  // ── Mutation: Take Open Shift ─────────────────────────────
+  //
+  // Claims an unassigned open shift for the current profile, then punches in.
+  const takeOpenShiftMutation = useMutation({
+    mutationFn: async ({
+      shiftId,
+      gps,
+    }: {
+      shiftId: string;
+      gps?: GPSSnapshot | null;
+    }): Promise<PunchResult> => {
+      if (!canTransition(state.phase, "punch_in")) {
+        return { allowed: false, warnings: [], blockReason: "Invalid phase for punch-in" };
+      }
+
+      const supabase = createClient();
+      const now = new Date().toISOString();
+
+      // Claim the open shift — assign to current profile and mark active
+      const { error: claimError } = await supabase
+        .from("schedule_shift")
+        .update({ employee_id: profileId!, status: "active" })
+        .eq("schedule_shift_id", shiftId)
+        .is("employee_id", null); // Optimistic lock: only update if still unclaimed
+
+      if (claimError) throw claimError;
+
+      // Punch in
+      const { data: entry, error: insertError } = await supabase
+        .schema("timesheet")
+        .from("time_entry")
+        .insert({
+          shift_id: shiftId,
+          profile_id: profileId!,
+          workspace_id: workspace.workspace_id,
+          punch_in: now,
+          punch_in_location: (gps as unknown as Json) ?? null,
+          breaks: [] as unknown as Json,
+        })
+        .select("time_entry_id")
+        .single();
+
+      if (insertError) throw insertError;
+
+      void emit({
+        event: "shift punched_in",
+        workspace_id: workspace.workspace_id,
+        actor_id: profileId ?? "",
+        properties: {
+          entity: { entity_type: "shift" as const, entity_id: shiftId },
+          data: {
+            shift_id: shiftId,
+            time_entry_id: entry.time_entry_id,
+            punch_time: now,
+            is_adhoc: false,
+            gps_verified: !!gps,
+            gps_distance_meters: null,
+          },
+        },
+      });
+
+      return { allowed: true, warnings: [] };
+    },
+
+    onSuccess: (result) => {
+      if (result.allowed) {
+        toast.success("Stemplet inn på åpen vakt");
+        void queryClient.invalidateQueries({
+          queryKey: shiftClockKeys.activeEntry(profileId ?? ""),
+        });
+      } else {
+        toast.error(result.blockReason ?? "Kunne ikke ta vakten");
+      }
+    },
+
+    onError: () => {
+      toast.error("Vakten er allerede tatt");
+    },
+  });
+
   // ── Public API ────────────────────────────────────────────
 
   const punchIn = async (shiftId: string, gps?: GPSSnapshot | null): Promise<PunchResult> => {
@@ -432,12 +645,26 @@ export function useShiftClock() {
     await endBreakMutation.mutateAsync({ gps });
   };
 
+  const createAdhocShift = async (
+    departmentId: string | null,
+    adhocRequiresApproval: boolean,
+    gps?: GPSSnapshot | null,
+  ): Promise<PunchResult> => {
+    return createAdhocShiftMutation.mutateAsync({ departmentId, adhocRequiresApproval, gps });
+  };
+
+  const takeOpenShift = async (shiftId: string, gps?: GPSSnapshot | null): Promise<PunchResult> => {
+    return takeOpenShiftMutation.mutateAsync({ shiftId, gps });
+  };
+
   const isLoading =
     activeEntryQuery.isLoading ||
     punchInMutation.isPending ||
     punchOutMutation.isPending ||
     startBreakMutation.isPending ||
-    endBreakMutation.isPending;
+    endBreakMutation.isPending ||
+    createAdhocShiftMutation.isPending ||
+    takeOpenShiftMutation.isPending;
 
   return {
     state,
@@ -445,6 +672,8 @@ export function useShiftClock() {
     punchOut,
     startBreak,
     endBreak,
+    createAdhocShift,
+    takeOpenShift,
     isLoading,
   };
 }
