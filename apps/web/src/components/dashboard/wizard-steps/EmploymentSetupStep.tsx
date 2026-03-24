@@ -86,14 +86,12 @@ const INITIAL_FORMS: EmploymentForm[] = [
 
 function EmploymentFormCard({
   form,
-  isDark,
   onToggle,
   onUpdate,
   isCustom,
   onRemove,
 }: {
   form: EmploymentForm;
-  isDark: boolean;
   onToggle: () => void;
   onUpdate: (updates: Partial<EmploymentForm>) => void;
   isCustom?: boolean;
@@ -104,21 +102,13 @@ function EmploymentFormCard({
   return (
     <div
       className={`overflow-hidden rounded-xl border transition-colors ${
-        form.enabled
-          ? isDark
-            ? "border-orange-500/40 bg-orange-500/5"
-            : "border-orange-300 bg-orange-50/50"
-          : isDark
-            ? "border-zinc-800 bg-zinc-900/30"
-            : "border-zinc-200 bg-zinc-50/50"
+        form.enabled ? "border-brand-orange bg-brand-orange/50" : "border-border bg-muted"
       }`}
     >
       <label className="flex cursor-pointer items-center justify-between px-4 py-3">
         <div className="flex items-center gap-3">
           <Briefcase
-            className={`h-4 w-4 ${
-              form.enabled ? "text-orange-500" : isDark ? "text-zinc-600" : "text-zinc-400"
-            }`}
+            className={`h-4 w-4 ${form.enabled ? "text-orange-500" : "text-muted-foreground"}`}
           />
           {isCustom ? (
             <Input
@@ -127,16 +117,10 @@ function EmploymentFormCard({
               value={form.label}
               onClick={(e) => e.stopPropagation()}
               onChange={(e) => onUpdate({ label: e.target.value })}
-              className={`h-7 w-48 text-sm font-semibold ${
-                isDark
-                  ? "border-zinc-700 bg-zinc-800 text-zinc-200 placeholder:text-zinc-500"
-                  : "border-zinc-300 bg-white text-zinc-800 placeholder:text-zinc-400"
-              }`}
+              className={`h-7 w-48 text-sm font-semibold ${"border-border text-foreground bg-white placeholder:text-zinc-400"}`}
             />
           ) : (
-            <span className={`text-sm font-semibold ${isDark ? "text-zinc-200" : "text-zinc-800"}`}>
-              {form.label}
-            </span>
+            <span className={`text-sm font-semibold ${"text-foreground"}`}>{form.label}</span>
           )}
         </div>
         <div className="flex items-center gap-2">
@@ -148,11 +132,7 @@ function EmploymentFormCard({
                 e.stopPropagation();
                 onRemove();
               }}
-              className={`rounded-md p-1 transition-colors ${
-                isDark
-                  ? "text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300"
-                  : "text-zinc-400 hover:bg-zinc-200 hover:text-zinc-600"
-              }`}
+              className={`rounded-md p-1 transition-colors ${"text-muted-foreground hover:bg-accent hover:text-zinc-600"}`}
             >
               <X className="h-4 w-4" />
             </button>
@@ -162,14 +142,10 @@ function EmploymentFormCard({
       </label>
 
       {form.enabled && (
-        <div
-          className={`border-t px-4 pt-3 pb-3 ${isDark ? "border-zinc-800" : "border-zinc-200"}`}
-        >
+        <div className={`border-t px-4 pt-3 pb-3 ${"border-border"}`}>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label className={`text-xs ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
-                Normalarbeidstid
-              </Label>
+              <Label className={`text-xs ${"text-muted-foreground"}`}>Normalarbeidstid</Label>
               <div className="flex items-center gap-2">
                 <Input
                   type="number"
@@ -178,22 +154,14 @@ function EmploymentFormCard({
                   step={0.5}
                   value={form.hoursPerWeek}
                   onChange={(e) => onUpdate({ hoursPerWeek: parseFloat(e.target.value) || 0 })}
-                  className={`h-8 w-20 text-sm ${
-                    isDark
-                      ? "border-zinc-700 bg-zinc-800 text-zinc-200"
-                      : "border-zinc-300 bg-white text-zinc-800"
-                  }`}
+                  className={`h-8 w-20 text-sm ${"border-border text-foreground bg-white"}`}
                 />
-                <span className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
-                  t/uke
-                </span>
+                <span className={`text-xs ${"text-muted-foreground"}`}>t/uke</span>
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <Label className={`text-xs ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
-                Oppsigelsestid
-              </Label>
+              <Label className={`text-xs ${"text-muted-foreground"}`}>Oppsigelsestid</Label>
               <div className="flex items-center gap-2">
                 <Input
                   type="number"
@@ -202,15 +170,9 @@ function EmploymentFormCard({
                   step={1}
                   value={form.noticeValue}
                   onChange={(e) => onUpdate({ noticeValue: parseInt(e.target.value, 10) || 0 })}
-                  className={`h-8 w-20 text-sm ${
-                    isDark
-                      ? "border-zinc-700 bg-zinc-800 text-zinc-200"
-                      : "border-zinc-300 bg-white text-zinc-800"
-                  }`}
+                  className={`h-8 w-20 text-sm ${"border-border text-foreground bg-white"}`}
                 />
-                <span className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
-                  {noticeUnitLabel}
-                </span>
+                <span className={`text-xs ${"text-muted-foreground"}`}>{noticeUnitLabel}</span>
               </div>
             </div>
           </div>
@@ -223,11 +185,9 @@ function EmploymentFormCard({
 // ─── EmploymentSetupStep ─────────────────────────────────
 
 export function EmploymentSetupStep({
-  isDark,
   industryDefaults,
   extractedTerms,
 }: {
-  isDark: boolean;
   industryDefaults?: IndustryEmploymentDefaults;
   extractedTerms?: {
     noticePeriod?: string;
@@ -484,12 +444,10 @@ export function EmploymentSetupStep({
       {/* ── Del 1: Ansettelsesformer ── */}
       <div className="space-y-3">
         <div className="flex items-center gap-2">
-          <h3 className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-            Ansettelsesformer
-          </h3>
+          <h3 className={`text-sm font-bold ${"text-muted-foreground"}`}>Ansettelsesformer</h3>
           <HelpTip text="Velg hvilke ansettelsestyper dere bruker. Dette bestemmer kontraktsmalene." />
         </div>
-        <p className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+        <p className={`text-xs ${"text-muted-foreground"}`}>
           Velg hvilke ansettelsesformer som brukes i virksomheten.
         </p>
         <div className="space-y-2">
@@ -497,7 +455,6 @@ export function EmploymentSetupStep({
             <EmploymentFormCard
               key={form.type}
               form={form}
-              isDark={isDark}
               onToggle={() => handleFormToggle(index)}
               onUpdate={(updates) => handleFormUpdate(index, updates)}
               isCustom={form.type.startsWith("custom_")}
@@ -508,11 +465,7 @@ export function EmploymentSetupStep({
         <button
           type="button"
           onClick={handleAddCustomForm}
-          className={`flex w-full items-center justify-center gap-2 rounded-xl border border-dashed px-4 py-2.5 text-sm font-medium transition-colors ${
-            isDark
-              ? "border-zinc-700 text-zinc-400 hover:border-zinc-600 hover:text-zinc-300"
-              : "border-zinc-300 text-zinc-500 hover:border-zinc-400 hover:text-zinc-600"
-          }`}
+          className={`flex w-full items-center justify-center gap-2 rounded-xl border border-dashed px-4 py-2.5 text-sm font-medium transition-colors ${"border-border text-muted-foreground hover:border-zinc-400 hover:text-zinc-600"}`}
         >
           <Plus className="h-4 w-4" />
           Legg til ansettelsesform
@@ -522,21 +475,15 @@ export function EmploymentSetupStep({
       {/* ── Del 2: Fellesvilkår ── */}
       <div className="space-y-3">
         <div className="flex items-center gap-2">
-          <h3 className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-            Fellesvilkår
-          </h3>
+          <h3 className={`text-sm font-bold ${"text-muted-foreground"}`}>Fellesvilkår</h3>
           <HelpTip text="Standardbetingelser som gjelder alle ansatte: prøvetid, ferie, pensjon og avgifter." />
         </div>
         <div
-          className={`grid grid-cols-1 gap-4 rounded-xl border p-4 sm:grid-cols-2 ${
-            isDark ? "border-zinc-800 bg-zinc-900/30" : "border-zinc-200 bg-zinc-50/50"
-          }`}
+          className={`grid grid-cols-1 gap-4 rounded-xl border p-4 sm:grid-cols-2 ${"border-border bg-muted"}`}
         >
           {/* Prøvetid */}
           <div className="space-y-1.5">
-            <Label className={`text-xs font-medium ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
-              Prøvetid
-            </Label>
+            <Label className={`text-xs font-medium ${"text-muted-foreground"}`}>Prøvetid</Label>
             <div className="flex items-center gap-2">
               <Input
                 type="number"
@@ -547,21 +494,15 @@ export function EmploymentSetupStep({
                 onChange={(e) =>
                   handleCommonTermChange("probationMonths", parseInt(e.target.value, 10) || 0)
                 }
-                className={`h-8 w-20 text-sm ${
-                  isDark
-                    ? "border-zinc-700 bg-zinc-800 text-zinc-200"
-                    : "border-zinc-300 bg-white text-zinc-800"
-                }`}
+                className={`h-8 w-20 text-sm ${"border-border text-foreground bg-white"}`}
               />
-              <span className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>mnd</span>
+              <span className={`text-xs ${"text-muted-foreground"}`}>mnd</span>
             </div>
           </div>
 
           {/* Feriedager */}
           <div className="space-y-1.5">
-            <Label className={`text-xs font-medium ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
-              Feriedager
-            </Label>
+            <Label className={`text-xs font-medium ${"text-muted-foreground"}`}>Feriedager</Label>
             <div className="flex items-center gap-2">
               <Input
                 type="number"
@@ -572,36 +513,24 @@ export function EmploymentSetupStep({
                 onChange={(e) =>
                   handleCommonTermChange("vacationDays", parseInt(e.target.value, 10) || 0)
                 }
-                className={`h-8 w-20 text-sm ${
-                  isDark
-                    ? "border-zinc-700 bg-zinc-800 text-zinc-200"
-                    : "border-zinc-300 bg-white text-zinc-800"
-                }`}
+                className={`h-8 w-20 text-sm ${"border-border text-foreground bg-white"}`}
               />
-              <span className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>dager</span>
+              <span className={`text-xs ${"text-muted-foreground"}`}>dager</span>
             </div>
             <label className="flex items-center gap-2 pt-1">
               <Switch
                 checked={commonTerms.extraVacationDays}
                 onCheckedChange={(checked) => handleCommonTermChange("extraVacationDays", checked)}
               />
-              <span className={`text-xs ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
-                Avtalefestet ferie (+5)
-              </span>
+              <span className={`text-xs ${"text-muted-foreground"}`}>Avtalefestet ferie (+5)</span>
             </label>
           </div>
 
           {/* Feriepenger (read-only) */}
           <div className="space-y-1.5">
-            <Label className={`text-xs font-medium ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
-              Feriepenger
-            </Label>
+            <Label className={`text-xs font-medium ${"text-muted-foreground"}`}>Feriepenger</Label>
             <div
-              className={`flex h-8 w-20 items-center rounded-md border px-3 text-sm ${
-                isDark
-                  ? "border-zinc-700 bg-zinc-800/50 text-zinc-400"
-                  : "border-zinc-200 bg-zinc-100 text-zinc-500"
-              }`}
+              className={`flex h-8 w-20 items-center rounded-md border px-3 text-sm ${"border-border bg-muted text-muted-foreground"}`}
             >
               10,2%
             </div>
@@ -609,9 +538,7 @@ export function EmploymentSetupStep({
 
           {/* OTP pensjon */}
           <div className="space-y-1.5">
-            <Label className={`text-xs font-medium ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
-              OTP pensjon
-            </Label>
+            <Label className={`text-xs font-medium ${"text-muted-foreground"}`}>OTP pensjon</Label>
             <div className="flex items-center gap-2">
               <Input
                 type="number"
@@ -620,19 +547,15 @@ export function EmploymentSetupStep({
                 step={0.1}
                 value={commonTerms.otpPct}
                 onChange={(e) => handleCommonTermChange("otpPct", parseFloat(e.target.value) || 0)}
-                className={`h-8 w-20 text-sm ${
-                  isDark
-                    ? "border-zinc-700 bg-zinc-800 text-zinc-200"
-                    : "border-zinc-300 bg-white text-zinc-800"
-                }`}
+                className={`h-8 w-20 text-sm ${"border-border text-foreground bg-white"}`}
               />
-              <span className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>%</span>
+              <span className={`text-xs ${"text-muted-foreground"}`}>%</span>
             </div>
           </div>
 
           {/* Arbeidsgiveravgift */}
           <div className="space-y-1.5">
-            <Label className={`text-xs font-medium ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
+            <Label className={`text-xs font-medium ${"text-muted-foreground"}`}>
               Arbeidsgiveravgift
             </Label>
             <div className="flex items-center gap-2">
@@ -645,13 +568,9 @@ export function EmploymentSetupStep({
                 onChange={(e) =>
                   handleCommonTermChange("employerTaxPct", parseFloat(e.target.value) || 0)
                 }
-                className={`h-8 w-20 text-sm ${
-                  isDark
-                    ? "border-zinc-700 bg-zinc-800 text-zinc-200"
-                    : "border-zinc-300 bg-white text-zinc-800"
-                }`}
+                className={`h-8 w-20 text-sm ${"border-border text-foreground bg-white"}`}
               />
-              <span className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>%</span>
+              <span className={`text-xs ${"text-muted-foreground"}`}>%</span>
             </div>
           </div>
         </div>
@@ -659,19 +578,13 @@ export function EmploymentSetupStep({
 
       {/* ── Del 3: Forhåndsvisning ── */}
       <div className="space-y-3">
-        <h3 className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-          Forhåndsvisning
-        </h3>
+        <h3 className={`text-sm font-bold ${"text-muted-foreground"}`}>Forhåndsvisning</h3>
         <div
-          className={`rounded-xl border p-4 text-sm leading-relaxed ${
-            isDark
-              ? "border-zinc-700 bg-zinc-800/50 text-zinc-300"
-              : "border-zinc-200 bg-amber-50/50 text-zinc-700"
-          }`}
+          className={`rounded-xl border p-4 text-sm leading-relaxed ${"border-border bg-warning/50 text-muted-foreground"}`}
         >
           {previewText.split("**").map((part, i) =>
             i % 2 === 1 ? (
-              <strong key={i} className={isDark ? "text-zinc-100" : "text-zinc-900"}>
+              <strong key={i} className={"text-foreground"}>
                 {part}
               </strong>
             ) : (
@@ -701,7 +614,7 @@ export function EmploymentSetupStep({
         </button>
 
         {existingPolicy && !saveMutation.isPending && (
-          <span className="flex items-center gap-1.5 text-xs text-emerald-500">
+          <span className="text-success flex items-center gap-1.5 text-xs">
             <CheckCircle2 className="h-3.5 w-3.5" />
             Lagret
           </span>

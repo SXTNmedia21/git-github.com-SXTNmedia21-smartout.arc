@@ -79,12 +79,10 @@ function formatSize(bytes: number): string {
 
 function ExtractionSummary({
   result,
-  isDark,
   onClose,
   onUpdate,
 }: {
   result: DocumentExtractionResult;
-  isDark: boolean;
   onClose: () => void;
   onUpdate: (updated: DocumentExtractionResult) => void;
 }) {
@@ -270,21 +268,17 @@ function ExtractionSummary({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
       <div
-        className={`mx-4 w-full max-w-lg rounded-2xl border shadow-2xl ${
-          isDark ? "border-zinc-700 bg-zinc-900" : "border-zinc-200 bg-white"
-        }`}
+        className={`mx-4 w-full max-w-lg rounded-2xl border shadow-2xl ${"border-border bg-white"}`}
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-inherit px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-orange-500/10">
-              <Sparkles className="h-5 w-5 text-orange-500" />
+            <div className="bg-brand-orange/10 flex h-9 w-9 items-center justify-center rounded-full">
+              <Sparkles className="text-brand-orange h-5 w-5" />
             </div>
             <div>
-              <h3 className={`text-base font-bold ${isDark ? "text-white" : "text-zinc-900"}`}>
-                Analysert data
-              </h3>
-              <p className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+              <h3 className={`text-base font-bold ${"text-foreground"}`}>Analysert data</h3>
+              <p className={`text-xs ${"text-muted-foreground"}`}>
                 {totalItems} elementer funnet i {sections.length} kategorier
               </p>
             </div>
@@ -292,9 +286,7 @@ function ExtractionSummary({
           <button
             type="button"
             onClick={onClose}
-            className={`rounded-lg p-2 transition-colors ${
-              isDark ? "text-zinc-400 hover:bg-zinc-800" : "text-zinc-500 hover:bg-zinc-100"
-            }`}
+            className={`rounded-lg p-2 transition-colors ${"text-muted-foreground hover:bg-accent"}`}
           >
             <X className="h-4 w-4" />
           </button>
@@ -305,52 +297,42 @@ function ExtractionSummary({
           {sections.length === 0 ? (
             <div className="space-y-3 py-2">
               <div
-                className={`flex items-center gap-3 rounded-xl border px-4 py-3 ${
-                  isDark ? "border-amber-900/50 bg-amber-950/20" : "border-amber-200 bg-amber-50"
-                }`}
+                className={`flex items-center gap-3 rounded-xl border px-4 py-3 ${"border-warning bg-warning"}`}
               >
-                <AlertCircle
-                  className={`h-5 w-5 shrink-0 ${isDark ? "text-amber-500" : "text-amber-600"}`}
-                />
-                <p
-                  className={`text-sm font-medium ${isDark ? "text-amber-400" : "text-amber-700"}`}
-                >
+                <AlertCircle className={`h-5 w-5 shrink-0 ${"text-warning"}`} />
+                <p className={`text-sm font-medium ${"text-warning"}`}>
                   Ingen relevant driftsdata funnet
                 </p>
               </div>
-              <p
-                className={`text-sm leading-relaxed ${isDark ? "text-zinc-400" : "text-zinc-600"}`}
-              >
+              <p className={`text-sm leading-relaxed ${"text-muted-foreground"}`}>
                 Dokumentene ser ikke ut til å inneholde informasjon vi kan bruke til å sette opp
                 arbeidsplassen din. Vi leter etter:
               </p>
-              <ul
-                className={`space-y-1.5 pl-1 text-sm ${isDark ? "text-zinc-500" : "text-zinc-500"}`}
-              >
+              <ul className={`space-y-1.5 pl-1 text-sm ${"text-muted-foreground"}`}>
                 <li className="flex items-center gap-2">
-                  <ShieldCheck className="h-3.5 w-3.5 text-orange-500" /> Retningslinjer og rutiner
-                  (HMS, hygiene, etc.)
+                  <ShieldCheck className="text-brand-orange h-3.5 w-3.5" /> Retningslinjer og
+                  rutiner (HMS, hygiene, etc.)
                 </li>
                 <li className="flex items-center gap-2">
-                  <Users className="h-3.5 w-3.5 text-orange-500" /> Ansattlister med navn, roller,
+                  <Users className="text-brand-orange h-3.5 w-3.5" /> Ansattlister med navn, roller,
                   kontaktinfo
                 </li>
                 <li className="flex items-center gap-2">
-                  <Clock className="h-3.5 w-3.5 text-orange-500" /> Vaktmønstre og arbeidstider
+                  <Clock className="text-brand-orange h-3.5 w-3.5" /> Vaktmønstre og arbeidstider
                 </li>
                 <li className="flex items-center gap-2">
-                  <DollarSign className="h-3.5 w-3.5 text-orange-500" /> Tariffavtaler og
+                  <DollarSign className="text-brand-orange h-3.5 w-3.5" /> Tariffavtaler og
                   lønnstillegg
                 </li>
                 <li className="flex items-center gap-2">
-                  <Briefcase className="h-3.5 w-3.5 text-orange-500" /> Ansettelsesvilkår
+                  <Briefcase className="text-brand-orange h-3.5 w-3.5" /> Ansettelsesvilkår
                   (oppsigelse, prøvetid)
                 </li>
                 <li className="flex items-center gap-2">
-                  <BookOpen className="h-3.5 w-3.5 text-orange-500" /> Personalhandbok
+                  <BookOpen className="text-brand-orange h-3.5 w-3.5" /> Personalhandbok
                 </li>
               </ul>
-              <p className={`text-xs ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>
+              <p className={`text-xs ${"text-muted-foreground"}`}>
                 Prøv å laste opp personalhandbok, tariffavtale, arbeidsavtale-mal, eller
                 ansattlister.
               </p>
@@ -360,18 +342,12 @@ function ExtractionSummary({
               {sections.map((section) => (
                 <div key={section.key}>
                   <div className="mb-1.5 flex items-center gap-2">
-                    <span className="text-orange-500">{section.icon}</span>
-                    <span
-                      className={`text-sm font-semibold ${
-                        isDark ? "text-zinc-200" : "text-zinc-800"
-                      }`}
-                    >
+                    <span className="text-brand-orange">{section.icon}</span>
+                    <span className={`text-sm font-semibold ${"text-foreground"}`}>
                       {section.title}
                     </span>
                     <span
-                      className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
-                        isDark ? "bg-zinc-800 text-zinc-400" : "bg-zinc-100 text-zinc-500"
-                      }`}
+                      className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${"bg-muted text-muted-foreground"}`}
                     >
                       {section.items.length}
                     </span>
@@ -379,11 +355,7 @@ function ExtractionSummary({
                       <button
                         type="button"
                         onClick={() => handleRemoveSection(section.key)}
-                        className={`ml-auto rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors ${
-                          isDark
-                            ? "text-red-400/70 hover:bg-red-950/30 hover:text-red-400"
-                            : "text-red-400 hover:bg-red-50 hover:text-red-600"
-                        }`}
+                        className={`ml-auto rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors ${"text-destructive hover:bg-red-50 hover:text-red-600"}`}
                       >
                         Fjern alle
                       </button>
@@ -396,17 +368,13 @@ function ExtractionSummary({
                       return (
                         <li key={itemId} className="space-y-0">
                           <div
-                            className={`group flex cursor-pointer items-center gap-2 rounded px-1.5 py-1 text-xs transition-colors ${
-                              isDark
-                                ? "text-zinc-400 hover:bg-zinc-800/50"
-                                : "text-zinc-600 hover:bg-zinc-50"
-                            }`}
+                            className={`group flex cursor-pointer items-center gap-2 rounded px-1.5 py-1 text-xs transition-colors ${"text-muted-foreground hover:bg-accent"}`}
                             onClick={() => toggleExpand(itemId)}
                           >
                             {isExpanded ? (
-                              <ChevronUp className="h-3 w-3 shrink-0 text-orange-500" />
+                              <ChevronUp className="text-brand-orange h-3 w-3 shrink-0" />
                             ) : (
-                              <ChevronDown className="h-3 w-3 shrink-0 text-zinc-500" />
+                              <ChevronDown className="text-muted-foreground h-3 w-3 shrink-0" />
                             )}
                             <span className="min-w-0 flex-1 font-medium">{item.label}</span>
                             <button
@@ -415,11 +383,7 @@ function ExtractionSummary({
                                 e.stopPropagation();
                                 handleRemoveItem(item.key, item.index);
                               }}
-                              className={`shrink-0 rounded p-0.5 opacity-0 transition-opacity group-hover:opacity-100 ${
-                                isDark
-                                  ? "text-red-400/70 hover:bg-red-950/40 hover:text-red-400"
-                                  : "text-red-400 hover:bg-red-50 hover:text-red-600"
-                              }`}
+                              className={`shrink-0 rounded p-0.5 opacity-0 transition-opacity group-hover:opacity-100 ${"text-destructive hover:bg-red-50 hover:text-red-600"}`}
                               title="Fjern dette elementet"
                             >
                               <X className="h-3 w-3" />
@@ -427,20 +391,14 @@ function ExtractionSummary({
                           </div>
                           {isExpanded && (
                             <div
-                              className={`mt-1 ml-5 rounded-lg border px-3 py-2 text-xs ${
-                                isDark
-                                  ? "border-zinc-800 bg-zinc-950/50 text-zinc-400"
-                                  : "border-zinc-200 bg-zinc-50 text-zinc-600"
-                              }`}
+                              className={`mt-1 ml-5 rounded-lg border px-3 py-2 text-xs ${"border-border bg-muted text-muted-foreground"}`}
                             >
                               <p className="leading-relaxed whitespace-pre-wrap">
                                 {item.detail || "Ingen detaljer tilgjengelig."}
                               </p>
                               {item.source && (
                                 <p
-                                  className={`mt-2 flex items-center gap-1 text-[10px] ${
-                                    isDark ? "text-zinc-600" : "text-zinc-400"
-                                  }`}
+                                  className={`mt-2 flex items-center gap-1 text-[10px] ${"text-muted-foreground"}`}
                                 >
                                   <FileSearch className="h-3 w-3" />
                                   Kilde: {item.source}
@@ -460,7 +418,7 @@ function ExtractionSummary({
 
         {/* Footer */}
         <div className="border-t border-inherit px-6 py-4">
-          <p className={`text-xs ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>
+          <p className={`text-xs ${"text-muted-foreground"}`}>
             Fjern elementer som er utdaterte eller feil. Gjenværende data forhåndsutfylles i de
             neste stegene.
           </p>
@@ -473,10 +431,8 @@ function ExtractionSummary({
 // ─── DocumentDropStep ─────────────────────────────────────
 
 export function DocumentDropStep({
-  isDark,
   onExtractionComplete,
 }: {
-  isDark: boolean;
   onExtractionComplete: (result: DocumentExtractionResult) => void;
 }) {
   const { workspace } = useWorkspace();
@@ -746,7 +702,6 @@ export function DocumentDropStep({
       {showSummary && extractionResult && (
         <ExtractionSummary
           result={extractionResult}
-          isDark={isDark}
           onClose={() => setShowSummary(false)}
           onUpdate={(updated) => {
             setExtractionResult(updated);
@@ -763,23 +718,17 @@ export function DocumentDropStep({
         onClick={() => fileInputRef.current?.click()}
         className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-10 transition-colors ${
           isDragging
-            ? isDark
-              ? "border-orange-500 bg-orange-950/20"
-              : "border-orange-400 bg-orange-50"
-            : isDark
-              ? "border-zinc-700 bg-zinc-900/30 hover:border-zinc-600"
-              : "border-zinc-300 bg-zinc-50/50 hover:border-zinc-400"
+            ? "border-brand-orange bg-brand-orange"
+            : "border-border bg-muted hover:border-zinc-400"
         }`}
       >
         <Upload
-          className={`mb-3 h-8 w-8 ${
-            isDragging ? "text-orange-500" : isDark ? "text-zinc-600" : "text-zinc-400"
-          }`}
+          className={`mb-3 h-8 w-8 ${isDragging ? "text-orange-500" : "text-muted-foreground"}`}
         />
-        <p className={`text-sm font-medium ${isDark ? "text-zinc-400" : "text-zinc-600"}`}>
+        <p className={`text-sm font-medium ${"text-muted-foreground"}`}>
           Dra og slipp dokumenter her, eller klikk for å velge
         </p>
-        <p className={`mt-1 text-xs ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>
+        <p className={`mt-1 text-xs ${"text-muted-foreground"}`}>
           PDF, DOCX, XLSX, CSV, bilder, TXT &middot; Maks {MAX_FILES} filer,{" "}
           {MAX_FILE_SIZE / (1024 * 1024)} MB per fil
         </p>
@@ -802,40 +751,32 @@ export function DocumentDropStep({
           {files.map((file) => (
             <div
               key={file.id}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2 ${
-                isDark ? "bg-zinc-900/40" : "bg-zinc-50"
-              }`}
+              className={`flex items-center gap-3 rounded-lg px-3 py-2 ${"bg-muted"}`}
             >
               {file.status === "uploading" && (
-                <Loader2 className="h-4 w-4 shrink-0 animate-spin text-orange-500" />
+                <Loader2 className="text-brand-orange h-4 w-4 shrink-0 animate-spin" />
               )}
-              {file.status === "uploaded" && (
-                <FileText className="h-4 w-4 shrink-0 text-emerald-500" />
-              )}
+              {file.status === "uploaded" && <FileText className="text-success h-4 w-4 shrink-0" />}
               {file.status === "analyzed" && (
-                <Sparkles className="h-4 w-4 shrink-0 text-orange-500" />
+                <Sparkles className="text-brand-orange h-4 w-4 shrink-0" />
               )}
-              {file.status === "error" && <AlertCircle className="h-4 w-4 shrink-0 text-red-500" />}
+              {file.status === "error" && (
+                <AlertCircle className="text-destructive h-4 w-4 shrink-0" />
+              )}
 
-              <span
-                className={`min-w-0 flex-1 truncate text-sm ${
-                  isDark ? "text-zinc-300" : "text-zinc-700"
-                }`}
-              >
+              <span className={`min-w-0 flex-1 truncate text-sm ${"text-muted-foreground"}`}>
                 {file.name}
               </span>
 
               {file.status === "analyzed" && (
                 <span
-                  className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase ${
-                    isDark ? "bg-orange-500/10 text-orange-400" : "bg-orange-50 text-orange-600"
-                  }`}
+                  className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase ${"bg-brand-orange text-brand-orange"}`}
                 >
                   Analysert
                 </span>
               )}
 
-              <span className={`shrink-0 text-xs ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>
+              <span className={`shrink-0 text-xs ${"text-muted-foreground"}`}>
                 {formatSize(file.size)}
               </span>
               <button
@@ -844,11 +785,7 @@ export function DocumentDropStep({
                   e.stopPropagation();
                   void handleRemove(file);
                 }}
-                className={`shrink-0 rounded p-1 transition-colors ${
-                  isDark
-                    ? "text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300"
-                    : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
-                }`}
+                className={`shrink-0 rounded p-1 transition-colors ${"text-muted-foreground hover:bg-accent hover:text-zinc-600"}`}
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -876,7 +813,7 @@ export function DocumentDropStep({
 
       {/* Analyzing spinner */}
       {isAnalyzing && (
-        <div className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 py-3 text-sm font-semibold text-white opacity-70">
+        <div className="bg-brand-orange flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-white opacity-70">
           <Loader2 className="h-4 w-4 animate-spin" />
           Analyserer...
         </div>
@@ -898,34 +835,16 @@ export function DocumentDropStep({
           return (
             <div
               className={`flex items-center justify-between rounded-xl border px-4 py-3 ${
-                hasData
-                  ? isDark
-                    ? "border-emerald-900 bg-emerald-950/30"
-                    : "border-emerald-200 bg-emerald-50"
-                  : isDark
-                    ? "border-amber-900/50 bg-amber-950/20"
-                    : "border-amber-200 bg-amber-50"
+                hasData ? "border-success bg-success" : "border-warning bg-warning"
               }`}
             >
               <div className="flex items-center gap-3">
                 {hasData ? (
-                  <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-500" />
+                  <CheckCircle2 className="text-success h-5 w-5 shrink-0" />
                 ) : (
-                  <AlertCircle
-                    className={`h-5 w-5 shrink-0 ${isDark ? "text-amber-500" : "text-amber-600"}`}
-                  />
+                  <AlertCircle className={`h-5 w-5 shrink-0 ${"text-warning"}`} />
                 )}
-                <p
-                  className={`text-sm font-medium ${
-                    hasData
-                      ? isDark
-                        ? "text-emerald-400"
-                        : "text-emerald-700"
-                      : isDark
-                        ? "text-amber-400"
-                        : "text-amber-700"
-                  }`}
-                >
+                <p className={`text-sm font-medium ${hasData ? "text-success" : "text-warning"}`}>
                   {hasData
                     ? "Dokumentene er analysert. Dataene er fylt inn i de neste stegene."
                     : "Analysert, men ingen relevant driftsdata funnet. Prøv andre dokumenter."}
@@ -936,12 +855,8 @@ export function DocumentDropStep({
                 onClick={() => setShowSummary(true)}
                 className={`flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
                   hasData
-                    ? isDark
-                      ? "bg-emerald-900/50 text-emerald-400 hover:bg-emerald-900"
-                      : "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
-                    : isDark
-                      ? "bg-amber-900/50 text-amber-400 hover:bg-amber-900"
-                      : "bg-amber-100 text-amber-700 hover:bg-amber-200"
+                    ? "bg-success text-success hover:bg-emerald-200"
+                    : "bg-warning text-warning hover:bg-amber-200"
                 }`}
               >
                 <Eye className="h-3.5 w-3.5" />
@@ -952,7 +867,7 @@ export function DocumentDropStep({
         })()}
 
       {/* Skip hint */}
-      <p className={`text-center text-xs ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>
+      <p className={`text-center text-xs ${"text-muted-foreground"}`}>
         Dette steget er valgfritt. Klikk &laquo;Neste&raquo; for å hoppe over.
       </p>
     </div>

@@ -42,7 +42,7 @@ export default function AdminDashboard({ isDark }: AdminDashboardProps) {
   }
 
   if (isSetupMode) {
-    return <WorkspaceSetupWizard isDark={isDark} onComplete={dismissSetup} />;
+    return <WorkspaceSetupWizard onComplete={dismissSetup} />;
   }
 
   return (

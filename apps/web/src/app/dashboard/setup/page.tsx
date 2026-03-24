@@ -9,7 +9,5 @@ export default function SetupPage() {
   const { isDark } = useContext(DashboardContext);
   const router = useRouter();
 
-  return (
-    <WorkspaceSetupWizard isDark={isDark} onComplete={() => router.push("/dashboard")} force />
-  );
+  return <WorkspaceSetupWizard onComplete={() => router.push("/dashboard")} force />;
 }

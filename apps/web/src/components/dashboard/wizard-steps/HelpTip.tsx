@@ -8,7 +8,10 @@ export function HelpTip({ text }: { text: string }) {
     <TooltipProvider delayDuration={200}>
       <Tooltip>
         <TooltipTrigger asChild>
-          <button type="button" className="inline-flex shrink-0 text-zinc-400 hover:text-zinc-300">
+          <button
+            type="button"
+            className="text-muted-foreground inline-flex shrink-0 hover:text-zinc-300"
+          >
             <HelpCircle className="h-4 w-4" />
           </button>
         </TooltipTrigger>

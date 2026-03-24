@@ -72,12 +72,10 @@ const SUPPLEMENT_LABELS: Record<keyof SupplementState, string> = {
 // ─── PayrollSetupStep ────────────────────────────────────
 
 export function PayrollSetupStep({
-  isDark,
   industryTariffs,
   defaultTariffKey,
   extractedPayroll,
 }: {
-  isDark: boolean;
   industryTariffs?: IndustryTariff[];
   defaultTariffKey?: string;
   extractedPayroll?: {
@@ -400,25 +398,17 @@ export function PayrollSetupStep({
       {/* Status banner */}
       {hasSaved && (
         <div
-          className={`flex items-center gap-2 rounded-xl border px-4 py-3 ${
-            isDark ? "border-emerald-500/30 bg-emerald-500/10" : "border-emerald-200 bg-emerald-50"
-          }`}
+          className={`flex items-center gap-2 rounded-xl border px-4 py-3 ${"border-success bg-success"}`}
         >
-          <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-          <span
-            className={`text-sm font-medium ${isDark ? "text-emerald-300" : "text-emerald-700"}`}
-          >
-            Lønnsoppsett er lagret
-          </span>
+          <CheckCircle2 className="text-success h-5 w-5" />
+          <span className={`text-sm font-medium ${"text-success"}`}>Lønnsoppsett er lagret</span>
         </div>
       )}
 
       {/* ── Del 1: Tariffavtale ── */}
       <div className="space-y-3">
         <div className="flex items-center gap-2">
-          <h3 className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-            Tariffavtale
-          </h3>
+          <h3 className={`text-sm font-bold ${"text-muted-foreground"}`}>Tariffavtale</h3>
           <HelpTip text="Tariffavtalen bestemmer minstelønn og tillegg. Velg den avtalen din virksomhet følger." />
         </div>
         <RadioGroup
@@ -431,16 +421,12 @@ export function PayrollSetupStep({
               key={option.value}
               className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition-colors ${
                 selectedTariff === option.value
-                  ? isDark
-                    ? "border-orange-500/40 bg-orange-500/5"
-                    : "border-orange-300 bg-orange-50/50"
-                  : isDark
-                    ? "border-zinc-800 bg-zinc-900/30"
-                    : "border-zinc-200 bg-zinc-50/50"
+                  ? "border-brand-orange bg-brand-orange/50"
+                  : "border-border bg-muted"
               }`}
             >
               <RadioGroupItem value={option.value} />
-              <span className={`text-sm font-medium ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
+              <span className={`text-sm font-medium ${"text-muted-foreground"}`}>
                 {option.label}
               </span>
             </label>
@@ -451,21 +437,13 @@ export function PayrollSetupStep({
       {/* ── Del 2: Tillegg ── */}
       <div className="space-y-3">
         <div className="flex items-center gap-2">
-          <h3 className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-            Tillegg
-          </h3>
+          <h3 className={`text-sm font-bold ${"text-muted-foreground"}`}>Tillegg</h3>
           <HelpTip text="Tillegg er ekstra betaling for kvelds-, helge- og overtidsarbeid. Satsene er forhåndsutfylt fra valgt tariff." />
         </div>
-        <div
-          className={`overflow-hidden rounded-xl border ${
-            isDark ? "border-zinc-800" : "border-zinc-200"
-          }`}
-        >
+        <div className={`overflow-hidden rounded-xl border ${"border-border"}`}>
           {/* Header */}
           <div
-            className={`grid grid-cols-[1fr_100px_60px_1fr] gap-3 px-4 py-2 text-xs font-semibold tracking-wider uppercase ${
-              isDark ? "bg-zinc-900/70 text-zinc-500" : "bg-zinc-50 text-zinc-400"
-            }`}
+            className={`grid grid-cols-[1fr_100px_60px_1fr] gap-3 px-4 py-2 text-xs font-semibold tracking-wider uppercase ${"bg-muted text-muted-foreground"}`}
           >
             <span>Type</span>
             <span>Sats</span>
@@ -475,11 +453,9 @@ export function PayrollSetupStep({
 
           {/* Kveldstillegg */}
           <div
-            className={`grid grid-cols-[1fr_100px_60px_1fr] items-center gap-3 border-t px-4 py-3 ${
-              isDark ? "border-zinc-800" : "border-zinc-200"
-            }`}
+            className={`grid grid-cols-[1fr_100px_60px_1fr] items-center gap-3 border-t px-4 py-3 ${"border-border"}`}
           >
-            <Label className={`text-sm ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
+            <Label className={`text-sm ${"text-muted-foreground"}`}>
               {SUPPLEMENT_LABELS.kveldstillegg}
             </Label>
             <Input
@@ -488,7 +464,7 @@ export function PayrollSetupStep({
               onChange={(e) => handleSupplementChange("kveldstillegg", "rate", e.target.value)}
               className="h-8 text-sm"
             />
-            <span className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+            <span className={`text-xs ${"text-muted-foreground"}`}>
               {supplements.kveldstillegg.unit}
             </span>
             <div className="flex items-center gap-2">
@@ -500,7 +476,7 @@ export function PayrollSetupStep({
                 }
                 className="h-8 w-24 text-sm"
               />
-              <span className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>-</span>
+              <span className={`text-xs ${"text-muted-foreground"}`}>-</span>
               <Input
                 type="time"
                 value={supplements.kveldstillegg.to_hour}
@@ -512,11 +488,9 @@ export function PayrollSetupStep({
 
           {/* Helgetillegg */}
           <div
-            className={`grid grid-cols-[1fr_100px_60px_1fr] items-center gap-3 border-t px-4 py-3 ${
-              isDark ? "border-zinc-800" : "border-zinc-200"
-            }`}
+            className={`grid grid-cols-[1fr_100px_60px_1fr] items-center gap-3 border-t px-4 py-3 ${"border-border"}`}
           >
-            <Label className={`text-sm ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
+            <Label className={`text-sm ${"text-muted-foreground"}`}>
               {SUPPLEMENT_LABELS.helgetillegg}
             </Label>
             <Input
@@ -525,21 +499,19 @@ export function PayrollSetupStep({
               onChange={(e) => handleSupplementChange("helgetillegg", "rate", e.target.value)}
               className="h-8 text-sm"
             />
-            <span className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+            <span className={`text-xs ${"text-muted-foreground"}`}>
               {supplements.helgetillegg.unit}
             </span>
-            <span className={`text-xs ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
+            <span className={`text-xs ${"text-muted-foreground"}`}>
               {supplements.helgetillegg.days.join(", ")}
             </span>
           </div>
 
           {/* Helligdagstillegg */}
           <div
-            className={`grid grid-cols-[1fr_100px_60px_1fr] items-center gap-3 border-t px-4 py-3 ${
-              isDark ? "border-zinc-800" : "border-zinc-200"
-            }`}
+            className={`grid grid-cols-[1fr_100px_60px_1fr] items-center gap-3 border-t px-4 py-3 ${"border-border"}`}
           >
-            <Label className={`text-sm ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
+            <Label className={`text-sm ${"text-muted-foreground"}`}>
               {SUPPLEMENT_LABELS.helligdagstillegg}
             </Label>
             <Input
@@ -548,7 +520,7 @@ export function PayrollSetupStep({
               onChange={(e) => handleSupplementChange("helligdagstillegg", "rate", e.target.value)}
               className="h-8 text-sm"
             />
-            <span className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+            <span className={`text-xs ${"text-muted-foreground"}`}>
               {supplements.helligdagstillegg.unit}
             </span>
             <span />
@@ -556,11 +528,9 @@ export function PayrollSetupStep({
 
           {/* Overtid 50% */}
           <div
-            className={`grid grid-cols-[1fr_100px_60px_1fr] items-center gap-3 border-t px-4 py-3 ${
-              isDark ? "border-zinc-800" : "border-zinc-200"
-            }`}
+            className={`grid grid-cols-[1fr_100px_60px_1fr] items-center gap-3 border-t px-4 py-3 ${"border-border"}`}
           >
-            <Label className={`text-sm ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
+            <Label className={`text-sm ${"text-muted-foreground"}`}>
               {SUPPLEMENT_LABELS.overtid_50}
             </Label>
             <Input
@@ -571,21 +541,19 @@ export function PayrollSetupStep({
               }
               className="h-8 text-sm"
             />
-            <span className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+            <span className={`text-xs ${"text-muted-foreground"}`}>
               {supplements.overtid_50.unit}
             </span>
-            <span className={`text-xs ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
+            <span className={`text-xs ${"text-muted-foreground"}`}>
               Etter {supplements.overtid_50.threshold_hours} timer
             </span>
           </div>
 
           {/* Overtid 100% */}
           <div
-            className={`grid grid-cols-[1fr_100px_60px_1fr] items-center gap-3 border-t px-4 py-3 ${
-              isDark ? "border-zinc-800" : "border-zinc-200"
-            }`}
+            className={`grid grid-cols-[1fr_100px_60px_1fr] items-center gap-3 border-t px-4 py-3 ${"border-border"}`}
           >
-            <Label className={`text-sm ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
+            <Label className={`text-sm ${"text-muted-foreground"}`}>
               {SUPPLEMENT_LABELS.overtid_100}
             </Label>
             <Input
@@ -596,10 +564,10 @@ export function PayrollSetupStep({
               }
               className="h-8 text-sm"
             />
-            <span className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+            <span className={`text-xs ${"text-muted-foreground"}`}>
               {supplements.overtid_100.unit}
             </span>
-            <span className={`text-xs ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
+            <span className={`text-xs ${"text-muted-foreground"}`}>
               Etter {supplements.overtid_100.threshold_hours} timer
             </span>
           </div>
@@ -608,9 +576,7 @@ export function PayrollSetupStep({
           {customSupplements.map((cs) => (
             <div
               key={cs.id}
-              className={`grid grid-cols-[1fr_100px_60px_1fr] items-center gap-3 border-t px-4 py-3 ${
-                isDark ? "border-zinc-800" : "border-zinc-200"
-              }`}
+              className={`grid grid-cols-[1fr_100px_60px_1fr] items-center gap-3 border-t px-4 py-3 ${"border-border"}`}
             >
               <Input
                 type="text"
@@ -626,7 +592,7 @@ export function PayrollSetupStep({
                 placeholder="0"
                 className="h-8 text-sm"
               />
-              <span className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>kr/t</span>
+              <span className={`text-xs ${"text-muted-foreground"}`}>kr/t</span>
               <div className="flex items-center gap-2">
                 <Input
                   type="text"
@@ -640,11 +606,7 @@ export function PayrollSetupStep({
                 <button
                   type="button"
                   onClick={() => handleRemoveCustomSupplement(cs.id)}
-                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors ${
-                    isDark
-                      ? "text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300"
-                      : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
-                  }`}
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors ${"text-muted-foreground hover:bg-accent hover:text-zinc-600"}`}
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -657,11 +619,7 @@ export function PayrollSetupStep({
         <button
           type="button"
           onClick={handleAddCustomSupplement}
-          className={`mt-2 flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors ${
-            isDark
-              ? "border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-300"
-              : "border-zinc-200 text-zinc-500 hover:border-zinc-300 hover:text-zinc-700"
-          }`}
+          className={`mt-2 flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors ${"border-border text-muted-foreground hover:border-zinc-300 hover:text-zinc-700"}`}
         >
           <Plus className="h-4 w-4" />
           Legg til tillegg
@@ -671,17 +629,13 @@ export function PayrollSetupStep({
       {/* ── Del 3: Stillingslønn ── */}
       <div className="space-y-3">
         <div className="flex items-center gap-2">
-          <h3 className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-            Stillingslønn
-          </h3>
+          <h3 className={`text-sm font-bold ${"text-muted-foreground"}`}>Stillingslønn</h3>
           <HelpTip text="Sett grunnlønn per stilling. Denne brukes som default når du inviterer ansatte." />
         </div>
 
         {stablePositions.length === 0 && !isAddingPosition ? (
           <div className="space-y-3">
-            <p className={`text-sm ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
-              Ingen stillinger opprettet enda.
-            </p>
+            <p className={`text-sm ${"text-muted-foreground"}`}>Ingen stillinger opprettet enda.</p>
             <button
               type="button"
               onClick={() => {
@@ -690,11 +644,7 @@ export function PayrollSetupStep({
                   setNewPositionDeptId(stableDepartments[0]!.department_id);
                 }
               }}
-              className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors ${
-                isDark
-                  ? "border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-300"
-                  : "border-zinc-200 text-zinc-500 hover:border-zinc-300 hover:text-zinc-700"
-              }`}
+              className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors ${"border-border text-muted-foreground hover:border-zinc-300 hover:text-zinc-700"}`}
             >
               <Plus className="h-4 w-4" />
               Legg til stilling
@@ -703,15 +653,9 @@ export function PayrollSetupStep({
         ) : stablePositions.length === 0 && isAddingPosition ? (
           <div className="space-y-3">
             {/* Inline add position form */}
-            <div
-              className={`space-y-3 rounded-xl border p-4 ${
-                isDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-white"
-              }`}
-            >
+            <div className={`space-y-3 rounded-xl border p-4 ${"border-border bg-white"}`}>
               <div className="space-y-2">
-                <Label className={`text-sm ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-                  Stillingsnavn
-                </Label>
+                <Label className={`text-sm ${"text-muted-foreground"}`}>Stillingsnavn</Label>
                 <Input
                   type="text"
                   value={newPositionName}
@@ -729,17 +673,11 @@ export function PayrollSetupStep({
               </div>
               {stableDepartments.length > 1 && (
                 <div className="space-y-2">
-                  <Label className={`text-sm ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-                    Avdeling
-                  </Label>
+                  <Label className={`text-sm ${"text-muted-foreground"}`}>Avdeling</Label>
                   <select
                     value={newPositionDeptId}
                     onChange={(e) => setNewPositionDeptId(e.target.value)}
-                    className={`h-9 w-full rounded-lg border px-3 text-sm ${
-                      isDark
-                        ? "border-zinc-800 bg-zinc-950 text-white"
-                        : "border-zinc-200 bg-white text-zinc-900"
-                    }`}
+                    className={`h-9 w-full rounded-lg border px-3 text-sm ${"border-border text-foreground bg-white"}`}
                   >
                     {stableDepartments.map((d) => (
                       <option key={d.department_id} value={d.department_id}>
@@ -750,7 +688,7 @@ export function PayrollSetupStep({
                 </div>
               )}
               {stableDepartments.length === 0 && (
-                <p className={`text-xs ${isDark ? "text-amber-400/80" : "text-amber-600"}`}>
+                <p className={`text-xs ${"text-warning"}`}>
                   Opprett minst én avdeling under Organisasjon først.
                 </p>
               )}
@@ -763,7 +701,7 @@ export function PayrollSetupStep({
                     stableDepartments.length === 0 ||
                     createPositionMutation.isPending
                   }
-                  className="flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-orange-600 disabled:opacity-50"
+                  className="bg-brand-orange flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-orange-600 disabled:opacity-50"
                 >
                   {createPositionMutation.isPending ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -775,11 +713,7 @@ export function PayrollSetupStep({
                 <button
                   type="button"
                   onClick={() => setIsAddingPosition(false)}
-                  className={`rounded-lg border px-4 py-2 text-sm transition-colors ${
-                    isDark
-                      ? "border-zinc-700 text-zinc-400 hover:text-zinc-300"
-                      : "border-zinc-200 text-zinc-500 hover:text-zinc-700"
-                  }`}
+                  className={`rounded-lg border px-4 py-2 text-sm transition-colors ${"border-border text-muted-foreground hover:text-zinc-700"}`}
                 >
                   Avbryt
                 </button>
@@ -791,15 +725,9 @@ export function PayrollSetupStep({
             {positionWages.map((pw) => (
               <div
                 key={pw.position_id}
-                className={`flex items-center justify-between rounded-xl border px-4 py-3 ${
-                  isDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-white"
-                }`}
+                className={`flex items-center justify-between rounded-xl border px-4 py-3 ${"border-border bg-white"}`}
               >
-                <span
-                  className={`text-sm font-medium ${isDark ? "text-zinc-300" : "text-zinc-700"}`}
-                >
-                  {pw.name}
-                </span>
+                <span className={`text-sm font-medium ${"text-muted-foreground"}`}>{pw.name}</span>
                 <div className="flex items-center gap-2">
                   <Input
                     type="number"
@@ -809,9 +737,7 @@ export function PayrollSetupStep({
                     placeholder="0"
                     className="h-8 w-28 text-right text-sm"
                   />
-                  <span className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
-                    kr/t
-                  </span>
+                  <span className={`text-xs ${"text-muted-foreground"}`}>kr/t</span>
                 </div>
               </div>
             ))}
@@ -826,21 +752,13 @@ export function PayrollSetupStep({
                     setNewPositionDeptId(stableDepartments[0]!.department_id);
                   }
                 }}
-                className={`mt-2 flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors ${
-                  isDark
-                    ? "border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-300"
-                    : "border-zinc-200 text-zinc-500 hover:border-zinc-300 hover:text-zinc-700"
-                }`}
+                className={`mt-2 flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors ${"border-border text-muted-foreground hover:border-zinc-300 hover:text-zinc-700"}`}
               >
                 <Plus className="h-4 w-4" />
                 Legg til stilling
               </button>
             ) : (
-              <div
-                className={`mt-2 space-y-3 rounded-xl border p-4 ${
-                  isDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-white"
-                }`}
-              >
+              <div className={`mt-2 space-y-3 rounded-xl border p-4 ${"border-border bg-white"}`}>
                 <div className="flex gap-2">
                   <Input
                     type="text"
@@ -860,11 +778,7 @@ export function PayrollSetupStep({
                     <select
                       value={newPositionDeptId}
                       onChange={(e) => setNewPositionDeptId(e.target.value)}
-                      className={`h-9 rounded-lg border px-3 text-sm ${
-                        isDark
-                          ? "border-zinc-800 bg-zinc-950 text-white"
-                          : "border-zinc-200 bg-white text-zinc-900"
-                      }`}
+                      className={`h-9 rounded-lg border px-3 text-sm ${"border-border text-foreground bg-white"}`}
                     >
                       {stableDepartments.map((d) => (
                         <option key={d.department_id} value={d.department_id}>
@@ -881,7 +795,7 @@ export function PayrollSetupStep({
                       stableDepartments.length === 0 ||
                       createPositionMutation.isPending
                     }
-                    className="flex h-9 items-center gap-1.5 rounded-lg bg-orange-500 px-3 text-sm font-semibold text-white transition-colors hover:bg-orange-600 disabled:opacity-50"
+                    className="bg-brand-orange flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-semibold text-white transition-colors hover:bg-orange-600 disabled:opacity-50"
                   >
                     {createPositionMutation.isPending ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -896,11 +810,7 @@ export function PayrollSetupStep({
                       setIsAddingPosition(false);
                       setNewPositionName("");
                     }}
-                    className={`flex h-9 items-center rounded-lg border px-3 text-sm transition-colors ${
-                      isDark
-                        ? "border-zinc-700 text-zinc-400 hover:text-zinc-300"
-                        : "border-zinc-200 text-zinc-500 hover:text-zinc-700"
-                    }`}
+                    className={`flex h-9 items-center rounded-lg border px-3 text-sm transition-colors ${"border-border text-muted-foreground hover:text-zinc-700"}`}
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>

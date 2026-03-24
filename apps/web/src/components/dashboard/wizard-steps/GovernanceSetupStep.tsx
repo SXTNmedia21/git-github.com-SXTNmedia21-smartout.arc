@@ -31,7 +31,6 @@ import { HelpTip } from "@/components/dashboard/wizard-steps/HelpTip";
 
 function TemplateCard({
   template,
-  isDark,
   isCreated,
   isCreating,
   isMandatory,
@@ -40,7 +39,6 @@ function TemplateCard({
   onCreate,
 }: {
   template: GovernanceTemplate;
-  isDark: boolean;
   isCreated: boolean;
   isCreating: boolean;
   isMandatory: boolean;
@@ -56,9 +54,7 @@ function TemplateCard({
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
       <div
-        className={`overflow-hidden rounded-xl border transition-colors ${
-          isDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-white"
-        }`}
+        className={`overflow-hidden rounded-xl border transition-colors ${"border-border bg-white"}`}
       >
         <CollapsibleTrigger asChild>
           <div className="flex cursor-pointer items-center justify-between px-4 py-3">
@@ -74,32 +70,24 @@ function TemplateCard({
               )}
 
               <div className="min-w-0 flex-1">
-                <p
-                  className={`truncate text-sm font-semibold ${
-                    isDark ? "text-zinc-200" : "text-zinc-800"
-                  }`}
-                >
+                <p className={`truncate text-sm font-semibold ${"text-foreground"}`}>
                   {template.name}
                 </p>
                 {template.description && (
-                  <p className={`truncate text-xs ${isDark ? "text-zinc-500" : "text-zinc-500"}`}>
+                  <p className={`truncate text-xs ${"text-muted-foreground"}`}>
                     {template.description}
                   </p>
                 )}
                 <div className="mt-1 flex items-center gap-2">
                   <span
-                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                      isDark ? "bg-zinc-800 text-zinc-400" : "bg-zinc-100 text-zinc-500"
-                    }`}
+                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${"bg-muted text-muted-foreground"}`}
                   >
                     <FileText className="h-3 w-3" />
                     {procedureCount} prosedyre{procedureCount !== 1 ? "r" : ""}
                   </span>
                   {hasQuestions && (
                     <span
-                      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                        isDark ? "bg-zinc-800 text-zinc-400" : "bg-zinc-100 text-zinc-500"
-                      }`}
+                      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${"bg-muted text-muted-foreground"}`}
                     >
                       1 test
                     </span>
@@ -111,9 +99,9 @@ function TemplateCard({
             <div className="ml-3 flex shrink-0 items-center gap-2">
               {/* Action */}
               {isCreated ? (
-                <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                <CheckCircle2 className="text-success h-5 w-5" />
               ) : isCreating ? (
-                <Loader2 className="h-5 w-5 animate-spin text-orange-500" />
+                <Loader2 className="text-brand-orange h-5 w-5 animate-spin" />
               ) : (
                 <button
                   onClick={(e) => {
@@ -136,24 +124,20 @@ function TemplateCard({
         </CollapsibleTrigger>
 
         <CollapsibleContent>
-          <div
-            className={`space-y-2 border-t px-4 py-3 ${isDark ? "border-zinc-800" : "border-zinc-200"}`}
-          >
-            <p className={`text-xs leading-relaxed ${isDark ? "text-zinc-400" : "text-zinc-600"}`}>
+          <div className={`space-y-2 border-t px-4 py-3 ${"border-border"}`}>
+            <p className={`text-xs leading-relaxed ${"text-muted-foreground"}`}>
               {template.longDescription}
             </p>
-            <p className={`text-[10px] font-medium ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+            <p className={`text-[10px] font-medium ${"text-muted-foreground"}`}>
               Inkluderer: {procedureCount} prosedyre{procedureCount !== 1 ? "r" : ""}, {stepCount}{" "}
               steg, {hasQuestions ? "1 kunnskapstest, " : ""}1 bekreftelse
             </p>
-            <p className={`text-[10px] ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+            <p className={`text-[10px] ${"text-muted-foreground"}`}>
               Alle ansatte i berorte avdelinger far dette som opplaering. De ma lese prosedyrene,
               besta en kunnskapstest, og signere en bekreftelse.
             </p>
             {template.legalBasis && (
-              <p
-                className={`text-[10px] font-medium ${isDark ? "text-amber-400/70" : "text-amber-600/70"}`}
-              >
+              <p className={`text-[10px] font-medium ${"text-warning/70"}`}>
                 {"\u2696"} {template.legalBasis}
               </p>
             )}
@@ -167,11 +151,9 @@ function TemplateCard({
 // ─── GovernanceSetupStep ───────────────────────────────────
 
 export function GovernanceSetupStep({
-  isDark,
   industryPackage,
   extractedPolicies,
 }: {
-  isDark: boolean;
   industryPackage?: IndustryPackage;
   extractedPolicies?: Array<{ name: string; content: string; source: string }>;
 }) {
@@ -275,9 +257,7 @@ export function GovernanceSetupStep({
       {/* ── Section 1: Filter questions ── */}
       <div className="space-y-3">
         <div className="flex items-center gap-2">
-          <h3 className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-            Hva gjelder for dere?
-          </h3>
+          <h3 className={`text-sm font-bold ${"text-muted-foreground"}`}>Hva gjelder for dere?</h3>
           <HelpTip text="Svar på disse spørsmålene så vi kan forslå riktige retningslinjer for din type virksomhet." />
         </div>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -285,18 +265,10 @@ export function GovernanceSetupStep({
             <label
               key={q.key}
               className={`flex cursor-pointer items-center justify-between rounded-xl border px-4 py-3 transition-colors ${
-                filters[q.key]
-                  ? isDark
-                    ? "border-orange-500/40 bg-orange-500/5"
-                    : "border-orange-300 bg-orange-50/50"
-                  : isDark
-                    ? "border-zinc-800 bg-zinc-900/30"
-                    : "border-zinc-200 bg-zinc-50/50"
+                filters[q.key] ? "border-brand-orange bg-brand-orange/50" : "border-border bg-muted"
               }`}
             >
-              <span className={`text-sm font-medium ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-                {q.label}
-              </span>
+              <span className={`text-sm font-medium ${"text-muted-foreground"}`}>{q.label}</span>
               <Switch checked={filters[q.key]} onCheckedChange={() => handleFilterToggle(q.key)} />
             </label>
           ))}
@@ -307,7 +279,7 @@ export function GovernanceSetupStep({
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <h3 className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
+            <h3 className={`text-sm font-bold ${"text-muted-foreground"}`}>
               Foreslåtte retningslinjer
             </h3>
             <HelpTip text="Basert på svarene dine forslår vi retningslinjer. Lovpålagte må opprettes, anbefalte kan slås av." />
@@ -331,12 +303,8 @@ export function GovernanceSetupStep({
         {/* Mandatory group */}
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <ShieldCheck className="h-4 w-4 text-red-500" />
-            <span
-              className={`text-xs font-bold tracking-wider uppercase ${
-                isDark ? "text-red-400/80" : "text-red-600/80"
-              }`}
-            >
+            <ShieldCheck className="text-destructive h-4 w-4" />
+            <span className={`text-xs font-bold tracking-wider uppercase ${"text-destructive/80"}`}>
               Lovpålagt
             </span>
           </div>
@@ -345,7 +313,6 @@ export function GovernanceSetupStep({
               <TemplateCard
                 key={t.id}
                 template={t}
-                isDark={isDark}
                 isCreated={createdNames.has(t.name)}
                 isCreating={creatingId === t.id}
                 isMandatory
@@ -360,11 +327,9 @@ export function GovernanceSetupStep({
         {recommended.length > 0 && (
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <Shield className="h-4 w-4 text-orange-500" />
+              <Shield className="text-brand-orange h-4 w-4" />
               <span
-                className={`text-xs font-bold tracking-wider uppercase ${
-                  isDark ? "text-orange-400/80" : "text-orange-600/80"
-                }`}
+                className={`text-xs font-bold tracking-wider uppercase ${"text-brand-orange/80"}`}
               >
                 Anbefalt for din virksomhet
               </span>
@@ -374,7 +339,6 @@ export function GovernanceSetupStep({
                 <TemplateCard
                   key={t.id}
                   template={t}
-                  isDark={isDark}
                   isCreated={createdNames.has(t.name)}
                   isCreating={creatingId === t.id}
                   isMandatory={false}
@@ -391,9 +355,7 @@ export function GovernanceSetupStep({
       {/* ── Section 3: Custom policies ── */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-            Egne retningslinjer
-          </h3>
+          <h3 className={`text-sm font-bold ${"text-muted-foreground"}`}>Egne retningslinjer</h3>
           <PolicyForm />
         </div>
 
@@ -404,19 +366,15 @@ export function GovernanceSetupStep({
               return (
                 <div
                   key={p.policy_id ?? idx}
-                  className={`flex items-center gap-3 rounded-lg px-4 py-2.5 ${
-                    isDark ? "bg-zinc-900/40" : "bg-zinc-50"
-                  }`}
+                  className={`flex items-center gap-3 rounded-lg px-4 py-2.5 ${"bg-muted"}`}
                 >
-                  <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
+                  <CheckCircle2 className="text-success h-4 w-4 shrink-0" />
                   <span
-                    className={`flex-1 truncate text-sm font-medium ${
-                      isDark ? "text-zinc-300" : "text-zinc-700"
-                    }`}
+                    className={`flex-1 truncate text-sm font-medium ${"text-muted-foreground"}`}
                   >
                     {p.name}
                   </span>
-                  <span className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+                  <span className={`text-xs ${"text-muted-foreground"}`}>
                     {procCount} prosedyre{procCount !== 1 ? "r" : ""}
                   </span>
                 </div>

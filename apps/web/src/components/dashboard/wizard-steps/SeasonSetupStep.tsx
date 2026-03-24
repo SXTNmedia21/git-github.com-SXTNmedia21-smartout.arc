@@ -206,10 +206,8 @@ function estimateStaffPerDay(
 // ─── SeasonSetupStep ────────────────────────────────────────
 
 export function SeasonSetupStep({
-  isDark,
   suggestedSeasons: _suggestedSeasons,
 }: {
-  isDark: boolean;
   suggestedSeasons?: IndustrySeasonTemplate[];
 }) {
   const { workspace } = useWorkspace();
@@ -651,14 +649,10 @@ export function SeasonSetupStep({
       {/* ── Existing season banner ── */}
       {existingSeason && (
         <div
-          className={`flex items-center gap-3 rounded-xl border px-4 py-3 ${
-            isDark
-              ? "border-emerald-500/20 bg-emerald-950/10"
-              : "border-emerald-200 bg-emerald-50/50"
-          }`}
+          className={`flex items-center gap-3 rounded-xl border px-4 py-3 ${"border-success bg-success/50"}`}
         >
-          <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
-          <p className={`text-xs ${isDark ? "text-emerald-300" : "text-emerald-700"}`}>
+          <CheckCircle2 className="text-success h-4 w-4 shrink-0" />
+          <p className={`text-xs ${"text-success"}`}>
             Sesong opprettet — juster innstillinger nedenfor.
           </p>
         </div>
@@ -668,9 +662,7 @@ export function SeasonSetupStep({
       <div className="space-y-3">
         <div className="space-y-1.5">
           <div className="flex items-center gap-2">
-            <Label className={`text-sm font-medium ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-              Sesongnavn
-            </Label>
+            <Label className={`text-sm font-medium ${"text-muted-foreground"}`}>Sesongnavn</Label>
             <HelpTip text="Gi sesongen et beskrivende navn. Du kan opprette flere sesonger fra dashboardet etterpå." />
           </div>
           <Input
@@ -683,9 +675,7 @@ export function SeasonSetupStep({
 
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <Label className={`text-sm font-medium ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-              Startdato
-            </Label>
+            <Label className={`text-sm font-medium ${"text-muted-foreground"}`}>Startdato</Label>
             <Input
               type="date"
               value={startDate}
@@ -694,9 +684,7 @@ export function SeasonSetupStep({
             />
           </div>
           <div className="space-y-1.5">
-            <Label className={`text-sm font-medium ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-              Sluttdato
-            </Label>
+            <Label className={`text-sm font-medium ${"text-muted-foreground"}`}>Sluttdato</Label>
             <Input
               type="date"
               value={endDate}
@@ -707,24 +695,20 @@ export function SeasonSetupStep({
         </div>
 
         {seasonDays > 0 && (
-          <p className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
-            {seasonDays} dager
-          </p>
+          <p className={`text-xs ${"text-muted-foreground"}`}>{seasonDays} dager</p>
         )}
       </div>
 
       {/* ── Section 2: Budget ── */}
       <div className="space-y-3">
         <div className="flex items-center gap-2">
-          <h3 className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-            Budsjett
-          </h3>
+          <h3 className={`text-sm font-bold ${"text-muted-foreground"}`}>Budsjett</h3>
           <HelpTip text="Sett omsetning per gjest og totalmål. Systemet beregner bemanningsbehov automatisk." />
         </div>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div className="space-y-1.5">
-            <Label className={`text-xs font-medium ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
+            <Label className={`text-xs font-medium ${"text-muted-foreground"}`}>
               Omsetning per gjest
             </Label>
             <div className="relative">
@@ -736,9 +720,7 @@ export function SeasonSetupStep({
                 className="h-9 pr-8 text-sm"
               />
               <span
-                className={`pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs ${
-                  isDark ? "text-zinc-500" : "text-zinc-400"
-                }`}
+                className={`pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs ${"text-muted-foreground"}`}
               >
                 kr
               </span>
@@ -746,7 +728,7 @@ export function SeasonSetupStep({
           </div>
 
           <div className="space-y-1.5">
-            <Label className={`text-xs font-medium ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
+            <Label className={`text-xs font-medium ${"text-muted-foreground"}`}>
               Total omsetning (sesong)
             </Label>
             <div className="relative">
@@ -758,9 +740,7 @@ export function SeasonSetupStep({
                 className="h-9 pr-8 text-sm"
               />
               <span
-                className={`pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs ${
-                  isDark ? "text-zinc-500" : "text-zinc-400"
-                }`}
+                className={`pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs ${"text-muted-foreground"}`}
               >
                 kr
               </span>
@@ -768,9 +748,7 @@ export function SeasonSetupStep({
           </div>
 
           <div className="space-y-1.5">
-            <Label className={`text-xs font-medium ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
-              Lønnskostnad
-            </Label>
+            <Label className={`text-xs font-medium ${"text-muted-foreground"}`}>Lønnskostnad</Label>
             <div className="relative">
               <Input
                 type="number"
@@ -780,9 +758,7 @@ export function SeasonSetupStep({
                 className="h-9 pr-8 text-sm"
               />
               <span
-                className={`pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs ${
-                  isDark ? "text-zinc-500" : "text-zinc-400"
-                }`}
+                className={`pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs ${"text-muted-foreground"}`}
               >
                 %
               </span>
@@ -791,7 +767,7 @@ export function SeasonSetupStep({
         </div>
 
         {totalRevenue > 0 && seasonDays > 0 && (
-          <p className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+          <p className={`text-xs ${"text-muted-foreground"}`}>
             Snitt {Math.round(totalRevenue / seasonDays).toLocaleString("nb-NO")} kr/dag ·{" "}
             Lønnsbudsjett {Math.round((totalRevenue * laborPct) / 100).toLocaleString("nb-NO")} kr ·{" "}
             Snittlønn {avgHourlyWage} kr/t
@@ -803,23 +779,17 @@ export function SeasonSetupStep({
       {(departments ?? []).length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <h3 className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
+            <h3 className={`text-sm font-bold ${"text-muted-foreground"}`}>
               <Clock className="mr-1 inline-block h-4 w-4" />
               Åpningstider per avdeling
             </h3>
             <HelpTip text="Kjøkken åpner før service (prep), bar stenger etter service. Disse tidene styrer vaktstart/-slutt og rutineberegninger." />
           </div>
 
-          <div
-            className={`overflow-x-auto rounded-xl border ${
-              isDark ? "border-zinc-800" : "border-zinc-200"
-            }`}
-          >
+          <div className={`overflow-x-auto rounded-xl border ${"border-border"}`}>
             <table className="w-full text-xs">
               <thead>
-                <tr
-                  className={isDark ? "bg-zinc-900/70 text-zinc-500" : "bg-zinc-50 text-zinc-400"}
-                >
+                <tr className={"bg-muted text-muted-foreground"}>
                   <th className="px-3 py-2 text-left font-semibold">Avdeling</th>
                   {WEEKDAYS.map((wd) => (
                     <th key={wd.key} className="px-1.5 py-2 text-center font-semibold">
@@ -834,15 +804,10 @@ export function SeasonSetupStep({
                   const firstDay = deptHours?.mon ?? "";
 
                   return (
-                    <tr
-                      key={dept.department_id ?? idx}
-                      className={`border-t ${isDark ? "border-zinc-800" : "border-zinc-200"}`}
-                    >
+                    <tr key={dept.department_id ?? idx} className={`border-t ${"border-border"}`}>
                       <td className="px-3 py-2">
                         <div className="flex items-center gap-2">
-                          <span
-                            className={`font-medium ${isDark ? "text-zinc-300" : "text-zinc-700"}`}
-                          >
+                          <span className={`font-medium ${"text-muted-foreground"}`}>
                             {dept.name}
                           </span>
                           <button
@@ -850,11 +815,7 @@ export function SeasonSetupStep({
                             onClick={() => {
                               if (firstDay) handleSetAllDays(dept.name, firstDay);
                             }}
-                            className={`rounded px-1.5 py-0.5 text-[10px] transition-colors ${
-                              isDark
-                                ? "text-zinc-500 hover:bg-zinc-800 hover:text-zinc-400"
-                                : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-500"
-                            }`}
+                            className={`rounded px-1.5 py-0.5 text-[10px] transition-colors ${"text-muted-foreground hover:bg-accent hover:text-zinc-500"}`}
                             title="Kopier mandag til alle dager"
                           >
                             Alle
@@ -870,9 +831,7 @@ export function SeasonSetupStep({
                               handleOpeningHoursChange(dept.name, wd.key, e.target.value)
                             }
                             placeholder="09-22"
-                            className={`h-7 w-[90px] text-center text-[11px] tabular-nums ${
-                              isDark ? "border-zinc-700 bg-zinc-800/50" : ""
-                            }`}
+                            className="h-7 w-[90px] text-center text-[11px] tabular-nums"
                           />
                         </td>
                       ))}
@@ -883,7 +842,7 @@ export function SeasonSetupStep({
             </table>
           </div>
 
-          <p className={`text-[11px] ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>
+          <p className={`text-[11px] ${"text-muted-foreground"}`}>
             Format: 09:00-22:00. Kjøkken åpner først (prep), bar stenger sist.
           </p>
         </div>
@@ -892,7 +851,7 @@ export function SeasonSetupStep({
       {/* ── Section 4: Weekly Profile (Day Factors) ── */}
       <div className="space-y-3">
         <div className="flex items-center gap-2">
-          <h3 className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
+          <h3 className={`text-sm font-bold ${"text-muted-foreground"}`}>
             <TrendingUp className="mr-1 inline-block h-4 w-4" />
             Ukeprofil
           </h3>
@@ -910,22 +869,12 @@ export function SeasonSetupStep({
               <div key={wd.key} className="flex flex-1 flex-col items-center gap-1">
                 {/* Bar */}
                 <div
-                  className={`relative flex w-full items-end justify-center rounded-t-lg transition-all ${
-                    isDark ? "bg-zinc-800/50" : "bg-zinc-100"
-                  }`}
+                  className={`relative flex w-full items-end justify-center rounded-t-lg transition-all ${"bg-muted"}`}
                   style={{ height: "120px" }}
                 >
                   <div
                     className={`w-full rounded-t-lg transition-all duration-300 ${
-                      isHigh
-                        ? "bg-orange-500"
-                        : isLow
-                          ? isDark
-                            ? "bg-zinc-600"
-                            : "bg-zinc-300"
-                          : isDark
-                            ? "bg-zinc-500"
-                            : "bg-zinc-400"
+                      isHigh ? "bg-orange-500" : isLow ? "bg-muted" : "bg-muted"
                     }`}
                     style={{ height: `${barHeight}%` }}
                   />
@@ -939,15 +888,13 @@ export function SeasonSetupStep({
                   max="3"
                   value={factor}
                   onChange={(e) => handleDayFactorChange(wd.key, parseFloat(e.target.value) || 0.5)}
-                  className={`h-7 w-full text-center text-[11px] tabular-nums ${
-                    isDark ? "border-zinc-700 bg-zinc-800/50" : ""
-                  }`}
+                  className="h-7 w-full text-center text-[11px] tabular-nums"
                 />
 
                 {/* Day label */}
                 <span
                   className={`text-[11px] font-semibold ${
-                    isHigh ? "text-orange-500" : isDark ? "text-zinc-500" : "text-zinc-400"
+                    isHigh ? "text-orange-500" : "text-muted-foreground"
                   }`}
                 >
                   {wd.label}
@@ -957,42 +904,28 @@ export function SeasonSetupStep({
           })}
         </div>
 
-        <p className={`text-[11px] ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>
+        <p className={`text-[11px] ${"text-muted-foreground"}`}>
           1.0 = gjennomsnitt. Over 1.0 = travlere enn snitt. Under 1.0 = roligere.
         </p>
       </div>
 
       {/* ── Staffing Estimate ── */}
       {staffEstimates && totalRevenue > 0 && (
-        <div
-          className={`rounded-xl border p-4 ${
-            isDark ? "border-orange-500/20 bg-orange-950/10" : "border-orange-200 bg-orange-50/50"
-          }`}
-        >
+        <div className={`rounded-xl border p-4 ${"border-brand-orange bg-brand-orange/50"}`}>
           <div className="flex items-center gap-2">
-            <Users className="h-4 w-4 text-orange-500" />
-            <h4 className={`text-sm font-bold ${isDark ? "text-orange-300" : "text-orange-700"}`}>
-              Estimert bemanning
-            </h4>
+            <Users className="text-brand-orange h-4 w-4" />
+            <h4 className={`text-sm font-bold ${"text-brand-orange"}`}>Estimert bemanning</h4>
           </div>
 
           <div className="mt-3 grid grid-cols-7 gap-2">
             {staffEstimates.map((est) => (
               <div key={est.key} className="text-center">
-                <div
-                  className={`text-2xl font-black tabular-nums ${
-                    isDark ? "text-zinc-200" : "text-zinc-800"
-                  }`}
-                >
+                <div className={`text-2xl font-black tabular-nums ${"text-foreground"}`}>
                   {est.staff}
                 </div>
                 <div
                   className={`text-[11px] font-medium ${
-                    est.factor >= 1.3
-                      ? "text-orange-500"
-                      : isDark
-                        ? "text-zinc-500"
-                        : "text-zinc-400"
+                    est.factor >= 1.3 ? "text-orange-500" : "text-muted-foreground"
                   }`}
                 >
                   {est.label}
@@ -1001,7 +934,7 @@ export function SeasonSetupStep({
             ))}
           </div>
 
-          <p className={`mt-2 text-[11px] ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>
+          <p className={`mt-2 text-[11px] ${"text-muted-foreground"}`}>
             Basert på {avgHourlyWage} kr/t snittlønn og {Math.round(avgShiftHours)}t snittskift.
             Juster ukeprofilen for å se endringen.
           </p>

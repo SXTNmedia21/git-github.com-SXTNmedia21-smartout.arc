@@ -123,7 +123,7 @@ const STEPS: SetupStep[] = [
 export function OnboardingGuide() {
   const ctx = useWorkspaceOptional();
   const workspaceId = ctx?.workspace.workspace_id ?? "";
-  const { isDark, profileId } = useContext(DashboardContext);
+  const { profileId } = useContext(DashboardContext);
   const { package: industryPackage, detectedType, setIndustryType } = useIndustryPackage();
 
   const {
@@ -288,24 +288,21 @@ export function OnboardingGuide() {
         {step.id === "welcome" && (
           <WelcomeStep
             scrapedData={currentState.scrapedData}
-            isDark={isDark}
             detectedIndustry={detectedType}
             onIndustryChange={setIndustryType}
           />
         )}
         {step.id === "document-drop" && (
-          <DocumentDropStep isDark={isDark} onExtractionComplete={handleExtractionComplete} />
+          <DocumentDropStep onExtractionComplete={handleExtractionComplete} />
         )}
         {step.id === "governance" && (
           <GovernanceSetupStep
-            isDark={isDark}
             industryPackage={currentState.industryPackage}
             extractedPolicies={currentState.extractedData.policies}
           />
         )}
         {step.id === "payroll" && (
           <PayrollSetupStep
-            isDark={isDark}
             industryTariffs={currentState.industryPackage.tariffs}
             defaultTariffKey={currentState.industryPackage.defaultTariffKey}
             extractedPayroll={currentState.extractedData.payroll}
@@ -313,14 +310,12 @@ export function OnboardingGuide() {
         )}
         {step.id === "employment" && (
           <EmploymentSetupStep
-            isDark={isDark}
             industryDefaults={currentState.industryPackage.employmentDefaults}
             extractedTerms={currentState.extractedData.employmentTerms}
           />
         )}
         {step.id === "team" && (
           <TeamSetupStep
-            isDark={isDark}
             extractedEmployees={currentState.extractedData.employees}
             teamMembers={currentState.teamMembers}
             onTeamChange={handleTeamChange}
@@ -328,22 +323,18 @@ export function OnboardingGuide() {
         )}
         {step.id === "shift-template" && (
           <ShiftTemplateSetupStep
-            isDark={isDark}
             suggestedTemplates={currentState.industryPackage.shiftTemplates}
             extractedShiftPatterns={currentState.extractedData.shiftPatterns}
             openingHours={currentState.scrapedData.openingHours}
           />
         )}
         {step.id === "season" && (
-          <SeasonSetupStep
-            isDark={isDark}
-            suggestedSeasons={currentState.industryPackage.seasonTemplates}
-          />
+          <SeasonSetupStep suggestedSeasons={currentState.industryPackage.seasonTemplates} />
         )}
-        {step.id === "handbook" && <HandbookSetupStep isDark={isDark} wizardState={currentState} />}
+        {step.id === "handbook" && <HandbookSetupStep wizardState={currentState} />}
 
         {/* Botsson tip */}
-        <BotsTip tip={currentState.industryPackage.botsson[step.id] ?? ""} isDark={isDark} />
+        <BotsTip tip={currentState.industryPackage.botsson[step.id] ?? ""} />
       </div>
 
       {/* Navigation */}

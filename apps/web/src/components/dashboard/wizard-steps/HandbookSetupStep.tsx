@@ -219,30 +219,18 @@ function generateChapterContent(
 
 // ─── Toolbar ─────────────────────────────────────────────
 
-function EditorToolbar({
-  editor,
-  isDark,
-}: {
-  editor: ReturnType<typeof useEditor> | null;
-  isDark: boolean;
-}) {
+function EditorToolbar({ editor }: { editor: ReturnType<typeof useEditor> | null }) {
   if (!editor) return null;
 
   const btnClass = (active: boolean) =>
     `rounded p-1.5 transition-colors ${
       active
         ? "bg-orange-500/20 text-orange-500"
-        : isDark
-          ? "text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200"
-          : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800"
+        : "text-muted-foreground hover:bg-accent hover:text-zinc-800"
     }`;
 
   return (
-    <div
-      className={`flex items-center gap-1 border-b px-2 py-1.5 ${
-        isDark ? "border-zinc-700" : "border-zinc-200"
-      }`}
-    >
+    <div className={`flex items-center gap-1 border-b px-2 py-1.5 ${"border-border"}`}>
       <button
         type="button"
         onClick={() => editor.chain().focus().toggleBold().run()}
@@ -295,14 +283,12 @@ function ChapterEditor({
   chapterKey,
   chapterTitle,
   existingContent,
-  isDark,
   onSaved,
   onCancel,
 }: {
   chapterKey: ChapterKey;
   chapterTitle: string;
   existingContent: Json | null;
-  isDark: boolean;
   onSaved: () => void;
   onCancel: () => void;
 }) {
@@ -317,9 +303,7 @@ function ChapterEditor({
     content: (existingContent as Record<string, unknown>) ?? "",
     editorProps: {
       attributes: {
-        class: `prose prose-sm max-w-none focus:outline-none min-h-[120px] p-3 ${
-          isDark ? "prose-invert" : ""
-        }`,
+        class: `prose prose-sm max-w-none focus:outline-none min-h-[120px] p-3 `,
       },
     },
   });
@@ -381,26 +365,14 @@ function ChapterEditor({
   });
 
   return (
-    <div
-      className={`mt-2 overflow-hidden rounded-xl border ${
-        isDark ? "border-zinc-700 bg-zinc-900/80" : "border-zinc-200 bg-white"
-      }`}
-    >
-      <EditorToolbar editor={editor} isDark={isDark} />
+    <div className={`mt-2 overflow-hidden rounded-xl border ${"border-border bg-white"}`}>
+      <EditorToolbar editor={editor} />
       <EditorContent editor={editor} />
-      <div
-        className={`flex items-center justify-end gap-2 border-t px-3 py-2 ${
-          isDark ? "border-zinc-700" : "border-zinc-200"
-        }`}
-      >
+      <div className={`flex items-center justify-end gap-2 border-t px-3 py-2 ${"border-border"}`}>
         <button
           type="button"
           onClick={onCancel}
-          className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-            isDark
-              ? "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
-              : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700"
-          }`}
+          className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${"text-muted-foreground hover:bg-accent hover:text-zinc-700"}`}
         >
           Avbryt
         </button>
@@ -424,13 +396,7 @@ function ChapterEditor({
 
 // ─── HandbookSetupStep ───────────────────────────────────
 
-export function HandbookSetupStep({
-  isDark,
-  wizardState,
-}: {
-  isDark: boolean;
-  wizardState?: SetupWizardState;
-}) {
+export function HandbookSetupStep({ wizardState }: { wizardState?: SetupWizardState }) {
   const { workspace } = useWorkspace();
   const supabase = createClient();
 
@@ -486,12 +452,10 @@ export function HandbookSetupStep({
       {/* Header summary */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <h3 className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-            Håndbok-kapitler
-          </h3>
+          <h3 className={`text-sm font-bold ${"text-muted-foreground"}`}>Håndbok-kapitler</h3>
           <HelpTip text="Kapitlene er forhåndsutfylt basert på det du la inn i steg 1–6. Gå gjennom og rediger der det trengs." />
         </div>
-        <span className={`text-xs font-medium ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+        <span className={`text-xs font-medium ${"text-muted-foreground"}`}>
           {completedCount} av {CHAPTERS.length} fullført
         </span>
       </div>
@@ -510,39 +474,25 @@ export function HandbookSetupStep({
             <div key={chapter.key}>
               {/* Chapter row */}
               <div
-                className={`flex items-center justify-between rounded-xl border px-4 py-3 transition-colors ${
-                  isDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-white"
-                }`}
+                className={`flex items-center justify-between rounded-xl border px-4 py-3 transition-colors ${"border-border bg-white"}`}
               >
                 <div className="flex min-w-0 flex-1 items-center gap-3">
                   <div
-                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
-                      isDark ? "bg-zinc-800" : "bg-zinc-100"
-                    }`}
+                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${"bg-muted"}`}
                   >
-                    <Icon className={`h-4 w-4 ${isDark ? "text-zinc-400" : "text-zinc-500"}`} />
+                    <Icon className={`h-4 w-4 ${"text-muted-foreground"}`} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p
-                      className={`truncate text-sm font-semibold ${
-                        isDark ? "text-zinc-200" : "text-zinc-800"
-                      }`}
-                    >
+                    <p className={`truncate text-sm font-semibold ${"text-foreground"}`}>
                       {chapter.number}. {chapter.title}
                     </p>
                     <div className="flex items-center gap-2">
-                      <p
-                        className={`truncate text-xs ${isDark ? "text-zinc-500" : "text-zinc-500"}`}
-                      >
+                      <p className={`truncate text-xs ${"text-muted-foreground"}`}>
                         {chapter.description}
                       </p>
                       {hasGenerated && (
                         <span
-                          className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                            isDark
-                              ? "bg-orange-900/30 text-orange-400"
-                              : "bg-orange-100 text-orange-600"
-                          }`}
+                          className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${"bg-brand-orange text-brand-orange"}`}
                         >
                           Forhåndsutfylt
                         </span>
@@ -555,15 +505,11 @@ export function HandbookSetupStep({
                 <div className="ml-3 flex shrink-0 items-center gap-2">
                   {isSaved ? (
                     <div className="flex items-center gap-2">
-                      <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                      <CheckCircle2 className="text-success h-5 w-5" />
                       <button
                         type="button"
                         onClick={() => handleWrite(chapter.key)}
-                        className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
-                          isDark
-                            ? "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
-                            : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700"
-                        }`}
+                        className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${"text-muted-foreground hover:bg-accent hover:text-zinc-700"}`}
                       >
                         Rediger
                       </button>
@@ -573,7 +519,7 @@ export function HandbookSetupStep({
                       <button
                         type="button"
                         onClick={() => handleWrite(chapter.key)}
-                        className="rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-orange-600"
+                        className="bg-brand-orange rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-orange-600"
                       >
                         Skriv
                       </button>
@@ -582,11 +528,7 @@ export function HandbookSetupStep({
                         onClick={() => {
                           if (isEditing) setEditingKey(null);
                         }}
-                        className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
-                          isDark
-                            ? "text-zinc-500 hover:text-zinc-300"
-                            : "text-zinc-400 hover:text-zinc-600"
-                        }`}
+                        className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${"text-muted-foreground hover:text-zinc-600"}`}
                       >
                         Hopp over
                       </button>
@@ -603,7 +545,6 @@ export function HandbookSetupStep({
                   existingContent={
                     savedData?.content ?? (generatedContent as unknown as Json) ?? null
                   }
-                  isDark={isDark}
                   onSaved={handleSaved}
                   onCancel={handleCancel}
                 />

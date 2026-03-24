@@ -21,7 +21,6 @@ import { MAPPABLE_FIELDS, autoMatchColumns } from "./csv-synonyms";
 type CsvMappingDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  isDark: boolean;
   csvHeaders: string[];
   csvPreviewRows: Record<string, string>[];
   totalRowCount: number;
@@ -31,7 +30,6 @@ type CsvMappingDialogProps = {
 export function CsvMappingDialog({
   open,
   onOpenChange,
-  isDark,
   csvHeaders,
   csvPreviewRows,
   totalRowCount,
@@ -97,12 +95,10 @@ export function CsvMappingDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className={`max-h-[85vh] max-w-4xl overflow-y-auto ${isDark ? "border-zinc-800 bg-zinc-950" : ""}`}
-      >
+      <DialogContent className="max-h-[85vh] max-w-4xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <FileSpreadsheet className="h-5 w-5 text-orange-500" />
+            <FileSpreadsheet className="text-brand-orange h-5 w-5" />
             Koble kolonner
           </DialogTitle>
         </DialogHeader>
@@ -110,20 +106,14 @@ export function CsvMappingDialog({
         <div className="space-y-6 py-2">
           {/* Column mapping list */}
           <div className="space-y-2">
-            <p className={`text-xs font-medium ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
+            <p className={`text-xs font-medium ${"text-muted-foreground"}`}>
               Koble CSV-kolonner til riktig felt. Kolonner som hoppes over lagres som ekstradata.
             </p>
 
-            <div
-              className={`overflow-hidden rounded-xl border ${
-                isDark ? "border-zinc-800" : "border-zinc-200"
-              }`}
-            >
+            <div className={`overflow-hidden rounded-xl border ${"border-border"}`}>
               {/* Header */}
               <div
-                className={`grid grid-cols-[1fr_32px_1fr] items-center gap-2 px-4 py-2 text-xs font-semibold tracking-wider uppercase ${
-                  isDark ? "bg-zinc-900/70 text-zinc-500" : "bg-zinc-50 text-zinc-400"
-                }`}
+                className={`grid grid-cols-[1fr_32px_1fr] items-center gap-2 px-4 py-2 text-xs font-semibold tracking-wider uppercase ${"bg-muted text-muted-foreground"}`}
               >
                 <span>CSV-kolonne</span>
                 <span />
@@ -134,18 +124,12 @@ export function CsvMappingDialog({
               {csvHeaders.map((header) => (
                 <div
                   key={header}
-                  className={`grid grid-cols-[1fr_32px_1fr] items-center gap-2 border-t px-4 py-2.5 ${
-                    isDark ? "border-zinc-800" : "border-zinc-200"
-                  }`}
+                  className={`grid grid-cols-[1fr_32px_1fr] items-center gap-2 border-t px-4 py-2.5 ${"border-border"}`}
                 >
-                  <span
-                    className={`truncate text-sm font-medium ${
-                      isDark ? "text-zinc-300" : "text-zinc-700"
-                    }`}
-                  >
+                  <span className={`truncate text-sm font-medium ${"text-muted-foreground"}`}>
                     {header}
                   </span>
-                  <ArrowRight className={`h-4 w-4 ${isDark ? "text-zinc-600" : "text-zinc-400"}`} />
+                  <ArrowRight className={`h-4 w-4 ${"text-muted-foreground"}`} />
                   <Select
                     value={mapping[header] ?? "_skip"}
                     onValueChange={(v) => handleFieldChange(header, v)}
@@ -153,12 +137,8 @@ export function CsvMappingDialog({
                     <SelectTrigger
                       className={`h-8 text-sm ${
                         mapping[header] === "_skip"
-                          ? isDark
-                            ? "border-zinc-700 text-zinc-500"
-                            : "border-zinc-200 text-zinc-400"
-                          : isDark
-                            ? "border-orange-500/40 text-orange-300"
-                            : "border-orange-300 text-orange-700"
+                          ? "border-border text-muted-foreground"
+                          : "border-brand-orange text-brand-orange"
                       }`}
                     >
                       <SelectValue />
@@ -181,9 +161,7 @@ export function CsvMappingDialog({
           {/* Missing required fields warning */}
           {missingRequired.length > 0 && (
             <div
-              className={`flex items-start gap-2 rounded-lg px-3 py-2 text-xs ${
-                isDark ? "bg-red-950/30 text-red-400" : "bg-red-50 text-red-600"
-              }`}
+              className={`flex items-start gap-2 rounded-lg px-3 py-2 text-xs ${"bg-destructive text-destructive"}`}
             >
               <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
               <span>
@@ -196,21 +174,13 @@ export function CsvMappingDialog({
           {/* Preview */}
           {previewColumns.length > 0 && csvPreviewRows.length > 0 && (
             <div className="space-y-2">
-              <p className={`text-xs font-medium ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
+              <p className={`text-xs font-medium ${"text-muted-foreground"}`}>
                 Forhåndsvisning ({csvPreviewRows.length} første rader)
               </p>
-              <div
-                className={`overflow-x-auto rounded-lg border text-xs ${
-                  isDark ? "border-zinc-800" : "border-zinc-200"
-                }`}
-              >
+              <div className={`overflow-x-auto rounded-lg border text-xs ${"border-border"}`}>
                 <table className="w-full">
                   <thead>
-                    <tr
-                      className={
-                        isDark ? "bg-zinc-900/70 text-zinc-500" : "bg-zinc-50 text-zinc-400"
-                      }
-                    >
+                    <tr className={"bg-muted text-muted-foreground"}>
                       {previewColumns.map((col) => (
                         <th key={col.csvHeader} className="px-3 py-1.5 text-left font-semibold">
                           {col.fieldLabel}
@@ -220,14 +190,11 @@ export function CsvMappingDialog({
                   </thead>
                   <tbody>
                     {csvPreviewRows.map((row, i) => (
-                      <tr
-                        key={i}
-                        className={`border-t ${isDark ? "border-zinc-800" : "border-zinc-200"}`}
-                      >
+                      <tr key={i} className={`border-t ${"border-border"}`}>
                         {previewColumns.map((col) => (
                           <td
                             key={col.csvHeader}
-                            className={`px-3 py-1.5 ${isDark ? "text-zinc-300" : "text-zinc-700"}`}
+                            className={`px-3 py-1.5 ${"text-muted-foreground"}`}
                           >
                             {row[col.csvHeader] ?? ""}
                           </td>
@@ -241,7 +208,7 @@ export function CsvMappingDialog({
           )}
 
           {/* Stats */}
-          <p className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+          <p className={`text-xs ${"text-muted-foreground"}`}>
             {mappedCount} kolonner mappet, {skippedCount} hoppes over
             {skippedCount > 0 && " (lagres som ekstradata)"}
           </p>
@@ -250,11 +217,7 @@ export function CsvMappingDialog({
         <DialogFooter>
           <button
             onClick={() => onOpenChange(false)}
-            className={`rounded-lg px-4 py-2 text-sm font-medium ${
-              isDark
-                ? "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-300"
-                : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700"
-            }`}
+            className={`rounded-lg px-4 py-2 text-sm font-medium ${"text-muted-foreground hover:bg-accent hover:text-zinc-700"}`}
           >
             Avbryt
           </button>

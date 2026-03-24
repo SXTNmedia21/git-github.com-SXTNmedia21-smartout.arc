@@ -37,12 +37,10 @@ function getDayCategory(startTime: string): DayCategory {
 // ─── ShiftTemplateSetupStep ──────────────────────────────
 
 export function ShiftTemplateSetupStep({
-  isDark,
   suggestedTemplates,
   extractedShiftPatterns,
   openingHours: _openingHours,
 }: {
-  isDark: boolean;
   suggestedTemplates?: IndustryShiftTemplate[];
   extractedShiftPatterns?: Array<{
     name: string;
@@ -230,20 +228,12 @@ export function ShiftTemplateSetupStep({
           <div key={dept.department_id || `dept-${i}`} className="space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <h4
-                  className={`text-sm font-semibold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}
-                >
-                  {dept.name}
-                </h4>
+                <h4 className={`text-sm font-semibold ${"text-muted-foreground"}`}>{dept.name}</h4>
                 <HelpTip text="Legg til vaktmaler for denne avdelingen. Hver mal definerer en vakttype med start- og sluttid." />
               </div>
               <button
                 onClick={() => handleAddEntry(dept.name)}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
-                  isDark
-                    ? "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
-                    : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
-                }`}
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${"bg-muted text-muted-foreground hover:bg-accent"}`}
               >
                 <Plus className="h-3.5 w-3.5" />
                 Legg til vaktmal
@@ -254,16 +244,10 @@ export function ShiftTemplateSetupStep({
             {existing.map((t) => (
               <div
                 key={t.schedule_template_id}
-                className={`flex items-center gap-3 rounded-lg px-4 py-2.5 ${
-                  isDark ? "bg-zinc-900/40" : "bg-zinc-50"
-                }`}
+                className={`flex items-center gap-3 rounded-lg px-4 py-2.5 ${"bg-muted"}`}
               >
-                <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
-                <span
-                  className={`flex-1 truncate text-sm font-medium ${
-                    isDark ? "text-zinc-300" : "text-zinc-700"
-                  }`}
-                >
+                <CheckCircle2 className="text-success h-4 w-4 shrink-0" />
+                <span className={`flex-1 truncate text-sm font-medium ${"text-muted-foreground"}`}>
                   {t.name}
                 </span>
               </div>
@@ -273,9 +257,7 @@ export function ShiftTemplateSetupStep({
             {deptEntries.map((entry) => (
               <div
                 key={entry.id}
-                className={`flex items-center gap-2 rounded-xl border px-4 py-3 ${
-                  isDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-white"
-                }`}
+                className={`flex items-center gap-2 rounded-xl border px-4 py-3 ${"border-border bg-white"}`}
               >
                 <div className="flex flex-1 items-center gap-2">
                   <Input
@@ -286,18 +268,14 @@ export function ShiftTemplateSetupStep({
                   />
                   {entry._suggested && (
                     <span
-                      className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                        isDark
-                          ? "bg-orange-900/30 text-orange-400"
-                          : "bg-orange-100 text-orange-600"
-                      }`}
+                      className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${"bg-brand-orange text-brand-orange"}`}
                     >
                       Foreslått
                     </span>
                   )}
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <Clock className={`h-3.5 w-3.5 ${isDark ? "text-zinc-500" : "text-zinc-400"}`} />
+                  <Clock className={`h-3.5 w-3.5 ${"text-muted-foreground"}`} />
                   <Input
                     type="text"
                     inputMode="numeric"
@@ -324,7 +302,7 @@ export function ShiftTemplateSetupStep({
                     }}
                     className="h-8 w-20 text-center text-sm tabular-nums"
                   />
-                  <span className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>–</span>
+                  <span className={`text-xs ${"text-muted-foreground"}`}>–</span>
                   <Input
                     type="text"
                     inputMode="numeric"
@@ -354,11 +332,7 @@ export function ShiftTemplateSetupStep({
                 </div>
                 <button
                   onClick={() => handleRemoveEntry(entry.id)}
-                  className={`rounded-md p-1.5 transition-colors ${
-                    isDark
-                      ? "text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300"
-                      : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
-                  }`}
+                  className={`rounded-md p-1.5 transition-colors ${"text-muted-foreground hover:bg-accent hover:text-zinc-600"}`}
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>

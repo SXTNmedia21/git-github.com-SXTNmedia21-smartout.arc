@@ -155,11 +155,9 @@ const STEP_TO_MODULE: Record<string, string> = {
 // ─── Component ───────────────────────────────────────────
 
 export function WorkspaceSetupWizard({
-  isDark,
   onComplete,
   force = false,
 }: {
-  isDark: boolean;
   onComplete: () => void;
   force?: boolean;
 }) {
@@ -380,35 +378,21 @@ export function WorkspaceSetupWizard({
   return (
     <div className="flex h-full flex-col">
       {/* ── Top bar: logo + skip ── */}
-      <div
-        className={`flex items-center justify-between border-b px-8 py-4 ${
-          isDark ? "border-zinc-800" : "border-zinc-200"
-        }`}
-      >
+      <div className={`flex items-center justify-between border-b px-8 py-4 ${"border-border"}`}>
         <div className="flex items-center gap-3">
           <div
-            className={`flex h-9 w-9 items-center justify-center rounded-xl ${
-              isDark ? "bg-orange-500/10" : "bg-orange-50"
-            }`}
+            className={`flex h-9 w-9 items-center justify-center rounded-xl ${"bg-brand-orange"}`}
           >
-            <Rocket className="h-5 w-5 text-orange-500" />
+            <Rocket className="text-brand-orange h-5 w-5" />
           </div>
-          <span
-            className={`text-sm font-bold tracking-tight ${
-              isDark ? "text-zinc-400" : "text-zinc-500"
-            }`}
-          >
+          <span className={`text-sm font-bold tracking-tight ${"text-muted-foreground"}`}>
             Oppsett av arbeidsrom
           </span>
         </div>
 
         <button
           onClick={handleSkip}
-          className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-            isDark
-              ? "text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300"
-              : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
-          }`}
+          className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${"text-muted-foreground hover:bg-accent hover:text-zinc-600"}`}
         >
           <SkipForward className="h-3.5 w-3.5" />
           Hopp over og gå til dashboard
@@ -416,9 +400,9 @@ export function WorkspaceSetupWizard({
       </div>
 
       {/* ── Progress bar ── */}
-      <div className={`h-1 w-full ${isDark ? "bg-zinc-800" : "bg-zinc-200"}`}>
+      <div className={`h-1 w-full ${"bg-muted"}`}>
         <div
-          className="h-full rounded-r-full bg-orange-500 transition-all duration-500 ease-out"
+          className="bg-brand-orange h-full rounded-r-full transition-all duration-500 ease-out"
           style={{ width: `${progressPct}%` }}
         />
       </div>
@@ -431,16 +415,10 @@ export function WorkspaceSetupWizard({
             onClick={() => setCurrentStep(i)}
             className={`flex shrink-0 items-center gap-2 rounded-full px-2 py-1.5 text-xs font-medium transition-all sm:px-3 ${
               i === currentStep
-                ? isDark
-                  ? "bg-orange-500/15 text-orange-400"
-                  : "bg-orange-50 text-orange-600"
+                ? "bg-brand-orange text-brand-orange"
                 : i < currentStep
-                  ? isDark
-                    ? "text-emerald-400/60"
-                    : "text-emerald-600/60"
-                  : isDark
-                    ? "text-zinc-600"
-                    : "text-zinc-400"
+                  ? "text-success/60"
+                  : "text-muted-foreground"
             }`}
           >
             <span
@@ -448,12 +426,8 @@ export function WorkspaceSetupWizard({
                 i === currentStep
                   ? "bg-orange-500 text-white"
                   : i < currentStep
-                    ? isDark
-                      ? "bg-emerald-500/20 text-emerald-400"
-                      : "bg-emerald-100 text-emerald-600"
-                    : isDark
-                      ? "bg-zinc-800 text-zinc-500"
-                      : "bg-zinc-200 text-zinc-400"
+                    ? "bg-success text-success"
+                    : "bg-muted text-muted-foreground"
               }`}
             >
               {i < currentStep ? "\u2713" : i}
@@ -471,28 +445,16 @@ export function WorkspaceSetupWizard({
         <div className="w-full max-w-2xl space-y-8">
           {/* Step header */}
           <div className="space-y-3">
-            <p
-              className={`text-xs font-bold tracking-widest uppercase ${
-                isDark ? "text-orange-400/70" : "text-orange-500/70"
-              }`}
-            >
+            <p className={`text-xs font-bold tracking-widest uppercase ${"text-brand-orange/70"}`}>
               Steg {currentStep} av {STEPS.length - 1} &middot; {step.subtitle}
             </p>
             <div className="flex items-center gap-2">
-              <h1
-                className={`text-3xl font-black tracking-tight ${
-                  isDark ? "text-white" : "text-zinc-900"
-                }`}
-              >
+              <h1 className={`text-3xl font-black tracking-tight ${"text-foreground"}`}>
                 {step.title}
               </h1>
               <HelpTip text={step.helpTip} />
             </div>
-            <p
-              className={`max-w-xl text-base leading-relaxed ${
-                isDark ? "text-zinc-400" : "text-zinc-600"
-              }`}
-            >
+            <p className={`max-w-xl text-base leading-relaxed ${"text-muted-foreground"}`}>
               {step.explanation}
             </p>
           </div>
@@ -501,24 +463,21 @@ export function WorkspaceSetupWizard({
           {step.id === "welcome" && (
             <WelcomeStep
               scrapedData={currentState.scrapedData}
-              isDark={isDark}
               detectedIndustry={detectedType}
               onIndustryChange={setIndustryType}
             />
           )}
           {step.id === "document-drop" && (
-            <DocumentDropStep isDark={isDark} onExtractionComplete={handleExtractionComplete} />
+            <DocumentDropStep onExtractionComplete={handleExtractionComplete} />
           )}
           {step.id === "governance" && (
             <GovernanceSetupStep
-              isDark={isDark}
               industryPackage={currentState.industryPackage}
               extractedPolicies={currentState.extractedData.policies}
             />
           )}
           {step.id === "payroll" && (
             <PayrollSetupStep
-              isDark={isDark}
               industryTariffs={currentState.industryPackage.tariffs}
               defaultTariffKey={currentState.industryPackage.defaultTariffKey}
               extractedPayroll={currentState.extractedData.payroll}
@@ -526,14 +485,12 @@ export function WorkspaceSetupWizard({
           )}
           {step.id === "employment" && (
             <EmploymentSetupStep
-              isDark={isDark}
               industryDefaults={currentState.industryPackage.employmentDefaults}
               extractedTerms={currentState.extractedData.employmentTerms}
             />
           )}
           {step.id === "team" && (
             <TeamSetupStep
-              isDark={isDark}
               extractedEmployees={currentState.extractedData.employees}
               teamMembers={currentState.teamMembers}
               onTeamChange={handleTeamChange}
@@ -541,42 +498,28 @@ export function WorkspaceSetupWizard({
           )}
           {step.id === "shift-template" && (
             <ShiftTemplateSetupStep
-              isDark={isDark}
               suggestedTemplates={currentState.industryPackage.shiftTemplates}
               extractedShiftPatterns={currentState.extractedData.shiftPatterns}
               openingHours={currentState.scrapedData.openingHours}
             />
           )}
           {step.id === "season" && (
-            <SeasonSetupStep
-              isDark={isDark}
-              suggestedSeasons={currentState.industryPackage.seasonTemplates}
-            />
+            <SeasonSetupStep suggestedSeasons={currentState.industryPackage.seasonTemplates} />
           )}
-          {step.id === "handbook" && (
-            <HandbookSetupStep isDark={isDark} wizardState={currentState} />
-          )}
+          {step.id === "handbook" && <HandbookSetupStep wizardState={currentState} />}
 
           {/* Botsson tip */}
-          <BotsTip tip={currentState.industryPackage.botsson[step.id] ?? ""} isDark={isDark} />
+          <BotsTip tip={currentState.industryPackage.botsson[step.id] ?? ""} />
         </div>
       </div>
 
       {/* ── Bottom navigation ── */}
-      <div
-        className={`flex items-center justify-between border-t px-8 py-4 ${
-          isDark ? "border-zinc-800" : "border-zinc-200"
-        }`}
-      >
+      <div className={`flex items-center justify-between border-t px-8 py-4 ${"border-border"}`}>
         <button
           onClick={handleBack}
           disabled={isFirst}
           className={`flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-            isFirst
-              ? "cursor-not-allowed opacity-30"
-              : isDark
-                ? "text-zinc-300 hover:bg-zinc-800"
-                : "text-zinc-600 hover:bg-zinc-100"
+            isFirst ? "cursor-not-allowed opacity-30" : "text-muted-foreground hover:bg-accent"
           }`}
         >
           <ChevronLeft className="h-4 w-4" />
