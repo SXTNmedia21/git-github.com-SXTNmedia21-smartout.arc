@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, createContext, useContext } from "react";
-import { m, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Cookie, ChevronDown, ChevronUp } from "lucide-react";
 import { createTranslator } from "@smartout/i18n";
 
@@ -146,7 +146,7 @@ function ConsentBanner({
   }
 
   return (
-    <m.div
+    <motion.div
       initial={{ y: 100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       exit={{ y: 100, opacity: 0 }}
@@ -177,7 +177,7 @@ function ConsentBanner({
         {/* Category details */}
         <AnimatePresence>
           {showDetails && (
-            <m.div
+            <motion.div
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
@@ -224,7 +224,7 @@ function ConsentBanner({
                   </p>
                 </div>
               </div>
-            </m.div>
+            </motion.div>
           )}
         </AnimatePresence>
 
@@ -252,6 +252,6 @@ function ConsentBanner({
           </button>
         </div>
       </div>
-    </m.div>
+    </motion.div>
   );
 }
