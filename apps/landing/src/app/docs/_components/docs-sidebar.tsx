@@ -11,7 +11,13 @@ type DocsNavItem = {
   description: string;
 };
 
-export function DocsSidebar({ navigation }: { navigation: DocsNavItem[] }) {
+export function DocsSidebar({
+  navigation,
+  locale,
+}: {
+  navigation: DocsNavItem[];
+  locale?: string;
+}) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");

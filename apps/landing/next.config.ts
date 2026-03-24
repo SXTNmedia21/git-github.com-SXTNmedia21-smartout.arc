@@ -20,6 +20,13 @@ if (existsSync(rootEnvPath)) {
 const nextConfig: NextConfig = {
   ...(process.env.NEXT_DIST_DIR ? { distDir: process.env.NEXT_DIST_DIR } : {}),
   turbopack: {},
+  outputFileTracingIncludes: {
+    "/docs": ["../../docs/User Manual/**/*.md"],
+    "/docs/[slug]": ["../../docs/User Manual/**/*.md"],
+    "/en/docs": ["../../docs/User Manual/**/*.md"],
+    "/en/docs/[slug]": ["../../docs/User Manual/**/*.md"],
+    "/sitemap.xml": ["../../docs/User Manual/**/*.md"],
+  },
   experimental: {
     optimizePackageImports: ["lucide-react", "framer-motion", "@radix-ui/react-icons"],
   },
