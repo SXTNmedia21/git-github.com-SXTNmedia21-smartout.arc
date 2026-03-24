@@ -46,8 +46,9 @@ const STORIES = {
   },
 };
 
-export default function BlogPostPage({ params }: { params: { slug: string } }) {
-  const story = STORIES[params.slug as keyof typeof STORIES];
+export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const story = STORIES[slug as keyof typeof STORIES];
 
   if (!story) {
     notFound();
