@@ -4,6 +4,19 @@ import { NextResponse, type NextRequest } from "next/server";
 import { detectSuspiciousRequest } from "@/lib/security";
 import { extractSubdomain } from "@/lib/subdomain";
 
+// Routes that never require authentication — skip updateSession() entirely
+// to avoid triggering token refresh (and 429 storms) on unauthenticated hits.
+// /login is the auth entrypoint; /api/* health routes must be reachable without sessions.
+const PUBLIC_ROUTES = new Set(["/login", "/api/smoke", "/api/health", "/api/auth/callback"]);
+
+function isPublicRoute(pathname: string): boolean {
+  if (PUBLIC_ROUTES.has(pathname)) return true;
+  for (const route of PUBLIC_ROUTES) {
+    if (pathname.startsWith(route + "/")) return true;
+  }
+  return false;
+}
+
 type GodmodeCacheEntry = {
   isGodmode: boolean;
   expiresAt: number;
@@ -132,14 +145,21 @@ export async function middleware(request: NextRequest): Promise<Response> {
     return NextResponse.next();
   }
 
-  // ── 3. Update Supabase auth session ──
+  // ── 3. Public routes — skip auth entirely to prevent token refresh storms ──
+  const pathname = request.nextUrl.pathname;
+  if (isPublicRoute(pathname)) {
+    const response = NextResponse.next({ request });
+    applyShowcaseMode(request, response);
+    return response;
+  }
+
+  // ── 4. Update Supabase auth session ──
   const { response, user: sessionUser } = await updateSession(
     request as unknown as Parameters<typeof updateSession>[0],
   );
 
-  // ── 4. Portal (app.smartout.ai) ──
+  // ── 5. Portal (app.smartout.ai) ──
   if (subdomain.type === "portal") {
-    const pathname = request.nextUrl.pathname;
     const showcaseRequested =
       request.nextUrl.searchParams.get("showcase") === "1" ||
       request.cookies.get(SHOWCASE_COOKIE)?.value === "1";
@@ -224,6 +244,13 @@ async function handleLegacyRouting(request: NextRequest): Promise<Response> {
     const redir = NextResponse.redirect(new URL("/dashboard", request.url));
     applyShowcaseMode(request, redir);
     return redir;
+  }
+
+  // Skip auth for public routes — avoids token refresh on unauthenticated hits
+  if (isPublicRoute(request.nextUrl.pathname)) {
+    const response = NextResponse.next({ request });
+    applyShowcaseMode(request, response);
+    return response;
   }
 
   const { response, user: sessionUser } = await updateSession(

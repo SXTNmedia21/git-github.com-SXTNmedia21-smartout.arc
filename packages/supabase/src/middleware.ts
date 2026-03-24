@@ -48,9 +48,14 @@ export async function updateSession(
     },
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let user: User | null = null;
+  try {
+    const { data } = await supabase.auth.getUser();
+    user = data.user;
+  } catch (err) {
+    console.error("[middleware] auth.getUser failed:", err);
+    // Don't crash — continue with user = null (unauthenticated)
+  }
 
   return { response: supabaseResponse, user };
 }
