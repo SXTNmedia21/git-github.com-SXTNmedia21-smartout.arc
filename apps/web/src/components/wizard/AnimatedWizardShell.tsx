@@ -10,7 +10,7 @@
  * The underlying WizardShell stays platform-agnostic in @smartout/ui.
  */
 
-import { useRef, useEffect, useCallback } from "react";
+import { useRef, useEffect, useCallback, useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { WizardShell, type WizardDefinition } from "@smartout/ui";
 import { useTranslation } from "@smartout/i18n";
@@ -38,8 +38,20 @@ export function AnimatedWizardShell<TState extends Record<string, unknown>>({
   workspaceId = null,
   actorId = "anonymous",
 }: AnimatedWizardShellProps<TState>) {
-  const { t } = useTranslation("wizard");
+  const { t: tShell } = useTranslation("wizard");
+  const { t: tWizard } = useTranslation(definition.metadata.i18nNamespace);
   const telemetry = useWizardTelemetry(definition, workspaceId, actorId);
+
+  // Merged translator: try wizard-specific namespace first, fall back to shell namespace
+  const t = useCallback(
+    (key: string, params?: Record<string, string | number>) => {
+      const wizardResult = tWizard(key, params);
+      // If tWizard returns the key itself (not found), try shell namespace
+      if (wizardResult === key) return tShell(key, params);
+      return wizardResult;
+    },
+    [tWizard, tShell],
+  );
   const directionRef = useRef<"forward" | "back">("forward");
 
   useEffect(() => {
