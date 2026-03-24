@@ -1,37 +1,21 @@
 ---
 title: Decision Log
-status: in_progress
-updated: 2026-03-24
+status: done
+updated: 2026-03-25
 created: 2026-03-24
-module: operations
+module: communications
 tags: [decisions]
 ---
 
-# Decision Log — shift-clock
+# Decision Log — notification-system
 
-| #   | Date       | Decision                                                                                                                        | Status   |
-| --- | ---------- | ------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| 1   | 2026-03-24 | Use insert instead of upsert for channel_call_participant — partial unique index not compatible with PostgREST onConflict       | Accepted |
-| 2   | 2026-03-24 | SECURITY DEFINER on all channel RPCs — channel_member RLS self-references causing infinite recursion                            | Accepted |
-| 3   | 2026-03-24 | REST broadcast instead of WebSocket subscribe in edge functions — edge functions have short lifespan, WebSocket subscribe hangs | Accepted |
-| 4   | 2026-03-24 | @livekit/components-react for video UI — official components handle track attachment, layout, controls                          | Accepted |
-| 5   | 2026-03-24 | Reuse MessageTimeline for in-call chat — no need for separate LiveKit DataChannel chat                                          | Accepted |
-| 6   | 2026-03-24 | call-command verify_jwt=false — function handles auth internally, avoids JWT format issues                                      | Accepted |
-| 7   | 2026-03-24 | Server-side mute via RoomServiceClient — client SDK can't mute remote participants, server API needed                           | Accepted |
-
-status: in_progress
-updated: 2026-03-24
-created: 2026-03-24
-module: ui
-tags: [decisions]
-
----
-
-# Decision Log — unified-wizard-shell
-
-| #    | Date       | Decision                            | Status   |
-| ---- | ---------- | ----------------------------------- | -------- |
-| 0060 | 2026-03-24 | Unified Wizard Shell in packages/ui | accepted |
-| 0061 | 2026-03-24 | Walk AI Semantic Tagging Convention | accepted |
-| #    | Date       | Decision                            | Status   |
-| ---  | ----       | --------                            | ------   |
+| #   | Date       | Decision                                                                                                 | Status   |
+| --- | ---------- | -------------------------------------------------------------------------------------------------------- | -------- |
+| 1   | 2026-03-24 | Outbox pattern: all notification sources INSERT into notification_outbox, single consumer EF processes   | Accepted |
+| 2   | 2026-03-24 | Dollar-quote tags ($cmd$/$sql$) for pg_cron registration in migrations                                   | Accepted |
+| 3   | 2026-03-24 | Mobile notification hooks duplicated locally instead of shared package                                   | Accepted |
+| 4   | 2026-03-24 | Email delivery is console.log stub in MVP — SendGrid integration deferred                                | Accepted |
+| 5   | 2026-03-24 | Event config registry in TypeScript (not DB table) — zero-code extension for new event types             | Accepted |
+| 6   | 2026-03-24 | CRITICAL priority (2) bypasses quiet hours and triggers immediate dispatch via DB trigger                | Accepted |
+| 7   | 2026-03-24 | Smart grouping uses 3-minute window on group_key — updates existing notification instead of creating new | Accepted |
+| 8   | 2026-03-24 | notification_preference keyed by user_id (not profile_id) — preferences apply across all workspaces      | Accepted |

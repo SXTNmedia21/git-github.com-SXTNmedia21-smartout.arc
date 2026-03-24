@@ -1,32 +1,18 @@
 ---
 title: Learning Log
-status: in_progress
-updated: 2026-03-24
+status: done
+updated: 2026-03-25
 created: 2026-03-24
-module: operations
+module: communications
 tags: [learnings]
 ---
 
-# Learning Log — shift-clock
+# Learning Log — notification-system
 
-| #   | Date       | Learning                                                                                                                                                                                      | Impact                                                                                                   |
-| --- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| 1   | 2026-03-24 | PostgREST `upsert` with `onConflict` does not work with partial unique indexes (WHERE clause). The upsert silently succeeds as a no-op — no error, no insert, no update.                      | Must use plain `insert` when the uniqueness constraint is a partial index.                               |
-| 2   | 2026-03-24 | RLS policies that query their own table create infinite recursion. `channel_member_jwt_select` queried `channel_member` inside its own SELECT policy.                                         | Replace self-referencing RLS with workspace-scoped policies using `get_workspace_ids_for_user()`.        |
-| 3   | 2026-03-24 | Supabase Edge Functions have short lifespan — WebSocket `subscribe()` never resolves before termination.                                                                                      | Use REST broadcast API (`/realtime/v1/api/broadcast`) instead of Realtime WebSocket from edge functions. |
-| 4   | 2026-03-24 | LiveKit SDK v2 `canPublishSources` expects TrackSource enum values, not strings. Passing strings causes "Cannot convert TrackSource" crash.                                                   | Use `canPublish: true` boolean instead of `canPublishSources` array.                                     |
-| 5   | 2026-03-24 | `setMicrophoneEnabled(true)` after async operations loses browser user gesture context, causing NotAllowedError.                                                                              | Wrap in try/catch — user can toggle manually via ControlBar.                                             |
-| 6   | 2026-03-24 | Supabase CLI v2 shows `sb_publishable_`/`sb_secret_` format keys, but edge functions runtime still injects JWT-format keys via `SUPABASE_ANON_KEY`/`SUPABASE_SERVICE_ROLE_KEY` automatically. | No manual key configuration needed for edge functions.                                                   |
-
-status: in_progress
-updated: 2026-03-24
-created: 2026-03-24
-module: ui
-tags: [learnings]
-
----
-
-# Learning Log — unified-wizard-shell
-
-| #   | Date | Learning | Impact |
-| --- | ---- | -------- | ------ |
+| #   | Date       | Learning                                                                                                                          | Impact                                                                 |
+| --- | ---------- | --------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| 1   | 2026-03-24 | Nested $$ dollar-quotes in pg_cron DO blocks cause PostgreSQL parse errors — use tagged dollar-quotes ($cmd$/$sql$)               | Migration patterns for all future cron registrations                   |
+| 2   | 2026-03-24 | npx supabase gen types outputs WARN lines to stdout when env vars are missing — must redirect stderr or use 2>/dev/null           | database.types.ts corruption risk if not handled                       |
+| 3   | 2026-03-24 | @smartout/supabase/client uses browser APIs (localStorage, cookies) — cannot be used in React Native                              | Mobile hooks must use platform-specific Supabase client                |
+| 4   | 2026-03-24 | Supabase-generated types use boolean                                                                                              | null for columns with DEFAULT — TypeScript spread doesn't narrow nulls | Must use explicit null-coalescing (??) per field when merging with defaults |
+| 5   | 2026-03-24 | notification_preference.user_id FK to user_identity means outbox consumer needs profile→user_identity join to resolve preferences | Join path documented in spec — important for consumer performance      |
