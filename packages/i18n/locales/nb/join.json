@@ -1,1 +1,15 @@
-{}
+{
+  "wizard": {
+    "title": "Registrering",
+    "description": "Opprett din bedriftskonto"
+  },
+  "steps": {
+    "account": "Konto",
+    "business": "Bedrift",
+    "about": "Om bedriften",
+    "hours": "Drift",
+    "menu": "Meny",
+    "create_account": "Opprett konto",
+    "team": "Team"
+  }
+}

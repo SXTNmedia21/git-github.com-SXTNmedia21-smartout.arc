@@ -1,1 +1,15 @@
-{}
+{
+  "wizard": {
+    "title": "Registration",
+    "description": "Create your business account"
+  },
+  "steps": {
+    "account": "Account",
+    "business": "Business",
+    "about": "About",
+    "hours": "Operations",
+    "menu": "Menu",
+    "create_account": "Create account",
+    "team": "Team"
+  }
+}
