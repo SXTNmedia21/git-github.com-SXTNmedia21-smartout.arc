@@ -19,6 +19,16 @@ import type { Shift } from "../_components/schedule-types";
 import { scheduleKeys } from "./schedule-keys";
 import { fromDbShift, toDbShiftInsert, toDbShiftUpdate } from "./schedule-mappers";
 
+/** Check if a Supabase error is an RLS / permission denial */
+function isPermissionError(err: unknown): boolean {
+  if (typeof err === "object" && err !== null) {
+    const e = err as Record<string, unknown>;
+    if (e.code === "42501") return true;
+    if (typeof e.message === "string" && e.message.includes("row-level security")) return true;
+  }
+  return false;
+}
+
 // ══════════════════════════════════════════════════════════════
 // Query: Fetch shifts for a week
 // ══════════════════════════════════════════════════════════════
@@ -108,11 +118,15 @@ export function useCreateShift(weekStart: string) {
       });
     },
 
-    onError: (_err, _newShift, context) => {
+    onError: (err, _newShift, context) => {
       if (context?.previous) {
         queryClient.setQueryData(queryKey, context.previous);
       }
-      toast.error("Kunne ikke opprette vakt");
+      toast.error(
+        isPermissionError(err)
+          ? "Du har ikke tilgang til å opprette vakter"
+          : "Kunne ikke opprette vakt",
+      );
     },
 
     onSettled: () => {
@@ -187,11 +201,15 @@ export function useUpdateShift(weekStart: string) {
       });
     },
 
-    onError: (_err, _vars, context) => {
+    onError: (err, _vars, context) => {
       if (context?.previous) {
         queryClient.setQueryData(queryKey, context.previous);
       }
-      toast.error("Kunne ikke oppdatere vakt");
+      toast.error(
+        isPermissionError(err)
+          ? "Du har ikke tilgang til å oppdatere vakter"
+          : "Kunne ikke oppdatere vakt",
+      );
     },
 
     onSettled: () => {
@@ -252,11 +270,15 @@ export function useDeleteShift(weekStart: string) {
       });
     },
 
-    onError: (_err, _shiftId, context) => {
+    onError: (err, _shiftId, context) => {
       if (context?.previous) {
         queryClient.setQueryData(queryKey, context.previous);
       }
-      toast.error("Kunne ikke slette vakt");
+      toast.error(
+        isPermissionError(err)
+          ? "Du har ikke tilgang til å slette vakter"
+          : "Kunne ikke slette vakt",
+      );
     },
 
     onSettled: () => {
@@ -332,11 +354,15 @@ export function useMoveShift(weekStart: string) {
       });
     },
 
-    onError: (_err, _vars, context) => {
+    onError: (err, _vars, context) => {
       if (context?.previous) {
         queryClient.setQueryData(queryKey, context.previous);
       }
-      toast.error("Kunne ikke flytte vakt");
+      toast.error(
+        isPermissionError(err)
+          ? "Du har ikke tilgang til å flytte vakter"
+          : "Kunne ikke flytte vakt",
+      );
     },
 
     onSettled: () => {
@@ -416,11 +442,15 @@ export function usePublishShifts(weekStart: string) {
       });
     },
 
-    onError: (_err, _ids, context) => {
+    onError: (err, _ids, context) => {
       if (context?.previous) {
         queryClient.setQueryData(queryKey, context.previous);
       }
-      toast.error("Kunne ikke publisere vakter");
+      toast.error(
+        isPermissionError(err)
+          ? "Du har ikke tilgang til å publisere vakter"
+          : "Kunne ikke publisere vakter",
+      );
     },
 
     onSettled: () => {
@@ -509,11 +539,15 @@ export function usePasteDay(weekStart: string) {
       }
     },
 
-    onError: (_err, _vars, context) => {
+    onError: (err, _vars, context) => {
       if (context?.previous) {
         queryClient.setQueryData(queryKey, context.previous);
       }
-      toast.error("Kunne ikke lime inn vakter");
+      toast.error(
+        isPermissionError(err)
+          ? "Du har ikke tilgang til å opprette vakter"
+          : "Kunne ikke lime inn vakter",
+      );
     },
 
     onSettled: () => {
@@ -583,11 +617,15 @@ export function useUnpublishShifts(weekStart: string) {
       }
     },
 
-    onError: (_err, _ids, context) => {
+    onError: (err, _ids, context) => {
       if (context?.previous) {
         queryClient.setQueryData(queryKey, context.previous);
       }
-      toast.error("Kunne ikke avpublisere vakter");
+      toast.error(
+        isPermissionError(err)
+          ? "Du har ikke tilgang til å avpublisere vakter"
+          : "Kunne ikke avpublisere vakter",
+      );
     },
 
     onSettled: () => {
@@ -651,11 +689,15 @@ export function useCompleteShift(weekStart: string) {
       });
     },
 
-    onError: (_err, _id, context) => {
+    onError: (err, _id, context) => {
       if (context?.previous) {
         queryClient.setQueryData(queryKey, context.previous);
       }
-      toast.error("Kunne ikke fullføre vakt");
+      toast.error(
+        isPermissionError(err)
+          ? "Du har ikke tilgang til å fullføre vakter"
+          : "Kunne ikke fullføre vakt",
+      );
     },
 
     onSettled: () => {

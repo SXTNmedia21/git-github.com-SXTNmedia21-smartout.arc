@@ -9,6 +9,7 @@ import {
   MapPin,
   PlayCircle,
   CheckCircle2,
+  ThumbsUp,
 } from "lucide-react";
 
 type OpenShiftCardViewProps = {
@@ -51,6 +52,7 @@ type ShiftCardViewProps = {
   indicator: string;
   zone?: string;
   isCompact?: boolean;
+  confirmedAt?: string;
 };
 
 const SHIFT_STATUS_STYLES: Record<ShiftStatus, string> = {
@@ -93,11 +95,19 @@ function normalizeShiftIndicator(indicator: string): ShiftIndicator {
   return "orange";
 }
 
-function ShiftStatusIcon({ status }: { status: ShiftStatus }) {
+function ShiftStatusIcon({ status, confirmedAt }: { status: ShiftStatus; confirmedAt?: string }) {
   if (status === "draft") return <AlertCircle className="h-3.5 w-3.5 text-orange-400/60" />;
-  if (status === "published") return <Circle className="text-muted-foreground h-3.5 w-3.5" />;
-  if (status === "active") return <PlayCircle className="h-3.5 w-3.5 text-emerald-400/60" />;
-  return <CheckCircle2 className="text-muted-foreground h-3.5 w-3.5" />;
+  if (status === "completed") return <CheckCircle2 className="text-muted-foreground h-3.5 w-3.5" />;
+  if (status === "active") {
+    return confirmedAt ? (
+      <ThumbsUp className="h-3.5 w-3.5 text-emerald-400" />
+    ) : (
+      <PlayCircle className="h-3.5 w-3.5 text-emerald-400/60" />
+    );
+  }
+  // published: show confirmation status
+  if (confirmedAt) return <ThumbsUp className="h-3.5 w-3.5 text-emerald-400" />;
+  return <Clock className="text-muted-foreground h-3.5 w-3.5" />;
 }
 
 export const ShiftCardView = React.memo(function ShiftCardView({
@@ -109,9 +119,11 @@ export const ShiftCardView = React.memo(function ShiftCardView({
   indicator,
   zone,
   isCompact,
+  confirmedAt,
 }: ShiftCardViewProps) {
   const normalizedStatus = normalizeShiftStatus(status);
   const normalizedIndicator = normalizeShiftIndicator(indicator);
+  const isPublishedOrLater = normalizedStatus === "published" || normalizedStatus === "active";
 
   if (isCompact) {
     return (
@@ -124,9 +136,15 @@ export const ShiftCardView = React.memo(function ShiftCardView({
         <span className="text-foreground truncate pl-1 text-[11px] leading-tight font-semibold">
           {role}
         </span>
-        <span className="text-muted-foreground ml-auto shrink-0 text-[10px] font-medium">
-          {time}
-        </span>
+        <div className="ml-auto flex shrink-0 items-center gap-1">
+          {isPublishedOrLater && (
+            <div
+              className={`h-1.5 w-1.5 rounded-full ${confirmedAt ? "bg-emerald-400" : "bg-amber-400"}`}
+              title={confirmedAt ? "Bekreftet" : "Venter på bekreftelse"}
+            />
+          )}
+          <span className="text-muted-foreground text-[10px] font-medium">{time}</span>
+        </div>
       </div>
     );
   }
@@ -153,7 +171,7 @@ export const ShiftCardView = React.memo(function ShiftCardView({
         </div>
 
         <div className="relative flex h-5 w-5 shrink-0 items-center justify-center">
-          <ShiftStatusIcon status={normalizedStatus} />
+          <ShiftStatusIcon status={normalizedStatus} confirmedAt={confirmedAt} />
         </div>
       </div>
 

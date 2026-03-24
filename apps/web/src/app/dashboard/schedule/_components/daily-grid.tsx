@@ -819,6 +819,7 @@ export const EmployeeRow = React.memo(function EmployeeRow({
                     startTime={shift.startTime}
                     endTime={shift.endTime}
                     isCompact={isCompact}
+                    confirmedAt={shift.confirmedAt}
                     onClick={() => onSelectShift(shift.id)}
                     onTimeChange={
                       onTimeChange

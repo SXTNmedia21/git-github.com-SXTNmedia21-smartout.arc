@@ -125,10 +125,10 @@ For multi-field updates, show the most significant change (status > employee > t
 
 ### Hooks
 
-| File                          | Change                                                                  |
-| ----------------------------- | ----------------------------------------------------------------------- |
-| `use-shifts.ts`               | No changes needed (already fetches `*`)                                 |
-| New: `use-shift-audit-log.ts` | TanStack Query hook: fetch `schedule_audit_log` for a specific shift ID |
+| File               | Change                                                                              |
+| ------------------ | ----------------------------------------------------------------------------------- |
+| `use-shifts.ts`    | No changes needed (already fetches `*`)                                             |
+| `use-audit-log.ts` | Already exists with `useAuditLog(tableName, rowId)` — use as-is, no new hook needed |
 
 ### Components
 

@@ -44,6 +44,7 @@ export function ShiftCard({
   onClick,
   onTimeChange,
   isCompact,
+  confirmedAt,
 }: {
   role: string;
   time: string;
@@ -58,6 +59,7 @@ export function ShiftCard({
   /** Called when start/end time is changed via resize handles. */
   onTimeChange?: (newStart: string, newEnd: string) => void;
   isCompact?: boolean;
+  confirmedAt?: string;
 }) {
   const { isDark } = useContext(DashboardContext);
   const defaultId = React.useId();
@@ -191,6 +193,7 @@ export function ShiftCard({
         indicator={indicator}
         zone={zone}
         isCompact={isCompact}
+        confirmedAt={confirmedAt}
       />
     </div>
   );

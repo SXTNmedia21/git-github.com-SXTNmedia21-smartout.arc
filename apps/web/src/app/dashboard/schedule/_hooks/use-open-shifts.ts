@@ -26,6 +26,16 @@ import {
   toDbShiftInsert,
 } from "./schedule-mappers";
 
+/** Check if a Supabase error is an RLS / permission denial */
+function isPermissionError(err: unknown): boolean {
+  if (typeof err === "object" && err !== null) {
+    const e = err as Record<string, unknown>;
+    if (e.code === "42501") return true;
+    if (typeof e.message === "string" && e.message.includes("row-level security")) return true;
+  }
+  return false;
+}
+
 // ══════════════════════════════════════════════════════════════
 // Query: Fetch open shifts for workspace
 // ══════════════════════════════════════════════════════════════
@@ -113,11 +123,15 @@ export function useCreateOpenShift() {
       });
     },
 
-    onError: (_err, _newOpenShift, context) => {
+    onError: (err, _newOpenShift, context) => {
       if (context?.previous) {
         queryClient.setQueryData(queryKey, context.previous);
       }
-      toast.error("Kunne ikke opprette åpen vakt");
+      toast.error(
+        isPermissionError(err)
+          ? "Du har ikke tilgang til å opprette åpne vakter"
+          : "Kunne ikke opprette åpen vakt",
+      );
     },
 
     onSettled: () => {
@@ -175,11 +189,15 @@ export function useDeleteOpenShift() {
       });
     },
 
-    onError: (_err, _openShiftId, context) => {
+    onError: (err, _openShiftId, context) => {
       if (context?.previous) {
         queryClient.setQueryData(queryKey, context.previous);
       }
-      toast.error("Kunne ikke slette åpen vakt");
+      toast.error(
+        isPermissionError(err)
+          ? "Du har ikke tilgang til å slette åpne vakter"
+          : "Kunne ikke slette åpen vakt",
+      );
     },
 
     onSettled: () => {
@@ -276,14 +294,18 @@ export function useAssignOpenShift(weekStart: string) {
       });
     },
 
-    onError: (_err, _vars, context) => {
+    onError: (err, _vars, context) => {
       if (context?.previousOpenShifts) {
         queryClient.setQueryData(openShiftsKey, context.previousOpenShifts);
       }
       if (context?.previousShifts) {
         queryClient.setQueryData(shiftsKey, context.previousShifts);
       }
-      toast.error("Kunne ikke tildele åpen vakt");
+      toast.error(
+        isPermissionError(err)
+          ? "Du har ikke tilgang til å tildele åpne vakter"
+          : "Kunne ikke tildele åpen vakt",
+      );
     },
 
     onSettled: () => {

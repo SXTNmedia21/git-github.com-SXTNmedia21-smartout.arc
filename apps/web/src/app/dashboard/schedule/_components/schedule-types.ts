@@ -55,6 +55,10 @@ export type Shift = {
   notes?: string;
   createdAt: string;
   updatedAt: string;
+  /** Timestamp when the employee confirmed/acknowledged the shift */
+  confirmedAt?: string;
+  /** Profile ID of the employee who confirmed */
+  confirmedBy?: string;
 };
 
 // ── Absence (maps to future absence table) ──────────────────

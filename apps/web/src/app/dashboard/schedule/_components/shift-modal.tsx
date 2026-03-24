@@ -9,6 +9,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   Calendar,
+  Check,
   Clock,
   Mail,
   MessageSquare,
@@ -21,6 +22,7 @@ import {
   User,
   ChevronDown,
   History,
+  ThumbsUp,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -58,6 +60,7 @@ import { useShifts, useCreateShift, useUpdateShift, useDeleteShift } from "../_h
 import { useWeekRange } from "../_hooks/use-week-range";
 import { useEmployees, type ScheduleEmployee } from "../_hooks/use-employees";
 import { useShiftRuleCheck } from "../_hooks/use-shift-rule-check";
+import { useAuditLog, type AuditLogEntry } from "../_hooks/use-audit-log";
 import { AVAILABLE_ZONES } from "./schedule-data";
 import type { DayCategory, ShiftStatus, Shift } from "./schedule-types";
 
@@ -173,6 +176,244 @@ function getStatusLabel(status: ShiftStatus): string {
   }
 }
 
+// ── Status Timeline ─────────────────────────────────────────
+
+const STATUS_STEPS = [
+  { key: "created", label: "Opprettet" },
+  { key: "assigned", label: "Tildelt" },
+  { key: "published", label: "Publisert" },
+  { key: "confirmed", label: "Bekreftet" },
+  { key: "active", label: "Aktiv" },
+  { key: "completed", label: "Fullført" },
+] as const;
+
+/** Ordinal index for each status in the lifecycle */
+const STATUS_ORDER: Record<string, number> = {
+  created: 0,
+  assigned: 1,
+  published: 2,
+  confirmed: 3,
+  active: 4,
+  completed: 5,
+};
+
+function ShiftStatusTimeline({
+  shift,
+  auditEntries,
+}: {
+  shift: Shift;
+  auditEntries: AuditLogEntry[];
+}) {
+  const currentIndex = STATUS_ORDER[shift.status] ?? 0;
+  const isConfirmed = Boolean(shift.confirmedAt);
+
+  /** Try to find the timestamp when a status was reached via audit log */
+  function getStepDate(stepKey: string): string | undefined {
+    if (stepKey === "created") return shift.createdAt;
+    if (stepKey === "confirmed") return shift.confirmedAt;
+
+    // Find earliest audit entry where status changed to this value
+    const entry = [...auditEntries]
+      .reverse()
+      .find(
+        (e) =>
+          e.operation === "UPDATE" &&
+          e.changedFields?.includes("status") &&
+          (e.newData as Record<string, unknown> | null)?.status === stepKey,
+      );
+    return entry?.createdAt;
+  }
+
+  function formatStepDate(iso: string): string {
+    const d = new Date(iso);
+    return `${d.getDate()}.${(d.getMonth() + 1).toString().padStart(2, "0")}`;
+  }
+
+  return (
+    <div className="flex items-start justify-between gap-1 px-6 py-3">
+      {STATUS_STEPS.map((step, i) => {
+        const stepIndex = STATUS_ORDER[step.key] ?? i;
+        const isPast = step.key === "confirmed" ? isConfirmed : stepIndex <= currentIndex;
+        const isCurrent =
+          step.key === "confirmed"
+            ? isConfirmed && shift.status === "published"
+            : stepIndex === currentIndex;
+        const dateStr = isPast ? getStepDate(step.key) : undefined;
+
+        return (
+          <div key={step.key} className="flex min-w-0 flex-1 flex-col items-center gap-1">
+            <div className="flex items-center gap-0.5">
+              {i > 0 && (
+                <div
+                  className={`h-px w-3 ${isPast ? "bg-emerald-400/50" : "border-border border-t border-dashed"}`}
+                />
+              )}
+              <div
+                className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] ${
+                  isCurrent
+                    ? "bg-emerald-500 text-white"
+                    : isPast
+                      ? "bg-emerald-500/20 text-emerald-400"
+                      : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {isPast ? (
+                  step.key === "confirmed" ? (
+                    <ThumbsUp className="h-2.5 w-2.5" />
+                  ) : (
+                    <Check className="h-2.5 w-2.5" />
+                  )
+                ) : (
+                  <span>{i + 1}</span>
+                )}
+              </div>
+            </div>
+            <span
+              className={`text-center text-[9px] leading-tight font-medium ${
+                isCurrent ? "text-foreground" : "text-muted-foreground"
+              }`}
+            >
+              {step.label}
+            </span>
+            {dateStr && (
+              <span className="text-muted-foreground text-[9px] leading-none">
+                {formatStepDate(dateStr)}
+              </span>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── History Timeline ────────────────────────────────────────
+
+function describeAuditEntry(entry: AuditLogEntry, employees: ScheduleEmployee[]): string {
+  const newData = entry.newData as Record<string, unknown> | null;
+  const oldData = entry.oldData as Record<string, unknown> | null;
+  const fields = entry.changedFields ?? [];
+
+  if (entry.operation === "INSERT") return "Opprettet";
+  if (entry.operation === "DELETE") return "Slettet";
+
+  // Status change is most significant
+  if (fields.includes("status") && newData?.status) {
+    return getStatusLabel(newData.status as ShiftStatus);
+  }
+
+  // Employee assignment
+  if (fields.includes("employee_id")) {
+    if (newData?.employee_id) {
+      const emp = employees.find((e) => e.id === newData.employee_id);
+      return `Tildelt til ${emp?.name ?? "ukjent"}`;
+    }
+    return "Fjernet tildeling";
+  }
+
+  // Confirmation
+  if (fields.includes("confirmed_at") && newData?.confirmed_at) {
+    const emp = newData.confirmed_by ? employees.find((e) => e.id === newData.confirmed_by) : null;
+    return `Bekreftet${emp ? ` av ${emp.name}` : ""}`;
+  }
+
+  // Time change
+  if (fields.includes("start_time") || fields.includes("end_time")) {
+    const oldStart = (oldData?.start_time as string)?.slice(0, 5) ?? "?";
+    const oldEnd = (oldData?.end_time as string)?.slice(0, 5) ?? "?";
+    const newStart = (newData?.start_time as string)?.slice(0, 5) ?? "?";
+    const newEnd = (newData?.end_time as string)?.slice(0, 5) ?? "?";
+    return `Tid endret: ${oldStart}-${oldEnd} \u2192 ${newStart}-${newEnd}`;
+  }
+
+  // Role change
+  if (fields.includes("role")) {
+    return `Rolle endret: ${oldData?.role ?? "?"} \u2192 ${newData?.role ?? "?"}`;
+  }
+
+  // Notes
+  if (fields.includes("notes")) return "Notat oppdatert";
+
+  // Fallback: list changed fields
+  return `Oppdatert: ${fields.join(", ")}`;
+}
+
+function ShiftHistoryTimeline({
+  entries,
+  employees,
+}: {
+  entries: AuditLogEntry[];
+  employees: ScheduleEmployee[];
+}) {
+  if (entries.length === 0) {
+    return (
+      <div className="text-muted-foreground flex flex-col items-center justify-center py-12 text-center">
+        <History className="mb-3 h-10 w-10 opacity-30" />
+        <p className="text-sm font-medium">Ingen historikk tilgjengelig</p>
+        <p className="mt-1 max-w-xs text-xs">
+          Denne vakten ble opprettet for audit-logging var aktivert.
+        </p>
+      </div>
+    );
+  }
+
+  let lastDateStr = "";
+
+  return (
+    <div className="space-y-0">
+      {entries.map((entry) => {
+        const date = new Date(entry.createdAt);
+        const dateStr = date.toLocaleDateString("nb-NO", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        });
+        const timeStr = date.toLocaleTimeString("nb-NO", {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        const showDate = dateStr !== lastDateStr;
+        lastDateStr = dateStr;
+
+        const actor = entry.userId ? employees.find((e) => e.id === entry.userId) : null;
+
+        return (
+          <div key={entry.id} className="relative flex gap-3 pb-4">
+            {/* Timeline line */}
+            <div className="flex flex-col items-center">
+              <div className="bg-border mt-1.5 h-2 w-2 rounded-full" />
+              <div className="bg-border w-px flex-1" />
+            </div>
+
+            <div className="min-w-0 flex-1 pb-1">
+              <div className="flex items-baseline gap-2">
+                <span className="text-foreground text-sm font-medium">
+                  {describeAuditEntry(entry, employees)}
+                </span>
+              </div>
+              <div className="text-muted-foreground mt-0.5 flex items-center gap-2 text-[11px]">
+                <span>{timeStr}</span>
+                {showDate && (
+                  <>
+                    <span>&middot;</span>
+                    <span>{dateStr}</span>
+                  </>
+                )}
+                {actor && (
+                  <>
+                    <span>&middot;</span>
+                    <span>{actor.name}</span>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── Form State ──────────────────────────────────────────────
 
 type ShiftFormState = {
@@ -205,6 +446,12 @@ export function ShiftModal() {
   const createShiftMutation = useCreateShift(weekStart);
   const updateShiftMutation = useUpdateShift(weekStart);
   const deleteShiftMutation = useDeleteShift(weekStart);
+
+  const auditLogQuery = useAuditLog("schedule_shift", selectedShiftId ?? "");
+  const auditEntries = useMemo(
+    () => (auditLogQuery.data ?? []) as AuditLogEntry[],
+    [auditLogQuery.data],
+  );
 
   const availableRoles = useMemo(
     () => [...new Set(employees.map((e) => e.jobTitle || e.role).filter((v): v is string => !!v))],
@@ -488,6 +735,13 @@ export function ShiftModal() {
             </div>
           </DialogHeader>
         </div>
+
+        {/* Status Timeline (edit mode only) */}
+        {isEditMode && existingShift && (
+          <div className="border-border border-b">
+            <ShiftStatusTimeline shift={existingShift} auditEntries={auditEntries} />
+          </div>
+        )}
 
         {/* Content with Tabs */}
         <Tabs defaultValue="vakt" className="flex flex-1 flex-col overflow-hidden">
@@ -881,16 +1135,7 @@ export function ShiftModal() {
             </TabsContent>
 
             <TabsContent value="historikk" className="mt-0 outline-none">
-              <div className="text-muted-foreground flex flex-col items-center justify-center py-12 text-center">
-                <History className="mb-3 h-10 w-10 opacity-30" />
-                <p className="text-sm font-medium">Endringshistorikk</p>
-                <p className="mt-1 max-w-xs text-xs">
-                  Se hvem som har gjort endringer, når og hva som ble endret.
-                </p>
-                <Button variant="outline" size="sm" className="pointer-events-none mt-4 opacity-50">
-                  Vis logg
-                </Button>
-              </div>
+              <ShiftHistoryTimeline entries={auditEntries} employees={employees} />
             </TabsContent>
           </div>
         </Tabs>
