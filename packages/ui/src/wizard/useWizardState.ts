@@ -51,6 +51,17 @@ export function useWizardState<TState extends Record<string, unknown>>(
     return { success: true as const };
   }, [currentStepIndex, data, definition]);
 
+  const skip = useCallback(() => {
+    const step = definition.steps[currentStepIndex];
+    if (step) {
+      setCompletedSteps((prev) => new Set(prev).add(step.id));
+    }
+    if (currentStepIndex < definition.steps.length - 1) {
+      setCurrentStepIndex((i) => i + 1);
+      stepEnteredAt.current = Date.now();
+    }
+  }, [currentStepIndex, definition.steps]);
+
   const back = useCallback(() => {
     if (currentStepIndex > 0) {
       setCurrentStepIndex((i) => i - 1);
@@ -89,6 +100,7 @@ export function useWizardState<TState extends Record<string, unknown>>(
     isFirst,
     isLast,
     next,
+    skip,
     back,
     goTo,
     wizardState,

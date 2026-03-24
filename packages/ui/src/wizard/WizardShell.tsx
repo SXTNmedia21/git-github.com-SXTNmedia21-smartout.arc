@@ -65,6 +65,7 @@ export function WizardShell<TState extends Record<string, unknown>>({
     isFirst,
     isLast,
     next: rawNext,
+    skip: rawSkip,
     back: rawBack,
     goTo: rawGoTo,
     wizardState,
@@ -114,8 +115,8 @@ export function WizardShell<TState extends Record<string, unknown>>({
     if (currentStep) {
       onStepSkip?.(currentStep.id, currentStepIndex);
     }
-    rawNext();
-  }, [currentStep, currentStepIndex, rawNext, onStepSkip]);
+    rawSkip();
+  }, [currentStep, currentStepIndex, rawSkip, onStepSkip]);
 
   const handleGoTo = useCallback(
     (stepId: string) => {
