@@ -12,6 +12,7 @@ import { Step4Hours } from "./Step4Hours";
 import { Step5Menu } from "./Step5Menu";
 import { Step6CreateAccount } from "./Step6CreateAccount";
 import { SetupLoading } from "./SetupLoading";
+import { ConnectionBanner } from "./ConnectionBanner";
 
 /* ─────────────────────────────────────────────────────
    Join Wizard — Nordic Split layout
@@ -99,6 +100,7 @@ function WizardContent() {
 
   return (
     <div className="relative flex min-h-[100dvh] overflow-hidden">
+      <ConnectionBanner />
       {/* Noise overlay */}
       <div className="bg-noise pointer-events-none fixed inset-0 z-30 opacity-[0.025] mix-blend-overlay" />
 
