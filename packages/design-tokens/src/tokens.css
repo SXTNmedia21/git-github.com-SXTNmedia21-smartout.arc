@@ -49,6 +49,9 @@
     --brand-orange: oklch(0.65 0.22 40);
     --brand-orange-light: oklch(0.75 0.18 40);
     --brand-orange-dark: oklch(0.55 0.22 40);
+    --brand-purple: oklch(0.55 0.25 300);
+    --brand-purple-light: oklch(0.65 0.2 300);
+    --brand-purple-dark: oklch(0.45 0.25 300);
 
     /* Semantic */
     --success: oklch(0.65 0.2 145);

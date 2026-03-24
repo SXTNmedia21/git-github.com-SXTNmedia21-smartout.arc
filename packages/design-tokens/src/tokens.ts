@@ -9,6 +9,9 @@ export const brand = {
   orange: "oklch(0.65 0.22 40)",
   orangeLight: "oklch(0.75 0.18 40)",
   orangeDark: "oklch(0.55 0.22 40)",
+  purple: "oklch(0.55 0.25 300)", // Secondary accent for feature sections
+  purpleLight: "oklch(0.65 0.20 300)",
+  purpleDark: "oklch(0.45 0.25 300)",
 } as const;
 
 // ─── Semantic Colors ───────────────────────────────────
