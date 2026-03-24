@@ -272,6 +272,110 @@ export interface ShiftCompleted extends BaseEvent {
   };
 }
 
+// ─── Scheduling: Shift Clock Events ─────────────
+export interface ShiftPunchedIn extends BaseEvent {
+  event: "shift punched_in";
+  properties: {
+    entity: EntityRef;
+    data: {
+      shift_id: string;
+      time_entry_id: string;
+      punch_time: string;
+      is_adhoc: boolean;
+      gps_verified: boolean;
+      gps_distance_meters: number | null;
+    };
+  };
+}
+
+export interface ShiftPunchedOut extends BaseEvent {
+  event: "shift punched_out";
+  properties: {
+    entity: EntityRef;
+    data: {
+      shift_id: string;
+      time_entry_id: string;
+      punch_time: string;
+      work_minutes: number;
+      break_minutes: number;
+      gps_verified: boolean;
+    };
+  };
+}
+
+export interface ShiftBreakStarted extends BaseEvent {
+  event: "shift break_started";
+  properties: {
+    entity: EntityRef;
+    data: { shift_id: string; time_entry_id: string };
+  };
+}
+
+export interface ShiftBreakEnded extends BaseEvent {
+  event: "shift break_ended";
+  properties: {
+    entity: EntityRef;
+    data: {
+      shift_id: string;
+      time_entry_id: string;
+      break_minutes: number;
+      is_paid: boolean;
+    };
+  };
+}
+
+export interface ShiftSupplementClaimed extends BaseEvent {
+  event: "shift supplement_claimed";
+  properties: {
+    entity: EntityRef;
+    data: { shift_id: string; supplement_rule_id: string; amount: number };
+  };
+}
+
+export interface ShiftSupplementReviewed extends BaseEvent {
+  event: "shift supplement_reviewed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      supplement_id: string;
+      status: "approved" | "rejected";
+      reviewed_by: string;
+    };
+  };
+}
+
+export interface ShiftNoteAdded extends BaseEvent {
+  event: "shift note_added";
+  properties: {
+    entity: EntityRef;
+    data: { shift_id: string; note_id: string };
+  };
+}
+
+export interface ShiftAdhocCreated extends BaseEvent {
+  event: "shift adhoc_created";
+  properties: {
+    entity: EntityRef;
+    data: { shift_id: string; department_id: string; requires_approval: boolean };
+  };
+}
+
+export interface ShiftAdhocApproved extends BaseEvent {
+  event: "shift adhoc_approved";
+  properties: {
+    entity: EntityRef;
+    data: { shift_id: string; approved_by: string };
+  };
+}
+
+export interface ShiftCallInitiated extends BaseEvent {
+  event: "shift call_initiated";
+  properties: {
+    entity: EntityRef;
+    data: { shift_id: string; department_id: string; leaders_on_duty: number };
+  };
+}
+
 // ─── Operations: Session Lifecycle ──────────────
 export interface SessionOpened extends BaseEvent {
   event: "session opened";
@@ -1492,6 +1596,16 @@ export type SmartoutEvent =
   | ShiftDeleted
   | ShiftPublished
   | ShiftCompleted
+  | ShiftPunchedIn
+  | ShiftPunchedOut
+  | ShiftBreakStarted
+  | ShiftBreakEnded
+  | ShiftSupplementClaimed
+  | ShiftSupplementReviewed
+  | ShiftNoteAdded
+  | ShiftAdhocCreated
+  | ShiftAdhocApproved
+  | ShiftCallInitiated
   | SessionOpened
   | SessionPendingSignoff
   | SessionClosed
@@ -1683,6 +1797,47 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "shift completed": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "scheduling",
+  },
+
+  "shift punched_in": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  "shift punched_out": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  "shift break_started": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "shift break_ended": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "shift supplement_claimed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "shift supplement_reviewed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "shift note_added": {
+    destinations: ["logger", "activity_trail"],
+    category: "operations",
+  },
+  "shift adhoc_created": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  "shift adhoc_approved": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "shift call_initiated": {
+    destinations: ["posthog", "logger"],
+    category: "operations",
   },
 
   "session opened": {
