@@ -1,13 +1,13 @@
 ---
 title: Learning Log
-status: done
+status: in_progress
 updated: 2026-03-24
 created: 2026-03-24
-module: walkieTalkie
+module: operations
 tags: [learnings]
 ---
 
-# Learning Log — livekit-webhook-deployment
+# Learning Log — shift-clock
 
 | #   | Date       | Learning                                                                                                                                                                                      | Impact                                                                                                   |
 | --- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |

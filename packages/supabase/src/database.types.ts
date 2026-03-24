@@ -799,9 +799,13 @@ export type Database = {
           amount: number
           created_at: string
           description: string
+          employee_comment: string | null
           id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
           salary_code: string | null
           schedule_shift_id: string
+          status: Database["public"]["Enums"]["supplement_claim_status"] | null
           supplement_rule_id: string | null
           updated_at: string
           workspace_id: string
@@ -811,9 +815,13 @@ export type Database = {
           amount: number
           created_at?: string
           description: string
+          employee_comment?: string | null
           id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           salary_code?: string | null
           schedule_shift_id: string
+          status?: Database["public"]["Enums"]["supplement_claim_status"] | null
           supplement_rule_id?: string | null
           updated_at?: string
           workspace_id: string
@@ -823,9 +831,13 @@ export type Database = {
           amount?: number
           created_at?: string
           description?: string
+          employee_comment?: string | null
           id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           salary_code?: string | null
           schedule_shift_id?: string
+          status?: Database["public"]["Enums"]["supplement_claim_status"] | null
           supplement_rule_id?: string | null
           updated_at?: string
           workspace_id?: string
@@ -10733,6 +10745,8 @@ export type Database = {
       }
       schedule_shift: {
         Row: {
+          adhoc_approved_at: string | null
+          adhoc_approved_by: string | null
           approved_at: string | null
           approved_by: string | null
           breaks: number
@@ -10748,6 +10762,7 @@ export type Database = {
           employee_id: string | null
           end_time: string
           indicator: string
+          is_adhoc: boolean
           is_published: boolean
           location_id: string | null
           notes: string | null
@@ -10765,6 +10780,8 @@ export type Database = {
           zone: string | null
         }
         Insert: {
+          adhoc_approved_at?: string | null
+          adhoc_approved_by?: string | null
           approved_at?: string | null
           approved_by?: string | null
           breaks?: number
@@ -10780,6 +10797,7 @@ export type Database = {
           employee_id?: string | null
           end_time: string
           indicator?: string
+          is_adhoc?: boolean
           is_published?: boolean
           location_id?: string | null
           notes?: string | null
@@ -10797,6 +10815,8 @@ export type Database = {
           zone?: string | null
         }
         Update: {
+          adhoc_approved_at?: string | null
+          adhoc_approved_by?: string | null
           approved_at?: string | null
           approved_by?: string | null
           breaks?: number
@@ -10812,6 +10832,7 @@ export type Database = {
           employee_id?: string | null
           end_time?: string
           indicator?: string
+          is_adhoc?: boolean
           is_published?: boolean
           location_id?: string | null
           notes?: string | null
@@ -10829,6 +10850,13 @@ export type Database = {
           zone?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "schedule_shift_adhoc_approved_by_fkey"
+            columns: ["adhoc_approved_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
           {
             foreignKeyName: "schedule_shift_approved_by_fkey"
             columns: ["approved_by"]
@@ -11753,6 +11781,76 @@ export type Database = {
           },
         ]
       }
+      shift_clock_config: {
+        Row: {
+          adhoc_requires_approval: boolean
+          adhoc_shifts_enabled: boolean
+          created_at: string
+          department_id: string | null
+          gps_radius_meters: number
+          gps_reference_lat: number | null
+          gps_reference_lng: number | null
+          gps_required: boolean
+          id: string
+          punch_window_minutes: number
+          team_id: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          adhoc_requires_approval?: boolean
+          adhoc_shifts_enabled?: boolean
+          created_at?: string
+          department_id?: string | null
+          gps_radius_meters?: number
+          gps_reference_lat?: number | null
+          gps_reference_lng?: number | null
+          gps_required?: boolean
+          id?: string
+          punch_window_minutes?: number
+          team_id?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          adhoc_requires_approval?: boolean
+          adhoc_shifts_enabled?: boolean
+          created_at?: string
+          department_id?: string | null
+          gps_radius_meters?: number
+          gps_reference_lat?: number | null
+          gps_reference_lng?: number | null
+          gps_required?: boolean
+          id?: string
+          punch_window_minutes?: number
+          team_id?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_clock_config_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "department"
+            referencedColumns: ["department_id"]
+          },
+          {
+            foreignKeyName: "shift_clock_config_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "team"
+            referencedColumns: ["team_id"]
+          },
+          {
+            foreignKeyName: "shift_clock_config_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       shift_cost_snapshot: {
         Row: {
           base_cost: number
@@ -11825,6 +11923,58 @@ export type Database = {
           },
           {
             foreignKeyName: "shift_cost_snapshot_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      shift_note: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          profile_id: string
+          shift_id: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          profile_id: string
+          shift_id: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          profile_id?: string
+          shift_id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_note_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "shift_note_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "schedule_shift"
+            referencedColumns: ["schedule_shift_id"]
+          },
+          {
+            foreignKeyName: "shift_note_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspace"
@@ -13760,6 +13910,7 @@ export type Database = {
         | "completed"
         | "unpublished"
       snapshot_basis: "planned" | "actual"
+      supplement_claim_status: "pending" | "approved" | "rejected"
       sync_direction: "inbound" | "outbound" | "bidirectional"
       sync_status: "pending" | "synced" | "failed" | "conflict"
       tariff_source: "riksavtalen" | "allmenngjoring" | "internal"
@@ -13795,12 +13946,15 @@ export type Database = {
     Tables: {
       time_entry: {
         Row: {
+          break_locations: Json | null
           breaks: Json | null
           created_at: string
+          notes: string | null
           profile_id: string
           punch_in: string
           punch_in_location: Json | null
           punch_out: string | null
+          punch_out_location: Json | null
           shift_id: string
           status: Database["timesheet"]["Enums"]["time_entry_status"]
           time_entry_id: string
@@ -13808,12 +13962,15 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          break_locations?: Json | null
           breaks?: Json | null
           created_at?: string
+          notes?: string | null
           profile_id: string
           punch_in: string
           punch_in_location?: Json | null
           punch_out?: string | null
+          punch_out_location?: Json | null
           shift_id: string
           status?: Database["timesheet"]["Enums"]["time_entry_status"]
           time_entry_id?: string
@@ -13821,12 +13978,15 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          break_locations?: Json | null
           breaks?: Json | null
           created_at?: string
+          notes?: string | null
           profile_id?: string
           punch_in?: string
           punch_in_location?: Json | null
           punch_out?: string | null
+          punch_out_location?: Json | null
           shift_id?: string
           status?: Database["timesheet"]["Enums"]["time_entry_status"]
           time_entry_id?: string
@@ -15174,6 +15334,7 @@ export const Constants = {
         "unpublished",
       ],
       snapshot_basis: ["planned", "actual"],
+      supplement_claim_status: ["pending", "approved", "rejected"],
       sync_direction: ["inbound", "outbound", "bidirectional"],
       sync_status: ["pending", "synced", "failed", "conflict"],
       tariff_source: ["riksavtalen", "allmenngjoring", "internal"],

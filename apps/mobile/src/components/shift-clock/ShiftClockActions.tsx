@@ -1,99 +1,281 @@
+/**
+ * ShiftClockActions — 2x2 grid of quick-action buttons during an active shift.
+ *
+ * Contains: Break toggle, Note, Supplements, Call leader.
+ * All icons use lucide-react-native. Layout adapts to break state.
+ * Mirrors the web ShiftClockActions component.
+ */
+
 import React from "react";
-import { View, Text, Pressable, StyleSheet } from "react-native";
-import { Coffee, Edit3, Coins, Phone } from "lucide-react-native";
-import { createStyles, useTheme } from "@/theme";
+import { View, Text, Pressable } from "react-native";
 import * as Haptics from "expo-haptics";
+import { Coffee, Play, FileText, Coins, Phone } from "lucide-react-native";
+
+import { createStyles } from "@/theme";
 
 type ShiftClockActionsProps = {
-  onToggleBreak: () => void;
-  onAddNote: () => void;
-  onAddSupplement: () => void;
-  onCallLeader: () => void;
   isOnBreak: boolean;
+  onStartBreak: () => void;
+  onEndBreak: () => void;
+  onOpenNotes: () => void;
+  onOpenSupplements: () => void;
+  onCallLeader: () => void;
+  claimedSupplementCount?: number;
+  breakElapsed?: string;
+  isLoading?: boolean;
 };
 
 export function ShiftClockActions({
-  onToggleBreak,
-  onAddNote,
-  onAddSupplement,
-  onCallLeader,
   isOnBreak,
+  onStartBreak,
+  onEndBreak,
+  onOpenNotes,
+  onOpenSupplements,
+  onCallLeader,
+  claimedSupplementCount = 0,
+  breakElapsed,
+  isLoading = false,
 }: ShiftClockActionsProps) {
   const styles = useStyles();
-  const theme = useTheme();
-
-  const handlePress = (action: () => void) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    action();
-  };
 
   return (
     <View style={styles.grid}>
-      <Pressable
-        style={({ pressed }) => [styles.actionButton, pressed && styles.actionPressed]}
-        onPress={() => handlePress(onToggleBreak)}
-      >
-        <Coffee size={24} color={isOnBreak ? theme.colors.warning : theme.colors.primary} />
-        <Text style={[styles.actionText, isOnBreak && { color: theme.colors.warning }]}>
-          {isOnBreak ? "Avslutt pause" : "Ta pause"}
-        </Text>
-      </Pressable>
+      {/* Break toggle */}
+      {isOnBreak ? (
+        <ActionButton
+          icon={<Play size={20} color="#f97316" strokeWidth={2} />}
+          label={breakElapsed ?? "Tilbake"}
+          sublabel="Tilbake fra pause"
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            onEndBreak();
+          }}
+          variant="break"
+          disabled={isLoading}
+        />
+      ) : (
+        <ActionButton
+          icon={<Coffee size={20} color="#f59e0b" strokeWidth={2} />}
+          label="Pause"
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            onStartBreak();
+          }}
+          iconBg="rgba(245, 158, 11, 0.1)"
+          disabled={isLoading}
+        />
+      )}
 
-      <Pressable
-        style={({ pressed }) => [styles.actionButton, pressed && styles.actionPressed]}
-        onPress={() => handlePress(onAddNote)}
-      >
-        <Edit3 size={24} color={theme.colors.primary} />
-        <Text style={styles.actionText}>Notat</Text>
-      </Pressable>
+      {/* Notes */}
+      <ActionButton
+        icon={<FileText size={20} color="#a78bfa" strokeWidth={2} />}
+        label="Notat"
+        onPress={() => {
+          Haptics.selectionAsync();
+          onOpenNotes();
+        }}
+        iconBg="rgba(167, 139, 250, 0.1)"
+      />
 
-      <Pressable
-        style={({ pressed }) => [styles.actionButton, pressed && styles.actionPressed]}
-        onPress={() => handlePress(onAddSupplement)}
-      >
-        <Coins size={24} color={theme.colors.primary} />
-        <Text style={styles.actionText}>Tillegg</Text>
-      </Pressable>
+      {/* Supplements */}
+      <ActionButton
+        icon={<Coins size={20} color="#34d399" strokeWidth={2} />}
+        label="Tillegg"
+        onPress={() => {
+          Haptics.selectionAsync();
+          onOpenSupplements();
+        }}
+        iconBg="rgba(52, 211, 153, 0.1)"
+        badge={claimedSupplementCount > 0 ? claimedSupplementCount : undefined}
+      />
 
-      <Pressable
-        style={({ pressed }) => [styles.actionButton, pressed && styles.actionPressed]}
-        onPress={() => handlePress(onCallLeader)}
-      >
-        <Phone size={24} color={theme.colors.primary} />
-        <Text style={styles.actionText}>Ring leder</Text>
-      </Pressable>
+      {/* Call leader */}
+      <ActionButton
+        icon={<Phone size={20} color="#6bcb77" strokeWidth={2} />}
+        label="Ring leder"
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          onCallLeader();
+        }}
+        variant="voice"
+      />
     </View>
   );
 }
 
+/* -------------------------------------------------------------------------- */
+/*  ActionButton helper                                                       */
+/* -------------------------------------------------------------------------- */
+
+type ActionButtonProps = {
+  icon: React.ReactNode;
+  label: string;
+  sublabel?: string;
+  onPress: () => void;
+  variant?: "default" | "break" | "voice";
+  iconBg?: string;
+  badge?: number;
+  disabled?: boolean;
+};
+
+function ActionButton({
+  icon,
+  label,
+  sublabel,
+  onPress,
+  variant = "default",
+  iconBg,
+  badge,
+  disabled = false,
+}: ActionButtonProps) {
+  const styles = useStyles();
+
+  const containerStyle =
+    variant === "break"
+      ? styles.actionBreak
+      : variant === "voice"
+        ? styles.actionVoice
+        : styles.actionDefault;
+
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      style={({ pressed }) => [
+        styles.actionBase,
+        containerStyle,
+        pressed && styles.actionPressed,
+        disabled && styles.actionDisabled,
+      ]}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+    >
+      <View style={[styles.iconContainer, iconBg ? { backgroundColor: iconBg } : null]}>
+        {icon}
+      </View>
+      {sublabel ? (
+        <>
+          <Text style={variant === "break" ? styles.breakTimerLabel : styles.actionLabel}>
+            {label}
+          </Text>
+          <Text style={styles.actionSublabel}>{sublabel}</Text>
+        </>
+      ) : (
+        <Text
+          style={variant === "voice" ? styles.voiceLabel : styles.actionLabel}
+          numberOfLines={1}
+        >
+          {label}
+        </Text>
+      )}
+
+      {/* Badge for supplement count */}
+      {badge != null && badge > 0 && (
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>{badge}</Text>
+        </View>
+      )}
+    </Pressable>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Styles                                                                    */
+/* -------------------------------------------------------------------------- */
+
 const useStyles = createStyles((theme) => ({
   grid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: theme.spacing.element,
-    paddingHorizontal: theme.spacing.card,
-    marginTop: theme.spacing.section,
+    flexDirection: "row" as const,
+    flexWrap: "wrap" as const,
+    gap: 10,
+    paddingHorizontal: 20,
+    marginVertical: theme.spacing.tight,
   },
-  actionButton: {
+
+  actionBase: {
     flex: 1,
-    minWidth: "45%",
-    backgroundColor: theme.colors.card,
-    borderRadius: theme.radius.lg,
-    padding: theme.spacing.card,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: theme.spacing.tight,
+    minWidth: "45%" as unknown as number,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 10,
+    alignItems: "center" as const,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    ...theme.shadows.sm,
+    position: "relative" as const,
   },
+
+  actionDefault: {
+    backgroundColor: theme.isDark ? "#111118" : "#f8f8f9",
+    borderColor: theme.isDark ? "#1a1a24" : "#e5e5e8",
+  },
+
+  actionBreak: {
+    backgroundColor: "rgba(249, 115, 22, 0.08)",
+    borderColor: "rgba(249, 115, 22, 0.25)",
+  },
+
+  actionVoice: {
+    backgroundColor: theme.isDark ? "#0a1a0a" : "#f0f8f0",
+    borderColor: theme.isDark ? "#1a3a1a" : "#c8e6c8",
+  },
+
   actionPressed: {
     opacity: 0.7,
-    backgroundColor: theme.colors.secondary,
+    transform: [{ scale: 0.97 }],
   },
-  actionText: {
-    ...theme.typography.subheadline,
-    color: theme.colors.foreground,
-    fontWeight: "500",
+
+  actionDisabled: {
+    opacity: 0.5,
+  },
+
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    marginBottom: 4,
+  },
+
+  actionLabel: {
+    fontSize: 12,
+    color: theme.isDark ? "#a89f94" : "#666",
+    marginTop: 2,
+  },
+
+  voiceLabel: {
+    fontSize: 12,
+    color: "#6bcb77",
+    marginTop: 2,
+  },
+
+  breakTimerLabel: {
+    fontSize: 14,
+    fontWeight: "600" as const,
+    color: "#f97316",
+    fontVariant: ["tabular-nums" as const],
+  },
+
+  actionSublabel: {
+    fontSize: 10,
+    color: "rgba(249, 115, 22, 0.7)",
+    marginTop: 2,
+  },
+
+  badge: {
+    position: "absolute" as const,
+    top: -4,
+    right: -4,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "#e85c0d",
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+  },
+
+  badgeText: {
+    fontSize: 10,
+    fontWeight: "700" as const,
+    color: "#ffffff",
   },
 }));

@@ -1,99 +1,168 @@
-import React from "react";
-import { View, Text, Pressable, StyleSheet } from "react-native";
-import Animated, { FadeInDown } from "react-native-reanimated";
-import { createStyles, useTheme } from "@/theme";
-import { formatTime } from "@/components/shift/ShiftCard";
-import type { Database } from "@smartout/supabase/database.types";
+/**
+ * ShiftClockHeader — Live elapsed timer, status badge, and shift details.
+ *
+ * Updates every second via setInterval. Uses monospace font variant for the
+ * time display to prevent layout shift. Status badge toggles between
+ * green "PA VAKT" and orange "PAUSE" based on break state.
+ */
 
-type ScheduleShift = Database["public"]["Tables"]["schedule_shift"]["Row"];
+import React, { useEffect, useState } from "react";
+import { View, Text } from "react-native";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSequence,
+  withTiming,
+  withSpring,
+} from "react-native-reanimated";
+
+import { createStyles } from "@/theme";
 
 type ShiftClockHeaderProps = {
-  shift: ScheduleShift;
-  state: "IDLE" | "CLOCKED_IN" | "ON_BREAK" | "SUMMARY";
-  activeDurationMinutes: number; // For live timer
+  punchInTime: string;
+  isOnBreak: boolean;
+  department?: string;
+  zone?: string;
 };
 
-export function ShiftClockHeader({ shift, state, activeDurationMinutes }: ShiftClockHeaderProps) {
-  const styles = useStyles();
-  const theme = useTheme();
-
-  // Format elapsed time to HH:MM:SS
-  const formatDuration = (minutes: number) => {
-    const hrs = Math.floor(minutes / 60);
-    const mins = Math.floor(minutes % 60);
-    const secs = 0; // Simplified for UI without a true per-second ticking hook here
-    return `${hrs.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}:00`;
+/** Format seconds into HH:MM:SS */
+function formatTimer(seconds: number): { main: string; secs: string } {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return {
+    main: `${pad(h)}:${pad(m)}`,
+    secs: `:${pad(s)}`,
   };
+}
+
+export function ShiftClockHeader({
+  punchInTime,
+  isOnBreak,
+  department,
+  zone,
+}: ShiftClockHeaderProps) {
+  const styles = useStyles();
+  const [elapsed, setElapsed] = useState(0);
+
+  // Clock digit bounce on tick
+  const tickScale = useSharedValue(1);
+
+  useEffect(() => {
+    const startMs = new Date(punchInTime).getTime();
+
+    const tick = () => {
+      const newElapsed = Math.floor((Date.now() - startMs) / 1000);
+      setElapsed(newElapsed);
+    };
+
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [punchInTime]);
+
+  // Subtle bounce every second
+  useEffect(() => {
+    tickScale.value = withSequence(
+      withTiming(1.02, { duration: 80 }),
+      withSpring(1, { damping: 14, stiffness: 300 }),
+    );
+  }, [elapsed, tickScale]);
+
+  const tickStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: tickScale.value }],
+  }));
+
+  const { main, secs } = formatTimer(elapsed);
+
+  const statusBadgeColor = isOnBreak ? "#f97316" : "#00b894";
+  const statusBadgeBg = isOnBreak ? "rgba(249,115,22,0.15)" : "rgba(0,184,148,0.15)";
+  const statusText = isOnBreak ? "PAUSE" : "PA VAKT";
+
+  const punchInFormatted = new Date(punchInTime).toLocaleTimeString("nb-NO", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
 
   return (
     <View style={styles.container}>
-      <Text style={styles.departmentName}>Avdeling / Sone</Text>
+      {/* Live elapsed timer */}
+      <Animated.View style={[styles.timerRow, tickStyle]}>
+        <Text style={styles.timerMain}>{main}</Text>
+        <Text style={styles.timerSeconds}>{secs}</Text>
+      </Animated.View>
 
-      {state === "CLOCKED_IN" && (
-        <Animated.View entering={FadeInDown} style={styles.activeContainer}>
-          <Text style={styles.timerText}>{formatDuration(activeDurationMinutes)}</Text>
-          <View style={styles.badgeContainer}>
-            <View style={[styles.statusDot, { backgroundColor: theme.colors.success }]} />
-            <Text style={[styles.statusText, { color: theme.colors.success }]}>PÅ VAKT</Text>
-          </View>
-        </Animated.View>
-      )}
+      {/* Status badge */}
+      <View style={[styles.statusBadge, { backgroundColor: statusBadgeBg }]}>
+        <View style={[styles.statusDot, { backgroundColor: statusBadgeColor }]} />
+        <Text style={[styles.statusText, { color: statusBadgeColor }]}>{statusText}</Text>
+      </View>
 
-      {state === "ON_BREAK" && (
-        <Animated.View entering={FadeInDown} style={styles.activeContainer}>
-          <Text style={[styles.timerText, { color: theme.colors.warning }]}>
-            {formatDuration(activeDurationMinutes)}
-          </Text>
-          <View style={styles.badgeContainer}>
-            <View style={[styles.statusDot, { backgroundColor: theme.colors.warning }]} />
-            <Text style={[styles.statusText, { color: theme.colors.warning }]}>PAUSE</Text>
-          </View>
-        </Animated.View>
-      )}
+      {/* Punch-in time and department */}
+      <Text style={styles.subText}>
+        Stemplet inn {punchInFormatted}
+        {department ? ` \u00B7 ${department}` : ""}
+        {zone ? ` ${zone}` : ""}
+      </Text>
     </View>
   );
 }
 
 const useStyles = createStyles((theme) => ({
   container: {
-    alignItems: "center",
-    paddingVertical: theme.spacing.section,
+    alignItems: "center" as const,
+    paddingTop: theme.spacing.section,
+    paddingBottom: theme.spacing.md,
+    paddingHorizontal: theme.spacing.card,
+    gap: theme.spacing.tight,
   },
-  departmentName: {
-    ...theme.typography.subheadline,
-    color: theme.colors.mutedForeground,
-    marginBottom: theme.spacing.tight,
-    textTransform: "uppercase",
-    letterSpacing: 1,
+
+  timerRow: {
+    flexDirection: "row" as const,
+    alignItems: "baseline" as const,
   },
-  activeContainer: {
-    alignItems: "center",
-  },
-  timerText: {
-    fontFamily: "Geist Mono",
-    fontSize: 48,
-    fontWeight: "700",
+
+  timerMain: {
+    fontSize: 56,
+    fontWeight: "200" as const,
     color: theme.colors.foreground,
-    letterSpacing: -1,
+    letterSpacing: 2,
+    fontVariant: ["tabular-nums" as const],
   },
-  badgeContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: theme.isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)",
+
+  timerSeconds: {
+    fontSize: 22,
+    fontWeight: "200" as const,
+    color: theme.isDark ? "#555" : "#999",
+    fontVariant: ["tabular-nums" as const],
+  },
+
+  statusBadge: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 6,
     paddingHorizontal: 12,
     paddingVertical: 4,
-    borderRadius: theme.radius.full,
-    marginTop: theme.spacing.element,
-    gap: 6,
+    borderRadius: 12,
   },
+
   statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
+
   statusText: {
-    ...theme.typography.caption,
-    fontWeight: "700",
-    letterSpacing: 0.5,
+    fontSize: 11,
+    fontWeight: "700" as const,
+    letterSpacing: 1,
+  },
+
+  subText: {
+    fontSize: 13,
+    color: theme.isDark ? "#00b894" : "#009b7d",
+    marginTop: 4,
   },
 }));

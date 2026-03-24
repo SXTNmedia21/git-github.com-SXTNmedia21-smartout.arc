@@ -1,13 +1,13 @@
 ---
 title: Decision Log
-status: done
+status: in_progress
 updated: 2026-03-24
 created: 2026-03-24
-module: walkieTalkie
+module: operations
 tags: [decisions]
 ---
 
-# Decision Log — livekit-webhook-deployment
+# Decision Log — shift-clock
 
 | #   | Date       | Decision                                                                                                                        | Status   |
 | --- | ---------- | ------------------------------------------------------------------------------------------------------------------------------- | -------- |
@@ -33,3 +33,5 @@ tags: [decisions]
 | ---- | ---------- | ----------------------------------- | -------- |
 | 0060 | 2026-03-24 | Unified Wizard Shell in packages/ui | accepted |
 | 0061 | 2026-03-24 | Walk AI Semantic Tagging Convention | accepted |
+| #    | Date       | Decision                            | Status   |
+| ---  | ----       | --------                            | ------   |
