@@ -450,6 +450,9 @@ importers:
       '@smartout/hms':
         specifier: workspace:*
         version: link:../../packages/hms
+      '@smartout/i18n':
+        specifier: workspace:^
+        version: link:../../packages/i18n
       '@smartout/notifications':
         specifier: workspace:^
         version: link:../../packages/notifications
@@ -953,6 +956,9 @@ importers:
       typescript:
         specifier: ^5.9.0
         version: 5.9.3
+      zod:
+        specifier: ^3.25.0
+        version: 3.25.76
 
   packages/utils:
     dependencies:
