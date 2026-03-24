@@ -60,6 +60,22 @@ export async function emit(event: SmartoutEvent): Promise<void> {
     promises.push(sendToEngine(event));
   }
 
+  // 5. Notifications (client-side only — server uses engine-dispatch)
+  if (routing.destinations.includes("notifications")) {
+    if (!isServer) {
+      fetch("/api/notifications/outbox", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          event_key: event.event,
+          metadata: event.properties,
+        }),
+      }).catch(() => {
+        // Silent fail — notification delivery is best-effort from telemetry
+      });
+    }
+  }
+
   // Let errors fly through silently. Analytics pipelines shouldn't crash standard operations.
   await Promise.allSettled(promises);
 }

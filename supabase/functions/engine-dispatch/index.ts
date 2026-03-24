@@ -611,13 +611,34 @@ async function executeStep(
     }
 
     case "send_notification": {
-      // TODO(notifications): notification_queue table does not exist yet.
-      // When Module 12 (Notifications) is built, replace this console.log
-      // with INSERT into notification_queue (template, recipient, workspace_id, payload).
-      console.log(
-        `[engine-dispatch] send_notification: template=${(step.action_payload as Record<string, unknown>).template}, ` +
-          `assignee=${state.assignee_id}, state=${state.id}`,
-      );
+      const { template, recipient_id, workspace_id, payload } = step.action_payload as {
+        template: string;
+        recipient_id?: string;
+        workspace_id?: string;
+        payload?: Record<string, unknown>;
+      };
+
+      const targetRecipient = recipient_id ?? state.assignee_id;
+      const targetWorkspace = workspace_id ?? state.workspace_id;
+
+      if (targetRecipient && targetWorkspace) {
+        await supabase.from("notification_outbox").insert({
+          workspace_id: targetWorkspace,
+          recipient_id: targetRecipient,
+          mode: "work",
+          priority: 0,
+          title: template,
+          body: "",
+          action_url: null,
+          metadata: {
+            event_key: `engine.${template}`,
+            state_id: state.id,
+            ...payload,
+          },
+          allowed_channels: ["push", "in_app"],
+        });
+      }
+
       await advanceToNextStep(supabase, state, step);
       break;
     }
