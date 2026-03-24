@@ -10,6 +10,7 @@ import {
   Link,
   UserX,
   XCircle,
+  RefreshCw,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -28,7 +29,8 @@ import type { Employee, Department, ProfileRole } from "./types";
 type ConfirmAction =
   | { type: "deactivate"; profileId: string; name: string }
   | { type: "cancelInvite"; invitationId: string; name: string }
-  | { type: "resetPassword"; email: string; name: string };
+  | { type: "resetPassword"; email: string; name: string }
+  | { type: "reactivate"; profileId: string; name: string };
 
 type PeopleRowActionsProps = {
   employee: Employee;
@@ -143,7 +145,7 @@ export function PeopleRowActions({
                     <DropdownMenuItem
                       key={role}
                       disabled={employee.role.toLowerCase() === role}
-                      onClick={() => onRoleChange(employee.id, role)}
+                      onClick={() => onRoleChange(employee.profileId!, role)}
                     >
                       {role.charAt(0).toUpperCase() + role.slice(1)}
                       {employee.role.toLowerCase() === role && (
@@ -167,7 +169,7 @@ export function PeopleRowActions({
                     <DropdownMenuItem
                       key={dept.department_id}
                       disabled={employee.departmentId === dept.department_id}
-                      onClick={() => onDepartmentChange(employee.id, dept.department_id)}
+                      onClick={() => onDepartmentChange(employee.profileId!, dept.department_id)}
                     >
                       {dept.name}
                       {employee.departmentId === dept.department_id && (
@@ -199,13 +201,32 @@ export function PeopleRowActions({
               onClick={() =>
                 onConfirmAction({
                   type: "deactivate",
-                  profileId: employee.id,
+                  profileId: employee.profileId!,
                   name: employee.name,
                 })
               }
             >
               <UserX className="mr-2 h-4 w-4" />
               Deactivate
+            </DropdownMenuItem>
+          </>
+        )}
+
+        {/* Offboarding — reactivation */}
+        {employee.status === "offboarding" && isAdmin && employee.profileId && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() =>
+                onConfirmAction({
+                  type: "reactivate",
+                  profileId: employee.profileId!,
+                  name: employee.name,
+                })
+              }
+            >
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Reactivate
             </DropdownMenuItem>
           </>
         )}

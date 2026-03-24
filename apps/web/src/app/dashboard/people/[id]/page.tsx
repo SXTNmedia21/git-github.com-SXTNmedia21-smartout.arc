@@ -18,11 +18,17 @@ import {
   History,
   Wallet,
   Loader2,
+  Calendar,
+  X,
+  Plus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@smartout/supabase/client";
+import { VALID_TRANSITIONS } from "@smartout/utils";
+import type { ProfileStatus } from "@smartout/utils";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { EntityDetailLayout } from "../../organization/_components/EntityDetailLayout";
+import { addToTeam, removeFromTeam, updateProfileStatus } from "../_actions/people-actions";
 
 /* ───────── types ───────── */
 
@@ -60,12 +66,32 @@ type ProtocolAssignment = {
 
 type TeamMembership = { team_id: string; name: string; team_type: string };
 
+type ActivityEntry = {
+  id: number;
+  event: string;
+  action_verb: string;
+  category: string;
+  entity_type: string;
+  entity_label: string | null;
+  created_at: string;
+};
+
+type ShiftEntry = {
+  shift_id: string;
+  start_time: string;
+  end_time: string;
+  status: string;
+  department: { name: string } | null;
+};
+
+type WorkspaceTeam = { team_id: string; name: string };
+
 /* ───────── helpers ───────── */
 
 const STATUS_COLORS: Record<string, { bg: string; text: string; label: string }> = {
   active: { bg: "bg-emerald-500/10", text: "text-emerald-500", label: "Active" },
   trainee: { bg: "bg-orange-500/10", text: "text-orange-500", label: "Trainee" },
-  inactive: { bg: "bg-zinc-500/10", text: "text-zinc-400", label: "Inactive" },
+  inactive: { bg: "bg-muted", text: "text-muted-foreground", label: "Inactive" },
   offboarding: { bg: "bg-rose-500/10", text: "text-rose-500", label: "Offboarding" },
 };
 
@@ -88,6 +114,13 @@ export default function ProfileDetailPage() {
   const [departments, setDepartments] = useState<DeptOption[]>([]);
   const [protocols, setProtocols] = useState<ProtocolAssignment[]>([]);
   const [teams, setTeams] = useState<TeamMembership[]>([]);
+  const [activity, setActivity] = useState<ActivityEntry[]>([]);
+  const [shifts, setShifts] = useState<ShiftEntry[]>([]);
+  const [fullActivity, setFullActivity] = useState<ActivityEntry[]>([]);
+  const [activityPage, setActivityPage] = useState(0);
+  const [hasMoreActivity, setHasMoreActivity] = useState(false);
+  const [loadingMoreActivity, setLoadingMoreActivity] = useState(false);
+  const [workspaceTeams, setWorkspaceTeams] = useState<WorkspaceTeam[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingProtocols, setLoadingProtocols] = useState(false);
 
@@ -172,37 +205,128 @@ export default function ProfileDetailPage() {
     );
   }, [id]);
 
+  const fetchActivity = useCallback(async () => {
+    if (!id) return;
+    const { data } = await supabase
+      .from("activity_trail")
+      .select("id, event, action_verb, category, entity_type, entity_label, created_at")
+      .eq("actor_id", id)
+      .order("created_at", { ascending: false })
+      .limit(5);
+    setActivity((data as ActivityEntry[]) ?? []);
+  }, [id]);
+
+  const ACTIVITY_PAGE_SIZE = 20;
+
+  const fetchShifts = useCallback(async () => {
+    if (!id) return;
+    const now = Date.now();
+    const weekMs = 7 * 24 * 60 * 60 * 1000;
+    const { data } = await supabase
+      .from("schedule_shift")
+      .select("shift_id, start_time, end_time, status, department:department_id(name)")
+      .eq("profile_id", id)
+      .gte("start_time", new Date(now - weekMs).toISOString())
+      .lte("start_time", new Date(now + weekMs).toISOString())
+      .order("start_time");
+    setShifts((data as ShiftEntry[]) ?? []);
+  }, [id]);
+
+  const fetchFullActivity = useCallback(
+    async (page: number) => {
+      if (!id) return;
+      setLoadingMoreActivity(true);
+      const end = (page + 1) * ACTIVITY_PAGE_SIZE - 1;
+      const { data } = await supabase
+        .from("activity_trail")
+        .select("id, event, action_verb, category, entity_type, entity_label, created_at")
+        .eq("actor_id", id)
+        .order("created_at", { ascending: false })
+        .range(0, end);
+      const items = (data as ActivityEntry[]) ?? [];
+      setFullActivity(items);
+      setHasMoreActivity(items.length > page * ACTIVITY_PAGE_SIZE + ACTIVITY_PAGE_SIZE - 1);
+      setLoadingMoreActivity(false);
+    },
+    [id],
+  );
+
+  const fetchWorkspaceTeams = useCallback(async () => {
+    if (!workspaceData?.workspace_id) return;
+    const { data } = await supabase
+      .from("team")
+      .select("team_id, name")
+      .eq("workspace_id", workspaceData.workspace_id)
+      .order("name");
+    setWorkspaceTeams((data as WorkspaceTeam[]) ?? []);
+  }, [workspaceData?.workspace_id]);
+
   useEffect(() => {
     fetchProfile();
     fetchProtocols();
     fetchTeams();
-  }, [fetchProfile, fetchProtocols, fetchTeams]);
+    fetchActivity();
+    fetchShifts();
+    fetchFullActivity(0);
+    fetchWorkspaceTeams();
+  }, [fetchProfile, fetchProtocols, fetchTeams, fetchActivity, fetchShifts, fetchFullActivity, fetchWorkspaceTeams]);
 
   async function handleSettingsSave() {
-    if (!profile) return;
+    if (!profile || !workspaceData?.workspace_id) return;
     setSaving(true);
 
-    const updates: Record<string, unknown> = {};
-    if (editRole !== profile.role.toLowerCase()) updates.role = editRole;
-    if (editDeptId !== (profile.department_id ?? "")) updates.department_id = editDeptId || null;
-    if (editStatus !== profile.status) {
-      updates.status = editStatus;
-      if (editStatus === "offboarding" || editStatus === "inactive") updates.is_active = false;
-      else updates.is_active = true;
-    }
-
-    if (Object.keys(updates).length > 0) {
-      const { error } = await supabase
-        .from("profile")
-        .update(updates)
-        .eq("profile_id", profile.profile_id);
-      if (error) toast.error(error.message);
-      else {
-        toast.success("Profile updated");
-        fetchProfile();
+    try {
+      // Handle status change via server action with transition validation
+      if (editStatus !== profile.status) {
+        await updateProfileStatus(
+          profile.profile_id,
+          workspaceData.workspace_id,
+          profile.status as ProfileStatus,
+          editStatus as ProfileStatus,
+        );
       }
+
+      // Handle role/department changes via direct update
+      const updates: Record<string, unknown> = {};
+      if (editRole !== profile.role.toLowerCase()) updates.role = editRole;
+      if (editDeptId !== (profile.department_id ?? "")) updates.department_id = editDeptId || null;
+
+      if (Object.keys(updates).length > 0) {
+        const { error } = await supabase
+          .from("profile")
+          .update(updates)
+          .eq("profile_id", profile.profile_id);
+        if (error) throw new Error(error.message);
+      }
+
+      toast.success("Profile updated");
+      fetchProfile();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update profile");
     }
     setSaving(false);
+  }
+
+  async function handleAddToTeam(teamId: string) {
+    if (!profile) return;
+    try {
+      await addToTeam(profile.profile_id, teamId);
+      toast.success("Added to team");
+      fetchTeams();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to add to team");
+    }
+  }
+
+  async function handleRemoveFromTeam(teamId: string) {
+    if (!profile) return;
+    try {
+      await removeFromTeam(profile.profile_id, teamId);
+      toast.success("Removed from team");
+      fetchTeams();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to remove from team");
+    }
   }
 
   async function handleHrSave() {
@@ -235,7 +359,7 @@ export default function ProfileDetailPage() {
   if (loading) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-zinc-500" />
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -243,7 +367,7 @@ export default function ProfileDetailPage() {
   if (!profile) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-2">
-        <p className={isDark ? "text-zinc-400" : "text-zinc-600"}>Profile not found</p>
+        <p className="text-muted-foreground">Profile not found</p>
         <button
           onClick={() => router.push("/dashboard/people")}
           className="text-sm text-orange-500 hover:underline"
@@ -269,19 +393,11 @@ export default function ProfileDetailPage() {
   const readinessScore =
     protocols.length > 0 ? Math.round((completedProtocols / protocols.length) * 100) : 0;
 
-  const inputClass = `w-full rounded-lg border px-3 py-2 text-sm focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none ${
-    isDark
-      ? "border-zinc-800 bg-zinc-900 text-white placeholder:text-zinc-600"
-      : "border-zinc-200 bg-zinc-50 text-zinc-900 placeholder:text-zinc-400"
-  }`;
+  const inputClass = "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none";
 
-  const selectClass = `w-full appearance-none rounded-lg border px-3 py-2 text-sm focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none ${
-    isDark ? "border-zinc-800 bg-zinc-900 text-white" : "border-zinc-200 bg-zinc-50 text-zinc-900"
-  }`;
+  const selectClass = "w-full appearance-none rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none";
 
-  const sectionCard = `rounded-xl border p-4 ${
-    isDark ? "border-zinc-800/50 bg-zinc-900/30" : "border-zinc-200 bg-zinc-50"
-  }`;
+  const sectionCard = "rounded-xl border border-border bg-card p-4";
 
   /* ───────── tab: overview ───────── */
 
@@ -290,30 +406,30 @@ export default function ProfileDetailPage() {
       {/* Contact */}
       <div className={sectionCard}>
         <h3
-          className={`mb-3 text-xs font-bold tracking-widest uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+          className="mb-3 text-xs font-bold tracking-widest uppercase text-muted-foreground"
         >
           Contact
         </h3>
         <div className="space-y-3">
           <div className="flex items-center gap-3 text-sm">
-            <Mail className={`h-4 w-4 ${isDark ? "text-zinc-500" : "text-zinc-400"}`} />
+            <Mail className="h-4 w-4 text-muted-foreground" />
             <a
               href={`mailto:${email}`}
-              className={`transition-colors ${isDark ? "text-zinc-300 hover:text-white" : "text-zinc-600 hover:text-zinc-900"}`}
+              className="text-muted-foreground transition-colors hover:text-foreground"
             >
               {email || "No email"}
             </a>
           </div>
           <div className="flex items-center gap-3 text-sm">
-            <Phone className={`h-4 w-4 ${isDark ? "text-zinc-500" : "text-zinc-400"}`} />
-            <span className={isDark ? "text-zinc-300" : "text-zinc-600"}>
+            <Phone className="h-4 w-4 text-muted-foreground" />
+            <span className="text-muted-foreground">
               {phone || "No phone"}
             </span>
           </div>
           {addressStr && (
             <div className="flex items-center gap-3 text-sm">
-              <Home className={`h-4 w-4 ${isDark ? "text-zinc-500" : "text-zinc-400"}`} />
-              <span className={isDark ? "text-zinc-300" : "text-zinc-600"}>{addressStr}</span>
+              <Home className="h-4 w-4 text-muted-foreground" />
+              <span className="text-muted-foreground">{addressStr}</span>
             </div>
           )}
         </div>
@@ -321,20 +437,19 @@ export default function ProfileDetailPage() {
 
       {/* Stat cards */}
       <div className="grid grid-cols-3 gap-3">
-        <StatCard label="Readiness" value={`${readinessScore}%`} isDark={isDark} />
+        <StatCard label="Readiness" value={`${readinessScore}%`} />
         <StatCard
           label="Protocols"
           value={`${completedProtocols}/${protocols.length}`}
-          isDark={isDark}
         />
-        <StatCard label="Teams" value={String(teams.length)} isDark={isDark} />
+        <StatCard label="Teams" value={String(teams.length)} />
       </div>
 
       {/* Teams */}
       {teams.length > 0 && (
         <div>
           <h3
-            className={`mb-3 text-xs font-bold tracking-widest uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+            className="mb-3 text-xs font-bold tracking-widest uppercase text-muted-foreground"
           >
             Teams
           </h3>
@@ -343,11 +458,7 @@ export default function ProfileDetailPage() {
               <button
                 key={t.team_id}
                 onClick={() => router.push(`/dashboard/organization/teams/${t.team_id}`)}
-                className={`rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
-                  isDark
-                    ? "border-zinc-800 bg-zinc-900 text-zinc-300 hover:border-zinc-700 hover:text-white"
-                    : "border-zinc-200 bg-zinc-50 text-zinc-700 hover:border-zinc-300 hover:text-zinc-900"
-                }`}
+                className="rounded-lg border border-border bg-card px-2.5 py-1 text-xs font-medium text-foreground transition-colors hover:bg-accent"
               >
                 {t.name}
               </button>
@@ -356,59 +467,46 @@ export default function ProfileDetailPage() {
         </div>
       )}
 
-      {/* Recent Activity (placeholder — same as employee-profile-card) */}
+      {/* Recent Activity */}
       <div>
         <h3
-          className={`mb-3 text-xs font-bold tracking-widest uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+          className="mb-3 text-xs font-bold tracking-widest uppercase text-muted-foreground"
         >
           Recent Activity
         </h3>
-        <div
-          className={`relative flex flex-col space-y-3 before:absolute before:inset-y-2 before:left-3 before:w-px ${isDark ? "before:bg-zinc-800" : "before:bg-zinc-200"}`}
-        >
-          <ActivityItem
-            icon={<Clock className="h-3 w-3" />}
-            color="emerald"
-            title={
-              <>
-                Clocked in for{" "}
-                <span className={`font-medium ${isDark ? "text-white" : "text-zinc-900"}`}>
-                  Opening Shift
-                </span>
-              </>
-            }
-            time="Today, 07:58"
-            isDark={isDark}
-          />
-          <ActivityItem
-            icon={<CheckCircle2 className="h-3 w-3" />}
-            color="orange"
-            title={
-              <>
-                Completed{" "}
-                <span className={`font-medium ${isDark ? "text-white" : "text-zinc-900"}`}>
-                  Temperature Check Routine
-                </span>
-              </>
-            }
-            time="Today, 11:30"
-            isDark={isDark}
-          />
-          <ActivityItem
-            icon={<FileText className="h-3 w-3" />}
-            color="zinc"
-            title={
-              <>
-                Signed{" "}
-                <span className={`font-medium ${isDark ? "text-white" : "text-zinc-900"}`}>
-                  Fire Safety Protocol
-                </span>
-              </>
-            }
-            time="Yesterday, 14:12"
-            isDark={isDark}
-          />
-        </div>
+        {activity.length === 0 ? (
+          <p className="py-4 text-center text-sm text-muted-foreground">
+            No activity recorded yet
+          </p>
+        ) : (
+          <div
+            className="relative flex flex-col space-y-3 before:absolute before:inset-y-2 before:left-3 before:w-px before:bg-border"
+          >
+            {activity.map((a) => (
+              <ActivityItem
+                key={a.id}
+                icon={<History className="h-3 w-3" />}
+                color={a.category === "training" ? "emerald" : a.category === "schedule" ? "orange" : "zinc"}
+                title={
+                  <>
+                    {a.action_verb}{" "}
+                    {a.entity_label && (
+                      <span className="font-medium text-foreground">
+                        {a.entity_label}
+                      </span>
+                    )}
+                  </>
+                }
+                time={new Date(a.created_at).toLocaleString("nb-NO", {
+                  day: "numeric",
+                  month: "short",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -448,11 +546,11 @@ export default function ProfileDetailPage() {
 
       <div>
         <h3
-          className={`mb-3 flex items-center justify-between text-xs font-bold tracking-widest uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+          className="mb-3 flex items-center justify-between text-xs font-bold tracking-widest uppercase text-muted-foreground"
         >
           <span>Assigned Protocols</span>
           {protocols.length > 0 && (
-            <span className={`font-medium ${isDark ? "text-zinc-600" : "text-zinc-500"}`}>
+            <span className="font-medium text-muted-foreground">
               {completedProtocols}/{protocols.length} Completed
             </span>
           )}
@@ -460,10 +558,10 @@ export default function ProfileDetailPage() {
 
         {loadingProtocols ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-5 w-5 animate-spin text-zinc-500" />
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
         ) : protocols.length === 0 ? (
-          <p className={`py-4 text-center text-sm ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+          <p className="py-4 text-center text-sm text-muted-foreground">
             No protocols assigned
           </p>
         ) : (
@@ -471,11 +569,7 @@ export default function ProfileDetailPage() {
             {protocols.map((p) => (
               <div
                 key={p.assignment_id}
-                className={`group flex cursor-pointer items-center justify-between rounded-lg border p-3 transition-colors ${
-                  isDark
-                    ? "border-zinc-800 bg-zinc-900 hover:border-zinc-700"
-                    : "border-zinc-200 bg-zinc-50 hover:border-zinc-300"
-                }`}
+                className="group flex cursor-pointer items-center justify-between rounded-lg border border-border bg-card p-3 transition-colors hover:bg-accent"
               >
                 <div className="flex items-center gap-3">
                   {p.status === "completed" ? (
@@ -488,14 +582,14 @@ export default function ProfileDetailPage() {
                     </div>
                   ) : (
                     <div
-                      className={`flex h-8 w-8 items-center justify-center rounded-full ${isDark ? "bg-zinc-800 text-zinc-500" : "bg-zinc-200 text-zinc-400"}`}
+                      className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-muted-foreground"
                     >
                       <Clock className="h-4 w-4" />
                     </div>
                   )}
                   <div>
                     <p
-                      className={`text-sm font-bold transition-colors ${isDark ? "text-zinc-200 group-hover:text-white" : "text-zinc-700 group-hover:text-zinc-900"}`}
+                      className="text-sm font-bold text-foreground transition-colors"
                     >
                       {p.protocol?.name ?? "Unknown Protocol"}
                     </p>
@@ -505,9 +599,7 @@ export default function ProfileDetailPage() {
                           ? "text-emerald-500"
                           : p.status === "expired"
                             ? "text-rose-500"
-                            : isDark
-                              ? "text-zinc-500"
-                              : "text-zinc-400"
+                            : "text-muted-foreground"
                       }`}
                     >
                       {p.status === "completed"
@@ -519,7 +611,7 @@ export default function ProfileDetailPage() {
                   </div>
                 </div>
                 <ChevronRight
-                  className={`h-4 w-4 transition-colors ${isDark ? "text-zinc-600 group-hover:text-zinc-400" : "text-zinc-400 group-hover:text-zinc-600"}`}
+                  className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-foreground"
                 />
               </div>
             ))}
@@ -536,38 +628,32 @@ export default function ProfileDetailPage() {
       {/* Contract Status */}
       <div>
         <h3
-          className={`mb-3 text-xs font-bold tracking-widest uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+          className="mb-3 text-xs font-bold tracking-widest uppercase text-muted-foreground"
         >
           Employment Contract
         </h3>
         <div
-          className={`flex items-center justify-between rounded-xl border p-4 ${
-            isDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-zinc-50"
-          }`}
+          className="flex items-center justify-between rounded-xl border border-border bg-card p-4"
         >
           <div className="flex items-center gap-3">
             <div
-              className={`flex h-8 w-8 items-center justify-center rounded-full ${isDark ? "bg-zinc-800 text-zinc-400" : "bg-zinc-200 text-zinc-500"}`}
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-muted-foreground"
             >
               <FileSignature className="h-4 w-4" />
             </div>
             <div>
-              <p className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
+              <p className="text-sm font-bold text-foreground">
                 No Contract Found
               </p>
               <p
-                className={`mt-0.5 text-[10px] tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+                className="mt-0.5 text-[10px] tracking-wider uppercase text-muted-foreground"
               >
                 Action required
               </p>
             </div>
           </div>
           <button
-            className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
-              isDark
-                ? "bg-white text-black hover:bg-zinc-200"
-                : "bg-zinc-900 text-white hover:bg-zinc-800"
-            }`}
+            className="rounded-lg bg-foreground px-3 py-1.5 text-xs font-bold text-background transition-all hover:opacity-90"
           >
             Create
           </button>
@@ -578,18 +664,14 @@ export default function ProfileDetailPage() {
       <div>
         <div className="mb-3 flex items-center justify-between">
           <h3
-            className={`text-xs font-bold tracking-widest uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+            className="text-xs font-bold tracking-widest uppercase text-muted-foreground"
           >
             Personal Information
           </h3>
           {!editingHr && (
             <button
               onClick={() => setEditingHr(true)}
-              className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-                isDark
-                  ? "text-zinc-400 hover:bg-zinc-800 hover:text-white"
-                  : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
-              }`}
+              className="rounded-md px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             >
               Edit
             </button>
@@ -602,19 +684,16 @@ export default function ProfileDetailPage() {
               icon={<Home className="h-3 w-3" />}
               label="Address"
               value={addressStr || "Not provided"}
-              isDark={isDark}
             />
             <InfoField
               icon={<CreditCard className="h-3 w-3" />}
               label="Personal Number (SSN)"
               value={profile.personal_number || "Not provided"}
-              isDark={isDark}
             />
             <InfoField
               icon={<Wallet className="h-3 w-3" />}
               label="Bank Account"
               value={profile.bank_account || "Not provided"}
-              isDark={isDark}
               mono
             />
             <div
@@ -627,7 +706,7 @@ export default function ProfileDetailPage() {
               >
                 <ShieldAlert className="h-3 w-3 text-rose-500" /> Emergency Contact
               </span>
-              <span className={`text-sm ${isDark ? "text-zinc-300" : "text-zinc-800"}`}>
+              <span className="text-sm text-foreground">
                 {profile.user_identity?.emergency_contact_name || "Not provided"} &bull;{" "}
                 {profile.user_identity?.emergency_contact_phone || ""}
               </span>
@@ -636,7 +715,7 @@ export default function ProfileDetailPage() {
         ) : (
           <div className="space-y-3">
             <div className="space-y-1.5">
-              <label className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500">
+              <label className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
                 <Home className="h-3 w-3" /> Address
               </label>
               <input
@@ -648,7 +727,7 @@ export default function ProfileDetailPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <label className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500">
+              <label className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
                 <CreditCard className="h-3 w-3" /> Personal Number (SSN)
               </label>
               <input
@@ -660,7 +739,7 @@ export default function ProfileDetailPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <label className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500">
+              <label className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
                 <Wallet className="h-3 w-3" /> Bank Account
               </label>
               <input
@@ -672,7 +751,7 @@ export default function ProfileDetailPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <label className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500">
+              <label className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
                 <ShieldAlert className="h-3 w-3" /> Emergency Contact Name
               </label>
               <input
@@ -684,7 +763,7 @@ export default function ProfileDetailPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <label className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500">
+              <label className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
                 <Phone className="h-3 w-3" /> Emergency Contact Phone
               </label>
               <input
@@ -716,11 +795,7 @@ export default function ProfileDetailPage() {
                   setEditingHr(false);
                 }}
                 disabled={saving}
-                className={`flex-1 rounded-lg border py-2.5 text-sm font-semibold transition-all disabled:opacity-50 ${
-                  isDark
-                    ? "border-zinc-800 text-zinc-300 hover:bg-zinc-800 hover:text-white"
-                    : "border-zinc-200 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
-                }`}
+                className="flex-1 rounded-lg border border-border py-2.5 text-sm font-semibold text-muted-foreground transition-all hover:bg-accent hover:text-foreground disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -732,14 +807,148 @@ export default function ProfileDetailPage() {
       {/* Communication Log */}
       <div>
         <h3
-          className={`mb-3 flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+          className="mb-3 flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase text-muted-foreground"
         >
           <History className="h-4 w-4" /> Communication Log
         </h3>
-        <p className={`text-sm ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+        <p className="text-sm text-muted-foreground">
           No communications found for this user.
         </p>
       </div>
+    </div>
+  );
+
+  /* ───────── tab: schedule ───────── */
+
+  const groupedShifts = shifts.reduce<Record<string, ShiftEntry[]>>((acc, s) => {
+    const dateKey = new Date(s.start_time).toLocaleDateString("nb-NO", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+    });
+    if (!acc[dateKey]) acc[dateKey] = [];
+    acc[dateKey].push(s);
+    return acc;
+  }, {});
+
+  const scheduleTab = (
+    <div className="space-y-4">
+      {shifts.length === 0 ? (
+        <div className="flex flex-col items-center justify-center gap-2 py-12">
+          <Calendar className="h-8 w-8 text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">
+            No shifts scheduled
+          </p>
+        </div>
+      ) : (
+        Object.entries(groupedShifts).map(([date, dateShifts]) => (
+          <div key={date}>
+            <h4
+              className="mb-2 text-xs font-bold tracking-widest uppercase text-muted-foreground"
+            >
+              {date}
+            </h4>
+            <div className="space-y-1.5">
+              {dateShifts.map((s) => {
+                const start = new Date(s.start_time);
+                const end = new Date(s.end_time);
+                const fmt = (d: Date) =>
+                  d.toLocaleTimeString("nb-NO", { hour: "2-digit", minute: "2-digit" });
+                const isPast = end.getTime() < Date.now();
+                return (
+                  <div
+                    key={s.shift_id}
+                    className={`flex items-center justify-between rounded-lg border border-border bg-card p-3 ${isPast ? "opacity-60" : ""}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-medium text-foreground">
+                        {fmt(start)} – {fmt(end)}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {s.department?.name && (
+                        <span className="text-xs text-muted-foreground">
+                          {s.department.name}
+                        </span>
+                      )}
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${
+                          s.status === "confirmed"
+                            ? "bg-emerald-500/10 text-emerald-500"
+                            : s.status === "cancelled"
+                              ? "bg-rose-500/10 text-rose-500"
+                              : "bg-secondary text-muted-foreground"
+                        }`}
+                      >
+                        {s.status}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  );
+
+  /* ───────── tab: activity ───────── */
+
+  const activityTab = (
+    <div className="space-y-4">
+      {fullActivity.length === 0 ? (
+        <div className="flex flex-col items-center justify-center gap-2 py-12">
+          <History className="h-8 w-8 text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">
+            No activity recorded yet
+          </p>
+        </div>
+      ) : (
+        <>
+          <div
+            className="relative flex flex-col space-y-3 before:absolute before:inset-y-2 before:left-3 before:w-px before:bg-border"
+          >
+            {fullActivity.map((a) => (
+              <ActivityItem
+                key={a.id}
+                icon={<History className="h-3 w-3" />}
+                color={a.category === "training" ? "emerald" : a.category === "schedule" ? "orange" : "zinc"}
+                title={
+                  <>
+                    {a.action_verb}{" "}
+                    {a.entity_label && (
+                      <span className="font-medium text-foreground">
+                        {a.entity_label}
+                      </span>
+                    )}
+                  </>
+                }
+                time={new Date(a.created_at).toLocaleString("nb-NO", {
+                  day: "numeric",
+                  month: "short",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              />
+            ))}
+          </div>
+          {hasMoreActivity && (
+            <button
+              onClick={() => {
+                const nextPage = activityPage + 1;
+                setActivityPage(nextPage);
+                fetchFullActivity(nextPage);
+              }}
+              disabled={loadingMoreActivity}
+              className="w-full rounded-lg border border-border py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-50"
+            >
+              {loadingMoreActivity ? "Loading..." : "Load more"}
+            </button>
+          )}
+        </>
+      )}
     </div>
   );
 
@@ -750,7 +959,7 @@ export default function ProfileDetailPage() {
       <div className="space-y-4">
         <div className="space-y-1.5">
           <label
-            className={`text-xs font-semibold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+            className="text-xs font-semibold tracking-wider uppercase text-muted-foreground"
           >
             Primary Department
           </label>
@@ -768,9 +977,62 @@ export default function ProfileDetailPage() {
           </select>
         </div>
 
+        {/* Team Management */}
         <div className="space-y-1.5">
           <label
-            className={`text-xs font-semibold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+            className="text-xs font-semibold tracking-wider uppercase text-muted-foreground"
+          >
+            Teams
+          </label>
+          {teams.length > 0 && (
+            <div className="flex flex-wrap gap-2 pb-1">
+              {teams.map((t) => (
+                <span
+                  key={t.team_id}
+                  className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-2.5 py-1 text-xs font-medium text-foreground"
+                >
+                  {t.name}
+                  <button
+                    onClick={() => handleRemoveFromTeam(t.team_id)}
+                    className="ml-0.5 rounded p-0.5 transition-colors hover:bg-accent hover:text-foreground"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+          {(() => {
+            const assignedIds = new Set(teams.map((t) => t.team_id));
+            const available = workspaceTeams.filter((t) => !assignedIds.has(t.team_id));
+            if (available.length === 0) return null;
+            return (
+              <select
+                defaultValue=""
+                onChange={(e) => {
+                  if (e.target.value) {
+                    handleAddToTeam(e.target.value);
+                    e.target.value = "";
+                  }
+                }}
+                className={selectClass}
+              >
+                <option value="" disabled>
+                  Add to team...
+                </option>
+                {available.map((t) => (
+                  <option key={t.team_id} value={t.team_id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            );
+          })()}
+        </div>
+
+        <div className="space-y-1.5">
+          <label
+            className="text-xs font-semibold tracking-wider uppercase text-muted-foreground"
           >
             System Role
           </label>
@@ -784,27 +1046,44 @@ export default function ProfileDetailPage() {
             <option value="admin">Admin</option>
             <option value="owner">Owner</option>
           </select>
-          <p className={`pt-1 text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+          <p className="pt-1 text-xs text-muted-foreground">
             Defines what this user can see and do in the system.
           </p>
         </div>
 
         <div className="space-y-1.5">
           <label
-            className={`text-xs font-semibold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+            className="text-xs font-semibold tracking-wider uppercase text-muted-foreground"
           >
             Status
           </label>
-          <select
-            value={editStatus}
-            onChange={(e) => setEditStatus(e.target.value)}
-            className={selectClass}
-          >
-            <option value="active">Active</option>
-            <option value="trainee">Trainee</option>
-            <option value="inactive">Inactive</option>
-            <option value="offboarding">Offboarding</option>
-          </select>
+          {(() => {
+            const currentStatus = profile.status as ProfileStatus;
+            const allowed = VALID_TRANSITIONS[currentStatus] ?? [];
+            const STATUS_LABELS: Record<string, string> = {
+              active: "Active",
+              trainee: "Trainee",
+              inactive: "Inactive",
+              offboarding: "Offboarding",
+            };
+            return (
+              <select
+                value={editStatus}
+                onChange={(e) => setEditStatus(e.target.value)}
+                className={selectClass}
+              >
+                {(["active", "trainee", "inactive", "offboarding"] as ProfileStatus[]).map((s) => (
+                  <option
+                    key={s}
+                    value={s}
+                    disabled={!allowed.includes(s) && s !== currentStatus}
+                  >
+                    {STATUS_LABELS[s]}{!allowed.includes(s) && s !== currentStatus ? " (not allowed)" : ""}
+                  </option>
+                ))}
+              </select>
+            );
+          })()}
         </div>
       </div>
 
@@ -817,14 +1096,10 @@ export default function ProfileDetailPage() {
       </button>
 
       <div
-        className={`space-y-3 border-t pt-4 ${isDark ? "border-zinc-800/50" : "border-zinc-200"}`}
+        className="space-y-3 border-t border-border pt-4"
       >
         <button
-          className={`w-full rounded-lg border py-2.5 text-sm font-medium transition-colors ${
-            isDark
-              ? "border-zinc-800 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 hover:text-white"
-              : "border-zinc-200 bg-zinc-50 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
-          }`}
+          className="w-full rounded-lg border border-border bg-card py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
         >
           Reset Password
         </button>
@@ -852,9 +1127,7 @@ export default function ProfileDetailPage() {
       name={profile.display_name}
       icon={
         <div
-          className={`flex h-12 w-12 items-center justify-center overflow-hidden rounded-full text-lg font-bold ${
-            isDark ? "bg-zinc-800 text-zinc-300" : "bg-zinc-100 text-zinc-600"
-          }`}
+          className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-secondary text-lg font-bold text-foreground"
         >
           {profile.avatar_url ? (
             <img
@@ -875,17 +1148,13 @@ export default function ProfileDetailPage() {
             {statusCfg.label}
           </span>
           <span
-            className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-              isDark ? "bg-zinc-800 text-zinc-300" : "bg-zinc-100 text-zinc-700"
-            }`}
+            className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-semibold text-foreground"
           >
             {ROLE_LABELS[profile.role.toLowerCase()] ?? profile.role}
           </span>
           {profile.department?.name && (
             <span
-              className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                isDark ? "bg-zinc-800 text-zinc-400" : "bg-zinc-100 text-zinc-500"
-              }`}
+              className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-muted-foreground"
             >
               {profile.department.name}
             </span>
@@ -894,7 +1163,9 @@ export default function ProfileDetailPage() {
       }
       tabs={[
         { value: "overview", label: "Overview", content: overviewTab },
+        { value: "schedule", label: "Schedule", content: scheduleTab },
         { value: "competence", label: "Competence", content: competenceTab },
+        { value: "activity", label: "Activity", content: activityTab },
         { value: "hr", label: "HR & Logs", content: hrTab },
         { value: "settings", label: "Settings", content: settingsTab },
       ]}
@@ -904,17 +1175,15 @@ export default function ProfileDetailPage() {
 
 /* ───────── sub-components ───────── */
 
-function StatCard({ label, value, isDark }: { label: string; value: string; isDark: boolean }) {
+function StatCard({ label, value }: { label: string; value: string }) {
   return (
     <div
-      className={`flex flex-col items-center justify-center rounded-xl border p-3 text-center ${
-        isDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-zinc-50"
-      }`}
+      className="flex flex-col items-center justify-center rounded-xl border border-border bg-card p-3 text-center"
     >
-      <span className="mb-1 text-xs font-semibold tracking-widest text-zinc-500 uppercase">
+      <span className="mb-1 text-xs font-semibold tracking-widest text-muted-foreground uppercase">
         {label}
       </span>
-      <span className={`text-lg font-bold ${isDark ? "text-white" : "text-zinc-900"}`}>
+      <span className="text-lg font-bold text-foreground">
         {value}
       </span>
     </div>
@@ -925,22 +1194,20 @@ function InfoField({
   icon,
   label,
   value,
-  isDark,
   mono,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
-  isDark: boolean;
   mono?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <span className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500">
+      <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
         {icon} {label}
       </span>
       <span
-        className={`text-sm ${mono ? "font-mono" : ""} ${isDark ? "text-zinc-300" : "text-zinc-800"}`}
+        className={`text-sm text-foreground ${mono ? "font-mono" : ""}`}
       >
         {value}
       </span>
@@ -953,20 +1220,16 @@ function ActivityItem({
   color,
   title,
   time,
-  isDark,
 }: {
   icon: React.ReactNode;
   color: "emerald" | "orange" | "zinc";
   title: React.ReactNode;
   time: string;
-  isDark: boolean;
 }) {
   const colorMap = {
     emerald: "border-emerald-500/20 bg-emerald-500/10 text-emerald-500",
     orange: "border-orange-500/20 bg-orange-500/10 text-orange-500",
-    zinc: isDark
-      ? "border-zinc-700 bg-zinc-800 text-zinc-400"
-      : "border-zinc-300 bg-zinc-200 text-zinc-500",
+    zinc: "border-border bg-secondary text-muted-foreground",
   };
 
   return (
@@ -977,8 +1240,8 @@ function ActivityItem({
         {icon}
       </div>
       <div>
-        <p className={`text-sm ${isDark ? "text-zinc-300" : "text-zinc-600"}`}>{title}</p>
-        <span className="text-xs text-zinc-500">{time}</span>
+        <p className="text-sm text-muted-foreground">{title}</p>
+        <span className="text-xs text-muted-foreground">{time}</span>
       </div>
     </div>
   );
