@@ -41,6 +41,23 @@ export async function getLiveKitToken(
   return data as TokenResult;
 }
 
+export async function muteParticipant(
+  supabase: SupabaseClient,
+  params: {
+    workspaceId: string;
+    channelId: string;
+    targetIdentity: string;
+    trackSid?: string;
+    muted?: boolean;
+  },
+): Promise<{ ok: boolean; muted: boolean }> {
+  const { data, error } = await supabase.functions.invoke("call-command", {
+    body: { action: "mute_participant", ...params },
+  });
+  if (error) throw new Error(error.message);
+  return data as { ok: boolean; muted: boolean };
+}
+
 export async function respondToInvite(
   supabase: SupabaseClient,
   params: {

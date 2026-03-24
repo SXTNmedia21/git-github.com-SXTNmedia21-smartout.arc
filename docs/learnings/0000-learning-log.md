@@ -1,76 +1,19 @@
 ---
 title: Learning Log
-status: in_progress
-updated: 2026-03-22
-created: 2026-03-22
-module: hms
-updated: 2026-03-10
-created: 2026-03-10
-module: feat/web
+status: done
+updated: 2026-03-24
+created: 2026-03-24
+module: walkieTalkie
 tags: [learnings]
 ---
 
-# Learning Log — hms-phase-1
+# Learning Log — livekit-webhook-deployment
 
-| #   | Date       | Learning                                                                               | Impact                          |
-| --- | ---------- | -------------------------------------------------------------------------------------- | ------------------------------- |
-| 1   | 2026-03-22 | Profile table uses display_name, not first_name/last_name                              | Fixed CompetenceMatrix query    |
-| 2   | 2026-03-22 | Pre-existing help_request type error in use-help-requests.ts                           | Not from HMS, ignored           |
-| 3   | 2026-03-22 | DashboardShell wraps children with p-6 md:p-8 — HMS layout should not add own padding  | Avoided double padding          |
-| 4   | 2026-03-22 | deviation push trigger uses `id` not `profile_id` — pre-existing bug                   | Seed data needs trigger disable |
-| 5   | 2026-03-22 | `supabase gen types` captures stderr warnings in stdout — use `2>/dev/null`            | Fixed corrupt types file        |
-| 6   | 2026-03-22 | `npx turbo typecheck` stricter than `npx tsc --noEmit` — catches null issues           | Must run turbo, not just tsc    |
-| 7   | 2026-03-22 | Telemetry emit event name must be literal, not dynamic string — TS discriminated union | Split into if/else branches     |
-| 8   | 2026-03-22 | `supabase db reset` fails on 20260422300500 channel seed FK — blocks all E2E           | Pre-existing, needs fix         |
-| 9   | 2026-03-22 | public schema has 169 tables — need mandatory schema placement brainstorm              | Added to CLAUDE.md rules        |
-
-module: cross-cutting
-module: unspecified
-tags: [learnings]
-
----
-
-# Learning Log — cascade-foundation
-
-| #   | Date       | Learning                                                                                                                                                                    | Impact                                                           |
-| --- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| 1   | 2026-03-22 | channel_seed_data migration FK error blocks all subsequent migrations in db reset — seed data must reference existing workspace IDs                                         | High — must fix before new migrations can validate via db reset  |
-| 2   | 2026-03-22 | department_operating_hours unique constraint includes location_id + season_id (NULLS NOT DISTINCT) — simple upsert onConflict doesn't work, need select-then-insert pattern | Medium — affects bootstrap and any hours upsert                  |
-| 3   | 2026-03-22 | engine_process PK column is `id` (TEXT), not `process_id` as some docs suggest                                                                                              | Low — naming inconsistency, just need to verify                  |
-| 4   | 2026-03-22 | date_of_birth lives on user_identity, not profile — schedule hooks need join through profile.user_id                                                                        | Medium — affects employee rule context loading                   |
-| 5   | 2026-03-22 | actual_start/actual_end columns don't exist on schedule_shift yet — completion emit only sets status for now                                                                | Medium — needs schema addition before actual cost snapshots work |
-| 6   | 2026-03-22 | season_budget/day_factors events don't route to engine_event by default — must explicitly add destination in telemetry registry                                             | High — engine triggers won't fire without this                   |
-| 7   | 2026-03-22 | workspace_budget upsert needs 6-column unique constraint (NULLS NOT DISTINCT) including nullable location_id, department_id, hour_slot                                      | Medium — affects demand propagation upsert pattern               |
-
-# Learning Log — fix-invitation-flow
-
-| #   | Date | Learning | Impact |
-| --- | ---- | -------- | ------ |
-
-module: webrtc
-tags: [learnings]
-
----
-
-# Learning Log — livekit-phase2
-
-| #   | Date       | Learning                                                                                                                       | Impact                                             |
-| --- | ---------- | ------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------- |
-| 1   | 2026-03-22 | @livekit/react-native does NOT export Room/RoomEvent — import from livekit-client directly                                     | High — wrong import causes TS2305                  |
-| 2   | 2026-03-22 | livekit-client is a transitive dep via @livekit/react-native — must add explicitly to package.json                             | Medium — pnpm strict mode won't resolve transitive |
-| 3   | 2026-03-22 | RoomEvent.TrackMuted callback signature is (TrackPublication, Participant), not (unknown, RemoteParticipant\|LocalParticipant) | Medium — use Participant base type                 |
-| 4   | 2026-03-22 | Mobile theme typography has no title2 — only largeTitle, title, headline, body, subheadline, caption, micro                    | Low — check theme types before using               |
-| 5   | 2026-03-22 | AudioSession.startAudioSession() must be called before any LiveKit audio on RN — stopAudioSession() on unmount                 | High — no audio without this                       |
-| 6   | 2026-03-22 | registerGlobals() from @livekit/react-native must be called at app entry BEFORE any LiveKit component                          | High — runtime crash without this                  |
-
----
-
-# Learning Log — setup-flow-redesign
-
-| #   | Date       | Learning                                                                                                                                                                | Impact                                                                                          |
-| --- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| 1   | 2026-03-22 | naceCode was missing from join shell — industry detection broken at 3 levels (shell output, useIndustryPackage key names, fallback key names)                           | All downstream industry-dependent features (department/procedure preselection) silently failed  |
-| 2   | 2026-03-22 | 7 join intake fields (ourHistory, ourConcept, restaurantType, cuisineTypes, priceCategory, menuDescription, socialLinks) were silently dropped during onboarding resume | Data collected in /join was lost by /onboarding, making the scraping pipeline partially useless |
-| 3   | 2026-03-22 | Dashboard wizard's ScrapedIntelligence only had companyName — all other fields were in DB but never queried                                                             | WelcomeStep appeared empty despite rich data existing in company_details                        |
-| 4   | 2026-03-22 | Document extraction results (policies, supplements, noticePeriod, handbookSections) were received but ignored via no-op useEffects                                      | AI extraction pipeline was running but results were thrown away at the consumer                 |
-| 5   | 2026-03-22 | isDark prop created 299 duplicated ternaries across 12 wizard files — CSS variable tokens eliminate this entirely                                                       | Theme support becomes automatic; ~780 lines of conditional styling removed                      |
+| #   | Date       | Learning                                                                                                                                                                                      | Impact                                                                                                   |
+| --- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| 1   | 2026-03-24 | PostgREST `upsert` with `onConflict` does not work with partial unique indexes (WHERE clause). The upsert silently succeeds as a no-op — no error, no insert, no update.                      | Must use plain `insert` when the uniqueness constraint is a partial index.                               |
+| 2   | 2026-03-24 | RLS policies that query their own table create infinite recursion. `channel_member_jwt_select` queried `channel_member` inside its own SELECT policy.                                         | Replace self-referencing RLS with workspace-scoped policies using `get_workspace_ids_for_user()`.        |
+| 3   | 2026-03-24 | Supabase Edge Functions have short lifespan — WebSocket `subscribe()` never resolves before termination.                                                                                      | Use REST broadcast API (`/realtime/v1/api/broadcast`) instead of Realtime WebSocket from edge functions. |
+| 4   | 2026-03-24 | LiveKit SDK v2 `canPublishSources` expects TrackSource enum values, not strings. Passing strings causes "Cannot convert TrackSource" crash.                                                   | Use `canPublish: true` boolean instead of `canPublishSources` array.                                     |
+| 5   | 2026-03-24 | `setMicrophoneEnabled(true)` after async operations loses browser user gesture context, causing NotAllowedError.                                                                              | Wrap in try/catch — user can toggle manually via ControlBar.                                             |
+| 6   | 2026-03-24 | Supabase CLI v2 shows `sb_publishable_`/`sb_secret_` format keys, but edge functions runtime still injects JWT-format keys via `SUPABASE_ANON_KEY`/`SUPABASE_SERVICE_ROLE_KEY` automatically. | No manual key configuration needed for edge functions.                                                   |

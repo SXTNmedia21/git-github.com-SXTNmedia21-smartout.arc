@@ -7,9 +7,9 @@ import { useUnreadCounts } from "../_hooks/use-unread-counts";
 import { useChannelRealtime } from "../_hooks/use-channel-realtime";
 import { useCallSignaling } from "../_hooks/use-call-signaling";
 import { useCallRealtime } from "../_hooks/use-call-realtime";
-import { useLiveKitCall } from "../_hooks/use-livekit-call";
 import { useCallInvite } from "../_hooks/use-call-invite";
 import { useStartCall } from "../_hooks/use-start-call";
+import { useMuteParticipant } from "../_hooks/use-mute-participant";
 import { getLiveKitToken } from "@smartout/walkie-talkie";
 import { createClient } from "@smartout/supabase/client";
 import { SubTabs, type KommTab } from "./SubTabs";
@@ -20,12 +20,15 @@ import { ChannelHeader } from "./ChannelHeader";
 import { MessageTimeline } from "./MessageTimeline";
 import { MessageInput } from "./MessageInput";
 import { MemberPanel } from "./MemberPanel";
-// import { IncomingCallOverlay } from "./IncomingCallOverlay";
-// import { CallBar } from "./CallBar";
+import { IncomingCallOverlay } from "./IncomingCallOverlay";
+import { CallRoom } from "./CallRoom";
 import { MessageSquare } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { ConnectionState } from "livekit-client";
 import { toast } from "sonner";
+
+type LiveKitConnection = {
+  serverUrl: string;
+  token: string;
+};
 
 export function KommShell({ profileId }: { profileId: string }) {
   const { workspace } = useWorkspace();
@@ -35,6 +38,10 @@ export function KommShell({ profileId }: { profileId: string }) {
   const [showMembers, setShowMembers] = useState(false);
   const [replyToId, setReplyToId] = useState<string | null>(null);
 
+  // LiveKit connection state — set when joining a call, cleared on disconnect
+  const [livekitConnection, setLivekitConnection] = useState<LiveKitConnection | null>(null);
+  const [liveParticipantCount, setLiveParticipantCount] = useState(0);
+
   const { data: channelGroups, isLoading } = useChannels();
   const { data: unreadCounts } = useUnreadCounts();
   useChannelRealtime(workspaceId, activeChannelId);
@@ -42,10 +49,9 @@ export function KommShell({ profileId }: { profileId: string }) {
   // Voice call hooks
   const { incomingCall, dismissIncoming } = useCallSignaling(profileId, activeChannelId);
   useCallRealtime(activeChannelId);
-  const livekit = useLiveKitCall();
   const callInvite = useCallInvite();
   const startCall = useStartCall();
-  const isInCall = livekit.connectionState === ConnectionState.Connected;
+  const muteParticipant = useMuteParticipant();
 
   const handleJoinCall = useCallback(async () => {
     if (!activeChannelId) return;
@@ -55,11 +61,11 @@ export function KommShell({ profileId }: { profileId: string }) {
         channelId: activeChannelId,
         workspaceId,
       });
-      await livekit.connect(serverUrl, token);
+      setLivekitConnection({ serverUrl, token });
     } catch {
       toast.error("Kunne ikke koble til samtale");
     }
-  }, [activeChannelId, workspaceId, livekit]);
+  }, [activeChannelId, workspaceId]);
 
   const handleAcceptCall = useCallback(async () => {
     if (!incomingCall) return;
@@ -76,11 +82,16 @@ export function KommShell({ profileId }: { profileId: string }) {
         channelId: incomingCall.channelId,
         workspaceId,
       });
-      await livekit.connect(serverUrl, token);
+      setLivekitConnection({ serverUrl, token });
     } catch {
-      toast.error("Kunne ikke koble til samtale");
+      toast.error("Kunne ikke koble til samtale", {
+        action: {
+          label: "Prøv igjen",
+          onClick: () => void handleJoinCall(),
+        },
+      });
     }
-  }, [incomingCall, callInvite, profileId, dismissIncoming, workspaceId, livekit]);
+  }, [incomingCall, callInvite, profileId, dismissIncoming, workspaceId, handleJoinCall]);
 
   const handleRejectCall = useCallback(() => {
     if (!incomingCall) return;
@@ -93,9 +104,21 @@ export function KommShell({ profileId }: { profileId: string }) {
     dismissIncoming();
   }, [incomingCall, callInvite, profileId, dismissIncoming]);
 
-  const handleEndCall = useCallback(() => {
-    livekit.disconnect();
-  }, [livekit]);
+  const handleDisconnect = useCallback(() => {
+    setLivekitConnection(null);
+  }, []);
+
+  const handleMuteParticipant = useCallback(
+    (targetProfileId: string) => {
+      if (!activeChannelId) return;
+      muteParticipant.mutate({
+        channelId: activeChannelId,
+        targetIdentity: targetProfileId,
+        muted: true,
+      });
+    },
+    [activeChannelId, muteParticipant],
+  );
 
   // Calculate unread totals for sub-tab badges
   const allChannels = channelGroups?.flatMap((g) => g.channels) ?? [];
@@ -109,7 +132,6 @@ export function KommShell({ profileId }: { profileId: string }) {
 
   const activeChannel = allChannels.find((ch) => ch.channel_id === activeChannelId);
 
-  // When selecting a channel, switch to conversation view
   const handleSelectChannel = (channelId: string) => {
     setActiveChannelId(channelId);
     setReplyToId(null);
@@ -151,7 +173,7 @@ export function KommShell({ profileId }: { profileId: string }) {
         </div>
       </div>
 
-      {/* Center: Messages */}
+      {/* Center: Messages + Call */}
       <div className="flex min-w-0 flex-1 flex-col">
         {activeChannel ? (
           <>
@@ -161,6 +183,7 @@ export function KommShell({ profileId }: { profileId: string }) {
               showMembers={showMembers}
               onToggleMembers={() => setShowMembers(!showMembers)}
               onJoinCall={handleJoinCall}
+              liveParticipantCount={liveParticipantCount}
             />
             <MessageTimeline
               channelId={activeChannelId!}
@@ -174,16 +197,21 @@ export function KommShell({ profileId }: { profileId: string }) {
                 replyToId={replyToId}
                 onCancelReply={() => setReplyToId(null)}
                 audioPolicy={activeChannel.audio_policy}
-                pttProps={isInCall ? { setMicEnabled: livekit.setMicEnabled } : undefined}
+                pttProps={undefined}
               />
             )}
-            {isInCall && (
-              <div className="bg-destructive/10 text-destructive flex items-center justify-between px-4 py-2">
-                <span>Samtale aktiv</span>
-                <Button size="sm" variant="destructive" onClick={handleEndCall}>
-                  Avslutt
-                </Button>
-              </div>
+
+            {/* LiveKit Call Room — full audio/video/screenshare + chat via official components */}
+            {livekitConnection && (
+              <CallRoom
+                serverUrl={livekitConnection.serverUrl}
+                token={livekitConnection.token}
+                channelId={activeChannelId!}
+                profileId={profileId}
+                audioPolicy={activeChannel.audio_policy}
+                onDisconnect={handleDisconnect}
+                onParticipantCountChange={setLiveParticipantCount}
+              />
             )}
           </>
         ) : (
@@ -202,17 +230,19 @@ export function KommShell({ profileId }: { profileId: string }) {
           channelId={activeChannelId}
           profileId={profileId}
           onClose={() => setShowMembers(false)}
+          isCallActive={!!livekitConnection}
+          onMuteParticipant={livekitConnection ? handleMuteParticipant : undefined}
         />
       )}
 
       {/* Incoming call overlay */}
-      {/* incomingCall && (
+      {incomingCall && (
         <IncomingCallOverlay
           call={incomingCall}
           onAccept={handleAcceptCall}
           onReject={handleRejectCall}
         />
-      ) */}
+      )}
     </div>
   );
 }

@@ -3,7 +3,7 @@
 import type { ChannelWithPreview } from "../_hooks/channel-types";
 import { useCallState } from "../_hooks/use-call-state";
 import { useStartCall } from "../_hooks/use-start-call";
-// import { GroupCallBanner } from "./GroupCallBanner";
+import { GroupCallBanner } from "./GroupCallBanner";
 import { Button } from "@/components/ui/button";
 import {
   Users,
@@ -44,6 +44,7 @@ type Props = {
   showMembers: boolean;
   onToggleMembers: () => void;
   onJoinCall: () => void;
+  liveParticipantCount?: number;
 };
 
 export function ChannelHeader({
@@ -52,6 +53,7 @@ export function ChannelHeader({
   showMembers,
   onToggleMembers,
   onJoinCall,
+  liveParticipantCount = 0,
 }: Props) {
   const Icon = TYPE_ICONS[channel.channel_type] ?? Hash;
   const colorClass = TYPE_COLORS[channel.channel_type] ?? "bg-muted text-muted-foreground";
@@ -60,18 +62,26 @@ export function ChannelHeader({
       ? (channel.other_member_name ?? "Direktemelding")
       : (channel.name ?? "Kanal");
 
-  const voiceEnabled = channel.audio_policy !== "none";
+  const voiceEnabled = channel.audio_policy !== "disabled";
   const { data: callSession } = useCallState(voiceEnabled ? channel.channel_id : null);
   const startCall = useStartCall();
   const hasActiveCall = !!callSession;
 
   const handleStartCall = () => {
     const callType = channel.channel_type === "direct" ? "direct" : "group";
-    startCall.mutate({
-      channelId: channel.channel_id,
-      callType,
-      profileId,
-    });
+    startCall.mutate(
+      {
+        channelId: channel.channel_id,
+        callType,
+        profileId,
+        calleeProfileId:
+          callType === "direct" ? (channel.other_member_profile_id ?? undefined) : undefined,
+      },
+      {
+        // Auto-join after creating the call session
+        onSuccess: () => onJoinCall(),
+      },
+    );
   };
 
   return (
@@ -93,12 +103,7 @@ export function ChannelHeader({
           {voiceEnabled && (
             <Button
               size="icon"
-              className={cn(
-                "h-8 w-8 rounded-full",
-                hasActiveCall
-                  ? "bg-green-500 text-white hover:bg-green-600"
-                  : "bg-green-500 text-white hover:bg-green-600",
-              )}
+              className="h-8 w-8 rounded-full bg-green-500 text-white hover:bg-green-600"
               onClick={hasActiveCall ? onJoinCall : handleStartCall}
               disabled={startCall.isPending}
               title={hasActiveCall ? "Bli med i samtale" : "Start samtale"}
@@ -120,11 +125,14 @@ export function ChannelHeader({
         </div>
       </div>
       {hasActiveCall && callSession && (
-        <div className="bg-primary/10 text-primary px-4 py-2 text-sm">
-          Pågående samtale ({callSession.maxParticipants} deltakere)
-          <Button size="sm" onClick={onJoinCall} className="ml-4">
-            Bli med
-          </Button>
+        <div className="bg-primary/10 text-primary flex items-center px-4 py-2 text-sm">
+          <Users className="mr-1.5 h-3.5 w-3.5" />
+          Pågående samtale ({liveParticipantCount || callSession.maxParticipants} deltakere)
+          {liveParticipantCount === 0 && (
+            <Button size="sm" onClick={onJoinCall} className="ml-4">
+              Bli med
+            </Button>
+          )}
         </div>
       )}
     </div>
