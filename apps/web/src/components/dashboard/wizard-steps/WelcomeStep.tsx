@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useRef, useState } from "react";
 import { CheckCircle2, Pencil, Sparkles } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -43,14 +43,75 @@ export function WelcomeStep({
   onIndustryChange: (type: IndustryType) => void;
 }) {
   const { workspace } = useWorkspace();
+  const queryClient = useQueryClient();
   const [editingLabel, setEditingLabel] = useState<string | null>(null);
   const [overrides, setOverrides] = useState<Record<string, string>>({});
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const commitEdit = useCallback((label: string, value: string) => {
-    setOverrides((prev) => ({ ...prev, [label]: value }));
-    setEditingLabel(null);
-  }, []);
+  // Persist inline edits to DB
+  const persistEdit = useMutation({
+    mutationFn: async ({ label, value }: { label: string; value: string }) => {
+      const supabase = createClient();
+
+      // Map fact labels to DB columns
+      if (label === "Bedrift") {
+        await supabase
+          .from("company")
+          .update({ name: value })
+          .eq("company_id", workspace.company_id!);
+        await supabase
+          .from("workspace")
+          .update({ name: value })
+          .eq("workspace_id", workspace.workspace_id);
+      } else if (label === "Nettside") {
+        await supabase
+          .from("company")
+          .update({ website: value })
+          .eq("company_id", workspace.company_id!);
+      } else if (label === "Adresse") {
+        await supabase
+          .from("company")
+          .update({ address_line_1: value })
+          .eq("company_id", workspace.company_id!);
+      }
+
+      // Update field_sources to mark as user_input
+      const fieldMap: Record<string, string> = {
+        Bedrift: "name",
+        Nettside: "website",
+        Adresse: "address",
+      };
+      const fieldKey = fieldMap[label];
+      if (fieldKey) {
+        const { data: details } = await supabase
+          .from("company_details")
+          .select("field_sources")
+          .eq("workspace_id", workspace.workspace_id)
+          .single();
+
+        const existingSources = (details?.field_sources as Record<string, string>) ?? {};
+        await supabase
+          .from("company_details")
+          .update({
+            field_sources: { ...existingSources, [fieldKey]: "user_input" },
+          })
+          .eq("workspace_id", workspace.workspace_id);
+      }
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["wizard-company", workspace.workspace_id] });
+    },
+  });
+
+  const commitEdit = useCallback(
+    (label: string, value: string) => {
+      setOverrides((prev) => ({ ...prev, [label]: value }));
+      setEditingLabel(null);
+      // Persist to DB in background
+      persistEdit.mutate({ label, value });
+    },
+    [persistEdit],
+  );
 
   const { data: departments } = useQuery({
     queryKey: ["departments", workspace.workspace_id],
