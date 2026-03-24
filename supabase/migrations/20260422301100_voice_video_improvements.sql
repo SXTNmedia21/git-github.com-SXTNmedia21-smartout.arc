@@ -1,4 +1,5 @@
 -- Voice/Video improvements: video columns, better indexes, other_member_profile_id in RPC
+-- Also fixes RLS infinite recursion on channel RPCs (channel_member_jwt_select self-references)
 -- Branch: feat/livekit-webhook-deployment
 
 --------------------------------------------------------------------------------
@@ -134,3 +135,16 @@ RETURNS TABLE (
   WHERE c.is_archived = false
   ORDER BY COALESCE(lm.created_at, c.created_at) DESC;
 $$;
+
+--------------------------------------------------------------------------------
+-- FIX: RLS infinite recursion on channel RPCs
+-- channel_member_jwt_select queries channel_member inside its own SELECT policy.
+-- All functions that touch channel_member or channel_message (which has RLS
+-- referencing channel_member) must be SECURITY DEFINER to bypass the loop.
+-- They still use auth.uid() internally for caller identification.
+--------------------------------------------------------------------------------
+
+ALTER FUNCTION get_channel_messages SECURITY DEFINER;
+ALTER FUNCTION get_unread_counts SECURITY DEFINER;
+ALTER FUNCTION create_channel SECURITY DEFINER;
+ALTER FUNCTION sync_profile_department_channel SECURITY DEFINER;
