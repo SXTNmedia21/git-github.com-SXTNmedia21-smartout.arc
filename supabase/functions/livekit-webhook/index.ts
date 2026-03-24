@@ -45,22 +45,31 @@ Deno.serve(async (req: Request) => {
       const identity = event.participant?.identity;
       if (!identity) break;
 
-      // Upsert participant
-      await supabase.from("channel_call_participant").upsert(
-        {
-          call_session_id: await getActiveSessionId(supabase, channelId),
+      // Insert participant (partial unique index prevents duplicates for active participants)
+      const sessionId = await getActiveSessionId(supabase, channelId);
+      if (!sessionId) {
+        console.error("[livekit-webhook] No active session for channel:", channelId);
+        break;
+      }
+
+      const { error: insertError } = await supabase
+        .from("channel_call_participant")
+        .insert({
+          call_session_id: sessionId,
           workspace_id: workspaceId,
           profile_id: identity,
           is_ai: identity.startsWith("botsson:"),
           mic_enabled: false,
           device_type: getDeviceType(event.participant?.metadata),
-        },
-        { onConflict: "call_session_id,profile_id", ignoreDuplicates: false },
-      );
+        });
+
+      if (insertError) {
+        console.error("[livekit-webhook] Failed to insert participant:", insertError.message);
+        break;
+      }
 
       // Update max_participants
-      const sessionId = await getActiveSessionId(supabase, channelId);
-      if (sessionId) {
+      {
         const { count } = await supabase
           .from("channel_call_participant")
           .select("id", { count: "exact", head: true })
