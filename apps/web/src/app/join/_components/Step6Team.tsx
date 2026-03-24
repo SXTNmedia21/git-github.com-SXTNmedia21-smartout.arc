@@ -85,7 +85,7 @@ export function Step6Team() {
   return (
     <div className="mx-auto w-full max-w-md space-y-6">
       <div>
-        <h2 className="text-foreground text-2xl font-bold">Team</h2>
+        <h2 className="font-heading text-foreground text-2xl font-bold">Team</h2>
         <p className="text-muted-foreground mt-1 text-sm">Inviter teamet ditt til Smartout.</p>
       </div>
 
@@ -157,7 +157,7 @@ export function Step6Team() {
           <Button
             type="button"
             onClick={handleFinish}
-            className="flex-1 bg-orange-500 text-white hover:bg-orange-600"
+            className="bg-brand-orange hover:bg-brand-orange-dark flex-1 text-white"
           >
             Fullfor registrering
             <ArrowLeft className="ml-2 h-4 w-4 rotate-180" />

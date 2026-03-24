@@ -121,7 +121,7 @@ export function Step2Business({ scrapeStatus }: Step2BusinessProps) {
   return (
     <div className="mx-auto w-full max-w-md space-y-6">
       <div>
-        <h2 className="text-foreground text-2xl font-bold">Bedriftsinformasjon</h2>
+        <h2 className="font-heading text-foreground text-2xl font-bold">Bedriftsinformasjon</h2>
         <p className="text-muted-foreground mt-1 text-sm">Fortell oss om deg og bedriften.</p>
         {scrapeStatus === "scraping" && (
           <p className="text-muted-foreground mt-2 flex items-center gap-1.5 text-xs">
@@ -130,7 +130,7 @@ export function Step2Business({ scrapeStatus }: Step2BusinessProps) {
           </p>
         )}
         {allDone && (
-          <p className="mt-2 flex items-center gap-1.5 text-xs text-orange-500">
+          <p className="text-brand-orange mt-2 flex items-center gap-1.5 text-xs">
             <Sparkles className="h-3 w-3" />
             Fylt ut fra Brønnøysundregistrene
           </p>
@@ -151,7 +151,7 @@ export function Step2Business({ scrapeStatus }: Step2BusinessProps) {
                 onClick={() => handleSelectCandidate(c)}
                 className={`w-full rounded-lg border px-3 py-2 text-left text-xs transition-colors ${
                   brregData?.orgNumber === c.orgNumber
-                    ? "border-orange-500 bg-orange-500/10"
+                    ? "border-brand-orange bg-brand-orange/10"
                     : "border-border hover:bg-accent"
                 }`}
               >
@@ -293,7 +293,7 @@ export function Step2Business({ scrapeStatus }: Step2BusinessProps) {
         <Button
           type="button"
           onClick={handleNext}
-          className="flex-1 bg-orange-500 text-white hover:bg-orange-600"
+          className="bg-brand-orange hover:bg-brand-orange-dark flex-1 text-white"
         >
           Neste
           <ArrowRight className="ml-2 h-4 w-4" />
@@ -321,12 +321,12 @@ function TypewriterField({
       <div className="flex items-center gap-1.5">
         <Label>{label}</Label>
         {typing && (
-          <span className="flex animate-pulse items-center gap-0.5 text-[10px] text-orange-500">
+          <span className="text-brand-orange flex animate-pulse items-center gap-0.5 text-[10px]">
             <Sparkles className="h-2.5 w-2.5" />
           </span>
         )}
         {autoFilled && !typing && (
-          <span className="flex items-center gap-0.5 text-[10px] text-orange-500/60">
+          <span className="text-brand-orange/60 flex items-center gap-0.5 text-[10px]">
             <Sparkles className="h-2.5 w-2.5" />
             BRREG
           </span>

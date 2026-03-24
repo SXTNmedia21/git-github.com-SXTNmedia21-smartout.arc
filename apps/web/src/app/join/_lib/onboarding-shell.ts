@@ -6,6 +6,21 @@
 // /onboarding owns final workspace truth.
 // ============================================
 
+const INDUSTRY_NACE_MAP: Record<string, string> = {
+  restaurant: "56.101",
+  cafe: "56.102",
+  bar: "56.301",
+  hotel: "55.101",
+  catering: "56.210",
+  fast_food: "56.102",
+  retail: "47.110",
+  other: "",
+};
+
+function resolveNaceFromIndustry(industry: string): string {
+  return INDUSTRY_NACE_MAP[industry] ?? "";
+}
+
 export type SignupSetupData = {
   step1: {
     email: string;
@@ -71,6 +86,7 @@ export function buildOnboardingShellIntelligence(data: SignupSetupData) {
     brreg: {
       legalName: data.step1.companyName,
       orgNumber: data.step2.orgNumber,
+      naceCode: resolveNaceFromIndustry(data.step1.industry),
       naceDescription: data.step1.industry,
       address: {
         street: data.step2.street,

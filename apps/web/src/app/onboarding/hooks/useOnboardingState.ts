@@ -181,7 +181,13 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
             const brreg = intel.brreg as Record<string, unknown> | null;
             const places = intel.places as PlacesData | null;
             const joinIntake = intel.join_intake as {
-              businessNarrative?: { aboutUs?: string; ourConcept?: string };
+              businessNarrative?: { aboutUs?: string; ourHistory?: string; ourConcept?: string };
+              menu?: {
+                restaurantType?: string;
+                cuisineTypes?: string[];
+                priceCategory?: string;
+                menuDescription?: string;
+              };
             } | null;
 
             const merged = mergeBusinessData(scraped, brreg, places);
@@ -195,6 +201,34 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
                 joinIntake?.businessNarrative?.ourConcept ??
                 "";
             }
+
+            // Restore join intake fields that mergeBusinessData doesn't handle
+            if (joinIntake) {
+              const narrative = joinIntake.businessNarrative;
+              if (narrative?.ourHistory) merged.ourHistory = narrative.ourHistory;
+              if (narrative?.ourConcept) merged.ourConcept = narrative.ourConcept;
+
+              const menu = joinIntake.menu;
+              if (menu?.restaurantType) merged.restaurantType = menu.restaurantType;
+              if (menu?.cuisineTypes?.length) merged.cuisineTypes = menu.cuisineTypes;
+              if (menu?.priceCategory) merged.priceCategory = menu.priceCategory;
+              if (menu?.menuDescription) merged.menuDescription = menu.menuDescription;
+            }
+
+            // Restore scraped fields not covered by mergeBusinessData
+            const scrapedRaw = scraped as Record<string, unknown> | null;
+            if (scrapedRaw) {
+              const socialLinks = scrapedRaw.socialLinks as Record<string, string> | undefined;
+              if (socialLinks && Object.keys(socialLinks).length > 0)
+                merged.socialLinks = socialLinks;
+              if (scrapedRaw.reservationUrl)
+                merged.reservationUrl = scrapedRaw.reservationUrl as string;
+              if (scrapedRaw.menus)
+                merged.menuLinks = scrapedRaw.menus as Array<{ href: string; text: string }>;
+              if (scrapedRaw.logoUrl && !merged.logoUrl)
+                merged.logoUrl = scrapedRaw.logoUrl as string;
+            }
+
             setBusiness(merged);
             setScrapeStatus("done");
 
@@ -725,6 +759,16 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
         seasonStartDate: season.startDate,
         seasonEndDate: season.endDate,
         contractId: contract?.contractId ?? null,
+        // Business narrative + menu data for company_details upsert
+        aboutUs: business.description,
+        ourHistory: business.ourHistory,
+        ourConcept: business.ourConcept,
+        restaurantType: business.restaurantType,
+        cuisineTypes: business.cuisineTypes,
+        priceCategory: business.priceCategory,
+        menuDescription: business.menuDescription,
+        socialLinks: business.socialLinks,
+        logoUrl: business.logoUrl,
       };
 
       let workspaceId: string;

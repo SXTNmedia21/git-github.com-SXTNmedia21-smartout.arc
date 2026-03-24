@@ -81,7 +81,7 @@ export function Step6CreateAccount() {
       }}
     >
       <div>
-        <h2 className="text-foreground text-2xl font-bold">Opprett konto</h2>
+        <h2 className="font-heading text-foreground text-2xl font-bold">Opprett konto</h2>
         <p className="text-muted-foreground mt-1 text-sm">
           Sett et passord for å fullføre registreringen.
         </p>
@@ -155,7 +155,7 @@ export function Step6CreateAccount() {
         <Button
           type="submit"
           disabled={loading || !password}
-          className="flex-1 bg-orange-500 text-white hover:bg-orange-600"
+          className="bg-brand-orange hover:bg-brand-orange-dark flex-1 text-white"
         >
           {loading ? (
             <>

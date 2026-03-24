@@ -125,7 +125,7 @@ export function Step3About() {
   return (
     <div className="mx-auto w-full max-w-md space-y-6">
       <div>
-        <h2 className="text-foreground text-2xl font-bold">Fortell om bedriften</h2>
+        <h2 className="font-heading text-foreground text-2xl font-bold">Fortell om bedriften</h2>
         <p className="text-muted-foreground mt-1 text-sm">
           Dette brukes til opplæring og onboarding av ansatte.
         </p>
@@ -136,7 +136,7 @@ export function Step3About() {
           </p>
         )}
         {allDone && (
-          <p className="mt-2 flex items-center gap-1.5 text-xs text-orange-500">
+          <p className="text-brand-orange mt-2 flex items-center gap-1.5 text-xs">
             <Sparkles className="h-3 w-3" />
             Utkast fylt ut — rediger fritt
           </p>
@@ -203,6 +203,19 @@ export function Step3About() {
         />
       </div>
 
+      {/* "Skriv på nytt" button — always visible */}
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={handleRewrite}
+        disabled={isLoading}
+        className="border-brand-orange/30 text-brand-orange hover:bg-brand-orange/5 w-full"
+      >
+        <RefreshCw className={`mr-2 h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
+        Skriv på nytt
+      </Button>
+
       <div className="flex gap-3">
         <Button type="button" variant="outline" onClick={prevStep} className="flex-1">
           <ArrowLeft className="mr-2 h-4 w-4" />
@@ -211,7 +224,7 @@ export function Step3About() {
         <Button
           type="button"
           onClick={handleNext}
-          className="flex-1 bg-orange-500 text-white hover:bg-orange-600"
+          className="bg-brand-orange hover:bg-brand-orange-dark flex-1 text-white"
         >
           Neste
           <ArrowRight className="ml-2 h-4 w-4" />
@@ -281,7 +294,7 @@ function TypewriterTextarea({
             {labelSuffix && <span className="text-muted-foreground ml-1">{labelSuffix}</span>}
           </Label>
           {typing && (
-            <span className="flex animate-pulse items-center gap-0.5 text-[10px] text-orange-500">
+            <span className="text-brand-orange flex animate-pulse items-center gap-0.5 text-[10px]">
               <Sparkles className="h-2.5 w-2.5" />
             </span>
           )}

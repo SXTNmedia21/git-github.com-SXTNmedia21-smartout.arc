@@ -105,7 +105,7 @@ function WizardContent() {
       <div className="bg-noise pointer-events-none fixed inset-0 z-30 opacity-[0.025] mix-blend-overlay" />
 
       {/* ── WIZARD CONTENT (left) ── */}
-      <div className="relative flex w-full flex-1 flex-col bg-[oklch(0.99_0.004_60)]">
+      <div className="bg-join-bg relative flex w-full flex-1 flex-col">
         {/* Progress bar */}
         {!isSetupPhase && <WizardProgress />}
 
@@ -147,12 +147,12 @@ function WizardContent() {
               transition: { duration: 0.5, ease: [0.25, 0.1, 0.25, 1] },
             }}
           >
-            <div className="absolute inset-0 bg-[oklch(0.18_0.03_50)]" />
+            <div className="bg-join-panel absolute inset-0" />
 
             {/* Ambient glow — same as login */}
             <div className="pointer-events-none absolute inset-0 overflow-hidden">
-              <div className="animate-ambient-1 absolute -top-[20%] left-[20%] h-[50vh] w-[50vh] rounded-full bg-[oklch(0.45_0.18_40)] opacity-30 blur-[130px]" />
-              <div className="animate-ambient-2 absolute right-[10%] -bottom-[10%] h-[40vh] w-[40vh] rounded-full bg-[oklch(0.35_0.14_35)] opacity-25 blur-[110px]" />
+              <div className="animate-ambient-1 bg-join-glow-1 absolute -top-[20%] left-[20%] h-[50vh] w-[50vh] rounded-full opacity-30 blur-[130px]" />
+              <div className="animate-ambient-2 bg-join-glow-2 absolute right-[10%] -bottom-[10%] h-[40vh] w-[40vh] rounded-full opacity-25 blur-[110px]" />
             </div>
 
             {/* Subtle left edge */}
@@ -185,7 +185,7 @@ function WizardContent() {
                     animate="visible"
                     exit="exit"
                   >
-                    <h2 className="text-[2rem] leading-[1.1] font-bold tracking-tight whitespace-pre-line text-white xl:text-[2.2rem]">
+                    <h2 className="font-heading text-[2rem] leading-[1.1] font-bold tracking-tight whitespace-pre-line text-white xl:text-[2.2rem]">
                       {stepMessage.heading.split("\n").map((line, i) => (
                         <span key={i}>
                           {i > 0 && <br />}
@@ -209,7 +209,9 @@ function WizardContent() {
                     animate={{
                       width: step === state.currentStep ? 24 : 12,
                       backgroundColor:
-                        step <= state.currentStep ? "oklch(0.75 0.18 40)" : "oklch(1 0 0 / 0.15)",
+                        step <= state.currentStep
+                          ? "var(--brand-orange-light)"
+                          : "oklch(1 0 0 / 0.15)",
                     }}
                     transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
                   />

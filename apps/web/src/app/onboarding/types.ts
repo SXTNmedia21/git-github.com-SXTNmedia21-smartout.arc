@@ -54,6 +54,16 @@ export interface BusinessData {
   latitude: number | null;
   longitude: number | null;
   photos: string[];
+  // Join intake fields — restored from intelligence_data
+  socialLinks?: Record<string, string>;
+  restaurantType?: string;
+  cuisineTypes?: string[];
+  menuDescription?: string;
+  priceCategory?: string;
+  ourHistory?: string;
+  ourConcept?: string;
+  reservationUrl?: string;
+  menuLinks?: Array<{ href: string; text: string }>;
 }
 
 /** Season configuration */

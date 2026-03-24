@@ -96,7 +96,7 @@ export function Step1Account() {
   return (
     <div className="mx-auto w-full max-w-md space-y-6">
       <div>
-        <h2 className="text-foreground text-2xl font-bold">Opprett din konto</h2>
+        <h2 className="font-heading text-foreground text-2xl font-bold">Opprett din konto</h2>
         <p className="text-muted-foreground mt-1 text-sm">
           Vi starter med det grunnleggende om bedriften din.
         </p>
@@ -146,7 +146,7 @@ export function Step1Account() {
                 setErrors((prev) => ({ ...prev, industry: "" }));
               }}
               aria-invalid={!!errors.industry}
-              className="border-input bg-background text-foreground placeholder:text-muted-foreground flex h-10 w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-orange-500/40 focus-visible:outline-none"
+              className="border-input bg-background text-foreground placeholder:text-muted-foreground focus-visible:ring-brand-orange/40 flex h-10 w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
             >
               <option value="">Velg bransje</option>
               {INDUSTRY_OPTIONS.map((opt) => (
@@ -202,7 +202,7 @@ export function Step1Account() {
       <Button
         type="button"
         onClick={handleNext}
-        className="w-full bg-orange-500 text-white hover:bg-orange-600"
+        className="bg-brand-orange hover:bg-brand-orange-dark w-full text-white"
       >
         Neste
         <ArrowRight className="ml-2 h-4 w-4" />

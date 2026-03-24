@@ -99,11 +99,11 @@ export function SetupLoading() {
     return (
       <div className="flex min-h-[400px] flex-col items-center justify-center gap-6">
         <div className="relative">
-          <div className="h-16 w-16 rounded-full bg-red-100 dark:bg-red-950/30" />
-          <AlertCircle className="absolute inset-0 m-auto h-8 w-8 text-red-500" />
+          <div className="bg-destructive/10 dark:bg-destructive/10 h-16 w-16 rounded-full" />
+          <AlertCircle className="text-destructive absolute inset-0 m-auto h-8 w-8" />
         </div>
         <div className="text-center">
-          <h2 className="text-foreground text-xl font-semibold">Noe gikk galt</h2>
+          <h2 className="font-heading text-foreground text-xl font-semibold">Noe gikk galt</h2>
           <p className="text-muted-foreground mt-2 max-w-md text-sm">{error}</p>
         </div>
         <div className="flex gap-3">
@@ -133,11 +133,13 @@ export function SetupLoading() {
   return (
     <div className="flex min-h-[400px] flex-col items-center justify-center gap-6">
       <div className="relative">
-        <div className="h-16 w-16 rounded-full bg-orange-100 dark:bg-orange-950/30" />
-        <Loader2 className="absolute inset-0 m-auto h-8 w-8 animate-spin text-orange-500" />
+        <div className="bg-brand-orange/10 dark:bg-brand-orange/10 h-16 w-16 rounded-full" />
+        <Loader2 className="text-brand-orange absolute inset-0 m-auto h-8 w-8 animate-spin" />
       </div>
       <div className="text-center">
-        <h2 className="text-foreground text-xl font-semibold">Vi setter opp alt for deg</h2>
+        <h2 className="font-heading text-foreground text-xl font-semibold">
+          Vi setter opp alt for deg
+        </h2>
         <p className="text-muted-foreground mt-2 text-sm transition-opacity duration-300">
           {LOADING_MESSAGES[messageIndex]}
         </p>

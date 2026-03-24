@@ -35,9 +35,9 @@ export function WizardProgress() {
                   disabled={!isCompleted}
                   className={cn(
                     "flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold transition-all duration-200",
-                    isCompleted && "cursor-pointer bg-emerald-500 text-white hover:bg-emerald-600",
+                    isCompleted && "bg-success hover:bg-success/80 cursor-pointer text-white",
                     isCurrent &&
-                      "bg-orange-500 text-white ring-4 ring-orange-100 dark:ring-orange-900/30",
+                      "bg-brand-orange ring-brand-orange/15 dark:ring-brand-orange/20 text-white ring-4",
                     isUpcoming &&
                       "border-muted-foreground/25 bg-muted text-muted-foreground cursor-default border-2",
                   )}
@@ -49,7 +49,7 @@ export function WizardProgress() {
                   className={cn(
                     "text-center text-xs font-medium",
                     isCurrent && "text-foreground",
-                    isCompleted && "text-emerald-600 dark:text-emerald-400",
+                    isCompleted && "text-success",
                     isUpcoming && "text-muted-foreground",
                   )}
                 >
@@ -62,7 +62,7 @@ export function WizardProgress() {
                 <div
                   className={cn(
                     "mx-2 h-0.5 flex-1 rounded-full transition-colors duration-300",
-                    stepNumber < currentStep ? "bg-emerald-500" : "bg-muted-foreground/20",
+                    stepNumber < currentStep ? "bg-success" : "bg-muted-foreground/20",
                   )}
                 />
               )}

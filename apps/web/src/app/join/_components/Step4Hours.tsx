@@ -201,7 +201,7 @@ export function Step4Hours() {
   return (
     <div className="mx-auto w-full max-w-lg space-y-6">
       <div>
-        <h2 className="text-foreground text-2xl font-bold">Drift</h2>
+        <h2 className="font-heading text-foreground text-2xl font-bold">Drift</h2>
         <p className="text-muted-foreground mt-1 text-sm">Åpningstider og kontaktinformasjon.</p>
       </div>
 
@@ -214,8 +214,8 @@ export function Step4Hours() {
               key={day.dayOfWeek}
               className="flex items-center gap-3 rounded-lg border p-3 transition-colors duration-300"
               style={{
-                borderColor: day.isClosed ? "var(--border)" : "oklch(0.75 0.18 145 / 0.4)",
-                backgroundColor: day.isClosed ? "var(--card)" : "oklch(0.75 0.18 145 / 0.05)",
+                borderColor: day.isClosed ? "var(--border)" : "var(--join-open-border)",
+                backgroundColor: day.isClosed ? "var(--card)" : "var(--join-open-bg)",
               }}
             >
               <span className="text-foreground w-20 text-sm font-medium">{DAY_LABELS[index]}</span>
@@ -226,17 +226,15 @@ export function Step4Hours() {
                 className="flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-all duration-300"
                 style={{
                   backgroundColor: day.isClosed
-                    ? "oklch(0.55 0.01 0 / 0.1)"
-                    : "oklch(0.75 0.18 145 / 0.15)",
-                  color: day.isClosed ? "oklch(0.55 0.01 0)" : "oklch(0.45 0.18 145)",
+                    ? "var(--join-closed-btn-bg)"
+                    : "var(--join-open-btn-bg)",
+                  color: day.isClosed ? "var(--join-closed-btn-text)" : "var(--join-open-btn-text)",
                 }}
               >
                 <span
                   className="inline-block h-2 w-2 rounded-full transition-colors duration-300"
                   style={{
-                    backgroundColor: day.isClosed
-                      ? "oklch(0.55 0.01 0 / 0.4)"
-                      : "oklch(0.65 0.2 145)",
+                    backgroundColor: day.isClosed ? "var(--join-closed-dot)" : "var(--success)",
                   }}
                 />
                 {day.isClosed ? "Stengt" : "Åpent"}
@@ -323,7 +321,7 @@ export function Step4Hours() {
         <Button
           type="button"
           onClick={handleNext}
-          className="flex-1 bg-orange-500 text-white hover:bg-orange-600"
+          className="bg-brand-orange hover:bg-brand-orange-dark flex-1 text-white"
         >
           Neste
           <ArrowRight className="ml-2 h-4 w-4" />
