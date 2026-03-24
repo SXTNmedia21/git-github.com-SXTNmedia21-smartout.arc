@@ -62,3 +62,15 @@ tags: [learnings]
 | 4   | 2026-03-22 | Mobile theme typography has no title2 — only largeTitle, title, headline, body, subheadline, caption, micro                    | Low — check theme types before using               |
 | 5   | 2026-03-22 | AudioSession.startAudioSession() must be called before any LiveKit audio on RN — stopAudioSession() on unmount                 | High — no audio without this                       |
 | 6   | 2026-03-22 | registerGlobals() from @livekit/react-native must be called at app entry BEFORE any LiveKit component                          | High — runtime crash without this                  |
+
+---
+
+# Learning Log — setup-flow-redesign
+
+| #   | Date       | Learning                                                                                                                                                                | Impact                                                                                          |
+| --- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| 1   | 2026-03-22 | naceCode was missing from join shell — industry detection broken at 3 levels (shell output, useIndustryPackage key names, fallback key names)                           | All downstream industry-dependent features (department/procedure preselection) silently failed  |
+| 2   | 2026-03-22 | 7 join intake fields (ourHistory, ourConcept, restaurantType, cuisineTypes, priceCategory, menuDescription, socialLinks) were silently dropped during onboarding resume | Data collected in /join was lost by /onboarding, making the scraping pipeline partially useless |
+| 3   | 2026-03-22 | Dashboard wizard's ScrapedIntelligence only had companyName — all other fields were in DB but never queried                                                             | WelcomeStep appeared empty despite rich data existing in company_details                        |
+| 4   | 2026-03-22 | Document extraction results (policies, supplements, noticePeriod, handbookSections) were received but ignored via no-op useEffects                                      | AI extraction pipeline was running but results were thrown away at the consumer                 |
+| 5   | 2026-03-22 | isDark prop created 299 duplicated ternaries across 12 wizard files — CSS variable tokens eliminate this entirely                                                       | Theme support becomes automatic; ~780 lines of conditional styling removed                      |

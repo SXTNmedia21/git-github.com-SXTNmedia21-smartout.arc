@@ -100,3 +100,15 @@ tags: [decisions]
 | 4   | 2026-03-22 | Shared data layer in packages/walkieTalkie — web + mobile use identical mutations       | accepted |
 | 5   | 2026-03-22 | Room name format: {workspaceId}:{channelId} — parseable by webhooks                     | accepted |
 | 6   | 2026-03-22 | PTT as pure state machine in shared package, platform-specific UI adapters              | accepted |
+
+---
+
+# Decision Log — setup-flow-redesign
+
+| #   | Date       | Decision                                                                                                                                              | Status   |
+| --- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| 1   | 2026-03-22 | Use field_sources JSONB column on company_details for per-field provenance tracking                                                                   | accepted |
+| 2   | 2026-03-22 | Dashboard wizard reads from DB tables (company, company_details, company_opening_hours, company_social_media), never from workspace.intelligence_data | accepted |
+| 3   | 2026-03-22 | Remove isDark prop entirely; replace all 299 ternaries with CSS variable design tokens                                                                | accepted |
+| 4   | 2026-03-22 | Extend finalize_onboarding_workspace RPC to upsert company_details + company_social_media during finalization                                         | accepted |
+| 5   | 2026-03-22 | Support both old keys (brregData/scrapedData) and new keys (brreg/scraped) in useIndustryPackage for backwards compatibility                          | accepted |
