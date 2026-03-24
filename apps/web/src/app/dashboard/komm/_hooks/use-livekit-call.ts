@@ -4,7 +4,9 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import {
   Room,
   RoomEvent,
+  Track,
   ConnectionState,
+  type RemoteTrackPublication,
   type RemoteParticipant,
   type LocalParticipant,
   type Participant,
@@ -100,8 +102,25 @@ export function useLiveKitCall(): UseLiveKitCallReturn {
 
       room.on(RoomEvent.ParticipantConnected, () => updateParticipants());
       room.on(RoomEvent.ParticipantDisconnected, () => updateParticipants());
-      room.on(RoomEvent.TrackSubscribed, () => updateParticipants());
-      room.on(RoomEvent.TrackUnsubscribed, () => updateParticipants());
+
+      // Auto-attach remote audio/video tracks to DOM for playback
+      room.on(
+        RoomEvent.TrackSubscribed,
+        (track, publication: RemoteTrackPublication, participant: RemoteParticipant) => {
+          if (track.kind === Track.Kind.Audio || track.kind === Track.Kind.Video) {
+            const element = track.attach();
+            element.id = `track-${participant.identity}-${track.sid}`;
+            element.setAttribute("data-livekit-track", track.sid ?? "");
+            document.body.appendChild(element);
+          }
+          updateParticipants();
+        },
+      );
+
+      room.on(RoomEvent.TrackUnsubscribed, (track) => {
+        track.detach().forEach((el) => el.remove());
+        updateParticipants();
+      });
       room.on(RoomEvent.LocalTrackPublished, () => updateParticipants());
       room.on(RoomEvent.LocalTrackUnpublished, () => updateParticipants());
       room.on(RoomEvent.TrackMuted, () => updateParticipants());
@@ -115,6 +134,9 @@ export function useLiveKitCall(): UseLiveKitCallReturn {
       });
 
       room.on(RoomEvent.Disconnected, () => {
+        // Clean up all attached media elements
+        document.querySelectorAll("[data-livekit-track]").forEach((el) => el.remove());
+
         setState((prev) => ({
           ...prev,
           room: null,
