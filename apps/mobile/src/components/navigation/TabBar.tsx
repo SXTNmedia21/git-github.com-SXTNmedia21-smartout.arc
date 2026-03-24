@@ -5,6 +5,7 @@
  * The FAB occupies the center position — it's not a tab but a floating
  * circular button that breaks the tab bar line upward.
  * Unread badge shown on the Chat tab.
+ * Notification dot shown on the Meg tab when there are unread notifications.
  */
 
 import React from "react";
@@ -37,11 +38,19 @@ const TAB_LABELS: Record<string, string> = {
 type TabBarProps = BottomTabBarProps & {
   /** Unread chat message count for badge */
   unreadCount?: number;
+  /** Unread notification count — shows a dot on the Meg tab when > 0 */
+  unreadNotificationCount?: number;
   /** Center FAB component — rendered in the middle slot */
   centerFab: React.ReactNode;
 };
 
-export function TabBar({ state, navigation, unreadCount = 0, centerFab }: TabBarProps) {
+export function TabBar({
+  state,
+  navigation,
+  unreadCount = 0,
+  unreadNotificationCount = 0,
+  centerFab,
+}: TabBarProps) {
   const styles = useStyles();
 
   // Filter out hidden tabs (href: null) and split into left/right around FAB
@@ -54,6 +63,7 @@ export function TabBar({ state, navigation, unreadCount = 0, centerFab }: TabBar
     const isFocused = state.index === routeIndex;
     const IconComponent = TAB_ICONS[route.name];
     const isKommTab = route.name === "(komm)";
+    const isMeTab = route.name === "(me)";
     const label = isKommTab ? "Komm" : (TAB_LABELS[route.name] ?? route.name);
 
     return (
@@ -79,6 +89,8 @@ export function TabBar({ state, navigation, unreadCount = 0, centerFab }: TabBar
             />
           )}
           {isKommTab && <Badge count={unreadCount} style={styles.badge} />}
+          {/* Notification dot on the Meg tab — shows when there are unread notifications */}
+          {isMeTab && unreadNotificationCount > 0 && <View style={styles.notificationDot} />}
         </View>
         <Text style={[styles.tabLabel, isFocused && styles.tabLabelActive]}>{label}</Text>
       </Pressable>
@@ -145,6 +157,18 @@ const useStyles = createStyles((theme) => ({
     position: "absolute",
     top: -4,
     right: -10,
+  },
+  /** Small filled dot on the Meg tab when unread notifications exist */
+  notificationDot: {
+    position: "absolute",
+    top: -3,
+    right: -5,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#e85c0d",
+    borderWidth: 1.5,
+    borderColor: "#ffffff",
   },
   fabSlot: {
     flex: 1,

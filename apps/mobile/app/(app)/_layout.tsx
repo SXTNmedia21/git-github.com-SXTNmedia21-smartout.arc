@@ -20,6 +20,8 @@ import { AIFab } from "@/components/navigation/AIFab";
 import { QuickActions } from "@/components/navigation/QuickActions";
 import { BotssonSheet } from "@/components/ai/BotssonSheet";
 import { useShiftPhase } from "@/hooks/stores/use-shift-phase";
+import { useMyProfile } from "@/hooks/queries/use-my-profile";
+import { useUnreadCount } from "@/hooks/queries/use-notifications";
 import { strings } from "@/constants/strings";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 
@@ -27,6 +29,10 @@ export default function AppLayout() {
   const styles = useStyles();
   const router = useRouter();
   const { phase } = useShiftPhase();
+
+  // Profile + unread count for the notification dot on the Meg tab
+  const { data: profile } = useMyProfile();
+  const { data: unreadNotificationCount = 0 } = useUnreadCount(profile?.profile_id);
   const [quickActionsVisible, setQuickActionsVisible] = useState(false);
   const quickActionsVisibility = useSharedValue(0);
   const botssonSheetRef = useRef<GorhomBottomSheet>(null);
@@ -73,10 +79,11 @@ export default function AppLayout() {
     (props: BottomTabBarProps) => (
       <TabBar
         {...props}
+        unreadNotificationCount={unreadNotificationCount}
         centerFab={<AIFab onPress={handleFabPress} onSwipeUp={showQuickActions} />}
       />
     ),
-    [handleFabPress, showQuickActions],
+    [handleFabPress, showQuickActions, unreadNotificationCount],
   );
 
   return (

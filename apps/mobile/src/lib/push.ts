@@ -27,14 +27,20 @@ if (isNative) {
 /**
  * Deep link mapping — maps push event types to Expo Router paths.
  * Each event includes the screen the user should land on when tapping.
+ *
+ * "notification_tap" is the generic fallback for any event not explicitly
+ * mapped — it routes to the notification center screen so the user can
+ * see what they tapped on and read the full details.
  */
 const DEEP_LINK_MAP: Record<string, (data: Record<string, string>) => string> = {
   shift_published: (data) => `/(app)/(shifts)/${data.shift_id}`,
   shift_updated: (data) => `/(app)/(shifts)/${data.shift_id}`,
-  task_assigned: () => "/(app)/(home)",
+  task_assigned: () => "/(app)/(me)/notifications",
   chat_message: (data) => `/(app)/(chat)/${data.conversation_id}`,
   deviation_reported: () => "/(app)/(home)",
   join_request: () => "/(app)/(home)",
+  // Generic fallback — navigates to the notification center
+  notification_tap: () => "/(app)/(me)/notifications",
 };
 
 /**
@@ -148,20 +154,56 @@ export async function unregisterPushToken(profileId: string): Promise<void> {
 }
 
 /**
+ * Mark a notification as read in the database when the user taps the push banner.
+ * Best-effort — failures are logged but do not block navigation.
+ *
+ * The notification_id is included in the push payload by the outbox consumer
+ * Edge Function so we can close the loop without a round-trip query.
+ */
+async function markNotificationReadFromPush(notificationId: string): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from("notification")
+      .update({ is_read: true, read_at: new Date().toISOString() })
+      .eq("id", notificationId);
+    if (error) {
+      console.warn("Failed to mark push notification as read:", error.message);
+    }
+  } catch (err) {
+    console.warn("Error marking push notification as read:", err);
+  }
+}
+
+/**
  * Navigate to the correct screen based on push notification data.
+ * Also marks the notification as read if notification_id is in the payload.
  * Shared between tap handler and cold-start handler.
+ *
+ * For unmapped event types, falls back to the notification center screen
+ * so users always land somewhere meaningful rather than the app root.
  */
 function navigateFromNotificationData(data: Record<string, string> | undefined): void {
-  if (!data?.event) return;
+  if (!data) return;
 
-  const getPath = DEEP_LINK_MAP[data.event];
-  if (getPath) {
-    const path = getPath(data);
-    // Small delay to ensure the app is fully mounted before navigating
-    setTimeout(() => {
-      router.push(path as never);
-    }, 100);
+  // Mark as read when the notification_id is present in the push payload
+  if (data.notification_id) {
+    void markNotificationReadFromPush(data.notification_id);
   }
+
+  // Resolve the deep link path — fall back to notification center for unknown events
+  if (!data.event) {
+    setTimeout(() => {
+      router.push("/(app)/(me)/notifications" as never);
+    }, 100);
+    return;
+  }
+
+  const getPath = DEEP_LINK_MAP[data.event] ?? DEEP_LINK_MAP["notification_tap"];
+  const path = getPath(data);
+  // Small delay to ensure the app is fully mounted before navigating
+  setTimeout(() => {
+    router.push(path as never);
+  }, 100);
 }
 
 /**
