@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useContext, useLayoutEffect, useMemo, useRef } from "react";
 import { ChevronLeft, ChevronRight, Loader2, Rocket, SkipForward } from "lucide-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { createClient } from "@smartout/supabase/client";
 import { emit } from "@smartout/telemetry";
@@ -168,15 +168,106 @@ export function WorkspaceSetupWizard({
   const { data: setupStatus } = useWorkspaceSetup();
   const { package: industryPackage, detectedType, setIndustryType } = useIndustryPackage();
 
-  // ── Parse scraped data from workspace intelligence ──
-  const scrapedData = useMemo<ScrapedIntelligence>(() => {
-    // intelligence_data is not on the context type — it's queried by useIndustryPackage
-    // For the welcome step, we query it separately there.
-    // Here we just provide workspace-level basics.
-    return {
+  // ── Query all business data from DB for wizard steps ──
+  const supabase = useMemo(() => createClient(), []);
+
+  const { data: company } = useQuery({
+    queryKey: ["wizard-company", workspaceId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("company")
+        .select("*")
+        .eq("company_id", ctx?.workspace.company_id!)
+        .single();
+      return data;
+    },
+    enabled: !!ctx?.workspace.company_id,
+  });
+
+  const { data: companyDetails } = useQuery({
+    queryKey: ["wizard-company-details", workspaceId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("company_details")
+        .select("*")
+        .eq("workspace_id", workspaceId)
+        .single();
+      return data;
+    },
+    enabled: !!workspaceId,
+  });
+
+  const { data: openingHoursData } = useQuery({
+    queryKey: ["wizard-opening-hours", workspaceId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("company_opening_hours")
+        .select("*")
+        .eq("workspace_id", workspaceId)
+        .order("day_of_week");
+      return data ?? [];
+    },
+    enabled: !!workspaceId,
+  });
+
+  const { data: socialMedia } = useQuery({
+    queryKey: ["wizard-social-media", workspaceId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("company_social_media")
+        .select("*")
+        .eq("workspace_id", workspaceId);
+      return data ?? [];
+    },
+    enabled: !!workspaceId,
+  });
+
+  const scrapedData = useMemo<ScrapedIntelligence>(
+    () => ({
       companyName: ctx?.workspace.name,
-    };
-  }, [ctx]);
+      orgNumber: company?.org_number ?? undefined,
+      industryType: company?.industry ?? undefined,
+      address:
+        [company?.address_line_1, company?.postal_code, company?.city].filter(Boolean).join(", ") ||
+        undefined,
+      website: company?.website ?? undefined,
+      email: company?.email ?? undefined,
+      phone: company?.phone ?? undefined,
+      openingHours:
+        openingHoursData
+          ?.filter((h) => !h.is_closed)
+          .map(
+            (h) =>
+              `${["Man", "Tir", "Ons", "Tor", "Fre", "Lør", "Søn"][h.day_of_week]}: ${h.open_time}-${h.close_time}`,
+          )
+          .join(", ") || undefined,
+      googleRating: (ctx?.workspace as Record<string, unknown>)?.google_rating as
+        | number
+        | undefined,
+      googleMapsUrl: (ctx?.workspace as Record<string, unknown>)?.google_maps_url as
+        | string
+        | undefined,
+      googlePriceLevel: (ctx?.workspace as Record<string, unknown>)?.google_price_level as
+        | string
+        | undefined,
+      aboutUs: companyDetails?.about_us ?? undefined,
+      ourHistory: companyDetails?.our_history ?? undefined,
+      ourConcept: companyDetails?.our_concept ?? undefined,
+      restaurantType: companyDetails?.restaurant_type ?? undefined,
+      cuisineTypes: companyDetails?.cuisine_types ?? undefined,
+      priceCategory: companyDetails?.price_category ?? undefined,
+      menuDescription: companyDetails?.menu_description ?? undefined,
+      socialLinks:
+        socialMedia && socialMedia.length > 0
+          ? socialMedia.reduce(
+              (acc, sm) => ({ ...acc, [sm.platform]: sm.url }),
+              {} as Record<string, string>,
+            )
+          : undefined,
+      fieldSources: (companyDetails?.field_sources as Record<string, string>) ?? undefined,
+    }),
+    [ctx, company, companyDetails, openingHoursData, socialMedia],
+  );
 
   // ── Shared wizard state ──
   const [wizardState, setWizardState] = useState<SetupWizardState>(() => ({

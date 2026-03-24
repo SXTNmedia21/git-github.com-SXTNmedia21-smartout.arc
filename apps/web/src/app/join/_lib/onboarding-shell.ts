@@ -117,6 +117,17 @@ export function buildOnboardingShellIntelligence(data: SignupSetupData) {
       },
       rawOpeningHours: data.step4.openingHours,
       generatedIntelligence: data.intelligence ?? null,
+      fieldSources: {
+        aboutUs: data.intelligence ? "user_confirmed" : "user_input",
+        ourHistory: data.intelligence ? "user_confirmed" : "user_input",
+        ourConcept: data.intelligence ? "user_confirmed" : "user_input",
+        restaurantType: data.intelligence ? "ai_generated" : "user_input",
+        cuisineTypes: data.intelligence ? "ai_generated" : "user_input",
+        priceCategory: data.intelligence ? "ai_generated" : "user_input",
+        menuDescription: data.intelligence ? "ai_generated" : "user_input",
+        phone: "user_input",
+        email: "user_input",
+      },
     },
   };
 }

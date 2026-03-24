@@ -252,6 +252,7 @@ export async function completeSignup(data: SignupSetupData) {
     menu_description: data.step5.menuDescription || null,
     employee_count: data.step6.employeeCount || null,
     ai_generated_fields: [],
+    field_sources: data.intelligence ? shellIntelligence.join_intake.fieldSources : {},
   });
 
   if (detailsError) {
