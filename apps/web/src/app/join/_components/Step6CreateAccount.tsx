@@ -6,12 +6,11 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2, Eye, EyeOff } from "lucide-react";
 import { createClient } from "@smartout/supabase/client";
-import { useSignupWizard } from "../_hooks/useSignupWizard";
+import type { WizardStepProps } from "@smartout/ui";
+import type { JoinState } from "../types";
 
-export function Step6CreateAccount() {
-  const { state, prevStep, goToStep } = useSignupWizard();
-
-  const email = state.step1.email ?? "";
+export function Step6CreateAccount({ state, updateState, next, back }: WizardStepProps<JoinState>) {
+  const email = state.account.email ?? "";
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -22,7 +21,7 @@ export function Step6CreateAccount() {
     setError("");
 
     if (password.length < 8) {
-      setError("Passordet må være minst 8 tegn.");
+      setError("Passordet ma vaere minst 8 tegn.");
       return;
     }
     if (password !== confirmPassword) {
@@ -39,8 +38,8 @@ export function Step6CreateAccount() {
         password,
         options: {
           data: {
-            first_name: state.step2.firstName ?? "",
-            last_name: state.step2.lastName ?? "",
+            first_name: state.business.firstName ?? "",
+            last_name: state.business.lastName ?? "",
           },
         },
       });
@@ -64,10 +63,11 @@ export function Step6CreateAccount() {
         }
       }
 
-      // Account created — go to setup loading (step 7)
-      goToStep(7);
+      // Account created — save password state and go to next step (team)
+      updateState({ createAccount: { ...state.createAccount } });
+      next();
     } catch {
-      setError("Noe gikk galt. Prøv igjen.");
+      setError("Noe gikk galt. Prov igjen.");
       setLoading(false);
     }
   };
@@ -83,7 +83,7 @@ export function Step6CreateAccount() {
       <div>
         <h2 className="font-heading text-foreground text-2xl font-bold">Opprett konto</h2>
         <p className="text-muted-foreground mt-1 text-sm">
-          Sett et passord for å fullføre registreringen.
+          Sett et passord for a fullfare registreringen.
         </p>
       </div>
 
@@ -145,7 +145,7 @@ export function Step6CreateAccount() {
         <Button
           type="button"
           variant="outline"
-          onClick={prevStep}
+          onClick={back}
           className="flex-1"
           disabled={loading}
         >

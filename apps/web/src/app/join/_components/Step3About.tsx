@@ -5,18 +5,21 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight, Loader2, Settings2, Sparkles } from "lucide-react";
-import { useSignupWizard } from "../_hooks/useSignupWizard";
+import type { WizardStepProps } from "@smartout/ui";
+import type { JoinState } from "../types";
 import { useWorkspaceIntelligence } from "../_hooks/useWorkspaceIntelligence";
 import { useTypewriterSequence } from "../_hooks/useTypewriter";
 import { step3Schema } from "../_lib/validation";
 
-export function Step3About() {
-  const { state, updateStep, nextStep, prevStep } = useSignupWizard();
-  const { content, status, enrichAndGenerate, rewriteField } = useWorkspaceIntelligence();
+export function Step3About({ state, updateState, next, back }: WizardStepProps<JoinState>) {
+  const { content, status, enrichAndGenerate, rewriteField } = useWorkspaceIntelligence(
+    state,
+    updateState,
+  );
 
-  const [aboutUs, setAboutUs] = useState(state.step3.aboutUs ?? "");
-  const [ourHistory, setOurHistory] = useState(state.step3.ourHistory ?? "");
-  const [ourConcept, setOurConcept] = useState(state.step3.ourConcept ?? "");
+  const [aboutUs, setAboutUs] = useState(state.about.aboutUs ?? "");
+  const [ourHistory, setOurHistory] = useState(state.about.ourHistory ?? "");
+  const [ourConcept, setOurConcept] = useState(state.about.ourConcept ?? "");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [userEdited, setUserEdited] = useState<Record<string, boolean>>({});
 
@@ -111,8 +114,8 @@ export function Step3About() {
       return;
     }
 
-    updateStep("step3", result.data);
-    nextStep();
+    updateState({ about: { ...state.about, ...result.data } });
+    next();
   };
 
   const typingField =
@@ -127,7 +130,7 @@ export function Step3About() {
       <div>
         <h2 className="font-heading text-foreground text-2xl font-bold">Fortell om bedriften</h2>
         <p className="text-muted-foreground mt-1 text-sm">
-          Dette brukes til opplæring og onboarding av ansatte.
+          Dette brukes til opplaering og onboarding av ansatte.
         </p>
         {isLoading && (
           <p className="text-muted-foreground mt-2 flex items-center gap-1.5 text-xs">
@@ -168,7 +171,7 @@ export function Step3About() {
         />
 
         <TypewriterTextarea
-          label="Vår historie"
+          label="Var historie"
           labelSuffix="(valgfritt)"
           id="ourHistory"
           rows={2}
@@ -185,10 +188,10 @@ export function Step3About() {
         />
 
         <TypewriterTextarea
-          label="Vårt konsept"
+          label="Vart konsept"
           id="ourConcept"
           rows={3}
-          placeholder="Hva gjør dere unike?"
+          placeholder="Hva gjor dere unike?"
           value={ourConcept}
           typing={typingField === "ourConcept"}
           autoFilled={allDone && !userEdited.ourConcept && !!content?.our_concept}
@@ -204,7 +207,7 @@ export function Step3About() {
       </div>
 
       <div className="flex gap-3">
-        <Button type="button" variant="outline" onClick={prevStep} className="flex-1">
+        <Button type="button" variant="outline" onClick={back} className="flex-1">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Tilbake
         </Button>
@@ -323,14 +326,14 @@ function TypewriterTextarea({
                   onClick={() => handleAction("longer")}
                   className="flex w-full items-center px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-orange-50 hover:text-orange-700"
                 >
-                  Gjør lengre
+                  Gjor lengre
                 </button>
                 <button
                   type="button"
                   onClick={() => handleAction("shorter")}
                   className="flex w-full items-center px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-orange-50 hover:text-orange-700"
                 >
-                  Gjør kortere
+                  Gjor kortere
                 </button>
               </div>
             )}

@@ -5,12 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Loader2, ArrowRight, Globe } from "lucide-react";
-import { useSignupWizard } from "../_hooks/useSignupWizard";
+import type { WizardStepProps } from "@smartout/ui";
+import type { JoinState } from "../types";
+import { useJoinScraping } from "../_context/JoinScrapingProvider";
 import { step1Schema } from "../_lib/validation";
 
 const INDUSTRY_OPTIONS = [
   { value: "restaurant", label: "Restaurant", nace: "56.101" },
-  { value: "cafe", label: "Kafé / Bakeri", nace: "56.102" },
+  { value: "cafe", label: "Kafe / Bakeri", nace: "56.102" },
   { value: "bar", label: "Bar / Nattklubb", nace: "56.301" },
   { value: "hotel", label: "Hotell", nace: "55.101" },
   { value: "catering", label: "Catering", nace: "56.210" },
@@ -19,15 +21,14 @@ const INDUSTRY_OPTIONS = [
   { value: "other", label: "Annet", nace: "" },
 ] as const;
 
-export function Step1Account() {
-  const { state, updateStep, nextStep, scrapeStatus, triggerScrape, lookupBrreg } =
-    useSignupWizard();
+export function Step1Account({ state, updateState, next }: WizardStepProps<JoinState>) {
+  const { scrapeStatus, triggerScrape, lookupBrreg } = useJoinScraping();
 
-  const [email, setEmail] = useState(state.step1.email ?? "");
-  const [companyName, setCompanyName] = useState(state.step1.companyName ?? "");
-  const [industry, setIndustry] = useState(state.step1.industry ?? "");
-  const [city, setCity] = useState(state.step1.city ?? "");
-  const [websiteUrl, setWebsiteUrl] = useState(state.step1.websiteUrl ?? "");
+  const [email, setEmail] = useState(state.account.email ?? "");
+  const [companyName, setCompanyName] = useState(state.account.companyName ?? "");
+  const [industry, setIndustry] = useState(state.account.industry ?? "");
+  const [city, setCity] = useState(state.account.city ?? "");
+  const [websiteUrl, setWebsiteUrl] = useState(state.account.websiteUrl ?? "");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -80,17 +81,20 @@ export function Step1Account() {
       return;
     }
 
-    updateStep("step1", {
-      email: result.data.email,
-      companyName: result.data.companyName,
-      industry: result.data.industry,
-      city: result.data.city,
-      websiteUrl: result.data.websiteUrl,
+    updateState({
+      account: {
+        ...state.account,
+        email: result.data.email,
+        companyName: result.data.companyName,
+        industry: result.data.industry,
+        city: result.data.city,
+        websiteUrl: result.data.websiteUrl,
+      },
     });
 
     // Trigger BRREG lookup with company name + city for accurate matching
     lookupBrreg(result.data.companyName, result.data.city);
-    nextStep();
+    next();
   };
 
   return (

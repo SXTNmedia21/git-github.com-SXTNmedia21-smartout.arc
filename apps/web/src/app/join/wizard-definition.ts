@@ -4,8 +4,7 @@
  * Join wizard definition — config object for WizardShell.
  *
  * Maps the 7-step join flow to WizardDefinition<JoinState>.
- * Step components are imported as-is (they'll be refactored to accept
- * WizardStepProps<JoinState> in a separate task).
+ * Each step component accepts WizardStepProps<JoinState>.
  */
 
 import { Building2, Clock, FileText, KeyRound, Mail, UtensilsCrossed, Users } from "lucide-react";
@@ -72,11 +71,7 @@ async function onComplete(state: JoinState): Promise<void> {
   }
 }
 
-// Step components are typed as ComponentType<any> for now since they
-// still use useSignupWizard() internally. They'll be refactored to
-// accept WizardStepProps<JoinState> in a follow-up task.
-
-export const joinWizardDefinition: WizardDefinition<JoinState> = {
+export const joinWizard: WizardDefinition<JoinState> = {
   id: "join",
   theme: "dark",
 
@@ -95,21 +90,21 @@ export const joinWizardDefinition: WizardDefinition<JoinState> = {
       id: "account",
       labelKey: "steps.account",
       icon: Mail,
-      component: Step1Account as never,
+      component: Step1Account,
       validation: step1Schema,
     },
     {
       id: "business",
       labelKey: "steps.business",
       icon: Building2,
-      component: Step2Business as never,
+      component: Step2Business,
       validation: step2Schema,
     },
     {
       id: "about",
       labelKey: "steps.about",
       icon: FileText,
-      component: Step3About as never,
+      component: Step3About,
       validation: step3Schema,
       skippable: true,
     },
@@ -117,14 +112,14 @@ export const joinWizardDefinition: WizardDefinition<JoinState> = {
       id: "hours",
       labelKey: "steps.hours",
       icon: Clock,
-      component: Step4Hours as never,
+      component: Step4Hours,
       validation: step4Schema,
     },
     {
       id: "menu",
       labelKey: "steps.menu",
       icon: UtensilsCrossed,
-      component: Step5Menu as never,
+      component: Step5Menu,
       validation: step5Schema,
       skippable: true,
     },
@@ -132,14 +127,14 @@ export const joinWizardDefinition: WizardDefinition<JoinState> = {
       id: "create_account",
       labelKey: "steps.create_account",
       icon: KeyRound,
-      component: Step6CreateAccount as never,
+      component: Step6CreateAccount,
       validation: step6Schema,
     },
     {
       id: "team",
       labelKey: "steps.team",
       icon: Users,
-      component: Step6Team as never,
+      component: Step6Team,
       skippable: true,
     },
   ],
