@@ -1401,6 +1401,83 @@ export interface WebsiteSpokespersonTaskOverdue extends BaseEvent {
   properties: { entity: EntityRef; data: { task_type: string; profile_id: string } };
 }
 
+// ─── Channel Call Events ────────────────────────
+export interface ChannelCallStarted extends BaseEvent {
+  event: "channel.call.started";
+  properties: {
+    channel_id: string;
+    call_type: "direct" | "group" | "ptt";
+    call_session_id: string;
+  };
+  entity: EntityRef;
+}
+
+export interface ChannelCallEnded extends BaseEvent {
+  event: "channel.call.ended";
+  properties: {
+    channel_id: string;
+    call_type: "direct" | "group" | "ptt";
+    call_session_id: string;
+    duration_seconds: number;
+    max_participants: number;
+  };
+  entity: EntityRef;
+}
+
+export interface ChannelCallParticipantJoined extends BaseEvent {
+  event: "channel.call.participant_joined";
+  properties: { channel_id: string; call_session_id: string; device_type: string };
+  entity: EntityRef;
+}
+
+export interface ChannelCallParticipantLeft extends BaseEvent {
+  event: "channel.call.participant_left";
+  properties: { channel_id: string; call_session_id: string };
+  entity: EntityRef;
+}
+
+export interface ChannelCallInviteSent extends BaseEvent {
+  event: "channel.call.invite_sent";
+  properties: { channel_id: string; call_session_id: string; callee_profile_id: string };
+  entity: EntityRef;
+}
+
+export interface ChannelCallInviteAccepted extends BaseEvent {
+  event: "channel.call.invite_accepted";
+  properties: { channel_id: string; call_session_id: string };
+  entity: EntityRef;
+}
+
+export interface ChannelCallInviteRejected extends BaseEvent {
+  event: "channel.call.invite_rejected";
+  properties: { channel_id: string; call_session_id: string };
+  entity: EntityRef;
+}
+
+export interface ChannelCallInviteMissed extends BaseEvent {
+  event: "channel.call.invite_missed";
+  properties: { channel_id: string; call_session_id: string };
+  entity: EntityRef;
+}
+
+export interface ChannelCallGroupAnnounced extends BaseEvent {
+  event: "channel.call.group_announced";
+  properties: { channel_id: string; call_session_id: string };
+  entity: EntityRef;
+}
+
+export interface ChannelCallPttActivated extends BaseEvent {
+  event: "channel.call.ptt_activated";
+  properties: { channel_id: string };
+  entity: EntityRef;
+}
+
+export interface ChannelCallPttDeactivated extends BaseEvent {
+  event: "channel.call.ptt_deactivated";
+  properties: { channel_id: string };
+  entity: EntityRef;
+}
+
 // ─── The Single Truth Union ─────────────────────
 // Add every feature's events here. If it isn't here, it can't be emitted.
 export type SmartoutEvent =
@@ -1554,7 +1631,18 @@ export type SmartoutEvent =
   | WebsiteSpokespersonTaskOverdue
   | DeviationReported
   | DeviationUpdated
-  | DeviationResolved;
+  | DeviationResolved
+  | ChannelCallStarted
+  | ChannelCallEnded
+  | ChannelCallParticipantJoined
+  | ChannelCallParticipantLeft
+  | ChannelCallInviteSent
+  | ChannelCallInviteAccepted
+  | ChannelCallInviteRejected
+  | ChannelCallInviteMissed
+  | ChannelCallGroupAnnounced
+  | ChannelCallPttActivated
+  | ChannelCallPttDeactivated;
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -2123,5 +2211,51 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "deviation resolved": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "operations",
+  },
+
+  // Channel call events
+  "channel.call.started": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "channels",
+  },
+  "channel.call.ended": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "channels",
+  },
+  "channel.call.participant_joined": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  "channel.call.participant_left": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  "channel.call.invite_sent": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  "channel.call.invite_accepted": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  "channel.call.invite_rejected": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  "channel.call.invite_missed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  "channel.call.group_announced": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  "channel.call.ptt_activated": {
+    destinations: ["posthog"],
+    category: "channels",
+  },
+  "channel.call.ptt_deactivated": {
+    destinations: ["posthog"],
+    category: "channels",
   },
 };

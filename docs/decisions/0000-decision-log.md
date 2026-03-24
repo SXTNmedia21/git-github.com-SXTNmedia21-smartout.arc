@@ -84,3 +84,19 @@ tags: [decisions]
 | 3   | 2026-03-10 | Consolidate landing queries from 11→8 instead of full rewrite — maximum impact with minimal risk                         | Accepted |
 | 4   | 2026-03-10 | Centralize URL templates in platform-admin-routes.ts — no hardcoded paths scattered across components                    | Accepted |
 | 5   | 2026-03-10 | Workspace notes moved from platform_audit_log to own workspace_note table — audit is immutable, notes need edit/delete   | Accepted |
+
+module: webrtc
+tags: [decisions]
+
+---
+
+# Decision Log — livekit-phase2
+
+| #   | Date       | Decision                                                                                | Status   |
+| --- | ---------- | --------------------------------------------------------------------------------------- | -------- |
+| 1   | 2026-03-22 | ADR-0058: LiveKit as WebRTC provider (Deno SDK, RN support, AI agents, EU, open source) | accepted |
+| 2   | 2026-03-22 | ADR-0059: Edge Functions own call orchestration (mobile parity, singular truth)         | accepted |
+| 3   | 2026-03-22 | Signaling via Supabase Realtime Broadcast, not custom WebSocket server                  | accepted |
+| 4   | 2026-03-22 | Shared data layer in packages/walkieTalkie — web + mobile use identical mutations       | accepted |
+| 5   | 2026-03-22 | Room name format: {workspaceId}:{channelId} — parseable by webhooks                     | accepted |
+| 6   | 2026-03-22 | PTT as pure state machine in shared package, platform-specific UI adapters              | accepted |
