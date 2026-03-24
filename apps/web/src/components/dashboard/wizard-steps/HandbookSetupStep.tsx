@@ -76,6 +76,12 @@ function generateChapterContent(
   const { scrapedData, extractedData } = state;
   const companyName = scrapedData.companyName ?? "Virksomheten";
 
+  // Check if document extraction produced content for this chapter
+  const extracted = extractedData.handbookSections?.find((s) => s.chapterKey === chapterKey);
+  if (extracted) {
+    return doc(heading(2, chapterKey), para(extracted.content), para(`Kilde: ${extracted.source}`));
+  }
+
   switch (chapterKey) {
     case "identity-mission": {
       const nodes: TipTapNode[] = [
@@ -86,12 +92,26 @@ function generateChapterContent(
             : `${companyName} — vår identitet og misjon.`,
         ),
       ];
+      if (scrapedData.aboutUs) nodes.push(para(scrapedData.aboutUs));
+      if (scrapedData.ourHistory) {
+        nodes.push(heading(3, "Vår historie"), para(scrapedData.ourHistory));
+      }
+      if (scrapedData.ourConcept) {
+        nodes.push(heading(3, "Vårt konsept"), para(scrapedData.ourConcept));
+      }
+      if (scrapedData.cuisineTypes?.length) {
+        nodes.push(para(`Kjøkken: ${scrapedData.cuisineTypes.join(", ")}`));
+      }
+      if (scrapedData.menuDescription) {
+        nodes.push(heading(3, "Meny"), para(scrapedData.menuDescription));
+      }
       if (scrapedData.address) nodes.push(para(`Adresse: ${scrapedData.address}`));
       if (scrapedData.website) nodes.push(para(`Nettside: ${scrapedData.website}`));
       nodes.push(
         heading(3, "Serviceløfte"),
         para("Beskriv virksomhetens serviceløfte og merkevare her."),
       );
+      if (scrapedData.aboutUs) nodes.push(para("Kilde: AI-generert fra bedriftsprofil"));
       return doc(...nodes);
     }
 
@@ -149,19 +169,37 @@ function generateChapterContent(
         heading(3, "Brannvern"),
         para("Beskriv brannvernsrutiner og evakueringsplan."),
       );
+      if (scrapedData.address) nodes.push(para(`Lokasjon: ${scrapedData.address}`));
+      if (scrapedData.phone) nodes.push(para(`Nødtelefon: ${scrapedData.phone}`));
       return doc(...nodes);
     }
 
-    case "communication":
-      return doc(
+    case "communication": {
+      const commNodes: TipTapNode[] = [
         heading(2, "Kommunikasjon"),
         para("Beskriv kommunikasjonskanalene i virksomheten."),
+      ];
+      const contactItems: string[] = [];
+      if (scrapedData.phone) contactItems.push(`Telefon: ${scrapedData.phone}`);
+      if (scrapedData.email) contactItems.push(`E-post: ${scrapedData.email}`);
+      if (scrapedData.website) contactItems.push(`Nettside: ${scrapedData.website}`);
+      if (scrapedData.socialLinks) {
+        for (const [platform, url] of Object.entries(scrapedData.socialLinks)) {
+          contactItems.push(`${platform}: ${url}`);
+        }
+      }
+      if (contactItems.length > 0) {
+        commNodes.push(heading(3, "Kontaktinformasjon"), bulletList(contactItems));
+      }
+      commNodes.push(
         heading(3, "Eskalering"),
         para("Beskriv eskaleringsprosedyren ved problemer eller klager."),
       );
+      return doc(...commNodes);
+    }
 
-    case "onboarding-training":
-      return doc(
+    case "onboarding-training": {
+      const onbNodes: TipTapNode[] = [
         heading(2, "Onboarding og Opplæring"),
         para(`Nye ansatte i ${companyName} gjennomgår følgende onboarding-prosess:`),
         bulletList([
@@ -170,7 +208,19 @@ function generateChapterContent(
           "Opplæringsperiode: veiledning og kunnskapstester",
           "Fullført: selvstendig i rollen",
         ]),
-      );
+      ];
+      if (scrapedData.aboutUs || scrapedData.ourConcept) {
+        onbNodes.push(
+          heading(3, "Om oss"),
+          para(
+            scrapedData.aboutUs ??
+              scrapedData.ourConcept ??
+              "Beskriv virksomheten for nye ansatte.",
+          ),
+        );
+      }
+      return doc(...onbNodes);
+    }
 
     case "scheduling": {
       const nodes: TipTapNode[] = [heading(2, "Vaktplan og Bemanning")];
@@ -186,22 +236,41 @@ function generateChapterContent(
       return doc(...nodes);
     }
 
-    case "quality-service":
-      return doc(
-        heading(2, "Kvalitet og Service"),
+    case "quality-service": {
+      const qualNodes: TipTapNode[] = [heading(2, "Kvalitet og Service")];
+      if (scrapedData.restaurantType || scrapedData.cuisineTypes?.length) {
+        const typeInfo = [
+          scrapedData.restaurantType,
+          scrapedData.cuisineTypes?.join(", "),
+          scrapedData.priceCategory ? `Priskategori: ${scrapedData.priceCategory}` : null,
+        ]
+          .filter(Boolean)
+          .join(" — ");
+        qualNodes.push(para(`Konsept: ${typeInfo}`));
+      }
+      qualNodes.push(
         para("Beskriv servicenivået og standardene gjestene skal oppleve."),
         heading(3, "Service Recovery"),
         para("Beskriv hvordan klager og misnøye håndteres."),
       );
+      return doc(...qualNodes);
+    }
 
-    case "incident-response":
-      return doc(
+    case "incident-response": {
+      const incNodes: TipTapNode[] = [
         heading(2, "Avvik og Hendelser"),
         heading(3, "Kategorier"),
         bulletList(["Driftsforstyrrelser", "Sikkerhetsavvik", "Kvalitetsavvik", "HMS-hendelser"]),
         heading(3, "Rapportering"),
         para("Beskriv prosedyren for å rapportere avvik."),
-      );
+      ];
+      if (scrapedData.address || scrapedData.phone) {
+        incNodes.push(heading(3, "Nødkontakt"));
+        if (scrapedData.address) incNodes.push(para(`Adresse: ${scrapedData.address}`));
+        if (scrapedData.phone) incNodes.push(para(`Telefon: ${scrapedData.phone}`));
+      }
+      return doc(...incNodes);
+    }
 
     case "kpi-review":
       return doc(
