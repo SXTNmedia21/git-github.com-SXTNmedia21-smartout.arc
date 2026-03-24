@@ -5,7 +5,7 @@ version: "1.0"
 status: canonical
 layer: reference
 created: 2026-02-28
-updated: 2026-03-29
+updated: 2026-03-24
 author: claude
 supersedes: []
 superseded_by: null
@@ -203,22 +203,24 @@ cp .env.example .env.local
 
 These are set via `supabase/functions/.env` or Supabase Dashboard secrets.
 
-| Variable                    | Required | Notes                        |
-| --------------------------- | -------- | ---------------------------- |
-| `SUPABASE_URL`              | Auto     | Injected by Supabase runtime |
-| `SUPABASE_ANON_KEY`         | Auto     | Injected by Supabase runtime |
-| `SUPABASE_SERVICE_ROLE_KEY` | Auto     | Injected by Supabase runtime |
-| `SENDGRID_API_KEY`          | No       | Email dispatch (invitations) |
-| `TWILIO_ACCOUNT_SID`        | No       | SMS dispatch (invitations)   |
-| `TWILIO_AUTH_TOKEN`         | No       | SMS dispatch (invitations)   |
-| `TWILIO_FROM_NUMBER`        | No       | SMS sender number            |
-| `SERPER_API_KEY`            | No       | Web search in intelligence   |
-| `SITE_URL`                  | No       | Invite link base URL         |
-| `LIVEKIT_API_KEY`           | No       | LiveKit token minting        |
-| `LIVEKIT_API_SECRET`        | No       | LiveKit token minting        |
-| `LIVEKIT_WEBHOOK_SECRET`    | No       | LiveKit webhook HMAC         |
-| `NEXT_PUBLIC_LIVEKIT_URL`   | No       | LiveKit Cloud WebSocket URL  |
-| `WATCHDOG_CRON_SECRET`      | No       | Cron-only Edge Function auth |
+| Variable                       | Required | Notes                                                                                                              |
+| ------------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------ |
+| `SUPABASE_URL`                 | Auto     | Injected by Supabase runtime                                                                                       |
+| `SUPABASE_ANON_KEY`            | Auto     | Injected by Supabase runtime                                                                                       |
+| `SUPABASE_SERVICE_ROLE_KEY`    | Auto     | Injected by Supabase runtime                                                                                       |
+| `SENDGRID_API_KEY`             | No       | Email dispatch (invitations)                                                                                       |
+| `TWILIO_ACCOUNT_SID`           | No       | SMS dispatch (invitations)                                                                                         |
+| `TWILIO_AUTH_TOKEN`            | No       | SMS dispatch (invitations)                                                                                         |
+| `TWILIO_FROM_NUMBER`           | No       | SMS sender number                                                                                                  |
+| `SERPER_API_KEY`               | No       | Web search in intelligence                                                                                         |
+| `SITE_URL`                     | No       | Invite link base URL                                                                                               |
+| `LIVEKIT_API_KEY`              | No       | LiveKit token minting                                                                                              |
+| `LIVEKIT_API_SECRET`           | No       | LiveKit token minting                                                                                              |
+| `LIVEKIT_WEBHOOK_SECRET`       | No       | LiveKit webhook HMAC                                                                                               |
+| `NEXT_PUBLIC_LIVEKIT_URL`      | No       | LiveKit Cloud WebSocket URL                                                                                        |
+| `WATCHDOG_CRON_SECRET`         | No       | Cron-only Edge Function auth                                                                                       |
+| `PROCESS_NOTIFICATIONS_SECRET` | No       | Bearer token for cron-triggered process-notifications Edge Function — used by process-notifications EF and pg_cron |
+| `MORNING_DIGEST_SECRET`        | No       | Bearer token for cron-triggered send-morning-digest Edge Function — used by send-morning-digest EF and pg_cron     |
 
 ---
 
