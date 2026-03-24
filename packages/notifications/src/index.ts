@@ -45,3 +45,10 @@ export { sendSms, sendSmsBatch } from "./sms-service";
 
 // Kill switch
 export { isOutboundEmailEnabled } from "./kill-switch";
+
+// Event config registry
+export { NOTIFICATION_EVENTS, getEventConfig, interpolateTemplate } from "./event-config";
+export type { NotificationEventConfig } from "./event-config";
+
+// Outbox helper
+export { insertOutboxNotification } from "./outbox";
