@@ -26,6 +26,7 @@ tags: [people, invitation, profile, mobile]
 **Postcondition:** All metrics reflect real data. No fake 0% or false contract status.
 
 **Error paths:**
+
 - If readiness RPC fails: readiness shows undefined/N/A, does not break page
 - If contracts query fails: hasContract defaults to false
 
@@ -47,6 +48,7 @@ tags: [people, invitation, profile, mobile]
 **Postcondition:** Invitation created with type "sms", SMS dispatched.
 
 **Error paths:**
+
 - Missing phone number: validation error shown inline
 - Edge Function failure: toast error "Failed to send invitation"
 
@@ -82,6 +84,7 @@ tags: [people, invitation, profile, mobile]
 **Postcondition:** Employee is active again with full access.
 
 **Error paths:**
+
 - Server error: toast "Failed to reactivate employee"
 
 ---
@@ -173,6 +176,7 @@ tags: [people, invitation, profile, mobile]
 **Postcondition:** Admin sees full activity history.
 
 **Error paths:**
+
 - No activity: empty state "No activity recorded yet"
 
 ---
@@ -220,4 +224,5 @@ tags: [people, invitation, profile, mobile]
 **Postcondition:** Status changed only if transition is valid.
 
 **Error paths:**
+
 - Invalid transition attempted: server returns "Invalid status transition: X → Y"

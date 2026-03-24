@@ -39,24 +39,24 @@ tags: [people, invitation, profile, mobile, design-tokens]
 
 ## Decisions
 
-| Date | Decision | Reason |
-|------|----------|--------|
-| 2026-03-22 | Single mega-branch for all 19 fixes | Items share the same files, splitting would cause merge conflicts |
-| 2026-03-22 | Readiness RPC joins through profile | protocol_assignment is not workspace-scoped directly |
-| 2026-03-22 | hasContract uses status = 'signed' | "Active Contract" label should mean signed, not just existing |
-| 2026-03-22 | Status transitions enforced via shared map | Prevents invalid transitions like active → trainee |
-| 2026-03-22 | offboarding → active allowed (admin only) | Reactivation needed for employees returning |
+| Date       | Decision                                   | Reason                                                            |
+| ---------- | ------------------------------------------ | ----------------------------------------------------------------- |
+| 2026-03-22 | Single mega-branch for all 19 fixes        | Items share the same files, splitting would cause merge conflicts |
+| 2026-03-22 | Readiness RPC joins through profile        | protocol_assignment is not workspace-scoped directly              |
+| 2026-03-22 | hasContract uses status = 'signed'         | "Active Contract" label should mean signed, not just existing     |
+| 2026-03-22 | Status transitions enforced via shared map | Prevents invalid transitions like active → trainee                |
+| 2026-03-22 | offboarding → active allowed (admin only)  | Reactivation needed for employees returning                       |
 
 ## Log
 
-| Date | Time | Event |
-|------|------|-------|
-| 2026-03-22 | 18:10 | Feature started |
-| 2026-03-22 | 18:20 | Task 1: Shared types + status transitions committed |
-| 2026-03-22 | 18:25 | Task 2: Data fetching + readiness/contracts committed |
-| 2026-03-22 | 18:30 | Task 3: profileId fix + reactivation committed |
-| 2026-03-22 | 18:35 | Tasks 4, 7, 9: Agents completed (drawer, invite, watchdog) |
-| 2026-03-22 | 18:40 | Task 5: Server actions committed |
-| 2026-03-22 | 18:50 | Tasks 6, 8, 11: Agents completed (detail, table, mobile) |
+| Date       | Time  | Event                                                       |
+| ---------- | ----- | ----------------------------------------------------------- |
+| 2026-03-22 | 18:10 | Feature started                                             |
+| 2026-03-22 | 18:20 | Task 1: Shared types + status transitions committed         |
+| 2026-03-22 | 18:25 | Task 2: Data fetching + readiness/contracts committed       |
+| 2026-03-22 | 18:30 | Task 3: profileId fix + reactivation committed              |
+| 2026-03-22 | 18:35 | Tasks 4, 7, 9: Agents completed (drawer, invite, watchdog)  |
+| 2026-03-22 | 18:40 | Task 5: Server actions committed                            |
+| 2026-03-22 | 18:50 | Tasks 6, 8, 11: Agents completed (detail, table, mobile)    |
 | 2026-03-22 | 19:00 | Task 10: Design token cleanup committed (296 → 0 zinc refs) |
-| 2026-03-22 | 19:05 | All gates green, feature ready for closure |
+| 2026-03-22 | 19:05 | All gates green, feature ready for closure                  |

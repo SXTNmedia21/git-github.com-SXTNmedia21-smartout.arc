@@ -39,7 +39,6 @@ export function EmployeeProfileCard({
   onClose,
   onRefresh,
 }: EmployeeProfileCardProps) {
-
   const [activeTab, setActiveTab] = useState<"overview" | "competence" | "hr" | "settings">(
     "overview",
   );
@@ -175,27 +174,21 @@ export function EmployeeProfileCard({
   return (
     <>
       <div
-        className="fixed inset-0 z-40 bg-black/40 animate-in fade-in backdrop-blur-sm transition-opacity duration-300"
+        className="animate-in fade-in fixed inset-0 z-40 bg-black/40 backdrop-blur-sm transition-opacity duration-300"
         onClick={onClose}
       />
-      <div
-        className="fixed inset-y-2 right-2 z-50 w-full max-w-md border-border bg-background animate-in slide-in-from-right-8 flex transform flex-col overflow-hidden rounded-2xl border shadow-2xl transition-transform duration-300"
-      >
+      <div className="border-border bg-background animate-in slide-in-from-right-8 fixed inset-y-2 right-2 z-50 flex w-full max-w-md transform flex-col overflow-hidden rounded-2xl border shadow-2xl transition-transform duration-300">
         {/* Header */}
-        <div
-          className="relative h-32 border-b bg-gradient-to-br border-border/50 from-muted to-card"
-        >
+        <div className="border-border/50 from-muted to-card relative h-32 border-b bg-gradient-to-br">
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 rounded-full p-2 backdrop-blur-md transition-colors bg-background/50 text-muted-foreground hover:bg-background/80 hover:text-foreground border border-border/50 shadow-sm"
+            className="bg-background/50 text-muted-foreground hover:bg-background/80 hover:text-foreground border-border/50 absolute top-4 right-4 rounded-full border p-2 shadow-sm backdrop-blur-md transition-colors"
           >
             <X className="h-4 w-4" />
           </button>
 
           <div className="absolute -bottom-10 left-6 flex items-end gap-4">
-            <div
-              className="relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-4 text-2xl font-bold shadow-xl border-background bg-muted text-muted-foreground"
-            >
+            <div className="border-background bg-muted text-muted-foreground relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-4 text-2xl font-bold shadow-xl">
               {employee.avatar ? (
                 // eslint-disable-next-line -- suppress no-img-element: dynamic user avatar with unknown dimensions; next/image requires explicit width/height
                 <img
@@ -207,18 +200,12 @@ export function EmployeeProfileCard({
                 <span className="relative z-10">{employee.name.charAt(0)}</span>
               )}
               {employee.status === "active" && (
-                <div
-                  className="absolute right-1 bottom-1 z-20 h-3 w-3 rounded-full border-2 bg-emerald-500 border-background"
-                />
+                <div className="border-background absolute right-1 bottom-1 z-20 h-3 w-3 rounded-full border-2 bg-emerald-500" />
               )}
             </div>
 
             <div className="mb-2">
-              <h2
-                className="text-xl leading-tight font-bold text-foreground"
-              >
-                {employee.name}
-              </h2>
+              <h2 className="text-foreground text-xl leading-tight font-bold">{employee.name}</h2>
               <p className="text-sm font-medium text-orange-400">{employee.role}</p>
             </div>
           </div>
@@ -230,7 +217,7 @@ export function EmployeeProfileCard({
             <div
               className={`border-border bg-card flex flex-col items-center justify-center rounded-xl border p-3 text-center`}
             >
-              <span className="mb-1 text-xs font-semibold tracking-widest text-muted-foreground uppercase">
+              <span className="text-muted-foreground mb-1 text-xs font-semibold tracking-widest uppercase">
                 Readiness
               </span>
               <div className="flex items-center gap-1.5">
@@ -246,7 +233,7 @@ export function EmployeeProfileCard({
             >
               {employee.status === "invited" ? (
                 <>
-                  <span className="mb-1 text-xs font-semibold tracking-widest text-muted-foreground uppercase">
+                  <span className="text-muted-foreground mb-1 text-xs font-semibold tracking-widest uppercase">
                     Invite
                   </span>
                   <span
@@ -257,24 +244,20 @@ export function EmployeeProfileCard({
                 </>
               ) : (
                 <>
-                  <span className="mb-1 text-xs font-semibold tracking-widest text-muted-foreground uppercase">
+                  <span className="text-muted-foreground mb-1 text-xs font-semibold tracking-widest uppercase">
                     Hours
                   </span>
-                  <span className="text-lg font-bold text-foreground">
-                    —
-                  </span>
+                  <span className="text-foreground text-lg font-bold">—</span>
                 </>
               )}
             </div>
             <div
               className={`border-border bg-card flex flex-col items-center justify-center rounded-xl border p-3 text-center`}
             >
-              <span className="mb-1 text-xs font-semibold tracking-widest text-muted-foreground uppercase">
+              <span className="text-muted-foreground mb-1 text-xs font-semibold tracking-widest uppercase">
                 Dept
               </span>
-              <span
-                className="w-full truncate px-1 text-sm font-bold text-foreground"
-              >
+              <span className="text-foreground w-full truncate px-1 text-sm font-bold">
                 {employee.department}
               </span>
             </div>
@@ -282,9 +265,7 @@ export function EmployeeProfileCard({
         </div>
 
         {/* Tabs */}
-        <div
-          className="no-scrollbar overflow-x-auto border-b px-6 border-border"
-        >
+        <div className="no-scrollbar border-border overflow-x-auto border-b px-6">
           <div className="flex min-w-max gap-6">
             <button
               onClick={() => setActiveTab("overview")}
@@ -332,34 +313,32 @@ export function EmployeeProfileCard({
         <div className="flex-1 overflow-y-auto p-6">
           {activeTab === "overview" && (
             <div className="animate-in fade-in zoom-in-95 space-y-6 duration-200">
-              <div className="space-y-3 rounded-xl border border-border/50 bg-muted/30 p-4">
+              <div className="border-border/50 bg-muted/30 space-y-3 rounded-xl border p-4">
                 <div className="flex items-center gap-3 text-sm">
-                  <Mail className="h-4 w-4 text-muted-foreground" />
+                  <Mail className="text-muted-foreground h-4 w-4" />
                   <a
                     href={`mailto:${employee.email}`}
-                    className="text-foreground transition-colors hover:text-foreground"
+                    className="text-foreground hover:text-foreground transition-colors"
                   >
                     {employee.email}
                   </a>
                 </div>
                 <div className="flex items-center gap-3 text-sm">
-                  <Phone className="h-4 w-4 text-muted-foreground" />
+                  <Phone className="text-muted-foreground h-4 w-4" />
                   <span className="text-foreground">+47 912 34 567</span>
                 </div>
               </div>
 
               {teams.length > 0 && (
                 <div>
-                  <h3
-                    className="mb-3 text-xs font-bold tracking-widest uppercase text-muted-foreground"
-                  >
+                  <h3 className="text-muted-foreground mb-3 text-xs font-bold tracking-widest uppercase">
                     Teams
                   </h3>
                   <div className="flex flex-wrap gap-2">
                     {teams.map((t) => (
                       <span
                         key={t.team_id}
-                        className="rounded-lg border px-2.5 py-1 text-xs font-medium border-border bg-card text-foreground"
+                        className="border-border bg-card text-foreground rounded-lg border px-2.5 py-1 text-xs font-medium"
                       >
                         {t.name}
                       </span>
@@ -370,46 +349,34 @@ export function EmployeeProfileCard({
 
               {employee.profileId ? (
                 <div>
-                  <h3
-                    className="mb-3 text-xs font-bold tracking-widest uppercase text-muted-foreground"
-                  >
+                  <h3 className="text-muted-foreground mb-3 text-xs font-bold tracking-widest uppercase">
                     Recent Activity
                   </h3>
-                  <p
-                    className="py-4 text-center text-sm text-muted-foreground"
-                  >
+                  <p className="text-muted-foreground py-4 text-center text-sm">
                     No activity recorded yet
                   </p>
                 </div>
               ) : (
                 <div>
-                  <h3
-                    className="mb-3 text-xs font-bold tracking-widest uppercase text-muted-foreground"
-                  >
+                  <h3 className="text-muted-foreground mb-3 text-xs font-bold tracking-widest uppercase">
                     Invite Details
                   </h3>
                   <div className="space-y-2">
                     {employee.inviteType && (
-                      <div
-                        className="flex items-center justify-between text-sm text-foreground"
-                      >
+                      <div className="text-foreground flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">Sent via</span>
                         <span className="font-medium capitalize">{employee.inviteType}</span>
                       </div>
                     )}
                     {employee.inviteExpiresAt && (
-                      <div
-                        className="flex items-center justify-between text-sm text-foreground"
-                      >
+                      <div className="text-foreground flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">Expires</span>
                         <span className="font-medium">
                           {new Date(employee.inviteExpiresAt).toLocaleDateString("nb-NO")}
                         </span>
                       </div>
                     )}
-                    <div
-                      className="flex items-center justify-between text-sm text-foreground"
-                    >
+                    <div className="text-foreground flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">Status</span>
                       <span
                         className={`font-medium ${employee.inviteStatus === "expired" ? "text-rose-400" : "text-orange-400"}`}
@@ -442,12 +409,10 @@ export function EmployeeProfileCard({
               )}
 
               <div>
-                <h3
-                  className="mb-3 flex items-center justify-between text-xs font-bold tracking-widest uppercase text-muted-foreground"
-                >
+                <h3 className="text-muted-foreground mb-3 flex items-center justify-between text-xs font-bold tracking-widest uppercase">
                   <span>Assigned Protocols</span>
                   {protocols.length > 0 && (
-                    <span className="font-medium text-muted-foreground">
+                    <span className="text-muted-foreground font-medium">
                       {protocols.filter((p) => p.status === "completed").length}/{protocols.length}{" "}
                       Completed
                     </span>
@@ -456,12 +421,10 @@ export function EmployeeProfileCard({
 
                 {loadingProtocols ? (
                   <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                    <Loader2 className="text-muted-foreground h-5 w-5 animate-spin" />
                   </div>
                 ) : protocols.length === 0 ? (
-                  <p
-                    className="py-4 text-center text-sm text-muted-foreground"
-                  >
+                  <p className="text-muted-foreground py-4 text-center text-sm">
                     No protocols assigned
                   </p>
                 ) : (
@@ -469,9 +432,7 @@ export function EmployeeProfileCard({
                     {protocols.map((p) => (
                       <div
                         key={p.assignment_id}
-                        className={`group flex cursor-pointer items-center justify-between rounded-lg border p-3 transition-colors ${
-                          "border-border bg-card hover:border-border"
-                        }`}
+                        className={`group flex cursor-pointer items-center justify-between rounded-lg border p-3 transition-colors ${"border-border bg-card hover:border-border"}`}
                       >
                         <div className="flex items-center gap-3">
                           {p.status === "completed" ? (
@@ -483,16 +444,12 @@ export function EmployeeProfileCard({
                               <AlertCircle className="h-4 w-4" />
                             </div>
                           ) : (
-                            <div
-                              className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-muted-foreground"
-                            >
+                            <div className="bg-secondary text-muted-foreground flex h-8 w-8 items-center justify-center rounded-full">
                               <Clock className="h-4 w-4" />
                             </div>
                           )}
                           <div>
-                            <p
-                              className="text-sm font-bold transition-colors text-foreground"
-                            >
+                            <p className="text-foreground text-sm font-bold transition-colors">
                               {p.protocol?.name ?? "Unknown Protocol"}
                             </p>
                             {p.status === "completed" && (
@@ -501,9 +458,7 @@ export function EmployeeProfileCard({
                               </p>
                             )}
                             {p.status === "pending" && (
-                              <p
-                                className="mt-0.5 text-[10px] tracking-wider uppercase text-muted-foreground"
-                              >
+                              <p className="text-muted-foreground mt-0.5 text-[10px] tracking-wider uppercase">
                                 Pending
                               </p>
                             )}
@@ -514,9 +469,7 @@ export function EmployeeProfileCard({
                             )}
                           </div>
                         </div>
-                        <ChevronRight
-                          className="h-4 w-4 transition-colors text-muted-foreground group-hover:text-foreground"
-                        />
+                        <ChevronRight className="text-muted-foreground group-hover:text-foreground h-4 w-4 transition-colors" />
                       </div>
                     ))}
                   </div>
@@ -529,7 +482,7 @@ export function EmployeeProfileCard({
             <div className="animate-in fade-in zoom-in-95 space-y-6 duration-200">
               {/* Contract Status */}
               <div>
-                <h3 className="mb-3 text-xs font-bold tracking-widest text-muted-foreground uppercase">
+                <h3 className="text-muted-foreground mb-3 text-xs font-bold tracking-widest uppercase">
                   Employment Contract
                 </h3>
                 <div
@@ -547,15 +500,13 @@ export function EmployeeProfileCard({
                       >
                         {employee.hasContract ? "Active Contract" : "No Contract Found"}
                       </p>
-                      <p className="mt-0.5 text-[10px] tracking-wider text-muted-foreground uppercase">
+                      <p className="text-muted-foreground mt-0.5 text-[10px] tracking-wider uppercase">
                         {employee.hasContract ? "Signed & Valid" : "Action required"}
                       </p>
                     </div>
                   </div>
                   {!employee.hasContract && (
-                    <button
-                      className="rounded-lg px-3 py-1.5 text-xs font-bold transition-all bg-foreground text-background hover:bg-foreground/80"
-                    >
+                    <button className="bg-foreground text-background hover:bg-foreground/80 rounded-lg px-3 py-1.5 text-xs font-bold transition-all">
                       Create
                     </button>
                   )}
@@ -565,13 +516,13 @@ export function EmployeeProfileCard({
               {/* Personal Information */}
               <div>
                 <div className="mb-3 flex items-center justify-between">
-                  <h3 className="text-xs font-bold tracking-widest text-muted-foreground uppercase">
+                  <h3 className="text-muted-foreground text-xs font-bold tracking-widest uppercase">
                     Personal Information
                   </h3>
                   {!editingHr && (
                     <button
                       onClick={() => setEditingHr(true)}
-                      className="rounded-md px-2.5 py-1 text-xs font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground"
+                      className="text-muted-foreground hover:bg-secondary hover:text-foreground rounded-md px-2.5 py-1 text-xs font-medium transition-colors"
                     >
                       Edit
                     </button>
@@ -581,28 +532,26 @@ export function EmployeeProfileCard({
                 {!editingHr ? (
                   <div className="space-y-3">
                     <div className="flex flex-col gap-1">
-                      <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                      <span className="text-muted-foreground flex items-center gap-1.5 text-xs font-semibold">
                         <Home className="h-3 w-3" /> Address
                       </span>
-                      <span className="text-sm text-foreground">
+                      <span className="text-foreground text-sm">
                         {employee.address || "Not provided"}
                       </span>
                     </div>
                     <div className="flex flex-col gap-1">
-                      <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                      <span className="text-muted-foreground flex items-center gap-1.5 text-xs font-semibold">
                         <CreditCard className="h-3 w-3" /> Personal Number (SSN)
                       </span>
-                      <span className="text-sm text-foreground">
+                      <span className="text-foreground text-sm">
                         {employee.personalNumber || "Not provided"}
                       </span>
                     </div>
                     <div className="flex flex-col gap-1">
-                      <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                      <span className="text-muted-foreground flex items-center gap-1.5 text-xs font-semibold">
                         <Wallet className="h-3 w-3" /> Bank Account
                       </span>
-                      <span
-                        className="font-mono text-sm text-foreground"
-                      >
+                      <span className="text-foreground font-mono text-sm">
                         {employee.bankAccount || "Not provided"}
                       </span>
                     </div>
@@ -610,7 +559,7 @@ export function EmployeeProfileCard({
                       <span className="flex items-center gap-1.5 text-xs font-semibold text-rose-500/80">
                         <ShieldAlert className="h-3 w-3 text-rose-500" /> Emergency Contact
                       </span>
-                      <span className="text-sm text-foreground">
+                      <span className="text-foreground text-sm">
                         {employee.emergencyContactName || "Not provided"} •{" "}
                         {employee.emergencyContactPhone || ""}
                       </span>
@@ -619,11 +568,12 @@ export function EmployeeProfileCard({
                 ) : (
                   <div className="space-y-3">
                     {(() => {
-                      const hrInputClass = "w-full rounded-lg border px-3 py-2 text-sm focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none border-border bg-card text-foreground placeholder:text-muted-foreground";
+                      const hrInputClass =
+                        "w-full rounded-lg border px-3 py-2 text-sm focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none border-border bg-card text-foreground placeholder:text-muted-foreground";
                       return (
                         <>
                           <div className="space-y-1.5">
-                            <label className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                            <label className="text-muted-foreground flex items-center gap-1.5 text-xs font-semibold">
                               <Home className="h-3 w-3" /> Address
                             </label>
                             <input
@@ -635,7 +585,7 @@ export function EmployeeProfileCard({
                             />
                           </div>
                           <div className="space-y-1.5">
-                            <label className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                            <label className="text-muted-foreground flex items-center gap-1.5 text-xs font-semibold">
                               <CreditCard className="h-3 w-3" /> Personal Number (SSN)
                             </label>
                             <input
@@ -647,7 +597,7 @@ export function EmployeeProfileCard({
                             />
                           </div>
                           <div className="space-y-1.5">
-                            <label className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                            <label className="text-muted-foreground flex items-center gap-1.5 text-xs font-semibold">
                               <Wallet className="h-3 w-3" /> Bank Account
                             </label>
                             <input
@@ -659,7 +609,7 @@ export function EmployeeProfileCard({
                             />
                           </div>
                           <div className="space-y-1.5">
-                            <label className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                            <label className="text-muted-foreground flex items-center gap-1.5 text-xs font-semibold">
                               <ShieldAlert className="h-3 w-3" /> Emergency Contact Name
                             </label>
                             <input
@@ -671,7 +621,7 @@ export function EmployeeProfileCard({
                             />
                           </div>
                           <div className="space-y-1.5">
-                            <label className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                            <label className="text-muted-foreground flex items-center gap-1.5 text-xs font-semibold">
                               <Phone className="h-3 w-3" /> Emergency Contact Phone
                             </label>
                             <input
@@ -700,7 +650,7 @@ export function EmployeeProfileCard({
                                 setEditingHr(false);
                               }}
                               disabled={saving}
-                              className="flex-1 rounded-lg border py-2.5 text-sm font-semibold transition-all disabled:opacity-50 border-border text-muted-foreground hover:bg-secondary hover:text-foreground"
+                              className="border-border text-muted-foreground hover:bg-secondary hover:text-foreground flex-1 rounded-lg border py-2.5 text-sm font-semibold transition-all disabled:opacity-50"
                             >
                               Cancel
                             </button>
@@ -714,13 +664,15 @@ export function EmployeeProfileCard({
 
               {/* Communication Log */}
               <div>
-                <h3 className="mb-3 flex items-center gap-1.5 text-xs font-bold tracking-widest text-muted-foreground uppercase">
+                <h3 className="text-muted-foreground mb-3 flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase">
                   <History className="h-4 w-4" /> Communication Log
                 </h3>
                 {!employee.contactLog || employee.contactLog.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No communications found for this user.</p>
+                  <p className="text-muted-foreground text-sm">
+                    No communications found for this user.
+                  </p>
                 ) : (
-                  <div className="relative flex flex-col space-y-3 before:absolute before:inset-y-2 before:left-[11px] before:w-px before:bg-border">
+                  <div className="before:bg-border relative flex flex-col space-y-3 before:absolute before:inset-y-2 before:left-[11px] before:w-px">
                     {employee.contactLog.map((log) => (
                       <div key={log.id} className="relative flex gap-4">
                         <div
@@ -740,7 +692,7 @@ export function EmployeeProfileCard({
                         </div>
                         <div className="flex-1 pb-3">
                           <div className="flex items-center justify-between gap-2">
-                            <p className="text-sm font-medium text-foreground">{log.type}</p>
+                            <p className="text-foreground text-sm font-medium">{log.type}</p>
                             <span
                               className={`rounded px-1.5 py-0.5 text-[10px] font-bold tracking-wider uppercase ${
                                 log.status === "delivered"
@@ -753,7 +705,7 @@ export function EmployeeProfileCard({
                               {log.status}
                             </span>
                           </div>
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-muted-foreground text-xs">
                             {log.date} via {log.channel.toUpperCase()}
                           </span>
                         </div>
@@ -769,13 +721,13 @@ export function EmployeeProfileCard({
             <div className="animate-in fade-in zoom-in-95 space-y-6 duration-200">
               <div className="space-y-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+                  <label className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
                     Primary Department
                   </label>
                   <select
                     value={editDeptId}
                     onChange={(e) => setEditDeptId(e.target.value)}
-                    className="w-full appearance-none rounded-lg border px-3 py-2 text-sm focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none border-border bg-card text-foreground"
+                    className="border-border bg-card text-foreground w-full appearance-none rounded-lg border px-3 py-2 text-sm focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none"
                   >
                     <option value="">No department</option>
                     {departments.map((dept) => (
@@ -787,32 +739,32 @@ export function EmployeeProfileCard({
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+                  <label className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
                     System Role
                   </label>
                   <select
                     value={editRole}
                     onChange={(e) => setEditRole(e.target.value)}
-                    className="w-full appearance-none rounded-lg border px-3 py-2 text-sm focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none border-border bg-card text-foreground"
+                    className="border-border bg-card text-foreground w-full appearance-none rounded-lg border px-3 py-2 text-sm focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none"
                   >
                     <option value="employee">Employee</option>
                     <option value="manager">Manager</option>
                     <option value="admin">Admin</option>
                     <option value="owner">Owner</option>
                   </select>
-                  <p className="pt-1 text-xs text-muted-foreground">
+                  <p className="text-muted-foreground pt-1 text-xs">
                     Defines what this user can see and do in the system, like signing off sessions.
                   </p>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+                  <label className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
                     Status
                   </label>
                   <select
                     value={editStatus}
                     onChange={(e) => setEditStatus(e.target.value as typeof editStatus)}
-                    className="w-full appearance-none rounded-lg border px-3 py-2 text-sm focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none border-border bg-card text-foreground"
+                    className="border-border bg-card text-foreground w-full appearance-none rounded-lg border px-3 py-2 text-sm focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none"
                   >
                     <option value="active">Active</option>
                     <option value="trainee">Trainee</option>
@@ -825,22 +777,16 @@ export function EmployeeProfileCard({
               <button
                 onClick={handleSettingsSave}
                 disabled={saving}
-                className="w-full rounded-lg py-2.5 text-sm font-semibold transition-all disabled:opacity-50 bg-orange-500 text-white hover:bg-orange-600"
+                className="w-full rounded-lg bg-orange-500 py-2.5 text-sm font-semibold text-white transition-all hover:bg-orange-600 disabled:opacity-50"
               >
                 {saving ? "Saving..." : "Save Changes"}
               </button>
 
-              <div
-                className="space-y-3 border-t pt-4 border-border"
-              >
-                <button
-                  className="w-full rounded-lg border py-2.5 text-sm font-medium transition-colors border-border bg-card text-muted-foreground hover:bg-secondary hover:text-foreground"
-                >
+              <div className="border-border space-y-3 border-t pt-4">
+                <button className="border-border bg-card text-muted-foreground hover:bg-secondary hover:text-foreground w-full rounded-lg border py-2.5 text-sm font-medium transition-colors">
                   Reset Password
                 </button>
-                <button
-                  className="w-full rounded-lg border py-2.5 text-sm font-medium transition-colors border-rose-500/20 bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 hover:text-rose-400"
-                >
+                <button className="w-full rounded-lg border border-rose-500/20 bg-rose-500/10 py-2.5 text-sm font-medium text-rose-500 transition-colors hover:bg-rose-500/20 hover:text-rose-400">
                   Deactivate Account
                 </button>
               </div>

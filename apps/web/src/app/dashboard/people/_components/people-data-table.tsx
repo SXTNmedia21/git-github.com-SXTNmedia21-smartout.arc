@@ -348,9 +348,7 @@ export function PeopleDataTable({
       result = result.filter((emp) => advancedFilters.statuses.includes(emp.status));
     }
     if (advancedFilters.roles.length > 0) {
-      result = result.filter((emp) =>
-        advancedFilters.roles.includes(emp.role.toLowerCase()),
-      );
+      result = result.filter((emp) => advancedFilters.roles.includes(emp.role.toLowerCase()));
     }
     if (advancedFilters.readinessMin > 0 || advancedFilters.readinessMax < 100) {
       result = result.filter((emp) => {
@@ -396,22 +394,18 @@ export function PeopleDataTable({
   }
 
   return (
-    <div
-      className="flex min-h-0 flex-1 flex-col border-border/50 bg-background relative overflow-hidden rounded-2xl border shadow-xl"
-    >
+    <div className="border-border/50 bg-background relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border shadow-xl">
       {/* Table Header/Controls */}
-      <div
-        className="border-b border-border bg-muted/40 flex flex-col items-start justify-between gap-4 p-5 sm:flex-row sm:items-center"
-      >
+      <div className="border-border bg-muted/40 flex flex-col items-start justify-between gap-4 border-b p-5 sm:flex-row sm:items-center">
         <div className="flex w-full items-center gap-3 sm:w-auto">
           <div className="group relative w-full sm:w-72">
-            <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-orange-500" />
+            <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transition-colors group-focus-within:text-orange-500" />
             <input
               type="text"
               placeholder="Search people, roles, email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full border-border bg-background text-foreground placeholder:text-muted-foreground rounded-lg py-2 pr-4 pl-9 text-sm transition-all focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none"
+              className="border-border bg-background text-foreground placeholder:text-muted-foreground w-full rounded-lg py-2 pr-4 pl-9 text-sm transition-all focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none"
             />
           </div>
 
@@ -425,9 +419,7 @@ export function PeopleDataTable({
         </div>
 
         <div className="flex items-center gap-2">
-          <div
-            className="border-border bg-background flex rounded-lg border p-1"
-          >
+          <div className="border-border bg-background flex rounded-lg border p-1">
             {deptNames.map((dept) => (
               <button
                 key={dept}
@@ -444,15 +436,13 @@ export function PeopleDataTable({
           </div>
           <button
             onClick={handleExport}
-            className="rounded-lg border border-border bg-background text-muted-foreground p-2.5 transition-all hover:border-border hover:text-foreground"
+            className="border-border bg-background text-muted-foreground hover:border-border hover:text-foreground rounded-lg border p-2.5 transition-all"
           >
             <Download className="h-4 w-4" />
           </button>
           <Popover>
             <PopoverTrigger asChild>
-              <button
-                className="relative rounded-lg border border-border bg-background text-muted-foreground p-2.5 transition-all hover:border-border hover:text-foreground"
-              >
+              <button className="border-border bg-background text-muted-foreground hover:border-border hover:text-foreground relative rounded-lg border p-2.5 transition-all">
                 <Filter className="h-4 w-4" />
                 {activeFilterCount > 0 && (
                   <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-orange-500 text-[10px] font-bold text-white">
@@ -465,7 +455,7 @@ export function PeopleDataTable({
               <div className="space-y-4">
                 {/* Status filter */}
                 <div>
-                  <p className="mb-2 text-xs font-bold tracking-wider text-muted-foreground uppercase">
+                  <p className="text-muted-foreground mb-2 text-xs font-bold tracking-wider uppercase">
                     Status
                   </p>
                   <div className="space-y-1.5">
@@ -485,7 +475,7 @@ export function PeopleDataTable({
 
                 {/* Role filter */}
                 <div>
-                  <p className="mb-2 text-xs font-bold tracking-wider text-muted-foreground uppercase">
+                  <p className="text-muted-foreground mb-2 text-xs font-bold tracking-wider uppercase">
                     Role
                   </p>
                   <div className="space-y-1.5">
@@ -503,16 +493,18 @@ export function PeopleDataTable({
 
                 {/* Readiness range */}
                 <div>
-                  <p className="mb-2 text-xs font-bold tracking-wider text-muted-foreground uppercase">
+                  <p className="text-muted-foreground mb-2 text-xs font-bold tracking-wider uppercase">
                     Readiness
                   </p>
                   <div className="grid grid-cols-2 gap-1.5">
-                    {([
-                      [0, 25],
-                      [25, 50],
-                      [50, 75],
-                      [75, 100],
-                    ] as const).map(([min, max]) => (
+                    {(
+                      [
+                        [0, 25],
+                        [25, 50],
+                        [50, 75],
+                        [75, 100],
+                      ] as const
+                    ).map(([min, max]) => (
                       <button
                         key={`${min}-${max}`}
                         onClick={() => setReadinessRange(min, max)}
@@ -531,15 +523,17 @@ export function PeopleDataTable({
 
                 {/* Contract toggle */}
                 <div>
-                  <p className="mb-2 text-xs font-bold tracking-wider text-muted-foreground uppercase">
+                  <p className="text-muted-foreground mb-2 text-xs font-bold tracking-wider uppercase">
                     Contract
                   </p>
                   <div className="flex gap-1.5">
-                    {([
-                      { label: "All", value: null },
-                      { label: "Has", value: true },
-                      { label: "No", value: false },
-                    ] as const).map((opt) => (
+                    {(
+                      [
+                        { label: "All", value: null },
+                        { label: "Has", value: true },
+                        { label: "No", value: false },
+                      ] as const
+                    ).map((opt) => (
                       <button
                         key={opt.label}
                         onClick={() =>
@@ -564,7 +558,7 @@ export function PeopleDataTable({
                 {activeFilterCount > 0 && (
                   <button
                     onClick={clearAdvancedFilters}
-                    className="w-full rounded-md border border-border px-2 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent"
+                    className="border-border text-muted-foreground hover:bg-accent w-full rounded-md border px-2 py-1.5 text-xs font-semibold transition-colors"
                   >
                     Clear filters
                   </button>
@@ -577,13 +571,8 @@ export function PeopleDataTable({
 
       {/* Bulk Action Bar */}
       {selectedIds.size > 0 && (
-        <div
-          className="flex items-center gap-3 border-b border-border bg-orange-500/5 px-5 py-3"
-        >
-          <span className="text-sm font-semibold text-orange-500">
-
-            {selectedIds.size} selected
-          </span>
+        <div className="border-border flex items-center gap-3 border-b bg-orange-500/5 px-5 py-3">
+          <span className="text-sm font-semibold text-orange-500">{selectedIds.size} selected</span>
           <div className="flex items-center gap-2">
             {/* Assign Department */}
             <select
@@ -603,7 +592,7 @@ export function PeopleDataTable({
                 }
                 e.target.value = "";
               }}
-              className="rounded-lg border border-border bg-card text-foreground px-2 py-1.5 text-xs"
+              className="border-border bg-card text-foreground rounded-lg border px-2 py-1.5 text-xs"
             >
               <option value="">Assign Dept...</option>
               {departments.map((d) => (
@@ -630,7 +619,7 @@ export function PeopleDataTable({
                 }
                 e.target.value = "";
               }}
-              className="rounded-lg border border-border bg-card text-foreground px-2 py-1.5 text-xs"
+              className="border-border bg-card text-foreground rounded-lg border px-2 py-1.5 text-xs"
             >
               <option value="">Change Role...</option>
               <option value="employee">Employee</option>
@@ -659,7 +648,7 @@ export function PeopleDataTable({
                 }
                 e.target.value = "";
               }}
-              className="rounded-lg border border-border bg-card text-foreground px-2 py-1.5 text-xs"
+              className="border-border bg-card text-foreground rounded-lg border px-2 py-1.5 text-xs"
             >
               <option value="">Change Status...</option>
               <option value="active">Active</option>
@@ -670,7 +659,7 @@ export function PeopleDataTable({
             {/* Clear */}
             <button
               onClick={() => setSelectedIds(new Set())}
-              className="rounded-lg border border-border bg-card text-muted-foreground px-2 py-1.5 text-xs font-semibold hover:text-foreground"
+              className="border-border bg-card text-muted-foreground hover:text-foreground rounded-lg border px-2 py-1.5 text-xs font-semibold"
             >
               Clear
             </button>
@@ -702,7 +691,7 @@ export function PeopleDataTable({
                   },
                 });
               }}
-              className="rounded-lg border border-destructive/30 bg-destructive/10 px-2 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/20"
+              className="border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20 rounded-lg border px-2 py-1.5 text-xs font-semibold"
             >
               Deactivate Selected
             </button>
@@ -715,39 +704,37 @@ export function PeopleDataTable({
         {loading ? (
           <div className="flex h-full flex-col items-center justify-center p-8">
             <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
-            <p className="mt-3 text-sm text-muted-foreground">Loading people...</p>
+            <p className="text-muted-foreground mt-3 text-sm">Loading people...</p>
           </div>
         ) : filteredEmployees.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center p-8 text-muted-foreground">
-            <SearchX className="mb-4 h-12 w-12 text-muted-foreground" />
-            <p className="font-medium text-muted-foreground">No employees found</p>
+          <div className="text-muted-foreground flex h-full flex-col items-center justify-center p-8">
+            <SearchX className="text-muted-foreground mb-4 h-12 w-12" />
+            <p className="text-muted-foreground font-medium">No employees found</p>
             <p className="mt-1 text-sm">Try adjusting your search criteria</p>
           </div>
         ) : (
           <table className="w-full border-collapse text-left">
-            <thead
-              className="sticky top-0 border-border bg-background/95 z-10 border-b backdrop-blur"
-            >
+            <thead className="border-border bg-background/95 sticky top-0 z-10 border-b backdrop-blur">
               <tr>
                 <th className="w-12 px-3 py-4">
                   <Checkbox checked={allSelected} onCheckedChange={toggleSelectAll} />
                 </th>
-                <th className="px-6 py-4 text-xs font-bold tracking-widest text-muted-foreground uppercase">
+                <th className="text-muted-foreground px-6 py-4 text-xs font-bold tracking-widest uppercase">
                   Employee
                 </th>
-                <th className="px-6 py-4 text-xs font-bold tracking-widest text-muted-foreground uppercase">
+                <th className="text-muted-foreground px-6 py-4 text-xs font-bold tracking-widest uppercase">
                   Role & Dept
                 </th>
-                <th className="px-6 py-4 text-center text-xs font-bold tracking-widest text-muted-foreground uppercase">
+                <th className="text-muted-foreground px-6 py-4 text-center text-xs font-bold tracking-widest uppercase">
                   Status
                 </th>
-                <th className="px-6 py-4 text-center text-xs font-bold tracking-widest text-muted-foreground uppercase">
+                <th className="text-muted-foreground px-6 py-4 text-center text-xs font-bold tracking-widest uppercase">
                   Readiness
                 </th>
-                <th className="px-6 py-4 text-right text-xs font-bold tracking-widest text-muted-foreground uppercase"></th>
+                <th className="text-muted-foreground px-6 py-4 text-right text-xs font-bold tracking-widest uppercase"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
+            <tbody className="divide-border divide-y">
               {filteredEmployees.map((emp) => (
                 <tr
                   key={emp.id}
@@ -769,9 +756,7 @@ export function PeopleDataTable({
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="relative">
-                        <div
-                          className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-border bg-secondary text-muted-foreground font-bold"
-                        >
+                        <div className="border-border bg-secondary text-muted-foreground flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border font-bold">
                           {emp.avatar ? (
                             // eslint-disable-next-line -- suppress no-img-element: dynamic user avatar with unknown dimensions; next/image requires explicit width/height
                             <img
@@ -784,36 +769,25 @@ export function PeopleDataTable({
                           )}
                         </div>
                         {emp.status === "active" && (
-                          <div
-                            className="absolute right-0 bottom-0 z-10 h-2.5 w-2.5 rounded-full border-2 border-background bg-emerald-500"
-                          />
+                          <div className="border-background absolute right-0 bottom-0 z-10 h-2.5 w-2.5 rounded-full border-2 bg-emerald-500" />
                         )}
                       </div>
                       <div>
-                        <p
-                          className="text-sm font-bold transition-colors text-foreground group-hover:text-foreground"
-                        >
+                        <p className="text-foreground group-hover:text-foreground text-sm font-bold transition-colors">
                           {emp.name}
                         </p>
-                        <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+                        <p className="text-muted-foreground mt-0.5 flex items-center gap-1 text-xs">
                           <Mail className="h-3 w-3" /> {emp.email}
                         </p>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <p
-                      className="text-sm font-semibold text-foreground"
-                    >
-                      {emp.role}
-                    </p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">{emp.department}</p>
+                    <p className="text-foreground text-sm font-semibold">{emp.role}</p>
+                    <p className="text-muted-foreground mt-0.5 text-xs">{emp.department}</p>
                   </td>
                   <td className="px-6 py-4 text-center">
-                    <StatusBadge
-                      status={emp.status}
-                      inviteStatus={emp.inviteStatus}
-                    />
+                    <StatusBadge status={emp.status} inviteStatus={emp.inviteStatus} />
                   </td>
                   <td className="px-6 py-4">
                     {emp.status !== "invited" && emp.readinessScore !== undefined ? (
@@ -832,9 +806,7 @@ export function PeopleDataTable({
                             {emp.readinessScore}%
                           </span>
                         </div>
-                        <div
-                          className="h-1.5 w-full max-w-[100px] overflow-hidden rounded-full bg-secondary"
-                        >
+                        <div className="bg-secondary h-1.5 w-full max-w-[100px] overflow-hidden rounded-full">
                           <div
                             className={`h-full rounded-full transition-all duration-500 ${emp.readinessScore === 100 ? "bg-emerald-500" : emp.readinessScore > 50 ? "bg-orange-500" : "bg-rose-500"}`}
                             style={{ width: `${emp.readinessScore}%` }}
@@ -843,15 +815,11 @@ export function PeopleDataTable({
                       </div>
                     ) : emp.status !== "invited" ? (
                       <div className="flex flex-col items-center justify-center">
-                        <span className="text-xs font-semibold text-muted-foreground">
-                          —
-                        </span>
+                        <span className="text-muted-foreground text-xs font-semibold">—</span>
                       </div>
                     ) : (
                       <div className="flex flex-col items-center justify-center">
-                        <span
-                          className="text-xs font-semibold text-muted-foreground"
-                        >
+                        <span className="text-muted-foreground text-xs font-semibold">
                           Awaiting signup
                         </span>
                       </div>
@@ -922,9 +890,7 @@ function StatusBadge({
       );
     case "inactive":
       return (
-        <span
-          className="inline-flex items-center gap-1.5 rounded-md bg-secondary text-muted-foreground px-2.5 py-1 text-[11px] font-bold tracking-wider uppercase"
-        >
+        <span className="bg-secondary text-muted-foreground inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-bold tracking-wider uppercase">
           <Clock className="h-3 w-3" /> Inactive
         </span>
       );

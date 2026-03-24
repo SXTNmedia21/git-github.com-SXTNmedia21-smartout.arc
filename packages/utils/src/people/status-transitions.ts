@@ -7,9 +7,6 @@ export const VALID_TRANSITIONS: Record<ProfileStatus, ProfileStatus[]> = {
   offboarding: ["active"],
 };
 
-export function isValidTransition(
-  from: ProfileStatus,
-  to: ProfileStatus,
-): boolean {
+export function isValidTransition(from: ProfileStatus, to: ProfileStatus): boolean {
   return VALID_TRANSITIONS[from]?.includes(to) ?? false;
 }

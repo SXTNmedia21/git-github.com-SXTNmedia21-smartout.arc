@@ -60,41 +60,40 @@ export async function fetchWorkspacePeople(
   supabase: SupabaseClient,
   workspaceId: string,
 ): Promise<FetchPeopleResult> {
-  const [profilesRes, deptsRes, invitesRes, readinessRes, contractsRes] =
-    await Promise.all([
-      supabase
-        .from("profile")
-        .select(
-          `profile_id, display_name, job_title, role, status, avatar_url,
+  const [profilesRes, deptsRes, invitesRes, readinessRes, contractsRes] = await Promise.all([
+    supabase
+      .from("profile")
+      .select(
+        `profile_id, display_name, job_title, role, status, avatar_url,
          department_id, departments, address_line_1, postal_code, city,
          personal_number, bank_account, is_active,
          department:department_id(name),
          user_identity:user_id(email, phone, emergency_contact_name, emergency_contact_phone)`,
-        )
-        .eq("workspace_id", workspaceId)
-        .returns<ProfileRow[]>(),
-      supabase
-        .from("department")
-        .select("department_id, name")
-        .eq("workspace_id", workspaceId)
-        .order("sort_order"),
-      supabase
-        .from("invitation")
-        .select(
-          "invitation_id, email, first_name, last_name, role, department_ids, status, token, expires_at, invite_type",
-        )
-        .eq("workspace_id", workspaceId)
-        .eq("status", "pending")
-        .returns<InvitationRow[]>(),
-      supabase.rpc("get_workspace_readiness", {
-        p_workspace_id: workspaceId,
-      }),
-      supabase
-        .from("employment_contract")
-        .select("profile_id")
-        .eq("workspace_id", workspaceId)
-        .eq("status", "signed"),
-    ]);
+      )
+      .eq("workspace_id", workspaceId)
+      .returns<ProfileRow[]>(),
+    supabase
+      .from("department")
+      .select("department_id, name")
+      .eq("workspace_id", workspaceId)
+      .order("sort_order"),
+    supabase
+      .from("invitation")
+      .select(
+        "invitation_id, email, first_name, last_name, role, department_ids, status, token, expires_at, invite_type",
+      )
+      .eq("workspace_id", workspaceId)
+      .eq("status", "pending")
+      .returns<InvitationRow[]>(),
+    supabase.rpc("get_workspace_readiness", {
+      p_workspace_id: workspaceId,
+    }),
+    supabase
+      .from("employment_contract")
+      .select("profile_id")
+      .eq("workspace_id", workspaceId)
+      .eq("status", "signed"),
+  ]);
 
   // Build readiness map: profile_id → percentage
   const readinessMap = new Map<string, number>();

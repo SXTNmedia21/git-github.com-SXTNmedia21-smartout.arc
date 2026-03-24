@@ -378,9 +378,7 @@ export function InviteMemberDialog({
   return (
     <>
       <div
-        className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${
-          "bg-black/50"
-        } animate-in fade-in backdrop-blur-sm duration-200`}
+        className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${"bg-black/50"} animate-in fade-in backdrop-blur-sm duration-200`}
       >
         <div
           className={`animate-in zoom-in-95 flex w-full flex-col overflow-hidden rounded-2xl border shadow-2xl duration-200 ${
@@ -389,16 +387,10 @@ export function InviteMemberDialog({
         >
           {/* Header */}
           <div
-            className={`flex items-center justify-between border-b px-6 py-5 ${
-              "border-border bg-muted"
-            }`}
+            className={`flex items-center justify-between border-b px-6 py-5 ${"border-border bg-muted"}`}
           >
             <div>
-              <h2
-                className={`text-lg leading-tight font-bold ${
-                  "text-foreground"
-                }`}
-              >
+              <h2 className={`text-lg leading-tight font-bold ${"text-foreground"}`}>
                 Legg til ansatte
               </h2>
               <p className={`text-sm ${"text-muted-foreground"}`}>
@@ -407,9 +399,7 @@ export function InviteMemberDialog({
             </div>
             <button
               onClick={onClose}
-              className={`rounded-full p-2 transition-colors ${
-                "text-muted-foreground hover:bg-accent hover:text-foreground"
-              }`}
+              className={`rounded-full p-2 transition-colors ${"text-muted-foreground hover:bg-accent hover:text-foreground"}`}
             >
               <X className="h-4 w-4" />
             </button>
@@ -417,11 +407,7 @@ export function InviteMemberDialog({
 
           {/* Mode toggle */}
           <div className="px-6 pt-5">
-            <div
-              className={`flex rounded-lg border p-1 ${
-                "border-border bg-muted"
-              }`}
-            >
+            <div className={`flex rounded-lg border p-1 ${"border-border bg-muted"}`}>
               <button
                 type="button"
                 onClick={() => setMode("single")}
@@ -486,9 +472,7 @@ export function InviteMemberDialog({
 
           {/* Footer */}
           <div
-            className={`flex items-center justify-between border-t px-6 py-4 ${
-              "border-border bg-muted"
-            }`}
+            className={`flex items-center justify-between border-t px-6 py-4 ${"border-border bg-muted"}`}
           >
             <div>
               {mode === "csv" && csvRows.length > 0 && (
@@ -511,9 +495,7 @@ export function InviteMemberDialog({
                   <button
                     type="button"
                     onClick={onClose}
-                    className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-                      "text-muted-foreground hover:bg-accent hover:text-foreground"
-                    }`}
+                    className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${"text-muted-foreground hover:bg-accent hover:text-foreground"}`}
                     disabled={isSubmitting}
                   >
                     Avbryt
@@ -596,17 +578,11 @@ function SingleInviteForm({
 }) {
   const update = (field: Partial<InviteRow>) => onChange({ ...row, ...field });
 
-  const inputClass = `w-full rounded-lg px-4 py-2.5 text-sm transition-all focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none ${
-    "border-border bg-background text-foreground placeholder:text-muted-foreground"
-  }`;
+  const inputClass = `w-full rounded-lg px-4 py-2.5 text-sm transition-all focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none ${"border-border bg-background text-foreground placeholder:text-muted-foreground"}`;
 
-  const labelClass = `text-xs font-semibold tracking-wider uppercase ${
-    "text-muted-foreground"
-  }`;
+  const labelClass = `text-xs font-semibold tracking-wider uppercase ${"text-muted-foreground"}`;
 
-  const selectClass = `w-full appearance-none rounded-lg px-3 py-2.5 text-sm focus:border-orange-500/50 focus:outline-none ${
-    "border-border bg-background text-foreground"
-  }`;
+  const selectClass = `w-full appearance-none rounded-lg px-3 py-2.5 text-sm focus:border-orange-500/50 focus:outline-none ${"border-border bg-background text-foreground"}`;
 
   return (
     <div className="space-y-4">
@@ -651,7 +627,7 @@ function SingleInviteForm({
               className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-all ${
                 inviteType === type
                   ? "bg-orange-500 text-white"
-                  : "border border-border bg-background text-muted-foreground hover:border-border/70"
+                  : "border-border bg-background text-muted-foreground hover:border-border/70 border"
               }`}
             >
               <Icon className="h-3.5 w-3.5" />
@@ -694,9 +670,7 @@ function SingleInviteForm({
 
       {inviteType === "link" && (
         <div
-          className={`rounded-lg border border-dashed px-4 py-3 text-sm ${
-            "border-border bg-muted text-muted-foreground"
-          }`}
+          className={`rounded-lg border border-dashed px-4 py-3 text-sm ${"border-border bg-muted text-muted-foreground"}`}
         >
           En delbar invitasjonslenke vil bli generert som du kan kopiere og sende.
         </div>
@@ -748,7 +722,7 @@ function SingleInviteForm({
               className={`rounded-lg px-3 py-2 text-sm font-medium transition-all ${
                 row.inviteEmploymentType === type
                   ? "bg-orange-500 text-white"
-                  : "border border-border bg-background text-muted-foreground hover:border-border/70"
+                  : "border-border bg-background text-muted-foreground hover:border-border/70 border"
               }`}
             >
               {type === "employee" ? "Ansatt" : "Gjest"}
@@ -759,7 +733,7 @@ function SingleInviteForm({
 
       {/* Employment fields — only for employee type */}
       {row.inviteEmploymentType === "employee" && (
-        <div className="space-y-3 rounded-lg border border-dashed border-border/30 p-3">
+        <div className="border-border/30 space-y-3 rounded-lg border border-dashed p-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className={labelClass}>Stillingstype</label>
@@ -841,17 +815,11 @@ function CsvImportView({
   if (rows.length === 0) {
     return (
       <div className="flex flex-col items-center gap-4 py-8">
-        <div
-          className={`rounded-2xl border-2 border-dashed p-6 ${
-            "border-border"
-          }`}
-        >
+        <div className={`rounded-2xl border-2 border-dashed p-6 ${"border-border"}`}>
           <Upload className={`h-8 w-8 ${isDark ? "text-muted-foreground" : "text-foreground"}`} />
         </div>
         <div className="text-center">
-          <p className={`text-sm font-medium ${"text-foreground"}`}>
-            Last opp CSV-fil med ansatte
-          </p>
+          <p className={`text-sm font-medium ${"text-foreground"}`}>Last opp CSV-fil med ansatte</p>
           <p className={`mt-1 text-xs ${"text-muted-foreground"}`}>
             Obligatoriske kolonner: fornavn, etternavn, e-post
           </p>
@@ -887,20 +855,14 @@ function CsvImportView({
         <button
           type="button"
           onClick={onUploadClick}
-          className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-            "text-muted-foreground hover:bg-accent hover:text-foreground"
-          }`}
+          className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${"text-muted-foreground hover:bg-accent hover:text-foreground"}`}
         >
           <Upload className="h-3 w-3" />
           Ny fil
         </button>
       </div>
 
-      <div
-        className={`overflow-hidden rounded-xl border ${
-          "border-border"
-        }`}
-      >
+      <div className={`overflow-hidden rounded-xl border ${"border-border"}`}>
         <table className="w-full text-xs">
           <thead>
             <tr className={"bg-muted text-muted-foreground"}>
@@ -933,9 +895,7 @@ function CsvImportView({
                       <p className="mt-0.5 text-[10px] text-red-400">{row.errors.join(", ")}</p>
                     )}
                   </td>
-                  <td className={`px-3 py-2 ${"text-muted-foreground"}`}>
-                    {row.email}
-                  </td>
+                  <td className={`px-3 py-2 ${"text-muted-foreground"}`}>{row.email}</td>
                   <td className={`px-3 py-2 ${"text-muted-foreground"}`}>
                     {deptMap.get(row.departmentId) ?? "—"}
                   </td>
@@ -946,9 +906,7 @@ function CsvImportView({
                     <button
                       type="button"
                       onClick={() => onRemoveRow(row.id)}
-                      className={`rounded p-1 transition-colors ${
-                        "text-muted-foreground hover:bg-accent hover:text-foreground"
-                      }`}
+                      className={`rounded p-1 transition-colors ${"text-muted-foreground hover:bg-accent hover:text-foreground"}`}
                     >
                       <Trash2 className="h-3 w-3" />
                     </button>
@@ -978,34 +936,24 @@ function GeneratedLinkView({
 }) {
   return (
     <div className="flex flex-col items-center gap-4 py-4">
-      <div
-        className={`rounded-2xl p-4 ${
-          isDark ? "bg-orange-500/10" : "bg-orange-50"
-        }`}
-      >
+      <div className={`rounded-2xl p-4 ${isDark ? "bg-orange-500/10" : "bg-orange-50"}`}>
         <Link2 className="h-8 w-8 text-orange-500" />
       </div>
 
       <div className="text-center">
-        <p className={`text-sm font-medium ${"text-foreground"}`}>
-          Invitasjonslenke klar
-        </p>
+        <p className={`text-sm font-medium ${"text-foreground"}`}>Invitasjonslenke klar</p>
         <p className={`mt-1 text-xs ${"text-muted-foreground"}`}>
           Del denne lenken med den du vil invitere
         </p>
       </div>
 
       <div
-        className={`flex w-full items-center gap-2 rounded-lg border px-3 py-2.5 ${
-          "border-border bg-muted"
-        }`}
+        className={`flex w-full items-center gap-2 rounded-lg border px-3 py-2.5 ${"border-border bg-muted"}`}
       >
         <input
           readOnly
           value={link}
-          className={`flex-1 bg-transparent text-xs font-mono outline-none ${
-            "text-foreground"
-          }`}
+          className={`flex-1 bg-transparent font-mono text-xs outline-none ${"text-foreground"}`}
           onFocus={(e) => e.target.select()}
         />
         <button

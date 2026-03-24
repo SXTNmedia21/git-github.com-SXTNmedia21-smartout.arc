@@ -1,6 +1,1 @@
-export type {
-  Employee,
-  Department,
-  ProfileRole,
-  ProfileStatus,
-} from "@smartout/utils";
+export type { Employee, Department, ProfileRole, ProfileStatus } from "@smartout/utils";

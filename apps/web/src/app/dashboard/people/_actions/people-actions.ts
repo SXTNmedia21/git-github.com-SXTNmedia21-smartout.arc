@@ -42,9 +42,7 @@ export async function updateProfileDepartment(
 
   const currentDepts: string[] = (current?.departments as string[]) ?? [];
   const updatedDepts =
-    currentDepts.length > 1
-      ? [departmentId, ...currentDepts.slice(1)]
-      : [departmentId];
+    currentDepts.length > 1 ? [departmentId, ...currentDepts.slice(1)] : [departmentId];
 
   const { error } = await supabase
     .from("profile")
