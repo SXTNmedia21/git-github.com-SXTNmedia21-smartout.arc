@@ -2,16 +2,24 @@
 
 import { useChannelMembers } from "../_hooks/use-channel-members";
 import { Button } from "@/components/ui/button";
-import { X, Bot, Shield } from "lucide-react";
+import { X, Bot, Shield, MicOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Props = {
   channelId: string;
   profileId: string;
   onClose: () => void;
+  isCallActive?: boolean;
+  onMuteParticipant?: (profileId: string) => void;
 };
 
-export function MemberPanel({ channelId, profileId, onClose }: Props) {
+export function MemberPanel({
+  channelId,
+  profileId,
+  onClose,
+  isCallActive,
+  onMuteParticipant,
+}: Props) {
   const { data: members, isLoading } = useChannelMembers(channelId);
 
   return (
@@ -76,6 +84,17 @@ export function MemberPanel({ channelId, profileId, onClose }: Props) {
                     </p>
                   </div>
                   {isAdmin && <Shield className="h-3.5 w-3.5 shrink-0 text-amber-500" />}
+                  {isCallActive && !isSelf && !isAi && onMuteParticipant && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 shrink-0"
+                      onClick={() => onMuteParticipant(member.profile_id)}
+                      aria-label={`Demp ${profile.display_name ?? "deltaker"}`}
+                    >
+                      <MicOff className="h-3 w-3" />
+                    </Button>
+                  )}
                 </div>
               );
             })}

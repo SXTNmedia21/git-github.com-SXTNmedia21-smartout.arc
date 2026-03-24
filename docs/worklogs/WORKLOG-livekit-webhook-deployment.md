@@ -36,11 +36,14 @@ tags: [livekit, webhook, voice, video, webrtc]
 - [x] Preflight shows vault name + Supabase target
 - [x] Fixed .env.template LiveKit vault refs
 - [x] Voice + video working end-to-end in browser (2 users tested)
+- [x] Mobile-responsive CallRoom layout (flex-col on mobile, flex-row on desktop, togglable chat)
+- [x] Join/leave notifications (toast via sonner)
+- [x] Moderator mute controls (server-side via LiveKit RoomServiceClient + MemberPanel UI)
 
 ## Remaining
 
-- [ ] Mobile-responsive CallRoom layout (w-96 chat panel breaks on mobile)
-- [ ] Mute other participants (moderator controls via MemberPanel)
+- [x] Mobile-responsive CallRoom layout
+- [x] Mute other participants (moderator controls via MemberPanel)
 - [ ] 1Password: update smartout*ai/Supabase with JWT-format keys (sb_publishable* doesn't work)
 - [ ] Webhook port forwarding for local testing (LiveKit Cloud → localhost)
 - [ ] i18n: aria-labels and hardcoded Norwegian text
@@ -56,18 +59,20 @@ tags: [livekit, webhook, voice, video, webrtc]
 | 2026-03-24 | @livekit/components-react for video UI                          | Official components handle track attachment, layout, controls |
 | 2026-03-24 | Reuse MessageTimeline for in-call chat                          | No need for separate LiveKit DataChannel chat                 |
 | 2026-03-24 | call-command verify_jwt=false                                   | Function handles auth internally, avoids JWT format issues    |
+| 2026-03-24 | Server-side mute via RoomServiceClient                          | Client SDK can't mute remote participants, server API needed  |
 
 ## Log
 
-| Date       | Time  | Event                                                 |
-| ---------- | ----- | ----------------------------------------------------- |
-| 2026-03-24 | 15:45 | Feature started                                       |
-| 2026-03-24 | 16:15 | Webhook handler bug fixed + tested e2e                |
-| 2026-03-24 | 16:30 | Video/screen share + CallBar enabled                  |
-| 2026-03-24 | 16:35 | 3-agent audit team spawned                            |
-| 2026-03-24 | 16:45 | 20 audit issues fixed + schema migration              |
-| 2026-03-24 | 17:30 | RLS recursion discovered + fixed                      |
-| 2026-03-24 | 17:45 | Call-command 403 fixed (JWT keys, RLS)                |
-| 2026-03-24 | 18:00 | Voice working e2e (2 users)                           |
-| 2026-03-24 | 18:15 | @livekit/components-react installed, CallRoom created |
-| 2026-03-24 | 18:30 | Video + in-call chat working, session ended           |
+| Date       | Time  | Event                                                   |
+| ---------- | ----- | ------------------------------------------------------- |
+| 2026-03-24 | 15:45 | Feature started                                         |
+| 2026-03-24 | 16:15 | Webhook handler bug fixed + tested e2e                  |
+| 2026-03-24 | 16:30 | Video/screen share + CallBar enabled                    |
+| 2026-03-24 | 16:35 | 3-agent audit team spawned                              |
+| 2026-03-24 | 16:45 | 20 audit issues fixed + schema migration                |
+| 2026-03-24 | 17:30 | RLS recursion discovered + fixed                        |
+| 2026-03-24 | 17:45 | Call-command 403 fixed (JWT keys, RLS)                  |
+| 2026-03-24 | 18:00 | Voice working e2e (2 users)                             |
+| 2026-03-24 | 18:15 | @livekit/components-react installed, CallRoom created   |
+| 2026-03-24 | 18:30 | Video + in-call chat working, session ended             |
+| 2026-03-24 | 19:00 | Mobile-responsive layout + join toasts + moderator mute |

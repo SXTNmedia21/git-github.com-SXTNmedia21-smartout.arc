@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { RoomServiceClient } from "npm:livekit-server-sdk@2.15.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -50,6 +51,8 @@ Deno.serve(async (req: Request) => {
         return await handleStart(supabase, user.id, body);
       case "respond":
         return await handleRespond(supabase, user.id, body);
+      case "mute_participant":
+        return await handleMuteParticipant(supabase, user.id, body);
       default:
         return errorResponse(`Unknown action: ${action}`, 400);
     }
@@ -300,4 +303,75 @@ async function handleRespond(
   }
 
   return jsonResponse({ ok: true, action: responseAction });
+}
+
+async function handleMuteParticipant(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  body: Record<string, unknown>,
+) {
+  const workspaceId = body.workspaceId as string | undefined;
+  const channelId = body.channelId as string | undefined;
+  const targetIdentity = body.targetIdentity as string | undefined;
+  const trackSid = body.trackSid as string | undefined;
+  const muted = body.muted as boolean | undefined;
+
+  if (!workspaceId || !channelId || !targetIdentity) {
+    return errorResponse("Missing required fields: workspaceId, channelId, targetIdentity", 400);
+  }
+
+  // Verify the caller is an admin/owner in this workspace
+  const { data: profile } = await supabase
+    .from("profile")
+    .select("profile_id, workspace_role")
+    .eq("user_id", userId)
+    .eq("workspace_id", workspaceId)
+    .eq("is_active", true)
+    .single();
+
+  if (!profile) {
+    return errorResponse("No active profile", 403);
+  }
+
+  if (!["admin", "owner"].includes(profile.workspace_role)) {
+    return errorResponse("Only admins can mute other participants", 403);
+  }
+
+  // Use LiveKit Room Service to mute the participant's audio track
+  const livekitUrl = Deno.env.get("LIVEKIT_URL") ?? Deno.env.get("NEXT_PUBLIC_LIVEKIT_URL");
+  const apiKey = Deno.env.get("LIVEKIT_API_KEY");
+  const apiSecret = Deno.env.get("LIVEKIT_API_SECRET");
+
+  if (!livekitUrl || !apiKey || !apiSecret) {
+    return errorResponse("LiveKit not configured", 500);
+  }
+
+  const roomService = new RoomServiceClient(livekitUrl, apiKey, apiSecret);
+  const roomName = `${workspaceId}:${channelId}`;
+
+  try {
+    if (trackSid) {
+      // Mute a specific track
+      await roomService.mutePublishedTrack(roomName, targetIdentity, trackSid, muted ?? true);
+    } else {
+      // Mute all audio tracks — list participant's tracks and mute audio ones
+      const participants = await roomService.listParticipants(roomName);
+      const target = participants.find((p) => p.identity === targetIdentity);
+
+      if (!target) {
+        return errorResponse("Participant not found in room", 404);
+      }
+
+      for (const track of target.tracks) {
+        if (track.type === 1 /* AUDIO */ && track.sid) {
+          await roomService.mutePublishedTrack(roomName, targetIdentity, track.sid, muted ?? true);
+        }
+      }
+    }
+  } catch (err) {
+    console.error("[call-command] Mute failed:", err);
+    return errorResponse("Failed to mute participant", 500);
+  }
+
+  return jsonResponse({ ok: true, muted: muted ?? true, targetIdentity });
 }

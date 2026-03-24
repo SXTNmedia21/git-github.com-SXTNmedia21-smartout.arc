@@ -14,8 +14,9 @@ import {
 import "@livekit/components-styles";
 import { Track } from "livekit-client";
 import { Button } from "@/components/ui/button";
-import { PhoneOff, Minimize2, Maximize2, Users } from "lucide-react";
-import { useState } from "react";
+import { PhoneOff, Minimize2, Maximize2, Users, MessageSquare } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { toast } from "sonner";
 import { MessageTimeline } from "./MessageTimeline";
 import { MessageInput } from "./MessageInput";
 
@@ -39,6 +40,7 @@ export function CallRoom({
   onParticipantCountChange,
 }: Props) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showChat, setShowChat] = useState(true);
 
   return (
     <LiveKitRoom
@@ -53,6 +55,8 @@ export function CallRoom({
       <CallRoomInner
         isExpanded={isExpanded}
         setIsExpanded={setIsExpanded}
+        showChat={showChat}
+        setShowChat={setShowChat}
         channelId={channelId}
         profileId={profileId}
         audioPolicy={audioPolicy}
@@ -66,6 +70,8 @@ export function CallRoom({
 function CallRoomInner({
   isExpanded,
   setIsExpanded,
+  showChat,
+  setShowChat,
   channelId,
   profileId,
   audioPolicy,
@@ -74,6 +80,8 @@ function CallRoomInner({
 }: {
   isExpanded: boolean;
   setIsExpanded: (v: boolean) => void;
+  showChat: boolean;
+  setShowChat: (v: boolean) => void;
   channelId: string;
   profileId: string;
   audioPolicy: string;
@@ -94,6 +102,29 @@ function CallRoomInner({
     queueMicrotask(() => onParticipantCountChange(participantCount));
   }
 
+  // Track participant joins/leaves and show toasts
+  const prevIdentitiesRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const currentIdentities = new Set(participants.map((p) => p.identity));
+    const prev = prevIdentitiesRef.current;
+
+    // Skip first render (initial connect)
+    if (prev.size > 0) {
+      for (const p of participants) {
+        if (!prev.has(p.identity)) {
+          toast.info(`${p.name || p.identity} ble med i samtalen`);
+        }
+      }
+      for (const identity of prev) {
+        if (!currentIdentities.has(identity)) {
+          toast.info(`${identity} forlot samtalen`);
+        }
+      }
+    }
+
+    prevIdentitiesRef.current = currentIdentities;
+  }, [participants]);
+
   const hasVideoTracks = tracks.some(
     (t) => t.publication?.isSubscribed && t.publication.track?.kind === Track.Kind.Video,
   );
@@ -113,6 +144,18 @@ function CallRoomInner({
           </span>
         </div>
         <div className="flex items-center gap-1">
+          {isExpanded && (
+            <Button
+              variant={showChat ? "secondary" : "ghost"}
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => setShowChat(!showChat)}
+              aria-label={showChat ? "Skjul chat" : "Vis chat"}
+              aria-pressed={showChat}
+            >
+              <MessageSquare className="h-3.5 w-3.5" />
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="icon"
@@ -138,11 +181,11 @@ function CallRoomInner({
         </div>
       </div>
 
-      {/* Main area — video + chat side by side when expanded */}
+      {/* Main area — video + chat, stacked on mobile, side-by-side on desktop */}
       {isExpanded ? (
-        <div className="flex flex-1 overflow-hidden">
-          {/* Left: Video */}
-          <div className="flex flex-1 flex-col">
+        <div className="flex flex-1 flex-col overflow-hidden md:flex-row">
+          {/* Video area */}
+          <div className="flex min-h-0 flex-1 flex-col">
             <div className="flex-1 bg-black">
               {tracks.length <= 2 ? (
                 <GridLayout tracks={tracks}>
@@ -169,21 +212,32 @@ function CallRoomInner({
             />
           </div>
 
-          {/* Right: Chat (reusing existing Komm components) */}
-          <div className="flex w-96 flex-col border-l">
-            <div className="border-b px-3 py-2">
-              <span className="text-sm font-medium">Chat</span>
+          {/* Chat panel — full width on mobile, fixed width on desktop */}
+          {showChat && (
+            <div className="flex h-1/2 flex-col border-t md:h-auto md:w-80 md:border-t-0 md:border-l lg:w-96">
+              <div className="flex items-center justify-between border-b px-3 py-2">
+                <span className="text-sm font-medium">Chat</span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 md:hidden"
+                  onClick={() => setShowChat(false)}
+                  aria-label="Lukk chat"
+                >
+                  <Minimize2 className="h-3 w-3" />
+                </Button>
+              </div>
+              <MessageTimeline channelId={channelId} profileId={profileId} onReply={() => {}} />
+              <MessageInput
+                channelId={channelId}
+                profileId={profileId}
+                replyToId={null}
+                onCancelReply={() => {}}
+                audioPolicy={audioPolicy}
+                pttProps={undefined}
+              />
             </div>
-            <MessageTimeline channelId={channelId} profileId={profileId} onReply={() => {}} />
-            <MessageInput
-              channelId={channelId}
-              profileId={profileId}
-              replyToId={null}
-              onCancelReply={() => {}}
-              audioPolicy={audioPolicy}
-              pttProps={undefined}
-            />
-          </div>
+          )}
         </div>
       ) : (
         <>

@@ -9,6 +9,7 @@ import { useCallSignaling } from "../_hooks/use-call-signaling";
 import { useCallRealtime } from "../_hooks/use-call-realtime";
 import { useCallInvite } from "../_hooks/use-call-invite";
 import { useStartCall } from "../_hooks/use-start-call";
+import { useMuteParticipant } from "../_hooks/use-mute-participant";
 import { getLiveKitToken } from "@smartout/walkie-talkie";
 import { createClient } from "@smartout/supabase/client";
 import { SubTabs, type KommTab } from "./SubTabs";
@@ -50,6 +51,7 @@ export function KommShell({ profileId }: { profileId: string }) {
   useCallRealtime(activeChannelId);
   const callInvite = useCallInvite();
   const startCall = useStartCall();
+  const muteParticipant = useMuteParticipant();
 
   const handleJoinCall = useCallback(async () => {
     if (!activeChannelId) return;
@@ -105,6 +107,18 @@ export function KommShell({ profileId }: { profileId: string }) {
   const handleDisconnect = useCallback(() => {
     setLivekitConnection(null);
   }, []);
+
+  const handleMuteParticipant = useCallback(
+    (targetProfileId: string) => {
+      if (!activeChannelId) return;
+      muteParticipant.mutate({
+        channelId: activeChannelId,
+        targetIdentity: targetProfileId,
+        muted: true,
+      });
+    },
+    [activeChannelId, muteParticipant],
+  );
 
   // Calculate unread totals for sub-tab badges
   const allChannels = channelGroups?.flatMap((g) => g.channels) ?? [];
@@ -216,6 +230,8 @@ export function KommShell({ profileId }: { profileId: string }) {
           channelId={activeChannelId}
           profileId={profileId}
           onClose={() => setShowMembers(false)}
+          isCallActive={!!livekitConnection}
+          onMuteParticipant={livekitConnection ? handleMuteParticipant : undefined}
         />
       )}
 
