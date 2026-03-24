@@ -87,6 +87,16 @@ function quickCardHref(card: QuickCard, locale: DocsLocale) {
   return docsHref(slug, locale);
 }
 
+export const metadata: Metadata = {
+  alternates: {
+    canonical: "/docs",
+    languages: {
+      nb: "/docs",
+      en: "/en/docs",
+    },
+  },
+};
+
 export default async function DocsOverviewPage() {
   const headersList = await headers();
   const locale = (headersList.get("x-locale") ?? "nb") as DocsLocale;

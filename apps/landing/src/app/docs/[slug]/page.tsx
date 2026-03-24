@@ -20,9 +20,17 @@ export async function generateMetadata({ params }: DocsManualPageProps) {
   if (!doc) {
     return { title: "Dokumentasjon" };
   }
+  const enSlug = doc.slugEn ?? slug;
   return {
     title: `${doc.title} – SmartOut Docs`,
     description: doc.excerpt,
+    alternates: {
+      canonical: `/docs/${slug}`,
+      languages: {
+        nb: `/docs/${slug}`,
+        en: `/en/docs/${enSlug}`,
+      },
+    },
   };
 }
 
