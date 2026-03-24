@@ -147,6 +147,10 @@
     "subtitle": "Welcome to the future of hospitality management.",
     "dashboard": "Enter Dashboard"
   },
+  "wizard": {
+    "title": "Confirm workspace",
+    "description": "Review and adjust the information we collected."
+  },
   "confirm": {
     "business_title": "Confirm Business Information",
     "business_description": "We gathered this information. Check that everything is correct.",
