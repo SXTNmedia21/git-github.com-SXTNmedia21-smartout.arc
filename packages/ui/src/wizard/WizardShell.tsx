@@ -1,11 +1,22 @@
 // packages/ui/src/wizard/WizardShell.tsx
 "use client";
 
+/**
+ * WizardShell — Nordic Split layout
+ *
+ * Follows the visual language from login/signup:
+ * - Warm background content area (left)
+ * - Dark brand panel with contextual messages (right on desktop, hidden on mobile)
+ * - Mobile: top progress bar, bottom navigation
+ * - Step indicators in brand panel (minimal dots)
+ *
+ * When brandPanel is not configured, falls back to a simpler content-only layout.
+ */
+
 import { useEffect, useCallback } from "react";
 import type { WizardDefinition, WizardStepDef, WizardStepProps, WizardThemeTokens } from "./types";
 import { useWizardState } from "./useWizardState";
 import { useWizardWalkAi } from "./useWizardWalkAi";
-import { WizardSidebar } from "./WizardSidebar";
 import { WizardTopBar } from "./WizardTopBar";
 import { WizardNavBar } from "./WizardNavBar";
 
@@ -23,6 +34,14 @@ interface WizardShellProps<TState extends Record<string, unknown>> {
     direction: "forward" | "back",
     stepKey: string,
   ) => React.ReactNode;
+  /** Render the brand panel content — receives current step id and message */
+  renderBrandPanel?: (props: {
+    currentStepId: string;
+    currentStepIndex: number;
+    totalSteps: number;
+    message?: { heading: string; sub: string };
+    logoSrc?: string;
+  }) => React.ReactNode;
 }
 
 export function WizardShell<TState extends Record<string, unknown>>({
@@ -35,6 +54,7 @@ export function WizardShell<TState extends Record<string, unknown>>({
   onComplete,
   onValidationFail,
   renderStep,
+  renderBrandPanel,
 }: WizardShellProps<TState>) {
   const {
     data,
@@ -54,7 +74,6 @@ export function WizardShell<TState extends Record<string, unknown>>({
   const walkai = useWizardWalkAi(definition.id, currentStep?.id ?? "");
   const theme: WizardThemeTokens = { name: definition.theme };
 
-  // Cast steps for sub-components that use the base Record<string, unknown> generic
   const stepsForNav = definition.steps as unknown as WizardStepDef<Record<string, unknown>>[];
 
   const handleNext = useCallback(async () => {
@@ -132,9 +151,13 @@ export function WizardShell<TState extends Record<string, unknown>>({
     ? renderStep(stepContent, "forward", currentStep.id)
     : stepContent;
 
+  const hasBrandPanel = !!definition.brandPanel && !!renderBrandPanel;
+  const brandMessage = definition.brandPanel?.messages[currentStep.id];
+  const panelPosition = definition.brandPanel?.position ?? "right";
+
   return (
     <div
-      className="flex h-dvh flex-col"
+      className="relative flex min-h-[100dvh] overflow-hidden"
       data-wizard-theme={definition.theme}
       data-walkai-id={`${definition.id}-shell`}
       data-walkai-type="wizard"
@@ -146,43 +169,64 @@ export function WizardShell<TState extends Record<string, unknown>>({
         theme: definition.theme,
       })}
     >
-      <div className="flex min-h-0 flex-1">
-        <WizardSidebar
+      {/* Noise overlay — matches login/signup */}
+      <div className="bg-noise pointer-events-none fixed inset-0 z-30 opacity-[0.025] mix-blend-overlay" />
+
+      {/* Brand panel — LEFT position (before content) */}
+      {hasBrandPanel &&
+        panelPosition === "left" &&
+        renderBrandPanel({
+          currentStepId: currentStep.id,
+          currentStepIndex,
+          totalSteps,
+          message: brandMessage,
+          logoSrc: definition.brandPanel?.logoSrc,
+        })}
+
+      {/* WIZARD CONTENT — warm background */}
+      <div
+        className="relative flex w-full flex-1 flex-col"
+        style={{ backgroundColor: "var(--wizard-bg)" }}
+      >
+        {/* Mobile top bar — only on small screens */}
+        <WizardTopBar
           steps={stepsForNav}
           currentStepIndex={currentStepIndex}
           completedSteps={completedSteps}
           t={t}
-          onStepClick={handleGoTo}
         />
 
-        <div className="flex min-h-0 flex-1 flex-col">
-          <WizardTopBar
-            steps={stepsForNav}
-            currentStepIndex={currentStepIndex}
-            completedSteps={completedSteps}
-            t={t}
-          />
+        {/* Step content */}
+        <main
+          className="flex flex-1 items-start justify-center overflow-y-auto px-4 pt-4 pb-24 lg:px-8 xl:px-12"
+          data-walkai-id={`${definition.id}-${currentStep.id}-step`}
+          data-walkai-type="wizard-step"
+        >
+          {renderedStep}
+        </main>
 
-          <main
-            className="flex-1 overflow-y-auto"
-            style={{ backgroundColor: "var(--wizard-bg)" }}
-            data-walkai-id={`${definition.id}-${currentStep.id}-step`}
-            data-walkai-type="wizard-step"
-          >
-            {renderedStep}
-          </main>
-
-          <WizardNavBar
-            isFirst={isFirst}
-            isLast={isLast}
-            isSkippable={currentStep.skippable ?? false}
-            t={t}
-            onBack={handleBack}
-            onNext={handleNext}
-            onSkip={currentStep.skippable ? handleSkip : undefined}
-          />
-        </div>
+        {/* Navigation bar — bottom of content area */}
+        <WizardNavBar
+          isFirst={isFirst}
+          isLast={isLast}
+          isSkippable={currentStep.skippable ?? false}
+          t={t}
+          onBack={handleBack}
+          onNext={handleNext}
+          onSkip={currentStep.skippable ? handleSkip : undefined}
+        />
       </div>
+
+      {/* Brand panel — RIGHT position (after content, default) */}
+      {hasBrandPanel &&
+        panelPosition === "right" &&
+        renderBrandPanel({
+          currentStepId: currentStep.id,
+          currentStepIndex,
+          totalSteps,
+          message: brandMessage,
+          logoSrc: definition.brandPanel?.logoSrc,
+        })}
     </div>
   );
 }

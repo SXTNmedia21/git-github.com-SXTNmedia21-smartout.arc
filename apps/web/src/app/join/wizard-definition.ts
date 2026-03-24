@@ -73,12 +73,47 @@ async function onComplete(state: JoinState): Promise<void> {
 
 export const joinWizard: WizardDefinition<JoinState> = {
   id: "join",
-  theme: "dark",
+  theme: "warm",
 
   metadata: {
     titleKey: "wizard.title",
     descriptionKey: "wizard.description",
     i18nNamespace: "join",
+  },
+
+  brandPanel: {
+    logoSrc: "/smartout-logo.png",
+    position: "right",
+    messages: {
+      account: {
+        heading: "Fortell oss\nom bedriften din.",
+        sub: "Vi bruker dette til å sette opp alt for deg.",
+      },
+      business: {
+        heading: "Vi fyller ut\nså mye vi kan.",
+        sub: "Sjekk at informasjonen stemmer — du kan endre alt.",
+      },
+      about: {
+        heading: "Gi bedriften\ndin en stemme.",
+        sub: "AI hjelper deg å skrive — du bestemmer tonen.",
+      },
+      hours: {
+        heading: "Når er dere\nåpne?",
+        sub: "Åpningstider hjelper oss planlegge drift og bemanning.",
+      },
+      menu: {
+        heading: "Del menyen\ndin.",
+        sub: "Valgfritt — men det gir smartere opplæring.",
+      },
+      create_account: {
+        heading: "Nesten\nferdig.",
+        sub: "Opprett kontoen din for å fullføre.",
+      },
+      team: {
+        heading: "Inviter\nteamet ditt.",
+        sub: "De får en e-post med instruksjoner.",
+      },
+    },
   },
 
   initialState: defaultJoinState,

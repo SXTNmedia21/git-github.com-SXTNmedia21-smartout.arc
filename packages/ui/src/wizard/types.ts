@@ -14,6 +14,15 @@ export interface WizardDefinition<TState extends Record<string, unknown>> {
     descriptionKey: string;
     i18nNamespace: string;
   };
+  /** Brand panel config — dark panel with contextual messages per step (Nordic Split layout) */
+  brandPanel?: {
+    /** Per-step messages: { heading, sub } keyed by step id */
+    messages: Record<string, { heading: string; sub: string }>;
+    /** Logo image path */
+    logoSrc?: string;
+    /** Panel position */
+    position?: "left" | "right";
+  };
   initialState: TState;
   loadState?: () => Promise<Partial<TState>>;
   onComplete?: (state: TState) => Promise<void>;

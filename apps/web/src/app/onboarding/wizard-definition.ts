@@ -252,6 +252,33 @@ export const onboardingWizard: WizardDefinition<OnboardingConfirmState> = {
     i18nNamespace: "onboarding",
   },
 
+  brandPanel: {
+    logoSrc: "/smartout-logo.png",
+    position: "right",
+    messages: {
+      "confirm-business": {
+        heading: "Sjekk at alt\nstemmer.",
+        sub: "Vi har samlet informasjon fra registre og nettet. Juster det som trengs.",
+      },
+      "confirm-departments": {
+        heading: "Dine\navdelinger.",
+        sub: "Velg hvilke avdelinger som er aktive i din virksomhet.",
+      },
+      "confirm-locations": {
+        heading: "Hvor holder\ndere til?",
+        sub: "Bekreft lokasjoner og legg til soner.",
+      },
+      "confirm-procedures": {
+        heading: "Rutiner og\nprosedyrer.",
+        sub: "Velg hvilke rutiner som skal aktiveres for teamet.",
+      },
+      summary: {
+        heading: "Alt klart.",
+        sub: "Sjekk oppsummeringen og aktiver workspace.",
+      },
+    },
+  },
+
   initialState: defaultOnboardingConfirmState,
   loadState,
   onComplete,
