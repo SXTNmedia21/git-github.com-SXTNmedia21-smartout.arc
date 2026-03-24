@@ -155,8 +155,12 @@ export function useLiveKitCall(): UseLiveKitCallReturn {
 
       await room.connect(serverUrl, token);
 
-      // Enable microphone after connecting (camera stays off by default)
-      await room.localParticipant.setMicrophoneEnabled(true);
+      // Try to enable microphone — may fail if browser blocks without user gesture
+      try {
+        await room.localParticipant.setMicrophoneEnabled(true);
+      } catch (e) {
+        console.warn("[livekit] Mic auto-enable blocked — user can toggle via CallBar", e);
+      }
 
       setState((prev) => ({
         ...prev,
