@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, lazy, Suspense } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import {
   Clock,
   Target,
@@ -22,7 +22,9 @@ import {
 } from "lucide-react";
 import { cn } from "@smartout/ui";
 import { Skeleton } from "@/components/ui/skeleton";
+import { createClient } from "@smartout/supabase/client";
 import { OpeningHoursSettings } from "./opening-hours-settings";
+import { NotificationPreferences } from "./NotificationPreferences";
 
 const PayrollGeneralSettings = lazy(() =>
   import("./payroll-general-settings").then((m) => ({ default: m.PayrollGeneralSettings })),
@@ -136,7 +138,7 @@ function SettingsLoadingSkeleton() {
   );
 }
 
-function TabContent({ tabId }: { tabId: TabId }) {
+function TabContent({ tabId, userId }: { tabId: TabId; userId: string | undefined }) {
   switch (tabId) {
     case "hours":
       return <OpeningHoursSettings />;
@@ -212,6 +214,8 @@ function TabContent({ tabId }: { tabId: TabId }) {
           <ChangeProposalsPanel />
         </Suspense>
       );
+    case "notifications":
+      return <NotificationPreferences userId={userId} />;
     default: {
       const tab = ALL_TABS.find((t) => t.id === tabId)!;
       return <TabPlaceholder icon={tab.icon} label={tab.label} />;
@@ -221,6 +225,16 @@ function TabContent({ tabId }: { tabId: TabId }) {
 
 export function SettingsTabs() {
   const [activeTab, setActiveTab] = useState<TabId>("hours");
+  // Fetch auth user id for notification preferences (keyed by user_id, not profile_id)
+  const [userId, setUserId] = useState<string | undefined>();
+
+  useEffect(() => {
+    createClient()
+      .auth.getUser()
+      .then(({ data }) => {
+        if (data.user) setUserId(data.user.id);
+      });
+  }, []);
 
   return (
     <div className="flex gap-6">
@@ -258,7 +272,7 @@ export function SettingsTabs() {
 
       {/* Content area */}
       <div className="flex-1 overflow-y-auto">
-        <TabContent tabId={activeTab} />
+        <TabContent tabId={activeTab} userId={userId} />
       </div>
     </div>
   );
