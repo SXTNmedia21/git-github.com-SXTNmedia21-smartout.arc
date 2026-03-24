@@ -409,6 +409,38 @@ Deno.serve(async (req: Request) => {
       .update({ status: "accepted" })
       .eq("invitation_id", invitation.invitation_id);
 
+    // ── 7. Emit invitation_accepted telemetry ──
+    // Registry: "invitation accepted" → [posthog, logger, activity_trail, engine_event]
+    // Edge Functions insert directly into DB destinations (activity_trail + engine_event).
+    // PostHog and logger are handled client-side by the @smartout/telemetry package.
+    const eventData = {
+      profile_id: profile.profile_id,
+      workspace_id: invitation.workspace_id,
+      invitation_id: invitation.invitation_id,
+      role: invitation.role,
+      employment_type: invitation.invite_employment_type ?? "guest",
+    };
+
+    await Promise.all([
+      adminClient.from("activity_trail").insert({
+        event: "invitation accepted",
+        action_verb: "accepted",
+        category: "onboarding",
+        entity_type: "invitation",
+        entity_id: invitation.invitation_id,
+        entity_label: `${first_name} ${last_name}`,
+        actor_id: profile.profile_id,
+        workspace_id: invitation.workspace_id,
+        data: eventData,
+        source: "edge-function",
+      }),
+      adminClient.from("engine_event").insert({
+        event_type: "invitation accepted",
+        workspace_id: invitation.workspace_id,
+        payload: eventData,
+      }),
+    ]);
+
     return new Response(
       JSON.stringify({
         success: true,

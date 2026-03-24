@@ -147,6 +147,19 @@
     "subtitle": "Velkommen til fremtiden for hospitality-styring.",
     "dashboard": "G\u00e5 til dashbord"
   },
+  "confirm": {
+    "business_title": "Bekreft bedriftsinformasjon",
+    "business_description": "Vi har samlet denne informasjonen. Sjekk at alt stemmer.",
+    "departments_title": "Avdelinger",
+    "departments_description": "Velg hvilke avdelinger som er aktive.",
+    "locations_title": "Lokasjoner",
+    "locations_description": "Bekreft dine lokasjoner og soner.",
+    "procedures_title": "Rutiner og prosedyrer",
+    "procedures_description": "Velg hvilke rutiner som skal aktiveres.",
+    "summary_title": "Oppsummering",
+    "summary_description": "Alt klart. Bekreft for å fullføre oppsettet.",
+    "finalize": "Fullfør oppsett"
+  },
   "drawers": {
     "editDepartment": "Rediger avdeling",
     "editTeam": "Rediger team",

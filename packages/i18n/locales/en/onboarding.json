@@ -147,6 +147,19 @@
     "subtitle": "Welcome to the future of hospitality management.",
     "dashboard": "Enter Dashboard"
   },
+  "confirm": {
+    "business_title": "Confirm Business Information",
+    "business_description": "We gathered this information. Check that everything is correct.",
+    "departments_title": "Departments",
+    "departments_description": "Choose which departments are active.",
+    "locations_title": "Locations",
+    "locations_description": "Confirm your locations and zones.",
+    "procedures_title": "Routines & Procedures",
+    "procedures_description": "Choose which routines to enable.",
+    "summary_title": "Summary",
+    "summary_description": "All set. Confirm to finalize your workspace setup.",
+    "finalize": "Finalize Setup"
+  },
   "drawers": {
     "editDepartment": "Edit Department",
     "editTeam": "Edit Team",
