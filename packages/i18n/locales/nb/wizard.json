@@ -1,1 +1,12 @@
-{}
+{
+  "nav": {
+    "back": "Tilbake",
+    "next": "Neste",
+    "skip": "Hopp over",
+    "finish": "Fullfør"
+  },
+  "progress": {
+    "step": "Steg {current} av {total}",
+    "estimated": "Ca. {minutes} min"
+  }
+}
