@@ -54,12 +54,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         >
           <ConsentProvider locale={locale as "nb" | "en"}>
             <MotionProvider>{children}</MotionProvider>
+            <AnalyticsGate>
+              <Analytics />
+              <SpeedInsights />
+            </AnalyticsGate>
           </ConsentProvider>
         </ThemeProvider>
-        <AnalyticsGate>
-          <Analytics />
-          <SpeedInsights />
-        </AnalyticsGate>
       </body>
     </html>
   );

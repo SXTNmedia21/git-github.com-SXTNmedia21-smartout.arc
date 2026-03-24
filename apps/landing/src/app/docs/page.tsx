@@ -166,7 +166,7 @@ export default async function DocsOverviewPage() {
       <hr className="border-border/50 mb-10" />
 
       {/* Docs agent */}
-      <DocsAgentPanel />
+      <DocsAgentPanel locale={locale} />
 
       {/* Help */}
       <div className="border-border/50 mt-12 border-t pt-6">
