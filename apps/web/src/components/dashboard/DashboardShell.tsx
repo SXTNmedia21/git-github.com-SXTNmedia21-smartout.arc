@@ -27,6 +27,11 @@ const EmmaOverlay = dynamic(
   { ssr: false },
 );
 
+const NotificationBell = dynamic(
+  () => import("./NotificationBell").then((m) => ({ default: m.NotificationBell })),
+  { ssr: false },
+);
+
 const ROUTE_MISSION_MAP: Record<string, MissionId> = {
   "/dashboard": "mr-botsson",
   "/dashboard/schedule": "shift-assistant",
@@ -1101,6 +1106,7 @@ export function DashboardShell({
                 />
               </div>
 
+              <NotificationBell profileId={profileId ?? undefined} />
               <UserMenu isDark={isDark} />
             </div>
           </header>
