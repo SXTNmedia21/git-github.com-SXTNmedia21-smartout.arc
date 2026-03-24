@@ -8,14 +8,7 @@
  */
 
 import React, { useCallback } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  Pressable,
-  ActivityIndicator,
-  Linking,
-} from "react-native";
+import { View, Text, ScrollView, Pressable, ActivityIndicator, Linking } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
@@ -31,7 +24,7 @@ type MemberDetail = {
   profile_id: string;
   display_name: string | null;
   role: string | null;
-  profile_status: ProfileStatus | null;
+  status: ProfileStatus | null;
   email: string | null;
   phone: string | null;
   avatar_url: string | null;
@@ -59,12 +52,25 @@ function useMemberDetail(profileId: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profile")
-        .select("profile_id, display_name, role, profile_status, email, phone, avatar_url, department:department_id(name)")
+        .select(
+          "profile_id, display_name, role, status, avatar_url, user_identity:user_id(email, phone), department:department_id(name)",
+        )
         .eq("profile_id", profileId)
         .single();
 
       if (error) throw error;
-      return data as MemberDetail;
+
+      const mapped = {
+        ...data,
+        email:
+          (data as { user_identity?: { email?: string | null; phone?: string | null } | null })
+            ?.user_identity?.email ?? null,
+        phone:
+          (data as { user_identity?: { email?: string | null; phone?: string | null } | null })
+            ?.user_identity?.phone ?? null,
+      };
+
+      return mapped as MemberDetail;
     },
     enabled: !!profileId,
   });
@@ -129,7 +135,7 @@ export default function TeamMemberDetailScreen() {
   const { data: teams = [] } = useMemberTeams(profileId);
   const { data: readiness } = useMemberReadiness(profileId);
 
-  const statusColor = getStatusColor(member?.profile_status ?? null);
+  const statusColor = getStatusColor(member?.status ?? null);
 
   const handleEmail = useCallback(() => {
     if (member?.email) {
@@ -206,7 +212,7 @@ export default function TeamMemberDetailScreen() {
           <View style={[styles.statusBadge, { backgroundColor: statusColor + "1A" }]}>
             <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
             <Text style={[styles.statusText, { color: statusColor }]}>
-              {STATUS_LABELS[member.profile_status ?? "inactive"]}
+              {STATUS_LABELS[member.status ?? "inactive"]}
             </Text>
           </View>
         </Animated.View>

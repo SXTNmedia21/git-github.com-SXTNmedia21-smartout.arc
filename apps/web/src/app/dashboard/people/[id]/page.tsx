@@ -224,12 +224,20 @@ export default function ProfileDetailPage() {
     const weekMs = 7 * 24 * 60 * 60 * 1000;
     const { data } = await supabase
       .from("schedule_shift")
-      .select("shift_id, start_time, end_time, status, department:department_id(name)")
+      .select("schedule_shift_id, start_time, end_time, status, department:department_id(name)")
       .eq("profile_id", id)
       .gte("start_time", new Date(now - weekMs).toISOString())
       .lte("start_time", new Date(now + weekMs).toISOString())
       .order("start_time");
-    setShifts((data as ShiftEntry[]) ?? []);
+
+    // Map id to shift_id for UI
+    const mappedShifts = (data ?? []).map(
+      (row: { schedule_shift_id?: string; [key: string]: unknown }) => ({
+        ...row,
+        shift_id: row.schedule_shift_id,
+      }),
+    );
+    setShifts((mappedShifts as unknown as ShiftEntry[]) ?? []);
   }, [id]);
 
   const fetchFullActivity = useCallback(
@@ -269,7 +277,15 @@ export default function ProfileDetailPage() {
     fetchShifts();
     fetchFullActivity(0);
     fetchWorkspaceTeams();
-  }, [fetchProfile, fetchProtocols, fetchTeams, fetchActivity, fetchShifts, fetchFullActivity, fetchWorkspaceTeams]);
+  }, [
+    fetchProfile,
+    fetchProtocols,
+    fetchTeams,
+    fetchActivity,
+    fetchShifts,
+    fetchFullActivity,
+    fetchWorkspaceTeams,
+  ]);
 
   async function handleSettingsSave() {
     if (!profile || !workspaceData?.workspace_id) return;
@@ -359,7 +375,7 @@ export default function ProfileDetailPage() {
   if (loading) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
       </div>
     );
   }
@@ -393,9 +409,11 @@ export default function ProfileDetailPage() {
   const readinessScore =
     protocols.length > 0 ? Math.round((completedProtocols / protocols.length) * 100) : 0;
 
-  const inputClass = "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none";
+  const inputClass =
+    "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none";
 
-  const selectClass = "w-full appearance-none rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none";
+  const selectClass =
+    "w-full appearance-none rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none";
 
   const sectionCard = "rounded-xl border border-border bg-card p-4";
 
@@ -405,30 +423,26 @@ export default function ProfileDetailPage() {
     <div className="space-y-6">
       {/* Contact */}
       <div className={sectionCard}>
-        <h3
-          className="mb-3 text-xs font-bold tracking-widest uppercase text-muted-foreground"
-        >
+        <h3 className="text-muted-foreground mb-3 text-xs font-bold tracking-widest uppercase">
           Contact
         </h3>
         <div className="space-y-3">
           <div className="flex items-center gap-3 text-sm">
-            <Mail className="h-4 w-4 text-muted-foreground" />
+            <Mail className="text-muted-foreground h-4 w-4" />
             <a
               href={`mailto:${email}`}
-              className="text-muted-foreground transition-colors hover:text-foreground"
+              className="text-muted-foreground hover:text-foreground transition-colors"
             >
               {email || "No email"}
             </a>
           </div>
           <div className="flex items-center gap-3 text-sm">
-            <Phone className="h-4 w-4 text-muted-foreground" />
-            <span className="text-muted-foreground">
-              {phone || "No phone"}
-            </span>
+            <Phone className="text-muted-foreground h-4 w-4" />
+            <span className="text-muted-foreground">{phone || "No phone"}</span>
           </div>
           {addressStr && (
             <div className="flex items-center gap-3 text-sm">
-              <Home className="h-4 w-4 text-muted-foreground" />
+              <Home className="text-muted-foreground h-4 w-4" />
               <span className="text-muted-foreground">{addressStr}</span>
             </div>
           )}
@@ -438,19 +452,14 @@ export default function ProfileDetailPage() {
       {/* Stat cards */}
       <div className="grid grid-cols-3 gap-3">
         <StatCard label="Readiness" value={`${readinessScore}%`} />
-        <StatCard
-          label="Protocols"
-          value={`${completedProtocols}/${protocols.length}`}
-        />
+        <StatCard label="Protocols" value={`${completedProtocols}/${protocols.length}`} />
         <StatCard label="Teams" value={String(teams.length)} />
       </div>
 
       {/* Teams */}
       {teams.length > 0 && (
         <div>
-          <h3
-            className="mb-3 text-xs font-bold tracking-widest uppercase text-muted-foreground"
-          >
+          <h3 className="text-muted-foreground mb-3 text-xs font-bold tracking-widest uppercase">
             Teams
           </h3>
           <div className="flex flex-wrap gap-2">
@@ -458,7 +467,7 @@ export default function ProfileDetailPage() {
               <button
                 key={t.team_id}
                 onClick={() => router.push(`/dashboard/organization/teams/${t.team_id}`)}
-                className="rounded-lg border border-border bg-card px-2.5 py-1 text-xs font-medium text-foreground transition-colors hover:bg-accent"
+                className="border-border bg-card text-foreground hover:bg-accent rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors"
               >
                 {t.name}
               </button>
@@ -469,31 +478,29 @@ export default function ProfileDetailPage() {
 
       {/* Recent Activity */}
       <div>
-        <h3
-          className="mb-3 text-xs font-bold tracking-widest uppercase text-muted-foreground"
-        >
+        <h3 className="text-muted-foreground mb-3 text-xs font-bold tracking-widest uppercase">
           Recent Activity
         </h3>
         {activity.length === 0 ? (
-          <p className="py-4 text-center text-sm text-muted-foreground">
-            No activity recorded yet
-          </p>
+          <p className="text-muted-foreground py-4 text-center text-sm">No activity recorded yet</p>
         ) : (
-          <div
-            className="relative flex flex-col space-y-3 before:absolute before:inset-y-2 before:left-3 before:w-px before:bg-border"
-          >
+          <div className="before:bg-border relative flex flex-col space-y-3 before:absolute before:inset-y-2 before:left-3 before:w-px">
             {activity.map((a) => (
               <ActivityItem
                 key={a.id}
                 icon={<History className="h-3 w-3" />}
-                color={a.category === "training" ? "emerald" : a.category === "schedule" ? "orange" : "zinc"}
+                color={
+                  a.category === "training"
+                    ? "emerald"
+                    : a.category === "schedule"
+                      ? "orange"
+                      : "zinc"
+                }
                 title={
                   <>
                     {a.action_verb}{" "}
                     {a.entity_label && (
-                      <span className="font-medium text-foreground">
-                        {a.entity_label}
-                      </span>
+                      <span className="text-foreground font-medium">{a.entity_label}</span>
                     )}
                   </>
                 }
@@ -545,12 +552,10 @@ export default function ProfileDetailPage() {
       )}
 
       <div>
-        <h3
-          className="mb-3 flex items-center justify-between text-xs font-bold tracking-widest uppercase text-muted-foreground"
-        >
+        <h3 className="text-muted-foreground mb-3 flex items-center justify-between text-xs font-bold tracking-widest uppercase">
           <span>Assigned Protocols</span>
           {protocols.length > 0 && (
-            <span className="font-medium text-muted-foreground">
+            <span className="text-muted-foreground font-medium">
               {completedProtocols}/{protocols.length} Completed
             </span>
           )}
@@ -558,18 +563,16 @@ export default function ProfileDetailPage() {
 
         {loadingProtocols ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            <Loader2 className="text-muted-foreground h-5 w-5 animate-spin" />
           </div>
         ) : protocols.length === 0 ? (
-          <p className="py-4 text-center text-sm text-muted-foreground">
-            No protocols assigned
-          </p>
+          <p className="text-muted-foreground py-4 text-center text-sm">No protocols assigned</p>
         ) : (
           <div className="space-y-2">
             {protocols.map((p) => (
               <div
                 key={p.assignment_id}
-                className="group flex cursor-pointer items-center justify-between rounded-lg border border-border bg-card p-3 transition-colors hover:bg-accent"
+                className="group border-border bg-card hover:bg-accent flex cursor-pointer items-center justify-between rounded-lg border p-3 transition-colors"
               >
                 <div className="flex items-center gap-3">
                   {p.status === "completed" ? (
@@ -581,16 +584,12 @@ export default function ProfileDetailPage() {
                       <AlertCircle className="h-4 w-4" />
                     </div>
                   ) : (
-                    <div
-                      className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-muted-foreground"
-                    >
+                    <div className="bg-secondary text-muted-foreground flex h-8 w-8 items-center justify-center rounded-full">
                       <Clock className="h-4 w-4" />
                     </div>
                   )}
                   <div>
-                    <p
-                      className="text-sm font-bold text-foreground transition-colors"
-                    >
+                    <p className="text-foreground text-sm font-bold transition-colors">
                       {p.protocol?.name ?? "Unknown Protocol"}
                     </p>
                     <p
@@ -610,9 +609,7 @@ export default function ProfileDetailPage() {
                     </p>
                   </div>
                 </div>
-                <ChevronRight
-                  className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-foreground"
-                />
+                <ChevronRight className="text-muted-foreground group-hover:text-foreground h-4 w-4 transition-colors" />
               </div>
             ))}
           </div>
@@ -627,34 +624,22 @@ export default function ProfileDetailPage() {
     <div className="space-y-6">
       {/* Contract Status */}
       <div>
-        <h3
-          className="mb-3 text-xs font-bold tracking-widest uppercase text-muted-foreground"
-        >
+        <h3 className="text-muted-foreground mb-3 text-xs font-bold tracking-widest uppercase">
           Employment Contract
         </h3>
-        <div
-          className="flex items-center justify-between rounded-xl border border-border bg-card p-4"
-        >
+        <div className="border-border bg-card flex items-center justify-between rounded-xl border p-4">
           <div className="flex items-center gap-3">
-            <div
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-muted-foreground"
-            >
+            <div className="bg-secondary text-muted-foreground flex h-8 w-8 items-center justify-center rounded-full">
               <FileSignature className="h-4 w-4" />
             </div>
             <div>
-              <p className="text-sm font-bold text-foreground">
-                No Contract Found
-              </p>
-              <p
-                className="mt-0.5 text-[10px] tracking-wider uppercase text-muted-foreground"
-              >
+              <p className="text-foreground text-sm font-bold">No Contract Found</p>
+              <p className="text-muted-foreground mt-0.5 text-[10px] tracking-wider uppercase">
                 Action required
               </p>
             </div>
           </div>
-          <button
-            className="rounded-lg bg-foreground px-3 py-1.5 text-xs font-bold text-background transition-all hover:opacity-90"
-          >
+          <button className="bg-foreground text-background rounded-lg px-3 py-1.5 text-xs font-bold transition-all hover:opacity-90">
             Create
           </button>
         </div>
@@ -663,15 +648,13 @@ export default function ProfileDetailPage() {
       {/* Personal Information */}
       <div>
         <div className="mb-3 flex items-center justify-between">
-          <h3
-            className="text-xs font-bold tracking-widest uppercase text-muted-foreground"
-          >
+          <h3 className="text-muted-foreground text-xs font-bold tracking-widest uppercase">
             Personal Information
           </h3>
           {!editingHr && (
             <button
               onClick={() => setEditingHr(true)}
-              className="rounded-md px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              className="text-muted-foreground hover:bg-accent hover:text-foreground rounded-md px-2.5 py-1 text-xs font-medium transition-colors"
             >
               Edit
             </button>
@@ -706,7 +689,7 @@ export default function ProfileDetailPage() {
               >
                 <ShieldAlert className="h-3 w-3 text-rose-500" /> Emergency Contact
               </span>
-              <span className="text-sm text-foreground">
+              <span className="text-foreground text-sm">
                 {profile.user_identity?.emergency_contact_name || "Not provided"} &bull;{" "}
                 {profile.user_identity?.emergency_contact_phone || ""}
               </span>
@@ -715,7 +698,7 @@ export default function ProfileDetailPage() {
         ) : (
           <div className="space-y-3">
             <div className="space-y-1.5">
-              <label className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+              <label className="text-muted-foreground flex items-center gap-1.5 text-xs font-semibold">
                 <Home className="h-3 w-3" /> Address
               </label>
               <input
@@ -727,7 +710,7 @@ export default function ProfileDetailPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <label className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+              <label className="text-muted-foreground flex items-center gap-1.5 text-xs font-semibold">
                 <CreditCard className="h-3 w-3" /> Personal Number (SSN)
               </label>
               <input
@@ -739,7 +722,7 @@ export default function ProfileDetailPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <label className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+              <label className="text-muted-foreground flex items-center gap-1.5 text-xs font-semibold">
                 <Wallet className="h-3 w-3" /> Bank Account
               </label>
               <input
@@ -751,7 +734,7 @@ export default function ProfileDetailPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <label className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+              <label className="text-muted-foreground flex items-center gap-1.5 text-xs font-semibold">
                 <ShieldAlert className="h-3 w-3" /> Emergency Contact Name
               </label>
               <input
@@ -763,7 +746,7 @@ export default function ProfileDetailPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <label className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+              <label className="text-muted-foreground flex items-center gap-1.5 text-xs font-semibold">
                 <Phone className="h-3 w-3" /> Emergency Contact Phone
               </label>
               <input
@@ -795,7 +778,7 @@ export default function ProfileDetailPage() {
                   setEditingHr(false);
                 }}
                 disabled={saving}
-                className="flex-1 rounded-lg border border-border py-2.5 text-sm font-semibold text-muted-foreground transition-all hover:bg-accent hover:text-foreground disabled:opacity-50"
+                className="border-border text-muted-foreground hover:bg-accent hover:text-foreground flex-1 rounded-lg border py-2.5 text-sm font-semibold transition-all disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -806,14 +789,10 @@ export default function ProfileDetailPage() {
 
       {/* Communication Log */}
       <div>
-        <h3
-          className="mb-3 flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase text-muted-foreground"
-        >
+        <h3 className="text-muted-foreground mb-3 flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase">
           <History className="h-4 w-4" /> Communication Log
         </h3>
-        <p className="text-sm text-muted-foreground">
-          No communications found for this user.
-        </p>
+        <p className="text-muted-foreground text-sm">No communications found for this user.</p>
       </div>
     </div>
   );
@@ -835,17 +814,13 @@ export default function ProfileDetailPage() {
     <div className="space-y-4">
       {shifts.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-2 py-12">
-          <Calendar className="h-8 w-8 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">
-            No shifts scheduled
-          </p>
+          <Calendar className="text-muted-foreground h-8 w-8" />
+          <p className="text-muted-foreground text-sm">No shifts scheduled</p>
         </div>
       ) : (
         Object.entries(groupedShifts).map(([date, dateShifts]) => (
           <div key={date}>
-            <h4
-              className="mb-2 text-xs font-bold tracking-widest uppercase text-muted-foreground"
-            >
+            <h4 className="text-muted-foreground mb-2 text-xs font-bold tracking-widest uppercase">
               {date}
             </h4>
             <div className="space-y-1.5">
@@ -858,19 +833,17 @@ export default function ProfileDetailPage() {
                 return (
                   <div
                     key={s.shift_id}
-                    className={`flex items-center justify-between rounded-lg border border-border bg-card p-3 ${isPast ? "opacity-60" : ""}`}
+                    className={`border-border bg-card flex items-center justify-between rounded-lg border p-3 ${isPast ? "opacity-60" : ""}`}
                   >
                     <div className="flex items-center gap-3">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm font-medium text-foreground">
+                      <Clock className="text-muted-foreground h-4 w-4" />
+                      <span className="text-foreground text-sm font-medium">
                         {fmt(start)} – {fmt(end)}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
                       {s.department?.name && (
-                        <span className="text-xs text-muted-foreground">
-                          {s.department.name}
-                        </span>
+                        <span className="text-muted-foreground text-xs">{s.department.name}</span>
                       )}
                       <span
                         className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${
@@ -900,28 +873,28 @@ export default function ProfileDetailPage() {
     <div className="space-y-4">
       {fullActivity.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-2 py-12">
-          <History className="h-8 w-8 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">
-            No activity recorded yet
-          </p>
+          <History className="text-muted-foreground h-8 w-8" />
+          <p className="text-muted-foreground text-sm">No activity recorded yet</p>
         </div>
       ) : (
         <>
-          <div
-            className="relative flex flex-col space-y-3 before:absolute before:inset-y-2 before:left-3 before:w-px before:bg-border"
-          >
+          <div className="before:bg-border relative flex flex-col space-y-3 before:absolute before:inset-y-2 before:left-3 before:w-px">
             {fullActivity.map((a) => (
               <ActivityItem
                 key={a.id}
                 icon={<History className="h-3 w-3" />}
-                color={a.category === "training" ? "emerald" : a.category === "schedule" ? "orange" : "zinc"}
+                color={
+                  a.category === "training"
+                    ? "emerald"
+                    : a.category === "schedule"
+                      ? "orange"
+                      : "zinc"
+                }
                 title={
                   <>
                     {a.action_verb}{" "}
                     {a.entity_label && (
-                      <span className="font-medium text-foreground">
-                        {a.entity_label}
-                      </span>
+                      <span className="text-foreground font-medium">{a.entity_label}</span>
                     )}
                   </>
                 }
@@ -942,7 +915,7 @@ export default function ProfileDetailPage() {
                 fetchFullActivity(nextPage);
               }}
               disabled={loadingMoreActivity}
-              className="w-full rounded-lg border border-border py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-50"
+              className="border-border text-muted-foreground hover:bg-accent hover:text-foreground w-full rounded-lg border py-2.5 text-sm font-medium transition-colors disabled:opacity-50"
             >
               {loadingMoreActivity ? "Loading..." : "Load more"}
             </button>
@@ -958,9 +931,7 @@ export default function ProfileDetailPage() {
     <div className="space-y-6">
       <div className="space-y-4">
         <div className="space-y-1.5">
-          <label
-            className="text-xs font-semibold tracking-wider uppercase text-muted-foreground"
-          >
+          <label className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
             Primary Department
           </label>
           <select
@@ -979,9 +950,7 @@ export default function ProfileDetailPage() {
 
         {/* Team Management */}
         <div className="space-y-1.5">
-          <label
-            className="text-xs font-semibold tracking-wider uppercase text-muted-foreground"
-          >
+          <label className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
             Teams
           </label>
           {teams.length > 0 && (
@@ -989,12 +958,12 @@ export default function ProfileDetailPage() {
               {teams.map((t) => (
                 <span
                   key={t.team_id}
-                  className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-2.5 py-1 text-xs font-medium text-foreground"
+                  className="border-border bg-card text-foreground inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-medium"
                 >
                   {t.name}
                   <button
                     onClick={() => handleRemoveFromTeam(t.team_id)}
-                    className="ml-0.5 rounded p-0.5 transition-colors hover:bg-accent hover:text-foreground"
+                    className="hover:bg-accent hover:text-foreground ml-0.5 rounded p-0.5 transition-colors"
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -1031,9 +1000,7 @@ export default function ProfileDetailPage() {
         </div>
 
         <div className="space-y-1.5">
-          <label
-            className="text-xs font-semibold tracking-wider uppercase text-muted-foreground"
-          >
+          <label className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
             System Role
           </label>
           <select
@@ -1046,15 +1013,13 @@ export default function ProfileDetailPage() {
             <option value="admin">Admin</option>
             <option value="owner">Owner</option>
           </select>
-          <p className="pt-1 text-xs text-muted-foreground">
+          <p className="text-muted-foreground pt-1 text-xs">
             Defines what this user can see and do in the system.
           </p>
         </div>
 
         <div className="space-y-1.5">
-          <label
-            className="text-xs font-semibold tracking-wider uppercase text-muted-foreground"
-          >
+          <label className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
             Status
           </label>
           {(() => {
@@ -1073,12 +1038,9 @@ export default function ProfileDetailPage() {
                 className={selectClass}
               >
                 {(["active", "trainee", "inactive", "offboarding"] as ProfileStatus[]).map((s) => (
-                  <option
-                    key={s}
-                    value={s}
-                    disabled={!allowed.includes(s) && s !== currentStatus}
-                  >
-                    {STATUS_LABELS[s]}{!allowed.includes(s) && s !== currentStatus ? " (not allowed)" : ""}
+                  <option key={s} value={s} disabled={!allowed.includes(s) && s !== currentStatus}>
+                    {STATUS_LABELS[s]}
+                    {!allowed.includes(s) && s !== currentStatus ? " (not allowed)" : ""}
                   </option>
                 ))}
               </select>
@@ -1095,12 +1057,8 @@ export default function ProfileDetailPage() {
         {saving ? "Saving..." : "Save Changes"}
       </button>
 
-      <div
-        className="space-y-3 border-t border-border pt-4"
-      >
-        <button
-          className="w-full rounded-lg border border-border bg-card py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-        >
+      <div className="border-border space-y-3 border-t pt-4">
+        <button className="border-border bg-card text-muted-foreground hover:bg-accent hover:text-foreground w-full rounded-lg border py-2.5 text-sm font-medium transition-colors">
           Reset Password
         </button>
         <button
@@ -1126,9 +1084,7 @@ export default function ProfileDetailPage() {
       ]}
       name={profile.display_name}
       icon={
-        <div
-          className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-secondary text-lg font-bold text-foreground"
-        >
+        <div className="bg-secondary text-foreground flex h-12 w-12 items-center justify-center overflow-hidden rounded-full text-lg font-bold">
           {profile.avatar_url ? (
             <img
               src={profile.avatar_url}
@@ -1147,15 +1103,11 @@ export default function ProfileDetailPage() {
           >
             {statusCfg.label}
           </span>
-          <span
-            className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-semibold text-foreground"
-          >
+          <span className="bg-secondary text-foreground rounded-full px-2.5 py-0.5 text-xs font-semibold">
             {ROLE_LABELS[profile.role.toLowerCase()] ?? profile.role}
           </span>
           {profile.department?.name && (
-            <span
-              className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-muted-foreground"
-            >
+            <span className="bg-secondary text-muted-foreground rounded-full px-2.5 py-0.5 text-xs font-medium">
               {profile.department.name}
             </span>
           )}
@@ -1177,15 +1129,11 @@ export default function ProfileDetailPage() {
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
-    <div
-      className="flex flex-col items-center justify-center rounded-xl border border-border bg-card p-3 text-center"
-    >
-      <span className="mb-1 text-xs font-semibold tracking-widest text-muted-foreground uppercase">
+    <div className="border-border bg-card flex flex-col items-center justify-center rounded-xl border p-3 text-center">
+      <span className="text-muted-foreground mb-1 text-xs font-semibold tracking-widest uppercase">
         {label}
       </span>
-      <span className="text-lg font-bold text-foreground">
-        {value}
-      </span>
+      <span className="text-foreground text-lg font-bold">{value}</span>
     </div>
   );
 }
@@ -1203,14 +1151,10 @@ function InfoField({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+      <span className="text-muted-foreground flex items-center gap-1.5 text-xs font-semibold">
         {icon} {label}
       </span>
-      <span
-        className={`text-sm text-foreground ${mono ? "font-mono" : ""}`}
-      >
-        {value}
-      </span>
+      <span className={`text-foreground text-sm ${mono ? "font-mono" : ""}`}>{value}</span>
     </div>
   );
 }
@@ -1240,8 +1184,8 @@ function ActivityItem({
         {icon}
       </div>
       <div>
-        <p className="text-sm text-muted-foreground">{title}</p>
-        <span className="text-xs text-muted-foreground">{time}</span>
+        <p className="text-muted-foreground text-sm">{title}</p>
+        <span className="text-muted-foreground text-xs">{time}</span>
       </div>
     </div>
   );

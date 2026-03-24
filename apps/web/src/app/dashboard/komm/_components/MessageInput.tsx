@@ -6,7 +6,7 @@ import { useChannelMessages } from "../_hooks/use-channel-messages";
 import { usePushToTalk } from "../_hooks/use-push-to-talk";
 import { ReplyPreview } from "./ReplyPreview";
 import { AttachmentPopup } from "./AttachmentPopup";
-import { PTTButton } from "./PTTButton";
+// import { PTTButton } from "./PTTButton";
 import { Button } from "@/components/ui/button";
 import { Send, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -128,11 +128,14 @@ export function MessageInput({
           className="bg-muted text-foreground placeholder:text-muted-foreground focus:ring-primary min-h-[36px] flex-1 resize-none rounded-xl border-0 px-3 py-2 text-sm focus:ring-1 focus:outline-none"
         />
         {isPTTMode ? (
-          <PTTButton
-            pttState={ptt.pttState}
-            onPressStart={ptt.onPressStart}
-            onPressEnd={ptt.onPressEnd}
-          />
+          <div
+            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-orange-500 text-white select-none"
+            onPointerDown={ptt.onPressStart}
+            onPointerUp={ptt.onPressEnd}
+            onPointerCancel={ptt.onPressEnd}
+          >
+            PTT
+          </div>
         ) : (
           <Button
             size="icon"

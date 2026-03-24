@@ -3,7 +3,7 @@
 import type { ChannelWithPreview } from "../_hooks/channel-types";
 import { useCallState } from "../_hooks/use-call-state";
 import { useStartCall } from "../_hooks/use-start-call";
-import { GroupCallBanner } from "./GroupCallBanner";
+// import { GroupCallBanner } from "./GroupCallBanner";
 import { Button } from "@/components/ui/button";
 import {
   Users,
@@ -120,7 +120,12 @@ export function ChannelHeader({
         </div>
       </div>
       {hasActiveCall && callSession && (
-        <GroupCallBanner participantCount={callSession.maxParticipants} onJoin={onJoinCall} />
+        <div className="bg-primary/10 text-primary px-4 py-2 text-sm">
+          Pågående samtale ({callSession.maxParticipants} deltakere)
+          <Button size="sm" onClick={onJoinCall} className="ml-4">
+            Bli med
+          </Button>
+        </div>
       )}
     </div>
   );

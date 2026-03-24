@@ -20,9 +20,10 @@ import { ChannelHeader } from "./ChannelHeader";
 import { MessageTimeline } from "./MessageTimeline";
 import { MessageInput } from "./MessageInput";
 import { MemberPanel } from "./MemberPanel";
-import { IncomingCallOverlay } from "./IncomingCallOverlay";
-import { CallBar } from "./CallBar";
+// import { IncomingCallOverlay } from "./IncomingCallOverlay";
+// import { CallBar } from "./CallBar";
 import { MessageSquare } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { ConnectionState } from "livekit-client";
 import { toast } from "sonner";
 
@@ -177,13 +178,12 @@ export function KommShell({ profileId }: { profileId: string }) {
               />
             )}
             {isInCall && (
-              <CallBar
-                remoteParticipants={livekit.remoteParticipants}
-                activeSpeakers={livekit.activeSpeakers}
-                isMicEnabled={livekit.isMicEnabled}
-                onToggleMic={livekit.toggleMic}
-                onEndCall={handleEndCall}
-              />
+              <div className="bg-destructive/10 text-destructive flex items-center justify-between px-4 py-2">
+                <span>Samtale aktiv</span>
+                <Button size="sm" variant="destructive" onClick={handleEndCall}>
+                  Avslutt
+                </Button>
+              </div>
             )}
           </>
         ) : (
@@ -206,13 +206,13 @@ export function KommShell({ profileId }: { profileId: string }) {
       )}
 
       {/* Incoming call overlay */}
-      {incomingCall && (
+      {/* incomingCall && (
         <IncomingCallOverlay
           call={incomingCall}
           onAccept={handleAcceptCall}
           onReject={handleRejectCall}
         />
-      )}
+      ) */}
     </div>
   );
 }

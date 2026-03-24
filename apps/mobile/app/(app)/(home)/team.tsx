@@ -32,7 +32,7 @@ type TeamMember = {
   profile_id: string;
   display_name: string | null;
   role: string | null;
-  profile_status: ProfileStatus | null;
+  status: ProfileStatus | null;
   email: string | null;
   phone: string | null;
   department: { name: string } | null;
@@ -51,11 +51,21 @@ function useTeamMembers() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profile")
-        .select("profile_id, display_name, role, profile_status, email, phone, department:department_id(name)")
+        .select(
+          "profile_id, display_name, role, status, user_identity:user_id(email, phone), department:department_id(name)",
+        )
         .order("display_name", { ascending: true });
 
       if (error) throw error;
-      return (data ?? []) as TeamMember[];
+
+      // Map user_identity relation back to flat fields for UI
+      return (data ?? []).map(
+        (row: { user_identity?: { email?: string | null; phone?: string | null } | null }) => ({
+          ...row,
+          email: row.user_identity?.email ?? null,
+          phone: row.user_identity?.phone ?? null,
+        }),
+      ) as TeamMember[];
     },
   });
 }
@@ -96,11 +106,15 @@ export default function TeamListScreen() {
 
   const renderItem = useCallback(
     ({ item, index }: { item: TeamMember; index: number }) => {
-      const statusColor = getStatusColor(item.profile_status);
+      const statusColor = getStatusColor(item.status);
       const deptName = item.department?.name ?? "Ingen avdeling";
 
       return (
-        <Animated.View entering={FadeInDown.delay(index * 40).duration(300).springify()}>
+        <Animated.View
+          entering={FadeInDown.delay(index * 40)
+            .duration(300)
+            .springify()}
+        >
           <Pressable
             onPress={() => handlePress(item.profile_id)}
             style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
@@ -126,7 +140,7 @@ export default function TeamListScreen() {
             <View style={[styles.badge, { backgroundColor: statusColor + "1A" }]}>
               <View style={[styles.badgeDot, { backgroundColor: statusColor }]} />
               <Text style={[styles.badgeText, { color: statusColor }]}>
-                {STATUS_LABELS[item.profile_status ?? "inactive"]}
+                {STATUS_LABELS[item.status ?? "inactive"]}
               </Text>
             </View>
           </Pressable>
@@ -182,14 +196,10 @@ export default function TeamListScreen() {
           keyExtractor={(item) => item.profile_id}
           renderItem={renderItem}
           contentContainerStyle={styles.list}
-          refreshControl={
-            <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
-          }
+          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
           ListEmptyComponent={
             <View style={styles.centered}>
-              <Text style={styles.emptyText}>
-                {search ? "Ingen treff" : "Ingen teammedlemmer"}
-              </Text>
+              <Text style={styles.emptyText}>{search ? "Ingen treff" : "Ingen teammedlemmer"}</Text>
             </View>
           }
         />

@@ -25,7 +25,8 @@ export default function PeoplePage() {
     if (!workspaceData?.workspace_id) return;
     const supabase = createClient();
 
-    const result = await fetchWorkspacePeople(supabase, workspaceData.workspace_id);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = await fetchWorkspacePeople(supabase as any, workspaceData.workspace_id);
 
     // Determine current user's role
     const currentProfile = profileId
@@ -133,16 +134,12 @@ export default function PeoplePage() {
             >
               <Users className="h-4 w-4" />
             </div>
-            <h3
-              className="text-xs font-bold tracking-widest uppercase text-muted-foreground"
-            >
+            <h3 className="text-muted-foreground text-xs font-bold tracking-widest uppercase">
               Total Staff
             </h3>
           </div>
           <div className="relative z-10 flex items-end gap-2">
-            <span
-              className="text-3xl leading-none font-bold text-foreground"
-            >
+            <span className="text-foreground text-3xl leading-none font-bold">
               {employees.length}
             </span>
           </div>
@@ -160,23 +157,13 @@ export default function PeoplePage() {
             >
               <Star className="h-4 w-4" />
             </div>
-            <h3
-              className="text-xs font-bold tracking-widest uppercase text-muted-foreground"
-            >
+            <h3 className="text-muted-foreground text-xs font-bold tracking-widest uppercase">
               Active Now
             </h3>
           </div>
           <div className="relative z-10 flex items-end gap-2">
-            <span
-              className="text-3xl leading-none font-bold text-foreground"
-            >
-              {activeCount}
-            </span>
-            <span
-              className="mb-0.5 text-sm font-medium text-muted-foreground"
-            >
-              clocked in
-            </span>
+            <span className="text-foreground text-3xl leading-none font-bold">{activeCount}</span>
+            <span className="text-muted-foreground mb-0.5 text-sm font-medium">clocked in</span>
           </div>
         </div>
 
@@ -192,23 +179,13 @@ export default function PeoplePage() {
             >
               <ShieldCheck className="h-4 w-4" />
             </div>
-            <h3
-              className="text-xs font-bold tracking-widest uppercase text-muted-foreground"
-            >
+            <h3 className="text-muted-foreground text-xs font-bold tracking-widest uppercase">
               Avg Readiness
             </h3>
           </div>
           <div className="relative z-10 flex items-end gap-2">
-            <span
-              className="text-3xl leading-none font-bold text-foreground"
-            >
-              {avgReadiness}%
-            </span>
-            <span
-              className="mb-0.5 text-sm font-medium text-muted-foreground"
-            >
-              workspace
-            </span>
+            <span className="text-foreground text-3xl leading-none font-bold">{avgReadiness}%</span>
+            <span className="text-muted-foreground mb-0.5 text-sm font-medium">workspace</span>
           </div>
         </div>
 
@@ -223,9 +200,7 @@ export default function PeoplePage() {
               <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 p-2 text-rose-500">
                 <Mail className="h-4 w-4" />
               </div>
-              <h3
-                className="text-xs font-bold tracking-widest uppercase text-muted-foreground"
-              >
+              <h3 className="text-muted-foreground text-xs font-bold tracking-widest uppercase">
                 Pending Invites
               </h3>
             </div>
@@ -234,9 +209,7 @@ export default function PeoplePage() {
             <span className="text-3xl leading-none font-bold text-rose-400">
               {invitations.filter((i) => i.inviteStatus !== "expired").length}
             </span>
-            <span
-              className="mb-0.5 text-sm font-medium text-muted-foreground"
-            >
+            <span className="text-muted-foreground mb-0.5 text-sm font-medium">
               awaiting signup
             </span>
           </div>
