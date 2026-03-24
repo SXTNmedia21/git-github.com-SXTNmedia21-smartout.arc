@@ -95,10 +95,25 @@ telemetry emit()──┘                                    │                
 
 ## Database
 
-### Existing tables (no changes)
+### Existing tables (require migration fixes)
 
-- `notification_outbox` — sending queue with priority, allowed_channels, status lifecycle
-- `notification_preference` — per-user channel toggles, quiet hours, timezone
+- `notification_outbox` — sending queue with priority, allowed_channels, status lifecycle. No changes needed.
+- `notification_preference` — per-user channel toggles, quiet hours, timezone. **Needs fixes:**
+  - Enable RLS (missing from original migration 00006)
+  - Add `browser_enabled boolean DEFAULT false` column
+  - Add JWT policy: `USING (user_id = auth.uid())`
+
+### Enum migration: `notification_channel`
+
+Current enum: `push | sms | email | voice`. Spec requires `in_app`. Migration adds `in_app` to the enum. `voice` is retained (no breaking change).
+
+```sql
+ALTER TYPE notification_channel ADD VALUE IF NOT EXISTS 'in_app';
+```
+
+### Preference → profile join path
+
+`notification_preference` is keyed by `user_id` (FK to `user_identity`), not `profile_id`. The outbox consumer has `recipient_id` (a `profile_id`). Join path: `profile.profile_id → user_identity.id` via `profile.user_id`. The consumer must resolve this join when fetching preferences.
 
 ### New table: `notification`
 
@@ -107,8 +122,8 @@ In-app notifications visible to users in the bell/notification center.
 ```sql
 CREATE TABLE notification (
   id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  workspace_id  uuid NOT NULL REFERENCES workspace(id),
-  recipient_id  uuid NOT NULL REFERENCES profile(id),
+  workspace_id  uuid NOT NULL REFERENCES workspace(workspace_id),
+  recipient_id  uuid NOT NULL REFERENCES profile(profile_id),
   group_key     text,
   title         text NOT NULL,
   body          text,
@@ -117,8 +132,13 @@ CREATE TABLE notification (
   is_read       boolean NOT NULL DEFAULT false,
   read_at       timestamptz,
   metadata      jsonb,
-  created_at    timestamptz NOT NULL DEFAULT now()
+  created_at    timestamptz NOT NULL DEFAULT now(),
+  updated_at    timestamptz NOT NULL DEFAULT now()
 );
+
+CREATE TRIGGER set_notification_updated_at
+  BEFORE UPDATE ON notification
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 CREATE INDEX idx_notification_recipient_unread
   ON notification(recipient_id, created_at DESC)
@@ -134,7 +154,7 @@ ALTER TABLE notification ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users read own notifications" ON notification
   FOR SELECT USING (
     recipient_id IN (
-      SELECT id FROM profile
+      SELECT profile_id FROM profile
       WHERE workspace_id IN (SELECT get_workspace_ids_for_user(auth.uid()))
     )
   );
@@ -143,13 +163,13 @@ CREATE POLICY "Users read own notifications" ON notification
 CREATE POLICY "Users update own notifications" ON notification
   FOR UPDATE USING (
     recipient_id IN (
-      SELECT id FROM profile
+      SELECT profile_id FROM profile
       WHERE workspace_id IN (SELECT get_workspace_ids_for_user(auth.uid()))
     )
   )
   WITH CHECK (
     recipient_id IN (
-      SELECT id FROM profile
+      SELECT profile_id FROM profile
       WHERE workspace_id IN (SELECT get_workspace_ids_for_user(auth.uid()))
     )
   );
@@ -158,12 +178,15 @@ CREATE POLICY "Users update own notifications" ON notification
 CREATE POLICY "api_key_read_notification" ON notification
   FOR SELECT USING (workspace_id = get_api_workspace_id());
 
--- Service role inserts
-CREATE POLICY "Service inserts notifications" ON notification
-  FOR INSERT WITH CHECK (true);
+-- Service role inserts only (consumer Edge Function uses service role)
+-- No INSERT policy needed — service role bypasses RLS
 ```
 
-Realtime enabled on this table for INSERT events.
+Realtime enabled on this table for INSERT events:
+
+```sql
+ALTER PUBLICATION supabase_realtime ADD TABLE notification;
+```
 
 ### Smart grouping via `group_key`
 
@@ -184,8 +207,43 @@ Plain text for flexibility — no enum, new types added freely.
 
 ### Trigger mechanism
 
-- **pg_cron every 30 seconds** for normal processing
-- **pg_notify trigger on INSERT** for CRITICAL (priority=2) — calls Edge Function immediately
+- **pg_cron every 30 seconds** for normal processing (registered via `cron.schedule()` in migration, guarded by `IF EXISTS pg_cron`)
+- **CRITICAL fast-path:** For priority=2 inserts, a BEFORE INSERT trigger calls `net.http_post` directly to invoke the Edge Function immediately (same pattern as existing push-dispatch triggers). This avoids the 30s cron latency for critical events.
+
+```sql
+-- pg_cron registration (in migration, conditional)
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') THEN
+    PERFORM cron.schedule(
+      'process-notifications',
+      '30 seconds',
+      $$SELECT net.http_post(
+        url := current_setting('app.supabase_url') || '/functions/v1/process-notifications',
+        headers := jsonb_build_object('Authorization', 'Bearer ' || current_setting('app.process_notifications_secret'))
+      )$$
+    );
+  END IF;
+END $$;
+
+-- CRITICAL fast-path trigger
+CREATE OR REPLACE FUNCTION dispatch_critical_notification()
+RETURNS trigger AS $$
+BEGIN
+  IF NEW.priority = 2 THEN
+    PERFORM net.http_post(
+      url := current_setting('app.supabase_url') || '/functions/v1/process-notifications',
+      headers := jsonb_build_object('Authorization', 'Bearer ' || current_setting('app.process_notifications_secret'))
+    );
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER trg_critical_notification_dispatch
+  AFTER INSERT ON notification_outbox
+  FOR EACH ROW WHEN (NEW.priority = 2)
+  EXECUTE FUNCTION dispatch_critical_notification();
+```
 
 ### Processing flow
 
@@ -467,6 +525,8 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 ```
 
+**Note:** Trigger title/body use i18n key references, not hardcoded Norwegian. The outbox consumer resolves i18n keys via the event config registry `title_template` / `body_template` fields. The trigger SQL only stores the `event_key` in metadata — the consumer looks up the template and interpolates. Baseline triggers from the migration must use the refactored trigger migration (which corrected `profile_id`, not `id`) as their starting point.
+
 ### Migration strategy
 
 Single migration that:
@@ -491,8 +551,8 @@ Single migration that:
 | `packages/notifications/src/outbox.ts`                                        | Outbox INSERT helpers (shared by triggers, engine, telemetry) |
 | `apps/web/src/components/dashboard/NotificationBell.tsx`                      | Bell icon + popover                                           |
 | `apps/web/src/app/dashboard/notifications/page.tsx`                           | Full notifications page                                       |
-| `apps/web/src/hooks/use-notifications.ts`                                     | Data hooks (useNotifications, useUnreadCount, useMarkAsRead)  |
-| `apps/web/src/hooks/use-notification-realtime.ts`                             | Realtime subscription + browser notifications                 |
+| `packages/notifications/src/hooks/use-notifications.ts`                       | Data hooks (useNotifications, useUnreadCount, useMarkAsRead)  |
+| `apps/web/src/hooks/use-notification-realtime.ts`                             | Realtime subscription + browser notifications (web-only)      |
 | `apps/web/src/app/dashboard/settings/_components/NotificationPreferences.tsx` | Preferences UI                                                |
 
 ### Files to modify
@@ -500,7 +560,7 @@ Single migration that:
 | File                                                                | Change                                                                        |
 | ------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
 | `supabase/functions/engine-dispatch/index.ts`                       | Replace console.log stub with outbox INSERT                                   |
-| `packages/telemetry/src/registry.ts`                                | Wire `notifications` destination handler                                      |
+| `packages/telemetry/src/emit.ts`                                    | Add `notifications` destination handler (INSERT into outbox via API call)     |
 | `apps/web/src/components/dashboard/DashboardShell.tsx`              | Add NotificationBell to header                                                |
 | `supabase/functions/config.toml`                                    | Add `process-notifications` + `send-morning-digest` with `verify_jwt = false` |
 | `apps/web/src/app/dashboard/settings/_components/settings-tabs.tsx` | Replace Notifications placeholder                                             |
@@ -508,6 +568,38 @@ Single migration that:
 ### Mobile parity
 
 Data hooks (`useNotifications`, `useUnreadCount`, `useMarkAsRead`) placed in `packages/` or as shared hooks importable by both web and mobile. Mobile notification center UI is a follow-up PR but the data layer supports it from day one.
+
+---
+
+## i18n
+
+All user-facing copy uses i18n keys from `packages/i18n`. No hardcoded Norwegian strings in components. The event config registry `title_template` and `body_template` reference i18n keys that are interpolated with event-specific variables at render time. Email digest templates use SendGrid dynamic templates with localized content blocks.
+
+Norwegian strings in this spec document (e.g., "Marker alle som lest", "Se alle varsler") are design intent descriptions, not implementation literals. Implementation must use `t('notifications.markAllRead')` etc.
+
+---
+
+## Environment Variables
+
+Two new secrets required (per ENV_PROTOCOL.md):
+
+| Variable                       | Purpose                                                    | Pattern                        |
+| ------------------------------ | ---------------------------------------------------------- | ------------------------------ |
+| `PROCESS_NOTIFICATIONS_SECRET` | Bearer token for cron-triggered `process-notifications` EF | Matches `WATCHDOG_CRON_SECRET` |
+| `MORNING_DIGEST_SECRET`        | Bearer token for cron-triggered `send-morning-digest` EF   | Matches `WATCHDOG_CRON_SECRET` |
+
+Both must be added to:
+
+- `.env.template` with `op://` references
+- `docs/reference/ENV_VARS.md`
+- `supabase/functions/.env` (local dev)
+- pg_cron SQL uses `current_setting('app.process_notifications_secret')` — set via `ALTER DATABASE ... SET app.process_notifications_secret = '...'` in local setup
+
+---
+
+## Event key format
+
+Canonical format: **dot notation** (`shift.published`, not `shift_published`). Existing triggers use underscore format — the refactor migration converts all event keys to dot notation in the metadata jsonb. The event config registry uses dot notation exclusively.
 
 ---
 
