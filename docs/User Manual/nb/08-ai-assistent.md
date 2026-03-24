@@ -10,6 +10,7 @@ author: pontus
 supersedes: []
 superseded_by: null
 depends_on: []
+slug_en: ai-assistant
 tags:
   - manual
   - ai

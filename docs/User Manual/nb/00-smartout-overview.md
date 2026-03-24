@@ -7,6 +7,7 @@ layer: manual
 created: 2026-03-06
 updated: 2026-03-06
 author: pontus
+slug_en: smartout-overview
 tags:
   - manual
   - overview
