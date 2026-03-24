@@ -54,7 +54,7 @@ RETURNS TABLE (
   other_member_profile_id uuid,
   other_member_name text,
   other_member_avatar text
-) LANGUAGE sql STABLE SECURITY INVOKER AS $$
+) LANGUAGE sql STABLE SECURITY DEFINER AS $$
   WITH caller AS (
     SELECT profile_id FROM profile
     WHERE user_id = auth.uid() AND workspace_id = p_workspace_id
