@@ -60,21 +60,26 @@ export function ChannelHeader({
       ? (channel.other_member_name ?? "Direktemelding")
       : (channel.name ?? "Kanal");
 
-  const voiceEnabled = channel.audio_policy !== "none";
+  const voiceEnabled = channel.audio_policy !== "disabled";
   const { data: callSession } = useCallState(voiceEnabled ? channel.channel_id : null);
   const startCall = useStartCall();
   const hasActiveCall = !!callSession;
 
   const handleStartCall = () => {
     const callType = channel.channel_type === "direct" ? "direct" : "group";
-    startCall.mutate({
-      channelId: channel.channel_id,
-      callType,
-      profileId,
-      // C1: Pass callee profile ID for direct calls so the invite is broadcast
-      calleeProfileId:
-        callType === "direct" ? (channel.other_member_profile_id ?? undefined) : undefined,
-    });
+    startCall.mutate(
+      {
+        channelId: channel.channel_id,
+        callType,
+        profileId,
+        calleeProfileId:
+          callType === "direct" ? (channel.other_member_profile_id ?? undefined) : undefined,
+      },
+      {
+        // Auto-join after creating the call session
+        onSuccess: () => onJoinCall(),
+      },
+    );
   };
 
   return (
