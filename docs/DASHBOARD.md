@@ -13,15 +13,11 @@ tags: [dashboard, worktrees, tracking]
 
 ## Active Worktrees
 
-| #    | Branch                        | Module   | Status      | Progress                                                                                  | Blockers | Health |
-| ---- | ----------------------------- | -------- | ----------- | ----------------------------------------------------------------------------------------- | -------- | ------ |
-| wt-1 | `feat/workspace-intelligence` | core     | merged      | Fully merged to development. Worktree needs cleanup removal.                              | —        | stale  |
-| wt-2 | —                             | —        | free        | —                                                                                         | —        | —      |
-| wt-3 | `feat/emma-arena-views`       | walkAi   | in_progress | Spec + mockups done, settings persistence committed. Implementation not started.          | None     | clean  |
-| wt-4 | `feat/vaktlista-view`         | schedule | in_progress | —                                                                                         | —        | —      |
-| wt-5 | —                             | —        | free        | —                                                                                         | —        | —      |
-| wt-6 | `feat/livekit-phase2`         | webrtc   | in_progress | Just started. Phase 2 WebRTC — LiveKit voice/PTT for Komm channels.                       | —        | clean  |
-| wt-7 | `feat/fix-invitation-flow`    | core     | in_progress | Just started. Fix invitation flow gaps (company_member, listUsers, RLS, resend, cleanup). | —        | clean  |
+| #    | Branch                            | Module         | Status      | Progress                                                                         | Blockers | Health |
+| ---- | --------------------------------- | -------------- | ----------- | -------------------------------------------------------------------------------- | -------- | ------ |
+| wt-1 | `feat/notification-system`        | communications | in_progress | Just started. 13-task plan ready.                                                | —        | clean  |
+| wt-3 | `feat/emma-arena-views`           | walkAi         | in_progress | Spec + mockups done, settings persistence committed. Implementation not started. | None     | clean  |
+| wt-5 | `feat/hospitality-framework-seed` | cascade        | in_progress | —                                                                                | —        | clean  |
 
 ## Parked Branches (no worktree)
 
@@ -31,17 +27,17 @@ tags: [dashboard, worktrees, tracking]
 
 ## Free Slots
 
-| #     | Available                        |
-| ----- | -------------------------------- |
-| wt-1  | no (feat/workspace-intelligence) |
-| wt-2  | yes                              |
-| wt-3  | no (feat/emma-arena-views)       |
-| wt-4  | no (feat/vaktlista-view)         |
-| wt-5  | yes                              |
-| wt-6  | no (feat/livekit-phase2)         |
-| wt-7  | no (feat/fix-invitation-flow)    |
-| wt-15 | yes                              |
-| wt-20 | yes                              |
+| #     | Available                            |
+| ----- | ------------------------------------ |
+| wt-1  | no (feat/notification-system)        |
+| wt-2  | yes                                  |
+| wt-3  | no (feat/emma-arena-views)           |
+| wt-4  | yes                                  |
+| wt-5  | no (feat/hospitality-framework-seed) |
+| wt-6  | yes                                  |
+| wt-7  | yes                                  |
+| wt-15 | yes                                  |
+| wt-20 | yes                                  |
 
 ## Pending Journeys
 
@@ -56,7 +52,7 @@ tags: [dashboard, worktrees, tracking]
 | wt-2 | cascade-foundation     | `docs/journeys/JOURNEY-cascade-foundation.md`     | done    |
 | wt-5 | hms-phase-1            | `docs/journeys/JOURNEY-hms-phase-1.md`            | done    |
 | wt-6 | livekit-phase2         | `docs/journeys/JOURNEY-livekit-phase2.md`         | missing |
-| wt-7 | fix-invitation-flow    | `docs/journeys/JOURNEY-fix-invitation-flow.md`    | missing |
+| wt-1 | notification-system    | `docs/journeys/JOURNEY-notification-system.md`    | missing |
 
 ## Recent Closures
 
