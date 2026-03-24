@@ -1,5 +1,16 @@
 {
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash apps/web/scripts/preflight-json.sh 2>/dev/null || echo '{\"ok\":1,\"errors\":[{\"type\":\"script\",\"issue\":\"preflight script failed\"}],\"warnings\":[]}'",
+            "timeout": 15000
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "Write|Edit|MultiEdit|Bash",
