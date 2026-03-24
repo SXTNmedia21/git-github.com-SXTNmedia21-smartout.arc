@@ -148,3 +148,22 @@ ALTER FUNCTION get_channel_messages SECURITY DEFINER;
 ALTER FUNCTION get_unread_counts SECURITY DEFINER;
 ALTER FUNCTION create_channel SECURITY DEFINER;
 ALTER FUNCTION sync_profile_department_channel SECURITY DEFINER;
+
+--------------------------------------------------------------------------------
+-- FIX: channel_member + channel_message SELECT policies self-reference
+-- channel_member_jwt_select queried channel_member to check "which channels am
+-- I a member of" → infinite recursion. Replace with workspace-scoped policy.
+-- Same issue in channel_message_jwt_select which referenced channel_member.
+--------------------------------------------------------------------------------
+
+DROP POLICY IF EXISTS "channel_member_jwt_select" ON channel_member;
+CREATE POLICY "channel_member_jwt_select" ON channel_member
+  FOR SELECT USING (
+    workspace_id IN (SELECT get_workspace_ids_for_user(auth.uid()))
+  );
+
+DROP POLICY IF EXISTS "channel_message_jwt_select" ON channel_message;
+CREATE POLICY "channel_message_jwt_select" ON channel_message
+  FOR SELECT USING (
+    workspace_id IN (SELECT get_workspace_ids_for_user(auth.uid()))
+  );
