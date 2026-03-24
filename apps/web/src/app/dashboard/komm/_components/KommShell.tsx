@@ -7,7 +7,6 @@ import { useUnreadCounts } from "../_hooks/use-unread-counts";
 import { useChannelRealtime } from "../_hooks/use-channel-realtime";
 import { useCallSignaling } from "../_hooks/use-call-signaling";
 import { useCallRealtime } from "../_hooks/use-call-realtime";
-import { useLiveKitCall } from "../_hooks/use-livekit-call";
 import { useCallInvite } from "../_hooks/use-call-invite";
 import { useStartCall } from "../_hooks/use-start-call";
 import { getLiveKitToken } from "@smartout/walkie-talkie";
@@ -21,10 +20,14 @@ import { MessageTimeline } from "./MessageTimeline";
 import { MessageInput } from "./MessageInput";
 import { MemberPanel } from "./MemberPanel";
 import { IncomingCallOverlay } from "./IncomingCallOverlay";
-import { CallBar } from "./CallBar";
-import { MessageSquare, Loader2 } from "lucide-react";
-import { ConnectionState } from "livekit-client";
+import { CallRoom } from "./CallRoom";
+import { MessageSquare } from "lucide-react";
 import { toast } from "sonner";
+
+type LiveKitConnection = {
+  serverUrl: string;
+  token: string;
+};
 
 export function KommShell({ profileId }: { profileId: string }) {
   const { workspace } = useWorkspace();
@@ -34,6 +37,9 @@ export function KommShell({ profileId }: { profileId: string }) {
   const [showMembers, setShowMembers] = useState(false);
   const [replyToId, setReplyToId] = useState<string | null>(null);
 
+  // LiveKit connection state — set when joining a call, cleared on disconnect
+  const [livekitConnection, setLivekitConnection] = useState<LiveKitConnection | null>(null);
+
   const { data: channelGroups, isLoading } = useChannels();
   const { data: unreadCounts } = useUnreadCounts();
   useChannelRealtime(workspaceId, activeChannelId);
@@ -41,13 +47,8 @@ export function KommShell({ profileId }: { profileId: string }) {
   // Voice call hooks
   const { incomingCall, dismissIncoming } = useCallSignaling(profileId, activeChannelId);
   useCallRealtime(activeChannelId);
-  const livekit = useLiveKitCall();
   const callInvite = useCallInvite();
   const startCall = useStartCall();
-  const isInCall = livekit.connectionState === ConnectionState.Connected;
-
-  // H7: Destructure stable refs for useCallback deps (connect/disconnect are useCallback-wrapped)
-  const { connect: livekitConnect, disconnect: livekitDisconnect } = livekit;
 
   const handleJoinCall = useCallback(async () => {
     if (!activeChannelId) return;
@@ -57,13 +58,12 @@ export function KommShell({ profileId }: { profileId: string }) {
         channelId: activeChannelId,
         workspaceId,
       });
-      await livekitConnect(serverUrl, token);
+      setLivekitConnection({ serverUrl, token });
     } catch {
       toast.error("Kunne ikke koble til samtale");
     }
-  }, [activeChannelId, workspaceId, livekitConnect]);
+  }, [activeChannelId, workspaceId]);
 
-  // H4: Accept-then-connect with recovery on connect failure
   const handleAcceptCall = useCallback(async () => {
     if (!incomingCall) return;
     callInvite.mutate({
@@ -79,9 +79,8 @@ export function KommShell({ profileId }: { profileId: string }) {
         channelId: incomingCall.channelId,
         workspaceId,
       });
-      await livekitConnect(serverUrl, token);
+      setLivekitConnection({ serverUrl, token });
     } catch {
-      // Connect failed after accepting — offer rejoin via toast action
       toast.error("Kunne ikke koble til samtale", {
         action: {
           label: "Prøv igjen",
@@ -89,15 +88,7 @@ export function KommShell({ profileId }: { profileId: string }) {
         },
       });
     }
-  }, [
-    incomingCall,
-    callInvite,
-    profileId,
-    dismissIncoming,
-    workspaceId,
-    livekitConnect,
-    handleJoinCall,
-  ]);
+  }, [incomingCall, callInvite, profileId, dismissIncoming, workspaceId, handleJoinCall]);
 
   const handleRejectCall = useCallback(() => {
     if (!incomingCall) return;
@@ -110,9 +101,9 @@ export function KommShell({ profileId }: { profileId: string }) {
     dismissIncoming();
   }, [incomingCall, callInvite, profileId, dismissIncoming]);
 
-  const handleEndCall = useCallback(() => {
-    livekitDisconnect();
-  }, [livekitDisconnect]);
+  const handleDisconnect = useCallback(() => {
+    setLivekitConnection(null);
+  }, []);
 
   // Calculate unread totals for sub-tab badges
   const allChannels = channelGroups?.flatMap((g) => g.channels) ?? [];
@@ -167,7 +158,7 @@ export function KommShell({ profileId }: { profileId: string }) {
         </div>
       </div>
 
-      {/* Center: Messages */}
+      {/* Center: Messages + Call */}
       <div className="flex min-w-0 flex-1 flex-col">
         {activeChannel ? (
           <>
@@ -190,29 +181,16 @@ export function KommShell({ profileId }: { profileId: string }) {
                 replyToId={replyToId}
                 onCancelReply={() => setReplyToId(null)}
                 audioPolicy={activeChannel.audio_policy}
-                pttProps={isInCall ? { setMicEnabled: livekit.setMicEnabled } : undefined}
+                pttProps={undefined}
               />
             )}
 
-            {/* H5: Reconnection indicator */}
-            {livekit.isReconnecting && (
-              <div className="bg-warning/10 text-warning flex items-center justify-center gap-2 px-4 py-2 text-sm">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Kobler til igjen...
-              </div>
-            )}
-
-            {isInCall && (
-              <CallBar
-                remoteParticipants={livekit.remoteParticipants}
-                activeSpeakers={livekit.activeSpeakers}
-                isMicEnabled={livekit.isMicEnabled}
-                isCameraEnabled={livekit.isCameraEnabled}
-                isScreenShareEnabled={livekit.isScreenShareEnabled}
-                onToggleMic={livekit.toggleMic}
-                onToggleCamera={livekit.toggleCamera}
-                onToggleScreenShare={livekit.toggleScreenShare}
-                onEndCall={handleEndCall}
+            {/* LiveKit Call Room — full audio/video/screenshare via official components */}
+            {livekitConnection && (
+              <CallRoom
+                serverUrl={livekitConnection.serverUrl}
+                token={livekitConnection.token}
+                onDisconnect={handleDisconnect}
               />
             )}
           </>
