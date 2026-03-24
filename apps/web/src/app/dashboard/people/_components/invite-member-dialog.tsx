@@ -115,10 +115,10 @@ function validateRow(row: InviteRow, channels: Set<InviteChannel>): string[] {
 // ─── Shared styles ──────────────────────────────────────────
 
 const inputClass =
-  "w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground transition-all focus:border-orange-500/50 focus:ring-2 focus:ring-orange-500/20 focus:outline-none";
+  "w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground transition-all focus:border-brand-orange/50 focus:ring-2 focus:ring-brand-orange/20 focus:outline-none";
 
 const selectClass =
-  "w-full appearance-none rounded-xl border border-border bg-background px-3 py-2.5 pr-8 text-sm text-foreground transition-all focus:border-orange-500/50 focus:ring-2 focus:ring-orange-500/20 focus:outline-none";
+  "w-full appearance-none rounded-xl border border-border bg-background px-3 py-2.5 pr-8 text-sm text-foreground transition-all focus:border-brand-orange/50 focus:ring-2 focus:ring-brand-orange/20 focus:outline-none";
 
 const labelClass = "text-xs font-semibold tracking-wider uppercase text-muted-foreground";
 
@@ -442,7 +442,7 @@ export function InviteMemberDialog({
                   <ArrowLeft className="h-5 w-5" />
                 </button>
               ) : (
-                <div className={`rounded-xl p-2.5 ${"bg-brand-orange"}`}>
+                <div className={`bg-brand-orange/10 rounded-xl p-2.5`}>
                   <UserPlus className="text-brand-orange h-5 w-5" />
                 </div>
               )}
@@ -519,7 +519,7 @@ export function InviteMemberDialog({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="bg-brand-orange flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-orange-400 hover:shadow-[0_0_20px_rgba(249,115,22,0.3)]"
+                  className="bg-brand-orange hover:bg-brand-orange/90 flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition-all hover:shadow-lg"
                 >
                   Lukk
                 </button>
@@ -543,7 +543,7 @@ export function InviteMemberDialog({
                       (mode === "single" && channels.has("sms") && !singleRow.phone) ||
                       (mode === "csv" && csvRows.length === 0)
                     }
-                    className="bg-brand-orange flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-orange-400 hover:shadow-[0_0_20px_rgba(249,115,22,0.3)] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="bg-brand-orange hover:bg-brand-orange/90 flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition-all hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {isSubmitting ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -674,7 +674,7 @@ function SingleInviteForm({
                 onClick={() => !locked && onToggleChannel(ch)}
                 className={`relative flex flex-col items-center gap-1.5 rounded-xl px-3 py-3 text-xs font-medium transition-all ${
                   isActive
-                    ? "bg-brand-orange text-brand-orange ring-1 ring-orange-200"
+                    ? "bg-brand-orange/10 text-brand-orange ring-brand-orange/30 ring-1"
                     : "border-border bg-background text-muted-foreground hover:text-foreground hover:border-border/70 border"
                 } ${locked ? "cursor-default" : "cursor-pointer"}`}
               >
@@ -682,7 +682,7 @@ function SingleInviteForm({
                 {label}
                 {isActive && (
                   <div
-                    className={`absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full ${locked ? "bg-orange-500/50" : "bg-orange-500"}`}
+                    className={`absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full ${locked ? "bg-brand-orange/50" : "bg-brand-orange"}`}
                   />
                 )}
               </button>
@@ -774,7 +774,7 @@ function SingleInviteForm({
               onClick={() => update({ inviteEmploymentType: type })}
               className={`rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
                 row.inviteEmploymentType === type
-                  ? "bg-brand-orange text-brand-orange ring-1 ring-orange-200"
+                  ? "bg-brand-orange/10 text-brand-orange ring-brand-orange/30 ring-1"
                   : "border-border bg-background text-muted-foreground hover:text-foreground hover:border-border/70 border"
               }`}
             >
@@ -820,7 +820,7 @@ function SingleInviteForm({
                           onClick={() => handleTemplateSelect(isSelected ? "" : t.id)}
                           className={`flex flex-col items-start rounded-xl px-3 py-2.5 text-left transition-all ${
                             isSelected
-                              ? "bg-brand-orange text-brand-orange ring-1 ring-orange-200"
+                              ? "bg-brand-orange/10 text-brand-orange ring-brand-orange/30 ring-1"
                               : "border-border bg-background text-muted-foreground hover:text-foreground hover:border-border/70 border"
                           }`}
                         >
@@ -940,7 +940,7 @@ function CsvImportView({
         <button
           type="button"
           onClick={onUploadClick}
-          className="bg-brand-orange flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-orange-400"
+          className="bg-brand-orange hover:bg-brand-orange/90 flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition-colors"
         >
           <Upload className="h-4 w-4" />
           Velg fil
@@ -1043,7 +1043,7 @@ function GeneratedLinkView({
 }) {
   return (
     <div className="flex flex-col items-center gap-5 py-6">
-      <div className={`rounded-2xl p-4 ${"bg-brand-orange"}`}>
+      <div className={`bg-brand-orange/10 rounded-2xl p-4`}>
         <Link2 className="text-brand-orange h-8 w-8" />
       </div>
 

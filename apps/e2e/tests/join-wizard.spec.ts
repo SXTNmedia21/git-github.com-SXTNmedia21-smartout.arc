@@ -49,17 +49,28 @@ test.describe("join-wizard", () => {
     await expect(page.locator('textarea[id="ourConcept"]')).toBeVisible();
   });
 
-  // ─── Test 3: Step 3 has "Skriv på nytt" button ──────────
+  // ─── Test 3: Step 3 gear menu works for AI actions ──────
 
-  test("step 3 shows 'Skriv på nytt' button", async ({ page }) => {
+  test("step 3 shows AI action menu for filled fields", async ({ page }) => {
     await page.goto("/join?step=3");
     await expect(page.getByRole("heading", { name: /Fortell om bedriften/ })).toBeVisible({
       timeout: 10_000,
     });
 
-    // The rewrite button should always be visible
-    const rewriteButton = page.locator("button", { hasText: "Skriv på nytt" });
-    await expect(rewriteButton).toBeVisible();
+    const aboutUs = page.locator('textarea[id="aboutUs"]');
+    await aboutUs.fill("Vi er en restaurant i Trondheim.");
+
+    const menuButton = page
+      .locator("button")
+      .filter({ has: page.locator("svg.lucide-settings2") })
+      .first();
+    await expect(menuButton).toBeVisible();
+
+    await menuButton.click();
+
+    await expect(page.getByRole("button", { name: "Skriv om" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Gjør lengre" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Gjør kortere" })).toBeVisible();
   });
 
   // ─── Test 4: Step 3 navigation buttons work ─────────────
@@ -155,5 +166,15 @@ test.describe("join-wizard", () => {
     // "Gi bedriften din en stemme."
     const brandText = page.locator('h2:has-text("stemme")');
     await expect(brandText).toBeVisible({ timeout: 5_000 });
+  });
+
+  test("progress labels match the actual join steps", async ({ page }) => {
+    await page.goto("/join?step=3");
+    await expect(page.getByText("Om bedriften")).toBeVisible();
+    await expect(page.getByText("Identitet")).not.toBeVisible();
+
+    await page.goto("/join?step=6");
+    await expect(page.getByText("Opprett konto")).toBeVisible();
+    await expect(page.getByText("Team")).not.toBeVisible();
   });
 });

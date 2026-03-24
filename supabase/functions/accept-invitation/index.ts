@@ -95,7 +95,10 @@ Deno.serve(async (req: Request) => {
     // ── Check if caller is already authenticated (mobile OTP/magic link flow) ──
     // If Authorization header has a valid JWT, the user already has a session.
     // In that case, password is not required — we reuse the existing auth user.
+    // IMPORTANT: Only use the authenticated user if their email matches the invite.
+    // Otherwise a logged-in admin visiting the invite page would be mistaken for the invitee.
     let authenticatedUserId: string | null = null;
+    let authenticatedUserEmail: string | null = null;
     const authHeader = req.headers.get("Authorization");
     if (authHeader?.startsWith("Bearer ")) {
       const anonClient = createClient(
@@ -106,7 +109,10 @@ Deno.serve(async (req: Request) => {
       const {
         data: { user },
       } = await anonClient.auth.getUser();
-      if (user) authenticatedUserId = user.id;
+      if (user) {
+        authenticatedUserId = user.id;
+        authenticatedUserEmail = user.email ?? null;
+      }
     }
 
     if (!token || !first_name || !last_name) {
@@ -121,7 +127,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Password required only for unauthenticated callers (web flow)
+    // Password required for unauthenticated callers (web flow)
     if (!authenticatedUserId && !password) {
       return new Response(JSON.stringify({ error: "Password is required" }), {
         status: 400,
@@ -193,17 +199,28 @@ Deno.serve(async (req: Request) => {
     // ── 2. Create or find auth user ──
     let userId: string;
 
-    if (authenticatedUserId) {
-      // Mobile flow: user already authenticated via OTP/magic link
+    // Only reuse the authenticated session if the user's email matches the invite email.
+    // A logged-in admin visiting an invite link should NOT be treated as the invitee.
+    const shouldReuseAuth =
+      authenticatedUserId != null &&
+      authenticatedUserEmail != null &&
+      inviteEmail != null &&
+      authenticatedUserEmail.toLowerCase() === inviteEmail.toLowerCase();
+
+    if (shouldReuseAuth && authenticatedUserId) {
+      // Mobile flow or same-email: user already authenticated via OTP/magic link
       userId = authenticatedUserId;
     } else {
       // Web flow: create or find auth user by email
+      // listUsers filter does partial matching, so verify exact email match
       const { data: listResult } = await adminClient.auth.admin.listUsers({
         page: 1,
-        perPage: 1,
+        perPage: 50,
         filter: inviteEmail!,
       });
-      const existingUser = listResult?.users?.[0] ?? null;
+      const existingUser =
+        listResult?.users?.find((u) => u.email?.toLowerCase() === inviteEmail!.toLowerCase()) ??
+        null;
 
       if (existingUser) {
         userId = existingUser.id;

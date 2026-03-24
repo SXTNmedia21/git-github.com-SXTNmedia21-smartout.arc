@@ -85,11 +85,16 @@ export function ConsentProvider({
   locale?: "nb" | "en";
   children: React.ReactNode;
 }) {
-  const [state, setState] = useState<ConsentState>(() => readConsent());
+  const [state, setState] = useState<ConsentState>({
+    categories: { necessary: true, analytics: false },
+    hasConsented: false,
+  });
+  const [isMounted, setIsMounted] = useState(false);
 
   // Re-read on mount (SSR safety)
   useEffect(() => {
     setState(readConsent());
+    setIsMounted(true);
   }, []);
 
   const accept = useCallback((categories: ConsentCategories) => {
@@ -101,7 +106,7 @@ export function ConsentProvider({
     <ConsentContext.Provider value={state}>
       {children}
       <AnimatePresence>
-        {!state.hasConsented && <ConsentBanner locale={locale} onAccept={accept} />}
+        {isMounted && !state.hasConsented && <ConsentBanner locale={locale} onAccept={accept} />}
       </AnimatePresence>
     </ConsentContext.Provider>
   );

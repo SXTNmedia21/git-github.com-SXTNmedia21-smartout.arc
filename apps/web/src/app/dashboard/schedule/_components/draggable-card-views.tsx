@@ -26,7 +26,7 @@ export const OpenShiftCardView = React.memo(function OpenShiftCardView({
 }: OpenShiftCardViewProps) {
   return (
     <div
-      className={`group cursor-grab rounded-xl border border-dashed border-amber-500/25 bg-amber-500/[0.03] p-3 shadow-sm transition-[opacity,transform,background-color,border-color] duration-200 ease-out will-change-transform hover:border-amber-500/40 hover:bg-amber-500/[0.06] active:cursor-grabbing ${isDragging ? "scale-[0.98] opacity-35" : "scale-100 opacity-100"}`}
+      className={`group cursor-grab rounded-xl border border-dashed border-amber-500/40 bg-amber-500/5 p-3 shadow-sm transition-[opacity,transform,background-color,border-color] duration-200 ease-out will-change-transform hover:border-amber-500/60 hover:bg-amber-500/10 active:cursor-grabbing ${isDragging ? "scale-[0.98] opacity-35" : "scale-100 opacity-100"}`}
     >
       <h4 className="text-foreground group-hover:text-foreground/70 mb-1 text-sm font-bold transition-colors">
         {title}
@@ -54,10 +54,12 @@ type ShiftCardViewProps = {
 };
 
 const SHIFT_STATUS_STYLES: Record<ShiftStatus, string> = {
-  draft: "border-dashed border-orange-500/20 bg-orange-500/[0.03]",
-  published: "border-white/[0.06] bg-white/[0.015]",
-  active: "border-emerald-500/40 bg-emerald-500/8 shadow-[0_0_15px_rgba(16,185,129,0.1)]",
-  completed: "border-white/[0.03] bg-transparent opacity-50",
+  draft:
+    "border-dashed border-orange-500/30 bg-orange-500/5 dark:border-orange-500/20 dark:bg-orange-500/[0.03]",
+  published: "border-border bg-card shadow-sm hover:border-foreground/20",
+  active:
+    "border-emerald-500/40 bg-emerald-500/10 shadow-[0_0_15px_rgba(16,185,129,0.1)] dark:bg-emerald-500/5",
+  completed: "border-border/50 bg-muted/30 opacity-60 dark:bg-transparent",
 };
 
 const SHIFT_INDICATOR_STYLES: Record<ShiftIndicator, string> = {

@@ -154,6 +154,13 @@ export default function AcceptInvitePage() {
       return;
     }
 
+    // If "already a member", the user was already authenticated — just redirect
+    if (data?.message === "Already a member of this workspace") {
+      router.push("/dashboard");
+      router.refresh();
+      return;
+    }
+
     // Sign the user in with the newly created credentials
     const { error: signInError } = await supabase.auth.signInWithPassword({
       email: email.trim(),
@@ -166,9 +173,10 @@ export default function AcceptInvitePage() {
       return;
     }
 
-    // Redirect to welcome page with context
+    // Redirect to dashboard after successful sign-in
+    const wsName = inviteState.status === "valid" ? inviteState.data.workspaceName : "";
     const welcomeParams = new URLSearchParams({
-      workspace: invite.workspaceName,
+      workspace: wsName,
       name: firstName,
     });
     router.push(`/welcome?${welcomeParams.toString()}`);

@@ -6,11 +6,11 @@ import { cn } from "@/lib/utils";
 
 const STEPS = [
   { label: "Konto" },
-  { label: "Bedrift" },
   { label: "Identitet" },
+  { label: "Om bedriften" },
   { label: "Drift" },
   { label: "Meny" },
-  { label: "Team" },
+  { label: "Opprett konto" },
 ];
 
 export function WizardProgress() {

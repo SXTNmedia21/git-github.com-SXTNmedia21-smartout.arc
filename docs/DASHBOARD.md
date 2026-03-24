@@ -1,7 +1,7 @@
 ---
 title: Development Dashboard
 status: in_progress
-updated: 2026-03-25
+updated: 2026-03-24
 created: 2026-03-02
 module: meta
 tags: [dashboard, worktrees, tracking]
@@ -13,9 +13,10 @@ tags: [dashboard, worktrees, tracking]
 
 ## Active Worktrees
 
-| #    | Branch                  | Module | Status      | Progress                                                                         | Blockers | Health |
-| ---- | ----------------------- | ------ | ----------- | -------------------------------------------------------------------------------- | -------- | ------ |
-| wt-3 | `feat/emma-arena-views` | walkAi | in_progress | Spec + mockups done, settings persistence committed. Implementation not started. | None     | clean  |
+| #    | Branch                            | Module       | Status      | Progress                                                                         | Blockers | Health |
+| ---- | --------------------------------- | ------------ | ----------- | -------------------------------------------------------------------------------- | -------- | ------ |
+| wt-1 | `feat/livekit-webhook-deployment` | walkieTalkie | in_progress | just started                                                                     | —        | clean  |
+| wt-3 | `feat/emma-arena-views`           | walkAi       | in_progress | Spec + mockups done, settings persistence committed. Implementation not started. | None     | clean  |
 
 ## Parked Branches (no worktree)
 
@@ -25,17 +26,17 @@ tags: [dashboard, worktrees, tracking]
 
 ## Free Slots
 
-| #     | Available                  |
-| ----- | -------------------------- |
-| wt-1  | yes                        |
-| wt-2  | yes                        |
-| wt-3  | no (feat/emma-arena-views) |
-| wt-4  | yes                        |
-| wt-5  | yes                        |
-| wt-6  | yes                        |
-| wt-7  | yes                        |
-| wt-15 | yes                        |
-| wt-20 | yes                        |
+| #     | Available                            |
+| ----- | ------------------------------------ |
+| wt-1  | no (feat/livekit-webhook-deployment) |
+| wt-2  | yes                                  |
+| wt-3  | no (feat/emma-arena-views)           |
+| wt-4  | yes                                  |
+| wt-5  | yes                                  |
+| wt-6  | yes                                  |
+| wt-7  | yes                                  |
+| wt-15 | yes                                  |
+| wt-20 | yes                                  |
 
 ## Pending Journeys
 
@@ -53,6 +54,7 @@ tags: [dashboard, worktrees, tracking]
 | wt-6 | livekit-phase2 | `docs/journeys/JOURNEY-livekit-phase2.md` | done |
 | wt-7 | staff-handling-complete | `docs/journeys/JOURNEY-staff-handling-complete.md` | done |
 | wt-2 | setup-flow-redesign | `docs/journeys/JOURNEY-setup-flow-redesign.md` | done |
+| wt-1 | livekit-webhook-deployment | `docs/journeys/JOURNEY-livekit-webhook-deployment.md` | missing |
 
 ## Recent Closures
 
@@ -114,6 +116,7 @@ tags: [dashboard, worktrees, tracking]
 
 | Date       | Feature                           | Status                  | Notes                                                                                                                                                                                                                                                                                 |
 | ---------- | --------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-03-24 | livekit-webhook-deployment        | started                 | wt-1, module: walkieTalkie                                                                                                                                                                                                                                                            |
 | 2026-03-24 | docs + i18n + SEO overhaul        | session ended           | 22 commits: Fixed docs sidebar (Vercel), nb+en i18n (100+ keys), SEO (sitemap, robots, hreflang), design tokens (brand.purple), GDPR consent, language switcher + geo-detection, archived 8 variants. Pushed to origin.                                                               |
 | 2026-03-24 | invite-journey-complete           | session ended           | Complete invite journey: multi-channel (link+email+sms), Edge Function fixes (name/dept/template storage), mobile accept flow with confirm screen, welcome page (Framer Motion), profile card overhaul (Norwegian, live actions), realtime inbound request badge, light mode default. |
 | 2026-03-24 | error-logging + health + 429 fix  | session ended           | Fixed 429 token refresh storm (774/hr → 0). Added /api/smoke, connection banner, error reporter (Sentry+GitHub), global-error.tsx, preflight check, SessionStart hook. Droplet updated (main, port fix). PR #58 merged.                                                               |

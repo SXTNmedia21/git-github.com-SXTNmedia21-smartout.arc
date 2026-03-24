@@ -8,8 +8,8 @@
 // ============================================
 "use client";
 
-import { useMemo } from "react";
-import { Send, Clock, Users } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Send, Clock, Users, X, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -47,6 +47,7 @@ type PublishOverviewDialogProps = {
   employees: ScheduleEmployee[];
   onPublish: (shiftIds: string[]) => void;
   isPublishing?: boolean;
+  onEditShift?: (shiftId: string) => void;
 };
 
 /**
@@ -61,10 +62,16 @@ export function PublishOverviewDialog({
   employees,
   onPublish,
   isPublishing = false,
+  onEditShift,
 }: PublishOverviewDialogProps) {
+  const [discardedIds, setDiscardedIds] = useState<Set<string>>(new Set());
+
   const draftShifts = useMemo(
-    () => shifts.filter((s) => s.status === "created" || s.status === "assigned"),
-    [shifts],
+    () =>
+      shifts.filter(
+        (s) => (s.status === "created" || s.status === "assigned") && !discardedIds.has(s.id),
+      ),
+    [shifts, discardedIds],
   );
 
   const employeeMap = useMemo(() => {
@@ -138,28 +145,58 @@ export function PublishOverviewDialog({
                       return (
                         <div
                           key={shift.id}
-                          className="bg-muted/50 flex items-center gap-3 rounded-lg px-3 py-2"
+                          className="group bg-muted/50 hover:bg-muted/80 relative flex items-center gap-3 rounded-lg px-3 py-2 transition-colors"
                         >
-                          {emp ? (
-                            <div
-                              className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border text-[9px] font-black ${emp.avatarColor}`}
-                            >
-                              {emp.initials}
-                            </div>
-                          ) : (
-                            <div className="bg-muted flex h-6 w-6 shrink-0 items-center justify-center rounded-md border">
-                              <Users className="text-muted-foreground h-3 w-3" />
-                            </div>
-                          )}
-                          <div className="min-w-0 flex-1">
-                            <span className="text-foreground text-xs font-medium">
+                          {/* Main Clickable Area */}
+                          <button
+                            type="button"
+                            className="absolute inset-0 z-0 h-full w-full rounded-lg"
+                            onClick={() => onEditShift?.(shift.id)}
+                            aria-label="Rediger vakt"
+                          />
+
+                          <div className="z-10 flex shrink-0">
+                            {emp ? (
+                              <div
+                                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border text-[9px] font-black ${emp.avatarColor}`}
+                              >
+                                {emp.initials}
+                              </div>
+                            ) : (
+                              <div className="bg-muted flex h-6 w-6 shrink-0 items-center justify-center rounded-md border">
+                                <Users className="text-muted-foreground h-3 w-3" />
+                              </div>
+                            )}
+                          </div>
+                          <div className="z-10 flex min-w-0 flex-1 items-center gap-2">
+                            <span className="text-foreground truncate text-xs font-medium">
                               {emp?.name ?? "Ikke tildelt"}
                             </span>
+                            <span className="text-muted-foreground truncate text-xs">
+                              - {shift.role}
+                            </span>
                           </div>
-                          <span className="text-muted-foreground text-xs">{shift.role}</span>
-                          <div className="text-muted-foreground flex items-center gap-1 text-xs">
+                          <div className="text-muted-foreground z-10 flex items-center gap-1 text-xs whitespace-nowrap">
                             <Clock className="h-3 w-3" />
                             {shift.startTime}–{shift.endTime}
+                          </div>
+                          <div className="z-10 flex shrink-0 items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 h-6 w-6"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDiscardedIds((prev) => {
+                                  const next = new Set(prev);
+                                  next.add(shift.id);
+                                  return next;
+                                });
+                              }}
+                              title="Ikke publiser denne"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </Button>
                           </div>
                         </div>
                       );

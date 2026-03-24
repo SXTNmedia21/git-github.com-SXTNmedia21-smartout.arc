@@ -461,7 +461,7 @@ const DayHeaders = React.memo(function DayHeaders({
     <div className="sticky top-0 flex w-full" style={{ zIndex: SCHEDULE_LAYERS.stickyHeaders }}>
       {/* Sticky corner cell */}
       <div
-        className={`w-[260px] shrink-0 border-r border-b border-white/[0.04] ${isDark ? "bg-[#0a0a0c]/95" : "bg-white/95"} sticky left-0 flex h-16 flex-col justify-center p-3 shadow-[2px_0_8px_-6px_rgba(0,0,0,0.35)]`}
+        className={`border-border bg-background/95 sticky left-0 flex h-16 w-[260px] shrink-0 flex-col justify-center border-r border-b p-3 shadow-[2px_0_8px_-6px_rgba(0,0,0,0.35)]`}
         style={{ zIndex: SCHEDULE_LAYERS.stickyCorner }}
       >
         <div className="flex w-full items-center justify-between">
@@ -528,7 +528,7 @@ function DroppableDayHeader({
     <div
       ref={setNodeRef}
       data-schedule-day-id={day.id}
-      className={`flex-1 border-r border-b border-white/[0.03] ${isDark ? "bg-[#0a0a0c]/90" : "bg-white/95"} group/day relative flex h-16 cursor-pointer flex-col justify-center p-2 transition-colors hover:bg-white/5 ${day.isToday ? "bg-orange-500/[0.06]" : ""} ${isOver ? "rounded-lg border-dashed border-orange-500/50 bg-orange-500/20" : ""} ${day.situation === "__dimmed__" ? "opacity-30" : ""} ${isHighlighted ? "shadow-[inset_0_0_0_2px_rgba(251,146,60,0.7)]" : ""}`}
+      className={`border-border bg-background/90 group/day hover:bg-muted relative flex h-16 flex-1 cursor-pointer flex-col justify-center border-r border-b p-2 transition-colors ${day.isToday ? "bg-orange-500/[0.06]" : ""} ${isOver ? "rounded-lg border-dashed border-orange-500/50 bg-orange-500/20" : ""} ${day.situation === "__dimmed__" ? "opacity-30" : ""} ${isHighlighted ? "shadow-[inset_0_0_0_2px_rgba(251,146,60,0.7)]" : ""}`}
       style={{ minWidth: "100px" }}
       onClick={() => onDateClick(day.id)}
     >
@@ -541,7 +541,7 @@ function DroppableDayHeader({
       {/* Top: Date label + context menu */}
       <div className="flex items-start justify-between">
         <h2
-          className={`flex items-center gap-1.5 truncate text-sm tracking-tight ${day.isToday ? "font-black text-orange-400" : day.isHoliday ? "font-black text-rose-400" : isDark ? "font-semibold text-zinc-400" : "font-semibold text-zinc-700"}`}
+          className={`flex items-center gap-1.5 truncate text-sm tracking-tight ${day.isToday ? "font-black text-orange-400" : day.isHoliday ? "font-black text-rose-400" : "text-muted-foreground font-semibold"}`}
         >
           {day.label}
           {day.isToday ? (
@@ -593,16 +593,14 @@ export const GroupHeader = React.memo(function GroupHeader({
   return (
     <div className="group/header flex w-full">
       <div
-        className={`w-[260px] shrink-0 border-r border-b border-white/[0.04] ${isDark ? "bg-white/[0.03]" : "bg-zinc-100"} relative sticky left-0 flex h-9 items-center justify-between px-4 shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)]`}
+        className={`border-border bg-muted/30 relative sticky left-0 flex h-9 w-[260px] shrink-0 items-center justify-between border-r border-b px-4 shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)]`}
         style={{ zIndex: SCHEDULE_LAYERS.stickyHeaders }}
       >
-        <span
-          className={`text-[11px] font-bold ${isDark ? "text-white" : "text-zinc-900"} tracking-wider uppercase`}
-        >
+        <span className={`text-foreground text-[11px] font-bold tracking-wider uppercase`}>
           {title}
         </span>
         <span
-          className={`text-[10px] font-medium text-zinc-400 ${isDark ? "bg-white/10" : "bg-zinc-200"} rounded px-1.5 py-0.5`}
+          className={`text-muted-foreground bg-muted rounded px-1.5 py-0.5 text-[10px] font-medium`}
         >
           {count}
         </span>
@@ -611,7 +609,7 @@ export const GroupHeader = React.memo(function GroupHeader({
         <div
           key={day.id}
           style={{ minWidth: "100px" }}
-          className={`flex-1 border-r border-b ${isDark ? "border-white/[0.04]" : "border-zinc-200"} h-9 bg-white/[0.01]`}
+          className={`border-border bg-muted/10 h-9 flex-1 border-r border-b`}
         />
       ))}
     </div>
@@ -714,7 +712,7 @@ export const EmployeeRow = React.memo(function EmployeeRow({
     <div className="group/row flex w-full">
       {/* Sticky employee info panel — clickable to open drawer */}
       <div
-        className={`w-[260px] shrink-0 border-r border-b border-white/[0.04] ${isDark ? "bg-[#0a0a0c]" : "bg-white"} sticky left-0 flex cursor-pointer items-center shadow-[2px_0_8px_-6px_rgba(0,0,0,0.35)] transition-colors group-hover/row:bg-white/[0.02] ${isCompact ? "h-[52px] min-h-0 gap-2 p-2" : "h-[100px] gap-3 p-3"}`}
+        className={`border-border bg-background group-hover/row:bg-muted/50 sticky left-0 flex w-[260px] shrink-0 cursor-pointer items-center border-r border-b shadow-[2px_0_8px_-6px_rgba(0,0,0,0.35)] transition-colors ${isCompact ? "h-[52px] min-h-0 gap-2 p-2" : "h-[100px] gap-3 p-3"}`}
         style={{ zIndex: SCHEDULE_LAYERS.stickyHeaders }}
         onClick={() => onSelectEmployee?.(employee.id)}
       >
@@ -737,25 +735,23 @@ export const EmployeeRow = React.memo(function EmployeeRow({
         </div>
         <div className="min-w-0 flex-1">
           <h3
-            className={`text-[13px] leading-tight font-bold ${isDark ? "text-white" : "text-zinc-900"} truncate transition-colors group-hover/row:text-zinc-300`}
+            className={`text-foreground group-hover/row:text-foreground/80 truncate text-[13px] leading-tight font-bold transition-colors`}
           >
             {employee.name}
           </h3>
-          <p className="mt-0.5 truncate text-[11px] leading-tight text-zinc-500">
+          <p className="text-muted-foreground mt-0.5 truncate text-[11px] leading-tight">
             {subtitle || employee.jobTitle || employee.role}
           </p>
           {!isCompact && (
             <div className="mt-1.5 space-y-1 pr-1">
               <div className="flex items-center justify-between text-[10px] font-bold tracking-widest uppercase">
-                <span className="text-zinc-500">{shiftCount}v</span>
-                <span className={isOvertime ? "text-red-400" : "text-zinc-400"}>
+                <span className="text-muted-foreground">{shiftCount}v</span>
+                <span className={isOvertime ? "text-red-400" : "text-muted-foreground"}>
                   {scheduledHours.toFixed(1)}
-                  <span className="text-zinc-600">/{contractedHours}</span>
+                  <span className="text-muted-foreground/70">/{contractedHours}</span>
                 </span>
               </div>
-              <div
-                className={`h-1 w-full ${isDark ? "bg-white/5" : "bg-zinc-100"} overflow-hidden rounded-full`}
-              >
+              <div className={`bg-muted h-1 w-full overflow-hidden rounded-full`}>
                 <div
                   className={`h-full ${barColor} rounded-full transition-all`}
                   style={{ width: `${percentage}%` }}
@@ -963,7 +959,7 @@ function MatrixCellBase({
       ref={containerRef}
       onContextMenu={onContextMenu}
       style={{ minWidth: "100px" }}
-      className={`flex-1 border-r border-b border-white/[0.03] ${isDark ? "bg-[#050505]" : "bg-zinc-50"}/40 relative flex flex-col gap-1 overflow-hidden transition-colors ${isCompact ? "h-[52px] min-h-0 p-1" : "h-[100px] p-2"} ${isOver ? "z-10 rounded-lg border border-dashed border-orange-500/50 bg-orange-500/20" : "group-hover/row:bg-white/[0.02] hover:bg-white/[0.04]"} ${isToday ? "bg-orange-500/[0.06]" : ""} ${dimmed ? "opacity-30" : ""}`}
+      className={`border-border bg-background/40 relative flex flex-1 flex-col gap-1 overflow-hidden border-r border-b transition-colors ${isCompact ? "h-[52px] min-h-0 p-1" : "h-[100px] p-2"} ${isOver ? "z-10 rounded-lg border border-dashed border-orange-500/50 bg-orange-500/20" : "group-hover/row:bg-muted/30 hover:bg-muted/50"} ${isToday ? "bg-orange-500/[0.06]" : ""} ${dimmed ? "opacity-30" : ""}`}
     >
       {children ? (
         <>
@@ -971,7 +967,7 @@ function MatrixCellBase({
           {/* Add button — always hover-only in compact, row-hover in normal */}
           <button
             onClick={onAddClick}
-            className={`mt-auto flex w-full shrink-0 cursor-pointer items-center justify-center rounded-lg border border-dashed ${isDark ? "border-white/[0.06]" : "border-zinc-300"} bg-transparent text-orange-500/0 transition-all hover:border-orange-500/30 hover:bg-white/[0.03] hover:text-orange-500/50 ${isCompact ? "hidden h-5 opacity-0 group-hover/row:block group-hover/row:text-orange-500/30 group-hover/row:opacity-60" : "h-7 opacity-0 group-hover/row:text-orange-500/30 group-hover/row:opacity-60"}`}
+            className={`border-border mt-auto flex w-full shrink-0 cursor-pointer items-center justify-center rounded-lg border border-dashed bg-transparent text-orange-500/0 transition-all hover:border-orange-500/30 hover:bg-orange-500/5 hover:text-orange-500/50 ${isCompact ? "hidden h-5 opacity-0 group-hover/row:block group-hover/row:text-orange-500/30 group-hover/row:opacity-60" : "h-7 opacity-0 group-hover/row:text-orange-500/30 group-hover/row:opacity-60"}`}
           >
             <Plus className="h-3.5 w-3.5" />
           </button>
@@ -979,7 +975,7 @@ function MatrixCellBase({
       ) : (
         <button
           onClick={onAddClick}
-          className={`absolute inset-x-2 inset-y-2 rounded-lg border border-dashed ${isDark ? "border-white/[0.06]" : "border-zinc-300"} flex cursor-pointer items-center justify-center bg-transparent text-orange-500/0 opacity-0 transition-all hover:border-orange-500/30 hover:bg-white/[0.03] hover:text-orange-500/50 hover:opacity-100`}
+          className={`border-border absolute inset-x-2 inset-y-2 flex cursor-pointer items-center justify-center rounded-lg border border-dashed bg-transparent text-orange-500/0 opacity-0 transition-all hover:border-orange-500/30 hover:bg-orange-500/5 hover:text-orange-500/50 hover:opacity-100`}
         >
           <Plus className="h-4 w-4" />
         </button>

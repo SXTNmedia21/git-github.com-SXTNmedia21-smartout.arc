@@ -21,6 +21,7 @@ import { ONBOARDING_SECTIONS, EMPTY_BUSINESS_DATA } from "../types";
 import { mergeBusinessData } from "../lib/data-merger";
 import type { PlacesData } from "../lib/data-merger";
 import { suggestSeason } from "../lib/season-suggestions";
+import { buildWorkspaceFinalizationRequest } from "../lib/finalization";
 import {
   getDepartmentsForIndustry,
   getProceduresForIndustry,
@@ -771,51 +772,29 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
         logoUrl: business.logoUrl,
       };
 
-      let workspaceId: string;
-      let slug: string | null = null;
+      const finalizationRequest = buildWorkspaceFinalizationRequest(
+        onboardingWorkspaceId,
+        workspacePayload,
+      );
 
-      if (onboardingWorkspaceId) {
-        // Finalize existing onboarding workspace — call RPC directly
-        // (SECURITY DEFINER bypasses RLS, no service role needed)
-        const { data: rpcResult, error: rpcError } = await supabase.rpc(
-          "finalize_onboarding_workspace",
-          {
-            p_workspace_id: onboardingWorkspaceId,
-            p_data: workspacePayload,
-          },
-        );
-
-        if (rpcError) throw new Error(`Failed to finalize workspace: ${rpcError.message}`);
-        workspaceId = rpcResult ?? onboardingWorkspaceId;
-
-        // Link contract to workspace if one was generated during onboarding
-        if (workspacePayload.contractId) {
-          await supabase
-            .from("contract")
-            .update({ workspace_id: workspaceId, updated_at: new Date().toISOString() })
-            .eq("contract_id", workspacePayload.contractId);
-
-          await supabase
-            .from("workspace")
-            .update({ contract_status: "pending_contract", updated_at: new Date().toISOString() })
-            .eq("workspace_id", workspaceId);
-        }
-
-        const { data: ws } = await supabase
-          .from("workspace")
-          .select("slug")
-          .eq("workspace_id", workspaceId)
-          .single();
-        slug = ws?.slug ?? null;
-      } else {
-        // Legacy: activate-workspace for old flow
-        const { data, error } = await supabase.functions.invoke("activate-workspace", {
-          body: { workspaceData: workspacePayload },
+      const { data: finalizationResult, error: finalizationError } =
+        await supabase.functions.invoke(finalizationRequest.functionName, {
+          body: finalizationRequest.body,
         });
 
-        if (error) throw new Error("Failed to activate workspace");
-        workspaceId = data?.workspaceId;
+      if (finalizationError) {
+        throw new Error(finalizationError.message || "Failed to finalize workspace");
+      }
 
+      const response = (finalizationResult ?? null) as {
+        workspaceId?: string;
+        slug?: string | null;
+      } | null;
+
+      const workspaceId = response?.workspaceId;
+      let slug = response?.slug ?? null;
+
+      if (workspaceId && !slug) {
         const { data: ws } = await supabase
           .from("workspace")
           .select("slug")

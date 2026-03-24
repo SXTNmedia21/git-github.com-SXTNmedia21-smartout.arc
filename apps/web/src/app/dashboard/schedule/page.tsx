@@ -945,7 +945,7 @@ function SchedulePageContent() {
         publishShifts={publishShifts}
       />
       <div
-        className={`flex flex-1 flex-col ${isDark ? "bg-[#050505]" : "bg-zinc-50"} relative isolate h-full overflow-hidden rounded-2xl border border-white/[0.04] font-sans text-zinc-100 shadow-2xl print:block print:h-auto print:overflow-visible print:border-none print:bg-white print:shadow-none`}
+        className={`bg-background border-border text-foreground relative isolate flex h-full flex-1 flex-col overflow-hidden rounded-2xl border font-sans shadow-2xl print:block print:h-auto print:overflow-visible print:border-none print:bg-white print:shadow-none`}
       >
         {isLoading ? (
           <ScheduleLoadingSkeleton isDark={isDark} />
@@ -1088,6 +1088,10 @@ function SchedulePageContent() {
               employees={employees}
               onPublish={(ids) => publishShifts.mutate(ids)}
               isPublishing={publishShifts.isPending}
+              onEditShift={(id) => {
+                setPublishOverviewOpen(false);
+                scheduleUI.setSelectedShift(id);
+              }}
             />
             <SendMessageDialog
               open={sendMessageDialog.open}
