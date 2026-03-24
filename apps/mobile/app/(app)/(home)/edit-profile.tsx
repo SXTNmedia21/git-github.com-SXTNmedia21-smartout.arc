@@ -187,7 +187,7 @@ export default function EditProfileScreen() {
             />
           </View>
           <View style={styles.cameraOverlay}>
-            <Camera size={16} color="#ffffff" strokeWidth={2} />
+            <Camera size={16} color={styles.primaryForegroundColor.color} strokeWidth={2} />
           </View>
         </Pressable>
         <Text style={styles.changePhotoText}>Trykk for a endre bilde</Text>
@@ -277,6 +277,9 @@ const useStyles = createStyles((theme) => ({
   },
   placeholderColor: {
     color: theme.colors.mutedForeground,
+  },
+  primaryForegroundColor: {
+    color: theme.colors.primaryForeground,
   },
 
   /* Avatar */

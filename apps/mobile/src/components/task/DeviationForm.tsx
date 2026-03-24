@@ -14,6 +14,7 @@ import * as Haptics from "expo-haptics";
 
 import { Button, Input } from "@/components/ui";
 import { createStyles, useTheme } from "@/theme";
+
 import { strings } from "@/constants/strings";
 import {
   useReportDeviation,
@@ -41,12 +42,12 @@ const DOMAIN_OPTIONS: { value: DeviationDomain; label: string }[] = [
   { value: "material", label: "Materiell" },
 ];
 
-/** Severity options with Norwegian labels and visual indicators */
-const SEVERITY_OPTIONS: { value: DeviationSeverity; label: string; color: string }[] = [
-  { value: "low", label: "Lav", color: "#a3a3a3" },
-  { value: "medium", label: "Middels", color: "#d97706" },
-  { value: "high", label: "H\u00F8y", color: "#ea580c" },
-  { value: "critical", label: "Kritisk", color: "#dc2626" },
+/** Severity options with Norwegian labels and theme color keys */
+const SEVERITY_OPTIONS: { value: DeviationSeverity; label: string; colorKey: string }[] = [
+  { value: "low", label: "Lav", colorKey: "mutedForeground" },
+  { value: "medium", label: "Middels", colorKey: "warning" },
+  { value: "high", label: "H\u00F8y", colorKey: "brandOrange" },
+  { value: "critical", label: "Kritisk", colorKey: "destructive" },
 ];
 
 export function DeviationForm({
@@ -58,6 +59,7 @@ export function DeviationForm({
   onComplete,
 }: DeviationFormProps) {
   const styles = useStyles();
+  const { colors } = useTheme();
   const { reportDeviation, isSubmitting } = useReportDeviation();
 
   const [domain, setDomain] = useState<DeviationDomain | null>(null);
@@ -150,12 +152,20 @@ export function DeviationForm({
               onPress={() => handleSelectSeverity(opt.value)}
               style={[
                 styles.severityOption,
-                severity === opt.value && { borderColor: opt.color, borderWidth: 2 },
+                severity === opt.value && {
+                  borderColor: (colors as Record<string, string>)[opt.colorKey],
+                  borderWidth: 2,
+                },
               ]}
               accessibilityRole="button"
               accessibilityState={{ selected: severity === opt.value }}
             >
-              <View style={[styles.severityDot, { backgroundColor: opt.color }]} />
+              <View
+                style={[
+                  styles.severityDot,
+                  { backgroundColor: (colors as Record<string, string>)[opt.colorKey] },
+                ]}
+              />
               <Text
                 style={[styles.severityText, severity === opt.value && styles.severityTextSelected]}
               >

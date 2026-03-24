@@ -257,7 +257,7 @@ const useStyles = createStyles((theme) => ({
     justifyContent: "center",
   },
   headerAvatarText: {
-    color: "#ffffff",
+    color: theme.colors.primaryForeground,
     fontSize: 16,
     fontWeight: theme.fontWeights.bold,
   },
@@ -307,7 +307,7 @@ const useStyles = createStyles((theme) => ({
     backgroundColor: theme.colors.secondary,
   },
   sendIcon: {
-    color: "#ffffff",
+    color: theme.colors.primaryForeground,
     fontSize: 18,
     fontWeight: theme.fontWeights.bold,
   },

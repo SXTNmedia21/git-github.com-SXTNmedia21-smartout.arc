@@ -33,21 +33,22 @@ import {
   CheckCircle2,
   Send,
 } from "lucide-react-native";
-import { createStyles } from "@/theme";
+import { createStyles, useTheme, withOpacity } from "@/theme";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
 
 type Severity = "Lav" | "Middels" | "Hoy";
 
-const SEVERITY_COLORS: Record<Severity, { bg: string; border: string; text: string }> = {
-  Lav: { bg: "rgba(34,197,94,0.08)", border: "rgba(34,197,94,0.3)", text: "#22c55e" },
-  Middels: { bg: "rgba(245,158,11,0.08)", border: "rgba(245,158,11,0.3)", text: "#f59e0b" },
-  Hoy: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.3)", text: "#ef4444" },
+const SEVERITY_COLOR_KEYS: Record<Severity, string> = {
+  Lav: "success",
+  Middels: "warning",
+  Hoy: "destructive",
 };
 
 const LOCATIONS = ["Hovedkjokken", "Sal", "Bar", "Lager", "Garderobe", "Utendors"];
 
 export default function DeviationScreen() {
   const styles = useStyles();
+  const { colors } = useTheme();
   const router = useRouter();
   const { data: profile } = useMyProfile();
 
@@ -91,7 +92,7 @@ export default function DeviationScreen() {
         <ScrollView contentContainerStyle={styles.content}>
           {/* Success banner */}
           <Animated.View entering={FadeInDown.duration(400)} style={styles.successBanner}>
-            <CheckCircle2 size={20} color="#22c55e" strokeWidth={2} />
+            <CheckCircle2 size={20} color={colors.success} strokeWidth={2} />
             <View style={styles.bannerText}>
               <Text style={styles.successTitle}>Avviksmeldning registrert</Text>
               <Text style={styles.bannerSubtitle}>Sendt til avdelingsleder kl. {timeStr}</Text>
@@ -108,22 +109,22 @@ export default function DeviationScreen() {
             </View>
 
             <SummaryRow
-              icon={<AlertTriangle size={14} color="#737373" strokeWidth={2} />}
+              icon={<AlertTriangle size={14} color={colors.mutedForeground} strokeWidth={2} />}
               label="Hendelse"
               value={description}
             />
             <SummaryRow
-              icon={<MapPin size={14} color="#737373" strokeWidth={2} />}
+              icon={<MapPin size={14} color={colors.mutedForeground} strokeWidth={2} />}
               label="Sted"
               value={location ?? "—"}
             />
             <SummaryRow
-              icon={<Clock size={14} color="#737373" strokeWidth={2} />}
+              icon={<Clock size={14} color={colors.mutedForeground} strokeWidth={2} />}
               label="Tidspunkt"
               value={`${now.toLocaleDateString("nb-NO")} kl. ${timeStr}`}
             />
             <SummaryRow
-              icon={<User size={14} color="#737373" strokeWidth={2} />}
+              icon={<User size={14} color={colors.mutedForeground} strokeWidth={2} />}
               label="Meldt av"
               value={profile?.display_name ?? "—"}
             />
@@ -133,22 +134,30 @@ export default function DeviationScreen() {
                 style={[
                   styles.severityBadge,
                   severity && {
-                    backgroundColor: SEVERITY_COLORS[severity].bg,
-                    borderColor: SEVERITY_COLORS[severity].border,
+                    backgroundColor: withOpacity(
+                      (colors as Record<string, string>)[SEVERITY_COLOR_KEYS[severity]],
+                      0.08,
+                    ),
+                    borderColor: withOpacity(
+                      (colors as Record<string, string>)[SEVERITY_COLOR_KEYS[severity]],
+                      0.3,
+                    ),
                   },
                 ]}
               >
                 <Text
                   style={[
                     styles.severityBadgeText,
-                    severity && { color: SEVERITY_COLORS[severity].text },
+                    severity && {
+                      color: (colors as Record<string, string>)[SEVERITY_COLOR_KEYS[severity]],
+                    },
                   ]}
                 >
                   {severity}
                 </Text>
               </View>
               <View style={styles.sentRow}>
-                <Send size={12} color="#737373" strokeWidth={2} />
+                <Send size={12} color={colors.mutedForeground} strokeWidth={2} />
                 <Text style={styles.sentText}>Varslet avdelingsleder</Text>
               </View>
             </View>
@@ -229,7 +238,7 @@ export default function DeviationScreen() {
             </View>
             <View style={styles.severityRow}>
               {(["Lav", "Middels", "Hoy"] as Severity[]).map((level) => {
-                const colors = SEVERITY_COLORS[level];
+                const sevColor = (colors as Record<string, string>)[SEVERITY_COLOR_KEYS[level]];
                 const isSelected = severity === level;
                 return (
                   <Pressable
@@ -241,12 +250,14 @@ export default function DeviationScreen() {
                     style={[
                       styles.severityOption,
                       {
-                        backgroundColor: isSelected ? colors.bg : "transparent",
-                        borderColor: isSelected ? colors.border : styles.borderColor.borderColor,
+                        backgroundColor: isSelected ? withOpacity(sevColor, 0.08) : "transparent",
+                        borderColor: isSelected
+                          ? withOpacity(sevColor, 0.3)
+                          : styles.borderColor.borderColor,
                       },
                     ]}
                   >
-                    <Text style={[styles.severityText, isSelected && { color: colors.text }]}>
+                    <Text style={[styles.severityText, isSelected && { color: sevColor }]}>
                       {level === "Hoy" ? "Høy" : level}
                     </Text>
                   </Pressable>
@@ -265,7 +276,7 @@ export default function DeviationScreen() {
             accessibilityRole="button"
             accessibilityLabel="Send avviksmeldning"
           >
-            <Send size={18} color="#ffffff" strokeWidth={2} />
+            <Send size={18} color={colors.primaryForeground} strokeWidth={2} />
             <Text style={styles.submitLabel}>Send avviksmeldning</Text>
           </Pressable>
         </Animated.View>
@@ -395,8 +406,8 @@ const useStyles = createStyles((theme) => ({
     backgroundColor: "transparent",
   },
   chipSelected: {
-    backgroundColor: theme.isDark ? "rgba(232,92,13,0.12)" : "rgba(232,92,13,0.08)",
-    borderColor: "rgba(232,92,13,0.4)",
+    backgroundColor: withOpacity(theme.colors.brandOrange, theme.isDark ? 0.12 : 0.08),
+    borderColor: withOpacity(theme.colors.brandOrange, 0.4),
   },
   chipText: {
     ...theme.typography.subheadline,
@@ -444,7 +455,7 @@ const useStyles = createStyles((theme) => ({
   },
   submitLabel: {
     ...theme.typography.headline,
-    color: "#ffffff",
+    color: theme.colors.primaryForeground,
   },
 
   /* Success state */
@@ -454,9 +465,9 @@ const useStyles = createStyles((theme) => ({
     gap: theme.spacing.element,
     padding: theme.spacing.md,
     borderRadius: theme.radius.lg,
-    backgroundColor: "rgba(34,197,94,0.06)",
+    backgroundColor: withOpacity(theme.colors.success, 0.06),
     borderWidth: 1,
-    borderColor: "rgba(34,197,94,0.2)",
+    borderColor: withOpacity(theme.colors.success, 0.2),
   },
   bannerText: {
     flex: 1,
@@ -465,7 +476,7 @@ const useStyles = createStyles((theme) => ({
   successTitle: {
     ...theme.typography.subheadline,
     fontWeight: theme.fontWeights.semibold,
-    color: "#22c55e",
+    color: theme.colors.success,
   },
   bannerSubtitle: {
     ...theme.typography.caption,

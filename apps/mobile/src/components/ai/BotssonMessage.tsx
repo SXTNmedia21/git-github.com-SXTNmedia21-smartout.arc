@@ -102,7 +102,7 @@ const useStyles = createStyles((theme) => ({
     marginBottom: 2,
   },
   botssonAvatarText: {
-    color: "#ffffff",
+    color: theme.colors.primaryForeground,
     fontSize: 14,
     fontWeight: theme.fontWeights.bold,
   },

@@ -14,7 +14,7 @@ import { useRouter } from "expo-router";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { ChevronLeft, Thermometer, CheckCircle2, AlertTriangle, Shield } from "lucide-react-native";
-import { createStyles, useTheme } from "@/theme";
+import { createStyles, useTheme, withOpacity } from "@/theme";
 
 type UnitStatus = "pending" | "ok" | "avvik" | "resolved";
 
@@ -32,19 +32,31 @@ const UNITS: CoolingUnit[] = [
   { id: "u3", name: "Fryser", location: "Hovedkjokken", temperature: -18.5, threshold: -15 },
 ];
 
-function getStatusColor(status: UnitStatus, theme: { isDark: boolean }) {
+function getStatusColor(status: UnitStatus, theme: ReturnType<typeof useTheme>) {
   switch (status) {
     case "ok":
-      return { bg: "rgba(34,197,94,0.08)", border: "rgba(34,197,94,0.2)", text: "#22c55e" };
+      return {
+        bg: withOpacity(theme.colors.success, 0.08),
+        border: withOpacity(theme.colors.success, 0.2),
+        text: theme.colors.success,
+      };
     case "avvik":
-      return { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", text: "#ef4444" };
+      return {
+        bg: withOpacity(theme.colors.destructive, 0.08),
+        border: withOpacity(theme.colors.destructive, 0.25),
+        text: theme.colors.destructive,
+      };
     case "resolved":
-      return { bg: "rgba(245,158,11,0.08)", border: "rgba(245,158,11,0.2)", text: "#f59e0b" };
+      return {
+        bg: withOpacity(theme.colors.warning, 0.08),
+        border: withOpacity(theme.colors.warning, 0.2),
+        text: theme.colors.warning,
+      };
     default:
       return {
         bg: "transparent",
         border: theme.isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)",
-        text: theme.isDark ? "#a3a3a3" : "#737373",
+        text: theme.colors.mutedForeground,
       };
   }
 }
@@ -114,7 +126,7 @@ export default function HaccpScreen() {
           </Text>
         </View>
         <View style={styles.mattilsynBadge}>
-          <Shield size={12} color="#22c55e" strokeWidth={2} />
+          <Shield size={12} color={theme.colors.success} strokeWidth={2} />
           <Text style={styles.mattilsynText}>Mattilsynet</Text>
         </View>
       </View>
@@ -183,12 +195,14 @@ export default function HaccpScreen() {
                         {unit.temperature}°C
                       </Text>
                     )}
-                    {status === "ok" && <CheckCircle2 size={20} color="#22c55e" strokeWidth={2} />}
+                    {status === "ok" && (
+                      <CheckCircle2 size={20} color={theme.colors.success} strokeWidth={2} />
+                    )}
                     {status === "avvik" && (
-                      <AlertTriangle size={20} color="#ef4444" strokeWidth={2} />
+                      <AlertTriangle size={20} color={theme.colors.destructive} strokeWidth={2} />
                     )}
                     {status === "resolved" && (
-                      <CheckCircle2 size={20} color="#f59e0b" strokeWidth={2} />
+                      <CheckCircle2 size={20} color={theme.colors.warning} strokeWidth={2} />
                     )}
                   </View>
                 </View>
@@ -220,7 +234,7 @@ export default function HaccpScreen() {
         {/* Alert banner */}
         {hasAvvik && !resolved && (
           <Animated.View entering={FadeInUp.delay(300).duration(400)} style={styles.alertBanner}>
-            <AlertTriangle size={18} color="#ef4444" strokeWidth={2} />
+            <AlertTriangle size={18} color={theme.colors.destructive} strokeWidth={2} />
             <View style={styles.alertText}>
               <Text style={styles.alertTitle}>Temperaturavvik registrert</Text>
               <Text style={styles.alertSubtitle}>
@@ -233,7 +247,7 @@ export default function HaccpScreen() {
         {/* Success banner */}
         {resolved && (
           <Animated.View entering={FadeInUp.delay(200).duration(400)} style={styles.successBanner}>
-            <CheckCircle2 size={18} color="#22c55e" strokeWidth={2} />
+            <CheckCircle2 size={18} color={theme.colors.success} strokeWidth={2} />
             <View style={styles.alertText}>
               <Text style={styles.successTitle}>HACCP-kontroll fullfort</Text>
               <Text style={styles.alertSubtitle}>
@@ -286,13 +300,15 @@ const useStyles = createStyles((theme) => ({
     paddingHorizontal: theme.spacing.tight,
     paddingVertical: 4,
     borderRadius: theme.radius.md,
-    backgroundColor: theme.isDark ? "rgba(255,255,255,0.06)" : "rgba(34,197,94,0.06)",
+    backgroundColor: theme.isDark
+      ? "rgba(255,255,255,0.06)"
+      : withOpacity(theme.colors.success, 0.06),
     borderWidth: 1,
-    borderColor: "rgba(34,197,94,0.2)",
+    borderColor: withOpacity(theme.colors.success, 0.2),
   },
   mattilsynText: {
     ...theme.typography.micro,
-    color: "#22c55e",
+    color: theme.colors.success,
     fontWeight: theme.fontWeights.medium,
   },
   content: {
@@ -333,10 +349,10 @@ const useStyles = createStyles((theme) => ({
     borderRadius: 3,
   },
   progressFillSuccess: {
-    backgroundColor: "#22c55e",
+    backgroundColor: theme.colors.success,
   },
   progressFillDanger: {
-    backgroundColor: "#ef4444",
+    backgroundColor: theme.colors.destructive,
   },
 
   /* Unit cards */
@@ -347,7 +363,7 @@ const useStyles = createStyles((theme) => ({
     gap: theme.spacing.tight,
   },
   unitCardCurrent: {
-    borderColor: "rgba(34,197,94,0.3)",
+    borderColor: withOpacity(theme.colors.success, 0.3),
   },
   unitCardPending: {
     opacity: 0.4,
@@ -391,10 +407,10 @@ const useStyles = createStyles((theme) => ({
     fontVariant: ["tabular-nums" as const],
   },
   tempOk: {
-    color: "#22c55e",
+    color: theme.colors.success,
   },
   tempDanger: {
-    color: "#ef4444",
+    color: theme.colors.destructive,
   },
   thresholdRow: {
     flexDirection: "row",
@@ -407,22 +423,22 @@ const useStyles = createStyles((theme) => ({
   },
   statusOk: {
     ...theme.typography.caption,
-    color: "#22c55e",
+    color: theme.colors.success,
     fontWeight: theme.fontWeights.medium,
   },
   statusDanger: {
     ...theme.typography.caption,
-    color: "#ef4444",
+    color: theme.colors.destructive,
     fontWeight: theme.fontWeights.medium,
   },
   statusWarning: {
     ...theme.typography.caption,
-    color: "#f59e0b",
+    color: theme.colors.warning,
     fontWeight: theme.fontWeights.medium,
   },
   tapHint: {
     ...theme.typography.caption,
-    color: "#22c55e",
+    color: theme.colors.success,
     textAlign: "center",
     marginTop: theme.spacing.xs,
   },
@@ -434,9 +450,9 @@ const useStyles = createStyles((theme) => ({
     gap: theme.spacing.element,
     padding: theme.spacing.md,
     borderRadius: theme.radius.lg,
-    backgroundColor: "rgba(239,68,68,0.06)",
+    backgroundColor: withOpacity(theme.colors.destructive, 0.06),
     borderWidth: 1,
-    borderColor: "rgba(239,68,68,0.2)",
+    borderColor: withOpacity(theme.colors.destructive, 0.2),
   },
   successBanner: {
     flexDirection: "row",
@@ -444,9 +460,9 @@ const useStyles = createStyles((theme) => ({
     gap: theme.spacing.element,
     padding: theme.spacing.md,
     borderRadius: theme.radius.lg,
-    backgroundColor: "rgba(34,197,94,0.06)",
+    backgroundColor: withOpacity(theme.colors.success, 0.06),
     borderWidth: 1,
-    borderColor: "rgba(34,197,94,0.2)",
+    borderColor: withOpacity(theme.colors.success, 0.2),
   },
   alertText: {
     flex: 1,
@@ -455,12 +471,12 @@ const useStyles = createStyles((theme) => ({
   alertTitle: {
     ...theme.typography.subheadline,
     fontWeight: theme.fontWeights.semibold,
-    color: "#ef4444",
+    color: theme.colors.destructive,
   },
   successTitle: {
     ...theme.typography.subheadline,
     fontWeight: theme.fontWeights.semibold,
-    color: "#22c55e",
+    color: theme.colors.success,
   },
   alertSubtitle: {
     ...theme.typography.caption,

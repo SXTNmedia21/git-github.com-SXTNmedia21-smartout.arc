@@ -24,7 +24,7 @@ import {
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { BottomSheet } from "@/components/ui/BottomSheet";
-import { createStyles, useTheme } from "@/theme";
+import { createStyles, useTheme, withOpacity } from "@/theme";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
 import { useThemeStore } from "@/hooks/stores/use-theme-store";
 import type { LucideIcon } from "lucide-react-native";
@@ -229,7 +229,7 @@ const useStyles = createStyles((theme) => ({
     borderRadius: theme.radius.lg,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: theme.isDark ? "rgba(232,92,13,0.15)" : "rgba(232,92,13,0.08)",
+    backgroundColor: withOpacity(theme.colors.brandOrange, theme.isDark ? 0.15 : 0.08),
   },
   brandColor: {
     color: theme.colors.brandOrange,

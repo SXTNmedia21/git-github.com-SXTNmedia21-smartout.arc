@@ -13,7 +13,7 @@ import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 
 import { Phone, Lock, Wallet } from "lucide-react-native";
-import { createStyles } from "@/theme";
+import { createStyles, useTheme } from "@/theme";
 import { strings } from "@/constants/strings";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -44,6 +44,7 @@ function setPushPref(enabled: boolean): void {
 
 export default function MeScreen() {
   const styles = useStyles();
+  const { colors } = useTheme();
   const router = useRouter();
   const { data: profile, isLoading } = useMyProfile();
   const { phase } = useShiftPhase();
@@ -152,8 +153,8 @@ export default function MeScreen() {
             <Switch
               value={pushEnabled}
               onValueChange={handleTogglePush}
-              trackColor={{ false: "#767577", true: "#e85c0d" }}
-              thumbColor="#ffffff"
+              trackColor={{ false: colors.mutedForeground, true: colors.brandOrange }}
+              thumbColor={colors.primaryForeground}
             />
           </View>
         </Card>
@@ -166,7 +167,7 @@ export default function MeScreen() {
             accessibilityRole="button"
             accessibilityLabel={strings.me.callLeader}
           >
-            <Phone size={20} color="#e85c0d" strokeWidth={2} />
+            <Phone size={20} color={colors.brandOrange} strokeWidth={2} />
             <Text style={styles.callLeaderText}>{strings.me.callLeader}</Text>
           </Pressable>
         )}

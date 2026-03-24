@@ -37,8 +37,8 @@ tags: [k1a, framework, seed, riksavtalen, tariff]
 
 ## Log
 
-| Date       | Time  | Event                                              |
-| ---------- | ----- | -------------------------------------------------- |
-| 2026-03-24 | 22:00 | Feature started                                    |
-| 2026-03-24 | 22:30 | Created seed migration with comprehensive rules    |
+| Date       | Time  | Event                                             |
+| ---------- | ----- | ------------------------------------------------- |
+| 2026-03-24 | 22:00 | Feature started                                   |
+| 2026-03-24 | 22:30 | Created seed migration with comprehensive rules   |
 | 2026-03-24 | 22:45 | Tested migration — 27 rules, 15 triggers, 9 rates |

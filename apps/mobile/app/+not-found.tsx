@@ -1,10 +1,12 @@
 /**
  * Catch-all for unmatched routes. Shows a simple "not found" message.
  */
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text } from "react-native";
 import { Link } from "expo-router";
+import { createStyles } from "@/theme";
 
 export default function NotFound() {
+  const styles = useStyles();
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Siden finnes ikke</Text>
@@ -15,20 +17,21 @@ export default function NotFound() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createStyles((theme) => ({
   container: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
     padding: 24,
   },
   title: {
     fontSize: 18,
-    fontWeight: "600",
+    fontWeight: "600" as const,
     marginBottom: 12,
+    color: theme.colors.foreground,
   },
   link: {
     fontSize: 16,
-    color: "#F97316",
+    color: theme.colors.brandOrange,
   },
-});
+}));

@@ -564,13 +564,23 @@ export function PunchAnimation({
             <Text style={styles.shiftLabel}>Neste vakt</Text>
             <Text style={styles.shiftTime}>{shiftInfo.time}</Text>
             <View style={styles.shiftBadges}>
-              <View style={[styles.shiftBadge, { backgroundColor: "#1a2332" }]}>
-                <Text style={[styles.shiftBadgeText, { color: "#5b9bd5" }]}>
+              <View
+                style={[
+                  styles.shiftBadge,
+                  { backgroundColor: withOpacity(styles.infoColor.color as string, 0.15) },
+                ]}
+              >
+                <Text style={[styles.shiftBadgeText, styles.infoColor]}>
                   {shiftInfo.department}
                 </Text>
               </View>
-              <View style={[styles.shiftBadge, { backgroundColor: "#1a2a1a" }]}>
-                <Text style={[styles.shiftBadgeText, { color: "#6bcb77" }]}>{shiftInfo.zone}</Text>
+              <View
+                style={[
+                  styles.shiftBadge,
+                  { backgroundColor: withOpacity(styles.successColor.color as string, 0.15) },
+                ]}
+              >
+                <Text style={[styles.shiftBadgeText, styles.successColor]}>{shiftInfo.zone}</Text>
               </View>
             </View>
           </View>
@@ -781,7 +791,7 @@ const useStyles = createStyles((theme) => ({
     width: 240,
     height: 240,
     borderRadius: 120,
-    backgroundColor: "rgba(232, 92, 13, 0.12)",
+    backgroundColor: withOpacity(theme.colors.brandOrange, 0.12),
   },
 
   /* Rotating glow ring — 4 quadrant borders to approximate conic gradient */
@@ -859,7 +869,7 @@ const useStyles = createStyles((theme) => ({
   punchLabel: {
     fontSize: 15,
     fontWeight: "600" as const,
-    color: "#ffffff",
+    color: theme.colors.primaryForeground,
     marginTop: 8,
     letterSpacing: 0.5,
   },
@@ -868,7 +878,7 @@ const useStyles = createStyles((theme) => ({
     position: "absolute" as const,
     bottom: 80,
     textAlign: "center" as const,
-    color: "#888",
+    color: theme.colors.mutedForeground,
     fontSize: 13,
   },
 
@@ -901,7 +911,7 @@ const useStyles = createStyles((theme) => ({
   scanText: {
     marginTop: 24,
     fontSize: 15,
-    color: "#a89f94",
+    color: theme.colors.mutedForeground,
   },
 
   scanSteps: {
@@ -961,5 +971,13 @@ const useStyles = createStyles((theme) => ({
     fontSize: 18,
     fontWeight: "700" as const,
     color: "#1a1a0a",
+  },
+
+  infoColor: {
+    color: theme.colors.info,
+  },
+
+  successColor: {
+    color: theme.colors.success,
   },
 }));
