@@ -1,7 +1,7 @@
 ---
 title: Development Dashboard
 status: in_progress
-updated: 2026-03-23
+updated: 2026-03-24
 created: 2026-03-02
 module: meta
 tags: [dashboard, worktrees, tracking]
@@ -13,15 +13,9 @@ tags: [dashboard, worktrees, tracking]
 
 ## Active Worktrees
 
-| #    | Branch                         | Module     | Status            | Progress                                                                         | Blockers | Health |
-| ---- | ------------------------------ | ---------- | ----------------- | -------------------------------------------------------------------------------- | -------- | ------ |
-| wt-1 | `feat/workspace-intelligence`  | core       | merged            | Fully merged. Worktree needs cleanup removal.                                    | —        | stale  |
-| wt-2 | `feat/setup-flow-redesign`     | onboarding | ready_for_closure | All 14 tasks done. 15 commits. Data pipeline + source tracking + design tokens.  | —        | clean  |
-| wt-3 | `feat/emma-arena-views`        | walkAi     | in_progress       | Spec + mockups done, settings persistence committed. Implementation not started. | None     | clean  |
-| wt-4 | `feat/vaktlista-view`          | schedule   | in_progress       | —                                                                                | —        | —      |
-| wt-5 | `feat/hms-phase-1`             | hms        | merged            | All commits on development. Worktree needs cleanup removal.                      | —        | stale  |
-| wt-6 | `feat/livekit-phase2`          | webrtc     | ready_for_closure | All 8 tasks done. 11 commits. 57 files, +6363 lines. Voice calls + PTT + mobile. | —        | clean  |
-| wt-7 | `feat/staff-handling-complete` | core       | ready_for_closure | 19 gaps fixed, 296 zinc→0, mobile screens. 12 commits.                           | —        | clean  |
+| #    | Branch                  | Module | Status      | Progress                                                                         | Blockers | Health |
+| ---- | ----------------------- | ------ | ----------- | -------------------------------------------------------------------------------- | -------- | ------ |
+| wt-3 | `feat/emma-arena-views` | walkAi | in_progress | Spec + mockups done, settings persistence committed. Implementation not started. | None     | clean  |
 
 ## Parked Branches (no worktree)
 
@@ -31,17 +25,17 @@ tags: [dashboard, worktrees, tracking]
 
 ## Free Slots
 
-| #     | Available                                               |
-| ----- | ------------------------------------------------------- |
-| wt-1  | no (feat/workspace-intelligence — stale, needs removal) |
-| wt-2  | no (feat/setup-flow-redesign)                           |
-| wt-3  | no (feat/emma-arena-views)                              |
-| wt-4  | no (feat/vaktlista-view)                                |
-| wt-5  | no (feat/hms-phase-1 — stale, needs removal)            |
-| wt-6  | no (feat/livekit-phase2)                                |
-| wt-7  | no (feat/staff-handling-complete)                       |
-| wt-15 | yes                                                     |
-| wt-20 | yes                                                     |
+| #     | Available                  |
+| ----- | -------------------------- |
+| wt-1  | yes                        |
+| wt-2  | yes                        |
+| wt-3  | no (feat/emma-arena-views) |
+| wt-4  | yes                        |
+| wt-5  | yes                        |
+| wt-6  | yes                        |
+| wt-7  | yes                        |
+| wt-15 | yes                        |
+| wt-20 | yes                        |
 
 ## Pending Journeys
 
@@ -64,6 +58,11 @@ tags: [dashboard, worktrees, tracking]
 
 | Date       | Feature                   | Branch                                                             | Merged To   |
 | ---------- | ------------------------- | ------------------------------------------------------------------ | ----------- |
+| 2026-03-24 | setup-flow-redesign       | `feat/setup-flow-redesign`                                         | development |
+| 2026-03-24 | livekit-phase2            | `feat/livekit-phase2`                                              | development |
+| 2026-03-24 | staff-handling-complete   | `feat/staff-handling-complete`                                     | development |
+| 2026-03-24 | workspace-intelligence    | `feat/workspace-intelligence`                                      | development |
+| 2026-03-24 | vaktlista-view            | `feat/vaktlista-view`                                              | development |
 | 2026-03-22 | cascade-foundation        | `feat/cascade-foundation`                                          | development |
 | 2026-03-22 | hms-phase-1               | `feat/hms-phase-1`                                                 | development |
 | 2026-03-22 | hms-phase-1               | `feat/hms-phase-1`                                                 | development |
@@ -115,6 +114,8 @@ tags: [dashboard, worktrees, tracking]
 
 | Date       | Feature                           | Status                  | Notes                                                                                                                                                                                                                        |
 | ---------- | --------------------------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-03-24 | error-logging + health + 429 fix  | session ended           | Fixed 429 token refresh storm (774/hr → 0). Added /api/smoke, connection banner, error reporter (Sentry+GitHub), global-error.tsx, preflight check, SessionStart hook. Droplet updated (main, port fix). PR #58 merged.      |
+| 2026-03-24 | production deploy + env infra     | session ended           | CI fixes (Docker + OOM), 1Password two-vault system, Vercel env sync (33 web, 21 landing), free-forever campaign, compare page, PR #55 created. Web preview blocked on Upstash placeholder URL. Landing deployed OK.         |
 | 2026-03-22 | join-intelligence + design-system | session ended           | Scrapling: merge_partial fix, Serper Places API, LLM classification. Design system "Ren og Varm": 24-section style guide (269KB), dark/light, per-element feedback, deployed to landing. CLAUDE.md + agent + memory updated. |
 | 2026-03-22 | setup-flow-redesign               | ready_for_closure       | wt-2, 14 tasks, 15 commits. Data pipeline fix, source tracking, design tokens (isDark removed), extraction wiring.                                                                                                           |
 | 2026-03-22 | staff-handling-complete           | ready_for_closure       | wt-7. 19 gaps fixed, 296 zinc→0 design tokens, mobile team screens. 12 commits, 12 tasks via team agents.                                                                                                                    |
