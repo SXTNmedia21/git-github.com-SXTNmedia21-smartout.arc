@@ -30,7 +30,7 @@ A 5-step fullscreen stepper wizard that replaces the current `/welcome` page. It
 ### New Flow
 
 ```
-/invite/[token] --> /welcome (5-step onboarding wizard) --> /my-schedule (or role-specific)
+/invite/[token] --> /welcome (5-step onboarding wizard) --> /dashboard/my-schedule (or role-specific)
 ```
 
 ### What Exists Today
@@ -119,7 +119,7 @@ Updated after every step completion (not just at the end). RLS covered by existi
 
 1. User lands on `/welcome`
 2. Hook checks `profile.onboarding_progress`
-3. If `completed_at` exists --> redirect to `/my-schedule`
+3. If `completed_at` exists --> redirect to `/dashboard/my-schedule`
 4. If `current_step > 1` --> show "Velkommen tilbake!" + jump to correct step
 5. If null --> start from step 1
 
@@ -145,6 +145,29 @@ Sources:
 - `first_shift` --> from `schedule_shift` (can be null)
 - `assigned_protocols_count` --> from `protocol_assignment` count
 
+### Error States
+
+All context data queries degrade gracefully — the wizard never blocks on missing optional data:
+
+| Data                       | If missing                                     | Fallback                                             |
+| -------------------------- | ---------------------------------------------- | ---------------------------------------------------- |
+| `workspace_name`           | Should never happen (required FK)              | "din arbeidsplass"                                   |
+| `inviter_name`             | Nullable — inviter may have been deleted       | Skip inviter mention, use generic greeting           |
+| `department_name`          | Profile may not have department assigned yet   | Omit department line                                 |
+| `team_name`                | Profile may not have team assigned yet         | Omit team line                                       |
+| `first_shift`              | No shifts scheduled yet (common for new hires) | Show mock shift card with placeholder data           |
+| `assigned_protocols_count` | Zero protocols assigned                        | Step 5 directs to schedule instead of training       |
+| Network error on any query | Supabase client error                          | Show retry button, emit `onboarding_error` telemetry |
+
+### Package Setup
+
+`packages/onboarding/` is a new package. Prerequisites before implementation:
+
+1. Add to `pnpm-workspace.yaml`
+2. Create `package.json` with name `@smartout/onboarding`
+3. Configure TypeScript (extend `packages/typescript-config`)
+4. Register in Turborepo pipeline
+
 ---
 
 ## The 5 Steps
@@ -155,7 +178,7 @@ Sources:
 
 **Content:**
 
-- Botsson bubble: "Hei [first_name]! [inviter_name] har invitert deg til [workspace_name]. Jeg er Botsson — jeg hjelper deg a komme i gang."
+- Botsson bubble: `onboarding.step1.greeting` — "Hei {firstName}! {inviterName} har invitert deg til {workspaceName}. Jeg er Botsson — jeg hjelper deg a komme i gang."
 - Animated reveal: workspace name with warm spring animation
 - Brief overview: your team, your department, your leader
 - Data: all from invitation + profile (already available after accept)
@@ -172,10 +195,10 @@ Sources:
 
 **Content:**
 
-- Botsson: "I Smartout ser du vaktene dine, bekrefter dem, og folger med pa endringer. La meg vise deg."
+- Botsson: `onboarding.step2.intro` — "I Smartout ser du vaktene dine, bekrefter dem, og folger med pa endringer. La meg vise deg."
 - An illustrative shift card slides in (with mock or real data: "I morgen kl 10:00-18:00, Kjokken")
 - User taps the card --> it expands showing details (time, position, department, tasks)
-- Botsson: "Nar du far en vakt, MA du bekrefte den. Slik vet lederen din at du kommer."
+- Botsson: `onboarding.step2.responsibility` — "Nar du far en vakt, MA du bekrefte den. Slik vet lederen din at du kommer."
 
 **Key principle:** Responsibility + consequence, not feature tour. The card illustrates, it is not a sandbox.
 
@@ -191,10 +214,10 @@ Sources:
 
 **Content:**
 
-- Botsson: "Her er det viktigste du trenger a vite."
+- Botsson: `onboarding.step3.intro` — "Her er det viktigste du trenger a vite."
 - 4 animated cards stagger in:
   - Schedule icon — "Vaktplan" — "Se vaktene dine og bekreft"
-  - Book icon — "Opplaering" — "Fullfar oppgaver for a bli klar"
+  - GraduationCap icon — "Opplaering" — "Fullfar oppgaver for a bli klar"
   - BookOpen icon — "Handboken" — "Alt du trenger a vite om arbeidsplassen"
   - Settings icon — "Innstillinger" — "Profil, varsler, sprak"
 - Each card has Lucide icon, title, one sentence description
@@ -211,17 +234,17 @@ Sources:
 
 **Content:**
 
-- Botsson: "Noen ganger skjer det endringer. Slik varsler vi deg."
+- Botsson: `onboarding.step4.intro` — "Noen ganger skjer det endringer. Slik varsler vi deg."
 - Animated demo notification slides in from top:
   - Bell icon: "Vakten din 25. mars er endret til 12:00-20:00"
 - User taps notification --> it expands showing detail + action button ("Bekreft endring")
-- Botsson: "Sjekk varslene dine jevnlig. Viktige ting dukker opp her."
+- Botsson: `onboarding.step4.reminder` — "Sjekk varslene dine jevnlig. Viktige ting dukker opp her."
 
 **Key principle:** Notifications mean "something needs your attention NOW."
 
 **Interaction:** Tap notification to expand. Must be expanded before "Neste" activates.
 
-**Accessibility:** Notification announced with `aria-live="assertive"`. Focusable, Enter/Space to expand.
+**Accessibility:** Notification announced with `aria-live="polite"` (this is a demo, not a real urgent alert). Focusable, Enter/Space to expand.
 
 ---
 
@@ -231,13 +254,13 @@ Sources:
 
 **Content:**
 
-- Botsson: "Bra jobba, [first_name]! Du er klar til a starte."
+- Botsson: `onboarding.step5.celebration` — "Bra jobba, {firstName}! Du er klar til a starte."
 - Subtle celebration (warm-toned glow/pulse around profile avatar — not confetti. "Ren og Varm" is warm, not overdramatic.)
 - Summary: 4 mini-icons for what they learned (shift card, tools, notifications, team)
 - First task direction:
   - If assigned protocols exist --> "Din forste oppgave venter i Opplaering"
   - Else --> "Sjekk vaktplanen din"
-- CTA button: "Start" --> navigates to `/my-schedule` (employee) or role-specific page
+- CTA button: "Start" --> navigates to `/dashboard/my-schedule` (employee) or role-specific page
 
 **Completion:** `profile.onboarding_progress.completed_at` is set. Telemetry `onboarding_completed` emitted.
 
@@ -252,38 +275,44 @@ Sources:
 - Fullscreen, vertically centered content
 - Web: max-width 640px, centered
 - Mobile: full width, respecting safe areas (notch, home indicator, dynamic island)
-- Background: `--background` (oklch 0.99 0.004 60 — warm cream light / oklch 0.145 dark)
+- Background: `--background` via CSS variables (runtime source of truth is `tokens.css`, not `tokens.ts` — known drift exists, file separate issue to reconcile)
 - Cards: `--card` with `--border` shadow, rounded-2xl (16px)
-- Step indicator: 5 dots at top. Active: `--brand-orange`. Completed: `--success`. Upcoming: `--border`.
+- Step indicator: 5 dots at top. Active: `--brand-orange`. Completed: `--brand-orange` at 60% opacity. Upcoming: `--border`.
 
 ### Typography
 
 | Element           | Font                              | Size                  | Color                     |
 | ----------------- | --------------------------------- | --------------------- | ------------------------- |
 | Botsson name      | `font-heading` (Instrument Serif) | text-xl               | `--foreground`            |
-| Botsson text      | `font-body` (Geist Sans)          | text-base             | `--foreground`            |
+| Botsson text      | `font-sans` (Geist Sans)          | text-base             | `--foreground`            |
 | Card titles       | `font-heading`                    | text-lg               | `--foreground`            |
 | Card descriptions | `font-body`                       | text-sm               | `--muted-foreground`      |
 | CTA buttons       | `font-body`                       | text-sm font-semibold | white on `--brand-orange` |
 
 ### Animations (Framer Motion — web)
 
+Uses the three canonical springs from "Ren og Varm" style guide (section 18):
+
+- `panelSpring`: stiffness 35, damping 20, mass 2.2
+- `swapSpring`: stiffness 45, damping 22, mass 2
+- `expandSpring`: stiffness 30, damping 24, mass 2.5
+
 ```
 Step transition:    exit: opacity 0, x -40
                     enter: opacity 0, x 40 --> visible
-                    spring: stiffness 35, damping 22, mass 2
+                    spring: panelSpring
 
 Card stagger:       staggerChildren: 0.12, delayChildren: 0.2
-                    Each card: opacity 0 --> 1, y 20 --> 0, same spring
+                    Each card: opacity 0 --> 1, y 20 --> 0, panelSpring
 
 Botsson bubble:     opacity 0 --> 1, y 10 --> 0, 300ms ease
                     Text: typewriter effect, character by character, 20ms interval
 
-Shift card tap:     layoutId for smooth expand
-                    spring: stiffness 40, damping 24
+Shift card tap:     animate with explicit height/opacity (no layoutId — see performance)
+                    spring: swapSpring
 
 Notification:       slides in from top, y -60 --> 0
-                    spring: stiffness 30, damping 20
+                    spring: expandSpring
 
 Celebration:        subtle glow-pulse on avatar
                     scale 1 --> 1.05 --> 1, 2s ease-in-out loop
@@ -307,7 +336,7 @@ Lucide React only. Relevant icons:
 - `Settings` (settings)
 - `Bell` (notifications)
 - `CheckCircle2` (completion)
-- `Bot` (Botsson)
+- `Sparkles` or `MessageCircle` (Botsson — `Bot` icon looks too mechanical for warm brand)
 
 ---
 
@@ -316,7 +345,7 @@ Lucide React only. Relevant icons:
 These are mandatory, not nice-to-have.
 
 1. **Keyboard navigation:** Every interactive element reachable via Tab. Enter/Space to activate. Visible focus indicators (`focus-visible:ring-2 ring-brand-orange`).
-2. **Screen readers:** Botsson bubbles use `role="status"` + `aria-live="polite"`. Notification demo uses `aria-live="assertive"`. Card expand/collapse uses `aria-expanded`. Step changes announced.
+2. **Screen readers:** Botsson bubbles use `role="status"` + `aria-live="polite"`. Notification demo uses `aria-live="polite"` (demo, not real alert). Card expand/collapse uses `aria-expanded`. Step changes announced.
 3. **Reduced motion:** `prefers-reduced-motion: reduce` --> instant transitions, no typewriter, no springs. Content identical, just no animation.
 4. **Touch targets:** Minimum 44x44px for all interactive elements.
 5. **Color contrast:** All text meets WCAG AA (4.5:1 for normal text, 3:1 for large text). Tested in both light and dark mode.
@@ -376,7 +405,7 @@ COMMENT ON COLUMN profile.onboarding_progress IS
   'JSONB tracking employee onboarding wizard progress. Schema: { current_step, completed_steps[], started_at, step_timestamps{}, completed_at, skipped }';
 ```
 
-No new tables. No new enums. No RLS changes needed (existing profile policies cover it).
+No new tables. No new enums. No RLS changes needed (existing profile policies cover it). The profile table already has a `set_updated_at()` trigger — no additional trigger needed for the new column.
 
 ---
 
@@ -386,7 +415,7 @@ No new tables. No new enums. No RLS changes needed (existing profile policies co
 
 ```
 /welcome --> WelcomeWizard (if profile.onboarding_progress.completed_at is null)
-/welcome --> redirect to /my-schedule (if onboarding already completed)
+/welcome --> redirect to /dashboard/my-schedule (if onboarding already completed)
 ```
 
 The `/welcome` route checks auth session. If no session --> redirect to `/login`. If session but no profile --> redirect to `/invite` error.
