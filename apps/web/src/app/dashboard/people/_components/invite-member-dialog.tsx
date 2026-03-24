@@ -17,8 +17,10 @@ import {
   Link2,
   Copy,
   Check,
+  ChevronDown,
+  ArrowLeft,
 } from "lucide-react";
-import { useState, useContext, useEffect, useCallback, useRef } from "react";
+import { useState, useContext, useEffect, useCallback, useRef, useMemo } from "react";
 import Papa from "papaparse";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { createClient } from "@smartout/supabase/client";
@@ -31,7 +33,7 @@ import type { Department } from "./types";
 
 type InviteMode = "single" | "csv";
 
-type InviteType = "email" | "sms" | "link";
+type InviteChannel = "email" | "sms" | "link";
 
 type InviteEmploymentType = "employee" | "guest";
 
@@ -51,6 +53,14 @@ type InviteRow = {
   payrollTemplateId: string;
   extraData: Record<string, string>;
   errors: string[];
+};
+
+type PayrollTemplate = {
+  id: string;
+  name: string;
+  salary_type: string;
+  employment_category: string | null;
+  agreed_weekly_hours: number | null;
 };
 
 interface InviteMemberDialogProps {
@@ -86,21 +96,31 @@ function validateEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-function validateRow(row: InviteRow, inviteType: InviteType = "email"): string[] {
+function validateRow(row: InviteRow, channels: Set<InviteChannel>): string[] {
   const errors: string[] = [];
   if (!row.firstName.trim()) errors.push("Fornavn mangler");
   if (!row.lastName.trim()) errors.push("Etternavn mangler");
 
-  if (inviteType === "email") {
+  if (channels.has("email")) {
     if (!row.email.trim()) errors.push("E-post mangler");
     else if (!validateEmail(row.email.trim())) errors.push("Ugyldig e-post");
-  } else if (inviteType === "sms") {
+  }
+  if (channels.has("sms")) {
     if (!row.phone.trim()) errors.push("Telefonnummer mangler");
   }
-  // "link" requires neither email nor phone
 
   return errors;
 }
+
+// ─── Shared styles ──────────────────────────────────────────
+
+const inputClass =
+  "w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground transition-all focus:border-orange-500/50 focus:ring-2 focus:ring-orange-500/20 focus:outline-none";
+
+const selectClass =
+  "w-full appearance-none rounded-xl border border-border bg-background px-3 py-2.5 pr-8 text-sm text-foreground transition-all focus:border-orange-500/50 focus:ring-2 focus:ring-orange-500/20 focus:outline-none";
+
+const labelClass = "text-xs font-semibold tracking-wider uppercase text-muted-foreground";
 
 // ─── Component ──────────────────────────────────────────────
 
@@ -116,9 +136,22 @@ export function InviteMemberDialog({
 
   // Single mode state
   const [singleRow, setSingleRow] = useState<InviteRow>(createEmptyRow);
-  const [inviteType, setInviteType] = useState<InviteType>("email");
+  const [channels, setChannels] = useState<Set<InviteChannel>>(new Set(["link"]));
   const [generatedLink, setGeneratedLink] = useState<string | null>(null);
   const [linkCopied, setLinkCopied] = useState(false);
+
+  const toggleChannel = useCallback((ch: InviteChannel) => {
+    setChannels((prev) => {
+      const next = new Set(prev);
+      if (ch === "link") return next; // link is always on
+      if (next.has(ch)) next.delete(ch);
+      else next.add(ch);
+      return next;
+    });
+  }, []);
+
+  // Payroll templates
+  const [templates, setTemplates] = useState<PayrollTemplate[]>([]);
 
   // CSV mode state
   const [csvRows, setCsvRows] = useState<InviteRow[]>([]);
@@ -129,11 +162,25 @@ export function InviteMemberDialog({
   const [csvTotalCount, setCsvTotalCount] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Fetch payroll templates when dialog opens
+  useEffect(() => {
+    if (!isOpen || !workspaceData?.workspace_id) return;
+    const supabase = createClient();
+    supabase
+      .from("payroll_profile_template")
+      .select("id, name, salary_type, employment_category, agreed_weekly_hours")
+      .eq("workspace_id", workspaceData.workspace_id)
+      .order("name")
+      .then(({ data }) => {
+        if (data) setTemplates(data as PayrollTemplate[]);
+      });
+  }, [isOpen, workspaceData?.workspace_id]);
+
   // Reset on close
   useEffect(() => {
     if (!isOpen) {
       setMode("single");
-      setInviteType("email");
+      setChannels(new Set(["link"]));
       setGeneratedLink(null);
       setLinkCopied(false);
       setSingleRow(createEmptyRow());
@@ -171,7 +218,6 @@ export function InviteMemberDialog({
       },
     });
 
-    // Reset input so same file can be re-selected
     e.target.value = "";
   }, []);
 
@@ -211,12 +257,13 @@ export function InviteMemberDialog({
         }
 
         row.extraData = extra;
-        row.errors = validateRow(row);
+        row.errors = validateRow(row, new Set<InviteChannel>(["email"]));
         return row;
       });
 
       setCsvRows(rows);
       setCsvMappingOpen(false);
+      setMode("csv");
     },
     [csvRawData, departments],
   );
@@ -231,10 +278,10 @@ export function InviteMemberDialog({
     if (!workspaceData) return;
 
     const rows = mode === "single" ? [singleRow] : csvRows;
-    const effectiveInviteType = mode === "single" ? inviteType : "email";
+    const effectiveChannels = mode === "single" ? channels : new Set<InviteChannel>(["email"]);
 
     // Validate
-    const validated = rows.map((r) => ({ ...r, errors: validateRow(r, effectiveInviteType) }));
+    const validated = rows.map((r) => ({ ...r, errors: validateRow(r, effectiveChannels) }));
     const hasErrors = validated.some((r) => r.errors.length > 0);
 
     if (mode === "single") {
@@ -262,25 +309,18 @@ export function InviteMemberDialog({
       } = await supabase.auth.getSession();
       if (!session) throw new Error("Ikke autentisert");
 
-      // Resolve inviter profile for telemetry
-      const { data: inviterProfile } = await supabase
-        .from("profile")
-        .select("profile_id")
-        .eq("workspace_id", workspaceData.workspace_id)
-        .eq("user_id", profileId ?? "")
-        .single();
-
       let response;
 
       if (mode === "single") {
-        // Single mode: use the Edge Function's single invite path (supports email/sms/link)
         const r = rows[0]!;
+        const channelList = Array.from(effectiveChannels);
         response = await supabase.functions.invoke("create-invitation", {
           body: {
             workspace_id: workspaceData.workspace_id,
-            invite_type: effectiveInviteType,
-            email: effectiveInviteType === "email" ? r.email.trim() : undefined,
-            phone: effectiveInviteType === "sms" ? r.phone.trim() : undefined,
+            invite_type: "link", // primary type stored on row
+            channels: channelList, // all channels to dispatch
+            email: channelList.includes("email") ? r.email.trim() : undefined,
+            phone: channelList.includes("sms") ? r.phone.trim() : undefined,
             role: r.role,
             first_name: r.firstName.trim(),
             last_name: r.lastName.trim(),
@@ -301,7 +341,6 @@ export function InviteMemberDialog({
           },
         });
       } else {
-        // CSV batch mode: always email, uses the Edge Function's batch path
         const inviteRecords = rows.map((r) => ({
           email: r.email.trim(),
           first_name: r.firstName.trim(),
@@ -336,31 +375,34 @@ export function InviteMemberDialog({
         throw new Error(response.error.message);
       }
 
+      const channelLabel = Array.from(effectiveChannels).join("+");
       void emit({
         event: "button clicked",
         workspace_id: workspaceData.workspace_id,
-        actor_id: inviterProfile?.profile_id ?? profileId ?? "",
+        actor_id: profileId ?? "",
         properties: {
-          trackingId: mode === "csv" ? "bulk-invite-csv" : `single-invite-${effectiveInviteType}`,
-          context: `invited ${rows.length} members via ${effectiveInviteType}`,
+          trackingId: mode === "csv" ? "bulk-invite-csv" : `single-invite-${channelLabel}`,
+          context: `invited ${rows.length} members via ${channelLabel}`,
         },
       });
 
-      // For link invites, display the copyable invite URL instead of closing
-      if (effectiveInviteType === "link" && response.data) {
+      if (mode === "single" && response.data) {
+        // Always show the invite link after single invite
         const responseData = response.data as { token?: string };
         if (responseData.token) {
           const inviteUrl = `${window.location.origin}/invite/${responseData.token}`;
           setGeneratedLink(inviteUrl);
-          toast.success("Invitasjonslenke opprettet");
+          const parts: string[] = [];
+          if (effectiveChannels.has("email")) parts.push("e-post");
+          if (effectiveChannels.has("sms")) parts.push("SMS");
+          parts.push("lenke");
+          toast.success(`Invitasjon opprettet (${parts.join(" + ")})`);
           onRefresh();
           return;
         }
       }
 
-      toast.success(
-        rows.length === 1 ? "Invitasjon opprettet" : `${rows.length} invitasjoner opprettet`,
-      );
+      toast.success(rows.length === 1 ? "Invitasjon sendt" : `${rows.length} invitasjoner sendt`);
       onRefresh();
       onClose();
     } catch (error: unknown) {
@@ -369,7 +411,7 @@ export function InviteMemberDialog({
     } finally {
       setIsSubmitting(false);
     }
-  }, [mode, inviteType, singleRow, csvRows, workspaceData, profileId, onRefresh, onClose]);
+  }, [mode, channels, singleRow, csvRows, workspaceData, profileId, onRefresh, onClose]);
 
   if (!isOpen || !workspaceData) return null;
 
@@ -378,63 +420,49 @@ export function InviteMemberDialog({
   return (
     <>
       <div
-        className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${"bg-black/50"} animate-in fade-in backdrop-blur-sm duration-200`}
+        className="animate-in fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm duration-200"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) onClose();
+        }}
       >
         <div
-          className={`animate-in zoom-in-95 flex w-full flex-col overflow-hidden rounded-2xl border shadow-2xl duration-200 ${
+          className={`animate-in zoom-in-95 border-border bg-card flex w-full flex-col overflow-hidden rounded-2xl border shadow-2xl duration-200 ${
             mode === "csv" && csvRows.length > 0 ? "max-w-2xl" : "max-w-md"
-          } ${"border-border bg-card"}`}
+          }`}
         >
           {/* Header */}
-          <div
-            className={`flex items-center justify-between border-b px-6 py-5 ${"border-border bg-muted"}`}
-          >
-            <div>
-              <h2 className={`text-lg leading-tight font-bold ${"text-foreground"}`}>
-                Legg til ansatte
-              </h2>
-              <p className={`text-sm ${"text-muted-foreground"}`}>
-                Inviter til {workspaceData.name}
-              </p>
+          <div className="border-border flex items-center justify-between border-b px-6 py-5">
+            <div className="flex items-center gap-3">
+              {mode === "csv" ? (
+                <button
+                  type="button"
+                  onClick={() => setMode("single")}
+                  className="text-muted-foreground hover:bg-accent hover:text-foreground rounded-xl p-2.5 transition-colors"
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                </button>
+              ) : (
+                <div className={`rounded-xl p-2.5 ${isDark ? "bg-orange-500/10" : "bg-orange-50"}`}>
+                  <UserPlus className="h-5 w-5 text-orange-500" />
+                </div>
+              )}
+              <div>
+                <h2 className="text-foreground text-lg leading-tight font-bold">
+                  {mode === "csv" ? "CSV-import" : "Inviter ansatt"}
+                </h2>
+                <p className="text-muted-foreground text-sm">
+                  {mode === "csv"
+                    ? `${csvRows.length > 0 ? `${csvRows.length} rader lastet` : "Last opp en fil"}`
+                    : workspaceData.name}
+                </p>
+              </div>
             </div>
             <button
               onClick={onClose}
-              className={`rounded-full p-2 transition-colors ${"text-muted-foreground hover:bg-accent hover:text-foreground"}`}
+              className="text-muted-foreground hover:bg-accent hover:text-foreground rounded-full p-2 transition-colors"
             >
               <X className="h-4 w-4" />
             </button>
-          </div>
-
-          {/* Mode toggle */}
-          <div className="px-6 pt-5">
-            <div className={`flex rounded-lg border p-1 ${"border-border bg-muted"}`}>
-              <button
-                type="button"
-                onClick={() => setMode("single")}
-                className={`flex flex-1 items-center justify-center gap-2 rounded-md py-2 text-sm font-medium transition-all ${
-                  mode === "single"
-                    ? isDark
-                      ? "bg-secondary text-foreground shadow-sm"
-                      : "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <UserPlus className="h-4 w-4" /> Enkelt
-              </button>
-              <button
-                type="button"
-                onClick={() => setMode("csv")}
-                className={`flex flex-1 items-center justify-center gap-2 rounded-md py-2 text-sm font-medium transition-all ${
-                  mode === "csv"
-                    ? isDark
-                      ? "bg-secondary text-foreground shadow-sm"
-                      : "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <FileSpreadsheet className="h-4 w-4" /> CSV-import
-              </button>
-            </div>
           </div>
 
           {/* Content */}
@@ -455,9 +483,10 @@ export function InviteMemberDialog({
                 row={singleRow}
                 onChange={setSingleRow}
                 departments={departments}
+                templates={templates}
                 isDark={isDark}
-                inviteType={inviteType}
-                onInviteTypeChange={setInviteType}
+                channels={channels}
+                onToggleChannel={toggleChannel}
               />
             ) : (
               <CsvImportView
@@ -471,22 +500,29 @@ export function InviteMemberDialog({
           </div>
 
           {/* Footer */}
-          <div
-            className={`flex items-center justify-between border-t px-6 py-4 ${"border-border bg-muted"}`}
-          >
+          <div className="border-border bg-muted/50 flex items-center justify-between border-t px-6 py-4">
             <div>
-              {mode === "csv" && csvRows.length > 0 && (
-                <span className={`text-xs ${"text-muted-foreground"}`}>
+              {mode === "single" && !generatedLink ? (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="text-muted-foreground hover:bg-accent hover:text-foreground flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+                >
+                  <FileSpreadsheet className="h-3.5 w-3.5" />
+                  Importer CSV
+                </button>
+              ) : mode === "csv" && csvRows.length > 0 ? (
+                <span className="text-muted-foreground text-xs">
                   {validCsvCount} av {csvRows.length} gyldige
                 </span>
-              )}
+              ) : null}
             </div>
             <div className="flex gap-3">
               {generatedLink ? (
                 <button
                   type="button"
                   onClick={onClose}
-                  className="flex items-center gap-2 rounded-lg bg-orange-500 px-5 py-2 text-sm font-semibold text-white transition-all hover:bg-orange-400 hover:shadow-[0_0_20px_rgba(249,115,22,0.3)]"
+                  className="flex items-center gap-2 rounded-xl bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-orange-400 hover:shadow-[0_0_20px_rgba(249,115,22,0.3)]"
                 >
                   Lukk
                 </button>
@@ -495,7 +531,7 @@ export function InviteMemberDialog({
                   <button
                     type="button"
                     onClick={onClose}
-                    className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${"text-muted-foreground hover:bg-accent hover:text-foreground"}`}
+                    className="text-muted-foreground hover:bg-accent hover:text-foreground rounded-xl px-4 py-2.5 text-sm font-medium transition-colors"
                     disabled={isSubmitting}
                   >
                     Avbryt
@@ -505,29 +541,23 @@ export function InviteMemberDialog({
                     onClick={handleSubmit}
                     disabled={
                       isSubmitting ||
-                      (mode === "single" &&
-                        !singleRow.firstName &&
-                        inviteType !== "link" &&
-                        !singleRow.email &&
-                        !singleRow.phone) ||
+                      (mode === "single" && !singleRow.firstName) ||
+                      (mode === "single" && channels.has("email") && !singleRow.email) ||
+                      (mode === "single" && channels.has("sms") && !singleRow.phone) ||
                       (mode === "csv" && csvRows.length === 0)
                     }
-                    className="flex items-center gap-2 rounded-lg bg-orange-500 px-5 py-2 text-sm font-semibold text-white transition-all hover:bg-orange-400 hover:shadow-[0_0_20px_rgba(249,115,22,0.3)] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex items-center gap-2 rounded-xl bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-orange-400 hover:shadow-[0_0_20px_rgba(249,115,22,0.3)] disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {isSubmitting ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : inviteType === "link" && mode === "single" ? (
-                      <Link2 className="h-4 w-4" />
                     ) : (
                       <Plus className="h-4 w-4" />
                     )}
                     {isSubmitting
                       ? "Sender..."
-                      : inviteType === "link" && mode === "single"
-                        ? "Opprett lenke"
-                        : mode === "csv" && csvRows.length > 1
-                          ? `Send ${csvRows.length} invitasjoner`
-                          : "Send invitasjon"}
+                      : mode === "csv" && csvRows.length > 1
+                        ? `Send ${csvRows.length} invitasjoner`
+                        : "Send invitasjon"}
                   </button>
                 </>
               )}
@@ -565,27 +595,48 @@ function SingleInviteForm({
   row,
   onChange,
   departments,
+  templates,
   isDark,
-  inviteType,
-  onInviteTypeChange,
+  channels,
+  onToggleChannel,
 }: {
   row: InviteRow;
   onChange: (row: InviteRow) => void;
   departments: Department[];
+  templates: PayrollTemplate[];
   isDark: boolean;
-  inviteType: InviteType;
-  onInviteTypeChange: (type: InviteType) => void;
+  channels: Set<InviteChannel>;
+  onToggleChannel: (ch: InviteChannel) => void;
 }) {
   const update = (field: Partial<InviteRow>) => onChange({ ...row, ...field });
+  const [showEmployment, setShowEmployment] = useState(false);
 
-  const inputClass = `w-full rounded-lg px-4 py-2.5 text-sm transition-all focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none ${"border-border bg-background text-foreground placeholder:text-muted-foreground"}`;
+  const selectedTemplate = useMemo(
+    () => templates.find((t) => t.id === row.payrollTemplateId),
+    [templates, row.payrollTemplateId],
+  );
 
-  const labelClass = `text-xs font-semibold tracking-wider uppercase ${"text-muted-foreground"}`;
-
-  const selectClass = `w-full appearance-none rounded-lg px-3 py-2.5 text-sm focus:border-orange-500/50 focus:outline-none ${"border-border bg-background text-foreground"}`;
+  const handleTemplateSelect = useCallback(
+    (templateId: string) => {
+      const template = templates.find((t) => t.id === templateId);
+      if (template) {
+        onChange({
+          ...row,
+          payrollTemplateId: templateId,
+          salaryType: template.salary_type === "monthly" ? "monthly" : "hourly",
+          employmentCategory: template.employment_category ?? "",
+          intendedWeeklyHours: template.agreed_weekly_hours?.toString() ?? "",
+        });
+      } else {
+        update({ payrollTemplateId: "" });
+      }
+    },
+    [templates, row, onChange],
+  );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
+      {/* Name row */}
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <label className={labelClass}>Fornavn</label>
@@ -595,6 +646,7 @@ function SingleInviteForm({
             onChange={(e) => update({ firstName: e.target.value })}
             placeholder="Kari"
             className={inputClass}
+            autoFocus
           />
         </div>
         <div className="space-y-1.5">
@@ -609,36 +661,46 @@ function SingleInviteForm({
         </div>
       </div>
 
-      {/* Invite type selector */}
-      <div className="space-y-1.5">
-        <label className={labelClass}>Invitasjonsmetode</label>
+      {/* Invite channels — multi-select, link always on */}
+      <div className="space-y-2">
+        <label className={labelClass}>Send invitasjon via</label>
         <div className="grid grid-cols-3 gap-2">
           {(
             [
-              { type: "email" as const, label: "E-post", icon: Mail },
-              { type: "sms" as const, label: "SMS", icon: Phone },
-              { type: "link" as const, label: "Lenke", icon: Link2 },
+              { ch: "link" as const, label: "Lenke", icon: Link2, locked: true },
+              { ch: "email" as const, label: "E-post", icon: Mail, locked: false },
+              { ch: "sms" as const, label: "SMS", icon: Phone, locked: false },
             ] as const
-          ).map(({ type, label, icon: Icon }) => (
-            <button
-              key={type}
-              type="button"
-              onClick={() => onInviteTypeChange(type)}
-              className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-all ${
-                inviteType === type
-                  ? "bg-orange-500 text-white"
-                  : "border-border bg-background text-muted-foreground hover:border-border/70 border"
-              }`}
-            >
-              <Icon className="h-3.5 w-3.5" />
-              {label}
-            </button>
-          ))}
+          ).map(({ ch, label, icon: Icon, locked }) => {
+            const isActive = channels.has(ch);
+            return (
+              <button
+                key={ch}
+                type="button"
+                onClick={() => !locked && onToggleChannel(ch)}
+                className={`relative flex flex-col items-center gap-1.5 rounded-xl px-3 py-3 text-xs font-medium transition-all ${
+                  isActive
+                    ? isDark
+                      ? "bg-orange-500/15 text-orange-400 ring-1 ring-orange-500/30"
+                      : "bg-orange-50 text-orange-600 ring-1 ring-orange-200"
+                    : "border-border bg-background text-muted-foreground hover:text-foreground hover:border-border/70 border"
+                } ${locked ? "cursor-default" : "cursor-pointer"}`}
+              >
+                <Icon className={`h-4 w-4 ${isActive ? "" : "opacity-60"}`} />
+                {label}
+                {isActive && (
+                  <div
+                    className={`absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full ${locked ? "bg-orange-500/50" : "bg-orange-500"}`}
+                  />
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Contact field — conditional on invite type */}
-      {inviteType === "email" && (
+      {/* Contact fields — shown when channel is active */}
+      {channels.has("email") && (
         <div className="space-y-1.5">
           <label className={`flex items-center gap-1.5 ${labelClass}`}>
             <Mail className="h-3.5 w-3.5" /> E-post
@@ -653,7 +715,7 @@ function SingleInviteForm({
         </div>
       )}
 
-      {inviteType === "sms" && (
+      {channels.has("sms") && (
         <div className="space-y-1.5">
           <label className={`flex items-center gap-1.5 ${labelClass}`}>
             <Phone className="h-3.5 w-3.5" /> Telefon
@@ -668,61 +730,62 @@ function SingleInviteForm({
         </div>
       )}
 
-      {inviteType === "link" && (
-        <div
-          className={`rounded-lg border border-dashed px-4 py-3 text-sm ${"border-border bg-muted text-muted-foreground"}`}
-        >
-          En delbar invitasjonslenke vil bli generert som du kan kopiere og sende.
-        </div>
-      )}
-
+      {/* Department + Role */}
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <label className={`flex items-center gap-1.5 ${labelClass}`}>
             <Building2 className="h-3.5 w-3.5" /> Avdeling
           </label>
-          <select
-            value={row.departmentId}
-            onChange={(e) => update({ departmentId: e.target.value })}
-            className={selectClass}
-          >
-            <option value="">Ingen avdeling</option>
-            {departments.map((d) => (
-              <option key={d.department_id} value={d.department_id}>
-                {d.name}
-              </option>
-            ))}
-          </select>
+          <div className="relative">
+            <select
+              value={row.departmentId}
+              onChange={(e) => update({ departmentId: e.target.value })}
+              className={selectClass}
+            >
+              <option value="">Ingen avdeling</option>
+              {departments.map((d) => (
+                <option key={d.department_id} value={d.department_id}>
+                  {d.name}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="text-muted-foreground pointer-events-none absolute top-1/2 right-3 h-3.5 w-3.5 -translate-y-1/2" />
+          </div>
         </div>
         <div className="space-y-1.5">
           <label className={`flex items-center gap-1.5 ${labelClass}`}>
             <Briefcase className="h-3.5 w-3.5" /> Rolle
           </label>
-          <select
-            value={row.role}
-            onChange={(e) => update({ role: e.target.value as InviteRow["role"] })}
-            className={selectClass}
-          >
-            <option value="employee">Ansatt</option>
-            <option value="manager">Leder</option>
-            <option value="admin">Administrator</option>
-          </select>
+          <div className="relative">
+            <select
+              value={row.role}
+              onChange={(e) => update({ role: e.target.value as InviteRow["role"] })}
+              className={selectClass}
+            >
+              <option value="employee">Ansatt</option>
+              <option value="manager">Leder</option>
+              <option value="admin">Administrator</option>
+            </select>
+            <ChevronDown className="text-muted-foreground pointer-events-none absolute top-1/2 right-3 h-3.5 w-3.5 -translate-y-1/2" />
+          </div>
         </div>
       </div>
 
       {/* Employment type toggle */}
-      <div className="space-y-1.5">
-        <label className={labelClass}>Type</label>
+      <div className="space-y-2">
+        <label className={labelClass}>Tilknytning</label>
         <div className="grid grid-cols-2 gap-2">
           {(["employee", "guest"] as const).map((type) => (
             <button
               key={type}
               type="button"
               onClick={() => update({ inviteEmploymentType: type })}
-              className={`rounded-lg px-3 py-2 text-sm font-medium transition-all ${
+              className={`rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
                 row.inviteEmploymentType === type
-                  ? "bg-orange-500 text-white"
-                  : "border-border bg-background text-muted-foreground hover:border-border/70 border"
+                  ? isDark
+                    ? "bg-orange-500/15 text-orange-400 ring-1 ring-orange-500/30"
+                    : "bg-orange-50 text-orange-600 ring-1 ring-orange-200"
+                  : "border-border bg-background text-muted-foreground hover:text-foreground hover:border-border/70 border"
               }`}
             >
               {type === "employee" ? "Ansatt" : "Gjest"}
@@ -731,62 +794,126 @@ function SingleInviteForm({
         </div>
       </div>
 
-      {/* Employment fields — only for employee type */}
+      {/* Employment details — collapsible */}
       {row.inviteEmploymentType === "employee" && (
-        <div className="border-border/30 space-y-3 rounded-lg border border-dashed p-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <label className={labelClass}>Stillingstype</label>
-              <select
-                value={row.employmentCategory}
-                onChange={(e) => update({ employmentCategory: e.target.value })}
-                className={selectClass}
-              >
-                <option value="">Velg...</option>
-                <option value="fast">Fast</option>
-                <option value="deltid">Deltid</option>
-                <option value="tilkalling">Tilkalling</option>
-              </select>
+        <div className="border-border bg-muted/30 overflow-hidden rounded-xl border">
+          <button
+            type="button"
+            onClick={() => setShowEmployment(!showEmployment)}
+            className="text-muted-foreground hover:text-foreground flex w-full items-center justify-between px-4 py-3 text-xs font-semibold tracking-wider uppercase transition-colors"
+          >
+            <span>
+              Ansettelsesprofil
+              {selectedTemplate && (
+                <span className="ml-2 font-medium tracking-normal text-orange-500 normal-case">
+                  — {selectedTemplate.name}
+                </span>
+              )}
+            </span>
+            <ChevronDown
+              className={`h-3.5 w-3.5 transition-transform ${showEmployment ? "rotate-180" : ""}`}
+            />
+          </button>
+          {showEmployment && (
+            <div className="border-border space-y-3 border-t px-4 pt-3 pb-4">
+              {/* Template picker */}
+              {templates.length > 0 && (
+                <div className="space-y-1.5">
+                  <label className={labelClass}>Velg mal</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {templates.map((t) => {
+                      const isSelected = row.payrollTemplateId === t.id;
+                      return (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => handleTemplateSelect(isSelected ? "" : t.id)}
+                          className={`flex flex-col items-start rounded-xl px-3 py-2.5 text-left transition-all ${
+                            isSelected
+                              ? isDark
+                                ? "bg-orange-500/15 text-orange-400 ring-1 ring-orange-500/30"
+                                : "bg-orange-50 text-orange-600 ring-1 ring-orange-200"
+                              : "border-border bg-background text-muted-foreground hover:text-foreground hover:border-border/70 border"
+                          }`}
+                        >
+                          <span className="text-sm font-medium">{t.name}</span>
+                          <span
+                            className={`text-[11px] ${isSelected ? "opacity-70" : "opacity-50"}`}
+                          >
+                            {t.salary_type === "monthly" ? "Månedslønn" : "Timelønn"}
+                            {t.agreed_weekly_hours ? ` \u00B7 ${t.agreed_weekly_hours}t/uke` : ""}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Manual override fields */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className={labelClass}>Stillingstype</label>
+                  <div className="relative">
+                    <select
+                      value={row.employmentCategory}
+                      onChange={(e) => update({ employmentCategory: e.target.value })}
+                      className={selectClass}
+                    >
+                      <option value="">Velg...</option>
+                      <option value="fast">Fast</option>
+                      <option value="deltid">Deltid</option>
+                      <option value="tilkalling">Tilkalling</option>
+                    </select>
+                    <ChevronDown className="text-muted-foreground pointer-events-none absolute top-1/2 right-3 h-3.5 w-3.5 -translate-y-1/2" />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <label className={labelClass}>Lønnstype</label>
+                  <div className="relative">
+                    <select
+                      value={row.salaryType}
+                      onChange={(e) => update({ salaryType: e.target.value })}
+                      className={selectClass}
+                    >
+                      <option value="">Velg...</option>
+                      <option value="hourly">Timelønn</option>
+                      <option value="monthly">Månedslønn</option>
+                    </select>
+                    <ChevronDown className="text-muted-foreground pointer-events-none absolute top-1/2 right-3 h-3.5 w-3.5 -translate-y-1/2" />
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className={labelClass}>Timer/uke</label>
+                  <input
+                    type="number"
+                    value={row.intendedWeeklyHours}
+                    onChange={(e) => update({ intendedWeeklyHours: e.target.value })}
+                    placeholder="37.5"
+                    className={inputClass}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className={labelClass}>Startdato</label>
+                  <input
+                    type="date"
+                    value={row.startDate}
+                    onChange={(e) => update({ startDate: e.target.value })}
+                    className={inputClass}
+                  />
+                </div>
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <label className={labelClass}>Lønnstype</label>
-              <select
-                value={row.salaryType}
-                onChange={(e) => update({ salaryType: e.target.value })}
-                className={selectClass}
-              >
-                <option value="">Velg...</option>
-                <option value="hourly">Timelønn</option>
-                <option value="monthly">Månedslønn</option>
-              </select>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <label className={labelClass}>Timer/uke</label>
-              <input
-                type="number"
-                value={row.intendedWeeklyHours}
-                onChange={(e) => update({ intendedWeeklyHours: e.target.value })}
-                placeholder="37.5"
-                className={inputClass}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className={labelClass}>Startdato</label>
-              <input
-                type="date"
-                value={row.startDate}
-                onChange={(e) => update({ startDate: e.target.value })}
-                className={inputClass}
-              />
-            </div>
-          </div>
+          )}
         </div>
       )}
 
       {row.errors.length > 0 && (
-        <div className="flex items-start gap-2 rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-400">
+        <div
+          className={`flex items-start gap-2 rounded-xl px-4 py-3 text-xs ${isDark ? "bg-red-500/10 text-red-400" : "bg-red-50 text-red-600"}`}
+        >
           <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           <span>{row.errors.join(", ")}</span>
         </div>
@@ -815,19 +942,21 @@ function CsvImportView({
   if (rows.length === 0) {
     return (
       <div className="flex flex-col items-center gap-4 py-8">
-        <div className={`rounded-2xl border-2 border-dashed p-6 ${"border-border"}`}>
-          <Upload className={`h-8 w-8 ${isDark ? "text-muted-foreground" : "text-foreground"}`} />
+        <div
+          className={`border-border rounded-2xl border-2 border-dashed p-6 ${isDark ? "bg-muted/30" : "bg-muted/50"}`}
+        >
+          <Upload className="text-muted-foreground h-8 w-8" />
         </div>
         <div className="text-center">
-          <p className={`text-sm font-medium ${"text-foreground"}`}>Last opp CSV-fil med ansatte</p>
-          <p className={`mt-1 text-xs ${"text-muted-foreground"}`}>
+          <p className="text-foreground text-sm font-medium">Last opp CSV-fil med ansatte</p>
+          <p className="text-muted-foreground mt-1 text-xs">
             Obligatoriske kolonner: fornavn, etternavn, e-post
           </p>
         </div>
         <button
           type="button"
           onClick={onUploadClick}
-          className="flex items-center gap-2 rounded-lg bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-orange-400"
+          className="flex items-center gap-2 rounded-xl bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-orange-400"
         >
           <Upload className="h-4 w-4" />
           Velg fil
@@ -842,12 +971,12 @@ function CsvImportView({
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Users className={`h-4 w-4 ${"text-muted-foreground"}`} />
-          <span className={`text-sm font-medium ${"text-foreground"}`}>
-            {rows.length} rader importert
-          </span>
+          <Users className="text-muted-foreground h-4 w-4" />
+          <span className="text-foreground text-sm font-medium">{rows.length} rader importert</span>
           {errorCount > 0 && (
-            <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-[10px] font-medium text-red-400">
+            <span
+              className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${isDark ? "bg-red-500/10 text-red-400" : "bg-red-50 text-red-600"}`}
+            >
               {errorCount} feil
             </span>
           )}
@@ -855,22 +984,22 @@ function CsvImportView({
         <button
           type="button"
           onClick={onUploadClick}
-          className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${"text-muted-foreground hover:bg-accent hover:text-foreground"}`}
+          className="text-muted-foreground hover:bg-accent hover:text-foreground flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
         >
           <Upload className="h-3 w-3" />
           Ny fil
         </button>
       </div>
 
-      <div className={`overflow-hidden rounded-xl border ${"border-border"}`}>
+      <div className="border-border overflow-hidden rounded-xl border">
         <table className="w-full text-xs">
           <thead>
-            <tr className={"bg-muted text-muted-foreground"}>
-              <th className="px-3 py-2 text-left font-semibold">Navn</th>
-              <th className="px-3 py-2 text-left font-semibold">E-post</th>
-              <th className="px-3 py-2 text-left font-semibold">Avdeling</th>
-              <th className="px-3 py-2 text-left font-semibold">Rolle</th>
-              <th className="w-8 px-2 py-2" />
+            <tr className="bg-muted text-muted-foreground">
+              <th className="px-3 py-2.5 text-left font-semibold">Navn</th>
+              <th className="px-3 py-2.5 text-left font-semibold">E-post</th>
+              <th className="px-3 py-2.5 text-left font-semibold">Avdeling</th>
+              <th className="px-3 py-2.5 text-left font-semibold">Rolle</th>
+              <th className="w-8 px-2 py-2.5" />
             </tr>
           </thead>
           <tbody>
@@ -888,25 +1017,25 @@ function CsvImportView({
                   }`}
                 >
                   <td className="px-3 py-2">
-                    <span className={"text-foreground"}>
+                    <span className="text-foreground">
                       {row.firstName} {row.lastName}
                     </span>
                     {hasError && (
                       <p className="mt-0.5 text-[10px] text-red-400">{row.errors.join(", ")}</p>
                     )}
                   </td>
-                  <td className={`px-3 py-2 ${"text-muted-foreground"}`}>{row.email}</td>
-                  <td className={`px-3 py-2 ${"text-muted-foreground"}`}>
-                    {deptMap.get(row.departmentId) ?? "—"}
+                  <td className="text-muted-foreground px-3 py-2">{row.email}</td>
+                  <td className="text-muted-foreground px-3 py-2">
+                    {deptMap.get(row.departmentId) ?? "\u2014"}
                   </td>
-                  <td className={`px-3 py-2 ${"text-muted-foreground"}`}>
+                  <td className="text-muted-foreground px-3 py-2">
                     {row.role === "admin" ? "Admin" : row.role === "manager" ? "Leder" : "Ansatt"}
                   </td>
                   <td className="px-2 py-2">
                     <button
                       type="button"
                       onClick={() => onRemoveRow(row.id)}
-                      className={`rounded p-1 transition-colors ${"text-muted-foreground hover:bg-accent hover:text-foreground"}`}
+                      className="text-muted-foreground hover:bg-accent hover:text-foreground rounded p-1 transition-colors"
                     >
                       <Trash2 className="h-3 w-3" />
                     </button>
@@ -935,43 +1064,41 @@ function GeneratedLinkView({
   onCopy: () => void;
 }) {
   return (
-    <div className="flex flex-col items-center gap-4 py-4">
+    <div className="flex flex-col items-center gap-5 py-6">
       <div className={`rounded-2xl p-4 ${isDark ? "bg-orange-500/10" : "bg-orange-50"}`}>
         <Link2 className="h-8 w-8 text-orange-500" />
       </div>
 
       <div className="text-center">
-        <p className={`text-sm font-medium ${"text-foreground"}`}>Invitasjonslenke klar</p>
-        <p className={`mt-1 text-xs ${"text-muted-foreground"}`}>
+        <p className="text-foreground text-base font-semibold">Invitasjonslenke klar</p>
+        <p className="text-muted-foreground mt-1 text-sm">
           Del denne lenken med den du vil invitere
         </p>
       </div>
 
-      <div
-        className={`flex w-full items-center gap-2 rounded-lg border px-3 py-2.5 ${"border-border bg-muted"}`}
-      >
+      <div className="border-border bg-muted flex w-full items-center gap-2 rounded-xl border px-4 py-3">
         <input
           readOnly
           value={link}
-          className={`flex-1 bg-transparent font-mono text-xs outline-none ${"text-foreground"}`}
+          className="text-foreground flex-1 bg-transparent font-mono text-xs outline-none"
           onFocus={(e) => e.target.select()}
         />
         <button
           type="button"
           onClick={onCopy}
-          className={`flex shrink-0 items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${
+          className={`flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-all ${
             copied
               ? "bg-green-500/10 text-green-500"
-              : "bg-secondary text-foreground hover:bg-accent"
+              : "bg-background text-foreground hover:bg-accent border-border border"
           }`}
         >
           {copied ? (
             <>
-              <Check className="h-3 w-3" /> Kopiert
+              <Check className="h-3.5 w-3.5" /> Kopiert
             </>
           ) : (
             <>
-              <Copy className="h-3 w-3" /> Kopier
+              <Copy className="h-3.5 w-3.5" /> Kopier
             </>
           )}
         </button>
