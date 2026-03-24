@@ -4,6 +4,7 @@
  */
 import type { ViewStyle } from "react-native";
 import { StyleSheet, useColorScheme } from "react-native";
+import { useThemeStore } from "@/hooks/stores/use-theme-store";
 import {
   getColors,
   lightColors,
@@ -79,9 +80,10 @@ export type Theme = {
  * Hook that returns a fully resolved Theme based on the current color scheme.
  */
 export function useTheme(): Theme {
-  // FORCE LIGHT MODE FOR ENTIRE APP
-  const scheme = "light"; // useColorScheme();
-  const isDark = false; // scheme === "dark";
+  const systemScheme = useColorScheme() ?? "light";
+  const themePref = useThemeStore((s) => s.theme);
+  const scheme = themePref === "system" ? systemScheme : themePref;
+  const isDark = scheme === "dark";
   return {
     colors: getColors(scheme),
     spacing,

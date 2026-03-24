@@ -42,7 +42,7 @@ const useStyles = createStyles((theme) => ({
   text: {
     ...theme.typography.micro,
     fontWeight: theme.fontWeights.bold,
-    color: "#ffffff",
+    color: theme.colors.primaryForeground,
     textAlign: "center",
   },
 }));

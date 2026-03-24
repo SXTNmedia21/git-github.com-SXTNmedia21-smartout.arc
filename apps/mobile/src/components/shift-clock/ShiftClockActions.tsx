@@ -11,7 +11,7 @@ import { View, Text, Pressable } from "react-native";
 import * as Haptics from "expo-haptics";
 import { Coffee, Play, FileText, Coins, Phone } from "lucide-react-native";
 
-import { createStyles } from "@/theme";
+import { createStyles, withOpacity } from "@/theme";
 
 type ShiftClockActionsProps = {
   isOnBreak: boolean;
@@ -43,7 +43,7 @@ export function ShiftClockActions({
       {/* Break toggle */}
       {isOnBreak ? (
         <ActionButton
-          icon={<Play size={20} color="#f97316" strokeWidth={2} />}
+          icon={<Play size={20} color={styles.brandOrangeColor.color} strokeWidth={2} />}
           label={breakElapsed ?? "Tilbake"}
           sublabel="Tilbake fra pause"
           onPress={() => {
@@ -55,43 +55,43 @@ export function ShiftClockActions({
         />
       ) : (
         <ActionButton
-          icon={<Coffee size={20} color="#f59e0b" strokeWidth={2} />}
+          icon={<Coffee size={20} color={styles.warningColor.color} strokeWidth={2} />}
           label="Pause"
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
             onStartBreak();
           }}
-          iconBg="rgba(245, 158, 11, 0.1)"
+          iconBg={styles.warningBg.backgroundColor}
           disabled={isLoading}
         />
       )}
 
       {/* Notes */}
       <ActionButton
-        icon={<FileText size={20} color="#a78bfa" strokeWidth={2} />}
+        icon={<FileText size={20} color={styles.brandPurpleColor.color} strokeWidth={2} />}
         label="Notat"
         onPress={() => {
           Haptics.selectionAsync();
           onOpenNotes();
         }}
-        iconBg="rgba(167, 139, 250, 0.1)"
+        iconBg={styles.brandPurpleBg.backgroundColor}
       />
 
       {/* Supplements */}
       <ActionButton
-        icon={<Coins size={20} color="#34d399" strokeWidth={2} />}
+        icon={<Coins size={20} color={styles.successColor.color} strokeWidth={2} />}
         label="Tillegg"
         onPress={() => {
           Haptics.selectionAsync();
           onOpenSupplements();
         }}
-        iconBg="rgba(52, 211, 153, 0.1)"
+        iconBg={styles.successBg.backgroundColor}
         badge={claimedSupplementCount > 0 ? claimedSupplementCount : undefined}
       />
 
       {/* Call leader */}
       <ActionButton
-        icon={<Phone size={20} color="#6bcb77" strokeWidth={2} />}
+        icon={<Phone size={20} color={styles.successColor.color} strokeWidth={2} />}
         label="Ring leder"
         onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -204,18 +204,18 @@ const useStyles = createStyles((theme) => ({
   },
 
   actionDefault: {
-    backgroundColor: theme.isDark ? "#111118" : "#f8f8f9",
-    borderColor: theme.isDark ? "#1a1a24" : "#e5e5e8",
+    backgroundColor: theme.colors.card,
+    borderColor: theme.colors.border,
   },
 
   actionBreak: {
-    backgroundColor: "rgba(249, 115, 22, 0.08)",
-    borderColor: "rgba(249, 115, 22, 0.25)",
+    backgroundColor: withOpacity(theme.colors.brandOrange, 0.08),
+    borderColor: withOpacity(theme.colors.brandOrange, 0.25),
   },
 
   actionVoice: {
-    backgroundColor: theme.isDark ? "#0a1a0a" : "#f0f8f0",
-    borderColor: theme.isDark ? "#1a3a1a" : "#c8e6c8",
+    backgroundColor: withOpacity(theme.colors.success, 0.06),
+    borderColor: withOpacity(theme.colors.success, 0.2),
   },
 
   actionPressed: {
@@ -238,26 +238,26 @@ const useStyles = createStyles((theme) => ({
 
   actionLabel: {
     fontSize: 12,
-    color: theme.isDark ? "#a89f94" : "#666",
+    color: theme.colors.mutedForeground,
     marginTop: 2,
   },
 
   voiceLabel: {
     fontSize: 12,
-    color: "#6bcb77",
+    color: theme.colors.success,
     marginTop: 2,
   },
 
   breakTimerLabel: {
     fontSize: 14,
     fontWeight: "600" as const,
-    color: "#f97316",
+    color: theme.colors.brandOrange,
     fontVariant: ["tabular-nums" as const],
   },
 
   actionSublabel: {
     fontSize: 10,
-    color: "rgba(249, 115, 22, 0.7)",
+    color: withOpacity(theme.colors.brandOrange, 0.7),
     marginTop: 2,
   },
 
@@ -268,7 +268,7 @@ const useStyles = createStyles((theme) => ({
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: "#e85c0d",
+    backgroundColor: theme.colors.brandOrange,
     alignItems: "center" as const,
     justifyContent: "center" as const,
   },
@@ -276,6 +276,34 @@ const useStyles = createStyles((theme) => ({
   badgeText: {
     fontSize: 10,
     fontWeight: "700" as const,
-    color: "#ffffff",
+    color: theme.colors.primaryForeground,
+  },
+
+  brandOrangeColor: {
+    color: theme.colors.brandOrange,
+  },
+
+  warningColor: {
+    color: theme.colors.warning,
+  },
+
+  warningBg: {
+    backgroundColor: withOpacity(theme.colors.warning, 0.1),
+  },
+
+  brandPurpleColor: {
+    color: theme.colors.brandPurple,
+  },
+
+  brandPurpleBg: {
+    backgroundColor: withOpacity(theme.colors.brandPurple, 0.1),
+  },
+
+  successColor: {
+    color: theme.colors.success,
+  },
+
+  successBg: {
+    backgroundColor: withOpacity(theme.colors.success, 0.1),
   },
 }));

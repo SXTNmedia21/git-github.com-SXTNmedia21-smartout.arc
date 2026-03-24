@@ -12,7 +12,7 @@ import type GorhomBottomSheet from "@gorhom/bottom-sheet";
 import { Bell, CheckCircle2, AlertTriangle, Calendar, MessageCircle } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import { BottomSheet } from "@/components/ui/BottomSheet";
-import { createStyles } from "@/theme";
+import { createStyles, useTheme, type ThemeColors } from "@/theme";
 import type { LucideIcon } from "lucide-react-native";
 
 type NotificationType = "shift" | "message" | "deviation" | "task";
@@ -33,11 +33,11 @@ const ICON_MAP: Record<NotificationType, LucideIcon> = {
   task: CheckCircle2,
 };
 
-const COLOR_MAP: Record<NotificationType, string> = {
-  shift: "#3b82f6",
-  message: "#06b6d4",
-  deviation: "#f59e0b",
-  task: "#22c55e",
+const COLOR_KEY_MAP: Record<NotificationType, keyof ThemeColors> = {
+  shift: "info",
+  message: "brandCyan",
+  deviation: "warning",
+  task: "success",
 };
 
 /** Placeholder notifications — will be replaced with real data */
@@ -81,10 +81,12 @@ export const NotificationSheet = forwardRef<GorhomBottomSheet>(
     const styles = useStyles();
     const snapPoints = useMemo(() => ["50%", "80%"], []);
 
+    const { colors } = useTheme();
+
     const renderItem = useCallback(
       ({ item }: { item: NotificationItem }) => {
         const Icon = ICON_MAP[item.type];
-        const color = COLOR_MAP[item.type];
+        const color = colors[COLOR_KEY_MAP[item.type]] as string;
 
         return (
           <Pressable
@@ -109,7 +111,7 @@ export const NotificationSheet = forwardRef<GorhomBottomSheet>(
           </Pressable>
         );
       },
-      [styles],
+      [styles, colors],
     );
 
     return (
@@ -159,7 +161,7 @@ const useStyles = createStyles((theme) => ({
     borderRadius: theme.radius.md,
   },
   unread: {
-    backgroundColor: "rgba(0,0,0,0.02)",
+    backgroundColor: theme.isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.02)",
   },
   pressed: {
     opacity: 0.7,

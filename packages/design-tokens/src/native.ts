@@ -20,6 +20,8 @@ export const nativeTheme = {
     warning: "#c18200",
     info: "#2784d5",
     brandOrange: "#f64b00",
+    brandPurple: "#8b5cf6",
+    brandCyan: "#06b6d4",
   },
   dark: {
     background: "#0a0a0a",
@@ -38,6 +40,8 @@ export const nativeTheme = {
     warning: "#c18200",
     info: "#2784d5",
     brandOrange: "#f64b00",
+    brandPurple: "#a78bfa",
+    brandCyan: "#22d3ee",
   },
   department: {
     kitchen: "#ee560c",

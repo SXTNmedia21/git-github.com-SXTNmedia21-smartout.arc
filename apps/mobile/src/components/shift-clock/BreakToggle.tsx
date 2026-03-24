@@ -11,7 +11,7 @@ import { View, Text, Pressable } from "react-native";
 import * as Haptics from "expo-haptics";
 import { Coffee, Play } from "lucide-react-native";
 
-import { createStyles } from "@/theme";
+import { createStyles, withOpacity } from "@/theme";
 
 type BreakToggleProps = {
   isOnBreak: boolean;
@@ -73,7 +73,7 @@ export function BreakToggle({
         accessibilityLabel="Avslutt pause"
       >
         <View style={styles.iconContainerBreak}>
-          <Play size={20} color="#f97316" strokeWidth={2} />
+          <Play size={20} color={styles.brandOrangeColor.color} strokeWidth={2} />
         </View>
         <Text style={styles.breakTimer}>{formatElapsed(breakSeconds)}</Text>
         <Text style={styles.breakLabel}>Tilbake fra pause</Text>
@@ -98,7 +98,7 @@ export function BreakToggle({
       accessibilityLabel="Start pause"
     >
       <View style={styles.iconContainer}>
-        <Coffee size={20} color="#f59e0b" strokeWidth={2} />
+        <Coffee size={20} color={styles.warningColor.color} strokeWidth={2} />
       </View>
       <Text style={styles.label}>Pause</Text>
     </Pressable>
@@ -116,13 +116,13 @@ const useStyles = createStyles((theme) => ({
   },
 
   idle: {
-    backgroundColor: theme.isDark ? "#111118" : "#f8f8f9",
-    borderColor: theme.isDark ? "#1a1a24" : "#e5e5e8",
+    backgroundColor: theme.colors.card,
+    borderColor: theme.colors.border,
   },
 
   breakActive: {
-    backgroundColor: "rgba(249, 115, 22, 0.08)",
-    borderColor: "rgba(249, 115, 22, 0.25)",
+    backgroundColor: withOpacity(theme.colors.brandOrange, 0.08),
+    borderColor: withOpacity(theme.colors.brandOrange, 0.25),
   },
 
   pressed: {
@@ -138,7 +138,7 @@ const useStyles = createStyles((theme) => ({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: "rgba(245, 158, 11, 0.1)",
+    backgroundColor: withOpacity(theme.colors.warning, 0.1),
     alignItems: "center" as const,
     justifyContent: "center" as const,
     marginBottom: 4,
@@ -148,7 +148,7 @@ const useStyles = createStyles((theme) => ({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: "rgba(249, 115, 22, 0.15)",
+    backgroundColor: withOpacity(theme.colors.brandOrange, 0.15),
     alignItems: "center" as const,
     justifyContent: "center" as const,
     marginBottom: 4,
@@ -156,20 +156,28 @@ const useStyles = createStyles((theme) => ({
 
   label: {
     fontSize: 12,
-    color: theme.isDark ? "#a89f94" : "#666",
+    color: theme.colors.mutedForeground,
     marginTop: 2,
   },
 
   breakTimer: {
     fontSize: 14,
     fontWeight: "600" as const,
-    color: "#f97316",
+    color: theme.colors.brandOrange,
     fontVariant: ["tabular-nums" as const],
   },
 
   breakLabel: {
     fontSize: 10,
-    color: "rgba(249, 115, 22, 0.7)",
+    color: withOpacity(theme.colors.brandOrange, 0.7),
     marginTop: 2,
+  },
+
+  brandOrangeColor: {
+    color: theme.colors.brandOrange,
+  },
+
+  warningColor: {
+    color: theme.colors.warning,
   },
 }));

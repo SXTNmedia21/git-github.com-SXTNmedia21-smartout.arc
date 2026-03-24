@@ -11,7 +11,7 @@
  * Uses react-native-reanimated for smooth 60fps animations.
  */
 import { useCallback, useEffect } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -22,6 +22,7 @@ import Animated, {
 import { retryFailed } from "@/lib/sync/queue";
 import { syncWorker } from "@/lib/sync/worker";
 import { useSyncStatus } from "@/hooks/stores/use-sync-status";
+import { createStyles, useTheme, withOpacity, type ThemeColors } from "@/theme";
 
 const BANNER_HEIGHT = 40;
 const FADE_OUT_DELAY_MS = 3000;
@@ -39,16 +40,21 @@ function deriveBannerState(
   return "synced";
 }
 
-const COLORS: Record<BannerState, string> = {
-  syncing: "#EAB308", // yellow
-  offline: "#F97316", // orange
-  failed: "#EF4444", // red
-  synced: "#22C55E", // green
-  hidden: "#22C55E",
-};
+function getBannerColors(colors: ThemeColors): Record<BannerState, string> {
+  return {
+    syncing: colors.warning,
+    offline: colors.brandOrange,
+    failed: colors.destructive,
+    synced: colors.success,
+    hidden: colors.success,
+  };
+}
 
 export function SyncIndicator() {
   const { pendingCount, failedCount, isOnline } = useSyncStatus();
+  const { colors } = useTheme();
+  const styles = useStyles();
+  const bannerColors = getBannerColors(colors);
 
   const bannerState = deriveBannerState(pendingCount, failedCount, isOnline);
   const isVisible = pendingCount > 0 || failedCount > 0;
@@ -87,7 +93,7 @@ export function SyncIndicator() {
 
   return (
     <Animated.View
-      style={[styles.container, { backgroundColor: COLORS[bannerState] }, animatedStyle]}
+      style={[styles.container, { backgroundColor: bannerColors[bannerState] }, animatedStyle]}
     >
       <View style={styles.content}>
         <Text style={styles.text}>{label}</Text>
@@ -115,7 +121,7 @@ function getBannerLabel(state: BannerState, pendingCount: number, failedCount: n
   }
 }
 
-const styles = StyleSheet.create({
+const useStyles = createStyles((theme) => ({
   container: {
     overflow: "hidden",
     width: "100%",
@@ -129,19 +135,19 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   text: {
-    color: "#FFFFFF",
+    color: theme.colors.primaryForeground,
     fontSize: 13,
     fontWeight: "600",
   },
   retryButton: {
-    backgroundColor: "rgba(255, 255, 255, 0.25)",
+    backgroundColor: withOpacity(theme.colors.primaryForeground, 0.25),
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 4,
   },
   retryText: {
-    color: "#FFFFFF",
+    color: theme.colors.primaryForeground,
     fontSize: 12,
     fontWeight: "700",
   },
-});
+}));

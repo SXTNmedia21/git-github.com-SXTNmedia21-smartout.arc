@@ -1,5 +1,6 @@
 /**
  * Payroll hub — entry to Min lønn, fravær, timebank, tillegg (Mobile Payroll UI spec).
+ * Flat route (payroll.tsx) so Expo Router registers the screen on the Me stack reliably.
  */
 
 import React, { useCallback } from "react";
@@ -87,7 +88,7 @@ export default function PayrollHubScreen() {
             title={strings.payroll.supplements}
             subtitle={strings.payroll.todaysSupplements}
             icon={<Sparkles size={22} color={styles.brandColor.color} strokeWidth={2} />}
-            onPress={() => router.push("/(app)/(me)/payroll/supplements")}
+            onPress={() => router.push("/(app)/(me)/payroll-supplements")}
           />
         </Card>
       </ScrollView>

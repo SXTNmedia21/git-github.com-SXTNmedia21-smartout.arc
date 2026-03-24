@@ -10,15 +10,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { InviteEntry } from "@/components/auth/InviteEntry";
 import { CodeEntry } from "@/components/auth/CodeEntry";
 import { WorkspaceSearch } from "@/components/auth/WorkspaceSearch";
-import {
-  lightColors,
-  withOpacity,
-  spacing,
-  typography,
-  fontWeights,
-  radius,
-  shadows,
-} from "@/theme";
+import { lightColors, withOpacity, spacing, typography, radius, shadows } from "@/theme";
 
 type AuthPath = "none" | "invite" | "code" | "search";
 
@@ -100,7 +92,7 @@ const styles = StyleSheet.create({
   },
   loginButtonText: {
     ...typography.bodyBold,
-    color: "#FFFFFF",
+    color: t.primaryForeground,
   },
   footer: {
     alignItems: "center",

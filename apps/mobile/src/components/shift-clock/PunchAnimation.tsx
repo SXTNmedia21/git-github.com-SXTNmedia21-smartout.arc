@@ -31,7 +31,7 @@ import Animated, {
 import * as Haptics from "expo-haptics";
 import { Check } from "lucide-react-native";
 
-import { createStyles } from "@/theme";
+import { createStyles, withOpacity } from "@/theme";
 
 /* -------------------------------------------------------------------------- */
 /*  Constants                                                                 */
@@ -720,7 +720,7 @@ const scanStyles = {
 const useStyles = createStyles((theme) => ({
   root: {
     flex: 1,
-    backgroundColor: "#0a0a0f",
+    backgroundColor: theme.colors.background,
     position: "relative" as const,
   },
 
@@ -742,7 +742,7 @@ const useStyles = createStyles((theme) => ({
   },
   shiftLabel: {
     fontSize: 12,
-    color: "#a89f94",
+    color: theme.colors.mutedForeground,
     letterSpacing: 1,
     textTransform: "uppercase" as const,
   },

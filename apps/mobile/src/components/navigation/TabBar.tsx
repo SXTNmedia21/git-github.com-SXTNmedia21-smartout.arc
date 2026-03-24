@@ -86,16 +86,19 @@ export function TabBar({ state, navigation, unreadCount = 0, centerFab }: TabBar
   }
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} pointerEvents="box-none">
       <View style={styles.barBackground}>
         {/* Left tabs */}
         {leftRoutes.map((route) => renderTab(route))}
 
-        {/* Center FAB placeholder — takes up tab width but the FAB overflows upward */}
-        <View style={styles.fabSlot}>{centerFab}</View>
+        {/* Center FAB placeholder — takes up tab width */}
+        <View style={styles.fabSlot} />
 
         {/* Right tabs */}
         {rightRoutes.map((route) => renderTab(route))}
+      </View>
+      <View style={styles.absoluteFabContainer} pointerEvents="box-none">
+        {centerFab}
       </View>
     </View>
   );
@@ -148,7 +151,15 @@ const useStyles = createStyles((theme) => ({
   },
   fabSlot: {
     flex: 1,
+  },
+  absoluteFabContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
     alignItems: "center",
-    justifyContent: "flex-end",
+    justifyContent: "flex-start",
+    zIndex: 10,
+    elevation: 10,
   },
 }));

@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -12,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, ArrowRight, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import type { WizardStepProps } from "@smartout/ui";
 import type { JoinState } from "../types";
 
@@ -112,7 +111,7 @@ function mapRestaurantType(clues: string[], googleCategory?: string): string {
   return "";
 }
 
-export function Step5Menu({ state, updateState, next, back }: WizardStepProps<JoinState>) {
+export function Step5Menu({ state, updateState }: WizardStepProps<JoinState>) {
   const intel = state.intelligence as Record<string, unknown> | null;
 
   // Initialize empty to avoid hydration mismatch — localStorage values
@@ -203,7 +202,8 @@ export function Step5Menu({ state, updateState, next, back }: WizardStepProps<Jo
     );
   };
 
-  const handleNext = () => {
+  // Sync local fields to wizard state so WizardNavBar validation sees current data
+  useEffect(() => {
     updateState({
       menu: {
         ...state.menu,
@@ -213,8 +213,7 @@ export function Step5Menu({ state, updateState, next, back }: WizardStepProps<Jo
         menuDescription: menuDescription || undefined,
       },
     });
-    next();
-  };
+  }, [restaurantType, cuisineTypes, priceCategory, menuDescription]);
 
   return (
     <div className="mx-auto w-full max-w-md space-y-6">
@@ -294,33 +293,6 @@ export function Step5Menu({ state, updateState, next, back }: WizardStepProps<Jo
             onChange={(e) => setMenuDescription(e.target.value)}
           />
         </div>
-      </div>
-
-      <div className="flex flex-col gap-3">
-        <div className="flex gap-3">
-          <Button type="button" variant="outline" onClick={back} className="flex-1">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Tilbake
-          </Button>
-          <Button
-            type="button"
-            onClick={handleNext}
-            className="bg-brand-orange hover:bg-brand-orange-dark flex-1 text-white"
-          >
-            Neste
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-        </div>
-        <button
-          type="button"
-          onClick={() => {
-            updateState({ menu: {} });
-            next();
-          }}
-          className="text-muted-foreground hover:text-foreground text-center text-sm underline transition-colors"
-        >
-          Hopp over
-        </button>
       </div>
     </div>
   );

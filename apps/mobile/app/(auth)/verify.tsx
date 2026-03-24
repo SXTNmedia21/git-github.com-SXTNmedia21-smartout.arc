@@ -21,7 +21,15 @@ import {
 import { useLocalSearchParams, useRouter, useNavigation } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
-import { lightColors, spacing, typography, fontWeights, radius, shadows } from "@/theme";
+import {
+  lightColors,
+  withOpacity,
+  spacing,
+  typography,
+  fontWeights,
+  radius,
+  shadows,
+} from "@/theme";
 
 type VerifyTab = "phone" | "email";
 
@@ -160,7 +168,7 @@ export default function Verify() {
     setOtpSent(true);
   }
 
-  async function verifyOtp() {
+  async function _verifyOtp() {
     if (otp.length !== OTP_LENGTH) {
       setError("Koden ma vaere 6 siffer");
       return;
@@ -396,7 +404,7 @@ export default function Verify() {
             disabled={isLoading}
           >
             {isLoading ? (
-              <ActivityIndicator color="#FFFFFF" />
+              <ActivityIndicator color={t.primaryForeground} />
             ) : (
               <Text style={s.primaryButtonText}>Logg inn</Text>
             )}
@@ -483,7 +491,7 @@ export default function Verify() {
             disabled={isLoading}
           >
             {isLoading ? (
-              <ActivityIndicator color="#FFFFFF" />
+              <ActivityIndicator color={t.primaryForeground} />
             ) : (
               <Text style={s.primaryButtonText}>Send kode</Text>
             )}
@@ -561,7 +569,7 @@ export default function Verify() {
             disabled={isLoading}
           >
             {isLoading ? (
-              <ActivityIndicator color="#FFFFFF" />
+              <ActivityIndicator color={t.primaryForeground} />
             ) : (
               <Text style={s.primaryButtonText}>Send innloggingslenke</Text>
             )}
@@ -638,9 +646,9 @@ const s = StyleSheet.create({
 
   // Error banner (login)
   errorBanner: {
-    backgroundColor: "#FEF2F2",
+    backgroundColor: withOpacity(t.destructive, 0.08),
     borderWidth: 1,
-    borderColor: "#FECACA",
+    borderColor: withOpacity(t.destructive, 0.3),
     borderRadius: radius.lg,
     paddingVertical: spacing.element,
     paddingHorizontal: spacing.md,
@@ -731,7 +739,7 @@ const s = StyleSheet.create({
   },
   primaryButtonText: {
     ...typography.bodyBold,
-    color: "#FFFFFF",
+    color: t.primaryForeground,
   },
   buttonDisabled: {
     opacity: 0.6,
@@ -834,7 +842,7 @@ const s = StyleSheet.create({
   },
   otpBoxFilled: {
     borderColor: t.brandOrange,
-    backgroundColor: "#FFF7ED",
+    backgroundColor: withOpacity(t.brandOrange, 0.08),
   },
   otpChar: {
     ...typography.title,

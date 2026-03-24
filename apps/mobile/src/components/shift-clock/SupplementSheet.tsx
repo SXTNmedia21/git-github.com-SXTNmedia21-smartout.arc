@@ -12,7 +12,7 @@ import React, { useCallback, useMemo, useRef, useState } from "react";
 import { View, Text, Pressable, TextInput, KeyboardAvoidingView, Platform } from "react-native";
 import BottomSheet, { BottomSheetScrollView, BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import * as Haptics from "expo-haptics";
-import { Coins, Check, AlertCircle, ChevronLeft } from "lucide-react-native";
+import { Check, AlertCircle, ChevronLeft } from "lucide-react-native";
 
 import { createStyles } from "@/theme";
 
@@ -154,7 +154,9 @@ export function SupplementSheet({
                     <View style={styles.supplementLeft}>
                       <View style={styles.supplementNameRow}>
                         <Text style={styles.supplementName}>{supplement.name}</Text>
-                        {isClaimed && <Check size={16} color="#34d399" strokeWidth={2.5} />}
+                        {isClaimed && (
+                          <Check size={16} color={styles.successColor.color} strokeWidth={2.5} />
+                        )}
                       </View>
                       <Text style={styles.supplementDesc}>{supplement.description}</Text>
                     </View>
@@ -196,7 +198,7 @@ export function SupplementSheet({
                 value={comment}
                 onChangeText={setComment}
                 placeholder="Beskriv kort hvorfor..."
-                placeholderTextColor="#666"
+                placeholderTextColor={styles.mutedColor.color}
                 multiline
                 editable={!isLoading}
               />
@@ -241,7 +243,7 @@ const useStyles = createStyles((theme) => ({
   },
 
   handleIndicator: {
-    backgroundColor: theme.isDark ? "#333" : "#ccc",
+    backgroundColor: theme.colors.mutedForeground,
     width: 40,
   },
 
@@ -440,13 +442,17 @@ const useStyles = createStyles((theme) => ({
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: "center" as const,
-    backgroundColor: "#e85c0d",
+    backgroundColor: theme.colors.brandOrange,
   },
 
   claimButtonText: {
     fontSize: 14,
     fontWeight: "600" as const,
-    color: "#ffffff",
+    color: theme.colors.primaryForeground,
+  },
+
+  successColor: {
+    color: theme.colors.success,
   },
 
   buttonPressed: {

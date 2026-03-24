@@ -14,7 +14,7 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { CheckCircle2, Clock, Coffee, Star, Flame, Coins } from "lucide-react-native";
 
-import { createStyles } from "@/theme";
+import { createStyles, withOpacity } from "@/theme";
 
 type ClaimedSupplement = {
   id: string;
@@ -86,7 +86,7 @@ export function ShiftClockSummary({
       {/* Success header */}
       <Animated.View entering={FadeInDown.delay(100).duration(500)} style={styles.header}>
         <View style={styles.checkCircle}>
-          <CheckCircle2 size={40} color="#34d399" strokeWidth={1.8} />
+          <CheckCircle2 size={40} color={styles.successColor.color} strokeWidth={1.8} />
         </View>
         <Text style={styles.title}>Bra jobbet!</Text>
         <Text style={styles.subtitle}>
@@ -97,23 +97,23 @@ export function ShiftClockSummary({
       {/* 2x2 stats grid */}
       <Animated.View entering={FadeInDown.delay(250).duration(500)} style={styles.statsGrid}>
         <StatCard
-          icon={<Clock size={16} color="#60a5fa" strokeWidth={2} />}
+          icon={<Clock size={16} color={styles.infoColor.color} strokeWidth={2} />}
           label="Arbeidstid"
           value={formatDuration(workMinutes)}
         />
         <StatCard
-          icon={<Coffee size={16} color="#fbbf24" strokeWidth={2} />}
+          icon={<Coffee size={16} color={styles.warningColor.color} strokeWidth={2} />}
           label="Pauser"
           value={breaks.length > 0 ? formatDuration(breakMins) : "Ingen"}
         />
         <StatCard
-          icon={<Star size={16} color="#facc15" strokeWidth={2} />}
+          icon={<Star size={16} color={styles.warningColor.color} strokeWidth={2} />}
           label="Poeng"
           value="+7"
           subtle
         />
         <StatCard
-          icon={<Flame size={16} color="#fb923c" strokeWidth={2} />}
+          icon={<Flame size={16} color={styles.brandOrangeColor.color} strokeWidth={2} />}
           label="Streak"
           value="3 dager"
           subtle
@@ -130,7 +130,7 @@ export function ShiftClockSummary({
           {claimedSupplements.map((s) => (
             <View key={s.id} style={styles.supplementRow}>
               <View style={styles.supplementLeft}>
-                <Coins size={14} color="#34d399" strokeWidth={2} />
+                <Coins size={14} color={styles.successColor.color} strokeWidth={2} />
                 <Text style={styles.supplementText}>{s.description}</Text>
               </View>
               <Text style={styles.supplementAmount}>{s.amount} kr</Text>
@@ -211,7 +211,7 @@ const useStyles = createStyles((theme) => ({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: "rgba(52, 211, 153, 0.12)",
+    backgroundColor: withOpacity(theme.colors.success, 0.12),
     alignItems: "center" as const,
     justifyContent: "center" as const,
   },
@@ -316,7 +316,7 @@ const useStyles = createStyles((theme) => ({
   },
 
   dismissButton: {
-    backgroundColor: "#e85c0d",
+    backgroundColor: theme.colors.brandOrange,
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: "center" as const,
@@ -330,6 +330,22 @@ const useStyles = createStyles((theme) => ({
   dismissButtonText: {
     fontSize: 16,
     fontWeight: "600" as const,
-    color: "#ffffff",
+    color: theme.colors.primaryForeground,
+  },
+
+  successColor: {
+    color: theme.colors.success,
+  },
+
+  infoColor: {
+    color: theme.colors.info,
+  },
+
+  warningColor: {
+    color: theme.colors.warning,
+  },
+
+  brandOrangeColor: {
+    color: theme.colors.brandOrange,
   },
 }));

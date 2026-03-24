@@ -4,7 +4,7 @@
  */
 import React, { useState } from "react";
 import { View, Text, Image, type ViewStyle } from "react-native";
-import { createStyles, withOpacity } from "@/theme";
+import { createStyles } from "@/theme";
 
 type AvatarSize = "sm" | "md" | "lg" | "xl";
 
@@ -108,7 +108,7 @@ const useStyles = createStyles((theme) => ({
     resizeMode: "cover",
   },
   initials: {
-    color: "#ffffff",
+    color: theme.colors.primaryForeground,
     fontWeight: theme.fontWeights.semibold,
   },
 }));

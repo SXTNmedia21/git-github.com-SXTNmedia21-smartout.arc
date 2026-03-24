@@ -1,5 +1,5 @@
 /**
- * Route: supplement rates / badges detail (Mobile Payroll UI).
+ * Supplement rates / badges detail (Mobile Payroll UI). Flat route next to payroll hub.
  */
 
 import React, { useCallback } from "react";
@@ -12,7 +12,7 @@ import { createStyles } from "@/theme";
 import { strings } from "@/constants/strings";
 import { SupplementsDetailScreen } from "@/components/payroll/SupplementsDetailScreen";
 
-export default function SupplementsRoute() {
+export default function PayrollSupplementsRoute() {
   const styles = useStyles();
   const router = useRouter();
 

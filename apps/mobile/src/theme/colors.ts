@@ -17,8 +17,7 @@ export type ThemeColors = typeof lightColors | typeof darkColors;
  * Falls back to light theme if scheme is null/undefined.
  */
 export function getColors(scheme: ColorSchemeName): ThemeColors {
-  // FORCE LIGHT MODE FOR ENTIRE APP
-  return lightColors;
+  return scheme === "dark" ? darkColors : lightColors;
 }
 
 /**

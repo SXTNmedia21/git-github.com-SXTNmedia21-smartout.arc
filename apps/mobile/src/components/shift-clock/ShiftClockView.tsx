@@ -12,10 +12,10 @@
  */
 
 import React, { useCallback, useEffect, useState } from "react";
-import { View, Text, ScrollView, Pressable, Linking } from "react-native";
+import { View, Text, ScrollView, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import Animated, { FadeIn, FadeOut, SlideInDown } from "react-native-reanimated";
+import Animated, { FadeIn, SlideInDown } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { ChevronLeft, LogOut } from "lucide-react-native";
 
@@ -47,7 +47,7 @@ export function ShiftClockView() {
   // Local view phase — drives which child renders
   const [viewPhase, setViewPhase] = useState<ShiftClockPhase>("idle");
   const [isOnBreak, setIsOnBreak] = useState(false);
-  const [breakStartTime, setBreakStartTime] = useState<string | null>(null);
+  const [_breakStartTime, setBreakStartTime] = useState<string | null>(null);
   const [showSupplements, setShowSupplements] = useState(false);
 
   // Sync view phase with shift phase store
@@ -122,7 +122,7 @@ export function ShiftClockView() {
             accessibilityRole="button"
             accessibilityLabel="Tilbake"
           >
-            <ChevronLeft size={28} color="#e8e4df" strokeWidth={2} />
+            <ChevronLeft size={28} color={styles.mutedFgColor.color} strokeWidth={2} />
           </Pressable>
         </Animated.View>
 
@@ -201,15 +201,15 @@ export function ShiftClockView() {
           <Text style={styles.feedTab}>Notater</Text>
         </View>
 
-        <View style={[styles.feedCard, { borderLeftColor: "#e85c0d" }]}>
+        <View style={[styles.feedCard, { borderLeftColor: styles.brandOrangeColor.color }]}>
           <Text style={styles.feedTitle}>Sjekk temperatur kjoleskap</Text>
           <Text style={styles.feedSub}>Rutine · Forfaller 16:00</Text>
         </View>
-        <View style={[styles.feedCard, { borderLeftColor: "#5b9bd5" }]}>
+        <View style={[styles.feedCard, { borderLeftColor: styles.infoColor.color }]}>
           <Text style={styles.feedTitle}>Dagsbriefing</Text>
           <Text style={styles.feedSub}>VIP-selskap bord 12 kl 19. Allergier: notter.</Text>
         </View>
-        <View style={[styles.feedCard, { borderLeftColor: "#6bcb77" }]}>
+        <View style={[styles.feedCard, { borderLeftColor: styles.successColor.color }]}>
           <Text style={styles.feedTitle}>Lukking: rydd terassen</Text>
           <Text style={styles.feedSub}>Oppgave · Forfaller 22:30</Text>
         </View>
@@ -231,7 +231,7 @@ export function ShiftClockView() {
           accessibilityRole="button"
           accessibilityLabel={strings.shift.punchOut}
         >
-          <LogOut size={18} color="#ffffff" strokeWidth={2} />
+          <LogOut size={18} color={styles.primaryFgColor.color} strokeWidth={2} />
           <Text style={styles.punchOutText}>{strings.shift.punchOut}</Text>
         </Pressable>
       </Animated.View>
@@ -265,7 +265,7 @@ function formatShiftTime(iso: string | null): string {
 const useStyles = createStyles((theme) => ({
   fullScreen: {
     flex: 1,
-    backgroundColor: "#0a0a0f",
+    backgroundColor: theme.colors.background,
   },
 
   safeArea: {
@@ -321,10 +321,10 @@ const useStyles = createStyles((theme) => ({
   feedTabActive: {
     fontSize: 13,
     fontWeight: "500" as const,
-    color: "#e85c0d",
+    color: theme.colors.brandOrange,
     paddingVertical: 10,
     borderBottomWidth: 2,
-    borderBottomColor: "#e85c0d",
+    borderBottomColor: theme.colors.brandOrange,
   },
 
   feedTab: {
@@ -362,7 +362,7 @@ const useStyles = createStyles((theme) => ({
   },
 
   punchOutButton: {
-    backgroundColor: "#dc2626",
+    backgroundColor: theme.colors.destructive,
     flexDirection: "row" as const,
     alignItems: "center" as const,
     justifyContent: "center" as const,
@@ -383,6 +383,26 @@ const useStyles = createStyles((theme) => ({
   punchOutText: {
     fontSize: 15,
     fontWeight: "600" as const,
-    color: "#ffffff",
+    color: theme.colors.primaryForeground,
+  },
+
+  mutedFgColor: {
+    color: theme.colors.mutedForeground,
+  },
+
+  brandOrangeColor: {
+    color: theme.colors.brandOrange,
+  },
+
+  infoColor: {
+    color: theme.colors.info,
+  },
+
+  successColor: {
+    color: theme.colors.success,
+  },
+
+  primaryFgColor: {
+    color: theme.colors.primaryForeground,
   },
 }));

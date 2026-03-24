@@ -1,7 +1,7 @@
 ---
 title: "STATE — System State of Truth"
 status: canonical
-updated: 2026-03-22
+updated: 2026-03-24
 created: 2026-03-08
 last-verified: 2026-03-24
 module: all
@@ -31,7 +31,7 @@ Current repo truth for onboarding ownership:
 
 ## 1. Database Tables — By Cascade Dimension
 
-**Totals:** ~211 tables, 124 enums, 193 migrations, 37 Edge Functions, 58 ADRs, 18 learnings.
+**Totals:** ~213 tables, 124 enums, 199 migrations, 38 Edge Functions, 62 ADRs, 19 learnings.
 
 ### 1.0 Identity & Platform (Pre-Cascade)
 
@@ -160,9 +160,12 @@ No dedicated tables — D5 lives as configuration that parameterizes coefficient
 | `shift_approval`              | 20260304200200 | EXISTS | status: pending/approved/edited/disputed                                    |
 | `waste_log`                   | 20260407       | EXISTS | Waste tracking by category                                                  |
 | `supplier` + `supplier_order` | 20260407       | EXISTS | Vendor management and cost analysis                                         |
+| `shift_clock_config`          | 20260422500000 | EXISTS | Per-workspace clock config (GPS required, break rules, supplement rules)    |
+| `shift_note`                  | 20260422500100 | EXISTS | Per-shift notes from employees                                              |
 
-**Pure functions:** `computeAnchoredTime()` in `compute-anchored-shift.ts` — DONE.
-**UI:** Schedule planner, daily close, reconciliation — WORKING. Operations dashboard — WORKING (live stress metrics, 4 cards, auto-refresh).
+**Pure functions:** `computeAnchoredTime()` in `compute-anchored-shift.ts` — DONE. ShiftClock state machine + GPS distance + break classifier + points calculator in `packages/shift-clock/` — DONE (21 tests).
+**Edge Function:** `shift-clock-compliance` — GPS fence, rest period, weekly hours validation.
+**UI:** Schedule planner, daily close, reconciliation — WORKING. Operations dashboard — WORKING. ShiftClock employee punch (web + mobile) — WORKING. ShiftClock leader overview with realtime — WORKING. Ad-hoc shift creation + open shift claiming — WORKING.
 
 ### 1.7 C1 — Observability & Calibration
 
@@ -186,7 +189,7 @@ No dedicated tables — D5 lives as configuration that parameterizes coefficient
 | `shift_cost_snapshot` | 20260421100200 | EXISTS | Append-only cost audit. base_rate, supplements, overtime_cost |
 
 **Pure functions:** Cost calculation via `resolveTariffRate()` in cascade lib — tariff → cost snapshot path exists.
-**UI:** my-salary (PeriodList + PayslipDetail + BalancesSidebar) — WORKING. No admin cost analysis dashboard.
+**UI:** my-salary (PeriodList + PayslipDetail + BalancesSidebar) — WORKING. Mobile payroll screens (PayrollHome, supplements, payslip detail) — WORKING. No admin cost analysis dashboard.
 
 ### 1.9 C4 — Policy & Governance
 
@@ -293,7 +296,7 @@ Cascade is a PRODUCER of events; Event Engine is the CONSUMER.
 
 | Page             | Route                       | Cascade | Status  | Notes                                                                                                                                                                                                     |
 | ---------------- | --------------------------- | ------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Schedule Planner | `/dashboard/schedule`       | D6      | WORKING | Full week/day/month views, DnD shifts, Day Control Panel, publish workflow, Realtime on 6 tables                                                                                                          |
+| Schedule Planner | `/dashboard/schedule`       | D6      | WORKING | Full week/day/month views, DnD shifts, Day Control Panel, publish workflow, Realtime on 6 tables, ad-hoc shift creation, open shift claiming                                                              |
 | People           | `/dashboard/people`         | D2      | WORKING | DataTable, invite status, employee cards, row actions                                                                                                                                                     |
 | Reports          | `/dashboard/reports`        | C1/C3   | WORKING | ReportsPageShell, AI chat panel, saved reports, deep insights                                                                                                                                             |
 | Chat             | `/dashboard/chat`           | C2      | WORKING | ChatShell, real-time messages, DMs, conversation management                                                                                                                                               |
@@ -320,15 +323,17 @@ Cascade is a PRODUCER of events; Event Engine is the CONSUMER.
 
 ### 2.4 Employee Views (My View / Arbeidsrom)
 
-| Page           | Route                             | Cascade | Status      | Notes                                                                                    |
-| -------------- | --------------------------------- | ------- | ----------- | ---------------------------------------------------------------------------------------- |
-| Oversikt       | `/dashboard` (employee mode)      | D6      | WORKING     | EmployeeDashboard: today's shift, upcoming shifts, readiness score, open shifts to claim |
-| Min vaktplan   | `/dashboard/my-schedule`          | D6      | WORKING     | MyWeekView — published shifts for current profile, week navigation                       |
-| Min opplaering | `/dashboard/my-training`          | —       | WORKING     | ProtocolList, ProcedureStepper, KnowledgeTestView, ConfirmationSign — real progress data |
-| Min profil     | `/dashboard/my-cv`                | D2      | PLACEHOLDER | "Under construction" shell                                                               |
-| Min lonn       | `/dashboard/my-salary`            | C3      | WORKING     | PeriodList + PayslipDetail + BalancesSidebar, queries payroll tables                     |
-| Hjelp          | `/dashboard/help`                 | —       | EXISTS      | Help page                                                                                |
-| Onb. assistant | `/dashboard/onboarding-assistant` | I1      | EXISTS      | Onboarding assistant page                                                                |
+| Page           | Route                             | Cascade | Status      | Notes                                                                                       |
+| -------------- | --------------------------------- | ------- | ----------- | ------------------------------------------------------------------------------------------- |
+| Oversikt       | `/dashboard` (employee mode)      | D6      | WORKING     | EmployeeDashboard: today's shift, upcoming shifts, readiness score, open shifts to claim    |
+| Min vaktplan   | `/dashboard/my-schedule`          | D6      | WORKING     | MyWeekView — published shifts for current profile, week navigation                          |
+| Min opplaering | `/dashboard/my-training`          | —       | WORKING     | ProtocolList, ProcedureStepper, KnowledgeTestView, ConfirmationSign — real progress data    |
+| Min profil     | `/dashboard/my-cv`                | D2      | PLACEHOLDER | "Under construction" shell                                                                  |
+| Min lonn       | `/dashboard/my-salary`            | C3      | WORKING     | PeriodList + PayslipDetail + BalancesSidebar, queries payroll tables                        |
+| Hjelp          | `/dashboard/help`                 | —       | EXISTS      | Help page                                                                                   |
+| Onb. assistant | `/dashboard/onboarding-assistant` | I1      | EXISTS      | Onboarding assistant page                                                                   |
+| ShiftClock     | `/dashboard/shift-clock`          | D6      | WORKING     | Full punch clock: GPS fence, break tracking, supplements, chat, notes, points. Web + mobile |
+| ShiftClock (L) | `/dashboard/shift-clock/leader`   | D6      | WORKING     | Leader overview: realtime employee status, active shifts, compliance alerts                 |
 
 ---
 
@@ -350,24 +355,27 @@ Cascade is a PRODUCER of events; Event Engine is the CONSUMER.
 | 9   | Governance Has No CRUD               | **CLOSED**  | 5 forms: PolicyForm, ProtocolForm, ProcedureBuilder, KnowledgeTestBuilder, ConfirmationForm                   |
 | 10  | No Session Hooks / Operational Tasks | **CLOSED**  | 3 tables + 3 enums created. Hook dispatcher process seeded. Engine action handlers ready                      |
 
-### Known Remaining Gaps (audited 2026-03-22)
+### Known Remaining Gaps (audited 2026-03-24)
 
-| Area                       | Gap                                                                            | Cascade | Priority | Status  |
-| -------------------------- | ------------------------------------------------------------------------------ | ------- | -------- | ------- |
-| Notifications              | `send_notification` handler is a console.log stub (no notification_queue flow) | —       | Medium   | OPEN    |
-| Handbook -> RAG            | Saved chapters not chunked into workspace_doc_chunk                            | K1b     | Medium   | OPEN    |
-| Invite -> Onboarding       | Complete invite journey merged (multi-channel, mobile accept, welcome page)    | D2      | High     | DONE    |
-| Shift Publish -> Session   | End-to-end flow untested (emit -> trigger -> upsert_session -> hooks)          | D6      | High     | OPEN    |
-| PolicyForm scope picker    | Department picker doesn't appear when "department" scope selected              | C4      | Low      | OPEN    |
-| Wizard mobile              | Unified wizard shell in `feat/unified-wizard-shell` (wt-2)                     | I1      | Low      | DONE    |
-| my-schedule realtime       | No Realtime subscription on employee shift view                                | D6      | Low      | OPEN    |
-| Invite dialog departments  | Fixed in `feat/staff-handling-complete`                                        | D2      | Low      | DONE    |
-| Trainee first-day redirect | No redirect to my-training after invite accept                                 | D2      | Medium   | OPEN    |
-| Operations dashboard UI    | Full live dashboard with stress metrics, 4 cards, auto-refresh 60s             | D6      | High     | DONE    |
-| Login/Join redirect        | Join flow tokens + setup-flow-redesign merged                                  | —       | Medium   | DONE    |
-| Agent chat UI              | In progress in `feat/emma-arena-views` (wt-3) — Emma Arena views + walkAi      | C2      | Medium   | WIP     |
-| Settings module            | 11/16 tabs working. Missing: general, KPI, notifications, teams, security      | D1      | Medium   | PARTIAL |
-| Employee agent access      | Employees can't interact with agents from /my-schedule or /my-training         | C2      | Low      | OPEN    |
+| Area                       | Gap                                                                                                                            | Cascade | Priority | Status  |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ------- | -------- | ------- |
+| Notifications              | `send_notification` stub. Full spec + 12-task plan written (`docs/superpowers/specs/2026-03-24-notification-system-design.md`) | —       | High     | SPEC'D  |
+| Handbook -> RAG            | Saved chapters not chunked into workspace_doc_chunk                                                                            | K1b     | Medium   | OPEN    |
+| Invite -> Onboarding       | Complete invite journey merged (multi-channel, mobile accept, welcome page)                                                    | D2      | High     | DONE    |
+| Shift Publish -> Session   | End-to-end flow untested (emit -> trigger -> upsert_session -> hooks)                                                          | D6      | High     | OPEN    |
+| PolicyForm scope picker    | Department picker doesn't appear when "department" scope selected                                                              | C4      | Low      | OPEN    |
+| Wizard mobile              | Unified wizard shell merged (ADR-0060), Join wizard migrated                                                                   | I1      | Low      | DONE    |
+| my-schedule realtime       | No Realtime subscription on employee shift view                                                                                | D6      | Low      | OPEN    |
+| Invite dialog departments  | Fixed in `feat/staff-handling-complete`                                                                                        | D2      | Low      | DONE    |
+| Trainee first-day redirect | No redirect to my-training after invite accept                                                                                 | D2      | Medium   | OPEN    |
+| Operations dashboard UI    | Full live dashboard with stress metrics, 4 cards, auto-refresh 60s                                                             | D6      | High     | DONE    |
+| Login/Join redirect        | Join flow tokens + setup-flow-redesign merged                                                                                  | —       | Medium   | DONE    |
+| Agent chat UI              | In progress in `feat/emma-arena-views` (wt-3) — Emma Arena views + walkAi                                                      | C2      | Medium   | WIP     |
+| Settings module            | 11/16 tabs working. Missing: general, KPI, notifications, teams, security                                                      | D1      | Medium   | PARTIAL |
+| Employee agent access      | Employees can't interact with agents from /my-schedule or /my-training                                                         | C2      | Low      | OPEN    |
+| ShiftClock (web+mobile)    | Full punch clock with GPS, breaks, supplements, leader view, compliance EF                                                     | D6      | High     | DONE    |
+| Unified Wizard Shell       | WizardShell component, Join wizard migrated, ADR-0060 + ADR-0061                                                               | I1      | Medium   | DONE    |
+| Mobile payroll screens     | PayrollHome, supplements, payslip detail screens built                                                                         | C3      | Medium   | DONE    |
 
 ---
 
@@ -411,7 +419,7 @@ Cascade is a PRODUCER of events; Event Engine is the CONSUMER.
 
 - Phase A (schema): **DONE** — 7 migrations committed (A1 extensions, enums, domain tables, alter existing + A2 enums, framework tables, cleanup markers)
 - Phase B (pure functions): **DONE** — 9 functions, 8 test files in `apps/web/src/lib/cascade/`
-- Phase C (bootstrap): **PARTIAL** — 13 SQL templates exist, NOT integrated into workspace creation
+- Phase C (bootstrap): **PARTIAL** — bootstrap-cascade EF wired into finalize-workspace. Framework seed still missing
 - Phase D (adapters): **NOT STARTED**
 
 **Cascade <-> Event Engine:** Cascade operates as an independent service layer. It does NOT run inside `engine_process`/`engine_state`. On successful apply, `apply_cascade()` emits domain events via `emit()`.
@@ -459,16 +467,16 @@ Location: `apps/web/src/lib/cascade/` — 11 files, 8 test files
 
 ### Phase C — Bootstrap & I1 Integration (PARTIAL)
 
-| Item                                                                               | Status      | Blocker                                                                    |
-| ---------------------------------------------------------------------------------- | ----------- | -------------------------------------------------------------------------- |
-| Hospitality docs package (AI council, policies, niche profiles, role capabilities) | DRAFT       | Content incomplete — all docs still draft status                           |
-| 13 SQL bootstrap templates (`supabase/templates/restaurant/`)                      | EXISTS      | Not integrated                                                             |
-| `_apply.sql` orchestrator                                                          | EXISTS      | Not called during workspace creation                                       |
-| `hospitality.ts` industry package                                                  | EXISTS      | Tariff rates WRONG. Should source from tariff_rate_table                   |
-| Workspace creation calls I1 bootstrap                                              | NOT STARTED | **CRITICAL BLOCKER** — new workspaces don't get cascade data               |
-| Framework seed (hospitality.no.default.v1)                                         | NOT STARTED | Needs regulatory_framework + framework_rule + framework_trigger population |
-| Public holiday seed                                                                | DONE        | Norway 2026 data in migration 20260422200000                               |
-| Operating hours backfill from legacy                                               | DONE        | Migration 20260422100000                                                   |
+| Item                                                                               | Status      | Blocker                                                                      |
+| ---------------------------------------------------------------------------------- | ----------- | ---------------------------------------------------------------------------- |
+| Hospitality docs package (AI council, policies, niche profiles, role capabilities) | DRAFT       | Content incomplete — all docs still draft status                             |
+| 13 SQL bootstrap templates (`supabase/templates/restaurant/`)                      | EXISTS      | Integrated via bootstrap-cascade EF                                          |
+| `_apply.sql` orchestrator                                                          | EXISTS      | Called via `bootstrap-cascade` EF during workspace creation                  |
+| `hospitality.ts` industry package                                                  | EXISTS      | Tariff rates WRONG. Should source from tariff_rate_table                     |
+| Workspace creation calls I1 bootstrap                                              | DONE        | `finalize-workspace` calls `bootstrap-cascade` EF. Errors surfaced to caller |
+| Framework seed (hospitality.no.default.v1)                                         | NOT STARTED | Needs regulatory_framework + framework_rule + framework_trigger population   |
+| Public holiday seed                                                                | DONE        | Norway 2026 data in migration 20260422200000                                 |
+| Operating hours backfill from legacy                                               | DONE        | Migration 20260422100000                                                     |
 
 ### Phase D — Adapters & External Integration (NOT STARTED)
 
@@ -494,24 +502,24 @@ Location: `apps/web/src/lib/cascade/` — 11 files, 8 test files
 
 ### Phase F — Missing RPCs & Services
 
-| RPC / Service                                             | Dimension | Status      | Notes                                                       |
-| --------------------------------------------------------- | --------- | ----------- | ----------------------------------------------------------- |
-| `resolve_tariff_rate(profile_id, date)`                   | D3/C3     | DONE        | `resolveTariffRate()` + `getTariffContext()` in cascade lib |
-| `get_cascade_context(workspace_id, date)`                 | C2        | PARTIAL     | `buildEntityContext()` exists, full cascade context TBD     |
-| `apply_change_proposal(proposal_id)`                      | C4        | PARTIAL     | `computeProposalPreview()` done, apply mutation TBD         |
-| `compute_daily_budget_targets(season_id, date)`           | D4        | DONE        | `propagateBudgetTargets()` in cascade lib                   |
-| `evaluate_framework_rules(workspace_id, trigger, entity)` | D3/C4     | DONE        | `evaluateFrameworkRules()` in cascade lib                   |
-| Cascade bootstrap service                                 | I1        | NOT STARTED | Integrate \_apply.sql into workspace creation               |
+| RPC / Service                                             | Dimension | Status  | Notes                                                       |
+| --------------------------------------------------------- | --------- | ------- | ----------------------------------------------------------- |
+| `resolve_tariff_rate(profile_id, date)`                   | D3/C3     | DONE    | `resolveTariffRate()` + `getTariffContext()` in cascade lib |
+| `get_cascade_context(workspace_id, date)`                 | C2        | PARTIAL | `buildEntityContext()` exists, full cascade context TBD     |
+| `apply_change_proposal(proposal_id)`                      | C4        | PARTIAL | `computeProposalPreview()` done, apply mutation TBD         |
+| `compute_daily_budget_targets(season_id, date)`           | D4        | DONE    | `propagateBudgetTargets()` in cascade lib                   |
+| `evaluate_framework_rules(workspace_id, trigger, entity)` | D3/C4     | DONE    | `evaluateFrameworkRules()` in cascade lib                   |
+| Cascade bootstrap service                                 | I1        | DONE    | `bootstrap-cascade` EF called by `finalize-workspace`       |
 
 ### Build Priority (Recommended Order)
 
 **Priority 1 — Blocking product features:**
 
-1. Validate A1+A2 migrations via `supabase db reset`
-2. Integrate I1 bootstrap into workspace creation (call \_apply.sql during finalize-workspace)
+1. ~~Validate A1+A2 migrations via `supabase db reset`~~ — DONE
+2. ~~Integrate I1 bootstrap into workspace creation~~ — DONE (`finalize-workspace` → `bootstrap-cascade`)
 3. Fix hospitality.ts tariff rates OR source from tariff_rate_table
 4. Seed hospitality.no.default.v1 framework (regulatory_framework + rules + triggers)
-5. Complete `evaluateFrameworkRules()` — multi-rule chaining
+5. ~~Complete `evaluateFrameworkRules()`~~ — DONE (full D3 evaluation with enforcement levels)
 
 **Priority 2 — Unlocks scheduling + payroll:**
 
@@ -565,6 +573,16 @@ Location: `apps/web/src/lib/cascade/` — 11 files, 8 test files
 
 **Status:** Migration files committed. Not yet validated via `supabase db reset`.
 
+### ShiftClock Feature Migrations
+
+| Migration                                           | Purpose                                     |
+| --------------------------------------------------- | ------------------------------------------- |
+| `20260422500000_shift_clock_config.sql`             | D6: Per-workspace shift clock configuration |
+| `20260422500100_shift_note.sql`                     | D6: Per-shift employee notes                |
+| `20260422500200_alter_time_entry_gps.sql`           | D6: GPS columns on time entries             |
+| `20260422500300_alter_schedule_shift_adhoc.sql`     | D6: Ad-hoc shift support on schedule_shift  |
+| `20260422500400_alter_manual_supplement_claims.sql` | D6: Manual supplement claim columns         |
+
 ### Latest Timestamped (post-April 2026)
 
 | Migration                                            | Purpose                                     |
@@ -579,7 +597,7 @@ Location: `apps/web/src/lib/cascade/` — 11 files, 8 test files
 
 ### Enum Count
 
-**88 custom enums** (72 existing + 16 new from Cascade). Notable additions:
+**124 custom enums** (72 original + 16 Cascade + 36 from shift-clock, HMS, channels, sessions, etc.). Notable additions:
 
 - Cascade A1: `department_type`, `shift_function`, `anchor_type`, `change_proposal_status`, `planning_event_category`, `planning_event_source`, `planning_cycle_status`, `cascade_initiator`, `tariff_source`, `evaluation_outcome`
 - Cascade A2: `framework_trigger_type`, `framework_rule_type`, `framework_trigger_mode`, `external_provider`, `sync_direction`, `sync_status`
@@ -642,11 +660,11 @@ website-related domains.
 | Layer                    | Status      | %        | Next Action                                              |
 | ------------------------ | ----------- | -------- | -------------------------------------------------------- |
 | Schema (Phase A)         | DONE        | 100%     | Validate via `supabase db reset`                         |
-| Pure Functions (Phase B) | PARTIAL     | 60%      | Complete D3 rule evaluation, add D2/D4                   |
-| Bootstrap (Phase C)      | PARTIAL     | 40%      | **CRITICAL:** Wire I1 into workspace creation            |
+| Pure Functions (Phase B) | DONE        | 100%     | 9 functions, 8 test files in cascade lib                 |
+| Bootstrap (Phase C)      | PARTIAL     | 70%      | Bootstrap EF wired. Framework seed + hospitality.ts fix  |
 | Service Logic (Phase D)  | MINIMAL     | 10%      | Build tariff RPC + change proposal lifecycle             |
 | Control Planes (Phase E) | NOT STARTED | 0%       | C4 governance first (change proposals)                   |
 | UI (Cascade-specific)    | PARTIAL     | 30%      | Season + reconciliation working, governance/cost missing |
-| **Overall**              |             | **~40%** |                                                          |
+| **Overall**              |             | **~50%** |                                                          |
 
-**Single most important next step:** Integrate I1 bootstrap into workspace creation so new workspaces get cascade data.
+**Single most important next step:** Seed hospitality.no.default.v1 framework (regulatory_framework + rules + triggers) and fix hospitality.ts tariff rates.

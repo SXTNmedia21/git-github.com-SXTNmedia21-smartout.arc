@@ -5,19 +5,12 @@
  * If >1, shows a list for the user to pick which workspace to enter.
  */
 import { useEffect, useState, useCallback } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  FlatList,
-  ActivityIndicator,
-  Image,
-  StyleSheet,
-} from "react-native";
+import { View, Text, TouchableOpacity, FlatList, ActivityIndicator, Image } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
+import { useTheme, withOpacity } from "@/theme";
 
 type ProfileWithWorkspace = {
   profile_id: string;
@@ -34,6 +27,7 @@ export default function WorkspaceSelect() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const { colors } = useTheme();
 
   const [profiles, setProfiles] = useState<ProfileWithWorkspace[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -90,19 +84,51 @@ export default function WorkspaceSelect() {
 
   if (isLoading) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#F97316" />
-        <Text style={styles.loadingText}>Henter arbeidsplassene dine...</Text>
+      <View
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: colors.background,
+          padding: 24,
+        }}
+      >
+        <ActivityIndicator size="large" color={colors.brandOrange} />
+        <Text style={{ fontSize: 15, color: colors.mutedForeground, marginTop: 16 }}>
+          Henter arbeidsplassene dine...
+        </Text>
       </View>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.centered}>
-        <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={fetchProfiles}>
-          <Text style={styles.retryButtonText}>Prov igjen</Text>
+      <View
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: colors.background,
+          padding: 24,
+        }}
+      >
+        <Text
+          style={{ color: colors.destructive, fontSize: 15, textAlign: "center", marginBottom: 16 }}
+        >
+          {error}
+        </Text>
+        <TouchableOpacity
+          style={{
+            paddingHorizontal: 24,
+            paddingVertical: 12,
+            backgroundColor: colors.brandOrange,
+            borderRadius: 10,
+          }}
+          onPress={fetchProfiles}
+        >
+          <Text style={{ color: colors.primaryForeground, fontSize: 15, fontWeight: "600" }}>
+            Prov igjen
+          </Text>
         </TouchableOpacity>
       </View>
     );
@@ -110,32 +136,78 @@ export default function WorkspaceSelect() {
 
   return (
     <View
-      style={[styles.container, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 24 }]}
+      style={{
+        flex: 1,
+        backgroundColor: colors.background,
+        padding: 24,
+        paddingTop: insets.top + 20,
+        paddingBottom: insets.bottom + 24,
+      }}
     >
-      <Text style={styles.heading}>Velg arbeidsplass</Text>
-      <Text style={styles.subtitle}>
+      <Text
+        style={{ fontSize: 24, fontWeight: "700", color: colors.foreground, textAlign: "center" }}
+      >
+        Velg arbeidsplass
+      </Text>
+      <Text
+        style={{
+          fontSize: 15,
+          color: colors.mutedForeground,
+          textAlign: "center",
+          marginTop: 8,
+          marginBottom: 24,
+        }}
+      >
         Du har tilgang til flere arbeidsplasser. Hvilken vil du apne?
       </Text>
 
       <FlatList
         data={profiles}
         keyExtractor={(item) => item.profile_id}
-        style={styles.list}
-        contentContainerStyle={styles.listContent}
+        style={{ flex: 1 }}
+        contentContainerStyle={{ gap: 10 }}
         renderItem={({ item }) => (
-          <TouchableOpacity style={styles.workspaceRow} onPress={() => handleSelectWorkspace(item)}>
+          <TouchableOpacity
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              padding: 16,
+              borderRadius: 14,
+              backgroundColor: colors.muted,
+              borderWidth: 1,
+              borderColor: colors.border,
+            }}
+            onPress={() => handleSelectWorkspace(item)}
+          >
             {item.workspace.logo_url ? (
-              <Image source={{ uri: item.workspace.logo_url }} style={styles.logo} />
+              <Image
+                source={{ uri: item.workspace.logo_url }}
+                style={{ width: 48, height: 48, borderRadius: 10, marginRight: 14 }}
+              />
             ) : (
-              <View style={styles.logoPlaceholder}>
-                <Text style={styles.logoPlaceholderText}>
+              <View
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 10,
+                  backgroundColor: withOpacity(colors.brandOrange, 0.08),
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginRight: 14,
+                }}
+              >
+                <Text style={{ fontSize: 20, fontWeight: "700", color: colors.brandOrange }}>
                   {item.workspace.name.charAt(0).toUpperCase()}
                 </Text>
               </View>
             )}
-            <View style={styles.workspaceInfo}>
-              <Text style={styles.workspaceName}>{item.workspace.name}</Text>
-              <Text style={styles.roleBadge}>{formatRole(item.role)}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 16, fontWeight: "600", color: colors.foreground }}>
+                {item.workspace.name}
+              </Text>
+              <Text style={{ fontSize: 13, color: colors.mutedForeground, marginTop: 2 }}>
+                {formatRole(item.role)}
+              </Text>
             </View>
           </TouchableOpacity>
         )}
@@ -153,101 +225,3 @@ function formatRole(role: string): string {
   };
   return roleMap[role] ?? role;
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-    padding: 24,
-  },
-  centered: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFFFFF",
-    padding: 24,
-  },
-  heading: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#111827",
-    textAlign: "center",
-  },
-  subtitle: {
-    fontSize: 15,
-    color: "#6B7280",
-    textAlign: "center",
-    marginTop: 8,
-    marginBottom: 24,
-  },
-  list: {
-    flex: 1,
-  },
-  listContent: {
-    gap: 10,
-  },
-  workspaceRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 16,
-    borderRadius: 14,
-    backgroundColor: "#F9FAFB",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-  },
-  logo: {
-    width: 48,
-    height: 48,
-    borderRadius: 10,
-    marginRight: 14,
-  },
-  logoPlaceholder: {
-    width: 48,
-    height: 48,
-    borderRadius: 10,
-    backgroundColor: "#FFF7ED",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 14,
-  },
-  logoPlaceholderText: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#F97316",
-  },
-  workspaceInfo: {
-    flex: 1,
-  },
-  workspaceName: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#111827",
-  },
-  roleBadge: {
-    fontSize: 13,
-    color: "#6B7280",
-    marginTop: 2,
-  },
-  loadingText: {
-    fontSize: 15,
-    color: "#6B7280",
-    marginTop: 16,
-  },
-  errorText: {
-    color: "#EF4444",
-    fontSize: 15,
-    textAlign: "center",
-    marginBottom: 16,
-  },
-  retryButton: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    backgroundColor: "#F97316",
-    borderRadius: 10,
-  },
-  retryButtonText: {
-    color: "#FFFFFF",
-    fontSize: 15,
-    fontWeight: "600",
-  },
-});

@@ -16,7 +16,7 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 
-import { createStyles } from "@/theme";
+import { createStyles, withOpacity } from "@/theme";
 
 type ShiftClockHeaderProps = {
   punchInTime: string;
@@ -76,8 +76,10 @@ export function ShiftClockHeader({
 
   const { main, secs } = formatTimer(elapsed);
 
-  const statusBadgeColor = isOnBreak ? "#f97316" : "#00b894";
-  const statusBadgeBg = isOnBreak ? "rgba(249,115,22,0.15)" : "rgba(0,184,148,0.15)";
+  const statusBadgeColor = isOnBreak ? styles.brandOrangeColor.color : styles.successColor.color;
+  const statusBadgeBg = isOnBreak
+    ? styles.brandOrangeBg.backgroundColor
+    : styles.successBg.backgroundColor;
   const statusText = isOnBreak ? "PAUSE" : "PA VAKT";
 
   const punchInFormatted = new Date(punchInTime).toLocaleTimeString("nb-NO", {
@@ -135,7 +137,7 @@ const useStyles = createStyles((theme) => ({
   timerSeconds: {
     fontSize: 22,
     fontWeight: "200" as const,
-    color: theme.isDark ? "#555" : "#999",
+    color: theme.colors.mutedForeground,
     fontVariant: ["tabular-nums" as const],
   },
 
@@ -162,7 +164,23 @@ const useStyles = createStyles((theme) => ({
 
   subText: {
     fontSize: 13,
-    color: theme.isDark ? "#00b894" : "#009b7d",
+    color: theme.colors.success,
     marginTop: 4,
+  },
+
+  brandOrangeColor: {
+    color: theme.colors.brandOrange,
+  },
+
+  brandOrangeBg: {
+    backgroundColor: withOpacity(theme.colors.brandOrange, 0.15),
+  },
+
+  successColor: {
+    color: theme.colors.success,
+  },
+
+  successBg: {
+    backgroundColor: withOpacity(theme.colors.success, 0.15),
   },
 }));

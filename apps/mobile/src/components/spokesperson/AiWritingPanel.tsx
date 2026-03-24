@@ -10,7 +10,7 @@ import React, { useState, useCallback } from "react";
 import { View, Text, TextInput, Pressable, ActivityIndicator } from "react-native";
 import * as Haptics from "expo-haptics";
 import { Sparkles, Send, RefreshCw } from "lucide-react-native";
-import { createStyles, useTheme } from "@/theme";
+import { createStyles, useTheme, withOpacity } from "@/theme";
 
 // ─── Types ────────────────────────────────────────────────────────
 
@@ -111,7 +111,7 @@ export function AiWritingPanel({ taskType, restaurantName, onSelectText }: AiWri
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Sparkles size={16} color="#a855f7" strokeWidth={2} />
+        <Sparkles size={16} color={theme.colors.brandPurple} strokeWidth={2} />
         <Text style={styles.headerTitle}>AI-forslag</Text>
         <Pressable
           onPress={handleRefresh}
@@ -122,7 +122,7 @@ export function AiWritingPanel({ taskType, restaurantName, onSelectText }: AiWri
         >
           <RefreshCw
             size={15}
-            color={loading ? theme.colors.mutedForeground : "#a855f7"}
+            color={loading ? theme.colors.mutedForeground : theme.colors.brandPurple}
             strokeWidth={2}
           />
         </Pressable>
@@ -131,7 +131,7 @@ export function AiWritingPanel({ taskType, restaurantName, onSelectText }: AiWri
       {/* Suggestions list */}
       {loading ? (
         <View style={styles.loadingRow}>
-          <ActivityIndicator size="small" color="#a855f7" />
+          <ActivityIndicator size="small" color={theme.colors.brandPurple} />
           <Text style={styles.loadingText}>Genererer forslag...</Text>
         </View>
       ) : (
@@ -187,7 +187,7 @@ export function AiWritingPanel({ taskType, restaurantName, onSelectText }: AiWri
             accessibilityRole="button"
             accessibilityLabel="Send prompt"
           >
-            <Send size={16} color="#ffffff" strokeWidth={2} />
+            <Send size={16} color={theme.colors.primaryForeground} strokeWidth={2} />
           </Pressable>
         </View>
       </View>
@@ -207,7 +207,7 @@ const useStyles = createStyles((theme) => ({
   headerTitle: {
     ...theme.typography.subheadline,
     fontWeight: theme.fontWeights.semibold,
-    color: "#a855f7",
+    color: theme.colors.brandPurple,
     flex: 1,
   },
 
@@ -233,11 +233,11 @@ const useStyles = createStyles((theme) => ({
     borderRadius: theme.radius.md,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    backgroundColor: theme.isDark ? "rgba(168,85,247,0.04)" : "rgba(168,85,247,0.02)",
+    backgroundColor: withOpacity(theme.colors.brandPurple, theme.isDark ? 0.04 : 0.02),
   },
   suggestionSelected: {
-    borderColor: "#a855f7",
-    backgroundColor: theme.isDark ? "rgba(168,85,247,0.12)" : "rgba(168,85,247,0.06)",
+    borderColor: theme.colors.brandPurple,
+    backgroundColor: withOpacity(theme.colors.brandPurple, theme.isDark ? 0.12 : 0.06),
   },
   suggestionPressed: {
     opacity: 0.8,
@@ -247,7 +247,7 @@ const useStyles = createStyles((theme) => ({
     width: 22,
     height: 22,
     borderRadius: theme.radius.full,
-    backgroundColor: theme.isDark ? "rgba(168,85,247,0.2)" : "rgba(168,85,247,0.1)",
+    backgroundColor: withOpacity(theme.colors.brandPurple, theme.isDark ? 0.2 : 0.1),
     alignItems: "center",
     justifyContent: "center",
     marginTop: 1,
@@ -255,7 +255,7 @@ const useStyles = createStyles((theme) => ({
   suggestionIndexText: {
     ...theme.typography.micro,
     fontWeight: theme.fontWeights.bold,
-    color: "#a855f7",
+    color: theme.colors.brandPurple,
   },
   suggestionText: {
     ...theme.typography.body,
@@ -298,7 +298,7 @@ const useStyles = createStyles((theme) => ({
     width: 40,
     height: 40,
     borderRadius: theme.radius.md,
-    backgroundColor: "#a855f7",
+    backgroundColor: theme.colors.brandPurple,
     alignItems: "center",
     justifyContent: "center",
   },

@@ -8,7 +8,7 @@
  * - Quick actions are subtle icons, not competing colored circles
  */
 
-import React, { useMemo, useCallback } from "react";
+import React, { useMemo } from "react";
 import { View, Text, Pressable } from "react-native";
 import { Menu, Bell, CheckSquare, GraduationCap, AlertTriangle, Clock } from "lucide-react-native";
 import { useRouter } from "expo-router";
@@ -183,10 +183,10 @@ const useActionStyles = createStyles((theme) => ({
     borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.04)",
+    backgroundColor: theme.isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
   },
   iconColor: {
-    color: "rgba(0,0,0,0.5)",
+    color: theme.isDark ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.5)",
   },
   actionLabel: {
     ...theme.typography.micro,
@@ -217,7 +217,7 @@ const useStyles = createStyles((theme) => ({
     borderRadius: 22,
   },
   topBarIconColor: {
-    color: "rgba(0,0,0,0.35)",
+    color: theme.isDark ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.35)",
   },
   avatarContainer: {
     marginBottom: theme.spacing.element,

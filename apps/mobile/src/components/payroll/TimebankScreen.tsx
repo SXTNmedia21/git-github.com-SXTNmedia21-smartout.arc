@@ -10,7 +10,7 @@
 
 import React from "react";
 import { View, Text, ScrollView, ActivityIndicator } from "react-native";
-import { createStyles, useTheme } from "@/theme";
+import { createStyles, withOpacity } from "@/theme";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SectionHeader } from "@/components/common/SectionHeader";
@@ -42,7 +42,6 @@ function formatHours(hours: number): string {
 
 export function TimebankScreen() {
   const styles = useStyles();
-  const theme = useTheme();
   const { data, isLoading, error } = useTimebankBalance();
 
   if (isLoading) {
@@ -157,9 +156,9 @@ const useStyles = createStyles((theme) => ({
 
   /* Blue balance banner */
   balanceBanner: {
-    backgroundColor: "rgba(59,130,246,0.12)",
+    backgroundColor: withOpacity(theme.colors.info, 0.12),
     borderWidth: 1,
-    borderColor: "rgba(59,130,246,0.2)",
+    borderColor: withOpacity(theme.colors.info, 0.2),
     borderRadius: theme.radius.xl,
     paddingVertical: theme.spacing.section,
     paddingHorizontal: theme.spacing.card,

@@ -24,15 +24,16 @@ import {
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { BottomSheet } from "@/components/ui/BottomSheet";
-import { createStyles } from "@/theme";
+import { createStyles, useTheme } from "@/theme";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
+import { useThemeStore } from "@/hooks/stores/use-theme-store";
 import type { LucideIcon } from "lucide-react-native";
 
 type MenuItem = {
   key: string;
   label: string;
   icon: LucideIcon;
-  color: string;
+  colorKey: keyof ReturnType<typeof useTheme>["colors"];
   action:
     | "edit-profile"
     | "navigate-profile"
@@ -46,33 +47,45 @@ type MenuItem = {
 };
 
 const MENU_ITEMS: MenuItem[] = [
-  { key: "edit", label: "Rediger profil", icon: Camera, color: "#e85c0d", action: "edit-profile" },
-  { key: "profile", label: "Min profil", icon: User, color: "#3b82f6", action: "navigate-profile" },
-  { key: "theme", label: "Utseende", icon: Moon, color: "#8b5cf6", action: "theme" },
-  { key: "help", label: "Hjelp og support", icon: HelpCircle, color: "#06b6d4", action: "help" },
+  {
+    key: "edit",
+    label: "Rediger profil",
+    icon: Camera,
+    colorKey: "brandOrange",
+    action: "edit-profile",
+  },
+  { key: "profile", label: "Min profil", icon: User, colorKey: "info", action: "navigate-profile" },
+  { key: "theme", label: "Utseende", icon: Moon, colorKey: "brandPurple", action: "theme" },
+  {
+    key: "help",
+    label: "Hjelp og support",
+    icon: HelpCircle,
+    colorKey: "brandCyan",
+    action: "help",
+  },
   {
     key: "absence",
     label: "Fravær",
     icon: CalendarCheck,
-    color: "#22c55e",
+    colorKey: "success",
     action: "navigate-absence",
   },
   {
     key: "absence-balance",
     label: "Fraværssaldo",
     icon: PieChart,
-    color: "#22c55e",
+    colorKey: "success",
     action: "navigate-absence-balance",
   },
   {
     key: "timebank",
     label: "Timebank",
     icon: Clock,
-    color: "#3b82f6",
+    colorKey: "info",
     action: "navigate-timebank",
   },
-  { key: "pay", label: "Min lønn", icon: Wallet, color: "#f97316", action: "navigate-pay" },
-  { key: "logout", label: "Logg ut", icon: LogOut, color: "#ef4444", action: "logout" },
+  { key: "pay", label: "Min lønn", icon: Wallet, colorKey: "brandOrange", action: "navigate-pay" },
+  { key: "logout", label: "Logg ut", icon: LogOut, colorKey: "destructive", action: "logout" },
 ];
 
 // Keys for the "Lønn & fravær" section — used to split the menu list into groups
@@ -87,6 +100,8 @@ type MenuRowProps = {
 
 function MenuRow({ item, onPress, styles }: MenuRowProps) {
   const Icon = item.icon;
+  const theme = useTheme();
+  const color = theme.colors[item.colorKey];
   return (
     <Pressable
       style={({ pressed }) => [styles.menuRow, pressed && styles.pressed]}
@@ -94,8 +109,8 @@ function MenuRow({ item, onPress, styles }: MenuRowProps) {
       accessibilityRole="button"
       accessibilityLabel={item.label}
     >
-      <View style={[styles.menuIcon, { backgroundColor: item.color + "12" }]}>
-        <Icon size={18} color={item.color} strokeWidth={2} />
+      <View style={[styles.menuIcon, { backgroundColor: color + "12" }]}>
+        <Icon size={18} color={color} strokeWidth={2} />
       </View>
       <Text style={[styles.menuLabel, item.key === "logout" && styles.menuLabelDanger]}>
         {item.label}
@@ -109,6 +124,7 @@ export const SettingsSheet = forwardRef<GorhomBottomSheet>(function SettingsShee
   const styles = useStyles();
   const router = useRouter();
   const { data: profile } = useMyProfile();
+  const { theme, setTheme } = useThemeStore();
   const snapPoints = useMemo(() => ["70%"], []);
 
   const handleMenuPress = useCallback(
@@ -121,6 +137,9 @@ export const SettingsSheet = forwardRef<GorhomBottomSheet>(function SettingsShee
       // Small delay to let the sheet close animation start before navigating
       const navigate = () => {
         switch (item.action) {
+          case "theme":
+            setTheme(theme === "dark" ? "light" : "dark");
+            break;
           case "edit-profile":
             router.push("/(app)/(home)/edit-profile");
             break;
@@ -210,7 +229,7 @@ const useStyles = createStyles((theme) => ({
     borderRadius: theme.radius.lg,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(232,92,13,0.08)",
+    backgroundColor: theme.isDark ? "rgba(232,92,13,0.15)" : "rgba(232,92,13,0.08)",
   },
   brandColor: {
     color: theme.colors.brandOrange,

@@ -227,7 +227,7 @@ export function ContentCreator({
                 >
                   <Sparkles
                     size={14}
-                    color={showAi ? "#a855f7" : theme.colors.mutedForeground}
+                    color={showAi ? theme.colors.brandPurple : theme.colors.mutedForeground}
                     strokeWidth={2}
                   />
                   <Text style={[styles.aiButtonLabel, showAi && styles.aiButtonLabelActive]}>

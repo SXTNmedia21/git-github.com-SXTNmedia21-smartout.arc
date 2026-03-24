@@ -14,7 +14,7 @@ import { useRouter } from "expo-router";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { ChevronLeft, Thermometer, CheckCircle2, AlertTriangle, Shield } from "lucide-react-native";
-import { createStyles } from "@/theme";
+import { createStyles, useTheme } from "@/theme";
 
 type UnitStatus = "pending" | "ok" | "avvik" | "resolved";
 
@@ -43,14 +43,15 @@ function getStatusColor(status: UnitStatus, theme: { isDark: boolean }) {
     default:
       return {
         bg: "transparent",
-        border: "rgba(0,0,0,0.06)",
-        text: "#737373",
+        border: theme.isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)",
+        text: theme.isDark ? "#a3a3a3" : "#737373",
       };
   }
 }
 
 export default function HaccpScreen() {
   const styles = useStyles();
+  const theme = useTheme();
   const router = useRouter();
   const [checkedCount, setCheckedCount] = useState(0);
   const [resolved, setResolved] = useState(false);
@@ -74,7 +75,7 @@ export default function HaccpScreen() {
       setCheckedCount((c) => c + 1);
 
       // Auto-resolve after all checked and avvik found
-      const unit = UNITS[index]!;
+      const _unit = UNITS[index]!;
       const isLast = index === UNITS.length - 1;
       if (isLast) {
         setTimeout(() => {
@@ -145,9 +146,7 @@ export default function HaccpScreen() {
           const status = getUnitStatus(i);
           const isCurrent = i === checkedCount && checkedCount < UNITS.length;
           const isOver = unit.temperature > unit.threshold;
-          const colors = getStatusColor(status, {
-            isDark: false,
-          });
+          const colors = getStatusColor(status, theme);
 
           return (
             <Animated.View key={unit.id} entering={FadeInDown.delay(200 + i * 100).duration(300)}>
@@ -287,7 +286,7 @@ const useStyles = createStyles((theme) => ({
     paddingHorizontal: theme.spacing.tight,
     paddingVertical: 4,
     borderRadius: theme.radius.md,
-    backgroundColor: "rgba(34,197,94,0.06)",
+    backgroundColor: theme.isDark ? "rgba(255,255,255,0.06)" : "rgba(34,197,94,0.06)",
     borderWidth: 1,
     borderColor: "rgba(34,197,94,0.2)",
   },
@@ -306,7 +305,7 @@ const useStyles = createStyles((theme) => ({
   progressCard: {
     padding: theme.spacing.element,
     borderRadius: theme.radius.lg,
-    backgroundColor: "rgba(0,0,0,0.02)",
+    backgroundColor: theme.isDark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)",
     borderWidth: 1,
     borderColor: theme.colors.border,
   },
@@ -326,7 +325,7 @@ const useStyles = createStyles((theme) => ({
   progressTrack: {
     height: 6,
     borderRadius: 3,
-    backgroundColor: "rgba(0,0,0,0.06)",
+    backgroundColor: theme.isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)",
     overflow: "hidden",
   },
   progressFill: {

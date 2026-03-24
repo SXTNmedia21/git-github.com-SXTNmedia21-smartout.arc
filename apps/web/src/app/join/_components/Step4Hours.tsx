@@ -3,12 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight } from "lucide-react";
 import type { WizardStepProps } from "@smartout/ui";
 import type { JoinState } from "../types";
 import { useJoinScraping } from "../_context/JoinScrapingProvider";
-import { step4Schema } from "../_lib/validation";
 
 const DAY_LABELS = ["Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lordag", "Sondag"];
 
@@ -90,7 +87,7 @@ function parseIsoOpeningHours(isoHours: string[]): DayHours[] | null {
   return parsed ? result : null;
 }
 
-export function Step4Hours({ state, updateState, next, back }: WizardStepProps<JoinState>) {
+export function Step4Hours({ state, updateState }: WizardStepProps<JoinState>) {
   const { scrapedData } = useJoinScraping();
 
   const [hours, setHours] = useState<DayHours[]>(() => {
@@ -173,32 +170,23 @@ export function Step4Hours({ state, updateState, next, back }: WizardStepProps<J
     setHours((prev) => prev.map((day, i) => (i === index ? { ...day, ...updates } : day)));
   };
 
-  const handleNext = () => {
-    const result = step4Schema.safeParse({
-      openingHours: hours.map((h) => ({
-        dayOfWeek: h.dayOfWeek,
-        isClosed: h.isClosed,
-        openTime: h.isClosed ? undefined : h.openTime,
-        closeTime: h.isClosed ? undefined : h.closeTime,
-      })),
-      phone,
-      instagram: instagram || "",
-      facebook: facebook || "",
+  // Sync local fields to wizard state so WizardNavBar validation sees current data
+  useEffect(() => {
+    updateState({
+      hours: {
+        ...state.hours,
+        openingHours: hours.map((h) => ({
+          dayOfWeek: h.dayOfWeek,
+          isClosed: h.isClosed,
+          openTime: h.isClosed ? undefined : h.openTime,
+          closeTime: h.isClosed ? undefined : h.closeTime,
+        })),
+        phone,
+        instagram: instagram || "",
+        facebook: facebook || "",
+      },
     });
-
-    if (!result.success) {
-      const fieldErrors: Record<string, string> = {};
-      for (const issue of result.error.issues) {
-        const field = issue.path[0] as string;
-        fieldErrors[field] = issue.message;
-      }
-      setErrors(fieldErrors);
-      return;
-    }
-
-    updateState({ hours: { ...state.hours, ...result.data } });
-    next();
-  };
+  }, [hours, phone, instagram, facebook]);
 
   return (
     <div className="mx-auto w-full max-w-lg space-y-6">
@@ -313,21 +301,6 @@ export function Step4Hours({ state, updateState, next, back }: WizardStepProps<J
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFacebook(e.target.value)}
           />
         </div>
-      </div>
-
-      <div className="flex gap-3">
-        <Button type="button" variant="outline" onClick={back} className="flex-1">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Tilbake
-        </Button>
-        <Button
-          type="button"
-          onClick={handleNext}
-          className="bg-brand-orange hover:bg-brand-orange-dark flex-1 text-white"
-        >
-          Neste
-          <ArrowRight className="ml-2 h-4 w-4" />
-        </Button>
       </div>
     </div>
   );

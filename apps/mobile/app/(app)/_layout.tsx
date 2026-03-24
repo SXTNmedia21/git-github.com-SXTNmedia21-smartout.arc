@@ -10,7 +10,6 @@
 
 import React, { useCallback, useRef, useState } from "react";
 import { View } from "react-native";
-import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { Tabs, useRouter } from "expo-router";
 import { useSharedValue, withSpring } from "react-native-reanimated";
 import type GorhomBottomSheet from "@gorhom/bottom-sheet";
@@ -80,29 +79,27 @@ export default function AppLayout() {
   );
 
   return (
-    <BottomSheetModalProvider>
-      <View style={styles.container}>
-        <Tabs screenOptions={{ headerShown: false }} tabBar={renderTabBar}>
-          <Tabs.Screen name="(home)" options={{ title: strings.tabs.home }} />
-          <Tabs.Screen name="(shifts)" options={{ title: strings.tabs.shifts }} />
-          <Tabs.Screen name="(komm)" options={{ title: "Komm" }} />
-          <Tabs.Screen name="(chat)" options={{ title: strings.tabs.chat, href: null }} />
-          <Tabs.Screen name="(me)" options={{ title: strings.tabs.me }} />
-        </Tabs>
+    <View style={styles.container}>
+      <Tabs screenOptions={{ headerShown: false }} tabBar={renderTabBar}>
+        <Tabs.Screen name="(home)" options={{ title: strings.tabs.home }} />
+        <Tabs.Screen name="(shifts)" options={{ title: strings.tabs.shifts }} />
+        <Tabs.Screen name="(komm)" options={{ title: "Komm" }} />
+        <Tabs.Screen name="(chat)" options={{ title: strings.tabs.chat, href: null }} />
+        <Tabs.Screen name="(me)" options={{ title: strings.tabs.me }} />
+      </Tabs>
 
-        {/* QuickActions overlay — positioned above the tab bar */}
-        <QuickActions
-          phase={phase}
-          visible={quickActionsVisible}
-          onAction={handleQuickAction}
-          onDismiss={hideQuickActions}
-          visibility={quickActionsVisibility}
-        />
+      {/* QuickActions overlay — positioned above the tab bar */}
+      <QuickActions
+        phase={phase}
+        visible={quickActionsVisible}
+        onAction={handleQuickAction}
+        onDismiss={hideQuickActions}
+        visibility={quickActionsVisibility}
+      />
 
-        {/* Botsson AI chat sheet — opened via FAB tap */}
-        <BotssonSheet ref={botssonSheetRef} onDismiss={handleBotssonDismiss} />
-      </View>
-    </BottomSheetModalProvider>
+      {/* Botsson AI chat sheet — opened via FAB tap */}
+      <BotssonSheet ref={botssonSheetRef} onDismiss={handleBotssonDismiss} />
+    </View>
   );
 }
 

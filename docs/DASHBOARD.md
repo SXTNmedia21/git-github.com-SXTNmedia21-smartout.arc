@@ -1,7 +1,7 @@
 ---
 title: Development Dashboard
 status: in_progress
-updated: 2026-03-24
+updated: 2026-03-25
 created: 2026-03-02
 module: meta
 tags: [dashboard, worktrees, tracking]
@@ -13,11 +13,11 @@ tags: [dashboard, worktrees, tracking]
 
 ## Active Worktrees
 
-| #    | Branch                            | Module         | Status      | Progress                                                                         | Blockers | Health |
-| ---- | --------------------------------- | -------------- | ----------- | -------------------------------------------------------------------------------- | -------- | ------ |
-| wt-1 | `feat/notification-system`        | communications | in_progress | Just started. 13-task plan ready.                                                | —        | clean  |
-| wt-3 | `feat/emma-arena-views`           | walkAi         | in_progress | Spec + mockups done, settings persistence committed. Implementation not started. | None     | clean  |
-| wt-5 | `feat/hospitality-framework-seed` | cascade        | in_progress | —                                                                                | —        | clean  |
+| #    | Branch                            | Module         | Status            | Progress                                                                         | Blockers | Health |
+| ---- | --------------------------------- | -------------- | ----------------- | -------------------------------------------------------------------------------- | -------- | ------ |
+| wt-1 | `feat/notification-system`        | communications | ready_for_closure | All 13 tasks complete. Typecheck 27/27. Journeys + decision/learning logs done.  | —        | clean  |
+| wt-3 | `feat/emma-arena-views`           | walkAi         | in_progress       | Spec + mockups done, settings persistence committed. Implementation not started. | None     | clean  |
+| wt-5 | `feat/hospitality-framework-seed` | cascade        | in_progress       | —                                                                                | —        | clean  |
 
 ## Parked Branches (no worktree)
 
@@ -52,7 +52,7 @@ tags: [dashboard, worktrees, tracking]
 | wt-2 | cascade-foundation     | `docs/journeys/JOURNEY-cascade-foundation.md`     | done    |
 | wt-5 | hms-phase-1            | `docs/journeys/JOURNEY-hms-phase-1.md`            | done    |
 | wt-6 | livekit-phase2         | `docs/journeys/JOURNEY-livekit-phase2.md`         | missing |
-| wt-1 | notification-system    | `docs/journeys/JOURNEY-notification-system.md`    | missing |
+| wt-1 | notification-system    | `docs/journeys/JOURNEY-notification-system.md`    | done    |
 
 ## Recent Closures
 
@@ -101,9 +101,11 @@ tags: [dashboard, worktrees, tracking]
 | 2026-03-08 | zero-to-production        | `feat/zero-to-production`                                          | development |
 | 2026-03-22 | website-factory           | `feat/website-factory`                                             | development |
 | 2026-03-20 | contract-enhancements     | `feat/contract-enhancements`                                       | development |
+| 2026-03-25 | notification-system       | `feat/notification-system`                                         | development |
 
 ## Session History
 
+| 2026-03-25 | notification-system | closed | Unified notification pipeline: 13 tasks, 16 commits. DB (notification table, trigger refactor, cron), Edge Functions (process-notifications, morning digest), Web UI (bell, popover, full page, preferences), Mobile UI (bell, list, screen, push tap). Typecheck 27/27. Merged to development, wt-1 freed. |
 | 2026-03-24 | mobile-app (auth+login) | session ended | Main repo (development). Welcome screen redesigned with design tokens. Login screen added (email+password, matches web). Expo web has React 19 removeChild bug on route transitions — test on native. 3 key specs identified for next work: Mobile Employee App, ShiftClock, Mobile Payroll UI. |
 | 2026-03-22 | fix-invitation-flow | started | wt-7, module: core. Fix 5 gaps: company_member not created on invite accept, listUsers scalability, company_member RLS, invitation resend, expired cleanup. |
 | 2026-03-22 | css-build-fix | session ended | Tailwind v4 CSS parsing error: stale `.next-e2e-web/` cache poisoning content scan with corrupted `rgba(var(--brand-orange-rgb))` class. Fixed 5 `shadow-brand-orange/N` in WalkAi. Remaining: delete stale caches manually. |

@@ -5,10 +5,11 @@
  * and redirects to verify screen with invite context on confirmation.
  */
 import { useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, ActivityIndicator, Image, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, ActivityIndicator, Image } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
+import { useTheme, withOpacity } from "@/theme";
 
 type InviteData = {
   workspaceId: string;
@@ -25,6 +26,7 @@ export default function InviteDeepLink() {
   const { token } = useLocalSearchParams<{ token: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
 
   const [invite, setInvite] = useState<InviteData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -103,168 +105,161 @@ export default function InviteDeepLink() {
     router.replace("/(auth)/welcome");
   }
 
-  // Loading state
   if (isLoading) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#F97316" />
-        <Text style={styles.loadingText}>Sjekker invitasjonen...</Text>
+      <View
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: colors.background,
+          padding: 24,
+        }}
+      >
+        <ActivityIndicator size="large" color={colors.brandOrange} />
+        <Text style={{ fontSize: 15, color: colors.mutedForeground, marginTop: 16 }}>
+          Sjekker invitasjonen...
+        </Text>
       </View>
     );
   }
 
-  // Error state
   if (error) {
     return (
-      <View style={styles.centered}>
-        <Text style={styles.errorHeading}>Noe gikk galt</Text>
-        <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity style={styles.primaryButton} onPress={handleGoToWelcome}>
-          <Text style={styles.primaryButtonText}>Ga til innlogging</Text>
+      <View
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: colors.background,
+          padding: 24,
+        }}
+      >
+        <Text
+          style={{ fontSize: 20, fontWeight: "700", color: colors.foreground, marginBottom: 8 }}
+        >
+          Noe gikk galt
+        </Text>
+        <Text
+          style={{
+            color: colors.mutedForeground,
+            fontSize: 15,
+            textAlign: "center",
+            marginBottom: 24,
+            paddingHorizontal: 16,
+          }}
+        >
+          {error}
+        </Text>
+        <TouchableOpacity
+          style={{
+            width: "100%",
+            height: 52,
+            backgroundColor: colors.brandOrange,
+            borderRadius: 12,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+          onPress={handleGoToWelcome}
+        >
+          <Text style={{ color: colors.primaryForeground, fontSize: 16, fontWeight: "600" }}>
+            Ga til innlogging
+          </Text>
         </TouchableOpacity>
       </View>
     );
   }
 
-  // Invite found — show workspace confirmation
   if (!invite) return null;
 
   return (
     <View
-      style={[styles.container, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 24 }]}
+      style={{
+        flex: 1,
+        backgroundColor: colors.background,
+        padding: 24,
+        paddingTop: insets.top + 40,
+        paddingBottom: insets.bottom + 24,
+      }}
     >
-      <View style={styles.content}>
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         {invite.logoUrl ? (
-          <Image source={{ uri: invite.logoUrl }} style={styles.logo} />
+          <Image
+            source={{ uri: invite.logoUrl }}
+            style={{ width: 88, height: 88, borderRadius: 18, marginBottom: 20 }}
+          />
         ) : (
-          <View style={styles.logoPlaceholder}>
-            <Text style={styles.logoPlaceholderText}>
+          <View
+            style={{
+              width: 88,
+              height: 88,
+              borderRadius: 18,
+              backgroundColor: withOpacity(colors.brandOrange, 0.08),
+              alignItems: "center",
+              justifyContent: "center",
+              marginBottom: 20,
+            }}
+          >
+            <Text style={{ fontSize: 36, fontWeight: "700", color: colors.brandOrange }}>
               {invite.workspaceName.charAt(0).toUpperCase()}
             </Text>
           </View>
         )}
 
-        <Text style={styles.heading}>Bli med i</Text>
-        <Text style={styles.workspaceName}>{invite.workspaceName}</Text>
-        <Text style={styles.subtitle}>
+        <Text
+          style={{ fontSize: 22, fontWeight: "700", color: colors.foreground, textAlign: "center" }}
+        >
+          Bli med i
+        </Text>
+        <Text
+          style={{
+            fontSize: 28,
+            fontWeight: "700",
+            color: colors.brandOrange,
+            textAlign: "center",
+            marginTop: 4,
+          }}
+        >
+          {invite.workspaceName}
+        </Text>
+        <Text
+          style={{
+            fontSize: 15,
+            color: colors.mutedForeground,
+            textAlign: "center",
+            marginTop: 12,
+            paddingHorizontal: 16,
+            lineHeight: 22,
+          }}
+        >
           Du er invitert til denne arbeidsplassen. Bekreft for a komme i gang.
         </Text>
       </View>
 
-      <View style={styles.footer}>
-        <TouchableOpacity style={styles.primaryButton} onPress={handleConfirm}>
-          <Text style={styles.primaryButtonText}>Bekreft og fortsett</Text>
+      <View style={{ gap: 12 }}>
+        <TouchableOpacity
+          style={{
+            width: "100%",
+            height: 52,
+            backgroundColor: colors.brandOrange,
+            borderRadius: 12,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+          onPress={handleConfirm}
+        >
+          <Text style={{ color: colors.primaryForeground, fontSize: 16, fontWeight: "600" }}>
+            Bekreft og fortsett
+          </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.secondaryButton} onPress={handleGoToWelcome}>
-          <Text style={styles.secondaryButtonText}>Avbryt</Text>
+        <TouchableOpacity
+          style={{ width: "100%", height: 48, alignItems: "center", justifyContent: "center" }}
+          onPress={handleGoToWelcome}
+        >
+          <Text style={{ color: colors.mutedForeground, fontSize: 15 }}>Avbryt</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-    padding: 24,
-  },
-  centered: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFFFFF",
-    padding: 24,
-  },
-  content: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  footer: {
-    gap: 12,
-  },
-  heading: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#111827",
-    textAlign: "center",
-  },
-  workspaceName: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: "#F97316",
-    textAlign: "center",
-    marginTop: 4,
-  },
-  subtitle: {
-    fontSize: 15,
-    color: "#6B7280",
-    textAlign: "center",
-    marginTop: 12,
-    paddingHorizontal: 16,
-    lineHeight: 22,
-  },
-  logo: {
-    width: 88,
-    height: 88,
-    borderRadius: 18,
-    marginBottom: 20,
-  },
-  logoPlaceholder: {
-    width: 88,
-    height: 88,
-    borderRadius: 18,
-    backgroundColor: "#FFF7ED",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 20,
-  },
-  logoPlaceholderText: {
-    fontSize: 36,
-    fontWeight: "700",
-    color: "#F97316",
-  },
-  loadingText: {
-    fontSize: 15,
-    color: "#6B7280",
-    marginTop: 16,
-  },
-  errorHeading: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#111827",
-    marginBottom: 8,
-  },
-  errorText: {
-    color: "#6B7280",
-    fontSize: 15,
-    textAlign: "center",
-    marginBottom: 24,
-    paddingHorizontal: 16,
-  },
-  primaryButton: {
-    width: "100%",
-    height: 52,
-    backgroundColor: "#F97316",
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  primaryButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  secondaryButton: {
-    width: "100%",
-    height: 48,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  secondaryButtonText: {
-    color: "#6B7280",
-    fontSize: 15,
-  },
-});
