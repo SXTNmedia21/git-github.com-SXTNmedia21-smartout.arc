@@ -233,7 +233,7 @@ export function BusinessSection() {
             Skriv inn navn — jeg finner resten automatisk fra Brreg og Google.
           </p>
           {scrapeStatus === "error" && (
-            <p className="mt-4 text-sm text-red-400/80">
+            <p className="text-destructive/80 mt-4 text-sm">
               Fant ikke bedriften. Prøv igjen eller bruk nettside/org.nr.
             </p>
           )}

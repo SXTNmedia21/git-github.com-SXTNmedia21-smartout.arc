@@ -135,7 +135,7 @@ export function DoneSection() {
               </>
             )}
           </button>
-          {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
+          {error && <p className="text-destructive mt-2 text-sm">{error}</p>}
         </RevealItem>
       </div>
     </SectionReveal>

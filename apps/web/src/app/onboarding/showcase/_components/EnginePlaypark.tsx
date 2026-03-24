@@ -545,7 +545,7 @@ const INTENT_DOMAINS = [
   {
     domain: "knowledge",
     examples: ["Hva er rutinen for varemottak?", "Forklar allergiprotokollen"],
-    color: "text-blue-400",
+    color: "text-info",
   },
   {
     domain: "schedule",
@@ -555,12 +555,12 @@ const INTENT_DOMAINS = [
   {
     domain: "training",
     examples: ["Hvilke kurs gjenstår?", "Vis readiness-scoren min"],
-    color: "text-emerald-400",
+    color: "text-success",
   },
   {
     domain: "operations",
     examples: ["Start åpningsrutinen", "Hvilke sjekklister mangler?"],
-    color: "text-amber-400",
+    color: "text-warning",
   },
   {
     domain: "profile",
@@ -822,7 +822,7 @@ function MissionPanel({
                     {stage.tools.slice(0, 2).map((t) => (
                       <span
                         key={t}
-                        className="rounded bg-amber-400/10 px-1 text-[8px] text-amber-400/50"
+                        className="bg-warning/10 text-warning/50 rounded px-1 text-[8px]"
                       >
                         {t}
                       </span>
@@ -847,7 +847,7 @@ function MissionPanel({
               <ul className="mt-2 space-y-1">
                 {selectedMission.guardrails.map((g) => (
                   <li key={g} className="flex items-start gap-2 text-xs text-white/50">
-                    <Shield className="mt-0.5 h-3 w-3 shrink-0 text-red-400/60" />
+                    <Shield className="text-destructive/60 mt-0.5 h-3 w-3 shrink-0" />
                     {g}
                   </li>
                 ))}
@@ -884,8 +884,8 @@ function PosturePanel() {
   };
 
   const dimColors: Record<string, string> = {
-    formality: "bg-blue-400",
-    assertiveness: "bg-red-400",
+    formality: "bg-info",
+    assertiveness: "bg-destructive",
     warmth: "bg-orange-400",
     humor: "bg-yellow-400",
     verbosity: "bg-green-400",
@@ -1008,7 +1008,7 @@ function PosturePanel() {
                 <p className="font-mono text-[10px] text-white/30">{res.toFixed(2)}</p>
                 {delta !== 0 && (
                   <p
-                    className={`text-[9px] ${delta > 0 ? "text-emerald-400/60" : "text-red-400/60"}`}
+                    className={`text-[9px] ${delta > 0 ? "text-success/60" : "text-destructive/60"}`}
                   >
                     {delta > 0 ? "+" : ""}
                     {delta.toFixed(2)}
@@ -1050,7 +1050,7 @@ function ToolTestPanel() {
     filter === "all" ? AVAILABLE_TOOLS : AVAILABLE_TOOLS.filter((t) => t.type === filter);
 
   const typeColors: Record<string, string> = {
-    client: "text-amber-400/60",
+    client: "text-warning/60",
     capability: "text-violet-400/60",
     engine: "text-sky-400/60",
   };
@@ -1084,7 +1084,7 @@ function ToolTestPanel() {
             onClick={() => simulateTool(tool.name)}
             className={`flex items-center gap-2 rounded-lg border p-2.5 text-left transition-all ${
               selectedTool === tool.name
-                ? "border-amber-400/40 bg-amber-500/10"
+                ? "border-warning/40 bg-warning/10"
                 : "border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06]"
             }`}
           >
@@ -1120,11 +1120,11 @@ function CapabilityPanel() {
   const [selectedAuthority, setSelectedAuthority] = useState<AuthorityLevel>("autonomous");
 
   const authorityColors: Record<AuthorityLevel, string> = {
-    autonomous: "text-emerald-400 bg-emerald-400/10",
+    autonomous: "text-success bg-success/10",
     confirm: "text-sky-400 bg-sky-400/10",
-    suggest: "text-amber-400 bg-amber-400/10",
+    suggest: "text-warning bg-warning/10",
     read_only: "text-orange-400 bg-orange-400/10",
-    disabled: "text-red-400 bg-red-400/10",
+    disabled: "text-destructive bg-destructive/10",
   };
 
   const authorityDescriptions: Record<AuthorityLevel, string> = {
@@ -1178,16 +1178,14 @@ function CapabilityPanel() {
               key={cap.name}
               className={`rounded-xl border p-3 transition-all ${
                 selectedAuthority === "disabled"
-                  ? "border-red-400/10 bg-red-500/[0.03] opacity-50"
+                  ? "border-destructive/10 bg-destructive/[0.03] opacity-50"
                   : "border-white/[0.08] bg-white/[0.03]"
               }`}
             >
               <div className="flex items-center gap-3">
                 <div
                   className={`rounded-lg px-2 py-1 text-xs font-semibold ${
-                    cap.registered
-                      ? "bg-emerald-400/15 text-emerald-400"
-                      : "bg-white/[0.06] text-white/30"
+                    cap.registered ? "bg-success/15 text-success" : "bg-white/[0.06] text-white/30"
                   }`}
                 >
                   {cap.name}
@@ -1217,7 +1215,7 @@ function CapabilityPanel() {
                 </div>
               )}
               {selectedAuthority === "disabled" && (
-                <p className="mt-1 text-[10px] text-red-400/50 italic">
+                <p className="text-destructive/50 mt-1 text-[10px] italic">
                   All tools hidden from agent
                 </p>
               )}
@@ -1346,10 +1344,10 @@ function IntentClassifierPanel() {
                   <div
                     className={`h-full rounded-full transition-all duration-300 ${
                       result.confidence > 0.7
-                        ? "bg-emerald-400"
+                        ? "bg-success"
                         : result.confidence > 0.4
-                          ? "bg-amber-400"
-                          : "bg-red-400"
+                          ? "bg-warning"
+                          : "bg-destructive"
                     }`}
                     style={{ width: `${result.confidence * 100}%` }}
                   />
@@ -1415,9 +1413,9 @@ function MemoryPanel() {
 
   const typeColors: Record<string, string> = {
     preference: "text-purple-400 bg-purple-400/10",
-    fact: "text-red-400 bg-red-400/10",
+    fact: "text-destructive bg-destructive/10",
     schedule: "text-sky-400 bg-sky-400/10",
-    achievement: "text-emerald-400 bg-emerald-400/10",
+    achievement: "text-success bg-success/10",
   };
 
   return (
@@ -1567,7 +1565,7 @@ function GuardianPanel({ selectedMission }: { selectedMission: MissionTemplate |
     <div className="space-y-4">
       <div className="grid grid-cols-4 gap-3">
         <div className="rounded-lg border border-white/10 bg-black/30 p-3 text-center">
-          <Gauge className="mx-auto h-5 w-5 text-emerald-400/60" />
+          <Gauge className="text-success/60 mx-auto h-5 w-5" />
           <p className="mt-1 text-lg font-semibold text-white">30s</p>
           <p className="text-[10px] text-white/30">Eval intervall</p>
         </div>
@@ -1579,7 +1577,7 @@ function GuardianPanel({ selectedMission }: { selectedMission: MissionTemplate |
           <p className="text-[10px] text-white/30">Stages</p>
         </div>
         <div className="rounded-lg border border-white/10 bg-black/30 p-3 text-center">
-          <Shield className="mx-auto h-5 w-5 text-amber-400/60" />
+          <Shield className="text-warning/60 mx-auto h-5 w-5" />
           <p className="mt-1 text-lg font-semibold text-white">
             {selectedMission?.guardrails.length ?? 0}
           </p>
@@ -1596,7 +1594,7 @@ function GuardianPanel({ selectedMission }: { selectedMission: MissionTemplate |
         type="button"
         onClick={runEvaluation}
         disabled={!selectedMission || isRunning}
-        className="w-full rounded-xl bg-emerald-500/20 py-2.5 text-sm font-semibold text-emerald-300 transition-colors hover:bg-emerald-500/30 disabled:opacity-40"
+        className="bg-success/20 text-success hover:bg-success/30 w-full rounded-xl py-2.5 text-sm font-semibold transition-colors disabled:opacity-40"
       >
         {isRunning ? "Evaluerer..." : "Kjør Guardian-evaluering"}
       </button>
@@ -1613,9 +1611,9 @@ function GuardianPanel({ selectedMission }: { selectedMission: MissionTemplate |
                 entry.includes("[WHISPER]")
                   ? "font-medium text-purple-300"
                   : entry.includes("🔴")
-                    ? "text-red-400/70"
+                    ? "text-destructive/70"
                     : entry.includes("🟡")
-                      ? "text-amber-400/70"
+                      ? "text-warning/70"
                       : "text-white/50"
               }`}
             >
@@ -1632,7 +1630,7 @@ function GuardianPanel({ selectedMission }: { selectedMission: MissionTemplate |
         </p>
         <div className="grid grid-cols-3 gap-2">
           {[
-            { domain: "readiness", desc: "Ansatt readiness-varsler", color: "text-emerald-400" },
+            { domain: "readiness", desc: "Ansatt readiness-varsler", color: "text-success" },
             {
               domain: "workspace_maturity",
               desc: "Workspace modenhetsscore",
@@ -1657,7 +1655,7 @@ function GuardianPanel({ selectedMission }: { selectedMission: MissionTemplate |
 
 function RoleplayPanel({ onLaunch }: { onLaunch: (scenario: RoleplayScenario) => void }) {
   const roleColors: Record<string, string> = {
-    employee: "border-emerald-400/30 bg-emerald-500/10",
+    employee: "border-success/30 bg-success/10",
     manager: "border-sky-400/30 bg-sky-500/10",
     admin: "border-purple-400/30 bg-purple-500/10",
   };
@@ -1824,7 +1822,7 @@ export function EnginePlaypark() {
                 Tools: {AVAILABLE_TOOLS.length}
               </span>
               {activeRoleplay && (
-                <span className="flex items-center gap-1 text-emerald-400/60">
+                <span className="text-success/60 flex items-center gap-1">
                   <GraduationCap className="h-3 w-3" />
                   Roleplay: {activeRoleplay.title}
                 </span>
@@ -1843,10 +1841,10 @@ export function EnginePlaypark() {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
-            className="fixed top-14 left-1/2 z-40 flex -translate-x-1/2 items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-500/15 px-4 py-2 backdrop-blur-xl"
+            className="border-success/30 bg-success/15 fixed top-14 left-1/2 z-40 flex -translate-x-1/2 items-center gap-2 rounded-full border px-4 py-2 backdrop-blur-xl"
           >
-            <Users className="h-3.5 w-3.5 text-emerald-400" />
-            <span className="text-xs font-medium text-emerald-300">
+            <Users className="text-success h-3.5 w-3.5" />
+            <span className="text-success text-xs font-medium">
               Roleplay: {activeRoleplay.title}
             </span>
             <button
@@ -1857,7 +1855,7 @@ export function EnginePlaypark() {
               }}
               className="ml-1 rounded-full p-0.5 hover:bg-white/10"
             >
-              <X className="h-3 w-3 text-emerald-400/60" />
+              <X className="text-success/60 h-3 w-3" />
             </button>
           </motion.button>
         )}

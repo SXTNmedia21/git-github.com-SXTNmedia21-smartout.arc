@@ -151,7 +151,7 @@ export function WelcomeSection() {
 
             <div className="mt-10 flex flex-col gap-3">
               {!isAuthenticated && (
-                <p className="text-sm text-amber-400/70">
+                <p className="text-warning/70 text-sm">
                   Du må logge inn før du kan aktivere arbeidsplassen.
                 </p>
               )}
@@ -177,7 +177,7 @@ export function WelcomeSection() {
                   </>
                 )}
               </button>
-              {error && <p className="text-sm text-red-400">{error}</p>}
+              {error && <p className="text-destructive text-sm">{error}</p>}
             </div>
           </motion.div>
         </div>

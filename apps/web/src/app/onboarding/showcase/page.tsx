@@ -175,8 +175,8 @@ function CapabilityPanel({
   const capEntries = Object.entries(capabilities) as [string, string][];
 
   const stateColors: Record<string, string> = {
-    enabled: "text-emerald-400",
-    manual: "text-amber-400",
+    enabled: "text-success",
+    manual: "text-warning",
     disabled: "text-white/25",
     idle: "text-white/35",
   };
@@ -219,7 +219,7 @@ function CapabilityPanel({
       <div className="mt-2 border-t border-white/[0.06] pt-2">
         <div className="flex items-center gap-1.5">
           {speechAllowed ? (
-            <Mic className="h-3 w-3 text-emerald-400" />
+            <Mic className="text-success h-3 w-3" />
           ) : (
             <MicOff className="h-3 w-3 text-white/25" />
           )}
@@ -247,9 +247,9 @@ function EventTimeline({ events }: { events: TimelineEvent[] }) {
   };
 
   const typeColors: Record<TimelineEvent["type"], string> = {
-    tool: "text-amber-400",
+    tool: "text-warning",
     section: "text-sky-400",
-    scrape: "text-emerald-400",
+    scrape: "text-success",
     voice: "text-purple-400",
     interaction: "text-white/50",
   };

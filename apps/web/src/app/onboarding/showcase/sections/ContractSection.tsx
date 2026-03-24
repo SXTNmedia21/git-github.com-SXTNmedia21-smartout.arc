@@ -101,7 +101,7 @@ export function ContractSection() {
               aria-label={contractEnabled ? "Deaktiver kontrakt" : "Aktiver kontrakt"}
             >
               {contractEnabled ? (
-                <ToggleRight className="size-8 text-emerald-400" />
+                <ToggleRight className="text-success size-8" />
               ) : (
                 <ToggleLeft className="size-8" />
               )}
@@ -146,7 +146,7 @@ export function ContractSection() {
                     transition={{ delay: 0.2 + i * 0.08, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
                     className="flex items-center gap-3"
                   >
-                    <CheckCircle className="size-4 shrink-0 text-emerald-400/70" />
+                    <CheckCircle className="text-success/70 size-4 shrink-0" />
                     <span className="text-base text-white/60">{item}</span>
                   </motion.div>
                 ))}

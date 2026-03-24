@@ -136,11 +136,11 @@ export function LocationsSection() {
                           key={zone.id}
                           className={`group flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-sm ${
                             isCritical
-                              ? "border-red-500/20 bg-red-500/10 text-red-300"
+                              ? "border-destructive/20 bg-destructive/10 text-destructive"
                               : "border-white/[0.06] bg-white/[0.06] text-white/60"
                           }`}
                         >
-                          {isCritical && <ShieldAlert className="size-3 text-red-400" />}
+                          {isCritical && <ShieldAlert className="text-destructive size-3" />}
                           {zone.name}
                           <button
                             type="button"

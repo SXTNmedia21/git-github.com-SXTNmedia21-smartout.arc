@@ -112,7 +112,7 @@ export function BigBoard() {
                     animate={{ scale: 1 }}
                     transition={{ type: "spring", stiffness: 500, damping: 25 }}
                   >
-                    <Check className="h-4 w-4 text-emerald-400" />
+                    <Check className="text-success h-4 w-4" />
                   </motion.div>
                 ) : scrapeStatus === "scraping" ? (
                   <Loader2 className="h-4 w-4 animate-spin text-white/30" />

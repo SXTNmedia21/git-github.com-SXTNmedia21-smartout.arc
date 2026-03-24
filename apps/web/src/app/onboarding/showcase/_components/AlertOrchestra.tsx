@@ -175,9 +175,9 @@ const SCRIPT_STEPS: ScriptStep[] = [
  * Why: Keeps visual semantics consistent per alert type.
  */
 function getSeverityClasses(severity: AlertSeverity): string {
-  if (severity === "critical") return "border-red-400/40 bg-red-500/10 text-red-100";
-  if (severity === "warning") return "border-amber-400/40 bg-amber-500/10 text-amber-100";
-  if (severity === "success") return "border-emerald-400/40 bg-emerald-500/10 text-emerald-100";
+  if (severity === "critical") return "border-destructive/40 bg-destructive/10 text-destructive";
+  if (severity === "warning") return "border-warning/40 bg-warning/10 text-warning";
+  if (severity === "success") return "border-success/40 bg-success/10 text-success";
   return "border-sky-400/40 bg-sky-500/10 text-sky-100";
 }
 

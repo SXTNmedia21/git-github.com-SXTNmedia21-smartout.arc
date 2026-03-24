@@ -241,7 +241,7 @@ export function HeroSection() {
               className="rounded-xl border border-white/[0.06] bg-white/5 px-4 py-3.5 text-base text-white placeholder:text-white/30 focus:border-white/20 focus:outline-none disabled:opacity-50"
             />
 
-            {error && <p className="text-sm text-red-400">{error}</p>}
+            {error && <p className="text-destructive text-sm">{error}</p>}
 
             <button
               type="submit"

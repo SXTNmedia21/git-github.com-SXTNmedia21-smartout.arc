@@ -148,9 +148,9 @@ export function AgentControlPanel() {
               <button
                 key={msg.id}
                 onClick={() => send(msg.message, msg.label)}
-                className="flex items-center gap-1.5 rounded-lg border border-amber-500/[0.08] bg-amber-500/[0.03] px-3 py-1.5 text-left text-xs text-amber-200/60 transition-colors hover:border-amber-500/20 hover:bg-amber-500/[0.08] hover:text-amber-200/90"
+                className="border-warning/[0.08] bg-warning/[0.03] text-warning/60 hover:border-warning/20 hover:bg-warning/[0.08] hover:text-warning/90 flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-left text-xs transition-colors"
               >
-                <Zap size={10} className="shrink-0 text-amber-400/40" />
+                <Zap size={10} className="text-warning/40 shrink-0" />
                 {msg.label}
               </button>
             ))}
@@ -160,7 +160,7 @@ export function AgentControlPanel() {
 
       {/* Sent confirmation */}
       {lastSent && (
-        <div className="mt-1 text-right text-[10px] text-emerald-400/60">Sendt: {lastSent}</div>
+        <div className="text-success/60 mt-1 text-right text-[10px]">Sendt: {lastSent}</div>
       )}
     </div>
   );

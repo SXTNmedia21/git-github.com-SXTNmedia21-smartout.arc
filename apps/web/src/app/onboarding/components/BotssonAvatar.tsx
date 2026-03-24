@@ -147,7 +147,7 @@ export function BotssonAvatar({
             onClick={onToggleMic}
             className={`flex h-8 w-8 items-center justify-center rounded-full border transition-all ${
               isMuted
-                ? "border-red-500/30 bg-red-500/20 text-red-400"
+                ? "border-destructive/30 bg-destructive/20 text-destructive"
                 : "border-white/10 bg-black/40 text-white/60 hover:text-white/80"
             }`}
           >
@@ -216,8 +216,8 @@ export function BotssonAvatar({
           <div className="absolute -top-1 -right-1">
             {isConnected ? (
               <span className="flex h-3 w-3">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-400" />
+                <span className="bg-success absolute inline-flex h-full w-full animate-ping rounded-full opacity-75" />
+                <span className="bg-success relative inline-flex h-3 w-3 rounded-full" />
               </span>
             ) : (
               <span className="h-2.5 w-2.5 rounded-full bg-white/20" />
