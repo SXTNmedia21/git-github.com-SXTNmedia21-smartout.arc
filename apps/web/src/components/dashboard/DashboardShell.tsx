@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback, createContext, useMemo } from
 import dynamic from "next/dynamic";
 import type { MissionId } from "@smartout/ai/missions";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
+import { createClient } from "@smartout/supabase/client";
 import { useWorkspaceSetup } from "@/app/dashboard/_hooks/use-workspace-setup";
 
 const VoiceAssistant = dynamic(() => import("@/components/voice-assistant"), {
@@ -393,6 +394,45 @@ export function DashboardShell({
         : null,
     [workspaceCtx],
   );
+
+  // Live inbound join request count for the Ansatte nav badge
+  const [inboundRequestCount, setInboundRequestCount] = useState(0);
+  useEffect(() => {
+    if (!workspaceData?.workspace_id) return;
+    const supabase = createClient();
+
+    async function fetchCount() {
+      const { count } = await supabase
+        .from("invitation")
+        .select("invitation_id", { count: "exact", head: true })
+        .eq("workspace_id", workspaceData!.workspace_id)
+        .eq("direction", "inbound")
+        .eq("status", "pending");
+      setInboundRequestCount(count ?? 0);
+    }
+
+    void fetchCount();
+
+    // Subscribe to realtime changes on invitation table for this workspace
+    const channel = supabase
+      .channel("inbound-requests")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "invitation",
+          filter: `workspace_id=eq.${workspaceData.workspace_id}`,
+        },
+        () => void fetchCount(),
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [workspaceData?.workspace_id]);
+
   /** Stable setter that schedule page calls to register the publish callback */
   const setOnPublishAll = useCallback((fn: (() => void) | null) => {
     onPublishAllRef.current = fn;
@@ -1282,7 +1322,11 @@ export function DashboardShell({
                           icon={Users}
                           label="Ansatte"
                           isDark={isDark}
-                          badge="2 Forespørsler"
+                          badge={
+                            inboundRequestCount > 0
+                              ? `${inboundRequestCount} Forespørsler`
+                              : undefined
+                          }
                           active={isActive("/dashboard/people")}
                           isCollapsed={isSidebarCollapsed}
                         />
