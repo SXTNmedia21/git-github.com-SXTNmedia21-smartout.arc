@@ -78,3 +78,4 @@ tags: [livekit, webhook, voice, video, webrtc]
 | 2026-03-24 | 18:30 | Video + in-call chat working, session ended             |
 | 2026-03-24 | 19:00 | Mobile-responsive layout + join toasts + moderator mute |
 | 2026-03-24 | 19:15 | Dead code cleanup, closure docs, feature ready          |
+| 2026-03-24 | 19:34 | Feature closed and merged to development                |
