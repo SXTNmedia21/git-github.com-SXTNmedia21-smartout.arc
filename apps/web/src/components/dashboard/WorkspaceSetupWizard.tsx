@@ -177,7 +177,7 @@ export function WorkspaceSetupWizard({
       const { data } = await supabase
         .from("company")
         .select("*")
-        .eq("company_id", ctx?.workspace.company_id!)
+        .eq("company_id", ctx!.workspace.company_id!)
         .single();
       return data;
     },
