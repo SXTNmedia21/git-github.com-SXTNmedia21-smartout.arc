@@ -352,22 +352,22 @@ Cascade is a PRODUCER of events; Event Engine is the CONSUMER.
 
 ### Known Remaining Gaps (audited 2026-03-22)
 
-| Area                       | Gap                                                                             | Cascade | Priority | Status |
-| -------------------------- | ------------------------------------------------------------------------------- | ------- | -------- | ------ |
-| Notifications              | `send_notification` handler is a console.log stub (no notification_queue flow)  | —       | Medium   | OPEN   |
-| Handbook -> RAG            | Saved chapters not chunked into workspace_doc_chunk                             | K1b     | Medium   | OPEN   |
-| Invite -> Onboarding       | accept-invitation EF doesn't emit invitation_accepted event yet                 | D2      | High     | OPEN   |
-| Shift Publish -> Session   | End-to-end flow untested (emit -> trigger -> upsert_session -> hooks)           | D6      | High     | OPEN   |
-| PolicyForm scope picker    | Department picker doesn't appear when "department" scope selected               | C4      | Low      | OPEN   |
-| Wizard mobile              | No responsive layout on workspace setup wizard                                  | I1      | Low      | OPEN   |
-| my-schedule realtime       | No Realtime subscription on employee shift view                                 | D6      | Low      | OPEN   |
-| Invite dialog departments  | Hardcoded department list in invite dialog                                      | D2      | Low      | OPEN   |
-| Trainee first-day redirect | No redirect to my-training after invite accept                                  | D2      | Medium   | OPEN   |
-| Operations dashboard UI    | Route exists, tables exist, engine wired — no actual operational dashboard UI   | D6      | High     | OPEN   |
-| Login/Join redirect        | Hype sequence redirect (window.location.href) untested. Auth required for /join | —       | Medium   | OPEN   |
-| Agent chat UI              | `/dashboard/chat` shows "coming soon" for AI chat tab                           | C2      | Medium   | OPEN   |
-| Settings module            | Only opening hours config done. No general settings, branding, notifications    | D1      | Medium   | OPEN   |
-| Employee agent access      | Employees can't interact with agents from /my-schedule or /my-training          | C2      | Low      | OPEN   |
+| Area                       | Gap                                                                            | Cascade | Priority | Status |
+| -------------------------- | ------------------------------------------------------------------------------ | ------- | -------- | ------ |
+| Notifications              | `send_notification` handler is a console.log stub (no notification_queue flow) | —       | Medium   | OPEN   |
+| Handbook -> RAG            | Saved chapters not chunked into workspace_doc_chunk                            | K1b     | Medium   | OPEN   |
+| Invite -> Onboarding       | Complete invite journey merged (multi-channel, mobile accept, welcome page)    | D2      | High     | DONE   |
+| Shift Publish -> Session   | End-to-end flow untested (emit -> trigger -> upsert_session -> hooks)          | D6      | High     | OPEN   |
+| PolicyForm scope picker    | Department picker doesn't appear when "department" scope selected              | C4      | Low      | OPEN   |
+| Wizard mobile              | Unified wizard shell in `feat/unified-wizard-shell` (wt-2)                     | I1      | Low      | DONE   |
+| my-schedule realtime       | No Realtime subscription on employee shift view                                | D6      | Low      | OPEN   |
+| Invite dialog departments  | Fixed in `feat/staff-handling-complete`                                        | D2      | Low      | DONE   |
+| Trainee first-day redirect | No redirect to my-training after invite accept                                 | D2      | Medium   | OPEN   |
+| Operations dashboard UI    | Route exists, tables exist, engine wired — no actual operational dashboard UI  | D6      | High     | OPEN   |
+| Login/Join redirect        | Join flow tokens + setup-flow-redesign merged                                  | —       | Medium   | DONE   |
+| Agent chat UI              | In progress in `feat/emma-arena-views` (wt-3) — Emma Arena views + walkAi      | C2      | Medium   | WIP    |
+| Settings module            | Only opening hours config done. No general settings, branding, notifications   | D1      | Medium   | OPEN   |
+| Employee agent access      | Employees can't interact with agents from /my-schedule or /my-training         | C2      | Low      | OPEN   |
 
 ---
 
