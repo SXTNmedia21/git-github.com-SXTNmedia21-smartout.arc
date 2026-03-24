@@ -18,7 +18,11 @@ export type WriteAction =
   | "submit_handoff"
   | "confirm_hours"
   | "request_absence"
-  | "cancel_absence";
+  | "cancel_absence"
+  | "break_start"
+  | "break_end"
+  | "supplement_claim"
+  | "shift_note_add";
 
 /** Lifecycle states for a pending write in the SQLite queue. */
 export type WriteStatus = "pending" | "syncing" | "synced" | "failed";

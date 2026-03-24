@@ -100,4 +100,36 @@ export const actionMap: Record<WriteAction, ActionHandler> = {
         .update({ status: p.status } as any)
         .eq("id", p.schedule_absence_id as string),
     ),
+
+  // Update the breaks JSONB column on the active time_entry (start of break)
+  break_start: (p) =>
+    assertOk(
+      (supabase as any)
+        .schema("timesheet")
+        .from("time_entry")
+        .update(p as any)
+        .eq("time_entry_id", p.time_entry_id as string),
+    ),
+
+  // Update the breaks JSONB column on the active time_entry (end of break)
+  break_end: (p) =>
+    assertOk(
+      (supabase as any)
+        .schema("timesheet")
+        .from("time_entry")
+        .update(p as any)
+        .eq("time_entry_id", p.time_entry_id as string),
+    ),
+
+  // Insert a manual supplement claim row in the payroll schema
+  supplement_claim: (p) =>
+    assertOk(
+      (supabase as any)
+        .schema("payroll")
+        .from("manual_supplement")
+        .insert(p as any),
+    ),
+
+  // Insert a shift note row in the public schema
+  shift_note_add: (p) => assertOk(supabase.from("shift_note").insert(p as any)),
 };
