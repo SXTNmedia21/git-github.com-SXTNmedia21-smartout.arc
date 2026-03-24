@@ -144,7 +144,7 @@ function NoShiftContent({ summary }: { summary: PayrollSummary }) {
       <Pressable
         onPress={() => {
           Haptics.selectionAsync();
-          router.push("/(app)/(me)/payslip");
+          router.push("/(app)/(me)/payroll");
         }}
         style={({ pressed }) => [styles.seeAllRow, pressed && styles.seeAllPressed]}
         accessibilityRole="link"

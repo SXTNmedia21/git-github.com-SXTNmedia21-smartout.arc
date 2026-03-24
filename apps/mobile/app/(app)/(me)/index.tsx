@@ -7,13 +7,13 @@
  */
 
 import React, { useCallback, useState } from "react";
-import { View, Text, Switch, Pressable, Alert, Linking, ScrollView } from "react-native";
+import { View, Text, Switch, Pressable, Alert, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 
-import { Phone, Lock, Settings } from "lucide-react-native";
-import { createStyles, withOpacity } from "@/theme";
+import { Phone, Lock, Wallet } from "lucide-react-native";
+import { createStyles } from "@/theme";
 import { strings } from "@/constants/strings";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -126,6 +126,24 @@ export default function MeScreen() {
           </View>
         </Card>
 
+        {/* Payroll hub — lønn, fravær, timebank, tillegg */}
+        <Pressable
+          style={({ pressed }) => [styles.payrollRow, pressed && styles.pressed]}
+          onPress={() => {
+            Haptics.selectionAsync();
+            router.push("/(app)/(me)/payroll");
+          }}
+          accessibilityRole="button"
+          accessibilityLabel={strings.payroll.title}
+        >
+          <Wallet size={22} color={styles.payrollIconColor.color} strokeWidth={2} />
+          <View style={styles.payrollTextWrap}>
+            <Text style={styles.payrollTitle}>{strings.payroll.title}</Text>
+            <Text style={styles.payrollSubtitle}>{strings.payroll.myPay}</Text>
+          </View>
+          <Text style={styles.chevronRight}>›</Text>
+        </Pressable>
+
         {/* Notification preferences */}
         <Card style={styles.section}>
           <SectionHeader title={strings.me.notifications} />
@@ -198,6 +216,38 @@ const useStyles = createStyles((theme) => ({
   profileCard: {
     marginHorizontal: theme.spacing.card,
     marginBottom: theme.spacing.section,
+  },
+  payrollRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.element,
+    marginHorizontal: theme.spacing.card,
+    marginBottom: theme.spacing.section,
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.card,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  payrollIconColor: {
+    color: theme.colors.brandOrange,
+  },
+  payrollTextWrap: {
+    flex: 1,
+    gap: 2,
+  },
+  payrollTitle: {
+    ...theme.typography.bodyBold,
+    color: theme.colors.foreground,
+  },
+  payrollSubtitle: {
+    ...theme.typography.caption,
+    color: theme.colors.mutedForeground,
+  },
+  chevronRight: {
+    fontSize: 22,
+    color: theme.colors.mutedForeground,
+    fontWeight: "300",
   },
   profileRow: {
     flexDirection: "row",

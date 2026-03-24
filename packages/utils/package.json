@@ -4,6 +4,8 @@
   "main": "src/index.ts",
   "types": "src/index.ts",
   "scripts": {
+    "build": "tsc && node ../../scripts/fix-esm-imports.mjs",
+    "dev": "tsc --watch",
     "lint": "eslint src/",
     "typecheck": "tsc --noEmit",
     "clean": "rimraf dist .turbo"

@@ -1,7 +1,7 @@
 ---
 title: Development Dashboard
 status: in_progress
-updated: 2026-03-22
+updated: 2026-03-24
 created: 2026-03-02
 module: meta
 tags: [dashboard, worktrees, tracking]
@@ -108,6 +108,7 @@ tags: [dashboard, worktrees, tracking]
 
 ## Session History
 
+| 2026-03-24 | mobile-app (auth+login) | session ended | Main repo (development). Welcome screen redesigned with design tokens. Login screen added (email+password, matches web). Expo web has React 19 removeChild bug on route transitions — test on native. 3 key specs identified for next work: Mobile Employee App, ShiftClock, Mobile Payroll UI. |
 | 2026-03-22 | fix-invitation-flow | started | wt-7, module: core. Fix 5 gaps: company_member not created on invite accept, listUsers scalability, company_member RLS, invitation resend, expired cleanup. |
 | 2026-03-22 | css-build-fix | session ended | Tailwind v4 CSS parsing error: stale `.next-e2e-web/` cache poisoning content scan with corrupted `rgba(var(--brand-orange-rgb))` class. Fixed 5 `shadow-brand-orange/N` in WalkAi. Remaining: delete stale caches manually. |
 | 2026-03-22 | hms-phase-1 | session ended | Spec complete (Cascade-native v4). Plan written (7 tasks). Linear cleaned (37->0 Triage). wt-5 ready for implementation. Next: Task 1 migration. |

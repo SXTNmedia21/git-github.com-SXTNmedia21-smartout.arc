@@ -115,6 +115,10 @@ export const strings = {
   },
   payroll: {
     title: "Lønn & fravær",
+    /** Payroll hub — read-only employee screens */
+    hubIntro: "Velg hva du vil se. Alt her er kun til lesing.",
+    supplementTemplateLead:
+      "Eksempel for en typisk kveldsvakt (15:00–23:00). Faktiske tillegg avhenger av planlagt vakt.",
     absence: "Fravær",
     absenceBalance: "Fraværssaldo",
     timebank: "Timebank",

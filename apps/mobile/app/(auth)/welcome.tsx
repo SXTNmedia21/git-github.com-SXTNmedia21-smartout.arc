@@ -1,131 +1,122 @@
 /**
  * Welcome screen — entry point for unauthenticated users.
  * Four auth paths: invitation link, workspace code, workspace search, or direct login.
- * Each path renders its own component inline; login navigates to verify directly.
- *
- * Uses Smartout design tokens via createStyles for theme-aware styling.
- * Typography follows the "Ren og Varm" design system: warm neutrals, brand orange accent.
+ * Always light mode — this is a branding screen.
  */
 import { useState } from "react";
-import { View, Text, TouchableOpacity, Animated } from "react-native";
+import { View, Text, TouchableOpacity, Image, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { InviteEntry } from "@/components/auth/InviteEntry";
 import { CodeEntry } from "@/components/auth/CodeEntry";
 import { WorkspaceSearch } from "@/components/auth/WorkspaceSearch";
-import { createStyles, withOpacity } from "@/theme";
+import {
+  lightColors,
+  withOpacity,
+  spacing,
+  typography,
+  fontWeights,
+  radius,
+  shadows,
+} from "@/theme";
 
 type AuthPath = "none" | "invite" | "code" | "search";
 
-const useStyles = createStyles((theme) => ({
+const t = lightColors;
+
+const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
-    paddingHorizontal: theme.spacing.section,
+    backgroundColor: t.background,
+    paddingHorizontal: spacing.section,
   },
-
-  // Header area — centered branding
   header: {
     flex: 1,
     justifyContent: "flex-end",
     alignItems: "center",
-    paddingBottom: theme.spacing.lg,
+    paddingBottom: spacing.lg,
   },
-  brandMark: {
-    ...theme.typography.largeTitle,
-    fontSize: 56,
-    fontWeight: theme.fontWeights.bold,
-    color: theme.colors.brandOrange,
-    letterSpacing: -1,
+  logo: {
+    width: 200,
+    height: 68,
+    marginBottom: spacing.md,
   },
   title: {
-    ...theme.typography.largeTitle,
+    ...typography.largeTitle,
     textAlign: "center",
-    color: theme.colors.foreground,
-    marginTop: theme.spacing.element,
+    color: t.foreground,
     letterSpacing: -0.5,
   },
   subtitle: {
-    ...theme.typography.subheadline,
+    ...typography.subheadline,
     textAlign: "center",
-    color: theme.colors.mutedForeground,
-    marginTop: theme.spacing.tight,
+    color: t.mutedForeground,
+    marginTop: spacing.tight,
   },
-
-  // Path buttons area
   buttons: {
-    paddingBottom: theme.spacing.md,
-    gap: theme.spacing.element,
+    paddingBottom: spacing.md,
+    gap: spacing.element,
   },
-
-  // Workspace path cards
   pathButton: {
-    backgroundColor: theme.colors.secondary,
+    backgroundColor: t.secondary,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.radius.xl,
-    paddingVertical: theme.spacing.md,
-    paddingHorizontal: theme.spacing.card,
-    ...theme.shadows.sm,
+    borderColor: t.border,
+    borderRadius: radius.xl,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.card,
+    ...shadows.sm,
   },
   pathButtonText: {
-    ...theme.typography.bodyBold,
-    color: theme.colors.foreground,
+    ...typography.bodyBold,
+    color: t.foreground,
   },
   pathButtonHint: {
-    ...theme.typography.caption,
-    color: theme.colors.mutedForeground,
+    ...typography.caption,
+    color: t.mutedForeground,
     marginTop: 2,
   },
-
-  // Divider
   divider: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    marginVertical: theme.spacing.xs,
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: spacing.xs,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: theme.colors.border,
+    backgroundColor: t.border,
   },
   dividerText: {
-    ...theme.typography.caption,
-    color: theme.colors.mutedForeground,
-    paddingHorizontal: theme.spacing.element,
+    ...typography.caption,
+    color: t.mutedForeground,
+    paddingHorizontal: spacing.element,
   },
-
-  // Primary CTA — brand orange login button
   loginButton: {
-    backgroundColor: theme.colors.brandOrange,
-    borderRadius: theme.radius.xl,
+    backgroundColor: t.brandOrange,
+    borderRadius: radius.xl,
     paddingVertical: 18,
-    alignItems: "center" as const,
-    ...theme.shadows.md,
-    shadowColor: theme.colors.brandOrange,
+    alignItems: "center",
+    ...shadows.md,
+    shadowColor: t.brandOrange,
   },
   loginButtonText: {
-    ...theme.typography.bodyBold,
+    ...typography.bodyBold,
     color: "#FFFFFF",
   },
-
-  // Footer
   footer: {
-    alignItems: "center" as const,
-    paddingTop: theme.spacing.md,
-    paddingBottom: theme.spacing.tight,
+    alignItems: "center",
+    paddingTop: spacing.md,
+    paddingBottom: spacing.tight,
   },
   footerText: {
-    ...theme.typography.caption,
-    color: withOpacity(theme.colors.mutedForeground, 0.5),
+    ...typography.caption,
+    color: withOpacity(t.mutedForeground, 0.5),
   },
-}));
+});
 
 export default function Welcome() {
   const [activePath, setActivePath] = useState<AuthPath>("none");
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const styles = useStyles();
 
   if (activePath === "invite") {
     return <InviteEntry onBack={() => setActivePath("none")} />;
@@ -142,7 +133,11 @@ export default function Welcome() {
       style={[styles.container, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 16 }]}
     >
       <View style={styles.header}>
-        <Text style={styles.brandMark}>S</Text>
+        <Image
+          source={require("../../assets/smartout-icon.png")}
+          style={styles.logo}
+          resizeMode="contain"
+        />
         <Text style={styles.title}>Velkommen til Smartout</Text>
         <Text style={styles.subtitle}>Kom i gang med arbeidsplassen din</Text>
       </View>
@@ -184,7 +179,7 @@ export default function Welcome() {
         <TouchableOpacity
           style={styles.loginButton}
           activeOpacity={0.85}
-          onPress={() => router.push("/(auth)/verify")}
+          onPress={() => router.push({ pathname: "/(auth)/verify", params: { flow: "login" } })}
         >
           <Text style={styles.loginButtonText}>Logg inn eller opprett konto</Text>
         </TouchableOpacity>

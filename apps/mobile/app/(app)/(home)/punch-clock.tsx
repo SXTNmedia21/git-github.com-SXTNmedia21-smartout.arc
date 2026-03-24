@@ -12,10 +12,11 @@
  * - Back button has a press scale
  */
 
-import React, { useCallback, useEffect, useState } from "react";
-import { View, Text, Pressable } from "react-native";
+import React, { useCallback, useEffect, useState, useRef } from "react";
+import { View, Text, Pressable, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import type { BottomSheetModal } from "@gorhom/bottom-sheet";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -41,6 +42,9 @@ import { useActiveTimeEntry } from "@/hooks/queries/use-active-time-entry";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
 import { usePunch } from "@/hooks/mutations/use-punch";
 import { strings } from "@/constants/strings";
+import { ShiftClockHeader } from "@/components/shift-clock/ShiftClockHeader";
+import { ShiftClockActions } from "@/components/shift-clock/ShiftClockActions";
+import { SupplementSheet } from "@/components/shift-clock/SupplementSheet";
 
 function formatTime(date: Date): string {
   return date.toLocaleTimeString("nb-NO", {
@@ -131,6 +135,13 @@ export default function PunchClockScreen() {
   const currentTimeEntry = phaseTimeEntry ?? queryTimeEntry;
   const isClockedIn = currentTimeEntry?.status === "clocked_in";
   const shiftForPunch = activeShift ?? nextShift;
+
+  // Determine State
+  const currentState = isClockedIn ? "CLOCKED_IN" : "IDLE";
+  const [isOnBreak, setIsOnBreak] = useState(false);
+
+  // Sheet ref
+  const supplementSheetRef = useRef<BottomSheetModal>(null);
 
   // Live clock — update every second
   const [now, setNow] = useState(new Date());
@@ -307,81 +318,106 @@ export default function PunchClockScreen() {
         </Pressable>
       </Animated.View>
 
-      <View style={styles.content}>
-        {/* Location badge */}
-        <Animated.View
-          entering={FadeInDown.delay(200).duration(500).springify()}
-          style={styles.locationBadge}
-        >
-          <MapPin size={14} color={styles.mutedColor.color} strokeWidth={1.8} />
-          <Text style={styles.locationText}>
-            {profile?.workspace_id ? "STRØM MAT & BAR" : "Arbeidsplass"}
-          </Text>
-        </Animated.View>
-
-        {/* Live clock with bounce */}
-        <Animated.View entering={FadeInDown.delay(300).duration(500).springify()}>
-          <Animated.Text style={[styles.clock, animatedClock]}>{formatTime(now)}</Animated.Text>
-        </Animated.View>
-
-        {/* Shift info */}
-        <Animated.View entering={FadeInDown.delay(400).duration(500).springify()}>
-          <Text style={styles.shiftLabel}>{shiftLabel}</Text>
-        </Animated.View>
-
-        {/* Punch button with concentric rings */}
-        <Animated.View entering={FadeIn.delay(500).duration(600)} style={styles.punchContainer}>
-          {/* Breathing idle rings */}
-          <BreathingRing color={buttonColor} size={180} delay={0} />
-          <BreathingRing color={buttonColor} size={210} delay={700} />
-          <BreathingRing color={buttonColor} size={240} delay={1400} />
-
-          {/* Punch ripple rings */}
-          <Animated.View style={[styles.rippleRing, { borderColor: buttonColor }, animatedRing1]} />
-          <Animated.View style={[styles.rippleRing, { borderColor: buttonColor }, animatedRing2]} />
-          <Animated.View style={[styles.rippleRing, { borderColor: buttonColor }, animatedRing3]} />
-
-          {/* Main button */}
-          <Animated.View style={animatedButton}>
-            <Pressable
-              onPress={handlePunch}
-              onPressIn={handlePressIn}
-              onPressOut={handlePressOut}
-              style={[styles.punchButton, { backgroundColor: buttonColor }]}
-              accessibilityRole="button"
-              accessibilityLabel={isClockedIn ? strings.shift.punchOut : strings.shift.punchIn}
+      <ScrollView contentContainerStyle={styles.content} bounces={false}>
+        {currentState === "IDLE" ? (
+          <>
+            {/* Location badge */}
+            <Animated.View
+              entering={FadeInDown.delay(200).duration(500).springify()}
+              style={styles.locationBadge}
             >
-              <Animated.View style={animatedIcon}>
-                {isClockedIn ? (
-                  <Clock size={44} color="#ffffff" strokeWidth={1.6} />
-                ) : (
-                  <Fingerprint size={44} color="#ffffff" strokeWidth={1.6} />
-                )}
+              <MapPin size={14} color={styles.mutedColor.color} strokeWidth={1.8} />
+              <Text style={styles.locationText}>
+                {profile?.workspace_id ? "STRØM MAT & BAR" : "Arbeidsplass"}
+              </Text>
+            </Animated.View>
+
+            {/* Live clock with bounce */}
+            <Animated.View entering={FadeInDown.delay(300).duration(500).springify()}>
+              <Animated.Text style={[styles.clock, animatedClock]}>{formatTime(now)}</Animated.Text>
+            </Animated.View>
+
+            {/* Shift info */}
+            <Animated.View entering={FadeInDown.delay(400).duration(500).springify()}>
+              <Text style={styles.shiftLabel}>{shiftLabel}</Text>
+            </Animated.View>
+
+            {/* Punch button with concentric rings */}
+            <Animated.View entering={FadeIn.delay(500).duration(600)} style={styles.punchContainer}>
+              {/* Breathing idle rings */}
+              <BreathingRing color={buttonColor} size={180} delay={0} />
+              <BreathingRing color={buttonColor} size={210} delay={700} />
+              <BreathingRing color={buttonColor} size={240} delay={1400} />
+
+              {/* Punch ripple rings */}
+              <Animated.View
+                style={[styles.rippleRing, { borderColor: buttonColor }, animatedRing1]}
+              />
+              <Animated.View
+                style={[styles.rippleRing, { borderColor: buttonColor }, animatedRing2]}
+              />
+              <Animated.View
+                style={[styles.rippleRing, { borderColor: buttonColor }, animatedRing3]}
+              />
+
+              {/* Main button */}
+              <Animated.View style={animatedButton}>
+                <Pressable
+                  onPress={handlePunch}
+                  onPressIn={handlePressIn}
+                  onPressOut={handlePressOut}
+                  style={[styles.punchButton, { backgroundColor: buttonColor }]}
+                  accessibilityRole="button"
+                  accessibilityLabel={strings.shift.punchIn}
+                >
+                  <Animated.View style={animatedIcon}>
+                    <Fingerprint size={44} color="#ffffff" strokeWidth={1.6} />
+                  </Animated.View>
+                </Pressable>
               </Animated.View>
-            </Pressable>
-          </Animated.View>
-        </Animated.View>
+            </Animated.View>
 
-        {/* Punch label */}
-        <Animated.View entering={FadeInUp.delay(600).duration(500).springify()}>
-          <Text style={[styles.punchLabel, { color: buttonColor }]}>
-            {isClockedIn
-              ? strings.shift.punchOut.toUpperCase()
-              : strings.shift.punchIn.toUpperCase()}
-          </Text>
-        </Animated.View>
+            {/* Punch label */}
+            <Animated.View entering={FadeInUp.delay(600).duration(500).springify()}>
+              <Text style={[styles.punchLabel, { color: buttonColor }]}>
+                {strings.shift.punchIn.toUpperCase()}
+              </Text>
+            </Animated.View>
+          </>
+        ) : (
+          /* CLOCKED_IN / ON_BREAK STATES */
+          <View style={styles.activeShiftContainer}>
+            {shiftForPunch && (
+              <ShiftClockHeader
+                shift={shiftForPunch}
+                state={isOnBreak ? "ON_BREAK" : "CLOCKED_IN"}
+                activeDurationMinutes={Math.floor(
+                  Math.max(
+                    0,
+                    Date.now() - new Date(currentTimeEntry?.punch_in ?? Date.now()).getTime(),
+                  ) / 60000,
+                )}
+              />
+            )}
 
-        {/* Elapsed time when clocked in — with gentle pulse */}
-        {isClockedIn && currentTimeEntry?.punch_in && (
-          <Animated.View
-            entering={FadeInUp.delay(200).duration(400).springify()}
-            style={styles.elapsedContainer}
-          >
-            <Text style={styles.elapsedLabel}>Tid pa jobb</Text>
-            <Animated.Text style={[styles.elapsedValue, animatedElapsed]}>
-              {formatElapsed(currentTimeEntry.punch_in)}
-            </Animated.Text>
-          </Animated.View>
+            <ShiftClockActions
+              isOnBreak={isOnBreak}
+              onToggleBreak={() => setIsOnBreak(!isOnBreak)}
+              onAddNote={() => {}}
+              onAddSupplement={() => supplementSheetRef.current?.present()}
+              onCallLeader={() => {}}
+            />
+
+            {/* Slide to Punch out (bottom anchored logic later, static for now) */}
+            <Animated.View
+              entering={FadeInUp.delay(300).duration(500).springify()}
+              style={{ marginTop: 64, alignItems: "center" }}
+            >
+              <Pressable style={styles.punchOutButton} onPress={handlePunch}>
+                <Text style={styles.punchOutText}>{strings.shift.punchOut.toUpperCase()}</Text>
+              </Pressable>
+            </Animated.View>
+          </View>
         )}
 
         {/* Confirmation badge — slides in from bottom */}
@@ -397,7 +433,8 @@ export default function PunchClockScreen() {
             </Text>
           </Animated.View>
         )}
-      </View>
+      </ScrollView>
+      <SupplementSheet ref={supplementSheetRef} />
     </SafeAreaView>
   );
 }
@@ -528,6 +565,24 @@ const useStyles = createStyles((theme) => ({
     color: theme.colors.foreground,
     fontVariant: ["tabular-nums" as const],
     letterSpacing: 1,
+  },
+
+  /* Active Shift Container */
+  activeShiftContainer: {
+    flex: 1,
+    width: "100%",
+  },
+  punchOutButton: {
+    backgroundColor: theme.colors.destructive,
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 30,
+    ...theme.shadows.md,
+  },
+  punchOutText: {
+    color: "#fff",
+    fontWeight: "bold",
+    letterSpacing: 2,
   },
 
   /* Confirmation */
