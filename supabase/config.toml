@@ -507,3 +507,9 @@ verify_jwt = false
 
 [functions.watchdog-uptime]
 verify_jwt = false
+
+[functions.process-notifications]
+verify_jwt = false
+
+[functions.send-morning-digest]
+verify_jwt = false
