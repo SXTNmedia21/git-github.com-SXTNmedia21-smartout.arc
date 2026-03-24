@@ -3,7 +3,7 @@ title: "STATE — System State of Truth"
 status: canonical
 updated: 2026-03-22
 created: 2026-03-08
-last-verified: 2026-03-22
+last-verified: 2026-03-24
 module: all
 tags: [state, audit, gaps, architecture, cascade]
 ---
@@ -12,7 +12,7 @@ tags: [state, audit, gaps, architecture, cascade]
 
 > Single source of truth for what exists, what's missing, and what to build next.
 > Organized by the Cascade Core canonical model: **I1 + 6D + 4C + K1a/K1b**.
-> Updated weekly. Last audit: 2026-03-22.
+> Updated weekly. Last audit: 2026-03-24.
 > Canonical spec: `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`
 
 ---
@@ -31,7 +31,7 @@ Current repo truth for onboarding ownership:
 
 ## 1. Database Tables — By Cascade Dimension
 
-**Totals:** 147 tables, 88 enums, 130 migrations, 31 Edge Functions, 54 ADRs, 18 learnings.
+**Totals:** ~211 tables, 124 enums, 193 migrations, 37 Edge Functions, 58 ADRs, 18 learnings.
 
 ### 1.0 Identity & Platform (Pre-Cascade)
 
@@ -103,8 +103,8 @@ Tables that exist before any workspace or cascade dimension. Not dimension-scope
 | `tariff_rate_table`           | 20260421100200 | EXISTS | Cascade A1. NULL workspace_id = platform baseline (K1a)                 |
 | `public_holiday`              | 20260421100200 | EXISTS | Norway data seeded in 20260422200000                                    |
 
-**Pure functions:** `evaluateFrameworkRules()` in `evaluate-framework-rules.ts` — SKELETON. Entity matching works, multi-rule chaining NOT implemented.
-**UI:** NONE. No framework viewer, no rule override editor, no trigger management.
+**Pure functions:** `evaluateFrameworkRules()` — DONE (full D3 evaluation with enforcement levels). `resolveTariffRate()` — DONE (seniority, fagbrev, overtime).
+**UI:** Framework Rules, Tariff Rates, Change Proposals tabs in Settings — WORKING. No standalone framework viewer.
 
 ### 1.4 D4 — Demand Signal (Ettersporselsignal)
 
@@ -120,7 +120,7 @@ Tables that exist before any workspace or cascade dimension. Not dimension-scope
 | `workspace_kpi_target` | 20260302       | EXISTS | Operational KPI targets                                 |
 | `workspace_budget`     | 20260302       | EXISTS | Per-date operational budget targets                     |
 
-**Pure functions:** NONE. No demand propagation (season_budget -> daily targets).
+**Pure functions:** `propagateBudgetTargets()` in `propagate-budget-targets.ts` — DONE. Budget target propagation tested.
 **Calculation engine:** `apps/web/src/lib/season-calculations.ts` — pure functions for budget math, no DB deps.
 **UI:** `/dashboard/season` with 4 tabs — WORKING. No daily target propagation view.
 
@@ -162,7 +162,7 @@ No dedicated tables — D5 lives as configuration that parameterizes coefficient
 | `supplier` + `supplier_order` | 20260407       | EXISTS | Vendor management and cost analysis                                         |
 
 **Pure functions:** `computeAnchoredTime()` in `compute-anchored-shift.ts` — DONE.
-**UI:** Schedule planner, daily close, reconciliation — WORKING. Operations dashboard — PARTIAL (route exists, no UI).
+**UI:** Schedule planner, daily close, reconciliation — WORKING. Operations dashboard — WORKING (live stress metrics, 4 cards, auto-refresh).
 
 ### 1.7 C1 — Observability & Calibration
 
@@ -185,8 +185,8 @@ No dedicated tables — D5 lives as configuration that parameterizes coefficient
 | --------------------- | -------------- | ------ | ------------------------------------------------------------- |
 | `shift_cost_snapshot` | 20260421100200 | EXISTS | Append-only cost audit. base_rate, supplements, overtime_cost |
 
-**Pure functions:** NONE. No cost calculation functions.
-**UI:** NONE. No cost analysis dashboard, no commercial reporting.
+**Pure functions:** Cost calculation via `resolveTariffRate()` in cascade lib — tariff → cost snapshot path exists.
+**UI:** my-salary (PeriodList + PayslipDetail + BalancesSidebar) — WORKING. No admin cost analysis dashboard.
 
 ### 1.9 C4 — Policy & Governance
 
@@ -291,20 +291,20 @@ Cascade is a PRODUCER of events; Event Engine is the CONSUMER.
 
 ### 2.2 Focus Pages (Admin)
 
-| Page             | Route                       | Cascade | Status  | Notes                                                                                                                                     |
-| ---------------- | --------------------------- | ------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| Schedule Planner | `/dashboard/schedule`       | D6      | WORKING | Full week/day/month views, DnD shifts, Day Control Panel, publish workflow, Realtime on 6 tables                                          |
-| People           | `/dashboard/people`         | D2      | WORKING | DataTable, invite status, employee cards, row actions                                                                                     |
-| Reports          | `/dashboard/reports`        | C1/C3   | WORKING | ReportsPageShell, AI chat panel, saved reports, deep insights                                                                             |
-| Chat             | `/dashboard/chat`           | C2      | WORKING | ChatShell, real-time messages, DMs, conversation management                                                                               |
-| Governance       | `/dashboard/governance`     | C4      | WORKING | GovernanceOverview + full CRUD: PolicyForm, ProtocolForm, ProcedureBuilder, KnowledgeTestBuilder, ConfirmationForm. Real readiness scores |
-| Operations       | `/dashboard/operations`     | D6      | PARTIAL | Route exists, engine-dispatch + session tables wired, but no operational dashboard UI yet                                                 |
-| Daily Close      | `/dashboard/close`          | D6/C1   | WORKING | CloseOutFlow, checklist, gatekeeper, image upload, settlement validation                                                                  |
-| Reconciliation   | `/dashboard/reconciliation` | C1      | WORKING | DayList, DayApproval, ShiftApproval, Revenue, Deviation sections                                                                          |
-| Season           | `/dashboard/season`         | D4      | WORKING | 4 tabs: overview, budget, day-factors, hour-factors                                                                                       |
-| Organization     | `/dashboard/organization`   | D1      | WORKING | Department/location/team/position list, CRUD dialogs                                                                                      |
-| Settings         | `/dashboard/settings`       | D1      | PARTIAL | Tab navigation, opening hours. No general settings, branding, notifications                                                               |
-| AI               | `/dashboard/ai`             | C2      | WORKING | Full Mr. Botsson interface                                                                                                                |
+| Page             | Route                       | Cascade | Status  | Notes                                                                                                                                                                                                     |
+| ---------------- | --------------------------- | ------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Schedule Planner | `/dashboard/schedule`       | D6      | WORKING | Full week/day/month views, DnD shifts, Day Control Panel, publish workflow, Realtime on 6 tables                                                                                                          |
+| People           | `/dashboard/people`         | D2      | WORKING | DataTable, invite status, employee cards, row actions                                                                                                                                                     |
+| Reports          | `/dashboard/reports`        | C1/C3   | WORKING | ReportsPageShell, AI chat panel, saved reports, deep insights                                                                                                                                             |
+| Chat             | `/dashboard/chat`           | C2      | WORKING | ChatShell, real-time messages, DMs, conversation management                                                                                                                                               |
+| Governance       | `/dashboard/governance`     | C4      | WORKING | GovernanceOverview + full CRUD: PolicyForm, ProtocolForm, ProcedureBuilder, KnowledgeTestBuilder, ConfirmationForm. Real readiness scores                                                                 |
+| Operations       | `/dashboard/operations`     | D6      | WORKING | Live stress-level dashboard: 4 metric cards, queries department_session + session_task + schedule_shift + deviation. Auto-refresh 60s                                                                     |
+| Daily Close      | `/dashboard/close`          | D6/C1   | WORKING | CloseOutFlow, checklist, gatekeeper, image upload, settlement validation                                                                                                                                  |
+| Reconciliation   | `/dashboard/reconciliation` | C1      | WORKING | DayList, DayApproval, ShiftApproval, Revenue, Deviation sections                                                                                                                                          |
+| Season           | `/dashboard/season`         | D4      | WORKING | 4 tabs: overview, budget, day-factors, hour-factors                                                                                                                                                       |
+| Organization     | `/dashboard/organization`   | D1      | WORKING | Department/location/team/position list, CRUD dialogs                                                                                                                                                      |
+| Settings         | `/dashboard/settings`       | D1      | PARTIAL | 16 tabs, 5 sections. 11 working (hours, payroll, supplements, meals, shifts, breaks, working time, holidays, framework, tariffs, proposals). 5 placeholder (general, KPI, notifications, teams, security) |
+| AI               | `/dashboard/ai`             | C2      | WORKING | Full Mr. Botsson interface                                                                                                                                                                                |
 
 ### 2.3 Document View (Handbok)
 
@@ -325,8 +325,8 @@ Cascade is a PRODUCER of events; Event Engine is the CONSUMER.
 | Oversikt       | `/dashboard` (employee mode)      | D6      | WORKING     | EmployeeDashboard: today's shift, upcoming shifts, readiness score, open shifts to claim |
 | Min vaktplan   | `/dashboard/my-schedule`          | D6      | WORKING     | MyWeekView — published shifts for current profile, week navigation                       |
 | Min opplaering | `/dashboard/my-training`          | —       | WORKING     | ProtocolList, ProcedureStepper, KnowledgeTestView, ConfirmationSign — real progress data |
-| Min profil     | `/dashboard/my-cv`                | D2      | PARTIAL     | Route exists, personal profile view                                                      |
-| Min lonn       | `/dashboard/my-salary`            | C3      | PLACEHOLDER | "Under construction" shell                                                               |
+| Min profil     | `/dashboard/my-cv`                | D2      | PLACEHOLDER | "Under construction" shell                                                               |
+| Min lonn       | `/dashboard/my-salary`            | C3      | WORKING     | PeriodList + PayslipDetail + BalancesSidebar, queries payroll tables                     |
 | Hjelp          | `/dashboard/help`                 | —       | EXISTS      | Help page                                                                                |
 | Onb. assistant | `/dashboard/onboarding-assistant` | I1      | EXISTS      | Onboarding assistant page                                                                |
 
@@ -344,7 +344,7 @@ Cascade is a PRODUCER of events; Event Engine is the CONSUMER.
 | 3   | No Completion Tracking               | **CLOSED**  | 3 tables created (knowledge_test_attempt, confirmation_signature, procedure_step_completion)                  |
 | 4   | No Per-Step Instance Tracking        | **CLOSED**  | engine_state_step table with cascading RLS. 13 action handlers in engine-dispatch                             |
 | 5   | Schedule -> Operations Disconnect    | **PARTIAL** | upsert_session handler exists. Emit on shift publish wired. End-to-end flow not yet tested                    |
-| 6   | Invite -> Trainee Dead End           | **PARTIAL** | invitation_accepted event registered. Engine trigger seeded. accept-invitation EF not yet updated             |
+| 6   | Invite -> Trainee Dead End           | **CLOSED**  | Complete invite journey: multi-channel, mobile accept, welcome page, profile_status = trainee                 |
 | 7   | Employee Pages Are Shells            | **CLOSED**  | my-schedule (MyWeekView), my-training (4 components), handbook (ChapterReader) all built                      |
 | 8   | Document Mode Has No Reader          | **PARTIAL** | Employee handbook reader built. RAG chunking pipeline NOT built (handbook save -> doc_chunk)                  |
 | 9   | Governance Has No CRUD               | **CLOSED**  | 5 forms: PolicyForm, ProtocolForm, ProcedureBuilder, KnowledgeTestBuilder, ConfirmationForm                   |
@@ -352,22 +352,22 @@ Cascade is a PRODUCER of events; Event Engine is the CONSUMER.
 
 ### Known Remaining Gaps (audited 2026-03-22)
 
-| Area                       | Gap                                                                            | Cascade | Priority | Status |
-| -------------------------- | ------------------------------------------------------------------------------ | ------- | -------- | ------ |
-| Notifications              | `send_notification` handler is a console.log stub (no notification_queue flow) | —       | Medium   | OPEN   |
-| Handbook -> RAG            | Saved chapters not chunked into workspace_doc_chunk                            | K1b     | Medium   | OPEN   |
-| Invite -> Onboarding       | Complete invite journey merged (multi-channel, mobile accept, welcome page)    | D2      | High     | DONE   |
-| Shift Publish -> Session   | End-to-end flow untested (emit -> trigger -> upsert_session -> hooks)          | D6      | High     | OPEN   |
-| PolicyForm scope picker    | Department picker doesn't appear when "department" scope selected              | C4      | Low      | OPEN   |
-| Wizard mobile              | Unified wizard shell in `feat/unified-wizard-shell` (wt-2)                     | I1      | Low      | DONE   |
-| my-schedule realtime       | No Realtime subscription on employee shift view                                | D6      | Low      | OPEN   |
-| Invite dialog departments  | Fixed in `feat/staff-handling-complete`                                        | D2      | Low      | DONE   |
-| Trainee first-day redirect | No redirect to my-training after invite accept                                 | D2      | Medium   | OPEN   |
-| Operations dashboard UI    | Route exists, tables exist, engine wired — no actual operational dashboard UI  | D6      | High     | OPEN   |
-| Login/Join redirect        | Join flow tokens + setup-flow-redesign merged                                  | —       | Medium   | DONE   |
-| Agent chat UI              | In progress in `feat/emma-arena-views` (wt-3) — Emma Arena views + walkAi      | C2      | Medium   | WIP    |
-| Settings module            | Only opening hours config done. No general settings, branding, notifications   | D1      | Medium   | OPEN   |
-| Employee agent access      | Employees can't interact with agents from /my-schedule or /my-training         | C2      | Low      | OPEN   |
+| Area                       | Gap                                                                            | Cascade | Priority | Status  |
+| -------------------------- | ------------------------------------------------------------------------------ | ------- | -------- | ------- |
+| Notifications              | `send_notification` handler is a console.log stub (no notification_queue flow) | —       | Medium   | OPEN    |
+| Handbook -> RAG            | Saved chapters not chunked into workspace_doc_chunk                            | K1b     | Medium   | OPEN    |
+| Invite -> Onboarding       | Complete invite journey merged (multi-channel, mobile accept, welcome page)    | D2      | High     | DONE    |
+| Shift Publish -> Session   | End-to-end flow untested (emit -> trigger -> upsert_session -> hooks)          | D6      | High     | OPEN    |
+| PolicyForm scope picker    | Department picker doesn't appear when "department" scope selected              | C4      | Low      | OPEN    |
+| Wizard mobile              | Unified wizard shell in `feat/unified-wizard-shell` (wt-2)                     | I1      | Low      | DONE    |
+| my-schedule realtime       | No Realtime subscription on employee shift view                                | D6      | Low      | OPEN    |
+| Invite dialog departments  | Fixed in `feat/staff-handling-complete`                                        | D2      | Low      | DONE    |
+| Trainee first-day redirect | No redirect to my-training after invite accept                                 | D2      | Medium   | OPEN    |
+| Operations dashboard UI    | Full live dashboard with stress metrics, 4 cards, auto-refresh 60s             | D6      | High     | DONE    |
+| Login/Join redirect        | Join flow tokens + setup-flow-redesign merged                                  | —       | Medium   | DONE    |
+| Agent chat UI              | In progress in `feat/emma-arena-views` (wt-3) — Emma Arena views + walkAi      | C2      | Medium   | WIP     |
+| Settings module            | 11/16 tabs working. Missing: general, KPI, notifications, teams, security      | D1      | Medium   | PARTIAL |
+| Employee agent access      | Employees can't interact with agents from /my-schedule or /my-training         | C2      | Low      | OPEN    |
 
 ---
 
@@ -410,7 +410,7 @@ Cascade is a PRODUCER of events; Event Engine is the CONSUMER.
 **Implementation status:**
 
 - Phase A (schema): **DONE** — 7 migrations committed (A1 extensions, enums, domain tables, alter existing + A2 enums, framework tables, cleanup markers)
-- Phase B (pure functions): **PARTIAL** — 4/6 done in `apps/web/src/lib/cascade/`
+- Phase B (pure functions): **DONE** — 9 functions, 8 test files in `apps/web/src/lib/cascade/`
 - Phase C (bootstrap): **PARTIAL** — 13 SQL templates exist, NOT integrated into workspace creation
 - Phase D (adapters): **NOT STARTED**
 
@@ -441,20 +441,21 @@ All cascade tables, enums, and RLS policies are committed.
 
 **NOT YET VALIDATED:** Migrations committed but not yet run via `supabase db reset`.
 
-### Phase B — Pure Functions (PARTIAL — 4/6)
+### Phase B — Pure Functions (DONE)
 
-Location: `apps/web/src/lib/cascade/`
+Location: `apps/web/src/lib/cascade/` — 11 files, 8 test files
 
-| Function                       | Dimension | Status      | Notes                                                                                     |
-| ------------------------------ | --------- | ----------- | ----------------------------------------------------------------------------------------- |
-| `resolveEffectiveHours()`      | D1        | DONE        | Handles dept hours + overrides. Tested                                                    |
-| `computeAnchoredTime()`        | D6        | DONE        | Shift time calculation. Tested                                                            |
-| `evaluateFrameworkRules()`     | D3        | SKELETON    | Entity matching works. Multi-rule chaining, employee-context, complex evaluation NOT done |
-| `validateProposalFreshness()`  | C4        | DONE        | State hash computation. Tested                                                            |
-| Resource availability resolver | D2        | NOT STARTED | Availability windows, contract constraints, absence overlay                               |
-| Demand propagation             | D4        | NOT STARTED | season_budget -> day_factor -> hour_factor -> daily targets                               |
-| C1 calibration (EWMA)          | C1        | NOT STARTED | Variance tracking, correction factors, adjustment loop                                    |
-| C3 cost calculation            | C3        | NOT STARTED | shift -> tariff resolution -> cost snapshot population                                    |
+| Function                      | Dimension | Status | Notes                                                             |
+| ----------------------------- | --------- | ------ | ----------------------------------------------------------------- |
+| `resolveEffectiveHours()`     | D1        | DONE   | Midnight-crossing, priority: override > season > default > closed |
+| `computeAnchoredTime()`       | D6        | DONE   | Shift anchor computation. Tested                                  |
+| `evaluateFrameworkRules()`    | D3        | DONE   | Full D3 rule evaluation with enforcement levels. Tested           |
+| `validateProposalFreshness()` | C4        | DONE   | State hash computation. Tested                                    |
+| `resolveTariffRate()`         | D3/C3     | DONE   | Tariff resolution with seniority, fagbrev, overtime. Tested       |
+| `buildEntityContext()`        | C2        | DONE   | Entity context loader. Tested                                     |
+| `computeProposalPreview()`    | C4        | DONE   | Change proposal preview. Tested                                   |
+| `propagateBudgetTargets()`    | D4        | DONE   | Budget target propagation. Tested                                 |
+| `getTariffContext()`          | D3        | DONE   | DB query helper for tariff resolution                             |
 
 ### Phase C — Bootstrap & I1 Integration (PARTIAL)
 
@@ -493,14 +494,14 @@ Location: `apps/web/src/lib/cascade/`
 
 ### Phase F — Missing RPCs & Services
 
-| RPC / Service                                             | Dimension | Status      | Notes                                         |
-| --------------------------------------------------------- | --------- | ----------- | --------------------------------------------- |
-| `resolve_tariff_rate(profile_id, date)`                   | D3/C3     | NOT STARTED | Needed for payroll sync + cost calculation    |
-| `get_cascade_context(workspace_id, date)`                 | C2        | NOT STARTED | Needed for interaction plane                  |
-| `apply_change_proposal(proposal_id)`                      | C4        | NOT STARTED | Terraform-style apply                         |
-| `compute_daily_budget_targets(season_id, date)`           | D4        | NOT STARTED | season -> day_factor -> daily targets         |
-| `evaluate_framework_rules(workspace_id, trigger, entity)` | D3/C4     | NOT STARTED | Trigger dispatch                              |
-| Cascade bootstrap service                                 | I1        | NOT STARTED | Integrate \_apply.sql into workspace creation |
+| RPC / Service                                             | Dimension | Status      | Notes                                                       |
+| --------------------------------------------------------- | --------- | ----------- | ----------------------------------------------------------- |
+| `resolve_tariff_rate(profile_id, date)`                   | D3/C3     | DONE        | `resolveTariffRate()` + `getTariffContext()` in cascade lib |
+| `get_cascade_context(workspace_id, date)`                 | C2        | PARTIAL     | `buildEntityContext()` exists, full cascade context TBD     |
+| `apply_change_proposal(proposal_id)`                      | C4        | PARTIAL     | `computeProposalPreview()` done, apply mutation TBD         |
+| `compute_daily_budget_targets(season_id, date)`           | D4        | DONE        | `propagateBudgetTargets()` in cascade lib                   |
+| `evaluate_framework_rules(workspace_id, trigger, entity)` | D3/C4     | DONE        | `evaluateFrameworkRules()` in cascade lib                   |
+| Cascade bootstrap service                                 | I1        | NOT STARTED | Integrate \_apply.sql into workspace creation               |
 
 ### Build Priority (Recommended Order)
 

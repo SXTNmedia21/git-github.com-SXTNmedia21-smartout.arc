@@ -5,9 +5,13 @@
  */
 import "react-native-reanimated";
 import "react-native-gesture-handler";
-import { registerGlobals } from "@livekit/react-native";
+import { Platform } from "react-native";
 
-registerGlobals();
+// LiveKit native WebRTC globals — only available on iOS/Android
+if (Platform.OS !== "web") {
+  const { registerGlobals } = require("@livekit/react-native");
+  registerGlobals();
+}
 import { Stack } from "expo-router";
 import { QueryProvider } from "@/providers/query-provider";
 import { AuthProvider } from "@/providers/auth-provider";

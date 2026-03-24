@@ -15,7 +15,7 @@ import {
   Platform,
   StyleSheet,
 } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter, useNavigation } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
 
@@ -36,6 +36,8 @@ export default function Verify() {
   }>();
 
   const router = useRouter();
+  const navigation = useNavigation();
+  const canGoBack = navigation.canGoBack();
   const insets = useSafeAreaInsets();
 
   const [activeTab, setActiveTab] = useState<VerifyTab>("phone");
@@ -257,7 +259,10 @@ export default function Verify() {
       style={[styles.container, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 24 }]}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <TouchableOpacity style={styles.backLink} onPress={() => router.back()}>
+      <TouchableOpacity
+        style={styles.backLink}
+        onPress={() => (canGoBack ? router.back() : router.replace("/(auth)/welcome"))}
+      >
         <Text style={styles.backLinkText}>Tilbake</Text>
       </TouchableOpacity>
 
