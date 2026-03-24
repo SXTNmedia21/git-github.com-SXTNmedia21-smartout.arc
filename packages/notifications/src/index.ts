@@ -52,3 +52,15 @@ export type { NotificationEventConfig } from "./event-config";
 
 // Outbox helper
 export { insertOutboxNotification } from "./outbox";
+
+// Notification data hooks
+export {
+  useUnreadCount,
+  useNotifications,
+  useMarkAsRead,
+  useMarkAllAsRead,
+} from "./hooks/use-notifications";
+export {
+  useNotificationPreferences,
+  useUpdateNotificationPreferences,
+} from "./hooks/use-notification-preferences";
