@@ -16,6 +16,8 @@ export const env = createEnv({
     UPSTASH_REDIS_REST_URL: z.string().url().optional(),
     UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
     SENTRY_DSN: z.string().url().optional(),
+    GITHUB_ERROR_TOKEN: z.string().optional(),
+    GITHUB_ERROR_REPO: z.string().optional(),
     DOCUSEAL_WEBHOOK_SECRET: z.string().optional(),
     ULTRAVOX_API_KEY: z.string().optional(),
     CONTRACT_SERVICE_URL: z.string().url().optional(),
