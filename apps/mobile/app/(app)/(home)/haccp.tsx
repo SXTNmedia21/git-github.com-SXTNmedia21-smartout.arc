@@ -43,7 +43,7 @@ function getStatusColor(status: UnitStatus, theme: { isDark: boolean }) {
     default:
       return {
         bg: "transparent",
-        border: theme.isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)",
+        border: "rgba(0,0,0,0.06)",
         text: "#737373",
       };
   }
@@ -146,7 +146,7 @@ export default function HaccpScreen() {
           const isCurrent = i === checkedCount && checkedCount < UNITS.length;
           const isOver = unit.temperature > unit.threshold;
           const colors = getStatusColor(status, {
-            isDark: styles.container.backgroundColor !== "#ffffff",
+            isDark: false,
           });
 
           return (
@@ -287,7 +287,7 @@ const useStyles = createStyles((theme) => ({
     paddingHorizontal: theme.spacing.tight,
     paddingVertical: 4,
     borderRadius: theme.radius.md,
-    backgroundColor: theme.isDark ? "rgba(34,197,94,0.08)" : "rgba(34,197,94,0.06)",
+    backgroundColor: "rgba(34,197,94,0.06)",
     borderWidth: 1,
     borderColor: "rgba(34,197,94,0.2)",
   },
@@ -306,7 +306,7 @@ const useStyles = createStyles((theme) => ({
   progressCard: {
     padding: theme.spacing.element,
     borderRadius: theme.radius.lg,
-    backgroundColor: theme.isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)",
+    backgroundColor: "rgba(0,0,0,0.02)",
     borderWidth: 1,
     borderColor: theme.colors.border,
   },
@@ -326,7 +326,7 @@ const useStyles = createStyles((theme) => ({
   progressTrack: {
     height: 6,
     borderRadius: 3,
-    backgroundColor: theme.isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)",
+    backgroundColor: "rgba(0,0,0,0.06)",
     overflow: "hidden",
   },
   progressFill: {

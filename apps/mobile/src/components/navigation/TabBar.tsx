@@ -12,7 +12,7 @@ import { View, Text, Pressable, Platform } from "react-native";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { Home, CalendarDays, Radio, MessageCircle, User } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
-import { createStyles, withOpacity, type ThemeColors } from "@/theme";
+import { createStyles } from "@/theme";
 import { Badge } from "@/components/ui/Badge";
 import { strings } from "@/constants/strings";
 import type { LucideIcon } from "lucide-react-native";
@@ -45,7 +45,7 @@ export function TabBar({ state, navigation, unreadCount = 0, centerFab }: TabBar
   const styles = useStyles();
 
   // Filter out hidden tabs (href: null) and split into left/right around FAB
-  const visibleRoutes = state.routes.filter((_r, i) => state.routeNames[i] !== "(chat)");
+  const visibleRoutes = state.routes.filter((r) => r.name !== "(chat)");
   const leftRoutes = visibleRoutes.slice(0, 2);
   const rightRoutes = visibleRoutes.slice(2);
 
@@ -53,8 +53,8 @@ export function TabBar({ state, navigation, unreadCount = 0, centerFab }: TabBar
     const routeIndex = state.routes.findIndex((r) => r.key === route.key);
     const isFocused = state.index === routeIndex;
     const IconComponent = TAB_ICONS[route.name];
-    const label = TAB_LABELS[route.name] ?? route.name;
     const isKommTab = route.name === "(komm)";
+    const label = isKommTab ? "Komm" : (TAB_LABELS[route.name] ?? route.name);
 
     return (
       <Pressable

@@ -2,7 +2,8 @@
  * Theme barrel export + utilities.
  * All components import theme values from here.
  */
-import { StyleSheet, ViewStyle, useColorScheme } from "react-native";
+import type { ViewStyle } from "react-native";
+import { StyleSheet, useColorScheme } from "react-native";
 import {
   getColors,
   lightColors,
@@ -78,8 +79,9 @@ export type Theme = {
  * Hook that returns a fully resolved Theme based on the current color scheme.
  */
 export function useTheme(): Theme {
-  const scheme = useColorScheme();
-  const isDark = scheme === "dark";
+  // FORCE LIGHT MODE FOR ENTIRE APP
+  const scheme = "light"; // useColorScheme();
+  const isDark = false; // scheme === "dark";
   return {
     colors: getColors(scheme),
     spacing,

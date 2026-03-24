@@ -313,7 +313,7 @@ const useStyles = createStyles((theme) => ({
   feedTabs: {
     flexDirection: "row" as const,
     borderBottomWidth: 1,
-    borderBottomColor: theme.isDark ? "#1a1a24" : "#e5e5e8",
+    borderBottomColor: theme.colors.border,
     marginBottom: 12,
     gap: 16,
   },
@@ -329,12 +329,12 @@ const useStyles = createStyles((theme) => ({
 
   feedTab: {
     fontSize: 13,
-    color: theme.isDark ? "#555" : "#999",
+    color: theme.colors.mutedForeground,
     paddingVertical: 10,
   },
 
   feedCard: {
-    backgroundColor: theme.isDark ? "#111118" : "#f5f5f7",
+    backgroundColor: theme.colors.card,
     borderRadius: 10,
     padding: 14,
     marginBottom: 8,
@@ -358,7 +358,7 @@ const useStyles = createStyles((theme) => ({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderTopWidth: 1,
-    borderTopColor: theme.isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)",
+    borderTopColor: theme.colors.border,
   },
 
   punchOutButton: {

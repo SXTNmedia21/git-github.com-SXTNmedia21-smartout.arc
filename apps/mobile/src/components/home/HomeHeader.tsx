@@ -183,10 +183,10 @@ const useActionStyles = createStyles((theme) => ({
     borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: theme.isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
+    backgroundColor: "rgba(0,0,0,0.04)",
   },
   iconColor: {
-    color: theme.isDark ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.5)",
+    color: "rgba(0,0,0,0.5)",
   },
   actionLabel: {
     ...theme.typography.micro,
@@ -217,7 +217,7 @@ const useStyles = createStyles((theme) => ({
     borderRadius: 22,
   },
   topBarIconColor: {
-    color: theme.isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.35)",
+    color: "rgba(0,0,0,0.35)",
   },
   avatarContainer: {
     marginBottom: theme.spacing.element,

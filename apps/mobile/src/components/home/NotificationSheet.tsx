@@ -159,7 +159,7 @@ const useStyles = createStyles((theme) => ({
     borderRadius: theme.radius.md,
   },
   unread: {
-    backgroundColor: theme.isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)",
+    backgroundColor: "rgba(0,0,0,0.02)",
   },
   pressed: {
     opacity: 0.7,

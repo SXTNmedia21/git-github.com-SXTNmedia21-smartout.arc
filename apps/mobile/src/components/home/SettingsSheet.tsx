@@ -210,7 +210,7 @@ const useStyles = createStyles((theme) => ({
     borderRadius: theme.radius.lg,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: theme.isDark ? "rgba(232,92,13,0.1)" : "rgba(232,92,13,0.08)",
+    backgroundColor: "rgba(232,92,13,0.08)",
   },
   brandColor: {
     color: theme.colors.brandOrange,
