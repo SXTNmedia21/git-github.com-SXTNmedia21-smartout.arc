@@ -203,19 +203,6 @@ export function Step3About() {
         />
       </div>
 
-      {/* "Skriv på nytt" button — always visible */}
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={handleRewrite}
-        disabled={isLoading}
-        className="border-brand-orange/30 text-brand-orange hover:bg-brand-orange/5 w-full"
-      >
-        <RefreshCw className={`mr-2 h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
-        Skriv på nytt
-      </Button>
-
       <div className="flex gap-3">
         <Button type="button" variant="outline" onClick={prevStep} className="flex-1">
           <ArrowLeft className="mr-2 h-4 w-4" />
