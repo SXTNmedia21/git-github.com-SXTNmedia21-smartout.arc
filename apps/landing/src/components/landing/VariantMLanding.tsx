@@ -31,8 +31,14 @@ import Footer from "../../components/footer";
 import { TrackedCta as CtaButton, FullTracker } from "../../components/tracking";
 import { WEB_APP_LINKS } from "../../lib/web-app-url";
 
-import { LandingInteractivePoll } from "./LandingInteractivePoll";
-import { LandingInteractiveMockup } from "./LandingInteractiveMockup";
+import dynamic from "next/dynamic";
+
+const LandingInteractivePoll = dynamic(() =>
+  import("./LandingInteractivePoll").then((m) => m.LandingInteractivePoll),
+);
+const LandingInteractiveMockup = dynamic(() =>
+  import("./LandingInteractiveMockup").then((m) => m.LandingInteractiveMockup),
+);
 
 const instrumentSerif = Instrument_Serif({
   subsets: ["latin"],
@@ -57,13 +63,15 @@ export default function VariantMLanding({ locale = "nb" }: { locale?: "nb" | "en
         {/* Subtle dot grid */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,var(--color-foreground)_1px,transparent_1px),linear-gradient(to_bottom,var(--color-foreground)_1px,transparent_1px)] bg-[size:32px_32px] opacity-[0.03]" />
 
-        {/* Glow orbs using tokens */}
+        {/* Glow orbs using tokens — initial opacity 0 prevents flash before hydration */}
         <motion.div
+          initial={{ opacity: 0 }}
           animate={{ scale: [1, 1.05, 1], opacity: [0.08, 0.15, 0.08] }}
           transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
           className="bg-brand-orange absolute top-[-10%] left-[-10%] h-[50vw] w-[50vw] rounded-full blur-[120px]"
         />
         <motion.div
+          initial={{ opacity: 0 }}
           animate={{ scale: [1, 1.1, 1], opacity: [0.05, 0.1, 0.05] }}
           transition={{ duration: 15, repeat: Infinity, ease: "easeInOut", delay: 2 }}
           className="bg-primary absolute top-[30%] right-[-10%] h-[40vw] w-[40vw] rounded-full blur-[120px]"
