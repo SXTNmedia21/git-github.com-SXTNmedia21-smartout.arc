@@ -72,14 +72,14 @@ export function DocsAgentPanel() {
   }
 
   return (
-    <section className="overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-b from-[#0d0d11] to-[#09090c] shadow-[0_25px_80px_rgba(0,0,0,0.45)]">
-      <div className="flex items-center gap-3 border-b border-white/10 px-6 py-5">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-orange-500/30 bg-orange-500/15">
-          <Bot className="h-5 w-5 text-orange-400" />
+    <section className="border-border/50 bg-card overflow-hidden rounded-3xl border shadow-2xl">
+      <div className="border-border/50 flex items-center gap-3 border-b px-6 py-5">
+        <div className="border-brand-orange/30 bg-brand-orange/10 flex h-10 w-10 items-center justify-center rounded-xl border">
+          <Bot className="text-brand-orange h-5 w-5" />
         </div>
         <div>
-          <h3 className="font-bold tracking-tight text-white">LISA Docs Agent</h3>
-          <p className="text-sm text-zinc-400">Spør om hele Smartout-dokumentasjonen</p>
+          <h3 className="text-foreground font-bold tracking-tight">LISA Docs Agent</h3>
+          <p className="text-muted-foreground text-sm">Spør om hele Smartout-dokumentasjonen</p>
         </div>
       </div>
 
@@ -89,22 +89,22 @@ export function DocsAgentPanel() {
             key={`${message.role}-${idx}`}
             className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${
               message.role === "assistant"
-                ? "border border-white/10 bg-white/5 text-zinc-200"
-                : "ml-8 border border-orange-500/30 bg-orange-500/15 text-orange-100"
+                ? "border-border bg-foreground/5 text-foreground border"
+                : "border-brand-orange/30 bg-brand-orange/10 text-brand-orange ml-8 border"
             }`}
           >
             {message.content}
           </div>
         ))}
         {isLoading && (
-          <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-zinc-300">
+          <div className="border-border bg-foreground/5 text-muted-foreground flex items-center gap-2 rounded-2xl border px-4 py-3 text-sm">
             <Loader2 className="h-4 w-4 animate-spin" />
             Tenker...
           </div>
         )}
       </div>
 
-      <div className="border-t border-white/10 bg-black/20 p-4">
+      <div className="border-border/50 bg-background/50 border-t p-4">
         <div className="flex gap-2">
           <input
             value={input}
@@ -116,12 +116,12 @@ export function DocsAgentPanel() {
               }
             }}
             placeholder="Spør om Smartout docs..."
-            className="flex-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder:text-zinc-500 focus:border-orange-500/40 focus:ring-1 focus:ring-orange-500/40 focus:outline-none"
+            className="border-border/50 bg-background text-foreground placeholder:text-muted-foreground focus:border-brand-orange/40 focus:ring-brand-orange/40 flex-1 rounded-xl border px-3 py-2.5 text-sm focus:ring-1 focus:outline-none"
           />
           <button
             onClick={() => void handleSend()}
             disabled={isLoading}
-            className="rounded-xl border border-orange-500/30 bg-orange-500/20 px-3.5 py-2.5 text-orange-300 transition-colors hover:bg-orange-500/30 disabled:opacity-50"
+            className="border-brand-orange/30 bg-brand-orange/10 text-brand-orange hover:bg-brand-orange/20 rounded-xl border px-3.5 py-2.5 transition-colors disabled:opacity-50"
             aria-label="Send message"
           >
             <SendHorizonal className="h-4 w-4" />

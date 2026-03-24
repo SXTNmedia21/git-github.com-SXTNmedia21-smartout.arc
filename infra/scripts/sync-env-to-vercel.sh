@@ -128,7 +128,7 @@ print(json.dumps({
   # Fallback: use python to build payload safely with actual value piped in
   payload=$(python3 -c "
 import json, sys
-value = sys.stdin.read()
+value = sys.stdin.read().strip()
 obj = {
     'key': '$key_name',
     'value': value,
