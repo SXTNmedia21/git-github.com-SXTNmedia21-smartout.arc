@@ -7,24 +7,26 @@ import { m, AnimatePresence } from "framer-motion";
 import { Building2, ArrowRight, Menu, X } from "lucide-react";
 import { WEB_APP_LINKS } from "../lib/web-app-url";
 import { ThemeToggle } from "./theme-toggle";
-
-const NAV_LINKS = [
-  { href: "/#features", label: "Funksjoner" },
-  { href: "/pricing", label: "Priser" },
-  { href: "/blog", label: "Kundehistorier" },
-  { href: "/docs", label: "Dokumentasjon" },
-  { href: "/om-oss", label: "Om Oss" },
-];
+import { createTranslator } from "@smartout/i18n";
 
 // UI Events:
 // - nav: each NAV_LINKS.href (nav link click)
 // - nav: WEB_APP_LINKS.onboarding (CTA button)
 // - action: toggleMobileMenu() (hamburger button)
 
-export default function Navigation() {
+export default function Navigation({ locale = "nb" }: { locale?: "nb" | "en" }) {
+  const t = createTranslator(locale, "common");
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
+
+  const navLinks = [
+    { href: "/#features", label: t("nav.features") },
+    { href: "/pricing", label: t("nav.pricing") },
+    { href: "/blog", label: t("nav.blog") },
+    { href: "/docs", label: t("nav.docs") },
+    { href: "/om-oss", label: t("nav.about") },
+  ];
 
   // Track scroll position for nav background intensity
   useEffect(() => {
@@ -62,7 +64,7 @@ export default function Navigation() {
 
         {/* Desktop nav */}
         <div className="hidden items-center gap-1 md:flex">
-          {NAV_LINKS.map((link) => {
+          {navLinks.map((link) => {
             const active = isActive(link.href);
             return (
               <Link
@@ -94,7 +96,7 @@ export default function Navigation() {
             href={WEB_APP_LINKS.login}
             className="bg-foreground text-background hover:bg-foreground/90 group ml-2 flex items-center gap-2 rounded-full px-5 py-2 text-sm font-bold shadow-[0_0_20px_rgba(255,255,255,0.08)] transition-all duration-300"
           >
-            Logg inn
+            {t("nav.login")}
             <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
           </Link>
         </div>
@@ -106,12 +108,12 @@ export default function Navigation() {
             href={WEB_APP_LINKS.login}
             className="bg-foreground text-background flex items-center gap-1.5 rounded-full px-4 py-2.5 text-sm font-bold"
           >
-            Logg inn <ArrowRight className="h-3.5 w-3.5" />
+            {t("nav.login")} <ArrowRight className="h-3.5 w-3.5" />
           </Link>
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
             className="border-border bg-card hover:bg-foreground/5 flex h-11 w-11 items-center justify-center rounded-xl border transition-colors duration-200"
-            aria-label={mobileOpen ? "Lukk meny" : "Åpne meny"}
+            aria-label={mobileOpen ? t("nav.closeMenu") : t("nav.openMenu")}
           >
             <AnimatePresence mode="wait" initial={false}>
               {mobileOpen ? (
@@ -148,7 +150,7 @@ export default function Navigation() {
       >
         <div className="overflow-hidden">
           <div className="mx-auto max-w-7xl space-y-1 px-6 py-4">
-            {NAV_LINKS.map((link) => (
+            {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}

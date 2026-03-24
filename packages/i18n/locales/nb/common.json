@@ -7,5 +7,23 @@
     "back": "Tilbake"
   },
   "site.title": "SmartOut - Mot fremtidens workforce management",
-  "site.description": "AI-drevet workforce management for den norske serveringsbransjen."
+  "site.description": "AI-drevet workforce management for den norske serveringsbransjen.",
+  "nav.features": "Funksjoner",
+  "nav.pricing": "Priser",
+  "nav.blog": "Kundehistorier",
+  "nav.docs": "Dokumentasjon",
+  "nav.about": "Om Oss",
+  "nav.login": "Logg inn",
+  "nav.closeMenu": "Lukk meny",
+  "nav.openMenu": "Åpne meny",
+  "footer.tagline": "Strukturen bak restauranter som leverer — hver dag.",
+  "footer.product": "Produkt",
+  "footer.company": "Selskap",
+  "footer.resources": "Ressurser",
+  "footer.getStarted": "Kom i gang",
+  "footer.onboarding": "Onboarding",
+  "footer.privacy": "Personvern",
+  "footer.terms": "Vilkår",
+  "footer.top": "Toppen",
+  "footer.topLabel": "Tilbake til toppen"
 }

@@ -7,5 +7,23 @@
     "back": "Back"
   },
   "site.title": "SmartOut - The future of workforce management",
-  "site.description": "AI-powered workforce management for the hospitality industry."
+  "site.description": "AI-powered workforce management for the hospitality industry.",
+  "nav.features": "Features",
+  "nav.pricing": "Pricing",
+  "nav.blog": "Customer Stories",
+  "nav.docs": "Documentation",
+  "nav.about": "About Us",
+  "nav.login": "Log in",
+  "nav.closeMenu": "Close menu",
+  "nav.openMenu": "Open menu",
+  "footer.tagline": "The backbone behind restaurants that deliver — every day.",
+  "footer.product": "Product",
+  "footer.company": "Company",
+  "footer.resources": "Resources",
+  "footer.getStarted": "Get started",
+  "footer.onboarding": "Onboarding",
+  "footer.privacy": "Privacy",
+  "footer.terms": "Terms",
+  "footer.top": "Top",
+  "footer.topLabel": "Back to top"
 }

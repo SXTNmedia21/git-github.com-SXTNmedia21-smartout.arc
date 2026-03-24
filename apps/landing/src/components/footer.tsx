@@ -4,6 +4,7 @@ import { VariantLink as Link } from "./tracking";
 import { Building2, ArrowUp } from "lucide-react";
 import { Suspense } from "react";
 import { VariantDropdown } from "./variant-dropdown";
+import { createTranslator } from "@smartout/i18n";
 
 // UI Events:
 // - nav: each footerLinks href (footer link click)
@@ -11,27 +12,29 @@ import { VariantDropdown } from "./variant-dropdown";
 // - nav: /vilkar (terms link)
 // - action: scrollToTop() (back-to-top button)
 
-const footerLinks = {
-  Produkt: [
-    { label: "Funksjoner", href: "/#features" },
-    { label: "Priser", href: "/pricing" },
-    { label: "Dokumentasjon", href: "/docs" },
-  ],
-  Selskap: [
-    { label: "Om Oss", href: "/om-oss" },
-    { label: "Kundehistorier", href: "/blog" },
-  ],
-  Ressurser: [
-    { label: "Kom i gang", href: "/docs/kom-i-gang" },
-    { label: "Onboarding", href: "/docs/onboarding" },
-    { label: "API", href: "/docs/api" },
-  ],
-};
+export default function Footer({ locale = "nb" }: { locale?: "nb" | "en" }) {
+  const t = createTranslator(locale, "common");
 
-export default function Footer() {
+  const footerLinks = {
+    [t("footer.product")]: [
+      { label: t("nav.features"), href: "/#features" },
+      { label: t("nav.pricing"), href: "/pricing" },
+      { label: t("nav.docs"), href: "/docs" },
+    ],
+    [t("footer.company")]: [
+      { label: t("nav.about"), href: "/om-oss" },
+      { label: t("nav.blog"), href: "/blog" },
+    ],
+    [t("footer.resources")]: [
+      { label: t("footer.getStarted"), href: "/docs/kom-i-gang" },
+      { label: t("footer.onboarding"), href: "/docs/onboarding" },
+      { label: "API", href: "/docs/api" },
+    ],
+  };
+
   return (
     <footer className="relative z-10 border-t border-white/[0.06] bg-[#050505]">
-      <div className="pointer-events-none absolute top-0 left-1/2 h-px w-2/3 -translate-x-1/2 bg-gradient-to-r from-transparent via-orange-500/20 to-transparent" />
+      <div className="via-brand-orange/20 pointer-events-none absolute top-0 left-1/2 h-px w-2/3 -translate-x-1/2 bg-gradient-to-r from-transparent to-transparent" />
 
       <div className="mx-auto max-w-7xl px-6 pt-12 pb-8 sm:pt-16">
         {/* Top: brand + link columns */}
@@ -39,13 +42,10 @@ export default function Footer() {
           {/* Brand */}
           <div className="shrink-0">
             <Link href="/" className="group mb-4 inline-flex items-center gap-2.5">
-              <Building2 className="h-5 w-5 text-orange-500 transition-transform duration-300 group-hover:scale-110" />
+              <Building2 className="text-brand-orange h-5 w-5 transition-transform duration-300 group-hover:scale-110" />
               <span className="text-lg font-black tracking-tighter text-white">SmartOut</span>
             </Link>
-            <p className="max-w-xs text-sm leading-relaxed text-zinc-500">
-              {/* CHANGED: More evocative, less corporate */}
-              Strukturen bak restauranter som leverer — hver dag.
-            </p>
+            <p className="max-w-xs text-sm leading-relaxed text-zinc-500">{t("footer.tagline")}</p>
           </div>
 
           {/* Link columns — 3-col on mobile, side-by-side */}
@@ -85,17 +85,17 @@ export default function Footer() {
               <VariantDropdown />
             </Suspense>
             <Link href="/personvern" className="transition-colors duration-200 hover:text-zinc-400">
-              Personvern
+              {t("footer.privacy")}
             </Link>
             <Link href="/vilkar" className="transition-colors duration-200 hover:text-zinc-400">
-              Vilkår
+              {t("footer.terms")}
             </Link>
             <button
               onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
               className="hidden items-center gap-1.5 rounded-full border border-white/[0.06] bg-white/[0.02] px-3 py-1.5 text-zinc-500 transition-all duration-200 hover:border-white/10 hover:text-zinc-300 sm:flex"
-              aria-label="Tilbake til toppen"
+              aria-label={t("footer.topLabel")}
             >
-              Toppen
+              {t("footer.top")}
               <ArrowUp className="h-3 w-3 transition-transform duration-200 group-hover:-translate-y-0.5" />
             </button>
           </div>
