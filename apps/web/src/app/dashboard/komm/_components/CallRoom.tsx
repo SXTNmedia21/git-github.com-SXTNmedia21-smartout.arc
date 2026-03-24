@@ -3,31 +3,41 @@
 import {
   LiveKitRoom,
   RoomAudioRenderer,
-  FocusLayout,
   FocusLayoutContainer,
   GridLayout,
   CarouselLayout,
   ParticipantTile,
   ControlBar,
   useParticipants,
-  useLocalParticipant,
   useTracks,
-  TrackRefContext,
 } from "@livekit/components-react";
 import "@livekit/components-styles";
-import { Track, RoomEvent } from "livekit-client";
+import { Track } from "livekit-client";
 import { Button } from "@/components/ui/button";
 import { PhoneOff, Minimize2, Maximize2, Users } from "lucide-react";
 import { useState } from "react";
+import { MessageTimeline } from "./MessageTimeline";
+import { MessageInput } from "./MessageInput";
 
 type Props = {
   serverUrl: string;
   token: string;
+  channelId: string;
+  profileId: string;
+  audioPolicy: string;
   onDisconnect: () => void;
   onParticipantCountChange?: (count: number) => void;
 };
 
-export function CallRoom({ serverUrl, token, onDisconnect, onParticipantCountChange }: Props) {
+export function CallRoom({
+  serverUrl,
+  token,
+  channelId,
+  profileId,
+  audioPolicy,
+  onDisconnect,
+  onParticipantCountChange,
+}: Props) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
@@ -43,6 +53,9 @@ export function CallRoom({ serverUrl, token, onDisconnect, onParticipantCountCha
       <CallRoomInner
         isExpanded={isExpanded}
         setIsExpanded={setIsExpanded}
+        channelId={channelId}
+        profileId={profileId}
+        audioPolicy={audioPolicy}
         onDisconnect={onDisconnect}
         onParticipantCountChange={onParticipantCountChange}
       />
@@ -53,11 +66,17 @@ export function CallRoom({ serverUrl, token, onDisconnect, onParticipantCountCha
 function CallRoomInner({
   isExpanded,
   setIsExpanded,
+  channelId,
+  profileId,
+  audioPolicy,
   onDisconnect,
   onParticipantCountChange,
 }: {
   isExpanded: boolean;
   setIsExpanded: (v: boolean) => void;
+  channelId: string;
+  profileId: string;
+  audioPolicy: string;
   onDisconnect: () => void;
   onParticipantCountChange?: (count: number) => void;
 }) {
@@ -70,10 +89,8 @@ function CallRoomInner({
     { onlySubscribed: false },
   );
 
-  // Report participant count to parent for the banner
   const participantCount = participants.length;
   if (onParticipantCountChange) {
-    // Use a microtask to avoid updating parent during render
     queueMicrotask(() => onParticipantCountChange(participantCount));
   }
 
@@ -86,7 +103,7 @@ function CallRoomInner({
     <div
       className={isExpanded ? "bg-background fixed inset-0 z-40 flex flex-col" : "bg-card border-t"}
     >
-      {/* Header bar */}
+      {/* Header */}
       <div className="flex items-center justify-between border-b px-3 py-2">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium">Samtale aktiv</span>
@@ -121,38 +138,86 @@ function CallRoomInner({
         </div>
       </div>
 
-      {/* Video area — speaker view (focused speaker large, others in carousel) */}
-      {showVideo && (
-        <div className={isExpanded ? "flex-1 bg-black" : "h-64 bg-black"}>
-          {tracks.length <= 2 ? (
-            <GridLayout tracks={tracks}>
-              <ParticipantTile />
-            </GridLayout>
-          ) : (
-            <FocusLayoutContainer>
-              <CarouselLayout tracks={tracks}>
-                <ParticipantTile />
-              </CarouselLayout>
-            </FocusLayoutContainer>
-          )}
+      {/* Main area — video + chat side by side when expanded */}
+      {isExpanded ? (
+        <div className="flex flex-1 overflow-hidden">
+          {/* Left: Video */}
+          <div className="flex flex-1 flex-col">
+            <div className="flex-1 bg-black">
+              {tracks.length <= 2 ? (
+                <GridLayout tracks={tracks}>
+                  <ParticipantTile />
+                </GridLayout>
+              ) : (
+                <FocusLayoutContainer>
+                  <CarouselLayout tracks={tracks}>
+                    <ParticipantTile />
+                  </CarouselLayout>
+                </FocusLayoutContainer>
+              )}
+            </div>
+            <ControlBar
+              variation="minimal"
+              controls={{
+                microphone: true,
+                camera: true,
+                screenShare: true,
+                leave: false,
+                chat: false,
+                settings: false,
+              }}
+            />
+          </div>
+
+          {/* Right: Chat (reusing existing Komm components) */}
+          <div className="flex w-96 flex-col border-l">
+            <div className="border-b px-3 py-2">
+              <span className="text-sm font-medium">Chat</span>
+            </div>
+            <MessageTimeline channelId={channelId} profileId={profileId} onReply={() => {}} />
+            <MessageInput
+              channelId={channelId}
+              profileId={profileId}
+              replyToId={null}
+              onCancelReply={() => {}}
+              audioPolicy={audioPolicy}
+              pttProps={undefined}
+            />
+          </div>
         </div>
+      ) : (
+        <>
+          {/* Collapsed: show video only if someone has camera on */}
+          {showVideo && (
+            <div className="h-48 bg-black">
+              {tracks.length <= 2 ? (
+                <GridLayout tracks={tracks}>
+                  <ParticipantTile />
+                </GridLayout>
+              ) : (
+                <FocusLayoutContainer>
+                  <CarouselLayout tracks={tracks}>
+                    <ParticipantTile />
+                  </CarouselLayout>
+                </FocusLayoutContainer>
+              )}
+            </div>
+          )}
+          <ControlBar
+            variation="minimal"
+            controls={{
+              microphone: true,
+              camera: true,
+              screenShare: true,
+              leave: false,
+              chat: false,
+              settings: false,
+            }}
+          />
+        </>
       )}
 
-      {/* Audio renderer — always active */}
       <RoomAudioRenderer />
-
-      {/* Controls */}
-      <ControlBar
-        variation="minimal"
-        controls={{
-          microphone: true,
-          camera: true,
-          screenShare: true,
-          leave: false,
-          chat: false,
-          settings: false,
-        }}
-      />
     </div>
   );
 }

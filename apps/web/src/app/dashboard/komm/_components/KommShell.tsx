@@ -187,11 +187,14 @@ export function KommShell({ profileId }: { profileId: string }) {
               />
             )}
 
-            {/* LiveKit Call Room — full audio/video/screenshare via official components */}
+            {/* LiveKit Call Room — full audio/video/screenshare + chat via official components */}
             {livekitConnection && (
               <CallRoom
                 serverUrl={livekitConnection.serverUrl}
                 token={livekitConnection.token}
+                channelId={activeChannelId!}
+                profileId={profileId}
+                audioPolicy={activeChannel.audio_policy}
                 onDisconnect={handleDisconnect}
                 onParticipantCountChange={setLiveParticipantCount}
               />
