@@ -55,7 +55,7 @@ export function useWizardTelemetry<TState extends Record<string, unknown>>(
   );
 
   const onStepComplete = useCallback(
-    (stepId: string, stepIndex: number, _durationMs: number) => {
+    (stepId: string, stepIndex: number, durationMs: number) => {
       emit({
         event: "wizard step_completed",
         workspace_id: workspaceId,
@@ -65,6 +65,7 @@ export function useWizardTelemetry<TState extends Record<string, unknown>>(
             wizard_id: definition.id,
             step_id: stepId,
             step_index: stepIndex,
+            duration_ms: durationMs,
           },
         },
       });

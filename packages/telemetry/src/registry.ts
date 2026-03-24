@@ -1247,6 +1247,8 @@ export interface WizardStepCompleted extends BaseEvent {
       wizard_id: string;
       step_id: string;
       step_index: number;
+      /** Time spent on the step before completing it */
+      duration_ms?: number;
     };
   };
 }
