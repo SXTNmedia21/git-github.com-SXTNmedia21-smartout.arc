@@ -120,7 +120,7 @@ export function LandingInteractiveMockup() {
                   <div>
                     <h5 className="text-sm font-semibold">Dagens Beskjed publisert</h5>
                     <p className="text-muted-foreground mt-1 text-xs">
-                      "Husk at vi får inn 40 personer på langbord kl 19:00. Prepp stasjonen."
+                      {`"Husk at vi får inn 40 personer på langbord kl 19:00. Prepp stasjonen."`}
                       <span className="text-primary ml-2 font-medium">
                         Lest av 4/5 ansatte på vakt.
                       </span>
@@ -252,7 +252,7 @@ export function LandingInteractiveMockup() {
                             Krav til vakt
                           </span>
                           <p className="text-foreground mt-1 text-sm font-medium">
-                            Minimum "Servitør Erfaren" eller "Sommelier"
+                            Minimum &quot;Servitør Erfaren&quot; eller &quot;Sommelier&quot;
                           </p>
                         </div>
                         <div className="border-border/50 rounded-xl border p-3">
@@ -300,9 +300,9 @@ export function LandingInteractiveMockup() {
 
                       <div className="bg-primary/5 text-foreground border-primary/10 rounded-xl border p-4 text-sm leading-relaxed">
                         <strong className="text-primary mb-2 block">Botsson Insight:</strong>
-                        "Peder har 12 feriedager igjen i år. Hvis du godkjenner, mangler vi én kokk
+                        {`"Peder har 12 feriedager igjen i år. Hvis du godkjenner, mangler vi én kokk
                         på Torsdag og Fredag uke 43. Vil du at jeg skal sende ut et bytte-forslag
-                        til Maria og Thomas?"
+                        til Maria og Thomas?"`}
                       </div>
 
                       <div className="mt-6 flex gap-3">

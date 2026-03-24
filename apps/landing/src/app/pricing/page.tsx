@@ -401,12 +401,12 @@ export default function PricingPage() {
             kjeder. Hvis du trenger skreddersydde Policy Gates, Enterprise API-tilganger eller
             hardware-sensorer (IoT) for kjøleskap, bygger vi et oppsett som speiler din virkelighet.
           </p>
-          <a
+          <Link
             href="/om-oss"
             className="text-brand-orange inline-flex items-center gap-2 font-bold hover:underline"
           >
             Les historien vår og hvorfor vi gjør dette <ArrowRight className="h-4 w-4" />
-          </a>
+          </Link>
         </motion.div>
       </main>
 

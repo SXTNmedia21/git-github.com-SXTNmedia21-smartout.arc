@@ -359,9 +359,10 @@ export default function VariantMLanding() {
                 Kontinuerlig sertifisering.
               </h2>
               <p className="text-muted-foreground mt-6 text-lg leading-relaxed">
-                Glem det overflatiske "Lest og forstått". Smartout bruker vår "Cascade"-arkitektur
-                for å sikre at personalet faktisk er kvalifisert. En ansatt er kun merket "Klar" når
-                alle policies er gjennomgått og kunnskap er verifisert med signatur og test.
+                Glem det overflatiske &quot;Lest og forstått&quot;. Smartout bruker vår
+                &quot;Cascade&quot;-arkitektur for å sikre at personalet faktisk er kvalifisert. En
+                ansatt er kun merket &quot;Klar&quot; når alle policies er gjennomgått og kunnskap
+                er verifisert med signatur og test.
               </p>
 
               <ul className="mt-8 flex flex-col gap-4">
@@ -710,7 +711,7 @@ export default function VariantMLanding() {
                   <div className="bg-brand-orange/5 group-hover:bg-brand-orange/10 absolute top-0 right-0 h-24 w-24 rounded-full blur-2xl transition-all" />
                   <MessageSquare className="text-brand-orange/30 mb-4 h-8 w-8" />
                   <p className="text-foreground relative z-10 mb-6 text-lg leading-relaxed font-medium">
-                    "{story.quote}"
+                    {`"${story.quote}"`}
                   </p>
                   <div className="relative z-10 flex items-center justify-between">
                     <span className="text-muted-foreground font-semibold">{story.author}</span>
