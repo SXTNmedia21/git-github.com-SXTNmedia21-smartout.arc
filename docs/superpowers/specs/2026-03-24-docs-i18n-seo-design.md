@@ -94,10 +94,16 @@ docs/User Manual/
 
 Current files in `docs/User Manual/` root are Norwegian — they move into `nb/` subfolder.
 
-The `user-manual.ts` reader gains a `locale` parameter:
+The `user-manual.ts` reader gains a `locale` parameter, wrapped in `React.cache()` to memoize per request (avoids redundant fs reads across layout, page, sitemap, and generateMetadata):
 
 ```typescript
-getUserManualDocs(locale: 'nb' | 'en'): UserManualDoc[]
+import { cache } from "react";
+
+export const getUserManualDocs = cache((locale: "nb" | "en"): UserManualDoc[] => {
+  const manualDir = resolveManualDirectory(locale);
+  if (!manualDir) return [];
+  // ... fs reads
+});
 ```
 
 ### D4: Landing Page — Variant M Only
@@ -116,6 +122,8 @@ getUserManualDocs(locale: 'nb' | 'en'): UserManualDoc[]
 - VariantVLanding.tsx
 
 **Remove from routing:** Clean up middleware legacy variant redirects (E, T, K, A, F, S, V, I mappings) and any route files that reference archived variants.
+
+**Clean up `app/page.tsx`:** Remove all `next/dynamic` imports for variant components. The root `page.tsx` becomes a clean server component that renders `<VariantMLanding locale="nb" />` directly. The `app/[slug]/page.tsx` catch-all must also be updated to remove all variant imports — otherwise the build breaks.
 
 **Why archive instead of delete?** Pontus wants to reuse them for demos/showcases later.
 
@@ -181,15 +189,24 @@ Extend existing `middleware.ts` to detect and route locale:
 1. Check URL path for `/en/` prefix
 2. If present: set `x-locale: en` header, rewrite to remove prefix
 3. If absent: set `x-locale: nb` header
-4. Pages read locale from header via `headers()` and pass to translator
+
+**Client/server boundary:** `headers()` is only available in server components. Since `VariantMLanding.tsx` is `"use client"` (framer-motion), the pattern is:
+
+```
+app/page.tsx (server)          → reads headers(), resolves locale
+  └─ <VariantMLanding locale={locale} />  → receives locale as prop
+       └─ const t = createTranslator(locale, 'landing')
+```
+
+Server components (`page.tsx`, `layout.tsx`) read `x-locale` from `headers()` and pass `locale` as a prop to client components. Client components never call `headers()` directly.
 
 **App Router structure:**
 
 ```
 app/
-  page.tsx                    # nb landing (reads locale from header)
+  page.tsx                    # Server component: reads locale, renders <VariantMLanding locale="nb" />
   en/
-    page.tsx                  # en landing (thin wrapper, sets locale)
+    page.tsx                  # Server component: renders <VariantMLanding locale="en" />
   docs/
     page.tsx                  # nb docs index
     [slug]/page.tsx           # nb docs pages
@@ -253,20 +270,49 @@ export default function robots(): MetadataRoute.Robots {
 }
 ```
 
-#### hreflang
+#### metadataBase
 
-Every page's `generateMetadata` includes alternates:
+Set in root `layout.tsx` so all `generateMetadata` calls can use relative URLs:
+
+```typescript
+// app/layout.tsx
+export const metadata: Metadata = {
+  metadataBase: new URL("https://smartout.ai"),
+};
+```
+
+This means `generateMetadata` in page files uses relative paths:
 
 ```typescript
 export async function generateMetadata(): Promise<Metadata> {
   return {
     alternates: {
-      canonical: "https://smartout.ai/",
+      canonical: "/",
       languages: {
-        nb: "https://smartout.ai/",
-        en: "https://smartout.ai/en/",
+        nb: "/",
+        en: "/en/",
       },
     },
+  };
+}
+```
+
+Next.js resolves these to absolute URLs automatically. The `sitemap.ts` still needs absolute URLs (Next.js requirement).
+
+#### hreflang
+
+Every page's `generateMetadata` includes alternates (see pattern above). Root layout metadata also changes from hardcoded Norwegian to locale-aware:
+
+```typescript
+// Root layout — title/description become locale-aware via generateMetadata
+// instead of the static metadata export
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = resolveLocaleFromHeaders(); // 'nb' | 'en'
+  const t = createTranslator(locale, "common");
+  return {
+    metadataBase: new URL("https://smartout.ai"),
+    title: t("site.title"),
+    description: t("site.description"),
   };
 }
 ```
@@ -402,6 +448,19 @@ slug_en: shift-planning
 ```
 
 The `user-manual.ts` reader uses `slug_en` when serving English docs, falling back to the Norwegian slug if not specified. This enables human-readable English URLs while keeping the Norwegian originals.
+
+**Internal link handling:** Markdown files may contain relative links (e.g., `[Se vaktplan](./03-vaktplan.md)`). The English markdown files must use their own correct relative links. The MarkdownRenderer's `a` component also transforms internal `/docs/` links to include the `/en/` prefix when rendering in English locale. This is done by passing `locale` to MarkdownRenderer and having the link component check:
+
+```typescript
+// Inside MarkdownRenderer components
+a: ({ href, children }) => {
+  let resolvedHref = href;
+  if (locale === 'en' && href?.startsWith('/docs/')) {
+    resolvedHref = `/en${href}`;
+  }
+  return <a href={resolvedHref}>{children}</a>;
+},
+```
 
 ## Architecture Summary
 
