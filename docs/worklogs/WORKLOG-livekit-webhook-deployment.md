@@ -1,6 +1,6 @@
 ---
 title: "Worklog — livekit-webhook-deployment"
-status: in_progress
+status: done
 updated: 2026-03-24
 created: 2026-03-24
 module: walkieTalkie
@@ -11,7 +11,7 @@ tags: [livekit, webhook, voice, video, webrtc]
 
 > Branch: `feat/livekit-webhook-deployment` | Worktree: wt-1 | Started: 2026-03-24
 
-## Status: 🟡 In Progress
+## Status: 🟢 Done
 
 ## Done
 
@@ -77,3 +77,4 @@ tags: [livekit, webhook, voice, video, webrtc]
 | 2026-03-24 | 18:15 | @livekit/components-react installed, CallRoom created   |
 | 2026-03-24 | 18:30 | Video + in-call chat working, session ended             |
 | 2026-03-24 | 19:00 | Mobile-responsive layout + join toasts + moderator mute |
+| 2026-03-24 | 19:15 | Dead code cleanup, closure docs, feature ready          |
