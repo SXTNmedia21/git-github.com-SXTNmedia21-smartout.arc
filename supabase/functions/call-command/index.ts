@@ -58,28 +58,34 @@ Deno.serve(async (req: Request) => {
   }
 });
 
-// C2: Helper to broadcast via Supabase Realtime — subscribe before send
+// Broadcast via Supabase Realtime using REST API (no WebSocket subscribe needed)
 async function broadcastEvent(
   supabase: ReturnType<typeof createClient>,
   channelName: string,
   event: string,
   payload: Record<string, unknown>,
 ): Promise<void> {
-  const channel = supabase.channel(channelName);
+  // Use Supabase REST broadcast endpoint — works from edge functions without WebSocket
+  const url = `${Deno.env.get("SUPABASE_URL")}/realtime/v1/api/broadcast`;
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-  // Must subscribe before sending — Supabase requires active subscription for broadcast
-  await new Promise<void>((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error("Broadcast subscribe timeout")), 5000);
-    channel.subscribe((status: string) => {
-      if (status === "SUBSCRIBED") {
-        clearTimeout(timeout);
-        resolve();
-      }
-    });
+  await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: serviceKey,
+      Authorization: `Bearer ${serviceKey}`,
+    },
+    body: JSON.stringify({
+      messages: [
+        {
+          topic: `realtime:${channelName}`,
+          event,
+          payload,
+        },
+      ],
+    }),
   });
-
-  await channel.send({ type: "broadcast", event, payload });
-  await supabase.removeChannel(channel);
 }
 
 async function handleStart(
