@@ -10,8 +10,11 @@
  * Design token cleanup (44 hardcoded colors replaced) is preserved in the step components.
  */
 
+import { useRouter } from "next/navigation";
 import { WorkspaceSetupWizard } from "@/components/dashboard/WorkspaceSetupWizard";
 
 export default function DashboardSetupPage() {
-  return <WorkspaceSetupWizard force />;
+  const router = useRouter();
+
+  return <WorkspaceSetupWizard onComplete={() => router.push("/dashboard")} force />;
 }
