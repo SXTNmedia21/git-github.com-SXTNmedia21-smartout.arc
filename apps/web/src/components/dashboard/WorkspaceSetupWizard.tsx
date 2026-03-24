@@ -391,6 +391,7 @@ export function WorkspaceSetupWizard({
       actor_id: profileId ?? "",
       properties: {
         data: {
+          wizard_id: "workspace-setup",
           step_id: step.id,
           step_index: currentStep,
         },
@@ -417,6 +418,7 @@ export function WorkspaceSetupWizard({
           actor_id: profileId ?? "",
           properties: {
             data: {
+              wizard_id: "workspace-setup",
               workspace_id: workspaceId,
             },
           },

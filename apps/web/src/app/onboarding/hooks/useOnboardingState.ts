@@ -384,6 +384,7 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
           actor_id: userId,
           properties: {
             data: {
+              wizard_id: "onboarding",
               step_id: section,
               step_index: stepIndex,
             },

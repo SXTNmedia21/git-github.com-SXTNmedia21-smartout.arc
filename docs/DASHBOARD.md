@@ -1,7 +1,7 @@
 ---
 title: Development Dashboard
 status: in_progress
-updated: 2026-03-24
+updated: 2026-03-22
 created: 2026-03-02
 module: meta
 tags: [dashboard, worktrees, tracking]
@@ -13,10 +13,15 @@ tags: [dashboard, worktrees, tracking]
 
 ## Active Worktrees
 
-| #    | Branch                            | Module       | Status      | Progress                                                                         | Blockers | Health |
-| ---- | --------------------------------- | ------------ | ----------- | -------------------------------------------------------------------------------- | -------- | ------ |
-| wt-1 | `feat/livekit-webhook-deployment` | walkieTalkie | in_progress | just started                                                                     | —        | clean  |
-| wt-3 | `feat/emma-arena-views`           | walkAi       | in_progress | Spec + mockups done, settings persistence committed. Implementation not started. | None     | clean  |
+| #    | Branch                        | Module   | Status      | Progress                                                                                  | Blockers | Health |
+| ---- | ----------------------------- | -------- | ----------- | ----------------------------------------------------------------------------------------- | -------- | ------ |
+| wt-1 | `feat/workspace-intelligence` | core     | merged      | Fully merged to development. Worktree needs cleanup removal.                              | —        | stale  |
+| wt-2 | —                             | —        | free        | —                                                                                         | —        | —      |
+| wt-3 | `feat/emma-arena-views`       | walkAi   | in_progress | Spec + mockups done, settings persistence committed. Implementation not started.          | None     | clean  |
+| wt-4 | `feat/vaktlista-view`         | schedule | in_progress | —                                                                                         | —        | —      |
+| wt-5 | —                             | —        | free        | —                                                                                         | —        | —      |
+| wt-6 | `feat/livekit-phase2`         | webrtc   | in_progress | Just started. Phase 2 WebRTC — LiveKit voice/PTT for Komm channels.                       | —        | clean  |
+| wt-7 | `feat/fix-invitation-flow`    | core     | in_progress | Just started. Fix invitation flow gaps (company_member, listUsers, RLS, resend, cleanup). | —        | clean  |
 
 ## Parked Branches (no worktree)
 
@@ -26,17 +31,17 @@ tags: [dashboard, worktrees, tracking]
 
 ## Free Slots
 
-| #     | Available                            |
-| ----- | ------------------------------------ |
-| wt-1  | no (feat/livekit-webhook-deployment) |
-| wt-2  | yes                                  |
-| wt-3  | no (feat/emma-arena-views)           |
-| wt-4  | yes                                  |
-| wt-5  | yes                                  |
-| wt-6  | yes                                  |
-| wt-7  | yes                                  |
-| wt-15 | yes                                  |
-| wt-20 | yes                                  |
+| #     | Available                        |
+| ----- | -------------------------------- |
+| wt-1  | no (feat/workspace-intelligence) |
+| wt-2  | yes                              |
+| wt-3  | no (feat/emma-arena-views)       |
+| wt-4  | no (feat/vaktlista-view)         |
+| wt-5  | yes                              |
+| wt-6  | no (feat/livekit-phase2)         |
+| wt-7  | no (feat/fix-invitation-flow)    |
+| wt-15 | yes                              |
+| wt-20 | yes                              |
 
 ## Pending Journeys
 
@@ -49,24 +54,14 @@ tags: [dashboard, worktrees, tracking]
 | wt-6 | website-factory        | `docs/journeys/JOURNEY-website-factory.md`        | missing |
 | wt-2 | walkie-talkie          | `docs/journeys/JOURNEY-walkie-talkie.md`          | missing |
 | wt-2 | cascade-foundation     | `docs/journeys/JOURNEY-cascade-foundation.md`     | done    |
-
-| wt-5 | hms-phase-1 | `docs/journeys/JOURNEY-hms-phase-1.md` | done |
-| wt-6 | livekit-phase2 | `docs/journeys/JOURNEY-livekit-phase2.md` | done |
-| wt-7 | staff-handling-complete | `docs/journeys/JOURNEY-staff-handling-complete.md` | done |
-| wt-2 | setup-flow-redesign | `docs/journeys/JOURNEY-setup-flow-redesign.md` | done |
-| wt-1 | livekit-webhook-deployment | `docs/journeys/JOURNEY-livekit-webhook-deployment.md` | missing |
+| wt-5 | hms-phase-1            | `docs/journeys/JOURNEY-hms-phase-1.md`            | done    |
+| wt-6 | livekit-phase2         | `docs/journeys/JOURNEY-livekit-phase2.md`         | missing |
+| wt-7 | fix-invitation-flow    | `docs/journeys/JOURNEY-fix-invitation-flow.md`    | missing |
 
 ## Recent Closures
 
 | Date       | Feature                   | Branch                                                             | Merged To   |
 | ---------- | ------------------------- | ------------------------------------------------------------------ | ----------- |
-| 2026-03-24 | setup-flow-redesign       | `feat/setup-flow-redesign`                                         | development |
-| 2026-03-24 | livekit-phase2            | `feat/livekit-phase2`                                              | development |
-| 2026-03-24 | staff-handling-complete   | `feat/staff-handling-complete`                                     | development |
-| 2026-03-24 | workspace-intelligence    | `feat/workspace-intelligence`                                      | development |
-| 2026-03-24 | vaktlista-view            | `feat/vaktlista-view`                                              | development |
-| 2026-03-22 | cascade-foundation        | `feat/cascade-foundation`                                          | development |
-| 2026-03-22 | hms-phase-1               | `feat/hms-phase-1`                                                 | development |
 | 2026-03-22 | hms-phase-1               | `feat/hms-phase-1`                                                 | development |
 | 2026-03-22 | cascade-foundation        | `feat/cascade-foundation`                                          | development |
 | 2026-03-21 | workspace-intelligence    | `feat/workspace-intelligence`                                      | development |
@@ -109,35 +104,25 @@ tags: [dashboard, worktrees, tracking]
 | 2026-04-11 | infra-hardening           | `feat/infra-hardening`                                             | development |
 | 2026-03-08 | zero-to-production        | `feat/zero-to-production`                                          | development |
 | 2026-03-22 | website-factory           | `feat/website-factory`                                             | development |
-| 2026-03-22 | cascade-foundation        | `feat/cascade-foundation`                                          | development |
 | 2026-03-20 | contract-enhancements     | `feat/contract-enhancements`                                       | development |
 
 ## Session History
 
-| Date       | Feature                           | Status                  | Notes                                                                                                                                                                                                                                                                                 |
-| ---------- | --------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2026-03-24 | livekit-webhook-deployment        | started                 | wt-1, module: walkieTalkie                                                                                                                                                                                                                                                            |
-| 2026-03-24 | docs + i18n + SEO overhaul        | session ended           | 22 commits: Fixed docs sidebar (Vercel), nb+en i18n (100+ keys), SEO (sitemap, robots, hreflang), design tokens (brand.purple), GDPR consent, language switcher + geo-detection, archived 8 variants. Pushed to origin.                                                               |
-| 2026-03-24 | invite-journey-complete           | session ended           | Complete invite journey: multi-channel (link+email+sms), Edge Function fixes (name/dept/template storage), mobile accept flow with confirm screen, welcome page (Framer Motion), profile card overhaul (Norwegian, live actions), realtime inbound request badge, light mode default. |
-| 2026-03-24 | error-logging + health + 429 fix  | session ended           | Fixed 429 token refresh storm (774/hr → 0). Added /api/smoke, connection banner, error reporter (Sentry+GitHub), global-error.tsx, preflight check, SessionStart hook. Droplet updated (main, port fix). PR #58 merged.                                                               |
-| 2026-03-24 | production deploy + env infra     | session ended           | CI fixes (Docker + OOM), 1Password two-vault system, Vercel env sync (33 web, 21 landing), free-forever campaign, compare page, PR #55 created. Web preview blocked on Upstash placeholder URL. Landing deployed OK.                                                                  |
-| 2026-03-22 | join-intelligence + design-system | session ended           | Scrapling: merge_partial fix, Serper Places API, LLM classification. Design system "Ren og Varm": 24-section style guide (269KB), dark/light, per-element feedback, deployed to landing. CLAUDE.md + agent + memory updated.                                                          |
-| 2026-03-22 | setup-flow-redesign               | ready_for_closure       | wt-2, 14 tasks, 15 commits. Data pipeline fix, source tracking, design tokens (isDark removed), extraction wiring.                                                                                                                                                                    |
-| 2026-03-22 | staff-handling-complete           | ready_for_closure       | wt-7. 19 gaps fixed, 296 zinc→0 design tokens, mobile team screens. 12 commits, 12 tasks via team agents.                                                                                                                                                                             |
-| 2026-03-22 | fix-invitation-flow               | closed                  | wt-7, merged to development. 5 invitation gaps: company_member, listUsers, RLS, resend, expiry.                                                                                                                                                                                       |
-| 2026-03-22 | css-build-fix                     | session ended           | Tailwind v4 CSS parsing error: stale cache. Fixed 5 `shadow-brand-orange/N` in WalkAi.                                                                                                                                                                                                |
-| 2026-03-22 | hms-phase-1                       | session ended           | Spec complete (Cascade-native v4). Plan written (7 tasks). wt-5 ready for implementation.                                                                                                                                                                                             |
-| 2026-03-22 | cascade-foundation                | closed                  | Merged to development. 40+ commits: bootstrap, rules engine, tariff, governance, demand, cost snapshots, settings UI, invite cascade.                                                                                                                                                 |
-| 2026-03-22 | walkie-talkie                     | started                 | wt-2, module: communications. Channel comms spec + Phase 1 plan (16 tasks).                                                                                                                                                                                                           |
-| 2026-03-22 | website-factory                   | closed                  | Merged to development. Plan A (12 tables, shared package, public site, publish pipeline).                                                                                                                                                                                             |
-| 2026-03-22 | close-feature-gates               | session ended           | Fixed 5 friction points in close-feature.sh. Script bumped to v4.                                                                                                                                                                                                                     |
-| 2026-03-21 | training-curriculum               | session ended           | 14-module curriculum. Batch 1 material gathered. Rego/OPA for Modul 14.                                                                                                                                                                                                               |
-| 2026-03-21 | cascade-architecture              | spec locked             | I1+6D+4C+K1a/K1b. 12-persona AI Council. Spec 1150 lines, 2 reviews, locked.                                                                                                                                                                                                          |
-| 2026-03-21 | cascade-architecture              | session ended (earlier) | Brainstorming paused at step 4, resumed and completed through step 8.                                                                                                                                                                                                                 |
-| 2026-03-21 | stage-engine-walkai-audit         | session ended           | Deep audit (37 issues), Sprint 1-3 bugfixes, settings persistence, EmmaProfile, arena views spec.                                                                                                                                                                                     |
-| 2026-03-11 | login-join-flow                   | session ended           | Login hype sequence, SignupWizard polish, route cleanup, redirect fix.                                                                                                                                                                                                                |
-| 2026-03-10 | journey-engine                    | session ended           | Route rename /onboarding→/setup, env import dialog, docs updated.                                                                                                                                                                                                                     |
-| 2026-03-08 | journey-engine                    | started                 | wt-2, module: core — Journey Engine runtime, compile, 2 journeys                                                                                                                                                                                                                      |
+| 2026-03-22 | fix-invitation-flow | started | wt-7, module: core. Fix 5 gaps: company_member not created on invite accept, listUsers scalability, company_member RLS, invitation resend, expired cleanup. |
+| 2026-03-22 | css-build-fix | session ended | Tailwind v4 CSS parsing error: stale `.next-e2e-web/` cache poisoning content scan with corrupted `rgba(var(--brand-orange-rgb))` class. Fixed 5 `shadow-brand-orange/N` in WalkAi. Remaining: delete stale caches manually. |
+| 2026-03-22 | hms-phase-1 | session ended | Spec complete (Cascade-native v4). Plan written (7 tasks). Linear cleaned (37->0 Triage). wt-5 ready for implementation. Next: Task 1 migration. |
+| 2026-03-22 | cascade-foundation | started | wt-2, module: cross-cutting. Spec v1.3.0 (3 review rounds, 14+4+7 corrections). Plan: 18 tasks, 5 phases. Bootstrap + rules + governance + invite cascade. |
+| 2026-03-22 | walkie-talkie | started | wt-2, module: communications. Channel comms spec + Phase 1 plan (16 tasks). LiveKit voice/video Phase 2. |
+| 2026-03-22 | website-factory | closed | Merged to development, wt-6 freed. Plan A (12 tables, shared package, public site, publish pipeline) + Plan B (builder UI, spokesperson flow, mobile admin). 30+ commits. |
+| 2026-03-22 | website-factory | started | wt-6, module: website-factory. Spec + Plan A (foundation) ready. |
+| 2026-03-22 | close-feature-gates | session ended | Reviewed close-feature.sh + slash commands. Fixed 5 friction points: Gate 5 scoped to branch-changed docs only, Gate 4 checks feature-specific journey, Gate 1 warns on name mismatch, final commit gets Co-Authored-By, script bumped to v4. wt-1 confirmed already merged — needs worktree removal only. |
+| 2026-03-21 | training-curriculum | session ended | Designed 14-module training curriculum (trimmed from 28). Full repo analysis (1402 files, 146 migrations, 47 enums). Gathered Batch 1 material (TypeScript, DB Design, Debugging) with Smartout-specific examples. Rego/OPA confirmed for Modul 14. Content agent has all data for Batch 1. |
+| 2026-03-21 | cascade-architecture | spec locked | Full design session: I1+6D+4C+K1a/K1b canonical model. 12-persona AI Council stress-tested. 6-phase implementation designed. Spec written (1150 lines), 2 review passes (18 corrections), locked as done. wt-2: 12 commits, ready for merge. Next: implementation planning. |
+| 2026-03-21 | cascade-architecture | session ended (earlier) | Brainstorming paused at step 4, resumed and completed through step 8. |
+| 2026-03-21 | stage-engine-walkai-audit | session ended | Deep audit (37 issues), Sprint 1-3 bugfixes (5 migrations, 14 files), settings persistence, EmmaProfile overview tab, arena views spec + 8 mockups, accumulated commits (mobile/emma/dashboard/schedule/telemetry), contract-enhancements merged+closed, pre-commit hook fixed. wt-3 created for emma-arena-views. |
+| 2026-03-11 | login-join-flow | session ended | Login hype sequence (spinner+pulsing text→checkmark burst→redirect), SignupWizard polish, /signup→/login route cleanup, redirect fix (window.location.href). Uncommitted in walkTalkie. |
+| 2026-03-10 | journey-engine | session ended | Route rename /onboarding→/setup, env import dialog overflow+new keys, redirect condition changed to workspace-empty check, docs updated. 116 uncommitted files. |
+| 2026-03-08 | journey-engine | started | wt-2, module: core — Journey Engine runtime, compile, 2 journeys |
 
 | Date       | Feature                          | Action            | Notes                                                                                                                                                                                                                                                                                                                                                                     |
 | ---------- | -------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
