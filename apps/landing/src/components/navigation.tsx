@@ -7,6 +7,7 @@ import { m, AnimatePresence } from "framer-motion";
 import { Building2, ArrowRight, Menu, X } from "lucide-react";
 import { WEB_APP_LINKS } from "../lib/web-app-url";
 import { ThemeToggle } from "./theme-toggle";
+import { LanguageSwitcher } from "./language-switcher";
 import { createTranslator } from "@smartout/i18n";
 
 // UI Events:
@@ -89,6 +90,8 @@ export default function Navigation({ locale = "nb" }: { locale?: "nb" | "en" }) 
             );
           })}
           <div className="bg-border mx-2 h-5 w-px" />
+          <LanguageSwitcher locale={locale} />
+          <div className="bg-border mx-2 h-5 w-px" />
           <div className="ml-2">
             <ThemeToggle />
           </div>
@@ -103,6 +106,7 @@ export default function Navigation({ locale = "nb" }: { locale?: "nb" | "en" }) 
 
         {/* Mobile: CTA + hamburger */}
         <div className="flex items-center gap-3 md:hidden">
+          <LanguageSwitcher locale={locale} />
           <ThemeToggle />
           <Link
             href={WEB_APP_LINKS.login}

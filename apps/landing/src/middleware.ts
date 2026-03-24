@@ -2,19 +2,46 @@ import { NextResponse, type NextRequest } from "next/server";
 
 /**
  * Hostnames that should resolve directly to the free-forever pricing campaign.
- * Why: the campaign launches on a dedicated public subdomain while keeping the
- * main `/pricing` route intact on the root marketing domain.
  */
 const FREE_FOREVER_HOSTNAMES = new Set(["free4ever.smartout.ai", "free4ever.localhost"]);
 
-/**
- * Returns the normalized hostname from the request, without a port suffix.
- * This keeps local development and production host checks consistent.
- */
+const LOCALE_COOKIE = "smartout-locale";
+
 function getHostname(request: NextRequest): string {
   const hostHeader = request.headers.get("host");
   const host = hostHeader ?? request.nextUrl.host;
   return host.split(":")[0]?.toLowerCase() ?? request.nextUrl.hostname.toLowerCase();
+}
+
+/**
+ * Resolves locale with this priority:
+ * 1. Explicit /en/ URL prefix → "en"
+ * 2. Cookie override (user clicked language switcher) → cookie value
+ * 3. Vercel geo-detection: Norway → "nb", everything else → "en"
+ * 4. Fallback → "nb"
+ */
+function resolveLocale(request: NextRequest): "nb" | "en" {
+  const { pathname } = request.nextUrl;
+
+  // URL prefix always wins
+  if (pathname.startsWith("/en/") || pathname === "/en") {
+    return "en";
+  }
+
+  // Cookie override from language switcher
+  const cookieLocale = request.cookies.get(LOCALE_COOKIE)?.value;
+  if (cookieLocale === "en" || cookieLocale === "nb") {
+    return cookieLocale;
+  }
+
+  // Geo-detection: Vercel sets x-vercel-ip-country automatically
+  // Norway → Norwegian, everything else → English
+  const country = request.headers.get("x-vercel-ip-country");
+  if (country && country !== "NO") {
+    return "en";
+  }
+
+  return "nb";
 }
 
 export function middleware(request: NextRequest) {
@@ -28,9 +55,20 @@ export function middleware(request: NextRequest) {
     return NextResponse.rewrite(url);
   }
 
-  // Locale detection: /en/ prefix = English, everything else = Norwegian
-  const isEnglish = pathname.startsWith("/en/") || pathname === "/en";
-  const locale = isEnglish ? "en" : "nb";
+  const locale = resolveLocale(request);
+
+  // If geo-detection says English but user is on root (no /en/ prefix),
+  // redirect to /en/ so URLs stay consistent.
+  // Only auto-redirect when no cookie is set (first visit from abroad).
+  // Once user clicks the language switcher, cookie takes over.
+  if (locale === "en" && !pathname.startsWith("/en") && pathname !== "/en") {
+    const cookieLocale = request.cookies.get(LOCALE_COOKIE)?.value;
+    if (!cookieLocale) {
+      const url = request.nextUrl.clone();
+      url.pathname = `/en${pathname}`;
+      return NextResponse.redirect(url, 302);
+    }
+  }
 
   const response = NextResponse.next();
   response.headers.set("x-locale", locale);

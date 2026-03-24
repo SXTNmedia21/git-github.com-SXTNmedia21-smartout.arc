@@ -45,7 +45,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body
         className={`${geistSans.className} bg-background text-foreground antialiased selection:bg-orange-500/30`}
       >
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
           <MotionProvider>{children}</MotionProvider>
         </ThemeProvider>
         <Analytics />
