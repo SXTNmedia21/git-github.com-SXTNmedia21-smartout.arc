@@ -44,10 +44,11 @@ tags: [livekit, webhook, voice, video, webrtc]
 
 - [x] Mobile-responsive CallRoom layout
 - [x] Mute other participants (moderator controls via MemberPanel)
-- [ ] 1Password: update smartout*ai/Supabase with JWT-format keys (sb_publishable* doesn't work)
-- [ ] Webhook port forwarding for local testing (LiveKit Cloud → localhost)
-- [ ] i18n: aria-labels and hardcoded Norwegian text
+- [x] 1Password keys: not needed — Supabase runtime injects ANON/SERVICE_ROLE automatically
+- [ ] Webhook port forwarding for local testing (ngrok/cloudflared — nice-to-have)
+- [ ] i18n: deferred to full dashboard i18n effort
 - [ ] Cloud deployment (via merge to development)
+- [x] Dead code cleanup: removed CallBar.tsx + use-livekit-call.ts (superseded by @livekit/components-react)
 
 ## Decisions
 
