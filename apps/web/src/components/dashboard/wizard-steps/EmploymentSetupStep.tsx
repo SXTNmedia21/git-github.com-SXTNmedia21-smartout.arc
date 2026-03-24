@@ -108,7 +108,7 @@ function EmploymentFormCard({
       <label className="flex cursor-pointer items-center justify-between px-4 py-3">
         <div className="flex items-center gap-3">
           <Briefcase
-            className={`h-4 w-4 ${form.enabled ? "text-orange-500" : "text-muted-foreground"}`}
+            className={`h-4 w-4 ${form.enabled ? "text-brand-orange" : "text-muted-foreground"}`}
           />
           {isCustom ? (
             <Input
@@ -117,7 +117,7 @@ function EmploymentFormCard({
               value={form.label}
               onClick={(e) => e.stopPropagation()}
               onChange={(e) => onUpdate({ label: e.target.value })}
-              className={`h-7 w-48 text-sm font-semibold ${"border-border text-foreground bg-white placeholder:text-zinc-400"}`}
+              className={`h-7 w-48 text-sm font-semibold ${"border-border text-foreground placeholder:text-muted-foreground bg-white"}`}
             />
           ) : (
             <span className={`text-sm font-semibold ${"text-foreground"}`}>{form.label}</span>
@@ -132,7 +132,7 @@ function EmploymentFormCard({
                 e.stopPropagation();
                 onRemove();
               }}
-              className={`rounded-md p-1 transition-colors ${"text-muted-foreground hover:bg-accent hover:text-zinc-600"}`}
+              className={`rounded-md p-1 transition-colors ${"text-muted-foreground hover:bg-accent hover:text-foreground"}`}
             >
               <X className="h-4 w-4" />
             </button>
@@ -477,7 +477,7 @@ export function EmploymentSetupStep({
         <button
           type="button"
           onClick={handleAddCustomForm}
-          className={`flex w-full items-center justify-center gap-2 rounded-xl border border-dashed px-4 py-2.5 text-sm font-medium transition-colors ${"border-border text-muted-foreground hover:border-zinc-400 hover:text-zinc-600"}`}
+          className={`flex w-full items-center justify-center gap-2 rounded-xl border border-dashed px-4 py-2.5 text-sm font-medium transition-colors ${"border-border text-muted-foreground hover:border-muted-foreground hover:text-foreground"}`}
         >
           <Plus className="h-4 w-4" />
           Legg til ansettelsesform
@@ -614,7 +614,7 @@ export function EmploymentSetupStep({
           className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition-colors ${
             saveMutation.isPending || enabledCount === 0
               ? "cursor-not-allowed opacity-50"
-              : "bg-orange-500 text-white hover:bg-orange-600"
+              : "bg-brand-orange hover:bg-brand-orange/90 text-white"
           }`}
         >
           {saveMutation.isPending ? (

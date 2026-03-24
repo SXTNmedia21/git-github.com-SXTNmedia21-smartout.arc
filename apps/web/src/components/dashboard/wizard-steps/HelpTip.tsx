@@ -10,7 +10,7 @@ export function HelpTip({ text }: { text: string }) {
         <TooltipTrigger asChild>
           <button
             type="button"
-            className="text-muted-foreground inline-flex shrink-0 hover:text-zinc-300"
+            className="text-muted-foreground hover:text-foreground inline-flex shrink-0"
           >
             <HelpCircle className="h-4 w-4" />
           </button>

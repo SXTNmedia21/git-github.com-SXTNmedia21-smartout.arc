@@ -815,7 +815,7 @@ export function SeasonSetupStep({
                             onClick={() => {
                               if (firstDay) handleSetAllDays(dept.name, firstDay);
                             }}
-                            className={`rounded px-1.5 py-0.5 text-[10px] transition-colors ${"text-muted-foreground hover:bg-accent hover:text-zinc-500"}`}
+                            className={`rounded px-1.5 py-0.5 text-[10px] transition-colors ${"text-muted-foreground hover:bg-accent hover:text-foreground"}`}
                             title="Kopier mandag til alle dager"
                           >
                             Alle
@@ -874,7 +874,7 @@ export function SeasonSetupStep({
                 >
                   <div
                     className={`w-full rounded-t-lg transition-all duration-300 ${
-                      isHigh ? "bg-orange-500" : isLow ? "bg-muted" : "bg-muted"
+                      isHigh ? "bg-brand-orange" : isLow ? "bg-muted" : "bg-muted"
                     }`}
                     style={{ height: `${barHeight}%` }}
                   />
@@ -894,7 +894,7 @@ export function SeasonSetupStep({
                 {/* Day label */}
                 <span
                   className={`text-[11px] font-semibold ${
-                    isHigh ? "text-orange-500" : "text-muted-foreground"
+                    isHigh ? "text-brand-orange" : "text-muted-foreground"
                   }`}
                 >
                   {wd.label}
@@ -925,7 +925,7 @@ export function SeasonSetupStep({
                 </div>
                 <div
                   className={`text-[11px] font-medium ${
-                    est.factor >= 1.3 ? "text-orange-500" : "text-muted-foreground"
+                    est.factor >= 1.3 ? "text-brand-orange" : "text-muted-foreground"
                   }`}
                 >
                   {est.label}
@@ -948,7 +948,7 @@ export function SeasonSetupStep({
         className={`flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
           isSaving
             ? "cursor-not-allowed opacity-50"
-            : "bg-orange-500 text-white hover:bg-orange-600"
+            : "bg-brand-orange hover:bg-brand-orange/90 text-white"
         }`}
       >
         {isSaving ? (

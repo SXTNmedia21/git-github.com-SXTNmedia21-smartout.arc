@@ -483,7 +483,7 @@ export function WorkspaceSetupWizard({
 
         <button
           onClick={handleSkip}
-          className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${"text-muted-foreground hover:bg-accent hover:text-zinc-600"}`}
+          className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${"text-muted-foreground hover:bg-accent hover:text-foreground"}`}
         >
           <SkipForward className="h-3.5 w-3.5" />
           Hopp over og gå til dashboard
@@ -515,7 +515,7 @@ export function WorkspaceSetupWizard({
             <span
               className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${
                 i === currentStep
-                  ? "bg-orange-500 text-white"
+                  ? "bg-brand-orange text-white"
                   : i < currentStep
                     ? "bg-success text-success"
                     : "bg-muted text-muted-foreground"
@@ -625,8 +625,8 @@ export function WorkspaceSetupWizard({
               isFinishing
                 ? "cursor-not-allowed opacity-50"
                 : isLast
-                  ? "bg-emerald-500 text-white hover:bg-emerald-600"
-                  : "bg-orange-500 text-white hover:bg-orange-600"
+                  ? "bg-success hover:bg-success/80 text-white"
+                  : "bg-brand-orange hover:bg-brand-orange/90 text-white"
             }`}
           >
             {isFinishing ? (

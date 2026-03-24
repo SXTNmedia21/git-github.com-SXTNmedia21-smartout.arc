@@ -719,11 +719,11 @@ export function DocumentDropStep({
         className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-10 transition-colors ${
           isDragging
             ? "border-brand-orange bg-brand-orange"
-            : "border-border bg-muted hover:border-zinc-400"
+            : "border-border bg-muted hover:border-muted-foreground"
         }`}
       >
         <Upload
-          className={`mb-3 h-8 w-8 ${isDragging ? "text-orange-500" : "text-muted-foreground"}`}
+          className={`mb-3 h-8 w-8 ${isDragging ? "text-brand-orange" : "text-muted-foreground"}`}
         />
         <p className={`text-sm font-medium ${"text-muted-foreground"}`}>
           Dra og slipp dokumenter her, eller klikk for å velge
@@ -785,7 +785,7 @@ export function DocumentDropStep({
                   e.stopPropagation();
                   void handleRemove(file);
                 }}
-                className={`shrink-0 rounded p-1 transition-colors ${"text-muted-foreground hover:bg-accent hover:text-zinc-600"}`}
+                className={`shrink-0 rounded p-1 transition-colors ${"text-muted-foreground hover:bg-accent hover:text-foreground"}`}
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -801,8 +801,8 @@ export function DocumentDropStep({
           onClick={handleAnalyze}
           className={`flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
             hasUnanalyzed
-              ? "bg-orange-500 text-white hover:bg-orange-600"
-              : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+              ? "bg-brand-orange hover:bg-brand-orange/90 text-white"
+              : "bg-muted-foreground text-muted hover:bg-muted-foreground/80"
           }`}
         >
           {hasUnanalyzed
@@ -855,7 +855,7 @@ export function DocumentDropStep({
                 onClick={() => setShowSummary(true)}
                 className={`flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
                   hasData
-                    ? "bg-success text-success hover:bg-emerald-200"
+                    ? "bg-success text-success hover:bg-success/30"
                     : "bg-warning text-warning hover:bg-amber-200"
                 }`}
               >

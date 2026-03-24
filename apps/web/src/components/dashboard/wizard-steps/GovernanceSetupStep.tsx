@@ -112,7 +112,7 @@ function TemplateCard({
                   className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
                     !isMandatory && !isChecked
                       ? "cursor-not-allowed opacity-40"
-                      : "bg-orange-500 text-white hover:bg-orange-600"
+                      : "bg-brand-orange hover:bg-brand-orange/90 text-white"
                   }`}
                 >
                   Opprett
@@ -316,7 +316,7 @@ export function GovernanceSetupStep({
               className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
                 creatingId !== null
                   ? "cursor-not-allowed opacity-50"
-                  : "bg-orange-500 text-white hover:bg-orange-600"
+                  : "bg-brand-orange hover:bg-brand-orange/90 text-white"
               }`}
             >
               <Plus className="h-3.5 w-3.5" />
