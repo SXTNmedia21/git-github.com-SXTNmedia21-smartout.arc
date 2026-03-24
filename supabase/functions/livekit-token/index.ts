@@ -114,23 +114,16 @@ Deno.serve(async (req: Request) => {
       },
     );
 
-    // Build publishable sources based on channel policies
-    const sources: string[] = [];
-    if (audioPolicy !== "disabled" && audioPolicy !== "listen_only") {
-      sources.push("microphone");
-    }
-    if (videoPolicy !== "disabled") {
-      sources.push("camera", "screen_share");
-    }
+    const canPublishAudio = audioPolicy !== "disabled" && audioPolicy !== "listen_only";
+    const canPublishVideo = videoPolicy !== "disabled";
 
     at.addGrant({
       roomJoin: true,
       room: roomName,
-      canPublish: sources.length > 0,
+      canPublish: canPublishAudio || canPublishVideo,
       canSubscribe: true,
       canPublishData: true,
       canUpdateOwnMetadata: true,
-      canPublishSources: sources,
     });
 
     const token = await at.toJwt();
