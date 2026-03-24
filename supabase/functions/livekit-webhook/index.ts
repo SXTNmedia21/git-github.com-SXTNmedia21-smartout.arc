@@ -1,4 +1,4 @@
-import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+// @ts-nocheck — Deno Edge Function, typechecked by Supabase CLI at deploy
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { WebhookReceiver } from "npm:livekit-server-sdk@2.15.0";
 
