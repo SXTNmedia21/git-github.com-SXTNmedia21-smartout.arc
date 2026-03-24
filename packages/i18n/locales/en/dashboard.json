@@ -1,1 +1,17 @@
-{}
+{
+  "setup": {
+    "title": "Setup",
+    "description": "Configure workspace"
+  },
+  "steps": {
+    "welcome": "Welcome",
+    "documents": "Documents",
+    "governance": "Policies",
+    "payroll": "Payroll",
+    "employment": "Employment",
+    "team": "Team",
+    "shifts": "Shift templates",
+    "season": "Season",
+    "handbook": "Handbook"
+  }
+}
