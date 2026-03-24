@@ -71,7 +71,7 @@ export default function PeoplePage() {
       const isExpired = new Date(inv.expires_at) < new Date();
       return {
         id: inv.invitation_id,
-        name: [inv.first_name, inv.last_name].filter(Boolean).join(" ") || inv.email,
+        name: [inv.first_name, inv.last_name].filter(Boolean).join(" ") || inv.email || "Uten navn",
         email: inv.email,
         role: inv.role,
         department: "",

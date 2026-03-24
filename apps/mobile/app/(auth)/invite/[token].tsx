@@ -15,6 +15,10 @@ type InviteData = {
   workspaceName: string;
   logoUrl: string | null;
   token: string;
+  firstName: string | null;
+  lastName: string | null;
+  email: string | null;
+  phone: string | null;
 };
 
 export default function InviteDeepLink() {
@@ -42,7 +46,9 @@ export default function InviteDeepLink() {
 
     const { data, error: fetchError } = await supabase
       .from("invitation")
-      .select("invitation_id, token, status, workspace:workspace_id(workspace_id, name, logo_url)")
+      .select(
+        "invitation_id, token, status, first_name, last_name, email, phone, workspace:workspace_id(workspace_id, name, logo_url)",
+      )
       .eq("token", tokenValue)
       .eq("status", "pending")
       .single();
@@ -70,18 +76,25 @@ export default function InviteDeepLink() {
       workspaceName: ws.name,
       logoUrl: ws.logo_url,
       token: tokenValue,
+      firstName: data.first_name,
+      lastName: data.last_name,
+      email: data.email,
+      phone: data.phone,
     });
   }
 
   function handleConfirm() {
     if (!invite) return;
     router.push({
-      pathname: "/(auth)/verify",
+      pathname: "/(auth)/invite/confirm",
       params: {
-        flow: "invite",
         workspaceId: invite.workspaceId,
         workspaceName: invite.workspaceName,
         token: invite.token,
+        firstName: invite.firstName ?? "",
+        lastName: invite.lastName ?? "",
+        email: invite.email ?? "",
+        phone: invite.phone ?? "",
       },
     });
   }

@@ -76,17 +76,43 @@ Deno.serve(async (req: Request) => {
 
     // ── Parse and validate request body ──
     const body = await req.json();
-    const { token, first_name, last_name, password } = body as {
+    const {
+      token,
+      first_name,
+      last_name,
+      password,
+      email: bodyEmail,
+      phone: bodyPhone,
+    } = body as {
       token: string;
       first_name: string;
       last_name: string;
-      password: string;
+      password?: string;
+      email?: string;
+      phone?: string;
     };
 
-    if (!token || !first_name || !last_name || !password) {
+    // ── Check if caller is already authenticated (mobile OTP/magic link flow) ──
+    // If Authorization header has a valid JWT, the user already has a session.
+    // In that case, password is not required — we reuse the existing auth user.
+    let authenticatedUserId: string | null = null;
+    const authHeader = req.headers.get("Authorization");
+    if (authHeader?.startsWith("Bearer ")) {
+      const anonClient = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+        { global: { headers: { Authorization: authHeader } } },
+      );
+      const {
+        data: { user },
+      } = await anonClient.auth.getUser();
+      if (user) authenticatedUserId = user.id;
+    }
+
+    if (!token || !first_name || !last_name) {
       return new Response(
         JSON.stringify({
-          error: "Missing required fields: token, first_name, last_name, password",
+          error: "Missing required fields: token, first_name, last_name",
         }),
         {
           status: 400,
@@ -95,7 +121,15 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    if (password.length < 8) {
+    // Password required only for unauthenticated callers (web flow)
+    if (!authenticatedUserId && !password) {
+      return new Response(JSON.stringify({ error: "Password is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (password && password.length < 8) {
       return new Response(JSON.stringify({ error: "Password must be at least 8 characters" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -118,6 +152,30 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    // Merge email/phone from body for link invites where they weren't set at creation
+    const inviteEmail = invitation.email || bodyEmail || null;
+    const invitePhone = invitation.phone || bodyPhone || null;
+
+    // Email required for unauthenticated callers (need to create auth user)
+    // Authenticated callers (mobile OTP) may not have email on the invitation
+    if (!authenticatedUserId && !inviteEmail) {
+      return new Response(JSON.stringify({ error: "Email is required to create an account" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Update invitation with email/phone if provided from accept form
+    if (inviteEmail !== invitation.email || invitePhone !== invitation.phone) {
+      await adminClient
+        .from("invitation")
+        .update({
+          email: inviteEmail,
+          phone: invitePhone,
+        })
+        .eq("invitation_id", invitation.invitation_id);
+    }
+
     // Check if the invitation has expired (7-day window from creation)
     if (new Date(invitation.expires_at) < new Date()) {
       // Mark as expired so it won't be found in future lookups
@@ -133,51 +191,54 @@ Deno.serve(async (req: Request) => {
     }
 
     // ── 2. Create or find auth user ──
-    // Check if an auth user already exists with this email.
-    // This handles the case where someone was invited to multiple workspaces.
-    const { data: listResult } = await adminClient.auth.admin.listUsers({
-      page: 1,
-      perPage: 1,
-      filter: invitation.email,
-    });
-    const existingUser = listResult?.users?.[0] ?? null;
-
     let userId: string;
 
-    if (existingUser) {
-      // User already has an auth account -- reuse it
-      userId = existingUser.id;
+    if (authenticatedUserId) {
+      // Mobile flow: user already authenticated via OTP/magic link
+      userId = authenticatedUserId;
     } else {
-      // Create a new auth user with email pre-confirmed
-      // The handle_new_user() trigger on auth.users will auto-create user_identity
-      const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
-        email: invitation.email,
-        password,
-        email_confirm: true,
-        user_metadata: {
-          first_name,
-          last_name,
-        },
+      // Web flow: create or find auth user by email
+      const { data: listResult } = await adminClient.auth.admin.listUsers({
+        page: 1,
+        perPage: 1,
+        filter: inviteEmail!,
       });
+      const existingUser = listResult?.users?.[0] ?? null;
 
-      if (createError || !newUser.user) {
-        return new Response(
-          JSON.stringify({
-            error: `Failed to create account: ${createError?.message}`,
-          }),
-          {
-            status: 500,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
+      if (existingUser) {
+        userId = existingUser.id;
+      } else {
+        const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
+          email: inviteEmail!,
+          password: password!,
+          email_confirm: true,
+          user_metadata: {
+            first_name,
+            last_name,
           },
-        );
-      }
+        });
 
-      userId = newUser.user.id;
+        if (createError || !newUser.user) {
+          return new Response(
+            JSON.stringify({
+              error: `Failed to create account: ${createError?.message}`,
+            }),
+            {
+              status: 500,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            },
+          );
+        }
+
+        userId = newUser.user.id;
+      }
     }
 
     // Update user_identity with the provided name
     // This covers both new users (trigger may have empty names) and existing users
-    await adminClient.from("user_identity").update({ first_name, last_name }).eq("user_id", userId);
+    const identityUpdate: Record<string, unknown> = { first_name, last_name };
+    if (invitePhone) identityUpdate.phone = invitePhone;
+    await adminClient.from("user_identity").update(identityUpdate).eq("user_id", userId);
 
     // ── 3. Create profile in the workspace ──
     // Check if this user already has a profile in this workspace

@@ -29,6 +29,10 @@ export default function Verify() {
     workspaceId: string;
     workspaceName: string;
     token?: string;
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    phone?: string;
   }>();
 
   const router = useRouter();
@@ -137,12 +141,28 @@ export default function Verify() {
     const { flow, workspaceId, token } = params;
 
     if (flow === "invite" && token) {
-      // Accept invitation — update status to 'accepted'
-      await supabase
-        .from("invitation")
-        .update({ status: "accepted" })
-        .eq("token", token)
-        .eq("status", "pending");
+      // Call accept-invitation Edge Function — creates profile, contract, payroll
+      // The user is already authenticated (OTP/magic link), so the Edge Function
+      // detects the auth header and skips password-based user creation.
+      const firstName = params.firstName ?? "";
+      const lastName = params.lastName ?? "";
+      const inviteEmail = params.email ?? "";
+      const invitePhone = params.phone ?? "";
+
+      const { data, error: fnError } = await supabase.functions.invoke("accept-invitation", {
+        body: {
+          token,
+          first_name: firstName,
+          last_name: lastName,
+          email: inviteEmail || undefined,
+          phone: invitePhone || undefined,
+        },
+      });
+
+      if (fnError || !data?.success) {
+        console.error("accept-invitation failed:", fnError?.message ?? data?.error);
+        // Don't block navigation — profile may already exist (re-click)
+      }
     }
 
     if (flow === "search" && workspaceId) {

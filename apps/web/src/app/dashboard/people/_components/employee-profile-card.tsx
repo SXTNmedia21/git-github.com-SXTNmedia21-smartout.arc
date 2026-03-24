@@ -17,6 +17,7 @@ import {
   History,
   Wallet,
   Loader2,
+  Copy,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -197,7 +198,7 @@ export function EmployeeProfileCard({
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <span className="relative z-10">{employee.name.charAt(0)}</span>
+                <span className="relative z-10">{(employee.name || "?").charAt(0)}</span>
               )}
               {employee.status === "active" && (
                 <div className="border-background absolute right-1 bottom-1 z-20 h-3 w-3 rounded-full border-2 bg-emerald-500" />
@@ -364,13 +365,13 @@ export function EmployeeProfileCard({
                   <div className="space-y-2">
                     {employee.inviteType && (
                       <div className="text-foreground flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Sent via</span>
+                        <span className="text-muted-foreground">Sendt via</span>
                         <span className="font-medium capitalize">{employee.inviteType}</span>
                       </div>
                     )}
                     {employee.inviteExpiresAt && (
                       <div className="text-foreground flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Expires</span>
+                        <span className="text-muted-foreground">Utløper</span>
                         <span className="font-medium">
                           {new Date(employee.inviteExpiresAt).toLocaleDateString("nb-NO")}
                         </span>
@@ -381,9 +382,36 @@ export function EmployeeProfileCard({
                       <span
                         className={`font-medium ${employee.inviteStatus === "expired" ? "text-rose-400" : "text-orange-400"}`}
                       >
-                        {employee.inviteStatus === "expired" ? "Expired" : "Awaiting response"}
+                        {employee.inviteStatus === "expired" ? "Utløpt" : "Venter på svar"}
                       </span>
                     </div>
+                    {employee.inviteToken && (
+                      <div className="mt-3">
+                        <span className="text-muted-foreground mb-1.5 block text-xs">
+                          Invitasjonslenke
+                        </span>
+                        <div className="border-border bg-muted flex items-center gap-2 rounded-lg border px-3 py-2">
+                          <input
+                            readOnly
+                            value={`${typeof window !== "undefined" ? window.location.origin : ""}/invite/${employee.inviteToken}`}
+                            className="text-foreground flex-1 truncate bg-transparent font-mono text-[11px] outline-none"
+                            onFocus={(e) => e.target.select()}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void navigator.clipboard.writeText(
+                                `${window.location.origin}/invite/${employee.inviteToken}`,
+                              );
+                              toast.success("Lenke kopiert");
+                            }}
+                            className="text-muted-foreground hover:bg-accent hover:text-foreground shrink-0 rounded-md p-1.5 transition-colors"
+                          >
+                            <Copy className="h-3 w-3" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

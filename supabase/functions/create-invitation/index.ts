@@ -120,17 +120,37 @@ async function handleSingleInvite(
   body: {
     workspace_id: string;
     invite_type: "email" | "sms" | "link";
+    channels?: string[];
     email?: string;
     phone?: string;
     role?: string;
+    first_name?: string;
+    last_name?: string;
+    department_ids?: string[];
+    invite_employment_type?: string;
+    metadata?: Record<string, unknown>;
   },
 ) {
-  const { workspace_id, invite_type, email, phone, role } = body;
+  const {
+    workspace_id,
+    invite_type,
+    email,
+    phone,
+    role,
+    first_name,
+    last_name,
+    department_ids,
+    invite_employment_type,
+    metadata,
+  } = body;
+  const channels: string[] = body.channels ?? [invite_type];
   if (!workspace_id) throw new Error("workspace_id is required");
 
-  // Validate required fields per invite type
-  if (invite_type === "email" && !email) throw new Error("email is required for email invites");
-  if (invite_type === "sms" && !phone) throw new Error("phone is required for SMS invites");
+  // Validate required fields per active channel
+  if (channels.includes("email") && !email)
+    throw new Error("email is required when email channel is active");
+  if (channels.includes("sms") && !phone)
+    throw new Error("phone is required when SMS channel is active");
 
   // Resolve company_id from workspace
   const { data: ws } = await supabaseClient
@@ -143,16 +163,21 @@ async function handleSingleInvite(
 
   const inviterProfile = await resolveInviterProfile(supabaseClient, user.id, workspace_id);
 
-  // Insert the invitation
+  // Store the primary invite_type as "link" (always generated) but record all channels in metadata
   const { data: invitation, error: insertError } = await supabaseClient
     .from("invitation")
     .insert({
       workspace_id,
       company_id: ws.company_id,
-      invite_type,
+      invite_type: "link",
       email: email || null,
       phone: phone || null,
       role: role || "employee",
+      first_name: first_name || null,
+      last_name: last_name || null,
+      department_ids: department_ids || [],
+      invite_employment_type: invite_employment_type || null,
+      metadata: { ...(metadata ?? {}), channels },
       status: "pending",
       invited_by: inviterProfile.profile_id,
     })
@@ -164,22 +189,24 @@ async function handleSingleInvite(
     throw new Error("Failed to create invitation");
   }
 
-  // Dispatch notification based on invite type
+  // Dispatch notifications for each active channel
   const inviteUrl = `${Deno.env.get("SITE_URL") || "https://app.smartout.ai"}/invite/${invitation.token}`;
 
-  if (invite_type === "email" && email) {
+  if (channels.includes("email") && email) {
     await sendEmailInvite(email, inviteUrl, workspace_id);
-  } else if (invite_type === "sms" && phone) {
+  }
+  if (channels.includes("sms") && phone) {
     await sendSmsInvite(phone, inviteUrl);
   }
-  // link type: no dispatch needed, token is returned to client
+  // link channel: token always returned to client
 
   return new Response(
     JSON.stringify({
       success: true,
       invitation_id: invitation.invitation_id,
       token: invitation.token,
-      invite_type: invitation.invite_type,
+      invite_type: "link",
+      channels,
     }),
     {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

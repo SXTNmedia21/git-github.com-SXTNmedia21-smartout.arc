@@ -322,7 +322,20 @@ export function DashboardShell({
   children: React.ReactNode;
   profileId?: string | null;
 }) {
-  const [isDark, setIsDark] = useState(true);
+  const [isDark, setIsDarkRaw] = useState(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("smartout-theme");
+      if (stored === "dark") return true;
+      if (stored === "light") return false;
+    }
+    return false; // light mode default
+  });
+  const setIsDark = useCallback((val: boolean) => {
+    setIsDarkRaw(val);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("smartout-theme", val ? "dark" : "light");
+    }
+  }, []);
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [isAdminMode, setIsAdminMode] = useState(true);
   const [adminView, setAdminView] = useState<AdminViewType>("strategic");
