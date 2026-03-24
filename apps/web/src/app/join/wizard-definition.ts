@@ -168,8 +168,6 @@ export const joinWizard: WizardDefinition<JoinState> = {
       labelKey: "steps.create_account",
       icon: KeyRound,
       component: Step6CreateAccount,
-      validation: step6Schema,
-      validationKey: "createAccount",
     },
     {
       id: "team",
