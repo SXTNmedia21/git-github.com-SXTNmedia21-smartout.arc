@@ -133,7 +133,20 @@ export function NotificationPreferences({ userId }: { userId: string | undefined
   const updatePreferences = useUpdateNotificationPreferences(userId);
 
   // Merge saved preferences with defaults — handles the null (first-time) case.
-  const prefs: Preferences = preferences ? { ...DEFAULTS, ...preferences } : DEFAULTS;
+  const prefs: Preferences = preferences
+    ? {
+        push_enabled: preferences.push_enabled ?? DEFAULTS.push_enabled,
+        email_enabled: preferences.email_enabled ?? DEFAULTS.email_enabled,
+        sms_enabled: preferences.sms_enabled ?? DEFAULTS.sms_enabled,
+        browser_enabled: preferences.browser_enabled ?? DEFAULTS.browser_enabled,
+        work_enabled: preferences.work_enabled ?? DEFAULTS.work_enabled,
+        training_enabled: preferences.training_enabled ?? DEFAULTS.training_enabled,
+        community_enabled: preferences.community_enabled ?? DEFAULTS.community_enabled,
+        quiet_hours_start: preferences.quiet_hours_start ?? DEFAULTS.quiet_hours_start,
+        quiet_hours_end: preferences.quiet_hours_end ?? DEFAULTS.quiet_hours_end,
+        quiet_hours_timezone: preferences.quiet_hours_timezone ?? DEFAULTS.quiet_hours_timezone,
+      }
+    : DEFAULTS;
 
   function toggle(field: keyof Preferences, value: boolean) {
     // Request browser notification permission when enabling browser_enabled.
