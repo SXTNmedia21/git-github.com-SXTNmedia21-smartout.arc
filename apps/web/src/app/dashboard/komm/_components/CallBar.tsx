@@ -1,17 +1,20 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Mic, MicOff, PhoneOff, Users } from "lucide-react";
+import { Mic, MicOff, Video, VideoOff, MonitorUp, PhoneOff, Users } from "lucide-react";
 import { ActiveSpeakerIndicator } from "./ActiveSpeakerIndicator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { cn } from "@/lib/utils";
 import type { RemoteParticipant } from "livekit-client";
 
 type Props = {
   remoteParticipants: RemoteParticipant[];
   activeSpeakers: string[];
   isMicEnabled: boolean;
+  isCameraEnabled: boolean;
+  isScreenShareEnabled: boolean;
   onToggleMic: () => void;
+  onToggleCamera: () => void;
+  onToggleScreenShare: () => void;
   onEndCall: () => void;
 };
 
@@ -19,7 +22,11 @@ export function CallBar({
   remoteParticipants,
   activeSpeakers,
   isMicEnabled,
+  isCameraEnabled,
+  isScreenShareEnabled,
   onToggleMic,
+  onToggleCamera,
+  onToggleScreenShare,
   onEndCall,
 }: Props) {
   return (
@@ -60,14 +67,34 @@ export function CallBar({
             size="icon"
             className="h-9 w-9 rounded-full"
             onClick={onToggleMic}
+            title={isMicEnabled ? "Skru av mikrofon" : "Skru på mikrofon"}
           >
             {isMicEnabled ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
+          </Button>
+          <Button
+            variant={isCameraEnabled ? "secondary" : "ghost"}
+            size="icon"
+            className="h-9 w-9 rounded-full"
+            onClick={onToggleCamera}
+            title={isCameraEnabled ? "Skru av kamera" : "Skru på kamera"}
+          >
+            {isCameraEnabled ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
+          </Button>
+          <Button
+            variant={isScreenShareEnabled ? "secondary" : "ghost"}
+            size="icon"
+            className="h-9 w-9 rounded-full"
+            onClick={onToggleScreenShare}
+            title={isScreenShareEnabled ? "Stopp skjermdeling" : "Del skjerm"}
+          >
+            <MonitorUp className="h-4 w-4" />
           </Button>
           <Button
             variant="destructive"
             size="icon"
             className="h-9 w-9 rounded-full"
             onClick={onEndCall}
+            title="Avslutt samtale"
           >
             <PhoneOff className="h-4 w-4" />
           </Button>

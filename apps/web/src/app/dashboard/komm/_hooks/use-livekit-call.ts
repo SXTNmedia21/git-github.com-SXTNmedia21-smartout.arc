@@ -18,6 +18,8 @@ type LiveKitCallState = {
   remoteParticipants: RemoteParticipant[];
   activeSpeakers: string[];
   isMicEnabled: boolean;
+  isCameraEnabled: boolean;
+  isScreenShareEnabled: boolean;
 };
 
 type UseLiveKitCallReturn = LiveKitCallState & {
@@ -25,6 +27,9 @@ type UseLiveKitCallReturn = LiveKitCallState & {
   disconnect: () => void;
   toggleMic: () => Promise<void>;
   setMicEnabled: (enabled: boolean) => Promise<void>;
+  toggleCamera: () => Promise<void>;
+  setCameraEnabled: (enabled: boolean) => Promise<void>;
+  toggleScreenShare: () => Promise<void>;
 };
 
 export function useLiveKitCall(): UseLiveKitCallReturn {
@@ -36,6 +41,8 @@ export function useLiveKitCall(): UseLiveKitCallReturn {
     remoteParticipants: [],
     activeSpeakers: [],
     isMicEnabled: false,
+    isCameraEnabled: false,
+    isScreenShareEnabled: false,
   });
 
   const updateParticipants = useCallback(() => {
@@ -46,6 +53,8 @@ export function useLiveKitCall(): UseLiveKitCallReturn {
       localParticipant: room.localParticipant,
       remoteParticipants: Array.from(room.remoteParticipants.values()),
       isMicEnabled: room.localParticipant.isMicrophoneEnabled,
+      isCameraEnabled: room.localParticipant.isCameraEnabled,
+      isScreenShareEnabled: room.localParticipant.isScreenShareEnabled,
     }));
   }, []);
 
@@ -53,6 +62,7 @@ export function useLiveKitCall(): UseLiveKitCallReturn {
     async (serverUrl: string, token: string) => {
       const room = new Room({
         audioCaptureDefaults: { autoGainControl: true, noiseSuppression: true },
+        videoCaptureDefaults: { resolution: { width: 1280, height: 720, frameRate: 30 } },
         adaptiveStream: true,
         dynacast: true,
       });
@@ -88,13 +98,15 @@ export function useLiveKitCall(): UseLiveKitCallReturn {
           remoteParticipants: [],
           activeSpeakers: [],
           isMicEnabled: false,
+          isCameraEnabled: false,
+          isScreenShareEnabled: false,
         }));
         roomRef.current = null;
       });
 
       await room.connect(serverUrl, token);
 
-      // Enable microphone after connecting
+      // Enable microphone after connecting (camera stays off by default)
       await room.localParticipant.setMicrophoneEnabled(true);
 
       setState((prev) => ({
@@ -103,6 +115,8 @@ export function useLiveKitCall(): UseLiveKitCallReturn {
         localParticipant: room.localParticipant,
         remoteParticipants: Array.from(room.remoteParticipants.values()),
         isMicEnabled: room.localParticipant.isMicrophoneEnabled,
+        isCameraEnabled: room.localParticipant.isCameraEnabled,
+        isScreenShareEnabled: room.localParticipant.isScreenShareEnabled,
       }));
     },
     [updateParticipants],
@@ -131,6 +145,29 @@ export function useLiveKitCall(): UseLiveKitCallReturn {
     setState((prev) => ({ ...prev, isMicEnabled: enabled }));
   }, []);
 
+  const toggleCamera = useCallback(async () => {
+    const room = roomRef.current;
+    if (!room) return;
+    const enabled = !room.localParticipant.isCameraEnabled;
+    await room.localParticipant.setCameraEnabled(enabled);
+    setState((prev) => ({ ...prev, isCameraEnabled: enabled }));
+  }, []);
+
+  const setCameraEnabled = useCallback(async (enabled: boolean) => {
+    const room = roomRef.current;
+    if (!room) return;
+    await room.localParticipant.setCameraEnabled(enabled);
+    setState((prev) => ({ ...prev, isCameraEnabled: enabled }));
+  }, []);
+
+  const toggleScreenShare = useCallback(async () => {
+    const room = roomRef.current;
+    if (!room) return;
+    const enabled = !room.localParticipant.isScreenShareEnabled;
+    await room.localParticipant.setScreenShareEnabled(enabled);
+    setState((prev) => ({ ...prev, isScreenShareEnabled: enabled }));
+  }, []);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -144,5 +181,8 @@ export function useLiveKitCall(): UseLiveKitCallReturn {
     disconnect,
     toggleMic,
     setMicEnabled,
+    toggleCamera,
+    setCameraEnabled,
+    toggleScreenShare,
   };
 }

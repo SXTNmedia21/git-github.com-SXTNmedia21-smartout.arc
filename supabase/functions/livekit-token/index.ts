@@ -64,19 +64,24 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Read channel audio policy for grant decisions
+    // Read channel policies for grant decisions
     const { data: channel } = await supabase
       .from("channel")
-      .select("audio_policy")
+      .select("audio_policy, video_policy")
       .eq("id", channelId)
       .single();
 
     const audioPolicy = channel?.audio_policy ?? "disabled";
-    if (audioPolicy === "disabled") {
-      return new Response(JSON.stringify({ error: "Voice is disabled for this channel" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    const videoPolicy = channel?.video_policy ?? "disabled";
+
+    if (audioPolicy === "disabled" && videoPolicy === "disabled") {
+      return new Response(
+        JSON.stringify({ error: "Voice and video are disabled for this channel" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
     const roomName = `${workspaceId}:${channelId}`;
@@ -97,14 +102,23 @@ Deno.serve(async (req: Request) => {
       },
     );
 
+    // Build publishable sources based on channel policies
+    const sources: string[] = [];
+    if (audioPolicy !== "disabled" && audioPolicy !== "listen_only") {
+      sources.push("microphone");
+    }
+    if (videoPolicy !== "disabled") {
+      sources.push("camera", "screen_share");
+    }
+
     at.addGrant({
       roomJoin: true,
       room: roomName,
-      canPublish: audioPolicy !== "listen_only",
+      canPublish: sources.length > 0,
       canSubscribe: true,
       canPublishData: true,
       canUpdateOwnMetadata: true,
-      canPublishSources: audioPolicy === "listen_only" ? [] : ["microphone"],
+      canPublishSources: sources,
     });
 
     const token = await at.toJwt();
