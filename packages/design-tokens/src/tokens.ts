@@ -152,3 +152,23 @@ export const shadows = {
     blue: "0 0 15px -3px rgba(59, 130, 246, 0.3)",
   },
 } as const;
+
+// -- Wizard Shell Theme Colors -----------------
+export const wizard = {
+  dark: {
+    bg: "oklch(0.12 0.02 50)",
+    sidebar: "oklch(0.08 0.01 50)",
+    text: "oklch(0.85 0 0)",
+    textMuted: "oklch(0.55 0 0)",
+    border: "oklch(0.2 0.01 50)",
+    stepPending: "oklch(0.35 0 0)",
+  },
+  warm: {
+    bg: "oklch(0.97 0.008 60)",
+    sidebar: "oklch(0.94 0.01 60)",
+    text: "oklch(0.2 0.02 50)",
+    textMuted: "oklch(0.5 0.02 50)",
+    border: "oklch(0.88 0.01 60)",
+    stepPending: "oklch(0.7 0.01 60)",
+  },
+} as const;
