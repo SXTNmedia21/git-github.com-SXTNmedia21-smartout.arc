@@ -21,23 +21,23 @@ export default function OmOssPage() {
   const trackCta = useTrackCta();
 
   return (
-    <div className="relative flex min-h-screen flex-col items-center overflow-hidden bg-[#050505] p-4 pt-24 font-sans text-zinc-100 selection:bg-orange-500/30 sm:p-6 md:p-12 md:pt-28">
+    <div className="bg-background text-foreground selection:bg-brand-orange/30 relative flex min-h-screen flex-col items-center overflow-hidden p-4 pt-24 font-sans sm:p-6 md:p-12 md:pt-28">
       <Navigation />
 
       {/* Dynamic Ambient Background */}
-      <div className="pointer-events-none fixed inset-0 z-0 bg-[#050505]">
+      <div className="bg-background pointer-events-none fixed inset-0 z-0">
         {/* Subtle Grid Pattern */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] bg-[size:24px_24px]"></div>
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,var(--color-foreground)_1px,transparent_1px),linear-gradient(to_bottom,var(--color-foreground)_1px,transparent_1px)] bg-[size:32px_32px] opacity-[0.03]"></div>
 
         {/* Glowing Orbs */}
-        <div className="absolute top-[10%] left-[20%] h-[30vw] w-[30vw] rounded-full bg-orange-600/10 mix-blend-screen blur-[120px]" />
-        <div className="absolute right-[10%] bottom-[20%] h-[40vw] w-[40vw] rounded-full bg-rose-600/10 mix-blend-screen blur-[150px]" />
+        <div className="bg-brand-orange/10 absolute top-[10%] left-[20%] h-[30vw] w-[30vw] rounded-full mix-blend-screen blur-[120px]" />
+        <div className="bg-primary/10 absolute right-[10%] bottom-[20%] h-[40vw] w-[40vw] rounded-full mix-blend-screen blur-[150px]" />
       </div>
 
       <div className="relative z-10 w-full max-w-5xl">
         <button
           onClick={() => router.back()}
-          className="mb-12 inline-flex items-center gap-2 text-zinc-400 transition-colors hover:text-white"
+          className="text-muted-foreground hover:text-foreground mb-12 inline-flex items-center gap-2 transition-colors"
         >
           <ArrowLeft className="h-5 w-5" />
           Tilbake til forside
@@ -47,22 +47,55 @@ export default function OmOssPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="mb-20 text-center"
+          className="mb-20"
         >
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-orange-500/20 bg-orange-500/10 px-3 py-1 text-sm font-bold tracking-widest text-orange-400 uppercase">
+          <div className="border-brand-orange/20 bg-brand-orange/10 text-brand-orange mb-6 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm font-bold tracking-widest uppercase">
             <Users className="h-4 w-4" /> Vår Historie
           </div>
-          <h1 className="mb-8 text-5xl font-black tracking-tighter text-white md:text-7xl">
-            Drevet av lidenskap <br className="hidden md:block" />
-            <span className="bg-gradient-to-r from-orange-400 to-rose-400 bg-clip-text text-transparent">
-              for gjestfrihet.
-            </span>
+          <h1 className="text-foreground mb-12 text-5xl font-black tracking-tighter md:text-7xl">
+            Skal jeg være <br className="hidden md:block" />
+            <span className="text-brand-orange">100% ærlig?</span>
           </h1>
-          <p className="mx-auto max-w-3xl text-xl leading-relaxed text-zinc-400">
-            Vi startet SmartOut fordi vi så at serveringsbransjen ble holdt tilbake av gamle,
-            fragmenterte systemer. Vår misjon er å gi restauranter, hoteller og barer teknologien de
-            fortjener.
-          </p>
+
+          <div className="text-muted-foreground max-w-3xl space-y-6 text-xl leading-relaxed">
+            <p>
+              Jeg har jobbet i denne bransjen i 20 år. De siste fire årene har vi bygget Smartout.
+              Og det har vært brutalt.
+            </p>
+            <p>
+              Å bygge et komplekst system fra bunnen av er utrolig vanskelig. Vi har gjort feil, og
+              jeg skal være ærlig:{" "}
+              <strong className="text-foreground font-semibold">
+                Jeg har mistet mange kunder på veien.
+              </strong>
+              Systemet var rett og slett ikke der det burde være i starten.
+            </p>
+            <p>
+              Men målet mitt var aldri å bygge enda en isolert app for vaktplanlegging, eller enda
+              en enkel oppgaveliste. Dem finnes det nok av.
+            </p>
+            <p>
+              For meg handlet det alltid om essensen. Alt det imellom. Informasjonsflyten. Momentet.
+              Å bygge et system som tar kontroll over det åpenbare, slik at du endelig kan fokusere
+              på folka dine og gjestene i stedet for papirarbeid.
+            </p>
+            <p className="text-foreground font-semibold">
+              Nå er endelig den kunstige intelligensen her. Teknologien har tatt igjen visjonen vi
+              har jobbet for i fire år. Og jeg lover deg – dette kommer til å endre bransjen vår.
+            </p>
+          </div>
+
+          <div className="mt-12 flex items-center gap-4">
+            <div className="bg-brand-orange/20 border-brand-orange/30 flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border-2">
+              <div className="text-brand-orange text-xl font-bold">P</div>
+            </div>
+            <div>
+              <div className="text-foreground text-lg font-bold">Pontus</div>
+              <div className="text-muted-foreground text-sm tracking-widest uppercase">
+                Gründer, Smartout
+              </div>
+            </div>
+          </div>
         </m.div>
 
         {/* Core Values Section */}

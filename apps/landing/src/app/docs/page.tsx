@@ -26,7 +26,7 @@ const quickCards: QuickCard[] = [
   {
     title: "Kom i gang",
     icon: Rocket,
-    color: "text-orange-400 bg-orange-500/10 border-orange-500/20",
+    color: "text-brand-orange bg-brand-orange/10 border-brand-orange/20",
     href: "/docs/kom-i-gang",
   },
   {
@@ -117,19 +117,19 @@ export default function DocsOverviewPage() {
   return (
     <div>
       {/* Title */}
-      <h1 className="mb-3 text-4xl font-black tracking-tighter text-white md:text-5xl">
+      <h1 className="text-foreground mb-3 text-4xl font-black tracking-tighter md:text-5xl">
         Oversikt: SmartOut
       </h1>
 
       {/* Subtitle */}
-      <div className="mb-10 rounded-xl border border-orange-500/20 bg-orange-500/5 px-5 py-3">
-        <p className="text-base font-medium text-orange-300">
+      <div className="border-brand-orange/20 bg-brand-orange/5 mb-10 rounded-xl border px-5 py-3">
+        <p className="text-brand-orange text-base font-medium">
           Gjør ansatte klare for jobb — trent, compliant, utstyrt og informert fra dag én.
         </p>
       </div>
 
       {/* Quick action cards */}
-      <div className="mb-12 grid grid-cols-3 gap-3">
+      <div className="mb-12 grid grid-cols-1 gap-3 sm:grid-cols-3">
         {quickCards.map((card) => (
           <Link
             key={card.href}
@@ -137,47 +137,47 @@ export default function DocsOverviewPage() {
             className={`group flex flex-col items-center gap-2 rounded-xl border p-5 transition-all hover:scale-[1.02] hover:shadow-lg ${card.color}`}
           >
             <card.icon className="h-6 w-6" />
-            <span className="text-sm font-bold text-white">{card.title}</span>
+            <span className="text-foreground text-sm font-bold">{card.title}</span>
           </Link>
         ))}
       </div>
 
       {/* Key features */}
-      <h2 className="mb-6 text-2xl font-bold tracking-tight text-white">Moduler</h2>
+      <h2 className="text-foreground mb-6 text-2xl font-bold tracking-tight">Moduler</h2>
 
       <div className="mb-12 space-y-0">
         {features.map((feature) => (
           <Link
             key={feature.href}
             href={feature.href}
-            className="group -mx-3 flex items-start gap-4 rounded-lg border-b border-white/5 px-3 py-4 transition-colors last:border-b-0 hover:bg-white/[0.02]"
+            className="group border-border/50 hover:bg-foreground/5 -mx-3 flex items-start gap-4 rounded-lg border-b px-3 py-4 transition-colors last:border-b-0"
           >
-            <feature.icon className="mt-0.5 h-5 w-5 shrink-0 text-zinc-500 transition-colors group-hover:text-orange-400" />
+            <feature.icon className="text-muted-foreground group-hover:text-brand-orange mt-0.5 h-5 w-5 shrink-0 transition-colors" />
             <div className="min-w-0 flex-1">
-              <span className="text-sm font-semibold text-white transition-colors group-hover:text-orange-300">
+              <span className="text-foreground group-hover:text-brand-orange text-sm font-semibold transition-colors">
                 {feature.title}
               </span>
-              <span className="mx-2 text-zinc-500">→</span>
-              <span className="text-sm text-zinc-400">{feature.description}</span>
+              <span className="text-muted-foreground mx-2">→</span>
+              <span className="text-muted-foreground text-sm">{feature.description}</span>
             </div>
-            <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-zinc-700 opacity-0 transition-all group-hover:text-orange-400 group-hover:opacity-100" />
+            <ArrowRight className="text-muted-foreground group-hover:text-brand-orange mt-1 h-4 w-4 shrink-0 opacity-0 transition-all group-hover:translate-x-1 group-hover:opacity-100" />
           </Link>
         ))}
       </div>
 
       {/* Separator */}
-      <hr className="mb-10 border-white/5" />
+      <hr className="border-border/50 mb-10" />
 
       {/* Docs agent */}
       <DocsAgentPanel />
 
       {/* Help */}
-      <div className="mt-12 border-t border-white/5 pt-6">
-        <p className="text-sm text-zinc-600">
+      <div className="border-border/50 mt-12 border-t pt-6">
+        <p className="text-muted-foreground text-sm">
           Finner du ikke det du leter etter?{" "}
           <Link
             href="/pricing"
-            className="font-medium text-orange-400 transition-colors hover:text-orange-300"
+            className="text-brand-orange hover:text-brand-orange/80 font-medium transition-colors"
           >
             Ta kontakt med oss
           </Link>

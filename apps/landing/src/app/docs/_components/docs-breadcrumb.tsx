@@ -28,11 +28,14 @@ export function DocsBreadcrumb() {
     <nav className="mb-8 flex items-center gap-1.5 text-sm">
       {crumbs.map((crumb, i) => (
         <span key={crumb.href} className="flex items-center gap-1.5">
-          {i > 0 && <ChevronRight className="h-3.5 w-3.5 text-zinc-700" />}
+          {i > 0 && <ChevronRight className="text-muted-foreground/40 h-3.5 w-3.5" />}
           {crumb.isLast ? (
-            <span className="font-medium text-zinc-300">{crumb.label}</span>
+            <span className="text-foreground font-medium">{crumb.label}</span>
           ) : (
-            <Link href={crumb.href} className="text-zinc-500 transition-colors hover:text-zinc-300">
+            <Link
+              href={crumb.href}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
               {crumb.label}
             </Link>
           )}

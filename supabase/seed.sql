@@ -1791,25 +1791,22 @@ VALUES
 -- ── 10.13 Shift Approvals (yesterday) ───────────────────────────
 INSERT INTO public.shift_approval (
   approval_id, reconciliation_id, shift_id, workspace_id,
-  punch_in, punch_out, planned_hours, calculated_hours, approved_hours,
+  planned_hours, calculated_hours, approved_hours,
   status, approved_by, approved_at
 ) VALUES
   -- Anna: Kitchen, approved as planned
   ('b3000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000001',
    'ae000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000000',
-   (CURRENT_DATE - 1 + TIME '09:58')::timestamptz, (CURRENT_DATE - 1 + TIME '18:05')::timestamptz,
    7.5, 7.62, 7.5,
    'approved', 'f0000000-0000-0000-0000-000000000000', (CURRENT_DATE + TIME '09:30')::timestamptz),
   -- Erik: Kitchen (closing), approved with edited overtime
   ('b3000000-0000-0000-0000-000000000002', 'b1000000-0000-0000-0000-000000000001',
    'ae000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000000',
-   (CURRENT_DATE - 1 + TIME '09:55')::timestamptz, (CURRENT_DATE - 1 + TIME '22:35')::timestamptz,
    11.5, 12.17, 11.5,
    'edited', 'f0000000-0000-0000-0000-000000000000', (CURRENT_DATE + TIME '09:30')::timestamptz),
   -- Kari: Service, pending (not yet approved)
   ('b3000000-0000-0000-0000-000000000003', 'b1000000-0000-0000-0000-000000000002',
    'ae000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000',
-   (CURRENT_DATE - 1 + TIME '16:02')::timestamptz, (CURRENT_DATE - 1 + TIME '23:10')::timestamptz,
    6.5, 6.63, NULL,
    'pending', NULL, NULL);
 

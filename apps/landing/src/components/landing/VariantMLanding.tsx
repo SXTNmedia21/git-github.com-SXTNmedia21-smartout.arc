@@ -20,6 +20,11 @@ import {
   BarChart3,
   BrainCircuit,
   Lock,
+  ShieldCheck,
+  GraduationCap,
+  SunSnow,
+  GitPullRequest,
+  Activity,
 } from "lucide-react";
 import Navigation from "../../components/navigation";
 import Footer from "../../components/footer";
@@ -256,6 +261,466 @@ export default function VariantMLanding() {
                   <div className="from-background absolute right-0 bottom-0 left-0 h-24 bg-gradient-to-t to-transparent" />
                 </div>
               </motion.div>
+            </div>
+          </div>
+        </section>
+
+        {/* 4.5. FEATURE: IK-MAT & HMS */}
+        <section className="border-border/50 bg-background relative w-full border-t py-24 sm:py-32">
+          <div className="mx-auto flex max-w-7xl flex-col-reverse items-center justify-between gap-16 px-6 lg:flex-row-reverse">
+            {/* Content Right */}
+            <div className="lg:w-1/2">
+              <SectionLabel>Full kontroll</SectionLabel>
+              <h2
+                className={`${instrumentSerif.className} mt-4 text-4xl leading-tight sm:text-5xl lg:text-6xl`}
+              >
+                Kast HMS-permen.
+              </h2>
+              <p className="text-muted-foreground mt-6 text-lg leading-relaxed">
+                IK-mat og internkontroll er ikke lenger støvete ringpermer. Smartout digitaliserer
+                temperatursjekker, avvik og renhold, og minner de ansatte på å utføre oppgavene til
+                rett tid. Når Mattilsynet banker på, er dokumentasjonen alltid 100% klar.
+              </p>
+
+              <ul className="mt-8 flex flex-col gap-4">
+                {[
+                  "Automatiske push-varsler for temperaturlogger",
+                  "Enkel registrering av avvik med mobilkamera",
+                  "Ferdige dokumentasjonspakker ved tilsyn",
+                ].map((item, i) => (
+                  <li key={i} className="text-foreground flex items-center gap-3 font-medium">
+                    <ShieldCheck className="text-success h-5 w-5 shrink-0" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Visual Left - Mockup Checklist */}
+            <div className="relative flex justify-center lg:w-1/2">
+              <div className="bg-success/5 absolute top-1/2 left-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full blur-[80px]" />
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                className="bg-card/40 border-border/60 relative z-10 w-full max-w-md overflow-hidden rounded-[2rem] border p-6 shadow-2xl backdrop-blur-xl"
+              >
+                <div className="mb-6 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-success/20 flex h-10 w-10 items-center justify-center rounded-xl">
+                      <ShieldCheck className="text-success h-5 w-5" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-bold">Daglig IK-Mat</div>
+                      <div className="text-muted-foreground text-xs">Forfaller kl 10:00</div>
+                    </div>
+                  </div>
+                  <div className="bg-success/10 text-success rounded-full px-3 py-1 text-xs font-bold tracking-wider uppercase">
+                    Pågår
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  {[
+                    { label: "Sjekk temperatur på kjølelager", done: true },
+                    { label: "Signer renholdsprotokoll", done: true },
+                    { label: "Kontroller mottak av varer", done: false },
+                  ].map((task, i) => (
+                    <div
+                      key={i}
+                      className="bg-background/50 flex items-center gap-4 rounded-xl p-4"
+                    >
+                      <div
+                        className={`flex h-6 w-6 items-center justify-center rounded-full border ${task.done ? "border-success bg-success/20" : "border-border"}`}
+                      >
+                        {task.done && <Check className="text-success h-3 w-3" />}
+                      </div>
+                      <span
+                        className={`text-sm ${task.done ? "text-muted-foreground line-through" : "text-foreground font-medium"}`}
+                      >
+                        {task.label}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            </div>
+          </div>
+        </section>
+
+        {/* 4.6. FEATURE: ONBOARDING & CONTINUOUS VERIFICATION */}
+        <section className="border-border/50 bg-background relative w-full border-t py-24 sm:py-32">
+          <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-16 px-6 lg:flex-row">
+            {/* Content Left */}
+            <div className="lg:w-1/2">
+              <SectionLabel>Cascade Onboarding</SectionLabel>
+              <h2
+                className={`${instrumentSerif.className} mt-4 text-4xl leading-tight sm:text-5xl lg:text-6xl`}
+              >
+                Kontinuerlig sertifisering.
+              </h2>
+              <p className="text-muted-foreground mt-6 text-lg leading-relaxed">
+                Glem det overflatiske &quot;Lest og forstått&quot;. Smartout bruker vår
+                &quot;Cascade&quot;-arkitektur for å sikre at personalet faktisk er kvalifisert. En
+                ansatt er kun merket &quot;Klar&quot; når alle policies er gjennomgått og kunnskap
+                er verifisert med signatur og test.
+              </p>
+
+              <ul className="mt-8 flex flex-col gap-4">
+                {[
+                  "Sømløs progresjon fra Policy til Protokoll",
+                  "Målbare 'Readiness Scores' for alle ansatte",
+                  "Gjensidig signering på kontrakter og vilkår",
+                ].map((item, i) => (
+                  <li key={i} className="text-foreground flex items-center gap-3 font-medium">
+                    <GraduationCap className="text-brand-orange h-5 w-5 shrink-0" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Visual Right - The Cascade Progress */}
+            <div className="relative flex justify-center lg:w-1/2">
+              <div className="bg-brand-orange/5 absolute top-1/2 left-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full blur-[80px]" />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                className="bg-card/40 border-border/60 relative z-10 w-full max-w-md overflow-hidden rounded-[2rem] border p-8 shadow-2xl backdrop-blur-xl"
+              >
+                <div className="mb-8 flex flex-col items-center text-center">
+                  <div className="border-border relative flex h-24 w-24 items-center justify-center rounded-full border-[6px]">
+                    <svg
+                      className="text-brand-orange absolute inset-0 h-full w-full -rotate-90 transform"
+                      viewBox="0 0 100 100"
+                    >
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r="46"
+                        fill="transparent"
+                        stroke="currentColor"
+                        strokeWidth="8"
+                        strokeDasharray="289"
+                        strokeDashoffset="40"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                    <span className="text-2xl font-black">86%</span>
+                  </div>
+                  <h4 className="mt-4 text-lg font-bold">Martin Johansen</h4>
+                  <p className="text-muted-foreground text-xs tracking-widest uppercase">
+                    Readiness Score
+                  </p>
+                </div>
+
+                <div className="before:bg-border/50 relative space-y-4 before:absolute before:inset-y-0 before:left-[15px] before:w-[2px]">
+                  {[
+                    { title: "Håndbok", status: "completed", date: "I går" },
+                    { title: "Sikkerhet og Rutiner", status: "completed", date: "I dag" },
+                    { title: "Alkoholloven test", status: "pending", date: "Mangler" },
+                  ].map((step, i) => (
+                    <div key={i} className="relative flex items-center gap-6 pl-10">
+                      <div
+                        className={`absolute top-1/2 left-0 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border-2 ${step.status === "completed" ? "border-brand-orange bg-brand-orange" : "border-border bg-card"}`}
+                      >
+                        {step.status === "completed" ? (
+                          <Check className="text-background h-4 w-4" />
+                        ) : (
+                          <div className="bg-border h-2 w-2 rounded-full" />
+                        )}
+                      </div>
+                      <div className="bg-background/50 flex w-full items-center justify-between rounded-xl p-3">
+                        <span
+                          className={`text-sm font-semibold ${step.status === "completed" ? "text-foreground" : "text-muted-foreground"}`}
+                        >
+                          {step.title}
+                        </span>
+                        <span className="text-muted-foreground text-xs">{step.date}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            </div>
+          </div>
+        </section>
+
+        {/* 4.7. FEATURE: SEASONS WITH FACTORS & CASCADE */}
+        <section className="border-border/50 bg-background relative w-full border-t py-24 sm:py-32">
+          <div className="mx-auto flex max-w-7xl flex-col-reverse items-center justify-between gap-16 px-6 lg:flex-row-reverse">
+            {/* Content Right */}
+            <div className="lg:w-1/2">
+              <SectionLabel>Dynamisk Drift</SectionLabel>
+              <h2
+                className={`${instrumentSerif.className} mt-4 text-4xl leading-tight sm:text-5xl lg:text-6xl`}
+              >
+                Sommer vs. Julebord.
+              </h2>
+              <p className="text-muted-foreground mt-6 text-lg leading-relaxed">
+                Vår Cascade-arkitektur lar deg endre driftsmodellen med ett klikk. Bytt fra en rolig
+                vintersesong til en hektisk sommer. Budsjett, dagsfaktorer og timefaktorer (Hour/Day
+                Factors) skalerer automatisk slik at AI-planleggeren vet akkurat hvor mange hoder
+                som trengs.
+              </p>
+
+              <ul className="mt-8 flex flex-col gap-4">
+                {[
+                  "Ferdige profiler for høysesong",
+                  "Automatisk beregning av timefaktor for omsetning",
+                  "Gjenspeiler den faktiske aktiviteten",
+                ].map((item, i) => (
+                  <li key={i} className="text-foreground flex items-center gap-3 font-medium">
+                    <SunSnow className="h-5 w-5 shrink-0 text-blue-400" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Visual Left - Season Toggle */}
+            <div className="relative flex justify-center lg:w-1/2">
+              <div className="absolute top-1/2 left-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-500/5 blur-[80px]" />
+              <motion.div
+                initial={{ opacity: 0, x: -30 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                className="bg-card/40 border-border/60 relative z-10 w-full max-w-md overflow-hidden rounded-[2rem] border p-8 shadow-2xl backdrop-blur-xl"
+              >
+                <div className="bg-background/80 mb-8 flex rounded-xl p-1">
+                  <div className="text-muted-foreground flex-1 cursor-pointer rounded-lg px-4 py-2 text-center text-sm font-semibold transition-colors hover:bg-white/5">
+                    Rolig sesong
+                  </div>
+                  <div className="bg-primary/20 text-primary border-primary/20 flex-1 rounded-lg border px-4 py-2 text-center text-sm font-bold shadow-sm">
+                    Høysesong
+                  </div>
+                </div>
+
+                <div className="mb-6 grid grid-cols-2 gap-4">
+                  <div className="bg-background/50 border-border/30 rounded-2xl border p-4 text-center">
+                    <div className="text-muted-foreground mb-1 text-[10px] font-bold tracking-wider uppercase">
+                      Dagsfaktor Fredag
+                    </div>
+                    <div className="text-foreground text-2xl font-black">1.8x</div>
+                  </div>
+                  <div className="bg-background/50 border-border/30 rounded-2xl border p-4 text-center">
+                    <div className="text-muted-foreground mb-1 text-[10px] font-bold tracking-wider uppercase">
+                      Forventet omsetning
+                    </div>
+                    <div className="text-success text-2xl font-black">145k</div>
+                  </div>
+                </div>
+
+                {/* Micro Graph */}
+                <div className="border-border/50 flex h-24 items-end justify-between gap-1 border-b pb-2">
+                  {[20, 30, 40, 70, 95, 100, 60].map((h, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ height: "20%" }}
+                      whileInView={{ height: `${h}%` }}
+                      viewport={{ once: true }}
+                      transition={{ delay: 0.5 + i * 0.1, duration: 0.8, type: "spring" }}
+                      className={`w-full rounded-t-sm ${i >= 4 ? "from-primary/60 to-primary/20 bg-gradient-to-t" : "from-foreground/10 to-foreground/5 bg-gradient-to-t"}`}
+                    />
+                  ))}
+                </div>
+                <div className="text-muted-foreground mt-2 flex justify-between text-[10px] font-semibold">
+                  <span>M</span>
+                  <span>T</span>
+                  <span>O</span>
+                  <span>T</span>
+                  <span className="text-primary">F</span>
+                  <span className="text-primary">L</span>
+                  <span>S</span>
+                </div>
+              </motion.div>
+            </div>
+          </div>
+        </section>
+
+        {/* 4.8. FEATURE: POLICY GATES & EVENT ENGINE */}
+        <section className="border-border/50 bg-background relative w-full border-t py-24 sm:py-32">
+          <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-16 px-6 lg:flex-row">
+            {/* Content Left */}
+            <div className="lg:w-1/2">
+              <SectionLabel>Smartout Engine</SectionLabel>
+              <h2
+                className={`${instrumentSerif.className} mt-4 text-4xl leading-tight sm:text-5xl lg:text-6xl`}
+              >
+                Den usynlige hjernen.
+              </h2>
+              <p className="text-muted-foreground mt-6 text-lg leading-relaxed">
+                Under panseret har vi en kraftig Event Engine som bygger på Policy Gates. Systemet
+                fanger opp hver minste hendelse – et avvik, et bytteforslag, en fraværsmelding – og
+                ruter informasjonen til nøyaktig den personen som har myndighet til å godkjenne det.
+                Ingenting faller mellom sprekkene.
+              </p>
+
+              <ul className="mt-8 flex flex-col gap-4">
+                {[
+                  "Hendelsesdrevet arkitektur som automatiserer flyt",
+                  "Strenge Policy-porter for hvem som ser hva",
+                  "Rett varsel, i rett kanal, til rett tid",
+                ].map((item, i) => (
+                  <li key={i} className="text-foreground flex items-center gap-3 font-medium">
+                    <GitPullRequest className="h-5 w-5 shrink-0 text-purple-400" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Visual Right - The Engine Flow */}
+            <div className="relative flex justify-center lg:w-1/2">
+              <div className="absolute top-1/2 left-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-purple-500/5 blur-[80px]" />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                className="bg-card/40 border-border/60 relative z-10 w-full max-w-md overflow-hidden rounded-[2rem] border p-8 shadow-2xl backdrop-blur-xl"
+              >
+                <div className="flex flex-col gap-4">
+                  {/* Event Source */}
+                  <div className="bg-background/80 border-border/50 relative z-10 flex items-center gap-4 rounded-xl border p-4">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-500/20">
+                      <Activity className="text-brand-orange h-5 w-5" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-bold">Event Triggered</div>
+                      <div className="text-muted-foreground text-xs">
+                        Ferieforespørsel registrert
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Flow arrow */}
+                  <div className="relative z-0 -my-2 flex justify-center">
+                    <div className="from-brand-orange h-8 w-[2px] bg-gradient-to-b to-purple-500" />
+                  </div>
+
+                  {/* Policy Gate */}
+                  <div className="relative z-10 flex items-center gap-4 rounded-xl border border-purple-500/20 bg-purple-500/10 p-4 shadow-[0_0_30px_-10px_rgba(168,85,247,0.3)]">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-500/20">
+                      <Lock className="h-5 w-5 text-purple-400" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-bold text-purple-300">Policy Gate Check</div>
+                      <div className="text-xs text-purple-400/70">
+                        Må godkjennes av avdelingsleder
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Flow arrow */}
+                  <div className="relative z-0 -my-2 flex justify-center">
+                    <div className="to-success h-8 w-[2px] bg-gradient-to-b from-purple-500" />
+                  </div>
+
+                  {/* Resolution */}
+                  <div className="bg-background/80 border-border/50 relative z-10 flex items-center gap-4 rounded-xl border p-4">
+                    <div className="bg-success/20 flex h-10 w-10 items-center justify-center rounded-full">
+                      <MessageSquare className="text-success h-5 w-5" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-bold">Rutet Action</div>
+                      <div className="text-muted-foreground text-xs">
+                        Push-varsel sendt til Lise
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          </div>
+        </section>
+
+        {/* 4.9. FOUNDER STORY - The Honest Truth */}
+        <section className="border-border/50 bg-background relative w-full overflow-hidden border-t py-24 sm:py-32">
+          <div className="from-foreground/[0.02] pointer-events-none absolute top-0 right-0 h-full w-1/2 bg-gradient-to-l to-transparent" />
+
+          <div className="mx-auto flex max-w-7xl flex-col items-center gap-16 px-6 lg:flex-row">
+            {/* Left - The Text */}
+            <div className="lg:w-3/5">
+              <SectionLabel>Visjonen</SectionLabel>
+              <h2
+                className={`${instrumentSerif.className} mt-4 text-4xl leading-tight sm:text-5xl lg:text-6xl`}
+              >
+                Vi bygger ikke bare et system. <br />
+                <span className="text-brand-orange">Vi bygger det imellom.</span>
+              </h2>
+
+              <div className="text-muted-foreground mt-8 space-y-6 text-lg leading-relaxed sm:text-xl">
+                <p>
+                  Målet mitt var aldri å bygge enda en isolert app for vaktplanlegging eller enkle
+                  sjekklister. Dem finnes det nok av.
+                </p>
+                <p>
+                  For meg handler det om essensen. Informasjonsflyten. Momentet. Jeg ønsker å gi deg
+                  et verktøy som tar kontroll over alt det åpenbare, slik at du endelig kan fokusere
+                  på folka dine og gjestene i stedet for papirarbeid.
+                </p>
+                <p className="text-foreground font-semibold">
+                  Velkommen til fremtidens restaurantdrift.
+                </p>
+              </div>
+
+              <div className="mt-10 flex items-center gap-4">
+                <div className="bg-brand-orange/20 border-brand-orange/30 flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border-2">
+                  {/* Faux image placeholder for Pontus */}
+                  <div className="text-brand-orange text-xl font-bold">P</div>
+                </div>
+                <div>
+                  <div className="text-foreground text-lg font-bold">Pontus</div>
+                  <div className="text-muted-foreground text-sm tracking-widest uppercase">
+                    Gründer, Smartout
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right - Customer Stories (Social Proof) */}
+            <div className="flex w-full flex-col gap-6 lg:w-2/5">
+              {[
+                {
+                  quote:
+                    "Det føles som å få en ekstra restaurantsjef på jobb. Lise ser ting vi andre glemmer i farten.",
+                  author: "Driftssjef",
+                  company: "Café Oslo",
+                },
+                {
+                  quote:
+                    "Vi gikk fra 5 forskjellige systemer og konstant frustrasjon, til én plattform hvor alt bare flyter.",
+                  author: "Daglig Leder",
+                  company: "Restaurantgruppen",
+                },
+                {
+                  quote:
+                    "Lønnskostnadene gikk ned 15% den første måneden bare fordi AI-en traff bedre på bemanningsbehovet enn vi gjorde manuelt.",
+                  author: "Eier",
+                  company: "Burger Bar",
+                },
+              ].map((story, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, x: 20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.15 }}
+                  className="bg-card/40 border-border/50 group relative overflow-hidden rounded-[2rem] border p-8"
+                >
+                  <div className="bg-brand-orange/5 group-hover:bg-brand-orange/10 absolute top-0 right-0 h-24 w-24 rounded-full blur-2xl transition-all" />
+                  <MessageSquare className="text-brand-orange/30 mb-4 h-8 w-8" />
+                  <p className="text-foreground relative z-10 mb-6 text-lg leading-relaxed font-medium">
+                    {`"${story.quote}"`}
+                  </p>
+                  <div className="relative z-10 flex items-center justify-between">
+                    <span className="text-muted-foreground font-semibold">{story.author}</span>
+                    <span className="text-brand-orange text-sm font-bold tracking-widest uppercase">
+                      {story.company}
+                    </span>
+                  </div>
+                </motion.div>
+              ))}
             </div>
           </div>
         </section>

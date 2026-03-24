@@ -13,7 +13,7 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
   const navigation = getUserManualNavigation();
 
   return (
-    <div className="flex min-h-screen bg-[#050505] text-white">
+    <div className="bg-background text-foreground flex min-h-screen font-sans">
       <FullTracker />
       <DocsSidebar navigation={navigation} />
 

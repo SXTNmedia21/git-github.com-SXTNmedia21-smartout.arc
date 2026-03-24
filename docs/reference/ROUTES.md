@@ -140,6 +140,16 @@ All routes for the web dashboard (`apps/web`), landing page (`apps/landing`), an
 | ------------------- | ------ | ---------------------- |
 | `/api/wizard/start` | POST   | Workspace setup wizard |
 
+### Channel Calls
+
+| Route                             | Method | Purpose                            |
+| --------------------------------- | ------ | ---------------------------------- |
+| `/api/channels/[id]/call/start`   | POST   | Start call (proxy to call-command) |
+| `/api/channels/[id]/call/token`   | POST   | Get LiveKit token (proxy to EF)    |
+| `/api/channels/[id]/call/respond` | POST   | Accept/reject/cancel (proxy to EF) |
+| `/api/channels/[id]/call/status`  | GET    | Active call session for channel    |
+| `/api/channels/[id]/call/history` | GET    | Call log history for channel       |
+
 ### Content
 
 | Route                 | Method | Purpose         |
@@ -241,11 +251,12 @@ All routes for the web dashboard (`apps/web`), landing page (`apps/landing`), an
 
 ---
 
-## Supabase Edge Functions (16)
+## Supabase Edge Functions (19)
 
 | Function                        | Purpose                                           |
 | ------------------------------- | ------------------------------------------------- |
 | `accept-invitation`             | Process invitation acceptance, create profile     |
+| `call-command`                  | Call orchestration: start + respond (JWT auth)    |
 | `activate-workspace`            | Workspace activation flow                         |
 | `analyze-workspace`             | Workspace analysis                                |
 | `contract-lifecycle`            | Contract state machine                            |
@@ -255,6 +266,8 @@ All routes for the web dashboard (`apps/web`), landing page (`apps/landing`), an
 | `finalize-workspace`            | Finalize workspace setup                          |
 | `fire-delayed-triggers`         | Cron: poll engine_delayed_trigger, fire due items |
 | `gather-workspace-intelligence` | Workspace intelligence gathering                  |
+| `livekit-token`                 | Mint LiveKit access tokens (JWT auth)             |
+| `livekit-webhook`               | LiveKit webhook receiver (HMAC, no JWT)           |
 | `health-check`                  | Edge function health check                        |
 | `scrape-raw-data`               | Web scraping                                      |
 | `validate-api-key`              | API key validation for workspace-api gateway      |

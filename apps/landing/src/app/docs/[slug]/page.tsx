@@ -53,16 +53,16 @@ export default async function DocsManualPage({ params }: DocsManualPageProps) {
       </div>
 
       {(prev || next) && (
-        <div className="mt-16 flex items-stretch justify-between gap-4 border-t border-white/5 pt-8">
+        <div className="border-border/50 mt-16 flex items-stretch justify-between gap-4 border-t pt-8">
           {prev ? (
             <Link
               href={`/docs/${prev.slug}`}
-              className="group flex items-center gap-3 text-sm text-zinc-500 transition-colors hover:text-white"
+              className="group text-muted-foreground hover:text-foreground flex items-center gap-3 text-sm transition-colors"
             >
               <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
               <div>
-                <span className="block text-xs text-zinc-600">Forrige</span>
-                <span className="font-semibold text-zinc-300 transition-colors group-hover:text-white">
+                <span className="block text-xs opacity-60">Forrige</span>
+                <span className="text-foreground/80 group-hover:text-foreground font-semibold transition-colors">
                   {prev.title}
                 </span>
               </div>
@@ -73,11 +73,11 @@ export default async function DocsManualPage({ params }: DocsManualPageProps) {
           {next ? (
             <Link
               href={`/docs/${next.slug}`}
-              className="group flex items-center gap-3 text-right text-sm text-zinc-500 transition-colors hover:text-white"
+              className="group text-muted-foreground hover:text-foreground flex items-center gap-3 text-right text-sm transition-colors"
             >
               <div>
-                <span className="block text-xs text-zinc-600">Neste</span>
-                <span className="font-semibold text-zinc-300 transition-colors group-hover:text-white">
+                <span className="block text-xs opacity-60">Neste</span>
+                <span className="text-foreground/80 group-hover:text-foreground font-semibold transition-colors">
                   {next.title}
                 </span>
               </div>

@@ -483,3 +483,27 @@ verify_jwt = false
 
 [functions.push-dispatch]
 verify_jwt = false
+
+[functions.livekit-token]
+verify_jwt = true
+
+[functions.livekit-webhook]
+verify_jwt = false
+
+[functions.call-command]
+verify_jwt = true
+
+[functions.bootstrap-cascade]
+verify_jwt = false
+
+[functions.contract-lifecycle]
+verify_jwt = false
+
+[functions.health-check]
+verify_jwt = false
+
+[functions.watchdog-integrity]
+verify_jwt = false
+
+[functions.watchdog-uptime]
+verify_jwt = false

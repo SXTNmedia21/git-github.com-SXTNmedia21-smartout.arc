@@ -5,44 +5,10 @@ import { Users, Star, ShieldCheck, Mail } from "lucide-react";
 import { PeopleDataTable } from "./_components/people-data-table";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { createClient } from "@smartout/supabase/client";
+import { fetchWorkspacePeople } from "@smartout/utils";
 import type { Employee, Department, ProfileRole } from "./_components/types";
 
 type MetricFilter = "all" | "active" | "readiness" | "invites";
-
-type ProfileRow = {
-  profile_id: string;
-  display_name: string;
-  job_title: string | null;
-  role: string;
-  status: string;
-  avatar_url: string | null;
-  department_id: string | null;
-  address_line_1: string | null;
-  postal_code: string | null;
-  city: string | null;
-  personal_number: string | null;
-  bank_account: string | null;
-  is_active: boolean;
-  department: { name: string } | null;
-  user_identity: {
-    email: string;
-    phone: string | null;
-    emergency_contact_name: string | null;
-    emergency_contact_phone: string | null;
-  } | null;
-};
-
-type InvitationRow = {
-  invitation_id: string;
-  email: string;
-  first_name: string | null;
-  last_name: string | null;
-  role: string;
-  department_ids: string[] | null;
-  status: string;
-  token: string;
-  expires_at: string;
-};
 
 export default function PeoplePage() {
   const [isCompact, setIsCompact] = useState(false);
@@ -59,92 +25,66 @@ export default function PeoplePage() {
     if (!workspaceData?.workspace_id) return;
     const supabase = createClient();
 
-    const [profilesRes, deptsRes, invitesRes] = await Promise.all([
-      supabase
-        .from("profile")
-        .select(
-          `profile_id, display_name, job_title, role, status, avatar_url,
-           department_id, address_line_1, postal_code, city,
-           personal_number, bank_account, is_active,
-           department:department_id(name),
-           user_identity:user_id(email, phone, emergency_contact_name, emergency_contact_phone)`,
-        )
-        .eq("workspace_id", workspaceData.workspace_id)
-        .returns<ProfileRow[]>(),
-      supabase
-        .from("department")
-        .select("department_id, name")
-        .eq("workspace_id", workspaceData.workspace_id)
-        .order("sort_order"),
-      supabase
-        .from("invitation")
-        .select(
-          "invitation_id, email, first_name, last_name, role, department_ids, status, token, expires_at",
-        )
-        .eq("workspace_id", workspaceData.workspace_id)
-        .eq("status", "pending")
-        .returns<InvitationRow[]>(),
-    ]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = await fetchWorkspacePeople(supabase as any, workspaceData.workspace_id);
 
-    if (profilesRes.data) {
-      const currentProfile = profileId
-        ? profilesRes.data.find((profile) => profile.profile_id === profileId)
-        : undefined;
-      if (currentProfile) {
-        setCurrentUserRole(currentProfile.role as ProfileRole);
-      }
-
-      const mapped: Employee[] = profilesRes.data.map((p) => {
-        const dept = p.department;
-        const ui = p.user_identity;
-        const addressParts = [p.address_line_1, p.postal_code, p.city].filter(Boolean);
-
-        return {
-          id: p.profile_id,
-          profileId: p.profile_id,
-          name: p.display_name,
-          email: ui?.email ?? "",
-          role: p.job_title ?? p.role,
-          department: dept?.name ?? "",
-          departmentId: p.department_id,
-          status: p.status as Employee["status"],
-          avatar: p.avatar_url ?? undefined,
-          phone: ui?.phone ?? undefined,
-          address: addressParts.length > 0 ? addressParts.join(", ") : undefined,
-          personalNumber: p.personal_number ?? undefined,
-          bankAccount: p.bank_account ?? undefined,
-          emergencyContactName: ui?.emergency_contact_name ?? undefined,
-          emergencyContactPhone: ui?.emergency_contact_phone ?? undefined,
-          hasContract: false,
-        };
-      });
-      setEmployees(mapped);
+    // Determine current user's role
+    const currentProfile = profileId
+      ? result.profiles.find((p) => p.profile_id === profileId)
+      : undefined;
+    if (currentProfile) {
+      setCurrentUserRole(currentProfile.role as ProfileRole);
     }
 
-    if (deptsRes.data) {
-      setDepartments(deptsRes.data);
-    }
+    // Map profiles to Employee type with real readiness and contract data
+    const mapped: Employee[] = result.profiles.map((p) => {
+      const dept = p.department;
+      const ui = p.user_identity;
+      const addressParts = [p.address_line_1, p.postal_code, p.city].filter(Boolean);
 
-    if (invitesRes.data) {
-      const mappedInvites: Employee[] = invitesRes.data.map((inv) => {
-        const isExpired = new Date(inv.expires_at) < new Date();
-        return {
-          id: inv.invitation_id,
-          name: [inv.first_name, inv.last_name].filter(Boolean).join(" ") || inv.email,
-          email: inv.email,
-          role: inv.role,
-          department: "",
-          departmentId: inv.department_ids?.[0] ?? null,
-          status: "invited" as const,
-          inviteStatus: isExpired ? ("expired" as const) : ("pending" as const),
-          inviteToken: inv.token,
-          readinessScore: 0,
-          hasContract: false,
-        };
-      });
-      setInvitations(mappedInvites);
-    }
+      return {
+        id: p.profile_id,
+        profileId: p.profile_id,
+        name: p.display_name,
+        email: ui?.email ?? "",
+        role: p.job_title ?? p.role,
+        department: dept?.name ?? "",
+        departmentId: p.department_id,
+        departments: p.departments ?? undefined,
+        status: p.status as Employee["status"],
+        avatar: p.avatar_url ?? undefined,
+        phone: ui?.phone ?? undefined,
+        address: addressParts.length > 0 ? addressParts.join(", ") : undefined,
+        personalNumber: p.personal_number ?? undefined,
+        bankAccount: p.bank_account ?? undefined,
+        emergencyContactName: ui?.emergency_contact_name ?? undefined,
+        emergencyContactPhone: ui?.emergency_contact_phone ?? undefined,
+        readinessScore: result.readinessMap.get(p.profile_id),
+        hasContract: result.contractProfileIds.has(p.profile_id),
+      };
+    });
+    setEmployees(mapped);
+    setDepartments(result.departments);
 
+    // Map invitations — exclude readinessScore (undefined = N/A)
+    const mappedInvites: Employee[] = result.invitations.map((inv) => {
+      const isExpired = new Date(inv.expires_at) < new Date();
+      return {
+        id: inv.invitation_id,
+        name: [inv.first_name, inv.last_name].filter(Boolean).join(" ") || inv.email,
+        email: inv.email,
+        role: inv.role,
+        department: "",
+        departmentId: inv.department_ids?.[0] ?? null,
+        status: "invited" as const,
+        inviteStatus: isExpired ? ("expired" as const) : ("pending" as const),
+        inviteToken: inv.token,
+        inviteExpiresAt: inv.expires_at,
+        inviteType: (inv.invite_type as Employee["inviteType"]) ?? undefined,
+        hasContract: false,
+      };
+    });
+    setInvitations(mappedInvites);
     setLoading(false);
   }, [workspaceData?.workspace_id, profileId]);
 
@@ -185,25 +125,21 @@ export default function PeoplePage() {
         {/* Total Staff */}
         <div
           onClick={() => handleCardClick("all")}
-          className={`${cardBase(activeFilter === "all")} ${isDark ? "border-zinc-800/50 bg-zinc-950" : "border-zinc-200 bg-white"}`}
+          className={`${cardBase(activeFilter === "all")} border-border/50 bg-background`}
         >
           <div className="absolute -top-4 -right-4 h-24 w-24 rounded-full bg-orange-500/10 blur-2xl transition-colors group-hover:bg-orange-500/20" />
           <div className="relative z-10 mb-3 flex items-center gap-3">
             <div
-              className={`rounded-lg border p-2 ${isDark ? "border-zinc-800 bg-zinc-900 text-zinc-400" : "border-orange-100 bg-orange-50 text-orange-600"}`}
+              className={`rounded-lg border p-2 ${isDark ? "border-border bg-secondary text-muted-foreground" : "border-orange-100 bg-orange-50 text-orange-600"}`}
             >
               <Users className="h-4 w-4" />
             </div>
-            <h3
-              className={`text-xs font-bold tracking-widest uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-            >
+            <h3 className="text-muted-foreground text-xs font-bold tracking-widest uppercase">
               Total Staff
             </h3>
           </div>
           <div className="relative z-10 flex items-end gap-2">
-            <span
-              className={`text-3xl leading-none font-bold ${isDark ? "text-white" : "text-zinc-900"}`}
-            >
+            <span className="text-foreground text-3xl leading-none font-bold">
               {employees.length}
             </span>
           </div>
@@ -212,71 +148,51 @@ export default function PeoplePage() {
         {/* Active Now */}
         <div
           onClick={() => handleCardClick("active")}
-          className={`${cardBase(activeFilter === "active")} ${isDark ? "border-zinc-800/50 bg-zinc-950" : "border-zinc-200 bg-white"}`}
+          className={`${cardBase(activeFilter === "active")} border-border/50 bg-background`}
         >
           <div className="absolute -top-4 -right-4 h-24 w-24 rounded-full bg-emerald-500/10 blur-2xl transition-colors group-hover:bg-emerald-500/20" />
           <div className="relative z-10 mb-3 flex items-center gap-3">
             <div
-              className={`rounded-lg border p-2 ${isDark ? "border-zinc-800 bg-zinc-900 text-zinc-400" : "border-emerald-100 bg-emerald-50 text-emerald-600"}`}
+              className={`rounded-lg border p-2 ${isDark ? "border-border bg-secondary text-muted-foreground" : "border-emerald-100 bg-emerald-50 text-emerald-600"}`}
             >
               <Star className="h-4 w-4" />
             </div>
-            <h3
-              className={`text-xs font-bold tracking-widest uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-            >
+            <h3 className="text-muted-foreground text-xs font-bold tracking-widest uppercase">
               Active Now
             </h3>
           </div>
           <div className="relative z-10 flex items-end gap-2">
-            <span
-              className={`text-3xl leading-none font-bold ${isDark ? "text-white" : "text-zinc-900"}`}
-            >
-              {activeCount}
-            </span>
-            <span
-              className={`mb-0.5 text-sm font-medium ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-            >
-              clocked in
-            </span>
+            <span className="text-foreground text-3xl leading-none font-bold">{activeCount}</span>
+            <span className="text-muted-foreground mb-0.5 text-sm font-medium">clocked in</span>
           </div>
         </div>
 
         {/* Avg Readiness */}
         <div
           onClick={() => handleCardClick("readiness")}
-          className={`${cardBase(activeFilter === "readiness")} ${isDark ? "border-zinc-800/50 bg-zinc-950" : "border-zinc-200 bg-white"}`}
+          className={`${cardBase(activeFilter === "readiness")} border-border/50 bg-background`}
         >
           <div className="absolute -top-4 -right-4 h-24 w-24 rounded-full bg-blue-500/10 blur-2xl transition-colors group-hover:bg-blue-500/20" />
           <div className="relative z-10 mb-3 flex items-center gap-3">
             <div
-              className={`rounded-lg border p-2 ${isDark ? "border-zinc-800 bg-zinc-900 text-zinc-400" : "border-blue-100 bg-blue-50 text-blue-600"}`}
+              className={`rounded-lg border p-2 ${isDark ? "border-border bg-secondary text-muted-foreground" : "border-blue-100 bg-blue-50 text-blue-600"}`}
             >
               <ShieldCheck className="h-4 w-4" />
             </div>
-            <h3
-              className={`text-xs font-bold tracking-widest uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-            >
+            <h3 className="text-muted-foreground text-xs font-bold tracking-widest uppercase">
               Avg Readiness
             </h3>
           </div>
           <div className="relative z-10 flex items-end gap-2">
-            <span
-              className={`text-3xl leading-none font-bold ${isDark ? "text-white" : "text-zinc-900"}`}
-            >
-              {avgReadiness}%
-            </span>
-            <span
-              className={`mb-0.5 text-sm font-medium ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-            >
-              workspace
-            </span>
+            <span className="text-foreground text-3xl leading-none font-bold">{avgReadiness}%</span>
+            <span className="text-muted-foreground mb-0.5 text-sm font-medium">workspace</span>
           </div>
         </div>
 
         {/* Pending Invites */}
         <div
           onClick={() => handleCardClick("invites")}
-          className={`${cardBase(activeFilter === "invites")} ${isDark ? "border-zinc-800/50 bg-zinc-950" : "border-zinc-200 bg-white hover:border-zinc-300"}`}
+          className={`${cardBase(activeFilter === "invites")} border-border/50 bg-background`}
         >
           <div className="absolute -top-4 -right-4 h-24 w-24 rounded-full bg-rose-500/10 blur-2xl transition-colors group-hover:bg-rose-500/20" />
           <div className="relative z-10 mb-3 flex items-center justify-between">
@@ -284,20 +200,16 @@ export default function PeoplePage() {
               <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 p-2 text-rose-500">
                 <Mail className="h-4 w-4" />
               </div>
-              <h3
-                className={`text-xs font-bold tracking-widest uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-              >
+              <h3 className="text-muted-foreground text-xs font-bold tracking-widest uppercase">
                 Pending Invites
               </h3>
             </div>
           </div>
           <div className="relative z-10 flex items-end gap-2">
             <span className="text-3xl leading-none font-bold text-rose-400">
-              {invitations.length}
+              {invitations.filter((i) => i.inviteStatus !== "expired").length}
             </span>
-            <span
-              className={`mb-0.5 text-sm font-medium ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-            >
+            <span className="text-muted-foreground mb-0.5 text-sm font-medium">
               awaiting signup
             </span>
           </div>

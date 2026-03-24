@@ -8,4 +8,8 @@ export const channelKeys = {
   members: (workspaceId: string, channelId: string) =>
     ["channels", "members", workspaceId, channelId] as const,
   unread: (workspaceId: string) => ["channels", "unread", workspaceId] as const,
+  callStatus: (workspaceId: string, channelId: string) =>
+    ["channels", "call-status", workspaceId, channelId] as const,
+  callHistory: (workspaceId: string, channelId: string) =>
+    ["channels", "call-history", workspaceId, channelId] as const,
 };

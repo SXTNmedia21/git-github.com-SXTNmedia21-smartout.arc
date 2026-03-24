@@ -2,7 +2,6 @@
 
 import {
   X,
-  FileText,
   CheckCircle2,
   Clock,
   AlertTriangle,
@@ -19,10 +18,10 @@ import {
   Wallet,
   Loader2,
 } from "lucide-react";
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { createClient } from "@smartout/supabase/client";
-import { DashboardContext } from "@/components/dashboard/DashboardShell";
+
 import type { Employee, Department } from "./types";
 
 interface EmployeeProfileCardProps {
@@ -40,7 +39,6 @@ export function EmployeeProfileCard({
   onClose,
   onRefresh,
 }: EmployeeProfileCardProps) {
-  const { isDark } = useContext(DashboardContext);
   const [activeTab, setActiveTab] = useState<"overview" | "competence" | "hr" | "settings">(
     "overview",
   );
@@ -176,27 +174,21 @@ export function EmployeeProfileCard({
   return (
     <>
       <div
-        className={`fixed inset-0 z-40 ${isDark ? "bg-zinc-950/60" : "bg-zinc-800/20"} animate-in fade-in backdrop-blur-sm transition-opacity duration-300`}
+        className="animate-in fade-in fixed inset-0 z-40 bg-black/40 backdrop-blur-sm transition-opacity duration-300"
         onClick={onClose}
       />
-      <div
-        className={`fixed inset-y-2 right-2 z-50 w-full max-w-md ${isDark ? "border-zinc-800 bg-[#0a0a0c]" : "border-zinc-200 bg-white"} animate-in slide-in-from-right-8 flex transform flex-col overflow-hidden rounded-2xl border shadow-2xl transition-transform duration-300`}
-      >
+      <div className="border-border bg-background animate-in slide-in-from-right-8 fixed inset-y-2 right-2 z-50 flex w-full max-w-md transform flex-col overflow-hidden rounded-2xl border shadow-2xl transition-transform duration-300">
         {/* Header */}
-        <div
-          className={`relative h-32 border-b bg-gradient-to-br ${isDark ? "border-zinc-800/50 from-zinc-800 to-zinc-900" : "border-zinc-200 from-zinc-100 to-zinc-200"}`}
-        >
+        <div className="border-border/50 from-muted to-card relative h-32 border-b bg-gradient-to-br">
           <button
             onClick={onClose}
-            className={`absolute top-4 right-4 rounded-full p-2 backdrop-blur-md transition-colors ${isDark ? "bg-black/20 text-white/70 hover:bg-black/40 hover:text-white" : "border border-zinc-200/50 bg-white/50 text-zinc-600 shadow-sm hover:bg-white/80 hover:text-zinc-900"}`}
+            className="bg-background/50 text-muted-foreground hover:bg-background/80 hover:text-foreground border-border/50 absolute top-4 right-4 rounded-full border p-2 shadow-sm backdrop-blur-md transition-colors"
           >
             <X className="h-4 w-4" />
           </button>
 
           <div className="absolute -bottom-10 left-6 flex items-end gap-4">
-            <div
-              className={`relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-4 text-2xl font-bold shadow-xl ${isDark ? "border-[#0a0a0c] bg-zinc-800 text-zinc-300" : "border-white bg-zinc-100 text-zinc-600"}`}
-            >
+            <div className="border-background bg-muted text-muted-foreground relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-4 text-2xl font-bold shadow-xl">
               {employee.avatar ? (
                 // eslint-disable-next-line -- suppress no-img-element: dynamic user avatar with unknown dimensions; next/image requires explicit width/height
                 <img
@@ -208,18 +200,12 @@ export function EmployeeProfileCard({
                 <span className="relative z-10">{employee.name.charAt(0)}</span>
               )}
               {employee.status === "active" && (
-                <div
-                  className={`absolute right-1 bottom-1 z-20 h-3 w-3 rounded-full border-2 bg-emerald-500 ${isDark ? "border-[#0a0a0c]" : "border-white"}`}
-                />
+                <div className="border-background absolute right-1 bottom-1 z-20 h-3 w-3 rounded-full border-2 bg-emerald-500" />
               )}
             </div>
 
             <div className="mb-2">
-              <h2
-                className={`text-xl leading-tight font-bold ${isDark ? "text-white" : "text-zinc-900"}`}
-              >
-                {employee.name}
-              </h2>
+              <h2 className="text-foreground text-xl leading-tight font-bold">{employee.name}</h2>
               <p className="text-sm font-medium text-orange-400">{employee.role}</p>
             </div>
           </div>
@@ -229,9 +215,9 @@ export function EmployeeProfileCard({
         <div className="px-6 pt-14 pb-4">
           <div className="grid grid-cols-3 gap-3">
             <div
-              className={`${isDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-zinc-50"} flex flex-col items-center justify-center rounded-xl border p-3 text-center`}
+              className={`border-border bg-card flex flex-col items-center justify-center rounded-xl border p-3 text-center`}
             >
-              <span className="mb-1 text-xs font-semibold tracking-widest text-zinc-500 uppercase">
+              <span className="text-muted-foreground mb-1 text-xs font-semibold tracking-widest uppercase">
                 Readiness
               </span>
               <div className="flex items-center gap-1.5">
@@ -243,24 +229,35 @@ export function EmployeeProfileCard({
               </div>
             </div>
             <div
-              className={`${isDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-zinc-50"} flex flex-col items-center justify-center rounded-xl border p-3 text-center`}
+              className={`border-border bg-card flex flex-col items-center justify-center rounded-xl border p-3 text-center`}
             >
-              <span className="mb-1 text-xs font-semibold tracking-widest text-zinc-500 uppercase">
-                Hours
-              </span>
-              <span className={`text-lg font-bold ${isDark ? "text-white" : "text-zinc-900"}`}>
-                142<span className="ml-0.5 text-xs font-normal text-zinc-500">h</span>
-              </span>
+              {employee.status === "invited" ? (
+                <>
+                  <span className="text-muted-foreground mb-1 text-xs font-semibold tracking-widest uppercase">
+                    Invite
+                  </span>
+                  <span
+                    className={`text-sm font-bold ${employee.inviteStatus === "expired" ? "text-rose-400" : "text-orange-400"}`}
+                  >
+                    {employee.inviteStatus === "expired" ? "Expired" : "Pending"}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="text-muted-foreground mb-1 text-xs font-semibold tracking-widest uppercase">
+                    Hours
+                  </span>
+                  <span className="text-foreground text-lg font-bold">—</span>
+                </>
+              )}
             </div>
             <div
-              className={`${isDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-zinc-50"} flex flex-col items-center justify-center rounded-xl border p-3 text-center`}
+              className={`border-border bg-card flex flex-col items-center justify-center rounded-xl border p-3 text-center`}
             >
-              <span className="mb-1 text-xs font-semibold tracking-widest text-zinc-500 uppercase">
+              <span className="text-muted-foreground mb-1 text-xs font-semibold tracking-widest uppercase">
                 Dept
               </span>
-              <span
-                className={`w-full truncate px-1 text-sm font-bold ${isDark ? "text-white" : "text-zinc-900"}`}
-              >
+              <span className="text-foreground w-full truncate px-1 text-sm font-bold">
                 {employee.department}
               </span>
             </div>
@@ -268,13 +265,11 @@ export function EmployeeProfileCard({
         </div>
 
         {/* Tabs */}
-        <div
-          className={`no-scrollbar overflow-x-auto border-b px-6 ${isDark ? "border-zinc-800" : "border-zinc-200"}`}
-        >
+        <div className="no-scrollbar border-border overflow-x-auto border-b px-6">
           <div className="flex min-w-max gap-6">
             <button
               onClick={() => setActiveTab("overview")}
-              className={`relative pb-3 text-sm font-semibold transition-colors ${activeTab === "overview" ? (isDark ? "text-white" : "text-zinc-900") : isDark ? "text-zinc-500 hover:text-zinc-300" : "text-zinc-500 hover:text-zinc-700"}`}
+              className={`relative pb-3 text-sm font-semibold transition-colors ${activeTab === "overview" ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}
             >
               Overview
               {activeTab === "overview" && (
@@ -283,7 +278,7 @@ export function EmployeeProfileCard({
             </button>
             <button
               onClick={() => setActiveTab("competence")}
-              className={`relative flex items-center gap-1.5 pb-3 text-sm font-semibold transition-colors ${activeTab === "competence" ? (isDark ? "text-white" : "text-zinc-900") : isDark ? "text-zinc-500 hover:text-zinc-300" : "text-zinc-500 hover:text-zinc-700"}`}
+              className={`relative flex items-center gap-1.5 pb-3 text-sm font-semibold transition-colors ${activeTab === "competence" ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}
             >
               Competence
               {(employee.readinessScore ?? 0) < 100 && employee.status !== "invited" && (
@@ -295,7 +290,7 @@ export function EmployeeProfileCard({
             </button>
             <button
               onClick={() => setActiveTab("hr")}
-              className={`relative pb-3 text-sm font-semibold transition-colors ${activeTab === "hr" ? (isDark ? "text-white" : "text-zinc-900") : isDark ? "text-zinc-500 hover:text-zinc-300" : "text-zinc-500 hover:text-zinc-700"}`}
+              className={`relative pb-3 text-sm font-semibold transition-colors ${activeTab === "hr" ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}
             >
               HR & Logs
               {activeTab === "hr" && (
@@ -304,7 +299,7 @@ export function EmployeeProfileCard({
             </button>
             <button
               onClick={() => setActiveTab("settings")}
-              className={`relative pb-3 text-sm font-semibold transition-colors ${activeTab === "settings" ? (isDark ? "text-white" : "text-zinc-900") : isDark ? "text-zinc-500 hover:text-zinc-300" : "text-zinc-500 hover:text-zinc-700"}`}
+              className={`relative pb-3 text-sm font-semibold transition-colors ${activeTab === "settings" ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}
             >
               Settings
               {activeTab === "settings" && (
@@ -318,38 +313,32 @@ export function EmployeeProfileCard({
         <div className="flex-1 overflow-y-auto p-6">
           {activeTab === "overview" && (
             <div className="animate-in fade-in zoom-in-95 space-y-6 duration-200">
-              <div className="space-y-3 rounded-xl border border-zinc-800/50 bg-zinc-900/30 p-4">
+              <div className="border-border/50 bg-muted/30 space-y-3 rounded-xl border p-4">
                 <div className="flex items-center gap-3 text-sm">
-                  <Mail className="h-4 w-4 text-zinc-500" />
+                  <Mail className="text-muted-foreground h-4 w-4" />
                   <a
                     href={`mailto:${employee.email}`}
-                    className="text-zinc-300 transition-colors hover:text-white"
+                    className="text-foreground hover:text-foreground transition-colors"
                   >
                     {employee.email}
                   </a>
                 </div>
                 <div className="flex items-center gap-3 text-sm">
-                  <Phone className="h-4 w-4 text-zinc-500" />
-                  <span className="text-zinc-300">+47 912 34 567</span>
+                  <Phone className="text-muted-foreground h-4 w-4" />
+                  <span className="text-foreground">+47 912 34 567</span>
                 </div>
               </div>
 
               {teams.length > 0 && (
                 <div>
-                  <h3
-                    className={`mb-3 text-xs font-bold tracking-widest uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                  >
+                  <h3 className="text-muted-foreground mb-3 text-xs font-bold tracking-widest uppercase">
                     Teams
                   </h3>
                   <div className="flex flex-wrap gap-2">
                     {teams.map((t) => (
                       <span
                         key={t.team_id}
-                        className={`rounded-lg border px-2.5 py-1 text-xs font-medium ${
-                          isDark
-                            ? "border-zinc-800 bg-zinc-900 text-zinc-300"
-                            : "border-zinc-200 bg-zinc-50 text-zinc-700"
-                        }`}
+                        className="border-border bg-card text-foreground rounded-lg border px-2.5 py-1 text-xs font-medium"
                       >
                         {t.name}
                       </span>
@@ -358,47 +347,46 @@ export function EmployeeProfileCard({
                 </div>
               )}
 
-              <div>
-                <h3 className="mb-3 text-xs font-bold tracking-widest text-zinc-500 uppercase">
-                  Recent Activity
-                </h3>
-                <div className="relative flex flex-col space-y-3 before:absolute before:inset-y-2 before:left-3 before:w-px before:bg-zinc-800">
-                  <div className="relative flex gap-4">
-                    <div className="z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-emerald-500/20 bg-emerald-500/10 text-emerald-500">
-                      <Clock className="h-3 w-3" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-zinc-300">
-                        Clocked in for <span className="font-medium text-white">Opening Shift</span>
-                      </p>
-                      <span className="text-xs text-zinc-500">Today, 07:58</span>
-                    </div>
-                  </div>
-                  <div className="relative flex gap-4">
-                    <div className="z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-orange-500/20 bg-orange-500/10 text-orange-500">
-                      <CheckCircle2 className="h-3 w-3" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-zinc-300">
-                        Completed{" "}
-                        <span className="font-medium text-white">Temperature Check Routine</span>
-                      </p>
-                      <span className="text-xs text-zinc-500">Today, 11:30</span>
-                    </div>
-                  </div>
-                  <div className="relative flex gap-4">
-                    <div className="z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-zinc-700 bg-zinc-800 text-zinc-400">
-                      <FileText className="h-3 w-3" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-zinc-300">
-                        Signed <span className="font-medium text-white">Fire Safety Protocol</span>
-                      </p>
-                      <span className="text-xs text-zinc-500">Yesterday, 14:12</span>
+              {employee.profileId ? (
+                <div>
+                  <h3 className="text-muted-foreground mb-3 text-xs font-bold tracking-widest uppercase">
+                    Recent Activity
+                  </h3>
+                  <p className="text-muted-foreground py-4 text-center text-sm">
+                    No activity recorded yet
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <h3 className="text-muted-foreground mb-3 text-xs font-bold tracking-widest uppercase">
+                    Invite Details
+                  </h3>
+                  <div className="space-y-2">
+                    {employee.inviteType && (
+                      <div className="text-foreground flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Sent via</span>
+                        <span className="font-medium capitalize">{employee.inviteType}</span>
+                      </div>
+                    )}
+                    {employee.inviteExpiresAt && (
+                      <div className="text-foreground flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Expires</span>
+                        <span className="font-medium">
+                          {new Date(employee.inviteExpiresAt).toLocaleDateString("nb-NO")}
+                        </span>
+                      </div>
+                    )}
+                    <div className="text-foreground flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Status</span>
+                      <span
+                        className={`font-medium ${employee.inviteStatus === "expired" ? "text-rose-400" : "text-orange-400"}`}
+                      >
+                        {employee.inviteStatus === "expired" ? "Expired" : "Awaiting response"}
+                      </span>
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
 
@@ -421,12 +409,10 @@ export function EmployeeProfileCard({
               )}
 
               <div>
-                <h3
-                  className={`mb-3 flex items-center justify-between text-xs font-bold tracking-widest uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                >
+                <h3 className="text-muted-foreground mb-3 flex items-center justify-between text-xs font-bold tracking-widest uppercase">
                   <span>Assigned Protocols</span>
                   {protocols.length > 0 && (
-                    <span className="font-medium text-zinc-600">
+                    <span className="text-muted-foreground font-medium">
                       {protocols.filter((p) => p.status === "completed").length}/{protocols.length}{" "}
                       Completed
                     </span>
@@ -435,12 +421,10 @@ export function EmployeeProfileCard({
 
                 {loadingProtocols ? (
                   <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-5 w-5 animate-spin text-zinc-500" />
+                    <Loader2 className="text-muted-foreground h-5 w-5 animate-spin" />
                   </div>
                 ) : protocols.length === 0 ? (
-                  <p
-                    className={`py-4 text-center text-sm ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                  >
+                  <p className="text-muted-foreground py-4 text-center text-sm">
                     No protocols assigned
                   </p>
                 ) : (
@@ -448,11 +432,7 @@ export function EmployeeProfileCard({
                     {protocols.map((p) => (
                       <div
                         key={p.assignment_id}
-                        className={`group flex cursor-pointer items-center justify-between rounded-lg border p-3 transition-colors ${
-                          isDark
-                            ? "border-zinc-800 bg-zinc-900 hover:border-zinc-700"
-                            : "border-zinc-200 bg-zinc-50 hover:border-zinc-300"
-                        }`}
+                        className={`group flex cursor-pointer items-center justify-between rounded-lg border p-3 transition-colors ${"border-border bg-card hover:border-border"}`}
                       >
                         <div className="flex items-center gap-3">
                           {p.status === "completed" ? (
@@ -464,16 +444,12 @@ export function EmployeeProfileCard({
                               <AlertCircle className="h-4 w-4" />
                             </div>
                           ) : (
-                            <div
-                              className={`flex h-8 w-8 items-center justify-center rounded-full ${isDark ? "bg-zinc-800 text-zinc-500" : "bg-zinc-200 text-zinc-400"}`}
-                            >
+                            <div className="bg-secondary text-muted-foreground flex h-8 w-8 items-center justify-center rounded-full">
                               <Clock className="h-4 w-4" />
                             </div>
                           )}
                           <div>
-                            <p
-                              className={`text-sm font-bold transition-colors ${isDark ? "text-zinc-200 group-hover:text-white" : "text-zinc-700 group-hover:text-zinc-900"}`}
-                            >
+                            <p className="text-foreground text-sm font-bold transition-colors">
                               {p.protocol?.name ?? "Unknown Protocol"}
                             </p>
                             {p.status === "completed" && (
@@ -482,9 +458,7 @@ export function EmployeeProfileCard({
                               </p>
                             )}
                             {p.status === "pending" && (
-                              <p
-                                className={`mt-0.5 text-[10px] tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                              >
+                              <p className="text-muted-foreground mt-0.5 text-[10px] tracking-wider uppercase">
                                 Pending
                               </p>
                             )}
@@ -495,9 +469,7 @@ export function EmployeeProfileCard({
                             )}
                           </div>
                         </div>
-                        <ChevronRight
-                          className={`h-4 w-4 transition-colors ${isDark ? "text-zinc-600 group-hover:text-zinc-400" : "text-zinc-400 group-hover:text-zinc-600"}`}
-                        />
+                        <ChevronRight className="text-muted-foreground group-hover:text-foreground h-4 w-4 transition-colors" />
                       </div>
                     ))}
                   </div>
@@ -510,33 +482,31 @@ export function EmployeeProfileCard({
             <div className="animate-in fade-in zoom-in-95 space-y-6 duration-200">
               {/* Contract Status */}
               <div>
-                <h3 className="mb-3 text-xs font-bold tracking-widest text-zinc-500 uppercase">
+                <h3 className="text-muted-foreground mb-3 text-xs font-bold tracking-widest uppercase">
                   Employment Contract
                 </h3>
                 <div
-                  className={`flex items-center justify-between rounded-xl border p-4 ${employee.hasContract ? (isDark ? "border-emerald-500/20 bg-emerald-500/10" : "border-emerald-200 bg-emerald-50") : isDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-zinc-50"}`}
+                  className={`flex items-center justify-between rounded-xl border p-4 ${employee.hasContract ? "border-emerald-500/20 bg-emerald-500/10" : "border-border bg-card"}`}
                 >
                   <div className="flex items-center gap-3">
                     <div
-                      className={`flex h-8 w-8 items-center justify-center rounded-full ${employee.hasContract ? "bg-emerald-500/20 text-emerald-500" : "bg-zinc-800 text-zinc-400"}`}
+                      className={`flex h-8 w-8 items-center justify-center rounded-full ${employee.hasContract ? "bg-emerald-500/20 text-emerald-500" : "bg-secondary text-muted-foreground"}`}
                     >
                       <FileSignature className="h-4 w-4" />
                     </div>
                     <div>
                       <p
-                        className={`text-sm font-bold ${employee.hasContract ? (isDark ? "text-emerald-400" : "text-emerald-600") : isDark ? "text-zinc-300" : "text-zinc-700"}`}
+                        className={`text-sm font-bold ${employee.hasContract ? "text-emerald-500" : "text-foreground"}`}
                       >
                         {employee.hasContract ? "Active Contract" : "No Contract Found"}
                       </p>
-                      <p className="mt-0.5 text-[10px] tracking-wider text-zinc-500 uppercase">
+                      <p className="text-muted-foreground mt-0.5 text-[10px] tracking-wider uppercase">
                         {employee.hasContract ? "Signed & Valid" : "Action required"}
                       </p>
                     </div>
                   </div>
                   {!employee.hasContract && (
-                    <button
-                      className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${isDark ? "bg-white text-black hover:bg-zinc-200" : "bg-zinc-900 text-white hover:bg-zinc-800"}`}
-                    >
+                    <button className="bg-foreground text-background hover:bg-foreground/80 rounded-lg px-3 py-1.5 text-xs font-bold transition-all">
                       Create
                     </button>
                   )}
@@ -546,17 +516,13 @@ export function EmployeeProfileCard({
               {/* Personal Information */}
               <div>
                 <div className="mb-3 flex items-center justify-between">
-                  <h3 className="text-xs font-bold tracking-widest text-zinc-500 uppercase">
+                  <h3 className="text-muted-foreground text-xs font-bold tracking-widest uppercase">
                     Personal Information
                   </h3>
                   {!editingHr && (
                     <button
                       onClick={() => setEditingHr(true)}
-                      className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-                        isDark
-                          ? "text-zinc-400 hover:bg-zinc-800 hover:text-white"
-                          : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
-                      }`}
+                      className="text-muted-foreground hover:bg-secondary hover:text-foreground rounded-md px-2.5 py-1 text-xs font-medium transition-colors"
                     >
                       Edit
                     </button>
@@ -566,28 +532,26 @@ export function EmployeeProfileCard({
                 {!editingHr ? (
                   <div className="space-y-3">
                     <div className="flex flex-col gap-1">
-                      <span className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500">
+                      <span className="text-muted-foreground flex items-center gap-1.5 text-xs font-semibold">
                         <Home className="h-3 w-3" /> Address
                       </span>
-                      <span className={`text-sm ${isDark ? "text-zinc-300" : "text-zinc-800"}`}>
+                      <span className="text-foreground text-sm">
                         {employee.address || "Not provided"}
                       </span>
                     </div>
                     <div className="flex flex-col gap-1">
-                      <span className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500">
+                      <span className="text-muted-foreground flex items-center gap-1.5 text-xs font-semibold">
                         <CreditCard className="h-3 w-3" /> Personal Number (SSN)
                       </span>
-                      <span className={`text-sm ${isDark ? "text-zinc-300" : "text-zinc-800"}`}>
+                      <span className="text-foreground text-sm">
                         {employee.personalNumber || "Not provided"}
                       </span>
                     </div>
                     <div className="flex flex-col gap-1">
-                      <span className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500">
+                      <span className="text-muted-foreground flex items-center gap-1.5 text-xs font-semibold">
                         <Wallet className="h-3 w-3" /> Bank Account
                       </span>
-                      <span
-                        className={`font-mono text-sm ${isDark ? "text-zinc-300" : "text-zinc-800"}`}
-                      >
+                      <span className="text-foreground font-mono text-sm">
                         {employee.bankAccount || "Not provided"}
                       </span>
                     </div>
@@ -595,7 +559,7 @@ export function EmployeeProfileCard({
                       <span className="flex items-center gap-1.5 text-xs font-semibold text-rose-500/80">
                         <ShieldAlert className="h-3 w-3 text-rose-500" /> Emergency Contact
                       </span>
-                      <span className={`text-sm ${isDark ? "text-zinc-300" : "text-zinc-800"}`}>
+                      <span className="text-foreground text-sm">
                         {employee.emergencyContactName || "Not provided"} •{" "}
                         {employee.emergencyContactPhone || ""}
                       </span>
@@ -604,15 +568,12 @@ export function EmployeeProfileCard({
                 ) : (
                   <div className="space-y-3">
                     {(() => {
-                      const hrInputClass = `w-full rounded-lg border px-3 py-2 text-sm focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none ${
-                        isDark
-                          ? "border-zinc-800 bg-zinc-900 text-white placeholder:text-zinc-600"
-                          : "border-zinc-200 bg-zinc-50 text-zinc-900 placeholder:text-zinc-400"
-                      }`;
+                      const hrInputClass =
+                        "w-full rounded-lg border px-3 py-2 text-sm focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none border-border bg-card text-foreground placeholder:text-muted-foreground";
                       return (
                         <>
                           <div className="space-y-1.5">
-                            <label className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500">
+                            <label className="text-muted-foreground flex items-center gap-1.5 text-xs font-semibold">
                               <Home className="h-3 w-3" /> Address
                             </label>
                             <input
@@ -624,7 +585,7 @@ export function EmployeeProfileCard({
                             />
                           </div>
                           <div className="space-y-1.5">
-                            <label className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500">
+                            <label className="text-muted-foreground flex items-center gap-1.5 text-xs font-semibold">
                               <CreditCard className="h-3 w-3" /> Personal Number (SSN)
                             </label>
                             <input
@@ -636,7 +597,7 @@ export function EmployeeProfileCard({
                             />
                           </div>
                           <div className="space-y-1.5">
-                            <label className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500">
+                            <label className="text-muted-foreground flex items-center gap-1.5 text-xs font-semibold">
                               <Wallet className="h-3 w-3" /> Bank Account
                             </label>
                             <input
@@ -648,7 +609,7 @@ export function EmployeeProfileCard({
                             />
                           </div>
                           <div className="space-y-1.5">
-                            <label className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500">
+                            <label className="text-muted-foreground flex items-center gap-1.5 text-xs font-semibold">
                               <ShieldAlert className="h-3 w-3" /> Emergency Contact Name
                             </label>
                             <input
@@ -660,7 +621,7 @@ export function EmployeeProfileCard({
                             />
                           </div>
                           <div className="space-y-1.5">
-                            <label className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500">
+                            <label className="text-muted-foreground flex items-center gap-1.5 text-xs font-semibold">
                               <Phone className="h-3 w-3" /> Emergency Contact Phone
                             </label>
                             <input
@@ -689,11 +650,7 @@ export function EmployeeProfileCard({
                                 setEditingHr(false);
                               }}
                               disabled={saving}
-                              className={`flex-1 rounded-lg border py-2.5 text-sm font-semibold transition-all disabled:opacity-50 ${
-                                isDark
-                                  ? "border-zinc-800 text-zinc-300 hover:bg-zinc-800 hover:text-white"
-                                  : "border-zinc-200 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
-                              }`}
+                              className="border-border text-muted-foreground hover:bg-secondary hover:text-foreground flex-1 rounded-lg border py-2.5 text-sm font-semibold transition-all disabled:opacity-50"
                             >
                               Cancel
                             </button>
@@ -707,13 +664,15 @@ export function EmployeeProfileCard({
 
               {/* Communication Log */}
               <div>
-                <h3 className="mb-3 flex items-center gap-1.5 text-xs font-bold tracking-widest text-zinc-500 uppercase">
+                <h3 className="text-muted-foreground mb-3 flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase">
                   <History className="h-4 w-4" /> Communication Log
                 </h3>
                 {!employee.contactLog || employee.contactLog.length === 0 ? (
-                  <p className="text-sm text-zinc-500">No communications found for this user.</p>
+                  <p className="text-muted-foreground text-sm">
+                    No communications found for this user.
+                  </p>
                 ) : (
-                  <div className="relative flex flex-col space-y-3 before:absolute before:inset-y-2 before:left-[11px] before:w-px before:bg-zinc-800">
+                  <div className="before:bg-border relative flex flex-col space-y-3 before:absolute before:inset-y-2 before:left-[11px] before:w-px">
                     {employee.contactLog.map((log) => (
                       <div key={log.id} className="relative flex gap-4">
                         <div
@@ -733,7 +692,7 @@ export function EmployeeProfileCard({
                         </div>
                         <div className="flex-1 pb-3">
                           <div className="flex items-center justify-between gap-2">
-                            <p className="text-sm font-medium text-zinc-300">{log.type}</p>
+                            <p className="text-foreground text-sm font-medium">{log.type}</p>
                             <span
                               className={`rounded px-1.5 py-0.5 text-[10px] font-bold tracking-wider uppercase ${
                                 log.status === "delivered"
@@ -746,7 +705,7 @@ export function EmployeeProfileCard({
                               {log.status}
                             </span>
                           </div>
-                          <span className="text-xs text-zinc-500">
+                          <span className="text-muted-foreground text-xs">
                             {log.date} via {log.channel.toUpperCase()}
                           </span>
                         </div>
@@ -762,17 +721,13 @@ export function EmployeeProfileCard({
             <div className="animate-in fade-in zoom-in-95 space-y-6 duration-200">
               <div className="space-y-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold tracking-wider text-zinc-500 uppercase">
+                  <label className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
                     Primary Department
                   </label>
                   <select
                     value={editDeptId}
                     onChange={(e) => setEditDeptId(e.target.value)}
-                    className={`w-full appearance-none rounded-lg border px-3 py-2 text-sm focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none ${
-                      isDark
-                        ? "border-zinc-800 bg-zinc-900 text-white"
-                        : "border-zinc-200 bg-zinc-50 text-zinc-900"
-                    }`}
+                    className="border-border bg-card text-foreground w-full appearance-none rounded-lg border px-3 py-2 text-sm focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none"
                   >
                     <option value="">No department</option>
                     {departments.map((dept) => (
@@ -784,40 +739,32 @@ export function EmployeeProfileCard({
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold tracking-wider text-zinc-500 uppercase">
+                  <label className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
                     System Role
                   </label>
                   <select
                     value={editRole}
                     onChange={(e) => setEditRole(e.target.value)}
-                    className={`w-full appearance-none rounded-lg border px-3 py-2 text-sm focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none ${
-                      isDark
-                        ? "border-zinc-800 bg-zinc-900 text-white"
-                        : "border-zinc-200 bg-zinc-50 text-zinc-900"
-                    }`}
+                    className="border-border bg-card text-foreground w-full appearance-none rounded-lg border px-3 py-2 text-sm focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none"
                   >
                     <option value="employee">Employee</option>
                     <option value="manager">Manager</option>
                     <option value="admin">Admin</option>
                     <option value="owner">Owner</option>
                   </select>
-                  <p className="pt-1 text-xs text-zinc-500">
+                  <p className="text-muted-foreground pt-1 text-xs">
                     Defines what this user can see and do in the system, like signing off sessions.
                   </p>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold tracking-wider text-zinc-500 uppercase">
+                  <label className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
                     Status
                   </label>
                   <select
                     value={editStatus}
                     onChange={(e) => setEditStatus(e.target.value as typeof editStatus)}
-                    className={`w-full appearance-none rounded-lg border px-3 py-2 text-sm focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none ${
-                      isDark
-                        ? "border-zinc-800 bg-zinc-900 text-white"
-                        : "border-zinc-200 bg-zinc-50 text-zinc-900"
-                    }`}
+                    className="border-border bg-card text-foreground w-full appearance-none rounded-lg border px-3 py-2 text-sm focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none"
                   >
                     <option value="active">Active</option>
                     <option value="trainee">Trainee</option>
@@ -830,34 +777,16 @@ export function EmployeeProfileCard({
               <button
                 onClick={handleSettingsSave}
                 disabled={saving}
-                className={`w-full rounded-lg py-2.5 text-sm font-semibold transition-all disabled:opacity-50 ${
-                  isDark
-                    ? "bg-orange-500 text-white hover:bg-orange-600"
-                    : "bg-orange-500 text-white hover:bg-orange-600"
-                }`}
+                className="w-full rounded-lg bg-orange-500 py-2.5 text-sm font-semibold text-white transition-all hover:bg-orange-600 disabled:opacity-50"
               >
                 {saving ? "Saving..." : "Save Changes"}
               </button>
 
-              <div
-                className={`space-y-3 border-t pt-4 ${isDark ? "border-zinc-800/50" : "border-zinc-200"}`}
-              >
-                <button
-                  className={`w-full rounded-lg border py-2.5 text-sm font-medium transition-colors ${
-                    isDark
-                      ? "border-zinc-800 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 hover:text-white"
-                      : "border-zinc-200 bg-zinc-50 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
-                  }`}
-                >
+              <div className="border-border space-y-3 border-t pt-4">
+                <button className="border-border bg-card text-muted-foreground hover:bg-secondary hover:text-foreground w-full rounded-lg border py-2.5 text-sm font-medium transition-colors">
                   Reset Password
                 </button>
-                <button
-                  className={`w-full rounded-lg border py-2.5 text-sm font-medium transition-colors ${
-                    isDark
-                      ? "border-rose-500/20 bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 hover:text-rose-400"
-                      : "border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-700"
-                  }`}
-                >
+                <button className="w-full rounded-lg border border-rose-500/20 bg-rose-500/10 py-2.5 text-sm font-medium text-rose-500 transition-colors hover:bg-rose-500/20 hover:text-rose-400">
                   Deactivate Account
                 </button>
               </div>

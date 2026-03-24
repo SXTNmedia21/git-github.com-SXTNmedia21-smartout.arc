@@ -1,10 +1,13 @@
 "use client";
 
 import type { ChannelWithPreview } from "../_hooks/channel-types";
+import { useCallState } from "../_hooks/use-call-state";
+import { useStartCall } from "../_hooks/use-start-call";
+// import { GroupCallBanner } from "./GroupCallBanner";
 import { Button } from "@/components/ui/button";
 import {
   Users,
-  Mic,
+  Phone,
   MoreHorizontal,
   Hash,
   Building2,
@@ -37,11 +40,19 @@ const TYPE_COLORS: Record<string, string> = {
 
 type Props = {
   channel: ChannelWithPreview;
+  profileId: string;
   showMembers: boolean;
   onToggleMembers: () => void;
+  onJoinCall: () => void;
 };
 
-export function ChannelHeader({ channel, showMembers, onToggleMembers }: Props) {
+export function ChannelHeader({
+  channel,
+  profileId,
+  showMembers,
+  onToggleMembers,
+  onJoinCall,
+}: Props) {
   const Icon = TYPE_ICONS[channel.channel_type] ?? Hash;
   const colorClass = TYPE_COLORS[channel.channel_type] ?? "bg-muted text-muted-foreground";
   const displayName =
@@ -49,42 +60,73 @@ export function ChannelHeader({ channel, showMembers, onToggleMembers }: Props) 
       ? (channel.other_member_name ?? "Direktemelding")
       : (channel.name ?? "Kanal");
 
+  const voiceEnabled = channel.audio_policy !== "none";
+  const { data: callSession } = useCallState(voiceEnabled ? channel.channel_id : null);
+  const startCall = useStartCall();
+  const hasActiveCall = !!callSession;
+
+  const handleStartCall = () => {
+    const callType = channel.channel_type === "direct" ? "direct" : "group";
+    startCall.mutate({
+      channelId: channel.channel_id,
+      callType,
+      profileId,
+    });
+  };
+
   return (
-    <div className="flex items-center gap-3 border-b px-4 py-2.5">
-      <div
-        className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg", colorClass)}
-      >
-        <Icon className="h-4 w-4" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <h3 className="truncate text-sm font-semibold">{displayName}</h3>
-        <p className="text-muted-foreground text-xs">
-          {channel.member_count} {channel.member_count === 1 ? "medlem" : "medlemmer"}
-          {channel.description && ` · ${channel.description}`}
-        </p>
-      </div>
-      <div className="flex items-center gap-1">
-        {/* Walkie Talkie button — green, disabled until Phase 2 WebRTC */}
-        <Button
-          size="icon"
-          className="h-8 w-8 rounded-full bg-green-500 text-white hover:bg-green-600 disabled:opacity-40"
-          disabled
-          title="Walkie Talkie (kommer snart)"
+    <div>
+      <div className="flex items-center gap-3 border-b px-4 py-2.5">
+        <div
+          className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg", colorClass)}
         >
-          <Mic className="h-4 w-4" />
-        </Button>
-        <Button
-          variant={showMembers ? "secondary" : "ghost"}
-          size="icon"
-          className="h-8 w-8"
-          onClick={onToggleMembers}
-        >
-          <Users className="h-4 w-4" />
-        </Button>
-        <Button variant="ghost" size="icon" className="h-8 w-8" disabled>
-          <MoreHorizontal className="h-4 w-4" />
-        </Button>
+          <Icon className="h-4 w-4" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate text-sm font-semibold">{displayName}</h3>
+          <p className="text-muted-foreground text-xs">
+            {channel.member_count} {channel.member_count === 1 ? "medlem" : "medlemmer"}
+            {channel.description && ` · ${channel.description}`}
+          </p>
+        </div>
+        <div className="flex items-center gap-1">
+          {voiceEnabled && (
+            <Button
+              size="icon"
+              className={cn(
+                "h-8 w-8 rounded-full",
+                hasActiveCall
+                  ? "bg-green-500 text-white hover:bg-green-600"
+                  : "bg-green-500 text-white hover:bg-green-600",
+              )}
+              onClick={hasActiveCall ? onJoinCall : handleStartCall}
+              disabled={startCall.isPending}
+              title={hasActiveCall ? "Bli med i samtale" : "Start samtale"}
+            >
+              <Phone className="h-4 w-4" />
+            </Button>
+          )}
+          <Button
+            variant={showMembers ? "secondary" : "ghost"}
+            size="icon"
+            className="h-8 w-8"
+            onClick={onToggleMembers}
+          >
+            <Users className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8" disabled>
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
+      {hasActiveCall && callSession && (
+        <div className="bg-primary/10 text-primary px-4 py-2 text-sm">
+          Pågående samtale ({callSession.maxParticipants} deltakere)
+          <Button size="sm" onClick={onJoinCall} className="ml-4">
+            Bli med
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

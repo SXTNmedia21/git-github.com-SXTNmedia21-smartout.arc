@@ -1,28 +1,51 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useSendMessage } from "../_hooks/use-send-message";
 import { useChannelMessages } from "../_hooks/use-channel-messages";
+import { usePushToTalk } from "../_hooks/use-push-to-talk";
 import { ReplyPreview } from "./ReplyPreview";
 import { AttachmentPopup } from "./AttachmentPopup";
+// import { PTTButton } from "./PTTButton";
 import { Button } from "@/components/ui/button";
 import { Send, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+
+type PTTProps = {
+  setMicEnabled: (enabled: boolean) => Promise<void>;
+};
 
 type Props = {
   channelId: string;
   profileId: string;
   replyToId: string | null;
   onCancelReply: () => void;
+  audioPolicy?: string;
+  pttProps?: PTTProps;
 };
 
-export function MessageInput({ channelId, profileId, replyToId, onCancelReply }: Props) {
+export function MessageInput({
+  channelId,
+  profileId,
+  replyToId,
+  onCancelReply,
+  audioPolicy,
+  pttProps,
+}: Props) {
   const [content, setContent] = useState("");
   const [showAttachments, setShowAttachments] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const sendMessage = useSendMessage(channelId, profileId);
   const { data } = useChannelMessages(channelId);
+
+  const isPTTMode = audioPolicy === "ptt" && !!pttProps;
+  const noopMic = useCallback(async () => {}, []);
+  const ptt = usePushToTalk(
+    isPTTMode ? channelId : null,
+    isPTTMode ? profileId : null,
+    pttProps?.setMicEnabled ?? noopMic,
+  );
 
   const replyToMessage = useMemo(() => {
     if (!replyToId || !data) return null;
@@ -104,14 +127,25 @@ export function MessageInput({ channelId, profileId, replyToId, onCancelReply }:
           rows={1}
           className="bg-muted text-foreground placeholder:text-muted-foreground focus:ring-primary min-h-[36px] flex-1 resize-none rounded-xl border-0 px-3 py-2 text-sm focus:ring-1 focus:outline-none"
         />
-        <Button
-          size="icon"
-          className="h-8 w-8 shrink-0 rounded-full"
-          onClick={handleSend}
-          disabled={!content.trim() || sendMessage.isPending}
-        >
-          <Send className="h-4 w-4" />
-        </Button>
+        {isPTTMode ? (
+          <div
+            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-orange-500 text-white select-none"
+            onPointerDown={ptt.onPressStart}
+            onPointerUp={ptt.onPressEnd}
+            onPointerCancel={ptt.onPressEnd}
+          >
+            PTT
+          </div>
+        ) : (
+          <Button
+            size="icon"
+            className="h-8 w-8 shrink-0 rounded-full"
+            onClick={handleSend}
+            disabled={!content.trim() || sendMessage.isPending}
+          >
+            <Send className="h-4 w-4" />
+          </Button>
+        )}
       </div>
     </div>
   );

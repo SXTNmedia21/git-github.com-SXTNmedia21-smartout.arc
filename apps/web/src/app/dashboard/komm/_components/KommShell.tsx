@@ -1,10 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useWorkspace } from "@/lib/workspace-context";
 import { useChannels } from "../_hooks/use-channels";
 import { useUnreadCounts } from "../_hooks/use-unread-counts";
 import { useChannelRealtime } from "../_hooks/use-channel-realtime";
+import { useCallSignaling } from "../_hooks/use-call-signaling";
+import { useCallRealtime } from "../_hooks/use-call-realtime";
+import { useLiveKitCall } from "../_hooks/use-livekit-call";
+import { useCallInvite } from "../_hooks/use-call-invite";
+import { useStartCall } from "../_hooks/use-start-call";
+import { getLiveKitToken } from "@smartout/walkie-talkie";
+import { createClient } from "@smartout/supabase/client";
 import { SubTabs, type KommTab } from "./SubTabs";
 import { ChannelList } from "./ChannelList";
 import { ChatList } from "./ChatList";
@@ -13,7 +20,12 @@ import { ChannelHeader } from "./ChannelHeader";
 import { MessageTimeline } from "./MessageTimeline";
 import { MessageInput } from "./MessageInput";
 import { MemberPanel } from "./MemberPanel";
+// import { IncomingCallOverlay } from "./IncomingCallOverlay";
+// import { CallBar } from "./CallBar";
 import { MessageSquare } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ConnectionState } from "livekit-client";
+import { toast } from "sonner";
 
 export function KommShell({ profileId }: { profileId: string }) {
   const { workspace } = useWorkspace();
@@ -26,6 +38,64 @@ export function KommShell({ profileId }: { profileId: string }) {
   const { data: channelGroups, isLoading } = useChannels();
   const { data: unreadCounts } = useUnreadCounts();
   useChannelRealtime(workspaceId, activeChannelId);
+
+  // Voice call hooks
+  const { incomingCall, dismissIncoming } = useCallSignaling(profileId, activeChannelId);
+  useCallRealtime(activeChannelId);
+  const livekit = useLiveKitCall();
+  const callInvite = useCallInvite();
+  const startCall = useStartCall();
+  const isInCall = livekit.connectionState === ConnectionState.Connected;
+
+  const handleJoinCall = useCallback(async () => {
+    if (!activeChannelId) return;
+    try {
+      const supabase = createClient();
+      const { token, serverUrl } = await getLiveKitToken(supabase, {
+        channelId: activeChannelId,
+        workspaceId,
+      });
+      await livekit.connect(serverUrl, token);
+    } catch {
+      toast.error("Kunne ikke koble til samtale");
+    }
+  }, [activeChannelId, workspaceId, livekit]);
+
+  const handleAcceptCall = useCallback(async () => {
+    if (!incomingCall) return;
+    callInvite.mutate({
+      callSessionId: incomingCall.callSessionId,
+      channelId: incomingCall.channelId,
+      responseAction: "accept",
+      profileId,
+    });
+    dismissIncoming();
+    try {
+      const supabase = createClient();
+      const { token, serverUrl } = await getLiveKitToken(supabase, {
+        channelId: incomingCall.channelId,
+        workspaceId,
+      });
+      await livekit.connect(serverUrl, token);
+    } catch {
+      toast.error("Kunne ikke koble til samtale");
+    }
+  }, [incomingCall, callInvite, profileId, dismissIncoming, workspaceId, livekit]);
+
+  const handleRejectCall = useCallback(() => {
+    if (!incomingCall) return;
+    callInvite.mutate({
+      callSessionId: incomingCall.callSessionId,
+      channelId: incomingCall.channelId,
+      responseAction: "reject",
+      profileId,
+    });
+    dismissIncoming();
+  }, [incomingCall, callInvite, profileId, dismissIncoming]);
+
+  const handleEndCall = useCallback(() => {
+    livekit.disconnect();
+  }, [livekit]);
 
   // Calculate unread totals for sub-tab badges
   const allChannels = channelGroups?.flatMap((g) => g.channels) ?? [];
@@ -87,8 +157,10 @@ export function KommShell({ profileId }: { profileId: string }) {
           <>
             <ChannelHeader
               channel={activeChannel}
+              profileId={profileId}
               showMembers={showMembers}
               onToggleMembers={() => setShowMembers(!showMembers)}
+              onJoinCall={handleJoinCall}
             />
             <MessageTimeline
               channelId={activeChannelId!}
@@ -101,7 +173,17 @@ export function KommShell({ profileId }: { profileId: string }) {
                 profileId={profileId}
                 replyToId={replyToId}
                 onCancelReply={() => setReplyToId(null)}
+                audioPolicy={activeChannel.audio_policy}
+                pttProps={isInCall ? { setMicEnabled: livekit.setMicEnabled } : undefined}
               />
+            )}
+            {isInCall && (
+              <div className="bg-destructive/10 text-destructive flex items-center justify-between px-4 py-2">
+                <span>Samtale aktiv</span>
+                <Button size="sm" variant="destructive" onClick={handleEndCall}>
+                  Avslutt
+                </Button>
+              </div>
             )}
           </>
         ) : (
@@ -122,6 +204,15 @@ export function KommShell({ profileId }: { profileId: string }) {
           onClose={() => setShowMembers(false)}
         />
       )}
+
+      {/* Incoming call overlay */}
+      {/* incomingCall && (
+        <IncomingCallOverlay
+          call={incomingCall}
+          onAccept={handleAcceptCall}
+          onReject={handleRejectCall}
+        />
+      ) */}
     </div>
   );
 }

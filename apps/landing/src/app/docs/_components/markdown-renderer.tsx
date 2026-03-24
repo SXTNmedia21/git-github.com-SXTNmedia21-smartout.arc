@@ -28,7 +28,7 @@ const components: Components = {
     return (
       <h1
         id={id}
-        className="mb-2 text-4xl leading-tight font-black tracking-tighter text-white md:text-[2.5rem]"
+        className="text-foreground mb-2 text-4xl leading-tight font-black tracking-tighter md:text-[2.5rem]"
       >
         {children}
       </h1>
@@ -41,11 +41,11 @@ const components: Components = {
     return (
       <h2
         id={id}
-        className="group mt-14 mb-4 flex scroll-mt-24 items-center gap-2 text-2xl font-bold tracking-tight text-white"
+        className="group text-foreground mt-14 mb-4 flex scroll-mt-24 items-center gap-2 text-2xl font-bold tracking-tight"
       >
         <a
           href={`#${id}`}
-          className="text-lg text-zinc-600 opacity-0 transition-all group-hover:opacity-100 hover:text-orange-400"
+          className="text-muted-foreground hover:text-brand-orange text-lg opacity-0 transition-all group-hover:opacity-100"
           aria-hidden
         >
           #
@@ -59,19 +59,24 @@ const components: Components = {
     const text = extractText(children);
     const id = slugify(text);
     return (
-      <h3 id={id} className="mt-8 mb-3 scroll-mt-24 text-lg font-bold tracking-tight text-zinc-200">
+      <h3
+        id={id}
+        className="text-foreground/90 mt-8 mb-3 scroll-mt-24 text-lg font-bold tracking-tight"
+      >
         {children}
       </h3>
     );
   },
 
-  h4: ({ children }) => <h4 className="mt-6 mb-2 text-base font-bold text-zinc-300">{children}</h4>,
+  h4: ({ children }) => (
+    <h4 className="text-foreground/80 mt-6 mb-2 text-base font-bold">{children}</h4>
+  ),
 
-  p: ({ children }) => <p className="mb-4 leading-relaxed text-zinc-400">{children}</p>,
+  p: ({ children }) => <p className="text-muted-foreground mb-4 leading-relaxed">{children}</p>,
 
   blockquote: ({ children }) => (
-    <div className="my-6 rounded-xl border border-orange-500/20 bg-orange-500/5 px-5 py-4">
-      <div className="text-sm leading-relaxed text-orange-300/90 [&>p]:mb-0 [&>p]:text-orange-300/90">
+    <div className="border-brand-orange/20 bg-brand-orange/5 my-6 rounded-xl border px-5 py-4">
+      <div className="text-brand-orange [&>p]:text-brand-orange text-sm leading-relaxed [&>p]:mb-0">
         {children}
       </div>
     </div>
@@ -85,8 +90,8 @@ const components: Components = {
     const isOrdered = props.node?.position && props.node.position.start.column > 0;
 
     return (
-      <li className="flex gap-3 leading-relaxed text-zinc-400">
-        <span className="mt-0.5 shrink-0 text-zinc-600 select-none" aria-hidden>
+      <li className="text-muted-foreground flex gap-3 leading-relaxed">
+        <span className="text-muted-foreground/60 mt-0.5 shrink-0 select-none" aria-hidden>
           {isOrdered ? "•" : "•"}
         </span>
         <span className="flex-1">{children}</span>
@@ -97,7 +102,7 @@ const components: Components = {
   a: ({ href, children }) => (
     <a
       href={href}
-      className="font-medium text-orange-400 underline decoration-orange-400/30 underline-offset-2 transition-colors hover:text-orange-300 hover:decoration-orange-300/50"
+      className="text-brand-orange decoration-brand-orange/30 hover:text-brand-orange/80 hover:decoration-brand-orange/50 font-medium underline underline-offset-2 transition-colors"
       target={href?.startsWith("http") ? "_blank" : undefined}
       rel={href?.startsWith("http") ? "noopener noreferrer" : undefined}
     >
@@ -105,9 +110,11 @@ const components: Components = {
     </a>
   ),
 
-  strong: ({ children }) => <strong className="font-semibold text-zinc-200">{children}</strong>,
+  strong: ({ children }) => (
+    <strong className="text-foreground/90 font-semibold">{children}</strong>
+  ),
 
-  em: ({ children }) => <em className="text-zinc-300 italic">{children}</em>,
+  em: ({ children }) => <em className="text-foreground/80 italic">{children}</em>,
 
   code: ({ children, className }) => {
     const isBlock = className?.startsWith("language-");
@@ -115,44 +122,44 @@ const components: Components = {
       return <code className="block text-sm leading-relaxed">{children}</code>;
     }
     return (
-      <code className="rounded-md border border-white/10 bg-white/[0.06] px-1.5 py-0.5 font-mono text-sm text-orange-300">
+      <code className="border-border/50 bg-foreground/5 text-brand-orange rounded-md border px-1.5 py-0.5 font-mono text-sm">
         {children}
       </code>
     );
   },
 
   pre: ({ children }) => (
-    <pre className="my-6 overflow-x-auto rounded-xl border border-white/[0.06] bg-[#0c0c0e] p-5 font-mono text-sm leading-relaxed text-zinc-300">
+    <pre className="border-border/50 bg-card text-foreground/90 my-6 overflow-x-auto rounded-xl border p-5 font-mono text-sm leading-relaxed">
       {children}
     </pre>
   ),
 
   table: ({ children }) => (
-    <div className="my-6 overflow-x-auto rounded-xl border border-white/[0.06]">
+    <div className="border-border/50 my-6 overflow-x-auto rounded-xl border">
       <table className="w-full text-sm">{children}</table>
     </div>
   ),
 
   thead: ({ children }) => (
-    <thead className="border-b border-white/[0.06] bg-white/[0.03]">{children}</thead>
+    <thead className="border-border/50 bg-foreground/5 border-b">{children}</thead>
   ),
 
   th: ({ children }) => (
-    <th className="px-4 py-3 text-left text-xs font-bold tracking-wider text-zinc-400 uppercase">
+    <th className="text-muted-foreground px-4 py-3 text-left text-xs font-bold tracking-wider uppercase">
       {children}
     </th>
   ),
 
   td: ({ children }) => (
-    <td className="border-t border-white/[0.04] px-4 py-3 text-zinc-400">{children}</td>
+    <td className="border-border/50 text-muted-foreground border-t px-4 py-3">{children}</td>
   ),
 
-  hr: () => <hr className="my-10 border-white/5" />,
+  hr: () => <hr className="border-border/50 my-10" />,
 
   img: ({ src, alt }) => (
     <span className="my-6 block">
       {/* eslint-disable-next-line -- suppress no-img-element: markdown renderer handles arbitrary external image URLs */}
-      <img src={src} alt={alt ?? ""} className="max-w-full rounded-xl border border-white/[0.06]" />
+      <img src={src} alt={alt ?? ""} className="border-border/50 max-w-full rounded-xl border" />
     </span>
   ),
 };

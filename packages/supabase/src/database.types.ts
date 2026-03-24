@@ -1993,6 +1993,73 @@ export type Database = {
           },
         ];
       };
+      call_log: {
+        Row: {
+          call_session_id: string;
+          channel_id: string;
+          created_at: string;
+          duration_seconds: number;
+          ended_at: string;
+          id: string;
+          livekit_room_name: string;
+          max_participants: number;
+          participant_summary: Json;
+          started_at: string;
+          total_participants: number;
+          workspace_id: string;
+        };
+        Insert: {
+          call_session_id: string;
+          channel_id: string;
+          created_at?: string;
+          duration_seconds: number;
+          ended_at: string;
+          id?: string;
+          livekit_room_name: string;
+          max_participants: number;
+          participant_summary?: Json;
+          started_at: string;
+          total_participants: number;
+          workspace_id: string;
+        };
+        Update: {
+          call_session_id?: string;
+          channel_id?: string;
+          created_at?: string;
+          duration_seconds?: number;
+          ended_at?: string;
+          id?: string;
+          livekit_room_name?: string;
+          max_participants?: number;
+          participant_summary?: Json;
+          started_at?: string;
+          total_participants?: number;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "call_log_call_session_id_fkey";
+            columns: ["call_session_id"];
+            isOneToOne: false;
+            referencedRelation: "channel_call_session";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "call_log_channel_id_fkey";
+            columns: ["channel_id"];
+            isOneToOne: false;
+            referencedRelation: "channel";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "call_log_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspace";
+            referencedColumns: ["workspace_id"];
+          },
+        ];
+      };
       change_proposal: {
         Row: {
           affected_employee_count: number | null;
@@ -2270,6 +2337,149 @@ export type Database = {
           },
           {
             foreignKeyName: "channel_ai_policy_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspace";
+            referencedColumns: ["workspace_id"];
+          },
+        ];
+      };
+      channel_call_participant: {
+        Row: {
+          call_session_id: string;
+          created_at: string;
+          device_type: string | null;
+          id: string;
+          is_ai: boolean;
+          joined_at: string;
+          left_at: string | null;
+          mic_enabled: boolean;
+          profile_id: string;
+          speaking_seconds: number;
+          updated_at: string;
+          workspace_id: string;
+        };
+        Insert: {
+          call_session_id: string;
+          created_at?: string;
+          device_type?: string | null;
+          id?: string;
+          is_ai?: boolean;
+          joined_at?: string;
+          left_at?: string | null;
+          mic_enabled?: boolean;
+          profile_id: string;
+          speaking_seconds?: number;
+          updated_at?: string;
+          workspace_id: string;
+        };
+        Update: {
+          call_session_id?: string;
+          created_at?: string;
+          device_type?: string | null;
+          id?: string;
+          is_ai?: boolean;
+          joined_at?: string;
+          left_at?: string | null;
+          mic_enabled?: boolean;
+          profile_id?: string;
+          speaking_seconds?: number;
+          updated_at?: string;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "channel_call_participant_call_session_id_fkey";
+            columns: ["call_session_id"];
+            isOneToOne: false;
+            referencedRelation: "channel_call_session";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "channel_call_participant_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profile";
+            referencedColumns: ["profile_id"];
+          },
+          {
+            foreignKeyName: "channel_call_participant_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspace";
+            referencedColumns: ["workspace_id"];
+          },
+        ];
+      };
+      channel_call_session: {
+        Row: {
+          audio_policy: Database["public"]["Enums"]["channel_audio_policy"];
+          call_type: Database["public"]["Enums"]["channel_call_type"];
+          channel_id: string;
+          created_at: string;
+          ended_at: string | null;
+          id: string;
+          livekit_room_name: string;
+          max_participants: number;
+          recording_policy: Database["public"]["Enums"]["channel_recording_policy"];
+          started_at: string;
+          started_by: string | null;
+          status: Database["public"]["Enums"]["channel_call_status"];
+          updated_at: string;
+          video_policy: Database["public"]["Enums"]["channel_video_policy"];
+          workspace_id: string;
+        };
+        Insert: {
+          audio_policy: Database["public"]["Enums"]["channel_audio_policy"];
+          call_type: Database["public"]["Enums"]["channel_call_type"];
+          channel_id: string;
+          created_at?: string;
+          ended_at?: string | null;
+          id?: string;
+          livekit_room_name: string;
+          max_participants?: number;
+          recording_policy?: Database["public"]["Enums"]["channel_recording_policy"];
+          started_at?: string;
+          started_by?: string | null;
+          status?: Database["public"]["Enums"]["channel_call_status"];
+          updated_at?: string;
+          video_policy?: Database["public"]["Enums"]["channel_video_policy"];
+          workspace_id: string;
+        };
+        Update: {
+          audio_policy?: Database["public"]["Enums"]["channel_audio_policy"];
+          call_type?: Database["public"]["Enums"]["channel_call_type"];
+          channel_id?: string;
+          created_at?: string;
+          ended_at?: string | null;
+          id?: string;
+          livekit_room_name?: string;
+          max_participants?: number;
+          recording_policy?: Database["public"]["Enums"]["channel_recording_policy"];
+          started_at?: string;
+          started_by?: string | null;
+          status?: Database["public"]["Enums"]["channel_call_status"];
+          updated_at?: string;
+          video_policy?: Database["public"]["Enums"]["channel_video_policy"];
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "channel_call_session_channel_id_fkey";
+            columns: ["channel_id"];
+            isOneToOne: false;
+            referencedRelation: "channel";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "channel_call_session_started_by_fkey";
+            columns: ["started_by"];
+            isOneToOne: false;
+            referencedRelation: "profile";
+            referencedColumns: ["profile_id"];
+          },
+          {
+            foreignKeyName: "channel_call_session_workspace_id_fkey";
             columns: ["workspace_id"];
             isOneToOne: false;
             referencedRelation: "workspace";
@@ -2806,6 +3016,64 @@ export type Database = {
           },
           {
             foreignKeyName: "channel_notification_policy_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspace";
+            referencedColumns: ["workspace_id"];
+          },
+        ];
+      };
+      channel_presence: {
+        Row: {
+          channel_id: string;
+          created_at: string;
+          device_type: string | null;
+          id: string;
+          last_seen_at: string;
+          profile_id: string;
+          status: Database["public"]["Enums"]["channel_presence_status"];
+          updated_at: string;
+          workspace_id: string;
+        };
+        Insert: {
+          channel_id: string;
+          created_at?: string;
+          device_type?: string | null;
+          id?: string;
+          last_seen_at?: string;
+          profile_id: string;
+          status: Database["public"]["Enums"]["channel_presence_status"];
+          updated_at?: string;
+          workspace_id: string;
+        };
+        Update: {
+          channel_id?: string;
+          created_at?: string;
+          device_type?: string | null;
+          id?: string;
+          last_seen_at?: string;
+          profile_id?: string;
+          status?: Database["public"]["Enums"]["channel_presence_status"];
+          updated_at?: string;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "channel_presence_channel_id_fkey";
+            columns: ["channel_id"];
+            isOneToOne: false;
+            referencedRelation: "channel";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "channel_presence_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profile";
+            referencedColumns: ["profile_id"];
+          },
+          {
+            foreignKeyName: "channel_presence_workspace_id_fkey";
             columns: ["workspace_id"];
             isOneToOne: false;
             referencedRelation: "workspace";
@@ -6453,6 +6721,67 @@ export type Database = {
           },
         ];
       };
+      help_request: {
+        Row: {
+          created_at: string;
+          description: string | null;
+          id: string;
+          profile_id: string;
+          resolved_at: string | null;
+          resolved_by: string | null;
+          status: string;
+          title: string;
+          updated_at: string;
+          workspace_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          description?: string | null;
+          id?: string;
+          profile_id: string;
+          resolved_at?: string | null;
+          resolved_by?: string | null;
+          status?: string;
+          title: string;
+          updated_at?: string;
+          workspace_id: string;
+        };
+        Update: {
+          created_at?: string;
+          description?: string | null;
+          id?: string;
+          profile_id?: string;
+          resolved_at?: string | null;
+          resolved_by?: string | null;
+          status?: string;
+          title?: string;
+          updated_at?: string;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "help_request_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profile";
+            referencedColumns: ["profile_id"];
+          },
+          {
+            foreignKeyName: "help_request_resolved_by_fkey";
+            columns: ["resolved_by"];
+            isOneToOne: false;
+            referencedRelation: "profile";
+            referencedColumns: ["profile_id"];
+          },
+          {
+            foreignKeyName: "help_request_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspace";
+            referencedColumns: ["workspace_id"];
+          },
+        ];
+      };
       hour_factor: {
         Row: {
           created_at: string;
@@ -7489,6 +7818,77 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "user_identity";
             referencedColumns: ["user_id"];
+          },
+        ];
+      };
+      landing_waitlist_submission: {
+        Row: {
+          campaign_key: string;
+          company_name: string;
+          created_at: string;
+          email: string;
+          employee_count: string;
+          full_name: string;
+          id: string;
+          interested_package: string;
+          ip_address: unknown;
+          phone: string | null;
+          premium_reservation_interest: boolean;
+          session_id: string | null;
+          source_hostname: string | null;
+          source_path: string | null;
+          status: string;
+          user_agent: string | null;
+          variant: string | null;
+          visitor_id: string | null;
+        };
+        Insert: {
+          campaign_key: string;
+          company_name: string;
+          created_at?: string;
+          email: string;
+          employee_count: string;
+          full_name: string;
+          id?: string;
+          interested_package: string;
+          ip_address?: unknown;
+          phone?: string | null;
+          premium_reservation_interest?: boolean;
+          session_id?: string | null;
+          source_hostname?: string | null;
+          source_path?: string | null;
+          status?: string;
+          user_agent?: string | null;
+          variant?: string | null;
+          visitor_id?: string | null;
+        };
+        Update: {
+          campaign_key?: string;
+          company_name?: string;
+          created_at?: string;
+          email?: string;
+          employee_count?: string;
+          full_name?: string;
+          id?: string;
+          interested_package?: string;
+          ip_address?: unknown;
+          phone?: string | null;
+          premium_reservation_interest?: boolean;
+          session_id?: string | null;
+          source_hostname?: string | null;
+          source_path?: string | null;
+          status?: string;
+          user_agent?: string | null;
+          variant?: string | null;
+          visitor_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "landing_waitlist_submission_visitor_id_fkey";
+            columns: ["visitor_id"];
+            isOneToOne: false;
+            referencedRelation: "landing_visitor";
+            referencedColumns: ["id"];
           },
         ];
       };
@@ -12794,6 +13194,7 @@ export type Database = {
         };
         Returns: undefined;
       };
+      expire_stale_invitations: { Args: never; Returns: number };
       finalize_onboarding_workspace: {
         Args: { p_data: Json; p_workspace_id: string };
         Returns: string;
@@ -12842,6 +13243,8 @@ export type Database = {
           last_message_sender_name: string;
           member_count: number;
           name: string;
+          other_member_avatar: string;
+          other_member_name: string;
           unread_count: number;
           video_policy: Database["public"]["Enums"]["channel_video_policy"];
           workspace_id: string;
@@ -12994,6 +13397,7 @@ export type Database = {
       channel_ai_voice_policy: "disabled" | "listen_only" | "interactive";
       channel_audio_policy: "disabled" | "ptt" | "open_mic" | "listen_only";
       channel_call_status: "active" | "ending" | "ended";
+      channel_call_type: "direct" | "group" | "ptt";
       channel_delivery_mode: "timeline" | "silent" | "notification_only";
       channel_integration_status: "active" | "paused" | "error";
       channel_member_role: "member" | "admin";
@@ -14230,6 +14634,7 @@ export const Constants = {
       channel_ai_voice_policy: ["disabled", "listen_only", "interactive"],
       channel_audio_policy: ["disabled", "ptt", "open_mic", "listen_only"],
       channel_call_status: ["active", "ending", "ended"],
+      channel_call_type: ["direct", "group", "ptt"],
       channel_delivery_mode: ["timeline", "silent", "notification_only"],
       channel_integration_status: ["active", "paused", "error"],
       channel_member_role: ["member", "admin"],
