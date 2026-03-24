@@ -39,6 +39,7 @@ export function KommShell({ profileId }: { profileId: string }) {
 
   // LiveKit connection state — set when joining a call, cleared on disconnect
   const [livekitConnection, setLivekitConnection] = useState<LiveKitConnection | null>(null);
+  const [liveParticipantCount, setLiveParticipantCount] = useState(0);
 
   const { data: channelGroups, isLoading } = useChannels();
   const { data: unreadCounts } = useUnreadCounts();
@@ -168,6 +169,7 @@ export function KommShell({ profileId }: { profileId: string }) {
               showMembers={showMembers}
               onToggleMembers={() => setShowMembers(!showMembers)}
               onJoinCall={handleJoinCall}
+              liveParticipantCount={liveParticipantCount}
             />
             <MessageTimeline
               channelId={activeChannelId!}
@@ -191,6 +193,7 @@ export function KommShell({ profileId }: { profileId: string }) {
                 serverUrl={livekitConnection.serverUrl}
                 token={livekitConnection.token}
                 onDisconnect={handleDisconnect}
+                onParticipantCountChange={setLiveParticipantCount}
               />
             )}
           </>

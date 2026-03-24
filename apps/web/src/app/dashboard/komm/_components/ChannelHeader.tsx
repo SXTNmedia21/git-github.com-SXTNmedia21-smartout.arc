@@ -44,6 +44,7 @@ type Props = {
   showMembers: boolean;
   onToggleMembers: () => void;
   onJoinCall: () => void;
+  liveParticipantCount?: number;
 };
 
 export function ChannelHeader({
@@ -52,6 +53,7 @@ export function ChannelHeader({
   showMembers,
   onToggleMembers,
   onJoinCall,
+  liveParticipantCount = 0,
 }: Props) {
   const Icon = TYPE_ICONS[channel.channel_type] ?? Hash;
   const colorClass = TYPE_COLORS[channel.channel_type] ?? "bg-muted text-muted-foreground";
@@ -123,11 +125,14 @@ export function ChannelHeader({
         </div>
       </div>
       {hasActiveCall && callSession && (
-        <div className="bg-primary/10 text-primary px-4 py-2 text-sm">
-          Pågående samtale ({callSession.maxParticipants} deltakere)
-          <Button size="sm" onClick={onJoinCall} className="ml-4">
-            Bli med
-          </Button>
+        <div className="bg-primary/10 text-primary flex items-center px-4 py-2 text-sm">
+          <Users className="mr-1.5 h-3.5 w-3.5" />
+          Pågående samtale ({liveParticipantCount || callSession.maxParticipants} deltakere)
+          {liveParticipantCount === 0 && (
+            <Button size="sm" onClick={onJoinCall} className="ml-4">
+              Bli med
+            </Button>
+          )}
         </div>
       )}
     </div>
