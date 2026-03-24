@@ -175,12 +175,37 @@ export function GovernanceSetupStep({
     if (!hasUserEdited) setFilters(industryDefaults);
   }, [industryDefaults, hasUserEdited]);
 
-  // Auto-check templates that match extracted policies
+  // Auto-check templates that match extracted policies from document analysis
   useEffect(() => {
     if (!extractedPolicies || extractedPolicies.length === 0) return;
-    // Already handled by filter defaults — extraction just confirms
-    // Future: could auto-create policies from extraction data
-  }, [extractedPolicies]);
+
+    // Get all available templates to match against
+    const allTemplates = getVisibleTemplates(filters);
+    const allAvailable = [...allTemplates.mandatory, ...allTemplates.recommended];
+
+    // Find templates whose name matches an extracted policy (case-insensitive partial match)
+    const matchedIds = new Set<string>();
+    for (const extracted of extractedPolicies) {
+      const extractedLower = extracted.name.toLowerCase();
+      for (const template of allAvailable) {
+        const templateLower = template.name.toLowerCase();
+        if (templateLower.includes(extractedLower) || extractedLower.includes(templateLower)) {
+          matchedIds.add(template.id);
+        }
+      }
+    }
+
+    // Ensure matched templates are checked (remove from unchecked set)
+    if (matchedIds.size > 0) {
+      setUnchecked((prev) => {
+        const next = new Set(prev);
+        for (const id of matchedIds) {
+          next.delete(id);
+        }
+        return next;
+      });
+    }
+  }, [extractedPolicies, filters]);
 
   // ── Derived data ──
   const { mandatory, recommended } = useMemo(() => getVisibleTemplates(filters), [filters]);
