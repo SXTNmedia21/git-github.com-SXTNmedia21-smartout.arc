@@ -40,6 +40,10 @@ tags: [notifications, push, email, sms, realtime, digest, browser-notifications]
 | `apps/web/src/app/dashboard/notifications/page.tsx`                           | Full notifications page with filters + infinite scroll                       |
 | `apps/web/src/app/dashboard/notifications/loading.tsx`                        | Loading skeleton                                                             |
 | `apps/web/src/app/dashboard/settings/_components/NotificationPreferences.tsx` | Preferences UI: channels, categories, quiet hours                            |
+| `apps/mobile/src/components/notifications/NotificationBell.tsx`               | Mobile bell icon with animated unread badge                                  |
+| `apps/mobile/src/components/notifications/NotificationRow.tsx`                | Single notification row (icon, title, time, unread dot)                      |
+| `apps/mobile/src/components/notifications/NotificationList.tsx`               | FlatList with infinite scroll, filters, pull-to-refresh                      |
+| `apps/mobile/src/components/notifications/NotificationScreen.tsx`             | Full-screen mobile notification center                                       |
 
 ### Modified files
 
@@ -50,6 +54,8 @@ tags: [notifications, push, email, sms, realtime, digest, browser-notifications]
 | `apps/web/src/components/dashboard/DashboardShell.tsx`              | Add `NotificationBell` to header                                              |
 | `supabase/functions/config.toml`                                    | Add `process-notifications` + `send-morning-digest` with `verify_jwt = false` |
 | `apps/web/src/app/dashboard/settings/_components/settings-tabs.tsx` | Replace Notifications placeholder tab                                         |
+| `apps/mobile/src/components/navigation/TabBar.tsx`                  | Add notification badge to tab bar                                             |
+| `apps/mobile/src/lib/push.ts`                                       | Wire push tap → mark as read + navigate                                       |
 
 ---
 
@@ -1176,7 +1182,97 @@ git commit -m "docs(env): add PROCESS_NOTIFICATIONS_SECRET + MORNING_DIGEST_SECR
 
 ---
 
-## Task 12: Typecheck + Integration Smoke Test
+## Task 12: Mobile Notification Center UI
+
+**Files:**
+
+- Create: `apps/mobile/src/components/notifications/NotificationBell.tsx`
+- Create: `apps/mobile/src/components/notifications/NotificationList.tsx`
+- Create: `apps/mobile/src/components/notifications/NotificationRow.tsx`
+- Create: `apps/mobile/src/components/notifications/NotificationScreen.tsx`
+- Modify: `apps/mobile/src/components/navigation/TabBar.tsx`
+
+**Context:** Read `apps/mobile/src/components/navigation/TabBar.tsx` for the existing badge pattern (unread chat count). Read `apps/mobile/src/lib/push.ts` for existing push notification handling. Read `apps/mobile/src/components/home/` or any existing screen for component patterns. Hooks are already in `packages/notifications/src/hooks/` — import from `@smartout/notifications`.
+
+- [ ] **Step 1: Create NotificationRow component**
+
+File: `apps/mobile/src/components/notifications/NotificationRow.tsx`
+
+React Native component showing a single notification:
+
+- Left: icon based on `icon_type` (use Lucide React Native or a simple icon mapping)
+- Center: title (bold if unread) + body + relative time
+- Right: unread dot indicator
+- `Pressable` wrapping the whole row — on press: mark as read + navigate to `action_url` via deep link router
+- Swipe-to-dismiss gesture for mark as read (optional, can use `react-native-gesture-handler` if already in deps)
+
+- [ ] **Step 2: Create NotificationList component**
+
+File: `apps/mobile/src/components/notifications/NotificationList.tsx`
+
+- Uses `useNotifications(profileId, filter)` from `@smartout/notifications`
+- `FlatList` with `onEndReached` for infinite scroll
+- Pull-to-refresh via `RefreshControl`
+- Filter chips at top: All | Unread | Per category
+- Empty state: centered text
+- "Mark all as read" button in header
+
+- [ ] **Step 3: Create NotificationScreen**
+
+File: `apps/mobile/src/components/notifications/NotificationScreen.tsx`
+
+Full-screen notification center:
+
+- Header: "Varsler" + unread count badge + "Mark all" button
+- Body: `NotificationList` component
+- Integrates with mobile navigation stack
+
+- [ ] **Step 4: Create NotificationBell for header**
+
+File: `apps/mobile/src/components/notifications/NotificationBell.tsx`
+
+- Bell icon with animated unread badge (React Native Animated or Reanimated)
+- Uses `useUnreadCount(profileId)` from `@smartout/notifications`
+- On press: navigate to NotificationScreen
+- Badge: red circle with count, scale-in animation on count change
+
+- [ ] **Step 5: Add notification badge to TabBar**
+
+In `apps/mobile/src/components/navigation/TabBar.tsx`:
+
+- Add `NotificationBell` to the tab bar or header area (follow existing badge pattern from chat unread count)
+- Import `useUnreadCount` and display badge on the appropriate tab
+
+- [ ] **Step 6: Wire push notification tap → notification screen**
+
+In `apps/mobile/src/lib/push.ts`, update the notification response handler to:
+
+- Mark the tapped notification as read (call `useMarkAsRead` or direct Supabase update)
+- Navigate to the notification's `action_url` (existing deep link map handles most cases)
+- For generic notifications without a specific deep link: navigate to NotificationScreen
+
+- [ ] **Step 7: Verify on simulator/device**
+
+```bash
+cd apps/mobile && npx expo start
+```
+
+1. Verify bell icon with badge in navigation
+2. Tap bell → NotificationScreen opens
+3. Pull to refresh works
+4. Tap notification row → navigates to correct screen + marks read
+5. Badge count updates in real-time
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add apps/mobile/src/components/notifications/ apps/mobile/src/components/navigation/TabBar.tsx apps/mobile/src/lib/push.ts
+git commit -m "feat(mobile): notification center — bell badge, list, screen, push tap handling"
+```
+
+---
+
+## Task 13: Typecheck + Integration Smoke Test
 
 - [ ] **Step 1: Run full typecheck**
 
@@ -1192,7 +1288,7 @@ Fix any type errors introduced by the notification system.
 npx supabase gen types typescript --local > packages/supabase/src/database.types.ts
 ```
 
-- [ ] **Step 3: Manual smoke test**
+- [ ] **Step 3: Manual smoke test — Web**
 
 1. Start local Supabase: `npx supabase start`
 2. Start web: `pnpm --filter web dev`
@@ -1208,7 +1304,15 @@ npx supabase gen types typescript --local > packages/supabase/src/database.types
 8. Navigate to `/dashboard/notifications` → verify full page
 9. Navigate to `/dashboard/settings` → Notifications tab → verify preferences
 
-- [ ] **Step 4: Commit any fixes**
+- [ ] **Step 4: Manual smoke test — Mobile**
+
+1. Start mobile: `cd apps/mobile && npx expo start`
+2. Verify bell badge appears in navigation
+3. Tap bell → NotificationScreen opens with test notification
+4. Tap notification → navigates + marks as read
+5. Badge count decrements
+
+- [ ] **Step 5: Commit any fixes**
 
 ```bash
 git add -A
