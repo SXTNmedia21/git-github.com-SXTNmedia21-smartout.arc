@@ -1,11 +1,4 @@
 {
-  "common": {
-    "save": "Lagre",
-    "cancel": "Avbryt",
-    "delete": "Slett",
-    "confirm": "Bekreft",
-    "back": "Tilbake"
-  },
   "site.title": "SmartOut - Mot fremtidens workforce management",
   "site.description": "AI-drevet workforce management for den norske serveringsbransjen."
 }

@@ -1,0 +1,11 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "confirm": "Confirm",
+    "back": "Back"
+  },
+  "site.title": "SmartOut - The future of workforce management",
+  "site.description": "AI-powered workforce management for the hospitality industry."
+}
