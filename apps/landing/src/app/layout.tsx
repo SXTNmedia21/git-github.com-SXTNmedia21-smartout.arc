@@ -6,6 +6,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { createTranslator } from "@smartout/i18n";
 import { MotionProvider } from "../components/motion-provider";
 import { ThemeProvider } from "../components/theme-provider";
+import { ConsentProvider, AnalyticsGate } from "../components/cookie-consent";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -51,10 +52,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           enableSystem
           disableTransitionOnChange
         >
-          <MotionProvider>{children}</MotionProvider>
+          <ConsentProvider locale={locale as "nb" | "en"}>
+            <MotionProvider>{children}</MotionProvider>
+          </ConsentProvider>
         </ThemeProvider>
-        <Analytics />
-        <SpeedInsights />
+        <AnalyticsGate>
+          <Analytics />
+          <SpeedInsights />
+        </AnalyticsGate>
       </body>
     </html>
   );

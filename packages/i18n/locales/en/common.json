@@ -25,5 +25,17 @@
   "footer.privacy": "Privacy",
   "footer.terms": "Terms",
   "footer.top": "Top",
-  "footer.topLabel": "Back to top"
+  "footer.topLabel": "Back to top",
+  "consent.title": "We use cookies",
+  "consent.description": "We use cookies to improve your experience and analyse traffic. You can choose which categories to accept.",
+  "consent.showDetails": "Show details",
+  "consent.hideDetails": "Hide details",
+  "consent.necessary.title": "Necessary",
+  "consent.necessary.description": "Required for the site to function. Includes language preference and theme.",
+  "consent.analytics.title": "Analytics",
+  "consent.analytics.description": "Helps us understand how visitors use the site so we can improve it. Includes anonymous page view and click statistics.",
+  "consent.alwaysOn": "Always on",
+  "consent.acceptAll": "Accept all",
+  "consent.acceptSelected": "Accept selected",
+  "consent.rejectOptional": "Necessary only"
 }
