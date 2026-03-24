@@ -217,7 +217,7 @@ export function CsvMappingDialog({
         <DialogFooter>
           <button
             onClick={() => onOpenChange(false)}
-            className={`rounded-lg px-4 py-2 text-sm font-medium ${"text-muted-foreground hover:bg-accent hover:text-zinc-700"}`}
+            className={`rounded-lg px-4 py-2 text-sm font-medium ${"text-muted-foreground hover:bg-accent hover:text-foreground"}`}
           >
             Avbryt
           </button>
@@ -226,8 +226,8 @@ export function CsvMappingDialog({
             disabled={!requiredFieldsMapped}
             className={`rounded-lg px-5 py-2 text-sm font-semibold transition-colors ${
               requiredFieldsMapped
-                ? "bg-orange-500 text-white hover:bg-orange-600"
-                : "cursor-not-allowed bg-orange-500 text-white opacity-50"
+                ? "bg-brand-orange hover:bg-brand-orange/90 text-white"
+                : "bg-brand-orange cursor-not-allowed text-white opacity-50"
             }`}
           >
             Importer {totalRowCount} {totalRowCount === 1 ? "rad" : "rader"}

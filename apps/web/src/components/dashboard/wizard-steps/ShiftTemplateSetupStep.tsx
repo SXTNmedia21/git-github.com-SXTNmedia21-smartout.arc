@@ -332,7 +332,7 @@ export function ShiftTemplateSetupStep({
                 </div>
                 <button
                   onClick={() => handleRemoveEntry(entry.id)}
-                  className={`rounded-md p-1.5 transition-colors ${"text-muted-foreground hover:bg-accent hover:text-zinc-600"}`}
+                  className={`rounded-md p-1.5 transition-colors ${"text-muted-foreground hover:bg-accent hover:text-foreground"}`}
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -350,7 +350,7 @@ export function ShiftTemplateSetupStep({
           className={`flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
             isSaving
               ? "cursor-not-allowed opacity-50"
-              : "bg-orange-500 text-white hover:bg-orange-600"
+              : "bg-brand-orange hover:bg-brand-orange/90 text-white"
           }`}
         >
           {isSaving ? (

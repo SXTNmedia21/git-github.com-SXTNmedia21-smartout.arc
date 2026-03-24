@@ -185,6 +185,7 @@ export function OnboardingGuide() {
       actor_id: profileId ?? "",
       properties: {
         data: {
+          wizard_id: "onboarding-guide",
           step_id: s.id,
           step_index: currentStep,
         },
@@ -201,6 +202,7 @@ export function OnboardingGuide() {
         actor_id: profileId ?? "",
         properties: {
           data: {
+            wizard_id: "onboarding-guide",
             workspace_id: workspaceId,
           },
         },

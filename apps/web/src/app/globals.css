@@ -69,8 +69,47 @@
   --color-onboarding-glow: oklch(0.75 0.15 55);
   --color-onboarding-glass: oklch(1 0 0 / 0.05);
   --color-onboarding-glass-border: oklch(1 0 0 / 0.08);
+  /* Join wizard tokens (cherry-pick d27a2d82 missed these) */
+  --color-join-bg: oklch(0.99 0.004 60);
+  --color-join-panel: oklch(0.18 0.03 50);
+  --color-join-glow-1: oklch(0.45 0.18 40);
+  --color-join-glow-2: oklch(0.35 0.14 35);
   /* Display font */
   --font-heading: var(--font-instrument-serif);
+}
+
+/* Wizard Shell Theme Variants */
+[data-wizard-theme="dark"] {
+  --wizard-bg: var(--wizard-dark-bg);
+  --wizard-sidebar: var(--wizard-dark-sidebar);
+  --wizard-text: var(--wizard-dark-text);
+  --wizard-text-muted: var(--wizard-dark-text-muted);
+  --wizard-border: var(--wizard-dark-border);
+  --wizard-step-active: var(--brand-orange);
+  --wizard-step-completed: var(--success);
+  --wizard-step-pending: var(--wizard-dark-step-pending);
+}
+
+[data-wizard-theme="warm"] {
+  --wizard-bg: var(--wizard-warm-bg);
+  --wizard-sidebar: var(--wizard-warm-sidebar);
+  --wizard-text: var(--wizard-warm-text);
+  --wizard-text-muted: var(--wizard-warm-text-muted);
+  --wizard-border: var(--wizard-warm-border);
+  --wizard-step-active: var(--brand-orange);
+  --wizard-step-completed: var(--success);
+  --wizard-step-pending: var(--wizard-warm-step-pending);
+}
+
+[data-wizard-theme="light"] {
+  --wizard-bg: var(--background);
+  --wizard-sidebar: var(--card);
+  --wizard-text: var(--foreground);
+  --wizard-text-muted: var(--muted-foreground);
+  --wizard-border: var(--border);
+  --wizard-step-active: var(--brand-orange);
+  --wizard-step-completed: var(--success);
+  --wizard-step-pending: var(--muted);
 }
 
 @utility bg-stripes-blue {

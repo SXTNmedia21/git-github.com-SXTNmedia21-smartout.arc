@@ -239,7 +239,7 @@ function InviteRowCard({
         </div>
         <button
           onClick={() => onRemove(row.id)}
-          className={`rounded-lg p-1.5 transition-colors ${"text-muted-foreground hover:bg-accent hover:text-zinc-600"}`}
+          className={`rounded-lg p-1.5 transition-colors ${"text-muted-foreground hover:bg-accent hover:text-foreground"}`}
         >
           <Trash2 className="h-4 w-4" />
         </button>
@@ -657,7 +657,7 @@ export function TeamSetupStep({
       <div className="flex flex-wrap items-center gap-3">
         <button
           onClick={handleAddRow}
-          className={`flex items-center gap-1.5 rounded-xl border-2 border-dashed px-4 py-2.5 text-sm font-medium transition-colors ${"border-border text-muted-foreground hover:border-zinc-400 hover:text-zinc-600"}`}
+          className={`flex items-center gap-1.5 rounded-xl border-2 border-dashed px-4 py-2.5 text-sm font-medium transition-colors ${"border-border text-muted-foreground hover:border-muted-foreground hover:text-foreground"}`}
         >
           <Plus className="h-4 w-4" />
           Legg til manuelt
@@ -672,7 +672,7 @@ export function TeamSetupStep({
         />
         <button
           onClick={() => fileInputRef.current?.click()}
-          className={`flex items-center gap-1.5 rounded-xl border-2 border-dashed px-4 py-2.5 text-sm font-medium transition-colors ${"border-border text-muted-foreground hover:border-zinc-400 hover:text-zinc-600"}`}
+          className={`flex items-center gap-1.5 rounded-xl border-2 border-dashed px-4 py-2.5 text-sm font-medium transition-colors ${"border-border text-muted-foreground hover:border-muted-foreground hover:text-foreground"}`}
         >
           <Upload className="h-4 w-4" />
           Last opp CSV

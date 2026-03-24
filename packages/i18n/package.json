@@ -8,9 +8,13 @@
     "typecheck": "tsc --noEmit",
     "clean": "rimraf dist .turbo"
   },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  },
   "devDependencies": {
     "@smartout/eslint-config": "workspace:^",
     "@smartout/typescript-config": "workspace:*",
+    "@types/react": "^19",
     "typescript": "^5.9.0"
   }
 }

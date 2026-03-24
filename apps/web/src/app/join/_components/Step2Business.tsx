@@ -5,28 +5,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight, Loader2, Sparkles } from "lucide-react";
-import { useSignupWizard } from "../_hooks/useSignupWizard";
+import type { WizardStepProps } from "@smartout/ui";
+import type { JoinState } from "../types";
+import { useJoinScraping } from "../_context/JoinScrapingProvider";
 import { useTypewriterSequence } from "../_hooks/useTypewriter";
-import type { ScrapeStatus } from "../_hooks/useScrapedData";
 import { step2Schema } from "../_lib/validation";
 
-interface Step2BusinessProps {
-  scrapeStatus?: ScrapeStatus;
-}
+export function Step2Business({ state, updateState, next, back }: WizardStepProps<JoinState>) {
+  const { scrapeStatus, brregData, brregCandidates, selectBrregCandidate } = useJoinScraping();
 
-export function Step2Business({ scrapeStatus }: Step2BusinessProps) {
-  const wizard = useSignupWizard();
-  const { state, updateStep, nextStep, prevStep } = wizard;
-  const brregData = wizard.brregData ?? null;
-  const brregCandidates = wizard.brregCandidates ?? [];
-  const selectBrregCandidate = wizard.selectBrregCandidate ?? (() => {});
-
-  const [firstName, setFirstName] = useState(state.step2.firstName ?? "");
-  const [lastName, setLastName] = useState(state.step2.lastName ?? "");
-  const [street, setStreet] = useState(state.step2.street ?? "");
-  const [postalCode, setPostalCode] = useState(state.step2.postalCode ?? "");
-  const [city, setCity] = useState(state.step2.city ?? "");
-  const [orgNumber, setOrgNumber] = useState(state.step2.orgNumber ?? "");
+  const [firstName, setFirstName] = useState(state.business.firstName ?? "");
+  const [lastName, setLastName] = useState(state.business.lastName ?? "");
+  const [street, setStreet] = useState(state.business.street ?? "");
+  const [postalCode, setPostalCode] = useState(state.business.postalCode ?? "");
+  const [city, setCity] = useState(state.business.city ?? "");
+  const [orgNumber, setOrgNumber] = useState(state.business.orgNumber ?? "");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [userEdited, setUserEdited] = useState<Record<string, boolean>>({});
 
@@ -100,8 +93,8 @@ export function Step2Business({ scrapeStatus }: Step2BusinessProps) {
       return;
     }
 
-    updateStep("step2", result.data);
-    nextStep();
+    updateState({ business: { ...state.business, ...result.data } });
+    next();
   };
 
   const clearError = (field: string) => {
@@ -132,7 +125,7 @@ export function Step2Business({ scrapeStatus }: Step2BusinessProps) {
         {allDone && (
           <p className="text-brand-orange mt-2 flex items-center gap-1.5 text-xs">
             <Sparkles className="h-3 w-3" />
-            Fylt ut fra Brønnøysundregistrene
+            Fylt ut fra Bronnoysundregistrene
           </p>
         )}
       </div>
@@ -286,7 +279,7 @@ export function Step2Business({ scrapeStatus }: Step2BusinessProps) {
       </div>
 
       <div className="flex gap-3">
-        <Button type="button" variant="outline" onClick={prevStep} className="flex-1">
+        <Button type="button" variant="outline" onClick={back} className="flex-1">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Tilbake
         </Button>
@@ -303,7 +296,7 @@ export function Step2Business({ scrapeStatus }: Step2BusinessProps) {
   );
 }
 
-/* ── Typewriter field wrapper ── */
+/* -- Typewriter field wrapper -- */
 
 function TypewriterField({
   label,

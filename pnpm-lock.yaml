@@ -453,6 +453,9 @@ importers:
       '@smartout/hms':
         specifier: workspace:*
         version: link:../../packages/hms
+      '@smartout/i18n':
+        specifier: workspace:^
+        version: link:../../packages/i18n
       '@smartout/notifications':
         specifier: workspace:^
         version: link:../../packages/notifications
@@ -776,6 +779,10 @@ importers:
         version: 5.9.3
 
   packages/i18n:
+    dependencies:
+      react:
+        specifier: ^19.0.0
+        version: 19.2.3
     devDependencies:
       '@smartout/eslint-config':
         specifier: workspace:^
@@ -783,6 +790,9 @@ importers:
       '@smartout/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
+      '@types/react':
+        specifier: ^19
+        version: 19.2.14
       typescript:
         specifier: ^5.9.0
         version: 5.9.3
@@ -949,6 +959,9 @@ importers:
       typescript:
         specifier: ^5.9.0
         version: 5.9.3
+      zod:
+        specifier: ^3.25.0
+        version: 3.25.76
 
   packages/utils:
     dependencies:

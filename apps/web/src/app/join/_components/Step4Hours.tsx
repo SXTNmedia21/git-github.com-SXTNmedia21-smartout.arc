@@ -5,12 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight } from "lucide-react";
-import { useSignupWizard } from "../_hooks/useSignupWizard";
+import type { WizardStepProps } from "@smartout/ui";
+import type { JoinState } from "../types";
+import { useJoinScraping } from "../_context/JoinScrapingProvider";
 import { step4Schema } from "../_lib/validation";
 
 const DAY_LABELS = ["Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lordag", "Sondag"];
 
-/** Maps ISO day abbreviations (Mo, Tu, ...) to our 0-indexed weekday (Mon=0 … Sun=6) */
+/** Maps ISO day abbreviations (Mo, Tu, ...) to our 0-indexed weekday (Mon=0 ... Sun=6) */
 const ISO_DAY_MAP: Record<string, number> = {
   Mo: 0,
   Tu: 1,
@@ -88,12 +90,12 @@ function parseIsoOpeningHours(isoHours: string[]): DayHours[] | null {
   return parsed ? result : null;
 }
 
-export function Step4Hours() {
-  const { state, updateStep, nextStep, prevStep, scrapedData } = useSignupWizard();
+export function Step4Hours({ state, updateState, next, back }: WizardStepProps<JoinState>) {
+  const { scrapedData } = useJoinScraping();
 
   const [hours, setHours] = useState<DayHours[]>(() => {
-    if (state.step4.openingHours && state.step4.openingHours.length === 7) {
-      return state.step4.openingHours.map((h) => ({
+    if (state.hours.openingHours && state.hours.openingHours.length === 7) {
+      return state.hours.openingHours.map((h) => ({
         dayOfWeek: h.dayOfWeek,
         isClosed: h.isClosed,
         openTime: h.openTime ?? "10:00",
@@ -103,9 +105,9 @@ export function Step4Hours() {
     return getDefaultHours();
   });
 
-  const [phone, setPhone] = useState(state.step4.phone ?? "");
-  const [instagram, setInstagram] = useState(state.step4.instagram ?? "");
-  const [facebook, setFacebook] = useState(state.step4.facebook ?? "");
+  const [phone, setPhone] = useState(state.hours.phone ?? "");
+  const [instagram, setInstagram] = useState(state.hours.instagram ?? "");
+  const [facebook, setFacebook] = useState(state.hours.facebook ?? "");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Cascade animation: open Mon-Sat one by one
@@ -194,20 +196,20 @@ export function Step4Hours() {
       return;
     }
 
-    updateStep("step4", result.data);
-    nextStep();
+    updateState({ hours: { ...state.hours, ...result.data } });
+    next();
   };
 
   return (
     <div className="mx-auto w-full max-w-lg space-y-6">
       <div>
         <h2 className="font-heading text-foreground text-2xl font-bold">Drift</h2>
-        <p className="text-muted-foreground mt-1 text-sm">Åpningstider og kontaktinformasjon.</p>
+        <p className="text-muted-foreground mt-1 text-sm">Apningstider og kontaktinformasjon.</p>
       </div>
 
       {/* Opening hours grid */}
       <div className="space-y-3">
-        <Label className="text-sm font-semibold">Åpningstider</Label>
+        <Label className="text-sm font-semibold">Apningstider</Label>
         <div className="space-y-2">
           {hours.map((day, index) => (
             <div
@@ -237,7 +239,7 @@ export function Step4Hours() {
                     backgroundColor: day.isClosed ? "var(--join-closed-dot)" : "var(--success)",
                   }}
                 />
-                {day.isClosed ? "Stengt" : "Åpent"}
+                {day.isClosed ? "Stengt" : "Apent"}
               </button>
 
               {!day.isClosed && (
@@ -250,7 +252,7 @@ export function Step4Hours() {
                     }
                     className="h-8 w-28 text-sm"
                   />
-                  <span className="text-muted-foreground">–</span>
+                  <span className="text-muted-foreground">-</span>
                   <Input
                     type="time"
                     value={day.closeTime}
@@ -314,7 +316,7 @@ export function Step4Hours() {
       </div>
 
       <div className="flex gap-3">
-        <Button type="button" variant="outline" onClick={prevStep} className="flex-1">
+        <Button type="button" variant="outline" onClick={back} className="flex-1">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Tilbake
         </Button>

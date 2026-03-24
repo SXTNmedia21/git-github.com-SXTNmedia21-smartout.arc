@@ -621,7 +621,7 @@ export function PayrollSetupStep({
                 <button
                   type="button"
                   onClick={() => handleRemoveCustomSupplement(cs.id)}
-                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors ${"text-muted-foreground hover:bg-accent hover:text-zinc-600"}`}
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors ${"text-muted-foreground hover:bg-accent hover:text-foreground"}`}
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -634,7 +634,7 @@ export function PayrollSetupStep({
         <button
           type="button"
           onClick={handleAddCustomSupplement}
-          className={`mt-2 flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors ${"border-border text-muted-foreground hover:border-zinc-300 hover:text-zinc-700"}`}
+          className={`mt-2 flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors ${"border-border text-muted-foreground hover:border-muted-foreground hover:text-foreground"}`}
         >
           <Plus className="h-4 w-4" />
           Legg til tillegg
@@ -659,7 +659,7 @@ export function PayrollSetupStep({
                   setNewPositionDeptId(stableDepartments[0]!.department_id);
                 }
               }}
-              className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors ${"border-border text-muted-foreground hover:border-zinc-300 hover:text-zinc-700"}`}
+              className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors ${"border-border text-muted-foreground hover:border-muted-foreground hover:text-foreground"}`}
             >
               <Plus className="h-4 w-4" />
               Legg til stilling
@@ -716,7 +716,7 @@ export function PayrollSetupStep({
                     stableDepartments.length === 0 ||
                     createPositionMutation.isPending
                   }
-                  className="bg-brand-orange flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-orange-600 disabled:opacity-50"
+                  className="bg-brand-orange hover:bg-brand-orange/90 flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors disabled:opacity-50"
                 >
                   {createPositionMutation.isPending ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -728,7 +728,7 @@ export function PayrollSetupStep({
                 <button
                   type="button"
                   onClick={() => setIsAddingPosition(false)}
-                  className={`rounded-lg border px-4 py-2 text-sm transition-colors ${"border-border text-muted-foreground hover:text-zinc-700"}`}
+                  className={`rounded-lg border px-4 py-2 text-sm transition-colors ${"border-border text-muted-foreground hover:text-foreground"}`}
                 >
                   Avbryt
                 </button>
@@ -767,7 +767,7 @@ export function PayrollSetupStep({
                     setNewPositionDeptId(stableDepartments[0]!.department_id);
                   }
                 }}
-                className={`mt-2 flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors ${"border-border text-muted-foreground hover:border-zinc-300 hover:text-zinc-700"}`}
+                className={`mt-2 flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors ${"border-border text-muted-foreground hover:border-muted-foreground hover:text-foreground"}`}
               >
                 <Plus className="h-4 w-4" />
                 Legg til stilling
@@ -810,7 +810,7 @@ export function PayrollSetupStep({
                       stableDepartments.length === 0 ||
                       createPositionMutation.isPending
                     }
-                    className="bg-brand-orange flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-semibold text-white transition-colors hover:bg-orange-600 disabled:opacity-50"
+                    className="bg-brand-orange hover:bg-brand-orange/90 flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-semibold text-white transition-colors disabled:opacity-50"
                   >
                     {createPositionMutation.isPending ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -825,7 +825,7 @@ export function PayrollSetupStep({
                       setIsAddingPosition(false);
                       setNewPositionName("");
                     }}
-                    className={`flex h-9 items-center rounded-lg border px-3 text-sm transition-colors ${"border-border text-muted-foreground hover:text-zinc-700"}`}
+                    className={`flex h-9 items-center rounded-lg border px-3 text-sm transition-colors ${"border-border text-muted-foreground hover:text-foreground"}`}
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>
@@ -844,7 +844,7 @@ export function PayrollSetupStep({
           className={`flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold transition-colors ${
             saveMutation.isPending
               ? "cursor-not-allowed opacity-50"
-              : "bg-orange-500 text-white hover:bg-orange-600"
+              : "bg-brand-orange hover:bg-brand-orange/90 text-white"
           }`}
         >
           {saveMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}

@@ -1,48 +1,40 @@
 ---
 title: Session Log
 status: in_progress
-updated: 2026-03-24
+updated: 2026-03-22
 created: 2026-03-02
 ---
 
 ## Last Session
 
-| Field   | Value                                            |
-| ------- | ------------------------------------------------ |
-| Date    | 2026-03-24                                       |
-| Branch  | `feat/livekit-webhook-deployment`                |
-| Feature | LiveKit voice/video calling + webhook deployment |
-| Status  | ready_for_closure                                |
+| Field   | Value                             |
+| ------- | --------------------------------- |
+| Date    | 2026-03-22                        |
+| Branch  | `feat/fix-invitation-flow` (wt-7) |
+| Feature | Fix Invitation Flow               |
+| Status  | in_progress                       |
 
 ### What was done
 
-**Session 1 (16 commits):**
-
-- Webhook handler tested and fixed (upsert → insert for partial unique index)
-- Video/screen share grants in livekit-token
-- @livekit/components-react: CallRoom with VideoConference, GridLayout, FocusLayout, ControlBar, RoomAudioRenderer
-- In-call chat panel reusing MessageTimeline + MessageInput
-- 20 audit issues fixed (3-agent team): security, client, schema, telemetry, a11y
-- Critical RLS fix: channel_member/channel_message self-referencing → workspace-scoped
-- Infra: Preflight vault display, .env.template fixes
-
-**Session 2 (5 commits):**
-
-- Mobile-responsive CallRoom layout (flex-col mobile, flex-row desktop, togglable chat)
-- Join/leave notifications via sonner toast
-- Moderator mute controls (server-side via LiveKit RoomServiceClient + MemberPanel UI)
-- Dead code cleanup: removed CallBar.tsx + use-livekit-call.ts (355 lines)
-- All closure gates verified and fixed: decision log (7), learning log (6), user journeys (8 flows)
+- Audited full user management + invitation flow (3 entry paths: self-signup, admin invite, re-invite)
+- Identified 5 gaps: company_member missing on invite accept, listUsers() scalability, company_member RLS, no resend, no expiry cleanup
+- Created feature branch + worktree wt-7
+- Writing implementation plan
 
 ### Where we stopped
 
-- Feature ready for closure
-- Run: `~/.claude/scripts/close-feature.sh 1`
+- Plan being written, implementation not started
 
 ### Known blockers / errors
 
-- None (all gates passed)
+- None
 
 ### Pending decisions
 
-- None
+- [ ] Whether to add invitation resend as separate endpoint or extend create-invitation
+
+### Previous session (hms-phase-1)
+
+- HMS Phase 1+2 complete (16 commits), ready for closure
+- `supabase db reset` blocked by pre-existing FK issue (NOT HMS)
+- `trg_push_deviation_reported` trigger has `id` instead of `profile_id` bug (pre-existing)

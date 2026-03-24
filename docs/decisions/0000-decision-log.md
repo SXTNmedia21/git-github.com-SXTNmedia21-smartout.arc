@@ -18,3 +18,18 @@ tags: [decisions]
 | 5   | 2026-03-24 | Reuse MessageTimeline for in-call chat — no need for separate LiveKit DataChannel chat                                          | Accepted |
 | 6   | 2026-03-24 | call-command verify_jwt=false — function handles auth internally, avoids JWT format issues                                      | Accepted |
 | 7   | 2026-03-24 | Server-side mute via RoomServiceClient — client SDK can't mute remote participants, server API needed                           | Accepted |
+
+status: in_progress
+updated: 2026-03-24
+created: 2026-03-24
+module: ui
+tags: [decisions]
+
+---
+
+# Decision Log — unified-wizard-shell
+
+| #    | Date       | Decision                            | Status   |
+| ---- | ---------- | ----------------------------------- | -------- |
+| 0060 | 2026-03-24 | Unified Wizard Shell in packages/ui | accepted |
+| 0061 | 2026-03-24 | Walk AI Semantic Tagging Convention | accepted |

@@ -1,0 +1,17 @@
+{
+  "setup": {
+    "title": "Oppsett",
+    "description": "Konfigurer workspace"
+  },
+  "steps": {
+    "welcome": "Velkommen",
+    "documents": "Dokumenter",
+    "governance": "Retningslinjer",
+    "payroll": "Lonn",
+    "employment": "Ansettelse",
+    "team": "Team",
+    "shifts": "Vaktmaler",
+    "season": "Sesong",
+    "handbook": "Handbok"
+  }
+}

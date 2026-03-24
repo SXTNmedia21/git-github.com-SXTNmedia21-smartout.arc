@@ -68,8 +68,11 @@ Deno.serve(async (req) => {
     }
 
     // Post-creation: seed cascade dimension data (D1-D4, K1a) for the workspace.
-    // This is NOT an onboarding dependency — it runs after workspace is fully created.
-    // If it fails, the workspace is still functional; bootstrap can be re-run from settings.
+    // Workspace is created regardless, but bootstrap errors are surfaced to the caller
+    // so they can prompt re-run from settings instead of silently losing cascade data.
+    let bootstrapWarnings: string[] | undefined;
+    let bootstrapError: string | undefined;
+
     try {
       const bootstrapResponse = await fetch(
         `${Deno.env.get("SUPABASE_URL")}/functions/v1/bootstrap-cascade`,
@@ -82,11 +85,23 @@ Deno.serve(async (req) => {
           body: JSON.stringify({ workspaceId: data, sourcePath: "onboarding" }),
         },
       );
+
       if (!bootstrapResponse.ok) {
-        console.error("Bootstrap cascade returned non-OK:", await bootstrapResponse.text());
+        bootstrapError = `Bootstrap returned ${bootstrapResponse.status}: ${await bootstrapResponse.text()}`;
+        console.error(bootstrapError);
+      } else {
+        try {
+          const bootstrapResult = await bootstrapResponse.json();
+          if (bootstrapResult.warnings?.length) {
+            bootstrapWarnings = bootstrapResult.warnings;
+          }
+        } catch {
+          // Response was OK but not JSON — no warnings to extract
+        }
       }
     } catch (bootstrapErr) {
-      console.error("Bootstrap cascade failed (non-fatal):", bootstrapErr);
+      bootstrapError = `Bootstrap fetch failed: ${bootstrapErr instanceof Error ? bootstrapErr.message : String(bootstrapErr)}`;
+      console.error(bootstrapError);
     }
 
     // Fetch the workspace slug for redirect
@@ -98,13 +113,15 @@ Deno.serve(async (req) => {
 
     return new Response(
       JSON.stringify({
-        success: true,
+        success: !bootstrapError,
         workspaceId: data,
         slug: ws?.slug ?? null,
+        ...(bootstrapError && { error: bootstrapError }),
+        ...(bootstrapWarnings && { warnings: bootstrapWarnings }),
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
+        status: bootstrapError ? 207 : 200,
       },
     );
   } catch (error: unknown) {

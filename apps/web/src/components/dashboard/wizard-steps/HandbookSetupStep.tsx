@@ -294,8 +294,8 @@ function EditorToolbar({ editor }: { editor: ReturnType<typeof useEditor> | null
   const btnClass = (active: boolean) =>
     `rounded p-1.5 transition-colors ${
       active
-        ? "bg-orange-500/20 text-orange-500"
-        : "text-muted-foreground hover:bg-accent hover:text-zinc-800"
+        ? "bg-brand-orange/20 text-brand-orange"
+        : "text-muted-foreground hover:bg-accent hover:text-foreground"
     }`;
 
   return (
@@ -441,7 +441,7 @@ function ChapterEditor({
         <button
           type="button"
           onClick={onCancel}
-          className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${"text-muted-foreground hover:bg-accent hover:text-zinc-700"}`}
+          className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${"text-muted-foreground hover:bg-accent hover:text-foreground"}`}
         >
           Avbryt
         </button>
@@ -452,7 +452,7 @@ function ChapterEditor({
           className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
             saveMutation.isPending
               ? "cursor-not-allowed opacity-50"
-              : "bg-orange-500 text-white hover:bg-orange-600"
+              : "bg-brand-orange hover:bg-brand-orange/90 text-white"
           }`}
         >
           {saveMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
@@ -578,7 +578,7 @@ export function HandbookSetupStep({ wizardState }: { wizardState?: SetupWizardSt
                       <button
                         type="button"
                         onClick={() => handleWrite(chapter.key)}
-                        className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${"text-muted-foreground hover:bg-accent hover:text-zinc-700"}`}
+                        className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${"text-muted-foreground hover:bg-accent hover:text-foreground"}`}
                       >
                         Rediger
                       </button>
@@ -588,7 +588,7 @@ export function HandbookSetupStep({ wizardState }: { wizardState?: SetupWizardSt
                       <button
                         type="button"
                         onClick={() => handleWrite(chapter.key)}
-                        className="bg-brand-orange rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-orange-600"
+                        className="bg-brand-orange hover:bg-brand-orange/90 rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-colors"
                       >
                         Skriv
                       </button>
@@ -597,7 +597,7 @@ export function HandbookSetupStep({ wizardState }: { wizardState?: SetupWizardSt
                         onClick={() => {
                           if (isEditing) setEditingKey(null);
                         }}
-                        className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${"text-muted-foreground hover:text-zinc-600"}`}
+                        className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${"text-muted-foreground hover:text-foreground"}`}
                       >
                         Hopp over
                       </button>

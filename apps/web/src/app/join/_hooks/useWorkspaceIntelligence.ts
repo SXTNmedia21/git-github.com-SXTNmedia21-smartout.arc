@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { useSignupWizard } from "./useSignupWizard";
+import { useJoinScraping } from "../_context/JoinScrapingProvider";
+import type { JoinState } from "../types";
 
 export type IntelligenceStatus = "idle" | "enriching" | "generating" | "done" | "failed";
 
@@ -19,13 +20,25 @@ interface WorkspaceIntelligence {
   [key: string]: unknown;
 }
 
-export function useWorkspaceIntelligence() {
-  const { state, updateStep, scrapedData, brregData } = useSignupWizard();
+/**
+ * Hook for AI-powered workspace intelligence (content generation, enrichment).
+ *
+ * Requires JoinScrapingProvider in tree for BRREG/scrape data.
+ * Receives wizard state + updater from the step component props.
+ */
+export function useWorkspaceIntelligence(
+  state?: JoinState,
+  updateState?: (patch: Partial<JoinState>) => void,
+) {
+  const { scrapedData, brregData } = useJoinScraping();
+
   // Intelligence persists in wizard state (survives step navigation + localStorage)
-  const intelligence = (state.intelligence as WorkspaceIntelligence) ?? null;
+  const intelligence = (state?.intelligence as WorkspaceIntelligence) ?? null;
   const setIntelligence = useCallback(
-    (intel: WorkspaceIntelligence) => updateStep("intelligence", intel as Record<string, unknown>),
-    [updateStep],
+    (intel: WorkspaceIntelligence) => {
+      updateState?.({ intelligence: intel as Record<string, unknown> });
+    },
+    [updateState],
   );
   const [content, setContent] = useState<WorkspaceIntelligenceContent | null>(null);
   const [status, setStatus] = useState<IntelligenceStatus>("idle");
@@ -35,10 +48,10 @@ export function useWorkspaceIntelligence() {
   const buildInitialIntelligence = useCallback((): WorkspaceIntelligence => {
     const sources: Record<string, unknown> = {};
     const result: Record<string, unknown> = {
-      company_name: state.step1.companyName ?? null,
-      city: state.step1.city ?? null,
-      website_url: state.step1.websiteUrl ?? null,
-      org_number: state.step2?.orgNumber ?? null,
+      company_name: state?.account.companyName ?? null,
+      city: state?.account.city ?? null,
+      website_url: state?.account.websiteUrl ?? null,
+      org_number: state?.business?.orgNumber ?? null,
     };
 
     if (brregData) {
@@ -57,7 +70,7 @@ export function useWorkspaceIntelligence() {
       result.social_links = scrapedData.socialLinks ?? {};
       sources.scrape = {
         fetched_at: new Date().toISOString(),
-        urls_scraped: [state.step1.websiteUrl].filter(Boolean),
+        urls_scraped: [state?.account.websiteUrl].filter(Boolean),
       };
     }
 
@@ -66,7 +79,7 @@ export function useWorkspaceIntelligence() {
     }
 
     return result as WorkspaceIntelligence;
-  }, [state.step1, state.step2, brregData, scrapedData]);
+  }, [state?.account, state?.business, brregData, scrapedData]);
 
   const callApi = useCallback(
     async (forceNewQueries: boolean) => {
@@ -86,10 +99,10 @@ export function useWorkspaceIntelligence() {
           body: JSON.stringify({
             action: "enrich_and_generate",
             intelligence: currentIntel,
-            company_name: state.step1.companyName,
-            city: state.step1.city,
-            website_url: state.step1.websiteUrl,
-            org_number: state.step2?.orgNumber,
+            company_name: state?.account.companyName,
+            city: state?.account.city,
+            website_url: state?.account.websiteUrl,
+            org_number: state?.business?.orgNumber,
             force_new_queries: forceNewQueries,
           }),
           signal: controller.signal,
@@ -138,7 +151,7 @@ export function useWorkspaceIntelligence() {
         setStatus("failed");
       }
     },
-    [intelligence, buildInitialIntelligence, state.step1, state.step2],
+    [intelligence, buildInitialIntelligence, state?.account, state?.business],
   );
 
   const enrichAndGenerate = useCallback(() => callApi(false), [callApi]);
@@ -178,10 +191,10 @@ export function useWorkspaceIntelligence() {
               rewrite_field: field,
               rewrite_mode: mode,
             },
-            company_name: state.step1.companyName,
-            city: state.step1.city,
-            website_url: state.step1.websiteUrl,
-            org_number: state.step2?.orgNumber,
+            company_name: state?.account.companyName,
+            city: state?.account.city,
+            website_url: state?.account.websiteUrl,
+            org_number: state?.business?.orgNumber,
             force_new_queries: mode === "rewrite",
           }),
           signal: controller.signal,

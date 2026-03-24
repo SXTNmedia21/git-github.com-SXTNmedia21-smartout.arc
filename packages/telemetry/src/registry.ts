@@ -1140,6 +1140,7 @@ export interface WizardStepCompleted extends BaseEvent {
   event: "wizard step_completed";
   properties: {
     data: {
+      wizard_id: string;
       step_id: string;
       step_index: number;
     };
@@ -1150,7 +1151,75 @@ export interface WizardCompleted extends BaseEvent {
   event: "wizard completed";
   properties: {
     data: {
-      workspace_id: string;
+      wizard_id: string;
+      workspace_id: string | null;
+    };
+  };
+}
+
+export interface WizardStarted extends BaseEvent {
+  event: "wizard started";
+  properties: {
+    data: {
+      wizard_id: string;
+      theme: string;
+      total_steps: number;
+    };
+  };
+}
+
+export interface WizardStepEntered extends BaseEvent {
+  event: "wizard step_entered";
+  properties: {
+    data: {
+      wizard_id: string;
+      step_id: string;
+      step_index: number;
+      from_step?: string;
+    };
+  };
+}
+
+export interface WizardStepSkipped extends BaseEvent {
+  event: "wizard step_skipped";
+  properties: {
+    data: {
+      wizard_id: string;
+      step_id: string;
+      step_index: number;
+    };
+  };
+}
+
+export interface WizardStepBack extends BaseEvent {
+  event: "wizard step_back";
+  properties: {
+    data: {
+      wizard_id: string;
+      step_id: string;
+      to_step: string;
+    };
+  };
+}
+
+export interface WizardAbandoned extends BaseEvent {
+  event: "wizard abandoned";
+  properties: {
+    data: {
+      wizard_id: string;
+      last_step: string;
+      duration_ms: number;
+    };
+  };
+}
+
+export interface WizardValidationFailed extends BaseEvent {
+  event: "wizard validation_failed";
+  properties: {
+    data: {
+      wizard_id: string;
+      step_id: string;
+      errors: string[];
     };
   };
 }
@@ -1523,6 +1592,12 @@ export type SmartoutEvent =
   | CommunicationFailed
   | WizardStepCompleted
   | WizardCompleted
+  | WizardStarted
+  | WizardStepEntered
+  | WizardStepSkipped
+  | WizardStepBack
+  | WizardAbandoned
+  | WizardValidationFailed
   | SeasonCreated
   | SeasonBudgetUpdated
   | DayFactorsUpdated
@@ -1814,6 +1889,30 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "wizard completed": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "onboarding",
+  },
+  "wizard started": {
+    destinations: ["posthog", "logger"],
+    category: "onboarding",
+  },
+  "wizard step_entered": {
+    destinations: ["posthog", "logger"],
+    category: "onboarding",
+  },
+  "wizard step_skipped": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "onboarding",
+  },
+  "wizard step_back": {
+    destinations: ["posthog", "logger"],
+    category: "onboarding",
+  },
+  "wizard abandoned": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "onboarding",
+  },
+  "wizard validation_failed": {
+    destinations: ["posthog", "logger"],
     category: "onboarding",
   },
 

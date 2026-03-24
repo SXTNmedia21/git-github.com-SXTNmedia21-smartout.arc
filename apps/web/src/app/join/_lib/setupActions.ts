@@ -356,7 +356,7 @@ export async function completeSignup(data: SignupSetupData) {
     workspace_id: workspace.workspace_id,
     actor_id: actorId,
     properties: {
-      data: { workspace_id: workspace.workspace_id },
+      data: { wizard_id: "setup", workspace_id: workspace.workspace_id },
     },
   });
 

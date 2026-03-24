@@ -17,3 +17,16 @@ tags: [learnings]
 | 4   | 2026-03-24 | LiveKit SDK v2 `canPublishSources` expects TrackSource enum values, not strings. Passing strings causes "Cannot convert TrackSource" crash.                                                   | Use `canPublish: true` boolean instead of `canPublishSources` array.                                     |
 | 5   | 2026-03-24 | `setMicrophoneEnabled(true)` after async operations loses browser user gesture context, causing NotAllowedError.                                                                              | Wrap in try/catch — user can toggle manually via ControlBar.                                             |
 | 6   | 2026-03-24 | Supabase CLI v2 shows `sb_publishable_`/`sb_secret_` format keys, but edge functions runtime still injects JWT-format keys via `SUPABASE_ANON_KEY`/`SUPABASE_SERVICE_ROLE_KEY` automatically. | No manual key configuration needed for edge functions.                                                   |
+
+status: in_progress
+updated: 2026-03-24
+created: 2026-03-24
+module: ui
+tags: [learnings]
+
+---
+
+# Learning Log — unified-wizard-shell
+
+| #   | Date | Learning | Impact |
+| --- | ---- | -------- | ------ |
