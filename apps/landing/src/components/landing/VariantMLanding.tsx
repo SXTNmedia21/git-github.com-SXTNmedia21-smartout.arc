@@ -41,7 +41,8 @@ const instrumentSerif = Instrument_Serif({
   display: "swap",
 });
 
-export default function VariantMLanding() {
+export default function VariantMLanding({ locale = "nb" }: { locale?: "nb" | "en" }) {
+  void locale; // Will be used by i18n in Task 10
   const containerRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -150,16 +151,16 @@ export default function VariantMLanding() {
                 icon: <Building2 className="h-8 w-8" />,
                 title: "Et bunnsolid fundament",
                 desc: "Du starter med bransjens beste gratisversjon. Vaktplan, timeregistrering, fravær og ansattkommunikasjon. Ingen lisenser. Kun muligheter.",
-                color: "text-blue-500",
-                bg: "bg-blue-500/10",
+                color: "text-[var(--info)]",
+                bg: "bg-[var(--info)]/10",
               },
               {
                 step: "02",
                 icon: <Users className="h-8 w-8" />,
                 title: "Samle teamet ditt",
                 desc: "Inviter teamet inn i appen. Legg inn rutiner, signer kontrakter digitalt med BankID, og kjør full onboarding før første vakt.",
-                color: "text-emerald-500",
-                bg: "bg-emerald-500/10",
+                color: "text-success",
+                bg: "bg-success/10",
               },
               {
                 step: "03",
@@ -471,7 +472,7 @@ export default function VariantMLanding() {
                   "Gjenspeiler den faktiske aktiviteten",
                 ].map((item, i) => (
                   <li key={i} className="text-foreground flex items-center gap-3 font-medium">
-                    <SunSnow className="h-5 w-5 shrink-0 text-blue-400" />
+                    <SunSnow className="h-5 w-5 shrink-0 text-[var(--info)]" />
                     {item}
                   </li>
                 ))}
@@ -480,7 +481,7 @@ export default function VariantMLanding() {
 
             {/* Visual Left - Season Toggle */}
             <div className="relative flex justify-center lg:w-1/2">
-              <div className="absolute top-1/2 left-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-500/5 blur-[80px]" />
+              <div className="absolute top-1/2 left-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--info)]/5 blur-[80px]" />
               <motion.div
                 initial={{ opacity: 0, x: -30 }}
                 whileInView={{ opacity: 1, x: 0 }}
@@ -488,7 +489,7 @@ export default function VariantMLanding() {
                 className="bg-card/40 border-border/60 relative z-10 w-full max-w-md overflow-hidden rounded-[2rem] border p-8 shadow-2xl backdrop-blur-xl"
               >
                 <div className="bg-background/80 mb-8 flex rounded-xl p-1">
-                  <div className="text-muted-foreground flex-1 cursor-pointer rounded-lg px-4 py-2 text-center text-sm font-semibold transition-colors hover:bg-white/5">
+                  <div className="text-muted-foreground hover:bg-foreground/5 flex-1 cursor-pointer rounded-lg px-4 py-2 text-center text-sm font-semibold transition-colors">
                     Rolig sesong
                   </div>
                   <div className="bg-primary/20 text-primary border-primary/20 flex-1 rounded-lg border px-4 py-2 text-center text-sm font-bold shadow-sm">
@@ -563,7 +564,7 @@ export default function VariantMLanding() {
                   "Rett varsel, i rett kanal, til rett tid",
                 ].map((item, i) => (
                   <li key={i} className="text-foreground flex items-center gap-3 font-medium">
-                    <GitPullRequest className="h-5 w-5 shrink-0 text-purple-400" />
+                    <GitPullRequest className="text-brand-purple h-5 w-5 shrink-0" />
                     {item}
                   </li>
                 ))}
@@ -572,7 +573,7 @@ export default function VariantMLanding() {
 
             {/* Visual Right - The Engine Flow */}
             <div className="relative flex justify-center lg:w-1/2">
-              <div className="absolute top-1/2 left-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-purple-500/5 blur-[80px]" />
+              <div className="bg-brand-purple/5 absolute top-1/2 left-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full blur-[80px]" />
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 whileInView={{ opacity: 1, scale: 1 }}
@@ -582,7 +583,7 @@ export default function VariantMLanding() {
                 <div className="flex flex-col gap-4">
                   {/* Event Source */}
                   <div className="bg-background/80 border-border/50 relative z-10 flex items-center gap-4 rounded-xl border p-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-500/20">
+                    <div className="bg-brand-orange/20 flex h-10 w-10 items-center justify-center rounded-full">
                       <Activity className="text-brand-orange h-5 w-5" />
                     </div>
                     <div>
@@ -595,17 +596,19 @@ export default function VariantMLanding() {
 
                   {/* Flow arrow */}
                   <div className="relative z-0 -my-2 flex justify-center">
-                    <div className="from-brand-orange h-8 w-[2px] bg-gradient-to-b to-purple-500" />
+                    <div className="from-brand-orange to-brand-purple h-8 w-[2px] bg-gradient-to-b" />
                   </div>
 
                   {/* Policy Gate */}
-                  <div className="relative z-10 flex items-center gap-4 rounded-xl border border-purple-500/20 bg-purple-500/10 p-4 shadow-[0_0_30px_-10px_rgba(168,85,247,0.3)]">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-500/20">
-                      <Lock className="h-5 w-5 text-purple-400" />
+                  <div className="border-brand-purple/20 bg-brand-purple/10 relative z-10 flex items-center gap-4 rounded-xl border p-4 shadow-[0_0_30px_-10px_var(--brand-purple)]">
+                    <div className="bg-brand-purple/20 flex h-10 w-10 items-center justify-center rounded-full">
+                      <Lock className="text-brand-purple-light h-5 w-5" />
                     </div>
                     <div>
-                      <div className="text-sm font-bold text-purple-300">Policy Gate Check</div>
-                      <div className="text-xs text-purple-400/70">
+                      <div className="text-brand-purple-light text-sm font-bold">
+                        Policy Gate Check
+                      </div>
+                      <div className="text-brand-purple/70 text-xs">
                         Må godkjennes av avdelingsleder
                       </div>
                     </div>
@@ -613,7 +616,7 @@ export default function VariantMLanding() {
 
                   {/* Flow arrow */}
                   <div className="relative z-0 -my-2 flex justify-center">
-                    <div className="to-success h-8 w-[2px] bg-gradient-to-b from-purple-500" />
+                    <div className="to-success from-brand-purple h-8 w-[2px] bg-gradient-to-b" />
                   </div>
 
                   {/* Resolution */}
@@ -888,9 +891,9 @@ export default function VariantMLanding() {
               initial={{ scale: 0.8, opacity: 0 }}
               whileInView={{ scale: 1, opacity: 1 }}
               viewport={{ once: true }}
-              className="from-brand-orange mb-8 flex h-24 w-24 items-center justify-center rounded-[2rem] bg-gradient-to-tr to-orange-400 shadow-[0_0_50px_rgba(251,146,60,0.4)]"
+              className="from-brand-orange to-brand-orange-light mb-8 flex h-24 w-24 items-center justify-center rounded-[2rem] bg-gradient-to-tr shadow-[0_0_50px_var(--brand-orange)]"
             >
-              <BrainCircuit className="h-10 w-10 text-white" strokeWidth={1.5} />
+              <BrainCircuit className="text-primary-foreground h-10 w-10" strokeWidth={1.5} />
             </motion.div>
 
             <SectionLabel>Din digitale partner</SectionLabel>
