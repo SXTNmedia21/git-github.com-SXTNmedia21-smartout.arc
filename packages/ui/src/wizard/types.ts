@@ -45,7 +45,7 @@ export interface WizardStepDef<TState> {
 export interface WizardStepProps<TState> {
   state: TState;
   updateState: (patch: Partial<TState>) => void;
-  next: () => void;
+  next: () => void | Promise<void>;
   back: () => void;
   goTo: (stepId: string) => void;
   isFirst: boolean;
