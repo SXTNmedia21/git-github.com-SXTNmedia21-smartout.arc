@@ -3,7 +3,7 @@
 import type { ChannelWithPreview } from "../_hooks/channel-types";
 import { useCallState } from "../_hooks/use-call-state";
 import { useStartCall } from "../_hooks/use-start-call";
-// import { GroupCallBanner } from "./GroupCallBanner";
+import { GroupCallBanner } from "./GroupCallBanner";
 import { Button } from "@/components/ui/button";
 import {
   Users,
@@ -71,6 +71,9 @@ export function ChannelHeader({
       channelId: channel.channel_id,
       callType,
       profileId,
+      // C1: Pass callee profile ID for direct calls so the invite is broadcast
+      calleeProfileId:
+        callType === "direct" ? (channel.other_member_profile_id ?? undefined) : undefined,
     });
   };
 
@@ -93,12 +96,7 @@ export function ChannelHeader({
           {voiceEnabled && (
             <Button
               size="icon"
-              className={cn(
-                "h-8 w-8 rounded-full",
-                hasActiveCall
-                  ? "bg-green-500 text-white hover:bg-green-600"
-                  : "bg-green-500 text-white hover:bg-green-600",
-              )}
+              className="h-8 w-8 rounded-full bg-green-500 text-white hover:bg-green-600"
               onClick={hasActiveCall ? onJoinCall : handleStartCall}
               disabled={startCall.isPending}
               title={hasActiveCall ? "Bli med i samtale" : "Start samtale"}

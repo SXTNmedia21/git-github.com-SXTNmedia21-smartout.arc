@@ -30,12 +30,24 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const { channelId, workspaceId } = await req.json();
+    const body = await req.json();
+    const { channelId, workspaceId } = body;
+
+    // H2: Validate required fields
+    if (!channelId || !workspaceId) {
+      return new Response(
+        JSON.stringify({ error: "Missing required fields: channelId, workspaceId" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
 
     // Verify profile exists in workspace
     const { data: profile, error: profileError } = await supabase
       .from("profile")
-      .select("profile_id, full_name, avatar_url")
+      .select("profile_id, display_name, avatar_url")
       .eq("user_id", user.id)
       .eq("workspace_id", workspaceId)
       .eq("is_active", true)
@@ -91,11 +103,11 @@ Deno.serve(async (req: Request) => {
       Deno.env.get("LIVEKIT_API_SECRET")!,
       {
         identity: profile.profile_id,
-        name: profile.full_name ?? "Unknown",
+        name: profile.display_name ?? "Unknown",
         ttl: "6h",
         metadata: JSON.stringify({
           device_type: "web",
-          display_name: profile.full_name,
+          display_name: profile.display_name,
           avatar_url: profile.avatar_url,
           is_ai: false,
         }),
@@ -126,7 +138,7 @@ Deno.serve(async (req: Request) => {
     return new Response(
       JSON.stringify({
         token,
-        serverUrl: Deno.env.get("NEXT_PUBLIC_LIVEKIT_URL") ?? Deno.env.get("LIVEKIT_URL"),
+        serverUrl: Deno.env.get("LIVEKIT_URL") ?? Deno.env.get("NEXT_PUBLIC_LIVEKIT_URL"),
         roomName,
         profileId: profile.profile_id,
       }),

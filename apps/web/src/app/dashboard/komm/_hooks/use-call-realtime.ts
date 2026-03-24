@@ -38,6 +38,8 @@ export function useCallRealtime(channelId: string | null) {
           event: "*",
           schema: "public",
           table: "channel_call_participant",
+          // #10: Filter by workspace to avoid cross-workspace noise
+          filter: `workspace_id=eq.${workspaceId}`,
         },
         () => {
           queryClient.invalidateQueries({

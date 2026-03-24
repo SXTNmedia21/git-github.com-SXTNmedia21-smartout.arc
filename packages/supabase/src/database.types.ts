@@ -2374,6 +2374,8 @@ export type Database = {
           device_type: string | null
           id: string
           is_ai: boolean
+          is_camera_on: boolean
+          is_screen_sharing: boolean
           joined_at: string
           left_at: string | null
           mic_enabled: boolean
@@ -2388,6 +2390,8 @@ export type Database = {
           device_type?: string | null
           id?: string
           is_ai?: boolean
+          is_camera_on?: boolean
+          is_screen_sharing?: boolean
           joined_at?: string
           left_at?: string | null
           mic_enabled?: boolean
@@ -2402,6 +2406,8 @@ export type Database = {
           device_type?: string | null
           id?: string
           is_ai?: boolean
+          is_camera_on?: boolean
+          is_screen_sharing?: boolean
           joined_at?: string
           left_at?: string | null
           mic_enabled?: boolean
@@ -13305,6 +13311,7 @@ export type Database = {
           name: string
           other_member_avatar: string
           other_member_name: string
+          other_member_profile_id: string
           unread_count: number
           video_policy: Database["public"]["Enums"]["channel_video_policy"]
           workspace_id: string

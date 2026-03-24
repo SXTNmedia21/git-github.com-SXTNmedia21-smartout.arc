@@ -22,7 +22,7 @@ import { MessageInput } from "./MessageInput";
 import { MemberPanel } from "./MemberPanel";
 import { IncomingCallOverlay } from "./IncomingCallOverlay";
 import { CallBar } from "./CallBar";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, Loader2 } from "lucide-react";
 import { ConnectionState } from "livekit-client";
 import { toast } from "sonner";
 
@@ -46,6 +46,9 @@ export function KommShell({ profileId }: { profileId: string }) {
   const startCall = useStartCall();
   const isInCall = livekit.connectionState === ConnectionState.Connected;
 
+  // H7: Destructure stable refs for useCallback deps (connect/disconnect are useCallback-wrapped)
+  const { connect: livekitConnect, disconnect: livekitDisconnect } = livekit;
+
   const handleJoinCall = useCallback(async () => {
     if (!activeChannelId) return;
     try {
@@ -54,12 +57,13 @@ export function KommShell({ profileId }: { profileId: string }) {
         channelId: activeChannelId,
         workspaceId,
       });
-      await livekit.connect(serverUrl, token);
+      await livekitConnect(serverUrl, token);
     } catch {
       toast.error("Kunne ikke koble til samtale");
     }
-  }, [activeChannelId, workspaceId, livekit]);
+  }, [activeChannelId, workspaceId, livekitConnect]);
 
+  // H4: Accept-then-connect with recovery on connect failure
   const handleAcceptCall = useCallback(async () => {
     if (!incomingCall) return;
     callInvite.mutate({
@@ -75,11 +79,25 @@ export function KommShell({ profileId }: { profileId: string }) {
         channelId: incomingCall.channelId,
         workspaceId,
       });
-      await livekit.connect(serverUrl, token);
+      await livekitConnect(serverUrl, token);
     } catch {
-      toast.error("Kunne ikke koble til samtale");
+      // Connect failed after accepting — offer rejoin via toast action
+      toast.error("Kunne ikke koble til samtale", {
+        action: {
+          label: "Prøv igjen",
+          onClick: () => void handleJoinCall(),
+        },
+      });
     }
-  }, [incomingCall, callInvite, profileId, dismissIncoming, workspaceId, livekit]);
+  }, [
+    incomingCall,
+    callInvite,
+    profileId,
+    dismissIncoming,
+    workspaceId,
+    livekitConnect,
+    handleJoinCall,
+  ]);
 
   const handleRejectCall = useCallback(() => {
     if (!incomingCall) return;
@@ -93,8 +111,8 @@ export function KommShell({ profileId }: { profileId: string }) {
   }, [incomingCall, callInvite, profileId, dismissIncoming]);
 
   const handleEndCall = useCallback(() => {
-    livekit.disconnect();
-  }, [livekit]);
+    livekitDisconnect();
+  }, [livekitDisconnect]);
 
   // Calculate unread totals for sub-tab badges
   const allChannels = channelGroups?.flatMap((g) => g.channels) ?? [];
@@ -108,7 +126,6 @@ export function KommShell({ profileId }: { profileId: string }) {
 
   const activeChannel = allChannels.find((ch) => ch.channel_id === activeChannelId);
 
-  // When selecting a channel, switch to conversation view
   const handleSelectChannel = (channelId: string) => {
     setActiveChannelId(channelId);
     setReplyToId(null);
@@ -176,6 +193,15 @@ export function KommShell({ profileId }: { profileId: string }) {
                 pttProps={isInCall ? { setMicEnabled: livekit.setMicEnabled } : undefined}
               />
             )}
+
+            {/* H5: Reconnection indicator */}
+            {livekit.isReconnecting && (
+              <div className="bg-warning/10 text-warning flex items-center justify-center gap-2 px-4 py-2 text-sm">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Kobler til igjen...
+              </div>
+            )}
+
             {isInCall && (
               <CallBar
                 remoteParticipants={livekit.remoteParticipants}

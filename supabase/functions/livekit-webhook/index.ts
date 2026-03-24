@@ -52,21 +52,27 @@ Deno.serve(async (req: Request) => {
         break;
       }
 
-      const { error: insertError } = await supabase
-        .from("channel_call_participant")
-        .insert({
-          call_session_id: sessionId,
-          workspace_id: workspaceId,
-          profile_id: identity,
-          is_ai: identity.startsWith("botsson:"),
-          mic_enabled: false,
-          device_type: getDeviceType(event.participant?.metadata),
-        });
+      const { error: insertError } = await supabase.from("channel_call_participant").insert({
+        call_session_id: sessionId,
+        workspace_id: workspaceId,
+        profile_id: identity,
+        is_ai: identity.startsWith("botsson:"),
+        mic_enabled: false,
+        device_type: getDeviceType(event.participant?.metadata),
+      });
 
       if (insertError) {
         console.error("[livekit-webhook] Failed to insert participant:", insertError.message);
         break;
       }
+
+      // Telemetry: D6 Production — participant joined
+      await emitCallEvent(supabase, "channel.call.participant_joined", workspaceId, {
+        call_session_id: sessionId,
+        channel_id: channelId,
+        profile_id: identity,
+        device_type: getDeviceType(event.participant?.metadata),
+      });
 
       // Update max_participants
       {
@@ -96,6 +102,13 @@ Deno.serve(async (req: Request) => {
           .eq("call_session_id", sessionId)
           .eq("profile_id", identity)
           .is("left_at", null);
+
+        // Telemetry: D6 Production — participant left
+        await emitCallEvent(supabase, "channel.call.participant_left", workspaceId, {
+          call_session_id: sessionId,
+          channel_id: channelId,
+          profile_id: identity,
+        });
       }
       break;
     }
@@ -158,10 +171,21 @@ Deno.serve(async (req: Request) => {
           participant_summary: participantSummary,
         });
 
+        // Telemetry: C1 Observability — call ended
+        await emitCallEvent(supabase, "channel.call.ended", workspaceId, {
+          call_session_id: session.id,
+          channel_id: channelId,
+          duration_seconds: durationSeconds,
+          max_participants: session.max_participants,
+          total_participants: new Set(participantSummary.map((p) => p.profile_id)).size,
+        });
+
         // Detect missed 1:1 call
         if (session.call_type === "direct" && session.max_participants <= 1) {
-          console.log("[livekit-webhook] Missed call detected:", session.id);
-          // Telemetry: channel.call.invite_missed will be emitted here
+          await emitCallEvent(supabase, "channel.call.invite_missed", workspaceId, {
+            call_session_id: session.id,
+            channel_id: channelId,
+          });
         }
       }
       break;
@@ -193,5 +217,24 @@ function getDeviceType(metadata?: string | null): string {
     return parsed.device_type ?? "unknown";
   } catch {
     return "unknown";
+  }
+}
+
+/** Insert telemetry event — maps to D6 Production + C1 Observability */
+async function emitCallEvent(
+  supabase: ReturnType<typeof createClient>,
+  eventType: string,
+  workspaceId: string,
+  payload: Record<string, unknown>,
+): Promise<void> {
+  try {
+    await supabase.from("engine_event").insert({
+      event_type: eventType,
+      workspace_id: workspaceId,
+      payload,
+      idempotency_key: `${eventType}:${payload.call_session_id ?? ""}:${payload.profile_id ?? ""}:${Date.now()}`,
+    });
+  } catch (err) {
+    console.error("[livekit-webhook] Telemetry insert failed:", err);
   }
 }

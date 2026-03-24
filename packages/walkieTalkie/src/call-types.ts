@@ -24,6 +24,8 @@ export type CallParticipant = {
   joinedAt: string;
   leftAt: string | null;
   micEnabled: boolean;
+  isCameraOn: boolean;
+  isScreenSharing: boolean;
   speakingSeconds: number;
   deviceType: string | null;
 };

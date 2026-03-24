@@ -4,7 +4,6 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import {
   Room,
   RoomEvent,
-  Track,
   ConnectionState,
   type RemoteParticipant,
   type LocalParticipant,
@@ -20,6 +19,8 @@ type LiveKitCallState = {
   isMicEnabled: boolean;
   isCameraEnabled: boolean;
   isScreenShareEnabled: boolean;
+  isReconnecting: boolean;
+  mediaError: string | null;
 };
 
 type UseLiveKitCallReturn = LiveKitCallState & {
@@ -43,6 +44,8 @@ export function useLiveKitCall(): UseLiveKitCallReturn {
     isMicEnabled: false,
     isCameraEnabled: false,
     isScreenShareEnabled: false,
+    isReconnecting: false,
+    mediaError: null,
   });
 
   const updateParticipants = useCallback(() => {
@@ -60,6 +63,12 @@ export function useLiveKitCall(): UseLiveKitCallReturn {
 
   const connect = useCallback(
     async (serverUrl: string, token: string) => {
+      // H3: Disconnect existing room to prevent stale room leak on double-connect
+      if (roomRef.current) {
+        roomRef.current.disconnect();
+        roomRef.current = null;
+      }
+
       const room = new Room({
         audioCaptureDefaults: { autoGainControl: true, noiseSuppression: true },
         videoCaptureDefaults: { resolution: { width: 1280, height: 720, frameRate: 30 } },
@@ -71,6 +80,22 @@ export function useLiveKitCall(): UseLiveKitCallReturn {
 
       room.on(RoomEvent.ConnectionStateChanged, (connectionState: ConnectionState) => {
         setState((prev) => ({ ...prev, connectionState }));
+      });
+
+      // H5: Reconnection handling
+      room.on(RoomEvent.Reconnecting, () => {
+        setState((prev) => ({ ...prev, isReconnecting: true }));
+      });
+
+      room.on(RoomEvent.Reconnected, () => {
+        setState((prev) => ({ ...prev, isReconnecting: false }));
+        updateParticipants();
+      });
+
+      // Media device errors (mic/camera permission denied, device busy)
+      room.on(RoomEvent.MediaDevicesError, (error: Error) => {
+        console.error("[livekit] Media device error:", error);
+        setState((prev) => ({ ...prev, mediaError: error.message }));
       });
 
       room.on(RoomEvent.ParticipantConnected, () => updateParticipants());
@@ -100,6 +125,8 @@ export function useLiveKitCall(): UseLiveKitCallReturn {
           isMicEnabled: false,
           isCameraEnabled: false,
           isScreenShareEnabled: false,
+          isReconnecting: false,
+          mediaError: null,
         }));
         roomRef.current = null;
       });
@@ -117,6 +144,8 @@ export function useLiveKitCall(): UseLiveKitCallReturn {
         isMicEnabled: room.localParticipant.isMicrophoneEnabled,
         isCameraEnabled: room.localParticipant.isCameraEnabled,
         isScreenShareEnabled: room.localParticipant.isScreenShareEnabled,
+        isReconnecting: false,
+        mediaError: null,
       }));
     },
     [updateParticipants],
