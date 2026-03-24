@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import Papa from "papaparse";
 import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
+import { getPositionsForDepartment } from "@/app/onboarding/lib/industry-defaults";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -84,6 +85,18 @@ function InviteRowCard({
   onRemove: (id: string) => void;
 }) {
   const hasValidationErrors = row.validationErrors.length > 0;
+
+  // Suggest positions based on selected department using industry defaults
+  const selectedDept = departments.find((d) => d.department_id === row.departmentId);
+  const suggestedNames = selectedDept ? getPositionsForDepartment(selectedDept.name) : [];
+  const suggestedSet = new Set(suggestedNames.map((n) => n.toLowerCase()));
+
+  // Sort: DB positions matching department suggestions first, then the rest
+  const sortedPositions = useMemo(() => {
+    const matched = positions.filter((p) => suggestedSet.has(p.name.toLowerCase()));
+    const rest = positions.filter((p) => !suggestedSet.has(p.name.toLowerCase()));
+    return [...matched, ...rest];
+  }, [positions, suggestedSet]);
 
   return (
     <div
@@ -189,9 +202,10 @@ function InviteRowCard({
             <SelectValue placeholder="Stilling" />
           </SelectTrigger>
           <SelectContent>
-            {positions.map((p) => (
+            {sortedPositions.map((p) => (
               <SelectItem key={p.position_id} value={p.position_id}>
                 {p.name}
+                {suggestedSet.has(p.name.toLowerCase()) ? " ★" : ""}
               </SelectItem>
             ))}
           </SelectContent>
