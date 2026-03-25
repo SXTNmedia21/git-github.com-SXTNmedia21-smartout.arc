@@ -132,7 +132,7 @@ Ingen unntak.
 
 ## UI & Styling
 
-- **Design System: "Ren og Varm"** — `docs/design/ren-og-varm-styleguide.html` is the canonical visual reference. BEFORE building any UI component, read this file for colors, typography, animations, and patterns. Live at `design.smartout.ai`.
+- **Design System: "Nordic Split"** — `docs/design/ren-og-varm-styleguide.html` is the canonical visual reference. BEFORE building any UI component, read this file for colors, typography, animations, and patterns. Live at `design.smartout.ai`. Orb generator: `docs/design/orb-generator.html`.
 - **Tailwind v4** — CSS-based config in `globals.css`. NO `tailwind.config.ts`.
 - Root `package.json` has Tailwind v3 — that's for Remotion only.
 - Use CSS variable classes: `bg-background`, `text-foreground`, `border-border`
