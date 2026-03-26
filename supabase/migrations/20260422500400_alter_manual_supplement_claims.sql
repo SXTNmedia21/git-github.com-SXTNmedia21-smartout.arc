@@ -1,7 +1,11 @@
 -- Employee-initiated supplement claims with approval workflow
 -- Employees can submit supplement claims via ShiftClock; leaders approve or reject
 
-CREATE TYPE supplement_claim_status AS ENUM ('pending', 'approved', 'rejected');
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'supplement_claim_status') THEN
+    CREATE TYPE supplement_claim_status AS ENUM ('pending', 'approved', 'rejected');
+  END IF;
+END $$;
 
 ALTER TABLE payroll.manual_supplement
   ADD COLUMN IF NOT EXISTS employee_comment TEXT,

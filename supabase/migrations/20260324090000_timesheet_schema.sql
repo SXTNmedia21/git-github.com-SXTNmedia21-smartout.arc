@@ -48,6 +48,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_time_entry_updated_at ON timesheet.time_entry;
 CREATE TRIGGER trg_time_entry_updated_at
   BEFORE UPDATE ON timesheet.time_entry
   FOR EACH ROW EXECUTE FUNCTION timesheet.set_updated_at();
