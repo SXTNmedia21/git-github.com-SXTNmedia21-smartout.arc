@@ -1,8 +1,8 @@
 ---
 title: Workspace Intelligence Implementation Plan
-status: draft
+status: done
 created: 2026-03-19
-updated: 2026-03-19
+updated: 2026-03-26
 module: join-wizard
 tags: [workspace-intelligence, enrich, generate, scrapling, brreg, serper]
 ---

@@ -1,7 +1,7 @@
 ---
 title: "Communications: Emit Telemetry + Notes Table + Document Bucket"
-status: in_progress
-updated: 2026-03-10
+status: done
+updated: 2026-03-26
 created: 2026-03-10
 module: communications
 tags: [telemetry, notes, storage, plan]

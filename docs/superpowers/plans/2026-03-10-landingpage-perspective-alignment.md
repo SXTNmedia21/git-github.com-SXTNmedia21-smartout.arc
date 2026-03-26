@@ -1,7 +1,7 @@
 ---
 title: "Landing Page Perspective Alignment — Implementation Plan"
-status: in_progress
-updated: 2026-03-11
+status: done
+updated: 2026-03-26
 created: 2026-03-10
 module: landing
 tags: [landing, perspectives, copy]

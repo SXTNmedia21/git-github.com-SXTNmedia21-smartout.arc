@@ -1,6 +1,6 @@
 ---
 title: "Phase A: Ghost Shifts + Confirmation Popup"
-status: draft
+status: done
 created: 2026-03-26
 updated: 2026-03-26
 module: schedule

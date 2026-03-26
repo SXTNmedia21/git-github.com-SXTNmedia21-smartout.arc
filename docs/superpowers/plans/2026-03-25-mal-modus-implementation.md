@@ -1,8 +1,8 @@
 ---
 title: "Mal-modus Implementation Plan"
-status: draft
+status: done
 created: 2026-03-25
-updated: 2026-03-25
+updated: 2026-03-26
 module: schedule
 tags: [schedule, template, mal-modus, implementation]
 ---

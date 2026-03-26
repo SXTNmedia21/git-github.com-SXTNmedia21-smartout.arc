@@ -1,7 +1,7 @@
 ---
 title: "Plan: Contract Enhancements — Placeholder Resolve + Per-Contract Attachments"
-status: in_progress
-updated: 2026-03-20
+status: done
+updated: 2026-03-26
 created: 2026-03-20
 module: contracts
 tags: [contract, placeholder, attachment, implementation]
