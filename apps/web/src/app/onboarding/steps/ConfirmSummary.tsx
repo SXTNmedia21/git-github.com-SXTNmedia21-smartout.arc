@@ -113,9 +113,9 @@ export function ConfirmSummary({ state, next, goTo, t }: WizardStepProps<Onboard
       </div>
 
       {/* Ready indicator */}
-      <div className="flex items-center gap-2.5 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-3">
-        <CheckCircle className="size-4 text-emerald-500" />
-        <p className="text-xs text-emerald-600 dark:text-emerald-400">
+      <div className="flex items-center gap-2.5 rounded-lg border border-[var(--success)]/20 bg-[var(--success)]/5 px-3 py-3">
+        <CheckCircle className="text-success size-4" />
+        <p className="text-success text-xs">
           Alt klart. Klikk nedenfor for a fullfare oppsettet.
         </p>
       </div>

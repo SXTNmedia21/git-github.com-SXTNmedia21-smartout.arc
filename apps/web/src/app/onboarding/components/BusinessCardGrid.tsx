@@ -220,7 +220,7 @@ export function BusinessCardGrid({ business, onUpdate, isScraping }: BusinessCar
                         {/* Label */}
                         <span
                           className={`w-[110px] shrink-0 text-[11px] font-medium tracking-wide ${
-                            field.must && isEmpty ? "text-orange-400/60" : "text-white/35"
+                            field.must && isEmpty ? "text-[var(--brand-orange)]/60" : "text-white/35"
                           }`}
                         >
                           {field.label}
@@ -265,7 +265,7 @@ export function BusinessCardGrid({ business, onUpdate, isScraping }: BusinessCar
                           ) : isEmpty ? (
                             <span
                               className={`text-sm ${
-                                field.must ? "text-orange-400/50" : "text-white/20"
+                                field.must ? "text-[var(--brand-orange)]/50" : "text-white/20"
                               }`}
                             >
                               {field.must ? "Mangler" : "—"}

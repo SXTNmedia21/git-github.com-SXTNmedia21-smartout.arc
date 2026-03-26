@@ -51,7 +51,7 @@ export function ConfirmDepartments({
       <div>
         <h2 className="text-foreground text-2xl font-bold">{t("confirm.departments_title")}</h2>
         <p className="text-muted-foreground mt-1 text-sm">{t("confirm.departments_description")}</p>
-        <p className="mt-2 flex items-center gap-1.5 text-xs text-orange-500">
+        <p className="text-brand-orange mt-2 flex items-center gap-1.5 text-xs">
           <Sparkles className="h-3 w-3" />
           {selectedCount} valgt av {departments.length} forslag
         </p>
@@ -67,8 +67,8 @@ export function ConfirmDepartments({
             className={[
               "flex w-full items-center justify-between rounded-lg border px-4 py-3 text-left transition-all duration-200",
               dept.selected
-                ? "text-foreground border-orange-500/30 bg-orange-500/5"
-                : "border-dashed border-gray-200 bg-white/50 text-gray-400 hover:border-orange-300 hover:bg-orange-50/50 hover:text-gray-600",
+                ? "text-foreground border-[var(--brand-orange)]/30 bg-[var(--brand-orange)]/5"
+                : "border-dashed border-border bg-white/50 text-muted-foreground hover:border-[var(--brand-orange)]/30 hover:bg-[var(--brand-orange)]/5 hover:text-foreground",
             ].join(" ")}
           >
             <span className="flex items-center gap-3">
@@ -76,8 +76,8 @@ export function ConfirmDepartments({
                 className={[
                   "flex size-5 shrink-0 items-center justify-center rounded border text-xs transition-all duration-200",
                   dept.selected
-                    ? "border-orange-500/40 bg-orange-500/20 text-orange-600"
-                    : "border-gray-200 bg-white text-transparent",
+                    ? "border-[var(--brand-orange)]/40 bg-[var(--brand-orange)]/20 text-[var(--brand-orange)]"
+                    : "border-border bg-card text-transparent",
                 ].join(" ")}
               >
                 &#10003;
@@ -88,8 +88,8 @@ export function ConfirmDepartments({
                   className={[
                     "rounded-full px-1.5 py-0.5 text-[10px]",
                     dept.selected
-                      ? "bg-orange-500/10 text-orange-600"
-                      : "bg-gray-100 text-gray-400",
+                      ? "bg-[var(--brand-orange)]/10 text-[var(--brand-orange)]"
+                      : "bg-muted text-muted-foreground",
                   ].join(" ")}
                 >
                   {dept.positions.length} stillinger
@@ -98,7 +98,7 @@ export function ConfirmDepartments({
             </span>
 
             {!dept.selected && (
-              <span className="text-[10px] tracking-wider text-gray-300 uppercase">Forslag</span>
+              <span className="text-[10px] tracking-wider text-muted-foreground uppercase">Forslag</span>
             )}
           </button>
         ))}
@@ -118,13 +118,13 @@ export function ConfirmDepartments({
                 }
               }}
               placeholder="Avdelingsnavn"
-              className="border-input bg-background text-foreground placeholder:text-muted-foreground flex-1 rounded-lg border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-orange-500/40 focus-visible:outline-none"
+              className="border-input bg-background text-foreground placeholder:text-muted-foreground flex-1 rounded-lg border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-[var(--brand-orange)]/40 focus-visible:outline-none"
               autoFocus
             />
             <button
               type="button"
               onClick={addCustomDepartment}
-              className="rounded-lg bg-orange-500/10 px-3 py-2 text-sm text-orange-600 transition-colors hover:bg-orange-500/20"
+              className="rounded-lg bg-[var(--brand-orange)]/10 px-3 py-2 text-sm text-[var(--brand-orange)] transition-colors hover:bg-[var(--brand-orange)]/20"
             >
               Legg til
             </button>

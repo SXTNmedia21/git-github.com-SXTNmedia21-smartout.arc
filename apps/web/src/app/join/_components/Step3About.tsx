@@ -284,7 +284,7 @@ function TypewriterTextarea({
             </span>
           )}
           {autoFilled && !typing && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-600">
+            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--warning)]/10 px-2 py-0.5 text-[10px] font-medium text-[var(--warning)]">
               <Sparkles className="h-2.5 w-2.5" />
               AI
             </span>
@@ -298,7 +298,7 @@ function TypewriterTextarea({
               type="button"
               onClick={() => setMenuOpen((o) => !o)}
               disabled={isLoading}
-              className="flex h-6 w-6 items-center justify-center rounded-md text-orange-400 transition-colors hover:bg-orange-50 hover:text-orange-600 disabled:opacity-40"
+              className="flex h-6 w-6 items-center justify-center rounded-md text-[var(--brand-orange)] transition-colors hover:bg-[var(--brand-orange)]/10 hover:text-[var(--brand-orange-dark)] disabled:opacity-40"
             >
               {isLoading ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -308,25 +308,25 @@ function TypewriterTextarea({
             </button>
 
             {menuOpen && (
-              <div className="absolute right-0 z-20 mt-1 w-36 rounded-lg border border-orange-100 bg-white py-1 shadow-lg">
+              <div className="absolute right-0 z-20 mt-1 w-36 rounded-lg border border-border bg-card py-1 shadow-lg">
                 <button
                   type="button"
                   onClick={() => handleAction("rewrite")}
-                  className="flex w-full items-center px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-orange-50 hover:text-orange-700"
+                  className="flex w-full items-center px-3 py-1.5 text-left text-xs text-foreground hover:bg-[var(--brand-orange)]/10 hover:text-[var(--brand-orange)]"
                 >
                   Skriv om
                 </button>
                 <button
                   type="button"
                   onClick={() => handleAction("longer")}
-                  className="flex w-full items-center px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-orange-50 hover:text-orange-700"
+                  className="flex w-full items-center px-3 py-1.5 text-left text-xs text-foreground hover:bg-[var(--brand-orange)]/10 hover:text-[var(--brand-orange)]"
                 >
                   Gjor lengre
                 </button>
                 <button
                   type="button"
                   onClick={() => handleAction("shorter")}
-                  className="flex w-full items-center px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-orange-50 hover:text-orange-700"
+                  className="flex w-full items-center px-3 py-1.5 text-left text-xs text-foreground hover:bg-[var(--brand-orange)]/10 hover:text-[var(--brand-orange)]"
                 >
                   Gjor kortere
                 </button>
