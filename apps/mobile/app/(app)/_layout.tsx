@@ -18,6 +18,7 @@ import { TabBar } from "@/components/navigation/TabBar";
 import { AIFab } from "@/components/navigation/AIFab";
 import { BotssonSheet } from "@/components/ai/BotssonSheet";
 import { WalkAiSheet } from "@/components/ai/WalkAiSheet";
+import { WalkAiProvider } from "@/providers/walkai-provider";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
 import { useUnreadCount } from "@/hooks/queries/use-notifications";
 import { strings } from "@/constants/strings";
@@ -63,21 +64,23 @@ export default function AppLayout() {
   );
 
   return (
-    <View style={styles.container}>
-      <Tabs screenOptions={{ headerShown: false }} tabBar={renderTabBar}>
-        <Tabs.Screen name="(home)" options={{ title: strings.tabs.home }} />
-        <Tabs.Screen name="(shifts)" options={{ title: strings.tabs.shifts }} />
-        <Tabs.Screen name="(komm)" options={{ title: "Komm" }} />
-        <Tabs.Screen name="(chat)" options={{ title: strings.tabs.chat, href: null }} />
-        <Tabs.Screen name="(me)" options={{ title: strings.tabs.me }} />
-      </Tabs>
+    <WalkAiProvider>
+      <View style={styles.container}>
+        <Tabs screenOptions={{ headerShown: false }} tabBar={renderTabBar}>
+          <Tabs.Screen name="(home)" options={{ title: strings.tabs.home }} />
+          <Tabs.Screen name="(shifts)" options={{ title: strings.tabs.shifts }} />
+          <Tabs.Screen name="(chat)" options={{ title: strings.tabs.chat }} />
+          <Tabs.Screen name="(komm)" options={{ title: "Komm", href: null }} />
+          <Tabs.Screen name="(me)" options={{ title: strings.tabs.me }} />
+        </Tabs>
 
-      {/* WalkAi voice sheet — opened on FAB tap */}
-      <WalkAiSheet ref={walkAiSheetRef} onDismiss={handleWalkAiDismiss} />
+        {/* WalkAi voice sheet — opened on FAB tap */}
+        <WalkAiSheet ref={walkAiSheetRef} onDismiss={handleWalkAiDismiss} />
 
-      {/* Botsson text chat sheet — opened on FAB long press */}
-      <BotssonSheet ref={botssonSheetRef} onDismiss={handleBotssonDismiss} />
-    </View>
+        {/* Botsson text chat sheet — opened on FAB long press */}
+        <BotssonSheet ref={botssonSheetRef} onDismiss={handleBotssonDismiss} />
+      </View>
+    </WalkAiProvider>
   );
 }
 
