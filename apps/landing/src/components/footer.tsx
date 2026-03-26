@@ -33,7 +33,7 @@ export default function Footer({ locale = "nb" }: { locale?: "nb" | "en" }) {
   };
 
   return (
-    <footer className="relative z-10 border-t border-white/[0.06] bg-[#050505]">
+    <footer className="dark-section relative z-10 border-t border-border bg-background">
       <div className="via-brand-orange/20 pointer-events-none absolute top-0 left-1/2 h-px w-2/3 -translate-x-1/2 bg-gradient-to-r from-transparent to-transparent" />
 
       <div className="mx-auto max-w-7xl px-6 pt-12 pb-8 sm:pt-16">
@@ -43,16 +43,16 @@ export default function Footer({ locale = "nb" }: { locale?: "nb" | "en" }) {
           <div className="shrink-0">
             <Link href="/" className="group mb-4 inline-flex items-center gap-2.5">
               <Building2 className="text-brand-orange h-5 w-5 transition-transform duration-300 group-hover:scale-110" />
-              <span className="text-lg font-black tracking-tighter text-white">SmartOut</span>
+              <span className="text-lg font-black tracking-tighter text-foreground">SmartOut</span>
             </Link>
-            <p className="max-w-xs text-sm leading-relaxed text-zinc-500">{t("footer.tagline")}</p>
+            <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">{t("footer.tagline")}</p>
           </div>
 
           {/* Link columns — 3-col on mobile, side-by-side */}
           <div className="grid grid-cols-3 gap-6 sm:gap-10">
             {Object.entries(footerLinks).map(([heading, links]) => (
               <div key={heading}>
-                <h3 className="mb-3 text-[11px] font-bold tracking-widest text-zinc-600 uppercase sm:mb-4 sm:text-xs sm:text-zinc-500">
+                <h3 className="mb-3 text-[11px] font-bold tracking-widest text-muted-foreground/70 uppercase sm:mb-4 sm:text-xs sm:text-muted-foreground">
                   {heading}
                 </h3>
                 <ul className="space-y-2.5 sm:space-y-3">
@@ -60,7 +60,7 @@ export default function Footer({ locale = "nb" }: { locale?: "nb" | "en" }) {
                     <li key={link.href}>
                       <Link
                         href={link.href}
-                        className="text-xs text-zinc-500 transition-colors duration-200 hover:text-white sm:text-sm sm:text-zinc-400"
+                        className="text-xs text-muted-foreground transition-colors duration-200 hover:text-foreground sm:text-sm sm:text-muted-foreground"
                       >
                         {link.label}
                       </Link>
@@ -73,26 +73,26 @@ export default function Footer({ locale = "nb" }: { locale?: "nb" | "en" }) {
         </div>
 
         {/* Divider */}
-        <div className="mt-10 h-px bg-white/[0.06] sm:mt-12" />
+        <div className="mt-10 h-px bg-border sm:mt-12" />
 
         {/* Bottom bar */}
         <div className="mt-6 flex items-center justify-between">
-          <p className="text-xs text-zinc-600 sm:text-sm">
+          <p className="text-xs text-muted-foreground/70 sm:text-sm">
             &copy; {new Date().getFullYear()} SmartOut AS
           </p>
-          <div className="flex items-center gap-4 text-xs text-zinc-600 sm:gap-6 sm:text-sm">
+          <div className="flex items-center gap-4 text-xs text-muted-foreground/70 sm:gap-6 sm:text-sm">
             <Suspense>
               <VariantDropdown />
             </Suspense>
-            <Link href="/personvern" className="transition-colors duration-200 hover:text-zinc-400">
+            <Link href="/personvern" className="transition-colors duration-200 hover:text-muted-foreground">
               {t("footer.privacy")}
             </Link>
-            <Link href="/vilkar" className="transition-colors duration-200 hover:text-zinc-400">
+            <Link href="/vilkar" className="transition-colors duration-200 hover:text-muted-foreground">
               {t("footer.terms")}
             </Link>
             <button
               onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-              className="hidden items-center gap-1.5 rounded-full border border-white/[0.06] bg-white/[0.02] px-3 py-1.5 text-zinc-500 transition-all duration-200 hover:border-white/10 hover:text-zinc-300 sm:flex"
+              className="hidden items-center gap-1.5 rounded-full border border-border bg-foreground/[0.02] px-3 py-1.5 text-muted-foreground transition-all duration-200 hover:border-foreground/10 hover:text-foreground sm:flex"
               aria-label={t("footer.topLabel")}
             >
               {t("footer.top")}
