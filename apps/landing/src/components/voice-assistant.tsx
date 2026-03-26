@@ -231,7 +231,7 @@ export default function VoiceAssistant({
         {status === "idle" ? (
           <button
             onClick={startSession}
-            className="bg-brand-orange text-foreground shadow-brand-orange/20 hover:bg-brand-orange-light flex w-full items-center justify-center gap-2 rounded-xl px-6 py-3 font-bold shadow-lg transition-all"
+            className="bg-brand-orange text-foreground hover:bg-brand-orange-light flex w-full items-center justify-center gap-2 rounded-xl px-6 py-3 font-bold shadow-[0_0_15px_-3px_var(--brand-orange)] shadow-lg transition-all"
           >
             <Mic className="h-5 w-5" /> Start samtale
           </button>
