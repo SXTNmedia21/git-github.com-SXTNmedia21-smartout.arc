@@ -16,7 +16,7 @@ tags: [journey, onboarding, cleanup]
 1. User lands on /onboarding -> System checks if onboarding is already completed -> If completed, middleware redirects to /dashboard
 2. User progresses through 10 wizard sections (Hero, Welcome, Business, Departments, Locations, Procedures, Season, Done) -> Each section saves data progressively via WizardContext
 3. Botsson AI assistant offers suggestions at each step -> All 14 tools validate input via Zod schemas before execution
-4. User reaches finalization -> System calls finalizeOnboarding() -> emit() fires "onboarding completed" telemetry event
+4. User reaches finalization -> System calls finalizeOnboarding() -> emit() fires "wizard completed" telemetry event
 5. User is redirected to /dashboard via unified redirect utility
 
 **Postcondition:** Workspace is created with all onboarding data. Telemetry event logged. User cannot re-enter onboarding.

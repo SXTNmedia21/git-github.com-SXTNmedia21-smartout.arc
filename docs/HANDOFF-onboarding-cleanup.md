@@ -25,18 +25,30 @@ Cleaned up the onboarding wizard: deleted ~9900 lines of dead showcase code, add
 
 ## Decisions made
 
-- Showcase code was dead (never deployed, no routes linking to it) — safe to delete
-- saveMemory fix deferred (pending decision: remove tool vs queue-and-flush)
-- Layout hue question flagged for Pontus (intentional departure or drift?)
+| Decision                                               | Reason                                                    | Impact                    |
+| ------------------------------------------------------ | --------------------------------------------------------- | ------------------------- |
+| Delete showcase/ (44 files, 2000+ lines)               | Dead code, never deployed, no routes linking to it        | -9700 lines               |
+| Server-side guard in layout.tsx (not middleware)       | Avoids DB query on every request, only checks /onboarding | Prevents re-entry         |
+| Zod schemas in dedicated tool-schemas.ts               | Single source of truth for tool validation, not inline    | 14 tools validated        |
+| brandPanel i18n via key resolution in renderBrandPanel | No WizardShell package type change needed                 | nb + en locales           |
+| Unified redirect via lib/redirect.ts                   | Uses NEXT_PUBLIC_ROOT_DOMAIN env var consistently         | 3 redirect sites unified  |
+| Easing constants in design-tokens                      | easingExpo + array variants, formalized                   | 24 inline arrays replaced |
+
+## Learnings
+
+| Learning                                                         | Context                                                             |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Ultravox client tools receive params as strings, need JSON.parse | Zod transform handles this cleanly via jsonArray/jsonObject helpers |
+| Design tokens should include Framer Motion array equivalents     | CSS cubic-bezier strings aren't directly usable in framer-motion    |
+| Server-side layout guards are cheaper than middleware guards     | Layout only runs for /onboarding requests, middleware runs on all   |
 
 ## Known issues / debt
 
-- saveMemory tool still client-side only (no API persistence) — needs separate decision
-- Layout hue may need adjustment pending Pontus review
-- Accessibility audit (contrast, focus, aria) partially done — full audit is follow-up work
+- Accessibility audit (contrast, focus, aria) not yet done — follow-up work
+- 2 blue accent oklch(250) orbs in HeroSection + AmbientBackground are intentional visual variety, not token violations
+- 24 pre-existing walkAi/agent-sdk typecheck errors unrelated to this branch
 
 ## Next steps
 
-- Decide saveMemory strategy (remove tool or add API endpoint)
-- Pontus to confirm layout hue intent
 - Full accessibility audit as separate feature
+- Consider removing legacy onboarding_session table (fully replaced by workspace.intelligence_data)
