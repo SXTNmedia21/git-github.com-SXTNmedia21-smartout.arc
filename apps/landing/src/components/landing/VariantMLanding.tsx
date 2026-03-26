@@ -137,7 +137,7 @@ export default function VariantMLanding({ locale = "nb" }: { locale?: "nb" | "en
         <section className="relative mx-auto max-w-7xl px-6 py-24 sm:py-32">
           {/* New Polling Section to capture engagement right away */}
           <div className="mb-24">
-            <LandingInteractivePoll />
+            <LandingInteractivePoll locale={locale} />
           </div>
 
           <div className="mb-20 text-center">
@@ -201,7 +201,7 @@ export default function VariantMLanding({ locale = "nb" }: { locale?: "nb" | "en
 
         {/* 3. APP IN MOTION VISUAL (Scroll anims) */}
         <div className="relative z-10 mt-[-5rem]">
-          <LandingInteractiveMockup />
+          <LandingInteractiveMockup locale={locale} />
         </div>
 
         {/* 4. WEBSITE FACTORY */}
