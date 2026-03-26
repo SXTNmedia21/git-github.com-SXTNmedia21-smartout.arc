@@ -18,3 +18,9 @@ tags: [decisions]
 | 5   | 2026-03-26 | Promise-based confirmation dialog in AgentProposalsContext — not a separate hook, keeps state co-located with proposals | accepted |
 | 6   | 2026-03-26 | Ghost tags use desaturated oklch variants of employee tag colors — visually distinct but same color family              | accepted |
 | 7   | 2026-03-26 | templateShiftId optional on ShiftProposalCreate — backward compatible with daily grid proposals                         | accepted |
+module: mobile
+tags: [decisions]
+---
+# Decision Log — mobile-production-readiness
+| # | Date | Decision | Status |
+|---|------|----------|--------|

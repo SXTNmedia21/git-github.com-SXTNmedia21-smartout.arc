@@ -7,6 +7,7 @@ import nbOnboarding from "../locales/nb/onboarding.json";
 import nbWizard from "../locales/nb/wizard.json";
 import nbJoin from "../locales/nb/join.json";
 import nbDashboard from "../locales/nb/dashboard.json";
+import nbMobile from "../locales/nb/mobile.json";
 import enCommon from "../locales/en/common.json";
 import enLanding from "../locales/en/landing.json";
 import enDocs from "../locales/en/docs.json";
@@ -14,6 +15,7 @@ import enOnboarding from "../locales/en/onboarding.json";
 import enWizard from "../locales/en/wizard.json";
 import enJoin from "../locales/en/join.json";
 import enDashboard from "../locales/en/dashboard.json";
+import enMobile from "../locales/en/mobile.json";
 
 type Messages = Record<string, string | Record<string, string>>;
 
@@ -26,6 +28,7 @@ const localeModules: Record<string, Record<string, Messages>> = {
     wizard: nbWizard,
     join: nbJoin,
     dashboard: nbDashboard,
+    mobile: nbMobile,
   },
   en: {
     common: enCommon,
@@ -35,6 +38,7 @@ const localeModules: Record<string, Record<string, Messages>> = {
     wizard: enWizard,
     join: enJoin,
     dashboard: enDashboard,
+    mobile: enMobile,
   },
 };
 
