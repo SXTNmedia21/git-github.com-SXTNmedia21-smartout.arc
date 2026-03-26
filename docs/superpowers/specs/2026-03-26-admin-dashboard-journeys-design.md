@@ -567,10 +567,10 @@ Based on three-lens scoring (first-value + daily-use + retention) and dependency
 
 ## Schema Changes Summary
 
-| Table                      | Change                                                     | Journey |
-| -------------------------- | ---------------------------------------------------------- | ------- |
-| `daily_reconciliation`     | Add `locked_at`, `locked_by` + RLS                         | J2      |
-| `protocol_auto_assignment` | NEW table (workspace_id, department_id, role, protocol_id) | J3      |
+| Table                      | Change                                                                               | Journey |
+| -------------------------- | ------------------------------------------------------------------------------------ | ------- |
+| `daily_reconciliation`     | `locked_at`, `locked_by` ALREADY EXIST. Need RLS policy to block updates after lock. | J2      |
+| `protocol_auto_assignment` | NEW table (workspace_id, department_id, role, protocol_id)                           | J3      |
 
 No other new tables. All other journeys use existing tables.
 
