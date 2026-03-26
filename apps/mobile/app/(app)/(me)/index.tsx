@@ -12,7 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 
-import { Phone, Lock, Wallet } from "lucide-react-native";
+import { Phone, Lock, Wallet, UserPen, Users } from "lucide-react-native";
 import { createStyles, useTheme } from "@/theme";
 import { strings } from "@/constants/strings";
 import { Card } from "@/components/ui/Card";
@@ -138,6 +138,35 @@ export default function MeScreen() {
           </View>
         </Card>
 
+        {/* Profile actions — edit profile and team links */}
+        <View style={styles.profileActions}>
+          <Pressable
+            style={({ pressed }) => [styles.profileActionButton, pressed && styles.pressed]}
+            onPress={() => {
+              Haptics.selectionAsync();
+              router.push("/(app)/(home)/edit-profile");
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Rediger profil"
+          >
+            <UserPen size={18} color={colors.mutedForeground} strokeWidth={1.8} />
+            <Text style={styles.profileActionText}>Rediger profil</Text>
+          </Pressable>
+
+          <Pressable
+            style={({ pressed }) => [styles.profileActionButton, pressed && styles.pressed]}
+            onPress={() => {
+              Haptics.selectionAsync();
+              router.push("/(app)/(home)/team");
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Mitt team"
+          >
+            <Users size={18} color={colors.mutedForeground} strokeWidth={1.8} />
+            <Text style={styles.profileActionText}>Mitt team</Text>
+          </Pressable>
+        </View>
+
         {/* Payroll hub — lønn, fravær, timebank, tillegg */}
         <Pressable
           style={({ pressed }) => [styles.payrollRow, pressed && styles.pressed]}
@@ -227,7 +256,30 @@ const useStyles = createStyles((theme) => ({
   },
   profileCard: {
     marginHorizontal: theme.spacing.card,
+    marginBottom: theme.spacing.element,
+  },
+  profileActions: {
+    flexDirection: "row",
+    gap: theme.spacing.element,
+    paddingHorizontal: theme.spacing.card,
     marginBottom: theme.spacing.section,
+  },
+  profileActionButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 12,
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  profileActionText: {
+    ...theme.typography.caption,
+    color: theme.colors.mutedForeground,
+    fontWeight: theme.fontWeights.medium,
   },
   payrollRow: {
     flexDirection: "row",

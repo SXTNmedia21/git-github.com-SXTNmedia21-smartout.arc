@@ -46,6 +46,7 @@ type TabBarProps = BottomTabBarProps & {
 
 export function TabBar({
   state,
+  descriptors,
   navigation,
   unreadCount = 0,
   unreadNotificationCount = 0,
@@ -53,8 +54,11 @@ export function TabBar({
 }: TabBarProps) {
   const styles = useStyles();
 
-  // Filter out hidden tabs (href: null) and split into left/right around FAB
-  const visibleRoutes = state.routes.filter((r) => r.name !== "(chat)");
+  // Filter out hidden tabs — respect Expo Router's href: null config
+  const visibleRoutes = state.routes.filter((r) => {
+    const options = descriptors[r.key]?.options;
+    return (options as Record<string, unknown>)?.href !== null;
+  });
   const leftRoutes = visibleRoutes.slice(0, 2);
   const rightRoutes = visibleRoutes.slice(2);
 
@@ -62,9 +66,9 @@ export function TabBar({
     const routeIndex = state.routes.findIndex((r) => r.key === route.key);
     const isFocused = state.index === routeIndex;
     const IconComponent = TAB_ICONS[route.name];
-    const isKommTab = route.name === "(komm)";
+    const isChatTab = route.name === "(chat)";
     const isMeTab = route.name === "(me)";
-    const label = isKommTab ? "Komm" : (TAB_LABELS[route.name] ?? route.name);
+    const label = TAB_LABELS[route.name] ?? route.name;
 
     return (
       <Pressable
@@ -88,7 +92,7 @@ export function TabBar({
               strokeWidth={isFocused ? 2.2 : 1.8}
             />
           )}
-          {isKommTab && <Badge count={unreadCount} style={styles.badge} />}
+          {isChatTab && <Badge count={unreadCount} style={styles.badge} />}
           {/* Notification dot on the Meg tab — shows when there are unread notifications */}
           {isMeTab && unreadNotificationCount > 0 && <View style={styles.notificationDot} />}
         </View>

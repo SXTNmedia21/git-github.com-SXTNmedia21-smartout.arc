@@ -32,8 +32,8 @@ export function PunchButton() {
   const isClockedIn = currentTimeEntry?.status === "clocked_in";
   const shiftForPunch = activeShift ?? nextShift;
 
-  const shouldShow = isClockedIn || (phase !== "no_shift" && shiftForPunch);
-  if (!shouldShow) return null;
+  // Always show punch button — employees may need ad-hoc punch even without scheduled shifts
+  const isIdle = !isClockedIn && phase === "no_shift";
 
   const label = isClockedIn ? strings.shift.punchOut : strings.shift.punchIn;
 
@@ -54,7 +54,9 @@ export function PunchButton() {
           styles.button,
           isClockedIn
             ? { backgroundColor: colors.destructive }
-            : { backgroundColor: colors.brandOrange },
+            : isIdle
+              ? { backgroundColor: colors.muted }
+              : { backgroundColor: colors.brandOrange },
         ]}
         accessibilityRole="button"
         accessibilityLabel={label}
@@ -62,9 +64,9 @@ export function PunchButton() {
         {isClockedIn ? (
           <LogOut size={20} color={colors.primaryForeground} strokeWidth={2} />
         ) : (
-          <Fingerprint size={20} color={colors.primaryForeground} strokeWidth={2} />
+          <Fingerprint size={20} color={isIdle ? colors.mutedForeground : colors.primaryForeground} strokeWidth={2} />
         )}
-        <Text style={[styles.label, { color: colors.primaryForeground }]}>{label}</Text>
+        <Text style={[styles.label, { color: isIdle ? colors.mutedForeground : colors.primaryForeground }]}>{label}</Text>
       </Pressable>
     </Animated.View>
   );
