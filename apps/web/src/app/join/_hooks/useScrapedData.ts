@@ -35,6 +35,7 @@ export function useScrapedData() {
   const [scrapeStatus, setScrapeStatus] = useState<ScrapeStatus>("idle");
   const [brregData, setBrregData] = useState<BrregData | null>(null);
   const [brregCandidates, setBrregCandidates] = useState<BrregData[]>([]);
+  const [brregLoading, setBrregLoading] = useState(false);
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const attemptRef = useRef(0);
   const activeRunIdRef = useRef(0);
@@ -54,6 +55,7 @@ export function useScrapedData() {
 
   // BRREG lookup — triggered with user-entered company name + city
   const lookupBrreg = useCallback(async (companyName: string, city?: string) => {
+    setBrregLoading(true);
     try {
       const params = new URLSearchParams({ name: companyName });
       if (city) params.set("city", city);
@@ -71,6 +73,8 @@ export function useScrapedData() {
       }
     } catch {
       // BRREG lookup is best-effort — don't fail the flow
+    } finally {
+      setBrregLoading(false);
     }
   }, []);
 
@@ -187,6 +191,7 @@ export function useScrapedData() {
     triggerScrape,
     brregData,
     brregCandidates,
+    brregLoading,
     selectBrregCandidate,
     lookupBrreg,
   };

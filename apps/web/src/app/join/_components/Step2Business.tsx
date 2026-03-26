@@ -8,9 +8,11 @@ import type { WizardStepProps } from "@smartout/ui";
 import type { JoinState } from "../types";
 import { useJoinScraping } from "../_context/JoinScrapingProvider";
 import { useTypewriterSequence } from "../_hooks/useTypewriter";
+import { WizardLoadingOverlay } from "./WizardLoadingOverlay";
 
 export function Step2Business({ state, updateState }: WizardStepProps<JoinState>) {
-  const { scrapeStatus, brregData, brregCandidates, selectBrregCandidate } = useJoinScraping();
+  const { scrapeStatus, brregData, brregCandidates, brregLoading, selectBrregCandidate } =
+    useJoinScraping();
 
   const [firstName, setFirstName] = useState(state.business.firstName ?? "");
   const [lastName, setLastName] = useState(state.business.lastName ?? "");
@@ -100,10 +102,23 @@ export function Step2Business({ state, updateState }: WizardStepProps<JoinState>
       ? typewriterFields[activeIndex]!.key
       : null;
 
+  // Show loading overlay when BRREG lookup is in progress
+  if (brregLoading && !brregData) {
+    return (
+      <WizardLoadingOverlay
+        messages={[
+          "Soker i Bronnoysundregistrene...",
+          "Finner bedriftsinformasjon...",
+          "Henter adresse og organisasjonsnummer...",
+        ]}
+      />
+    );
+  }
+
   return (
     <div className="mx-auto w-full max-w-md space-y-6">
       <div>
-        <h2 className="font-heading text-foreground text-2xl font-bold">Bedriftsinformasjon</h2>
+        <h2 className="text-foreground text-2xl font-bold">Bedriftsinformasjon</h2>
         <p className="text-muted-foreground mt-1 text-sm">Fortell oss om deg og bedriften.</p>
         {scrapeStatus === "scraping" && (
           <p className="text-muted-foreground mt-2 flex items-center gap-1.5 text-xs">

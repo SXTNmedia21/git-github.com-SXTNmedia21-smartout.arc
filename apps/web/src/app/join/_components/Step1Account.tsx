@@ -3,6 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Loader2, Globe } from "lucide-react";
 import type { WizardStepProps } from "@smartout/ui";
 import type { JoinState } from "../types";
@@ -86,7 +93,7 @@ export function Step1Account({ state, updateState }: WizardStepProps<JoinState>)
   return (
     <div className="mx-auto w-full max-w-md space-y-6">
       <div>
-        <h2 className="font-heading text-foreground text-2xl font-bold">Opprett din konto</h2>
+        <h2 className="text-foreground text-2xl font-bold">Opprett din konto</h2>
         <p className="text-muted-foreground mt-1 text-sm">
           Vi starter med det grunnleggende om bedriften din.
         </p>
@@ -128,23 +135,24 @@ export function Step1Account({ state, updateState }: WizardStepProps<JoinState>)
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="industry">Bransje</Label>
-            <select
-              id="industry"
+            <Select
               value={industry}
-              onChange={(e) => {
-                setIndustry(e.target.value);
+              onValueChange={(val) => {
+                setIndustry(val);
                 setErrors((prev) => ({ ...prev, industry: "" }));
               }}
-              aria-invalid={!!errors.industry}
-              className="border-input bg-background text-foreground placeholder:text-muted-foreground focus-visible:ring-brand-orange/40 flex h-10 w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
             >
-              <option value="">Velg bransje</option>
-              {INDUSTRY_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger id="industry" aria-invalid={!!errors.industry}>
+                <SelectValue placeholder="Velg bransje" />
+              </SelectTrigger>
+              <SelectContent>
+                {INDUSTRY_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             {errors.industry && <p className="text-destructive text-xs">{errors.industry}</p>}
           </div>
 

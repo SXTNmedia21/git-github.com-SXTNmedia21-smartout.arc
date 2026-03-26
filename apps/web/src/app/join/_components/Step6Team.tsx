@@ -82,7 +82,7 @@ export function Step6Team({ state, updateState, next, back }: WizardStepProps<Jo
   return (
     <div className="mx-auto w-full max-w-md space-y-6">
       <div>
-        <h2 className="font-heading text-foreground text-2xl font-bold">Team</h2>
+        <h2 className="text-foreground text-2xl font-bold">Team</h2>
         <p className="text-muted-foreground mt-1 text-sm">Inviter teamet ditt til Smartout.</p>
       </div>
 

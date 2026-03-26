@@ -8,6 +8,7 @@ import type { WizardStepProps } from "@smartout/ui";
 import type { JoinState } from "../types";
 import { useWorkspaceIntelligence } from "../_hooks/useWorkspaceIntelligence";
 import { useTypewriterSequence } from "../_hooks/useTypewriter";
+import { WizardLoadingOverlay } from "./WizardLoadingOverlay";
 
 export function Step3About({ state, updateState }: WizardStepProps<JoinState>) {
   const { content, status, enrichAndGenerate, rewriteField } = useWorkspaceIntelligence(
@@ -118,10 +119,26 @@ export function Step3About({ state, updateState }: WizardStepProps<JoinState>) {
 
   const isLoading = status === "enriching" || status === "generating";
 
+  // Show loading overlay when AI is enriching/generating and no content exists yet
+  const isWaitingForContent = isLoading && !content && !allDone;
+
+  if (isWaitingForContent) {
+    return (
+      <WizardLoadingOverlay
+        messages={[
+          "Analyserer bedriften din...",
+          "Leser nettsiden og offentlig informasjon...",
+          "Skriver utkast til tekster...",
+          "Nesten ferdig...",
+        ]}
+      />
+    );
+  }
+
   return (
     <div className="mx-auto w-full max-w-md space-y-6">
       <div>
-        <h2 className="font-heading text-foreground text-2xl font-bold">Fortell om bedriften</h2>
+        <h2 className="text-foreground text-2xl font-bold">Fortell om bedriften</h2>
         <p className="text-muted-foreground mt-1 text-sm">
           Dette brukes til opplaering og onboarding av ansatte.
         </p>

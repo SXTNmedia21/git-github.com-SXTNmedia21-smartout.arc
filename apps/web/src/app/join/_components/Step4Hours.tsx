@@ -191,7 +191,7 @@ export function Step4Hours({ state, updateState }: WizardStepProps<JoinState>) {
   return (
     <div className="mx-auto w-full max-w-lg space-y-6">
       <div>
-        <h2 className="font-heading text-foreground text-2xl font-bold">Drift</h2>
+        <h2 className="text-foreground text-2xl font-bold">Drift</h2>
         <p className="text-muted-foreground mt-1 text-sm">Apningstider og kontaktinformasjon.</p>
       </div>
 

@@ -105,28 +105,11 @@ export async function completeSignup(data: SignupSetupData) {
 
   const admin = createAdminClient();
 
-  // ── Idempotency guard: prevent duplicate company creation ──────
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: existingProgress } = await (admin as any)
-    .from("signup_progress")
-    .select("completed")
-    .eq("auth_id", user.id)
-    .single();
-
+  // ── Check for existing onboarding workspace to reuse ──────────
+  // If the user already has a workspace in onboarding state, reuse it.
+  // If the user already completed signup before, provision a NEW workspace
+  // (additional workspace for the same user account).
   const existingShell = await findExistingOnboardingWorkspace(admin, user.id);
-
-  if (existingProgress?.completed) {
-    const completedWorkspace = existingShell ?? (await findExistingWorkspace(admin, user.id));
-
-    if (completedWorkspace) {
-      return {
-        workspaceId: completedWorkspace.workspace_id,
-        slug: completedWorkspace.slug,
-      };
-    }
-
-    throw new Error("Signup already completed but workspace not found");
-  }
 
   // ── Phase 1: Provision or reuse a workspace shell ─────────────
 

@@ -3,11 +3,12 @@
 /**
  * Join wizard definition — config object for WizardShell.
  *
- * Maps the 7-step join flow to WizardDefinition<JoinState>.
- * Each step component accepts WizardStepProps<JoinState>.
+ * 6-step join flow: Account → Business → Identity → Hours → Menu → Password.
+ * Password step handles auth signup. onComplete runs completeSignup server action
+ * and redirects to /onboarding.
  */
 
-import { Building2, Clock, FileText, KeyRound, Mail, UtensilsCrossed, Users } from "lucide-react";
+import { Building2, Clock, FileText, KeyRound, Mail, UtensilsCrossed } from "lucide-react";
 import type { WizardDefinition } from "@smartout/ui";
 import type { JoinState } from "./types";
 import { defaultJoinState, JOIN_STORAGE_KEY } from "./types";
@@ -17,19 +18,12 @@ import { Step3About } from "./_components/Step3About";
 import { Step4Hours } from "./_components/Step4Hours";
 import { Step5Menu } from "./_components/Step5Menu";
 import { Step6CreateAccount } from "./_components/Step6CreateAccount";
-import { Step6Team } from "./_components/Step6Team";
-import {
-  step1Schema,
-  step2Schema,
-  step3Schema,
-  step4Schema,
-  step5Schema,
-  step6Schema,
-} from "./_lib/validation";
+import { step1Schema, step2Schema, step3Schema, step4Schema, step5Schema } from "./_lib/validation";
+import { completeSignup } from "./_lib/setupActions";
+import { buildPostSignupRedirectPath } from "./_lib/onboarding-shell";
 
 /**
  * Restore persisted state from localStorage.
- * Returns partial state that WizardShell merges with initialState.
  */
 async function loadState(): Promise<Partial<JoinState>> {
   if (typeof window === "undefined") return {};
@@ -40,7 +34,6 @@ async function loadState(): Promise<Partial<JoinState>> {
 
     const parsed = JSON.parse(stored) as Record<string, unknown>;
 
-    // Map legacy step1..step6 keys to new named keys for migration continuity
     return {
       account: (parsed.step1 ?? parsed.account ?? {}) as JoinState["account"],
       business: (parsed.step2 ?? parsed.business ?? {}) as JoinState["business"],
@@ -58,17 +51,66 @@ async function loadState(): Promise<Partial<JoinState>> {
 }
 
 /**
- * Placeholder onComplete — will be wired to actual signup flow.
- * For now, persists final state to localStorage.
+ * Complete signup — runs server action to provision workspace shell, then redirects.
+ * Maps wizard state keys (account, business, ...) to server action keys (step1, step2, ...).
  */
 async function onComplete(state: JoinState): Promise<void> {
-  if (typeof window === "undefined") return;
-
+  // Persist final state to localStorage as backup
   try {
     localStorage.setItem(JOIN_STORAGE_KEY, JSON.stringify(state));
   } catch {
-    // localStorage may be full or unavailable
+    // best-effort
   }
+
+  const setupData = {
+    step1: {
+      email: state.account.email ?? "",
+      companyName: state.account.companyName ?? "",
+      industry: state.account.industry ?? "",
+      city: state.account.city,
+      websiteUrl: state.account.websiteUrl ?? "",
+    },
+    step2: {
+      firstName: state.business.firstName ?? "",
+      lastName: state.business.lastName ?? "",
+      street: state.business.street ?? "",
+      postalCode: state.business.postalCode ?? "",
+      city: state.business.city ?? "",
+      orgNumber: (state.business.orgNumber ?? "").replace(/\s/g, ""),
+    },
+    step3: {
+      aboutUs: state.about.aboutUs,
+      ourHistory: state.about.ourHistory,
+      ourConcept: state.about.ourConcept,
+    },
+    step4: {
+      openingHours: state.hours.openingHours ?? [],
+      phone: state.hours.phone ?? "",
+      instagram: state.hours.instagram,
+      facebook: state.hours.facebook,
+    },
+    step5: {
+      restaurantType: state.menu.restaurantType,
+      cuisineTypes: state.menu.cuisineTypes,
+      priceCategory: state.menu.priceCategory,
+      menuDescription: state.menu.menuDescription,
+    },
+    step6: {},
+    intelligence: state.intelligence,
+  };
+
+  const result = await completeSignup(setupData);
+
+  // Clear localStorage after successful signup
+  try {
+    localStorage.removeItem(JOIN_STORAGE_KEY);
+  } catch {
+    // best-effort
+  }
+
+  // Redirect to onboarding confirmation wizard
+  const redirectPath = buildPostSignupRedirectPath(result.workspaceId);
+  window.location.href = redirectPath;
 }
 
 export const joinWizard: WizardDefinition<JoinState> = {
@@ -108,10 +150,6 @@ export const joinWizard: WizardDefinition<JoinState> = {
       create_account: {
         heading: "Nesten\nferdig.",
         sub: "Opprett kontoen din for å fullføre.",
-      },
-      team: {
-        heading: "Inviter\nteamet ditt.",
-        sub: "De får en e-post med instruksjoner.",
       },
     },
   },
@@ -168,13 +206,7 @@ export const joinWizard: WizardDefinition<JoinState> = {
       labelKey: "steps.create_account",
       icon: KeyRound,
       component: Step6CreateAccount,
-    },
-    {
-      id: "team",
-      labelKey: "steps.team",
-      icon: Users,
-      component: Step6Team,
-      skippable: true,
+      hideNavBar: true,
     },
   ],
 };

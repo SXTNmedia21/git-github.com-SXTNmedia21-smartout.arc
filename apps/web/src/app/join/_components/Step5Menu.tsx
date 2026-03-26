@@ -218,7 +218,7 @@ export function Step5Menu({ state, updateState }: WizardStepProps<JoinState>) {
   return (
     <div className="mx-auto w-full max-w-md space-y-6">
       <div>
-        <h2 className="font-heading text-foreground text-2xl font-bold">Meny</h2>
+        <h2 className="text-foreground text-2xl font-bold">Meny</h2>
         <p className="text-muted-foreground mt-1 text-sm">
           Fortell oss om maten og drikken dere serverer.
         </p>

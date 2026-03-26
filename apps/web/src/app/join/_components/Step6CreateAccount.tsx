@@ -1,15 +1,21 @@
 "use client";
 
+/**
+ * Step6CreateAccount — final step of Join wizard.
+ *
+ * Handles Supabase auth signup/signin, then calls next() which triggers
+ * WizardShell's onComplete → completeSignup server action → redirect.
+ */
+
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { createClient } from "@smartout/supabase/client";
 import type { WizardStepProps } from "@smartout/ui";
 import type { JoinState } from "../types";
 
-export function Step6CreateAccount({ state, updateState, next }: WizardStepProps<JoinState>) {
+export function Step6CreateAccount({ state, next }: WizardStepProps<JoinState>) {
   const email = state.account.email ?? "";
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -46,7 +52,6 @@ export function Step6CreateAccount({ state, updateState, next }: WizardStepProps
 
       if (signUpError) {
         if (signUpError.message.includes("already registered")) {
-          // Try signing in instead
           const { error: signInError } = await supabase.auth.signInWithPassword({
             email,
             password,
@@ -63,11 +68,10 @@ export function Step6CreateAccount({ state, updateState, next }: WizardStepProps
         }
       }
 
-      // Account created — save password state and go to next step (team)
-      updateState({ createAccount: { ...state.createAccount } });
-      next();
-    } catch {
-      setError("Noe gikk galt. Prov igjen.");
+      // Auth successful — trigger onComplete via WizardShell (completeSignup + redirect)
+      await next();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Noe gikk galt. Prov igjen.");
       setLoading(false);
     }
   };
@@ -81,7 +85,7 @@ export function Step6CreateAccount({ state, updateState, next }: WizardStepProps
       }}
     >
       <div>
-        <h2 className="font-heading text-foreground text-2xl font-bold">Opprett konto</h2>
+        <h2 className="text-foreground text-2xl font-bold">Opprett konto</h2>
         <p className="text-muted-foreground mt-1 text-sm">
           Sett et passord for a fullfare registreringen.
         </p>
@@ -141,20 +145,24 @@ export function Step6CreateAccount({ state, updateState, next }: WizardStepProps
         {error && <p className="text-destructive text-sm">{error}</p>}
       </div>
 
-      <Button
+      <button
         type="submit"
         disabled={loading || !password}
-        className="bg-brand-orange hover:bg-brand-orange-dark w-full text-white"
+        className="flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-white transition-all hover:brightness-110 disabled:opacity-50"
+        style={{
+          background: "var(--brand, #f97316)",
+          boxShadow: "0 2px 12px oklch(0.65 0.22 40 / 0.25)",
+        }}
       >
         {loading ? (
           <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            <Loader2 className="h-4 w-4 animate-spin" />
             Oppretter...
           </>
         ) : (
-          "Opprett konto"
+          "Fullfar registrering"
         )}
-      </Button>
+      </button>
     </form>
   );
 }

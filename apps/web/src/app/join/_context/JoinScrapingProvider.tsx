@@ -35,6 +35,7 @@ export interface JoinScrapingContextValue {
   triggerScrape: (url: string) => Promise<void>;
   brregData: BrregData | null;
   brregCandidates: BrregData[];
+  brregLoading: boolean;
   selectBrregCandidate: (candidate: BrregData) => void;
   lookupBrreg: (companyName: string, city?: string) => Promise<void>;
 }
@@ -54,6 +55,7 @@ export function JoinScrapingProvider({ children }: JoinScrapingProviderProps) {
     triggerScrape,
     brregData,
     brregCandidates,
+    brregLoading,
     selectBrregCandidate,
     lookupBrreg,
   } = useScrapedData();
@@ -64,6 +66,7 @@ export function JoinScrapingProvider({ children }: JoinScrapingProviderProps) {
     triggerScrape,
     brregData,
     brregCandidates,
+    brregLoading,
     selectBrregCandidate,
     lookupBrreg,
   };
