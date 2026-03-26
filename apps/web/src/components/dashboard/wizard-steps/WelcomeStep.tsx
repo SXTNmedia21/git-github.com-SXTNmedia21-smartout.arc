@@ -1,12 +1,14 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useContext, useMemo, useRef, useState } from "react";
 import { CheckCircle2, Pencil, Sparkles } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
+import { emit } from "@smartout/telemetry";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useWorkspace } from "@/lib/workspace-context";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import type { IndustryType } from "@/lib/industry/types";
 import type { ScrapedIntelligence } from "./wizard-state";
 
@@ -43,6 +45,7 @@ export function WelcomeStep({
   onIndustryChange: (type: IndustryType) => void;
 }) {
   const { workspace } = useWorkspace();
+  const { profileId } = useContext(DashboardContext);
   const queryClient = useQueryClient();
   const [editingLabel, setEditingLabel] = useState<string | null>(null);
   const [overrides, setOverrides] = useState<Record<string, string>>({});
@@ -98,8 +101,14 @@ export function WelcomeStep({
           .eq("workspace_id", workspace.workspace_id);
       }
     },
-    onSuccess: () => {
+    onSuccess: (_, { label, value }) => {
       void queryClient.invalidateQueries({ queryKey: ["wizard-company", workspace.workspace_id] });
+      void emit({
+        event: "wizard fact_edited",
+        workspace_id: workspace.workspace_id,
+        actor_id: profileId ?? "",
+        properties: { data: { wizard_id: "dashboard-setup", label, value } },
+      });
     },
   });
 
@@ -177,7 +186,7 @@ export function WelcomeStep({
     <div className="space-y-8">
       {/* Intro */}
       <div className="space-y-4">
-        <div className={`flex items-start gap-3 rounded-xl border p-4 ${"border-border bg-white"}`}>
+        <div className={`flex items-start gap-3 rounded-xl border p-4 ${"border-border bg-card"}`}>
           <Sparkles className="text-brand-orange mt-0.5 h-5 w-5 shrink-0" />
           <div className="space-y-2">
             <p className={`text-sm leading-relaxed ${"text-muted-foreground"}`}>
@@ -254,7 +263,7 @@ export function WelcomeStep({
               return (
                 <div
                   key={fact.label}
-                  className={`flex items-center justify-between rounded-xl border px-4 py-3 ${"border-border bg-white"}`}
+                  className={`flex items-center justify-between rounded-xl border px-4 py-3 ${"border-border bg-card"}`}
                 >
                   <div className="flex min-w-0 flex-1 items-center gap-3">
                     <CheckCircle2 className="text-success h-4 w-4 shrink-0" />

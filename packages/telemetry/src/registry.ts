@@ -1411,6 +1411,18 @@ export interface WizardValidationFailed extends BaseEvent {
   };
 }
 
+export interface WizardFactEdited extends BaseEvent {
+  event: "wizard fact_edited";
+  properties: {
+    data: {
+      wizard_id: string;
+      /** The label of the fact that was edited (e.g. "Bedrift", "Nettside") */
+      label: string;
+      value: string;
+    };
+  };
+}
+
 // ─── Channel Events ─────────────────────────────
 export interface ChannelCreated extends BaseEvent {
   event: "channel.created";
@@ -1837,6 +1849,7 @@ export type SmartoutEvent =
   | WizardStepBack
   | WizardAbandoned
   | WizardValidationFailed
+  | WizardFactEdited
   | SeasonCreated
   | SeasonBudgetUpdated
   | DayFactorsUpdated
@@ -2188,6 +2201,10 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "wizard step_completed": {
     destinations: ["posthog", "logger", "engine_event"],
+    category: "onboarding",
+  },
+  "wizard fact_edited": {
+    destinations: ["posthog", "logger", "activity_trail"],
     category: "onboarding",
   },
   "wizard completed": {
