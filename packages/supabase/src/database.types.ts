@@ -11871,6 +11871,7 @@ export type Database = {
           gps_reference_lng: number | null
           gps_required: boolean
           id: string
+          late_threshold_minutes: number
           punch_window_minutes: number
           team_id: string | null
           updated_at: string
@@ -11886,6 +11887,7 @@ export type Database = {
           gps_reference_lng?: number | null
           gps_required?: boolean
           id?: string
+          late_threshold_minutes?: number
           punch_window_minutes?: number
           team_id?: string | null
           updated_at?: string
@@ -11901,6 +11903,7 @@ export type Database = {
           gps_reference_lng?: number | null
           gps_required?: boolean
           id?: string
+          late_threshold_minutes?: number
           punch_window_minutes?: number
           team_id?: string | null
           updated_at?: string

@@ -519,3 +519,6 @@ verify_jwt = false
 
 [functions.ingest-workspace-knowledge]
 verify_jwt = false
+
+[functions.shift-lateness-check]
+verify_jwt = false

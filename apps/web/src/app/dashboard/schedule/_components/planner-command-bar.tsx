@@ -57,7 +57,7 @@ export function PlannerCommandBar({
         <div className="bg-border hidden h-3 w-px sm:block" />
 
         {/* Department selector */}
-        <DepartmentPopover
+        <LocationPopover
           isDark={isDark}
           value={activeDepartment}
           onChange={setActiveDepartment}

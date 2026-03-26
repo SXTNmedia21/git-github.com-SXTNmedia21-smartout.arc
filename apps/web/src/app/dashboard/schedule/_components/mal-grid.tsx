@@ -47,7 +47,7 @@ export function MalGrid({ departmentName, weekStart, departmentOptions }: MalGri
   const [showTasks, setShowTasks] = useState(false);
 
   const { workspace } = useWorkspace();
-  const { isDark, activeLocation, setActiveLocation, profileId } = useContext(DashboardContext);
+  const { isDark, activeDepartment, setActiveDepartment, profileId } = useContext(DashboardContext);
 
   // Offset the base weekStart by the navigation offset to get the displayed week
   const currentWeekStart = useMemo(() => {
@@ -112,7 +112,7 @@ export function MalGrid({ departmentName, weekStart, departmentOptions }: MalGri
         isDark={isDark}
         departmentName={departmentName}
         departmentOptions={departmentOptions}
-        onDepartmentChange={setActiveLocation}
+        onDepartmentChange={setActiveDepartment}
         showTasks={showTasks}
         onShowTasksChange={setShowTasks}
         weekLabel={weekLabel}
