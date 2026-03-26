@@ -5,14 +5,16 @@
 // - color-regime: task-completion (>75%=emerald, 50-75%=orange, <50%=red)
 // - action: auto-refetch every 60s (live dashboard, no user trigger needed)
 
-import { useContext } from "react";
+import { useContext, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { AnimatePresence } from "framer-motion";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { Percent, Gauge, Clock, Users, Activity, AlertCircle, Loader2 } from "lucide-react";
 import { createClient } from "@smartout/supabase/client";
 import { useOperationsData } from "./_hooks/use-operations-data";
 import type { StressLabel } from "./_hooks/use-operations-data";
 import { DeviationDialog } from "./_components/DeviationDialog";
+import { DepartmentBreakdown } from "./_components/DepartmentBreakdown";
 
 // ─── Stress-level color maps ───────────────────────────────────────────────
 
@@ -68,6 +70,8 @@ function completionColors(pct: number, isDark: boolean) {
 export default function OperationsPage() {
   const { isDark, workspaceData, profileId } = useContext(DashboardContext);
   const { data, isLoading, isError } = useOperationsData();
+
+  const [showDeptBreakdown, setShowDeptBreakdown] = useState(false);
 
   const { data: departments } = useQuery({
     queryKey: ["departments", workspaceData?.workspace_id],
@@ -170,25 +174,30 @@ export default function OperationsPage() {
               {...completionColors(data.taskCompletion.pct, isDark)}
             />
 
-            {/* Stress Level */}
+            {/* Stress Level — clickable to toggle department breakdown */}
             {(() => {
               const sc = stressColors(data.stressLevel.label, isDark);
               return (
-                <MetricCard
-                  isDark={isDark}
-                  title="Stressnivå"
-                  value={data.stressLevel.label}
-                  sub={
-                    data.stressLevel.capacityPct > 0
-                      ? `${data.stressLevel.capacityPct}% kapasitet${data.stressLevel.shortStaff > 0 ? `. ${data.stressLevel.shortStaff} mangler.` : ""}`
-                      : "Ingen vakter planlagt"
-                  }
-                  icon={Gauge}
-                  color={sc.color}
-                  bg={sc.bg}
-                  border={sc.border}
-                  pulse={sc.pulse}
-                />
+                <div
+                  className="cursor-pointer"
+                  onClick={() => setShowDeptBreakdown(!showDeptBreakdown)}
+                >
+                  <MetricCard
+                    isDark={isDark}
+                    title="Stressnivå"
+                    value={data.stressLevel.label}
+                    sub={
+                      data.stressLevel.capacityPct > 0
+                        ? `${data.stressLevel.capacityPct}% kapasitet${data.stressLevel.shortStaff > 0 ? `. ${data.stressLevel.shortStaff} mangler.` : ""}`
+                        : "Ingen vakter planlagt"
+                    }
+                    icon={Gauge}
+                    color={sc.color}
+                    bg={sc.bg}
+                    border={sc.border}
+                    pulse={sc.pulse}
+                  />
+                </div>
               );
             })()}
 
@@ -264,6 +273,15 @@ export default function OperationsPage() {
               border={isDark ? "border-zinc-700" : "border-zinc-200"}
             />
           </div>
+
+          {/* ── Department breakdown (toggled from stress card) ──────── */}
+          <AnimatePresence>
+            {showDeptBreakdown && workspaceData?.workspace_id && (
+              <div className="mb-8">
+                <DepartmentBreakdown workspaceId={workspaceData.workspace_id} />
+              </div>
+            )}
+          </AnimatePresence>
 
           {/* ── Revenue vs Staff Cost chart ──────────────────────────── */}
           <div
