@@ -34,9 +34,10 @@ function getISOWeek(date: Date): number {
 type MalGridProps = {
   departmentName: string;
   weekStart: string;
+  departmentOptions: string[];
 };
 
-export function MalGrid({ departmentName, weekStart }: MalGridProps) {
+export function MalGrid({ departmentName, weekStart, departmentOptions }: MalGridProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -44,7 +45,7 @@ export function MalGrid({ departmentName, weekStart }: MalGridProps) {
   const [showTasks, setShowTasks] = useState(false);
 
   const { workspace } = useWorkspace();
-  const { isDark, activeLocation, setActiveLocation } = useContext(DashboardContext);
+  const { isDark, activeLocation, setActiveLocation, profileId } = useContext(DashboardContext);
 
   // Offset the base weekStart by the navigation offset to get the displayed week
   const currentWeekStart = useMemo(() => {
@@ -82,7 +83,7 @@ export function MalGrid({ departmentName, weekStart }: MalGridProps) {
       <MalCommandBar
         isDark={isDark}
         departmentName={departmentName}
-        departmentOptions={[]} // TODO: populate from departments query
+        departmentOptions={departmentOptions}
         onDepartmentChange={setActiveLocation}
         showTasks={showTasks}
         onShowTasksChange={setShowTasks}
@@ -199,7 +200,7 @@ export function MalGrid({ departmentName, weekStart }: MalGridProps) {
                     weekStart: currentWeekStart,
                     templateId: data.templateId,
                     departmentId,
-                    actorId: "",
+                    actorId: profileId ?? "",
                   },
                   {
                     onSuccess: () => toast.success("Uke publisert"),
@@ -222,7 +223,7 @@ export function MalGrid({ departmentName, weekStart }: MalGridProps) {
                     weekStart: currentWeekStart,
                     templateId: data.templateId,
                     departmentId,
-                    actorId: "",
+                    actorId: profileId ?? "",
                   },
                   {
                     onSuccess: () => toast.success("Vakter fylt fra mal"),
@@ -259,7 +260,7 @@ export function MalGrid({ departmentName, weekStart }: MalGridProps) {
                     weekStart: currentWeekStart,
                     templateId: data.templateId,
                     departmentId,
-                    actorId: "",
+                    actorId: profileId ?? "",
                   },
                   {
                     onSuccess: () => toast.success("Uke tilbakestilt"),

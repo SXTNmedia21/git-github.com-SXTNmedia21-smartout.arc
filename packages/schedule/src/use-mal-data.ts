@@ -10,7 +10,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
 
 import type { MalColumn, MalCell, MalGridData, MalEmployeeAssignment, MalTask } from "./mal-types";
-import { cellKey } from "./mal-types";
+import { cellKey, addDays } from "./mal-types";
 import { malKeys } from "./mal-query-keys";
 
 /** Norwegian day names for the grid header */
@@ -24,13 +24,6 @@ const DAY_NAMES: string[] = [
   "Søndag",
 ];
 const DAY_SHORT: string[] = ["MAN", "TIR", "ONS", "TOR", "FRE", "LØR", "SØN"];
-
-/** Add N days to a YYYY-MM-DD date string */
-function addDays(dateStr: string, days: number): string {
-  const d = new Date(dateStr + "T00:00:00");
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
-}
 
 /** Calculate decimal work hours from HH:MM time strings — handles overnight shifts */
 function calcHours(start: string, end: string): number {
@@ -164,32 +157,36 @@ export function useMalData(params: {
         }));
       };
 
-      const [templateShiftsRes, scheduleShiftsRes, tasks] = await Promise.all([
-        // Template shifts define the grid columns (roles and times)
-        supabase
-          .from("schedule_template_shift")
-          .select("*")
-          .eq("template_id", activeTemplateId!)
-          .order("start_time"),
+      // Fetch template shifts first — we need their IDs to filter schedule_shift
+      const templateShiftsRes = await supabase
+        .from("schedule_template_shift")
+        .select("*")
+        .eq("template_id", activeTemplateId!)
+        .order("start_time");
 
-        // Actual shifts for the week — only those linked to a template shift (mal-modus shifts).
-        // Use the column-name hint syntax (profile:employee_id) so PostgREST picks the right FK.
-        // The generated types show a SelectQueryError for multi-FK joins, so we cast via unknown.
-        supabase
-          .from("schedule_shift")
-          .select("*, profile:employee_id(profile_id, first_name, last_name)")
-          .eq("workspace_id", workspaceId)
-          .gte("shift_date", weekStart)
-          .lte("shift_date", weekEnd)
-          .not("template_shift_id", "is", null),
+      if (templateShiftsRes.error) throw templateShiftsRes.error;
+      const templateShifts = templateShiftsRes.data;
+      const templateShiftIds = templateShifts.map((ts) => ts.schedule_template_shift_id);
+
+      // Now fetch shifts (filtered to this template's columns) and tasks in parallel
+      const [scheduleShiftsRes, tasks] = await Promise.all([
+        // Actual shifts for the week — filtered to this template's shift IDs only.
+        // Uses column-name hint (profile:employee_id) so PostgREST picks the right FK.
+        // Generated types show a SelectQueryError for multi-FK joins, so we cast via unknown.
+        templateShiftIds.length > 0
+          ? supabase
+              .from("schedule_shift")
+              .select("*, profile:employee_id(profile_id, first_name, last_name)")
+              .eq("workspace_id", workspaceId)
+              .gte("shift_date", weekStart)
+              .lte("shift_date", weekEnd)
+              .in("template_shift_id", templateShiftIds)
+          : Promise.resolve({ data: [] as never[], error: null }),
 
         fetchTasks(),
       ]);
 
-      if (templateShiftsRes.error) throw templateShiftsRes.error;
       if (scheduleShiftsRes.error) throw scheduleShiftsRes.error;
-
-      const templateShifts = templateShiftsRes.data;
       const scheduleShifts = scheduleShiftsRes.data;
 
       // Build MalColumn array from template shifts — these become the grid headers

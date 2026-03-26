@@ -67,3 +67,10 @@ export type MalGridData = {
 export function cellKey(dateId: string, templateShiftId: string): string {
   return `${dateId}::${templateShiftId}`;
 }
+
+/** Add N days to a YYYY-MM-DD date string */
+export function addDays(dateStr: string, days: number): string {
+  const d = new Date(dateStr + "T00:00:00");
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}

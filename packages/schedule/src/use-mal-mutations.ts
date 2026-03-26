@@ -11,17 +11,7 @@ import { createClient } from "@smartout/supabase/client";
 import { emit } from "@smartout/telemetry";
 
 import { malKeys } from "./mal-query-keys";
-
-// ══════════════════════════════════════════════════════════════
-// Shared
-// ══════════════════════════════════════════════════════════════
-
-/** Add N days to a YYYY-MM-DD date string */
-function addDays(dateStr: string, days: number): string {
-  const d = new Date(dateStr + "T00:00:00");
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
-}
+import { addDays } from "./mal-types";
 
 // ══════════════════════════════════════════════════════════════
 // Mutation: Fill week from template ("Fyll fra mal")

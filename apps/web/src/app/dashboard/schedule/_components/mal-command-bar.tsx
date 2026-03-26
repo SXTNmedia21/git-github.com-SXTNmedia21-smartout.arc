@@ -57,7 +57,9 @@ export function MalCommandBar({
         <div className="border-border bg-muted flex rounded-lg border p-[2px]">
           <button
             onClick={() => onShowTasksChange(false)}
-            className="bg-card text-foreground cursor-pointer rounded-md border-none px-2.5 py-[3px] text-[10px] font-bold shadow-sm transition-all"
+            className={`cursor-pointer rounded-md border-none px-2.5 py-[3px] text-[10px] font-bold transition-all ${
+              !showTasks ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
+            }`}
           >
             Vakter
           </button>

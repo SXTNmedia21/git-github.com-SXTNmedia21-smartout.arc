@@ -26,7 +26,7 @@ export function MalShiftCell({
   onAssignClick,
 }: MalShiftCellProps) {
   return (
-    <div className="group border-border flex min-h-[44px] cursor-pointer flex-wrap items-start gap-[3px] border-r border-b p-[5px] transition-[background] duration-[250ms] ease-[cubic-bezier(0.25,0.1,0.25,1)] hover:bg-[oklch(0.97_0.006_55)]">
+    <div className="group border-border hover:bg-muted/50 flex min-h-[44px] cursor-pointer flex-wrap items-start gap-[3px] border-r border-b p-[5px] transition-[background] duration-[250ms] ease-[cubic-bezier(0.25,0.1,0.25,1)]">
       {/* Assigned employees — rendered first for visual priority */}
       {cell.assignments.map((assignment) => (
         <MalEmployeeTag

@@ -33,7 +33,7 @@ export function MalGridHeader({ columns, onColumnClick }: MalGridHeaderProps) {
         <div
           key={col.templateShiftId}
           onClick={() => onColumnClick?.(col)}
-          className="border-border bg-muted sticky top-0 z-10 cursor-pointer border-b p-2 text-center transition-[background] duration-[250ms] hover:bg-[oklch(0.95_0.008_55)]"
+          className="border-border bg-muted hover:bg-muted/80 sticky top-0 z-10 cursor-pointer border-b p-2 text-center transition-[background] duration-[250ms]"
         >
           {/* Role name */}
           <span className="text-muted-foreground block text-[10px] font-bold tracking-[1.5px] uppercase">

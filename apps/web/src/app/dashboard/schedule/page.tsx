@@ -971,7 +971,11 @@ function SchedulePageContent() {
             {/* MAL-MODUS — template-based schedule grid (self-contained) */}
             {scheduleLayout === "mal" && (
               <Suspense fallback={<div className="bg-muted/20 flex-1 animate-pulse" />}>
-                <MalGrid departmentName={activeLocation} weekStart={weekStart} />
+                <MalGrid
+                  departmentName={activeLocation}
+                  weekStart={weekStart}
+                  departmentOptions={locationOptions}
+                />
               </Suspense>
             )}
 
