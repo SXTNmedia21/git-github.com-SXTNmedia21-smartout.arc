@@ -60,7 +60,9 @@ function pickGhostVariant(id: string): (typeof GHOST_VARIANTS)[number] {
 
 function getInitials(name: string): string {
   const parts = name.trim().split(/\s+/);
-  if (parts.length >= 2) return (parts[0]![0] + parts[parts.length - 1]![0]).toUpperCase();
+  const first = parts[0]?.[0] ?? "";
+  const last = parts.length >= 2 ? (parts[parts.length - 1]?.[0] ?? "") : "";
+  if (first && last) return (first + last).toUpperCase();
   return (name.slice(0, 2) || "??").toUpperCase();
 }
 
