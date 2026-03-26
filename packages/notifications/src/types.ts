@@ -37,6 +37,7 @@ export type AudienceFilter =
   | { type: "all_users" }
   | { type: "super_admins" }
   | { type: "workspace"; workspaceId: string; role?: string; status?: string }
+  | { type: "department"; workspaceId: string; departmentId: string }
   | { type: "role"; role: string }
   | { type: "status"; status: string }
   | { type: "user_ids"; userIds: string[] };
