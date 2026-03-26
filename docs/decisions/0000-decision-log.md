@@ -18,9 +18,13 @@ tags: [decisions]
 | 5   | 2026-03-26 | Promise-based confirmation dialog in AgentProposalsContext — not a separate hook, keeps state co-located with proposals | accepted |
 | 6   | 2026-03-26 | Ghost tags use desaturated oklch variants of employee tag colors — visually distinct but same color family              | accepted |
 | 7   | 2026-03-26 | templateShiftId optional on ShiftProposalCreate — backward compatible with daily grid proposals                         | accepted |
-module: mobile
-tags: [decisions]
----
-# Decision Log — mobile-production-readiness
-| # | Date | Decision | Status |
-|---|------|----------|--------|
+
+## mobile-production-readiness
+
+| #   | Date       | Decision                                                                                                               | Status   |
+| --- | ---------- | ---------------------------------------------------------------------------------------------------------------------- | -------- |
+| 8   | 2026-03-26 | Authority default `read_only` (not `suggest`) — align agent-router with tool-selector for v1.0 employee-only release   | accepted |
+| 9   | 2026-03-26 | Net-new schedule capability tools — existing tools/schedule/definitions.ts are Ultravox client-side, not wrappable     | accepted |
+| 10  | 2026-03-26 | Deep link map in shared @smartout/notifications package — single source of truth for backend + mobile                  | accepted |
+| 11  | 2026-03-26 | FAB tap=voice, long-press=text — voice as primary mobile interaction, QuickActions moved to hub priority cards         | accepted |
+| 12  | 2026-03-26 | Per-workspace authority in v1.0 — per-role authority deferred to v1.1 (requires engine_authority_config schema change) | accepted |
