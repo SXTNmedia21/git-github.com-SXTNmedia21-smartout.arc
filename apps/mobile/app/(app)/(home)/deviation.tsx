@@ -35,6 +35,7 @@ import {
 } from "lucide-react-native";
 import { createStyles, useTheme, withOpacity } from "@/theme";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
+import { useReportDeviation } from "@/hooks/mutations/use-report-deviation";
 
 type Severity = "Lav" | "Middels" | "Hoy";
 
@@ -42,6 +43,13 @@ const SEVERITY_COLOR_KEYS: Record<Severity, string> = {
   Lav: "success",
   Middels: "warning",
   Hoy: "destructive",
+};
+
+/** Maps Norwegian UI labels to deviation_severity enum values */
+const SEVERITY_API_MAP: Record<Severity, "low" | "medium" | "high"> = {
+  Lav: "low",
+  Middels: "medium",
+  Hoy: "high",
 };
 
 const LOCATIONS = ["Hovedkjokken", "Sal", "Bar", "Lager", "Garderobe", "Utendors"];
@@ -52,6 +60,7 @@ export default function DeviationScreen() {
   const router = useRouter();
   const { data: profile } = useMyProfile();
 
+  const { reportDeviation } = useReportDeviation();
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState<string | null>(null);
   const [severity, setSeverity] = useState<Severity | null>(null);
@@ -60,10 +69,20 @@ export default function DeviationScreen() {
   const canSubmit = description.trim().length > 5 && location && severity;
 
   const handleSubmit = useCallback(() => {
-    if (!canSubmit) return;
+    if (!canSubmit || !severity || !profile) return;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+    void reportDeviation({
+      title: description.trim().slice(0, 80),
+      description: description.trim(),
+      severity: SEVERITY_API_MAP[severity],
+      domain: "procedure",
+      reported_by: profile.profile_id,
+      workspace_id: profile.workspace_id,
+    });
+
     setSubmitted(true);
-  }, [canSubmit]);
+  }, [canSubmit, severity, profile, description, reportDeviation]);
 
   const now = new Date();
   const timeStr = now.toLocaleTimeString("nb-NO", {
