@@ -190,7 +190,7 @@ function ViewFilterButton({
 // ---------------------------------------------------------------------------
 // LocationPopover — dropdown selector for active location
 // ---------------------------------------------------------------------------
-function LocationPopover({
+export function LocationPopover({
   isDark: _isDark,
   value,
   onChange,
