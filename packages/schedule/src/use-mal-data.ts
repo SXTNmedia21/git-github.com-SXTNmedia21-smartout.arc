@@ -2,8 +2,12 @@
 
 /**
  * Data hook for Mal-modus (template-based schedule grid).
- * Resolves department → templates → template shifts + schedule shifts + tasks,
+ * Resolves department(s) → templates → template shifts + schedule shifts + tasks,
  * and combines everything into a MalGridData structure ready for the grid UI.
+ *
+ * When departmentName is "Alle avdelinger", all departments are included.
+ * Columns carry departmentId + departmentName so the grid can render
+ * department group separators.
  */
 
 import { useQuery } from "@tanstack/react-query";
@@ -60,6 +64,8 @@ function avatarColor(id: string): string {
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length] ?? AVATAR_COLORS[0]!;
 }
 
+const ALL_DEPARTMENTS = "Alle avdelinger";
+
 export function useMalData(params: {
   workspaceId: string;
   departmentName: string;
@@ -69,39 +75,56 @@ export function useMalData(params: {
 }) {
   const { workspaceId, departmentName, weekStart, templateId, showTasks } = params;
   const supabase = createClient();
+  const isAllDepartments = departmentName === ALL_DEPARTMENTS;
 
-  // Step 1: Resolve department_id from name — cached for 5 minutes since departments rarely change
+  // Step 1: Resolve department(s) — single or all
   const departmentQuery = useQuery({
     queryKey: malKeys.department(workspaceId, departmentName),
     enabled: !!workspaceId && !!departmentName,
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
+      if (isAllDepartments) {
+        const { data, error } = await supabase
+          .from("department")
+          .select("department_id, name")
+          .eq("workspace_id", workspaceId)
+          .order("name");
+        if (error) throw error;
+        return data.map((d) => ({ id: d.department_id, name: d.name }));
+      }
       const { data, error } = await supabase
         .from("department")
-        .select("department_id")
+        .select("department_id, name")
         .eq("workspace_id", workspaceId)
         .eq("name", departmentName)
         .single();
       if (error) throw error;
-      return data.department_id;
+      return [{ id: data.department_id, name: data.name }];
     },
   });
 
-  const departmentId = departmentQuery.data ?? null;
+  const departments = departmentQuery.data ?? [];
+  const departmentIds = departments.map((d) => d.id);
+  // For backwards compat — single department ID (first resolved)
+  const departmentId = departmentIds[0] ?? null;
 
-  // Step 2: Fetch all templates for this department — used to populate the template selector
+  // Step 2: Fetch templates across all resolved departments
   const templatesQuery = useQuery({
-    queryKey: malKeys.templates(workspaceId, departmentId ?? ""),
-    enabled: !!departmentId,
+    queryKey: malKeys.templates(workspaceId, departmentIds.join(",")),
+    enabled: departmentIds.length > 0,
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("schedule_template")
         .select("schedule_template_id, name, department_id")
-        .eq("department_id", departmentId!)
+        .in("department_id", departmentIds)
         .order("name");
       if (error) throw error;
-      return data.map((t) => ({ id: t.schedule_template_id, name: t.name }));
+      return data.map((t) => ({
+        id: t.schedule_template_id,
+        name: t.name,
+        departmentId: t.department_id,
+      }));
     },
   });
 
@@ -109,26 +132,29 @@ export function useMalData(params: {
   // Fall back to the first available template when none is explicitly selected
   const activeTemplateId = templateId ?? templates[0]?.id ?? null;
 
+  // Build a department name lookup from resolved departments
+  const deptNameById = new Map(departments.map((d) => [d.id, d.name]));
+
   // Step 3: Fetch template shifts (columns), actual schedule shifts, and tasks in parallel.
-  // Re-fetches when week or template changes. showTasks included in key so toggling tasks
-  // doesn't show stale cached data from a non-task fetch.
   const gridQuery = useQuery({
-    queryKey: [...malKeys.shifts(workspaceId, weekStart, activeTemplateId ?? ""), showTasks],
-    enabled: !!activeTemplateId && !!departmentId,
+    queryKey: [
+      ...malKeys.shifts(workspaceId, weekStart, activeTemplateId ?? ""),
+      showTasks,
+      departmentIds.join(","),
+    ],
+    enabled: !!activeTemplateId && departmentIds.length > 0,
     staleTime: 2 * 60 * 1000,
     queryFn: async () => {
       const weekEnd = addDays(weekStart, 6);
 
-      // Tasks require a two-step query: first get session IDs for the dept+week,
-      // then fetch tasks linked to those sessions. This is simpler than relying on
-      // PostgREST implicit join filtering which can behave unexpectedly with nulls.
+      // Tasks: fetch for all resolved departments
       const fetchTasks = async () => {
-        if (!showTasks || !departmentId) return [];
+        if (!showTasks || departmentIds.length === 0) return [];
 
         const { data: sessions, error: sessErr } = await supabase
           .from("department_session")
-          .select("department_session_id, session_date")
-          .eq("department_id", departmentId)
+          .select("department_session_id, session_date, department_id")
+          .in("department_id", departmentIds)
           .gte("session_date", weekStart)
           .lte("session_date", weekEnd);
 
@@ -137,7 +163,6 @@ export function useMalData(params: {
 
         const sessionIds = sessions.map((s) => s.department_session_id);
 
-        // session_task uses "id" as PK (not session_task_id — confirmed from database.types.ts)
         const { data: taskRows, error: taskErr } = await supabase
           .from("session_task")
           .select("id, title, status, department_session_id")
@@ -145,7 +170,6 @@ export function useMalData(params: {
 
         if (taskErr) throw taskErr;
 
-        // Attach session_date to each task so we can map it to a grid day
         const sessionDateById = new Map(
           sessions.map((s) => [s.department_session_id, s.session_date]),
         );
@@ -157,10 +181,10 @@ export function useMalData(params: {
         }));
       };
 
-      // Fetch template shifts first — we need their IDs to filter schedule_shift
+      // Fetch template shifts — for the active template only
       const templateShiftsRes = await supabase
         .from("schedule_template_shift")
-        .select("*")
+        .select("*, schedule_template!inner(department_id)")
         .eq("template_id", activeTemplateId!)
         .order("start_time");
 
@@ -168,11 +192,8 @@ export function useMalData(params: {
       const templateShifts = templateShiftsRes.data;
       const templateShiftIds = templateShifts.map((ts) => ts.schedule_template_shift_id);
 
-      // Now fetch shifts (filtered to this template's columns) and tasks in parallel
+      // Fetch actual shifts and tasks in parallel
       const [scheduleShiftsRes, tasks] = await Promise.all([
-        // Actual shifts for the week — filtered to this template's shift IDs only.
-        // Uses column-name hint (profile:employee_id) so PostgREST picks the right FK.
-        // Generated types show a SelectQueryError for multi-FK joins, so we cast via unknown.
         templateShiftIds.length > 0
           ? supabase
               .from("schedule_shift")
@@ -189,9 +210,11 @@ export function useMalData(params: {
       if (scheduleShiftsRes.error) throw scheduleShiftsRes.error;
       const scheduleShifts = scheduleShiftsRes.data;
 
-      // Build MalColumn array from template shifts — these become the grid headers
+      // Build MalColumn array — columns carry department info for group headers
       const columns: MalColumn[] = templateShifts.map((ts) => {
         const hours = calcHours(ts.start_time, ts.end_time);
+        const tmpl = ts.schedule_template as unknown as { department_id: string };
+        const deptId = tmpl?.department_id ?? "";
         return {
           templateShiftId: ts.schedule_template_shift_id,
           role: ts.role,
@@ -201,10 +224,12 @@ export function useMalData(params: {
           slotCount: ts.slot_count ?? 1,
           dayCategory: ts.day_category ?? "",
           indicator: ts.indicator ?? "",
+          departmentId: deptId,
+          departmentName: deptNameById.get(deptId) ?? "",
         };
       });
 
-      // Build the 7-day array for the week — maps JS's Sunday=0 to our Monday=0 convention
+      // Build the 7-day array for the week
       const weekDays = Array.from({ length: 7 }, (_, i) => {
         const dateId = addDays(weekStart, i);
         const dayOfWeek = new Date(dateId + "T00:00:00").getDay();
@@ -234,7 +259,7 @@ export function useMalData(params: {
         }
       }
 
-      // Populate cells with employee assignments from schedule_shift rows
+      // Populate cells with employee assignments
       for (const shift of scheduleShifts) {
         if (!shift.template_shift_id) continue;
         const key = cellKey(shift.shift_date, shift.template_shift_id);
@@ -255,34 +280,40 @@ export function useMalData(params: {
           avatarColor: avatarColor(shift.employee_id ?? shift.schedule_shift_id),
           initials: initials(name),
           status: (shift.status as MalEmployeeAssignment["status"]) ?? "created",
-          hasSwapRequest: false, // TODO: check swap_request table once available
-          hasUnreadMessage: false, // TODO: check messages table once available
+          hasSwapRequest: false,
+          hasUnreadMessage: false,
         };
         cell.assignments.push(assignment);
 
-        // Recalculate empty slots based on actual fill level
         const col = columns.find((c) => c.templateShiftId === shift.template_shift_id);
         cell.emptySlots = Math.max(0, (col?.slotCount ?? 1) - cell.assignments.length);
       }
 
-      // Populate tasks — tasks are dept-level (not tied to a specific shift column),
-      // so we only attach them to the first column to avoid duplication in the grid.
-      const firstColumn = columns[0];
-      if (firstColumn) {
-        for (const task of tasks) {
-          if (!task.session_date) continue;
-          const key = cellKey(task.session_date, firstColumn.templateShiftId);
+      // Populate tasks — attach to the first column per department
+      const firstColumnPerDept = new Map<string, MalColumn>();
+      for (const col of columns) {
+        if (!firstColumnPerDept.has(col.departmentId)) {
+          firstColumnPerDept.set(col.departmentId, col);
+        }
+      }
+      for (const task of tasks) {
+        if (!task.session_date) continue;
+        // Attach to first column of any department (tasks are dept-level)
+        for (const [, col] of firstColumnPerDept) {
+          const key = cellKey(task.session_date, col.templateShiftId);
           const cell = cells.get(key);
-          if (!cell) continue;
-          cell.tasks.push({
-            taskId: task.taskId,
-            title: task.title,
-            status: task.status as MalTask["status"],
-          });
+          if (cell) {
+            cell.tasks.push({
+              taskId: task.taskId,
+              title: task.title,
+              status: task.status as MalTask["status"],
+            });
+            break;
+          }
         }
       }
 
-      // Aggregate stats across all cells
+      // Aggregate stats
       const totalSlots = columns.reduce((sum, c) => sum + c.slotCount, 0) * 7;
       let filledSlots = 0;
       let totalHours = 0;
@@ -299,10 +330,8 @@ export function useMalData(params: {
         swapRequests += cell.assignments.filter((a) => a.hasSwapRequest).length;
       });
 
-      // Fallback hourly rate — will be replaced by season_budget.avg_hourly_wage once wired up
       const hourlyRate = 230;
       const estimatedCost = totalHours * hourlyRate;
-
       const templateName = templates.find((t) => t.id === activeTemplateId)?.name ?? "";
 
       const gridData: MalGridData = {

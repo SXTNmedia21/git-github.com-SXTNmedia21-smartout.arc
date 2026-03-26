@@ -12,6 +12,8 @@ export type MalColumn = {
   slotCount: number;
   dayCategory: string;
   indicator: string;
+  departmentId: string;
+  departmentName: string;
 };
 
 export type MalEmployeeAssignment = {

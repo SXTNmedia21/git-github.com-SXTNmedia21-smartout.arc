@@ -967,29 +967,15 @@ function SchedulePageContent() {
             {/* Agent proposal banner — shows when Emma has pending shift proposals */}
             <ProposalBanner />
 
-            {/* MAL-MODUS — template-based schedule grids, one per department */}
+            {/* MAL-MODUS — single grid, columns grouped by department horizontally */}
             {scheduleLayout === "mal" && (
-              <div className="flex min-w-0 flex-1 gap-4 overflow-x-auto">
-                {(activeDepartment === "Alle avdelinger"
-                  ? departmentOptions
-                  : [activeDepartment]
-                ).map((deptName) => (
-                  <Suspense
-                    key={deptName}
-                    fallback={
-                      <div className="bg-muted/20 min-w-[400px] flex-1 animate-pulse rounded-2xl" />
-                    }
-                  >
-                    <div className="min-w-[400px] flex-1">
-                      <MalGrid
-                        departmentName={deptName}
-                        weekStart={weekStart}
-                        departmentOptions={departmentOptions}
-                      />
-                    </div>
-                  </Suspense>
-                ))}
-              </div>
+              <Suspense fallback={<div className="bg-muted/20 flex-1 animate-pulse" />}>
+                <MalGrid
+                  departmentName={activeDepartment}
+                  weekStart={weekStart}
+                  departmentOptions={departmentOptions}
+                />
+              </Suspense>
             )}
 
             {/* MAIN CONTENT AREA — sidebar spans full height alongside command bar, status strip, and grid */}
