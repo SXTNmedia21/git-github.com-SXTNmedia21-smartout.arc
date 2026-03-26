@@ -152,7 +152,9 @@ export type ActionVerb =
   | "rollback"
   | "verified"
   | "failed"
-  | "generated";
+  | "generated"
+  | "late_detected"
+  | "no_show_escalated";
 
 // ─── Auth Module Events ─────────────────────────
 export interface AuthSignedUp extends BaseEvent {
@@ -373,6 +375,23 @@ export interface ShiftCallInitiated extends BaseEvent {
   properties: {
     entity: EntityRef;
     data: { shift_id: string; department_id: string; leaders_on_duty: number };
+  };
+}
+
+// ─── Scheduling: Lateness Detection ─────────────
+export interface ShiftLateDetected extends BaseEvent {
+  event: "shift late_detected";
+  properties: {
+    entity: EntityRef;
+    data: { minutes_late: number; threshold: number };
+  };
+}
+
+export interface ShiftNoShowEscalated extends BaseEvent {
+  event: "shift no_show_escalated";
+  properties: {
+    entity: EntityRef;
+    data: { minutes_late: number };
   };
 }
 
@@ -1677,6 +1696,8 @@ export type SmartoutEvent =
   | ShiftAdhocCreated
   | ShiftAdhocApproved
   | ShiftCallInitiated
+  | ShiftLateDetected
+  | ShiftNoShowEscalated
   | SessionOpened
   | SessionPendingSignoff
   | SessionClosed
@@ -1914,6 +1935,14 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "shift call_initiated": {
     destinations: ["posthog", "logger"],
+    category: "operations",
+  },
+  "shift late_detected": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  "shift no_show_escalated": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "operations",
   },
 
