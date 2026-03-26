@@ -45,6 +45,7 @@ export function ShiftCard({
   onTimeChange,
   isCompact,
   confirmedAt,
+  hasConflict,
 }: {
   role: string;
   time: string;
@@ -60,6 +61,7 @@ export function ShiftCard({
   onTimeChange?: (newStart: string, newEnd: string) => void;
   isCompact?: boolean;
   confirmedAt?: string;
+  hasConflict?: boolean;
 }) {
   const { isDark } = useContext(DashboardContext);
   const defaultId = React.useId();
@@ -155,7 +157,8 @@ export function ShiftCard({
       {...listeners}
       {...attributes}
       onClick={handleClick}
-      className={`group cursor-pointer ${showHandles ? "relative" : ""}`}
+      className={`group cursor-pointer ${showHandles ? "relative" : ""} ${hasConflict ? "ring-destructive/60 rounded-lg ring-2" : ""}`}
+      title={hasConflict ? "Overlappende vakter for samme ansatt" : undefined}
     >
       {/* Left resize handle (start time) */}
       {showHandles && (

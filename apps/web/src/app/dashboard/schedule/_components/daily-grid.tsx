@@ -43,6 +43,7 @@ export function GridContent({
   proposals = [],
   onApproveProposal,
   onRejectProposal,
+  conflictedShiftIds,
 }: {
   isSidebarOpen: boolean;
   setIsSidebarOpen: (v: boolean) => void;
@@ -59,6 +60,7 @@ export function GridContent({
   proposals?: ShiftProposal[];
   onApproveProposal?: (id: string) => Promise<void>;
   onRejectProposal?: (id: string) => void;
+  conflictedShiftIds?: Set<string>;
 }) {
   const { isDark, scheduleView, scheduleCompactMode } = useContext(DashboardContext);
   const { active } = useDndContext();
@@ -820,6 +822,7 @@ export const EmployeeRow = React.memo(function EmployeeRow({
                     endTime={shift.endTime}
                     isCompact={isCompact}
                     confirmedAt={shift.confirmedAt}
+                    hasConflict={conflictedShiftIds?.has(shift.id)}
                     onClick={() => onSelectShift(shift.id)}
                     onTimeChange={
                       onTimeChange

@@ -78,6 +78,7 @@ import {
   useDayBookings,
 } from "./_hooks/use-day-content";
 import { useScheduleRealtime } from "./_hooks/use-schedule-realtime";
+import { useShiftConflicts } from "./_hooks/useShiftConflicts";
 import { useScheduleComputed, type ScheduleComputed } from "./_hooks/use-schedule-computed";
 import { useDayInfo } from "./_hooks/use-day-info";
 
@@ -493,6 +494,24 @@ function SchedulePageContent() {
 
   // ── Derived values ──────────────────────────────────────────
   const shifts = useMemo(() => shiftsQuery.data ?? [], [shiftsQuery.data]);
+
+  // Shift conflict detection — flags overlapping shifts for the same employee
+  const conflictSlots = useMemo(
+    () =>
+      shifts.map((s) => ({
+        shiftId: s.id,
+        employeeId: s.employeeId,
+        startTime: s.startTime,
+        endTime: s.endTime,
+      })),
+    [shifts],
+  );
+  const conflicts = useShiftConflicts(conflictSlots);
+  const conflictedShiftIds = useMemo(
+    () => new Set(conflicts.flatMap((c) => [c.shiftIdA, c.shiftIdB])),
+    [conflicts],
+  );
+
   const templates = templatesQuery.data ?? [];
   const openShifts = openShiftsQuery.data ?? [];
   const statusSummary = computed.getStatusSummary();
@@ -1008,6 +1027,7 @@ function SchedulePageContent() {
                             highlightedDayId={highlightedDayId}
                             weekStart={weekStart}
                             onTimeChange={handleGridShiftTimeChange}
+                            conflictedShiftIds={conflictedShiftIds}
                           />
                         )}
                         {scheduleLayout === "weekly" && (
