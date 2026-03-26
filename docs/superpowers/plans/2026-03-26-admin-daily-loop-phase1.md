@@ -49,8 +49,57 @@ tags: [plan, journeys, schedule, reconciliation, operations, daily-loop]
 | `apps/web/src/app/dashboard/schedule/page.tsx`                              | Add conflict warnings from `useShiftConflicts` to shift cards                |
 | `apps/web/src/app/dashboard/reconciliation/_components/DayApproval.tsx`     | Add lock button that sets `locked_at`/`locked_by`, disable edits when locked |
 | `apps/web/src/app/dashboard/operations/page.tsx`                            | Add deviation button + department drill-down toggle                          |
+| `apps/web/src/app/dashboard/operations/_hooks/use-operations-data.ts`       | Expose raw session/shift/task arrays for department breakdown                |
 | `apps/web/src/components/dashboard/AdminDashboard.tsx`                      | Add `DailyStatusBar` above view content                                      |
-| `supabase/migrations/YYYYMMDDHHMMSS_reconciliation_lock_rls.sql`            | RLS policy: block updates when `locked_at IS NOT NULL`                       |
+| `packages/telemetry/src/registry.ts`                                        | Register `"reconciliation locked"` and verify `"deviation reported"` events  |
+| `supabase/migrations/YYYYMMDDHHMMSS_reconciliation_lock_rls.sql`            | RLS policy: modify existing policy to block updates when locked              |
+
+---
+
+## Task 0: Register Telemetry Events
+
+**Files:**
+
+- Modify: `packages/telemetry/src/registry.ts`
+
+This task MUST run before Tasks 7 and 8, which call `emit()` with these events.
+
+- [ ] **Step 1: Read the telemetry registry**
+
+Read `packages/telemetry/src/registry.ts` fully. Note:
+
+1. The event naming convention: `"entity verb"` with space separator (e.g., `"shift created"`, `"deviation reported"`)
+2. The `SmartoutEvent` interface shape: `{ event, workspace_id, actor_id, properties }`
+3. The `EVENT_ROUTING` map and how destinations are configured
+4. The `ActionVerb` union type — check if `"locked"` exists
+
+- [ ] **Step 2: Verify existing events we can reuse**
+
+Check if `"deviation reported"` already exists (it likely does based on the deviation table). If so, we'll reuse it in Task 8 instead of creating a new event.
+
+- [ ] **Step 3: Add `"reconciliation locked"` event**
+
+If it doesn't exist, add to the registry following the existing pattern:
+
+1. Add `"locked"` to the `ActionVerb` union type (if not already there)
+2. Define the event interface (following existing patterns)
+3. Add routing entry to `EVENT_ROUTING` — route to `activity_trail` + `logger` at minimum
+
+- [ ] **Step 4: Run typecheck**
+
+Run: `pnpm turbo typecheck --filter=telemetry`
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add packages/telemetry/src/registry.ts
+git commit -m "feat(telemetry): register reconciliation locked event
+
+Add 'reconciliation locked' event to telemetry registry with
+activity_trail + logger routing.
+
+Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
+```
 
 ---
 
@@ -96,20 +145,20 @@ export function useScheduleBudget(
       const supabase = createClient();
       const { data, error } = await supabase
         .from("workspace_budget")
-        .select("target_date, target_revenue, target_labor_cost, target_staff_hours")
+        .select("period_date, revenue_target, labor_cost_target, labor_hours_target")
         .eq("workspace_id", workspaceId)
-        .gte("target_date", startDate)
-        .lte("target_date", endDate)
-        .order("target_date");
+        .gte("period_date", startDate)
+        .lte("period_date", endDate)
+        .order("period_date");
 
       if (error) throw error;
       if (!data || data.length === 0) return [];
 
       return data.map((row) => ({
-        date: row.target_date,
-        targetRevenue: row.target_revenue ?? 0,
-        targetLaborCost: row.target_labor_cost ?? 0,
-        targetStaffHours: row.target_staff_hours ?? 0,
+        date: row.period_date,
+        targetRevenue: row.revenue_target ?? 0,
+        targetLaborCost: row.labor_cost_target ?? 0,
+        targetStaffHours: row.labor_hours_target ?? 0,
       }));
     },
     enabled: !!workspaceId && !!startDate && !!endDate,
@@ -122,7 +171,9 @@ export function useScheduleBudget(
 
 Run: `grep -n "workspace_budget" packages/supabase/src/database.types.ts | head -20`
 
-Verify columns: `target_date`, `target_revenue`, `target_labor_cost`, `target_staff_hours`, `workspace_id`. If column names differ, update the hook to match actual column names from `database.types.ts`.
+Verify columns: `period_date`, `revenue_target`, `labor_cost_target`, `labor_hours_target`, `workspace_id`. These are the correct column names from the schema. If they've changed, update the hook to match.
+
+**Note:** `workspace_budget` rows are only populated when `propagateBudgetTargets()` is called (wired in Phase 3). Until then, this hook will return an empty array, and BudgetTab should show a "set up season budget" CTA.
 
 - [ ] **Step 3: Commit**
 
@@ -320,8 +371,8 @@ Then where shift cards are rendered, add a visual warning:
 ```typescript
 // On the shift card wrapper, add a conditional border:
 const hasConflict = conflictedShiftIds.has(shift.id);
-// Add className: hasConflict ? "ring-2 ring-destructive/50" : ""
-// Add tooltip or small icon: AlertTriangle from lucide-react
+// Add className: hasConflict ? "ring-2 ring-destructive/60 bg-destructive/5" : ""
+// Add shadcn/ui Tooltip wrapping an AlertTriangle icon from lucide-react
 ```
 
 - [ ] **Step 3: Run typecheck**
@@ -354,30 +405,69 @@ Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 Run: `grep -n "locked_at" packages/supabase/src/database.types.ts | head -10`
 Confirm `daily_reconciliation` has `locked_at` and `locked_by` columns.
 
-- [ ] **Step 2: Create migration**
+- [ ] **Step 2: Check existing RLS policies on daily_reconciliation**
+
+Run: `grep -B2 -A5 "daily_reconciliation" supabase/migrations/*.sql | grep -i "policy"`
+
+Find the existing `FOR ALL` policy (likely `jwt_manage_daily_reconciliation`). A new `FOR UPDATE` policy alone will NOT enforce the lock because PostgreSQL OR-combines policies of overlapping command types. The existing `FOR ALL` policy already permits UPDATE.
+
+**Solution:** Modify the existing policy to split it into separate command-type policies, adding the lock check on UPDATE. The migration must:
+
+1. Drop the existing `FOR ALL` policy
+2. Re-create it as separate `FOR SELECT`, `FOR INSERT`, `FOR UPDATE`, `FOR DELETE` policies
+3. The `FOR UPDATE` policy adds `AND locked_at IS NULL` to the USING clause
+
+- [ ] **Step 3: Create migration**
 
 ```sql
 -- supabase/migrations/20260326200000_reconciliation_lock_rls.sql
 
--- Prevent updates to reconciliation records after they've been locked.
--- locked_at is set when admin approves the day. After lock, no edits allowed
--- except by service_role (for admin override scenarios).
+-- Split the existing FOR ALL policy into separate command policies
+-- so we can add lock enforcement on UPDATE only.
+-- The USING clause on UPDATE checks that locked_at IS NULL (old row).
+-- This allows the lock action itself (setting locked_at on an unlocked row)
+-- but prevents any further edits after lock.
 
-CREATE POLICY "block_update_after_lock" ON daily_reconciliation
+-- Step 1: Find and drop the existing FOR ALL policy.
+-- The actual policy name may differ — check the output from Step 2 above
+-- and adjust the DROP statement accordingly.
+DO $$
+DECLARE
+  pol RECORD;
+BEGIN
+  FOR pol IN
+    SELECT policyname FROM pg_policies
+    WHERE tablename = 'daily_reconciliation'
+    AND cmd = '*'  -- FOR ALL policies
+  LOOP
+    EXECUTE format('DROP POLICY IF EXISTS %I ON daily_reconciliation', pol.policyname);
+  END LOOP;
+END
+$$;
+
+-- Step 2: Re-create as separate command policies with lock enforcement on UPDATE.
+-- Adjust the USING clause to match what the original policy had (workspace isolation).
+CREATE POLICY "jwt_select_daily_reconciliation" ON daily_reconciliation
+  FOR SELECT
+  USING (workspace_id IN (SELECT get_workspace_ids_for_user(auth.uid())));
+
+CREATE POLICY "jwt_insert_daily_reconciliation" ON daily_reconciliation
+  FOR INSERT
+  WITH CHECK (workspace_id IN (SELECT get_workspace_ids_for_user(auth.uid())));
+
+CREATE POLICY "jwt_update_daily_reconciliation" ON daily_reconciliation
   FOR UPDATE
-  USING (locked_at IS NULL)
-  WITH CHECK (locked_at IS NULL OR locked_at = (SELECT locked_at FROM daily_reconciliation WHERE reconciliation_id = daily_reconciliation.reconciliation_id));
+  USING (
+    workspace_id IN (SELECT get_workspace_ids_for_user(auth.uid()))
+    AND locked_at IS NULL
+  );
 
--- Allow the lock action itself: when locked_at is NULL and we're setting it
--- This works because the USING clause checks the OLD row (locked_at IS NULL)
--- and WITH CHECK allows the NEW row to have locked_at set.
--- Simplified: just check the OLD row is unlocked.
-DROP POLICY IF EXISTS "block_update_after_lock" ON daily_reconciliation;
-
-CREATE POLICY "block_update_after_lock" ON daily_reconciliation
-  FOR UPDATE
-  USING (locked_at IS NULL);
+CREATE POLICY "jwt_delete_daily_reconciliation" ON daily_reconciliation
+  FOR DELETE
+  USING (workspace_id IN (SELECT get_workspace_ids_for_user(auth.uid())));
 ```
+
+**IMPORTANT:** The actual USING clause of the original policy may be different (e.g., using `is_admin_in_workspace()` instead of `get_workspace_ids_for_user()`). Read the original policy from Step 2's output and replicate its workspace check exactly. Only add `AND locked_at IS NULL` to the UPDATE policy.
 
 - [ ] **Step 3: Apply migration locally**
 
@@ -502,50 +592,66 @@ Read `apps/web/src/app/dashboard/reconciliation/_components/DayApproval.tsx` ful
 
 - [ ] **Step 2: Add lock functionality**
 
-Add a "Godkjenn og las dag" (approve and lock day) button that:
+Add a "Godkjenn og las dag" (approve and lock day) button using `useMutation` (per CLAUDE.md: every mutation uses TanStack Query with `emit()` in `onSuccess`):
 
-1. Sets `locked_at = new Date().toISOString()` and `locked_by = currentProfileId` on the `daily_reconciliation` record
-2. Emits telemetry: `emit("reconciliation.day_locked", { reconciliationId, workspaceId })`
+1. Sets `locked_at`, `locked_by`, and `status = 'locked'` on the `daily_reconciliation` record
+2. Emits telemetry in `onSuccess` using correct `SmartoutEvent` format
 3. Disables all edit controls when `locked_at` is already set
 4. Shows a lock icon (Lucide `Lock`) and timestamp when locked
 
 ```typescript
-import { Lock, LockOpen } from "lucide-react";
+import { Lock } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { emit } from "@smartout/telemetry";
 
 // In the component:
 const isLocked = !!reconciliation.locked_at;
+const queryClient = useQueryClient();
 
-// Lock handler:
-const handleLockDay = async () => {
-  const supabase = createClient();
-  const { error } = await supabase
-    .from("daily_reconciliation")
-    .update({
-      locked_at: new Date().toISOString(),
-      locked_by: profileId,
-    })
-    .eq("reconciliation_id", reconciliation.reconciliation_id);
+// Lock mutation (useMutation per CLAUDE.md convention):
+const lockDayMutation = useMutation({
+  mutationFn: async () => {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("daily_reconciliation")
+      .update({
+        locked_at: new Date().toISOString(),
+        locked_by: profileId,
+        status: "locked" as const,
+      })
+      .eq("reconciliation_id", reconciliation.reconciliation_id);
 
-  if (error) {
+    if (error) throw error;
+  },
+  onSuccess: () => {
+    // emit() uses SmartoutEvent format with space-separated event name
+    emit({
+      event: "reconciliation locked",
+      workspace_id: workspaceId,
+      actor_id: profileId,
+      properties: {
+        reconciliation_id: reconciliation.reconciliation_id,
+        reconciliation_date: reconciliation.reconciliation_date,
+      },
+    });
+    toast.success(t("reconciliation.day_locked_success"));
+    queryClient.invalidateQueries({ queryKey: ["reconciliation"] });
+    queryClient.invalidateQueries({ queryKey: ["unreconciled-days"] });
+  },
+  onError: () => {
     toast.error(t("reconciliation.lock_failed"));
-    return;
-  }
-
-  emit("reconciliation.day_locked", {
-    reconciliationId: reconciliation.reconciliation_id,
-    workspaceId,
-  });
-
-  toast.success(t("reconciliation.day_locked_success"));
-  queryClient.invalidateQueries({ queryKey: ["reconciliation"] });
-};
+  },
+});
 
 // In JSX — lock button (only shown when not already locked):
 {!isLocked && (
-  <Button onClick={handleLockDay} variant="default">
+  <Button
+    onClick={() => lockDayMutation.mutate()}
+    disabled={lockDayMutation.isPending}
+    variant="default"
+  >
     <Lock className="mr-2 h-4 w-4" />
-    {t("reconciliation.lock_day")}
+    {lockDayMutation.isPending ? t("common.saving") : t("reconciliation.lock_day")}
   </Button>
 )}
 
@@ -631,6 +737,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -676,49 +783,48 @@ export function DeviationDialog({
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState("");
   const [domain, setDomain] = useState<string>("");
   const [severity, setSeverity] = useState<string>("");
   const [departmentId, setDepartmentId] = useState<string>("");
   const [description, setDescription] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async () => {
-    if (!domain || !severity || !description.trim()) return;
-
-    setIsSubmitting(true);
-    const supabase = createClient();
-
-    const { error } = await supabase.from("deviation").insert({
-      workspace_id: workspaceId,
-      department_id: departmentId || null,
-      domain,
-      severity,
-      description: description.trim(),
-      created_by: profileId,
-      status: "open",
-    });
-
-    setIsSubmitting(false);
-
-    if (error) {
+  // useMutation per CLAUDE.md: every mutation uses TanStack Query with emit() in onSuccess
+  const createDeviationMutation = useMutation({
+    mutationFn: async () => {
+      const supabase = createClient();
+      const { error } = await supabase.from("deviation").insert({
+        workspace_id: workspaceId,
+        department_id: departmentId || null,
+        title: title.trim(),
+        domain,
+        severity,
+        description: description.trim(),
+        reported_by: profileId,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      // Use existing "deviation reported" event from registry (space-separated format)
+      emit({
+        event: "deviation reported",
+        workspace_id: workspaceId,
+        actor_id: profileId,
+        properties: { domain, severity },
+      });
+      toast.success(t("operations.deviation_created_success"));
+      queryClient.invalidateQueries({ queryKey: ["operations"] });
+      setOpen(false);
+      setTitle("");
+      setDomain("");
+      setSeverity("");
+      setDepartmentId("");
+      setDescription("");
+    },
+    onError: () => {
       toast.error(t("operations.deviation_failed"));
-      return;
-    }
-
-    emit("operations.deviation_created", {
-      workspaceId,
-      domain,
-      severity,
-    });
-
-    toast.success(t("operations.deviation_created_success"));
-    queryClient.invalidateQueries({ queryKey: ["operations"] });
-    setOpen(false);
-    setDomain("");
-    setSeverity("");
-    setDepartmentId("");
-    setDescription("");
-  };
+    },
+  });
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -731,8 +837,18 @@ export function DeviationDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t("operations.new_deviation")}</DialogTitle>
+          <DialogDescription>{t("operations.deviation_dialog_description")}</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
+          <div className="grid gap-2">
+            <Label>{t("operations.deviation_title")}</Label>
+            <Input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder={t("operations.deviation_title_placeholder")}
+            />
+          </div>
+
           <div className="grid gap-2">
             <Label>{t("operations.deviation_domain")}</Label>
             <Select value={domain} onValueChange={setDomain}>
@@ -793,10 +909,10 @@ export function DeviationDialog({
         </div>
 
         <Button
-          onClick={handleSubmit}
-          disabled={isSubmitting || !domain || !severity || !description.trim()}
+          onClick={() => createDeviationMutation.mutate()}
+          disabled={createDeviationMutation.isPending || !title.trim() || !domain || !severity || !description.trim()}
         >
-          {isSubmitting ? t("common.saving") : t("operations.save_deviation")}
+          {createDeviationMutation.isPending ? t("common.saving") : t("operations.save_deviation")}
         </Button>
       </DialogContent>
     </Dialog>
@@ -863,6 +979,7 @@ Read `apps/web/src/app/dashboard/operations/_hooks/use-operations-data.ts`. Note
 
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { motion, AnimatePresence } from "framer-motion";
 import { Users, AlertTriangle } from "lucide-react";
 
 type DepartmentMetric = {
@@ -954,12 +1071,22 @@ export function DepartmentBreakdown({
 
   return (
     <div className="grid gap-2">
-      {departments.map((dept) => {
+      {departments.map((dept, i) => {
         const isLow = dept.capacityPct < 70;
         const isMid = dept.capacityPct >= 70 && dept.capacityPct < 90;
         return (
-          <div
+          <motion.div
             key={dept.departmentId}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{
+              type: "spring",
+              stiffness: 30,
+              damping: 24,
+              mass: 2.5,
+              delay: i * 0.06,
+            }}
             className="flex items-center justify-between rounded-lg border bg-card px-4 py-3"
           >
             <div className="flex items-center gap-3">
@@ -988,7 +1115,7 @@ export function DepartmentBreakdown({
                 {dept.tasksDone}/{dept.tasksTotal} {t("operations.tasks_short")}
               </span>
             </div>
-          </div>
+          </motion.div>
         );
       })}
     </div>
@@ -1013,14 +1140,18 @@ const [showDeptBreakdown, setShowDeptBreakdown] = useState(false);
   {/* existing stress card content */}
 </div>
 
-{showDeptBreakdown && (
-  <DepartmentBreakdown
-    sessions={rawSessions}
-    shifts={rawShifts}
-    tasks={rawTasks}
-    sessionMap={sessionDeptMap}
-  />
-)}
+import { AnimatePresence } from "framer-motion";
+
+<AnimatePresence>
+  {showDeptBreakdown && (
+    <DepartmentBreakdown
+      sessions={rawSessions}
+      shifts={rawShifts}
+      tasks={rawTasks}
+      sessionMap={sessionDeptMap}
+    />
+  )}
+</AnimatePresence>
 ```
 
 Note: you'll need to expose the raw data from `useOperationsData`. If the hook only returns aggregated data, you may need to modify it to also return the raw arrays. Or create a separate query. Read the hook first to decide.
@@ -1077,10 +1208,11 @@ type StatusSegment = {
   href: string;
 };
 
+// Use language-neutral enum values — translate via i18n in display layer
+type StressLevel = "low" | "medium" | "high" | null;
+
 type DailyStatusBarProps = {
   workspaceId: string | undefined;
-  schedulePublished: boolean;
-  stressLevel: "Lav" | "Middels" | "Hoy" | null;
 };
 
 const statusColors = {
@@ -1097,10 +1229,14 @@ const dotColors = {
   muted: "bg-muted-foreground",
 } as const;
 
+/**
+ * Phase 1 scope: Only the reconciliation segment shows live data.
+ * Schedule and operations segments show "no data" until their data
+ * sources are wired (schedule publish status + stress level queries).
+ * This is intentional — ship what works, add data sources incrementally.
+ */
 export function DailyStatusBar({
   workspaceId,
-  schedulePublished,
-  stressLevel,
 }: DailyStatusBarProps) {
   const { t } = useTranslation();
   const router = useRouter();
@@ -1108,28 +1244,19 @@ export function DailyStatusBar({
 
   const unreconciledCount = unreconciledDays?.length ?? 0;
 
+  // Phase 1: only reconciliation has real data. Schedule + ops show muted "no data".
+  // These will be wired to real queries in Phase 3 when budget propagation ships.
   const segments: StatusSegment[] = [
     {
       icon: <Calendar className="h-4 w-4" />,
-      label: schedulePublished
-        ? t("status_bar.schedule_published")
-        : t("status_bar.schedule_draft"),
-      status: schedulePublished ? "success" : "muted",
+      label: t("status_bar.schedule_draft"),
+      status: "muted" as const,
       href: "/dashboard/schedule",
     },
     {
       icon: <Activity className="h-4 w-4" />,
-      label: stressLevel
-        ? t(`status_bar.stress_${stressLevel.toLowerCase()}`)
-        : t("status_bar.no_data"),
-      status:
-        stressLevel === "Lav"
-          ? "success"
-          : stressLevel === "Middels"
-            ? "warning"
-            : stressLevel === "Hoy"
-              ? "destructive"
-              : "muted",
+      label: t("status_bar.no_data"),
+      status: "muted" as const,
       href: "/dashboard/operations",
     },
     {
@@ -1144,15 +1271,26 @@ export function DailyStatusBar({
   ];
 
   return (
+    {/* Container: swapSpring entrance (stiffness 45, damping 22, mass 2) */}
     <motion.div
       initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-      className="mb-4 flex items-center gap-1 rounded-lg border bg-card/50 px-1 py-1.5 backdrop-blur-sm"
+      transition={{ type: "spring", stiffness: 45, damping: 22, mass: 2 }}
+      className="mb-4 flex items-center gap-1 rounded-lg border border-border/50 bg-card/70 px-1 py-1.5 backdrop-blur-md"
     >
+      {/* Each segment staggers at 60ms per element */}
       {segments.map((seg, i) => (
-        <button
+        <motion.button
           key={seg.href}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{
+            type: "spring",
+            stiffness: 45,
+            damping: 22,
+            mass: 2,
+            delay: i * 0.06,
+          }}
           onClick={() => router.push(seg.href)}
           className="flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm transition-colors hover:bg-accent"
         >
@@ -1166,7 +1304,7 @@ export function DailyStatusBar({
           {i < segments.length - 1 && (
             <span className="ml-2 h-4 w-px bg-border" />
           )}
-        </button>
+        </motion.button>
       ))}
     </motion.div>
   );
@@ -1181,20 +1319,10 @@ In `apps/web/src/components/dashboard/AdminDashboard.tsx`, add the status bar ab
 import { DailyStatusBar } from "./DailyStatusBar";
 
 // Inside the component, above the view switch:
-<DailyStatusBar
-  workspaceId={workspaceId}
-  schedulePublished={/* derive from schedule data or a simple query */}
-  stressLevel={/* derive from operations data or pass from state */}
-/>
+<DailyStatusBar workspaceId={workspaceId} />
 ```
 
-Note: You'll need to source `schedulePublished` and `stressLevel`. Options:
-
-- Add lightweight queries inline (simplest)
-- Create a `useDailyStatus` hook that combines the three data sources
-- Pass data down if AdminDashboard already has access
-
-Read the component to decide. The simplest approach that works is best.
+The component only needs `workspaceId` — it fetches its own data via `useUnreconciledDays`. In Phase 1, only the reconciliation segment shows live data. Schedule and operations segments show "no data" until Phase 3 wires their data sources.
 
 - [ ] **Step 4: Add i18n keys**
 
@@ -1205,9 +1333,9 @@ Add to en/nb locale files:
   "status_bar": {
     "schedule_published": "Schedule published",
     "schedule_draft": "Schedule in draft",
-    "stress_lav": "Low stress",
-    "stress_middels": "Medium stress",
-    "stress_hoy": "High stress",
+    "stress_low": "Low stress",
+    "stress_medium": "Medium stress",
+    "stress_high": "High stress",
     "no_data": "No data",
     "days_pending": "{{count}} day(s) pending",
     "reconciled": "Reconciled"
@@ -1222,9 +1350,9 @@ Norwegian:
   "status_bar": {
     "schedule_published": "Vaktplan publisert",
     "schedule_draft": "Vaktplan i utkast",
-    "stress_lav": "Lav stress",
-    "stress_middels": "Middels stress",
-    "stress_hoy": "Hoy stress",
+    "stress_low": "Lav stress",
+    "stress_medium": "Middels stress",
+    "stress_high": "Hoy stress",
     "no_data": "Ingen data",
     "days_pending": "{{count}} dag(er) venter",
     "reconciled": "Avstemt"
@@ -1265,12 +1393,13 @@ Expected: 0 new warnings
 
 - [ ] **Step 3: Verify all telemetry events are in registry**
 
-Check that these events exist in `packages/telemetry/src/registry.ts`:
+These should already be registered from Task 0. Verify:
 
-- `reconciliation.day_locked`
-- `operations.deviation_created`
+- `"reconciliation locked"` — added in Task 0
+- `"deviation reported"` — should already exist (pre-existing event)
 
-If they don't exist, add them to the registry following the existing pattern.
+Run: `grep -n "reconciliation locked\|deviation reported" packages/telemetry/src/registry.ts`
+Both should have entries.
 
 - [ ] **Step 4: Manual smoke test**
 
@@ -1281,6 +1410,24 @@ If Supabase local + web dev server are running:
 3. Open `/dashboard/reconciliation` → verify lock button appears on unlocked days
 4. Open `/dashboard/operations` → verify "Registrer avvik" button opens dialog
 5. Click stress card → verify department breakdown expands
+
+---
+
+## Council Review Notes
+
+**Reviewed by:** System Steward, Supervisor, System Agent Coordinator, Frontend Designer (2026-03-26).
+**Verdict:** APPROVE WITH CHANGES. All 12 fixes applied.
+
+**Key decisions from council:**
+
+- Guardian system is for AI session supervision, NOT operational alerts. The spec's "reconciliation_pending Guardian signal" is replaced with a client-side query hook (`useUnreconciledDays`). Push notifications for overdue reconciliation are deferred.
+- `emit()` uses `SmartoutEvent` object format with space-separated event names (e.g., `"reconciliation locked"`) per registry convention. Dot-notation is wrong.
+- `workspace_budget` columns use `period_date`/`revenue_target`/`labor_cost_target`/`labor_hours_target` (NOT `target_*`).
+- `deviation` table requires `title` (non-nullable) and uses `reported_by` (NOT `created_by`).
+- RLS lock enforcement requires splitting existing `FOR ALL` policy into separate command-type policies.
+- DailyStatusBar Phase 1 shows only reconciliation data live; schedule + ops show "no data" until Phase 3.
+- All write operations use `useMutation` with `emit()` in `onSuccess` per CLAUDE.md convention.
+- All motion uses spring physics (swapSpring/expandSpring), 60ms stagger, frosted glass `bg-card/70 backdrop-blur-md`.
 
 ---
 
