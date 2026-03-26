@@ -24,7 +24,7 @@ export default function TextSectionBlock({ content, settings }: BlockProps<TextS
           )}
 
           {content.body && (
-            <div className="prose prose-invert prose-zinc text-muted-foreground max-w-none leading-relaxed">
+            <div className="prose prose-invert prose-neutral text-muted-foreground max-w-none leading-relaxed">
               {content.body.split("\n\n").map((paragraph, idx) => (
                 <p key={idx}>{paragraph}</p>
               ))}
