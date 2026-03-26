@@ -1,7 +1,7 @@
 ---
 title: Development Dashboard
 status: in_progress
-updated: 2026-03-25
+updated: 2026-03-27
 created: 2026-03-02
 module: meta
 tags: [dashboard, worktrees, tracking]
@@ -13,11 +13,11 @@ tags: [dashboard, worktrees, tracking]
 
 ## Active Worktrees
 
-| #    | Branch                            | Module         | Status            | Progress                                                                         | Blockers | Health |
-| ---- | --------------------------------- | -------------- | ----------------- | -------------------------------------------------------------------------------- | -------- | ------ |
-| wt-1 | `feat/notification-system`        | communications | ready_for_closure | All 13 tasks complete. Typecheck 27/27. Journeys + decision/learning logs done.  | —        | clean  |
-| wt-3 | `feat/emma-arena-views`           | walkAi         | in_progress       | Spec + mockups done, settings persistence committed. Implementation not started. | None     | clean  |
-| wt-5 | `feat/hospitality-framework-seed` | cascade        | in_progress       | —                                                                                | —        | clean  |
+| #    | Branch                    | Module     | Status      | Progress                                                                                    | Blockers             | Health     |
+| ---- | ------------------------- | ---------- | ----------- | ------------------------------------------------------------------------------------------- | -------------------- | ---------- |
+| wt-3 | `feat/emma-arena-views`   | walkAi     | in_progress | Spec + mockups done, settings persistence committed. Implementation not started.            | None                 | stale (6d) |
+| wt-4 | `feat/mal-modus-schedule` | schedule   | in_progress | 13/13 impl tasks done + review fixes. AI spec written + council. Next: Phase A plan.        | —                    | clean      |
+| dev  | `development`             | wizard+k1b | in_progress | Wizard design overhaul + K1b ingestion pipeline. 6/6 E2E tests green. 67 uncommitted files. | Hook blocks 1 commit | dirty      |
 
 ## Parked Branches (no worktree)
 
@@ -27,17 +27,17 @@ tags: [dashboard, worktrees, tracking]
 
 ## Free Slots
 
-| #     | Available                            |
-| ----- | ------------------------------------ |
-| wt-1  | no (feat/notification-system)        |
-| wt-2  | yes                                  |
-| wt-3  | no (feat/emma-arena-views)           |
-| wt-4  | yes                                  |
-| wt-5  | no (feat/hospitality-framework-seed) |
-| wt-6  | yes                                  |
-| wt-7  | yes                                  |
-| wt-15 | yes                                  |
-| wt-20 | yes                                  |
+| #     | Available                        |
+| ----- | -------------------------------- |
+| wt-1  | yes (notification-system closed) |
+| wt-2  | yes                              |
+| wt-3  | no (feat/emma-arena-views)       |
+| wt-4  | no (feat/mal-modus-schedule)     |
+| wt-5  | yes (worktree removed)           |
+| wt-6  | yes                              |
+| wt-7  | yes                              |
+| wt-15 | yes                              |
+| wt-20 | yes                              |
 
 ## Pending Journeys
 
@@ -53,6 +53,7 @@ tags: [dashboard, worktrees, tracking]
 | wt-5 | hms-phase-1            | `docs/journeys/JOURNEY-hms-phase-1.md`            | done    |
 | wt-6 | livekit-phase2         | `docs/journeys/JOURNEY-livekit-phase2.md`         | missing |
 | wt-1 | notification-system    | `docs/journeys/JOURNEY-notification-system.md`    | done    |
+| wt-4 | mal-modus-schedule     | `docs/journeys/JOURNEY-mal-modus-schedule.md`     | missing |
 
 ## Recent Closures
 
@@ -105,6 +106,10 @@ tags: [dashboard, worktrees, tracking]
 
 ## Session History
 
+| 2026-03-26 | walkai-bridge-builder | done | Created walkai-bridge-builder agent (.claude/agents/). Brainstormed with 3 expert agents. Spec committed. Updated steward/coordinator/supervisor with cross-references. Deployed to wt-4. |
+| 2026-03-26 | bugfixes+notification-seed | paused | 3 fixes (SendGrid fs build error, mobile StyleSheet crash, DashboardShell hydration mismatch) + notification seed data (32 notifs, 8 outbox, 7 prefs). 46 uncommitted files on development. |
+| 2026-03-26 | walkAi-voice-fix | in_progress | WalkAi voice "permission denied" fix: mic pre-request in useAgent.ts, duplicate transcript fix in WalkAiArena.tsx. Needs testing after dev server restart. Page navigation regression noted. |
+| 2026-03-26 | nordic-split-design | done | Nordic Split design system complete. Merged styleguide (434KB, 25 sections), orb generator, synced tokens.ts/css/native.ts with warm values, 7 markdown docs, renamed from "Ren og Varm". 5 commits on development. Backlog: 140 hardcoded color files. |
 | 2026-03-25 | notification-system | closed | Unified notification pipeline: 13 tasks, 16 commits. DB (notification table, trigger refactor, cron), Edge Functions (process-notifications, morning digest), Web UI (bell, popover, full page, preferences), Mobile UI (bell, list, screen, push tap). Typecheck 27/27. Merged to development, wt-1 freed. |
 | 2026-03-24 | mobile-app (auth+login) | session ended | Main repo (development). Welcome screen redesigned with design tokens. Login screen added (email+password, matches web). Expo web has React 19 removeChild bug on route transitions — test on native. 3 key specs identified for next work: Mobile Employee App, ShiftClock, Mobile Payroll UI. |
 | 2026-03-22 | fix-invitation-flow | started | wt-7, module: core. Fix 5 gaps: company_member not created on invite accept, listUsers scalability, company_member RLS, invitation resend, expired cleanup. |

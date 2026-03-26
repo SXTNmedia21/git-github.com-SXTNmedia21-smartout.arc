@@ -355,16 +355,22 @@ Deno.serve(async (req) => {
     const chunkRecords = await Promise.all(
       allChunkData.map(async ({ source, chunkText, chunkIndex }, i) => {
         const contentHash = await hashContent(chunkText);
+        const sourcePath = `${source.type}/${source.id}`;
+        const sourceHash = await hashContent(source.content);
+        const tokenCount = Math.ceil(chunkText.length / 4);
         return {
           workspace_id,
           source_type: source.type,
           source_id: source.id,
+          source_path: sourcePath,
+          source_hash: sourceHash,
           chunk_index: chunkIndex,
+          title: source.title,
           content: chunkText,
-          // pgvector accepts a JSON array string for the vector column
+          token_count: tokenCount,
           embedding: JSON.stringify(embeddings[i]),
           content_hash: contentHash,
-          metadata: { title: source.title },
+          metadata: { title: source.title, source_id: source.id },
         };
       }),
     );
@@ -397,17 +403,16 @@ Deno.serve(async (req) => {
 
     // --- Log completion to activity_trail ---
 
-    await supabase
-      .from("activity_trail")
-      .insert({
+    try {
+      await supabase.from("activity_trail").insert({
         workspace_id,
         event: "knowledge ingestion_completed",
         actor_id: "system",
         properties: { sources: sourcesToProcess.length, chunks: chunkRecords.length },
-      })
-      .catch(() => {
-        // Non-fatal — don't let audit log failure break the response
       });
+    } catch {
+      // Non-fatal — don't let audit log failure break the response
+    }
 
     return new Response(
       JSON.stringify({

@@ -1,7 +1,7 @@
 ---
 title: Session Log
 status: in_progress
-updated: 2026-03-25
+updated: 2026-03-26
 created: 2026-03-02
 module: meta
 tags: [session, continuity]
@@ -9,90 +9,70 @@ tags: [session, continuity]
 
 ## Last Session
 
-| Field   | Value                      |
-| ------- | -------------------------- |
-| Date    | 2026-03-25                 |
-| Branch  | `feat/notification-system` |
-| Feature | notification-system        |
-| Status  | ready_for_closure          |
+| Field   | Value                                        |
+| ------- | -------------------------------------------- |
+| Date    | 2026-03-26                                   |
+| Branch  | `development`                                |
+| Feature | Wizard walkthrough + K1b knowledge ingestion |
+| Status  | in_progress                                  |
 
 ### What was done
 
-**Notification System — full implementation (13 tasks, 16 commits):**
+**Wizard Design Overhaul (Join + Onboarding):**
 
-- DB migration: notification table, in_app enum, preference RLS, cron jobs, CRITICAL fast-path trigger
-- Event config registry (10 MVP events) + outbox INSERT helper
-- Refactored 6 push triggers from direct dispatch to outbox INSERT
-- Wired engine-dispatch send_notification + telemetry notifications destination
-- Outbox consumer Edge Function (process-notifications) with smart grouping, quiet hours, priority routing
-- Data hooks: useNotifications, useUnreadCount, useMarkAsRead, usePreferences
-- NotificationBell + Realtime subscription + Browser Notification API
-- Full /dashboard/notifications page with filters + infinite scroll
-- Notification preferences UI (channels, categories, quiet hours)
-- Morning digest Edge Function (send-morning-digest, cron 07:00)
-- Mobile notification center (bell, list, screen, push tap handling)
-- All closure gates verified: typecheck 27/27, user journeys, decision log, learning log
+- Compared Join wizard on origin/main vs development — identified design drift
+- Updated all 5 onboarding steps (ConfirmBusiness/Departments/Locations/Procedures/Summary) to match Join's Nordic Split pattern
+- Rewrote WizardNavBar to match Main's design (orange CTA, outline Tilbake, arrow icons, styleguide Section 7)
+- Rewrote WizardTopBar to match Main's WizardProgress (numbered circles, checkmarks, connecting lines, styleguide Section 15)
+- Fixed `font-heading` removed from all 12 wizard step components (Join + Onboarding) — was making headings too bold
+- Replaced raw `<select>` with shadcn `Select` in Step1Account for consistency
+- Ghost card design for departments/procedures (dashed border = suggestion, solid = confirmed)
+- Added WizardLoadingOverlay component for step transitions (pulsing dots + rotating messages)
+- Added `brregLoading` state to useScrapedData for proper BRREG loading indication
+- Removed Team step from Join wizard (6 steps now: Konto → Bedrift → Identitet → Drift → Meny → Passord)
+- Wired `onComplete` to `completeSignup` server action + redirect to /onboarding
+- Added `hideNavBar` step option for custom submit steps (password)
+- Fixed i18n labels to single words (no double-row in progress bar)
+- Added validation error display in WizardNavBar
 
-### Where we stopped
+**K1b Knowledge Ingestion Pipeline:**
 
-- Feature ready for closure
-- Run: `~/.claude/scripts/close-feature.sh 1`
+- Created `ingest-workspace-knowledge` Edge Function (Deno)
+  - Fetches handbook_chapter, policy, protocol → chunks by heading → embeds via OpenRouter → upserts to workspace_doc_chunk
+  - Auth: service_role or JWT with workspace membership check
+  - Activity trail logging on completion
+- Added `ingest_workspace_knowledge` action handler in engine-dispatch
+- Added fire-and-forget trigger in WorkspaceSetupWizard completion (commit blocked by hook — needs manual commit)
+- Fixed `setup-documents` Storage bucket missing (migration added)
+- Fixed `analyze-setup-documents` Edge Function boot failure (was mounting from deleted wt-1 worktree)
+- Fixed Scrapling localhost→host.docker.internal translation in Edge Function
+- Added SCRAPLING_AUTH_TOKEN, SCRAPLING_SERVICE_URL, OPENROUTER_API_KEY to config.toml edge_runtime.secrets
+- STATE.md updated: K1b RAG pipeline marked as DONE
 
-### Known blockers / errors
+**E2E Tests (all passing):**
 
-- None (all gates passed)
-
-### Pending decisions
-
-- None
-
----
-
-### Previous: Unified Wizard Shell (2026-03-24)
-
-- Designed spec (brainstorm + 2 review rounds)
-- Built WizardShell in packages/ui (8 files: shell, sidebar, topbar, navbar, types, hooks)
-- Built i18n foundation: interpolation, useTranslation hook, LocaleProvider, 7 namespaces
-- Added wizard theme tokens (dark/warm/light) + fixed broken join CSS variables
-- Registered 8 wizard telemetry events
-- Migrated Join wizard (7 steps) to WizardShell with JoinScrapingProvider
-- Rewrote Onboarding from 8 scroll sections to 5-step confirmation wizard
-- Migrated Dashboard Setup with adapter pattern (reverted to WorkspaceSetupWizard — adapters didn't bridge properly)
-- Fixed bootstrap error suppression in finalize-workspace (HTTP 207)
-- Fixed accept-invitation to emit invitation_accepted event
-- Wrote ADR-0060 (Wizard Shell) + ADR-0061 (Walk AI Semantic Tagging)
-- Merged to development, cleaned up wt-2
-
-**Post-merge fixes (on development):**
-
-- Redesigned WizardShell to Nordic Split layout (dark brand panel right, content left, ambient glows)
-- Fixed i18n namespace merge (wizard-specific + shell namespaces)
-- Added @smartout/i18n to transpilePackages in next.config.ts
-- Removed misplaced validation from create_account step
-- Added skip() to useWizardState (skip bypasses validation)
-- Fixed back prop not destructured in Step6Team
-- Deep audit of all 7 Join steps + 5 Onboarding steps + shell infra (5 parallel agents)
-- Fixed: unused imports, variable shadowing, missing ArrowLeft import, duration_ms telemetry, next() async type
+- `join-e2e-flow.spec.ts` — 6-step Join wizard with dummy data
+- `join-to-onboarding.spec.ts` — Join → redirect → Onboarding loads
+- `journey-full-wizard-flow.spec.ts` — Join → Onboarding → Setup (3 phases)
+- `knowledge-ingestion.spec.ts` — Edge Function processes handbook → chunks in DB
+- **6/6 tests passing** in 1.7 minutes
 
 ### Where we stopped
 
-- All 3 wizards render and typecheck (27/27 pass)
-- Join: Nordic Split with brand panel, all steps navigable
-- Onboarding: 5-step confirmation with brand panel
-- Dashboard Setup: reverted to original WorkspaceSetupWizard (token cleanup preserved)
-- Still has duplicate nav buttons in some Join steps (step-internal + WizardNavBar)
+- All E2E tests green
+- User asked about AI Council stress testing of design/function/journey/narrative — not started
+- Onboarding redesign (avdelinger → team → lokasjoner → soner → rutiner → dokumenter) — brainstormed but not implemented
 
 ### Known blockers / errors
 
-- Join step components still have their own back/next buttons alongside WizardNavBar — visual duplication but functional
-- Step3About (Om oss) takes too long to show content — needs typing effect or loading state
-- onComplete in Join wizard only saves to localStorage — no DB workspace/company creation yet
-- Pre-existing typecheck errors in walkai-tools.ts, agent-sdk (not ours)
+- Task 3 commit blocked by pre-tool hook (WorkspaceSetupWizard.tsx change) — needs manual: `git add apps/web/src/components/dashboard/WorkspaceSetupWizard.tsx && git commit -m "feat(knowledge): trigger K1b ingestion on wizard completion"`
+- `finalize-workspace` Edge Function returns error when onboarding wizard tries to finalize — not investigated (will be replaced by onboarding redesign)
+- BRREG first-click issue — scrape debounce timer cleared on Step1 unmount, BRREG lookup async timing — not fixed yet
+- 67 uncommitted files on development (mix of wizard changes, design token sync, notification system leftovers)
 
 ### Pending decisions
 
-- [ ] Remove duplicate nav buttons from Join steps (or hide WizardNavBar when step has own buttons)
-- [ ] Wire Join onComplete to actual workspace creation (currently localStorage only)
-- [ ] Add typing/loading effect to Step3About for better UX
-- [ ] i18n string sweep (~200 hardcoded Norwegian strings) — separate feature
-- [ ] Dashboard Setup proper WizardShell migration (adapter pattern needs rethink)
+- [ ] Onboarding redesign: new step structure (avdelinger → team → lokasjoner → soner → rutiner → dokumenter) — plan exists in conversation, needs spec
+- [ ] AI Council stress test of wizard design, UX, journey narrative — user requested, not started
+- [ ] BRREG first-click fix — need to flush debounce before Step1 unmount or trigger scrape immediately
+- [ ] Existing workspaces backfill for knowledge ingestion — no mechanism yet
