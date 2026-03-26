@@ -424,6 +424,19 @@ export function WorkspaceSetupWizard({
           },
         }).catch((e: unknown) => console.error("[wizard] emit failed:", e));
 
+        // Trigger K1b knowledge ingestion (async, non-blocking)
+        supabase.functions
+          .invoke("ingest-workspace-knowledge", {
+            body: { workspace_id: workspaceId, force: true },
+          })
+          .then((res) => {
+            if (res.error) console.warn("[wizard] Knowledge ingestion failed:", res.error);
+            else console.log("[wizard] Knowledge ingestion started:", res.data);
+          })
+          .catch((err: unknown) =>
+            console.warn("[wizard] Knowledge ingestion trigger failed:", err),
+          );
+
         void queryClient.invalidateQueries({
           queryKey: dashboardKeys.workspaceSetupStatus(workspaceId),
         });
