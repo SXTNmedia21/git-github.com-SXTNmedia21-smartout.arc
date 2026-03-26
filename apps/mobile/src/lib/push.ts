@@ -11,6 +11,7 @@
  */
 import { Platform } from "react-native";
 import { router } from "expo-router";
+import { resolveDeepLink } from "@smartout/notifications/deep-links";
 import { supabase } from "./supabase";
 
 // expo-notifications is native-only — guard all usage on web
@@ -23,25 +24,6 @@ if (isNative) {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   Notifications = require("expo-notifications") as typeof import("expo-notifications");
 }
-
-/**
- * Deep link mapping — maps push event types to Expo Router paths.
- * Each event includes the screen the user should land on when tapping.
- *
- * "notification_tap" is the generic fallback for any event not explicitly
- * mapped — it routes to the notification center screen so the user can
- * see what they tapped on and read the full details.
- */
-const DEEP_LINK_MAP: Record<string, (data: Record<string, string>) => string> = {
-  shift_published: (data) => `/(app)/(shifts)/${data.shift_id}`,
-  shift_updated: (data) => `/(app)/(shifts)/${data.shift_id}`,
-  task_assigned: () => "/(app)/(me)/notifications",
-  chat_message: (data) => `/(app)/(chat)/${data.conversation_id}`,
-  deviation_reported: () => "/(app)/(home)",
-  join_request: () => "/(app)/(home)",
-  // Generic fallback — navigates to the notification center
-  notification_tap: () => "/(app)/(me)/notifications",
-};
 
 /**
  * Configure how notifications appear when the app is in the foreground.
@@ -198,8 +180,7 @@ function navigateFromNotificationData(data: Record<string, string> | undefined):
     return;
   }
 
-  const getPath = DEEP_LINK_MAP[data.event] ?? DEEP_LINK_MAP["notification_tap"];
-  const path = getPath(data);
+  const path = resolveDeepLink(data.event, data);
   // Small delay to ensure the app is fully mounted before navigating
   setTimeout(() => {
     router.push(path as never);
