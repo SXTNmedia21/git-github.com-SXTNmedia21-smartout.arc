@@ -393,6 +393,9 @@ deno_version = 2
 
 [edge_runtime.secrets]
 SERPER_API_KEY = "env(SERPER_API_KEY)"
+SCRAPLING_AUTH_TOKEN = "env(SCRAPLING_AUTH_TOKEN)"
+SCRAPLING_SERVICE_URL = "env(SCRAPLING_SERVICE_URL)"
+OPENROUTER_API_KEY = "env(OPENROUTER_API_KEY)"
 
 [analytics]
 enabled = true
@@ -512,4 +515,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.send-morning-digest]
+verify_jwt = false
+
+[functions.ingest-workspace-knowledge]
 verify_jwt = false
