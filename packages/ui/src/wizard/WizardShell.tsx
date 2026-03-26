@@ -10,10 +10,11 @@
  * - Mobile: top progress bar, bottom navigation
  * - Step indicators in brand panel (minimal dots)
  *
- * When brandPanel is not configured, falls back to a simpler content-only layout.
+ * The entire content area (step + nav) scrolls together so the Neste button
+ * is always reachable even on short viewports or long forms.
  */
 
-import { useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type { WizardDefinition, WizardStepDef, WizardStepProps, WizardThemeTokens } from "./types";
 import { useWizardState } from "./useWizardState";
 import { useWizardWalkAi } from "./useWizardWalkAi";
@@ -34,7 +35,6 @@ interface WizardShellProps<TState extends Record<string, unknown>> {
     direction: "forward" | "back",
     stepKey: string,
   ) => React.ReactNode;
-  /** Render the brand panel content — receives current step id and message */
   renderBrandPanel?: (props: {
     currentStepId: string;
     currentStepIndex: number;
@@ -74,10 +74,12 @@ export function WizardShell<TState extends Record<string, unknown>>({
 
   const walkai = useWizardWalkAi(definition.id, currentStep?.id ?? "");
   const theme: WizardThemeTokens = { name: definition.theme };
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   const stepsForNav = definition.steps as unknown as WizardStepDef<Record<string, unknown>>[];
 
   const handleNext = useCallback(async () => {
+    setValidationErrors([]);
     const prevStep = currentStep;
     const durationMs = Date.now() - wizardState.stepEnteredAt;
     const result = await rawNext();
@@ -90,6 +92,7 @@ export function WizardShell<TState extends Record<string, unknown>>({
         onComplete?.();
       }
     } else if ("errors" in result) {
+      setValidationErrors(result.errors);
       onValidationFail?.(currentStep?.id ?? "", result.errors);
     }
   }, [
@@ -104,6 +107,7 @@ export function WizardShell<TState extends Record<string, unknown>>({
   ]);
 
   const handleBack = useCallback(() => {
+    setValidationErrors([]);
     const fromStep = currentStep?.id ?? "";
     rawBack();
     const prevIndex = currentStepIndex - 1;
@@ -112,6 +116,7 @@ export function WizardShell<TState extends Record<string, unknown>>({
   }, [rawBack, currentStep, currentStepIndex, definition.steps, onStepBack]);
 
   const handleSkip = useCallback(() => {
+    setValidationErrors([]);
     if (currentStep) {
       onStepSkip?.(currentStep.id, currentStepIndex);
     }
@@ -120,12 +125,15 @@ export function WizardShell<TState extends Record<string, unknown>>({
 
   const handleGoTo = useCallback(
     (stepId: string) => {
+      setValidationErrors([]);
       rawGoTo(stepId);
     },
     [rawGoTo],
   );
 
+  // Clear errors on step change
   useEffect(() => {
+    setValidationErrors([]);
     if (currentStep) {
       onStepChange?.(currentStep.id, currentStepIndex);
     }
@@ -158,7 +166,7 @@ export function WizardShell<TState extends Record<string, unknown>>({
 
   return (
     <div
-      className="relative flex min-h-[100dvh] overflow-hidden"
+      className="relative flex min-h-[100dvh]"
       data-wizard-theme={definition.theme}
       data-walkai-id={`${definition.id}-shell`}
       data-walkai-type="wizard"
@@ -184,12 +192,12 @@ export function WizardShell<TState extends Record<string, unknown>>({
           logoSrc: definition.brandPanel?.logoSrc,
         })}
 
-      {/* WIZARD CONTENT — warm background */}
+      {/* WIZARD CONTENT — warm background, full scroll */}
       <div
-        className="relative flex w-full flex-1 flex-col"
+        className="relative flex w-full flex-1 flex-col overflow-y-auto"
         style={{ backgroundColor: "var(--wizard-bg)" }}
       >
-        {/* Mobile top bar — only on small screens */}
+        {/* Progress bar */}
         <WizardTopBar
           steps={stepsForNav}
           currentStepIndex={currentStepIndex}
@@ -197,25 +205,30 @@ export function WizardShell<TState extends Record<string, unknown>>({
           t={t}
         />
 
-        {/* Step content */}
+        {/* Step content + nav together — both scroll */}
         <main
-          className="flex flex-1 items-start justify-center overflow-y-auto px-4 pt-4 pb-24 lg:px-8 xl:px-12"
+          className="flex flex-1 flex-col items-center justify-start px-4 pt-4 pb-4 lg:px-8 xl:px-12"
           data-walkai-id={`${definition.id}-${currentStep.id}-step`}
           data-walkai-type="wizard-step"
         >
-          {renderedStep}
-        </main>
+          <div className="w-full flex-1">{renderedStep}</div>
 
-        {/* Navigation bar — bottom of content area */}
-        <WizardNavBar
-          isFirst={isFirst}
-          isLast={isLast}
-          isSkippable={currentStep.skippable ?? false}
-          t={t}
-          onBack={handleBack}
-          onNext={handleNext}
-          onSkip={currentStep.skippable ? handleSkip : undefined}
-        />
+          {/* Navigation bar — inside scroll area so always reachable */}
+          {!currentStep.hideNavBar && (
+            <div className="mt-8 w-full">
+              <WizardNavBar
+                isFirst={isFirst}
+                isLast={isLast}
+                isSkippable={currentStep.skippable ?? false}
+                validationErrors={validationErrors}
+                t={t}
+                onBack={handleBack}
+                onNext={handleNext}
+                onSkip={currentStep.skippable ? handleSkip : undefined}
+              />
+            </div>
+          )}
+        </main>
       </div>
 
       {/* Brand panel — RIGHT position (after content, default) */}

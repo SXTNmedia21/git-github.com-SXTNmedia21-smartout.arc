@@ -37,6 +37,8 @@ export interface WizardStepDef<TState> {
   /** Key in TState to validate (e.g. "account"). If omitted, validates full state. */
   validationKey?: keyof TState;
   skippable?: boolean;
+  /** Hide the WizardNavBar for this step (step handles its own submit) */
+  hideNavBar?: boolean;
   estimatedMinutes?: number;
 }
 

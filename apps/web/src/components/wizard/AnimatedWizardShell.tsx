@@ -177,7 +177,7 @@ export function AnimatedWizardShell<TState extends Record<string, unknown>>({
                   animate="visible"
                   exit="exit"
                 >
-                  <h2 className="font-heading text-[2rem] leading-[1.1] font-bold tracking-tight whitespace-pre-line text-white xl:text-[2.2rem]">
+                  <h2 className="text-[2rem] leading-[1.1] font-bold tracking-tight whitespace-pre-line text-white xl:text-[2.2rem]">
                     {message.heading.split("\n").map((line, i) => (
                       <span key={i}>
                         {i > 0 && <br />}

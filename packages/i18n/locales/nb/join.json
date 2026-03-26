@@ -6,10 +6,9 @@
   "steps": {
     "account": "Konto",
     "business": "Bedrift",
-    "about": "Om bedriften",
+    "about": "Identitet",
     "hours": "Drift",
     "menu": "Meny",
-    "create_account": "Opprett konto",
-    "team": "Team"
+    "create_account": "Passord"
   }
 }

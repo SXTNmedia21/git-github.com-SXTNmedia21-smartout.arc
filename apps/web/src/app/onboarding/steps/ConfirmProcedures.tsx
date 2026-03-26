@@ -3,20 +3,20 @@
 /**
  * ConfirmProcedures — Step 4 of onboarding confirmation wizard.
  *
- * Shows procedure toggles with "Anbefalt" badges for recommended ones.
- * Pre-selected by I1 based on industry NACE code.
- * Reuses the toggle/warning pattern from ProceduresSection.
+ * Shows procedure suggestions from I1 as ghost cards.
+ * Recommended procedures are pre-selected with solid styling.
+ * Non-recommended appear as translucent ghost cards (optional suggestions).
+ * Warning before deselecting a recommended procedure.
  */
 
 import { useState } from "react";
-import { Plus, X, AlertTriangle } from "lucide-react";
+import { Plus, X, AlertTriangle, Sparkles } from "lucide-react";
 import type { WizardStepProps } from "@smartout/ui";
 import type { OnboardingConfirmState } from "../types-v2";
 
 export function ConfirmProcedures({
   state,
   updateState,
-  next,
   t,
 }: WizardStepProps<OnboardingConfirmState>) {
   const [showInput, setShowInput] = useState(false);
@@ -31,7 +31,6 @@ export function ConfirmProcedures({
     const proc = procedures.find((p) => p.id === id);
     if (!proc) return;
 
-    // Warn before deselecting a recommended procedure
     if (proc.recommended && proc.selected) {
       setPendingDeselect(id);
       return;
@@ -70,77 +69,80 @@ export function ConfirmProcedures({
   }
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-8 px-6 py-12">
+    <div className="mx-auto w-full max-w-md space-y-6">
       <div>
-        <h2 className="font-heading text-foreground text-3xl tracking-tight">
-          {t("confirm.procedures_title")}
-        </h2>
-        <p className="text-muted-foreground mt-2 text-base">
-          {t("confirm.procedures_description")}
-        </p>
-        <p className="text-muted-foreground/60 mt-1 text-sm">
-          {selectedCount} av {procedures.length} valgt
+        <h2 className="text-foreground text-2xl font-bold">{t("confirm.procedures_title")}</h2>
+        <p className="text-muted-foreground mt-1 text-sm">{t("confirm.procedures_description")}</p>
+        <p className="mt-2 flex items-center gap-1.5 text-xs text-orange-500">
+          <Sparkles className="h-3 w-3" />
+          {selectedCount} valgt av {procedures.length} forslag
         </p>
       </div>
 
-      {/* Procedure toggle list */}
-      <div className="flex flex-col gap-2">
+      {/* Procedure ghost card list */}
+      <div className="space-y-2">
         {procedures.map((proc) => (
           <button
             key={proc.id}
             type="button"
             onClick={() => handleToggle(proc.id)}
-            className={`flex items-center justify-between rounded-2xl border px-5 py-4 text-left transition-all ${
+            className={[
+              "flex w-full items-center justify-between rounded-lg border px-4 py-3 text-left transition-all duration-200",
               proc.selected
-                ? "border-primary/20 bg-primary/5 text-foreground"
-                : "border-border bg-card text-muted-foreground hover:border-border/80 hover:text-foreground"
-            }`}
+                ? "text-foreground border-orange-500/30 bg-orange-500/5"
+                : "border-dashed border-gray-200 bg-white/50 text-gray-400 hover:border-orange-300 hover:bg-orange-50/50 hover:text-gray-600",
+            ].join(" ")}
           >
             <span className="flex items-center gap-3">
               <span
-                className={`flex size-5 shrink-0 items-center justify-center rounded-md border text-xs ${
+                className={[
+                  "flex size-5 shrink-0 items-center justify-center rounded border text-xs transition-all duration-200",
                   proc.selected
-                    ? "border-primary/30 bg-primary/20 text-primary"
-                    : "border-border text-transparent"
-                }`}
+                    ? "border-orange-500/40 bg-orange-500/20 text-orange-600"
+                    : "border-gray-200 bg-white text-transparent",
+                ].join(" ")}
               >
                 &#10003;
               </span>
-              <span className="text-base">{proc.name}</span>
+              <span className="text-sm">{proc.name}</span>
               {proc.recommended && (
-                <span className="rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-xs text-emerald-600 dark:text-emerald-400">
+                <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] text-emerald-600">
                   Anbefalt
                 </span>
               )}
               {proc.isCustom && (
-                <span className="bg-muted text-muted-foreground rounded-md px-1.5 py-0.5 text-xs">
+                <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-500">
                   Egendefinert
                 </span>
               )}
             </span>
+
+            {!proc.selected && !proc.recommended && (
+              <span className="text-[10px] tracking-wider text-gray-300 uppercase">Forslag</span>
+            )}
           </button>
         ))}
 
         {/* Deselect warning for recommended procedures */}
         {pendingProc && (
-          <div className="mt-2 flex items-start gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/5 px-5 py-4">
-            <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-500" />
+          <div className="flex items-start gap-2.5 rounded-lg border border-amber-500/20 bg-amber-500/5 px-4 py-3">
+            <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-amber-500" />
             <div className="flex flex-col gap-2">
-              <p className="text-sm text-amber-600 dark:text-amber-400">
+              <p className="text-xs text-amber-600">
                 <strong>{pendingProc.name}</strong> er anbefalt for din bransje. Sikker?
               </p>
               <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={confirmDeselect}
-                  className="bg-muted text-foreground hover:bg-muted/80 rounded-lg px-3 py-1.5 text-xs"
+                  className="rounded-md bg-gray-100 px-2.5 py-1 text-xs text-gray-700 hover:bg-gray-200"
                 >
                   Ja, fjern
                 </button>
                 <button
                   type="button"
                   onClick={() => setPendingDeselect(null)}
-                  className="text-muted-foreground hover:text-foreground rounded-lg px-3 py-1.5 text-xs"
+                  className="text-muted-foreground hover:text-foreground rounded-md px-2.5 py-1 text-xs"
                 >
                   Behold
                 </button>
@@ -151,7 +153,7 @@ export function ConfirmProcedures({
 
         {/* Add custom procedure */}
         {showInput ? (
-          <div className="mt-2 flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <input
               type="text"
               value={customName}
@@ -164,13 +166,13 @@ export function ConfirmProcedures({
                 }
               }}
               placeholder="Prosedyrenavn"
-              className="border-border bg-background text-foreground placeholder:text-muted-foreground/40 focus:border-primary flex-1 rounded-2xl border px-5 py-4 text-base outline-none"
+              className="border-input bg-background text-foreground placeholder:text-muted-foreground flex-1 rounded-lg border px-3 py-2.5 text-sm focus-visible:ring-2 focus-visible:ring-orange-500/40 focus-visible:outline-none"
               autoFocus
             />
             <button
               type="button"
               onClick={addCustomProcedure}
-              className="bg-primary/10 text-foreground hover:bg-primary/20 rounded-2xl px-5 py-4 text-base"
+              className="rounded-lg bg-orange-500/10 px-3 py-2.5 text-sm text-orange-600 transition-colors hover:bg-orange-500/20"
             >
               Legg til
             </button>
@@ -180,31 +182,22 @@ export function ConfirmProcedures({
                 setShowInput(false);
                 setCustomName("");
               }}
-              className="text-muted-foreground hover:text-foreground p-2"
+              className="text-muted-foreground hover:text-foreground p-1.5"
             >
-              <X className="size-5" />
+              <X className="size-4" />
             </button>
           </div>
         ) : (
           <button
             type="button"
             onClick={() => setShowInput(true)}
-            className="text-muted-foreground hover:text-foreground mt-2 flex items-center gap-2 px-2 text-sm transition-colors"
+            className="text-muted-foreground hover:text-foreground flex items-center gap-1.5 px-1 text-xs transition-colors"
           >
-            <Plus className="size-4" />
+            <Plus className="size-3.5" />
             Legg til egen prosedyre
           </button>
         )}
       </div>
-
-      {/* Continue button */}
-      <button
-        type="button"
-        onClick={next}
-        className="bg-primary text-primary-foreground hover:bg-primary/90 mt-4 flex items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-base font-semibold transition-colors"
-      >
-        {t("confirm.summary_title")} &rarr;
-      </button>
     </div>
   );
 }

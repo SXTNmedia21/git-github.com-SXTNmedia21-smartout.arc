@@ -6,10 +6,9 @@
   "steps": {
     "account": "Account",
     "business": "Business",
-    "about": "About",
-    "hours": "Operations",
+    "about": "Identity",
+    "hours": "Hours",
     "menu": "Menu",
-    "create_account": "Create account",
-    "team": "Team"
+    "create_account": "Password"
   }
 }
