@@ -34,7 +34,7 @@ tags: [dashboard, worktrees, tracking]
 | wt-1  | yes (notification-system closed)      |
 | wt-2  | yes                                   |
 | wt-3  | no (feat/emma-arena-views)            |
-| wt-4  | no (feat/mal-modus-schedule)          |
+| wt-4  | yes (mal-modus-schedule merged)       |
 | wt-5  | no (feat/mobile-production-readiness) |
 | wt-6  | no (feat/admin-daily-loop)            |
 | wt-7  | yes                                   |
@@ -63,6 +63,7 @@ tags: [dashboard, worktrees, tracking]
 
 | Date       | Feature                   | Branch                                                             | Merged To   |
 | ---------- | ------------------------- | ------------------------------------------------------------------ | ----------- |
+| 2026-03-26 | mal-modus-schedule        | `feat/mal-modus-schedule`                                          | development |
 | 2026-03-22 | hms-phase-1               | `feat/hms-phase-1`                                                 | development |
 | 2026-03-22 | cascade-foundation        | `feat/cascade-foundation`                                          | development |
 | 2026-03-21 | workspace-intelligence    | `feat/workspace-intelligence`                                      | development |

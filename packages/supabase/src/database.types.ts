@@ -10840,6 +10840,7 @@ export type Database = {
           start_time: string
           status: Database["public"]["Enums"]["shift_status"]
           team_id: string | null
+          template_shift_id: string | null
           updated_at: string
           work_hours: number
           workspace_id: string
@@ -10875,6 +10876,7 @@ export type Database = {
           start_time: string
           status?: Database["public"]["Enums"]["shift_status"]
           team_id?: string | null
+          template_shift_id?: string | null
           updated_at?: string
           work_hours?: number
           workspace_id: string
@@ -10910,6 +10912,7 @@ export type Database = {
           start_time?: string
           status?: Database["public"]["Enums"]["shift_status"]
           team_id?: string | null
+          template_shift_id?: string | null
           updated_at?: string
           work_hours?: number
           workspace_id?: string
@@ -10971,6 +10974,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "team"
             referencedColumns: ["team_id"]
+          },
+          {
+            foreignKeyName: "schedule_shift_template_shift_id_fkey"
+            columns: ["template_shift_id"]
+            isOneToOne: false
+            referencedRelation: "schedule_template_shift"
+            referencedColumns: ["schedule_template_shift_id"]
           },
           {
             foreignKeyName: "schedule_shift_workspace_id_fkey"
@@ -11058,6 +11068,7 @@ export type Database = {
           role: string
           schedule_template_shift_id: string
           shift_function: Database["public"]["Enums"]["shift_function"] | null
+          slot_count: number
           slot_order: number | null
           start_anchor_type: Database["public"]["Enums"]["anchor_type"] | null
           start_offset_min: number | null
@@ -11083,6 +11094,7 @@ export type Database = {
           role: string
           schedule_template_shift_id?: string
           shift_function?: Database["public"]["Enums"]["shift_function"] | null
+          slot_count?: number
           slot_order?: number | null
           start_anchor_type?: Database["public"]["Enums"]["anchor_type"] | null
           start_offset_min?: number | null
@@ -11108,6 +11120,7 @@ export type Database = {
           role?: string
           schedule_template_shift_id?: string
           shift_function?: Database["public"]["Enums"]["shift_function"] | null
+          slot_count?: number
           slot_order?: number | null
           start_anchor_type?: Database["public"]["Enums"]["anchor_type"] | null
           start_offset_min?: number | null
@@ -13556,10 +13569,6 @@ export type Database = {
       }
       is_admin_in_workspace: {
         Args: { uid: string; wid: string }
-        Returns: boolean
-      }
-      is_participant_in_conversation: {
-        Args: { conv_id: string }
         Returns: boolean
       }
       log_api_key_usage: {

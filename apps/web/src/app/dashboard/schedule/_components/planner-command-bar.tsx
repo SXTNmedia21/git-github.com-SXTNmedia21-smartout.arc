@@ -198,7 +198,7 @@ function ViewFilterButton({
 // ---------------------------------------------------------------------------
 // DepartmentPopover — dropdown selector for active department filter
 // ---------------------------------------------------------------------------
-function DepartmentPopover({
+export function LocationPopover({
   isDark: _isDark,
   value,
   onChange,

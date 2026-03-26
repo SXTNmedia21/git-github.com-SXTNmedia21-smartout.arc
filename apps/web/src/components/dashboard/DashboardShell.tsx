@@ -62,7 +62,7 @@ function resolveMissionForRoute(pathname: string): MissionId {
 }
 
 export type AdminViewType = "tactical" | "strategic" | "reconciliation" | "activity" | "guardian";
-export type ScheduleLayoutMode = "daily" | "weekly" | "monthly" | "list";
+export type ScheduleLayoutMode = "daily" | "weekly" | "monthly" | "list" | "mal";
 export type ScheduleViewMode = "ansatt" | "jobb" | "team" | "lokasjon";
 type VoiceSessionContext = {
   page: string;
@@ -1682,6 +1682,13 @@ export function DashboardShell({
                           className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "list" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : isDark ? "text-zinc-500 hover:text-white" : "text-zinc-500 hover:text-zinc-900"}`}
                         >
                           Vaktliste
+                        </button>
+                        <button
+                          onClick={() => setScheduleLayout("mal")}
+                          data-autoplay="schedule-layout-mal"
+                          className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "mal" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : isDark ? "text-zinc-500 hover:text-white" : "text-zinc-500 hover:text-zinc-900"}`}
+                        >
+                          Mal
                         </button>
                       </div>
 

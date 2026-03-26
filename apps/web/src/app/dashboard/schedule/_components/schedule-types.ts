@@ -177,6 +177,7 @@ export type ShiftProposalCreate = {
   id: string;
   type: "create";
   employeeId: string;
+  employeeName?: string;
   dateId: string;
   role: string;
   startTime: string;
@@ -185,6 +186,8 @@ export type ShiftProposalCreate = {
   dayCategory: string;
   indicator: string;
   breaks: number;
+  /** Links proposal to a MalGrid column. Present when created in mal-modus. */
+  templateShiftId?: string;
 };
 
 export type ShiftProposalUpdate = {

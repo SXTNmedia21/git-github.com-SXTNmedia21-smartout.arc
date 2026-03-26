@@ -18,12 +18,25 @@ import React, {
 
 import type { ShiftProposal } from "./schedule-types";
 
+// A pending confirmation request created by requestConfirmation().
+// resolve is called by resolveConfirmation() once the user responds.
+type ConfirmationRequest = {
+  title: string;
+  description: string;
+  resolve: (confirmed: boolean) => void;
+};
+
 type AgentProposalsContextValue = {
   proposals: ShiftProposal[];
   addProposal: (proposal: ShiftProposal) => void;
   removeProposal: (id: string) => void;
   approveProposal: (id: string) => Promise<void>;
   rejectProposal: (id: string) => void;
+  pendingConfirmation: ConfirmationRequest | null;
+  requestConfirmation: (title: string, description: string) => Promise<boolean>;
+  resolveConfirmation: (confirmed: boolean) => void;
+  approveAllProposals: () => Promise<void>;
+  clearAllProposals: () => void;
 };
 
 const AgentProposalsContext = createContext<AgentProposalsContextValue | null>(null);
@@ -45,6 +58,7 @@ export function AgentProposalsProvider({
   updateShift,
 }: AgentProposalsProviderProps) {
   const [proposals, setProposals] = useState<ShiftProposal[]>([]);
+  const [pendingConfirmation, setPendingConfirmation] = useState<ConfirmationRequest | null>(null);
 
   const addProposal = useCallback((proposal: ShiftProposal) => {
     setProposals((prev) => [...prev, proposal]);
@@ -87,6 +101,53 @@ export function AgentProposalsProvider({
     setProposals((prev) => prev.filter((proposal) => proposal.id !== id));
   }, []);
 
+  // Returns a Promise that resolves once the user responds to the confirmation dialog.
+  // The dialog component calls resolveConfirmation() to settle the promise.
+  const requestConfirmation = useCallback(
+    (title: string, description: string): Promise<boolean> => {
+      return new Promise<boolean>((resolve) => {
+        setPendingConfirmation({ title, description, resolve });
+      });
+    },
+    [],
+  );
+
+  const resolveConfirmation = useCallback((confirmed: boolean) => {
+    setPendingConfirmation((current) => {
+      current?.resolve(confirmed);
+      return null;
+    });
+  }, []);
+
+  const approveAllProposals = useCallback(async () => {
+    const snapshot = proposals;
+    for (const proposal of snapshot) {
+      if (proposal.type === "create") {
+        await createShift({
+          id: crypto.randomUUID(),
+          employeeId: proposal.employeeId,
+          dateId: proposal.dateId,
+          role: proposal.role,
+          startTime: proposal.startTime,
+          endTime: proposal.endTime,
+          workHours: proposal.workHours,
+          status: "created",
+          dayCategory: proposal.dayCategory,
+          indicator: proposal.indicator,
+          isPublished: false,
+          breaks: proposal.breaks,
+        });
+      } else {
+        await updateShift({ id: proposal.shiftId, patch: proposal.patch });
+      }
+    }
+    setProposals([]);
+  }, [proposals, createShift, updateShift]);
+
+  const clearAllProposals = useCallback(() => {
+    setProposals([]);
+  }, []);
+
   const value = useMemo(
     () => ({
       proposals,
@@ -94,8 +155,24 @@ export function AgentProposalsProvider({
       removeProposal,
       approveProposal,
       rejectProposal,
+      pendingConfirmation,
+      requestConfirmation,
+      resolveConfirmation,
+      approveAllProposals,
+      clearAllProposals,
     }),
-    [proposals, addProposal, removeProposal, approveProposal, rejectProposal],
+    [
+      proposals,
+      addProposal,
+      removeProposal,
+      approveProposal,
+      rejectProposal,
+      pendingConfirmation,
+      requestConfirmation,
+      resolveConfirmation,
+      approveAllProposals,
+      clearAllProposals,
+    ],
   );
 
   return <AgentProposalsContext.Provider value={value}>{children}</AgentProposalsContext.Provider>;

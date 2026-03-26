@@ -465,6 +465,9 @@ importers:
       '@smartout/notifications':
         specifier: workspace:^
         version: link:../../packages/notifications
+      '@smartout/schedule':
+        specifier: workspace:^
+        version: link:../../packages/schedule
       '@smartout/shift-clock':
         specifier: workspace:*
         version: link:../../packages/shift-clock
@@ -839,6 +842,34 @@ importers:
       '@types/node':
         specifier: ^20.19.0
         version: 20.19.35
+      typescript:
+        specifier: ^5.9.0
+        version: 5.9.3
+
+  packages/schedule:
+    dependencies:
+      '@smartout/supabase':
+        specifier: workspace:*
+        version: link:../supabase
+      '@smartout/telemetry':
+        specifier: workspace:*
+        version: link:../telemetry
+      '@supabase/supabase-js':
+        specifier: 2.49.4
+        version: 2.49.4
+      '@tanstack/react-query':
+        specifier: ^5
+        version: 5.90.21(react@19.2.3)
+      react:
+        specifier: ^18 || ^19
+        version: 19.2.3
+    devDependencies:
+      '@smartout/eslint-config':
+        specifier: workspace:^
+        version: link:../eslint-config
+      '@smartout/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
       typescript:
         specifier: ^5.9.0
         version: 5.9.3

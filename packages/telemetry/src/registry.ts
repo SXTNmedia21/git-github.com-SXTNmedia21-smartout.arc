@@ -801,6 +801,54 @@ export interface TemplateLoaded extends BaseEvent {
   };
 }
 
+export interface TemplateApplied extends BaseEvent {
+  event: "template applied";
+  properties: {
+    entity: EntityRef;
+    data: { shift_count: number; week_start: string };
+  };
+}
+
+export interface ShiftsPublished extends BaseEvent {
+  event: "shifts published";
+  properties: {
+    entity: EntityRef;
+    data: { shift_count: number; week_start: string };
+  };
+}
+
+export interface WeekReset extends BaseEvent {
+  event: "week reset";
+  properties: {
+    entity: EntityRef;
+    data: { shift_count: number; week_start: string };
+  };
+}
+
+export interface TemplateShiftCreated extends BaseEvent {
+  event: "template_shift created";
+  properties: {
+    entity: EntityRef;
+    data: { role: string; start_time: string; end_time: string };
+  };
+}
+
+export interface ShiftAssigned extends BaseEvent {
+  event: "shift assigned";
+  properties: {
+    entity: EntityRef;
+    data: { employee_id: string };
+  };
+}
+
+export interface ShiftUnassigned extends BaseEvent {
+  event: "shift unassigned";
+  properties: {
+    entity: EntityRef;
+    data: { employee_id: string };
+  };
+}
+
 export interface DayInfoCreated extends BaseEvent {
   event: "day_info created";
   properties: {
@@ -1733,6 +1781,12 @@ export type SmartoutEvent =
   | TemplateUpdated
   | TemplateDeleted
   | TemplateLoaded
+  | TemplateApplied
+  | ShiftsPublished
+  | WeekReset
+  | TemplateShiftCreated
+  | ShiftAssigned
+  | ShiftUnassigned
   | DayInfoCreated
   | DayInfoUpdated
   | DayInfoDeleted
@@ -2147,6 +2201,30 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "scheduling",
   },
   "template loaded": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "scheduling",
+  },
+  "template applied": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "scheduling",
+  },
+  "shifts published": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "week reset": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "scheduling",
+  },
+  "template_shift created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "scheduling",
+  },
+  "shift assigned": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "scheduling",
+  },
+  "shift unassigned": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "scheduling",
   },

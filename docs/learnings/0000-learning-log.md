@@ -1,18 +1,17 @@
 ---
 title: Learning Log
-status: done
-updated: 2026-03-25
-created: 2026-03-24
-module: communications
+status: in_progress
+updated: 2026-03-26
+created: 2026-03-26
+module: schedule
 tags: [learnings]
 ---
 
-# Learning Log — notification-system
+# Learning Log — mal-modus-schedule
 
-| #   | Date       | Learning                                                                                                                          | Impact                                                                 |
-| --- | ---------- | --------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| 1   | 2026-03-24 | Nested $$ dollar-quotes in pg_cron DO blocks cause PostgreSQL parse errors — use tagged dollar-quotes ($cmd$/$sql$)               | Migration patterns for all future cron registrations                   |
-| 2   | 2026-03-24 | npx supabase gen types outputs WARN lines to stdout when env vars are missing — must redirect stderr or use 2>/dev/null           | database.types.ts corruption risk if not handled                       |
-| 3   | 2026-03-24 | @smartout/supabase/client uses browser APIs (localStorage, cookies) — cannot be used in React Native                              | Mobile hooks must use platform-specific Supabase client                |
-| 4   | 2026-03-24 | Supabase-generated types use boolean                                                                                              | null for columns with DEFAULT — TypeScript spread doesn't narrow nulls | Must use explicit null-coalescing (??) per field when merging with defaults |
-| 5   | 2026-03-24 | notification_preference.user_id FK to user_identity means outbox consumer needs profile→user_identity join to resolve preferences | Join path documented in spec — important for consumer performance      |
+| #   | Date       | Learning                                                                                                                | Impact                                                |
+| --- | ---------- | ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| 1   | 2026-03-26 | session_task PK is `id` not `session_task_id` — confirmed from database.types.ts                                        | Avoided broken FK joins in task query                 |
+| 2   | 2026-03-26 | TS strict mode rejects `parts[0]![0]` on string arrays — need optional chaining `parts[0]?.[0]`                         | Fixed TS2532 in MalGhostTag getInitials               |
+| 3   | 2026-03-26 | schedule_shift.template_shift_id added by our migration must be included in ALL test fixtures                           | Fixed mobile typecheck failure in shift-phase.test.ts |
+| 4   | 2026-03-26 | Bridge component returning null can be changed to render dialog alongside children without breaking side-effect pattern | Enabled AgentConfirmationDialog rendering in bridge   |

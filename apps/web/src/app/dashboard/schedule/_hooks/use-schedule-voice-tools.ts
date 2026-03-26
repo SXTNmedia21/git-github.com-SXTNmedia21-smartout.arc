@@ -36,6 +36,8 @@ type ScheduleVoiceToolsInput = {
   };
   /** When provided, write tools create ghost proposals instead of real shifts */
   addProposal?: (proposal: ShiftProposal) => void;
+  /** When provided, voice tools prompt for confirmation before creating proposals */
+  requestConfirmation?: (title: string, description: string) => Promise<boolean>;
 };
 
 // Tool definitions imported from @smartout/ai — single source of truth.
@@ -335,10 +337,21 @@ export function useScheduleVoiceTools(input: ScheduleVoiceToolsInput): ClientToo
 
       // Ghost mode — create proposal instead of real shift
       if (d.addProposal) {
+        if (d.requestConfirmation) {
+          const confirmed = await d.requestConfirmation(
+            `Legg til ${employee.name} som ${role}`,
+            `${dayLabel} ${startTime}–${endTime}. Forslaget vises som spøkelsesvakt i rutenettet.`,
+          );
+          if (!confirmed) {
+            return JSON.stringify({ success: false, message: "Avslått av leder." });
+          }
+        }
+
         d.addProposal({
           id: `proposal-${crypto.randomUUID()}`,
           type: "create",
           employeeId: employee.id,
+          employeeName: employee.name,
           dateId,
           role,
           startTime,
@@ -347,6 +360,7 @@ export function useScheduleVoiceTools(input: ScheduleVoiceToolsInput): ClientToo
           dayCategory,
           indicator: "blue",
           breaks: 0,
+          // templateShiftId left undefined — resolved in Phase B
         });
 
         return JSON.stringify({

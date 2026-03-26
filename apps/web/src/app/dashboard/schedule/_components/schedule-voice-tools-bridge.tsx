@@ -10,6 +10,7 @@
 import { useRegisterTools } from "@/app/walkAi/_components/tool-registry";
 
 import { useScheduleVoiceTools } from "../_hooks/use-schedule-voice-tools";
+import { AgentConfirmationDialog } from "./agent-confirmation-dialog";
 import { useAgentProposals } from "./agent-proposals-context";
 import type { ScheduleComputed } from "../_hooks/use-schedule-computed";
 import type { ScheduleEmployee } from "../_hooks/use-employees";
@@ -58,7 +59,8 @@ export function ScheduleVoiceToolsBridge({
   deleteShift,
   publishShifts,
 }: ScheduleVoiceToolsBridgeProps) {
-  const { addProposal } = useAgentProposals();
+  const { addProposal, pendingConfirmation, resolveConfirmation, requestConfirmation } =
+    useAgentProposals();
 
   const voiceTools = useScheduleVoiceTools({
     weekStart,
@@ -83,10 +85,19 @@ export function ScheduleVoiceToolsBridge({
     },
     // Ghost mode — all create/update go through proposals
     addProposal,
+    requestConfirmation,
   });
 
   // Register into WalkAi tool registry — Emma gets schedule tools when on this page
   useRegisterTools("schedule", voiceTools);
 
-  return null;
+  return (
+    <AgentConfirmationDialog
+      open={!!pendingConfirmation}
+      title={pendingConfirmation?.title ?? ""}
+      description={pendingConfirmation?.description ?? ""}
+      onConfirm={() => resolveConfirmation(true)}
+      onCancel={() => resolveConfirmation(false)}
+    />
+  );
 }

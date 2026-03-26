@@ -9,37 +9,36 @@ tags: [session, continuity]
 
 ## Last Session
 
-| Field   | Value                              |
-| ------- | ---------------------------------- |
-| Date    | 2026-03-26                         |
-| Branch  | `feat/mobile-production-readiness` |
-| Feature | mobile-production-readiness        |
-| Status  | in_progress                        |
+| Field   | Value                     |
+| ------- | ------------------------- |
+| Date    | 2026-03-26                |
+| Branch  | `feat/mal-modus-schedule` |
+| Feature | mal-modus-schedule        |
+| Status  | merged                    |
 
 ### What was done
 
-**Mobile Production Readiness — Full Design + Council + Plan:**
+**Mal-modus schedule — base grid (13 tasks) + Phase A ghost shifts (10 tasks):**
 
-- Explored AI Council hospitality engine docs + current mobile app (38 screens, 60+ components)
-- Brainstormed: 5 clarifying questions (role-adaptive, training, management, offline, launch gate)
-- Designed 16 user journeys (J1-J16) prioritized by urgency
-- Simulated 5-agent brainstorm council (18 questions raised and resolved)
-- Wrote 642-line spec: `docs/superpowers/specs/2026-03-26-mobile-production-readiness-design.md`
-- Ran formal 4-agent System Council: APPROVE WITH CHANGES
-- Applied 13 council fixes to spec (authority model, i18n, deep links, capabilities, etc.)
-- Wrote 18-task implementation plan: `docs/superpowers/plans/2026-03-26-mobile-production-readiness.md`
-- Feature branch + worktree created: wt-5
+- Base: DB migrations (slot_count, template_shift_id), @smartout/schedule package, data + mutation hooks, 6 telemetry events
+- Base: MalGrid with 7 components (command bar, template bar, header, row, cell, employee tag, task tag)
+- Base: Integration into schedule page with Suspense boundary, DashboardShell layout mode
+- Phase A: ShiftProposalCreate extended with templateShiftId + employeeName
+- Phase A: AgentConfirmationDialog (Promise-based shadcn AlertDialog)
+- Phase A: MalGhostTag (dashed border, desaturated oklch, pulse animation, hover approve/reject)
+- Phase A: Ghost tags wired into MalShiftCell → MalGridRow → MalGrid
+- Phase A: Bulk approve/reject bar in MalGrid action area
+- Phase A: Confirmation dialog wired into voice tools bridge + createShift ghost path
+- All closure gates verified: web typecheck 0 errors, 7 user journeys, 7 decisions, 4 learnings
 
 ### Where we stopped
 
-- wt-5 created, plan ready with full code in conversation, implementation not started
-- Plan has 18 tasks across Phase 0-4 (foundation → capabilities → WalkAi → hub → integration)
+- mal-modus-schedule merged to development
+- wt-4 ready for cleanup
 
 ### Known blockers / errors
 
-- wt-1/wt-2 stale directories (leftover dirs, no git worktree)
-- authority default mismatch: agent-router.ts defaults to "suggest" vs tool-selector.ts "read_only" (Task 3 fixes this)
-- Existing schedule tools are Ultravox client-side (cannot wrap, must build net-new)
+- Pre-existing: `apps/mobile/src/components/auth/InviteEntry.tsx:166` StyleSheet error (not this branch)
 
 ### Pending decisions
 
