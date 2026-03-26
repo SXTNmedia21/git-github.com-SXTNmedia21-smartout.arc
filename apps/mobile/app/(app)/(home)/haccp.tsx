@@ -42,20 +42,23 @@ function useHaccpUnits(workspaceId: string | undefined) {
     queryKey: ["haccp-units", workspaceId],
     queryFn: async () => {
       if (!workspaceId) return [];
+      // asset_type "storage" covers refrigeration/cooling units in the schema enum.
+      // The asset table doesn't store live temperature — temperature is logged via haccp_log.
+      // We fetch units for display only; temperature defaults to 0 until a reading is logged.
       const { data, error } = await supabase
         .from("asset")
-        .select("id, name, location:location_id(name), asset_type, metadata")
+        .select("asset_id, name, location:location_id(name)")
         .eq("workspace_id", workspaceId)
-        .eq("asset_type", "cooling_unit")
+        .eq("asset_type", "storage")
         .eq("is_active", true)
         .order("name");
       if (error) throw error;
-      return (data ?? []).map((a: Record<string, unknown>) => ({
-        id: a.id as string,
-        name: a.name as string,
-        location: ((a.location as { name: string } | null)?.name) ?? "Ukjent",
-        temperature: ((a.metadata as Record<string, number> | null)?.last_temperature) ?? 0,
-        threshold: ((a.metadata as Record<string, number> | null)?.threshold) ?? 4,
+      return (data ?? []).map((a) => ({
+        id: a.asset_id,
+        name: a.name,
+        location: (a.location as { name: string } | null)?.name ?? "Ukjent",
+        temperature: 0,
+        threshold: 4,
       }));
     },
     enabled: !!workspaceId,
