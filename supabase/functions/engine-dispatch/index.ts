@@ -1172,6 +1172,35 @@ async function executeStep(
       break;
     }
 
+    case "ingest_workspace_knowledge": {
+      // Fire-and-forget call to ingest Edge Function — non-blocking for engine flow
+      const ingestUrl = Deno.env.get("SUPABASE_URL")!;
+      const ingestKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+      try {
+        const ingestRes = await fetch(`${ingestUrl}/functions/v1/ingest-workspace-knowledge`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${ingestKey}`,
+          },
+          body: JSON.stringify({
+            workspace_id: state.workspace_id,
+            force: (step.action_payload as Record<string, unknown>)?.force ?? false,
+          }),
+        });
+
+        const ingestResult = await ingestRes.json();
+        console.log(`[ingest_workspace_knowledge] workspace=${state.workspace_id}:`, ingestResult);
+      } catch (err) {
+        console.error(`[ingest_workspace_knowledge] Failed:`, err);
+        // Non-fatal — don't block engine flow if ingestion fails
+      }
+
+      await advanceToNextStep(supabase, state, step);
+      break;
+    }
+
     default:
       // Unknown action type — fail
       await supabase
