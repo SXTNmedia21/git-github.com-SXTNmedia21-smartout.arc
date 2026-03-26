@@ -14,7 +14,10 @@ import { useRouter } from "expo-router";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { ChevronLeft, Thermometer, CheckCircle2, AlertTriangle, Shield } from "lucide-react-native";
+import { useQuery } from "@tanstack/react-query";
 import { createStyles, useTheme, withOpacity } from "@/theme";
+import { supabase } from "@/lib/supabase";
+import { useMyProfile } from "@/hooks/queries/use-my-profile";
 
 type UnitStatus = "pending" | "ok" | "avvik" | "resolved";
 
@@ -26,11 +29,38 @@ type CoolingUnit = {
   threshold: number;
 };
 
-const UNITS: CoolingUnit[] = [
+/** Demo data used as fallback when no cooling units are registered in the asset table */
+const DEMO_UNITS: CoolingUnit[] = [
   { id: "u1", name: "Kjoleskap 1", location: "Hovedkjokken", temperature: 3.2, threshold: 4 },
   { id: "u2", name: "Kjolerom", location: "Lager B", temperature: 9.1, threshold: 4 },
   { id: "u3", name: "Fryser", location: "Hovedkjokken", temperature: -18.5, threshold: -15 },
 ];
+
+/** Fetches cooling units from the asset table for the current workspace */
+function useHaccpUnits(workspaceId: string | undefined) {
+  return useQuery({
+    queryKey: ["haccp-units", workspaceId],
+    queryFn: async () => {
+      if (!workspaceId) return [];
+      const { data, error } = await supabase
+        .from("asset")
+        .select("id, name, location:location_id(name), asset_type, metadata")
+        .eq("workspace_id", workspaceId)
+        .eq("asset_type", "cooling_unit")
+        .eq("is_active", true)
+        .order("name");
+      if (error) throw error;
+      return (data ?? []).map((a: Record<string, unknown>) => ({
+        id: a.id as string,
+        name: a.name as string,
+        location: ((a.location as { name: string } | null)?.name) ?? "Ukjent",
+        temperature: ((a.metadata as Record<string, number> | null)?.last_temperature) ?? 0,
+        threshold: ((a.metadata as Record<string, number> | null)?.threshold) ?? 4,
+      }));
+    },
+    enabled: !!workspaceId,
+  });
+}
 
 function getStatusColor(status: UnitStatus, theme: ReturnType<typeof useTheme>) {
   switch (status) {
@@ -65,6 +95,9 @@ export default function HaccpScreen() {
   const styles = useStyles();
   const theme = useTheme();
   const router = useRouter();
+  const { data: profile } = useMyProfile();
+  const { data: fetchedUnits = [] } = useHaccpUnits(profile?.workspace_id);
+  const UNITS = fetchedUnits.length > 0 ? fetchedUnits : DEMO_UNITS;
   const [checkedCount, setCheckedCount] = useState(0);
   const [resolved, setResolved] = useState(false);
 
