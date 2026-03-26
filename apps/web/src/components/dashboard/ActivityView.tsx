@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useWorkforcePipeline, useTrainingReadiness } from "@/app/dashboard/_hooks";
+import { useActivityFeed } from "@/app/dashboard/_hooks/use-activity-feed";
+import type { ActivityEntry } from "@/app/dashboard/_hooks/use-activity-feed";
 import { DashboardCard } from "./DashboardCard";
 
 type TimeRange = "today" | "7d" | "14d" | "30d" | "90d";
@@ -478,12 +480,7 @@ export function ActivityView({ isDark }: { isDark: boolean }) {
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <ActivityDetailPanel
-              label={selectedCell.row}
-              dayIndex={selectedCell.dayIndex}
-              days={days}
-              isDark={isDark}
-            />
+            <ActivityDetailPanel isDark={isDark} />
           </div>
         )}
       </div>
@@ -512,69 +509,63 @@ function TabBtn({ active, onClick, icon, label, isDark }: TabBtnProps) {
   );
 }
 
-function ActivityDetailPanel({
-  label,
-  dayIndex,
-  days,
-  isDark,
-}: {
-  label: string;
-  dayIndex: number;
-  days: number;
-  isDark: boolean;
-}) {
-  if (days === 1) {
-    const hours = Array.from({ length: 17 }, (_, i) => i + 6);
+function ActivityDetailPanel({ isDark }: { isDark: boolean }) {
+  const { data: feed, isLoading } = useActivityFeed({
+    limit: 30,
+    filters: { timeRange: "today" },
+  });
+
+  if (isLoading) {
     return (
-      <div className="space-y-1">
-        <p className="text-muted-foreground mb-2 text-xs">Time-for-time fordeling</p>
-        {hours.map((h) => {
-          const activity = (h * 17 + 43) % 100;
-          return (
-            <div key={h} className="flex items-center gap-3">
-              <span className="text-muted-foreground w-12 font-mono text-xs">
-                {String(h).padStart(2, "0")}:00
-              </span>
-              <div className="bg-muted/30 h-4 flex-1 overflow-hidden rounded-sm">
-                <div
-                  className="h-full bg-indigo-500/60 transition-all"
-                  style={{ width: `${activity}%` }}
-                />
-              </div>
-              <span className="text-muted-foreground w-8 text-right text-xs">{activity}</span>
-            </div>
-          );
-        })}
+      <div className="space-y-2">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div
+            key={i}
+            className="border-border bg-muted/10 h-10 animate-pulse rounded-lg border"
+            style={{ animationDelay: `${i * 60}ms` }}
+          />
+        ))}
       </div>
     );
   }
 
-  const entries = Array.from({ length: 5 }, (_, i) => ({
-    time: `${8 + i * 2}:${i % 2 === 0 ? "00" : "30"}`,
-    event: ["Vaktstart", "Opplæringsøkt", "Pause", "Inspeksjon", "Vaktslutt"][i],
-    score: (i * 23 + 37) % 100,
-  }));
+  if (!feed?.length) {
+    return (
+      <p className="text-muted-foreground py-4 text-center text-sm">
+        Ingen aktivitet registrert i dag ennå.
+      </p>
+    );
+  }
 
   return (
-    <div className="space-y-2">
-      <p className="text-muted-foreground mb-2 text-xs">Aktivitetslogg for dag {dayIndex + 1}</p>
-      {entries.map((e, i) => (
-        <div key={i} className="border-border flex items-center gap-3 rounded-lg border p-2">
-          <span className="text-muted-foreground w-12 font-mono text-xs">{e.time}</span>
-          <span className="text-foreground flex-1 text-sm">{e.event}</span>
+    <div className="space-y-1.5">
+      <p className="text-muted-foreground mb-2 text-xs font-semibold tracking-wider uppercase">
+        Aktivitetslogg — i dag
+      </p>
+      {feed.map((entry: ActivityEntry) => {
+        const time = new Date(entry.createdAt).toLocaleTimeString("nb-NO", {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        const isWarning = entry.event.includes("late") || entry.event.includes("deviation");
+
+        return (
           <div
-            className={`rounded px-2 py-0.5 text-xs font-bold ${
-              e.score >= 80
-                ? "bg-emerald-500/10 text-emerald-500"
-                : e.score >= 50
-                  ? "bg-amber-500/10 text-amber-500"
-                  : "bg-red-500/10 text-red-500"
-            }`}
+            key={entry.id}
+            className="border-border flex items-center gap-3 rounded-lg border p-2"
           >
-            {e.score}
+            <span className="text-muted-foreground w-12 font-mono text-xs">{time}</span>
+            {isWarning && <div className="h-2 w-2 shrink-0 rounded-full bg-orange-400" />}
+            <span className="text-foreground flex-1 truncate text-sm">
+              <span className="font-semibold">{entry.actorName}</span>
+              <span className="text-muted-foreground"> — {entry.description}</span>
+            </span>
+            <span className="text-muted-foreground shrink-0 text-[10px] font-medium uppercase">
+              {entry.category}
+            </span>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

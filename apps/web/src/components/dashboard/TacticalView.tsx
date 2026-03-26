@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { DashboardCard } from "./DashboardCard";
 import { LeaderPulseCard } from "./LeaderPulseCard";
+import { ShiftStatusWidget } from "./ShiftStatusWidget";
 import {
   useStaffingCoverage,
   getCurrentWeekStart,
@@ -668,6 +669,9 @@ export function TacticalView({ onDateClick }: TacticalViewProps) {
       ) : hasPipelineData ? (
         <WorkforcePulse pipeline={pipeline} />
       ) : null}
+
+      {/* Live shift status — shows active/late/waiting shifts */}
+      <ShiftStatusWidget />
 
       {/* Season — only if active season exists */}
       {season && <SeasonCard season={season} />}

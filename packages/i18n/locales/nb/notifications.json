@@ -1,0 +1,12 @@
+{
+  "shift.punched_in.title": "Stemplet inn",
+  "shift.punched_in.body": "{name} har stemplet inn — {role}, {department}",
+  "shift.punched_out.title": "Stemplet ut",
+  "shift.punched_out.body": "{name} har stemplet ut — {hours}t arbeidet",
+  "shift.late.title": "Sen ankomst",
+  "shift.late.body": "{name} har ikke stemplet inn — {minutes} min forsinket",
+  "shift.no_show.title": "Ikke møtt opp",
+  "shift.no_show.body": "{name} har ikke møtt til {role}-vakt ({start_time})",
+  "shift.adhoc_pending.title": "Ad-hoc vakt krever godkjenning",
+  "shift.adhoc_pending.body": "{name} har startet en ad-hoc vakt"
+}

@@ -89,6 +89,40 @@ async function resolveByWorkspace(
   });
 }
 
+async function resolveByDepartment(
+  adminClient: SupabaseClient,
+  workspaceId: string,
+  departmentId: string,
+): Promise<ResolvedRecipient[]> {
+  const { data, error } = await adminClient
+    .from("profile")
+    .select(
+      "user_id, workspace_id, display_name, user_identity!inner(email, first_name, last_name, preferred_language)",
+    )
+    .eq("workspace_id", workspaceId)
+    .eq("department_id", departmentId)
+    .in("role", ["manager", "admin", "owner"])
+    .eq("is_active", true);
+
+  if (error) throw new Error(`Failed to resolve department audience: ${error.message}`);
+
+  return (data ?? []).map((p) => {
+    const ui = p.user_identity as unknown as {
+      email: string;
+      first_name: string;
+      last_name: string;
+      preferred_language: string | null;
+    };
+    return {
+      email: ui.email,
+      name: p.display_name || `${ui.first_name} ${ui.last_name}`.trim(),
+      userId: p.user_id,
+      workspaceId: p.workspace_id,
+      locale: ui.preferred_language ?? "no",
+    };
+  });
+}
+
 async function resolveByRole(
   adminClient: SupabaseClient,
   role: string,
@@ -192,6 +226,9 @@ export async function resolveAudience(
         filter.status,
       );
       break;
+    case "department":
+      recipients = await resolveByDepartment(adminClient, filter.workspaceId, filter.departmentId);
+      break;
     case "role":
       recipients = await resolveByRole(adminClient, filter.role);
       break;
@@ -238,6 +275,17 @@ export async function countAudience(
       if (filter.status) query = query.eq("status", filter.status);
       const { count, error } = await query;
       if (error) throw new Error(`Failed to count workspace audience: ${error.message}`);
+      return count ?? 0;
+    }
+    case "department": {
+      const { count, error } = await adminClient
+        .from("profile")
+        .select("profile_id", { count: "exact", head: true })
+        .eq("workspace_id", filter.workspaceId)
+        .eq("department_id", filter.departmentId)
+        .in("role", ["manager", "admin", "owner"])
+        .eq("is_active", true);
+      if (error) throw new Error(`Failed to count department audience: ${error.message}`);
       return count ?? 0;
     }
     case "role": {
