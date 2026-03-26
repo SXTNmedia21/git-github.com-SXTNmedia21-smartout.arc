@@ -1,3 +1,12 @@
+---
+title: Infrastructure Production Alignment
+status: in_progress
+updated: 2026-03-26
+created: 2026-03-18
+module: infra
+tags: [infra, production, alignment]
+---
+
 # Infrastructure Production Alignment Plan
 
 > **For agentic workers:** REQUIRED: Use superpowers:subagent-driven-development (if subagents available) or superpowers:executing-plans to implement this plan. Steps use checkbox (`- [ ]`) syntax for tracking.
@@ -67,7 +76,7 @@ The base `docker-compose.yml` hardcodes `SUPABASE_URL=http://host.docker.interna
 - Modify: `infra/docker-compose.yml:52`
 - Modify: `infra/docker-compose.override.yml:17`
 
-- [ ] **Step 1: Change `docker-compose.yml` stage-engine SUPABASE_URL to use env var**
+- [x] **Step 1: Change `docker-compose.yml` stage-engine SUPABASE_URL to use env var**
 
 In `infra/docker-compose.yml`, line 52, change the hardcoded value to an env var substitution:
 
@@ -80,7 +89,7 @@ In `infra/docker-compose.yml`, line 52, change the hardcoded value to an env var
 
 This makes it consistent with how `shift-mcp` and `contract-service` already handle it (lines 80 and 105).
 
-- [ ] **Step 2: Keep the dev override for local development**
+- [x] **Step 2: Keep the dev override for local development**
 
 Verify `infra/docker-compose.override.yml` still has the localhost value for dev:
 
@@ -93,7 +102,7 @@ Verify `infra/docker-compose.override.yml` still has the localhost value for dev
 
 This file already has this on line 17. No change needed — just verify.
 
-- [ ] **Step 3: Verify typecheck / lint is not affected**
+- [x] **Step 3: Verify typecheck / lint is not affected**
 
 This is a YAML-only change. No code typecheck needed. Verify docker-compose config is valid:
 
@@ -103,7 +112,7 @@ cd infra && docker compose -f docker-compose.yml -f docker-compose.override.yml 
 
 Expected: `OK` (no errors)
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add infra/docker-compose.yml
@@ -130,7 +139,7 @@ Two Next.js API routes call scrapling without sending the `Authorization` header
 - Modify: `apps/web/src/app/api/platform-admin/workspaces/lookup/route.ts:105-121`
 - Modify: `apps/web/src/app/api/platform-admin/workspaces/analyze-documents/route.ts:68-76`
 
-- [ ] **Step 1: Fix `lookup/route.ts` — add auth header to scrapling call**
+- [x] **Step 1: Fix `lookup/route.ts` — add auth header to scrapling call**
 
 In `apps/web/src/app/api/platform-admin/workspaces/lookup/route.ts`, replace the `scrapeWebsite` function (lines 105-122):
 
@@ -159,7 +168,7 @@ async function scrapeWebsite(url: string): Promise<{ email?: string; phone?: str
 }
 ```
 
-- [ ] **Step 2: Fix `analyze-documents/route.ts` — add auth header to scrapling call**
+- [x] **Step 2: Fix `analyze-documents/route.ts` — add auth header to scrapling call**
 
 In `apps/web/src/app/api/platform-admin/workspaces/analyze-documents/route.ts`, replace the fetch block around lines 68-76. Add auth headers but do NOT set Content-Type (FormData sets it automatically):
 
@@ -175,12 +184,12 @@ const res = await fetch(`${scraplingUrl}/extract/document`, {
 });
 ```
 
-- [ ] **Step 3: Verify typecheck passes**
+- [x] **Step 3: Verify typecheck passes**
 
 Run: `pnpm turbo typecheck --filter=web`
 Expected: 0 errors
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add apps/web/src/app/api/platform-admin/workspaces/lookup/route.ts apps/web/src/app/api/platform-admin/workspaces/analyze-documents/route.ts
