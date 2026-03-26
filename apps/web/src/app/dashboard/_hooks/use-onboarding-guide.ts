@@ -8,7 +8,7 @@ import { emit } from "@smartout/telemetry";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import type { Json } from "@smartout/supabase";
 import { dashboardKeys } from "./dashboard-keys";
-import { useWorkspaceSetup } from "./use-workspace-setup";
+import { useCascadeTasks } from "./use-cascade-tasks";
 
 type OnboardingGuideProgress = {
   currentStep: number;
@@ -28,7 +28,11 @@ export function useOnboardingGuide() {
   const { profileId } = useContext(DashboardContext);
   const queryClient = useQueryClient();
   const supabase = createClient();
-  const { data: setupStatus, isLoading: isSetupLoading } = useWorkspaceSetup();
+  // Cascade tasks replaced the legacy useWorkspaceSetup hook — critical tasks
+  // indicate the workspace still needs setup attention (same semantic as the
+  // old needsSetup flag, but derived from the cascade dimension scan RPC).
+  const { data: cascadeData, isLoading: isSetupLoading } = useCascadeTasks();
+  const needsSetup = (cascadeData?.critical_count ?? 0) > 0;
 
   const queryKey = dashboardKeys.onboardingGuide(workspaceId);
 
@@ -37,7 +41,7 @@ export function useOnboardingGuide() {
     enabled: !!workspaceId && !isSetupLoading,
     staleTime: 60 * 1000,
     queryFn: async (): Promise<OnboardingGuideProgress> => {
-      if (!setupStatus?.needsSetup) {
+      if (!needsSetup) {
         return { ...DEFAULT_PROGRESS, isComplete: true };
       }
 
@@ -112,7 +116,7 @@ export function useOnboardingGuide() {
     currentStep: progress.currentStep,
     completedSteps: progress.completedSteps,
     isComplete: progress.isComplete,
-    shouldShow: !!setupStatus?.needsSetup && !progress.isComplete,
+    shouldShow: needsSetup && !progress.isComplete,
     totalSteps: 9,
     setCurrentStep,
     markStepComplete,
