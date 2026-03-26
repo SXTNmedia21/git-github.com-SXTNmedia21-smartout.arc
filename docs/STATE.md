@@ -227,7 +227,7 @@ No dedicated tables — D5 lives as configuration that parameterizes coefficient
 | `engine_memory`       | 20260302000000 | EXISTS | Persistent pgvector memories per profile                |
 | `handbook_chapter`    | 20260306120000 | EXISTS | Tiptap JSONB per workspace x chapter_key. 10 chapters   |
 
-**RAG pipeline:** MISSING. Handbook save does NOT chunk into workspace_doc_chunk.
+**RAG pipeline:** DONE. `ingest-workspace-knowledge` Edge Function chunks handbook, policy, protocol → embeds via OpenRouter → upserts to `workspace_doc_chunk`. Triggered on Setup wizard completion.
 **UI:** Handbook editor — WORKING. Semantic search — NONE.
 
 ### 1.12 Governance Content Layer (Cross-dimensional)
@@ -319,7 +319,7 @@ Cascade is a PRODUCER of events; Event Engine is the CONSUMER.
 | DocumentModeToolbar      | K1b     | WORKING | Formatting toolbar                                                              |
 | DocumentModePanel        | K1b     | WORKING | 3 tabs: tools, actions, settings                                                |
 | Employee handbook reader | K1b     | WORKING | ChapterReader at /dashboard/handbook — read-only Tiptap render with chapter nav |
-| Handbook-to-RAG pipeline | K1b     | MISSING | Saved chapters not chunked into workspace_doc_chunk                             |
+| Handbook-to-RAG pipeline | K1b     | DONE    | `ingest-workspace-knowledge` EF: chunk → embed → workspace_doc_chunk            |
 
 ### 2.4 Employee Views (My View / Arbeidsrom)
 
