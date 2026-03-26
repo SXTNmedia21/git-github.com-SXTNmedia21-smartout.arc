@@ -98,7 +98,8 @@ export type EntityType =
   | "website_asset"
   | "website_spokesperson"
   | "deviation"
-  | "agent_session";
+  | "agent_session"
+  | "task_surface";
 
 export type ActionVerb =
   | "created"
