@@ -9,25 +9,22 @@ tags: [session, continuity]
 
 ## Last Session
 
-| Field   | Value                     |
-| ------- | ------------------------- |
-| Date    | 2026-03-26                |
-| Branch  | `feat/mal-modus-schedule` |
-| Feature | mal-modus-schedule        |
-| Status  | merged                    |
+| Field   | Value                              |
+| ------- | ---------------------------------- |
+| Date    | 2026-03-26                         |
+| Branch  | `feat/mobile-production-readiness` |
+| Feature | mobile-production-readiness        |
+| Status  | ready_for_closure                  |
 
 ### What was done
 
-**Mal-modus schedule — base grid (13 tasks) + Phase A ghost shifts (10 tasks):**
+**Mobile production readiness — 18 tasks across 5 phases, all complete:**
 
-- Base: DB migrations (slot_count, template_shift_id), @smartout/schedule package, data + mutation hooks, 6 telemetry events
-- Base: MalGrid with 7 components (command bar, template bar, header, row, cell, employee tag, task tag)
-- Base: Integration into schedule page with Suspense boundary, DashboardShell layout mode
-- Phase A: ShiftProposalCreate extended with templateShiftId + employeeName
-- Phase A: AgentConfirmationDialog (Promise-based shadcn AlertDialog)
-- Phase A: MalGhostTag (dashed border, desaturated oklch, pulse animation, hover approve/reject)
-- Phase A: Ghost tags wired into MalShiftCell → MalGridRow → MalGrid
-- Phase A: Bulk approve/reject bar in MalGrid action area
+- Phase 0: Telemetry types (5 events), mobile i18n (42 keys), authority default fix
+- Phase 1: 3 AI capabilities (schedule 4 tools, operations 5 tools, communication 3 tools), deep link map migration, priority engine (29 tests)
+- Phase 2: WalkAi provider, 5 mobile client tools, WalkAiSheet (voice UI), FAB gesture update
+- Phase 3: Home hub priority cards, deep link telemetry, ring leader phone dialer
+- Phase 4: RLS audit passed, 28/28 typecheck, file restoration after parallel agent damage
 - Phase A: Confirmation dialog wired into voice tools bridge + createShift ghost path
 - All closure gates verified: web typecheck 0 errors, 7 user journeys, 7 decisions, 4 learnings
 
