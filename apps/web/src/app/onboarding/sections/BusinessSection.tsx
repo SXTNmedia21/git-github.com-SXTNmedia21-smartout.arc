@@ -14,6 +14,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useOnboarding } from "../WizardContext";
 import { BusinessCardGrid } from "../components/BusinessCardGrid";
+import { EASE_EXPO } from "../lib/motion";
 
 const DEV_SKIP_INDUSTRIES = [
   { value: "restaurant", label: "Restaurant", nace: "56.101" },
@@ -150,7 +151,7 @@ export function BusinessSection() {
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.8, ease: EASE_EXPO }}
           >
             <p className="text-xs font-semibold tracking-[0.25em] text-white/20 uppercase">
               Bedrift
@@ -202,7 +203,7 @@ export function BusinessSection() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.8, delay: 0.1, ease: EASE_EXPO }}
           >
             <BusinessCardGrid business={business} onUpdate={updateBusiness} isScraping={false} />
           </motion.div>
@@ -219,7 +220,7 @@ export function BusinessSection() {
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.8, ease: EASE_EXPO }}
         >
           <p className="text-xs font-semibold tracking-[0.25em] text-white/20 uppercase">Bedrift</p>
           <h2 className="font-heading mt-6 text-[clamp(3.5rem,7vw,6rem)] leading-[0.9] tracking-tight text-white">
@@ -245,7 +246,7 @@ export function BusinessSection() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.8, delay: 0.1, ease: EASE_EXPO }}
           className="max-w-lg"
         >
           <div className="flex flex-col gap-4">
@@ -344,7 +345,7 @@ export function BusinessSection() {
                   initial={{ opacity: 0, y: -4 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -4 }}
-                  className="absolute bottom-full left-0 mb-2 w-64 rounded-xl border border-white/[0.08] bg-[#1a1a1a] p-2 shadow-xl"
+                  className="absolute bottom-full left-0 mb-2 w-64 rounded-xl border border-white/[0.08] bg-[oklch(0.12_0.02_50)] p-2 shadow-xl"
                 >
                   <p className="mb-2 px-2 text-xs text-white/30">Velg bransje for demo-data:</p>
                   {DEV_SKIP_INDUSTRIES.map((ind) => (

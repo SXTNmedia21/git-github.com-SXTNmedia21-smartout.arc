@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { motion } from "framer-motion";
+import { EASE_STANDARD } from "../lib/motion";
 import { useOnboarding } from "../WizardContext";
 import type { OnboardingSection } from "../types";
 
@@ -89,7 +90,7 @@ const SECTION_AMBIENCE: Record<OnboardingSection, SectionAmbience> = {
 
 const orbTransition = {
   duration: 1.8,
-  ease: [0.25, 0.1, 0.25, 1.0] as const,
+  ease: EASE_STANDARD,
 };
 
 export function AmbientBackground() {

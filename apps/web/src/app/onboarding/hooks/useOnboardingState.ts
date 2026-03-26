@@ -809,6 +809,21 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
       setActivatedWorkspaceId(workspaceId);
       setActivatedWorkspaceSlug(slug);
 
+      // Emit finalization telemetry
+      if (userId) {
+        emit({
+          event: "wizard completed",
+          workspace_id: workspaceId,
+          actor_id: userId,
+          properties: {
+            data: {
+              wizard_id: "onboarding",
+              workspace_id: workspaceId,
+            },
+          },
+        }).catch((e: unknown) => console.error("[onboarding] emit failed:", e));
+      }
+
       // Mark legacy session as completed if it exists
       if (sessionId) {
         await supabase

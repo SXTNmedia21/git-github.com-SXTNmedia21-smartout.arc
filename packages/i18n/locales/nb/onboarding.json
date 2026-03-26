@@ -151,6 +151,18 @@
     "title": "Bekreft workspace",
     "description": "Sjekk og juster informasjonen vi har samlet inn."
   },
+  "brandPanel": {
+    "confirmBusiness_heading": "Sjekk at alt\nstemmer.",
+    "confirmBusiness_sub": "Vi har samlet informasjon fra registre og nettet. Juster det som trengs.",
+    "confirmDepartments_heading": "Dine\navdelinger.",
+    "confirmDepartments_sub": "Velg hvilke avdelinger som er aktive i din virksomhet.",
+    "confirmLocations_heading": "Hvor holder\ndere til?",
+    "confirmLocations_sub": "Bekreft lokasjoner og legg til soner.",
+    "confirmProcedures_heading": "Rutiner og\nprosedyrer.",
+    "confirmProcedures_sub": "Velg hvilke rutiner som skal aktiveres for teamet.",
+    "summary_heading": "Alt klart.",
+    "summary_sub": "Sjekk oppsummeringen og aktiver workspace."
+  },
   "confirm": {
     "business_title": "Bekreft bedriftsinformasjon",
     "business_description": "Vi har samlet denne informasjonen. Sjekk at alt stemmer.",

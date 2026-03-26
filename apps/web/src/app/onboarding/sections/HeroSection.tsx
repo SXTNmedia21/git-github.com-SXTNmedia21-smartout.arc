@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { createClient } from "@smartout/supabase/client";
 import { Mic, PenLine } from "lucide-react";
 import { useOnboarding } from "../WizardContext";
+import { EASE_EXPO } from "../lib/motion";
 
 // ---------------------------------------------------------------------------
 // Animated background orbs — slow-rotating glows behind the hero content
@@ -68,7 +69,7 @@ const fadeUp = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] as const },
+    transition: { duration: 0.8, ease: EASE_EXPO },
   },
 };
 

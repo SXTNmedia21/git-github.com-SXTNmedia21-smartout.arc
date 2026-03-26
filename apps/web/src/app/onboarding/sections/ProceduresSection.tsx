@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Plus, X, AlertTriangle } from "lucide-react";
 import { motion } from "framer-motion";
 import { useOnboarding } from "../WizardContext";
+import { EASE_EXPO } from "../lib/motion";
 
 export function ProceduresSection() {
   const { procedures, toggleProcedure, addCustomProcedure, completeSection, business } =
@@ -48,7 +49,7 @@ export function ProceduresSection() {
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.8, ease: EASE_EXPO }}
         >
           <p className="text-xs font-semibold tracking-[0.25em] text-white/20 uppercase">
             Prosedyrer
@@ -90,7 +91,7 @@ export function ProceduresSection() {
               onClick={() => handleToggle(proc.id)}
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.05, duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ delay: i * 0.05, duration: 0.45, ease: EASE_EXPO }}
               className={`flex items-center justify-between rounded-2xl border px-5 py-4 text-left transition-all ${
                 proc.selected
                   ? "border-white/[0.12] bg-white/[0.08] text-white"

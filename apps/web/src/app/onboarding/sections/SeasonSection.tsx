@@ -3,6 +3,7 @@
 import { Calendar, TrendingUp } from "lucide-react";
 import { motion } from "framer-motion";
 import { useOnboarding } from "../WizardContext";
+import { EASE_EXPO } from "../lib/motion";
 
 export function SeasonSection() {
   const { season, updateSeason, completeSection } = useOnboarding();
@@ -13,7 +14,7 @@ export function SeasonSection() {
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.8, ease: EASE_EXPO }}
         >
           <p className="text-xs font-semibold tracking-[0.25em] text-white/20 uppercase">Sesong</p>
           <h2 className="font-heading mt-6 text-[clamp(3.5rem,7vw,6rem)] leading-[0.9] tracking-tight text-white">
@@ -49,7 +50,7 @@ export function SeasonSection() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.8, delay: 0.1, ease: EASE_EXPO }}
           className="flex max-w-lg flex-col gap-6"
         >
           <div>

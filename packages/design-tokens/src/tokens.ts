@@ -166,6 +166,10 @@ export const motion = {
   enterMs: 500,
   exitMs: 250,
   easing: "cubic-bezier(0.25, 0.1, 0.25, 1)",
+  easingExpo: "cubic-bezier(0.16, 1, 0.3, 1)",
+  /** Framer Motion array equivalents */
+  easingArray: [0.25, 0.1, 0.25, 1] as const,
+  easingExpoArray: [0.16, 1, 0.3, 1] as const,
 } as const;
 
 // ─── Typography ──────────────────────────────────────

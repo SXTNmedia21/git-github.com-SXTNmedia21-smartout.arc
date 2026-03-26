@@ -17,7 +17,10 @@ import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import { WizardShell, type WizardDefinition } from "@smartout/ui";
 import { useTranslation } from "@smartout/i18n";
+import { motion as motionTokens } from "@smartout/design-tokens";
 import { useWizardTelemetry } from "./useWizardTelemetry";
+
+const EASE = motionTokens.easingArray;
 
 /* ── Motion constants — matching login/signup springs ── */
 
@@ -26,12 +29,12 @@ const brandTextTransition = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.6, ease: [0.25, 0.1, 0.25, 1] as const, delay: 0.15 },
+    transition: { duration: 0.6, ease: EASE, delay: 0.15 },
   },
   exit: {
     opacity: 0,
     y: -10,
-    transition: { duration: 0.25, ease: [0.25, 0.1, 0.25, 1] as const },
+    transition: { duration: 0.25, ease: EASE },
   },
 };
 
@@ -55,12 +58,12 @@ const stepTransition = {
   animate: {
     opacity: 1,
     x: 0,
-    transition: { duration: 0.25, ease: [0.25, 0.1, 0.25, 1] as const },
+    transition: { duration: 0.25, ease: EASE },
   },
   exit: {
     opacity: 0,
     x: -15,
-    transition: { duration: 0.25, ease: [0.25, 0.1, 0.25, 1] as const },
+    transition: { duration: 0.25, ease: EASE },
   },
 };
 
@@ -121,7 +124,14 @@ export function AnimatedWizardShell<TState extends Record<string, unknown>>({
       message?: { heading: string; sub: string };
       logoSrc?: string;
     }) => {
-      const message = props.message ?? { heading: "", sub: "" };
+      const raw = props.message ?? { heading: "", sub: "" };
+      // Resolve i18n keys — if t() returns the key unchanged, use the raw value
+      const resolvedHeading = t(raw.heading);
+      const resolvedSub = t(raw.sub);
+      const message = {
+        heading: resolvedHeading !== raw.heading ? resolvedHeading : raw.heading,
+        sub: resolvedSub !== raw.sub ? resolvedSub : raw.sub,
+      };
 
       return (
         <motion.div
@@ -133,7 +143,7 @@ export function AnimatedWizardShell<TState extends Record<string, unknown>>({
           exit={{
             opacity: 0,
             x: "10%",
-            transition: { duration: 0.5, ease: [0.25, 0.1, 0.25, 1] },
+            transition: { duration: 0.5, ease: EASE },
           }}
         >
           {/* Dark panel background */}
@@ -154,7 +164,7 @@ export function AnimatedWizardShell<TState extends Record<string, unknown>>({
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ duration: 0.6, delay: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+                transition={{ duration: 0.6, delay: 0.5, ease: EASE }}
               >
                 <Image
                   src={props.logoSrc}
@@ -205,7 +215,7 @@ export function AnimatedWizardShell<TState extends Record<string, unknown>>({
                         ? "var(--brand-orange-light)"
                         : "oklch(1 0 0 / 0.15)",
                   }}
-                  transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+                  transition={{ duration: 0.4, ease: EASE }}
                 />
               ))}
             </div>
