@@ -257,7 +257,7 @@ export function ShiftTemplateSetupStep({
             {deptEntries.map((entry) => (
               <div
                 key={entry.id}
-                className={`flex items-center gap-2 rounded-xl border px-4 py-3 ${"border-border bg-white"}`}
+                className={`flex items-center gap-2 rounded-xl border px-4 py-3 ${"border-border bg-card"}`}
               >
                 <div className="flex flex-1 items-center gap-2">
                   <Input

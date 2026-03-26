@@ -151,7 +151,7 @@ export function Step6CreateAccount({ state, next }: WizardStepProps<JoinState>) 
         className="flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-white transition-all hover:brightness-110 disabled:opacity-50"
         style={{
           background: "var(--brand, #f97316)",
-          boxShadow: "0 2px 12px oklch(0.65 0.22 40 / 0.25)",
+          boxShadow: "0 2px 12px color-mix(in oklch, var(--brand-orange, #f97316) 25%, transparent)",
         }}
       >
         {loading ? (

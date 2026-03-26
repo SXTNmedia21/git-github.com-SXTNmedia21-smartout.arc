@@ -101,7 +101,7 @@ function InviteRowCard({
   return (
     <div
       className={`rounded-xl border p-4 transition-colors ${
-        hasValidationErrors ? "border-destructive bg-destructive/30" : "border-border bg-white"
+        hasValidationErrors ? "border-destructive bg-destructive/30" : "border-border bg-card"
       }`}
     >
       {/* Row 1: Name + Email + Phone */}
@@ -110,20 +110,20 @@ function InviteRowCard({
           placeholder="Fornavn"
           value={row.firstName}
           onChange={(e) => onUpdate(row.id, { firstName: e.target.value })}
-          className={`h-9 text-sm ${!row.firstName.trim() && hasValidationErrors ? "border-red-500" : ""} `}
+          className={`h-9 text-sm ${!row.firstName.trim() && hasValidationErrors ? "border-destructive" : ""} `}
         />
         <Input
           placeholder="Etternavn"
           value={row.lastName}
           onChange={(e) => onUpdate(row.id, { lastName: e.target.value })}
-          className={`h-9 text-sm ${!row.lastName.trim() && hasValidationErrors ? "border-red-500" : ""} `}
+          className={`h-9 text-sm ${!row.lastName.trim() && hasValidationErrors ? "border-destructive" : ""} `}
         />
         <Input
           placeholder="E-post"
           type="email"
           value={row.email}
           onChange={(e) => onUpdate(row.id, { email: e.target.value })}
-          className={`h-9 text-sm ${row.validationErrors.some((e) => e.includes("post")) ? "border-red-500" : ""} `}
+          className={`h-9 text-sm ${row.validationErrors.some((e) => e.includes("post")) ? "border-destructive" : ""} `}
         />
         <Input
           placeholder="Telefon"

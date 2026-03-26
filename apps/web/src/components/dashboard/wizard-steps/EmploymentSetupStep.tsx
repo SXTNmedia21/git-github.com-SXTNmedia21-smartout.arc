@@ -117,7 +117,7 @@ function EmploymentFormCard({
               value={form.label}
               onClick={(e) => e.stopPropagation()}
               onChange={(e) => onUpdate({ label: e.target.value })}
-              className={`h-7 w-48 text-sm font-semibold ${"border-border text-foreground placeholder:text-muted-foreground bg-white"}`}
+              className={`h-7 w-48 text-sm font-semibold ${"border-border text-foreground placeholder:text-muted-foreground bg-card"}`}
             />
           ) : (
             <span className={`text-sm font-semibold ${"text-foreground"}`}>{form.label}</span>
@@ -154,7 +154,7 @@ function EmploymentFormCard({
                   step={0.5}
                   value={form.hoursPerWeek}
                   onChange={(e) => onUpdate({ hoursPerWeek: parseFloat(e.target.value) || 0 })}
-                  className={`h-8 w-20 text-sm ${"border-border text-foreground bg-white"}`}
+                  className={`h-8 w-20 text-sm ${"border-border text-foreground bg-card"}`}
                 />
                 <span className={`text-xs ${"text-muted-foreground"}`}>t/uke</span>
               </div>
@@ -170,7 +170,7 @@ function EmploymentFormCard({
                   step={1}
                   value={form.noticeValue}
                   onChange={(e) => onUpdate({ noticeValue: parseInt(e.target.value, 10) || 0 })}
-                  className={`h-8 w-20 text-sm ${"border-border text-foreground bg-white"}`}
+                  className={`h-8 w-20 text-sm ${"border-border text-foreground bg-card"}`}
                 />
                 <span className={`text-xs ${"text-muted-foreground"}`}>{noticeUnitLabel}</span>
               </div>
@@ -506,7 +506,7 @@ export function EmploymentSetupStep({
                 onChange={(e) =>
                   handleCommonTermChange("probationMonths", parseInt(e.target.value, 10) || 0)
                 }
-                className={`h-8 w-20 text-sm ${"border-border text-foreground bg-white"}`}
+                className={`h-8 w-20 text-sm ${"border-border text-foreground bg-card"}`}
               />
               <span className={`text-xs ${"text-muted-foreground"}`}>mnd</span>
             </div>
@@ -525,7 +525,7 @@ export function EmploymentSetupStep({
                 onChange={(e) =>
                   handleCommonTermChange("vacationDays", parseInt(e.target.value, 10) || 0)
                 }
-                className={`h-8 w-20 text-sm ${"border-border text-foreground bg-white"}`}
+                className={`h-8 w-20 text-sm ${"border-border text-foreground bg-card"}`}
               />
               <span className={`text-xs ${"text-muted-foreground"}`}>dager</span>
             </div>
@@ -559,7 +559,7 @@ export function EmploymentSetupStep({
                 step={0.1}
                 value={commonTerms.otpPct}
                 onChange={(e) => handleCommonTermChange("otpPct", parseFloat(e.target.value) || 0)}
-                className={`h-8 w-20 text-sm ${"border-border text-foreground bg-white"}`}
+                className={`h-8 w-20 text-sm ${"border-border text-foreground bg-card"}`}
               />
               <span className={`text-xs ${"text-muted-foreground"}`}>%</span>
             </div>
@@ -580,7 +580,7 @@ export function EmploymentSetupStep({
                 onChange={(e) =>
                   handleCommonTermChange("employerTaxPct", parseFloat(e.target.value) || 0)
                 }
-                className={`h-8 w-20 text-sm ${"border-border text-foreground bg-white"}`}
+                className={`h-8 w-20 text-sm ${"border-border text-foreground bg-card"}`}
               />
               <span className={`text-xs ${"text-muted-foreground"}`}>%</span>
             </div>

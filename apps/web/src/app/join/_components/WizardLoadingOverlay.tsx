@@ -50,14 +50,13 @@ export function WizardLoadingOverlay({
 
       {/* Rotating message */}
       <p
-        className="text-center text-sm font-medium transition-opacity duration-500"
-        style={{ color: "var(--fg, oklch(0.15 0.01 50))" }}
+        className="text-center text-sm font-medium text-foreground transition-opacity duration-500"
         key={index}
       >
         {messages[index]}
       </p>
 
-      <p className="mt-2 text-center text-xs" style={{ color: "var(--fgm, oklch(0.52 0.01 52))" }}>
+      <p className="mt-2 text-center text-xs text-muted-foreground">
         Dette tar vanligvis noen sekunder
       </p>
 
