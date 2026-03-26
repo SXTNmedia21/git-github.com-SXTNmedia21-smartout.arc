@@ -75,7 +75,7 @@ export function useNotifications(
         nextPage: (data?.length ?? 0) === PAGE_SIZE ? pageParam + PAGE_SIZE : null,
       };
     },
-    getNextPageParam: (lastPage) => lastPage.nextPage,
+    getNextPageParam: (lastPage: { data: unknown[]; nextPage: number | null }) => lastPage.nextPage,
     initialPageParam: 0,
     enabled: !!profileId,
   });

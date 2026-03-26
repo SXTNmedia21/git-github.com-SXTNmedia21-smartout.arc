@@ -254,7 +254,8 @@ export function useShiftClock() {
         .update({
           punch_out: now,
           punch_out_location: (gps as unknown as Json) ?? null,
-          ...(comment ? { comment } : {}),
+          ...(comment ? { notes: comment } : {}),
+          status: "completed" as const,
         })
         .eq("time_entry_id", state.timeEntryId);
 

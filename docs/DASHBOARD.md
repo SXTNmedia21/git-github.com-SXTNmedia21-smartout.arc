@@ -1,7 +1,7 @@
 ---
 title: Development Dashboard
 status: in_progress
-updated: 2026-03-27
+updated: 2026-03-26
 created: 2026-03-02
 module: meta
 tags: [dashboard, worktrees, tracking]
@@ -13,11 +13,13 @@ tags: [dashboard, worktrees, tracking]
 
 ## Active Worktrees
 
-| #    | Branch                    | Module     | Status      | Progress                                                                                    | Blockers             | Health     |
-| ---- | ------------------------- | ---------- | ----------- | ------------------------------------------------------------------------------------------- | -------------------- | ---------- |
-| wt-3 | `feat/emma-arena-views`   | walkAi     | in_progress | Spec + mockups done, settings persistence committed. Implementation not started.            | None                 | stale (6d) |
-| wt-4 | `feat/mal-modus-schedule` | schedule   | in_progress | 13/13 impl tasks done + review fixes. AI spec written + council. Next: Phase A plan.        | —                    | clean      |
-| dev  | `development`             | wizard+k1b | in_progress | Wizard design overhaul + K1b ingestion pipeline. 6/6 E2E tests green. 67 uncommitted files. | Hook blocks 1 commit | dirty      |
+| #    | Branch                             | Module     | Status      | Progress                                                                             | Blockers | Health     |
+| ---- | ---------------------------------- | ---------- | ----------- | ------------------------------------------------------------------------------------ | -------- | ---------- |
+| wt-3 | `feat/emma-arena-views`            | walkAi     | in_progress | Spec + mockups done, settings persistence committed. Implementation not started.     | None     | stale (6d) |
+| wt-4 | `feat/mal-modus-schedule`          | schedule   | in_progress | 13/13 impl tasks done + review fixes. AI spec written + council. Next: Phase A plan. | —        | clean      |
+| wt-6 | `feat/admin-daily-loop`            | dashboard  | in_progress | Just started. Plan: 12 tasks (budget, conflicts, lock, deviation, status bar).       | —        | clean      |
+| wt-5 | `feat/mobile-production-readiness` | mobile     | in_progress | Just started. Spec + council done. Plan: 18 tasks (Phase 0-4).                       | —        | clean      |
+| dev  | `development`                      | wizard+k1b | paused      | Wizard + K1b committed. 6/6 E2E green. Typecheck clean. 37 uncommitted (unrelated).  | None     | clean      |
 
 ## Parked Branches (no worktree)
 
@@ -27,33 +29,35 @@ tags: [dashboard, worktrees, tracking]
 
 ## Free Slots
 
-| #     | Available                        |
-| ----- | -------------------------------- |
-| wt-1  | yes (notification-system closed) |
-| wt-2  | yes                              |
-| wt-3  | no (feat/emma-arena-views)       |
-| wt-4  | no (feat/mal-modus-schedule)     |
-| wt-5  | yes (worktree removed)           |
-| wt-6  | yes                              |
-| wt-7  | yes                              |
-| wt-15 | yes                              |
-| wt-20 | yes                              |
+| #     | Available                             |
+| ----- | ------------------------------------- |
+| wt-1  | yes (notification-system closed)      |
+| wt-2  | yes                                   |
+| wt-3  | no (feat/emma-arena-views)            |
+| wt-4  | no (feat/mal-modus-schedule)          |
+| wt-5  | no (feat/mobile-production-readiness) |
+| wt-6  | no (feat/admin-daily-loop)            |
+| wt-7  | yes                                   |
+| wt-15 | yes                                   |
+| wt-20 | yes                                   |
 
 ## Pending Journeys
 
-| WT   | Feature                | Journey File                                      | Status  |
-| ---- | ---------------------- | ------------------------------------------------- | ------- |
-| wt-1 | workspace-intelligence | `docs/journeys/JOURNEY-workspace-intelligence.md` | done    |
-| wt-1 | zero-to-production     | `docs/journeys/JOURNEY-zero-to-production.md`     | done    |
-| wt-2 | contract-enhancements  | `docs/journeys/JOURNEY-contract-enhancements.md`  | done    |
-| wt-4 | infra-hardening        | `docs/journeys/JOURNEY-infra-hardening.md`        | missing |
-| wt-6 | website-factory        | `docs/journeys/JOURNEY-website-factory.md`        | missing |
-| wt-2 | walkie-talkie          | `docs/journeys/JOURNEY-walkie-talkie.md`          | missing |
-| wt-2 | cascade-foundation     | `docs/journeys/JOURNEY-cascade-foundation.md`     | done    |
-| wt-5 | hms-phase-1            | `docs/journeys/JOURNEY-hms-phase-1.md`            | done    |
-| wt-6 | livekit-phase2         | `docs/journeys/JOURNEY-livekit-phase2.md`         | missing |
-| wt-1 | notification-system    | `docs/journeys/JOURNEY-notification-system.md`    | done    |
-| wt-4 | mal-modus-schedule     | `docs/journeys/JOURNEY-mal-modus-schedule.md`     | missing |
+| WT   | Feature                     | Journey File                                           | Status  |
+| ---- | --------------------------- | ------------------------------------------------------ | ------- |
+| wt-1 | workspace-intelligence      | `docs/journeys/JOURNEY-workspace-intelligence.md`      | done    |
+| wt-1 | zero-to-production          | `docs/journeys/JOURNEY-zero-to-production.md`          | done    |
+| wt-2 | contract-enhancements       | `docs/journeys/JOURNEY-contract-enhancements.md`       | done    |
+| wt-4 | infra-hardening             | `docs/journeys/JOURNEY-infra-hardening.md`             | missing |
+| wt-6 | website-factory             | `docs/journeys/JOURNEY-website-factory.md`             | missing |
+| wt-2 | walkie-talkie               | `docs/journeys/JOURNEY-walkie-talkie.md`               | missing |
+| wt-2 | cascade-foundation          | `docs/journeys/JOURNEY-cascade-foundation.md`          | done    |
+| wt-5 | hms-phase-1                 | `docs/journeys/JOURNEY-hms-phase-1.md`                 | done    |
+| wt-6 | livekit-phase2              | `docs/journeys/JOURNEY-livekit-phase2.md`              | missing |
+| wt-1 | notification-system         | `docs/journeys/JOURNEY-notification-system.md`         | done    |
+| wt-4 | mal-modus-schedule          | `docs/journeys/JOURNEY-mal-modus-schedule.md`          | missing |
+| wt-6 | admin-daily-loop            | `docs/journeys/JOURNEY-admin-daily-loop.md`            | missing |
+| wt-5 | mobile-production-readiness | `docs/journeys/JOURNEY-mobile-production-readiness.md` | missing |
 
 ## Recent Closures
 
@@ -106,7 +110,9 @@ tags: [dashboard, worktrees, tracking]
 
 ## Session History
 
+| 2026-03-26 | run-council skill | done | Created /run-council skill (321 lines). 8-phase multi-agent review flow. Tested with simulated scenario, found+fixed 7 gaps. Council log + memory file created. Self-learning protocol tracks agent effectiveness. |
 | 2026-03-26 | walkai-bridge-builder | done | Created walkai-bridge-builder agent (.claude/agents/). Brainstormed with 3 expert agents. Spec committed. Updated steward/coordinator/supervisor with cross-references. Deployed to wt-4. |
+| 2026-03-26 | mal-modus + shift-clock | session ended | Mal-modus: spec+plan+mockup+styleguide done, wt-4 ready. Shift clock: 5 bugs fixed, 68 shifts seeded, 9 E2E tests passing. Admin visibility: spec+plan written (5 modules). Schedule: dept filter + lokasjon view. |
 | 2026-03-26 | bugfixes+notification-seed | paused | 3 fixes (SendGrid fs build error, mobile StyleSheet crash, DashboardShell hydration mismatch) + notification seed data (32 notifs, 8 outbox, 7 prefs). 46 uncommitted files on development. |
 | 2026-03-26 | walkAi-voice-fix | in_progress | WalkAi voice "permission denied" fix: mic pre-request in useAgent.ts, duplicate transcript fix in WalkAiArena.tsx. Needs testing after dev server restart. Page navigation regression noted. |
 | 2026-03-26 | nordic-split-design | done | Nordic Split design system complete. Merged styleguide (434KB, 25 sections), orb generator, synced tokens.ts/css/native.ts with warm values, 7 markdown docs, renamed from "Ren og Varm". 5 commits on development. Backlog: 140 hardcoded color files. |

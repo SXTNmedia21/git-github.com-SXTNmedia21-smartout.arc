@@ -29,7 +29,7 @@ import {
   useNotifications,
   useMarkAsRead,
   useMarkAllAsRead,
-} from "@smartout/notifications";
+} from "@smartout/notifications/client";
 import { useNotificationRealtime } from "@/hooks/use-notification-realtime";
 
 /* ------------------------------------------------------------------ */
@@ -89,7 +89,17 @@ export function NotificationBell({ profileId }: NotificationBellProps) {
   useNotificationRealtime(profileId);
 
   // Flatten infinite query pages and take first 8
-  const notifications = (notificationsData?.pages ?? []).flatMap((p) => p.data).slice(0, 8);
+  const notifications = (notificationsData?.pages ?? [])
+    .flatMap((p: { data: unknown[] }) => p.data)
+    .slice(0, 8) as Array<{
+    id: string;
+    title: string;
+    body: string | null;
+    icon_type: string;
+    action_url: string | null;
+    is_read: boolean;
+    created_at: string;
+  }>;
 
   /**
    * Request browser notification permission on first bell click.

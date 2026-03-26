@@ -553,51 +553,31 @@ function SchedulePageContent() {
     return sorted;
   }, [employees, employeeOrder, scheduleCompactMode, employeesWithShifts]);
 
-  // ── Location-based employee filtering ─────────────────────
-  const { activeLocation, setActiveLocation } = useContext(DashboardContext);
+  // ── Department-based employee filtering ──────────────────
+  const { activeDepartment, setActiveDepartment } = useContext(DashboardContext);
 
-  const locationFilteredEmployees = useMemo(() => {
-    if (!activeLocation || activeLocation === "Alle Lokasjoner") return sortedEmployees;
-    const loc = activeLocation.toLowerCase();
-    return sortedEmployees.filter((emp) => {
-      const dept = (emp.jobTitle || "").toLowerCase();
-      const team = (emp.team || "").toLowerCase();
-      const role = (emp.role || "").toLowerCase();
-      // Match location to employee attributes
-      return (
-        dept.includes(loc) ||
-        team.includes(loc) ||
-        role.includes(loc) ||
-        loc.includes(dept) ||
-        loc.includes(team)
-      );
-    });
-  }, [sortedEmployees, activeLocation]);
+  const departmentFilteredEmployees = useMemo(() => {
+    if (!activeDepartment || activeDepartment === "Alle avdelinger") return sortedEmployees;
+    return sortedEmployees.filter((emp) => emp.departmentName === activeDepartment);
+  }, [sortedEmployees, activeDepartment]);
 
-  const locationOptions = useMemo(() => {
-    const values = new Set<string>();
-    for (const employee of employees) {
-      const candidates = [employee.team, employee.jobTitle, employee.role];
-      for (const candidate of candidates) {
-        if (!candidate) continue;
-        const trimmed = candidate.trim();
-        if (trimmed.length === 0) continue;
-        values.add(trimmed);
-      }
+  const departmentOptions = useMemo(() => {
+    const names = new Set<string>();
+    for (const emp of employees) {
+      if (emp.departmentName) names.add(emp.departmentName);
     }
-    return Array.from(values).sort((a, b) => a.localeCompare(b, "nb"));
+    return Array.from(names).sort((a, b) => a.localeCompare(b, "nb"));
   }, [employees]);
 
   useEffect(() => {
-    if (activeLocation === "Alle Lokasjoner") return;
-    if (locationOptions.includes(activeLocation)) return;
-    const fallback = locationOptions[0] ?? "Alle Lokasjoner";
-    setActiveLocation(fallback);
-  }, [activeLocation, locationOptions, setActiveLocation]);
+    if (activeDepartment === "Alle avdelinger") return;
+    if (departmentOptions.includes(activeDepartment)) return;
+    setActiveDepartment("Alle avdelinger");
+  }, [activeDepartment, departmentOptions, setActiveDepartment]);
 
   const visibleEmployeeIds = useMemo(
-    () => new Set(locationFilteredEmployees.map((employee) => employee.id)),
-    [locationFilteredEmployees],
+    () => new Set(departmentFilteredEmployees.map((employee) => employee.id)),
+    [departmentFilteredEmployees],
   );
 
   const filteredShifts = useMemo(() => {
@@ -988,7 +968,7 @@ function SchedulePageContent() {
                     weekSpan={weekSpan}
                     setWeekSpan={setWeekSpan}
                     scheduleLayout={scheduleLayout}
-                    locationOptions={locationOptions}
+                    departmentOptions={departmentOptions}
                   />
 
                   <GridSurface
@@ -1002,7 +982,7 @@ function SchedulePageContent() {
                             filterSituation={filterSituation}
                             activeStatusFilter={activeStatusFilter}
                             visibleDays={situationFilteredDays}
-                            employees={locationFilteredEmployees}
+                            employees={departmentFilteredEmployees}
                             shifts={filteredShifts}
                             absences={filteredAbsences}
                             highlightedDayId={highlightedDayId}
@@ -1018,7 +998,7 @@ function SchedulePageContent() {
                             filterSituation={filterSituation}
                             computed={computed}
                             scheduleUI={scheduleUI}
-                            employees={locationFilteredEmployees}
+                            employees={departmentFilteredEmployees}
                             shifts={filteredShifts}
                             days={days}
                             weekStart={weekStart}
@@ -1029,7 +1009,7 @@ function SchedulePageContent() {
                             onDateClick={handleSetSelectedDate}
                             shifts={filteredShifts}
                             computed={computed}
-                            employees={locationFilteredEmployees}
+                            employees={departmentFilteredEmployees}
                           />
                         )}
                         {scheduleLayout === "list" && (
@@ -1037,7 +1017,7 @@ function SchedulePageContent() {
                             onDateClick={handleSetSelectedDate}
                             computed={computed}
                             days={days}
-                            employees={locationFilteredEmployees}
+                            employees={departmentFilteredEmployees}
                             weekStart={weekStart}
                           />
                         )}
@@ -1468,6 +1448,16 @@ function WeeklyGridContent({
       }
       return Array.from(map.entries());
     }
+    if (scheduleView === "lokasjon") {
+      const map = new Map<string, ScheduleEmployee[]>();
+      for (const emp of employees) {
+        const key = emp.locationName || "Uten lokasjon";
+        const list = map.get(key) ?? [];
+        list.push(emp);
+        map.set(key, list);
+      }
+      return Array.from(map.entries());
+    }
     return [["Alle ansatte", employees] as [string, ScheduleEmployee[]]];
   }, [scheduleView, employees]);
 
@@ -1503,7 +1493,13 @@ function WeeklyGridContent({
           >
             <span className="text-foreground/50 text-xs font-bold tracking-widest uppercase">
               Visning:{" "}
-              {scheduleView === "ansatt" ? "Ansatt" : scheduleView === "jobb" ? "Rolle" : "Team"}
+              {scheduleView === "ansatt"
+                ? "Ansatt"
+                : scheduleView === "jobb"
+                  ? "Rolle"
+                  : scheduleView === "lokasjon"
+                    ? "Lokasjon"
+                    : "Team"}
             </span>
           </div>
         </div>
@@ -1517,7 +1513,13 @@ function WeeklyGridContent({
                   <EntityRow
                     key={emp.id}
                     name={emp.name}
-                    subtitle={scheduleView === "jobb" ? emp.team : emp.jobTitle || emp.role}
+                    subtitle={
+                      scheduleView === "jobb"
+                        ? emp.team
+                        : scheduleView === "lokasjon"
+                          ? emp.departmentName
+                          : emp.jobTitle || emp.role
+                    }
                     hours={stats.totalHours.toFixed(1)}
                     shifts={String(stats.shiftCount)}
                     avatarColor={emp.avatarColor}

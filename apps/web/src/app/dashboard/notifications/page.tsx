@@ -28,7 +28,7 @@ import {
   useUnreadCount,
   useMarkAsRead,
   useMarkAllAsRead,
-} from "@smartout/notifications";
+} from "@smartout/notifications/client";
 
 /* ------------------------------------------------------------------ */
 /*  Icon mapping — mirrors NotificationBell for visual consistency     */
@@ -117,7 +117,15 @@ export default function NotificationsPage() {
   const markAllAsRead = useMarkAllAsRead(profileId ?? undefined);
 
   // Flatten all pages into one flat list
-  const notifications = (data?.pages ?? []).flatMap((p) => p.data);
+  const notifications = (data?.pages ?? []).flatMap((p: { data: unknown[] }) => p.data) as Array<{
+    id: string;
+    title: string;
+    body: string | null;
+    icon_type: string;
+    action_url: string | null;
+    is_read: boolean;
+    created_at: string;
+  }>;
 
   // Intersection observer sentinel for infinite scroll
   const sentinelRef = useRef<HTMLDivElement>(null);

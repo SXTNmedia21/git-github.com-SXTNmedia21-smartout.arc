@@ -83,9 +83,83 @@ export function ShiftClockView() {
     staleTime: 30_000,
   });
 
-  // Chat hook — requires shift and session ids
+  // ── Resolve next scheduled shift for this employee today ──
+  const punchWindow = config?.punchWindowMinutes ?? 30;
+  const nextShiftQuery = useQuery({
+    queryKey: ["shift-clock-next-shift", profileId, workspace.workspace_id],
+    enabled: state.phase === "idle" && !!profileId,
+    queryFn: async () => {
+      const supabase = createClient();
+      const today = new Date().toISOString().slice(0, 10);
+      const { data, error } = await supabase
+        .from("schedule_shift")
+        .select(
+          "schedule_shift_id, start_time, end_time, role, zone, department_id, department:department_id(name)",
+        )
+        .eq("workspace_id", workspace.workspace_id)
+        .eq("employee_id", profileId!)
+        .eq("shift_date", today)
+        .eq("status", "published")
+        .order("start_time", { ascending: true })
+        .limit(5);
+      if (error) throw error;
+      if (!data || data.length === 0) return null;
+
+      // Find first shift that hasn't ended yet (accounting for punch window)
+      const now = new Date();
+      const windowMs = punchWindow * 60_000;
+      for (const shift of data) {
+        const endParts = shift.end_time.split(":");
+        const endDate = new Date(today + "T" + shift.end_time);
+        // Handle overnight shifts (end_time < start_time means next day)
+        if (shift.end_time < shift.start_time) endDate.setDate(endDate.getDate() + 1);
+        if (endDate.getTime() > now.getTime()) return shift;
+      }
+      return null;
+    },
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+  });
+
+  const nextShift = nextShiftQuery.data;
+  const nextShiftDeptName =
+    nextShift?.department &&
+    typeof nextShift.department === "object" &&
+    "name" in nextShift.department
+      ? (nextShift.department as { name: string }).name
+      : "";
+
+  // ── Resolve department session for chat ──
+  const sessionQuery = useQuery({
+    queryKey: ["shift-clock-session", state.shiftId],
+    enabled: !!state.shiftId && state.phase !== "idle",
+    queryFn: async () => {
+      const supabase = createClient();
+      const today = new Date().toISOString().slice(0, 10);
+      // Get department from the active shift
+      const { data: shift } = await supabase
+        .from("schedule_shift")
+        .select("department_id")
+        .eq("schedule_shift_id", state.shiftId!)
+        .single();
+      if (!shift?.department_id) return null;
+
+      const { data: session } = await supabase
+        .from("department_session")
+        .select("department_session_id")
+        .eq("department_id", shift.department_id)
+        .eq("session_date", today)
+        .in("status", ["upcoming", "active"])
+        .limit(1)
+        .single();
+      return session?.department_session_id ?? null;
+    },
+    staleTime: 5 * 60_000,
+  });
+
+  // Chat hook — uses resolved session ID
   const chat = useShiftChat({
-    departmentSessionId: null, // TODO: resolve from active department session
+    departmentSessionId: sessionQuery.data ?? null,
     scheduleShiftId: state.shiftId,
   });
 
@@ -104,13 +178,13 @@ export function ShiftClockView() {
     [supplements.claimedSupplements],
   );
 
-  // Punch-in handler for PunchButton
+  // Punch-in handler — uses resolved next shift
   const handlePunchIn = useCallback(async () => {
-    // TODO: resolve actual shiftId from next scheduled shift
-    const shiftId = state.shiftId ?? "placeholder";
+    const shiftId = state.shiftId ?? nextShift?.schedule_shift_id;
+    if (!shiftId) return { allowed: false, warnings: ["Ingen planlagt vakt funnet"] };
     const result = await punchIn(shiftId);
     return { allowed: result.allowed, warnings: result.warnings };
-  }, [punchIn, state.shiftId]);
+  }, [punchIn, state.shiftId, nextShift?.schedule_shift_id]);
 
   // No-op complete handler — PunchButton animation calls this when done
   const handlePunchComplete = useCallback(() => {
@@ -248,13 +322,27 @@ export function ShiftClockView() {
     }
 
     // Variant A — standard idle with upcoming scheduled shift
+    if (!nextShift) {
+      // No shift found for today — show a clear empty state
+      return (
+        <div className="bg-background flex h-full w-full flex-col items-center justify-center gap-4 px-6">
+          <Calendar className="text-muted-foreground h-10 w-10" />
+          <h2 className="font-heading text-foreground text-xl font-semibold">Ingen vakt i dag</h2>
+          <p className="text-muted-foreground text-sm">Du har ingen planlagte vakter for i dag.</p>
+        </div>
+      );
+    }
+
+    const startHHMM = nextShift.start_time.slice(0, 5);
+    const endHHMM = nextShift.end_time.slice(0, 5);
+
     return (
       <div className="h-full w-full">
         <PunchButton
           shiftInfo={{
-            time: "16:00 - 23:00", // TODO: resolve from next scheduled shift
-            department: "Restaurant",
-            zone: "Sal",
+            time: `${startHHMM} - ${endHHMM}`,
+            department: nextShiftDeptName || nextShift.role,
+            zone: nextShift.zone ?? "",
           }}
           onPunchIn={handlePunchIn}
           onComplete={handlePunchComplete}
@@ -293,8 +381,8 @@ export function ShiftClockView() {
       <ShiftClockHeader
         punchInTime={state.punchInTime!}
         isOnBreak={isOnBreak}
-        department="Restaurant"
-        zone="Sal"
+        department={nextShiftDeptName || "—"}
+        zone={nextShift?.zone ?? ""}
       />
 
       {/* Action buttons */}

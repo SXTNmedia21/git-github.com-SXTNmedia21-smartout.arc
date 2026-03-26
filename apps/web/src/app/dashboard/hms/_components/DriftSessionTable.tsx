@@ -1,6 +1,6 @@
 "use client";
 
-import { useContext, useState } from "react";
+import { Fragment, useContext, useState } from "react";
 import { ChevronLeft, ChevronRight, Loader2, PenLine } from "lucide-react";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { Badge } from "@/components/ui/badge";
@@ -106,9 +106,8 @@ export function DriftSessionTable() {
             </thead>
             <tbody>
               {sessions.map((session) => (
-                <>
+                <Fragment key={session.sessionId}>
                   <tr
-                    key={session.sessionId}
                     onClick={() =>
                       setExpandedSession(
                         expandedSession === session.sessionId ? null : session.sessionId,
@@ -164,7 +163,7 @@ export function DriftSessionTable() {
                       </td>
                     </tr>
                   )}
-                </>
+                </Fragment>
               ))}
             </tbody>
           </table>

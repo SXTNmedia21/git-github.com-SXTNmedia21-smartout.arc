@@ -18,7 +18,7 @@ import { Switch } from "@/components/ui/switch";
 import {
   useNotificationPreferences,
   useUpdateNotificationPreferences,
-} from "@smartout/notifications";
+} from "@smartout/notifications/client";
 
 // ---------------------------------------------------------------------------
 // Types

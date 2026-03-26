@@ -277,6 +277,18 @@ export function GridContent({
     return Array.from(map.entries());
   }, [filteredEmployees]);
 
+  /** Group once for location view. */
+  const employeesByLocation = React.useMemo(() => {
+    const map = new Map<string, ScheduleEmployee[]>();
+    for (const employee of filteredEmployees) {
+      const locKey = employee.locationName || "Uten lokasjon";
+      const list = map.get(locKey) ?? [];
+      list.push(employee);
+      map.set(locKey, list);
+    }
+    return Array.from(map.entries());
+  }, [filteredEmployees]);
+
   return (
     <div className="flex w-full flex-col">
       <DayHeaders
@@ -426,6 +438,42 @@ export function GridContent({
             })}
           </div>
         )}
+
+        {scheduleView === "lokasjon" && (
+          <div className="flex flex-col">
+            {employeesByLocation.map(([location, employeesInLocation]) => {
+              return (
+                <React.Fragment key={location}>
+                  <GroupHeader
+                    title={location}
+                    count={employeesInLocation.length}
+                    days={visibleDays}
+                  />
+                  {employeesInLocation.map((emp) => (
+                    <EmployeeRow
+                      key={emp.id}
+                      employee={emp}
+                      employeeStats={employeeStats.get(emp.id)}
+                      days={visibleDays}
+                      shiftsByEmployeeDay={shiftsByEmployeeDay}
+                      absencesByEmployeeDay={absencesByEmployeeDay}
+                      proposalsByEmployeeDay={proposalsByEmployeeDay}
+                      onCreateShift={setCreateShiftContext}
+                      onAbsencePopover={setAbsencePopover}
+                      onSelectShift={setSelectedShift}
+                      onSelectEmployee={setSelectedEmployee}
+                      onTimeChange={onTimeChange}
+                      onApproveProposal={onApproveProposal}
+                      onRejectProposal={onRejectProposal}
+                      enableDroppable={enableDroppable}
+                      subtitle={emp.departmentName}
+                    />
+                  ))}
+                </React.Fragment>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -467,7 +515,13 @@ const DayHeaders = React.memo(function DayHeaders({
         <div className="flex w-full items-center justify-between">
           <div className="text-foreground/60 flex items-center gap-2 text-xs font-bold tracking-widest uppercase">
             <Users className="text-foreground/50 h-4 w-4" />
-            {scheduleView === "ansatt" ? "Ansatte" : scheduleView === "jobb" ? "Roller" : "Team"}
+            {scheduleView === "ansatt"
+              ? "Ansatte"
+              : scheduleView === "jobb"
+                ? "Roller"
+                : scheduleView === "lokasjon"
+                  ? "Lokasjoner"
+                  : "Team"}
           </div>
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}

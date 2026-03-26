@@ -63,7 +63,7 @@ function resolveMissionForRoute(pathname: string): MissionId {
 
 export type AdminViewType = "tactical" | "strategic" | "reconciliation" | "activity" | "guardian";
 export type ScheduleLayoutMode = "daily" | "weekly" | "monthly" | "list";
-export type ScheduleViewMode = "ansatt" | "jobb" | "team";
+export type ScheduleViewMode = "ansatt" | "jobb" | "team" | "lokasjon";
 type VoiceSessionContext = {
   page: string;
   story: string;
@@ -211,8 +211,8 @@ export const DashboardContext = createContext({
   setScheduleView: (_val: ScheduleViewMode) => {
     void _val;
   },
-  activeLocation: "Alle Lokasjoner",
-  setActiveLocation: (_val: string) => {
+  activeDepartment: "Alle avdelinger",
+  setActiveDepartment: (_val: string) => {
     void _val;
   },
   isSidebarCollapsed: false,
@@ -292,8 +292,7 @@ import { DocumentModeShell } from "@/app/dashboard/_components/document-mode/doc
 import { DocumentModeSidebar } from "@/app/dashboard/_components/document-mode/document-mode-sidebar";
 import { DocumentModeProvider } from "@/app/dashboard/_components/document-mode/document-mode-context";
 
-/** Demo location options for the schedule page location selector */
-// LOCATIONS moved to schedule PlannerCommandBar
+// Department filter state is managed via activeDepartment in context
 
 function VoiceAssistantWithTools({
   isOpen,
@@ -328,27 +327,23 @@ export function DashboardShell({
   children: React.ReactNode;
   profileId?: string | null;
 }) {
-  const [isDark, setIsDarkRaw] = useState(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("smartout-theme");
-      if (stored === "dark") return true;
-      if (stored === "light") return false;
-    }
-    return false; // light mode default
-  });
+  const [isDark, setIsDarkRaw] = useState(false); // SSR-safe default
+  const [themeReady, setThemeReady] = useState(false);
+  useEffect(() => {
+    const stored = localStorage.getItem("smartout-theme");
+    if (stored === "dark") setIsDarkRaw(true);
+    setThemeReady(true);
+  }, []);
   const setIsDark = useCallback((val: boolean) => {
     setIsDarkRaw(val);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("smartout-theme", val ? "dark" : "light");
-    }
+    localStorage.setItem("smartout-theme", val ? "dark" : "light");
   }, []);
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [isAdminMode, setIsAdminMode] = useState(true);
   const [adminView, setAdminView] = useState<AdminViewType>("strategic");
   const [scheduleLayout, setScheduleLayout] = useState<ScheduleLayoutMode>("daily");
   const [scheduleView, setScheduleView] = useState<ScheduleViewMode>("ansatt");
-  const [activeLocation, setActiveLocation] = useState("Alle Lokasjoner");
-  // locationMenuOpen removed — location selector moved to PlannerCommandBar
+  const [activeDepartment, setActiveDepartment] = useState("Alle avdelinger");
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [weeklyPeriodCount, setWeeklyPeriodCount] = useState(4);
   const [scheduleDateOffset, setScheduleDateOffset] = useState(0);
@@ -465,8 +460,8 @@ export function DashboardShell({
       setScheduleLayout,
       scheduleView,
       setScheduleView,
-      activeLocation,
-      setActiveLocation,
+      activeDepartment,
+      setActiveDepartment,
       isSidebarCollapsed,
       setIsSidebarCollapsed,
       weeklyPeriodCount,
@@ -492,7 +487,7 @@ export function DashboardShell({
       adminView,
       scheduleLayout,
       scheduleView,
-      activeLocation,
+      activeDepartment,
       isSidebarCollapsed,
       weeklyPeriodCount,
       scheduleDateOffset,
@@ -990,6 +985,7 @@ export function DashboardShell({
     <DocumentModeProvider>
       <VoiceToolsProvider>
         <div
+          style={themeReady ? undefined : { opacity: 0 }}
           className={`flex h-screen flex-col overflow-hidden font-sans transition-colors duration-300 selection:bg-orange-500/30 ${
             isDark ? "dark" : ""
           } bg-background text-foreground print:block print:h-auto print:overflow-visible`}

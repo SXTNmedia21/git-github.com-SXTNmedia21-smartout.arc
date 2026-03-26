@@ -4,7 +4,15 @@
  * On confirmation, navigates to the verify screen with workspace context.
  */
 import { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, Image } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ActivityIndicator,
+  Image,
+  StyleSheet,
+} from "react-native";
 import { useRouter } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/theme";

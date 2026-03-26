@@ -189,7 +189,7 @@ export function ContentCreator({
                       style={styles.removeImage}
                       hitSlop={4}
                     >
-                      <X size={12} color="#ffffff" strokeWidth={2.5} />
+                      <X size={12} color={theme.colors.primaryForeground} strokeWidth={2.5} />
                     </Pressable>
                   </View>
                 ))}
