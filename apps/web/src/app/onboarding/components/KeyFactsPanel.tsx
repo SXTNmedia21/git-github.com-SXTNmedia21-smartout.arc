@@ -3,8 +3,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { useOnboarding } from "../WizardContext";
-
-const EASE = [0.16, 1, 0.3, 1] as const;
+import { EASE_EXPO } from "../lib/motion";
 
 export function KeyFactsPanel() {
   const { activeSection, memories, removeMemory } = useOnboarding();
@@ -19,7 +18,7 @@ export function KeyFactsPanel() {
           initial={{ opacity: 0, x: -24 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -24 }}
-          transition={{ duration: 0.5, ease: EASE }}
+          transition={{ duration: 0.5, ease: EASE_EXPO }}
         >
           <p className="font-mono text-[10px] tracking-widest text-white/30 uppercase">
             Botsson husker
@@ -33,7 +32,7 @@ export function KeyFactsPanel() {
                 initial={{ opacity: 0, x: -16 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -16, height: 0 }}
-                transition={{ duration: 0.4, ease: EASE }}
+                transition={{ duration: 0.4, ease: EASE_EXPO }}
                 className="group flex items-start gap-2"
               >
                 <p className="flex-1 text-sm leading-snug text-white/70">{memory.content}</p>

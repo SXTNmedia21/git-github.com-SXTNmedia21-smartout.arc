@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import { EASE_EXPO } from "../lib/motion";
 import {
   Building2,
   Calendar,
@@ -115,7 +116,7 @@ export function WelcomeSection() {
 
       <motion.div
         animate={showFinale ? { scale: 0.95, opacity: 0.6 } : { scale: 1, opacity: 1 }}
-        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+        transition={{ duration: 0.8, ease: EASE_EXPO }}
         className="flex min-h-dvh flex-col lg:flex-row"
       >
         {/* Left: Agent voice + CTA */}
@@ -123,7 +124,7 @@ export function WelcomeSection() {
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.8, ease: EASE_EXPO }}
           >
             <div className="flex items-center gap-3">
               <Sparkles className="size-5 text-white/20" />
@@ -183,7 +184,7 @@ export function WelcomeSection() {
                 key={item.label}
                 initial={{ opacity: 0, y: 24 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.09, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                transition={{ delay: i * 0.09, duration: 0.6, ease: EASE_EXPO }}
                 className={`rounded-2xl border p-6 ${
                   item.filled
                     ? "border-white/[0.06] bg-white/[0.05]"

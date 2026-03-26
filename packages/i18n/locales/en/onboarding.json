@@ -151,6 +151,18 @@
     "title": "Confirm workspace",
     "description": "Review and adjust the information we collected."
   },
+  "brandPanel": {
+    "confirmBusiness_heading": "Check that\neverything's right.",
+    "confirmBusiness_sub": "We gathered information from registries and the web. Adjust what's needed.",
+    "confirmDepartments_heading": "Your\ndepartments.",
+    "confirmDepartments_sub": "Choose which departments are active in your business.",
+    "confirmLocations_heading": "Where are\nyou located?",
+    "confirmLocations_sub": "Confirm locations and add zones.",
+    "confirmProcedures_heading": "Routines and\nprocedures.",
+    "confirmProcedures_sub": "Choose which routines to enable for the team.",
+    "summary_heading": "All set.",
+    "summary_sub": "Review the summary and activate your workspace."
+  },
   "confirm": {
     "business_title": "Confirm Business Information",
     "business_description": "We gathered this information. Check that everything is correct.",

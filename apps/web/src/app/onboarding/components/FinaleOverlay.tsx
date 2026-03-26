@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { EASE_EXPO, EASE_STANDARD } from "../lib/motion";
 
 // UI Events:
 // - action: finale animation plays (~2s) then triggers onComplete callback
@@ -98,7 +99,7 @@ export function FinaleOverlay({ active, onComplete }: FinaleOverlayProps) {
             }
             transition={{
               duration: 1.2,
-              ease: [0.16, 1, 0.3, 1],
+              ease: EASE_EXPO,
             }}
             style={{
               background:
@@ -128,7 +129,7 @@ export function FinaleOverlay({ active, onComplete }: FinaleOverlayProps) {
                 transition={{
                   duration: 0.8,
                   delay: streak.delay,
-                  ease: [0.16, 1, 0.3, 1],
+                  ease: EASE_EXPO,
                 }}
                 style={{
                   width: 3,
@@ -150,7 +151,7 @@ export function FinaleOverlay({ active, onComplete }: FinaleOverlayProps) {
             animate={phase === "fade" ? { opacity: 1 } : { opacity: 0 }}
             transition={{
               duration: 1.0,
-              ease: [0.25, 0.1, 0.25, 1.0],
+              ease: EASE_STANDARD,
             }}
             style={{
               background:

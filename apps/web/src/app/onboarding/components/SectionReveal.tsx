@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import type { ReactNode } from "react";
+import { EASE_EXPO } from "../lib/motion";
 
 const container = {
   hidden: { opacity: 0 },
@@ -19,7 +20,7 @@ export const revealItem = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 1.0, ease: [0.16, 1, 0.3, 1] as const },
+    transition: { duration: 1.0, ease: EASE_EXPO },
   },
 };
 

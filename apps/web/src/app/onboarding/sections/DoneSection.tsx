@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Users, Calendar, ClipboardList, ArrowRight, Loader2 } from "lucide-react";
 import { useOnboarding } from "../WizardContext";
 import { SectionReveal, RevealItem } from "../components/SectionReveal";
+import { redirectToDashboard } from "../lib/redirect";
 
 function formatDateRange(startDate: string, endDate: string) {
   const start = new Date(startDate);
@@ -19,7 +19,6 @@ function formatDateRange(startDate: string, endDate: string) {
 
 export function DoneSection() {
   const { season, departments, finalize } = useOnboarding();
-  const router = useRouter();
   const [isActivating, setIsActivating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,10 +32,10 @@ export function DoneSection() {
     setIsActivating(true);
     setError(null);
     try {
-      await finalize();
-      router.push("/dashboard");
+      const { slug } = await finalize();
+      redirectToDashboard(slug);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Noe gikk galt. Prov igjen.");
+      setError(err instanceof Error ? err.message : "Noe gikk galt. Prøv igjen.");
       setIsActivating(false);
     }
   }

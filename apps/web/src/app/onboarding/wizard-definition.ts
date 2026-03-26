@@ -22,6 +22,7 @@ import {
   resolveNaceCode,
 } from "./lib/industry-defaults";
 import { buildWorkspaceFinalizationRequest } from "./lib/finalization";
+import { redirectToDashboard } from "./lib/redirect";
 import { ConfirmBusiness } from "./steps/ConfirmBusiness";
 import { ConfirmDepartments } from "./steps/ConfirmDepartments";
 import { ConfirmLocations } from "./steps/ConfirmLocations";
@@ -229,17 +230,7 @@ async function onComplete(state: OnboardingConfirmState): Promise<void> {
     throw new Error(error.message || "Failed to finalize workspace");
   }
 
-  // Redirect to dashboard after successful finalization
-  const slug = state.workspaceSlug;
-  const rootDomain =
-    typeof window !== "undefined" ? window.location.hostname.split(".").slice(-2).join(".") : "";
-  const isLocalhost = rootDomain === "localhost" || rootDomain.includes("localhost");
-
-  if (!isLocalhost && slug) {
-    window.location.href = `https://${slug}.${rootDomain}/dashboard/setup`;
-  } else {
-    window.location.href = "/dashboard/setup";
-  }
+  redirectToDashboard(state.workspaceSlug);
 }
 
 export const onboardingWizard: WizardDefinition<OnboardingConfirmState> = {
@@ -257,24 +248,24 @@ export const onboardingWizard: WizardDefinition<OnboardingConfirmState> = {
     position: "right",
     messages: {
       "confirm-business": {
-        heading: "Sjekk at alt\nstemmer.",
-        sub: "Vi har samlet informasjon fra registre og nettet. Juster det som trengs.",
+        heading: "brandPanel.confirmBusiness_heading",
+        sub: "brandPanel.confirmBusiness_sub",
       },
       "confirm-departments": {
-        heading: "Dine\navdelinger.",
-        sub: "Velg hvilke avdelinger som er aktive i din virksomhet.",
+        heading: "brandPanel.confirmDepartments_heading",
+        sub: "brandPanel.confirmDepartments_sub",
       },
       "confirm-locations": {
-        heading: "Hvor holder\ndere til?",
-        sub: "Bekreft lokasjoner og legg til soner.",
+        heading: "brandPanel.confirmLocations_heading",
+        sub: "brandPanel.confirmLocations_sub",
       },
       "confirm-procedures": {
-        heading: "Rutiner og\nprosedyrer.",
-        sub: "Velg hvilke rutiner som skal aktiveres for teamet.",
+        heading: "brandPanel.confirmProcedures_heading",
+        sub: "brandPanel.confirmProcedures_sub",
       },
       summary: {
-        heading: "Alt klart.",
-        sub: "Sjekk oppsummeringen og aktiver workspace.",
+        heading: "brandPanel.summary_heading",
+        sub: "brandPanel.summary_sub",
       },
     },
   },

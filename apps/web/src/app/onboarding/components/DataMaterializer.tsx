@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { EASE_EXPO } from "../lib/motion";
 import { TypewriterText } from "./TypewriterText";
 
 interface DataField {
@@ -46,7 +47,7 @@ export function DataMaterializer({
             animate={{ opacity: 1, x: 0 }}
             transition={{
               duration: 0.8,
-              ease: [0.16, 1, 0.3, 1],
+              ease: EASE_EXPO,
             }}
             className="flex items-center gap-3 rounded-lg border border-white/[0.03] bg-white/[0.03] px-4 py-3"
           >
