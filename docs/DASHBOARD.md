@@ -1,7 +1,7 @@
 ---
 title: Development Dashboard
 status: in_progress
-updated: 2026-03-26
+updated: 2026-03-27
 created: 2026-03-02
 module: meta
 tags: [dashboard, worktrees, tracking]
@@ -13,13 +13,12 @@ tags: [dashboard, worktrees, tracking]
 
 ## Active Worktrees
 
-| #    | Branch                             | Module     | Status      | Progress                                                                             | Blockers | Health     |
-| ---- | ---------------------------------- | ---------- | ----------- | ------------------------------------------------------------------------------------ | -------- | ---------- |
-| wt-3 | `feat/emma-arena-views`            | walkAi     | in_progress | Spec + mockups done, settings persistence committed. Implementation not started.     | None     | stale (6d) |
-| wt-4 | `feat/mal-modus-schedule`          | schedule   | in_progress | 13/13 impl tasks done + review fixes. AI spec written + council. Next: Phase A plan. | —        | clean      |
-| wt-6 | `feat/admin-daily-loop`            | dashboard  | in_progress | Just started. Plan: 12 tasks (budget, conflicts, lock, deviation, status bar).       | —        | clean      |
-| wt-5 | `feat/mobile-production-readiness` | mobile     | in_progress | Just started. Spec + council done. Plan: 18 tasks (Phase 0-4).                       | —        | clean      |
-| dev  | `development`                      | wizard+k1b | paused      | Wizard + K1b committed. 6/6 E2E green. Typecheck clean. 37 uncommitted (unrelated).  | None     | clean      |
+| #    | Branch                             | Module      | Status            | Progress                                                                                                                    | Blockers | Health     |
+| ---- | ---------------------------------- | ----------- | ----------------- | --------------------------------------------------------------------------------------------------------------------------- | -------- | ---------- |
+| wt-3 | `feat/emma-arena-views`            | walkAi      | in_progress       | Spec + mockups done, settings persistence committed. Implementation not started.                                            | None     | stale (6d) |
+| wt-4 | `feat/mal-modus-schedule`          | schedule    | in_progress       | 13/13 impl tasks done + review fixes. AI spec written + council. Next: Phase A plan.                                        | —        | clean      |
+| wt-5 | `feat/mobile-production-readiness` | mobile      | ready_for_closure | 18/18 tasks done. All typechecks pass. Closure docs written.                                                                | —        | clean      |
+| dev  | `development`                      | design-docs | paused            | Frontend-designer agent rewritten. 6 supporting docs aligned to docs/design/ source of truth. 2 hypothesis ledgers created. | None     | clean      |
 
 ## Parked Branches (no worktree)
 
@@ -36,7 +35,7 @@ tags: [dashboard, worktrees, tracking]
 | wt-3  | no (feat/emma-arena-views)            |
 | wt-4  | yes (mal-modus-schedule merged)       |
 | wt-5  | no (feat/mobile-production-readiness) |
-| wt-6  | no (feat/admin-daily-loop)            |
+| wt-6  | yes                                   |
 | wt-7  | yes                                   |
 | wt-15 | yes                                   |
 | wt-20 | yes                                   |
@@ -56,61 +55,65 @@ tags: [dashboard, worktrees, tracking]
 | wt-6 | livekit-phase2              | `docs/journeys/JOURNEY-livekit-phase2.md`              | missing |
 | wt-1 | notification-system         | `docs/journeys/JOURNEY-notification-system.md`         | done    |
 | wt-4 | mal-modus-schedule          | `docs/journeys/JOURNEY-mal-modus-schedule.md`          | missing |
-| wt-6 | admin-daily-loop            | `docs/journeys/JOURNEY-admin-daily-loop.md`            | missing |
-| wt-5 | mobile-production-readiness | `docs/journeys/JOURNEY-mobile-production-readiness.md` | missing |
+| wt-6 | admin-daily-loop            | `docs/journeys/JOURNEY-admin-daily-loop.md`            | done    |
+| wt-5 | mobile-production-readiness | `docs/journeys/JOURNEY-mobile-production-readiness.md` | done    |
 
 ## Recent Closures
 
-| Date       | Feature                   | Branch                                                             | Merged To   |
-| ---------- | ------------------------- | ------------------------------------------------------------------ | ----------- |
-| 2026-03-26 | mal-modus-schedule        | `feat/mal-modus-schedule`                                          | development |
-| 2026-03-22 | hms-phase-1               | `feat/hms-phase-1`                                                 | development |
-| 2026-03-22 | cascade-foundation        | `feat/cascade-foundation`                                          | development |
-| 2026-03-21 | workspace-intelligence    | `feat/workspace-intelligence`                                      | development |
-| 2026-03-02 | unified-keys-admin        | `feat/unified-keys-admin`                                          | development |
-| 2026-03-02 | fix-onboarding-flow       | `feat/fix-onboarding-flow`                                         | development |
-| 2026-03-02 | fix-admin-bugs            | `feat/fix-admin-bugs`                                              | development |
-| 2026-03-02 | landing-sessions-leads    | `feat/landing-sessions-leads`                                      | development |
-| 2026-03-02 | dashboard-redesign        | `feat/dashboard-redesign`                                          | development |
-| 2026-03-02 | team-member-management    | `feat/team-member-management`                                      | development |
-| 2026-03-02 | landing-analytics         | `feat/landing-analytics`                                           | development |
-| 2026-03-02 | stage-engine-local        | `feat/get-the-stage-engine-and-voice-ultravox-running-locally-the` | development |
-| 2026-03-03 | operations-ui-redesign    | `feat/operations-ui-redesign`                                      | development |
-| 2026-03-03 | fix-schedule-mutations    | `feat/fix-the-5-supabase-mutation-errors-on-the-schedule-page-the` | development |
-| 2026-03-03 | people-module-v2          | `feat/people-module-v2`                                            | development |
-| 2026-03-03 | schedule-control-panel    | `feat/schedule-control-panel`                                      | development |
-| 2026-03-03 | auth-screens-redesign     | `feat/auth-screens-redesign`                                       | development |
-| 2026-03-03 | services-health-dashboard | `feat/build-a-services-health-dashboard`                           | development |
-| 2026-03-03 | day-control-center-polish | `feat/respawn-of-sma-10-s-lost-work-polish-the-day-control-center` | development |
-| 2026-03-03 | dashboard-evolution       | `feat/dashboard-evolution`                                         | development |
-| 2026-03-03 | agent-config-ui           | `feat/build-the-agent-config-training-session-ui-page`             | development |
-| 2026-03-05 | entity-detail-pages       | `feat/entity-detail-pages`                                         | development |
-| 2026-03-06 | communications-finish     | `feat/communications-finish`                                       | development |
-| 2026-03-08 | operation (season)        | `feat/operation`                                                   | development |
-| 2026-03-08 | daily-standup             | `feat/daily-standup`                                               | development |
-| 2026-03-10 | agent-profile-system      | `feat/agent-profile-system`                                        | development |
-| 2026-03-11 | onboarding-redesign       | `feat/onboarding-redesign`                                         | development |
-| 2026-03-11 | intelligence-pipeline     | cherry-picked from `feat/onboarding-intelligence-pipeline`         | development |
-| 2026-03-19 | platform-admin-polish     | `feat/platform-admin-polish`                                       | development |
-| 2026-03-19 | landing-mobile-fix        | `feat/landing-mobile-fix`                                          | development |
-| 2026-03-19 | stage-engine-routing      | `feat/stage-engine-routing`                                        | abandoned   |
-| 2026-03-19 | onboarding-mission        | `feat/onboarding-mission`                                          | development |
-| 2026-03-19 | stage-engine-routing      | `feat/stage-engine-routing`                                        | development |
-| 2026-03-19 | journey-portal-fixes      | `feat/journey-portal-fixes`                                        | development |
-| 2026-03-29 | infra-port-consolidation  | `feat/infra-port-consolidation`                                    | development |
-| 2026-03-04 | progressive-intelligence  | `feat/progressive-intelligence`                                    | development |
-| 2026-04-08 | season-creation-wizard    | `feat/season-creation-wizard`                                      | development |
-| 2026-04-08 | governance-admin-ui       | `feat/governance-admin-ui`                                         | development |
-| 2026-04-08 | service-layer             | `feat/service-layer`                                               | development |
-| 2026-04-08 | onboarding-showcase       | `feat/onboarding-showcase-system-room`                             | development |
-| 2026-04-11 | infra-hardening           | `feat/infra-hardening`                                             | development |
-| 2026-03-08 | zero-to-production        | `feat/zero-to-production`                                          | development |
-| 2026-03-22 | website-factory           | `feat/website-factory`                                             | development |
-| 2026-03-20 | contract-enhancements     | `feat/contract-enhancements`                                       | development |
-| 2026-03-25 | notification-system       | `feat/notification-system`                                         | development |
+| Date       | Feature                     | Branch                                                             | Merged To   |
+| ---------- | --------------------------- | ------------------------------------------------------------------ | ----------- |
+| 2026-03-26 | mobile-production-readiness | `feat/mobile-production-readiness`                                 | development |
+| 2026-03-27 | admin-daily-loop            | `feat/admin-daily-loop`                                            | development |
+| 2026-03-26 | mal-modus-schedule          | `feat/mal-modus-schedule`                                          | development |
+| 2026-03-22 | hms-phase-1                 | `feat/hms-phase-1`                                                 | development |
+| 2026-03-22 | cascade-foundation          | `feat/cascade-foundation`                                          | development |
+| 2026-03-21 | workspace-intelligence      | `feat/workspace-intelligence`                                      | development |
+| 2026-03-02 | unified-keys-admin          | `feat/unified-keys-admin`                                          | development |
+| 2026-03-02 | fix-onboarding-flow         | `feat/fix-onboarding-flow`                                         | development |
+| 2026-03-02 | fix-admin-bugs              | `feat/fix-admin-bugs`                                              | development |
+| 2026-03-02 | landing-sessions-leads      | `feat/landing-sessions-leads`                                      | development |
+| 2026-03-02 | dashboard-redesign          | `feat/dashboard-redesign`                                          | development |
+| 2026-03-02 | team-member-management      | `feat/team-member-management`                                      | development |
+| 2026-03-02 | landing-analytics           | `feat/landing-analytics`                                           | development |
+| 2026-03-02 | stage-engine-local          | `feat/get-the-stage-engine-and-voice-ultravox-running-locally-the` | development |
+| 2026-03-03 | operations-ui-redesign      | `feat/operations-ui-redesign`                                      | development |
+| 2026-03-03 | fix-schedule-mutations      | `feat/fix-the-5-supabase-mutation-errors-on-the-schedule-page-the` | development |
+| 2026-03-03 | people-module-v2            | `feat/people-module-v2`                                            | development |
+| 2026-03-03 | schedule-control-panel      | `feat/schedule-control-panel`                                      | development |
+| 2026-03-03 | auth-screens-redesign       | `feat/auth-screens-redesign`                                       | development |
+| 2026-03-03 | services-health-dashboard   | `feat/build-a-services-health-dashboard`                           | development |
+| 2026-03-03 | day-control-center-polish   | `feat/respawn-of-sma-10-s-lost-work-polish-the-day-control-center` | development |
+| 2026-03-03 | dashboard-evolution         | `feat/dashboard-evolution`                                         | development |
+| 2026-03-03 | agent-config-ui             | `feat/build-the-agent-config-training-session-ui-page`             | development |
+| 2026-03-05 | entity-detail-pages         | `feat/entity-detail-pages`                                         | development |
+| 2026-03-06 | communications-finish       | `feat/communications-finish`                                       | development |
+| 2026-03-08 | operation (season)          | `feat/operation`                                                   | development |
+| 2026-03-08 | daily-standup               | `feat/daily-standup`                                               | development |
+| 2026-03-10 | agent-profile-system        | `feat/agent-profile-system`                                        | development |
+| 2026-03-11 | onboarding-redesign         | `feat/onboarding-redesign`                                         | development |
+| 2026-03-11 | intelligence-pipeline       | cherry-picked from `feat/onboarding-intelligence-pipeline`         | development |
+| 2026-03-19 | platform-admin-polish       | `feat/platform-admin-polish`                                       | development |
+| 2026-03-19 | landing-mobile-fix          | `feat/landing-mobile-fix`                                          | development |
+| 2026-03-19 | stage-engine-routing        | `feat/stage-engine-routing`                                        | abandoned   |
+| 2026-03-19 | onboarding-mission          | `feat/onboarding-mission`                                          | development |
+| 2026-03-19 | stage-engine-routing        | `feat/stage-engine-routing`                                        | development |
+| 2026-03-19 | journey-portal-fixes        | `feat/journey-portal-fixes`                                        | development |
+| 2026-03-29 | infra-port-consolidation    | `feat/infra-port-consolidation`                                    | development |
+| 2026-03-04 | progressive-intelligence    | `feat/progressive-intelligence`                                    | development |
+| 2026-04-08 | season-creation-wizard      | `feat/season-creation-wizard`                                      | development |
+| 2026-04-08 | governance-admin-ui         | `feat/governance-admin-ui`                                         | development |
+| 2026-04-08 | service-layer               | `feat/service-layer`                                               | development |
+| 2026-04-08 | onboarding-showcase         | `feat/onboarding-showcase-system-room`                             | development |
+| 2026-04-11 | infra-hardening             | `feat/infra-hardening`                                             | development |
+| 2026-03-08 | zero-to-production          | `feat/zero-to-production`                                          | development |
+| 2026-03-22 | website-factory             | `feat/website-factory`                                             | development |
+| 2026-03-20 | contract-enhancements       | `feat/contract-enhancements`                                       | development |
+| 2026-03-25 | notification-system         | `feat/notification-system`                                         | development |
 
 ## Session History
 
+| 2026-03-26 | frontend-designer-docs | session ended | Rewrote frontend-designer agent + 6 supporting docs to align with docs/design/ as source of truth. Created 2 hypothesis ledgers. All cross-references verified. |
+| 2026-03-27 | admin-daily-loop | closed | Phase 1 complete: 12 tasks, 6 journeys, 3 decisions, RLS migration. Merged to development, wt-6 freed. |
 | 2026-03-26 | run-council skill | done | Created /run-council skill (321 lines). 8-phase multi-agent review flow. Tested with simulated scenario, found+fixed 7 gaps. Council log + memory file created. Self-learning protocol tracks agent effectiveness. |
 | 2026-03-26 | walkai-bridge-builder | done | Created walkai-bridge-builder agent (.claude/agents/). Brainstormed with 3 expert agents. Spec committed. Updated steward/coordinator/supervisor with cross-references. Deployed to wt-4. |
 | 2026-03-26 | mal-modus + shift-clock | session ended | Mal-modus: spec+plan+mockup+styleguide done, wt-4 ready. Shift clock: 5 bugs fixed, 68 shifts seeded, 9 E2E tests passing. Admin visibility: spec+plan written (5 modules). Schedule: dept filter + lokasjon view. |
