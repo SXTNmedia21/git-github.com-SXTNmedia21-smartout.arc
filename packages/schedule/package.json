@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@smartout/supabase": "workspace:*",
+    "@smartout/telemetry": "workspace:*",
     "@supabase/supabase-js": "2.49.4"
   },
   "peerDependencies": {
