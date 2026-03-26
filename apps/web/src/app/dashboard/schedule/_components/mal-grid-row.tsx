@@ -11,6 +11,7 @@
 import { cellKey } from "@smartout/schedule";
 import type { MalCell, MalColumn, MalEmployeeAssignment, MalTask } from "@smartout/schedule";
 import { MalShiftCell } from "./mal-shift-cell";
+import type { ShiftProposalCreate } from "./schedule-types";
 
 type DayInfo = {
   index: number;
@@ -28,6 +29,9 @@ type MalGridRowProps = {
   onEmployeeClick?: (assignment: MalEmployeeAssignment) => void;
   onTaskClick?: (task: MalTask) => void;
   onAssignClick?: (dateId: string, templateShiftId: string) => void;
+  proposalsByCell?: Map<string, ShiftProposalCreate[]>;
+  onApproveProposal?: (id: string) => Promise<void>;
+  onRejectProposal?: (id: string) => void;
 };
 
 /** Fallback cell when a template shift has no data for a given day. */
@@ -50,6 +54,9 @@ export function MalGridRow({
   onEmployeeClick,
   onTaskClick,
   onAssignClick,
+  proposalsByCell,
+  onApproveProposal,
+  onRejectProposal,
 }: MalGridRowProps) {
   return (
     // display: contents lets each child cell sit directly in the parent CSS Grid
@@ -83,6 +90,9 @@ export function MalGridRow({
             onEmployeeClick={onEmployeeClick}
             onTaskClick={onTaskClick}
             onAssignClick={onAssignClick}
+            ghostProposals={proposalsByCell?.get(`${day.dateId}::${cell.templateShiftId}`)}
+            onApproveProposal={onApproveProposal}
+            onRejectProposal={onRejectProposal}
           />
         );
       })}

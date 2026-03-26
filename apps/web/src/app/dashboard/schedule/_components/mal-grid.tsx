@@ -21,6 +21,8 @@ import { MalTemplateBar } from "./mal-template-bar";
 import { MalGridHeader } from "./mal-grid-header";
 import { MalGridRow } from "./mal-grid-row";
 import { MalEmptyState } from "./mal-empty-state";
+import { useAgentProposals } from "./agent-proposals-context";
+import type { ShiftProposalCreate } from "./schedule-types";
 
 // ISO week number calculation — avoids a date-fns dependency at the grid level
 function getISOWeek(date: Date): number {
@@ -67,6 +69,32 @@ export function MalGrid({ departmentName, weekStart, departmentOptions }: MalGri
   const fillMutation = useFillFromTemplate();
   const publishMutation = usePublishWeek();
   const resetMutation = useResetWeek();
+
+  const { proposals, approveProposal, rejectProposal, approveAllProposals, clearAllProposals } =
+    useAgentProposals();
+
+  // Filter proposals relevant to this template (create-type with templateShiftId)
+  const malProposals = useMemo(
+    () =>
+      proposals.filter(
+        (p): p is ShiftProposalCreate =>
+          p.type === "create" && "templateShiftId" in p && !!p.templateShiftId,
+      ),
+    [proposals],
+  );
+
+  // Group proposals by cell key for efficient lookup in MalGridRow
+  const proposalsByCell = useMemo(() => {
+    const map = new Map<string, ShiftProposalCreate[]>();
+    for (const p of malProposals) {
+      if (!p.templateShiftId) continue;
+      const key = `${p.dateId}::${p.templateShiftId}`;
+      const existing = map.get(key) ?? [];
+      existing.push(p);
+      map.set(key, existing);
+    }
+    return map;
+  }, [malProposals]);
 
   // Switching templates updates the URL so the selection survives a page refresh
   const handleTemplateChange = useCallback(
@@ -142,6 +170,9 @@ export function MalGrid({ departmentName, weekStart, departmentOptions }: MalGri
                   columns={data.columns}
                   cells={data.cells}
                   showTasks={showTasks}
+                  proposalsByCell={proposalsByCell}
+                  onApproveProposal={approveProposal}
+                  onRejectProposal={rejectProposal}
                 />
               ))}
             </div>
@@ -188,6 +219,35 @@ export function MalGrid({ departmentName, weekStart, departmentOptions }: MalGri
               )}
             </div>
           </div>
+
+          {/* Proposal bulk actions — visible only when ghost proposals exist */}
+          {malProposals.length > 0 && (
+            <div className="border-border bg-card/80 flex items-center gap-2 border-t px-4 py-2 backdrop-blur-sm">
+              <span className="text-muted-foreground text-xs">
+                {malProposals.length} forslag venter
+              </span>
+              <div className="flex-1" />
+              <button
+                type="button"
+                onClick={() => clearAllProposals()}
+                className="text-muted-foreground hover:text-destructive rounded-[10px] px-3 py-1.5 text-xs font-bold transition-all"
+              >
+                Forkast alle
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  approveAllProposals().then(
+                    () => toast.success(`${malProposals.length} forslag godkjent`),
+                    () => toast.error("Kunne ikke godkjenne alle forslag"),
+                  );
+                }}
+                className="rounded-[10px] border border-green-500 bg-green-500/10 px-3.5 py-1.5 text-xs font-bold text-green-500 transition-all hover:bg-green-500/20"
+              >
+                Godkjenn alle forslag ({malProposals.length})
+              </button>
+            </div>
+          )}
 
           {/* Action bar — publish, fill, and reset actions */}
           <div className="border-border bg-card flex items-center gap-2 rounded-b-[14px] border-t px-4 py-2">
