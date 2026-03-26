@@ -952,7 +952,7 @@ function SchedulePageContent() {
             {scheduleLayout === "mal" && (
               <Suspense fallback={<div className="bg-muted/20 flex-1 animate-pulse" />}>
                 <MalGrid
-                  departmentName={activeLocation}
+                  departmentName={activeDepartment}
                   weekStart={weekStart}
                   departmentOptions={departmentOptions}
                 />
