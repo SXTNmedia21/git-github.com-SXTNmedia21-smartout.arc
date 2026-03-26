@@ -30,9 +30,9 @@ export function getLayoutClasses(layout: BlockSettings["layout"]): string {
 export function getBackgroundClasses(background: BlockSettings["background"]): string {
   switch (background) {
     case "subtle":
-      return "bg-white/[0.02]";
+      return "bg-foreground/[0.02]";
     case "dark":
-      return "bg-zinc-900/50";
+      return "bg-muted";
     case "none":
     default:
       return "";

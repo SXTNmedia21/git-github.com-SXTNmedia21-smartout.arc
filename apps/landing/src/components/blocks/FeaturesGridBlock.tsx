@@ -23,7 +23,7 @@ export default function FeaturesGridBlock({ content, settings }: BlockProps<Feat
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
-            className="mb-16 text-center text-4xl font-bold tracking-tight text-white lg:text-5xl"
+            className="text-foreground mb-16 text-center text-4xl font-bold tracking-tight lg:text-5xl"
           >
             {content.heading}
           </m.h2>
@@ -39,14 +39,14 @@ export default function FeaturesGridBlock({ content, settings }: BlockProps<Feat
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: idx * 0.1 }}
-                className="group rounded-2xl border border-white/10 bg-white/[0.03] p-8 transition-all hover:border-white/20 hover:bg-white/[0.05]"
+                className="group border-border bg-foreground/[0.03] hover:border-border hover:bg-foreground/[0.05] rounded-2xl border p-8 transition-all"
               >
-                <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-white/10">
-                  <Icon className="h-6 w-6 text-white" />
+                <div className="bg-foreground/10 mb-5 flex h-12 w-12 items-center justify-center rounded-xl">
+                  <Icon className="text-foreground h-6 w-6" />
                 </div>
-                <h3 className="mb-3 text-xl font-bold text-white">{item.title}</h3>
+                <h3 className="text-foreground mb-3 text-xl font-bold">{item.title}</h3>
                 {item.description && (
-                  <p className="leading-relaxed text-zinc-400">{item.description}</p>
+                  <p className="text-muted-foreground leading-relaxed">{item.description}</p>
                 )}
               </m.div>
             );

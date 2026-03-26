@@ -18,13 +18,13 @@ export default function TextSectionBlock({ content, settings }: BlockProps<TextS
       >
         <div className="mx-auto max-w-3xl">
           {content.heading && (
-            <h2 className="mb-6 text-3xl font-bold tracking-tight text-white lg:text-4xl">
+            <h2 className="text-foreground mb-6 text-3xl font-bold tracking-tight lg:text-4xl">
               {content.heading}
             </h2>
           )}
 
           {content.body && (
-            <div className="prose prose-invert prose-zinc max-w-none leading-relaxed text-zinc-400">
+            <div className="prose prose-invert prose-zinc text-muted-foreground max-w-none leading-relaxed">
               {content.body.split("\n\n").map((paragraph, idx) => (
                 <p key={idx}>{paragraph}</p>
               ))}

@@ -12,5 +12,9 @@ export function ThemeProvider({ theme, children }: ThemeProviderProps) {
     "--accent-foreground": theme.accentForeground,
   } as CSSProperties;
 
-  return <div style={style}>{children}</div>;
+  return (
+    <div className="dark-section" style={style}>
+      {children}
+    </div>
+  );
 }
