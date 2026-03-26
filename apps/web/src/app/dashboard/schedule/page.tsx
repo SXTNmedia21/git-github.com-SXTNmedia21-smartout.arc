@@ -1,6 +1,14 @@
 "use client";
 
-import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  Suspense,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Users,
   Briefcase,
@@ -28,6 +36,7 @@ import {
   useDroppable,
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates, arrayMove } from "@dnd-kit/sortable";
+import { MalGrid } from "./_components/mal-grid";
 import { PlannerCommandBar } from "./_components/planner-command-bar";
 import { StatusStrip } from "./_components/status-strip";
 import { GridSurface } from "./_components/grid-surface";
@@ -959,102 +968,111 @@ function SchedulePageContent() {
             {/* Agent proposal banner — shows when Emma has pending shift proposals */}
             <ProposalBanner />
 
+            {/* MAL-MODUS — template-based schedule grid (self-contained) */}
+            {scheduleLayout === "mal" && (
+              <Suspense fallback={<div className="bg-muted/20 flex-1 animate-pulse" />}>
+                <MalGrid departmentName={activeLocation} weekStart={weekStart} />
+              </Suspense>
+            )}
+
             {/* MAIN CONTENT AREA — sidebar spans full height alongside command bar, status strip, and grid */}
-            <DndContext
-              sensors={sensors}
-              collisionDetection={scheduleCollisionDetection}
-              autoScroll={false}
-              onDragStart={handleDragStart}
-              onDragEnd={handleDragEnd}
-              onDragCancel={handleDragCancel}
-            >
-              <div className="flex flex-1 overflow-hidden">
-                {/* Sidebar — full height from top of schedule container to bottom */}
-                <ScheduleSidebar
-                  isDark={isDark}
-                  isSidebarOpen={isSidebarOpen}
-                  sidebarMode={sidebarMode}
-                  setSidebarMode={setSidebarMode}
-                  templates={templates}
-                  openShifts={openShifts}
-                />
-
-                {/* Main content column — command bar, status strip, then grid */}
-                <div className="flex min-w-0 flex-1 flex-col">
-                  <PlannerCommandBar
+            {scheduleLayout !== "mal" && (
+              <DndContext
+                sensors={sensors}
+                collisionDetection={scheduleCollisionDetection}
+                autoScroll={false}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+                onDragCancel={handleDragCancel}
+              >
+                <div className="flex flex-1 overflow-hidden">
+                  {/* Sidebar — full height from top of schedule container to bottom */}
+                  <ScheduleSidebar
                     isDark={isDark}
-                    filterSituation={filterSituation}
-                    setFilterSituation={setFilterSituation}
-                    weekSpan={weekSpan}
-                    setWeekSpan={setWeekSpan}
-                    scheduleLayout={scheduleLayout}
-                    locationOptions={locationOptions}
+                    isSidebarOpen={isSidebarOpen}
+                    sidebarMode={sidebarMode}
+                    setSidebarMode={setSidebarMode}
+                    templates={templates}
+                    openShifts={openShifts}
                   />
 
-                  <GridSurface
-                    centerContent={
-                      <>
-                        {scheduleLayout === "daily" && (
-                          <GridContentWithProposals
-                            isSidebarOpen={isSidebarOpen}
-                            setIsSidebarOpen={setIsSidebarOpen}
-                            onDateClick={handleSetSelectedDate}
-                            filterSituation={filterSituation}
-                            activeStatusFilter={activeStatusFilter}
-                            visibleDays={situationFilteredDays}
-                            employees={locationFilteredEmployees}
-                            shifts={filteredShifts}
-                            absences={filteredAbsences}
-                            highlightedDayId={highlightedDayId}
-                            weekStart={weekStart}
-                            onTimeChange={handleGridShiftTimeChange}
-                          />
-                        )}
-                        {scheduleLayout === "weekly" && (
-                          <WeeklyGridContent
-                            isSidebarOpen={isSidebarOpen}
-                            setIsSidebarOpen={setIsSidebarOpen}
-                            onDateClick={handleSetSelectedDate}
-                            filterSituation={filterSituation}
-                            computed={computed}
-                            scheduleUI={scheduleUI}
-                            employees={locationFilteredEmployees}
-                            shifts={filteredShifts}
-                            days={days}
-                            weekStart={weekStart}
-                          />
-                        )}
-                        {scheduleLayout === "monthly" && (
-                          <MonthlyView
-                            onDateClick={handleSetSelectedDate}
-                            shifts={filteredShifts}
-                            computed={computed}
-                            employees={locationFilteredEmployees}
-                          />
-                        )}
-                        {scheduleLayout === "list" && (
-                          <ListGridContent
-                            onDateClick={handleSetSelectedDate}
-                            computed={computed}
-                            days={days}
-                            employees={locationFilteredEmployees}
-                            weekStart={weekStart}
-                          />
-                        )}
-                      </>
-                    }
-                  />
+                  {/* Main content column — command bar, status strip, then grid */}
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <PlannerCommandBar
+                      isDark={isDark}
+                      filterSituation={filterSituation}
+                      setFilterSituation={setFilterSituation}
+                      weekSpan={weekSpan}
+                      setWeekSpan={setWeekSpan}
+                      scheduleLayout={scheduleLayout}
+                      locationOptions={locationOptions}
+                    />
 
-                  <StatusStrip
-                    statusSummary={statusSummary}
-                    activeFilter={activeStatusFilter}
-                    onFilterClick={setActiveStatusFilter}
-                  />
+                    <GridSurface
+                      centerContent={
+                        <>
+                          {scheduleLayout === "daily" && (
+                            <GridContentWithProposals
+                              isSidebarOpen={isSidebarOpen}
+                              setIsSidebarOpen={setIsSidebarOpen}
+                              onDateClick={handleSetSelectedDate}
+                              filterSituation={filterSituation}
+                              activeStatusFilter={activeStatusFilter}
+                              visibleDays={situationFilteredDays}
+                              employees={locationFilteredEmployees}
+                              shifts={filteredShifts}
+                              absences={filteredAbsences}
+                              highlightedDayId={highlightedDayId}
+                              weekStart={weekStart}
+                              onTimeChange={handleGridShiftTimeChange}
+                            />
+                          )}
+                          {scheduleLayout === "weekly" && (
+                            <WeeklyGridContent
+                              isSidebarOpen={isSidebarOpen}
+                              setIsSidebarOpen={setIsSidebarOpen}
+                              onDateClick={handleSetSelectedDate}
+                              filterSituation={filterSituation}
+                              computed={computed}
+                              scheduleUI={scheduleUI}
+                              employees={locationFilteredEmployees}
+                              shifts={filteredShifts}
+                              days={days}
+                              weekStart={weekStart}
+                            />
+                          )}
+                          {scheduleLayout === "monthly" && (
+                            <MonthlyView
+                              onDateClick={handleSetSelectedDate}
+                              shifts={filteredShifts}
+                              computed={computed}
+                              employees={locationFilteredEmployees}
+                            />
+                          )}
+                          {scheduleLayout === "list" && (
+                            <ListGridContent
+                              onDateClick={handleSetSelectedDate}
+                              computed={computed}
+                              days={days}
+                              employees={locationFilteredEmployees}
+                              weekStart={weekStart}
+                            />
+                          )}
+                        </>
+                      }
+                    />
+
+                    <StatusStrip
+                      statusSummary={statusSummary}
+                      activeFilter={activeStatusFilter}
+                      onFilterClick={setActiveStatusFilter}
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <ScheduleDragOverlay isDark={isDark} />
-            </DndContext>
+                <ScheduleDragOverlay isDark={isDark} />
+              </DndContext>
+            )}
 
             {/* Day control sheet — rendered at page level so it escapes GridSurface stacking context */}
             <DayControlSheet
