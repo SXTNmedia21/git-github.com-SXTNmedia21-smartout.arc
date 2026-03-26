@@ -1,7 +1,7 @@
 ---
 title: Session Log
 status: in_progress
-updated: 2026-03-26
+updated: 2026-03-27
 created: 2026-03-02
 module: meta
 tags: [session, continuity]
@@ -9,32 +9,34 @@ tags: [session, continuity]
 
 ## Last Session
 
-| Field   | Value                     |
-| ------- | ------------------------- |
-| Date    | 2026-03-26                |
-| Branch  | `feat/mal-modus-schedule` |
-| Feature | mal-modus-schedule        |
-| Status  | merged                    |
+| Field   | Value                   |
+| ------- | ----------------------- |
+| Date    | 2026-03-27              |
+| Branch  | `feat/admin-daily-loop` |
+| Feature | admin-daily-loop        |
+| Status  | in_progress             |
 
 ### What was done
 
-**Mal-modus schedule — base grid (13 tasks) + Phase A ghost shifts (10 tasks):**
+**Admin daily loop — Phase 1 implementation (12 tasks, 13 commits):**
 
-- Base: DB migrations (slot_count, template_shift_id), @smartout/schedule package, data + mutation hooks, 6 telemetry events
-- Base: MalGrid with 7 components (command bar, template bar, header, row, cell, employee tag, task tag)
-- Base: Integration into schedule page with Suspense boundary, DashboardShell layout mode
-- Phase A: ShiftProposalCreate extended with templateShiftId + employeeName
-- Phase A: AgentConfirmationDialog (Promise-based shadcn AlertDialog)
-- Phase A: MalGhostTag (dashed border, desaturated oklch, pulse animation, hover approve/reject)
-- Phase A: Ghost tags wired into MalShiftCell → MalGridRow → MalGrid
-- Phase A: Bulk approve/reject bar in MalGrid action area
-- Phase A: Confirmation dialog wired into voice tools bridge + createShift ghost path
-- All closure gates verified: web typecheck 0 errors, 7 user journeys, 7 decisions, 4 learnings
+- Telemetry: registered `reconciliation locked` event (ActionVerb + interface + routing)
+- Schedule: `useScheduleBudget` hook (real workspace_budget data), wired into BudgetTab (replaced mock)
+- Schedule: `useShiftConflicts` hook (pure client-side overlap detection), wired into daily grid (red ring on cards)
+- Reconciliation: RLS migration splitting FOR ALL → INSERT/UPDATE/DELETE with `locked_at IS NULL` on UPDATE
+- Reconciliation: `useUnreconciledDays` hook, lock button in DayApproval with mutation + telemetry
+- Operations: `DeviationDialog` component (domain/severity/department), wired into operations page
+- Operations: `DepartmentBreakdown` component (per-dept capacity %), toggled from stress card
+- Dashboard: `DailyStatusBar` (3 segments: schedule/ops/reconciliation), wired into AdminDashboard
+- Typecheck: 0 errors across all 6 packages
 
 ### Where we stopped
 
-- mal-modus-schedule merged to development
-- wt-4 ready for cleanup
+- All Phase 1 code implemented and committed
+- RLS migration file created but NOT applied to local Supabase (docker not running)
+- database.types.ts NOT regenerated (depends on migration apply)
+- No user journey docs written yet
+- No E2E tests yet
 
 ### Known blockers / errors
 
@@ -42,6 +44,7 @@ tags: [session, continuity]
 
 ### Pending decisions
 
-- [ ] Execute Phase 0-4 plan (18 tasks in wt-5) — subagent-driven recommended
-- [ ] Execute Phase 1 plan for admin-daily-loop (12 tasks in wt-6) — separate session
-- [ ] Decide: subagent-driven or inline execution
+- [ ] Apply RLS migration to local Supabase, regenerate types
+- [ ] Write user journeys for admin-daily-loop (required for close-feature)
+- [ ] Execute Phase 0-4 plan for mobile-production-readiness (18 tasks in wt-5)
+- [ ] Decide: manual test or write E2E tests first

@@ -954,7 +954,7 @@ function SchedulePageContent() {
                 <MalGrid
                   departmentName={activeLocation}
                   weekStart={weekStart}
-                  departmentOptions={locationOptions}
+                  departmentOptions={departmentOptions}
                 />
               </Suspense>
             )}
@@ -989,7 +989,7 @@ function SchedulePageContent() {
                       weekSpan={weekSpan}
                       setWeekSpan={setWeekSpan}
                       scheduleLayout={scheduleLayout}
-                      locationOptions={locationOptions}
+                      departmentOptions={departmentOptions}
                     />
 
                     <GridSurface
@@ -1003,7 +1003,7 @@ function SchedulePageContent() {
                               filterSituation={filterSituation}
                               activeStatusFilter={activeStatusFilter}
                               visibleDays={situationFilteredDays}
-                              employees={locationFilteredEmployees}
+                              employees={departmentFilteredEmployees}
                               shifts={filteredShifts}
                               absences={filteredAbsences}
                               highlightedDayId={highlightedDayId}
@@ -1019,7 +1019,7 @@ function SchedulePageContent() {
                               filterSituation={filterSituation}
                               computed={computed}
                               scheduleUI={scheduleUI}
-                              employees={locationFilteredEmployees}
+                              employees={departmentFilteredEmployees}
                               shifts={filteredShifts}
                               days={days}
                               weekStart={weekStart}
@@ -1030,7 +1030,7 @@ function SchedulePageContent() {
                               onDateClick={handleSetSelectedDate}
                               shifts={filteredShifts}
                               computed={computed}
-                              employees={locationFilteredEmployees}
+                              employees={departmentFilteredEmployees}
                             />
                           )}
                           {scheduleLayout === "list" && (
@@ -1038,7 +1038,7 @@ function SchedulePageContent() {
                               onDateClick={handleSetSelectedDate}
                               computed={computed}
                               days={days}
-                              employees={locationFilteredEmployees}
+                              employees={departmentFilteredEmployees}
                               weekStart={weekStart}
                             />
                           )}
