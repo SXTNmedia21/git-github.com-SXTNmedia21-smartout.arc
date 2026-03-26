@@ -19,7 +19,14 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
+import { useMutation } from "@tanstack/react-query";
+import { createClient } from "@smartout/supabase/client";
 import { useDepartmentShifts } from "@/app/dashboard/_hooks";
+import {
+  useApproveReconciliation,
+  useRejectReconciliation,
+} from "@/app/dashboard/reconciliation/_hooks/useReconciliation";
+import { useWorkspace } from "@/lib/workspace-context";
 import type {
   DepartmentShiftGroup,
   DepartmentShiftDetail,
@@ -72,6 +79,8 @@ function formatTime(time: string): string {
 // ── Main Component ────────────────────────────────────────────────────────────
 
 export function ReconciliationView({ isDark }: { isDark: boolean }) {
+  const { workspace } = useWorkspace();
+
   // Default to yesterday — the morning routine starts here
   const [dateOffset, setDateOffset] = useState(-1);
   const selectedDate = getDateOffset(dateOffset);
@@ -81,6 +90,32 @@ export function ReconciliationView({ isDark }: { isDark: boolean }) {
   const [dayApproved, setDayApproved] = useState(false);
 
   const { data: departments, isLoading } = useDepartmentShifts(selectedDate);
+
+  // ── DB mutations for reconciliation persistence ──
+  const approveReconciliation = useApproveReconciliation();
+  const rejectReconciliation = useRejectReconciliation();
+
+  /** Upsert a daily_reconciliation row for the given department+date, returns its ID */
+  const ensureReconciliation = useMutation({
+    mutationFn: async (departmentId: string) => {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("daily_reconciliation")
+        .upsert(
+          {
+            workspace_id: workspace.workspace_id,
+            department_id: departmentId,
+            reconciliation_date: selectedDate,
+            status: "open" as const,
+          },
+          { onConflict: "workspace_id,department_id,reconciliation_date" },
+        )
+        .select("reconciliation_id")
+        .single();
+      if (error) throw error;
+      return data.reconciliation_id as string;
+    },
+  });
 
   const allShifts = useMemo(() => {
     if (!departments) return [];
@@ -93,11 +128,29 @@ export function ReconciliationView({ isDark }: { isDark: boolean }) {
   ).length;
   const allHandled = totalShifts > 0 && handledCount === totalShifts;
 
-  const decide = useCallback((shiftId: string, status: ShiftStatus) => {
-    setDecisions((prev) => ({ ...prev, [shiftId]: status }));
-    if (status === "approved") toast.success("Vakt godkjent");
-    if (status === "disputed") toast.error("Vakt bestridt — flagget for oppfølging");
-  }, []);
+  const decide = useCallback(
+    async (shiftId: string, status: ShiftStatus) => {
+      setDecisions((prev) => ({ ...prev, [shiftId]: status }));
+      if (status === "approved") toast.success("Vakt godkjent");
+      if (status === "disputed") {
+        toast.error("Vakt bestridt — flagget for oppfølging");
+        // Persist dispute: find the department for this shift, ensure reconciliation, reject
+        const dept = departments?.find((d) => d.shifts.some((s) => s.shiftId === shiftId));
+        if (dept) {
+          try {
+            const reconciliationId = await ensureReconciliation.mutateAsync(dept.departmentId);
+            await rejectReconciliation.mutateAsync({
+              reconciliationId,
+              reason: `Vakt ${shiftId} bestridt av leder`,
+            });
+          } catch {
+            // Dispute is tracked locally even if DB write fails
+          }
+        }
+      }
+    },
+    [departments, ensureReconciliation, rejectReconciliation],
+  );
 
   const resetShift = useCallback(
     (shiftId: string) => {
@@ -117,10 +170,23 @@ export function ReconciliationView({ isDark }: { isDark: boolean }) {
     toast.success("Handoff sendt til ansatt via Smartout");
   }, []);
 
-  const approveDay = useCallback(() => {
-    setDayApproved(true);
-    toast.success(`${formatDateShort(selectedDate)} godkjent og låst ✓`);
-  }, [selectedDate]);
+  const approveDay = useCallback(async () => {
+    if (!departments) return;
+    try {
+      // Ensure reconciliation exists for each department, then approve
+      for (const dept of departments) {
+        const reconciliationId = await ensureReconciliation.mutateAsync(dept.departmentId);
+        await approveReconciliation.mutateAsync({
+          reconciliationId,
+          profileId: "", // Resolved server-side from auth context
+        });
+      }
+      setDayApproved(true);
+      toast.success(`${formatDateShort(selectedDate)} godkjent og låst`);
+    } catch {
+      toast.error("Kunne ikke godkjenne dagen");
+    }
+  }, [selectedDate, departments, ensureReconciliation, approveReconciliation]);
 
   const changeDate = useCallback((newOffset: number) => {
     setDateOffset(newOffset);
