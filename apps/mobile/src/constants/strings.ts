@@ -90,6 +90,8 @@ export const strings = {
     logout: "Logg ut",
     logoutConfirm: "Er du sikker pa at du vil logge ut?",
     callLeader: "Ring leder",
+    callLeaderNoPhone: "Ingen leder er tilgjengelig. Bruk chat.",
+    callLeaderUnsupported: "Kan ikke åpne telefon på denne enheten.",
     trainingLocked: "Trening & sertifikat",
     comingSoon: "Kommer snart",
     notifications: "Varsler",

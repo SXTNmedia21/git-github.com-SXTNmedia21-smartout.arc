@@ -53,6 +53,14 @@ export type { NotificationEventConfig } from "./event-config";
 // Outbox helper
 export { insertOutboxNotification } from "./outbox";
 
+// Deep link routing
+export {
+  DEEP_LINK_MAP,
+  resolveDeepLink,
+  type NotificationType,
+  type DeepLinkResolver,
+} from "./deep-links";
+
 // Notification data hooks
 export {
   useUnreadCount,

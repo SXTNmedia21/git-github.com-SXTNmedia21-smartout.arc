@@ -9,27 +9,34 @@ tags: [session, continuity]
 
 ## Last Session
 
-| Field   | Value                            |
-| ------- | -------------------------------- |
-| Date    | 2026-03-26                       |
-| Branch  | `development`                    |
-| Feature | frontend-designer-docs-alignment |
-| Status  | paused                           |
+| Field   | Value                                          |
+| ------- | ---------------------------------------------- |
+| Date    | 2026-03-27                                     |
+| Branch  | `development`                                  |
+| Feature | admin-daily-loop + mobile-production-readiness |
+| Status  | merged                                         |
 
 ### What was done
 
-**Frontend Designer Agent — Docs Alignment:**
+**Admin daily loop (merged from wt-6):**
 
-- Searched past conversations for divergences between agent file and supporting docs
-- Found 5 major gaps: no reference to docs/design/, duplicated stale values, missing personality, missing workflow, dead file references
-- Rewrote `.claude/agents/frontend-designer.md` — points to `docs/design/` as source of truth, no duplicated values, creative identity from INSTRUCTION.md, 4-pass workflow, wizard architecture, Botsson agent presence
-- Updated `docs/agents/frontend-design/SUBAGENT_SPEC.md` — design source table, removed 2 dead references
-- Updated `docs/agents/frontend-design/INSTRUCTION.md` — each section references specific `docs/design/` file
-- Updated `docs/agents/SHARED_DESIGN_PRINCIPLES.md` — source of truth section, `isDark` anti-pattern
-- Updated dates/tags on LEARNING_LOOP.md and ONBOARDING_SYSTEM_DESIGN.md
-- Created `docs/designprofiler/hypotheses.md` — empty web experiment ledger
-- Created `docs/agents/mobile-design/hypotheses.md` — empty mobile experiment ledger
-- Verified all cross-references: 8/8 files exist, 12/12 design sources valid, 7/7 frontmatter present
+- Schedule budget hook + BudgetTab wiring, shift conflict detection
+- Reconciliation day lock (RLS + mutation), unreconciled days hook
+- Operations deviation dialog + department drill-down
+- DailyStatusBar on admin dashboard
+- 6 user journeys, telemetry registered
+
+**Mobile production readiness (merged from wt-5):**
+
+- 18 tasks across 5 phases, all complete
+- 3 AI capabilities (schedule, operations, communication)
+- WalkAi provider + voice UI + FAB gesture
+- Home hub priority cards, deep link telemetry
+- 7 user journeys, 7 decisions, 4 learnings
+
+**Frontend designer docs alignment (committed on dev):**
+
+- Agent file rewritten, 6 supporting docs updated
 
 ### Where we stopped
 

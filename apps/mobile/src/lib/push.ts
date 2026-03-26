@@ -11,6 +11,8 @@
  */
 import { Platform } from "react-native";
 import { router } from "expo-router";
+import { emit } from "@smartout/telemetry";
+import { resolveDeepLink } from "@smartout/notifications/deep-links";
 import { supabase } from "./supabase";
 
 // expo-notifications is native-only — guard all usage on web
@@ -23,25 +25,6 @@ if (isNative) {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   Notifications = require("expo-notifications") as typeof import("expo-notifications");
 }
-
-/**
- * Deep link mapping — maps push event types to Expo Router paths.
- * Each event includes the screen the user should land on when tapping.
- *
- * "notification_tap" is the generic fallback for any event not explicitly
- * mapped — it routes to the notification center screen so the user can
- * see what they tapped on and read the full details.
- */
-const DEEP_LINK_MAP: Record<string, (data: Record<string, string>) => string> = {
-  shift_published: (data) => `/(app)/(shifts)/${data.shift_id}`,
-  shift_updated: (data) => `/(app)/(shifts)/${data.shift_id}`,
-  task_assigned: () => "/(app)/(me)/notifications",
-  chat_message: (data) => `/(app)/(chat)/${data.conversation_id}`,
-  deviation_reported: () => "/(app)/(home)",
-  join_request: () => "/(app)/(home)",
-  // Generic fallback — navigates to the notification center
-  notification_tap: () => "/(app)/(me)/notifications",
-};
 
 /**
  * Configure how notifications appear when the app is in the foreground.
@@ -177,6 +160,7 @@ async function markNotificationReadFromPush(notificationId: string): Promise<voi
 /**
  * Navigate to the correct screen based on push notification data.
  * Also marks the notification as read if notification_id is in the payload.
+ * Emits telemetry when a deep link is followed.
  * Shared between tap handler and cold-start handler.
  *
  * For unmapped event types, falls back to the notification center screen
@@ -192,18 +176,70 @@ function navigateFromNotificationData(data: Record<string, string> | undefined):
 
   // Resolve the deep link path — fall back to notification center for unknown events
   if (!data.event) {
+    const fallbackPath = "/(app)/(me)/notifications";
+    // Emit telemetry for unknown notification type
+    void emitDeepLinkFollowed("notification_tap", fallbackPath);
     setTimeout(() => {
-      router.push("/(app)/(me)/notifications" as never);
+      router.push(fallbackPath as never);
     }, 100);
     return;
   }
 
-  const getPath = DEEP_LINK_MAP[data.event] ?? DEEP_LINK_MAP["notification_tap"];
-  const path = getPath(data);
+  const path = resolveDeepLink(data.event, data);
+  // Emit telemetry for deep link follow
+  void emitDeepLinkFollowed(data.event, path);
   // Small delay to ensure the app is fully mounted before navigating
   setTimeout(() => {
     router.push(path as never);
   }, 100);
+}
+
+/**
+ * Emit telemetry when a deep link is followed from a push notification.
+ * Best-effort — telemetry failures do not block navigation.
+ */
+async function emitDeepLinkFollowed(notificationType: string, targetRoute: string): Promise<void> {
+  try {
+    // Fetch current user context for telemetry
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      // User not authenticated — skip telemetry
+      return;
+    }
+
+    // Get workspace_id from current profile context
+    // In the mobile app, the user has one active profile per device
+    const { data: profile } = await supabase
+      .from("profile")
+      .select("profile_id, workspace_id")
+      .eq("user_id", user.id)
+      .eq("is_active", true)
+      .limit(1)
+      .single();
+
+    if (!profile) {
+      // Profile not found — skip telemetry
+      return;
+    }
+
+    emit({
+      event: "notification deep_link_followed",
+      workspace_id: profile.workspace_id,
+      actor_id: profile.profile_id,
+      properties: {
+        data: {
+          notification_type: notificationType,
+          target_route: targetRoute,
+        },
+      },
+    });
+  } catch (error) {
+    // Non-critical — telemetry failures should not block the app flow
+    console.warn("Failed to emit deep_link_followed telemetry:", error);
+  }
 }
 
 /**

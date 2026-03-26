@@ -31,7 +31,8 @@ export type EventCategory =
   | "communication"
   | "system"
   | "navigation"
-  | "channels";
+  | "channels"
+  | "agent";
 
 // ─── Entity Reference (for robust UI audit trails) ─
 export interface EntityRef {
@@ -96,7 +97,8 @@ export type EntityType =
   | "website_section"
   | "website_asset"
   | "website_spokesperson"
-  | "deviation";
+  | "deviation"
+  | "agent_session";
 
 export type ActionVerb =
   | "created"
@@ -1732,6 +1734,45 @@ export interface ChannelCallPttDeactivated extends BaseEvent {
   entity: EntityRef;
 }
 
+// ─── Agent Events ───────────────────────────────
+export interface AgentSessionStarted extends BaseEvent {
+  event: "agent session_started";
+  properties: {
+    entity: EntityRef;
+    data: { channel: "mobile" | "web"; mode: "voice" | "text" };
+  };
+}
+
+export interface AgentSessionClosed extends BaseEvent {
+  event: "agent session_closed";
+  properties: {
+    entity: EntityRef;
+    data: { duration_seconds: number; tool_calls: number };
+  };
+}
+
+export interface AgentToolCalled extends BaseEvent {
+  event: "agent tool_called";
+  properties: {
+    entity: EntityRef;
+    data: { tool_name: string; capability: string; success: boolean };
+  };
+}
+
+export interface NotificationDeepLinkFollowed extends BaseEvent {
+  event: "notification deep_link_followed";
+  properties: {
+    data: { notification_type: string; target_route: string };
+  };
+}
+
+export interface HubActionTapped extends BaseEvent {
+  event: "hub action_tapped";
+  properties: {
+    data: { action_type: string; action_id: string; priority: number };
+  };
+}
+
 // ─── The Single Truth Union ─────────────────────
 // Add every feature's events here. If it isn't here, it can't be emitted.
 export type SmartoutEvent =
@@ -1921,7 +1962,12 @@ export type SmartoutEvent =
   | ChannelCallInviteMissed
   | ChannelCallGroupAnnounced
   | ChannelCallPttActivated
-  | ChannelCallPttDeactivated;
+  | ChannelCallPttDeactivated
+  | AgentSessionStarted
+  | AgentSessionClosed
+  | AgentToolCalled
+  | NotificationDeepLinkFollowed
+  | HubActionTapped;
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -2637,5 +2683,29 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "channel.call.ptt_deactivated": {
     destinations: ["posthog"],
     category: "channels",
+  },
+
+  // Agent events
+  "agent session_started": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "agent session_closed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "agent tool_called": {
+    destinations: ["logger", "activity_trail"],
+    category: "agent",
+  },
+
+  // Navigation events (mobile)
+  "notification deep_link_followed": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+  "hub action_tapped": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
   },
 };

@@ -7,7 +7,7 @@
  */
 
 import React, { useCallback, useState } from "react";
-import { View, Text, Switch, Pressable, Alert, ScrollView } from "react-native";
+import { View, Text, Switch, Pressable, Alert, ScrollView, Linking } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
@@ -24,6 +24,7 @@ import { supabase } from "@/lib/supabase";
 import { cacheClearAll } from "@/lib/cache/mmkv";
 import { getDb } from "@/lib/sync/db";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
+import { useLeaderPhone } from "@/hooks/queries/use-leader-phone";
 import { useShiftPhase } from "@/hooks/stores/use-shift-phase";
 import { storage } from "@/lib/cache/mmkv";
 
@@ -47,6 +48,7 @@ export default function MeScreen() {
   const { colors } = useTheme();
   const router = useRouter();
   const { data: profile, isLoading } = useMyProfile();
+  const { data: leaderPhone } = useLeaderPhone(profile?.profile_id);
   const { phase } = useShiftPhase();
   const [pushEnabled, setPushEnabled] = useState(getPushPref);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -62,13 +64,22 @@ export default function MeScreen() {
     setPushPref(value);
   }, []);
 
-  const handleCallLeader = useCallback(() => {
-    // Leader phone would come from the profile's team leader query.
-    // For now, this button is only rendered when leaderPhone exists.
-    // Placeholder: the actual phone should come from a query on the team leader.
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    // TODO: Wire to actual leader phone from shift context
-  }, []);
+  const handleCallLeader = useCallback(async () => {
+    if (!leaderPhone) {
+      Alert.alert("", strings.me.callLeaderNoPhone);
+      return;
+    }
+
+    const url = `tel:${leaderPhone}`;
+    const canOpen = await Linking.canOpenURL(url);
+    if (!canOpen) {
+      Alert.alert("", strings.me.callLeaderUnsupported);
+      return;
+    }
+
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    await Linking.openURL(url);
+  }, [leaderPhone]);
 
   const handleLogout = useCallback(() => {
     Alert.alert(strings.me.logout, strings.me.logoutConfirm, [

@@ -1,0 +1,56 @@
+{
+  "hub": {
+    "greeting_morning": "God morgen, {name}",
+    "greeting_afternoon": "Hei, {name}",
+    "greeting_evening": "God kveld, {name}",
+    "punch_in_now": "Punch inn nå",
+    "break_duration": "Pausen har vart i {minutes} min",
+    "overdue_task": "{task} er forfalt",
+    "guardian_signal": "Avvik rapportert i {department}",
+    "shift_upcoming": "Ditt skift starter om {minutes} min",
+    "confirm_hours": "Bekreft timer fra i går",
+    "unread_messages": "{count} uleste meldinger",
+    "no_shift_today": "Ingen skift i dag. Neste: {next}",
+    "priority_actions": "Viktige handlinger"
+  },
+  "walkai": {
+    "title": "WalkAi",
+    "connecting": "Kobler til...",
+    "listening": "Lytter...",
+    "thinking": "Tenker...",
+    "speaking": "Snakker...",
+    "error_connection": "Kunne ikke koble til. Prøv igjen.",
+    "error_microphone": "Mikrofontilgang kreves for tale.",
+    "tap_to_speak": "Trykk for å snakke",
+    "end_session": "Avslutt samtale",
+    "text_placeholder": "Skriv en melding...",
+    "voice_mode": "Tale",
+    "text_mode": "Tekst"
+  },
+  "ring_leader": {
+    "button": "Ring leder",
+    "no_leader": "Ingen leder er tilgjengelig. Bruk chat.",
+    "calling": "Ringer {name}..."
+  },
+  "notifications": {
+    "shift_reminder": "Skiftpåminnelse",
+    "chat_message": "Ny melding",
+    "task_assigned": "Ny oppgave tildelt",
+    "deviation_reported": "Avvik rapportert",
+    "hours_confirmation": "Bekreft timer",
+    "absence_approved": "Fravær godkjent",
+    "komm_message": "Ny komm-melding"
+  },
+  "pre_shift": {
+    "title": "Kommende skift",
+    "colleagues": "Dine kolleger",
+    "pending_tasks": "Ventende oppgaver",
+    "supplement_preview": "~kr {amount} {type}",
+    "punch_in": "Punch inn"
+  },
+  "offline": {
+    "voice_unavailable": "Tale krever internettforbindelse",
+    "chat_unavailable": "Chat krever internettforbindelse",
+    "data_may_be_stale": "Viser lagrede data"
+  }
+}
