@@ -968,7 +968,7 @@ function SchedulePageContent() {
             <ProposalBanner />
 
             {/* MAL-MODUS — template-based schedule grid (self-contained) */}
-            {scheduleLayout === "mal" && (
+            {scheduleLayout === "mal" && activeDepartment !== "Alle avdelinger" && (
               <Suspense fallback={<div className="bg-muted/20 flex-1 animate-pulse" />}>
                 <MalGrid
                   departmentName={activeDepartment}
@@ -976,6 +976,18 @@ function SchedulePageContent() {
                   departmentOptions={departmentOptions}
                 />
               </Suspense>
+            )}
+            {scheduleLayout === "mal" && activeDepartment === "Alle avdelinger" && (
+              <div className="flex flex-1 items-center justify-center">
+                <div className="text-center">
+                  <p className="text-muted-foreground text-sm font-semibold">
+                    Velg en avdeling for å bruke mal-modus
+                  </p>
+                  <p className="text-muted-foreground mt-1 text-xs">
+                    Mal-modus viser én avdeling om gangen
+                  </p>
+                </div>
+              </div>
             )}
 
             {/* MAIN CONTENT AREA — sidebar spans full height alongside command bar, status strip, and grid */}
