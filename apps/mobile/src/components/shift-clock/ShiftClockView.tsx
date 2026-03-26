@@ -12,7 +12,7 @@
  */
 
 import React, { useCallback, useEffect, useState } from "react";
-import { View, Text, ScrollView, Pressable } from "react-native";
+import { View, Text, ScrollView, Pressable, Alert, Linking } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import Animated, { FadeIn, SlideInDown } from "react-native-reanimated";
@@ -28,6 +28,7 @@ import { strings } from "@/constants/strings";
 import { TaskFeed } from "@/components/task/TaskFeed";
 import { useMyTasks } from "@/hooks/queries/use-my-tasks";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
+import { useLeaderPhone } from "@/hooks/queries/use-leader-phone";
 import { PunchAnimation } from "./PunchAnimation";
 import { ShiftClockHeader } from "./ShiftClockHeader";
 import { ShiftClockActions } from "./ShiftClockActions";
@@ -44,6 +45,7 @@ export function ShiftClockView() {
   const { punchIn, punchOut } = usePunch();
   const { data: tasks } = useMyTasks();
   const { data: profile } = useMyProfile();
+  const { data: leaderPhone } = useLeaderPhone(profile?.profile_id);
 
   const currentTimeEntry = phaseTimeEntry ?? queryTimeEntry;
   const isClockedIn = currentTimeEntry?.status === "clocked_in";
@@ -189,11 +191,16 @@ export function ShiftClockView() {
         onStartBreak={handleStartBreak}
         onEndBreak={handleEndBreak}
         onOpenNotes={() => {
-          /* TODO: navigate to notes */
+          // Notes are captured in the shift chat — navigate to active conversation
+          router.push("/(app)/(chat)");
         }}
         onOpenSupplements={() => setShowSupplements(true)}
         onCallLeader={() => {
-          /* TODO: call leader phone */
+          if (leaderPhone) {
+            void Linking.openURL(`tel:${leaderPhone}`);
+          } else {
+            Alert.alert("", "Ingen leder tilgjengelig. Bruk chat.");
+          }
         }}
         isLoading={false}
       />
