@@ -1,7 +1,7 @@
 ---
 title: "LEARNING_LOOP"
 status: active
-updated: 2026-04-18
+updated: 2026-03-26
 created: 2026-03-01
 module: ai
 tags: [agent, frontend, learning-loop, telemetry, ux]
