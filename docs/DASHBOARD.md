@@ -1,7 +1,7 @@
 ---
 title: Development Dashboard
 status: in_progress
-updated: 2026-03-25
+updated: 2026-03-26
 created: 2026-03-02
 module: meta
 tags: [dashboard, worktrees, tracking]
@@ -32,7 +32,7 @@ tags: [dashboard, worktrees, tracking]
 | wt-1  | no (feat/notification-system)        |
 | wt-2  | yes                                  |
 | wt-3  | no (feat/emma-arena-views)           |
-| wt-4  | yes                                  |
+| wt-4  | yes (closing mal-modus-schedule)     |
 | wt-5  | no (feat/hospitality-framework-seed) |
 | wt-6  | yes                                  |
 | wt-7  | yes                                  |
@@ -58,6 +58,7 @@ tags: [dashboard, worktrees, tracking]
 
 | Date       | Feature                   | Branch                                                             | Merged To   |
 | ---------- | ------------------------- | ------------------------------------------------------------------ | ----------- |
+| 2026-03-26 | mal-modus-schedule        | `feat/mal-modus-schedule`                                          | development |
 | 2026-03-22 | hms-phase-1               | `feat/hms-phase-1`                                                 | development |
 | 2026-03-22 | cascade-foundation        | `feat/cascade-foundation`                                          | development |
 | 2026-03-21 | workspace-intelligence    | `feat/workspace-intelligence`                                      | development |

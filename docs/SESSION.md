@@ -1,7 +1,7 @@
 ---
 title: Session Log
 status: in_progress
-updated: 2026-03-25
+updated: 2026-03-26
 created: 2026-03-02
 module: meta
 tags: [session, continuity]
@@ -9,38 +9,37 @@ tags: [session, continuity]
 
 ## Last Session
 
-| Field   | Value                      |
-| ------- | -------------------------- |
-| Date    | 2026-03-25                 |
-| Branch  | `feat/notification-system` |
-| Feature | notification-system        |
-| Status  | ready_for_closure          |
+| Field   | Value                     |
+| ------- | ------------------------- |
+| Date    | 2026-03-26                |
+| Branch  | `feat/mal-modus-schedule` |
+| Feature | mal-modus-schedule        |
+| Status  | ready_for_closure         |
 
 ### What was done
 
-**Notification System — full implementation (13 tasks, 16 commits):**
+**Mal-modus schedule — base grid (13 tasks) + Phase A ghost shifts (10 tasks):**
 
-- DB migration: notification table, in_app enum, preference RLS, cron jobs, CRITICAL fast-path trigger
-- Event config registry (10 MVP events) + outbox INSERT helper
-- Refactored 6 push triggers from direct dispatch to outbox INSERT
-- Wired engine-dispatch send_notification + telemetry notifications destination
-- Outbox consumer Edge Function (process-notifications) with smart grouping, quiet hours, priority routing
-- Data hooks: useNotifications, useUnreadCount, useMarkAsRead, usePreferences
-- NotificationBell + Realtime subscription + Browser Notification API
-- Full /dashboard/notifications page with filters + infinite scroll
-- Notification preferences UI (channels, categories, quiet hours)
-- Morning digest Edge Function (send-morning-digest, cron 07:00)
-- Mobile notification center (bell, list, screen, push tap handling)
-- All closure gates verified: typecheck 27/27, user journeys, decision log, learning log
+- Base: DB migrations (slot_count, template_shift_id), @smartout/schedule package, data + mutation hooks, 6 telemetry events
+- Base: MalGrid with 7 components (command bar, template bar, header, row, cell, employee tag, task tag)
+- Base: Integration into schedule page with Suspense boundary, DashboardShell layout mode
+- Phase A: ShiftProposalCreate extended with templateShiftId + employeeName
+- Phase A: AgentConfirmationDialog (Promise-based shadcn AlertDialog)
+- Phase A: MalGhostTag (dashed border, desaturated oklch, pulse animation, hover approve/reject)
+- Phase A: Ghost tags wired into MalShiftCell → MalGridRow → MalGrid
+- Phase A: Bulk approve/reject bar in MalGrid action area
+- Phase A: Confirmation dialog wired into voice tools bridge + createShift ghost path
+- All closure gates verified: web typecheck 0 errors, 7 user journeys, 7 decisions, 4 learnings
 
 ### Where we stopped
 
 - Feature ready for closure
-- Run: `~/.claude/scripts/close-feature.sh 1`
+- Run: `~/.claude/scripts/close-feature.sh 4`
 
 ### Known blockers / errors
 
 - None (all gates passed)
+- Pre-existing: `apps/mobile/src/components/auth/InviteEntry.tsx:166` StyleSheet error (not this branch)
 
 ### Pending decisions
 
