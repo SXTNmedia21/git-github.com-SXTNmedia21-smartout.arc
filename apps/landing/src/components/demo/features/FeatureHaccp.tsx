@@ -86,8 +86,8 @@ export function FeatureHaccp({ uiState, onInteraction }: DemoFeatureProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-white">HACCP-kontroll</h2>
-          <p className="mt-0.5 text-sm text-zinc-500">
+          <h2 className="text-foreground text-xl font-bold">HACCP-kontroll</h2>
+          <p className="text-muted-foreground mt-0.5 text-sm">
             Daglig temperatursjekk — {new Date().toLocaleDateString("no-NO")}
           </p>
         </div>
@@ -98,8 +98,8 @@ export function FeatureHaccp({ uiState, onInteraction }: DemoFeatureProps) {
       </div>
 
       {/* Progress */}
-      <div className="rounded-xl border border-white/[0.06] bg-[#0a0a0c] p-3">
-        <div className="flex items-center justify-between text-xs text-zinc-400">
+      <div className="border-border bg-background rounded-xl border p-3">
+        <div className="text-muted-foreground flex items-center justify-between text-xs">
           <span>
             {Math.min(checkedUnits, UNITS.length)} av {UNITS.length} kontrollert
           </span>
@@ -111,7 +111,7 @@ export function FeatureHaccp({ uiState, onInteraction }: DemoFeatureProps) {
               : "Pågår"}
           </span>
         </div>
-        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-zinc-800">
+        <div className="bg-muted mt-2 h-1.5 overflow-hidden rounded-full">
           <m.div
             className={`h-full rounded-full ${showAlert ? "bg-red-500" : "bg-emerald-500"}`}
             animate={{
@@ -144,8 +144,8 @@ export function FeatureHaccp({ uiState, onInteraction }: DemoFeatureProps) {
                     : status === "resolved"
                       ? "border-amber-500/20 bg-amber-500/5"
                       : isCurrent
-                        ? "border-emerald-500/20 bg-[#0a0a0c] hover:border-emerald-500/40"
-                        : "border-white/[0.06] bg-[#0a0a0c] opacity-40"
+                        ? "bg-background border-emerald-500/20 hover:border-emerald-500/40"
+                        : "border-border bg-background opacity-40"
               }`}
               animate={
                 isCurrent
@@ -170,7 +170,7 @@ export function FeatureHaccp({ uiState, onInteraction }: DemoFeatureProps) {
                           ? "bg-red-500/10"
                           : status === "resolved"
                             ? "bg-amber-500/10"
-                            : "bg-white/[0.06]"
+                            : "bg-foreground/[0.06]"
                     }`}
                   >
                     <Thermometer
@@ -181,13 +181,13 @@ export function FeatureHaccp({ uiState, onInteraction }: DemoFeatureProps) {
                             ? "text-red-400"
                             : status === "resolved"
                               ? "text-amber-400"
-                              : "text-zinc-500"
+                              : "text-muted-foreground"
                       }`}
                     />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-white">{unit.name}</p>
-                    <p className="text-xs text-zinc-500">{unit.location}</p>
+                    <p className="text-foreground text-sm font-medium">{unit.name}</p>
+                    <p className="text-muted-foreground text-xs">{unit.location}</p>
                   </div>
                 </div>
 
@@ -214,7 +214,7 @@ export function FeatureHaccp({ uiState, onInteraction }: DemoFeatureProps) {
               {/* Threshold info */}
               {status !== "pending" && (
                 <div className="mt-2 flex items-center justify-between text-xs">
-                  <span className="text-zinc-500">
+                  <span className="text-muted-foreground">
                     Grense: {unit.threshold > 0 ? "+" : ""}
                     {unit.threshold}°C
                   </span>
@@ -248,7 +248,7 @@ export function FeatureHaccp({ uiState, onInteraction }: DemoFeatureProps) {
             </div>
             <div className="flex-1">
               <p className="text-sm font-medium text-red-300">Temperaturavvik registrert</p>
-              <p className="text-xs text-zinc-500">
+              <p className="text-muted-foreground text-xs">
                 Kjølerom (Lager B) — +9.1°C — Varslet avdelingsleder
               </p>
             </div>
@@ -264,7 +264,7 @@ export function FeatureHaccp({ uiState, onInteraction }: DemoFeatureProps) {
             <CheckCircle2 className="h-5 w-5 text-emerald-400" />
             <div>
               <p className="text-sm font-medium text-emerald-300">HACCP-kontroll fullført</p>
-              <p className="text-xs text-zinc-500">
+              <p className="text-muted-foreground text-xs">
                 2 godkjent, 1 avvik meldt og håndtert. Logg lagret.
               </p>
             </div>

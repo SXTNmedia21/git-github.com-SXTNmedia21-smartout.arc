@@ -20,7 +20,7 @@ const PERSONA_LABELS: Record<JourneyPersona, string> = {
 
 /** Map persona keys to badge color classes */
 const PERSONA_COLORS: Record<JourneyPersona, string> = {
-  ansatt: "border-orange-500/30 bg-orange-500/10 text-orange-300",
+  ansatt: "border-brand-orange/30 bg-brand-orange/10 text-brand-orange",
   leder: "border-cyan-500/30 bg-cyan-500/10 text-cyan-300",
   "ny-ansatt": "border-rose-500/30 bg-rose-500/10 text-rose-300",
 };
@@ -48,7 +48,7 @@ export function JourneyProgress({ title, persona, totalSteps, currentStep }: Jou
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       {/* Left: title + persona badge */}
       <div className="flex items-center gap-3">
-        <h1 className="text-lg font-bold text-white">{title}</h1>
+        <h1 className="text-foreground text-lg font-bold">{title}</h1>
         <span
           className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${PERSONA_COLORS[persona]}`}
         >
@@ -67,17 +67,17 @@ export function JourneyProgress({ title, persona, totalSteps, currentStep }: Jou
               key={i}
               className={`rounded-full transition-colors ${
                 isActive
-                  ? "h-2.5 w-2.5 bg-orange-400 shadow-[0_0_8px_rgba(249,115,22,0.4)]"
+                  ? "bg-brand-orange h-2.5 w-2.5 shadow-[0_0_8px_rgba(249,115,22,0.4)]"
                   : isCompleted
-                    ? "h-2 w-2 bg-zinc-500"
-                    : "h-2 w-2 bg-zinc-700"
+                    ? "bg-muted-foreground h-2 w-2"
+                    : "bg-muted h-2 w-2"
               }`}
               animate={isActive ? { scale: [1, 1.2, 1] } : {}}
               transition={isActive ? { duration: 1.5, repeat: Infinity, ease: "easeInOut" } : {}}
             />
           );
         })}
-        <span className="ml-2 text-xs text-zinc-500">
+        <span className="text-muted-foreground ml-2 text-xs">
           {currentStep + 1} / {totalSteps}
         </span>
       </div>
