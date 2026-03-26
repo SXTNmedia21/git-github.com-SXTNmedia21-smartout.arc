@@ -47,6 +47,7 @@ export const light = {
   border: "oklch(0.91 0.006 55)",
   input: "oklch(0.91 0.006 55)",
   ring: "oklch(0.65 0.22 40)",
+  // Sidebar
   sidebar: "oklch(0.975 0.006 57)",
   sidebarForeground: "oklch(0.145 0.01 50)",
   sidebarPrimary: "oklch(0.205 0.01 50)",
@@ -55,6 +56,7 @@ export const light = {
   sidebarAccentForeground: "oklch(0.205 0.01 50)",
   sidebarBorder: "oklch(0.905 0.007 54)",
   sidebarRing: "oklch(0.708 0 0)",
+  // Charts
   chart1: "oklch(0.646 0.222 41.116)",
   chart2: "oklch(0.6 0.118 184.704)",
   chart3: "oklch(0.398 0.07 227.392)",
@@ -82,6 +84,7 @@ export const dark = {
   border: "oklch(1 0 0 / 8%)",
   input: "oklch(1 0 0 / 10%)",
   ring: "oklch(0.556 0 0)",
+  // Sidebar
   sidebar: "oklch(0.16 0.02 50)",
   sidebarForeground: "oklch(0.95 0.005 55)",
   sidebarPrimary: "oklch(0.488 0.243 264.376)",
@@ -90,6 +93,7 @@ export const dark = {
   sidebarAccentForeground: "oklch(0.95 0.005 55)",
   sidebarBorder: "oklch(1 0 0 / 8%)",
   sidebarRing: "oklch(0.556 0 0)",
+  // Charts
   chart1: "oklch(0.488 0.243 264.376)",
   chart2: "oklch(0.696 0.17 162.48)",
   chart3: "oklch(0.769 0.188 70.08)",
