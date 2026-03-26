@@ -6,10 +6,13 @@
 // - action: auto-refetch every 60s (live dashboard, no user trigger needed)
 
 import { useContext } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { Percent, Gauge, Clock, Users, Activity, AlertCircle, Loader2 } from "lucide-react";
+import { createClient } from "@smartout/supabase/client";
 import { useOperationsData } from "./_hooks/use-operations-data";
 import type { StressLabel } from "./_hooks/use-operations-data";
+import { DeviationDialog } from "./_components/DeviationDialog";
 
 // ─── Stress-level color maps ───────────────────────────────────────────────
 
@@ -63,23 +66,49 @@ function completionColors(pct: number, isDark: boolean) {
 // ─── Page ──────────────────────────────────────────────────────────────────
 
 export default function OperationsPage() {
-  const { isDark } = useContext(DashboardContext);
+  const { isDark, workspaceData, profileId } = useContext(DashboardContext);
   const { data, isLoading, isError } = useOperationsData();
+
+  const { data: departments } = useQuery({
+    queryKey: ["departments", workspaceData?.workspace_id],
+    enabled: !!workspaceData?.workspace_id,
+    staleTime: 10 * 60 * 1000,
+    queryFn: async () => {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("department")
+        .select("department_id, name")
+        .eq("workspace_id", workspaceData!.workspace_id)
+        .eq("is_active", true)
+        .order("name");
+      if (error) throw error;
+      return (data ?? []).map((d) => ({ id: d.department_id, name: d.name }));
+    },
+  });
 
   return (
     <div className="z-10 flex-1 overflow-y-auto px-10 pt-8 pb-20">
-      <div className="mb-6">
-        <h1
-          className={`mb-2 flex items-center gap-3 text-3xl font-extrabold tracking-tight ${isDark ? "text-white" : "text-zinc-900"}`}
-        >
-          Aktiv Pipeline
-          <span className="rounded border border-orange-500/20 bg-orange-500/10 px-2 py-1 text-xs font-bold tracking-wider text-orange-600 uppercase">
-            LIVE
-          </span>
-        </h1>
-        <p className={`text-sm ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
-          Sanntidsstatus for dagens operasjonelle avdelingsseksjoner.
-        </p>
+      <div className="mb-6 flex items-start justify-between">
+        <div>
+          <h1
+            className={`mb-2 flex items-center gap-3 text-3xl font-extrabold tracking-tight ${isDark ? "text-white" : "text-zinc-900"}`}
+          >
+            Aktiv Pipeline
+            <span className="rounded border border-orange-500/20 bg-orange-500/10 px-2 py-1 text-xs font-bold tracking-wider text-orange-600 uppercase">
+              LIVE
+            </span>
+          </h1>
+          <p className={`text-sm ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
+            Sanntidsstatus for dagens operasjonelle avdelingsseksjoner.
+          </p>
+        </div>
+        {workspaceData?.workspace_id && profileId && (
+          <DeviationDialog
+            workspaceId={workspaceData.workspace_id}
+            profileId={profileId}
+            departments={departments ?? []}
+          />
+        )}
       </div>
 
       {/* ── Loading state ─────────────────────────────────────────────── */}
