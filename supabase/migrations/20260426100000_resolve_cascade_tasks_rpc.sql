@@ -5,13 +5,15 @@
 CREATE OR REPLACE FUNCTION resolve_cascade_tasks(p_workspace_id uuid)
 RETURNS jsonb
 LANGUAGE plpgsql
+STABLE
 SECURITY INVOKER
+SET search_path = 'public'
 AS $$
 DECLARE
   result jsonb;
 BEGIN
   WITH
-  -- ═══ D1: Departments ═══
+  -- D1: Departments
   dept_all AS (
     SELECT department_id, name
     FROM department
@@ -104,37 +106,37 @@ BEGIN
     ) AS summary
   ),
 
-  -- ═══ D2: Staff ═══
+  -- D2: Staff
   active_profiles AS (
-    SELECT profile_id, first_name, last_name, user_id,
+    SELECT profile_id, display_name, user_id,
            bank_account, personal_number, address_line_1
     FROM profile
     WHERE workspace_id = p_workspace_id AND is_active = true
   ),
   profiles_without_contract AS (
-    SELECT p.profile_id, p.first_name || ' ' || p.last_name AS name
+    SELECT p.profile_id, p.display_name AS name
     FROM active_profiles p
     LEFT JOIN employment_contract ec
       ON ec.profile_id = p.profile_id
-      AND ec.contract_status = 'active'
+      AND ec.status = 'signed'
     WHERE ec.contract_id IS NULL
   ),
   profiles_without_payroll AS (
-    SELECT p.profile_id, p.first_name || ' ' || p.last_name AS name
+    SELECT p.profile_id, p.display_name AS name
     FROM active_profiles p
     LEFT JOIN employee_payroll_profile epp
       ON epp.profile_id = p.profile_id
     WHERE epp.payroll_profile_id IS NULL
   ),
   profiles_incomplete AS (
-    SELECT p.profile_id, p.first_name || ' ' || p.last_name AS name
+    SELECT p.profile_id, p.display_name AS name
     FROM active_profiles p
     WHERE p.bank_account IS NULL
        OR p.personal_number IS NULL
        OR p.address_line_1 IS NULL
   ),
   profiles_no_team AS (
-    SELECT p.profile_id, p.first_name || ' ' || p.last_name AS name
+    SELECT p.profile_id, p.display_name AS name
     FROM active_profiles p
     LEFT JOIN team_member tm ON tm.profile_id = p.profile_id
     WHERE tm.team_member_id IS NULL
@@ -188,7 +190,7 @@ BEGIN
     SELECT count(*) AS cnt FROM active_profiles p
     WHERE EXISTS (
       SELECT 1 FROM employment_contract ec
-      WHERE ec.profile_id = p.profile_id AND ec.contract_status = 'active'
+      WHERE ec.profile_id = p.profile_id AND ec.status = 'signed'
     )
     AND EXISTS (
       SELECT 1 FROM employee_payroll_profile epp
@@ -206,7 +208,7 @@ BEGIN
     ) AS summary
   ),
 
-  -- ═══ D3: Framework ═══
+  -- D3: Framework
   fw_binding AS (
     SELECT count(*) AS cnt
     FROM workspace_framework_binding
@@ -270,7 +272,7 @@ BEGIN
     ) AS summary
   ),
 
-  -- ═══ D4: Budget & Season ═══
+  -- D4: Budget & Season
   active_season AS (
     SELECT season_id FROM season
     WHERE workspace_id = p_workspace_id AND status = 'active'
@@ -355,7 +357,7 @@ BEGIN
     ) AS summary
   ),
 
-  -- ═══ C4: Governance ═══
+  -- C4: Governance
   policy_count AS (
     SELECT count(*) AS cnt FROM policy
     WHERE workspace_id = p_workspace_id
@@ -429,7 +431,7 @@ BEGIN
     ) AS summary
   ),
 
-  -- ═══ D6: Schedule ═══
+  -- D6: Schedule
   shift_count AS (
     SELECT count(*) AS cnt FROM schedule_shift
     WHERE workspace_id = p_workspace_id
@@ -497,16 +499,16 @@ BEGIN
     ) AS summary
   ),
 
-  -- ═══ D2 sub: Contracts ═══
+  -- D2 sub: Contracts
   unsigned_contracts AS (
     SELECT count(*) AS cnt FROM employment_contract
     WHERE workspace_id = p_workspace_id
-      AND contract_status = 'pending_signature'
+      AND status = 'sent'
   ),
   expiring_contracts AS (
     SELECT count(*) AS cnt FROM employment_contract
     WHERE workspace_id = p_workspace_id
-      AND contract_status = 'active'
+      AND status = 'signed'
       AND end_date IS NOT NULL
       AND end_date < now() + interval '30 days'
   ),
@@ -517,7 +519,7 @@ BEGIN
   active_contracts AS (
     SELECT count(*) AS cnt FROM employment_contract
     WHERE workspace_id = p_workspace_id
-      AND contract_status = 'active'
+      AND status = 'signed'
   ),
   contract_tasks AS (
     SELECT jsonb_build_object(
@@ -557,7 +559,7 @@ BEGIN
     ) AS summary
   ),
 
-  -- ═══ C2: Messages ═══
+  -- C2: Messages
   pending_proposals AS (
     SELECT count(*) AS cnt FROM change_proposal
     WHERE workspace_id = p_workspace_id
@@ -589,7 +591,7 @@ BEGIN
     ) AS summary
   ),
 
-  -- ═══ Assemble ═══
+  -- Assemble
   all_groups AS (
     SELECT summary FROM dept_summary
     UNION ALL SELECT summary FROM staff_summary
@@ -625,5 +627,14 @@ BEGIN
 END;
 $$;
 
+GRANT EXECUTE ON FUNCTION resolve_cascade_tasks(uuid) TO authenticated;
+
 COMMENT ON FUNCTION resolve_cascade_tasks IS
-  'Cascade task resolver — scans all dimensions and returns grouped tasks as JSONB. Pure read, no side effects.';
+  'Cascade task resolver — scans all dimensions and returns grouped tasks as JSONB. Pure read, no side effects.
+
+Schema facts for implementing agent:
+- employment_contract.status uses contract_status enum: draft, sent, viewed, signed, expired, terminated
+  (no "active" or "pending_signature" — use "signed" for active, "sent" for pending)
+- public_holiday uses holiday_date (not date)
+- profile has both is_active boolean AND status profile_status enum
+- department has is_active boolean';
