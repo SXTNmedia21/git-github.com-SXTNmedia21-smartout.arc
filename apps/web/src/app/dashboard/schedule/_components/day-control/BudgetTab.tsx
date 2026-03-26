@@ -1,25 +1,55 @@
 // ============================================
 // day-control/BudgetTab.tsx
 // Budget perspective tab: revenue target, labor/food cost, YoY comparison.
-// Uses mock data until per-day budget hook is available.
+// Fetches real budget data from workspace_budget via useScheduleBudget.
 // ============================================
 "use client";
 
 import { useContext } from "react";
-import { TrendingUp, TrendingDown } from "lucide-react";
+import { TrendingUp, TrendingDown, Loader2 } from "lucide-react";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
+import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { SectionHeader, KpiCard, formatNok } from "./shared";
+import { useScheduleBudget } from "../../_hooks/useScheduleBudget";
 
-export function BudgetTab({ dateId: _dateId }: { dateId: string | null }) {
+export function BudgetTab({ dateId }: { dateId: string | null }) {
   const { isDark } = useContext(DashboardContext);
+  const ctx = useWorkspaceOptional();
+  const workspaceId = ctx?.workspace.workspace_id;
 
-  // Mock budget data — will be replaced with useBudget hook
+  const { data: budgetTargets, isLoading } = useScheduleBudget(
+    workspaceId,
+    dateId ?? "",
+    dateId ?? "",
+  );
+
+  if (isLoading) {
+    return (
+      <div className="flex h-40 items-center justify-center">
+        <Loader2 className="text-muted-foreground h-5 w-5 animate-spin" />
+      </div>
+    );
+  }
+
+  const todayBudget = budgetTargets?.[0];
+
+  if (!todayBudget) {
+    return (
+      <div className="flex h-40 items-center justify-center">
+        <p className="text-muted-foreground text-sm">
+          Ingen budsjett satt for denne dagen. Sett opp sesongbudsjett under Sesong-fanen.
+        </p>
+      </div>
+    );
+  }
+
+  // Build budget object from real data (food cost not in workspace_budget — show as 0)
   const budget = {
-    revenueTarget: 42000,
-    laborTarget: 12600,
-    foodCostTarget: 12180,
-    lastYearRevenue: 38500,
-    lastYearLabor: 11200,
+    revenueTarget: todayBudget.targetRevenue,
+    laborTarget: todayBudget.targetLaborCost,
+    foodCostTarget: 0,
+    lastYearRevenue: 0,
+    lastYearLabor: 0,
   };
 
   const laborPct =
