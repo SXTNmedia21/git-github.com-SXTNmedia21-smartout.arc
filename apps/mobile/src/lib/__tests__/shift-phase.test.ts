@@ -51,6 +51,7 @@ function makeShift(overrides: Partial<ScheduleShift> = {}): ScheduleShift {
     department_id: null,
     location_id: null,
     zone: null,
+    template_shift_id: null,
     created_at: "2026-03-17T10:00:00Z",
     updated_at: "2026-03-17T10:00:00Z",
   };
