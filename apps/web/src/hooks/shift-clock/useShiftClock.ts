@@ -19,6 +19,7 @@ import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { emit } from "@smartout/telemetry";
+import { insertOutboxNotification } from "@smartout/notifications";
 import {
   canTransition,
   type ShiftClockState,
@@ -74,6 +75,41 @@ function deriveState(entry: ActiveTimeEntry | null): ShiftClockState {
     breaks,
     gpsConfig: null,
   };
+}
+
+/**
+ * Fire-and-forget: notify department managers/admins about a shift event.
+ * Resolves manager profile IDs, then inserts one outbox row per recipient.
+ */
+async function notifyDepartmentManagers(
+  supabase: ReturnType<typeof createClient>,
+  opts: {
+    workspaceId: string;
+    departmentId: string;
+    eventKey: string;
+    metadata: Record<string, unknown>;
+  },
+): Promise<void> {
+  const { data: managers } = await supabase
+    .from("profile")
+    .select("profile_id")
+    .eq("workspace_id", opts.workspaceId)
+    .eq("department_id", opts.departmentId)
+    .in("role", ["manager", "admin", "owner"])
+    .eq("is_active", true);
+
+  if (!managers?.length) return;
+
+  await Promise.all(
+    managers.map((m) =>
+      insertOutboxNotification(supabase, {
+        workspace_id: opts.workspaceId,
+        recipient_id: m.profile_id,
+        event_key: opts.eventKey,
+        metadata: opts.metadata,
+      }),
+    ),
+  );
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -206,6 +242,24 @@ export function useShiftClock() {
         },
       });
 
+      // Notify department managers (fire-and-forget)
+      void (async () => {
+        const { data: shift } = await supabase
+          .from("schedule_shift")
+          .select("department_id, role, employee_id, profile:employee_id(display_name)")
+          .eq("schedule_shift_id", shiftId)
+          .single();
+        if (shift?.department_id) {
+          const profile = shift.profile as unknown as { display_name: string } | null;
+          void notifyDepartmentManagers(supabase, {
+            workspaceId: workspace.workspace_id,
+            departmentId: shift.department_id,
+            eventKey: "shift.punched_in",
+            metadata: { name: profile?.display_name ?? "Ansatt", role: shift.role ?? "" },
+          });
+        }
+      })();
+
       return result;
     },
 
@@ -282,6 +336,26 @@ export function useShiftClock() {
           },
         },
       });
+
+      // Notify department managers (fire-and-forget)
+      const workMinutes = totalMinutes - breakMinutes;
+      const hours = (workMinutes / 60).toFixed(1);
+      void (async () => {
+        const { data: shift } = await supabase
+          .from("schedule_shift")
+          .select("department_id, profile:employee_id(display_name)")
+          .eq("schedule_shift_id", state.shiftId!)
+          .single();
+        if (shift?.department_id) {
+          const profile = shift.profile as unknown as { display_name: string } | null;
+          void notifyDepartmentManagers(supabase, {
+            workspaceId: workspace.workspace_id,
+            departmentId: shift.department_id,
+            eventKey: "shift.punched_out",
+            metadata: { name: profile?.display_name ?? "Ansatt", hours },
+          });
+        }
+      })();
     },
 
     onSuccess: () => {
@@ -523,6 +597,23 @@ export function useShiftClock() {
           },
         },
       });
+
+      // Notify department managers about adhoc shift needing approval
+      if (adhocRequiresApproval && departmentId) {
+        void (async () => {
+          const { data: profile } = await supabase
+            .from("profile")
+            .select("display_name")
+            .eq("profile_id", profileId!)
+            .single();
+          void notifyDepartmentManagers(supabase, {
+            workspaceId: workspace.workspace_id,
+            departmentId,
+            eventKey: "shift.adhoc_pending",
+            metadata: { name: profile?.display_name ?? "Ansatt" },
+          });
+        })();
+      }
 
       return {
         allowed: true,
