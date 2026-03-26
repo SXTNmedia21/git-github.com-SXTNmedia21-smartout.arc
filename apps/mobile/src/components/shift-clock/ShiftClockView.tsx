@@ -25,6 +25,9 @@ import { useActiveTimeEntry } from "@/hooks/queries/use-active-time-entry";
 import { usePunch } from "@/hooks/mutations/use-punch";
 import { strings } from "@/constants/strings";
 
+import { TaskFeed } from "@/components/task/TaskFeed";
+import { useMyTasks } from "@/hooks/queries/use-my-tasks";
+import { useMyProfile } from "@/hooks/queries/use-my-profile";
 import { PunchAnimation } from "./PunchAnimation";
 import { ShiftClockHeader } from "./ShiftClockHeader";
 import { ShiftClockActions } from "./ShiftClockActions";
@@ -39,6 +42,8 @@ export function ShiftClockView() {
   const { phase, activeShift, nextShift, activeTimeEntry: phaseTimeEntry } = useShiftPhase();
   const { data: queryTimeEntry } = useActiveTimeEntry();
   const { punchIn, punchOut } = usePunch();
+  const { data: tasks } = useMyTasks();
+  const { data: profile } = useMyProfile();
 
   const currentTimeEntry = phaseTimeEntry ?? queryTimeEntry;
   const isClockedIn = currentTimeEntry?.status === "clocked_in";
@@ -201,18 +206,7 @@ export function ShiftClockView() {
           <Text style={styles.feedTab}>Notater</Text>
         </View>
 
-        <View style={[styles.feedCard, { borderLeftColor: styles.brandOrangeColor.color }]}>
-          <Text style={styles.feedTitle}>Sjekk temperatur kjoleskap</Text>
-          <Text style={styles.feedSub}>Rutine · Forfaller 16:00</Text>
-        </View>
-        <View style={[styles.feedCard, { borderLeftColor: styles.infoColor.color }]}>
-          <Text style={styles.feedTitle}>Dagsbriefing</Text>
-          <Text style={styles.feedSub}>VIP-selskap bord 12 kl 19. Allergier: notter.</Text>
-        </View>
-        <View style={[styles.feedCard, { borderLeftColor: styles.successColor.color }]}>
-          <Text style={styles.feedTitle}>Lukking: rydd terassen</Text>
-          <Text style={styles.feedSub}>Oppgave · Forfaller 22:30</Text>
-        </View>
+        <TaskFeed tasks={tasks ?? []} profileId={profile?.profile_id ?? ""} />
       </ScrollView>
 
       {/* Punch out button — fixed at bottom */}
