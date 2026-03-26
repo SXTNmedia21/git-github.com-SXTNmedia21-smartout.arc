@@ -49,7 +49,10 @@ function interpolate(str: string, params?: Record<string, string | number>): str
 
 export function createTranslator(locale: SupportedLocale, namespace: string) {
   const messages = localeModules[locale]?.[namespace] ?? {};
+  const fallbackMessages = locale !== "nb" ? (localeModules["nb"]?.[namespace] ?? {}) : {};
+
   return function t(key: string, params?: Record<string, string | number>): string {
+    // Try requested locale first
     const direct = messages[key];
     if (typeof direct === "string") return interpolate(direct, params);
 
@@ -58,6 +61,18 @@ export function createTranslator(locale: SupportedLocale, namespace: string) {
       const nested = messages[group];
       if (typeof nested === "object" && nested !== null) {
         const val = nested[subKey];
+        if (val) return interpolate(val, params);
+      }
+    }
+
+    // Fallback to Norwegian
+    const fallbackDirect = fallbackMessages[key];
+    if (typeof fallbackDirect === "string") return interpolate(fallbackDirect, params);
+
+    if (group && subKey) {
+      const fallbackNested = fallbackMessages[group];
+      if (typeof fallbackNested === "object" && fallbackNested !== null) {
+        const val = fallbackNested[subKey];
         if (val) return interpolate(val, params);
       }
     }
