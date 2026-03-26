@@ -1,6 +1,6 @@
 ---
 title: "Å gjøre" — Cascade Task Surface
-status: review
+status: approved
 updated: 2026-03-26
 created: 2026-03-26
 module: dashboard
@@ -126,23 +126,23 @@ Same input always produces same ID. Not persisted. No dismissal tracking in v1.
 
 ### Group: Avdelinger (departments) — D1
 
-| Check               | Urgency  | Condition                                                  | Title key                     |
-| ------------------- | -------- | ---------------------------------------------------------- | ----------------------------- |
-| Department exists   | critical | `count(department) = 0`                                    | `todo.dept_none_exist`        |
-| Has operating hours | critical | `department` without matching `department_operating_hours` | `todo.dept_missing_hours`     |
-| Has location        | should   | `department` without `location_id`                         | `todo.dept_missing_location`  |
-| Has positions       | can_wait | `department` without any `position` rows                   | `todo.dept_missing_positions` |
+| Check               | Urgency  | Condition                                                                           | Title key                     |
+| ------------------- | -------- | ----------------------------------------------------------------------------------- | ----------------------------- |
+| Department exists   | critical | `count(department) = 0`                                                             | `todo.dept_none_exist`        |
+| Has operating hours | critical | `department` without matching `department_operating_hours`                          | `todo.dept_missing_hours`     |
+| Locations exist     | should   | Workspace has zero `location` rows (note: `department` has no `location_id` column) | `todo.dept_no_locations`      |
+| Has positions       | can_wait | `department` without any `position` rows (FK: `position.department_id`)             | `todo.dept_missing_positions` |
 
-**Completion:** `done` = departments with hours + location. `total` = all departments.
+**Completion:** `done` = departments with hours. `total` = all departments. Location check is workspace-level (not per-department).
 
 ### Group: Ansatte (staff) — D2
 
-| Check              | Urgency  | Condition                                               | Title key                       |
-| ------------------ | -------- | ------------------------------------------------------- | ------------------------------- |
-| Has contract       | critical | `profile` without active `employment_contract`          | `todo.staff_missing_contract`   |
-| Payroll configured | should   | `profile` without `employee_payroll_profile`            | `todo.staff_missing_payroll`    |
-| Profile complete   | can_wait | `profile` missing `emergency_contact` or `allergy_info` | `todo.staff_incomplete_profile` |
-| Team assigned      | can_wait | `profile` not in any `team_member`                      | `todo.staff_no_team`            |
+| Check              | Urgency  | Condition                                                                                                                                                                                       | Title key                       |
+| ------------------ | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| Has contract       | critical | `profile` without active `employment_contract`                                                                                                                                                  | `todo.staff_missing_contract`   |
+| Payroll configured | should   | `profile` without `employee_payroll_profile`                                                                                                                                                    | `todo.staff_missing_payroll`    |
+| Profile complete   | can_wait | `profile` missing key fields (`bank_account`, `personal_number`, or `address_line_1`). Note: `emergency_contact_*` is on `user_identity`, not `profile` — join via `profile.user_id` if needed. | `todo.staff_incomplete_profile` |
+| Team assigned      | can_wait | `profile` not in any `team_member`                                                                                                                                                              | `todo.staff_no_team`            |
 
 **Completion:** `done` = profiles with contract + payroll. `total` = active profiles.
 
@@ -198,12 +198,12 @@ Same input always produces same ID. Not persisted. No dismissal tracking in v1.
 
 ### Group: Meldinger (messages) — C2
 
-| Check               | Urgency | Condition                                                        | Title key                         |
-| ------------------- | ------- | ---------------------------------------------------------------- | --------------------------------- |
-| Unanswered messages | should  | `channel_message` where recipient is admin and `read_at IS NULL` | `todo.messages_unanswered`        |
-| Pending decisions   | should  | `change_proposal` with `status = 'pending'`                      | `todo.messages_pending_decisions` |
+| Check               | Urgency | Condition                                                                                                                                                                | Title key                         |
+| ------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------- |
+| Unanswered messages | should  | `channel_message` with `read_at IS NULL`, joined via `channel` → `channel_member` where member is admin. Conditional: only active when `channel_message` table has rows. | `todo.messages_unanswered`        |
+| Pending decisions   | should  | `change_proposal` with `status = 'pending'`                                                                                                                              | `todo.messages_pending_decisions` |
 
-**Completion:** `done` = read messages + resolved proposals. `total` = total requiring response. Note: if channel_message table does not exist yet, this group is empty until messaging is implemented.
+**Completion:** `done` = read messages + resolved proposals. `total` = total requiring response. Note: the RPC must handle this group defensively — if `channel_message` has no rows or the messaging feature is not yet active, this group returns 0/0 and is hidden from the UI.
 
 ## Supabase RPC Function
 
@@ -242,7 +242,7 @@ Location: `apps/web/src/app/dashboard/_hooks/use-cascade-tasks.ts`
 
 Location: `apps/web/src/app/dashboard/_hooks/use-cascade-task-count.ts`
 
-Lightweight hook for badge count only. Shares query key with `useCascadeTasks` (TanStack Query dedup). Returns `{ critical: number; should: number }`.
+Lightweight hook for badge count only. Uses the **same queryKey and queryFn** as `useCascadeTasks` but with a different `select` transform that extracts only `{ critical: number; should: number }`. TanStack Query deduplicates the underlying fetch — no double RPC calls. When the full hook's cache is warm, the count hook reads from cache instantly.
 
 ### Query Key Addition
 
@@ -314,9 +314,10 @@ todo/
 
 - Renders `TaskGroupSummary[]` from `useCascadeTasks()`
 - Groups sorted: incomplete first (by highest urgency task), completed last
-- Completed groups collapsed to single line
-- Loading state: skeleton matching group layout
-- Error state: retry button
+- Completed groups auto-collapsed to single line (expandable on click via `aria-expanded`)
+- Loading state: skeleton cards pulsing with warm `bg-muted` background — 3 skeleton groups with 2 skeleton cards each
+- Error state: centered message with `AlertCircle` icon + "Kunne ikke laste oppgaver" + retry button (`Button` variant="outline")
+- Scroll: uses page scroll (no internal overflow). Groups render in natural document flow.
 
 ### TodoGroupSection
 
@@ -342,28 +343,32 @@ todo/
 - Progress bar: 64–80px wide, 6px tall, `rounded-full`
   - Track: `bg-muted`
   - Fill: `bg-brand-orange` when in progress, `bg-success` when 100%
-- Completed state: single line with `CheckCircle2` in `--success`, group collapsable via `aria-expanded`
+  - Fill animation: `scaleX` with `transform-origin: left`, transition via `swapSpring` (stiffness 45, damping 22, mass 2)
+- Completed state: single line with `CheckCircle2` in `text-success`, group collapsable via `aria-expanded`
+- Group collapse/expand: `expandSpring` (stiffness 30, damping 24, mass 2.5) for height transition, `AnimatePresence` for children entering/exiting
 - Stagger entrance: 60ms per group, `expandSpring` (stiffness 30, damping 24, mass 2.5)
 
 ### TodoTaskCard
 
-- Surface: `bg-card/70 backdrop-blur-sm border border-border rounded-lg`
-- Left border: 4px solid, colored by urgency:
-  - `critical` → `hsl(var(--destructive))`
-  - `should` → `hsl(var(--warning))` (token: status.warning)
-  - `can_wait` → `hsl(var(--muted-foreground))`
+- Surface: `bg-card/70 backdrop-blur border border-border rounded-lg` + noise overlay (`::after` pseudo, fractal noise texture at 2.5% opacity, `mix-blend-mode: overlay`)
+- Left border: 4px solid, colored by urgency (OKLCH via CSS variables, NOT `hsl()` wrapper):
+  - `critical` → `style={{ borderLeftColor: 'var(--destructive)' }}` or `border-l-destructive`
+  - `should` → `border-l-warning` (token: status.warning)
+  - `can_wait` → `border-l-border` (uses border token, not text token)
 - Icon (16px, colored by urgency):
-  - `critical` → `AlertCircle`
-  - `should` → `Clock`
-  - `can_wait` → `Info`
+  - `critical` → `AlertCircle` in `text-destructive`
+  - `should` → `Clock` in `text-warning`
+  - `can_wait` → `Info` in `text-muted-foreground`
 - Title: `text-foreground font-medium text-sm` (Geist Sans)
 - Description: `text-muted-foreground text-xs` (Geist Sans)
-- Navigation: `ChevronRight` in `--brand-orange`, hover opacity 200ms
+- Navigation: `ChevronRight` in `text-brand-orange`, hover opacity 200ms
 - Padding: `p-4 gap-3`
-- Interactive: `cursor-pointer`, focus ring `--ring` (brand-orange), `tabIndex={0}`
+- Hover state: `bg-card/80` (slightly more opaque) + subtle border glow transition, 200ms
+- Interactive: `cursor-pointer`, focus ring `focus-visible:ring-2 ring-ring ring-offset-2` (brand-orange), `tabIndex={0}`
 - Click: `router.push(task.href)` + `emit("task_surface task clicked", { task_id, group, dimension })`
 - Keyboard: Enter/Space triggers click
-- Exit animation: slide left + fade, 250ms minimum
+- Entrance animation (per-card stagger within group): 40ms delay per card, `initial={{ opacity: 0, y: 12 }}`, `animate={{ opacity: 1, y: 0 }}`, duration 500ms, ease `[0.25, 0.1, 0.25, 1]`
+- Exit animation: slide left + fade, 250ms minimum, `layout` prop for smooth reflow
 
 ### TodoEmptyState
 
@@ -384,7 +389,7 @@ todo/
 - Pill: `min-w-[18px] h-[18px] rounded-full bg-brand-orange text-[10px] text-white font-medium`
 - Inline after label, vertically centered
 - Hidden when count is 0
-- AnimatePresence: scale 0→1, springBouncy
+- AnimatePresence: scale 0→1, `swapSpring` (stiffness 45, damping 22, mass 2)
 - Only shows `critical + should` count
 
 ## Guardian Migration Plan
@@ -412,6 +417,17 @@ todo/
 
 All files under `apps/web/src/app/platform-admin/guardian/` are UNAFFECTED. Platform-admin guardian is for godmode monitoring of all workspaces and engine sessions. Different purpose, different scope.
 
+### Other Guardian References (outside dashboard-core)
+
+| File                                                       | Nature of reference                                                    | Disposition                                                                                                  |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `onboarding/showcase/_components/EnginePlaypark.tsx`       | GuardianPanel render + guardian capability references in showcase demo | **Leave as-is** — showcase is internal demo, not user-facing. Update in separate cleanup PR.                 |
+| `dashboard/reports/_components/OverviewSection.tsx`        | Comment: "Follows GuardianView card + glow pattern"                    | **Update comment** — change to "Follows TodoTaskView card + glow pattern"                                    |
+| `dashboard/reports/_components/TrainingSection.tsx`        | Comment: "replicates GuardianView pattern"                             | **Update comment** — change to "replicates TodoGroupSection pattern"                                         |
+| `platform-admin/services/_components/service-contracts.ts` | References guardian WebSocket path                                     | **Leave as-is** — platform-admin scope, refers to guardian service contract                                  |
+| `platform-admin/sidebar-nav.tsx`                           | Platform-admin sidebar link to guardian                                | **Leave as-is** — platform-admin guardian is retained                                                        |
+| `api/wizard/start/route.ts`                                | References guardian in setup context                                   | **Verify** — check if it references workspace-level guardian or platform-level. Update if broken by removal. |
+
 ### Database Tables: RETAINED
 
 `guardian_signal` and `guardian_log` tables remain. They are written to by Edge Functions and engine dispatch. No migration needed. The workspace-level UI consumer is removed, but:
@@ -422,7 +438,24 @@ All files under `apps/web/src/app/platform-admin/guardian/` are UNAFFECTED. Plat
 
 ### Hook to ABSORB
 
-`useWorkspaceSetup` (`apps/web/src/app/dashboard/_hooks/use-workspace-setup.ts`) is fully absorbed into `useCascadeTasks`. The 4 checks it performs (policies >= 3, profiles > 1, shifts > 0, active season) are a subset of the cascade task checkers. The `WorkspaceSetupWizard` conditional in `AdminDashboard.tsx` is removed — "Å gjøre" IS the setup guide.
+`useWorkspaceSetup` (`apps/web/src/app/dashboard/_hooks/use-workspace-setup.ts`) is absorbed into `useCascadeTasks`. The 4 checks it performs (policies >= 3, profiles > 1, shifts > 0, active season) are a subset of the cascade task checkers.
+
+**Dependency chain — all consumers must be migrated:**
+
+| Consumer                    | Current usage                                         | Migration                                                                                                                                   |
+| --------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AdminDashboard.tsx`        | `WorkspaceSetupWizard` conditional                    | Remove conditional. "Å gjøre" IS the setup guide.                                                                                           |
+| `DashboardShell.tsx`        | Imports `useWorkspaceSetup`                           | Remove import, use `useCascadeTaskCount` for badge instead.                                                                                 |
+| `use-onboarding-guide.ts`   | Uses `setupStatus` from `useWorkspaceSetup` (line 31) | Refactor to derive setup status from `useCascadeTasks` — check if any `critical` tasks exist in `departments`/`governance`/`budget` groups. |
+| `/dashboard/setup/page.tsx` | Renders `WorkspaceSetupWizard` directly               | Keep route alive but refactor to render TodoTaskView filtered to setup-relevant groups. Or redirect to `/dashboard` with `adminView=todo`.  |
+
+`WorkspaceSetupWizard.tsx` component is NOT deleted in this PR — it remains at `/dashboard/setup` as a standalone page until the route is deprecated. The `useWorkspaceSetup` hook file IS deleted after all consumers are migrated.
+
+### Agent Capability: Guardian
+
+The `guardian` capability in `packages/ai/src/capabilities/guardian/` is **RETAINED** in v1. It has 3 registered tools (`get_signals`, `acknowledge_signal`, `get_workspace_health`) in the capability registry. These tools continue to query `guardian_signal`/`guardian_log` tables which remain populated by Edge Functions and engine dispatch. The `Situation` type in `packages/ai/src/capabilities/types.ts` retains `"guardian"` as a valid value.
+
+In v2, evaluate whether to add a `tasks` capability wrapping the cascade RPC and deprecate `get_workspace_health` in favor of cascade task summaries.
 
 ## Telemetry
 
@@ -463,7 +496,7 @@ Namespace: `dashboard` (existing).
   "dashboard.todo.completion": "{{done}} av {{total}}",
   "dashboard.todo.dept_none_exist": "Ingen avdelinger opprettet",
   "dashboard.todo.dept_missing_hours": "{{name}} mangler åpningstider",
-  "dashboard.todo.dept_missing_location": "{{name}} har ingen lokasjoner",
+  "dashboard.todo.dept_no_locations": "Workspace har ingen lokasjoner",
   "dashboard.todo.dept_missing_positions": "{{name}} mangler stillinger",
   "dashboard.todo.staff_missing_contract": "{{name}} mangler kontrakt",
   "dashboard.todo.staff_missing_payroll": "{{name}} mangler lønnsoppsett",
@@ -489,7 +522,7 @@ Namespace: `dashboard` (existing).
 }
 ```
 
-English translations follow the same structure with `en` locale.
+English translations follow the same structure with `en` locale. The implementing agent writes English translations for all keys above (straightforward 1:1 mapping).
 
 ## Accessibility
 
@@ -501,6 +534,17 @@ English translations follow the same structure with `en` locale.
 | Group header | `aria-expanded` on completed groups (expandable)                            |
 | Focus ring   | `focus-visible:ring-2 ring-ring ring-offset-2` (brand-orange)               |
 | Badge        | `aria-label="{{count}} oppgaver"` on tab                                    |
+
+### Reduced Motion (WCAG 2.1, 2.3.3)
+
+When `prefers-reduced-motion: reduce` is active:
+
+- All spring animations resolve instantly (duration 0)
+- Stagger delays are removed (all items appear simultaneously)
+- Exit slide-left is replaced with simple opacity fade at 150ms
+- Progress bar fill transitions are instant
+- Badge scale animation is disabled (appears/disappears without scale)
+- Empty state orb glow is static (no pulse or tracking)
 
 ## Mobile Parity
 
@@ -573,11 +617,11 @@ Write ADR documenting:
 
 ### Deleted Files
 
-| File                      | Reason                        |
-| ------------------------- | ----------------------------- |
-| `GuardianView.tsx`        | Replaced by TodoTaskView      |
-| `MissionControlPanel.tsx` | Was Guardian sub-panel        |
-| `useGuardianData.ts`      | Replaced by useCascadeTasks   |
-| `useGuardianActions.ts`   | No longer needed              |
-| `useGuardianSocket.ts`    | No longer needed              |
-| `use-workspace-setup.ts`  | Absorbed into useCascadeTasks |
+| File                      | Reason                                                                                    |
+| ------------------------- | ----------------------------------------------------------------------------------------- |
+| `GuardianView.tsx`        | Replaced by TodoTaskView                                                                  |
+| `MissionControlPanel.tsx` | Was Guardian sub-panel                                                                    |
+| `useGuardianData.ts`      | Replaced by useCascadeTasks                                                               |
+| `useGuardianActions.ts`   | No longer needed                                                                          |
+| `useGuardianSocket.ts`    | No longer needed                                                                          |
+| `use-workspace-setup.ts`  | Absorbed into useCascadeTasks (after all consumers migrated — see dependency chain above) |
