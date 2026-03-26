@@ -138,6 +138,7 @@ export type ActionVerb =
   | "dismissed"
   | "answered"
   | "loaded"
+  | "locked"
   | "auto_filled"
   | "joined"
   | "left"
@@ -558,6 +559,17 @@ export interface ReconciliationAdminAction extends BaseEvent {
     data: {
       reconciliation_id: string;
       action: "approved" | "rejected";
+    };
+  };
+}
+
+export interface ReconciliationLocked extends BaseEvent {
+  event: "reconciliation locked";
+  properties: {
+    entity: EntityRef;
+    data: {
+      reconciliation_id: string;
+      reconciliation_date: string;
     };
   };
 }
@@ -1759,6 +1771,7 @@ export type SmartoutEvent =
   | ProtocolCompleted
   | ReconciliationSubmitted
   | ReconciliationAdminAction
+  | ReconciliationLocked
   | SignupCompleted
   | OnboardingStepCompleted
   | WorkspaceCreated
@@ -2053,6 +2066,10 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "reconciliation admin_action": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  "reconciliation locked": {
+    destinations: ["posthog", "logger", "activity_trail"],
     category: "operations",
   },
 

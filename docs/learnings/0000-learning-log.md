@@ -15,3 +15,13 @@ tags: [learnings]
 | 2   | 2026-03-26 | TS strict mode rejects `parts[0]![0]` on string arrays — need optional chaining `parts[0]?.[0]`                         | Fixed TS2532 in MalGhostTag getInitials               |
 | 3   | 2026-03-26 | schedule_shift.template_shift_id added by our migration must be included in ALL test fixtures                           | Fixed mobile typecheck failure in shift-phase.test.ts |
 | 4   | 2026-03-26 | Bridge component returning null can be changed to render dialog alongside children without breaking side-effect pattern | Enabled AgentConfirmationDialog rendering in bridge   |
+
+module: dashboard
+tags: [learnings]
+
+---
+
+# Learning Log — admin-daily-loop
+
+| #   | Date | Learning | Impact |
+| --- | ---- | -------- | ------ |
