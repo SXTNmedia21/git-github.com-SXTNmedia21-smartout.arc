@@ -16,6 +16,7 @@ import {
   X,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslation } from "@smartout/i18n";
 import { useWorkforcePipeline, useTrainingReadiness } from "@/app/dashboard/_hooks";
 import { useActivityFeed } from "@/app/dashboard/_hooks/use-activity-feed";
 import type { ActivityEntry } from "@/app/dashboard/_hooks/use-activity-feed";
@@ -39,7 +40,9 @@ const RANGE_DAYS: Record<TimeRange, number> = {
   "90d": 90,
 };
 
-// Helper to generate mock heatmap data
+// TODO: Replace with useActivityHeatmap() hook querying activity_trail table
+// grouped by entity + date. Requires: data transformation, empty state, label resolution.
+// See: docs/DEEP-SYSTEM-DOCUMENTATION-2026-03-24.md §6.8
 const generateHeatmapData = (labels: string[], numDays: number) => {
   return labels.map((label) => ({
     id: label.toLowerCase().replace(/\s+/g, "-"),
@@ -99,6 +102,7 @@ const getDayLabels = (days: number): { index: number; label: string }[] => {
 };
 
 export function ActivityView({ isDark }: { isDark: boolean }) {
+  const { t } = useTranslation("dashboard");
   const [activeTab, setActiveTab] = useState<"locations" | "departments" | "teams" | "employees">(
     "locations",
   );
@@ -170,6 +174,11 @@ export function ActivityView({ isDark }: { isDark: boolean }) {
             ))}
           </div>
         </div>
+      </div>
+
+      {/* Demo data warning — heatmap uses mock data until useActivityHeatmap() is wired */}
+      <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
+        {t("activityDemoWarning")}
       </div>
 
       {/* Quick Stats Grid — hidden when heatmap expanded */}
