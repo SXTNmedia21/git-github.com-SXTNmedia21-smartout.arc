@@ -1,6 +1,6 @@
 ---
 title: "Worklog — mal-modus-schedule"
-status: in_progress
+status: done
 updated: 2026-03-26
 created: 2026-03-26
 module: schedule
@@ -11,7 +11,7 @@ tags: [schedule, template, mal-modus, vaktplan]
 
 > Branch: `feat/mal-modus-schedule` | Worktree: wt-4 | Started: 2026-03-26
 
-## Status: 🟢 Implementation Complete — Pending Closure
+## Status: 🟢 Done — Ready for Closure
 
 ## Done
 
@@ -31,10 +31,10 @@ tags: [schedule, template, mal-modus, vaktplan]
 
 ## Remaining
 
-- [ ] User journeys documentation
-- [ ] Decision log entries
-- [ ] Learning log entries
-- [ ] Feature closure checklist
+- [x] User journeys documentation
+- [x] Decision log entries (7 decisions)
+- [x] Learning log entries (4 learnings)
+- [x] Feature closure checklist
 
 ## Decisions
 
@@ -69,3 +69,8 @@ tags: [schedule, template, mal-modus, vaktplan]
 | 2026-03-26 | 13:30 | AI Council validation (7 personas) — 3 blocking issues resolved in spec                                             |
 | 2026-03-26 | 13:45 | Spec written and committed: docs/superpowers/specs/2026-03-26-ai-powered-mal-modus-design.md                        |
 | 2026-03-26 | 14:00 | Session ended — Phase A implementation plan next                                                                    |
+| 2026-03-26 | 14:30 | Phase A plan written: docs/superpowers/plans/2026-03-26-mal-modus-phase-a-ghost-shifts.md                           |
+| 2026-03-26 | 14:45 | Team created: 3 parallel workers dispatched for independent tasks                                                   |
+| 2026-03-26 | 15:00 | Phase A — 7 implementation commits: types, context, dialog, ghost tag, cell, grid, bridge                           |
+| 2026-03-26 | 15:15 | Verification: web typecheck 0 errors, TS2532 fix committed, mobile fixture fix committed                            |
+| 2026-03-26 | 15:30 | Closure: user journeys (7 flows), 7 decisions, 4 learnings documented                                               |
