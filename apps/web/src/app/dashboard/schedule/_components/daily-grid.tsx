@@ -334,6 +334,7 @@ export function GridContent({
                       onApproveProposal={onApproveProposal}
                       onRejectProposal={onRejectProposal}
                       enableDroppable={enableDroppable}
+                      conflictedShiftIds={conflictedShiftIds}
                     />
                   </div>
                 );
@@ -637,6 +638,7 @@ type SortableEmployeeRowProps = {
   onApproveProposal?: (id: string) => Promise<void>;
   onRejectProposal?: (id: string) => void;
   enableDroppable: boolean;
+  conflictedShiftIds?: Set<string>;
 };
 
 function SortableEmployeeRow(props: SortableEmployeeRowProps) {
@@ -680,6 +682,7 @@ export const EmployeeRow = React.memo(function EmployeeRow({
   onRejectProposal,
   dragHandleListeners,
   enableDroppable,
+  conflictedShiftIds,
 }: {
   employee: ScheduleEmployee;
   employeeStats?: { hours: number; shiftCount: number };
@@ -697,6 +700,7 @@ export const EmployeeRow = React.memo(function EmployeeRow({
   onRejectProposal?: (id: string) => void;
   dragHandleListeners?: ReturnType<typeof useSortable>["listeners"];
   enableDroppable: boolean;
+  conflictedShiftIds?: Set<string>;
 }) {
   const { isDark, scheduleCompactMode: isCompact } = useContext(DashboardContext);
   const scheduledHours = employeeStats?.hours ?? 0;

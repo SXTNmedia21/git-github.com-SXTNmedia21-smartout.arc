@@ -27,9 +27,9 @@ export function useShiftConflicts(shifts: ShiftSlot[]): ConflictWarning[] {
     const assigned = shifts.filter((s) => s.employeeId);
 
     for (let i = 0; i < assigned.length; i++) {
+      const a = assigned[i]!;
       for (let j = i + 1; j < assigned.length; j++) {
-        const a = assigned[i];
-        const b = assigned[j];
+        const b = assigned[j]!;
 
         if (a.employeeId !== b.employeeId) continue;
 
@@ -57,6 +57,6 @@ export function useShiftConflicts(shifts: ShiftSlot[]): ConflictWarning[] {
 
 /** Parse "HH:mm" time string to minutes since midnight for comparison */
 function parseTime(time: string): number {
-  const [hours, minutes] = time.split(":").map(Number);
-  return hours * 60 + minutes;
+  const parts = time.split(":").map(Number);
+  return (parts[0] ?? 0) * 60 + (parts[1] ?? 0);
 }
