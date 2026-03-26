@@ -21,6 +21,7 @@
     "@react-native-community/netinfo": "^11",
     "@react-navigation/bottom-tabs": "^7.15.5",
     "@smartout/design-tokens": "workspace:*",
+    "@smartout/notifications": "workspace:*",
     "@smartout/shift-clock": "workspace:*",
     "@smartout/supabase": "workspace:*",
     "@smartout/telemetry": "workspace:*",

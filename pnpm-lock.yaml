@@ -251,6 +251,9 @@ importers:
       '@smartout/design-tokens':
         specifier: workspace:*
         version: link:../../packages/design-tokens
+      '@smartout/notifications':
+        specifier: workspace:*
+        version: link:../../packages/notifications
       '@smartout/shift-clock':
         specifier: workspace:*
         version: link:../../packages/shift-clock
