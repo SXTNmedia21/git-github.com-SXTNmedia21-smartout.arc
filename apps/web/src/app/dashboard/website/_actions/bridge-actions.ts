@@ -63,23 +63,22 @@ export async function getCompanyHours(workspaceId: string): Promise<DayHours[]> 
 
 /**
  * Upsert company_opening_hours for all 7 days.
- * Verifies auth via user client, then uses admin client for the upsert.
+ * Uses the user-scoped client so RLS enforces admin-only writes
+ * (company_opening_hours_all_admin policy requires is_admin_in_workspace).
  */
 export async function updateCompanyHours(
   workspaceId: string,
   hours: DayHours[],
 ): Promise<{ success: true }> {
-  const userClient = await createServerClient();
+  const supabase = await createServerClient();
   const {
     data: { user },
-  } = await userClient.auth.getUser();
+  } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
-
-  const admin = getAdminClient();
 
   for (let i = 0; i < hours.length; i++) {
     const h = hours[i]!;
-    await admin.from("company_opening_hours").upsert(
+    const { error } = await supabase.from("company_opening_hours").upsert(
       {
         workspace_id: workspaceId,
         day_of_week: i,
@@ -89,12 +88,11 @@ export async function updateCompanyHours(
       },
       { onConflict: "workspace_id,day_of_week" },
     );
+    if (error) throw new Error(error.message);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await emit({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    event: "website hours_updated" as any,
+    event: "website hours_updated",
     workspace_id: workspaceId,
     actor_id: user.id,
     properties: {
@@ -128,14 +126,56 @@ export type MenuForBridge = {
 /**
  * Fetch all menus for a workspace from the websites schema.
  * Read-only — menu items/prices are managed in the Menu module.
+ * Uses admin client for cross-schema nested select, but requires authenticated
+ * workspace member to call.
  */
 export async function getMenusForWorkspace(workspaceId: string): Promise<MenuForBridge[]> {
+  // Verify the caller is authenticated and is a member of this workspace.
+  // User-scoped client enforces this via RLS on profile.
+  const supabase = await createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const { count } = await supabase
+    .from("profile")
+    .select("*", { count: "exact", head: true })
+    .eq("workspace_id", workspaceId)
+    .eq("user_id", user.id);
+
+  if (!count) throw new Error("Access denied — not a workspace member");
+
+  // Admin client needed for nested cross-schema select (websites schema has no user RLS).
   const admin = getAdminClient();
 
-  const { data: menus, error } = await admin
+  // Single join query — avoids N+1 round-trips for categories and items.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: menus, error } = await (admin as any)
     .schema("websites")
     .from("website_menu")
-    .select("website_menu_id, name, menu_type")
+    .select(
+      `
+      website_menu_id,
+      name,
+      menu_type,
+      website_menu_category (
+        website_menu_category_id,
+        name,
+        sort_order,
+        website_menu_item (
+          website_menu_item_id,
+          name,
+          description,
+          price,
+          allergens,
+          dietary_tags,
+          is_available,
+          sort_order
+        )
+      )
+    `,
+    )
     .eq("workspace_id", workspaceId)
     .order("name");
 
@@ -143,55 +183,30 @@ export async function getMenusForWorkspace(workspaceId: string): Promise<MenuFor
   if (error || !menus) return [];
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const menuRows = menus as any[];
-  const result: MenuForBridge[] = [];
-
-  for (const menu of menuRows) {
-    const { data: cats } = await admin
-      .schema("websites")
-      .from("website_menu_category")
-      .select("website_menu_category_id, name, sort_order")
-      .eq("website_menu_id", menu.website_menu_id)
-      .order("sort_order");
-
-    const categories: MenuForBridge["categories"] = [];
-
-    for (const cat of (cats ?? []) as {
-      website_menu_category_id: string;
-      name: string;
-      sort_order: number;
-    }[]) {
-      const { data: items } = await admin
-        .schema("websites")
-        .from("website_menu_item")
-        .select(
-          "website_menu_item_id, name, description, price, allergens, dietary_tags, is_available",
-        )
-        .eq("website_menu_category_id", cat.website_menu_category_id)
-        .order("sort_order");
-
-      categories.push({
-        id: cat.website_menu_category_id,
-        name: cat.name,
-        sort_order: cat.sort_order,
-        items: ((items ?? []) as Record<string, unknown>[]).map((item) => ({
-          id: item.website_menu_item_id as string,
-          name: item.name as string,
-          description: (item.description as string) ?? "",
-          price: (item.price as number) ?? 0,
-          allergens: (item.allergens as string[]) ?? [],
-          dietary_tags: (item.dietary_tags as string[]) ?? [],
-          is_available: (item.is_available as boolean) ?? true,
-        })),
-      });
-    }
-
-    result.push({
-      id: menu.website_menu_id,
-      name: menu.name,
-      categories,
-    });
-  }
-
-  return result;
+  return (menus as any[]).map((menu) => ({
+    id: menu.website_menu_id as string,
+    name: menu.name as string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    categories: ((menu.website_menu_category as any[]) ?? [])
+      .sort((a, b) => a.sort_order - b.sort_order)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .map((cat: any) => ({
+        id: cat.website_menu_category_id as string,
+        name: cat.name as string,
+        sort_order: cat.sort_order as number,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        items: ((cat.website_menu_item as any[]) ?? [])
+          .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .map((item: any) => ({
+            id: item.website_menu_item_id as string,
+            name: item.name as string,
+            description: (item.description as string) ?? "",
+            price: (item.price as number) ?? 0,
+            allergens: (item.allergens as string[]) ?? [],
+            dietary_tags: (item.dietary_tags as string[]) ?? [],
+            is_available: (item.is_available as boolean) ?? true,
+          })),
+      })),
+  }));
 }
