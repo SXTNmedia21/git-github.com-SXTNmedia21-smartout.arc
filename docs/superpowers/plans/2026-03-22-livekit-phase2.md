@@ -1,7 +1,7 @@
 ---
 title: "Plan — LiveKit Phase 2: Voice Calls + Push-to-Talk"
-status: draft
-updated: 2026-03-22
+status: done
+updated: 2026-03-26
 created: 2026-03-22
 module: webrtc
 tags: [plan, livekit, voice, push-to-talk, calls]

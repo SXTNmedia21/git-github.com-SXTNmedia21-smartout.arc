@@ -1,8 +1,8 @@
 ---
 title: "HMS Phase 2: Drift + Avvik — Implementation Plan"
-status: draft
+status: done
 created: 2026-03-22
-updated: 2026-03-22
+updated: 2026-03-26
 module: hms
 tags: [hms, drift, avvik, implementation, phase-2]
 ---

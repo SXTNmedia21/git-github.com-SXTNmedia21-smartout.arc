@@ -1,7 +1,7 @@
 ---
 title: Unified Wizard Shell Implementation Plan
-status: draft
-updated: 2026-03-24
+status: done
+updated: 2026-03-26
 created: 2026-03-24
 module: ui
 tags: [wizard, i18n, design-tokens, telemetry]

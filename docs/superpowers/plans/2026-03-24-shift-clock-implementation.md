@@ -1,7 +1,7 @@
 ---
 title: "ShiftClock Implementation Plan"
-status: draft
-updated: 2026-03-24
+status: done
+updated: 2026-03-26
 created: 2026-03-24
 module: operations
 tags: [plan, shift-clock, punch, implementation]

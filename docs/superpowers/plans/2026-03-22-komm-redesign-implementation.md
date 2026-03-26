@@ -1,7 +1,7 @@
 ---
 title: "Plan — Komm Redesign Implementation"
-status: draft
-updated: 2026-03-22
+status: done
+updated: 2026-03-26
 created: 2026-03-22
 module: communications
 tags: [komm, channels, chat, nyheter, telemetry, api, ai-tools, mobile, web]

@@ -1,7 +1,7 @@
 ---
 title: "Plan — Channel Communications Phase 1: Messaging"
-status: draft
-updated: 2026-03-22
+status: done
+updated: 2026-03-26
 created: 2026-03-22
 module: communications
 tags: [channels, chat, messaging, supabase, realtime, phase-1]

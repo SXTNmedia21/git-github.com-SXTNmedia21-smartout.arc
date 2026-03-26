@@ -1,7 +1,7 @@
 ---
 title: Website Factory Foundation — Implementation Plan
-status: draft
-updated: 2026-03-22
+status: done
+updated: 2026-03-26
 created: 2026-03-22
 module: website-factory
 tags: [website, schema, rendering, publishing, middleware, plan]

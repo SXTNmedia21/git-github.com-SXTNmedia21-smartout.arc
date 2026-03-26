@@ -1,6 +1,6 @@
 ---
 title: K1b Knowledge Ingestion — Setup Wizard → workspace_doc_chunk
-status: draft
+status: done
 updated: 2026-03-26
 created: 2026-03-26
 module: knowledge
