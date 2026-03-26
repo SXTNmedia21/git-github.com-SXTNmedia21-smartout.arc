@@ -56,14 +56,8 @@ export const dashboardKeys = {
 
   operatingHours: (workspaceId: string) => ["dashboard", "operating-hours", workspaceId] as const,
 
-  // Guardian Protocol
-  guardianSignals: (workspaceId: string) => ["dashboard", "guardian-signals", workspaceId] as const,
-
-  guardianSessions: (workspaceId: string) =>
-    ["dashboard", "guardian-sessions", workspaceId] as const,
-
-  guardianSeasonPulse: (workspaceId: string) =>
-    ["dashboard", "guardian-season-pulse", workspaceId] as const,
+  // Cascade Tasks (replaces Guardian Protocol)
+  cascadeTasks: (workspaceId: string) => ["dashboard", "cascade-tasks", workspaceId] as const,
 
   // Leader Pulse
   leaderPulse: (workspaceId: string) => ["dashboard", "leader-pulse", workspaceId] as const,
