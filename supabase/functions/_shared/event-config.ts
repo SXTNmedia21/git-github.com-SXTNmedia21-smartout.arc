@@ -1,7 +1,9 @@
 /**
- * Event Config Registry — maps every notification event_key to its static config.
- * This is the single source of truth for how each notification type behaves:
- * priority, allowed channels, grouping window, i18n keys, and action URLs.
+ * Event config registry for Deno Edge Functions.
+ *
+ * SYNC: This is a copy of packages/notifications/src/event-config.ts
+ * for use in Deno Edge Functions which cannot import from packages/.
+ * When modifying event configs, update BOTH files.
  */
 
 export type NotificationEventConfig = {

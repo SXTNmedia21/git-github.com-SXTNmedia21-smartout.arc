@@ -39,8 +39,8 @@ export async function insertOutboxNotification(
     recipient_id: input.recipient_id,
     mode: config.mode,
     priority: input.priority_override ?? config.default_priority,
-    title: interpolateTemplate(config.title_key, input.metadata),
-    body: interpolateTemplate(config.body_key, input.metadata),
+    title: interpolateTemplate(config.title_template, input.metadata),
+    body: interpolateTemplate(config.body_template, input.metadata),
     action_url: interpolateTemplate(config.action_url_template, input.metadata),
     metadata: {
       event_key: input.event_key,

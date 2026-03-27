@@ -9,6 +9,7 @@
 import { createClient, type SupabaseClient } from "jsr:@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { sendSms } from "../_shared/twilio.ts";
+import { getEventConfig, interpolateTemplate } from "../_shared/event-config.ts";
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -28,6 +29,7 @@ type OutboxRow = {
   scheduled_for: string;
   processed_at: string | null;
   created_at: string;
+  retry_count: number;
 };
 
 type NotificationPref = {
@@ -81,14 +83,9 @@ Deno.serve(async (req) => {
 
 async function handleRequest(supabase: SupabaseClient) {
   // Fetch pending batch
-  const { data: rows, error } = await supabase
-    .from("notification_outbox")
-    .select("*")
-    .eq("status", "pending")
-    .lte("scheduled_for", new Date().toISOString())
-    .order("priority", { ascending: false })
-    .order("created_at", { ascending: true })
-    .limit(100);
+  const { data: rows, error } = await supabase.rpc("fetch_pending_outbox", {
+    p_batch_size: 100,
+  });
 
   if (error) throw new Error(`Fetch outbox failed: ${error.message}`);
 
@@ -107,9 +104,14 @@ async function handleRequest(supabase: SupabaseClient) {
       failed++;
       const msg = err instanceof Error ? err.message : "Unknown error";
       console.error(`Outbox row ${row.id} failed:`, msg);
+      const newRetryCount = (row.retry_count ?? 0) + 1;
       await supabase
         .from("notification_outbox")
-        .update({ status: "failed", error_log: msg })
+        .update({
+          status: newRetryCount >= 3 ? "suppressed" : "failed",
+          retry_count: newRetryCount,
+          error_log: msg,
+        })
         .eq("id", row.id);
     }
   }
@@ -179,20 +181,47 @@ async function processOutboxRow(
     }
   }
 
+  // Resolve title/body from event config registry if possible
+  const eventKey = row.metadata?.event_key as string | undefined;
+  const config = eventKey ? getEventConfig(eventKey) : null;
+
+  let resolvedTitle = row.title;
+  let resolvedBody = row.body;
+  let resolvedActionUrl = row.action_url;
+  let resolvedIconType = (row.metadata?.icon_type as string) ?? "info";
+
+  if (config) {
+    const meta = (row.metadata ?? {}) as Record<string, unknown>;
+    resolvedTitle = interpolateTemplate(config.title_template, meta);
+    resolvedBody = interpolateTemplate(config.body_template, meta);
+    resolvedActionUrl = interpolateTemplate(config.action_url_template, meta);
+    resolvedIconType = config.icon_type;
+  } else if (eventKey) {
+    console.warn(`[process-notifications] Unknown event_key: ${eventKey} — using raw title/body`);
+  }
+
   // Insert in-app notification
   await supabase.from("notification").insert({
     workspace_id: row.workspace_id,
     recipient_id: row.recipient_id,
     group_key: groupKey ?? null,
-    title: row.title,
-    body: row.body,
-    action_url: row.action_url,
-    icon_type: (row.metadata?.icon_type as string) ?? "info",
+    title: resolvedTitle,
+    body: resolvedBody,
+    action_url: resolvedActionUrl,
+    icon_type: resolvedIconType,
     metadata: row.metadata,
   });
 
   // Fan out to external channels
-  await deliverToChannels(supabase, row, pref, profile?.phone);
+  await deliverToChannels(
+    supabase,
+    row,
+    pref,
+    profile?.phone,
+    resolvedTitle,
+    resolvedBody,
+    profile?.user_id ?? null,
+  );
 
   // Mark as delivered
   await supabase
@@ -227,12 +256,35 @@ function checkQuietHours(pref: NotificationPref, now: Date): boolean {
 
 function getNext7am(tz: string): string {
   const now = new Date();
-  // Get tomorrow's date in the user's timezone
   const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+  // Get tomorrow's date string in the target timezone
   const dateStr = tomorrow.toLocaleDateString("sv-SE", { timeZone: tz });
-  // Create 07:00 in UTC approximation — good enough for scheduling
-  const target = new Date(`${dateStr}T07:00:00`);
-  return target.toISOString();
+
+  // Get the UTC offset for the target timezone at 07:00 tomorrow
+  // by comparing formatted time vs UTC time
+  const formatter = new Intl.DateTimeFormat("en-GB", {
+    timeZone: tz,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+
+  // Create a reference point at 07:00 UTC on the target date
+  const refUtc = new Date(`${dateStr}T07:00:00Z`);
+  const parts = formatter.formatToParts(refUtc);
+  const localHour = Number(parts.find((p) => p.type === "hour")?.value ?? "7");
+
+  // The difference between local hour and 7 gives us the offset to apply
+  // If local shows 8 when UTC is 7, timezone is UTC+1, so we need to subtract 1h
+  const offsetHours = localHour - 7;
+  const targetUtc = new Date(refUtc.getTime() - offsetHours * 60 * 60 * 1000);
+
+  return targetUtc.toISOString();
 }
 
 // ── Smart grouping ───────────────────────────────────────────────────
@@ -261,10 +313,14 @@ async function resolveGrouping(
   const meta = (existing.metadata as Record<string, unknown>) ?? {};
   const count = ((meta.count as number) ?? 1) + 1;
 
+  const groupLabel =
+    (row.metadata?.department_name as string) ?? (row.metadata?.channel_name as string) ?? "";
+  const groupBody = groupLabel ? `${count} nye varsler i ${groupLabel}` : `${count} nye varsler`;
+
   await supabase
     .from("notification")
     .update({
-      body: row.body,
+      body: groupBody,
       metadata: { ...meta, count },
       updated_at: new Date().toISOString(),
     })
@@ -280,6 +336,9 @@ async function deliverToChannels(
   row: OutboxRow,
   pref: NotificationPref | null,
   phone: string | null,
+  resolvedTitle: string,
+  resolvedBody: string,
+  profileUserId: string | null,
 ) {
   const channels = row.allowed_channels ?? [];
 
@@ -298,7 +357,7 @@ async function deliverToChannels(
           event: (row.metadata?.event_key as string) ?? "notification",
           profile_id: row.recipient_id,
           workspace_id: row.workspace_id,
-          payload: { title: row.title, body: row.body, data: {} },
+          payload: { title: resolvedTitle, body: resolvedBody, data: {} },
         }),
       });
     } catch (err) {
@@ -306,15 +365,50 @@ async function deliverToChannels(
     }
   }
 
-  // Email — stub for MVP (SendGrid integration out of scope)
+  // Email via SendGrid — resolve recipient email from user_identity
   if (channels.includes("email") && (pref?.email_enabled ?? true)) {
-    console.log(`[email] Would send to recipient ${row.recipient_id}: ${row.title}`);
+    const sgKey = Deno.env.get("SENDGRID_API_KEY");
+    if (sgKey && profileUserId) {
+      const { data: userRow } = await supabase
+        .from("user_identity")
+        .select("email")
+        .eq("id", profileUserId)
+        .single();
+
+      if (userRow?.email) {
+        try {
+          const actionLine = row.action_url
+            ? `\n\nSe mer: https://app.smartout.ai${row.action_url}`
+            : "";
+          await fetch("https://api.sendgrid.com/v3/mail/send", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${sgKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              personalizations: [{ to: [{ email: userRow.email }] }],
+              from: { email: "varsler@smartout.ai", name: "Smartout" },
+              subject: resolvedTitle,
+              content: [
+                {
+                  type: "text/plain",
+                  value: `${resolvedBody}${actionLine}`,
+                },
+              ],
+            }),
+          });
+        } catch (err) {
+          console.error("Email delivery failed:", err);
+        }
+      }
+    }
   }
 
   // SMS — only for critical (priority 2) notifications
   if (channels.includes("sms") && (pref?.sms_enabled ?? true) && row.priority === 2) {
     if (phone) {
-      const result = await sendSms(phone, `${row.title}\n${row.body}`);
+      const result = await sendSms(phone, `${resolvedTitle}\n${resolvedBody}`);
       if (!result.success) {
         console.error(`SMS failed for ${row.recipient_id}:`, result.error);
       }
