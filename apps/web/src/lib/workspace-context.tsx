@@ -14,6 +14,7 @@ export type WorkspaceData = {
   timezone: string;
   contract_status: string | null;
   onboarding_completed: boolean;
+  setup_guide_completed: boolean;
 };
 
 type WorkspaceContextValue = {
