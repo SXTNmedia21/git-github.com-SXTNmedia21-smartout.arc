@@ -268,7 +268,7 @@ function ExtractionSummary({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
       <div
-        className={`mx-4 w-full max-w-lg rounded-2xl border shadow-2xl ${"border-border bg-white"}`}
+        className={`mx-4 w-full max-w-lg rounded-2xl border shadow-2xl ${"border-border bg-card"}`}
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-inherit px-6 py-4">
@@ -355,7 +355,7 @@ function ExtractionSummary({
                       <button
                         type="button"
                         onClick={() => handleRemoveSection(section.key)}
-                        className={`ml-auto rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors ${"text-destructive hover:bg-red-50 hover:text-red-600"}`}
+                        className={`ml-auto rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors ${"text-destructive hover:bg-destructive/10 hover:text-destructive"}`}
                       >
                         Fjern alle
                       </button>
@@ -383,7 +383,7 @@ function ExtractionSummary({
                                 e.stopPropagation();
                                 handleRemoveItem(item.key, item.index);
                               }}
-                              className={`shrink-0 rounded p-0.5 opacity-0 transition-opacity group-hover:opacity-100 ${"text-destructive hover:bg-red-50 hover:text-red-600"}`}
+                              className={`shrink-0 rounded p-0.5 opacity-0 transition-opacity group-hover:opacity-100 ${"text-destructive hover:bg-destructive/10 hover:text-destructive"}`}
                               title="Fjern dette elementet"
                             >
                               <X className="h-3 w-3" />
@@ -856,7 +856,7 @@ export function DocumentDropStep({
                 className={`flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
                   hasData
                     ? "bg-success text-success hover:bg-success/30"
-                    : "bg-warning text-warning hover:bg-amber-200"
+                    : "bg-warning text-warning hover:bg-warning/30"
                 }`}
               >
                 <Eye className="h-3.5 w-3.5" />

@@ -73,7 +73,7 @@ export function ConfirmProcedures({
       <div>
         <h2 className="text-foreground text-2xl font-bold">{t("confirm.procedures_title")}</h2>
         <p className="text-muted-foreground mt-1 text-sm">{t("confirm.procedures_description")}</p>
-        <p className="mt-2 flex items-center gap-1.5 text-xs text-orange-500">
+        <p className="text-brand-orange mt-2 flex items-center gap-1.5 text-xs">
           <Sparkles className="h-3 w-3" />
           {selectedCount} valgt av {procedures.length} forslag
         </p>
@@ -89,8 +89,8 @@ export function ConfirmProcedures({
             className={[
               "flex w-full items-center justify-between rounded-lg border px-4 py-3 text-left transition-all duration-200",
               proc.selected
-                ? "text-foreground border-orange-500/30 bg-orange-500/5"
-                : "border-dashed border-gray-200 bg-white/50 text-gray-400 hover:border-orange-300 hover:bg-orange-50/50 hover:text-gray-600",
+                ? "text-foreground border-[var(--brand-orange)]/30 bg-[var(--brand-orange)]/5"
+                : "border-dashed border-border bg-white/50 text-muted-foreground hover:border-[var(--brand-orange)]/30 hover:bg-[var(--brand-orange)]/5 hover:text-foreground",
             ].join(" ")}
           >
             <span className="flex items-center gap-3">
@@ -98,44 +98,44 @@ export function ConfirmProcedures({
                 className={[
                   "flex size-5 shrink-0 items-center justify-center rounded border text-xs transition-all duration-200",
                   proc.selected
-                    ? "border-orange-500/40 bg-orange-500/20 text-orange-600"
-                    : "border-gray-200 bg-white text-transparent",
+                    ? "border-[var(--brand-orange)]/40 bg-[var(--brand-orange)]/20 text-[var(--brand-orange)]"
+                    : "border-border bg-card text-transparent",
                 ].join(" ")}
               >
                 &#10003;
               </span>
               <span className="text-sm">{proc.name}</span>
               {proc.recommended && (
-                <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] text-emerald-600">
+                <span className="rounded bg-[var(--success)]/10 px-1.5 py-0.5 text-[10px] text-[var(--success)]">
                   Anbefalt
                 </span>
               )}
               {proc.isCustom && (
-                <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-500">
+                <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
                   Egendefinert
                 </span>
               )}
             </span>
 
             {!proc.selected && !proc.recommended && (
-              <span className="text-[10px] tracking-wider text-gray-300 uppercase">Forslag</span>
+              <span className="text-[10px] tracking-wider text-muted-foreground uppercase">Forslag</span>
             )}
           </button>
         ))}
 
         {/* Deselect warning for recommended procedures */}
         {pendingProc && (
-          <div className="flex items-start gap-2.5 rounded-lg border border-amber-500/20 bg-amber-500/5 px-4 py-3">
-            <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-amber-500" />
+          <div className="flex items-start gap-2.5 rounded-lg border border-[var(--warning)]/20 bg-[var(--warning)]/5 px-4 py-3">
+            <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-[var(--warning)]" />
             <div className="flex flex-col gap-2">
-              <p className="text-xs text-amber-600">
+              <p className="text-xs text-[var(--warning)]">
                 <strong>{pendingProc.name}</strong> er anbefalt for din bransje. Sikker?
               </p>
               <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={confirmDeselect}
-                  className="rounded-md bg-gray-100 px-2.5 py-1 text-xs text-gray-700 hover:bg-gray-200"
+                  className="rounded-md bg-muted px-2.5 py-1 text-xs text-muted-foreground hover:bg-accent"
                 >
                   Ja, fjern
                 </button>
@@ -166,13 +166,13 @@ export function ConfirmProcedures({
                 }
               }}
               placeholder="Prosedyrenavn"
-              className="border-input bg-background text-foreground placeholder:text-muted-foreground flex-1 rounded-lg border px-3 py-2.5 text-sm focus-visible:ring-2 focus-visible:ring-orange-500/40 focus-visible:outline-none"
+              className="border-input bg-background text-foreground placeholder:text-muted-foreground flex-1 rounded-lg border px-3 py-2.5 text-sm focus-visible:ring-2 focus-visible:ring-[var(--brand-orange)]/40 focus-visible:outline-none"
               autoFocus
             />
             <button
               type="button"
               onClick={addCustomProcedure}
-              className="rounded-lg bg-orange-500/10 px-3 py-2.5 text-sm text-orange-600 transition-colors hover:bg-orange-500/20"
+              className="rounded-lg bg-[var(--brand-orange)]/10 px-3 py-2.5 text-sm text-[var(--brand-orange)] transition-colors hover:bg-[var(--brand-orange)]/20"
             >
               Legg til
             </button>

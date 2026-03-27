@@ -20,7 +20,7 @@ export function BotsTip({ tip, extendedTip }: { tip: string; extendedTip?: strin
             <SheetTrigger asChild>
               <button
                 type="button"
-                className={`mt-1 text-xs font-medium transition-colors ${"text-warning/60 hover:text-amber-600"}`}
+                className={`mt-1 text-xs font-medium transition-colors ${"text-warning/60 hover:text-warning"}`}
               >
                 Mer &#9656;
               </button>

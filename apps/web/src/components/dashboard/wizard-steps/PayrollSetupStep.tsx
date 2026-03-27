@@ -668,7 +668,7 @@ export function PayrollSetupStep({
         ) : stablePositions.length === 0 && isAddingPosition ? (
           <div className="space-y-3">
             {/* Inline add position form */}
-            <div className={`space-y-3 rounded-xl border p-4 ${"border-border bg-white"}`}>
+            <div className={`space-y-3 rounded-xl border p-4 ${"border-border bg-card"}`}>
               <div className="space-y-2">
                 <Label className={`text-sm ${"text-muted-foreground"}`}>Stillingsnavn</Label>
                 <Input
@@ -692,7 +692,7 @@ export function PayrollSetupStep({
                   <select
                     value={newPositionDeptId}
                     onChange={(e) => setNewPositionDeptId(e.target.value)}
-                    className={`h-9 w-full rounded-lg border px-3 text-sm ${"border-border text-foreground bg-white"}`}
+                    className={`h-9 w-full rounded-lg border px-3 text-sm ${"border-border text-foreground bg-card"}`}
                   >
                     {stableDepartments.map((d) => (
                       <option key={d.department_id} value={d.department_id}>
@@ -740,7 +740,7 @@ export function PayrollSetupStep({
             {positionWages.map((pw) => (
               <div
                 key={pw.position_id}
-                className={`flex items-center justify-between rounded-xl border px-4 py-3 ${"border-border bg-white"}`}
+                className={`flex items-center justify-between rounded-xl border px-4 py-3 ${"border-border bg-card"}`}
               >
                 <span className={`text-sm font-medium ${"text-muted-foreground"}`}>{pw.name}</span>
                 <div className="flex items-center gap-2">
@@ -773,7 +773,7 @@ export function PayrollSetupStep({
                 Legg til stilling
               </button>
             ) : (
-              <div className={`mt-2 space-y-3 rounded-xl border p-4 ${"border-border bg-white"}`}>
+              <div className={`mt-2 space-y-3 rounded-xl border p-4 ${"border-border bg-card"}`}>
                 <div className="flex gap-2">
                   <Input
                     type="text"
@@ -793,7 +793,7 @@ export function PayrollSetupStep({
                     <select
                       value={newPositionDeptId}
                       onChange={(e) => setNewPositionDeptId(e.target.value)}
-                      className={`h-9 rounded-lg border px-3 text-sm ${"border-border text-foreground bg-white"}`}
+                      className={`h-9 rounded-lg border px-3 text-sm ${"border-border text-foreground bg-card"}`}
                     >
                       {stableDepartments.map((d) => (
                         <option key={d.department_id} value={d.department_id}>

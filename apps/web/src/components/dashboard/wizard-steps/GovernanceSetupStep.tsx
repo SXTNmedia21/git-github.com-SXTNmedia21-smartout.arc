@@ -54,7 +54,7 @@ function TemplateCard({
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
       <div
-        className={`overflow-hidden rounded-xl border transition-colors ${"border-border bg-white"}`}
+        className={`overflow-hidden rounded-xl border transition-colors ${"border-border bg-card"}`}
       >
         <CollapsibleTrigger asChild>
           <div className="flex cursor-pointer items-center justify-between px-4 py-3">

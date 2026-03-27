@@ -1,3 +1,16 @@
+---
+title: Setup Flow Redesign — Data Integrity, Source Tracking, Design Tokens, AI Pre-fill
+status: in_progress
+updated: 2026-03-26
+created: 2026-03-22
+module: onboarding
+tags: [onboarding, setup, redesign]
+---
+
+<!-- Schema placement note (Task 3): field_sources column added to company_details in public schema.
+     company_details is a workspace-scoped extension of company — belongs in public schema alongside
+     its parent table. No dedicated schema warranted (fewer than 5 tables, same RLS boundary as company). -->
+
 # Setup Flow Redesign — Data Integrity, Source Tracking, Design Tokens, AI Pre-fill
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
