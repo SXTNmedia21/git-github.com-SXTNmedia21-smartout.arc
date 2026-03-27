@@ -1311,6 +1311,11 @@ export interface OnboardingGuideUpdated extends BaseEvent {
   };
 }
 
+export interface SetupGuideCompleted extends BaseEvent {
+  event: "setup_guide completed";
+  properties: Record<string, never>;
+}
+
 // ─── Industry Package Events ────────────────────
 export interface IndustryPackageLoaded extends BaseEvent {
   event: "industry_package loaded";
@@ -1979,6 +1984,7 @@ export type SmartoutEvent =
   | WorkingTimeRulesUpdated
   | AuthorityConfigUpdated
   | OnboardingGuideUpdated
+  | SetupGuideCompleted
   | IndustryPackageLoaded
   | HolidayCalendarCreated
   | HolidayCalendarUpdated
@@ -2563,6 +2569,11 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
 
   "onboarding_guide updated": {
     destinations: ["posthog", "logger"],
+    category: "onboarding",
+  },
+
+  "setup_guide completed": {
+    destinations: ["posthog", "logger", "activity_trail"],
     category: "onboarding",
   },
 

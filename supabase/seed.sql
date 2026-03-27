@@ -2374,3 +2374,10 @@ VALUES (
 ) ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================================
+
+-- 14. Mark dev workspace setup guide as completed
+-- Prevents developers from being trapped in setup mode during local development.
+-- setup_guide_completed is a dedicated flag (separate from onboarding_completed).
+UPDATE public.workspace
+SET setup_guide_completed = true
+WHERE workspace_id = 'b0000000-0000-0000-0000-000000000000';
