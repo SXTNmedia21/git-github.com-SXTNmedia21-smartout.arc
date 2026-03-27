@@ -1,3 +1,6 @@
+WARN: environment variable is unset: SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID
+WARN: environment variable is unset: SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET
+Connecting to db 5432
 export type Json =
   | string
   | number
@@ -4945,6 +4948,72 @@ export type Database = {
           },
           {
             foreignKeyName: "department_session_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      department_shift_type_config: {
+        Row: {
+          applicable_day_types: string[]
+          created_at: string
+          default_break_minutes: number
+          default_end_time: string
+          default_start_time: string
+          department_id: string
+          id: string
+          is_active: boolean
+          label: string
+          shift_type_id: string
+          slot_count: number
+          sort_order: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          applicable_day_types?: string[]
+          created_at?: string
+          default_break_minutes?: number
+          default_end_time?: string
+          default_start_time?: string
+          department_id: string
+          id?: string
+          is_active?: boolean
+          label: string
+          shift_type_id: string
+          slot_count?: number
+          sort_order?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          applicable_day_types?: string[]
+          created_at?: string
+          default_break_minutes?: number
+          default_end_time?: string
+          default_start_time?: string
+          department_id?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          shift_type_id?: string
+          slot_count?: number
+          sort_order?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "department_shift_type_config_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "department"
+            referencedColumns: ["department_id"]
+          },
+          {
+            foreignKeyName: "department_shift_type_config_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspace"
@@ -10828,7 +10897,7 @@ export type Database = {
           employee_id: string | null
           end_time: string
           indicator: string
-          is_adhoc: boolean
+          is_adhoc: boolean | null
           is_published: boolean
           location_id: string | null
           notes: string | null
@@ -10864,7 +10933,7 @@ export type Database = {
           employee_id?: string | null
           end_time: string
           indicator?: string
-          is_adhoc?: boolean
+          is_adhoc?: boolean | null
           is_published?: boolean
           location_id?: string | null
           notes?: string | null
@@ -10900,7 +10969,7 @@ export type Database = {
           employee_id?: string | null
           end_time?: string
           indicator?: string
-          is_adhoc?: boolean
+          is_adhoc?: boolean | null
           is_published?: boolean
           location_id?: string | null
           notes?: string | null
@@ -12658,6 +12727,7 @@ export type Database = {
           override_note: string | null
           phone: string | null
           postal_code: string | null
+          setup_guide_completed: boolean
           short_description: string | null
           slogan: string | null
           slug: string
@@ -12710,6 +12780,7 @@ export type Database = {
           override_note?: string | null
           phone?: string | null
           postal_code?: string | null
+          setup_guide_completed?: boolean
           short_description?: string | null
           slogan?: string | null
           slug: string
@@ -12762,6 +12833,7 @@ export type Database = {
           override_note?: string | null
           phone?: string | null
           postal_code?: string | null
+          setup_guide_completed?: boolean
           short_description?: string | null
           slogan?: string | null
           slug?: string
@@ -13574,6 +13646,10 @@ export type Database = {
         Args: { uid: string; wid: string }
         Returns: boolean
       }
+      is_participant_in_conversation: {
+        Args: { conv_id: string }
+        Returns: boolean
+      }
       log_api_key_usage: {
         Args: { p_endpoint: string; p_key_id: string; p_status: number }
         Returns: undefined
@@ -13628,6 +13704,7 @@ export type Database = {
         }
         Returns: string
       }
+      resolve_cascade_tasks: { Args: { p_workspace_id: string }; Returns: Json }
       rollback_audit_entry: { Args: { p_audit_log_id: string }; Returns: Json }
       rotate_api_key: {
         Args: {
