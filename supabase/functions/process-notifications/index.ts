@@ -9,6 +9,7 @@
 import { createClient, type SupabaseClient } from "jsr:@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { sendSms } from "../_shared/twilio.ts";
+import { getEventConfig, interpolateTemplate } from "../_shared/event-config.ts";
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -180,20 +181,39 @@ async function processOutboxRow(
     }
   }
 
+  // Resolve title/body from event config registry if possible
+  const eventKey = row.metadata?.event_key as string | undefined;
+  const config = eventKey ? getEventConfig(eventKey) : null;
+
+  let resolvedTitle = row.title;
+  let resolvedBody = row.body;
+  let resolvedActionUrl = row.action_url;
+  let resolvedIconType = (row.metadata?.icon_type as string) ?? "info";
+
+  if (config) {
+    const meta = (row.metadata ?? {}) as Record<string, unknown>;
+    resolvedTitle = interpolateTemplate(config.title_template, meta);
+    resolvedBody = interpolateTemplate(config.body_template, meta);
+    resolvedActionUrl = interpolateTemplate(config.action_url_template, meta);
+    resolvedIconType = config.icon_type;
+  } else if (eventKey) {
+    console.warn(`[process-notifications] Unknown event_key: ${eventKey} — using raw title/body`);
+  }
+
   // Insert in-app notification
   await supabase.from("notification").insert({
     workspace_id: row.workspace_id,
     recipient_id: row.recipient_id,
     group_key: groupKey ?? null,
-    title: row.title,
-    body: row.body,
-    action_url: row.action_url,
-    icon_type: (row.metadata?.icon_type as string) ?? "info",
+    title: resolvedTitle,
+    body: resolvedBody,
+    action_url: resolvedActionUrl,
+    icon_type: resolvedIconType,
     metadata: row.metadata,
   });
 
   // Fan out to external channels
-  await deliverToChannels(supabase, row, pref, profile?.phone);
+  await deliverToChannels(supabase, row, pref, profile?.phone, resolvedTitle, resolvedBody);
 
   // Mark as delivered
   await supabase
@@ -262,10 +282,14 @@ async function resolveGrouping(
   const meta = (existing.metadata as Record<string, unknown>) ?? {};
   const count = ((meta.count as number) ?? 1) + 1;
 
+  const groupLabel =
+    (row.metadata?.department_name as string) ?? (row.metadata?.channel_name as string) ?? "";
+  const groupBody = groupLabel ? `${count} nye varsler i ${groupLabel}` : `${count} nye varsler`;
+
   await supabase
     .from("notification")
     .update({
-      body: row.body,
+      body: groupBody,
       metadata: { ...meta, count },
       updated_at: new Date().toISOString(),
     })
@@ -281,6 +305,8 @@ async function deliverToChannels(
   row: OutboxRow,
   pref: NotificationPref | null,
   phone: string | null,
+  resolvedTitle: string,
+  resolvedBody: string,
 ) {
   const channels = row.allowed_channels ?? [];
 
@@ -299,7 +325,7 @@ async function deliverToChannels(
           event: (row.metadata?.event_key as string) ?? "notification",
           profile_id: row.recipient_id,
           workspace_id: row.workspace_id,
-          payload: { title: row.title, body: row.body, data: {} },
+          payload: { title: resolvedTitle, body: resolvedBody, data: {} },
         }),
       });
     } catch (err) {
@@ -309,13 +335,13 @@ async function deliverToChannels(
 
   // Email — stub for MVP (SendGrid integration out of scope)
   if (channels.includes("email") && (pref?.email_enabled ?? true)) {
-    console.log(`[email] Would send to recipient ${row.recipient_id}: ${row.title}`);
+    console.log(`[email] Would send to recipient ${row.recipient_id}: ${resolvedTitle}`);
   }
 
   // SMS — only for critical (priority 2) notifications
   if (channels.includes("sms") && (pref?.sms_enabled ?? true) && row.priority === 2) {
     if (phone) {
-      const result = await sendSms(phone, `${row.title}\n${row.body}`);
+      const result = await sendSms(phone, `${resolvedTitle}\n${resolvedBody}`);
       if (!result.success) {
         console.error(`SMS failed for ${row.recipient_id}:`, result.error);
       }
