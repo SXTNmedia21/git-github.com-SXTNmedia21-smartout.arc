@@ -13,9 +13,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
 
-import type { MalColumn, MalCell, MalGridData, MalEmployeeAssignment, MalTask } from "./mal-types";
-import { cellKey, addDays } from "./mal-types";
-import { malKeys } from "./mal-query-keys";
+import type { MalColumn, MalCell, MalGridData, MalEmployeeAssignment, MalTask } from "./grid-types";
+import { cellKey, addDays } from "./grid-types";
+import { gridKeys } from "./grid-query-keys";
 
 /** Norwegian day names for the grid header */
 const DAY_NAMES: string[] = [
@@ -79,7 +79,7 @@ export function useMalData(params: {
 
   // Step 1: Resolve department(s) — single or all
   const departmentQuery = useQuery({
-    queryKey: malKeys.department(workspaceId, departmentName),
+    queryKey: gridKeys.department(workspaceId, departmentName),
     enabled: !!workspaceId && !!departmentName,
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
@@ -110,7 +110,7 @@ export function useMalData(params: {
 
   // Step 2: Fetch templates across all resolved departments
   const templatesQuery = useQuery({
-    queryKey: malKeys.templates(workspaceId, departmentIds.join(",")),
+    queryKey: gridKeys.templates(workspaceId, departmentIds.join(",")),
     enabled: departmentIds.length > 0,
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
@@ -138,7 +138,7 @@ export function useMalData(params: {
   // Step 3: Fetch template shifts (columns), actual schedule shifts, and tasks in parallel.
   const gridQuery = useQuery({
     queryKey: [
-      ...malKeys.shifts(workspaceId, weekStart, activeTemplateId ?? ""),
+      ...gridKeys.shifts(workspaceId, weekStart, activeTemplateId ?? ""),
       showTasks,
       departmentIds.join(","),
     ],

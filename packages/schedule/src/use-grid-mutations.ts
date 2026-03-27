@@ -10,8 +10,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
 import { emit } from "@smartout/telemetry";
 
-import { malKeys } from "./mal-query-keys";
-import { addDays } from "./mal-types";
+import { gridKeys } from "./grid-query-keys";
+import { addDays } from "./grid-types";
 
 // ══════════════════════════════════════════════════════════════
 // Mutation: Fill week from template ("Fyll fra mal")
@@ -132,7 +132,7 @@ export function useFillFromTemplate() {
       });
 
       void queryClient.invalidateQueries({
-        queryKey: malKeys.shifts(workspaceId, weekStart, templateId),
+        queryKey: gridKeys.shifts(workspaceId, weekStart, templateId),
       });
     },
   });
@@ -189,7 +189,7 @@ export function usePublishWeek() {
       });
 
       void queryClient.invalidateQueries({
-        queryKey: malKeys.shifts(workspaceId, weekStart, templateId),
+        queryKey: gridKeys.shifts(workspaceId, weekStart, templateId),
       });
     },
   });
@@ -245,7 +245,7 @@ export function useResetWeek() {
       });
 
       void queryClient.invalidateQueries({
-        queryKey: malKeys.shifts(workspaceId, weekStart, templateId),
+        queryKey: gridKeys.shifts(workspaceId, weekStart, templateId),
       });
     },
   });
@@ -303,7 +303,7 @@ export function useAssignEmployee() {
       });
 
       void queryClient.invalidateQueries({
-        queryKey: malKeys.shifts(workspaceId, weekStart, templateId),
+        queryKey: gridKeys.shifts(workspaceId, weekStart, templateId),
       });
     },
   });
