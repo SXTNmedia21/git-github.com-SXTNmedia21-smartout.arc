@@ -586,3 +586,32 @@ Expected: No matches. If confirmed unused, pause it in Supabase dashboard to sav
 | `SENDGRID_API_KEY`              | —                                          | Must be set                  | Set (from 1Password)                       | —                                          |
 | `SENTRY_DSN`                    | —                                          | —                            | Set (from 1Password)                       | —                                          |
 | `UPSTASH_REDIS_REST_URL`        | —                                          | —                            | Set (from 1Password)                       | —                                          |
+
+---
+
+## Council Review (2026-03-26)
+
+**Verdict:** APPROVED_WITH_CONDITIONS
+**Reviewer:** Plan Audit Council
+
+**Issues found:**
+
+- **Missing YAML frontmatter** — All docs in `docs/` MUST have frontmatter (`title`, `status`, `updated`, `created`, `module`, `tags`). This plan has none. Violates CLAUDE.md mandatory requirement.
+- **Task 1 already done** — `infra/docker-compose.yml` line 50 already uses `SUPABASE_URL=${SUPABASE_URL}` (env var substitution). The hardcoded `http://host.docker.internal:54321` the plan describes does NOT exist in the current codebase. This fix was already merged to `development`.
+- **Task 2 already done** — Both `lookup/route.ts` (lines 107-109) and `analyze-documents/route.ts` (lines 73-75) already have the conditional `Authorization: Bearer` header using `process.env.SCRAPLING_AUTH_TOKEN`. These fixes are already in `development`.
+- **Task 5 Step 3 (Preview scope) is incomplete** — The plan says "repeat the commands with `preview`" for non-Stripe vars but gives no concrete commands. An executor could skip this entirely.
+- **`docker-compose.override.yml` survives `git pull`** — Task 3 Step 4 correctly addresses this (rm -f after pull), but the plan should note that `docker-compose.override.yml` is tracked in git and will return on every pull. Production deployment must always include this rm step in the runbook.
+
+**Recommendations:**
+
+- Add YAML frontmatter before implementation begins (status: `in_progress`, module: `infra`)
+- Skip Tasks 1 and 2 code changes entirely — they are already in `development`. Task 3 Step 3 (`git pull`) will pull them to the Droplet automatically.
+- For Task 5 Step 3, explicitly list all vars that need `preview` scope or link to the Vercel dashboard URL for bulk scoping.
+- Consider adding a permanent note to the production deployment runbook: always `rm -f infra/docker-compose.override.yml` after any `git pull` on the Droplet.
+- The two Supabase project situation (`hcmhwsewrcjmldjezaqk`) should be addressed promptly — Task 6 Step 7 covers verification, but pausing the unused project should be an explicit action item with a deadline.
+
+**Security check:** PASSED — all secrets use `op read 'op://...'` references, no hardcoded values, no secrets in plan body. 1Password paths look correct. Supabase project ref `yljaglomadbhyqpcigff` is a non-secret identifier (safe to document).
+
+**Scope check:** PASSED — realistic scope, well-bounded, clear done criteria for each step.
+
+**Overall:** The plan is structurally sound and safe to execute. Tasks 3–6 are the remaining work. The executor should begin at Task 3 (Droplet update) and can skip the code changes in Tasks 1 and 2 since they are already merged.

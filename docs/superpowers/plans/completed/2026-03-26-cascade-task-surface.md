@@ -1251,4 +1251,65 @@ git commit -m "fix(todo): visual verification fixes"
 | 5    | Guardian cleanup        | 7+ files | Task 4                       |
 | 6    | Verification            | 0 files  | Task 5                       |
 
+---
+
+## Council Verdict — 2026-03-26
+
+**Verdict: APPROVED_WITH_CONDITIONS**
+
+**Reviewer:** Claude (council reviewer)
+**Date:** 2026-03-26
+**Branch:** wt-2 (7 commits ahead of development + 4 uncommitted files)
+
+---
+
+### Progress Assessment
+
+| Task                                | Status     | Evidence                                                                                     |
+| ----------------------------------- | ---------- | -------------------------------------------------------------------------------------------- |
+| 0 — Types + telemetry               | ✅ Done    | `cascade-tasks.ts`, telemetry entity registered                                              |
+| 1 — RPC migration                   | ✅ Done    | `20260426100000_resolve_cascade_tasks_rpc.sql`, schema bugs corrected in fix commit          |
+| 2 — Data hooks                      | ✅ Done    | `use-cascade-tasks.ts`, `use-cascade-task-count.ts`, keys registered                         |
+| 3 — UI components                   | ✅ Done    | `todo/` directory with all 5 components                                                      |
+| 4 — Dashboard integration           | ✅ Done    | DashboardShell uses `"todo"` AdminViewType as default, voice context updated                 |
+| 5 — Guardian cleanup                | ✅ Done    | GuardianView, MissionControlPanel, 4 guardian hooks deleted; `use-onboarding-guide` migrated |
+| 6 — Typecheck + visual verification | ⏳ Pending | Not yet run — checkboxes unchecked                                                           |
+| 7 — i18n translations               | ⏳ Pending | Added to plan (uncommitted), keys written in Norwegian — not yet committed                   |
+| 8 — ADR                             | ⏳ Pending | Decision log updated in uncommitted changes — not yet committed                              |
+
+---
+
+### Architecture Review
+
+**Strengths:**
+
+- `SECURITY INVOKER` on RPC is correct — RLS applies for web clients, service role bypasses for stage-engine
+- `STABLE` + `SET search_path = 'public'` are good security hygiene (prevents function search-path injection)
+- `GRANT EXECUTE TO authenticated` properly scoped
+- Single-RPC JSONB pattern eliminates N+1 round-trips — good for dashboard load
+- TanStack Query key deduplication between `useCascadeTasks` and `useCascadeTaskCount` is efficient
+- Guardian DB tables (`guardian_signal`, `guardian_log`) retained — correct, written by Edge Functions
+- Platform-admin guardian and AI capability guardian untouched — clean scope
+- `(supabase.rpc as any)` cast is documented with comment explaining it's temporary (types regenerate post-migration)
+
+**Schema bug caught and fixed:** The fix commit corrects `contract_status` enum column name (`status` not `contract_status`), enum values (`sent`/`signed` not `pending_signature`/`active`). This is critical correctness — the checker would have silently returned zero rows otherwise.
+
+**Cascade dimension mapping is correct:**
+
+- D1 (departments/hours), D2 (staff/contracts/payroll), D3 (framework/tariffs), D4 (budget/season), D6 (schedule), C4 (governance/training) — all correct per canonical spec
+
+---
+
+### Conditions (must complete before merge)
+
+1. **Task 6 — typecheck must pass.** Run `pnpm typecheck` and confirm 0 errors. If errors exist, fix before closing.
+2. **Task 7 — i18n translations must be committed.** The Norwegian keys are written in the plan diff but not yet applied to `packages/i18n/locales/nb/dashboard.json` + `en/dashboard.json`. Without these, the task surface renders raw keys like `dashboard.todo.dept_missing_hours` instead of text.
+3. **Uncommitted changes must be committed.** The two hook files (ESLint suppression comments) and the decision log entry are uncommitted — commit them before running close-feature.
+
+---
+
+### No Blockers
+
+No architectural violations found. No security issues. No cascade dimension boundary violations. No hardcoded secrets or colors. Commit message convention is followed across all 7 commits.
+
 Tasks 0 and 1 can run in parallel. Tasks 2-6 are sequential.

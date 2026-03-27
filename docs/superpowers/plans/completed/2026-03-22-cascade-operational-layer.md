@@ -1,7 +1,7 @@
 ---
 title: "Cascade Operational Layer — Implementation Plan"
-status: draft
-updated: 2026-03-22
+status: done
+updated: 2026-03-26
 created: 2026-03-22
 module: cascade
 tags: [cascade, rules, tariff, cost, demand, governance, plan]

@@ -501,3 +501,94 @@ Sequential (depends on Task 1):
 ```
 
 **Estimated total time:** 4-6 hours for all 7 tasks.
+
+---
+
+## Council Verdict — 2026-03-26
+
+**Verdict: APPROVED_WITH_CONDITIONS**
+
+**Reviewer:** Council (system-steward)
+
+**Summary:** Plan is well-scoped and addresses real production gaps. Architecture is sound — no new tables, no new Edge Functions, no schema placement decisions needed. Security posture is clean. Two mandatory fixes required before implementation proceeds.
+
+---
+
+### Mandatory Conditions (must fix before implementing)
+
+**Condition 1 — Task 4: Hardcoded Norwegian text (CLAUDE.md violation)**
+
+The warning banner uses hardcoded Norwegian:
+
+```
+"Aktivitetsdata vises som demo. Kobles til ekte data snart."
+```
+
+CLAUDE.md rule: "Never hardcode Norwegian text — use i18n keys." This is a hard violation.
+
+**Fix:** Add key to `packages/i18n/locales/nb/dashboard.json` (e.g. `"demo_activity_warning": "Aktivitetsdata vises som demo..."`) and use `t("demo_activity_warning")` in the component.
+
+---
+
+**Condition 2 — Task 5: Malformed telemetry emit call**
+
+The plan's `emit()` call does not match the registered event schema. Verified in `packages/telemetry/src/registry.ts`:
+
+Registry spec for `"reconciliation admin_action"`:
+
+```typescript
+properties: {
+  data: {
+    reconciliation_id: string; // REQUIRED
+    action: "approved" | "rejected";
+  }
+}
+```
+
+Plan uses:
+
+```typescript
+properties: {
+  entity: { entity_type: "reconciliation", entity_id: date }, // wrong shape
+  data: { action: "approved" },                               // missing reconciliation_id
+}
+```
+
+This will fail TypeScript typecheck. The `reconciliation_id` must be read from the DB response or the existing query, and `entity` is not part of this event's schema.
+
+**Fix:** Update the emit call to:
+
+```typescript
+emit({
+  event: "reconciliation admin_action",
+  workspace_id: workspaceId,
+  actor_id: profileId,
+  properties: {
+    data: {
+      reconciliation_id: reconciliationId, // read from query result
+      action: "approved",
+    },
+  },
+});
+```
+
+---
+
+### Observations (non-blocking)
+
+- **Migration count:** Plan says "200 migrations" — actual count is 207. Update reference text if desired, not blocking.
+- **E2E test count:** Plan says "17 existing test files" — actual count is 20. Minor.
+- **Task 2, duplicate Step 5:** Two steps labeled "Step 5" (check for broken imports + commit). Editorial only.
+- **Task 7 hex approximations:** Stated as approximate, acceptable for native token sync.
+
+---
+
+### Architecture Clearance
+
+- No new DB tables → no schema placement brainstorm required
+- No new Edge Functions → no auth pattern decision needed
+- No new env vars → ENV_PROTOCOL not triggered
+- DB mutation (Task 5) correctly scoped with workspace_id + department_id + reconciliation_date
+- Telemetry event `"reconciliation admin_action"` is registered with all 4 destinations (posthog, logger, activity_trail, engine_event) — correct
+
+**Approved to proceed once Conditions 1 and 2 are resolved.**

@@ -1515,3 +1515,63 @@ docs/decisions/
 ```
 
 **Total: ~65 files, 13 phases, 30 tasks.**
+
+---
+
+## Council Verdict
+
+**Date:** 2026-03-26
+**Verdict:** APPROVED_WITH_CONDITIONS
+**Reviewer:** Council Agent (automated review)
+
+### Status Note
+
+This plan is dated 2026-03-18 with status "draft", but the implementation is **already complete** as of 2026-03-26. All Phase 1 migrations have been applied (`20260418100001`–`20260418100400`), all lib/hook/component files exist in `apps/mobile/src/`, and the mobile app structure is fully scaffolded. This is a **retrospective review**.
+
+---
+
+### What Was Done Well
+
+- **Cascade compliance**: `timesheet` schema correctly isolated from `public`. DB traps respected (no `operating_hours`, proper RLS on all new tables).
+- **Security**: Anon-accessible RPCs (`lookup_workspace_by_code`, `search_workspaces`) expose only `workspace_id, name, logo_url` — acceptable for pre-auth workspace discovery.
+- **Offline architecture**: SQLite write queue + MMKV read cache is well-designed and complete (`apps/mobile/src/lib/sync/`, `cache/`).
+- **Phase sequencing**: Foundation → Migrations → Parallel blocks is correct. Sequential gates are enforced.
+- **Mobile parity intention**: Plan respects the mobile parity principle with monorepo-shared packages (`@smartout/types`, `@smartout/design-tokens/native`, `@smartout/telemetry`).
+- **Design tokens**: Uses `packages/design-tokens/native.ts` — no hardcoded values in components.
+- **Supabase direct client with SecureStore**: Correct pattern for mobile auth (no gateway required).
+
+---
+
+### Blocking Conditions (must resolve)
+
+**1. Missing `emit()` calls in all mutation hooks**
+
+All 11 mutation files (`use-punch.ts`, `use-log-haccp.ts`, `use-report-deviation.ts`, `use-submit-handoff.ts`, `use-confirm-hours.ts`, `use-send-message.ts`, `use-request-absence.ts`, `use-cancel-absence.ts`, `use-send-channel-message.ts`, `use-livekit-call.ts`, `use-call-signaling.ts`) have zero `emit()` calls.
+
+CLAUDE.md: **"Never create a TanStack Query mutation without an emit() call in onSuccess. No mutation without emit. No second event system."**
+
+Fix: Add `import { emit } from '@smartout/telemetry'` + `emit('mobile.punch.clocked_in', {...})` pattern in each `onSuccess` callback. Register events in `packages/telemetry/src/registry.ts` first.
+
+**2. Missing ADR for hardcoded Norwegian strings**
+
+`apps/mobile/src/constants/strings.ts` documents the decision inline (`// i18n via @smartout/i18n planned for V2`) but Plan Task 13.2 explicitly calls for `docs/decisions/NNNN-mobile-hardcoded-norwegian.md`. This ADR was never created.
+
+Fix: Create the ADR and register it in `docs/decisions/0000-decision-log.md`. Record the decision: V1 uses `strings.ts` as single-source; V2 migrates to `@smartout/i18n` keys.
+
+---
+
+### Non-Blocking Observations
+
+- **Mobile hooks not in packages/**: Query hooks live in `apps/mobile/src/hooks/` rather than `packages/`. This is acceptable — they are RN-specific (TanStack Query on mobile) and cannot be shared with web. The shared types and telemetry correctly live in packages.
+- **`push-dispatch` edge function present**: `supabase/functions/push-dispatch/index.ts` exists. Confirm it's registered in `supabase/functions/config.toml` with `verify_jwt = false` since it handles platform-level push delivery.
+- **Plan step 13.2 ADR pending**: See blocking condition #2 above.
+
+---
+
+### Required Actions Before Considering Feature Complete
+
+1. Add `emit()` to all 11 mutation hooks (blocking — CLAUDE.md law)
+2. Create `docs/decisions/NNNN-mobile-hardcoded-norwegian.md` and register in decision log (blocking — knowledge system compliance)
+3. Verify `push-dispatch` is in `config.toml` (non-blocking, sanity check)
+
+Once conditions 1 and 2 are resolved, this feature is **APPROVED** for closure via `/close-feature`.

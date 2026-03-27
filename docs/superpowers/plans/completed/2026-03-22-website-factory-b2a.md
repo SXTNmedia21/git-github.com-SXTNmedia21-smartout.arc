@@ -908,3 +908,72 @@ Before declaring B2a complete:
 | Date       | Change                                                   |
 | ---------- | -------------------------------------------------------- |
 | 2026-03-22 | Initial plan — 9 tasks for B2a (polish + system bridges) |
+
+---
+
+## Council Verdict — 2026-03-26
+
+**Verdict: APPROVED_WITH_CONDITIONS**
+
+**Reviewed by:** Claude (council reviewer)
+
+### Foundation Check
+
+- `websites` schema confirmed in `database.types.ts` (5 hits) — `website_menu`, `website_menu_category`, `website_menu_item` all present
+- `company_opening_hours` table confirmed in `public` schema
+- `bridge-actions.ts` already exists in development branch — B1 foundation confirmed present
+- `websiteKeys` confirmed in existing hooks — no new file needed for Task 6 hooks
+- `SectionSettingsFromSchema` exported from `@smartout/website` — type reference valid
+- `@dnd-kit` installed and available
+
+### Issues — Must Fix Before Implementation
+
+**1. SECURITY: RLS bypass in `updateCompanyHours` (bridge-actions.ts:78)**
+
+The current code (already in development) authenticates the user via JWT but then uses the service-role admin client to perform the actual write. This bypasses RLS entirely. Per CLAUDE.md: _"Never bypass RLS with service role for user-facing operations."_
+
+Fix: Use the user-scoped `createServerClient()` for the upsert if RLS allows it, or add an explicit `is_admin_in_workspace()` check before switching to service role and document the exception.
+
+**2. SECURITY: `getMenusForWorkspace` performs no auth check before admin client query**
+
+The function immediately uses `getAdminClient()` with no prior user validation. A crafted `workspaceId` could leak data from any workspace.
+
+Fix: Add `supabase.auth.getUser()` check before the admin query, and assert that the user is a member of `workspaceId` via `get_workspace_ids_for_user()`.
+
+**3. TypeScript violation: `as any` cast for telemetry event (Task 6)**
+
+`event: "website hours_updated" as any` is explicitly bypassing the type system. The comment says "Will be registered in telemetry" — but by the time Task 6 runs, it isn't registered yet.
+
+Fix: Reorder so Task 9 (register telemetry events) runs **before** Tasks 6–8. The `as any` cast must not ship.
+
+### Issues — Recommended Fixes
+
+**4. N+1 query in `getMenusForWorkspace`**
+
+Sequential per-menu → per-category → per-item fetches in a loop. With 3 menus × 5 categories = 18+ round trips.
+
+Fix: Use a single `.select("*, website_menu_category(*, website_menu_item(*))")` join query.
+
+**5. Task ordering: Task 9 before Tasks 6–8**
+
+Telemetry events `website hours_updated`, `website menu_synced`, `website system_section_added` must be registered in `registry.ts` before any action emits them.
+
+### Scope & Architecture Assessment
+
+- Clean B1 extension — no scope creep into B2b spokesperson flow
+- DnD pattern (SortableSectionItem) is correct dnd-kit usage
+- System bridges concept is sound — hours editor bidirectional, menu editor read-only — good separation
+- Responsive breakpoint strategy (horizontal tab bar on mobile) fits the admin pattern
+- Home page pinned as non-draggable in page list — correct UX decision
+- Confirmation dialog for hours save ("this affects all systems") — appropriate for cross-module writes
+
+### Conditions for Approval
+
+Before the worker starts implementation:
+
+1. Fix the auth pattern in `updateCompanyHours` — user-scoped client for writes, OR explicit role check + documented exception
+2. Add user auth assertion at the top of `getMenusForWorkspace`
+3. Move Task 9 to run first (before Tasks 6–8) and remove the `as any` cast
+4. Replace N+1 loop in `getMenusForWorkspace` with a join query
+
+These are all localized fixes to `bridge-actions.ts` and task ordering — no architectural changes needed. Once addressed, this plan is solid and ready for execution.

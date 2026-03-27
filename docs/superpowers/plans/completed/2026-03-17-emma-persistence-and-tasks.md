@@ -1,8 +1,8 @@
 ---
 title: "Emma Persistence & Task Management — Implementation Plan"
-status: draft
+status: done
 created: 2026-03-17
-updated: 2026-03-17
+updated: 2026-03-26
 module: walkAi
 tags: [emma, voice, tasks, navigation, persistence]
 ---
@@ -1109,3 +1109,36 @@ Expected: 0 errors across entire monorepo.
 git add apps/web/src/app/walkAi/_components/walkai-tools.ts
 git commit -m "feat(walk-ai): add priority and position to schedule_task tool"
 ```
+
+---
+
+## Council Review (2026-03-26)
+
+**Verdict:** APPROVED_WITH_CONDITIONS
+**Reviewer:** Plan Audit Council
+
+**Key finding — most tasks already implemented:**
+Cross-referencing the codebase against all 7 plan tasks, the following are already live in `development`:
+
+- DB migration exists (`20260318120001_emma_task_priority_position.sql`) and types regenerated — `priority` + `position` in `emma_task.Row` ✓
+- GET already returns `priority, position, status` ✓
+- PATCH handler exists at `/api/emma/tasks/route.ts:120` ✓
+- All 5 voice tools (`show_tasks`, `complete_task`, `set_task_priority`, `set_task_deadline`, `reorder_task`) in `walkai-tools.ts` ✓
+- `updateTask`, `reorderTask`, `navigateTo` in `WalkAiProvider.tsx` ✓
+- Drag-and-drop + priority badge + deadline editor in `WalkAiArena.tsx` ✓
+
+**Plan status:** draft (0 commits in wt-12), but implementation is complete in development branch. wt-12 is unnecessary.
+
+**Issues found:**
+
+1. **Missing telemetry** — No `emit()` calls on task mutations (POST/PATCH in `route.ts`, `updateTask` in provider). CLAUDE.md mandates: "No mutation without emit." This is a live gap in the implementation, not just the plan.
+2. **RLS is workspace-scoped, not profile-scoped** — `emma_task_jwt_write` allows any workspace member to write to any task in that workspace. Application layer narrows by `profile_id` but direct DB access is unrestricted within workspace. Low risk for now (users can't access raw DB), but worth tightening to `profile_id IN (SELECT ...)`.
+3. **`position` reorder not atomic** — `reorderTask` fires one PATCH (for the dragged item only), not a bulk position update. Positions diverge if the page closes mid-drag. Plan acknowledges "fire and forget" but the multi-task update gap is unaddressed.
+4. **`priority` as text instead of enum** — Check constraint on `TEXT` rather than a proper PostgreSQL enum. The CLAUDE.md recommends checking 72 existing enums before adding new patterns. Low priority since it works, but worth an ADR note.
+
+**Recommendations:**
+
+1. **Close wt-12 without work** — implementation is complete in `development`. The worktree can be removed.
+2. **Add `emit()` calls** — add telemetry to `route.ts` POST/PATCH and to `updateTask` in WalkAiProvider. Target registry events: `emma.task.created`, `emma.task.updated`, `emma.task.completed`.
+3. **Bulk position PATCH** — after drag-and-drop, fire a single `PATCH /api/emma/tasks/positions` with all new `{id, position}` pairs instead of one per task. Prevents position drift on disconnect.
+4. **Update plan status to `done`** — reflect the actual implementation state.

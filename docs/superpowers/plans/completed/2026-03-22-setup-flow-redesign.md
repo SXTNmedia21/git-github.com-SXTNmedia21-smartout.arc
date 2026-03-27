@@ -880,3 +880,57 @@ Phase 4 — Verification:
 - **Group C:** Task 12 (onboarding tokens, independent)
 - **Then:** Task 13 (wizard tokens, after Task 5 — shares WorkspaceSetupWizard.tsx)
 - **Finally:** Task 14 (integration test)
+
+---
+
+## Council Verdict — 2026-03-26
+
+**Reviewer:** Council agent (system-steward role)
+**Status:** APPROVED_WITH_CONDITIONS
+
+### What was verified
+
+- Plan file read in full (14 tasks, 4 phases, 32-field data inventory)
+- Referenced source files checked: `onboarding-shell.ts`, `use-industry-package.ts`, `useOnboardingState.ts`, `types.ts`, `supabase/migrations/20260322190000_finalize_write_full_business_data.sql`
+- wt-9 diff inspected: 8 uncommitted files, all design token changes (Tasks 11-13 partial)
+- CLAUDE.md conventions checked: emit(), schema placement, frontmatter, migration workflow
+
+### Execution state at review time
+
+**Tasks 1, 2, and 3 are ALREADY DONE** in `development` branch (not in wt-9):
+
+- `onboarding-shell.ts` — `INDUSTRY_NACE_MAP` + `resolveNaceFromIndustry` present ✅
+- `use-industry-package.ts` — `brregData ?? brreg` and `scrapedData ?? scraped` already fixed ✅
+- `useOnboardingState.ts` — `ourHistory`, `ourConcept`, `socialLinks`, `menuLinks`, `reservationUrl`, `logoUrl` all restored in resume() ✅
+- `types.ts` — `BusinessData` has all missing fields ✅
+- Migration `20260322190000_finalize_write_full_business_data.sql` — `field_sources`, company_details upsert, social media upsert all present ✅
+
+**Active work in wt-9 (uncommitted):**
+
+- Partial Task 11: `ConnectionBanner.tsx`, `Step3About.tsx` (join tokens)
+- Partial Task 12: `BusinessCardGrid.tsx`, `ConfirmDepartments.tsx`, `ConfirmProcedures.tsx`, `ConfirmSummary.tsx` (onboarding tokens)
+- Partial Task 13: `BotsTip.tsx`, `DocumentDropStep.tsx` (wizard tokens)
+
+**Remaining tasks:** 4, 5, 6, 7, 8, 9, 10, rest of 11-13, 14
+
+### Conditions (required before executing remaining tasks)
+
+1. **Add YAML frontmatter** — Every `docs/` file requires it per CLAUDE.md. This file has none.
+
+2. **Add emit() calls to Task 4 and Task 10** — CLAUDE.md: "No mutation without emit." Task 4 (`setupActions.ts` write to `company_details`) and Task 10 (WelcomeStep DB persist on blur/save) both create mutations. Neither task mentions telemetry. Before implementing, add emit() steps to each task's checklist.
+
+3. **Schema placement note** — CLAUDE.md mandates explicit schema placement decision for every DB change. The `field_sources` column on `company_details` in `public` schema is correct (1:1 with workspace, no isolation boundary). State this explicitly rather than leaving it implicit.
+
+4. **Update execution order** — Tasks 1–3 are done. The plan's execution order block should note this so workers don't re-implement.
+
+### Minor issues (non-blocking)
+
+- Task 3 SQL: `COALESCE(... , '{}')` used as default for `cuisine_types` (array column) — should be `ARRAY[]::text[]`. Already in DB migration so fix in documentation only.
+- Task 5: `ctx?.workspace.company_id!` non-null assertion — add null guard for safety.
+- Task 13 is the largest task (299 isDark, 12 files). Consider visual verification step per file, not just at the end.
+
+### Assessment
+
+The plan is architecturally sound. The 32-field data inventory is thorough. Phase ordering is correct — data foundation before dashboard population before extraction wiring. The source tracking pattern is clean and well-scoped. The integration test (Task 14) covers all flows.
+
+**APPROVED_WITH_CONDITIONS** — Fix the 3 required conditions (frontmatter, emit() coverage, schema note) in the plan before dispatching the next worker. The existing uncommitted wt-9 work can be committed as-is after the conditions are met.

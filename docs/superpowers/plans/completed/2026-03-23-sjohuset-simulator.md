@@ -1634,3 +1634,43 @@ Task 1 (migration)
 - **The DashboardShell** is in `apps/web/src/components/dashboard/DashboardShell.tsx`. Read it before modifying.
 - **Follow existing Hono patterns** from `services/stage-engine/src/index.ts`.
 - **Run `pnpm turbo typecheck`** before any commit to catch type errors early.
+
+---
+
+## Council Verdict
+
+**Date:** 2026-03-26
+**Reviewer:** Council reviewer agent
+**Status:** APPROVED_WITH_CONDITIONS
+
+### Summary
+
+The Sjohuset Simulator plan is architecturally sound, well-structured, and ready for implementation with two conditions resolved first.
+
+### Strengths
+
+- **Cascade compliance:** Correctly maps all dimensions (I1, D1–D6, C1–C4) in gap scanner tests. No dimension bleed. Simulation data isolated in dedicated `simulation` schema — consistent with CLAUDE.md schema boundary criteria (9 tables, clear ownership).
+- **Security:** No RLS on simulation schema is a deliberate and documented choice — all access via Hono service role. Supabase auth users created for swarm personas correctly use `auth.admin.createUser()` + seed_manifest tracking for cleanup. Secrets via env vars only.
+- **Migration hygiene:** Timestamp `20260423100000` correctly sorts after existing migrations. Uses `set_updated_at()` (not `moddatetime`). All tables have `created_at` + `updated_at`. Follows mandatory migration workflow.
+- **TDD discipline:** Tasks 3, 4, 5, 6, 7, 8, 9 all follow red-green-commit TDD. Tests are specific and non-trivial. Coverage tracker avoids hardcoded counts (good).
+- **Parallelization:** Dependency graph is clear. Phase 1→2 parallel unlocks correctly identified. Works cleanly in multi-worktree setup.
+- **Worker instructions:** Explicit references to spec, telemetry registry format, DashboardShell path, Hono patterns. Workers have what they need.
+- **Referenced files exist:** Both `docs/superpowers/specs/2026-03-23-sjohuset-simulator-design.md` and `docs/decisions/0058-simulation-schema-and-simulator-service.md` are present.
+
+### Conditions
+
+**Condition 1 — Task numbering inconsistency (non-blocking, fix before Phase 3 handoff):**
+The plan declares Phase 3 twice in the task headers (Tasks 5–9 are labeled "Phase 2: Core Engine" but also "Phase 3: API + System Proof" appears twice). Task 9 (Coverage Tracker) is listed under Phase 2 header AND repeated under "Phase 3: API + System Proof" header. Workers must read the dependency graph, not just the phase headers, to avoid confusion. Recommend renumbering Phase headers before spawning Phase 2+ workers.
+
+**Condition 2 — Sjohuset seed data (Task 6, Step 5) is underspecified:**
+`sjohuset-seed.ts` is described in one sentence: "Uses TrackedSeeder to create all Sjohuset data for each dimension." For a multi-dimension scenario with D1–D6 coverage, this is a significant implementation surface left undefined. Before spawning a Phase 2 worker, the spec (`2026-03-23-sjohuset-simulator-design.md`) must explicitly enumerate all tables seeded per dimension. Worker should verify the spec covers this before starting Task 6.
+
+### Recommendations (non-blocking)
+
+- The SSE `while(true)` keep-alive loop in Task 11 will leak memory if the stream never aborts on some edge cases. Consider a max TTL. Not a blocker but worth noting for polish.
+- Phase 5 (AI Swarm / Director) has loose acceptance criteria: "verify SSE stream shows events, verify Director dispatches to personas." Add measurable pass/fail assertions before spawning that phase.
+- `simulate:test` script in root `package.json` (Task 12, Step 5) uses `--mode=system_proof` flag — verify the Hono service actually accepts CLI flags in that form, since Hono doesn't parse argv by default. May need explicit env var instead.
+
+### Verdict
+
+**APPROVED_WITH_CONDITIONS** — Resolve phase numbering and verify seed spec coverage before Phase 2 worker spawn. All other aspects are solid.

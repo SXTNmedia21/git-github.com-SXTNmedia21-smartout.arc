@@ -646,3 +646,52 @@ git commit -m "fix: lint and typecheck fixes for admin shift visibility
 
 Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 ```
+
+---
+
+## Council Verdict
+
+**Status: APPROVED_WITH_CONDITIONS**
+**Reviewed: 2026-03-26**
+
+### Pre-flight verification — what is already implemented
+
+Before executing this plan, the implementing agent MUST verify current state. The following tasks are **already done** in the codebase and must NOT be re-implemented:
+
+| Task                                       | Status  | Evidence                                                                                                                                                                   |
+| ------------------------------------------ | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Task 2: Notification event config          | ✅ DONE | All 5 events (`shift.punched_in`, `shift.punched_out`, `shift.late`, `shift.no_show`, `shift.adhoc_pending`) already exist in `packages/notifications/src/event-config.ts` |
+| Task 3: Department audience resolver       | ✅ DONE | `{ type: "department" }` variant exists in `packages/notifications/src/types.ts` and `audiences.ts`                                                                        |
+| Task 4: Wire punch notifications           | ✅ DONE | `insertOutboxNotification` already imported and called in `apps/web/src/hooks/shift-clock/useShiftClock.ts`                                                                |
+| Task 5: Migration (late_threshold_minutes) | ✅ DONE | Column exists in `shift_clock_config` (verified via database.types.ts)                                                                                                     |
+| Task 5: Edge Function shift-lateness-check | ✅ DONE | Full implementation exists at `supabase/functions/shift-lateness-check/index.ts`                                                                                           |
+| Task 5: config.toml entry                  | ✅ DONE | `[functions.shift-lateness-check]` registered in `supabase/config.toml`                                                                                                    |
+| Task 5: Telemetry registry events          | ✅ DONE | `late_detected` and `no_show_escalated` already in `packages/telemetry/src/registry.ts`                                                                                    |
+
+### Remaining work (actually needs to be done)
+
+- **Task 1** — ReconciliationView DB persistence: read current state first, verify local state actually needs wiring
+- **Task 6** — Activity feed: verify ActivityView still uses mock data before replacing
+- **Task 7** — ShiftStatusWidget: create use-live-shifts hook and widget component
+- **Task 8** — Final typecheck + lint
+
+### Conditions
+
+1. **Agent MUST read each target file before modifying it** — several tasks may be partially or fully done already
+2. **Task 5 must be skipped entirely** — the Edge Function, migration, config, and telemetry events are all live
+3. **Tasks 2, 3, 4 must be verified** before touching notification/audience files — they appear complete; do not duplicate entries
+4. **i18n keys** (Task 2, Step 2): verify `packages/i18n/locales/nb/notifications.json` exists and contains shift keys before adding
+5. Reconciliation upsert in Task 1 assumes `workspace_id,department_id,reconciliation_date` unique constraint — verify it exists in schema before implementing
+
+### Architecture assessment
+
+- **Cascade fit**: Correct — shift operations are D6 (Production), guardian_signal is C4 governance signal ✓
+- **Security**: Cron Edge Function uses `WATCHDOG_CRON_SECRET`, service role client only, no RLS bypass ✓
+- **Telemetry**: `emit()` calls present in shift clock mutations ✓
+- **Notification pattern**: Fire-and-forget (`void`) for outbox inserts — correct ✓
+- **RLS**: No new workspace-scoped tables; existing tables have RLS ✓
+- **Mobile parity**: Data hooks in `apps/web/src/app/dashboard/_hooks/` — acceptable for this phase ✓
+
+### Verdict rationale
+
+The plan is architecturally sound but **significantly stale** — roughly 60% of the described work is already live in the codebase. The agent would duplicate working code if it follows the plan literally. The plan must be executed with pre-flight checks on every task.

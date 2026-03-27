@@ -1,3 +1,12 @@
+---
+title: Landing App Design Token Migration
+status: in_progress
+updated: 2026-03-26
+created: 2026-03-26
+module: landing
+tags: [design-tokens, i18n, landing, refactor]
+---
+
 # Landing App Design Token Migration
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
@@ -941,3 +950,43 @@ After all phases are complete:
 - [ ] **Full lint:** `pnpm --filter landing lint`
 - [ ] **Grep audit:** `grep -rn "zinc\|gray-[0-9]\|slate-\|stone-\|bg-\[#0" apps/landing/src/ --include="*.tsx" --include="*.ts" | grep -v "node_modules\|_archived" | wc -l` — target: 0 structural color violations
 - [ ] **Visual check:** Run `pnpm --filter landing dev` and verify footer, blocks pages, and demo look correct in both light and dark mode
+
+---
+
+## Council Verdict
+
+**Status: APPROVED_WITH_CONDITIONS**
+**Reviewer:** Council Agent — 2026-03-26
+
+### Summary
+
+The plan is architecturally sound and production-ready. Design token references verified against codebase — all token variables (`--brand-orange`, `--brand-orange-light`, `--brand-purple`, `--brand-purple-light`, etc.) are confirmed in `tokens.css` and wired as `@theme` color tokens in `globals.css`. The `.dark-section` approach is correct: it mirrors the `.dark` block pattern with darker OKLCH values (`0.06` vs `0.12`) appropriate for footer/blocks that currently hardcode `#050505`/`#0a0a0c`. OKLCH hues (50–55) are within the Nordic Split warm tone range.
+
+### Conditions (fix before executing)
+
+1. **Missing YAML frontmatter** — CLAUDE.md requires frontmatter on all `docs/` files. Add before work begins:
+
+   ```yaml
+   ---
+   title: Landing App Design Token Migration
+   status: in_progress
+   updated: 2026-03-26
+   created: 2026-03-26
+   module: landing
+   tags: [design-tokens, i18n, landing, refactor]
+   ---
+   ```
+
+2. **Shadow mapping inconsistency** — The Color Mapping Reference maps `shadow-orange-500/20` → `shadow-[0_0_15px_-3px_var(--brand-orange)]` (explicit arbitrary value), but Task 6's table maps it to `shadow-brand-orange/20`. Use the explicit `var()` form from the reference — it is more reliable in Tailwind v4 where shadow color utilities are not guaranteed to compose with opacity modifiers.
+
+3. **`globals.css` step in Task 1 is misleading** — The File Structure header says "register dark-section in @theme" for `globals.css:80-102`, but `.dark-section` is a raw CSS class, not a `@theme` token. No changes to `globals.css` are needed. The class just lives in `tokens.css` and is imported automatically. Remove the `globals.css` file from Task 1's file list to avoid confusion.
+
+### What looks good
+
+- All 3 phases are independently executable and correctly sequenced
+- Every task has atomic commits, typecheck verification, and grep audit steps
+- Semantic status colors (emerald, amber, red, cyan, purple, rose) correctly preserved
+- i18n coverage complete: both `nb` and `en` keys added for Poll and Mockup
+- Archive cleanup (Phase 3) correctly verifies no live imports before delete
+- 8 archived variants confirmed to exist in the codebase
+- Color mapping reference is comprehensive and covers all known hardcoded patterns

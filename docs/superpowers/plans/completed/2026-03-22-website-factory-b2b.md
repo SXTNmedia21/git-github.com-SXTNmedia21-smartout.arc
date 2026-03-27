@@ -480,3 +480,36 @@ registerSection({
 | Date       | Change                                                        |
 | ---------- | ------------------------------------------------------------- |
 | 2026-03-22 | Initial plan — 8 tasks for B2b (spokesperson + content tasks) |
+
+---
+
+## Council Verdict — 2026-03-26
+
+**Verdict: APPROVED_WITH_CONDITIONS**
+
+**Implementation status:** All 8 tasks are complete. Migration, Zod schema, web components, server actions, mobile screens, and telemetry are all in place.
+
+### Issues — must fix before merge
+
+**1. RLS policy too broad (Security — HIGH)**
+`admin_all_spokesperson` policy uses `get_workspace_ids_for_user()` which grants `FOR ALL` access to every workspace member, not just admins. Any employee in the workspace can read and modify all spokesperson records via the JWT path — including records for colleagues.
+
+Fix: Replace with `is_admin_in_workspace()` check, or split into separate admin/member policies. The employee-specific policies (`employee_read_own_spokesperson`, `employee_update_own_spokesperson`) are correct and cover the employee path.
+
+**2. `getSpokespersonForSection` bypasses workspace authorization (Security — HIGH)**
+The function checks only that the caller is authenticated (`if (!user)`), then uses a service-role admin client to query. No workspace-level authorization is verified. Any authenticated user can call this with any `sectionId` and retrieve spokesperson data from an arbitrary workspace.
+
+Fix: Add admin role check (e.g. call `requireAdminForWebsite` or verify workspace membership via RLS-scoped client).
+
+**3. Missing telemetry event `website spokesperson_revoked` (Type safety — MEDIUM)**
+`revokeSpokesperson()` emits `"website spokesperson_revoked" as any` — this event is not registered in `packages/telemetry/src/registry.ts`. The plan listed only 5 events but this is a 6th that was implemented.
+
+Fix: Add `WebsiteSpokespersonRevoked` event to telemetry registry with routing to `posthog + activity_trail`.
+
+### Notes — non-blocking
+
+- **AI writing is stubbed:** Acceptable per plan. TODO comments are clear with real implementation path noted.
+- **`expo-image-picker` confirmed installed** at `^55.0.13`. No action needed.
+- **editor-registry.ts** correctly registers the spokesperson section.
+
+**Reviewer:** council-reviewer agent | 2026-03-26
