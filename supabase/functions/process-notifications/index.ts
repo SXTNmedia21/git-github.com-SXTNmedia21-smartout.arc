@@ -256,12 +256,35 @@ function checkQuietHours(pref: NotificationPref, now: Date): boolean {
 
 function getNext7am(tz: string): string {
   const now = new Date();
-  // Get tomorrow's date in the user's timezone
   const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+  // Get tomorrow's date string in the target timezone
   const dateStr = tomorrow.toLocaleDateString("sv-SE", { timeZone: tz });
-  // Create 07:00 in UTC approximation — good enough for scheduling
-  const target = new Date(`${dateStr}T07:00:00`);
-  return target.toISOString();
+
+  // Get the UTC offset for the target timezone at 07:00 tomorrow
+  // by comparing formatted time vs UTC time
+  const formatter = new Intl.DateTimeFormat("en-GB", {
+    timeZone: tz,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+
+  // Create a reference point at 07:00 UTC on the target date
+  const refUtc = new Date(`${dateStr}T07:00:00Z`);
+  const parts = formatter.formatToParts(refUtc);
+  const localHour = Number(parts.find((p) => p.type === "hour")?.value ?? "7");
+
+  // The difference between local hour and 7 gives us the offset to apply
+  // If local shows 8 when UTC is 7, timezone is UTC+1, so we need to subtract 1h
+  const offsetHours = localHour - 7;
+  const targetUtc = new Date(refUtc.getTime() - offsetHours * 60 * 60 * 1000);
+
+  return targetUtc.toISOString();
 }
 
 // ── Smart grouping ───────────────────────────────────────────────────
