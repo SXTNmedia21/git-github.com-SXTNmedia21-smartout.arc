@@ -7,13 +7,14 @@
  * Mobile: fullscreen takeover.
  */
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useContext, useEffect, useRef } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Pin, PinOff, X, ExternalLink } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "@smartout/i18n";
 import { emit } from "@smartout/telemetry";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useEntityDrawer, type EntityType } from "./EntityDrawerContext";
 import { CascadeTaskTab } from "./tabs/CascadeTaskTab";
 import { DepartmentDetailTab } from "./tabs/DepartmentDetailTab";
@@ -67,7 +68,11 @@ function getTabsForEntity(
         {
           value: "details",
           labelKey: "entity_drawer.tab_details",
-          content: <div className="text-muted-foreground p-4 text-sm">Coming soon</div>,
+          content: (
+            <div className="text-muted-foreground p-4 text-sm">
+              {t("entity_drawer.coming_soon")}
+            </div>
+          ),
         },
       ];
   }
@@ -93,6 +98,7 @@ export function EntityDrawer() {
   const router = useRouter();
   const ctx = useWorkspaceOptional();
   const wsId = ctx?.workspace.workspace_id ?? null;
+  const { profileId } = useContext(DashboardContext);
   const shouldReduceMotion = useReducedMotion();
   const openedAtRef = useRef<number>(0);
 
@@ -109,7 +115,7 @@ export function EntityDrawer() {
       void emit({
         event: "entity_drawer closed",
         workspace_id: wsId,
-        actor_id: "",
+        actor_id: profileId ?? "",
         properties: {
           data: { entity_type: entityType, entity_id: entityId, duration_ms: duration },
         },
@@ -127,7 +133,7 @@ export function EntityDrawer() {
         void emit({
           event: "entity_drawer pinned",
           workspace_id: wsId,
-          actor_id: "",
+          actor_id: profileId ?? "",
           properties: { data: { entity_type: entityType, entity_id: entityId } },
         });
       }
@@ -142,7 +148,7 @@ export function EntityDrawer() {
         void emit({
           event: "entity_drawer tab_switched",
           workspace_id: wsId,
-          actor_id: "",
+          actor_id: profileId ?? "",
           properties: {
             data: { entity_type: entityType, entity_id: entityId, from_tab: fromTab, to_tab: tab },
           },
@@ -216,7 +222,7 @@ export function EntityDrawer() {
         </div>
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-bold">{entityId}</div>
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-white/40">
+          <div className="text-[10px] font-semibold tracking-wider text-white/40 uppercase">
             {entityType.replace("_", " ")}
           </div>
         </div>
@@ -255,7 +261,7 @@ export function EntityDrawer() {
               aria-selected={currentTab === tab.value}
               aria-controls={`tabpanel-${tab.value}`}
               onClick={() => handleTabSwitch(tab.value)}
-              className={`whitespace-nowrap border-b-2 px-3 py-2.5 text-[13px] font-medium transition-colors ${
+              className={`border-b-2 px-3 py-2.5 text-[13px] font-medium whitespace-nowrap transition-colors ${
                 currentTab === tab.value
                   ? "border-orange-500 font-semibold text-white"
                   : "border-transparent text-white/40 hover:text-white/60"

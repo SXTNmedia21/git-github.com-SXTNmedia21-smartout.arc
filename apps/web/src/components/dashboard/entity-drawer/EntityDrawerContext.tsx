@@ -12,7 +12,6 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -60,7 +59,6 @@ const EntityDrawerCtx = createContext<EntityDrawerContextValue | null>(null);
 export function EntityDrawerProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [state, setState] = useState<DrawerState>(CLOSED_STATE);
-  const openedAtRef = useRef<number>(0);
 
   /** Restore pin preference from localStorage on mount */
   useEffect(() => {
@@ -70,9 +68,9 @@ export function EntityDrawerProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  /** Close drawer on route change */
+  /** Close drawer on route change — preserve pin preference */
   useEffect(() => {
-    setState(CLOSED_STATE);
+    setState((prev) => ({ ...CLOSED_STATE, isPinned: prev.isPinned }));
   }, [pathname]);
 
   /** Auto-unpin on mobile resize */
@@ -87,7 +85,6 @@ export function EntityDrawerProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const openDrawer = useCallback((type: EntityType, id: string, tab?: string) => {
-    openedAtRef.current = Date.now();
     setState((prev) => ({
       ...prev,
       isOpen: true,

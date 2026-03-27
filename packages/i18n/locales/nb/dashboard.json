@@ -142,6 +142,8 @@
     "department_employees": "Ansatte",
     "department_positions": "Stillinger",
     "active": "Aktiv",
-    "inactive": "Inaktiv"
+    "inactive": "Inaktiv",
+    "task_not_found": "Oppgave ikke funnet",
+    "coming_soon": "Kommer snart"
   }
 }

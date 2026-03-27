@@ -142,6 +142,8 @@
     "department_employees": "Employees",
     "department_positions": "Positions",
     "active": "Active",
-    "inactive": "Inactive"
+    "inactive": "Inactive",
+    "task_not_found": "Task not found",
+    "coming_soon": "Coming soon"
   }
 }
