@@ -1,9 +1,9 @@
 ---
 title: "STATE — System State of Truth"
 status: canonical
-updated: 2026-03-24
+updated: 2026-03-26
 created: 2026-03-08
-last-verified: 2026-03-24
+last-verified: 2026-03-26
 module: all
 tags: [state, audit, gaps, architecture, cascade]
 ---
@@ -12,8 +12,52 @@ tags: [state, audit, gaps, architecture, cascade]
 
 > Single source of truth for what exists, what's missing, and what to build next.
 > Organized by the Cascade Core canonical model: **I1 + 6D + 4C + K1a/K1b**.
-> Updated weekly. Last audit: 2026-03-24.
+> Updated weekly. Last audit: 2026-03-26.
 > Canonical spec: `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`
+
+---
+
+## Active Work — Plan Audit (2026-03-26)
+
+13 plans audited by parallel council agents. 12 worktrees active.
+
+### Completed (moved to `plans/completed/`)
+
+| Plan                       | Reason                                                                  |
+| -------------------------- | ----------------------------------------------------------------------- |
+| nordic-split-design-sync   | Already implemented in codebase                                         |
+| mobile-wiring-fixes        | 7/7 tasks committed                                                     |
+| emma-persistence-and-tasks | Already in development (3 gaps: emit, RLS, drag-reorder)                |
+| mobile-employee-app        | Already implemented (2 gaps: 11 hooks missing emit, no ADR for strings) |
+
+### Ready for closure (merge to development)
+
+| WT    | Branch                   | Action needed                     |
+| ----- | ------------------------ | --------------------------------- |
+| wt-1  | onboarding-cleanup       | Run `close-feature.sh 1`          |
+| wt-7  | mobile-wiring-fixes      | Write journey, merge, cleanup     |
+| wt-10 | nordic-split-design-sync | Merge 2 commits, cleanup          |
+| wt-12 | emma-persistence         | Unnecessary — can remove worktree |
+
+### Council-approved plans (APPROVED_WITH_CONDITIONS)
+
+| WT    | Plan                    | Key conditions                                     |
+| ----- | ----------------------- | -------------------------------------------------- |
+| wt-2  | cascade-task-surface    | Typecheck, i18n keys, commit uncommitted           |
+| wt-4  | landing-token-migration | Add frontmatter, fix shadow mapping                |
+| wt-6  | production-gaps-tier1   | Fix hardcoded Norwegian text, fix emit() format    |
+| wt-8  | infra-prod-alignment    | Start at task 3, add frontmatter                   |
+| wt-9  | setup-flow-redesign     | Skip tasks 1-3 (done), add emit(), add frontmatter |
+| wt-11 | admin-shift-visibility  | Skip tasks 2/3/4/5 (done), do 1/6/7/8              |
+| wt-13 | website-factory-b2      | Fix service-role RLS bypass (both b2a + b2b)       |
+| —     | sjohuset-simulator      | Fix phase numbering, specify seed data             |
+
+### Cross-cutting issues found
+
+1. **Missing emit()** — 4 plans lack telemetry on mutations (emma, mobile-app, setup-flow, production-gaps)
+2. **Security: service-role bypass** — website-factory b2a + b2b use admin client where user-scoped client needed
+3. **Missing YAML frontmatter** — 3 plans (infra, setup-flow, landing)
+4. **Stale plans** — 4 of 14 plans were already implemented without status update
 
 ---
 

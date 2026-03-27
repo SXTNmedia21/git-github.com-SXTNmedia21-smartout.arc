@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# dev-startup.sh — Ensures Docker, Supabase, web (3050), and landing (3055) are running.
+# dev-startup.sh — Signs into 1Password, starts Docker, Supabase, web (3060),
+#                  landing (3055), and mobile (Expo).
 # Usage: ./scripts/dev-startup.sh
+# Alias: dev start
 
 set -euo pipefail
 
@@ -19,7 +21,22 @@ ok()   { echo -e "${GREEN}[  ok  ]${NC} $1"; }
 warn() { echo -e "${YELLOW}[ warn ]${NC} $1"; }
 fail() { echo -e "${RED}[ fail ]${NC} $1"; exit 1; }
 
-# ── 1. Docker daemon ───────────────────────────────────────
+# ── 1. 1Password sign-in ─────────────────────────────────────
+log "Checking 1Password CLI..."
+
+if op account get &>/dev/null; then
+  ok "1Password is signed in"
+else
+  log "Signing into 1Password..."
+  eval "$(op signin)"
+  if op account get &>/dev/null; then
+    ok "1Password signed in"
+  else
+    fail "1Password sign-in failed. Run 'op signin' manually."
+  fi
+fi
+
+# ── 2. Docker daemon ───────────────────────────────────────
 log "Checking Docker daemon..."
 
 if docker info &>/dev/null; then
@@ -29,7 +46,6 @@ else
 
   # WSL2: try starting Docker Desktop via Windows
   if command -v docker.exe &>/dev/null; then
-    # Start Docker Desktop on the Windows side
     cmd.exe /c "start /b \"\" \"C:\\Program Files\\Docker\\Docker\\Docker Desktop.exe\"" 2>/dev/null || true
 
     log "Waiting for Docker daemon (up to 60s)..."
@@ -49,7 +65,7 @@ else
   fi
 fi
 
-# ── 2. Supabase local ─────────────────────────────────────
+# ── 3. Supabase local ─────────────────────────────────────
 log "Checking Supabase..."
 
 if npx supabase status &>/dev/null; then
@@ -64,10 +80,9 @@ else
   fi
 fi
 
-# ── 3. Dev servers (web + landing) ─────────────────────────
+# ── 4. Dev servers (web + landing + mobile) ────────────────
 check_port() {
   local port=$1
-  # Check if something is listening on the port
   if ss -tln 2>/dev/null | grep -q ":${port} " || \
      lsof -i ":${port}" &>/dev/null; then
     return 0
@@ -87,7 +102,7 @@ start_dev_server() {
   fi
 
   log "Starting ${name} on port ${port}..."
-  nohup pnpm --filter "${filter}" dev > "$logfile" 2>&1 &
+  nohup op run --env-file=.env.template -- pnpm --filter "${filter}" dev > "$logfile" 2>&1 &
   local pid=$!
 
   # Wait up to 30s for the port to become available
@@ -102,14 +117,42 @@ start_dev_server() {
   warn "${name} may still be starting (pid ${pid}). Check log: ${logfile}"
 }
 
-start_dev_server "web"     3050 "web"
+start_dev_server "web"     3060 "web"
 start_dev_server "landing" 3055 "landing"
+
+# Mobile (Expo) — uses port 8081 by default
+start_expo() {
+  local logfile="${PROJECT_ROOT}/.dev-mobile.log"
+
+  if check_port 8081; then
+    ok "Mobile (Expo) is already running on port 8081"
+    return
+  fi
+
+  log "Starting Mobile (Expo)..."
+  nohup op run --env-file=.env.template -- pnpm --filter mobile start > "$logfile" 2>&1 &
+  local pid=$!
+
+  for i in $(seq 1 30); do
+    if check_port 8081; then
+      ok "Mobile (Expo) started on port 8081 (pid ${pid}, log: ${logfile})"
+      return
+    fi
+    sleep 1
+  done
+
+  warn "Mobile (Expo) may still be starting (pid ${pid}). Check log: ${logfile}"
+}
+
+start_expo
 
 # ── Summary ────────────────────────────────────────────────
 echo ""
 log "Dev environment ready:"
+echo -e "  ${GREEN}1Password${NC} — signed in"
 echo -e "  ${GREEN}Docker${NC}    — running"
 echo -e "  ${GREEN}Supabase${NC}  — running"
-echo -e "  ${GREEN}Web${NC}       — http://localhost:3050"
+echo -e "  ${GREEN}Web${NC}       — http://localhost:3060"
 echo -e "  ${GREEN}Landing${NC}   — http://localhost:3055"
+echo -e "  ${GREEN}Mobile${NC}    — Expo on port 8081"
 echo ""

@@ -13,12 +13,20 @@ tags: [dashboard, worktrees, tracking]
 
 ## Active Worktrees
 
-| #    | Branch                             | Module      | Status            | Progress                                                                                                                    | Blockers | Health     |
-| ---- | ---------------------------------- | ----------- | ----------------- | --------------------------------------------------------------------------------------------------------------------------- | -------- | ---------- |
-| wt-3 | `feat/emma-arena-views`            | walkAi      | in_progress       | Spec + mockups done, settings persistence committed. Implementation not started.                                            | None     | stale (6d) |
-| wt-4 | `feat/mal-modus-schedule`          | schedule    | in_progress       | 13/13 impl tasks done + review fixes. AI spec written + council. Next: Phase A plan.                                        | —        | clean      |
-| wt-5 | `feat/mobile-production-readiness` | mobile      | ready_for_closure | 18/18 tasks done. All typechecks pass. Closure docs written.                                                                | —        | clean      |
-| dev  | `development`                      | design-docs | paused            | Frontend-designer agent rewritten. 6 supporting docs aligned to docs/design/ source of truth. 2 hypothesis ledgers created. | None     | clean      |
+| #     | Branch                            | Module        | Status            | Progress                                                                                                     | Blockers | Health         |
+| ----- | --------------------------------- | ------------- | ----------------- | ------------------------------------------------------------------------------------------------------------ | -------- | -------------- |
+| wt-1  | `feat/onboarding-cleanup`         | onboarding    | ready_for_closure | All phases done. Handoff written. Run `close-feature.sh 1`.                                                  | —        | clean          |
+| wt-2  | `feat/cascade-task-surface`       | dashboard     | in_progress       | Tasks 0-5 committed (7 commits). Missing: typecheck, i18n keys, commit uncommitted files. Council: APPROVED  | —        | 4 uncommitted  |
+| wt-3  | `feat/emma-arena-views`           | walkAi        | in_progress       | Spec + mockups done, settings persistence committed. Implementation not started.                             | None     | **stale (6d)** |
+| wt-4  | `feat/landing-token-migration`    | landing       | in_progress       | Archive cleanup committed. Plan council-reviewed (APPROVED). 3 phases ready.                                 | —        | 2 uncommitted  |
+| wt-6  | `feat/production-gaps-tier1`      | dashboard     | in_progress       | Plan council-reviewed (APPROVED). 12 uncommitted files (migrations, i18n). No commits yet.                   | —        | 12 uncommitted |
+| wt-7  | `feat/mobile-wiring-fixes`        | mobile        | ready_for_closure | 7/7 tasks done. Plan moved to completed/. Ready for merge.                                                   | —        | clean          |
+| wt-8  | `feat/infra-prod-alignment`       | infra         | in_progress       | Plan council-reviewed (APPROVED). Tasks 1-2 already done. Tasks 3-6 remain (Droplet, secrets, Vercel).       | —        | clean          |
+| wt-9  | `feat/setup-flow-redesign`        | onboarding    | in_progress       | Plan council-reviewed (APPROVED). Tasks 1-3 already in dev. Tasks 4-14 remain. 8 uncommitted design changes. | —        | 8 uncommitted  |
+| wt-10 | `feat/nordic-split-design-sync`   | design-tokens | ready_for_closure | Plan completed. 2 commits (token fixes). Ready for merge.                                                    | —        | 1 uncommitted  |
+| wt-11 | `feat/admin-shift-visibility`     | dashboard     | in_progress       | Plan council-reviewed (APPROVED). 60% already in dev — skip tasks 2/3/4/5, do 1/6/7/8.                       | —        | clean          |
+| wt-12 | `feat/invitation-flow-core-fixes` | onboarding    | in_progress       | Just started. 4 fixes: batch dispatch, existing-user detection, RLS security, profile status.                | —        | clean          |
+| wt-13 | `feat/website-factory-b2`         | website       | in_progress       | B2a + B2b plans council-reviewed (APPROVED). 0 commits. Security fixes needed before impl.                   | —        | clean          |
 
 ## Parked Branches (no worktree)
 
@@ -26,42 +34,40 @@ tags: [dashboard, worktrees, tracking]
 | ----------------- | ------ | ----------------------------------------------------------------------------------------------------- |
 | `feat/onboarding` | WIP    | FlowPlayer + alkohol flow. Rebased on dev, typefix committed. framer-motion devDep missing in ui pkg. |
 
+## Plans Without Worktree
+
+| Plan                | Status | Notes                                                            |
+| ------------------- | ------ | ---------------------------------------------------------------- |
+| sjohuset-simulator  | draft  | Council: APPROVED_WITH_CONDITIONS. No worktree assigned yet.     |
+| mobile-employee-app | done   | Moved to completed/. 2 gaps: missing emit() in 11 hooks, no ADR. |
+
 ## Free Slots
 
-| #     | Available                             |
-| ----- | ------------------------------------- |
-| wt-1  | yes (notification-system closed)      |
-| wt-2  | yes                                   |
-| wt-3  | no (feat/emma-arena-views)            |
-| wt-4  | yes (mal-modus-schedule merged)       |
-| wt-5  | no (feat/mobile-production-readiness) |
-| wt-6  | yes                                   |
-| wt-7  | yes                                   |
-| wt-15 | yes                                   |
-| wt-20 | yes                                   |
+| #     | Available |
+| ----- | --------- |
+| wt-5  | yes       |
+| wt-15 | yes       |
+| wt-20 | yes       |
 
 ## Pending Journeys
 
-| WT   | Feature                     | Journey File                                           | Status  |
-| ---- | --------------------------- | ------------------------------------------------------ | ------- |
-| wt-1 | workspace-intelligence      | `docs/journeys/JOURNEY-workspace-intelligence.md`      | done    |
-| wt-1 | zero-to-production          | `docs/journeys/JOURNEY-zero-to-production.md`          | done    |
-| wt-2 | contract-enhancements       | `docs/journeys/JOURNEY-contract-enhancements.md`       | done    |
-| wt-4 | infra-hardening             | `docs/journeys/JOURNEY-infra-hardening.md`             | missing |
-| wt-6 | website-factory             | `docs/journeys/JOURNEY-website-factory.md`             | missing |
-| wt-2 | walkie-talkie               | `docs/journeys/JOURNEY-walkie-talkie.md`               | missing |
-| wt-2 | cascade-foundation          | `docs/journeys/JOURNEY-cascade-foundation.md`          | done    |
-| wt-5 | hms-phase-1                 | `docs/journeys/JOURNEY-hms-phase-1.md`                 | done    |
-| wt-6 | livekit-phase2              | `docs/journeys/JOURNEY-livekit-phase2.md`              | missing |
-| wt-1 | notification-system         | `docs/journeys/JOURNEY-notification-system.md`         | done    |
-| wt-4 | mal-modus-schedule          | `docs/journeys/JOURNEY-mal-modus-schedule.md`          | missing |
-| wt-6 | admin-daily-loop            | `docs/journeys/JOURNEY-admin-daily-loop.md`            | done    |
-| wt-5 | mobile-production-readiness | `docs/journeys/JOURNEY-mobile-production-readiness.md` | done    |
+| WT    | Feature                    | Journey File                                          | Status  |
+| ----- | -------------------------- | ----------------------------------------------------- | ------- |
+| wt-2  | cascade-task-surface       | `docs/journeys/JOURNEY-cascade-task-surface.md`       | missing |
+| wt-4  | landing-token-migration    | `docs/journeys/JOURNEY-landing-token-migration.md`    | missing |
+| wt-6  | production-gaps-tier1      | `docs/journeys/JOURNEY-production-gaps-tier1.md`      | missing |
+| wt-7  | mobile-wiring-fixes        | `docs/journeys/JOURNEY-mobile-wiring-fixes.md`        | missing |
+| wt-8  | infra-prod-alignment       | `docs/journeys/JOURNEY-infra-prod-alignment.md`       | missing |
+| wt-9  | setup-flow-redesign        | `docs/journeys/JOURNEY-setup-flow-redesign.md`        | missing |
+| wt-11 | admin-shift-visibility     | `docs/journeys/JOURNEY-admin-shift-visibility.md`     | missing |
+| wt-13 | website-factory-b2         | `docs/journeys/JOURNEY-website-factory-b2.md`         | missing |
+| wt-12 | invitation-flow-core-fixes | `docs/journeys/JOURNEY-invitation-flow-core-fixes.md` | missing |
 
 ## Recent Closures
 
 | Date       | Feature                     | Branch                                                             | Merged To   |
 | ---------- | --------------------------- | ------------------------------------------------------------------ | ----------- |
+| 2026-03-27 | onboarding-cleanup          | `feat/onboarding-cleanup`                                          | development |
 | 2026-03-26 | mobile-production-readiness | `feat/mobile-production-readiness`                                 | development |
 | 2026-03-27 | admin-daily-loop            | `feat/admin-daily-loop`                                            | development |
 | 2026-03-26 | mal-modus-schedule          | `feat/mal-modus-schedule`                                          | development |
@@ -112,9 +118,14 @@ tags: [dashboard, worktrees, tracking]
 
 ## Session History
 
+| 2026-03-27 | invitation-flow-core-fixes | started | wt-12, module: onboarding. 4 fixes: batch dispatch, existing-user detection, RLS security, profile status. Council-reviewed (2 rounds). |
+| 2026-03-27 | plan-audit + execute | session ended | Orchestrator: 14 plans audited (13 agents), 4 completed, 9 council-approved. Then 12 agents executed: 3 merged (onboarding, nordic-split, mobile-wiring), 6 ready for merge, PR #72 (sjohuset), 2 worktrees cleaned. E2E: port fix (3061→3060), overlay fix (MutationObserver), 25/26 critical pass. Full parallel verification pending. |
+| 2026-03-26 | landing-token-migration | started | wt-4, module: landing. Plan ready (8 tasks, 3 phases): dark-section utility, footer tokens, i18n for Poll/Mockup, blocks/demo migration, archive cleanup. |
+| 2026-03-26 | cascade-task-surface | started | wt-2, module: dashboard. Spec approved (2 council rounds), plan written (7 tasks). |
 | 2026-03-26 | frontend-designer-docs | session ended | Rewrote frontend-designer agent + 6 supporting docs to align with docs/design/ as source of truth. Created 2 hypothesis ledgers. All cross-references verified. |
 | 2026-03-27 | admin-daily-loop | closed | Phase 1 complete: 12 tasks, 6 journeys, 3 decisions, RLS migration. Merged to development, wt-6 freed. |
 | 2026-03-26 | run-council skill | done | Created /run-council skill (321 lines). 8-phase multi-agent review flow. Tested with simulated scenario, found+fixed 7 gaps. Council log + memory file created. Self-learning protocol tracks agent effectiveness. |
+| 2026-03-27 | onboarding-cleanup | closed | All 4 phases done: showcase deleted (-9700 lines), safety guards, Zod tools, i18n, design tokens. Merged to development, wt-1 freed. |
 | 2026-03-26 | walkai-bridge-builder | done | Created walkai-bridge-builder agent (.claude/agents/). Brainstormed with 3 expert agents. Spec committed. Updated steward/coordinator/supervisor with cross-references. Deployed to wt-4. |
 | 2026-03-26 | mal-modus + shift-clock | session ended | Mal-modus: spec+plan+mockup+styleguide done, wt-4 ready. Shift clock: 5 bugs fixed, 68 shifts seeded, 9 E2E tests passing. Admin visibility: spec+plan written (5 modules). Schedule: dept filter + lokasjon view. |
 | 2026-03-26 | bugfixes+notification-seed | paused | 3 fixes (SendGrid fs build error, mobile StyleSheet crash, DashboardShell hydration mismatch) + notification seed data (32 notifs, 8 outbox, 7 prefs). 46 uncommitted files on development. |
