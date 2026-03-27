@@ -89,7 +89,7 @@ export function useOperatingHours(
 
   const query = useQuery({
     queryKey: operatingHoursKeys(wsId ?? "none", departmentId ?? "none", locationId, seasonId),
-    queryFn: async (): Promise<OperatingHoursEntry[]> => {
+    queryFn: async (): Promise<{ entries: OperatingHoursEntry[]; persistedCount: number }> => {
       let q = supabase
         .from("department_operating_hours")
         .select(
@@ -120,7 +120,9 @@ export function useOperatingHours(
         rowsByDay.set(row.day_of_week, row);
       }
 
-      return DAY_NAMES.map((name, index) => {
+      const persistedCount = data?.length ?? 0;
+
+      const entries = DAY_NAMES.map((name, index) => {
         const row = rowsByDay.get(index);
         return {
           day_of_week: index,
@@ -133,6 +135,8 @@ export function useOperatingHours(
           is_derived: row?.is_derived ?? true,
         };
       });
+
+      return { entries, persistedCount };
     },
     enabled: !!wsId && !!departmentId,
     staleTime: 10 * 60 * 1000,
@@ -220,8 +224,39 @@ export function useOperatingHours(
     [],
   );
 
+  const source: "department" | "workspace" | "default" = query.data
+    ? query.data.persistedCount > 0
+      ? "department"
+      : baseHoursQuery.data
+        ? "workspace"
+        : "default"
+    : "default";
+
+  /**
+   * Fallback chain: department hours → workspace base hours → hardcoded defaults.
+   * This ensures season tabs and schedule views get correct data even when
+   * departments have no explicit rows (inheriting workspace base).
+   */
+  const resolvedHours: OperatingHoursEntry[] =
+    query.data && query.data.persistedCount > 0
+      ? query.data.entries
+      : baseHoursQuery.data
+        ? baseHoursQuery.data.map((base) => ({
+            day_of_week: base.day_of_week,
+            day_name: base.day_name,
+            open_time: base.open_time,
+            close_time: base.close_time,
+            is_closed: base.is_closed,
+            open_offset_minutes: 0,
+            close_offset_minutes: 0,
+            is_derived: true,
+          }))
+        : defaultHours;
+
   return {
-    hours: query.data ?? defaultHours,
+    hours: resolvedHours,
+    isSaved: (query.data?.persistedCount ?? 0) > 0,
+    source,
     baseHours: baseHoursQuery.data ?? null,
     isLoading: query.isLoading,
     upsertHours,
