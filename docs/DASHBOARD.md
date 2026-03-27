@@ -13,20 +13,15 @@ tags: [dashboard, worktrees, tracking]
 
 ## Active Worktrees
 
-| #     | Branch                            | Module        | Status            | Progress                                                                                                     | Blockers | Health         |
-| ----- | --------------------------------- | ------------- | ----------------- | ------------------------------------------------------------------------------------------------------------ | -------- | -------------- |
-| wt-1  | `feat/onboarding-cleanup`         | onboarding    | ready_for_closure | All phases done. Handoff written. Run `close-feature.sh 1`.                                                  | —        | clean          |
-| wt-2  | `feat/cascade-task-surface`       | dashboard     | in_progress       | Tasks 0-5 committed (7 commits). Missing: typecheck, i18n keys, commit uncommitted files. Council: APPROVED  | —        | 4 uncommitted  |
-| wt-3  | `feat/emma-arena-views`           | walkAi        | in_progress       | Spec + mockups done, settings persistence committed. Implementation not started.                             | None     | **stale (6d)** |
-| wt-4  | `feat/landing-token-migration`    | landing       | in_progress       | Archive cleanup committed. Plan council-reviewed (APPROVED). 3 phases ready.                                 | —        | 2 uncommitted  |
-| wt-6  | `feat/production-gaps-tier1`      | dashboard     | in_progress       | Plan council-reviewed (APPROVED). 12 uncommitted files (migrations, i18n). No commits yet.                   | —        | 12 uncommitted |
-| wt-7  | `feat/mobile-wiring-fixes`        | mobile        | ready_for_closure | 7/7 tasks done. Plan moved to completed/. Ready for merge.                                                   | —        | clean          |
-| wt-8  | `feat/infra-prod-alignment`       | infra         | in_progress       | Plan council-reviewed (APPROVED). Tasks 1-2 already done. Tasks 3-6 remain (Droplet, secrets, Vercel).       | —        | clean          |
-| wt-9  | `feat/setup-flow-redesign`        | onboarding    | in_progress       | Plan council-reviewed (APPROVED). Tasks 1-3 already in dev. Tasks 4-14 remain. 8 uncommitted design changes. | —        | 8 uncommitted  |
-| wt-10 | `feat/nordic-split-design-sync`   | design-tokens | ready_for_closure | Plan completed. 2 commits (token fixes). Ready for merge.                                                    | —        | 1 uncommitted  |
-| wt-11 | `feat/admin-shift-visibility`     | dashboard     | in_progress       | Plan council-reviewed (APPROVED). 60% already in dev — skip tasks 2/3/4/5, do 1/6/7/8.                       | —        | clean          |
-| wt-12 | `feat/invitation-flow-core-fixes` | onboarding    | in_progress       | Just started. 4 fixes: batch dispatch, existing-user detection, RLS security, profile status.                | —        | clean          |
-| wt-13 | `feat/website-factory-b2`         | website       | in_progress       | B2a + B2b plans council-reviewed (APPROVED). 0 commits. Security fixes needed before impl.                   | —        | clean          |
+| #    | Branch                         | Module     | Status            | Progress                                                                                  | Blockers | Health        |
+| ---- | ------------------------------ | ---------- | ----------------- | ----------------------------------------------------------------------------------------- | -------- | ------------- |
+| wt-2 | `feat/cascade-task-surface`    | dashboard  | ready_for_closure | All 9 tasks done (10 commits). Typecheck passes. Needs journey + handoff + merge.         | —        | clean         |
+| wt-3 | `feat/emma-arena-views`        | walkAi     | in_progress       | Rebased on dev. Spec + settings persistence. Implementation not started.                  | None     | clean         |
+| wt-4 | `feat/landing-token-migration` | landing    | in_progress       | Archive cleanup committed. Plan council-reviewed (APPROVED). 3 phases ready.              | —        | 2 uncommitted |
+| wt-5 | `feat/sjohuset-simulator`      | simulation | in_progress       | 9 commits. PR #72 created. Docker + API + timeline engine.                                | —        | 2 uncommitted |
+| wt-6 | `feat/production-gaps-tier1`   | dashboard  | in_progress       | 4 commits. Migrations, i18n fixes, E2E test.                                              | —        | clean         |
+| wt-8 | `feat/infra-prod-alignment`    | infra      | in_progress       | Tasks 1-2 done. Tasks 3-6 remain (Droplet, secrets, Vercel). Runbook written.             | —        | clean         |
+| wt-9 | `feat/setup-flow-redesign`     | onboarding | ready_for_closure | All tasks done. Typecheck 28/28. Journey + handoff written. Ready for close-feature.sh 9. | —        | clean         |
 
 ## Parked Branches (no worktree)
 
@@ -45,28 +40,33 @@ tags: [dashboard, worktrees, tracking]
 
 | #     | Available |
 | ----- | --------- |
-| wt-5  | yes       |
+| wt-1  | yes       |
+| wt-7  | yes       |
+| wt-10 | yes       |
+| wt-11 | yes       |
+| wt-12 | yes       |
 | wt-15 | yes       |
 | wt-20 | yes       |
 
 ## Pending Journeys
 
-| WT    | Feature                    | Journey File                                          | Status  |
-| ----- | -------------------------- | ----------------------------------------------------- | ------- |
-| wt-2  | cascade-task-surface       | `docs/journeys/JOURNEY-cascade-task-surface.md`       | missing |
-| wt-4  | landing-token-migration    | `docs/journeys/JOURNEY-landing-token-migration.md`    | missing |
-| wt-6  | production-gaps-tier1      | `docs/journeys/JOURNEY-production-gaps-tier1.md`      | missing |
-| wt-7  | mobile-wiring-fixes        | `docs/journeys/JOURNEY-mobile-wiring-fixes.md`        | missing |
-| wt-8  | infra-prod-alignment       | `docs/journeys/JOURNEY-infra-prod-alignment.md`       | missing |
-| wt-9  | setup-flow-redesign        | `docs/journeys/JOURNEY-setup-flow-redesign.md`        | missing |
-| wt-11 | admin-shift-visibility     | `docs/journeys/JOURNEY-admin-shift-visibility.md`     | missing |
-| wt-13 | website-factory-b2         | `docs/journeys/JOURNEY-website-factory-b2.md`         | missing |
-| wt-12 | invitation-flow-core-fixes | `docs/journeys/JOURNEY-invitation-flow-core-fixes.md` | missing |
+| WT   | Feature                 | Journey File                                       | Status  |
+| ---- | ----------------------- | -------------------------------------------------- | ------- |
+| wt-2 | cascade-task-surface    | `docs/journeys/JOURNEY-cascade-task-surface.md`    | missing |
+| wt-4 | landing-token-migration | `docs/journeys/JOURNEY-landing-token-migration.md` | missing |
+| wt-6 | production-gaps-tier1   | `docs/journeys/JOURNEY-production-gaps-tier1.md`   | missing |
+| wt-8 | infra-prod-alignment    | `docs/journeys/JOURNEY-infra-prod-alignment.md`    | missing |
 
 ## Recent Closures
 
 | Date       | Feature                     | Branch                                                             | Merged To   |
 | ---------- | --------------------------- | ------------------------------------------------------------------ | ----------- |
+| 2026-03-27 | setup-flow-redesign         | `feat/setup-flow-redesign`                                         | development |
+| 2026-03-27 | website-factory-b2          | `feat/website-factory-b2`                                          | development |
+| 2026-03-27 | nordic-split-design-sync    | `feat/nordic-split-design-sync`                                    | development |
+| 2026-03-27 | mobile-wiring-fixes         | `feat/mobile-wiring-fixes`                                         | development |
+| 2026-03-27 | admin-shift-visibility      | `feat/admin-shift-visibility`                                      | development |
+| 2026-03-27 | invitation-flow-core-fixes  | `feat/invitation-flow-core-fixes`                                  | development |
 | 2026-03-27 | onboarding-cleanup          | `feat/onboarding-cleanup`                                          | development |
 | 2026-03-26 | mobile-production-readiness | `feat/mobile-production-readiness`                                 | development |
 | 2026-03-27 | admin-daily-loop            | `feat/admin-daily-loop`                                            | development |

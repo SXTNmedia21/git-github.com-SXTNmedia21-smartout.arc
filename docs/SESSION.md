@@ -13,56 +13,45 @@ tags: [session, continuity]
 | ------- | ---------------------------- |
 | Date    | 2026-03-27                   |
 | Branch  | `development` (orchestrator) |
-| Feature | plan-audit + plan-execute    |
-| Status  | paused                       |
+| Feature | worktree-cleanup + closures  |
+| Status  | in_progress                  |
 
 ### What was done
 
-**Recovery:** All 13 worktrees intact after Ubuntu crash. 12 tmux sessions created.
+**Worktree cleanup (Fas 1):**
 
-**Plan audit (13 parallel agents):**
+- Removed 5 merged worktrees: wt-1, wt-7, wt-10, wt-11, wt-12
+- Cherry-picked 1 stray docs commit (wt-10 → development)
+- Committed all uncommitted files from previous session (E2E fixes, 34 archived plans, docs updates)
+- Freed slots: wt-1, wt-7, wt-10, wt-11, wt-12
 
-- 14 plans audited. 4 moved to completed/ (already implemented). 9 council-reviewed (all APPROVED_WITH_CONDITIONS).
-- Cross-cutting: 4 missing emit(), 2 security (service-role bypass), 3 missing frontmatter.
+**Worktree actions (Fas 2):**
 
-**Plan execution (12 parallel agents):**
+- wt-13 (website-factory-b2): Rebased + merged security fix to development → removed
+- wt-9 (setup-flow-redesign): Rebased, verified tasks 1-9 (8 already done, 1 new migration), handoff written, all gates pass → ready for close-feature.sh 9
+- wt-3 (emma-arena-views): Rebased onto development (698 commits behind → now current)
+- wt-2 (cascade-task-surface): Audited — code complete (10 commits), typecheck passes, needs journey + handoff
 
-- 3 merged to development: onboarding-cleanup, nordic-split-design-sync, mobile-wiring-fixes
-- 6 branches ready for merge: cascade-task-surface (wt-2), landing-token-migration (wt-4), production-gaps-tier1 (wt-6), infra-prod-alignment (wt-8), setup-flow-redesign (wt-9), website-factory-b2 (wt-13)
-- PR #72 created: sjohuset-simulator (wt-5)
-- wt-11 + wt-12 cleaned (already in development)
-
-**E2E fixes:**
-
-- Port mismatch fixed (3061 → 3060, env-overridable)
-- Employee email fixed (anna@ → employee@smartout.local)
-- Shift seed added (beforeAll)
-- Next.js dev overlay fix (MutationObserver + force click) — NOT fully verified in parallel
-
-**Parallel session (another agent):**
-
-- invitation-flow-core-fixes spec + plan written, wt-12 recreated
+**Dashboard updated:** Reflects current worktree state accurately.
 
 ### Where we stopped
 
-- E2E overlay fix written, NOT verified in full parallel run
-- 5 uncommitted E2E files on development
-- 6 branches ready for merge (need pnpm install + typecheck)
-- 1 active plan remains: infra-prod-alignment (needs manual SSH, runbook written)
+- wt-9 ready for closure: `~/.claude/scripts/close-feature.sh 9`
+- wt-2 needs journey + handoff before closure
+- Remaining worktrees to review: wt-4, wt-5, wt-6, wt-8
+- Original goal (walk through onboarding → app flow) not yet started
 
 ### Known blockers / errors
 
-- Next.js dev overlay intercepts clicks — fix written, parallel verification pending
 - /dashboard/shift-clock has pre-existing build error (module not found)
-- wt-6, wt-9 need pnpm install before typecheck
 - infra-prod tasks 3-6 need manual SSH — runbook at docs/DEPLOY-RUNBOOK-infra-prod.md
 
 ### Pending decisions
 
-- [ ] Commit E2E fixes to development
-- [ ] Merge 6 ready branches to development
-- [ ] Review + merge PR #72 (sjohuset-simulator)
-- [ ] Clean up merged worktrees: wt-1, wt-7, wt-10
-- [ ] Run infra SSH tasks from runbook
-- [ ] Verify full E2E suite in parallel
-- [ ] Execution approach for invitation-flow-core-fixes: subagent-driven vs inline
+- [x] Commit E2E fixes to development
+- [x] Clean up merged worktrees: wt-1, wt-7, wt-10, wt-11, wt-12
+- [x] Merge website-factory-b2 security fix
+- [ ] Close wt-9 (setup-flow-redesign) — run close-feature.sh 9
+- [ ] Close wt-2 (cascade-task-surface) — write journey + handoff first
+- [ ] Review remaining: wt-4, wt-5, wt-6, wt-8
+- [ ] Walk through onboarding → workspace setup → invite → app flow
