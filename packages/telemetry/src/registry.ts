@@ -727,6 +727,13 @@ export interface OperatingHoursUpdated extends BaseEvent {
   };
 }
 
+export interface WorkspaceOperatingHoursUpdated extends BaseEvent {
+  event: "workspace_operating_hours updated";
+  properties: {
+    data: Record<string, never>;
+  };
+}
+
 export interface KpiTargetUpdated extends BaseEvent {
   event: "kpi_target updated";
   properties: {
@@ -1865,6 +1872,7 @@ export type SmartoutEvent =
   | DayFactorsUpdated
   | HourFactorsUpdated
   | OperatingHoursUpdated
+  | WorkspaceOperatingHoursUpdated
   | KpiTargetUpdated
   | WorkspaceBudgetUpdated
   | AbsenceCreated
@@ -2262,6 +2270,10 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "operations",
   },
   "operating_hours updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "workspace_operating_hours updated": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "operations",
   },
