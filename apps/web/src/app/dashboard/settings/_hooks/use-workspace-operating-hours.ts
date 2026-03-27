@@ -5,7 +5,7 @@
  * Used by the Settings page. Departments inherit these unless overridden.
  */
 
-import { useContext } from "react";
+import { useContext, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
@@ -116,11 +116,15 @@ export function useWorkspaceOperatingHours() {
     },
   });
 
-  const defaultHours: WorkspaceHoursEntry[] = DAY_NAMES.map((name, index) => ({
-    day_of_week: index,
-    day_name: name,
-    ...DEFAULT_ENTRY,
-  }));
+  const defaultHours: WorkspaceHoursEntry[] = useMemo(
+    () =>
+      DAY_NAMES.map((name, index) => ({
+        day_of_week: index,
+        day_name: name,
+        ...DEFAULT_ENTRY,
+      })),
+    [],
+  );
 
   return {
     hours: query.data?.entries ?? defaultHours,
