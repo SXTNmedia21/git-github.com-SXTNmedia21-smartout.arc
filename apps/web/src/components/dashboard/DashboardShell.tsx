@@ -2,10 +2,13 @@
 
 import { useState, useRef, useEffect, useCallback, createContext, useMemo } from "react";
 import dynamic from "next/dynamic";
+import { AnimatePresence } from "framer-motion";
 import type { MissionId } from "@smartout/ai/missions";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
 import { useCascadeTaskCount } from "@/app/dashboard/_hooks/use-cascade-task-count";
+import { EntityDrawerProvider } from "./entity-drawer/EntityDrawerContext";
+import { EntityDrawer } from "./entity-drawer/EntityDrawer";
 
 const VoiceAssistant = dynamic(() => import("@/components/voice-assistant"), {
   ssr: false,
@@ -1914,16 +1917,23 @@ export function DashboardShell({
                 {isDocumentMode ? (
                   <DocumentModeShell isDark={isDark} />
                 ) : (
-                  <div className="scroll-overlay flex min-h-0 flex-1 flex-col overflow-hidden p-6 md:p-8 print:block print:h-auto print:overflow-visible print:p-0">
-                    {isAdminMode && isDashboardPage && (
-                      <>
-                        <div className="mb-4 flex-shrink-0">
-                          <ActionStrip isDark={isDark} />
-                        </div>
-                      </>
-                    )}
-                    {children}
-                  </div>
+                  <EntityDrawerProvider>
+                    <div className="flex min-h-0 flex-1 overflow-hidden">
+                      <div className="scroll-overlay flex min-h-0 flex-1 flex-col overflow-hidden p-6 md:p-8 print:block print:h-auto print:overflow-visible print:p-0">
+                        {isAdminMode && isDashboardPage && (
+                          <>
+                            <div className="mb-4 flex-shrink-0">
+                              <ActionStrip isDark={isDark} />
+                            </div>
+                          </>
+                        )}
+                        {children}
+                      </div>
+                      <AnimatePresence>
+                        <EntityDrawer />
+                      </AnimatePresence>
+                    </div>
+                  </EntityDrawerProvider>
                 )}
               </DashboardContext.Provider>
             </main>
