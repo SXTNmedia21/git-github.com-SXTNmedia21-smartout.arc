@@ -6,20 +6,20 @@
  * and optional task tags for a given (date x template shift) intersection.
  */
 
-import type { MalCell, MalEmployeeAssignment, MalTask } from "@smartout/schedule";
+import type { GridCell, MalEmployeeAssignment, MalTask } from "@smartout/schedule";
 import type { ShiftProposalCreate } from "./schedule-types";
 import { MalEmployeeTag } from "./shift-employee-tag";
 import { MalGhostTag } from "./shift-ghost-tag";
 import { MalTaskTag } from "./shift-task-tag";
 
 type MalShiftCellProps = {
-  cell: MalCell;
+  cell: GridCell;
   showTasks: boolean;
   /** Ghost proposals for this cell, filtered by parent */
   ghostProposals?: ShiftProposalCreate[];
   onEmployeeClick?: (assignment: MalEmployeeAssignment) => void;
   onTaskClick?: (task: MalTask) => void;
-  onAssignClick?: (dateId: string, templateShiftId: string) => void;
+  onAssignClick?: (dateId: string, configId: string) => void;
   onApproveProposal?: (id: string) => void;
   onRejectProposal?: (id: string) => void;
 };
@@ -62,9 +62,9 @@ export function MalShiftCell({
       {/* 3. Empty slot placeholders — adjusted for ghost proposals */}
       {Array.from({ length: adjustedEmptySlots }).map((_, i) => (
         <button
-          key={`${cell.dateId}-${cell.templateShiftId}-empty-${i}`}
+          key={`${cell.dateId}-${cell.configId}-empty-${i}`}
           type="button"
-          onClick={() => onAssignClick?.(cell.dateId, cell.templateShiftId)}
+          onClick={() => onAssignClick?.(cell.dateId, cell.configId)}
           className="border-border text-muted-foreground inline-flex cursor-pointer items-center rounded-lg border border-dashed px-2 py-[3px] text-[9px] opacity-30 transition-all duration-[250ms] group-hover:opacity-100 hover:border-orange-500 hover:text-orange-500"
         >
           + Tilordne

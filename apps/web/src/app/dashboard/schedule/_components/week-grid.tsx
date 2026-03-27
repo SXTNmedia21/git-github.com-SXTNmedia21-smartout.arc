@@ -1,26 +1,30 @@
 "use client";
 
 /**
- * MalGrid — Main orchestrator for Mal-modus (template-based schedule).
- * Wires together command bar, template selector, grid header/rows, and action bar.
- * Handles week navigation, template switching via URL params, and all mutations.
+ * MalGrid — Main orchestrator for the week-first schedule grid.
+ * Wires together command bar, context bar (stats), grid header/rows, and action bar.
+ * Handles week navigation and all mutations.
  *
- * Must be wrapped in <Suspense> at the integration point because it calls useSearchParams().
+ * Columns are derived from department_shift_type_config — no template dependency.
  */
 
-import { useState, useContext, useMemo, useCallback } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useState, useContext, useMemo } from "react";
 import { toast } from "sonner";
 
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspace } from "@/lib/workspace-context";
-import { useMalData, useFillFromTemplate, usePublishWeek, useResetWeek } from "@smartout/schedule";
+import {
+  useWeekGridData,
+  useFillFromTemplate,
+  usePublishWeek,
+  useResetWeek,
+} from "@smartout/schedule";
 
 import { MalCommandBar } from "./week-grid-command-bar";
-import { MalTemplateBar } from "./week-grid-context-bar";
+import { WeekGridContextBar } from "./week-grid-context-bar";
 import { MalGridHeader } from "./week-grid-header";
 import { MalGridRow } from "./week-grid-row";
-import { MalEmptyState } from "./week-grid-empty-state";
+import { WeekGridEmptyState } from "./week-grid-empty-state";
 import { CreateTemplateDialog } from "./create-template-dialog";
 import { useAgentProposals } from "./agent-proposals-context";
 import type { ShiftProposalCreate } from "./schedule-types";
@@ -41,9 +45,6 @@ type MalGridProps = {
 };
 
 export function MalGrid({ departmentName, weekStart, departmentOptions }: MalGridProps) {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-
   const [weekOffset, setWeekOffset] = useState(0);
   const [showTasks, setShowTasks] = useState(false);
   const [createTemplateOpen, setCreateTemplateOpen] = useState(false);
@@ -60,11 +61,10 @@ export function MalGrid({ departmentName, weekStart, departmentOptions }: MalGri
 
   const weekLabel = "Uke " + getISOWeek(new Date(currentWeekStart + "T00:00:00"));
 
-  const { data, isLoading, error, templates, departmentId } = useMalData({
+  const { data, isLoading, error, departmentId } = useWeekGridData({
     workspaceId: workspace.workspace_id,
     departmentName,
     weekStart: currentWeekStart,
-    templateId: searchParams.get("template"),
     showTasks,
   });
 
@@ -75,38 +75,27 @@ export function MalGrid({ departmentName, weekStart, departmentOptions }: MalGri
   const { proposals, approveProposal, rejectProposal, approveAllProposals, clearAllProposals } =
     useAgentProposals();
 
-  // Filter proposals relevant to this template (create-type with templateShiftId)
-  const malProposals = useMemo(
-    () =>
-      proposals.filter(
-        (p): p is ShiftProposalCreate =>
-          p.type === "create" && "templateShiftId" in p && !!p.templateShiftId,
-      ),
+  // Filter proposals relevant to this grid (create-type only)
+  const gridProposals = useMemo(
+    () => proposals.filter((p): p is ShiftProposalCreate => p.type === "create"),
     [proposals],
   );
 
   // Group proposals by cell key for efficient lookup in MalGridRow
   const proposalsByCell = useMemo(() => {
     const map = new Map<string, ShiftProposalCreate[]>();
-    for (const p of malProposals) {
-      if (!p.templateShiftId) continue;
-      const key = `${p.dateId}::${p.templateShiftId}`;
+    for (const p of gridProposals) {
+      // Use templateShiftId as configId proxy during transition
+      const configId =
+        "templateShiftId" in p ? (p as { templateShiftId?: string }).templateShiftId : undefined;
+      if (!configId) continue;
+      const key = `${p.dateId}::${configId}`;
       const existing = map.get(key) ?? [];
       existing.push(p);
       map.set(key, existing);
     }
     return map;
-  }, [malProposals]);
-
-  // Switching templates updates the URL so the selection survives a page refresh
-  const handleTemplateChange = useCallback(
-    (id: string) => {
-      const params = new URLSearchParams(searchParams.toString());
-      params.set("template", id);
-      router.replace(`?${params.toString()}`, { scroll: false });
-    },
-    [searchParams, router],
-  );
+  }, [gridProposals]);
 
   return (
     <div className="flex h-full flex-col">
@@ -122,13 +111,9 @@ export function MalGrid({ departmentName, weekStart, departmentOptions }: MalGri
         onNextWeek={() => setWeekOffset((prev) => prev + 1)}
       />
 
-      {/* Template bar — only shown when at least one template exists */}
-      {templates.length > 0 && (
-        <MalTemplateBar
-          templates={templates}
-          activeTemplateId={data?.templateId ?? null}
-          onTemplateChange={handleTemplateChange}
-          onCreateTemplate={() => setCreateTemplateOpen(true)}
+      {/* Context bar — stats + import/save actions, shown when columns exist */}
+      {data && data.columns.length > 0 && (
+        <WeekGridContextBar
           stats={{
             slotsPerDay: data ? Math.round(data.stats.totalSlots / 7) : 0,
             hoursPerDay: data ? Math.round(data.stats.totalHours / 7) : 0,
@@ -151,13 +136,13 @@ export function MalGrid({ departmentName, weekStart, departmentOptions }: MalGri
         </div>
       )}
 
-      {/* Empty state — no templates configured for this department */}
-      {!isLoading && !error && templates.length === 0 && (
-        <MalEmptyState onCreateTemplate={() => setCreateTemplateOpen(true)} />
+      {/* Empty state — no shift type configs for this department */}
+      {!isLoading && !error && data && data.columns.length === 0 && (
+        <WeekGridEmptyState onCreateShiftType={() => setCreateTemplateOpen(true)} />
       )}
 
-      {/* Grid — only rendered when we have resolved data */}
-      {!isLoading && !error && data && (
+      {/* Grid — only rendered when we have resolved data with columns */}
+      {!isLoading && !error && data && data.columns.length > 0 && (
         <>
           <div className="relative z-[1] flex-1 overflow-auto">
             <div
@@ -226,10 +211,10 @@ export function MalGrid({ departmentName, weekStart, departmentOptions }: MalGri
           </div>
 
           {/* Proposal bulk actions — visible only when ghost proposals exist */}
-          {malProposals.length > 0 && (
+          {gridProposals.length > 0 && (
             <div className="border-border bg-card/80 flex items-center gap-2 border-t px-4 py-2 backdrop-blur-sm">
               <span className="text-muted-foreground text-xs">
-                {malProposals.length} forslag venter
+                {gridProposals.length} forslag venter
               </span>
               <div className="flex-1" />
               <button
@@ -243,87 +228,56 @@ export function MalGrid({ departmentName, weekStart, departmentOptions }: MalGri
                 type="button"
                 onClick={() => {
                   approveAllProposals().then(
-                    () => toast.success(`${malProposals.length} forslag godkjent`),
+                    () => toast.success(`${gridProposals.length} forslag godkjent`),
                     () => toast.error("Kunne ikke godkjenne alle forslag"),
                   );
                 }}
                 className="rounded-[10px] border border-green-500 bg-green-500/10 px-3.5 py-1.5 text-xs font-bold text-green-500 transition-all hover:bg-green-500/20"
               >
-                Godkjenn alle forslag ({malProposals.length})
+                Godkjenn alle forslag ({gridProposals.length})
               </button>
             </div>
           )}
 
-          {/* Action bar — publish, fill, and reset actions */}
+          {/* Action bar — three tiers: secondary (left), tertiary (left), destructive + primary (right) */}
           <div className="border-border bg-card flex items-center gap-2 rounded-b-[14px] border-t px-4 py-2">
+            {/* Secondary: Shift type + Turnus */}
             <button
-              onClick={() => {
-                if (!departmentId || !data.templateId) return;
-                publishMutation.mutate(
-                  {
-                    workspaceId: workspace.workspace_id,
-                    weekStart: currentWeekStart,
-                    templateId: data.templateId,
-                    departmentId,
-                    actorId: profileId ?? "",
-                  },
-                  {
-                    onSuccess: () => toast.success("Uke publisert"),
-                    onError: () => toast.error("Kunne ikke publisere"),
-                  },
-                );
-              }}
-              disabled={publishMutation.isPending}
-              className="rounded-[10px] border border-orange-500 bg-orange-500 px-3.5 py-1.5 text-xs font-bold text-white shadow-[0_2px_12px_oklch(0.65_0.22_40/0.25)] transition-all hover:shadow-[0_4px_16px_oklch(0.65_0.22_40/0.3)] disabled:opacity-50"
+              type="button"
+              className="border-border bg-card text-foreground hover:bg-muted rounded-[10px] border px-3.5 py-1.5 text-xs font-bold transition-all"
             >
-              Publiser uke {weekLabel.replace("Uke ", "")}
-            </button>
-
-            <button
-              onClick={() => {
-                if (!departmentId || !data.templateId) return;
-                fillMutation.mutate(
-                  {
-                    workspaceId: workspace.workspace_id,
-                    weekStart: currentWeekStart,
-                    templateId: data.templateId,
-                    departmentId,
-                    actorId: profileId ?? "",
-                  },
-                  {
-                    onSuccess: () => toast.success("Vakter fylt fra mal"),
-                    onError: () => toast.error("Kunne ikke fylle fra mal"),
-                  },
-                );
-              }}
-              disabled={fillMutation.isPending}
-              className="border-border bg-card text-foreground hover:bg-muted rounded-[10px] border px-3.5 py-1.5 text-xs font-bold transition-all disabled:opacity-50"
-            >
-              Fyll fra mal
-            </button>
-
-            <button className="border-border bg-card text-foreground hover:bg-muted rounded-[10px] border px-3.5 py-1.5 text-xs font-bold transition-all">
               Legg til vakttype
             </button>
 
-            {/* Turnus creation — planned for a future iteration */}
             <button
+              type="button"
               disabled
               className="border-border bg-card text-muted-foreground cursor-not-allowed rounded-[10px] border px-3.5 py-1.5 text-xs font-bold opacity-50"
             >
               Opprett turnus
             </button>
 
+            {/* Tertiary: Import from template */}
+            <button
+              type="button"
+              className="text-muted-foreground hover:text-foreground rounded-[10px] px-3 py-1.5 text-xs font-bold transition-all"
+            >
+              Last inn fra mal
+            </button>
+
             <div className="flex-1" />
 
+            {/* Destructive: Reset week */}
             <button
+              type="button"
               onClick={() => {
-                if (!departmentId || !data.templateId) return;
+                if (!departmentId) return;
                 resetMutation.mutate(
                   {
                     workspaceId: workspace.workspace_id,
                     weekStart: currentWeekStart,
-                    templateId: data.templateId,
+                    // templateId kept for mutation compat — will be removed when mutations are updated
+                    templateId: "",
                     departmentId,
                     actorId: profileId ?? "",
                   },
@@ -337,6 +291,31 @@ export function MalGrid({ departmentName, weekStart, departmentOptions }: MalGri
               className="text-destructive hover:bg-destructive/10 rounded-[10px] border-none px-3.5 py-1.5 text-xs font-bold transition-all disabled:opacity-50"
             >
               Tilbakestill uke
+            </button>
+
+            {/* Primary: Publish */}
+            <button
+              type="button"
+              onClick={() => {
+                if (!departmentId) return;
+                publishMutation.mutate(
+                  {
+                    workspaceId: workspace.workspace_id,
+                    weekStart: currentWeekStart,
+                    templateId: "",
+                    departmentId,
+                    actorId: profileId ?? "",
+                  },
+                  {
+                    onSuccess: () => toast.success("Uke publisert"),
+                    onError: () => toast.error("Kunne ikke publisere"),
+                  },
+                );
+              }}
+              disabled={publishMutation.isPending}
+              className="rounded-[10px] border border-orange-500 bg-orange-500 px-3.5 py-1.5 text-xs font-bold text-white shadow-[0_2px_12px_oklch(0.65_0.22_40/0.25)] transition-all hover:shadow-[0_4px_16px_oklch(0.65_0.22_40/0.3)] disabled:opacity-50"
+            >
+              Publiser uke {weekLabel.replace("Uke ", "")}
             </button>
           </div>
         </>
