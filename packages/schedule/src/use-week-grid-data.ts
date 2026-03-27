@@ -13,8 +13,18 @@
 import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
 
-import type { MalColumn, MalCell, MalGridData, MalEmployeeAssignment, MalTask } from "./grid-types";
-import { cellKey, addDays } from "./grid-types";
+import type {
+  MalColumn,
+  MalCell,
+  MalGridData,
+  MalEmployeeAssignment,
+  MalTask,
+  GridColumn,
+  GridCell,
+  WeekGridData,
+  DayInfo,
+} from "./grid-types";
+import { cellKey, addDays, gridCellKey } from "./grid-types";
 import { gridKeys } from "./grid-query-keys";
 
 /** Norwegian day names for the grid header */
@@ -66,6 +76,10 @@ function avatarColor(id: string): string {
 
 const ALL_DEPARTMENTS = "Alle avdelinger";
 
+/**
+ * @deprecated Use useWeekGridData instead. This legacy hook requires a template
+ * to exist and reads columns from schedule_template_shift. Kept during transition.
+ */
 export function useMalData(params: {
   workspaceId: string;
   departmentName: string;
@@ -363,3 +377,435 @@ export function useMalData(params: {
     departmentId,
   };
 }
+
+// ── New config-driven hook (week-grid redesign) ──────────────────────
+
+/**
+ * Config-driven schedule grid hook — reads department_shift_type_config for
+ * columns instead of requiring a template. This is the replacement for useMalData.
+ *
+ * Query cascade:
+ *   1. Resolve department(s) by name
+ *   2. Fetch department_shift_type_config (columns) + payroll.shift_type (names/colors)
+ *   3. Fetch schedule_shift for the week (matched by shift_type_id, no template filter)
+ *   4. Optionally fetch session tasks
+ */
+export function useWeekGridData(params: {
+  workspaceId: string;
+  departmentName: string;
+  weekStart: string;
+  showTasks: boolean;
+}) {
+  const { workspaceId, departmentName, weekStart, showTasks } = params;
+  const supabase = createClient();
+  const isAllDepartments = departmentName === ALL_DEPARTMENTS;
+
+  // ── Step 1: Resolve department(s) — reuses same pattern as legacy hook ──
+  const departmentQuery = useQuery({
+    queryKey: gridKeys.department(workspaceId, departmentName),
+    enabled: !!workspaceId && !!departmentName,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      if (isAllDepartments) {
+        const { data, error } = await supabase
+          .from("department")
+          .select("department_id, name")
+          .eq("workspace_id", workspaceId)
+          .order("name");
+        if (error) throw error;
+        return data.map((d) => ({ id: d.department_id, name: d.name }));
+      }
+      const { data, error } = await supabase
+        .from("department")
+        .select("department_id, name")
+        .eq("workspace_id", workspaceId)
+        .eq("name", departmentName)
+        .single();
+      if (error) throw error;
+      return [{ id: data.department_id, name: data.name }];
+    },
+  });
+
+  const departments = departmentQuery.data ?? [];
+  const departmentIds = departments.map((d) => d.id);
+  const departmentId = departmentIds[0] ?? null;
+  const deptNameById = new Map(departments.map((d) => [d.id, d.name]));
+
+  // ── Step 2: Fetch active configs for resolved departments ──
+  const configQuery = useQuery({
+    queryKey: gridKeys.configs(workspaceId, departmentIds.join(",")),
+    enabled: departmentIds.length > 0,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("department_shift_type_config")
+        .select(
+          `
+          id,
+          department_id,
+          shift_type_id,
+          label,
+          default_start_time,
+          default_end_time,
+          default_break_minutes,
+          slot_count,
+          sort_order,
+          is_active
+        `,
+        )
+        .in("department_id", departmentIds)
+        .eq("is_active", true)
+        .order("sort_order");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const configs = configQuery.data ?? [];
+  const shiftTypeIds = [...new Set(configs.map((c) => c.shift_type_id))];
+
+  // ── Step 2b: Fetch shift type metadata (name, color) from payroll schema ──
+  const shiftTypeQuery = useQuery({
+    queryKey: gridKeys.shiftTypes(shiftTypeIds.join(",")),
+    enabled: shiftTypeIds.length > 0,
+    staleTime: 10 * 60 * 1000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .schema("payroll")
+        .from("shift_type")
+        .select("id, name, color")
+        .in("id", shiftTypeIds);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const shiftTypeById = new Map((shiftTypeQuery.data ?? []).map((st) => [st.id, st]));
+
+  // ── Step 3: Fetch schedule shifts for the week (no template filter) ──
+  const weekEnd = addDays(weekStart, 6);
+
+  const shiftQuery = useQuery({
+    queryKey: gridKeys.weekShifts(workspaceId, weekStart, departmentIds.join(",")),
+    enabled: departmentIds.length > 0,
+    staleTime: 2 * 60 * 1000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("schedule_shift")
+        .select(
+          `
+          schedule_shift_id,
+          shift_date,
+          shift_type_id,
+          employee_id,
+          start_time,
+          end_time,
+          status,
+          department_id,
+          work_hours,
+          profile:employee_id (first_name, last_name)
+        `,
+        )
+        .in("department_id", departmentIds)
+        .gte("shift_date", weekStart)
+        .lte("shift_date", weekEnd);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // ── Step 4: Fetch tasks (optional, same pattern as legacy) ──
+  const taskQuery = useQuery({
+    queryKey: gridKeys.tasks(workspaceId, weekStart, departmentIds.join(",")),
+    enabled: showTasks && departmentIds.length > 0,
+    staleTime: 2 * 60 * 1000,
+    queryFn: async () => {
+      const { data: sessions, error: sessErr } = await supabase
+        .from("department_session")
+        .select("department_session_id, session_date, department_id")
+        .in("department_id", departmentIds)
+        .gte("session_date", weekStart)
+        .lte("session_date", weekEnd);
+
+      if (sessErr) throw sessErr;
+      if (!sessions || sessions.length === 0) return [];
+
+      const sessionIds = sessions.map((s) => s.department_session_id);
+
+      const { data: taskRows, error: taskErr } = await supabase
+        .from("session_task")
+        .select("id, title, status, department_session_id")
+        .in("department_session_id", sessionIds);
+
+      if (taskErr) throw taskErr;
+
+      const sessionDateById = new Map(
+        sessions.map((s) => [s.department_session_id, s.session_date]),
+      );
+      return (taskRows ?? []).map((t) => ({
+        taskId: t.id,
+        title: t.title,
+        status: t.status as MalTask["status"],
+        sessionDate: sessionDateById.get(t.department_session_id) ?? null,
+      }));
+    },
+  });
+
+  // ── Build WeekGridData from all queries ──
+  const isLoading =
+    departmentQuery.isLoading ||
+    configQuery.isLoading ||
+    shiftTypeQuery.isLoading ||
+    shiftQuery.isLoading ||
+    (showTasks && taskQuery.isLoading);
+
+  const error =
+    departmentQuery.error ||
+    configQuery.error ||
+    shiftTypeQuery.error ||
+    shiftQuery.error ||
+    taskQuery.error;
+
+  // Only build grid data when all required queries have resolved
+  const canBuild = configs.length > 0 && !isLoading && !error;
+
+  const data: WeekGridData | null = canBuild
+    ? buildWeekGridData({
+        configs,
+        shiftTypeById,
+        shifts: shiftQuery.data ?? [],
+        tasks: taskQuery.data ?? [],
+        deptNameById,
+        weekStart,
+      })
+    : null;
+
+  // Columns are useful even before shifts load (for skeleton UI)
+  const columns: GridColumn[] = configs.map((cfg) => {
+    const st = shiftTypeById.get(cfg.shift_type_id);
+    return {
+      configId: cfg.id,
+      shiftTypeId: cfg.shift_type_id,
+      shiftTypeName: st?.name ?? cfg.label,
+      shiftTypeColor: st?.color ?? null,
+      label: cfg.label,
+      startTime: cfg.default_start_time,
+      endTime: cfg.default_end_time,
+      workHours: calcHours(cfg.default_start_time, cfg.default_end_time),
+      breakMinutes: cfg.default_break_minutes,
+      slotCount: cfg.slot_count,
+      sortOrder: cfg.sort_order,
+      departmentId: cfg.department_id,
+      departmentName: deptNameById.get(cfg.department_id) ?? "",
+    };
+  });
+
+  return {
+    data,
+    isLoading,
+    error,
+    departmentId,
+    columns,
+  };
+}
+
+// ── Pure builder — assembles WeekGridData from resolved query results ──
+
+function buildWeekGridData(input: {
+  configs: NonNullable<ReturnType<typeof useConfigQueryData>>;
+  shiftTypeById: Map<string, { id: string; name: string; color: string | null }>;
+  shifts: ShiftRow[];
+  tasks: TaskRow[];
+  deptNameById: Map<string, string>;
+  weekStart: string;
+}): WeekGridData {
+  const { configs, shiftTypeById, shifts, tasks, deptNameById, weekStart } = input;
+
+  // Build columns from config + shift type metadata
+  const columns: GridColumn[] = configs.map((cfg) => {
+    const st = shiftTypeById.get(cfg.shift_type_id);
+    return {
+      configId: cfg.id,
+      shiftTypeId: cfg.shift_type_id,
+      shiftTypeName: st?.name ?? cfg.label,
+      shiftTypeColor: st?.color ?? null,
+      label: cfg.label,
+      startTime: cfg.default_start_time,
+      endTime: cfg.default_end_time,
+      workHours: calcHours(cfg.default_start_time, cfg.default_end_time),
+      breakMinutes: cfg.default_break_minutes,
+      slotCount: cfg.slot_count,
+      sortOrder: cfg.sort_order,
+      departmentId: cfg.department_id,
+      departmentName: deptNameById.get(cfg.department_id) ?? "",
+    };
+  });
+
+  // Build 7-day array
+  const weekDays: DayInfo[] = Array.from({ length: 7 }, (_, i) => {
+    const dateId = addDays(weekStart, i);
+    const dayOfWeek = new Date(dateId + "T00:00:00").getDay();
+    const mappedIndex = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    return {
+      index: i,
+      dateId,
+      label: DAY_NAMES[mappedIndex] ?? DAY_NAMES[0]!,
+      shortLabel: DAY_SHORT[mappedIndex] ?? DAY_SHORT[0]!,
+      isWeekend: dayOfWeek === 0 || dayOfWeek === 6,
+    };
+  });
+
+  // Build a lookup from shift_type_id → config(s) per department
+  // A shift matches a column when shift_type_id matches AND department matches
+  const configByTypeAndDept = new Map<string, (typeof configs)[number]>();
+  for (const cfg of configs) {
+    configByTypeAndDept.set(`${cfg.shift_type_id}::${cfg.department_id}`, cfg);
+  }
+
+  // Initialize empty cells for every day × column combination
+  const cells = new Map<string, GridCell>();
+  for (const day of weekDays) {
+    for (const col of columns) {
+      const key = gridCellKey(day.dateId, col.configId);
+      cells.set(key, {
+        dayIndex: day.index,
+        dateId: day.dateId,
+        configId: col.configId,
+        assignments: [],
+        tasks: [],
+        emptySlots: col.slotCount,
+      });
+    }
+  }
+
+  // Populate cells with shift assignments — match by shift_type_id + department
+  for (const shift of shifts) {
+    if (!shift.shift_type_id || !shift.department_id) continue;
+    const cfg = configByTypeAndDept.get(`${shift.shift_type_id}::${shift.department_id}`);
+    if (!cfg) continue; // Overflow shift — no matching config column
+
+    const key = gridCellKey(shift.shift_date, cfg.id);
+    const cell = cells.get(key);
+    if (!cell) continue;
+
+    const profile = shift.profile as unknown as {
+      first_name: string;
+      last_name: string;
+    } | null;
+    const name = profile ? `${profile.first_name} ${profile.last_name}` : "Ukjent";
+
+    const assignment: MalEmployeeAssignment = {
+      shiftId: shift.schedule_shift_id,
+      employeeId: shift.employee_id ?? "",
+      employeeName: name,
+      avatarColor: avatarColor(shift.employee_id ?? shift.schedule_shift_id),
+      initials: initials(name),
+      status: (shift.status as MalEmployeeAssignment["status"]) ?? "created",
+      hasSwapRequest: false,
+      hasUnreadMessage: false,
+    };
+    cell.assignments.push(assignment);
+
+    const col = columns.find((c) => c.configId === cfg.id);
+    cell.emptySlots = Math.max(0, (col?.slotCount ?? 1) - cell.assignments.length);
+  }
+
+  // Populate tasks — attach to first column per department (same logic as legacy)
+  const firstColumnPerDept = new Map<string, GridColumn>();
+  for (const col of columns) {
+    if (!firstColumnPerDept.has(col.departmentId)) {
+      firstColumnPerDept.set(col.departmentId, col);
+    }
+  }
+  for (const task of tasks) {
+    if (!task.sessionDate) continue;
+    for (const [, col] of firstColumnPerDept) {
+      const key = gridCellKey(task.sessionDate, col.configId);
+      const cell = cells.get(key);
+      if (cell) {
+        cell.tasks.push({
+          taskId: task.taskId,
+          title: task.title,
+          status: task.status,
+        });
+        break;
+      }
+    }
+  }
+
+  // Aggregate stats
+  const totalSlots = columns.reduce((sum, c) => sum + c.slotCount, 0) * 7;
+  let filledSlots = 0;
+  let totalHours = 0;
+  let taskCount = 0;
+  let swapRequests = 0;
+
+  cells.forEach((cell) => {
+    filledSlots += cell.assignments.length;
+    taskCount += cell.tasks.length;
+    const col = columns.find((c) => c.configId === cell.configId);
+    if (col) {
+      totalHours += cell.assignments.length * col.workHours;
+    }
+    swapRequests += cell.assignments.filter((a) => a.hasSwapRequest).length;
+  });
+
+  // TODO: Phase 3 — replace hardcoded rate with shift_type.rate_adjustment_value lookup
+  const hourlyRate = 230;
+  const estimatedCost = totalHours * hourlyRate;
+
+  return {
+    columns,
+    cells,
+    weekDays,
+    stats: {
+      totalSlots,
+      filledSlots,
+      totalHours,
+      estimatedCost,
+      taskCount,
+      swapRequests,
+      emptySlots: totalSlots - filledSlots,
+    },
+  };
+}
+
+// ── Internal types for the builder function ──
+
+type ConfigRow = {
+  id: string;
+  department_id: string;
+  shift_type_id: string;
+  label: string;
+  default_start_time: string;
+  default_end_time: string;
+  default_break_minutes: number;
+  slot_count: number;
+  sort_order: number;
+  is_active: boolean;
+};
+
+/** Helper to extract config query return type for the builder */
+function useConfigQueryData(): ConfigRow[] | undefined {
+  return undefined;
+}
+
+type ShiftRow = {
+  schedule_shift_id: string;
+  shift_date: string;
+  shift_type_id: string | null;
+  employee_id: string | null;
+  start_time: string;
+  end_time: string;
+  status: string;
+  department_id: string | null;
+  work_hours: number;
+  profile: unknown;
+};
+
+type TaskRow = {
+  taskId: string;
+  title: string;
+  status: MalTask["status"];
+  sessionDate: string | null;
+};

@@ -76,3 +76,65 @@ export function addDays(dateStr: string, days: number): string {
   d.setDate(d.getDate() + days);
   return d.toISOString().slice(0, 10);
 }
+
+// ── New grid-first types (week-grid redesign) ──────────────
+
+/** Column derived from department_shift_type_config — no template dependency */
+export type GridColumn = {
+  configId: string;
+  shiftTypeId: string;
+  shiftTypeName: string;
+  shiftTypeColor: string | null;
+  label: string;
+  startTime: string;
+  endTime: string;
+  workHours: number;
+  breakMinutes: number;
+  slotCount: number;
+  sortOrder: number;
+  departmentId: string;
+  departmentName: string;
+};
+
+/** Single day × column intersection in the grid */
+export type GridCell = {
+  dayIndex: number;
+  dateId: string;
+  configId: string;
+  assignments: MalEmployeeAssignment[];
+  tasks: MalTask[];
+  emptySlots: number;
+};
+
+/** Aggregated stats for the entire week grid */
+export type GridStats = {
+  totalSlots: number;
+  filledSlots: number;
+  totalHours: number;
+  estimatedCost: number;
+  taskCount: number;
+  swapRequests: number;
+  emptySlots: number;
+};
+
+/** One day in the 7-day week header */
+export type DayInfo = {
+  index: number;
+  dateId: string;
+  label: string;
+  shortLabel: string;
+  isWeekend: boolean;
+};
+
+/** Complete grid data structure — template-free, config-driven */
+export type WeekGridData = {
+  columns: GridColumn[];
+  cells: Map<string, GridCell>;
+  weekDays: DayInfo[];
+  stats: GridStats;
+};
+
+/** Cell key for grid lookup: `${dateId}::${configId}` */
+export function gridCellKey(dateId: string, configId: string): string {
+  return `${dateId}::${configId}`;
+}
