@@ -38,6 +38,8 @@
     "dept_none_exist_desc": "Opprett minst én avdeling for å komme i gang med vaktplanlegging.",
     "dept_missing_hours": "{{name}} mangler åpningstider",
     "dept_missing_hours_desc": "Uten åpningstider kan ikke systemet beregne vakter for {{name}}.",
+    "workspace_missing_hours": "Virksomheten mangler base-åpningstider",
+    "workspace_missing_hours_desc": "Sett opp åpningstider i innstillinger. Alle avdelinger arver disse som standard.",
     "dept_no_locations": "Workspace har ingen lokasjoner",
     "dept_no_locations_desc": "Legg til minst én lokasjon slik at avdelinger kan knyttes til et fysisk sted.",
     "dept_missing_positions": "{{name}} mangler stillinger",
@@ -84,5 +86,34 @@
     "messages_unanswered_desc": "Meldinger fra ansatte som venter på svar.",
     "messages_pending_decisions": "{{count}} beslutninger venter",
     "messages_pending_decisions_desc": "Endringsforslag som venter på godkjenning."
+  },
+  "settings_hours": {
+    "title": "Base-åpningstider",
+    "description": "Standard åpningstider for hele virksomheten. Avdelinger arver disse med mindre de har egne justeringer.",
+    "not_saved": "Åpningstider ikke lagret",
+    "not_saved_desc": "Tidene under er standardverdier. Klikk Lagre for å aktivere.",
+    "closed": "Stengt",
+    "open": "Åpen",
+    "save": "Lagre endringer",
+    "saving": "Lagrer...",
+    "unsaved": "Du har ulagrede endringer"
+  },
+  "department_hours": {
+    "tab_label": "Åpningstider",
+    "title": "Avdelingsjustering",
+    "description": "Juster åpningstider relativt til virksomhetens base-tid.",
+    "inherits": "Arver virksomhetens åpningstider",
+    "opens_earlier": "{{minutes}} min tidligere",
+    "opens_later": "{{minutes}} min senere",
+    "closes_earlier": "{{minutes}} min tidligere",
+    "closes_later": "{{minutes}} min senere",
+    "no_offset": "Ingen justering",
+    "open_offset": "Åpning",
+    "close_offset": "Stenging",
+    "result": "Resultat",
+    "base_reference": "Base",
+    "save": "Lagre",
+    "saving": "Lagrer...",
+    "saved": "Åpningstider lagret"
   }
 }

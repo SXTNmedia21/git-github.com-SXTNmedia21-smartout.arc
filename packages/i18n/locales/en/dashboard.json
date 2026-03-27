@@ -38,6 +38,8 @@
     "dept_none_exist_desc": "Create at least one department to get started with shift planning.",
     "dept_missing_hours": "{{name}} is missing opening hours",
     "dept_missing_hours_desc": "Without opening hours the system cannot calculate shifts for {{name}}.",
+    "workspace_missing_hours": "Workspace is missing base opening hours",
+    "workspace_missing_hours_desc": "Set up opening hours in settings. All departments inherit these by default.",
     "dept_no_locations": "Workspace has no locations",
     "dept_no_locations_desc": "Add at least one location so departments can be linked to a physical place.",
     "dept_missing_positions": "{{name}} is missing positions",
@@ -84,5 +86,34 @@
     "messages_unanswered_desc": "Messages from employees awaiting a response.",
     "messages_pending_decisions": "{{count}} decisions pending",
     "messages_pending_decisions_desc": "Change proposals awaiting approval."
+  },
+  "settings_hours": {
+    "title": "Base opening hours",
+    "description": "Default opening hours for your workspace. Departments inherit these unless they have their own adjustments.",
+    "not_saved": "Opening hours not saved",
+    "not_saved_desc": "The times below are defaults. Click Save to activate.",
+    "closed": "Closed",
+    "open": "Open",
+    "save": "Save changes",
+    "saving": "Saving...",
+    "unsaved": "You have unsaved changes"
+  },
+  "department_hours": {
+    "tab_label": "Opening hours",
+    "title": "Department adjustment",
+    "description": "Adjust opening hours relative to the workspace base.",
+    "inherits": "Inherits workspace opening hours",
+    "opens_earlier": "{{minutes}} min earlier",
+    "opens_later": "{{minutes}} min later",
+    "closes_earlier": "{{minutes}} min earlier",
+    "closes_later": "{{minutes}} min later",
+    "no_offset": "No adjustment",
+    "open_offset": "Opening",
+    "close_offset": "Closing",
+    "result": "Result",
+    "base_reference": "Base",
+    "save": "Save",
+    "saving": "Saving...",
+    "saved": "Opening hours saved"
   }
 }
