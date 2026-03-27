@@ -16,11 +16,11 @@ import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspace } from "@/lib/workspace-context";
 import { useMalData, useFillFromTemplate, usePublishWeek, useResetWeek } from "@smartout/schedule";
 
-import { MalCommandBar } from "./mal-command-bar";
-import { MalTemplateBar } from "./mal-template-bar";
-import { MalGridHeader } from "./mal-grid-header";
-import { MalGridRow } from "./mal-grid-row";
-import { MalEmptyState } from "./mal-empty-state";
+import { MalCommandBar } from "./week-grid-command-bar";
+import { MalTemplateBar } from "./week-grid-context-bar";
+import { MalGridHeader } from "./week-grid-header";
+import { MalGridRow } from "./week-grid-row";
+import { MalEmptyState } from "./week-grid-empty-state";
 import { CreateTemplateDialog } from "./create-template-dialog";
 import { useAgentProposals } from "./agent-proposals-context";
 import type { ShiftProposalCreate } from "./schedule-types";

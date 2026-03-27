@@ -8,9 +8,9 @@
 
 import type { MalCell, MalEmployeeAssignment, MalTask } from "@smartout/schedule";
 import type { ShiftProposalCreate } from "./schedule-types";
-import { MalEmployeeTag } from "./mal-employee-tag";
-import { MalGhostTag } from "./mal-ghost-tag";
-import { MalTaskTag } from "./mal-task-tag";
+import { MalEmployeeTag } from "./shift-employee-tag";
+import { MalGhostTag } from "./shift-ghost-tag";
+import { MalTaskTag } from "./shift-task-tag";
 
 type MalShiftCellProps = {
   cell: MalCell;

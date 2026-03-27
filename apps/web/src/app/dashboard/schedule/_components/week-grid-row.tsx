@@ -10,7 +10,7 @@
 
 import { cellKey } from "@smartout/schedule";
 import type { MalCell, MalColumn, MalEmployeeAssignment, MalTask } from "@smartout/schedule";
-import { MalShiftCell } from "./mal-shift-cell";
+import { MalShiftCell } from "./week-grid-cell";
 import type { ShiftProposalCreate } from "./schedule-types";
 
 type DayInfo = {

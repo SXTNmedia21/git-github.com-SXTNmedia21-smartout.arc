@@ -36,7 +36,7 @@ import {
   useDroppable,
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates, arrayMove } from "@dnd-kit/sortable";
-import { MalGrid } from "./_components/mal-grid";
+import { MalGrid } from "./_components/week-grid";
 import { PlannerCommandBar } from "./_components/planner-command-bar";
 import { StatusStrip } from "./_components/status-strip";
 import { GridSurface } from "./_components/grid-surface";
@@ -968,8 +968,8 @@ function SchedulePageContent() {
             {/* Agent proposal banner — shows when Emma has pending shift proposals */}
             <ProposalBanner />
 
-            {/* MAL-MODUS — single grid, columns grouped by department horizontally */}
-            {scheduleLayout === "mal" && (
+            {/* VAKTGRID — single grid, columns grouped by department horizontally */}
+            {scheduleLayout === "grid" && (
               <Suspense fallback={<div className="bg-muted/20 flex-1 animate-pulse" />}>
                 <MalGrid
                   departmentName={activeDepartment}
@@ -980,7 +980,7 @@ function SchedulePageContent() {
             )}
 
             {/* MAIN CONTENT AREA — sidebar spans full height alongside command bar, status strip, and grid */}
-            {scheduleLayout !== "mal" && (
+            {scheduleLayout !== "grid" && (
               <DndContext
                 sensors={sensors}
                 collisionDetection={scheduleCollisionDetection}

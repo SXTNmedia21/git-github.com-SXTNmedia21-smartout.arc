@@ -5,7 +5,6 @@ import dynamic from "next/dynamic";
 import type { MissionId } from "@smartout/ai/missions";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
-import { useCascadeTasks } from "@/app/dashboard/_hooks/use-cascade-tasks";
 import { useCascadeTaskCount } from "@/app/dashboard/_hooks/use-cascade-task-count";
 
 const VoiceAssistant = dynamic(() => import("@/components/voice-assistant"), {
@@ -63,7 +62,7 @@ function resolveMissionForRoute(pathname: string): MissionId {
 }
 
 export type AdminViewType = "tactical" | "strategic" | "reconciliation" | "activity" | "todo";
-export type ScheduleLayoutMode = "daily" | "weekly" | "monthly" | "list" | "mal";
+export type ScheduleLayoutMode = "daily" | "weekly" | "monthly" | "list" | "grid";
 export type ScheduleViewMode = "ansatt" | "jobb" | "team" | "lokasjon";
 type VoiceSessionContext = {
   page: string;
@@ -374,8 +373,6 @@ export function DashboardShell({
     if (typeof window === "undefined") return false;
     return sessionStorage.getItem("setup_dismissed") === "1";
   });
-  const { data: cascadeData, isLoading: isSetupLoading } = useCascadeTasks();
-  const isSetupMode = !isSetupLoading && !setupDismissed && (cascadeData?.critical_count ?? 0) > 0;
   const dismissSetup = useCallback(() => {
     setSetupDismissed(true);
     sessionStorage.setItem("setup_dismissed", "1");
@@ -389,6 +386,10 @@ export function DashboardShell({
   const autoplayStartedRef = useRef(false);
   const noticeIdRef = useRef(0);
   const workspaceCtx = useWorkspaceOptional();
+  // Derive setup mode from the DB flag rather than cascade task count.
+  // Defaults to true (no redirect) when workspace context is not yet available.
+  const setupGuideCompleted = workspaceCtx?.workspace.setup_guide_completed ?? true;
+  const isSetupMode = !setupGuideCompleted && !setupDismissed;
   const workspaceData = useMemo(
     () =>
       workspaceCtx
@@ -483,7 +484,9 @@ export function DashboardShell({
       workspaceData,
       profileId,
       isSetupMode,
-      isSetupLoading,
+      // isSetupLoading is no longer used — setup is now flag-driven, not
+      // cascade-task-driven. Kept as false for context shape compatibility.
+      isSetupLoading: false,
       dismissSetup,
     }),
     [
@@ -504,7 +507,6 @@ export function DashboardShell({
       workspaceData,
       profileId,
       isSetupMode,
-      isSetupLoading,
       dismissSetup,
     ],
   );
@@ -949,6 +951,19 @@ export function DashboardShell({
     };
   }, [isAutoplayMode]);
 
+  const isSetupPage = pathname === "/dashboard/setup";
+
+  // Redirect to setup guide on page load when setup is incomplete.
+  // Only fires once per mount (not on in-app navigation) via ref guard.
+  // Uses window.location.href for hard navigation to force server layout re-fetch.
+  const setupRedirectFired = useRef(false);
+  useEffect(() => {
+    if (setupRedirectFired.current) return;
+    if (isSetupPage || setupGuideCompleted || setupDismissed) return;
+    setupRedirectFired.current = true;
+    window.location.href = "/dashboard/setup";
+  }, [isSetupPage, setupGuideCompleted, setupDismissed]);
+
   // Helper to determine if a link is active
   const isActive = (path: string) => {
     // Exact match for dashboard root, otherwise starts with
@@ -958,11 +973,9 @@ export function DashboardShell({
     return pathname.startsWith(path);
   };
 
-  const isSetupPage = pathname === "/dashboard/setup";
-
   // /dashboard/setup renders full-screen (no header/menu) — kept as-is.
-  // The redirect that forced users into setup on critical tasks is removed.
-  // Setup dismiss persists per session via sessionStorage.
+  // Routing is decoupled from cascade tasks: setup redirect is now driven by
+  // the workspace.setup_guide_completed flag (see useEffect above).
   if (isSetupPage) {
     return (
       <DashboardContext.Provider value={dashboardContextValue}>
@@ -1680,11 +1693,11 @@ export function DashboardShell({
                           Vaktliste
                         </button>
                         <button
-                          onClick={() => setScheduleLayout("mal")}
-                          data-autoplay="schedule-layout-mal"
-                          className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "mal" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : isDark ? "text-zinc-500 hover:text-white" : "text-zinc-500 hover:text-zinc-900"}`}
+                          onClick={() => setScheduleLayout("grid")}
+                          data-autoplay="schedule-layout-grid"
+                          className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "grid" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : isDark ? "text-zinc-500 hover:text-white" : "text-zinc-500 hover:text-zinc-900"}`}
                         >
-                          Mal
+                          Vaktgrid
                         </button>
                       </div>
 
