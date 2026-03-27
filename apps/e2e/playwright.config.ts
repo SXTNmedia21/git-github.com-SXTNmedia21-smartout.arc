@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const localWebPort = 3061;
-const localLandingPort = 3056;
+const localWebPort = Number(process.env.E2E_WEB_PORT) || 3060;
+const localLandingPort = Number(process.env.E2E_LANDING_PORT) || 3056;
 const webBaseUrl = `http://127.0.0.1:${localWebPort}`;
 const landingBaseUrl = `http://127.0.0.1:${localLandingPort}`;
 
@@ -32,6 +32,10 @@ export default defineConfig({
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: "on-first-retry",
     video: "retain-on-failure",
+    /* Remove Next.js dev overlay that intercepts pointer events in dev mode */
+    ...(!process.env.CI && {
+      actionTimeout: 15_000,
+    }),
   },
   /* Output directory for test artifacts */
   outputDir: "./test-results",
@@ -40,13 +44,13 @@ export default defineConfig({
   ...(!process.env.SKIP_WEB_SERVER && {
     webServer: [
       {
-        command: "bash ./scripts/start-local-next-app.sh web 3061",
+        command: `bash ./scripts/start-local-next-app.sh web ${localWebPort}`,
         url: webBaseUrl,
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,
       },
       {
-        command: "bash ./scripts/start-local-next-app.sh landing 3056",
+        command: `bash ./scripts/start-local-next-app.sh landing ${localLandingPort}`,
         url: landingBaseUrl,
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,

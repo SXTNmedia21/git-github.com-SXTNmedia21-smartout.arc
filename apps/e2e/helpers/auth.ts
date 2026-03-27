@@ -4,6 +4,22 @@ const DEFAULT_EMAIL = "admin@smartout.local";
 const DEFAULT_PASSWORD = "password123";
 
 /**
+ * Removes the Next.js dev overlay portal that intercepts pointer events.
+ * Must be called before any click actions on login or other pages in dev mode.
+ */
+async function dismissDevOverlay(page: Page): Promise<void> {
+  await page
+    .evaluate(() => {
+      const observer = new MutationObserver(() => {
+        document.querySelectorAll("nextjs-portal").forEach((el) => el.remove());
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+      document.querySelectorAll("nextjs-portal").forEach((el) => el.remove());
+    })
+    .catch(() => {});
+}
+
+/**
  * Handles the onboarding wizard skip if it appears after login.
  */
 async function skipOnboardingIfPresent(page: Page): Promise<void> {
@@ -52,8 +68,10 @@ async function submitLoginAndWait(page: Page): Promise<void> {
   const submitButton = page.locator('button[type="submit"]');
   const invalidCredentials = page.locator("text=Feil e-post eller passord.").first();
 
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    await submitButton.click();
+  await dismissDevOverlay(page);
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    await submitButton.click({ force: true });
 
     try {
       await page.waitForURL(/\/(dashboard|onboarding|setup)/, { timeout: 15000 });
@@ -78,6 +96,7 @@ export async function loginAsAdmin(page: Page, options: LoginOptions = {}): Prom
   const password = process.env.E2E_PASSWORD ?? DEFAULT_PASSWORD;
 
   await page.goto("/login");
+  await dismissDevOverlay(page);
   await page.locator('input[type="email"]').fill(email);
   await page.locator('input[type="password"]').fill(password);
   await submitLoginAndWait(page);
@@ -90,6 +109,7 @@ export async function loginAsAdmin(page: Page, options: LoginOptions = {}): Prom
 
 export async function loginAsEmployee(page: Page, email: string, password: string): Promise<void> {
   await page.goto("/login");
+  await dismissDevOverlay(page);
   await page.locator('input[type="email"]').fill(email);
   await page.locator('input[type="password"]').fill(password);
   await submitLoginAndWait(page);

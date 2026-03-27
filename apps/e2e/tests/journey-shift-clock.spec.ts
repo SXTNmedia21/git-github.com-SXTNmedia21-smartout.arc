@@ -22,7 +22,7 @@ const timesheetClient = createClient(
 
 const HQ_WORKSPACE_ID = "b0000000-0000-0000-0000-000000000000";
 const ANNA_PROFILE_ID = "f0000000-0000-0000-0000-000000000001";
-const ANNA_EMAIL = "anna@smartout.local";
+const ANNA_EMAIL = "employee@smartout.local";
 const ANNA_PASSWORD = "password123";
 
 function todayISO(): string {
@@ -30,6 +30,32 @@ function todayISO(): string {
 }
 
 test.describe("Journey: Shift Clock — Admin to Employee", () => {
+  // Seed a published shift for today so tests have data to work with
+  test.beforeAll(async () => {
+    const today = todayISO();
+    // Check if shifts already exist for today
+    const { data: existing } = await supabase
+      .from("schedule_shift")
+      .select("schedule_shift_id")
+      .eq("workspace_id", HQ_WORKSPACE_ID)
+      .eq("shift_date", today)
+      .eq("status", "published")
+      .limit(1);
+
+    if (!existing || existing.length === 0) {
+      await seedShift(HQ_WORKSPACE_ID, {
+        employee_id: ANNA_PROFILE_ID,
+        shift_date: today,
+        start_time: "08:00",
+        end_time: "16:00",
+        status: "published",
+        is_published: true,
+        role: "server",
+        day_category: "morning",
+      });
+    }
+  });
+
   // ── Part 1: Admin sees published shifts ──────────────────
   test.describe("Admin view", () => {
     test.beforeEach(async ({ page }) => {
