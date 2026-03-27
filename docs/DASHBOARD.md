@@ -116,6 +116,8 @@ tags: [dashboard, worktrees, tracking]
 
 ## Session History
 
+| 2026-03-27 | industry-consolidation | session ended | ADR-0062: 3 copies → 1 canonical source in packages/ai/src/industry/. Council reviewed (4 agents). Types in packages/types. Runtime tariff loader. Typecheck green. Also: STATE.md updated, AO guide reviewed, operating hours restructure (8 commits, uncommitted). |
+| 2026-03-27 | local-dev-fixes | session ended | Fixed resolve_cascade_tasks RPC (4 column mismatches), DayApproval hooks order, PostgREST cache, scrapling Docker auth. 8 uncommitted files. |
 | 2026-03-27 | invitation-flow-core-fixes | started | wt-12, module: onboarding. 4 fixes: batch dispatch, existing-user detection, RLS security, profile status. Council-reviewed (2 rounds). |
 | 2026-03-27 | plan-audit + execute | session ended | Orchestrator: 14 plans audited (13 agents), 4 completed, 9 council-approved. Then 12 agents executed: 3 merged (onboarding, nordic-split, mobile-wiring), 6 ready for merge, PR #72 (sjohuset), 2 worktrees cleaned. E2E: port fix (3061→3060), overlay fix (MutationObserver), 25/26 critical pass. Full parallel verification pending. |
 | 2026-03-26 | landing-token-migration | started | wt-4, module: landing. Plan ready (8 tasks, 3 phases): dark-section utility, footer tokens, i18n for Poll/Mockup, blocks/demo migration, archive cleanup. |

@@ -9,53 +9,42 @@ tags: [session, continuity]
 
 ## Last Session
 
-| Field   | Value                        |
-| ------- | ---------------------------- |
-| Date    | 2026-03-27                   |
-| Branch  | `development` (orchestrator) |
-| Feature | worktree-cleanup             |
-| Status  | paused                       |
+| Field   | Value                                              |
+| ------- | -------------------------------------------------- |
+| Date    | 2026-03-27                                         |
+| Branch  | `development`                                      |
+| Feature | Industry intelligence consolidation + STATE update |
+| Status  | paused                                             |
 
 ### What was done
 
-**Worktree cleanup — removed 8 worktrees:**
-
-- wt-1 (onboarding-cleanup) — merged, removed
-- wt-7 (mobile-wiring-fixes) — merged, removed
-- wt-10 (nordic-split-design-sync) — docs cherry-picked, removed
-- wt-11 (admin-shift-visibility) — merged, removed
-- wt-12 (invitation-flow-core-fixes) — merged, removed
-- wt-13 (website-factory-b2) — security fix rebased + merged, removed
-- wt-8 (infra-prod-alignment) — runbook cherry-picked to dev, removed
-
-**Prepared 3 branches for closure (user runs close-feature.sh):**
-
-- wt-2 (cascade-task-surface) — journey + handoff written, typecheck 28/28
-- wt-6 (production-gaps-tier1) — rebased, journey + handoff written, typecheck 28/28
-- wt-9 (setup-flow-redesign) — finalize RPC fix + handoff written, typecheck 28/28
-
-**Other work:**
-
-- wt-3 (emma-arena-views) — rebased onto dev (was 698 behind)
-- wt-4 (landing-token-migration) — rebased, docs written, frontend review done (found incomplete migration)
-- wt-5 (sjohuset-simulator) — rebased, committed uncommitted files, parked
-- Committed all stale uncommitted files on development (E2E fixes, 34 archived plans, docs)
-- Fixed tracked-but-gitignored test-results file
+- **STATE.md updated** — totals (215 tables, 209 migrations, 43 EFs, 63 ADRs), active worktrees refreshed, framework seed marked DONE, cascade summary ~55%
+- **Frontend designer agent audited** — all referenced files exist, 1 junk file found (`docs/agents/frontend-design/Untitled`), 4 undocumented wizard utilities
+- **AO (Agent Orchestrator) guide reviewed** — ComposioHQ parallel agent execution setup documented
+- **Industry Intelligence Consolidation (ADR-0062)** — full council review + implementation:
+  - 3 divergent copies of NACE/hospitality data consolidated into 1 canonical source
+  - Types moved to `packages/types/src/industry.ts`
+  - Logic + data to `packages/ai/src/industry/` (6 files: index, hospitality, default, defaults, department-classifier, loader)
+  - Runtime tariff loader with 3-tier fallback (workspace → K1a → hardcoded)
+  - Onboarding adapter preserves API compatibility
+  - Deprecation shim for old `packages/ai/tools/intelligence/industry-defaults.ts`
+  - Typecheck 8/8 green. Committed as `9a0a3d03`
+- **Operating hours restructure** — 8 commits on development (workspace base hours, department offsets, settings rewrite, RPC fallback, schedule fallback)
 
 ### Where we stopped
 
-- User needs to run: `close-feature.sh 2`, `close-feature.sh 6`, `close-feature.sh 9`
-- wt-4 needs decision: fix landing migration gaps or merge with debt
-- Original goal (walk through onboarding → app flow) not yet started
+- 16 uncommitted files on development (operating hours work, todo components, pnpm-lock, playwright-report)
+- wt-2, wt-6, wt-9 still pending closure (close-feature.sh 2, 6, 9)
+- Industry consolidation committed and clean
 
 ### Known blockers / errors
 
-- /dashboard/shift-clock has pre-existing build error (module not found)
-- wt-4 frontend review found 6 issues: blocks/demo/footer not token-migrated, i18n missing in Poll/Mockup, warning token not registered in landing globals.css
+- None critical. Operating hours uncommitted changes need review before commit.
 
 ### Pending decisions
 
-- [ ] Run close-feature.sh 2, 6, 9
-- [ ] wt-4: fix migration gaps vs merge with debt vs park
-- [ ] Walk through onboarding → workspace setup → invite → app (original session goal)
-- [ ] PR #72 (sjohuset-simulator): review when ready to unpause
+- [ ] Commit the 16 uncommitted files on development (operating hours + misc)
+- [ ] Run close-feature.sh 2, 6, 9 (cascade-task-surface, production-gaps, setup-flow)
+- [ ] wt-3: Emma Arena implementation (spec done, not started)
+- [ ] wt-4: Landing token migration gaps
+- [ ] Clean up `docs/agents/frontend-design/Untitled` junk file
