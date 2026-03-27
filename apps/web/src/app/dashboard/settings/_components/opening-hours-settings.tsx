@@ -1,46 +1,21 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Loader2 } from "lucide-react";
+import { AlertTriangle, Loader2 } from "lucide-react";
 import { Button } from "@smartout/ui";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@smartout/ui";
 import { Label } from "@smartout/ui";
-import { useQuery } from "@tanstack/react-query";
-import { useWorkspaceOptional } from "@/lib/workspace-context";
-import { createClient } from "@smartout/supabase/client";
-import { useOperatingHours, type OperatingHoursEntry } from "../_hooks/use-operating-hours";
+import { useTranslation } from "@smartout/i18n";
+import {
+  useWorkspaceOperatingHours,
+  type WorkspaceHoursEntry,
+} from "../_hooks/use-workspace-operating-hours";
 
 export function OpeningHoursSettings() {
-  const ctx = useWorkspaceOptional();
-  const wsId = ctx?.workspace.workspace_id;
-  const supabase = createClient();
-
-  const { data: departments } = useQuery({
-    queryKey: ["departments", wsId],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("department")
-        .select("department_id, name")
-        .eq("workspace_id", wsId!)
-        .eq("is_active", true)
-        .order("sort_order", { ascending: true });
-      return data ?? [];
-    },
-    enabled: !!wsId,
-  });
-
-  const [selectedDeptId, setSelectedDeptId] = useState<string | undefined>();
-
-  // Auto-select first department when data loads
-  useEffect(() => {
-    if (departments?.length && !selectedDeptId) {
-      setSelectedDeptId(departments[0]!.department_id);
-    }
-  }, [departments, selectedDeptId]);
-
-  const { hours, isLoading, upsertHours } = useOperatingHours(selectedDeptId);
-  const [localHours, setLocalHours] = useState<OperatingHoursEntry[]>(hours);
+  const { t } = useTranslation("dashboard");
+  const { hours, isSaved, isLoading, upsertHours } = useWorkspaceOperatingHours();
+  const [localHours, setLocalHours] = useState<WorkspaceHoursEntry[]>(hours);
   const [hasChanges, setHasChanges] = useState(false);
 
   useEffect(() => {
@@ -48,7 +23,7 @@ export function OpeningHoursSettings() {
     setHasChanges(false);
   }, [hours]);
 
-  function updateDay(index: number, updates: Partial<OperatingHoursEntry>) {
+  function updateDay(index: number, updates: Partial<WorkspaceHoursEntry>) {
     setLocalHours((prev) =>
       prev.map((entry, i) => (i === index ? { ...entry, ...updates } : entry)),
     );
@@ -70,27 +45,19 @@ export function OpeningHoursSettings() {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-foreground text-lg font-semibold">Opening Hours</h3>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Set the default operating hours for your workspace. These are used for scheduling and
-          staffing calculations.
-        </p>
+        <h3 className="text-foreground text-lg font-semibold">{t("settings_hours.title")}</h3>
+        <p className="text-muted-foreground mt-1 text-sm">{t("settings_hours.description")}</p>
       </div>
 
-      {departments && departments.length > 1 && (
-        <div className="flex items-center gap-2">
-          <Label className="text-sm font-medium">Department</Label>
-          <select
-            className="bg-card border-border text-foreground rounded-md border px-3 py-1.5 text-sm"
-            value={selectedDeptId ?? ""}
-            onChange={(e) => setSelectedDeptId(e.target.value)}
-          >
-            {departments.map((d) => (
-              <option key={d.department_id} value={d.department_id}>
-                {d.name}
-              </option>
-            ))}
-          </select>
+      {!isSaved && (
+        <div className="border-warning/30 bg-warning/5 flex items-start gap-3 rounded-lg border p-4">
+          <AlertTriangle className="text-warning mt-0.5 h-4 w-4 shrink-0" />
+          <div>
+            <p className="text-foreground text-sm font-medium">{t("settings_hours.not_saved")}</p>
+            <p className="text-muted-foreground mt-0.5 text-xs">
+              {t("settings_hours.not_saved_desc")}
+            </p>
+          </div>
         </div>
       )}
 
@@ -109,12 +76,14 @@ export function OpeningHoursSettings() {
                 onCheckedChange={(checked) => updateDay(index, { is_closed: !checked })}
               />
               <Label htmlFor={`day-${entry.day_of_week}`} className="text-muted-foreground text-xs">
-                {entry.is_closed ? "Closed" : "Open"}
+                {entry.is_closed ? t("settings_hours.closed") : t("settings_hours.open")}
               </Label>
             </div>
 
             {entry.is_closed ? (
-              <span className="text-muted-foreground ml-4 text-sm">Closed</span>
+              <span className="text-muted-foreground ml-4 text-sm">
+                {t("settings_hours.closed")}
+              </span>
             ) : (
               <div className="ml-4 flex items-center gap-2">
                 <Input
@@ -123,7 +92,7 @@ export function OpeningHoursSettings() {
                   onChange={(e) => updateDay(index, { open_time: e.target.value })}
                   className="w-32"
                 />
-                <span className="text-muted-foreground text-sm">to</span>
+                <span className="text-muted-foreground text-sm">–</span>
                 <Input
                   type="time"
                   value={entry.close_time}
@@ -137,18 +106,21 @@ export function OpeningHoursSettings() {
       </div>
 
       <div className="flex items-center gap-3">
-        <Button onClick={handleSave} disabled={!hasChanges || upsertHours.isPending}>
+        <Button
+          onClick={handleSave}
+          disabled={(hasChanges === false && isSaved) || upsertHours.isPending}
+        >
           {upsertHours.isPending ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Saving...
+              {t("settings_hours.saving")}
             </>
           ) : (
-            "Save Changes"
+            t("settings_hours.save")
           )}
         </Button>
         {hasChanges && (
-          <span className="text-muted-foreground text-xs">You have unsaved changes</span>
+          <span className="text-muted-foreground text-xs">{t("settings_hours.unsaved")}</span>
         )}
       </div>
     </div>
