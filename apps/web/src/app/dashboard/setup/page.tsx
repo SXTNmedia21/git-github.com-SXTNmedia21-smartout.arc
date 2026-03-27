@@ -1,20 +1,34 @@
 "use client";
 
-/**
- * Dashboard Setup page — renders the original WorkspaceSetupWizard.
- *
- * The AnimatedWizardShell migration was reverted because the adapter pattern
- * didn't properly bridge navigation, data-fetching, and internal step callbacks.
- * The original WorkspaceSetupWizard handles all of this correctly.
- *
- * Design token cleanup (44 hardcoded colors replaced) is preserved in the step components.
- */
-
-import { useRouter } from "next/navigation";
+import { createClient } from "@smartout/supabase/client";
+import { emit } from "@smartout/telemetry";
+import { useWorkspace } from "@/lib/workspace-context";
 import { WorkspaceSetupWizard } from "@/components/dashboard/WorkspaceSetupWizard";
 
 export default function DashboardSetupPage() {
-  const router = useRouter();
+  const { workspace } = useWorkspace();
+  const supabase = createClient();
 
-  return <WorkspaceSetupWizard onComplete={() => router.push("/dashboard")} force />;
+  const handleComplete = async () => {
+    await supabase
+      .from("workspace")
+      .update({ setup_guide_completed: true })
+      .eq("workspace_id", workspace.workspace_id);
+
+    void emit({
+      event: "setup_guide completed",
+      workspace_id: workspace.workspace_id,
+      actor_id: "",
+      properties: {},
+    });
+
+    // Clear session dismiss since setup is now permanently done
+    sessionStorage.removeItem("setup_dismissed");
+
+    // Hard navigation forces server layout to re-fetch workspace data
+    // (workspace context is server-set, not client-queryable)
+    window.location.href = "/dashboard";
+  };
+
+  return <WorkspaceSetupWizard onComplete={() => void handleComplete()} force />;
 }
