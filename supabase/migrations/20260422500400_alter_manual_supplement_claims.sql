@@ -1,6 +1,7 @@
 -- Employee-initiated supplement claims with approval workflow
 -- Employees can submit supplement claims via ShiftClock; leaders approve or reject
 
+-- Enum may already exist from 20260324100001_shift_clock_mobile_fixes.sql
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'supplement_claim_status') THEN
     CREATE TYPE supplement_claim_status AS ENUM ('pending', 'approved', 'rejected');

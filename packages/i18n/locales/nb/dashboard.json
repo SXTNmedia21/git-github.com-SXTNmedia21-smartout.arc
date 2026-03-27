@@ -1,4 +1,5 @@
 {
+  "activityDemoWarning": "Aktivitetsdata vises som demo. Kobles til ekte data snart.",
   "setup": {
     "title": "Oppsett",
     "description": "Konfigurer workspace"

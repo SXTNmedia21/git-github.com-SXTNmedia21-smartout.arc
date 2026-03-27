@@ -33,11 +33,16 @@ CREATE POLICY "jwt_read_chat_message"
   ON public.chat_message FOR SELECT
   USING (public.is_participant_in_conversation(conversation_id));
 
--- Add timesheet schema permissions
-GRANT USAGE ON SCHEMA timesheet TO anon, authenticated, service_role;
-GRANT ALL ON ALL TABLES IN SCHEMA timesheet TO anon, authenticated, service_role;
-GRANT ALL ON ALL ROUTINES IN SCHEMA timesheet TO anon, authenticated, service_role;
-GRANT ALL ON ALL SEQUENCES IN SCHEMA timesheet TO anon, authenticated, service_role;
+-- Add timesheet schema permissions (only if schema exists — created later in 20260418100001)
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.schemata WHERE schema_name = 'timesheet') THEN
+    EXECUTE 'GRANT USAGE ON SCHEMA timesheet TO anon, authenticated, service_role';
+    EXECUTE 'GRANT ALL ON ALL TABLES IN SCHEMA timesheet TO anon, authenticated, service_role';
+    EXECUTE 'GRANT ALL ON ALL ROUTINES IN SCHEMA timesheet TO anon, authenticated, service_role';
+    EXECUTE 'GRANT ALL ON ALL SEQUENCES IN SCHEMA timesheet TO anon, authenticated, service_role';
+  END IF;
+END$$;
 
 -- Add shift clock config and notes
 DO $$
@@ -96,10 +101,15 @@ DROP POLICY IF EXISTS "jwt_update_shift_note" ON public.shift_note;
 CREATE POLICY "jwt_update_shift_note" ON public.shift_note FOR UPDATE
 USING (profile_id IN (SELECT profile_id FROM public.profile WHERE user_id = auth.uid()));
 
--- Add columns to time_entry
-ALTER TABLE timesheet.time_entry ADD COLUMN IF NOT EXISTS punch_out_location JSONB;
-ALTER TABLE timesheet.time_entry ADD COLUMN IF NOT EXISTS break_locations JSONB;
-ALTER TABLE timesheet.time_entry ADD COLUMN IF NOT EXISTS notes TEXT;
+-- Add columns to time_entry (only if timesheet schema exists — created later in 20260418100001)
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.schemata WHERE schema_name = 'timesheet') THEN
+    EXECUTE 'ALTER TABLE timesheet.time_entry ADD COLUMN IF NOT EXISTS punch_out_location JSONB';
+    EXECUTE 'ALTER TABLE timesheet.time_entry ADD COLUMN IF NOT EXISTS break_locations JSONB';
+    EXECUTE 'ALTER TABLE timesheet.time_entry ADD COLUMN IF NOT EXISTS notes TEXT';
+  END IF;
+END$$;
 
 -- Add columns to schedule_shift
 ALTER TABLE public.schedule_shift ADD COLUMN IF NOT EXISTS is_adhoc BOOLEAN DEFAULT false;

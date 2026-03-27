@@ -1,4 +1,5 @@
 {
+  "activityDemoWarning": "Activity data shown as demo. Real data coming soon.",
   "setup": {
     "title": "Setup",
     "description": "Configure workspace"
