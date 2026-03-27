@@ -28,6 +28,7 @@ type OutboxRow = {
   scheduled_for: string;
   processed_at: string | null;
   created_at: string;
+  retry_count: number;
 };
 
 type NotificationPref = {
@@ -81,14 +82,9 @@ Deno.serve(async (req) => {
 
 async function handleRequest(supabase: SupabaseClient) {
   // Fetch pending batch
-  const { data: rows, error } = await supabase
-    .from("notification_outbox")
-    .select("*")
-    .eq("status", "pending")
-    .lte("scheduled_for", new Date().toISOString())
-    .order("priority", { ascending: false })
-    .order("created_at", { ascending: true })
-    .limit(100);
+  const { data: rows, error } = await supabase.rpc("fetch_pending_outbox", {
+    p_batch_size: 100,
+  });
 
   if (error) throw new Error(`Fetch outbox failed: ${error.message}`);
 
@@ -107,9 +103,14 @@ async function handleRequest(supabase: SupabaseClient) {
       failed++;
       const msg = err instanceof Error ? err.message : "Unknown error";
       console.error(`Outbox row ${row.id} failed:`, msg);
+      const newRetryCount = (row.retry_count ?? 0) + 1;
       await supabase
         .from("notification_outbox")
-        .update({ status: "failed", error_log: msg })
+        .update({
+          status: newRetryCount >= 3 ? "suppressed" : "failed",
+          retry_count: newRetryCount,
+          error_log: msg,
+        })
         .eq("id", row.id);
     }
   }
