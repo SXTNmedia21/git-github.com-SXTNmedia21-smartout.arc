@@ -19,10 +19,19 @@ BEGIN
     FROM department
     WHERE workspace_id = p_workspace_id AND is_active = true
   ),
+  workspace_hours_check AS (
+    SELECT count(*) AS cnt
+    FROM workspace_operating_hours
+    WHERE workspace_id = p_workspace_id
+  ),
   dept_with_hours AS (
     SELECT DISTINCT d.department_id
     FROM dept_all d
-    JOIN department_operating_hours doh ON doh.department_id = d.department_id
+    WHERE EXISTS (
+      SELECT 1 FROM department_operating_hours doh
+      WHERE doh.department_id = d.department_id
+    )
+    OR (SELECT cnt FROM workspace_hours_check) > 0
   ),
   dept_tasks AS (
     SELECT jsonb_build_object(
@@ -32,8 +41,9 @@ BEGIN
       'title_key', 'dashboard.todo.dept_missing_hours',
       'title_params', jsonb_build_object('name', d.name),
       'description_key', 'dashboard.todo.desc.dept_missing_hours',
+      'description_params', jsonb_build_object('name', d.name),
       'urgency', 'critical',
-      'href', '/dashboard/organization',
+      'href', '/dashboard/settings',
       'entity_type', 'department',
       'entity_id', d.department_id::text
     ) AS task
@@ -49,8 +59,9 @@ BEGIN
       'title_key', 'dashboard.todo.dept_missing_positions',
       'title_params', jsonb_build_object('name', d.name),
       'description_key', 'dashboard.todo.desc.dept_missing_positions',
+      'description_params', jsonb_build_object('name', d.name),
       'urgency', 'can_wait',
-      'href', '/dashboard/organization',
+      'href', '/dashboard/organization/departments/' || d.department_id,
       'entity_type', 'department',
       'entity_id', d.department_id::text
     ) AS task
@@ -88,11 +99,24 @@ BEGIN
     ) AS task
     WHERE (SELECT count(*) FROM dept_all) = 0
   ),
+  workspace_hours_task AS (
+    SELECT jsonb_build_object(
+      'id', 'workspace.missing_base_hours',
+      'group', 'departments',
+      'dimension', 'D1',
+      'title_key', 'dashboard.todo.workspace_missing_hours',
+      'description_key', 'dashboard.todo.desc.workspace_missing_hours',
+      'urgency', 'critical',
+      'href', '/dashboard/settings'
+    ) AS task
+    WHERE (SELECT cnt FROM workspace_hours_check) = 0
+  ),
   all_dept_tasks AS (
     SELECT task FROM dept_tasks
     UNION ALL SELECT task FROM dept_no_positions
     UNION ALL SELECT task FROM dept_no_location_task
     UNION ALL SELECT task FROM dept_none_task
+    UNION ALL SELECT task FROM workspace_hours_task
   ),
   dept_summary AS (
     SELECT jsonb_build_object(
@@ -126,7 +150,7 @@ BEGIN
     FROM active_profiles p
     LEFT JOIN employee_payroll_profile epp
       ON epp.profile_id = p.profile_id
-    WHERE epp.payroll_profile_id IS NULL
+    WHERE epp.id IS NULL
   ),
   profiles_incomplete AS (
     SELECT p.profile_id, p.display_name AS name
@@ -148,6 +172,7 @@ BEGIN
       'title_key', 'dashboard.todo.staff_missing_contract',
       'title_params', jsonb_build_object('name', name),
       'description_key', 'dashboard.todo.desc.staff_missing_contract',
+      'description_params', jsonb_build_object('name', name),
       'urgency', 'critical',
       'href', '/dashboard/people',
       'entity_type', 'profile', 'entity_id', profile_id::text
@@ -159,6 +184,7 @@ BEGIN
       'title_key', 'dashboard.todo.staff_missing_payroll',
       'title_params', jsonb_build_object('name', name),
       'description_key', 'dashboard.todo.desc.staff_missing_payroll',
+      'description_params', jsonb_build_object('name', name),
       'urgency', 'should',
       'href', '/dashboard/people',
       'entity_type', 'profile', 'entity_id', profile_id::text
@@ -170,6 +196,7 @@ BEGIN
       'title_key', 'dashboard.todo.staff_incomplete_profile',
       'title_params', jsonb_build_object('name', name),
       'description_key', 'dashboard.todo.desc.staff_incomplete_profile',
+      'description_params', jsonb_build_object('name', name),
       'urgency', 'can_wait',
       'href', '/dashboard/people',
       'entity_type', 'profile', 'entity_id', profile_id::text
@@ -181,6 +208,7 @@ BEGIN
       'title_key', 'dashboard.todo.staff_no_team',
       'title_params', jsonb_build_object('name', name),
       'description_key', 'dashboard.todo.desc.staff_no_team',
+      'description_params', jsonb_build_object('name', name),
       'urgency', 'can_wait',
       'href', '/dashboard/people',
       'entity_type', 'profile', 'entity_id', profile_id::text
@@ -251,6 +279,9 @@ BEGIN
         'year', extract(year FROM current_date)::text
       ),
       'description_key', 'dashboard.todo.desc.framework_no_holidays',
+      'description_params', jsonb_build_object(
+        'year', extract(year FROM current_date)::text
+      ),
       'urgency', 'should',
       'href', '/dashboard/settings'
     ) AS task WHERE (SELECT cnt FROM fw_holidays) = 0
@@ -365,7 +396,7 @@ BEGIN
   profiles_without_assignment AS (
     SELECT count(*) AS cnt FROM active_profiles p
     LEFT JOIN protocol_assignment pa ON pa.profile_id = p.profile_id
-    WHERE pa.protocol_assignment_id IS NULL
+    WHERE pa.assignment_id IS NULL
   ),
   incomplete_training AS (
     SELECT count(DISTINCT pa.profile_id) AS cnt
@@ -373,14 +404,14 @@ BEGIN
     JOIN profile pr ON pr.profile_id = pa.profile_id
       AND pr.workspace_id = p_workspace_id AND pr.is_active = true
     LEFT JOIN knowledge_test_attempt kta
-      ON kta.protocol_assignment_id = pa.protocol_assignment_id
+      ON kta.protocol_assignment_id = pa.assignment_id
     LEFT JOIN confirmation_signature cs
-      ON cs.protocol_assignment_id = pa.protocol_assignment_id
+      ON cs.protocol_assignment_id = pa.assignment_id
     LEFT JOIN procedure_step_completion psc
-      ON psc.protocol_assignment_id = pa.protocol_assignment_id
-    WHERE kta.attempt_id IS NULL
-      AND cs.signature_id IS NULL
-      AND psc.completion_id IS NULL
+      ON psc.protocol_assignment_id = pa.assignment_id
+    WHERE kta.id IS NULL
+      AND cs.id IS NULL
+      AND psc.id IS NULL
   ),
   governance_tasks AS (
     SELECT jsonb_build_object(
@@ -439,9 +470,9 @@ BEGIN
   unmanned_shifts AS (
     SELECT count(*) AS cnt FROM schedule_shift
     WHERE workspace_id = p_workspace_id
-      AND profile_id IS NULL
-      AND start_time >= now()
-      AND start_time < now() + interval '7 days'
+      AND employee_id IS NULL
+      AND shift_date >= current_date
+      AND shift_date < current_date + 7
   ),
   template_count AS (
     SELECT count(*) AS cnt FROM schedule_template
@@ -449,11 +480,11 @@ BEGIN
   ),
   upcoming_shifts AS (
     SELECT count(*) AS total_cnt,
-      count(*) FILTER (WHERE profile_id IS NOT NULL) AS assigned_cnt
+      count(*) FILTER (WHERE employee_id IS NOT NULL) AS assigned_cnt
     FROM schedule_shift
     WHERE workspace_id = p_workspace_id
-      AND start_time >= now()
-      AND start_time < now() + interval '7 days'
+      AND shift_date >= current_date
+      AND shift_date < current_date + 7
   ),
   schedule_tasks AS (
     SELECT jsonb_build_object(
