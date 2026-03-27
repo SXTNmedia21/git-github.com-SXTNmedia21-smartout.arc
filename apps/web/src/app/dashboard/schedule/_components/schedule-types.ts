@@ -186,8 +186,8 @@ export type ShiftProposalCreate = {
   dayCategory: string;
   indicator: string;
   breaks: number;
-  /** Links proposal to a MalGrid column. Present when created in mal-modus. */
-  templateShiftId?: string;
+  /** Links proposal to a grid column (department_shift_type_config.id). */
+  shiftTypeConfigId?: string;
 };
 
 export type ShiftProposalUpdate = {

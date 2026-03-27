@@ -85,9 +85,7 @@ export function MalGrid({ departmentName, weekStart, departmentOptions }: MalGri
   const proposalsByCell = useMemo(() => {
     const map = new Map<string, ShiftProposalCreate[]>();
     for (const p of gridProposals) {
-      // Use templateShiftId as configId proxy during transition
-      const configId =
-        "templateShiftId" in p ? (p as { templateShiftId?: string }).templateShiftId : undefined;
+      const configId = p.shiftTypeConfigId;
       if (!configId) continue;
       const key = `${p.dateId}::${configId}`;
       const existing = map.get(key) ?? [];
