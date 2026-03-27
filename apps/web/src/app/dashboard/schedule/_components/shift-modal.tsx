@@ -736,13 +736,6 @@ export function ShiftModal() {
           </DialogHeader>
         </div>
 
-        {/* Status Timeline (edit mode only) */}
-        {isEditMode && existingShift && (
-          <div className="border-border border-b">
-            <ShiftStatusTimeline shift={existingShift} auditEntries={auditEntries} />
-          </div>
-        )}
-
         {/* Content with Tabs */}
         <Tabs defaultValue="vakt" className="flex flex-1 flex-col overflow-hidden">
           <div className="border-border border-b px-6 pt-2">
@@ -1134,7 +1127,14 @@ export function ShiftModal() {
               </div>
             </TabsContent>
 
-            <TabsContent value="historikk" className="mt-0 outline-none">
+            <TabsContent value="historikk" className="mt-0 space-y-6 outline-none">
+              {isEditMode && existingShift && (
+                <div className="border-border border-b pb-6">
+                  <div className="-mx-6">
+                    <ShiftStatusTimeline shift={existingShift} auditEntries={auditEntries} />
+                  </div>
+                </div>
+              )}
               <ShiftHistoryTimeline entries={auditEntries} employees={employees} />
             </TabsContent>
           </div>

@@ -21,6 +21,7 @@ import { MalTemplateBar } from "./mal-template-bar";
 import { MalGridHeader } from "./mal-grid-header";
 import { MalGridRow } from "./mal-grid-row";
 import { MalEmptyState } from "./mal-empty-state";
+import { CreateTemplateDialog } from "./create-template-dialog";
 import { useAgentProposals } from "./agent-proposals-context";
 import type { ShiftProposalCreate } from "./schedule-types";
 
@@ -45,6 +46,7 @@ export function MalGrid({ departmentName, weekStart, departmentOptions }: MalGri
 
   const [weekOffset, setWeekOffset] = useState(0);
   const [showTasks, setShowTasks] = useState(false);
+  const [createTemplateOpen, setCreateTemplateOpen] = useState(false);
 
   const { workspace } = useWorkspace();
   const { isDark, activeDepartment, setActiveDepartment, profileId } = useContext(DashboardContext);
@@ -126,6 +128,7 @@ export function MalGrid({ departmentName, weekStart, departmentOptions }: MalGri
           templates={templates}
           activeTemplateId={data?.templateId ?? null}
           onTemplateChange={handleTemplateChange}
+          onCreateTemplate={() => setCreateTemplateOpen(true)}
           stats={{
             slotsPerDay: data ? Math.round(data.stats.totalSlots / 7) : 0,
             hoursPerDay: data ? Math.round(data.stats.totalHours / 7) : 0,
@@ -149,7 +152,9 @@ export function MalGrid({ departmentName, weekStart, departmentOptions }: MalGri
       )}
 
       {/* Empty state — no templates configured for this department */}
-      {!isLoading && !error && templates.length === 0 && <MalEmptyState />}
+      {!isLoading && !error && templates.length === 0 && (
+        <MalEmptyState onCreateTemplate={() => setCreateTemplateOpen(true)} />
+      )}
 
       {/* Grid — only rendered when we have resolved data */}
       {!isLoading && !error && data && (
@@ -336,6 +341,7 @@ export function MalGrid({ departmentName, weekStart, departmentOptions }: MalGri
           </div>
         </>
       )}
+      <CreateTemplateDialog open={createTemplateOpen} onOpenChange={setCreateTemplateOpen} />
     </div>
   );
 }
