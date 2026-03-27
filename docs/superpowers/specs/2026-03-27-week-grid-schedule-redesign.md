@@ -53,17 +53,19 @@ CREATE TABLE department_shift_type_config (
   workspace_id          UUID NOT NULL REFERENCES workspace(workspace_id) ON DELETE CASCADE,
   department_id         UUID NOT NULL REFERENCES department(department_id) ON DELETE CASCADE,
   shift_type_id         UUID NOT NULL REFERENCES payroll.shift_type(id) ON DELETE CASCADE,
+  label                 TEXT NOT NULL,
   default_start_time    TIME NOT NULL DEFAULT '08:00',
   default_end_time      TIME NOT NULL DEFAULT '16:00',
   default_break_minutes INTEGER NOT NULL DEFAULT 30,
   slot_count            INTEGER NOT NULL DEFAULT 1,
   sort_order            INTEGER NOT NULL DEFAULT 0,
-  day_categories        TEXT[] NOT NULL DEFAULT '{weekday,weekend}',
+  applicable_day_types  TEXT[] NOT NULL DEFAULT '{weekday,weekend}'
+                        CHECK (applicable_day_types <@ ARRAY['weekday','weekend','holiday']::text[]),
   is_active             BOOLEAN NOT NULL DEFAULT true,
   created_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
 
-  CONSTRAINT uq_dept_shift_type UNIQUE (department_id, shift_type_id)
+  CONSTRAINT uq_dept_shift_config UNIQUE (department_id, shift_type_id, default_start_time, default_end_time)
 );
 
 -- RLS
@@ -96,15 +98,20 @@ COMMENT ON TABLE department_shift_type_config IS
 
 ### Columns Explained
 
-| Column                        | Purpose                                                     |
-| ----------------------------- | ----------------------------------------------------------- |
-| `shift_type_id`               | FK to `payroll.shift_type` — the "what kind of shift"       |
-| `default_start_time/end_time` | Department's typical times for this shift type              |
-| `default_break_minutes`       | Default break length                                        |
-| `slot_count`                  | How many people needed per day for this shift type          |
-| `sort_order`                  | Column display order in the grid                            |
-| `day_categories`              | Which day types this applies to (weekday, weekend, holiday) |
-| `is_active`                   | Soft-disable without deleting                               |
+| Column                        | Purpose                                                                        |
+| ----------------------------- | ------------------------------------------------------------------------------ |
+| `shift_type_id`               | FK to `payroll.shift_type` — the "what kind of shift"                          |
+| `label`                       | Display name for this config — e.g. "Kokk Morgen" or "Kokk Kveld"              |
+| `default_start_time/end_time` | Department's typical times for this shift type                                 |
+| `default_break_minutes`       | Default break length                                                           |
+| `slot_count`                  | How many people needed per day for this shift type                             |
+| `sort_order`                  | Column display order in the grid                                               |
+| `applicable_day_types`        | Which day types this applies to — CHECK constrained to weekday/weekend/holiday |
+| `is_active`                   | Soft-disable without deleting                                                  |
+
+**UNIQUE constraint:** `(department_id, shift_type_id, default_start_time, default_end_time)` — allows the same shift type at different times (e.g., "Kokk Morgen 08-16" and "Kokk Kveld 16-24" both referencing `payroll.shift_type` "Kokk").
+
+**Note on `day_categories` vs `applicable_day_types`:** The existing `day_category` enum (`morning|midday|afternoon|evening|night|weekend`) describes time-of-day. `applicable_day_types` describes which calendar days this config applies to — a different dimension. Uses CHECK-constrained `TEXT[]` to avoid semantic collision.
 
 ## Grid Behavior
 
@@ -199,7 +206,11 @@ The template bar transforms into a lighter context bar:
 
 ### ScheduleLayoutMode
 
-Remove `"mal"` from the enum. The grid becomes the `"weekly"` view (or a new `"grid"` mode that replaces both old `"weekly"` and `"mal"`). Decision on whether old weekly timeline is removed or kept as alternative is deferred — can coexist during transition.
+Add `"grid"` to the enum. Replace all `scheduleLayout === "mal"` checks with `scheduleLayout === "grid"`. Remove `"mal"` from the type union. The `"weekly"` timeline view is preserved unchanged — it coexists as a different visualization of the same data.
+
+```typescript
+export type ScheduleLayoutMode = "daily" | "weekly" | "monthly" | "list" | "grid";
+```
 
 ### Component Renames
 
@@ -221,6 +232,17 @@ Remove `"mal"` from the enum. The grid becomes the `"weekly"` view (or a new `"g
 | `useMalData`           | `useWeekGridData`                        |
 | `useMalMutations`      | stays, but `templateId` becomes optional |
 
+### Package Renames (`packages/schedule/src/`)
+
+| Current                | New                     |
+| ---------------------- | ----------------------- |
+| `mal-types.ts`         | `grid-types.ts`         |
+| `mal-query-keys.ts`    | `grid-query-keys.ts`    |
+| `use-mal-data.ts`      | `use-week-grid-data.ts` |
+| `use-mal-mutations.ts` | `use-grid-mutations.ts` |
+| `index.ts`             | Update all exports      |
+| `malKeys` factory      | `gridKeys`              |
+
 ## Data Hook: `useWeekGridData`
 
 Replaces `useMalData`. No template gate.
@@ -228,7 +250,7 @@ Replaces `useMalData`. No template gate.
 ```typescript
 function useWeekGridData(params: {
   workspaceId: string;
-  departmentId: string; // resolved, not name
+  departmentName: string; // "Kjokken" or "Alle avdelinger" — resolved internally
   weekStart: string; // ISO date
   showTasks: boolean;
 }): {
@@ -237,10 +259,13 @@ function useWeekGridData(params: {
   weekDays: DayInfo[];
   stats: GridStats;
   overflowShifts: ScheduleShift[]; // shifts without matching config
+  departmentId: string | null; // resolved UUID (null if multi-dept)
   isLoading: boolean;
   error: Error | null;
 };
 ```
+
+**Department resolution:** The hook resolves `departmentName` to UUID(s) internally (same pattern as current `useMalData`). "Alle avdelinger" fetches configs for all departments; columns carry `departmentId` + `departmentName` for grouping. This avoids changing the schedule page's `activeDepartment` contract.
 
 **Query strategy:**
 
@@ -278,17 +303,72 @@ Existing events preserved. New events:
 
 ### Backfill Existing Data
 
-For departments that have templates with `schedule_template_shift` rows:
+**Important:** `schedule_template_shift` has NO `shift_type_id` column. It has a `role` TEXT column (freeform). Backfill requires fuzzy matching.
 
-1. For each unique (department, shift type pattern), create a `department_shift_type_config` row
-2. Match or create `payroll.shift_type` entries by name + workspace
-3. Update existing `schedule_shift` rows: set `shift_type_id` where `template_shift_id` can be traced to a shift type
+**Step 1: Create `payroll.shift_type` entries from template roles**
+
+```sql
+-- For each distinct (workspace_id, role) in schedule_template_shift,
+-- check if a matching payroll.shift_type already exists (case-insensitive).
+-- If not, create one.
+INSERT INTO payroll.shift_type (workspace_id, name, color, sort_order)
+SELECT DISTINCT
+  t.workspace_id,
+  ts.role,
+  '#6B7280',  -- default gray
+  0
+FROM schedule_template_shift ts
+JOIN schedule_template t ON t.schedule_template_id = ts.schedule_template_id
+WHERE NOT EXISTS (
+  SELECT 1 FROM payroll.shift_type st
+  WHERE st.workspace_id = t.workspace_id AND LOWER(st.name) = LOWER(ts.role)
+);
+```
+
+**Step 2: Create `department_shift_type_config` from template shifts**
+
+```sql
+-- Group template shifts by (department, role, start_time, end_time)
+-- and create config rows linking to the matched payroll.shift_type.
+INSERT INTO department_shift_type_config
+  (workspace_id, department_id, shift_type_id, label, default_start_time, default_end_time, slot_count, sort_order)
+SELECT DISTINCT ON (t.department_id, st.id, ts.start_time, ts.end_time)
+  t.workspace_id,
+  t.department_id,
+  st.id,
+  ts.role || ' ' || ts.start_time || '-' || ts.end_time,
+  ts.start_time::TIME,
+  ts.end_time::TIME,
+  COALESCE(ts.slot_count, 1),
+  ts.slot_order
+FROM schedule_template_shift ts
+JOIN schedule_template t ON t.schedule_template_id = ts.schedule_template_id
+JOIN payroll.shift_type st ON st.workspace_id = t.workspace_id AND LOWER(st.name) = LOWER(ts.role)
+WHERE t.department_id IS NOT NULL
+ON CONFLICT (department_id, shift_type_id, default_start_time, default_end_time) DO NOTHING;
+```
+
+**Step 3: Backfill `schedule_shift.shift_type_id`**
+
+```sql
+-- For shifts with template_shift_id, trace to a payroll.shift_type via role name.
+UPDATE schedule_shift ss
+SET shift_type_id = st.id
+FROM schedule_template_shift ts
+JOIN schedule_template t ON t.schedule_template_id = ts.schedule_template_id
+JOIN payroll.shift_type st ON st.workspace_id = t.workspace_id AND LOWER(st.name) = LOWER(ts.role)
+WHERE ss.template_shift_id = ts.schedule_template_shift_id
+  AND ss.shift_type_id IS NULL;
+```
+
+**Note:** This is best-effort. Role strings entered inconsistently will not match. Unmatched entries are logged but not blocked — they appear in the grid's overflow column.
 
 ### Data Preservation
 
 - `schedule_template` and `schedule_template_shift` tables stay unchanged
 - `schedule_shift.template_shift_id` stays as provenance FK
-- No data is deleted or moved — only new config rows are created
+- No data is deleted or moved — only new config rows and type entries are created
+- Existing `schedule_shift` rows gain `shift_type_id` where traceable
 
 ## i18n Fix
 
@@ -303,33 +383,48 @@ All hardcoded Norwegian strings in the grid components must be replaced with i18
 - New `useWeekGridData` hook in `packages/schedule/`
 - Regenerate types
 
-### Phase 2: UI Restructure
+### Phase 2a: Renames (mechanical, low risk)
 
-- Rename components (`mal-*` → `week-grid-*`)
-- Grid renders from `department_shift_type_config` columns
-- Template bar → context bar
-- Action bar tier redesign
-- Empty state redesign
-- i18n all strings
+- Rename 10 component files (`mal-*` → `week-grid-*` / `shift-*`)
+- Rename 4 package files in `packages/schedule/src/`
+- Update all imports and exports
+- Update `ScheduleLayoutMode`: add `"grid"`, remove `"mal"`
+- Update `schedule/page.tsx` integration point
+
+### Phase 2b: Grid Behavior Change
+
+- `useWeekGridData` reads from `department_shift_type_config` instead of templates
+- Grid columns derive from config, not template
+- Cell matching via `shift_type_id` instead of `template_shift_id`
+- Overflow column for ad-hoc shifts
+- "Legg til vakttype" creates `department_shift_type_config` rows
+- i18n all hardcoded Norwegian strings
+
+### Phase 2c: UI Redesign
+
+- Template bar → context bar with live stats
+- Action bar three-tier redesign
+- Empty state: unified invitation zone
+- "Last inn fra mal" as import dropdown
+- "Lagre som mal" action
 
 ### Phase 3: Integration
 
-- `ScheduleLayoutMode` update
-- Schedule page integration
-- Agent proposal targeting update
-- Telemetry events
+- Agent proposal targeting: `shiftTypeConfigId` replaces `templateShiftId`
+- Telemetry events: register 3 new events with payloads
+- Rate lookup from `payroll.shift_type` instead of hardcoded 230kr
 
 ### Phase 4: Polish
 
 - Week navigation crossfade animation
 - Column add/remove spring animation
 - Accessibility (ARIA roles on grid)
-- Rate lookup from `payroll.shift_type` instead of hardcoded 230kr
 
 ## Out of Scope
 
 - Drag-and-drop between cells (future)
 - Turnus/rotation plans (future, button disabled)
 - Mobile view (data layer enables it, UI deferred)
-- Removing old weekly timeline view (can coexist during transition)
+- Removing old weekly timeline view (coexists as `"weekly"` mode)
 - AI auto-staffing suggestions beyond ghost proposals
+- `getGridSlots` agent tool (Phase 2 of agent integration)
