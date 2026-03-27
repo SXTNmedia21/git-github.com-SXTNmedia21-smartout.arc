@@ -1,9 +1,9 @@
 ---
 title: "STATE — System State of Truth"
 status: canonical
-updated: 2026-03-26
+updated: 2026-03-27
 created: 2026-03-08
-last-verified: 2026-03-26
+last-verified: 2026-03-27
 module: all
 tags: [state, audit, gaps, architecture, cascade]
 ---
@@ -12,52 +12,38 @@ tags: [state, audit, gaps, architecture, cascade]
 
 > Single source of truth for what exists, what's missing, and what to build next.
 > Organized by the Cascade Core canonical model: **I1 + 6D + 4C + K1a/K1b**.
-> Updated weekly. Last audit: 2026-03-26.
+> Updated weekly. Last audit: 2026-03-27.
 > Canonical spec: `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`
 
 ---
 
-## Active Work — Plan Audit (2026-03-26)
+## Active Work (2026-03-27)
 
-13 plans audited by parallel council agents. 12 worktrees active.
+6 worktrees active. Worktree cleanup completed 2026-03-27 (wt-1, 7, 8, 10, 11, 12, 13 freed).
 
-### Completed (moved to `plans/completed/`)
+### Active Worktrees
 
-| Plan                       | Reason                                                                  |
-| -------------------------- | ----------------------------------------------------------------------- |
-| nordic-split-design-sync   | Already implemented in codebase                                         |
-| mobile-wiring-fixes        | 7/7 tasks committed                                                     |
-| emma-persistence-and-tasks | Already in development (3 gaps: emit, RLS, drag-reorder)                |
-| mobile-employee-app        | Already implemented (2 gaps: 11 hooks missing emit, no ADR for strings) |
+| WT   | Branch                         | Status            | Notes                                                                   |
+| ---- | ------------------------------ | ----------------- | ----------------------------------------------------------------------- |
+| wt-2 | `feat/cascade-task-surface`    | ready_for_closure | All gates green. Journey + handoff written. Run `close-feature.sh 2`    |
+| wt-3 | `feat/emma-arena-views`        | in_progress       | Rebased on dev. Spec + settings persistence. Implementation not started |
+| wt-4 | `feat/landing-token-migration` | needs_work        | Rebased, 12 commits. Blocks/demo/footer not migrated, i18n missing      |
+| wt-5 | `feat/sjohuset-simulator`      | parked            | Rebased, 10 commits. PR #72 (diverged). Parked                          |
+| wt-6 | `feat/production-gaps-tier1`   | ready_for_closure | All gates green. Journey + handoff written. Run `close-feature.sh 6`    |
+| wt-9 | `feat/setup-flow-redesign`     | ready_for_closure | All gates green. Journey + handoff written. Run `close-feature.sh 9`    |
 
-### Ready for closure (merge to development)
+### Recently Merged (since 2026-03-26)
 
-| WT    | Branch                   | Action needed                     |
-| ----- | ------------------------ | --------------------------------- |
-| wt-1  | onboarding-cleanup       | Run `close-feature.sh 1`          |
-| wt-7  | mobile-wiring-fixes      | Write journey, merge, cleanup     |
-| wt-10 | nordic-split-design-sync | Merge 2 commits, cleanup          |
-| wt-12 | emma-persistence         | Unnecessary — can remove worktree |
+| Branch                          | What                                       |
+| ------------------------------- | ------------------------------------------ |
+| `feat/onboarding-cleanup`       | Onboarding wizard cleanup                  |
+| `feat/nordic-split-design-sync` | Dark mode tokens + section comments        |
+| `feat/mobile-wiring-fixes`      | 7 orphaned mobile features connected       |
+| `feat/website-factory-b2`       | Security fixes — auth, RLS, N+1, telemetry |
 
-### Council-approved plans (APPROVED_WITH_CONDITIONS)
+### Free Worktree Slots
 
-| WT    | Plan                    | Key conditions                                     |
-| ----- | ----------------------- | -------------------------------------------------- |
-| wt-2  | cascade-task-surface    | Typecheck, i18n keys, commit uncommitted           |
-| wt-4  | landing-token-migration | Add frontmatter, fix shadow mapping                |
-| wt-6  | production-gaps-tier1   | Fix hardcoded Norwegian text, fix emit() format    |
-| wt-8  | infra-prod-alignment    | Start at task 3, add frontmatter                   |
-| wt-9  | setup-flow-redesign     | Skip tasks 1-3 (done), add emit(), add frontmatter |
-| wt-11 | admin-shift-visibility  | Skip tasks 2/3/4/5 (done), do 1/6/7/8              |
-| wt-13 | website-factory-b2      | Fix service-role RLS bypass (both b2a + b2b)       |
-| —     | sjohuset-simulator      | Fix phase numbering, specify seed data             |
-
-### Cross-cutting issues found
-
-1. **Missing emit()** — 4 plans lack telemetry on mutations (emma, mobile-app, setup-flow, production-gaps)
-2. **Security: service-role bypass** — website-factory b2a + b2b use admin client where user-scoped client needed
-3. **Missing YAML frontmatter** — 3 plans (infra, setup-flow, landing)
-4. **Stale plans** — 4 of 14 plans were already implemented without status update
+wt-1, wt-7, wt-8, wt-10, wt-11, wt-12, wt-13, wt-15, wt-20
 
 ---
 
@@ -75,7 +61,7 @@ Current repo truth for onboarding ownership:
 
 ## 1. Database Tables — By Cascade Dimension
 
-**Totals:** ~213 tables, 124 enums, 199 migrations, 38 Edge Functions, 62 ADRs, 19 learnings.
+**Totals:** ~215 tables (178 public + 23 payroll + 13 websites + 1 timesheet), 124 enums, 209 migrations, 43 Edge Functions, 63 ADRs, 19 learnings.
 
 ### 1.0 Identity & Platform (Pre-Cascade)
 
@@ -395,16 +381,16 @@ Cascade is a PRODUCER of events; Event Engine is the CONSUMER.
 | 5   | Schedule -> Operations Disconnect    | **PARTIAL** | upsert_session handler exists. Emit on shift publish wired. End-to-end flow not yet tested                    |
 | 6   | Invite -> Trainee Dead End           | **CLOSED**  | Complete invite journey: multi-channel, mobile accept, welcome page, profile_status = trainee                 |
 | 7   | Employee Pages Are Shells            | **CLOSED**  | my-schedule (MyWeekView), my-training (4 components), handbook (ChapterReader) all built                      |
-| 8   | Document Mode Has No Reader          | **PARTIAL** | Employee handbook reader built. RAG chunking pipeline NOT built (handbook save -> doc_chunk)                  |
+| 8   | Document Mode Has No Reader          | **CLOSED**  | Employee handbook reader built. RAG pipeline DONE: `ingest-workspace-knowledge` EF chunks → embeds → upserts  |
 | 9   | Governance Has No CRUD               | **CLOSED**  | 5 forms: PolicyForm, ProtocolForm, ProcedureBuilder, KnowledgeTestBuilder, ConfirmationForm                   |
 | 10  | No Session Hooks / Operational Tasks | **CLOSED**  | 3 tables + 3 enums created. Hook dispatcher process seeded. Engine action handlers ready                      |
 
-### Known Remaining Gaps (audited 2026-03-24)
+### Known Remaining Gaps (audited 2026-03-27)
 
 | Area                       | Gap                                                                                                                            | Cascade | Priority | Status  |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ------- | -------- | ------- |
 | Notifications              | `send_notification` stub. Full spec + 12-task plan written (`docs/superpowers/specs/2026-03-24-notification-system-design.md`) | —       | High     | SPEC'D  |
-| Handbook -> RAG            | Saved chapters not chunked into workspace_doc_chunk                                                                            | K1b     | Medium   | OPEN    |
+| Handbook -> RAG            | EF exists (`ingest-workspace-knowledge`). Auto-trigger on chapter save not yet wired                                           | K1b     | Medium   | PARTIAL |
 | Invite -> Onboarding       | Complete invite journey merged (multi-channel, mobile accept, welcome page)                                                    | D2      | High     | DONE    |
 | Shift Publish -> Session   | End-to-end flow untested (emit -> trigger -> upsert_session -> hooks)                                                          | D6      | High     | OPEN    |
 | PolicyForm scope picker    | Department picker doesn't appear when "department" scope selected                                                              | C4      | Low      | OPEN    |
@@ -414,7 +400,7 @@ Cascade is a PRODUCER of events; Event Engine is the CONSUMER.
 | Trainee first-day redirect | No redirect to my-training after invite accept                                                                                 | D2      | Medium   | OPEN    |
 | Operations dashboard UI    | Full live dashboard with stress metrics, 4 cards, auto-refresh 60s                                                             | D6      | High     | DONE    |
 | Login/Join redirect        | Join flow tokens + setup-flow-redesign merged                                                                                  | —       | Medium   | DONE    |
-| Agent chat UI              | In progress in `feat/emma-arena-views` (wt-3) — Emma Arena views + walkAi                                                      | C2      | Medium   | WIP     |
+| Agent chat UI              | `feat/emma-arena-views` (wt-3) — spec done, settings persistence done, implementation not started                              | C2      | Medium   | WIP     |
 | Settings module            | 11/16 tabs working. Missing: general, KPI, notifications, teams, security                                                      | D1      | Medium   | PARTIAL |
 | Employee agent access      | Employees can't interact with agents from /my-schedule or /my-training                                                         | C2      | Low      | OPEN    |
 | ShiftClock (web+mobile)    | Full punch clock with GPS, breaks, supplements, leader view, compliance EF                                                     | D6      | High     | DONE    |
@@ -509,18 +495,18 @@ Location: `apps/web/src/lib/cascade/` — 11 files, 8 test files
 | `propagateBudgetTargets()`    | D4        | DONE   | Budget target propagation. Tested                                 |
 | `getTariffContext()`          | D3        | DONE   | DB query helper for tariff resolution                             |
 
-### Phase C — Bootstrap & I1 Integration (PARTIAL)
+### Phase C — Bootstrap & I1 Integration (MOSTLY DONE)
 
-| Item                                                                               | Status      | Blocker                                                                      |
-| ---------------------------------------------------------------------------------- | ----------- | ---------------------------------------------------------------------------- |
-| Hospitality docs package (AI council, policies, niche profiles, role capabilities) | DRAFT       | Content incomplete — all docs still draft status                             |
-| 13 SQL bootstrap templates (`supabase/templates/restaurant/`)                      | EXISTS      | Integrated via bootstrap-cascade EF                                          |
-| `_apply.sql` orchestrator                                                          | EXISTS      | Called via `bootstrap-cascade` EF during workspace creation                  |
-| `hospitality.ts` industry package                                                  | EXISTS      | Tariff rates WRONG. Should source from tariff_rate_table                     |
-| Workspace creation calls I1 bootstrap                                              | DONE        | `finalize-workspace` calls `bootstrap-cascade` EF. Errors surfaced to caller |
-| Framework seed (hospitality.no.default.v1)                                         | NOT STARTED | Needs regulatory_framework + framework_rule + framework_trigger population   |
-| Public holiday seed                                                                | DONE        | Norway 2026 data in migration 20260422200000                                 |
-| Operating hours backfill from legacy                                               | DONE        | Migration 20260422100000                                                     |
+| Item                                                                               | Status | Blocker                                                                      |
+| ---------------------------------------------------------------------------------- | ------ | ---------------------------------------------------------------------------- |
+| Hospitality docs package (AI council, policies, niche profiles, role capabilities) | DRAFT  | Content incomplete — all docs still draft status                             |
+| 13 SQL bootstrap templates (`supabase/templates/restaurant/`)                      | EXISTS | Integrated via bootstrap-cascade EF                                          |
+| `_apply.sql` orchestrator                                                          | EXISTS | Called via `bootstrap-cascade` EF during workspace creation                  |
+| `hospitality.ts` industry package                                                  | EXISTS | Tariff rates WRONG. Should source from tariff_rate_table at runtime          |
+| Workspace creation calls I1 bootstrap                                              | DONE   | `finalize-workspace` calls `bootstrap-cascade` EF. Errors surfaced to caller |
+| Framework seed (hospitality.no.default.v1)                                         | DONE   | Migration 20260424100000: regulatory_framework + rules + triggers + tariff   |
+| Public holiday seed                                                                | DONE   | Norway 2026 data in migration 20260422200000                                 |
+| Operating hours backfill from legacy                                               | DONE   | Migration 20260422100000                                                     |
 
 ### Phase D — Adapters & External Integration (NOT STARTED)
 
@@ -561,8 +547,8 @@ Location: `apps/web/src/lib/cascade/` — 11 files, 8 test files
 
 1. ~~Validate A1+A2 migrations via `supabase db reset`~~ — DONE
 2. ~~Integrate I1 bootstrap into workspace creation~~ — DONE (`finalize-workspace` → `bootstrap-cascade`)
-3. Fix hospitality.ts tariff rates OR source from tariff_rate_table
-4. Seed hospitality.no.default.v1 framework (regulatory_framework + rules + triggers)
+3. Fix hospitality.ts to source tariff rates from `tariff_rate_table` at runtime
+4. ~~Seed hospitality.no.default.v1 framework~~ — DONE (migration 20260424100000)
 5. ~~Complete `evaluateFrameworkRules()`~~ — DONE (full D3 evaluation with enforcement levels)
 
 **Priority 2 — Unlocks scheduling + payroll:**
@@ -615,7 +601,7 @@ Location: `apps/web/src/lib/cascade/` — 11 files, 8 test files
 | `20260421200100_cascade_a2_framework_tables.sql` | A2    | 6 framework tables + change_proposal FK upgrade |
 | `20260421210000_cascade_cleanup_markers.sql`     | A2    | Legacy truth source annotations                 |
 
-**Status:** Migration files committed. Not yet validated via `supabase db reset`.
+**Status:** Migration files committed. Additional framework seed in `20260424100000`. Not yet validated via `supabase db reset`.
 
 ### ShiftClock Feature Migrations
 
@@ -629,15 +615,17 @@ Location: `apps/web/src/lib/cascade/` — 11 files, 8 test files
 
 ### Latest Timestamped (post-April 2026)
 
-| Migration                                            | Purpose                                     |
-| ---------------------------------------------------- | ------------------------------------------- |
-| `20260422200000_seed_norway_public_holidays.sql`     | K1a: Norway 2026 public holiday data        |
-| `20260422100000_backfill_department_hours.sql`       | D1: Backfill from legacy operating_hours    |
-| `20260416200000_season_opening_hours.sql`            | Season opening hours per department         |
-| `20260416100000_document_extraction_logs.sql`        | AI document analysis persistence            |
-| `20260415200000_setup_documents_storage_policy.sql`  | Storage bucket policy for setup docs        |
-| `20260415100000_add_onboarding_guide_progress.sql`   | Onboarding guide progress tracking          |
-| `20260413100000_fix_company_org_number_nullable.sql` | Allow nullable org_number for new companies |
+| Migration                                            | Purpose                                                                   |
+| ---------------------------------------------------- | ------------------------------------------------------------------------- |
+| `20260424200000_shift_clock_cascade_fixes.sql`       | D6: ShiftClock cascade alignment fixes                                    |
+| `20260424100000_seed_hospitality_framework.sql`      | K1a: Seed hospitality.no.default.v1 framework (rules + triggers + tariff) |
+| `20260422200000_seed_norway_public_holidays.sql`     | K1a: Norway 2026 public holiday data                                      |
+| `20260422100000_backfill_department_hours.sql`       | D1: Backfill from legacy operating_hours                                  |
+| `20260416200000_season_opening_hours.sql`            | Season opening hours per department                                       |
+| `20260416100000_document_extraction_logs.sql`        | AI document analysis persistence                                          |
+| `20260415200000_setup_documents_storage_policy.sql`  | Storage bucket policy for setup docs                                      |
+| `20260415100000_add_onboarding_guide_progress.sql`   | Onboarding guide progress tracking                                        |
+| `20260413100000_fix_company_org_number_nullable.sql` | Allow nullable org_number for new companies                               |
 
 ### Enum Count
 
@@ -705,10 +693,10 @@ website-related domains.
 | ------------------------ | ----------- | -------- | -------------------------------------------------------- |
 | Schema (Phase A)         | DONE        | 100%     | Validate via `supabase db reset`                         |
 | Pure Functions (Phase B) | DONE        | 100%     | 9 functions, 8 test files in cascade lib                 |
-| Bootstrap (Phase C)      | PARTIAL     | 70%      | Bootstrap EF wired. Framework seed + hospitality.ts fix  |
+| Bootstrap (Phase C)      | MOSTLY DONE | 85%      | Framework seeded. Remaining: hospitality.ts runtime fix  |
 | Service Logic (Phase D)  | MINIMAL     | 10%      | Build tariff RPC + change proposal lifecycle             |
 | Control Planes (Phase E) | NOT STARTED | 0%       | C4 governance first (change proposals)                   |
 | UI (Cascade-specific)    | PARTIAL     | 30%      | Season + reconciliation working, governance/cost missing |
-| **Overall**              |             | **~50%** |                                                          |
+| **Overall**              |             | **~55%** |                                                          |
 
-**Single most important next step:** Seed hospitality.no.default.v1 framework (regulatory_framework + rules + triggers) and fix hospitality.ts tariff rates.
+**Single most important next step:** Fix hospitality.ts to source tariff rates from `tariff_rate_table` at runtime instead of hardcoded wrong values. Then build change proposal lifecycle (C4).

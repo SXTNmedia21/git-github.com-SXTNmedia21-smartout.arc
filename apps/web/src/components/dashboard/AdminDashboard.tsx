@@ -6,6 +6,7 @@ import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { DailyStatusBar } from "./DailyStatusBar";
 import { ScheduleUIProvider } from "@/app/dashboard/schedule/_components/schedule-ui-context";
 import { DayControlSheet, DayControlPanel } from "@/app/dashboard/schedule/_components/day-control";
+import { TodoTaskView } from "@/app/dashboard/_components/todo/TodoTaskView";
 
 const TacticalView = dynamic(() =>
   import("./TacticalView").then((m) => ({ default: m.TacticalView })),
@@ -19,32 +20,18 @@ const ReconciliationView = dynamic(() =>
 const ActivityView = dynamic(() =>
   import("./ActivityView").then((m) => ({ default: m.ActivityView })),
 );
-const GuardianView = dynamic(() =>
-  import("./GuardianView").then((m) => ({ default: m.GuardianView })),
-);
-const WorkspaceSetupWizard = dynamic(() =>
-  import("./WorkspaceSetupWizard").then((m) => ({ default: m.WorkspaceSetupWizard })),
-);
 
 interface AdminDashboardProps {
   isDark: boolean;
 }
 
 export default function AdminDashboard({ isDark }: AdminDashboardProps) {
-  const { adminView, isSetupMode, isSetupLoading, dismissSetup } = useContext(DashboardContext);
+  const { adminView } = useContext(DashboardContext);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   const handleCloseSheet = useCallback(() => {
     setSelectedDate(null);
   }, []);
-
-  if (isSetupLoading) {
-    return <DashboardSkeleton isDark={isDark} />;
-  }
-
-  if (isSetupMode) {
-    return <WorkspaceSetupWizard onComplete={dismissSetup} />;
-  }
 
   return (
     <ScheduleUIProvider>
@@ -52,7 +39,9 @@ export default function AdminDashboard({ isDark }: AdminDashboardProps) {
         <div className="px-4 pt-2">
           <DailyStatusBar />
         </div>
-        {adminView === "tactical" ? (
+        {adminView === "todo" ? (
+          <TodoTaskView />
+        ) : adminView === "tactical" ? (
           <TacticalView isDark={isDark} onDateClick={setSelectedDate} />
         ) : adminView === "strategic" ? (
           <StrategicView isDark={isDark} />
@@ -60,8 +49,6 @@ export default function AdminDashboard({ isDark }: AdminDashboardProps) {
           <ReconciliationView isDark={isDark} />
         ) : adminView === "activity" ? (
           <ActivityView isDark={isDark} />
-        ) : adminView === "guardian" ? (
-          <GuardianView isDark={isDark} />
         ) : null}
       </div>
 

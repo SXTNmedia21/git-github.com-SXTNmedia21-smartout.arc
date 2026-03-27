@@ -8,7 +8,7 @@ import {
   HOSPITALITY_DEFAULT_HOURS,
   lookupDepartmentType,
   hospitalityPackage,
-} from "../hospitality";
+} from "@smartout/ai/industry";
 
 describe("hospitality industry package", () => {
   describe("tariff rates", () => {

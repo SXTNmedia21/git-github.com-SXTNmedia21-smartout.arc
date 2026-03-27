@@ -3,9 +3,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
 import { emit } from "@smartout/telemetry";
-import { hospitalityPackage } from "./packages/hospitality";
-import { defaultPackage } from "./packages/default";
-import type { IndustryPackage, IndustryType } from "./types";
+import { hospitalityPackage, defaultPackage } from "@smartout/ai/industry";
+import type { IndustryPackage, IndustryType } from "@smartout/types";
 
 const PACKAGES: Record<IndustryType, IndustryPackage> = {
   hospitality: hospitalityPackage,

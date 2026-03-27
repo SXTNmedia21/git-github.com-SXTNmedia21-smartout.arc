@@ -52,7 +52,7 @@ tags: [decisions]
 
 ---
 
-# Decision Log — admin-daily-loop
+# Decision Log — cascade-task-surface
 
 | #   | Date       | Decision                                                                                                                      | Status   |
 | --- | ---------- | ----------------------------------------------------------------------------------------------------------------------------- | -------- |
@@ -72,11 +72,14 @@ tags: [decisions]
 
 ## onboarding-review
 
-| #   | Date       | Decision                                                                                                                                       | Status   |
-| --- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| 13  | 2026-03-27 | Kill showcase/ — delete entire `apps/web/src/app/onboarding/showcase/` directory (~44 files, ~2000 lines). Step-based wizard is the only path. | accepted |
-| 14  | 2026-03-27 | Add `emit()` to workspace finalization in `wizard-definition.ts:onComplete()` — most critical mutation has zero telemetry                      | accepted |
-| 15  | 2026-03-27 | Fix or remove `saveMemory` tool — silently fails 401 during onboarding because user has no account yet                                         | accepted |
-| 16  | 2026-03-27 | Add server-side finalization guard — Zod validation on minimum required data + idempotency on workspace creation                               | accepted |
-| 17  | 2026-03-27 | Add Zod validation on all 14 Botsson voice tool parameters — align with `@smartout/ai` convention                                              | accepted |
-| 18  | 2026-03-27 | Unify redirect to `/dashboard/setup` per SETUP_WIZARD_ARCHITECTURE.md — WizardContext redirect to `/dashboard` was wrong                       | accepted |
+| #    | Date       | Decision                                                                                                                                       | Status   |
+| ---- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| 13   | 2026-03-27 | Kill showcase/ — delete entire `apps/web/src/app/onboarding/showcase/` directory (~44 files, ~2000 lines). Step-based wizard is the only path. | accepted |
+| 14   | 2026-03-27 | Add `emit()` to workspace finalization in `wizard-definition.ts:onComplete()` — most critical mutation has zero telemetry                      | accepted |
+| 15   | 2026-03-27 | Fix or remove `saveMemory` tool — silently fails 401 during onboarding because user has no account yet                                         | accepted |
+| 16   | 2026-03-27 | Add server-side finalization guard — Zod validation on minimum required data + idempotency on workspace creation                               | accepted |
+| 17   | 2026-03-27 | Add Zod validation on all 14 Botsson voice tool parameters — align with `@smartout/ai` convention                                              | accepted |
+| 18   | 2026-03-27 | Unify redirect to `/dashboard/setup` per SETUP_WIZARD_ARCHITECTURE.md — WizardContext redirect to `/dashboard` was wrong                       | accepted |
+| 0062 | 2026-03-27 | Industry Intelligence Consolidation — 3 copies to 1 canonical source in packages/ai/src/industry/, types in packages/types, I1 bootstrap scope | accepted |
+| #    | Date       | Decision                                                                                                                                       | Status   |
+| ---  | ----       | --------                                                                                                                                       | ------   |

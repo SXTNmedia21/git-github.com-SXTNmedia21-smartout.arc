@@ -1,51 +1,15 @@
-export type IndustryType = "hospitality" | "retail" | "default";
-
-export type IndustryFilterKey = "food" | "alcohol" | "overnight" | "delivery";
-
-export type IndustryTariff = {
-  key: string;
-  label: string;
-  supplements: {
-    kveldstillegg: { rate: number; unit: string; from_hour: string; to_hour: string };
-    helgetillegg: { rate: number; unit: string; days: string[] };
-    helligdagstillegg: { rate: number; unit: string };
-    overtid_50: { threshold_hours: number; unit: string };
-    overtid_100: { threshold_hours: number; unit: string };
-  };
-  minWagePerHour: number;
-};
-
-export type IndustryShiftTemplate = {
-  name: string;
-  department: string;
-  startTime: string;
-  endTime: string;
-  subcategory?: string[];
-};
-
-export type IndustrySeasonTemplate = {
-  name: string;
-  startMonth: number;
-  endMonth: number;
-  description: string;
-};
-
-export type IndustryEmploymentDefaults = {
-  probationMonths: number;
-  vacationDays: number;
-  extraVacationDays: boolean;
-  otpPct: number;
-  employerTaxPct: number;
-};
-
-export type IndustryPackage = {
-  id: IndustryType;
-  label: string;
-  filterDefaults: Record<IndustryFilterKey, boolean>;
-  tariffs: IndustryTariff[];
-  defaultTariffKey: string;
-  shiftTemplates: IndustryShiftTemplate[];
-  seasonTemplates: IndustrySeasonTemplate[];
-  employmentDefaults: IndustryEmploymentDefaults;
-  botsson: Record<string, string>;
-};
+/**
+ * Re-export industry types from canonical location.
+ * Import from @smartout/types directly in new code.
+ */
+export type {
+  IndustryType,
+  IndustryFilterKey,
+  IndustryTariff,
+  IndustryShiftTemplate,
+  IndustrySeasonTemplate,
+  IndustryEmploymentDefaults,
+  IndustryPackage,
+  IndustrySuggestion,
+  IndustryProcedureSuggestion,
+} from "@smartout/types";

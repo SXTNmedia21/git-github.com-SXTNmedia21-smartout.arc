@@ -1,0 +1,39 @@
+"use client";
+
+import { useQuery } from "@tanstack/react-query";
+import { useWorkspaceOptional } from "@/lib/workspace-context";
+import { createClient } from "@smartout/supabase/client";
+import { dashboardKeys } from "./dashboard-keys";
+import type { CascadeTasksResult } from "@smartout/types";
+
+export function useCascadeTaskCount() {
+  const ctx = useWorkspaceOptional();
+  const workspaceId = ctx?.workspace.workspace_id;
+
+  return useQuery({
+    queryKey: dashboardKeys.cascadeTasks(workspaceId ?? "none"),
+    enabled: !!workspaceId,
+    staleTime: 30_000,
+    refetchInterval: 5 * 60_000,
+    queryFn: async (): Promise<CascadeTasksResult> => {
+      const supabase = createClient();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RPC added in migration; types regenerated after apply
+      const { data, error } = await (supabase.rpc as any)("resolve_cascade_tasks", {
+        p_workspace_id: workspaceId!,
+      });
+      if (error) throw error;
+      return (
+        (data as CascadeTasksResult) ?? {
+          groups: [],
+          total_tasks: 0,
+          critical_count: 0,
+          should_count: 0,
+        }
+      );
+    },
+    select: (data) => ({
+      critical: data.critical_count,
+      should: data.should_count,
+    }),
+  });
+}

@@ -196,7 +196,7 @@ export function TrainingSection({ isDark, onOpenInsight }: TrainingSectionProps)
         />
       </div>
 
-      {/* Protocol Compliance — replicates GuardianView pattern */}
+      {/* Protocol Compliance — replicates TodoGroupSection pattern */}
       <div
         onClick={() =>
           onOpenInsight({

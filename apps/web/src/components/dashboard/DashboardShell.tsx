@@ -5,7 +5,8 @@ import dynamic from "next/dynamic";
 import type { MissionId } from "@smartout/ai/missions";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
-import { useWorkspaceSetup } from "@/app/dashboard/_hooks/use-workspace-setup";
+import { useCascadeTasks } from "@/app/dashboard/_hooks/use-cascade-tasks";
+import { useCascadeTaskCount } from "@/app/dashboard/_hooks/use-cascade-task-count";
 
 const VoiceAssistant = dynamic(() => import("@/components/voice-assistant"), {
   ssr: false,
@@ -61,7 +62,7 @@ function resolveMissionForRoute(pathname: string): MissionId {
   return (match !== undefined ? ROUTE_MISSION_MAP[match] : undefined) ?? "mr-botsson";
 }
 
-export type AdminViewType = "tactical" | "strategic" | "reconciliation" | "activity" | "guardian";
+export type AdminViewType = "tactical" | "strategic" | "reconciliation" | "activity" | "todo";
 export type ScheduleLayoutMode = "daily" | "weekly" | "monthly" | "list" | "mal";
 export type ScheduleViewMode = "ansatt" | "jobb" | "team" | "lokasjon";
 type VoiceSessionContext = {
@@ -82,21 +83,21 @@ type WalkthroughNotice = {
 
 function buildVoiceSessionContext(pathname: string, adminView: AdminViewType): VoiceSessionContext {
   if (pathname === "/dashboard") {
-    if (adminView === "guardian") {
+    if (adminView === "todo") {
       return {
-        page: "dashboard.guardian",
+        page: "dashboard.todo",
         story:
-          "Du er i event center. Forklar hva systemet fanger opp, hvorfor signalene betyr noe, og hvilken handling lederen bør ta nå.",
+          "Du er i oppgaveoversikten. Forklar hva som mangler i virksomheten, prioriter etter viktighet, og veiled lederen til neste steg.",
         workingElements: [
-          "Guardian signal stream",
-          "Mission control panel",
-          "Critical alerts list",
-          "Compliance checkpoints",
+          "Cascade task groups",
+          "Progress bars per domain",
+          "Urgency-sorted task cards",
+          "Completion tracking",
         ],
         availableInputs: [
-          "Active guardian signals",
+          "Cascade task surface data",
           "Workspace context",
-          "Current admin view (guardian)",
+          "Current admin view (todo)",
           "User follow-up questions",
         ],
       };
@@ -243,7 +244,6 @@ export const DashboardContext = createContext({
   profileId: null as string | null,
   isSetupMode: false,
   isSetupLoading: false,
-  setupModules: [] as import("@/app/dashboard/_hooks/use-workspace-setup").SetupModule[],
   dismissSetup: () => {},
 });
 import Link from "next/link";
@@ -270,7 +270,7 @@ import {
   Banknote,
   FileText,
   CalendarDays,
-  Shield,
+  ListChecks,
   ShieldCheck,
   Mic,
   Bell,
@@ -340,7 +340,7 @@ export function DashboardShell({
   }, []);
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [isAdminMode, setIsAdminMode] = useState(true);
-  const [adminView, setAdminView] = useState<AdminViewType>("strategic");
+  const [adminView, setAdminView] = useState<AdminViewType>("todo");
   const [scheduleLayout, setScheduleLayout] = useState<ScheduleLayoutMode>("daily");
   const [scheduleView, setScheduleView] = useState<ScheduleViewMode>("ansatt");
   const [activeDepartment, setActiveDepartment] = useState("Alle avdelinger");
@@ -371,8 +371,8 @@ export function DashboardShell({
     notices: [],
   });
   const [setupDismissed, setSetupDismissed] = useState(false);
-  const { data: setupStatus, isLoading: isSetupLoading } = useWorkspaceSetup();
-  const isSetupMode = !isSetupLoading && !setupDismissed && (setupStatus?.needsSetup ?? false);
+  const { data: cascadeData, isLoading: isSetupLoading } = useCascadeTasks();
+  const isSetupMode = !isSetupLoading && !setupDismissed && (cascadeData?.critical_count ?? 0) > 0;
   const dismissSetup = useCallback(() => setSetupDismissed(true), []);
   const [isDocumentMode, setIsDocumentMode] = useState(false);
   const pathname = usePathname();
@@ -478,7 +478,6 @@ export function DashboardShell({
       profileId,
       isSetupMode,
       isSetupLoading,
-      setupModules: setupStatus?.modules ?? [],
       dismissSetup,
     }),
     [
@@ -500,7 +499,6 @@ export function DashboardShell({
       profileId,
       isSetupMode,
       isSetupLoading,
-      setupStatus?.modules,
       dismissSetup,
     ],
   );
@@ -1267,12 +1265,12 @@ export function DashboardShell({
                         />
                         <NavItem
                           href="/dashboard"
-                          icon={Shield}
-                          label="Event Center"
+                          icon={ListChecks}
+                          label="Å gjøre"
                           isDark={isDark}
-                          active={isDashboardPage && adminView === "guardian"}
+                          active={isDashboardPage && adminView === "todo"}
                           isCollapsed={isSidebarCollapsed}
-                          onClick={() => setAdminView("guardian")}
+                          onClick={() => setAdminView("todo")}
                           useButton
                         />
                         <NavItem
@@ -1412,12 +1410,12 @@ export function DashboardShell({
                         />
                         <NavItem
                           href="/dashboard"
-                          icon={Shield}
-                          label="Vakt"
+                          icon={ListChecks}
+                          label="Å gjøre"
                           isDark={isDark}
-                          active={isDashboardPage && adminView === "guardian"}
+                          active={isDashboardPage && adminView === "todo"}
                           isCollapsed={isSidebarCollapsed}
-                          onClick={() => setAdminView("guardian")}
+                          onClick={() => setAdminView("todo")}
                         />
                       </>
                     )
@@ -1850,21 +1848,11 @@ export function DashboardShell({
                       >
                         Aktivitet
                       </button>
-                      <button
-                        onClick={() => setAdminView("guardian")}
-                        className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
-                          adminView === "guardian"
-                            ? isDark
-                              ? "bg-zinc-800 text-white shadow-sm"
-                              : "bg-white text-zinc-900 shadow-sm"
-                            : isDark
-                              ? "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200"
-                              : "text-zinc-500 hover:bg-zinc-200/50 hover:text-zinc-700"
-                        }`}
-                      >
-                        <Shield className="h-3.5 w-3.5" />
-                        Vakt
-                      </button>
+                      <TodoTabButton
+                        adminView={adminView}
+                        isDark={isDark}
+                        onClick={() => setAdminView("todo")}
+                      />
                     </div>
                   )}
 
@@ -1937,6 +1925,49 @@ export function DashboardShell({
         </div>
       </VoiceToolsProvider>
     </DocumentModeProvider>
+  );
+}
+
+/**
+ * Tab button for the "Å gjøre" (Todo) view in the dashboard tab switcher.
+ * Shows a badge with pending task count from cascade task resolution.
+ */
+function TodoTabButton({
+  adminView,
+  isDark,
+  onClick,
+}: {
+  adminView: AdminViewType;
+  isDark: boolean;
+  onClick: () => void;
+}) {
+  const { data: taskCount } = useCascadeTaskCount();
+  const pendingCount = (taskCount?.critical ?? 0) + (taskCount?.should ?? 0);
+
+  return (
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+        adminView === "todo"
+          ? isDark
+            ? "bg-zinc-800 text-white shadow-sm"
+            : "bg-white text-zinc-900 shadow-sm"
+          : isDark
+            ? "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200"
+            : "text-zinc-500 hover:bg-zinc-200/50 hover:text-zinc-700"
+      }`}
+    >
+      <ListChecks className="h-3.5 w-3.5" />Å gjøre
+      {pendingCount > 0 && (
+        <span
+          className={`rounded-full px-1.5 py-0.5 text-[10px] leading-none font-bold ${
+            isDark ? "bg-orange-500/20 text-orange-400" : "bg-orange-100 text-orange-600"
+          }`}
+        >
+          {pendingCount}
+        </span>
+      )}
+    </button>
   );
 }
 

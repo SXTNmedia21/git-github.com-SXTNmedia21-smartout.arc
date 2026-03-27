@@ -2,7 +2,7 @@
 // OverviewSection.tsx
 // Default tab: KPI strip + 7-day trend chart +
 // department comparison + quick insights.
-// Follows GuardianView card + glow pattern.
+// Follows TodoTaskView card + glow pattern.
 // ============================================
 
 "use client";

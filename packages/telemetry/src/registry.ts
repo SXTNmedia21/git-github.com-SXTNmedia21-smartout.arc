@@ -98,7 +98,8 @@ export type EntityType =
   | "website_asset"
   | "website_spokesperson"
   | "deviation"
-  | "agent_session";
+  | "agent_session"
+  | "task_surface";
 
 export type ActionVerb =
   | "created"
@@ -1778,6 +1779,23 @@ export interface HubActionTapped extends BaseEvent {
   };
 }
 
+// ─── Cascade Task Surface Events ────────────────
+export interface TaskSurfaceViewed extends BaseEvent {
+  event: "task_surface viewed";
+  properties: {
+    entity: EntityRef;
+    data: { total_tasks: number; critical_count: number };
+  };
+}
+
+export interface TaskSurfaceClicked extends BaseEvent {
+  event: "task_surface clicked";
+  properties: {
+    entity: EntityRef;
+    data: { group: string; dimension: string; urgency: string };
+  };
+}
+
 // ─── The Single Truth Union ─────────────────────
 // Add every feature's events here. If it isn't here, it can't be emitted.
 export type SmartoutEvent =
@@ -1973,7 +1991,9 @@ export type SmartoutEvent =
   | AgentSessionClosed
   | AgentToolCalled
   | NotificationDeepLinkFollowed
-  | HubActionTapped;
+  | HubActionTapped
+  | TaskSurfaceViewed
+  | TaskSurfaceClicked;
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -2716,6 +2736,16 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "hub action_tapped": {
     destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+
+  // Cascade Task Surface
+  "task_surface viewed": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+  "task_surface clicked": {
+    destinations: ["posthog", "logger", "activity_trail"],
     category: "navigation",
   },
 };

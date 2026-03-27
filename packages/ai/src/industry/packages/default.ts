@@ -1,4 +1,4 @@
-import type { IndustryPackage } from "../types";
+import type { IndustryPackage } from "@smartout/types";
 
 export const defaultPackage: IndustryPackage = {
   id: "default",

@@ -1,6 +1,6 @@
 ---
 title: "Å gjøre" Cascade Task Surface — Implementation Plan
-status: ready
+status: in_progress
 updated: 2026-03-26
 created: 2026-03-26
 module: dashboard
@@ -18,6 +18,8 @@ tags: [cascade, dashboard, task-surface, implementation]
 **Tech Stack:** PostgreSQL RPC, TanStack Query v5, React 19, Framer Motion, Lucide React, Tailwind v4 (OKLCH tokens), shadcn/ui
 
 **Spec:** `docs/superpowers/specs/2026-03-26-cascade-task-surface-design.md`
+
+**Onboarding constraint note:** This plan absorbs `useWorkspaceSetup` into cascade-derived task checks. The migration in Task 5 derives `needsSetup` from critical cascade tasks in core groups (departments, governance, budget). This does NOT reintroduce `/create-workspace` as runtime truth, does NOT use `workspace.onboarding_completed` as a generic switch, and does NOT add canonical dependence on `activate-workspace`. The cascade task surface is a pure read-only mirror of workspace state.
 
 ---
 
@@ -183,7 +185,9 @@ Generate timestamp: `date +%Y%m%d%H%M%S` and create the file. The full SQL is la
 CREATE OR REPLACE FUNCTION resolve_cascade_tasks(p_workspace_id uuid)
 RETURNS jsonb
 LANGUAGE plpgsql
+STABLE
 SECURITY INVOKER
+SET search_path = 'public'
 AS $$
 DECLARE
   result jsonb;
@@ -293,7 +297,7 @@ BEGIN
     FROM active_profiles p
     LEFT JOIN employment_contract ec
       ON ec.profile_id = p.profile_id
-      AND ec.contract_status = 'active'
+      AND ec.status = 'signed'
     WHERE ec.contract_id IS NULL
   ),
   profiles_without_payroll AS (
@@ -678,12 +682,12 @@ BEGIN
   unsigned_contracts AS (
     SELECT count(*) AS cnt FROM employment_contract
     WHERE workspace_id = p_workspace_id
-      AND contract_status = 'pending_signature'
+      AND status = 'sent'
   ),
   expiring_contracts AS (
     SELECT count(*) AS cnt FROM employment_contract
     WHERE workspace_id = p_workspace_id
-      AND contract_status = 'active'
+      AND status = 'signed'
       AND end_date IS NOT NULL
       AND end_date < now() + interval '30 days'
   ),
@@ -694,7 +698,7 @@ BEGIN
   active_contracts AS (
     SELECT count(*) AS cnt FROM employment_contract
     WHERE workspace_id = p_workspace_id
-      AND contract_status = 'active'
+      AND status = 'signed'
   ),
   contract_tasks AS (
     SELECT jsonb_build_object(
@@ -802,8 +806,17 @@ BEGIN
 END;
 $$;
 
+GRANT EXECUTE ON FUNCTION resolve_cascade_tasks(uuid) TO authenticated;
+
 COMMENT ON FUNCTION resolve_cascade_tasks IS
-  'Cascade task resolver — scans all dimensions and returns grouped tasks as JSONB. Pure read, no side effects.';
+  'Cascade task resolver — scans all dimensions and returns grouped tasks as JSONB. Pure read, no side effects.
+
+Schema facts for implementing agent:
+- employment_contract.status uses contract_status enum: draft, sent, viewed, signed, expired, terminated
+  (no "active" or "pending_signature" — use "signed" for active, "sent" for pending)
+- public_holiday uses holiday_date (not date)
+- profile has both is_active boolean AND status profile_status enum
+- department has is_active boolean';
 ```
 
 - [ ] **Step 2: Run migration against local Supabase**
@@ -1239,6 +1252,146 @@ git commit -m "fix(todo): visual verification fixes"
 
 ---
 
+## Task 7: i18n Translations
+
+**Files:**
+
+- Modify: `packages/i18n/locales/nb/dashboard.json`
+- Modify: `packages/i18n/locales/en/dashboard.json`
+
+**Context:** The spec defines ~30 i18n keys for task titles and descriptions. The UI components use these keys via `t()`. Without them, the task surface shows raw keys instead of text. Read the existing `dashboard.json` first to match the key structure (flat vs nested).
+
+- [ ] **Step 1: Add Norwegian keys**
+
+Read `packages/i18n/locales/nb/dashboard.json`. Add these keys (merge into existing structure):
+
+```json
+{
+  "tabs": { "todo": "Å gjøre" },
+  "nav": { "todo": "Å gjøre" },
+  "todo": {
+    "empty_title": "Alt er i orden",
+    "empty_description": "Ingen oppgaver krever oppmerksomhet",
+    "completion": "{{done}} av {{total}}",
+    "group": {
+      "departments": "Avdelinger",
+      "staff": "Ansatte",
+      "framework": "Rammeverk",
+      "budget": "Budsjett & sesong",
+      "governance": "Governance",
+      "schedule": "Vaktplan",
+      "contracts": "Kontrakter",
+      "messages": "Meldinger"
+    },
+    "dept_none_exist": "Ingen avdelinger opprettet",
+    "dept_none_exist_desc": "Opprett minst én avdeling for å komme i gang med vaktplanlegging.",
+    "dept_missing_hours": "{{name}} mangler åpningstider",
+    "dept_missing_hours_desc": "Uten åpningstider kan ikke systemet beregne vakter for {{name}}.",
+    "dept_no_locations": "Workspace har ingen lokasjoner",
+    "dept_no_locations_desc": "Legg til minst én lokasjon slik at avdelinger kan knyttes til et fysisk sted.",
+    "dept_missing_positions": "{{name}} mangler stillinger",
+    "dept_missing_positions_desc": "Definer stillingstyper for {{name}} slik at vakter kan tildeles riktig.",
+    "staff_missing_contract": "{{name}} mangler kontrakt",
+    "staff_missing_contract_desc": "{{name}} har ingen aktiv arbeidskontrakt. Opprett og send til signering.",
+    "staff_missing_payroll": "{{name}} mangler lønnsoppsett",
+    "staff_missing_payroll_desc": "Lønnsoppsett mangler for {{name}}. Legg til lønnsinformasjon.",
+    "staff_incomplete_profile": "{{name}} har ufullstendig profil",
+    "staff_incomplete_profile_desc": "{{name}} mangler bankonto, personnummer eller adresse.",
+    "staff_no_team": "{{name}} er ikke tilknyttet et team",
+    "staff_no_team_desc": "{{name}} bør tilordnes et team for teamplanlegging og kommunikasjon.",
+    "framework_no_binding": "Rammeverk ikke koblet til workspace",
+    "framework_no_binding_desc": "Koble et regulatorisk rammeverk for å aktivere tariff-beregninger og compliance.",
+    "framework_no_tariffs": "Tariff-satser ikke satt opp",
+    "framework_no_tariffs_desc": "Ingen tariff-satser funnet. Disse trengs for lønnsberegning og vaktplanlegging.",
+    "framework_no_holidays": "Helligdagskalender mangler for {{year}}",
+    "framework_no_holidays_desc": "Last inn helligdager for {{year}} for korrekt tilleggsberegning.",
+    "budget_no_season": "Ingen aktiv sesong",
+    "budget_no_season_desc": "Opprett og aktiver en sesong for å starte budsjettplanlegging.",
+    "budget_no_budget": "Aktiv sesong mangler budsjett",
+    "budget_no_budget_desc": "Sett opp budsjett for den aktive sesongen.",
+    "budget_no_day_factors": "Budsjett mangler dagfaktorer",
+    "budget_no_day_factors_desc": "Konfigurer dagfaktorer for å fordele budsjettet over ukedager.",
+    "budget_no_hour_factors": "Budsjett mangler timefaktorer",
+    "budget_no_hour_factors_desc": "Konfigurer timefaktorer for å fordele budsjettet over timer på dagen.",
+    "gov_few_policies": "Færre enn 3 retningslinjer opprettet",
+    "gov_few_policies_desc": "Opprett retningslinjer som ansatte skal lese og bekrefte.",
+    "gov_unassigned_profiles": "{{count}} ansatte mangler opplæringstilordning",
+    "gov_unassigned_profiles_desc": "Tilordne protokoller til ansatte for å starte opplæring.",
+    "gov_incomplete_training": "{{count}} ansatte har ufullstendig opplæring",
+    "gov_incomplete_training_desc": "Følg opp ansatte som ikke har fullført tilordnet opplæring.",
+    "schedule_no_shifts": "Ingen vakter opprettet",
+    "schedule_no_shifts_desc": "Opprett vakter i vaktplanen for å komme i gang med planlegging.",
+    "schedule_unmanned": "{{count}} ubemannede vakter neste 7 dager",
+    "schedule_unmanned_desc": "Vakter uten tildelt ansatt de neste 7 dagene bør dekkes.",
+    "schedule_no_templates": "Ingen vaktmaler opprettet",
+    "schedule_no_templates_desc": "Vaktmaler gjør det raskere å lage vakter.",
+    "contracts_unsigned": "{{count}} kontrakter venter signatur",
+    "contracts_unsigned_desc": "Kontrakter som er sendt men ikke signert ennå.",
+    "contracts_expiring": "{{count}} kontrakter utløper innen 30 dager",
+    "contracts_expiring_desc": "Forny eller erstatt kontrakter som snart utløper.",
+    "messages_unanswered": "{{count}} ubesvarte meldinger",
+    "messages_unanswered_desc": "Meldinger fra ansatte som venter på svar.",
+    "messages_pending_decisions": "{{count}} beslutninger venter",
+    "messages_pending_decisions_desc": "Endringsforslag som venter på godkjenning."
+  }
+}
+```
+
+- [ ] **Step 2: Add English keys**
+
+Same structure in `packages/i18n/locales/en/dashboard.json` with English translations. Straightforward 1:1 mapping (e.g., "Å gjøre" → "To Do", "Ingen avdelinger opprettet" → "No departments created").
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add packages/i18n/locales/nb/dashboard.json packages/i18n/locales/en/dashboard.json
+git commit -m "feat(i18n): add cascade task surface translations (nb + en)"
+```
+
+---
+
+## Task 8: ADR
+
+**Files:**
+
+- Modify: `docs/decisions/0000-decision-log.md`
+
+- [ ] **Step 1: Read decision log and find next ADR number**
+
+Read `docs/decisions/0000-decision-log.md`.
+
+- [ ] **Step 2: Add ADR entry**
+
+Register an ADR documenting:
+
+1. **Guardian UI retirement** — workspace-level guardian views removed; platform-admin guardian retained; DB tables (`guardian_signal`, `guardian_log`) retained for backend writers and potential v2 task source
+2. **`useWorkspaceSetup` absorption** — 4 setup checks are a subset of cascade task checkers; `use-onboarding-guide` derives `needsSetup` from critical cascade tasks
+3. **Task derivation contract** — tasks are purely derived from cascade state via a single RPC; no `cascade_task` table; same input = same output; no dismissal/snooze in v1
+4. **RPC + TanStack Query pattern** — single RPC returns all checks as JSONB; `useCascadeTaskCount` shares query key for deduplication
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add docs/decisions/
+git commit -m "docs(cascade): ADR for task surface, guardian retirement, task derivation"
+```
+
+---
+
+## Schema Corrections (for implementing agent)
+
+The original SQL had some column name assumptions that differ from the actual schema:
+
+| Original assumption                     | Actual schema                                                                           | Fix                         |
+| --------------------------------------- | --------------------------------------------------------------------------------------- | --------------------------- |
+| `ec.contract_status = 'active'`         | `ec.status` column, `contract_status` enum: draft/sent/viewed/signed/expired/terminated | Use `ec.status = 'signed'`  |
+| `contract_status = 'pending_signature'` | No such enum value                                                                      | Use `status = 'sent'`       |
+| `public_holiday.date`                   | Column is `holiday_date`                                                                | Already correct in plan     |
+| `profile.is_active = true`              | Both `is_active boolean` and `status profile_status` exist                              | `is_active = true` is valid |
+| `department.is_active = true`           | `is_active boolean` exists                                                              | Valid                       |
+
+---
+
 ## Summary
 
 | Task | What                    | Files    | Depends on                   |
@@ -1250,6 +1403,8 @@ git commit -m "fix(todo): visual verification fixes"
 | 4    | Dashboard integration   | 2 files  | Task 2, Task 3               |
 | 5    | Guardian cleanup        | 7+ files | Task 4                       |
 | 6    | Verification            | 0 files  | Task 5                       |
+| 7    | i18n translations       | 2 files  | Task 3 (keys referenced)     |
+| 8    | ADR                     | 1 file   | Task 5                       |
 
 ---
 
@@ -1312,4 +1467,4 @@ git commit -m "fix(todo): visual verification fixes"
 
 No architectural violations found. No security issues. No cascade dimension boundary violations. No hardcoded secrets or colors. Commit message convention is followed across all 7 commits.
 
-Tasks 0 and 1 can run in parallel. Tasks 2-6 are sequential.
+Tasks 0 and 1 can run in parallel. Tasks 2-6 are sequential. Tasks 7-8 can run any time after their deps.
