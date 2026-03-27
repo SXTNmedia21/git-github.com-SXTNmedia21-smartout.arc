@@ -213,7 +213,15 @@ async function processOutboxRow(
   });
 
   // Fan out to external channels
-  await deliverToChannels(supabase, row, pref, profile?.phone, resolvedTitle, resolvedBody);
+  await deliverToChannels(
+    supabase,
+    row,
+    pref,
+    profile?.phone,
+    resolvedTitle,
+    resolvedBody,
+    profile?.user_id ?? null,
+  );
 
   // Mark as delivered
   await supabase
@@ -307,6 +315,7 @@ async function deliverToChannels(
   phone: string | null,
   resolvedTitle: string,
   resolvedBody: string,
+  profileUserId: string | null,
 ) {
   const channels = row.allowed_channels ?? [];
 
@@ -333,9 +342,44 @@ async function deliverToChannels(
     }
   }
 
-  // Email — stub for MVP (SendGrid integration out of scope)
+  // Email via SendGrid — resolve recipient email from user_identity
   if (channels.includes("email") && (pref?.email_enabled ?? true)) {
-    console.log(`[email] Would send to recipient ${row.recipient_id}: ${resolvedTitle}`);
+    const sgKey = Deno.env.get("SENDGRID_API_KEY");
+    if (sgKey && profileUserId) {
+      const { data: userRow } = await supabase
+        .from("user_identity")
+        .select("email")
+        .eq("id", profileUserId)
+        .single();
+
+      if (userRow?.email) {
+        try {
+          const actionLine = row.action_url
+            ? `\n\nSe mer: https://app.smartout.ai${row.action_url}`
+            : "";
+          await fetch("https://api.sendgrid.com/v3/mail/send", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${sgKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              personalizations: [{ to: [{ email: userRow.email }] }],
+              from: { email: "varsler@smartout.ai", name: "Smartout" },
+              subject: resolvedTitle,
+              content: [
+                {
+                  type: "text/plain",
+                  value: `${resolvedBody}${actionLine}`,
+                },
+              ],
+            }),
+          });
+        } catch (err) {
+          console.error("Email delivery failed:", err);
+        }
+      }
+    }
   }
 
   // SMS — only for critical (priority 2) notifications
