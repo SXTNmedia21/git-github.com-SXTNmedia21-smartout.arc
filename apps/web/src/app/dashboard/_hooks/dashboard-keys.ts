@@ -56,6 +56,9 @@ export const dashboardKeys = {
 
   operatingHours: (workspaceId: string) => ["dashboard", "operating-hours", workspaceId] as const,
 
+  workspaceOperatingHours: (workspaceId: string) =>
+    ["dashboard", "workspace-operating-hours", workspaceId] as const,
+
   // Cascade Tasks (replaces Guardian Protocol)
   cascadeTasks: (workspaceId: string) => ["dashboard", "cascade-tasks", workspaceId] as const,
 
