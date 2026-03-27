@@ -66,6 +66,24 @@ export function usePlannedHours(
     staleTime: 5 * 60_000,
   });
 
+  const workspaceHoursQuery = useQuery({
+    queryKey: ["workspace-operating-hours-fallback", wsId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("workspace_operating_hours")
+        .select("day_of_week, open_time, close_time, is_closed")
+        .eq("workspace_id", wsId!);
+      return (data ?? []) as Array<{
+        day_of_week: number;
+        open_time: string;
+        close_time: string;
+        is_closed: boolean;
+      }>;
+    },
+    enabled: !!wsId && !sessionQuery.data && (weeklyQuery.data?.length ?? 0) === 0,
+    staleTime: 10 * 60_000,
+  });
+
   const overrideQuery = useQuery({
     queryKey: ["planned-hours-override", wsId, departmentId, dateId],
     queryFn: async () => {
@@ -83,7 +101,11 @@ export function usePlannedHours(
     staleTime: 30_000,
   });
 
-  const isLoading = sessionQuery.isLoading || weeklyQuery.isLoading || overrideQuery.isLoading;
+  const isLoading =
+    sessionQuery.isLoading ||
+    weeklyQuery.isLoading ||
+    overrideQuery.isLoading ||
+    workspaceHoursQuery.isLoading;
   const overrides = overrideQuery.data ?? [];
   const hasOverride = overrides.length > 0;
   const overrideReason = overrides[0]?.reason ?? null;
@@ -114,7 +136,20 @@ export function usePlannedHours(
     };
   }
 
-  const weeklyHours = weeklyQuery.data ?? [];
+  const deptHours = weeklyQuery.data ?? [];
+  const weeklyHours: DepartmentOperatingHoursRow[] =
+    deptHours.length > 0
+      ? deptHours
+      : ((workspaceHoursQuery.data ?? []).map((wh) => ({
+          id: `ws-fallback-${wh.day_of_week}`,
+          department_id: departmentId!,
+          location_id: null,
+          season_id: null,
+          day_of_week: wh.day_of_week,
+          open_time: wh.open_time,
+          close_time: wh.close_time,
+          is_closed: wh.is_closed,
+        })) as DepartmentOperatingHoursRow[]);
   const resolved = resolveEffectiveHours(
     departmentId,
     null, // location — null for workspace default
