@@ -890,6 +890,45 @@ export interface ShiftUnassigned extends BaseEvent {
   };
 }
 
+export interface ShiftTypeConfigCreated extends BaseEvent {
+  event: "shift_type_config created";
+  properties: {
+    entity: EntityRef;
+    data: {
+      department_id: string;
+      shift_type_id: string;
+      label: string;
+      start_time: string;
+      end_time: string;
+      slot_count: number;
+    };
+  };
+}
+
+export interface ShiftTypeConfigUpdated extends BaseEvent {
+  event: "shift_type_config updated";
+  properties: {
+    entity: EntityRef;
+    data: {
+      department_id: string;
+      shift_type_id: string;
+      changes: Record<string, unknown>;
+    };
+  };
+}
+
+export interface ShiftTypeConfigRemoved extends BaseEvent {
+  event: "shift_type_config removed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      department_id: string;
+      shift_type_id: string;
+      label: string;
+    };
+  };
+}
+
 export interface DayInfoCreated extends BaseEvent {
   event: "day_info created";
   properties: {
@@ -1906,6 +1945,9 @@ export type SmartoutEvent =
   | TemplateShiftCreated
   | ShiftAssigned
   | ShiftUnassigned
+  | ShiftTypeConfigCreated
+  | ShiftTypeConfigUpdated
+  | ShiftTypeConfigRemoved
   | DayInfoCreated
   | DayInfoUpdated
   | DayInfoDeleted
@@ -2372,6 +2414,18 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "scheduling",
   },
   "shift unassigned": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "scheduling",
+  },
+  "shift_type_config created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "scheduling",
+  },
+  "shift_type_config updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "scheduling",
+  },
+  "shift_type_config removed": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "scheduling",
   },
