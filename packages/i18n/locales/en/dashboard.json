@@ -116,5 +116,32 @@
     "save": "Save",
     "saving": "Saving...",
     "saved": "Opening hours saved"
+  },
+  "entity_drawer": {
+    "open_full_page": "Open full page",
+    "pin": "Pin panel",
+    "unpin": "Unpin panel",
+    "close": "Close",
+    "tab_details": "Details",
+    "tab_tasks": "Tasks",
+    "tab_employees": "Employees",
+    "tab_hours": "Hours",
+    "tab_settings": "Settings",
+    "tab_context": "Context",
+    "tab_action": "Action",
+    "task_why": "Why this matters",
+    "task_go_to": "Go to",
+    "task_dimension": "Dimension",
+    "task_urgency": "Priority",
+    "urgency_critical": "Critical",
+    "urgency_should": "Should do",
+    "urgency_can_wait": "Can wait",
+    "department_status": "Status",
+    "department_manager": "Manager",
+    "department_hours": "Opening hours",
+    "department_employees": "Employees",
+    "department_positions": "Positions",
+    "active": "Active",
+    "inactive": "Inactive"
   }
 }
