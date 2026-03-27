@@ -1,19 +1,19 @@
 "use client";
 
 /**
- * Individual task card within a cascade group.
- * Shows urgency border, icon, title/description, and navigates to the relevant page.
+ * Compact task row within a cascade group.
+ * Opens the entity drawer on click instead of navigating.
  * Emits telemetry on click for audit trail.
  */
 
 import { useCallback, useContext } from "react";
-import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { AlertCircle, Clock, Info, ChevronRight } from "lucide-react";
 import { useTranslation } from "@smartout/i18n";
 import { emit } from "@smartout/telemetry";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
+import { useEntityDrawer } from "@/components/dashboard/entity-drawer/EntityDrawerContext";
 import { resolveKey, interpolateParams } from "./translate-todo";
 import type { CascadeTask, TaskUrgency } from "@smartout/types";
 
@@ -64,7 +64,7 @@ const cardVariants = {
 
 export function TodoTaskCard({ task, index }: TodoTaskCardProps) {
   const { t } = useTranslation("dashboard");
-  const router = useRouter();
+  const { openDrawer } = useEntityDrawer();
   const { profileId } = useContext(DashboardContext);
   const ctx = useWorkspaceOptional();
   const wsId = ctx?.workspace.workspace_id ?? null;
@@ -84,8 +84,16 @@ export function TodoTaskCard({ task, index }: TodoTaskCardProps) {
         },
       },
     });
-    router.push(task.href);
-  }, [router, task, wsId, profileId]);
+    void emit({
+      event: "entity_drawer opened",
+      workspace_id: wsId,
+      actor_id: profileId ?? "",
+      properties: {
+        data: { entity_type: "cascade_task", entity_id: task.id, source: "todo_list" },
+      },
+    });
+    openDrawer("cascade_task", task.id);
+  }, [openDrawer, task, wsId, profileId]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -109,28 +117,25 @@ export function TodoTaskCard({ task, index }: TodoTaskCardProps) {
       tabIndex={0}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
-      className={`border-border relative flex items-start gap-3 rounded-lg border border-l-4 ${borderClass} bg-card/70 hover:bg-card/80 focus-visible:ring-ring cursor-pointer p-4 backdrop-blur-[8px] transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none`}
+      className={`flex cursor-pointer items-center gap-2.5 rounded-[10px] border-l-[3px] px-3 py-2 transition-all duration-200 hover:translate-x-0.5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none ${borderClass} bg-transparent hover:bg-card/40`}
     >
-      {/* Noise overlay for frosted glass */}
-      <div
-        className="pointer-events-none absolute inset-0 rounded-lg opacity-[0.025] mix-blend-overlay"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
-        }}
-      />
-
-      <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${iconClass}`} />
-
-      <div className="min-w-0 flex-1">
-        <p className="text-foreground text-sm font-medium">
-          {interpolateParams(t(resolveKey(task.title_key)), task.title_params)}
-        </p>
-        <p className="text-muted-foreground mt-0.5 text-xs">
-          {interpolateParams(t(resolveKey(task.description_key)), task.description_params)}
-        </p>
-      </div>
-
-      <ChevronRight className="text-brand-orange mt-0.5 h-4 w-4 shrink-0 transition-opacity duration-200 hover:opacity-80" />
+      <Icon className={`h-3.5 w-3.5 shrink-0 ${iconClass}`} />
+      <span className="text-foreground min-w-0 flex-1 truncate text-xs font-medium">
+        {interpolateParams(t(resolveKey(task.title_key)), task.title_params)}
+      </span>
+      <span className={`shrink-0 rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ${
+        task.urgency === "critical"
+          ? "bg-destructive/10 text-destructive"
+          : task.urgency === "should"
+            ? "bg-warning/10 text-warning"
+            : "bg-muted text-muted-foreground"
+      }`}>
+        {t(`entity_drawer.urgency_${task.urgency}`)}
+      </span>
+      <span className="sr-only">
+        {task.urgency === "critical" ? "High urgency" : task.urgency === "should" ? "Medium urgency" : "Low urgency"}
+      </span>
+      <ChevronRight className="text-muted-foreground h-3 w-3 shrink-0 opacity-0 transition-opacity group-hover:opacity-100" />
     </motion.div>
   );
 }

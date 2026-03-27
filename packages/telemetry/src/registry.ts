@@ -99,7 +99,8 @@ export type EntityType =
   | "website_spokesperson"
   | "deviation"
   | "agent_session"
-  | "task_surface";
+  | "task_surface"
+  | "entity_drawer";
 
 export type ActionVerb =
   | "created"
@@ -1859,6 +1860,35 @@ export interface TaskSurfaceClicked extends BaseEvent {
   };
 }
 
+// ─── Entity Drawer Events ───────────────────────
+export interface EntityDrawerOpened extends BaseEvent {
+  event: "entity_drawer opened";
+  properties: {
+    data: { entity_type: string; entity_id: string; source: string };
+  };
+}
+
+export interface EntityDrawerClosed extends BaseEvent {
+  event: "entity_drawer closed";
+  properties: {
+    data: { entity_type: string; entity_id: string; duration_ms: number };
+  };
+}
+
+export interface EntityDrawerPinned extends BaseEvent {
+  event: "entity_drawer pinned";
+  properties: {
+    data: { entity_type: string; entity_id: string };
+  };
+}
+
+export interface EntityDrawerTabSwitched extends BaseEvent {
+  event: "entity_drawer tab_switched";
+  properties: {
+    data: { entity_type: string; entity_id: string; from_tab: string; to_tab: string };
+  };
+}
+
 // ─── The Single Truth Union ─────────────────────
 // Add every feature's events here. If it isn't here, it can't be emitted.
 export type SmartoutEvent =
@@ -2062,7 +2092,11 @@ export type SmartoutEvent =
   | NotificationDeepLinkFollowed
   | HubActionTapped
   | TaskSurfaceViewed
-  | TaskSurfaceClicked;
+  | TaskSurfaceClicked
+  | EntityDrawerOpened
+  | EntityDrawerClosed
+  | EntityDrawerPinned
+  | EntityDrawerTabSwitched;
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -2839,6 +2873,22 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "navigation",
   },
   "task_surface clicked": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "navigation",
+  },
+  "entity_drawer opened": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "navigation",
+  },
+  "entity_drawer closed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "navigation",
+  },
+  "entity_drawer pinned": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "navigation",
+  },
+  "entity_drawer tab_switched": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "navigation",
   },
