@@ -93,7 +93,7 @@ export async function sendSessionList(client: ClientInfo): Promise<void> {
       session_id: s.id,
       mission_id: s.mission_id,
       profile_name: (s.context as Record<string, unknown>)?.profile
-        ? ((s.context as Record<string, Record<string, string>>).profile.first_name ?? "Unknown")
+        ? ((s.context as Record<string, Record<string, string>>).profile.display_name ?? "Unknown")
         : "Unknown",
       channel: s.channel ?? "unknown",
       status: s.status,

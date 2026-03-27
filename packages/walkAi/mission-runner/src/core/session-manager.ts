@@ -172,7 +172,7 @@ async function loadIdentityContext(
   if (profileId) {
     const { data: profile } = await supabaseAdmin
       .from("profile")
-      .select("profile_id, first_name, last_name, role, status")
+      .select("profile_id, display_name, role, status")
       .eq("profile_id", profileId)
       .single();
 
@@ -185,8 +185,8 @@ async function loadIdentityContext(
   if (userId) {
     const { data: identity } = await supabaseAdmin
       .from("user_identity")
-      .select("user_identity_id, email, full_name")
-      .eq("user_identity_id", userId)
+      .select("user_id, email, first_name, last_name")
+      .eq("user_id", userId)
       .single();
 
     if (identity) {

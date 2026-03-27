@@ -1,7 +1,7 @@
 ---
 title: Development Dashboard
 status: in_progress
-updated: 2026-03-27
+updated: 2026-03-28
 created: 2026-03-02
 module: meta
 tags: [dashboard, worktrees, tracking]
@@ -15,7 +15,7 @@ tags: [dashboard, worktrees, tracking]
 
 | #    | Branch                         | Module     | Status      | Progress                                                                                          | Blockers | Health |
 | ---- | ------------------------------ | ---------- | ----------- | ------------------------------------------------------------------------------------------------- | -------- | ------ |
-| wt-2 | `feat/entity-drawer`           | dashboard  | in_progress | Spec + plan written. EntityDrawer hybrid sheet/pin for DashboardShell.                            | —        | clean  |
+| wt-2 | —                              | —          | free        | —                                                                                                 | —        | —      |
 | wt-3 | `feat/emma-arena-views`        | walkAi     | in_progress | Rebased on dev. Spec + settings persistence. Implementation not started.                          | None     | clean  |
 | wt-4 | `feat/landing-token-migration` | landing    | needs_work  | Rebased, 12 commits, typecheck OK. Frontend review: blocks/demo/footer not migrated, i18n missing | —        | clean  |
 | wt-5 | `feat/sjohuset-simulator`      | simulation | parked      | Rebased, 10 commits, clean. PR #72 (diverged). Parked for now.                                    | —        | clean  |
@@ -49,16 +49,17 @@ tags: [dashboard, worktrees, tracking]
 
 ## Pending Journeys
 
-| WT    | Feature                 | Journey File                                       | Status           |
-| ----- | ----------------------- | -------------------------------------------------- | ---------------- |
-| wt-4  | landing-token-migration | `docs/journeys/JOURNEY-landing-token-migration.md` | written          |
-| wt-2  | entity-drawer           | `docs/journeys/JOURNEY-entity-drawer.md`           | missing          |
-| wt-10 | setup-guide-navigation  | `docs/journeys/JOURNEY-setup-guide-navigation.md`  | written (merged) |
+| WT    | Feature                 | Journey File                                       | Status            |
+| ----- | ----------------------- | -------------------------------------------------- | ----------------- |
+| wt-4  | landing-token-migration | `docs/journeys/JOURNEY-landing-token-migration.md` | written           |
+| wt-2  | entity-drawer           | `docs/journeys/JOURNEY-entity-drawer.md`           | written (closing) |
+| wt-10 | setup-guide-navigation  | `docs/journeys/JOURNEY-setup-guide-navigation.md`  | written (merged)  |
 
 ## Recent Closures
 
 | Date       | Feature                     | Branch                                                             | Merged To   |
 | ---------- | --------------------------- | ------------------------------------------------------------------ | ----------- |
+| 2026-03-27 | entity-drawer               | `feat/entity-drawer`                                               | development |
 | 2026-03-27 | notification-fixes          | `feat/notification-fixes`                                          | development |
 | 2026-03-27 | setup-guide-navigation      | `feat/setup-guide-navigation`                                      | development |
 | 2026-03-27 | setup-flow-redesign         | `feat/setup-flow-redesign`                                         | development |
@@ -118,9 +119,10 @@ tags: [dashboard, worktrees, tracking]
 
 ## Session History
 
+| 2026-03-27 | ao-cleanup | session ended | Cleaned 18 dead AO sessions (sma-1 to sma-20). Verified 4 active worktrees (wt-2/3/4/5). AO dashboard running on :1337, 0 active sessions. |
 | 2026-03-27 | infra-restart + doc-analysis-fix | session ended | Restarted Docker infra (6 svc) + Supabase (12 containers) with `op run` for 1Password secret injection. Fixed scrapling 401 on /extract/document. All containers healthy. |
 | 2026-03-27 | week-grid-schedule-redesign | session ended | Directly on development. 2 council sessions + 11 tasks implemented. Mal-modus → grid-first. New table `department_shift_type_config` (D1). 14 files renamed. `useWeekGridData` replaces `useMalData`. Typecheck 28/28. |
-| 2026-03-27 | entity-drawer | started | wt-2, module: dashboard. Spec + plan council-approved (4 agents). 8 tasks: telemetry, i18n, context, drawer, tabs, shell, todo, verify. |
+| 2026-03-27 | entity-drawer | closed | wt-2, module: dashboard. 8 commits: telemetry, i18n, context, drawer, tabs, shell, todo, council fixes. Council review (4 agents), 4 blockers fixed. Merged to development, wt-2 freed. |
 | 2026-03-27 | operating-hours-restructure | session ended | 9 commits on development. Workspace base + dept offset. Settings rewrite, RPC fallback, hook fallback chain, schedule fallback. Smoke-tested. |
 | 2026-03-27 | setup-guide-navigation | closed | wt-10, module: dashboard. 8 commits: DB migration, wizard completion handler, telemetry event, seed update, e2e tests, arch doc. Journey + handoff written. Ready for close-feature.sh 10. |
 | 2026-03-27 | industry-consolidation | session ended | ADR-0062: 3 copies → 1 canonical source in packages/ai/src/industry/. Council reviewed (4 agents). Types in packages/types. Runtime tariff loader. Typecheck green. Also: STATE.md updated, AO guide reviewed, operating hours restructure (8 commits, uncommitted). |

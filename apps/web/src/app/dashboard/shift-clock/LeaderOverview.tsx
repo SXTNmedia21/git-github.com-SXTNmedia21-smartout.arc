@@ -42,8 +42,7 @@ type ScheduledEmployee = {
   role: string;
   department_id: string | null;
   profile: {
-    first_name: string | null;
-    last_name: string | null;
+    display_name: string | null;
   } | null;
   department: {
     name: string;
@@ -164,7 +163,7 @@ export function LeaderOverview() {
         .select(
           `schedule_shift_id, employee_id, start_time, end_time, role,
            department_id,
-           profile:employee_id ( first_name, last_name ),
+           profile:employee_id ( display_name ),
            department:department_id ( name )`,
         )
         .eq("workspace_id", workspace.workspace_id)
@@ -305,9 +304,7 @@ export function LeaderOverview() {
     }
 
     return shifts.map((shift): EmployeeCard => {
-      const firstName = shift.profile?.first_name ?? "";
-      const lastName = shift.profile?.last_name ?? "";
-      const name = `${firstName} ${lastName}`.trim() || "Ukjent";
+      const name = shift.profile?.display_name || "Ukjent";
       const department = shift.department?.name ?? "—";
       const role = shift.role ?? "—";
 

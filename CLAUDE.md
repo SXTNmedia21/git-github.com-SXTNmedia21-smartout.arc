@@ -99,6 +99,7 @@ Never skip this discussion. Undecided schema placement leads to 169-table `publi
 - Schedule table: `schedule_shift` (not `shift`). Enums: `shift_status`, `day_category`. See ADR-0036.
 - Season planning tables: `season_budget` (1:1 with season), `day_factor` (weekday weights), `hour_factor` (hour weights). Enum: `budget_status` (draft/active/locked). DIFFERENT from `workspace_budget` (operational per-date targets).
 - Workspace semantic table: `workspace_doc_chunk` (workspace-scoped pgvector). RPC `match_workspace_docs()` must always run with workspace context.
+- `profile` has `display_name` only — NOT `first_name`/`last_name`. Identity data (first_name, last_name, email) lives on `user_identity`. Use `display_name` or join: `profile!inner(user_identity(first_name, last_name))`.
 - `engine_memory` — Persistent agent memories with pgvector embeddings. RLS: workspace isolation.
 - `engine_authority_config` — Per-workspace, per-capability authority levels. UNIQUE(workspace_id, capability).
 - `engine_sessions.mode` — 'mission' (structured stages) or 'agent' (free-form conversation). Agent sessions have NULL mission_id.

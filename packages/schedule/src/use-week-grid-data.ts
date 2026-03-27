@@ -211,7 +211,7 @@ export function useMalData(params: {
         templateShiftIds.length > 0
           ? supabase
               .from("schedule_shift")
-              .select("*, profile:employee_id(profile_id, first_name, last_name)")
+              .select("*, profile:employee_id(profile_id, display_name)")
               .eq("workspace_id", workspaceId)
               .gte("shift_date", weekStart)
               .lte("shift_date", weekEnd)
@@ -282,10 +282,9 @@ export function useMalData(params: {
 
         const profile = shift.profile as unknown as {
           profile_id: string;
-          first_name: string;
-          last_name: string;
+          display_name: string | null;
         } | null;
-        const name = profile ? `${profile.first_name} ${profile.last_name}` : "Ukjent";
+        const name = profile?.display_name || "Ukjent";
 
         const assignment: MalEmployeeAssignment = {
           shiftId: shift.schedule_shift_id,
@@ -503,7 +502,7 @@ export function useWeekGridData(params: {
           status,
           department_id,
           work_hours,
-          profile:employee_id (first_name, last_name)
+          profile:employee_id (display_name)
         `,
         )
         .in("department_id", departmentIds)
@@ -689,10 +688,9 @@ function buildWeekGridData(input: {
     if (!cell) continue;
 
     const profile = shift.profile as unknown as {
-      first_name: string;
-      last_name: string;
+      display_name: string | null;
     } | null;
-    const name = profile ? `${profile.first_name} ${profile.last_name}` : "Ukjent";
+    const name = profile?.display_name || "Ukjent";
 
     const assignment: MalEmployeeAssignment = {
       shiftId: shift.schedule_shift_id,
