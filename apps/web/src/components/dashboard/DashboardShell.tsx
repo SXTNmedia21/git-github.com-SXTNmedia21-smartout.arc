@@ -340,7 +340,7 @@ export function DashboardShell({
   }, []);
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [isAdminMode, setIsAdminMode] = useState(true);
-  const [adminView, setAdminView] = useState<AdminViewType>("todo");
+  const [adminView, setAdminView] = useState<AdminViewType>("tactical");
   const [scheduleLayout, setScheduleLayout] = useState<ScheduleLayoutMode>("daily");
   const [scheduleView, setScheduleView] = useState<ScheduleViewMode>("ansatt");
   const [activeDepartment, setActiveDepartment] = useState("Alle avdelinger");
@@ -370,10 +370,16 @@ export function DashboardShell({
     isSettling: false,
     notices: [],
   });
-  const [setupDismissed, setSetupDismissed] = useState(false);
+  const [setupDismissed, setSetupDismissed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return sessionStorage.getItem("setup_dismissed") === "1";
+  });
   const { data: cascadeData, isLoading: isSetupLoading } = useCascadeTasks();
   const isSetupMode = !isSetupLoading && !setupDismissed && (cascadeData?.critical_count ?? 0) > 0;
-  const dismissSetup = useCallback(() => setSetupDismissed(true), []);
+  const dismissSetup = useCallback(() => {
+    setSetupDismissed(true);
+    sessionStorage.setItem("setup_dismissed", "1");
+  }, []);
   const [isDocumentMode, setIsDocumentMode] = useState(false);
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -954,18 +960,10 @@ export function DashboardShell({
 
   const isSetupPage = pathname === "/dashboard/setup";
 
-  // Route incomplete workspaces into the setup guide using live module status,
-  // not the legacy onboarding_completed flag from older onboarding narratives.
-  useEffect(() => {
-    if (isSetupLoading || !isSetupMode || isSetupPage || isDashboardPage) {
-      return;
-    }
-
-    window.location.href = "/dashboard/setup";
-  }, [isSetupLoading, isSetupMode, isSetupPage, isDashboardPage]);
-
-  // ── Setup mode: fullscreen, no chrome ──
-  if ((isSetupMode && isDashboardPage) || isSetupPage) {
+  // /dashboard/setup renders full-screen (no header/menu) — kept as-is.
+  // The redirect that forced users into setup on critical tasks is removed.
+  // Setup dismiss persists per session via sessionStorage.
+  if (isSetupPage) {
     return (
       <DashboardContext.Provider value={dashboardContextValue}>
         <div

@@ -37,6 +37,48 @@ export function DayApproval({ reconciliationId }: DayApprovalProps) {
   const [rejectReason, setRejectReason] = useState("");
   const [showRejectForm, setShowRejectForm] = useState(false);
 
+  const lockDayMutation = useMutation({
+    mutationFn: async () => {
+      if (!detail) throw new Error("No detail");
+      const supabase = createClient();
+      const { error } = await supabase
+        .from("daily_reconciliation")
+        .update({
+          locked_at: new Date().toISOString(),
+          locked_by: profileId,
+          status: "locked" as const,
+        })
+        .eq("reconciliation_id", detail.reconciliation_id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      if (!detail) return;
+      emit({
+        event: "reconciliation locked",
+        workspace_id: detail.workspace_id,
+        actor_id: profileId,
+        properties: {
+          entity: {
+            entity_type: "reconciliation",
+            entity_id: detail.reconciliation_id,
+          },
+          data: {
+            reconciliation_id: detail.reconciliation_id,
+            reconciliation_date: detail.reconciliation_date,
+          },
+        },
+      });
+      toast.success("Dagen er last");
+      queryClient.invalidateQueries({ queryKey: ["reconciliation"] });
+      queryClient.invalidateQueries({ queryKey: ["reconciliation-detail"] });
+      queryClient.invalidateQueries({ queryKey: ["unreconciled-days"] });
+    },
+    onError: () => {
+      toast.error("Kunne ikke lase dagen");
+    },
+  });
+
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
@@ -97,46 +139,6 @@ export function DayApproval({ reconciliationId }: DayApprovalProps) {
     pendingShifts.length === 0;
 
   const isLocked = !!detail.locked_at;
-
-  const lockDayMutation = useMutation({
-    mutationFn: async () => {
-      const supabase = createClient();
-      const { error } = await supabase
-        .from("daily_reconciliation")
-        .update({
-          locked_at: new Date().toISOString(),
-          locked_by: profileId,
-          status: "locked" as const,
-        })
-        .eq("reconciliation_id", detail.reconciliation_id);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      emit({
-        event: "reconciliation locked",
-        workspace_id: detail.workspace_id,
-        actor_id: profileId,
-        properties: {
-          entity: {
-            entity_type: "reconciliation",
-            entity_id: detail.reconciliation_id,
-          },
-          data: {
-            reconciliation_id: detail.reconciliation_id,
-            reconciliation_date: detail.reconciliation_date,
-          },
-        },
-      });
-      toast.success("Dagen er last");
-      queryClient.invalidateQueries({ queryKey: ["reconciliation"] });
-      queryClient.invalidateQueries({ queryKey: ["reconciliation-detail"] });
-      queryClient.invalidateQueries({ queryKey: ["unreconciled-days"] });
-    },
-    onError: () => {
-      toast.error("Kunne ikke lase dagen");
-    },
-  });
 
   async function handleApprove() {
     await approveMutation.mutateAsync({

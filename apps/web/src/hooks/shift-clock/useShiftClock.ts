@@ -19,7 +19,7 @@ import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { emit } from "@smartout/telemetry";
-import { insertOutboxNotification } from "@smartout/notifications";
+import { insertOutboxNotification } from "@smartout/notifications/client";
 import {
   canTransition,
   type ShiftClockState,

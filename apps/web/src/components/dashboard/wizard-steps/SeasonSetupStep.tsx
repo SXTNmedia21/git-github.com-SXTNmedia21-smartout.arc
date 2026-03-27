@@ -621,8 +621,9 @@ export function SeasonSetupStep({
         queryKey: ["seasons", workspace.workspace_id],
       });
     } catch (err) {
-      console.error("[season] Save failed:", err);
-      toast.error("Kunne ikke opprette sesong");
+      const pgErr = err as { message?: string; code?: string; details?: string; hint?: string };
+      console.error("[season] Save failed:", pgErr.message, pgErr.code, pgErr.details, pgErr.hint);
+      toast.error(pgErr.message ?? "Kunne ikke opprette sesong");
     } finally {
       setIsSaving(false);
     }
