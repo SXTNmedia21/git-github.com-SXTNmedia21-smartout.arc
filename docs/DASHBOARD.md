@@ -1,7 +1,7 @@
 ---
 title: Development Dashboard
 status: in_progress
-updated: 2026-03-27
+updated: 2026-03-28
 created: 2026-03-02
 module: meta
 tags: [dashboard, worktrees, tracking]
@@ -13,14 +13,15 @@ tags: [dashboard, worktrees, tracking]
 
 ## Active Worktrees
 
-| #    | Branch                         | Module     | Status            | Progress                                                                                          | Blockers | Health |
-| ---- | ------------------------------ | ---------- | ----------------- | ------------------------------------------------------------------------------------------------- | -------- | ------ |
-| wt-2 | `feat/cascade-task-surface`    | dashboard  | ready_for_closure | All gates green. Journey + handoff written. Typecheck 28/28. Run `close-feature.sh 2`.            | —        | clean  |
-| wt-3 | `feat/emma-arena-views`        | walkAi     | in_progress       | Rebased on dev. Spec + settings persistence. Implementation not started.                          | None     | clean  |
-| wt-4 | `feat/landing-token-migration` | landing    | needs_work        | Rebased, 12 commits, typecheck OK. Frontend review: blocks/demo/footer not migrated, i18n missing | —        | clean  |
-| wt-5 | `feat/sjohuset-simulator`      | simulation | parked            | Rebased, 10 commits, clean. PR #72 (diverged). Parked for now.                                    | —        | clean  |
-| wt-6 | `feat/production-gaps-tier1`   | dashboard  | ready_for_closure | All gates green. Journey + handoff written. Typecheck 28/28. Run `close-feature.sh 6`.            | —        | clean  |
-| wt-9 | `feat/setup-flow-redesign`     | onboarding | ready_for_closure | All gates green. Journey + handoff written. Typecheck 28/28. Run `close-feature.sh 9`.            | —        | clean  |
+| #     | Branch                         | Module     | Status            | Progress                                                                                          | Blockers | Health |
+| ----- | ------------------------------ | ---------- | ----------------- | ------------------------------------------------------------------------------------------------- | -------- | ------ |
+| wt-2  | `feat/entity-drawer`           | dashboard  | in_progress       | Just started. Spec + plan written. EntityDrawer hybrid sheet/pin for DashboardShell.              | —        | clean  |
+| wt-3  | `feat/emma-arena-views`        | walkAi     | in_progress       | Rebased on dev. Spec + settings persistence. Implementation not started.                          | None     | clean  |
+| wt-4  | `feat/landing-token-migration` | landing    | needs_work        | Rebased, 12 commits, typecheck OK. Frontend review: blocks/demo/footer not migrated, i18n missing | —        | clean  |
+| wt-5  | `feat/sjohuset-simulator`      | simulation | parked            | Rebased, 10 commits, clean. PR #72 (diverged). Parked for now.                                    | —        | clean  |
+| wt-6  | `feat/production-gaps-tier1`   | dashboard  | ready_for_closure | All gates green. Journey + handoff written. Typecheck 28/28. Run `close-feature.sh 6`.            | —        | clean  |
+| wt-9  | `feat/setup-flow-redesign`     | onboarding | ready_for_closure | All gates green. Journey + handoff written. Typecheck 28/28. Run `close-feature.sh 9`.            | —        | clean  |
+| wt-10 | `feat/setup-guide-navigation`  | dashboard  | in_progress       | Just started. Spec + plan written. Council approved.                                              | —        | clean  |
 
 ## Parked Branches (no worktree)
 
@@ -42,7 +43,7 @@ tags: [dashboard, worktrees, tracking]
 | wt-1  | yes       |
 | wt-7  | yes       |
 | wt-8  | yes       |
-| wt-10 | yes       |
+| wt-10 | occupied  |
 | wt-11 | yes       |
 | wt-12 | yes       |
 | wt-13 | yes       |
@@ -51,9 +52,11 @@ tags: [dashboard, worktrees, tracking]
 
 ## Pending Journeys
 
-| WT   | Feature                 | Journey File                                       | Status  |
-| ---- | ----------------------- | -------------------------------------------------- | ------- |
-| wt-4 | landing-token-migration | `docs/journeys/JOURNEY-landing-token-migration.md` | written |
+| WT    | Feature                 | Journey File                                       | Status  |
+| ----- | ----------------------- | -------------------------------------------------- | ------- |
+| wt-4  | landing-token-migration | `docs/journeys/JOURNEY-landing-token-migration.md` | written |
+| wt-2  | entity-drawer           | `docs/journeys/JOURNEY-entity-drawer.md`           | missing |
+| wt-10 | setup-guide-navigation  | `docs/journeys/JOURNEY-setup-guide-navigation.md`  | missing |
 
 ## Recent Closures
 
@@ -116,6 +119,10 @@ tags: [dashboard, worktrees, tracking]
 
 ## Session History
 
+| 2026-03-27 | week-grid-schedule-redesign | session ended | Directly on development. 2 council sessions + 11 tasks implemented. Mal-modus → grid-first. New table `department_shift_type_config` (D1). 14 files renamed. `useWeekGridData` replaces `useMalData`. Typecheck 28/28. |
+| 2026-03-27 | entity-drawer | started | wt-2, module: dashboard. Spec + plan council-approved (4 agents). 8 tasks: telemetry, i18n, context, drawer, tabs, shell, todo, verify. |
+| 2026-03-27 | operating-hours-restructure | session ended | 9 commits on development. Workspace base + dept offset. Settings rewrite, RPC fallback, hook fallback chain, schedule fallback. Smoke-tested. |
+| 2026-03-27 | setup-guide-navigation | started | wt-10, module: dashboard. Spec + plan council-approved. 7 tasks: DB flag, pipeline, shell redirect, wizard completion, seed, e2e, docs. |
 | 2026-03-27 | industry-consolidation | session ended | ADR-0062: 3 copies → 1 canonical source in packages/ai/src/industry/. Council reviewed (4 agents). Types in packages/types. Runtime tariff loader. Typecheck green. Also: STATE.md updated, AO guide reviewed, operating hours restructure (8 commits, uncommitted). |
 | 2026-03-27 | local-dev-fixes | session ended | Fixed resolve_cascade_tasks RPC (4 column mismatches), DayApproval hooks order, PostgREST cache, scrapling Docker auth. 8 uncommitted files. |
 | 2026-03-27 | invitation-flow-core-fixes | started | wt-12, module: onboarding. 4 fixes: batch dispatch, existing-user detection, RLS security, profile status. Council-reviewed (2 rounds). |
