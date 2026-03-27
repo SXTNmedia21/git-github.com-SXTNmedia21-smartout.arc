@@ -10,9 +10,11 @@ import { useCallback, useContext } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { AlertCircle, Clock, Info, ChevronRight } from "lucide-react";
+import { useTranslation } from "@smartout/i18n";
 import { emit } from "@smartout/telemetry";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
+import { resolveKey, interpolateParams } from "./translate-todo";
 import type { CascadeTask, TaskUrgency } from "@smartout/types";
 
 type TodoTaskCardProps = {
@@ -60,20 +62,8 @@ const cardVariants = {
   },
 };
 
-/**
- * Interpolates title/description keys with params.
- * Falls back to the key itself when i18n is not wired up yet.
- */
-function interpolate(key: string, params?: Record<string, string>): string {
-  if (!params) return key;
-  let result = key;
-  for (const [k, v] of Object.entries(params)) {
-    result = result.replace(`{${k}}`, v);
-  }
-  return result;
-}
-
 export function TodoTaskCard({ task, index }: TodoTaskCardProps) {
+  const { t } = useTranslation("dashboard");
   const router = useRouter();
   const { profileId } = useContext(DashboardContext);
   const ctx = useWorkspaceOptional();
@@ -133,10 +123,10 @@ export function TodoTaskCard({ task, index }: TodoTaskCardProps) {
 
       <div className="min-w-0 flex-1">
         <p className="text-foreground text-sm font-medium">
-          {interpolate(task.title_key, task.title_params)}
+          {interpolateParams(t(resolveKey(task.title_key)), task.title_params)}
         </p>
         <p className="text-muted-foreground mt-0.5 text-xs">
-          {interpolate(task.description_key, task.description_params)}
+          {interpolateParams(t(resolveKey(task.description_key)), task.description_params)}
         </p>
       </div>
 

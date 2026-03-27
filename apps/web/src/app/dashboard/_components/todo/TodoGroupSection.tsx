@@ -8,8 +8,10 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2, ChevronDown } from "lucide-react";
+import { useTranslation } from "@smartout/i18n";
 import { groupIcons } from "./todo-icons";
 import { TodoTaskCard } from "./TodoTaskCard";
+import { resolveKey } from "./translate-todo";
 import type { TaskGroupSummary } from "@smartout/types";
 
 type TodoGroupSectionProps = {
@@ -24,6 +26,7 @@ const swapSpring = { type: "spring" as const, stiffness: 45, damping: 22, mass: 
 const expandSpring = { type: "spring" as const, stiffness: 30, damping: 24, mass: 2.5 };
 
 export function TodoGroupSection({ group, index }: TodoGroupSectionProps) {
+  const { t } = useTranslation("dashboard");
   const isComplete = group.tasks.length === 0;
   const [isOpen, setIsOpen] = useState(!isComplete);
   const Icon = groupIcons[group.group];
@@ -56,7 +59,9 @@ export function TodoGroupSection({ group, index }: TodoGroupSectionProps) {
           <Icon className="text-muted-foreground h-5 w-5 shrink-0" />
         )}
 
-        <span className="text-foreground flex-1 text-sm font-medium">{group.label_key}</span>
+        <span className="text-foreground flex-1 text-sm font-medium">
+          {t(resolveKey(group.label_key))}
+        </span>
 
         {/* Fraction display — Geist Mono */}
         <span className="text-muted-foreground font-mono text-xs tabular-nums">
