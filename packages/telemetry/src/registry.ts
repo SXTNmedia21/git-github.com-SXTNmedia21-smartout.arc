@@ -1657,6 +1657,11 @@ export interface WebsiteSpokespersonTaskOverdue extends BaseEvent {
   properties: { entity: EntityRef; data: { task_type: string; profile_id: string } };
 }
 
+export interface WebsiteSpokespersonRevoked extends BaseEvent {
+  event: "website spokesperson_revoked";
+  properties: { entity: EntityRef; data: { spokesperson_id: string } };
+}
+
 // ─── Channel Call Events ────────────────────────
 export interface ChannelCallStarted extends BaseEvent {
   event: "channel.call.started";
@@ -1949,6 +1954,7 @@ export type SmartoutEvent =
   | WebsiteSpokespersonDeclined
   | WebsiteSpokespersonContentSubmitted
   | WebsiteSpokespersonTaskOverdue
+  | WebsiteSpokespersonRevoked
   | DeviationReported
   | DeviationUpdated
   | DeviationResolved
@@ -2622,6 +2628,10 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "website spokesperson_task_overdue": {
     destinations: ["activity_trail", "engine_event", "notifications"],
+    category: "system",
+  },
+  "website spokesperson_revoked": {
+    destinations: ["posthog", "activity_trail", "engine_event", "notifications"],
     category: "system",
   },
 
