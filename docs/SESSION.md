@@ -13,45 +13,49 @@ tags: [session, continuity]
 | ------- | ---------------------------- |
 | Date    | 2026-03-27                   |
 | Branch  | `development` (orchestrator) |
-| Feature | worktree-cleanup + closures  |
-| Status  | in_progress                  |
+| Feature | worktree-cleanup             |
+| Status  | paused                       |
 
 ### What was done
 
-**Worktree cleanup (Fas 1):**
+**Worktree cleanup — removed 8 worktrees:**
 
-- Removed 5 merged worktrees: wt-1, wt-7, wt-10, wt-11, wt-12
-- Cherry-picked 1 stray docs commit (wt-10 → development)
-- Committed all uncommitted files from previous session (E2E fixes, 34 archived plans, docs updates)
-- Freed slots: wt-1, wt-7, wt-10, wt-11, wt-12
+- wt-1 (onboarding-cleanup) — merged, removed
+- wt-7 (mobile-wiring-fixes) — merged, removed
+- wt-10 (nordic-split-design-sync) — docs cherry-picked, removed
+- wt-11 (admin-shift-visibility) — merged, removed
+- wt-12 (invitation-flow-core-fixes) — merged, removed
+- wt-13 (website-factory-b2) — security fix rebased + merged, removed
+- wt-8 (infra-prod-alignment) — runbook cherry-picked to dev, removed
 
-**Worktree actions (Fas 2):**
+**Prepared 3 branches for closure (user runs close-feature.sh):**
 
-- wt-13 (website-factory-b2): Rebased + merged security fix to development → removed
-- wt-9 (setup-flow-redesign): Rebased, verified tasks 1-9 (8 already done, 1 new migration), handoff written, all gates pass → ready for close-feature.sh 9
-- wt-3 (emma-arena-views): Rebased onto development (698 commits behind → now current)
-- wt-2 (cascade-task-surface): Audited — code complete (10 commits), typecheck passes, needs journey + handoff
+- wt-2 (cascade-task-surface) — journey + handoff written, typecheck 28/28
+- wt-6 (production-gaps-tier1) — rebased, journey + handoff written, typecheck 28/28
+- wt-9 (setup-flow-redesign) — finalize RPC fix + handoff written, typecheck 28/28
 
-**Dashboard updated:** Reflects current worktree state accurately.
+**Other work:**
+
+- wt-3 (emma-arena-views) — rebased onto dev (was 698 behind)
+- wt-4 (landing-token-migration) — rebased, docs written, frontend review done (found incomplete migration)
+- wt-5 (sjohuset-simulator) — rebased, committed uncommitted files, parked
+- Committed all stale uncommitted files on development (E2E fixes, 34 archived plans, docs)
+- Fixed tracked-but-gitignored test-results file
 
 ### Where we stopped
 
-- wt-9 ready for closure: `~/.claude/scripts/close-feature.sh 9`
-- wt-2 needs journey + handoff before closure
-- Remaining worktrees to review: wt-4, wt-5, wt-6, wt-8
+- User needs to run: `close-feature.sh 2`, `close-feature.sh 6`, `close-feature.sh 9`
+- wt-4 needs decision: fix landing migration gaps or merge with debt
 - Original goal (walk through onboarding → app flow) not yet started
 
 ### Known blockers / errors
 
 - /dashboard/shift-clock has pre-existing build error (module not found)
-- infra-prod tasks 3-6 need manual SSH — runbook at docs/DEPLOY-RUNBOOK-infra-prod.md
+- wt-4 frontend review found 6 issues: blocks/demo/footer not token-migrated, i18n missing in Poll/Mockup, warning token not registered in landing globals.css
 
 ### Pending decisions
 
-- [x] Commit E2E fixes to development
-- [x] Clean up merged worktrees: wt-1, wt-7, wt-10, wt-11, wt-12
-- [x] Merge website-factory-b2 security fix
-- [ ] Close wt-9 (setup-flow-redesign) — run close-feature.sh 9
-- [ ] Close wt-2 (cascade-task-surface) — write journey + handoff first
-- [ ] Review remaining: wt-4, wt-5, wt-6, wt-8
-- [ ] Walk through onboarding → workspace setup → invite → app flow
+- [ ] Run close-feature.sh 2, 6, 9
+- [ ] wt-4: fix migration gaps vs merge with debt vs park
+- [ ] Walk through onboarding → workspace setup → invite → app (original session goal)
+- [ ] PR #72 (sjohuset-simulator): review when ready to unpause

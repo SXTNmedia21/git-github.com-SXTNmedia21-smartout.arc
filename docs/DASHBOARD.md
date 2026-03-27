@@ -13,15 +13,14 @@ tags: [dashboard, worktrees, tracking]
 
 ## Active Worktrees
 
-| #    | Branch                         | Module     | Status            | Progress                                                                                  | Blockers | Health        |
-| ---- | ------------------------------ | ---------- | ----------------- | ----------------------------------------------------------------------------------------- | -------- | ------------- |
-| wt-2 | `feat/cascade-task-surface`    | dashboard  | ready_for_closure | All 9 tasks done (10 commits). Typecheck passes. Needs journey + handoff + merge.         | —        | clean         |
-| wt-3 | `feat/emma-arena-views`        | walkAi     | in_progress       | Rebased on dev. Spec + settings persistence. Implementation not started.                  | None     | clean         |
-| wt-4 | `feat/landing-token-migration` | landing    | in_progress       | Archive cleanup committed. Plan council-reviewed (APPROVED). 3 phases ready.              | —        | 2 uncommitted |
-| wt-5 | `feat/sjohuset-simulator`      | simulation | in_progress       | 9 commits. PR #72 created. Docker + API + timeline engine.                                | —        | 2 uncommitted |
-| wt-6 | `feat/production-gaps-tier1`   | dashboard  | in_progress       | 4 commits. Migrations, i18n fixes, E2E test.                                              | —        | clean         |
-| wt-8 | `feat/infra-prod-alignment`    | infra      | in_progress       | Tasks 1-2 done. Tasks 3-6 remain (Droplet, secrets, Vercel). Runbook written.             | —        | clean         |
-| wt-9 | `feat/setup-flow-redesign`     | onboarding | ready_for_closure | All tasks done. Typecheck 28/28. Journey + handoff written. Ready for close-feature.sh 9. | —        | clean         |
+| #    | Branch                         | Module     | Status            | Progress                                                                                          | Blockers | Health |
+| ---- | ------------------------------ | ---------- | ----------------- | ------------------------------------------------------------------------------------------------- | -------- | ------ |
+| wt-2 | `feat/cascade-task-surface`    | dashboard  | ready_for_closure | All gates green. Journey + handoff written. Typecheck 28/28. Run `close-feature.sh 2`.            | —        | clean  |
+| wt-3 | `feat/emma-arena-views`        | walkAi     | in_progress       | Rebased on dev. Spec + settings persistence. Implementation not started.                          | None     | clean  |
+| wt-4 | `feat/landing-token-migration` | landing    | needs_work        | Rebased, 12 commits, typecheck OK. Frontend review: blocks/demo/footer not migrated, i18n missing | —        | clean  |
+| wt-5 | `feat/sjohuset-simulator`      | simulation | parked            | Rebased, 10 commits, clean. PR #72 (diverged). Parked for now.                                    | —        | clean  |
+| wt-6 | `feat/production-gaps-tier1`   | dashboard  | ready_for_closure | All gates green. Journey + handoff written. Typecheck 28/28. Run `close-feature.sh 6`.            | —        | clean  |
+| wt-9 | `feat/setup-flow-redesign`     | onboarding | ready_for_closure | All gates green. Journey + handoff written. Typecheck 28/28. Run `close-feature.sh 9`.            | —        | clean  |
 
 ## Parked Branches (no worktree)
 
@@ -42,9 +41,11 @@ tags: [dashboard, worktrees, tracking]
 | ----- | --------- |
 | wt-1  | yes       |
 | wt-7  | yes       |
+| wt-8  | yes       |
 | wt-10 | yes       |
 | wt-11 | yes       |
 | wt-12 | yes       |
+| wt-13 | yes       |
 | wt-15 | yes       |
 | wt-20 | yes       |
 
@@ -52,10 +53,7 @@ tags: [dashboard, worktrees, tracking]
 
 | WT   | Feature                 | Journey File                                       | Status  |
 | ---- | ----------------------- | -------------------------------------------------- | ------- |
-| wt-2 | cascade-task-surface    | `docs/journeys/JOURNEY-cascade-task-surface.md`    | missing |
-| wt-4 | landing-token-migration | `docs/journeys/JOURNEY-landing-token-migration.md` | missing |
-| wt-6 | production-gaps-tier1   | `docs/journeys/JOURNEY-production-gaps-tier1.md`   | missing |
-| wt-8 | infra-prod-alignment    | `docs/journeys/JOURNEY-infra-prod-alignment.md`    | missing |
+| wt-4 | landing-token-migration | `docs/journeys/JOURNEY-landing-token-migration.md` | written |
 
 ## Recent Closures
 
