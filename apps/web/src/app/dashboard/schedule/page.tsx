@@ -20,7 +20,7 @@ import {
   Printer,
 } from "lucide-react";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import { useWorkspace } from "@/lib/workspace-context";
+import { useWorkspaceOptional } from "@/lib/workspace-context";
 import {
   DndContext,
   type CollisionDetection,
@@ -318,7 +318,8 @@ function SchedulePageContent() {
   const days = useMemo(() => generateDayColumns(weekStart, dayCount), [weekStart, dayCount]);
 
   // ── Workspace context ───────────────────────────────────────
-  const { workspace } = useWorkspace();
+  const ctx = useWorkspaceOptional();
+  const workspace = ctx?.workspace;
 
   const shouldLoadSidebarData = loadSecondaryData || isSidebarOpen || sidebarMode === "templates";
   const shouldLoadDayContent =
@@ -939,7 +940,7 @@ function SchedulePageContent() {
       <ScheduleVoiceToolsBridge
         weekStart={weekStart}
         weekEnd={weekEnd}
-        workspaceId={workspace.workspace_id}
+        workspaceId={workspace?.workspace_id ?? ""}
         enrichedDays={enrichedDays}
         shifts={shiftsQuery.data ?? []}
         absences={absencesQuery.data ?? []}
@@ -1118,7 +1119,7 @@ function SchedulePageContent() {
             <SendMessageDialog
               open={sendMessageDialog.open}
               onOpenChange={(open) => setSendMessageDialog((prev) => ({ ...prev, open }))}
-              workspaceId={workspace.workspace_id}
+              workspaceId={workspace?.workspace_id ?? ""}
               dateId={sendMessageDialog.dateId}
               dateLabel={sendMessageDialog.dateLabel}
               initialMessage={sendMessageDialog.initialMessage}
@@ -1856,7 +1857,8 @@ function ListGridContent({
   weekStart: string;
 }) {
   const { isDark } = useContext(DashboardContext);
-  const { workspace } = useWorkspace();
+  const ctx = useWorkspaceOptional();
+  const workspace = ctx?.workspace;
   const employeeById = useMemo(
     () => new Map(employees.map((employee) => [employee.id, employee])),
     [employees],
