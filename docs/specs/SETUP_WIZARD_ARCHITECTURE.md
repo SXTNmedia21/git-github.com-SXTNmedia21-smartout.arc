@@ -1,7 +1,7 @@
 ---
 title: "Workspace Creation & Onboarding Guide Architecture"
 status: canonical
-updated: 2026-03-22
+updated: 2026-03-27
 created: 2026-03-10
 module: core
 tags: [workspace, creation, onboarding, guide, architecture]
@@ -102,14 +102,14 @@ The dashboard setup guide is a post-bootstrap completion flow. It helps the admi
 
 ### Trigger
 
-The guide should route from live setup status such as:
+The guide routes from a dedicated post-bootstrap completion flag (`workspace.setup_guide_completed`), which is entirely separate from `workspace.onboarding_completed`:
 
-- governance records
-- invited/active people
-- schedule setup completeness
-- active season availability
+- When `setup_guide_completed = false` → DashboardShell redirects to `/dashboard/setup` on page load
+- The admin can dismiss the redirect per session (sessionStorage `setup_dismissed`)
+- Manual access to `/dashboard/setup` is always available regardless of flag state
+- The flag is set to `true` when the admin completes the wizard — it is never auto-reverted
 
-It must not route from `workspace.onboarding_completed` alone.
+This flag does NOT replace or duplicate `workspace.onboarding_completed`. The bootstrap flag controls `/onboarding` → `/dashboard` routing. The setup-guide flag controls `/dashboard` → `/dashboard/setup` routing. They are independent lifecycle signals.
 
 ### State
 
@@ -119,13 +119,14 @@ It must not route from `workspace.onboarding_completed` alone.
 
 ## 6. Canonical Meanings
 
-| Field or function                     | Canonical meaning                                           |
-| ------------------------------------- | ----------------------------------------------------------- |
-| `workspace.onboarding_completed`      | Bootstrap/finalization status                               |
-| `finalize-workspace`                  | Authenticated finalization entry point                      |
-| `finalize_onboarding_workspace`       | Canonical RPC that materializes finalized workspace records |
-| `activate-workspace`                  | Legacy-compatible activation path                           |
-| `workspace.onboarding_guide_progress` | Dashboard setup-guide progress only                         |
+| Field or function                     | Canonical meaning                                                     |
+| ------------------------------------- | --------------------------------------------------------------------- |
+| `workspace.onboarding_completed`      | Bootstrap/finalization status                                         |
+| `finalize-workspace`                  | Authenticated finalization entry point                                |
+| `finalize_onboarding_workspace`       | Canonical RPC that materializes finalized workspace records           |
+| `activate-workspace`                  | Legacy-compatible activation path                                     |
+| `workspace.onboarding_guide_progress` | Dashboard setup-guide progress only                                   |
+| `workspace.setup_guide_completed`     | Dashboard setup-guide completion flag (explicit, never auto-reverted) |
 
 ## 7. What Is Stale
 
