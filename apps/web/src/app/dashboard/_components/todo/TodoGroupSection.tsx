@@ -93,7 +93,7 @@ export function TodoGroupSection({ group, index }: TodoGroupSectionProps) {
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={expandSpring}
-            className="space-y-2 overflow-hidden pl-8"
+            className="space-y-0.5 overflow-hidden pl-8"
           >
             <AnimatePresence mode="popLayout">
               {sortedTasks.map((task, i) => (
