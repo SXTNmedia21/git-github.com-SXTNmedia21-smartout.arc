@@ -1,3 +1,6 @@
+WARN: environment variable is unset: SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID
+WARN: environment variable is unset: SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET
+Connecting to db 5432
 export type Json =
   | string
   | number
@@ -8269,9 +8272,11 @@ export type Database = {
           priority: number
           processed_at: string | null
           recipient_id: string
+          retry_count: number
           scheduled_for: string | null
           status: Database["public"]["Enums"]["notification_status"] | null
           title: string
+          updated_at: string
           workspace_id: string
         }
         Insert: {
@@ -8288,9 +8293,11 @@ export type Database = {
           priority?: number
           processed_at?: string | null
           recipient_id: string
+          retry_count?: number
           scheduled_for?: string | null
           status?: Database["public"]["Enums"]["notification_status"] | null
           title: string
+          updated_at?: string
           workspace_id: string
         }
         Update: {
@@ -8307,9 +8314,11 @@ export type Database = {
           priority?: number
           processed_at?: string | null
           recipient_id?: string
+          retry_count?: number
           scheduled_for?: string | null
           status?: Database["public"]["Enums"]["notification_status"] | null
           title?: string
+          updated_at?: string
           workspace_id?: string
         }
         Relationships: [
@@ -13562,6 +13571,36 @@ export type Database = {
         Returns: undefined
       }
       expire_stale_invitations: { Args: never; Returns: number }
+      fetch_pending_outbox: {
+        Args: { p_batch_size?: number }
+        Returns: {
+          action_url: string | null
+          allowed_channels:
+            | Database["public"]["Enums"]["notification_channel"][]
+            | null
+          body: string
+          created_at: string
+          error_log: string | null
+          id: number
+          metadata: Json | null
+          mode: Database["public"]["Enums"]["notification_mode"]
+          priority: number
+          processed_at: string | null
+          recipient_id: string
+          retry_count: number
+          scheduled_for: string | null
+          status: Database["public"]["Enums"]["notification_status"] | null
+          title: string
+          updated_at: string
+          workspace_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "notification_outbox"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       finalize_onboarding_workspace: {
         Args: { p_data: Json; p_workspace_id: string }
         Returns: string
