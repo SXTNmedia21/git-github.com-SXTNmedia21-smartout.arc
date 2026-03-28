@@ -996,6 +996,7 @@ export function DashboardShell({
   return (
     <DocumentModeProvider>
       <VoiceToolsProvider>
+      <EntityDrawerProvider>
         <div
           style={themeReady ? undefined : { opacity: 0 }}
           className={`flex h-screen flex-col overflow-hidden font-sans transition-colors duration-300 selection:bg-orange-500/30 ${
@@ -1903,7 +1904,6 @@ export function DashboardShell({
                 </div>
               </div>
 
-              <EntityDrawerProvider>
               <DashboardContext.Provider value={dashboardContextValue}>
                 <GlobalSearchPalette />
                 {isDocumentMode ? (
