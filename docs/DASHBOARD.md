@@ -13,13 +13,10 @@ tags: [dashboard, worktrees, tracking]
 
 ## Active Worktrees
 
-| #    | Branch                    | Module     | Status      | Progress                                                                 | Blockers | Health |
-| ---- | ------------------------- | ---------- | ----------- | ------------------------------------------------------------------------ | -------- | ------ |
-| wt-2 | —                         | —          | free        | —                                                                        | —        | —      |
-| wt-3 | `feat/emma-arena-views`   | walkAi     | in_progress | Rebased on dev. Spec + settings persistence. Implementation not started. | None     | clean  |
-| wt-4 | —                         | —          | free        | —                                                                        | —        | —      |
-| wt-5 | `feat/sjohuset-simulator` | simulation | parked      | Rebased, 10 commits, clean. PR #72 (diverged). Parked for now.           | —        | clean  |
-| wt-9 | —                         | —          | free        | —                                                                        | —        | —      |
+| #    | Branch                    | Module     | Status      | Progress                                                                                        | Blockers | Health |
+| ---- | ------------------------- | ---------- | ----------- | ----------------------------------------------------------------------------------------------- | -------- | ------ |
+| wt-3 | `feat/emma-arena-views`   | walkAi     | in_progress | Rebased on dev. Spec + settings persistence. Implementation not started. Stash: agent-chat WIP. | None     | clean  |
+| wt-5 | `feat/sjohuset-simulator` | simulation | parked      | Rebased, 10 commits, clean. PR #72 (diverged). Parked for now.                                  | —        | clean  |
 
 ## Parked Branches (no worktree)
 
@@ -36,18 +33,21 @@ tags: [dashboard, worktrees, tracking]
 
 ## Free Slots
 
-| #     | Available                                         |
-| ----- | ------------------------------------------------- |
-| wt-1  | stale (old feat/dashboard branch — needs cleanup) |
-| wt-6  | yes                                               |
-| wt-7  | yes                                               |
-| wt-8  | yes                                               |
-| wt-10 | yes                                               |
-| wt-11 | yes                                               |
-| wt-12 | yes                                               |
-| wt-13 | yes                                               |
-| wt-15 | yes                                               |
-| wt-20 | yes                                               |
+| #     | Available                                       |
+| ----- | ----------------------------------------------- |
+| wt-1  | occupied (training-platform repo, not smartout) |
+| wt-2  | occupied (training-platform repo, not smartout) |
+| wt-4  | yes                                             |
+| wt-6  | yes                                             |
+| wt-7  | yes                                             |
+| wt-8  | yes                                             |
+| wt-9  | yes                                             |
+| wt-10 | yes                                             |
+| wt-11 | yes                                             |
+| wt-12 | yes                                             |
+| wt-13 | yes                                             |
+| wt-15 | yes                                             |
+| wt-20 | yes                                             |
 
 ## Pending Journeys
 
