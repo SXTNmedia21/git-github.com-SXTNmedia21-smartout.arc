@@ -1004,6 +1004,7 @@ export interface ChatReactionToggled extends BaseEvent {
     emoji: string;
     action: "added" | "removed";
   };
+  entity: EntityRef;
 }
 
 export interface ChatRead extends BaseEvent {
@@ -1012,6 +1013,7 @@ export interface ChatRead extends BaseEvent {
     conversation_id: string;
     profile_id: string;
   };
+  entity: EntityRef;
 }
 
 // ─── Payroll Settings Events ─────────────────────
