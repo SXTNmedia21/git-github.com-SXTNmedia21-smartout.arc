@@ -12,8 +12,12 @@ import type { WizardStepProps } from "@smartout/ui";
 import type { SetupState } from "../types";
 import type { DocumentExtractionResult } from "@/components/dashboard/wizard-steps/wizard-state";
 import { DocumentDropStep } from "@/components/dashboard/wizard-steps/DocumentDropStep";
+import { useIndustryPackage } from "@/lib/industry/use-industry-package";
+import { SetupStepHeader } from "../_components/SetupStepHeader";
 
-export function DocumentDropStepAdapter({ updateState }: WizardStepProps<SetupState>) {
+export function DocumentDropStepAdapter({ updateState, t }: WizardStepProps<SetupState>) {
+  const { package: industryPackage } = useIndustryPackage();
+
   const handleExtractionComplete = useCallback(
     (result: DocumentExtractionResult) => {
       updateState({ extractedData: result });
@@ -23,6 +27,13 @@ export function DocumentDropStepAdapter({ updateState }: WizardStepProps<SetupSt
 
   return (
     <div className="mx-auto w-full max-w-2xl px-8 py-12">
+      <SetupStepHeader
+        stepId="document-drop"
+        stepIndex={1}
+        totalSteps={9}
+        t={t}
+        botssonTip={industryPackage.botsson?.["document-drop"]}
+      />
       <DocumentDropStep onExtractionComplete={handleExtractionComplete} />
     </div>
   );
