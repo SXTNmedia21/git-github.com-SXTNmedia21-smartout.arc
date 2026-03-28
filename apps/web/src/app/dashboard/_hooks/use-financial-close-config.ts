@@ -1,13 +1,13 @@
 "use client";
 
 /**
- * useFinancialCloseConfig — provides financial close tolerance and approval settings.
- *
- * The financial_close_config table is created by migration 20260328120100.
- * Until database.types.ts is regenerated from local Supabase, this hook
- * returns hardcoded defaults. After type regen, swap in real .from() queries.
+ * useFinancialCloseConfig — CRUD hook for per-workspace financial close settings.
+ * Reads from financial_close_config table with workspace-scoped RLS.
+ * Falls back to sensible industry defaults if no config exists.
  */
 
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
 
 export type FinancialCloseConfig = {
@@ -32,19 +32,48 @@ const DEFAULTS: Omit<FinancialCloseConfig, "config_id" | "workspace_id"> = {
   approval_deadline_hours: 24,
 };
 
-/**
- * Returns financial close config for the current workspace.
- * Currently returns defaults — will read from DB after types are regenerated.
- */
 export function useFinancialCloseConfig() {
   const { workspace } = useWorkspace();
+  const supabase = createClient();
+  const queryClient = useQueryClient();
   const wsId = workspace.workspace_id;
 
-  const config: FinancialCloseConfig = {
-    config_id: "",
-    workspace_id: wsId,
-    ...DEFAULTS,
-  };
+  const query = useQuery({
+    queryKey: ["financial-close-config", wsId],
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("financial_close_config")
+        .select("*")
+        .eq("workspace_id", wsId)
+        .maybeSingle();
 
-  return { config, isLoading: false, upsert: { mutate: () => {}, isPending: false } };
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const upsert = useMutation({
+    mutationFn: async (
+      updates: Partial<Omit<FinancialCloseConfig, "config_id" | "workspace_id">>,
+    ) => {
+      const { data, error } = await supabase
+        .from("financial_close_config")
+        .upsert({ workspace_id: wsId, ...updates }, { onConflict: "workspace_id" })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["financial-close-config", wsId] });
+    },
+  });
+
+  const config: FinancialCloseConfig = query.data
+    ? (query.data as unknown as FinancialCloseConfig)
+    : { config_id: "", workspace_id: wsId, ...DEFAULTS };
+
+  return { config, isLoading: query.isLoading, upsert };
 }

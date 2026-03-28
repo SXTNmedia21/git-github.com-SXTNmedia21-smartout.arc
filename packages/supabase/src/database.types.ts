@@ -4437,6 +4437,10 @@ export type Database = {
           approval_notes: string | null
           approved_at: string | null
           approved_by: string | null
+          cash_counted: number | null
+          cash_difference: number | null
+          cash_expected: number | null
+          closed_by: string | null
           created_at: string
           department_id: string
           labor_percentage: number | null
@@ -4465,6 +4469,10 @@ export type Database = {
           approval_notes?: string | null
           approved_at?: string | null
           approved_by?: string | null
+          cash_counted?: number | null
+          cash_difference?: number | null
+          cash_expected?: number | null
+          closed_by?: string | null
           created_at?: string
           department_id: string
           labor_percentage?: number | null
@@ -4493,6 +4501,10 @@ export type Database = {
           approval_notes?: string | null
           approved_at?: string | null
           approved_by?: string | null
+          cash_counted?: number | null
+          cash_difference?: number | null
+          cash_expected?: number | null
+          closed_by?: string | null
           created_at?: string
           department_id?: string
           labor_percentage?: number | null
@@ -4521,6 +4533,13 @@ export type Database = {
           {
             foreignKeyName: "daily_reconciliation_approved_by_fkey"
             columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "daily_reconciliation_closed_by_fkey"
+            columns: ["closed_by"]
             isOneToOne: false
             referencedRelation: "profile"
             referencedColumns: ["profile_id"]
@@ -6453,6 +6472,56 @@ export type Database = {
             foreignKeyName: "engine_trigger_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      financial_close_config: {
+        Row: {
+          approval_deadline_hours: number
+          approval_required: boolean
+          cash_tolerance_type: string
+          cash_tolerance_value: number
+          config_id: string
+          created_at: string
+          require_cash_count: boolean
+          tolerance_type: string
+          tolerance_value: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          approval_deadline_hours?: number
+          approval_required?: boolean
+          cash_tolerance_type?: string
+          cash_tolerance_value?: number
+          config_id?: string
+          created_at?: string
+          require_cash_count?: boolean
+          tolerance_type?: string
+          tolerance_value?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          approval_deadline_hours?: number
+          approval_required?: boolean
+          cash_tolerance_type?: string
+          cash_tolerance_value?: number
+          config_id?: string
+          created_at?: string
+          require_cash_count?: boolean
+          tolerance_type?: string
+          tolerance_value?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_close_config_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
             referencedRelation: "workspace"
             referencedColumns: ["workspace_id"]
           },
@@ -11063,6 +11132,94 @@ export type Database = {
           },
         ]
       }
+      schedule_shift_lock_audit: {
+        Row: {
+          actor_user_id: string | null
+          created_at: string
+          id: string
+          is_enforced: boolean
+          is_overridden_by_high_access: boolean
+          lock_mode: string
+          new_row: Json | null
+          old_row: Json
+          operation: string
+          reason_code: string
+          schedule_shift_id: string
+          shift_date: string
+          start_time: string
+          workspace_id: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          created_at?: string
+          id?: string
+          is_enforced: boolean
+          is_overridden_by_high_access?: boolean
+          lock_mode: string
+          new_row?: Json | null
+          old_row: Json
+          operation: string
+          reason_code: string
+          schedule_shift_id: string
+          shift_date: string
+          start_time: string
+          workspace_id: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          created_at?: string
+          id?: string
+          is_enforced?: boolean
+          is_overridden_by_high_access?: boolean
+          lock_mode?: string
+          new_row?: Json | null
+          old_row?: Json
+          operation?: string
+          reason_code?: string
+          schedule_shift_id?: string
+          shift_date?: string
+          start_time?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_shift_lock_audit_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      schedule_shift_lock_policy: {
+        Row: {
+          created_at: string
+          lock_mode: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          lock_mode?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          lock_mode?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_shift_lock_policy_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       schedule_template: {
         Row: {
           created_at: string
@@ -11717,11 +11874,14 @@ export type Database = {
       }
       settlement_image: {
         Row: {
+          captured_by: string | null
           image_id: string
+          image_type: Database["public"]["Enums"]["close_image_type"] | null
           ocr_confidence: number | null
           ocr_parsed: Json | null
           ocr_processed_at: string | null
           ocr_raw_text: string | null
+          parse_status: string | null
           reconciliation_id: string
           source_type: Database["public"]["Enums"]["settlement_source_type"]
           storage_path: string
@@ -11731,11 +11891,14 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          captured_by?: string | null
           image_id?: string
+          image_type?: Database["public"]["Enums"]["close_image_type"] | null
           ocr_confidence?: number | null
           ocr_parsed?: Json | null
           ocr_processed_at?: string | null
           ocr_raw_text?: string | null
+          parse_status?: string | null
           reconciliation_id: string
           source_type: Database["public"]["Enums"]["settlement_source_type"]
           storage_path: string
@@ -11745,11 +11908,14 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          captured_by?: string | null
           image_id?: string
+          image_type?: Database["public"]["Enums"]["close_image_type"] | null
           ocr_confidence?: number | null
           ocr_parsed?: Json | null
           ocr_processed_at?: string | null
           ocr_raw_text?: string | null
+          parse_status?: string | null
           reconciliation_id?: string
           source_type?: Database["public"]["Enums"]["settlement_source_type"]
           storage_path?: string
@@ -11759,6 +11925,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "settlement_image_captured_by_fkey"
+            columns: ["captured_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
           {
             foreignKeyName: "settlement_image_reconciliation_id_fkey"
             columns: ["reconciliation_id"]
@@ -11943,7 +12116,6 @@ export type Database = {
           gps_reference_lng: number | null
           gps_required: boolean
           id: string
-          late_threshold_minutes: number
           punch_window_minutes: number
           team_id: string | null
           updated_at: string
@@ -11959,7 +12131,6 @@ export type Database = {
           gps_reference_lng?: number | null
           gps_required?: boolean
           id?: string
-          late_threshold_minutes?: number
           punch_window_minutes?: number
           team_id?: string | null
           updated_at?: string
@@ -11975,7 +12146,6 @@ export type Database = {
           gps_reference_lng?: number | null
           gps_required?: boolean
           id?: string
-          late_threshold_minutes?: number
           punch_window_minutes?: number
           team_id?: string | null
           updated_at?: string
@@ -13519,6 +13689,10 @@ export type Database = {
         Args: { p_workspace_ids: string[] }
         Returns: undefined
       }
+      can_override_schedule_shift_lock: {
+        Args: { p_workspace_id: string }
+        Returns: boolean
+      }
       cleanup_expired_api_keys: { Args: never; Returns: number }
       compute_platform_metrics: { Args: never; Returns: undefined }
       count_dangling_company_members: { Args: never; Returns: number }
@@ -13654,6 +13828,10 @@ export type Database = {
           workspace_id: string
         }[]
       }
+      get_schedule_shift_lock_mode: {
+        Args: { p_workspace_id: string }
+        Returns: string
+      }
       get_secret: { Args: { secret_name: string }; Returns: string }
       get_unread_counts: {
         Args: { p_workspace_id: string }
@@ -13670,6 +13848,19 @@ export type Database = {
           profile_id: string
           total: number
         }[]
+      }
+      handle_schedule_shift_lock_violation: {
+        Args: {
+          p_new_row: Json
+          p_old_row: Json
+          p_operation: string
+          p_reason_code: string
+          p_schedule_shift_id: string
+          p_shift_date: string
+          p_start_time: string
+          p_workspace_id: string
+        }
+        Returns: undefined
       }
       increment_communication_counter: {
         Args: { p_communication_id: string; p_field: string }
@@ -13737,6 +13928,38 @@ export type Database = {
         }
         Returns: string
       }
+      record_schedule_shift_lock_audit:
+        | {
+            Args: {
+              p_is_enforced: boolean
+              p_is_overridden_by_high_access: boolean
+              p_lock_mode: string
+              p_new_row: Json
+              p_old_row: Json
+              p_operation: string
+              p_reason_code: string
+              p_schedule_shift_id: string
+              p_shift_date: string
+              p_start_time: string
+              p_workspace_id: string
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_is_enforced: boolean
+              p_lock_mode: string
+              p_new_row: Json
+              p_old_row: Json
+              p_operation: string
+              p_reason_code: string
+              p_schedule_shift_id: string
+              p_shift_date: string
+              p_start_time: string
+              p_workspace_id: string
+            }
+            Returns: undefined
+          }
       resolve_cascade_tasks: { Args: { p_workspace_id: string }; Returns: Json }
       rollback_audit_entry: { Args: { p_audit_log_id: string }; Returns: Json }
       rotate_api_key: {
@@ -13749,6 +13972,14 @@ export type Database = {
           p_workspace_id: string
         }
         Returns: string
+      }
+      schedule_shift_is_temporally_locked: {
+        Args: {
+          p_shift_date: string
+          p_start_time: string
+          p_workspace_id: string
+        }
+        Returns: boolean
       }
       search_dependency_graph: {
         Args: { p_limit?: number; p_query: string; p_workspace_id: string }
@@ -13846,6 +14077,13 @@ export type Database = {
       channel_recording_policy: "off" | "optional" | "auto"
       channel_video_policy: "disabled" | "optional" | "default_on" | "required"
       chat_conversation_type: "group" | "dm" | "ai"
+      close_image_type:
+        | "isettle_settlement"
+        | "pos_closing_screen"
+        | "z_report"
+        | "cash_drawer"
+        | "receipt_bundle"
+        | "other"
       comm_channel_type:
         | "department"
         | "team"
@@ -15242,6 +15480,14 @@ export const Constants = {
       channel_recording_policy: ["off", "optional", "auto"],
       channel_video_policy: ["disabled", "optional", "default_on", "required"],
       chat_conversation_type: ["group", "dm", "ai"],
+      close_image_type: [
+        "isettle_settlement",
+        "pos_closing_screen",
+        "z_report",
+        "cash_drawer",
+        "receipt_bundle",
+        "other",
+      ],
       comm_channel_type: [
         "department",
         "team",

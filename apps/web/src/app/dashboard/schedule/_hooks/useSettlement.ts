@@ -26,12 +26,10 @@ export function useSettlementForDate(departmentId: string | undefined, date: str
     enabled: !!departmentId && !!date,
     staleTime: 2 * 60 * 1000,
     queryFn: async () => {
-      // cash_counted, cash_expected, cash_difference added by migration but may not
-      // be in generated types yet — query core columns and cast.
       const { data, error } = await supabase
         .from("daily_reconciliation")
         .select(
-          "reconciliation_id, status, revenue_total, revenue_card, revenue_cash, revenue_vat, revenue_transactions, settled_by, settled_at, approved_by, approved_at, total_labor_cost, revenue_per_worked_hour, labor_percentage",
+          "reconciliation_id, status, revenue_total, revenue_card, revenue_cash, revenue_vat, revenue_transactions, cash_counted, cash_expected, cash_difference, settled_by, settled_at, approved_by, approved_at, total_labor_cost, revenue_per_worked_hour, labor_percentage",
         )
         .eq("workspace_id", workspace.workspace_id)
         .eq("department_id", departmentId!)
@@ -56,8 +54,6 @@ export function useSubmitSettlement() {
       const cashDiff =
         input.cashCounted != null && cashExpected != null ? input.cashCounted - cashExpected : null;
 
-      // Core columns that exist in generated types. cash_counted/expected/difference
-      // will be available after types are regenerated from the migration.
       const { data, error } = await supabase
         .from("daily_reconciliation")
         .upsert(
@@ -70,6 +66,9 @@ export function useSubmitSettlement() {
             revenue_cash: input.revenueCash ?? null,
             revenue_vat: input.revenueVat ?? null,
             revenue_transactions: input.revenueTransactions ?? null,
+            cash_counted: input.cashCounted ?? null,
+            cash_expected: cashExpected,
+            cash_difference: cashDiff,
             revenue_source: "manual" as const,
             status: "submitted" as const,
             settled_by: profileId,
