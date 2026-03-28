@@ -41,3 +41,5 @@ export { useActiveSeason } from "./use-active-season";
 export type { ActiveSeasonData } from "./use-active-season";
 export { useAbsenceRate } from "./use-absence-rate";
 export { useStaffTurnover } from "./use-staff-turnover";
+export { useFinancialCloseConfig } from "./use-financial-close-config";
+export type { FinancialCloseConfig } from "./use-financial-close-config";

@@ -33,9 +33,17 @@ import { StaffingTab } from "./StaffingTab";
 import { BroadcastFooter } from "./BroadcastFooter";
 import { DaySessionProvider } from "./DaySessionProvider";
 import { SessionTasksTab } from "./SessionTasksTab";
+import { OkonomiTab } from "./OkonomiTab";
 import { useDaySession } from "./use-day-session";
 
-type TabId = "oversikt" | "meldinger" | "bookings" | "oppgaver" | "budsjett" | "bemanning";
+type TabId =
+  | "oversikt"
+  | "meldinger"
+  | "bookings"
+  | "oppgaver"
+  | "budsjett"
+  | "bemanning"
+  | "okonomi";
 
 /**
  * Hosts the day control panel inside the shared day-session provider.
@@ -227,6 +235,12 @@ function DayControlPanelContent({
             icon={<Users className="h-3 w-3" />}
             label="Bemanning"
           />
+          <TabButton
+            active={activeTab === "okonomi"}
+            onClick={() => setActiveTab("okonomi")}
+            icon={<DollarSign className="h-3 w-3" />}
+            label="Okonomi"
+          />
         </div>
       </div>
 
@@ -238,6 +252,7 @@ function DayControlPanelContent({
         {activeTab === "oppgaver" && <SessionTasksTab />}
         {activeTab === "budsjett" && <BudgetTab dateId={date} />}
         {activeTab === "bemanning" && <StaffingTab dateId={date} />}
+        {activeTab === "okonomi" && <OkonomiTab dateId={date} />}
       </div>
 
       {/* Footer */}
