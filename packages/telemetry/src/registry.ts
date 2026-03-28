@@ -2044,6 +2044,18 @@ export interface TaskSurfaceClicked extends BaseEvent {
   };
 }
 
+export interface TaskSurfaceSnapshot extends BaseEvent {
+  event: "task_surface snapshot";
+  properties: {
+    entity: EntityRef;
+    data: {
+      total_tasks: number;
+      critical_count: number;
+      should_count: number;
+    };
+  };
+}
+
 // ─── Entity Drawer Events ───────────────────────
 export interface EntityDrawerOpened extends BaseEvent {
   event: "entity_drawer opened";
@@ -2340,6 +2352,7 @@ export type SmartoutEvent =
   | HubActionTapped
   | TaskSurfaceViewed
   | TaskSurfaceClicked
+  | TaskSurfaceSnapshot
   | EntityDrawerOpened
   | EntityDrawerClosed
   | EntityDrawerPinned
@@ -3177,6 +3190,10 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "task_surface clicked": {
     destinations: ["posthog", "logger", "activity_trail"],
+    category: "navigation",
+  },
+  "task_surface snapshot": {
+    destinations: ["posthog", "logger"],
     category: "navigation",
   },
   "entity_drawer opened": {

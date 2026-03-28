@@ -16,14 +16,13 @@ export function TodoEmptyState() {
       role="status"
       aria-live="polite"
     >
-      {/* Ambient orb glow behind the icon */}
+      {/* Ambient orb glow behind the icon — radial-gradient per Nordic Split */}
       <div className="relative">
         <div
-          className="absolute inset-0 -m-8 rounded-full"
+          className="absolute inset-0 -m-12 rounded-full"
           style={{
-            background: "var(--success)",
-            filter: "blur(80px)",
-            opacity: 0.08,
+            background:
+              "radial-gradient(ellipse at center, oklch(0.75 0.15 145 / 0.12), transparent 70%)",
           }}
         />
         <div className="bg-success/20 relative flex h-20 w-20 items-center justify-center rounded-full">

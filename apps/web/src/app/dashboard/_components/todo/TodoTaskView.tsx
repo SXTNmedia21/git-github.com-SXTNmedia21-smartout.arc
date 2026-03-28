@@ -86,6 +86,19 @@ export function TodoTaskView() {
           },
         },
       });
+      void emit({
+        event: "task_surface snapshot",
+        workspace_id: wsId,
+        actor_id: profileId ?? "",
+        properties: {
+          entity: { entity_type: "task_surface", entity_id: "cascade-tasks" },
+          data: {
+            total_tasks: data.total_tasks,
+            critical_count: data.critical_count,
+            should_count: data.should_count,
+          },
+        },
+      });
     }
   }, [data, wsId, profileId]);
 

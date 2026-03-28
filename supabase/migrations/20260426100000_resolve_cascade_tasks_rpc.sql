@@ -599,7 +599,7 @@ BEGIN
   messages_tasks AS (
     SELECT jsonb_build_object(
       'id', 'messages.pending_decisions', 'group', 'messages',
-      'dimension', 'C2',
+      'dimension', 'C4',
       'title_key', 'dashboard.todo.messages_pending_decisions',
       'title_params', jsonb_build_object(
         'count', (SELECT cnt FROM pending_proposals)::text
@@ -611,7 +611,7 @@ BEGIN
   ),
   messages_summary AS (
     SELECT jsonb_build_object(
-      'group', 'messages', 'dimension', 'C2',
+      'group', 'messages', 'dimension', 'C4',
       'label_key', 'dashboard.todo.group.messages',
       'icon', 'MessageSquare',
       'done', CASE WHEN (SELECT cnt FROM pending_proposals) = 0 THEN 1 ELSE 0 END,
