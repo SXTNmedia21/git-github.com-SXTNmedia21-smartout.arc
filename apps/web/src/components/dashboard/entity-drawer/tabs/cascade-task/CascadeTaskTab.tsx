@@ -49,7 +49,7 @@ export function CascadeTaskTab({ entityId }: { entityId: string }) {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12 text-sm text-white/30">
+      <div className="text-muted-foreground/30 flex items-center justify-center py-12 text-sm">
         {t("entity_drawer.task_loading")}
       </div>
     );
@@ -58,12 +58,12 @@ export function CascadeTaskTab({ entityId }: { entityId: string }) {
   if (isError) {
     return (
       <div className="space-y-3 p-4">
-        <div className="rounded-xl bg-white/[0.04] p-3 text-xs text-white/70">
+        <div className="text-muted-foreground bg-card/40 rounded-xl p-3 text-xs">
           {t("entity_drawer.task_load_failed")}
         </div>
         <button
           onClick={() => void refetch()}
-          className="flex w-full items-center justify-center gap-2 rounded-[10px] border border-white/10 px-4 py-2.5 text-xs font-semibold text-white/80 transition-colors hover:bg-white/[0.06]"
+          className="border-border text-foreground/80 hover:bg-card/60 flex w-full items-center justify-center gap-2 rounded-[10px] border px-4 py-2.5 text-xs font-semibold transition-colors"
         >
           {t("entity_drawer.task_retry")}
         </button>
@@ -74,12 +74,12 @@ export function CascadeTaskTab({ entityId }: { entityId: string }) {
   if (!task) {
     return (
       <div className="space-y-3 p-4">
-        <div className="rounded-xl bg-white/[0.04] p-3 text-xs text-white/70">
+        <div className="text-muted-foreground bg-card/40 rounded-xl p-3 text-xs">
           {t("entity_drawer.task_not_found")}
         </div>
         <button
           onClick={handleOpenDashboard}
-          className="flex w-full items-center justify-center gap-2 rounded-[10px] border border-white/10 px-4 py-2.5 text-xs font-semibold text-white/80 transition-colors hover:bg-white/[0.06]"
+          className="border-border text-foreground/80 hover:bg-card/60 flex w-full items-center justify-center gap-2 rounded-[10px] border px-4 py-2.5 text-xs font-semibold transition-colors"
         >
           {t("entity_drawer.task_open_dashboard")}
         </button>
@@ -96,11 +96,11 @@ export function CascadeTaskTab({ entityId }: { entityId: string }) {
       <div className="flex items-start gap-3">
         <Icon className={`mt-0.5 h-5 w-5 shrink-0 ${iconColor}`} />
         <div>
-          <h3 className="text-sm font-bold text-white">
+          <h3 className="text-foreground text-sm font-bold">
             {interpolateParams(t(resolveKey(task.title_key)), task.title_params)}
           </h3>
           <div className="mt-1 flex items-center gap-2">
-            <span className="text-[9px] font-bold tracking-wider text-white/30 uppercase">
+            <span className="text-muted-foreground/30 text-[9px] font-bold tracking-wider uppercase">
               {t("entity_drawer.task_urgency")}
             </span>
             <span className={`text-[10px] font-bold ${iconColor}`}>
@@ -111,21 +111,21 @@ export function CascadeTaskTab({ entityId }: { entityId: string }) {
       </div>
 
       {/* Description — why it matters */}
-      <div className="rounded-xl bg-white/[0.04] p-3">
-        <div className="mb-1.5 text-[9px] font-bold tracking-wider text-white/30 uppercase">
+      <div className="bg-card/40 rounded-xl p-3">
+        <div className="text-muted-foreground/30 mb-1.5 text-[9px] font-bold tracking-wider uppercase">
           {t("entity_drawer.task_why")}
         </div>
-        <p className="text-xs leading-relaxed text-white/60">
+        <p className="text-muted-foreground text-xs leading-relaxed">
           {interpolateParams(t(resolveKey(task.description_key)), task.description_params)}
         </p>
       </div>
 
       {/* Dimension badge */}
       <div className="flex items-center gap-2">
-        <span className="text-[9px] font-bold tracking-wider text-white/30 uppercase">
+        <span className="text-muted-foreground/30 text-[9px] font-bold tracking-wider uppercase">
           {t("entity_drawer.task_dimension")}
         </span>
-        <span className="rounded-md bg-white/[0.06] px-2 py-0.5 font-mono text-[11px] text-white/50">
+        <span className="text-muted-foreground bg-card/60 rounded-md px-2 py-0.5 font-mono text-[11px]">
           {task.dimension}
         </span>
       </div>
@@ -133,7 +133,7 @@ export function CascadeTaskTab({ entityId }: { entityId: string }) {
       {/* Action button */}
       <button
         onClick={handleNavigate}
-        className="flex w-full items-center justify-center gap-2 rounded-[10px] bg-orange-500 px-4 py-2.5 text-xs font-semibold text-white shadow-[0_2px_8px_oklch(0.65_0.22_40/0.25)] transition-all hover:brightness-110"
+        className="bg-brand-orange flex w-full items-center justify-center gap-2 rounded-[10px] px-4 py-2.5 text-xs font-semibold text-white shadow-[0_2px_8px_oklch(0.65_0.22_40/0.25)] transition-all hover:brightness-110"
       >
         {t("entity_drawer.task_go_to")}
         <ExternalLink className="h-3 w-3" />
