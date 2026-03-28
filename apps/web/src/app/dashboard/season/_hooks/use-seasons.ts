@@ -122,10 +122,123 @@ export function useSeasons() {
     },
   });
 
+  const activateSeason = useMutation({
+    mutationFn: async (seasonId: string): Promise<Season> => {
+      // Validate: budget must exist and have required fields
+      const { data: budget, error: budgetError } = await supabase
+        .from("season_budget")
+        .select("season_budget_id, total_target_revenue, target_labor_percentage, avg_hourly_wage")
+        .eq("season_id", seasonId)
+        .single();
+
+      if (budgetError || !budget) throw new Error("Sesong mangler budsjett");
+      if (!budget.total_target_revenue || budget.total_target_revenue <= 0)
+        throw new Error("Budsjett mangler omsetningsmål");
+
+      // Validate: day factors must exist (keyed on season_budget_id)
+      const { count: dayFactorCount } = await supabase
+        .from("day_factor")
+        .select("*", { count: "exact", head: true })
+        .eq("season_budget_id", budget.season_budget_id);
+
+      if (!dayFactorCount || dayFactorCount === 0) throw new Error("Sesong mangler dagfaktorer");
+
+      // Validate: hour factors must exist (keyed on season_budget_id)
+      const { count: hourFactorCount } = await supabase
+        .from("hour_factor")
+        .select("*", { count: "exact", head: true })
+        .eq("season_budget_id", budget.season_budget_id);
+
+      if (!hourFactorCount || hourFactorCount === 0) throw new Error("Sesong mangler timefaktorer");
+
+      // Deactivate any currently active season in this workspace
+      await supabase
+        .from("season")
+        .update({ status: "archived" })
+        .eq("workspace_id", wsId!)
+        .eq("status", "active");
+
+      // Activate this season
+      const { data, error } = await supabase
+        .from("season")
+        .update({ status: "active" })
+        .eq("season_id", seasonId)
+        .select(
+          "season_id, name, slug, season_type, start_date, end_date, status, is_default, color, icon, description, planning_cycle_id",
+        )
+        .single();
+
+      if (error) throw new Error(error.message);
+      return data;
+    },
+    onSuccess: (data) => {
+      void emit({
+        event: "season activated",
+        workspace_id: wsId ?? null,
+        actor_id: profileId ?? "",
+        properties: {
+          entity: {
+            entity_type: "season",
+            entity_id: data.season_id,
+            entity_label: data.name,
+          },
+          data: { status: "active" },
+        },
+      });
+      queryClient.invalidateQueries({
+        queryKey: dashboardKeys.seasons(wsId ?? "none"),
+      });
+      toast.success(`${data.name} er nå aktiv!`);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const archiveSeason = useMutation({
+    mutationFn: async (seasonId: string): Promise<Season> => {
+      const { data, error } = await supabase
+        .from("season")
+        .update({ status: "archived" })
+        .eq("season_id", seasonId)
+        .select(
+          "season_id, name, slug, season_type, start_date, end_date, status, is_default, color, icon, description, planning_cycle_id",
+        )
+        .single();
+
+      if (error) throw new Error(error.message);
+      return data;
+    },
+    onSuccess: (data) => {
+      void emit({
+        event: "season archived",
+        workspace_id: wsId ?? null,
+        actor_id: profileId ?? "",
+        properties: {
+          entity: {
+            entity_type: "season",
+            entity_id: data.season_id,
+            entity_label: data.name,
+          },
+          data: { status: "archived" },
+        },
+      });
+      queryClient.invalidateQueries({
+        queryKey: dashboardKeys.seasons(wsId ?? "none"),
+      });
+      toast.success(`${data.name} er arkivert`);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
   return {
     seasons: query.data ?? [],
     isLoading: query.isLoading,
     error: query.error,
     createSeason,
+    activateSeason,
+    archiveSeason,
   };
 }
