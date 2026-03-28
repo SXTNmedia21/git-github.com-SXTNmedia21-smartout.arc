@@ -20,6 +20,8 @@ import type { Json } from "@smartout/supabase";
 import { emit } from "@smartout/telemetry";
 import { useWorkspace } from "@/lib/workspace-context";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
+import { useRegisterTools } from "@/app/walkAi/_components/tool-registry";
+import { useHandbookTools } from "./tools/handbook-tools";
 import { CHAPTERS } from "@/app/dashboard/_components/document-mode/chapters";
 import type { ChapterKey } from "@/app/dashboard/_components/document-mode/chapters";
 import type { SetupWizardState } from "./wizard-state";
@@ -611,6 +613,14 @@ export function HandbookSetupStep({ wizardState }: { wizardState?: SetupWizardSt
   }, [wizardState]);
 
   const completedCount = savedMap.size;
+
+  const savedChaptersArray = useMemo(
+    () => Array.from(savedMap.values()),
+    [savedMap],
+  );
+
+  const handbookTools = useHandbookTools(savedChaptersArray, CHAPTERS.length);
+  useRegisterTools("wizard-setup-handbook", handbookTools);
 
   return (
     <div className="space-y-6">

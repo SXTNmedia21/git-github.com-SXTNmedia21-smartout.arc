@@ -1,6 +1,8 @@
 "use client";
 
 import { Sparkles } from "lucide-react";
+import { useRegisterTools } from "@/app/walkAi/_components/tool-registry";
+import { useWelcomeTools } from "./tools/welcome-tools";
 
 const VALUE_PROPS = [
   {
@@ -21,6 +23,9 @@ const VALUE_PROPS = [
 ];
 
 export function WelcomeStep() {
+  const tools = useWelcomeTools();
+  useRegisterTools("wizard-setup-welcome", tools);
+
   return (
     <div className="space-y-10">
       {/* Intro */}

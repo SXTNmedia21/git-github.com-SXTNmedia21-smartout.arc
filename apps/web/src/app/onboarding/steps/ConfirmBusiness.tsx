@@ -15,6 +15,8 @@ import { Building2, Globe, Mail, Phone, MapPin, Hash } from "lucide-react";
 import type { WizardStepProps } from "@smartout/ui";
 import type { OnboardingConfirmState } from "../types-v2";
 import type { BusinessData } from "../types";
+import { useRegisterTools } from "@/app/walkAi/_components/tool-registry";
+import { useBusinessTools } from "./tools/business-tools";
 
 interface FieldConfig {
   key: keyof BusinessData;
@@ -39,8 +41,13 @@ const FIELDS: FieldConfig[] = [
 export function ConfirmBusiness({
   state,
   updateState,
+  next,
+  back,
   t,
 }: WizardStepProps<OnboardingConfirmState>) {
+  const tools = useBusinessTools(state, updateState, next, back);
+  useRegisterTools("wizard-onboarding-business", tools);
+
   const [localBusiness, setLocalBusiness] = useState(state.business);
 
   function handleFieldChange(key: keyof BusinessData, value: string) {

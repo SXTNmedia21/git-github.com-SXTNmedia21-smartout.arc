@@ -12,4 +12,5 @@ export type {
   WizardState,
   WalkAiHelper,
   WalkAiDataAttributes,
+  WizardContextPayload,
 } from "./types";
