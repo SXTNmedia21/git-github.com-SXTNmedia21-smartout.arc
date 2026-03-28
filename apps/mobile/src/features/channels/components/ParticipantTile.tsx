@@ -7,13 +7,18 @@
  * Supports small/large sizes, mic-off badge, AI badge, and accessibility labels.
  */
 import React from "react";
-import { View, Text } from "react-native";
+import { View, Text, Platform } from "react-native";
 import { MicOff } from "lucide-react-native";
 import { createStyles } from "@/theme";
 import Animated, { useAnimatedStyle, withSpring } from "react-native-reanimated";
 import type { ParticipantTrackInfo } from "@/hooks/use-call-tracks";
-import { VideoView } from "@livekit/react-native";
 import { strings } from "@/constants/strings";
+
+// VideoView uses native WebRTC — only available on iOS/Android
+const VideoView =
+  Platform.OS !== "web"
+    ? require("@livekit/react-native").VideoView
+    : ({ style }: { style?: unknown }) => <View style={style as never} />;
 
 type Props = {
   participant: ParticipantTrackInfo;
