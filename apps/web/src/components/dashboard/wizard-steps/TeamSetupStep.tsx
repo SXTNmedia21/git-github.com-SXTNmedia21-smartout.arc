@@ -88,8 +88,8 @@ function InviteRowCard({
 
   // Suggest positions based on selected department using industry defaults
   const selectedDept = departments.find((d) => d.department_id === row.departmentId);
-  const suggestedNames = selectedDept ? getPositionsForDepartment(selectedDept.name) : [];
-  const suggestedSet = new Set(suggestedNames.map((n) => n.toLowerCase()));
+  const suggestedTemplates = selectedDept ? getPositionsForDepartment(selectedDept.name) : [];
+  const suggestedSet = new Set(suggestedTemplates.map((t) => t.name.toLowerCase()));
 
   // Sort: DB positions matching department suggestions first, then the rest
   const sortedPositions = useMemo(() => {
