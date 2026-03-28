@@ -208,6 +208,10 @@
     "department_positions": "Stillinger",
     "active": "Aktiv",
     "inactive": "Inaktiv",
+    "task_loading": "Laster oppgave...",
+    "task_load_failed": "Kunne ikke laste oppgavekontekst",
+    "task_retry": "Prøv igjen",
+    "task_open_dashboard": "Åpne dashboard",
     "task_not_found": "Oppgave ikke funnet",
     "coming_soon": "Kommer snart"
   }

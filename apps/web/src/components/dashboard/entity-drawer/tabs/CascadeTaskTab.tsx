@@ -30,11 +30,11 @@ export function CascadeTaskTab({ taskId }: { taskId: string }) {
   const { t } = useTranslation("dashboard");
   const router = useRouter();
   const { closeDrawer } = useEntityDrawer();
-  const { data } = useCascadeTasks();
+  const { data, isLoading, isError, refetch } = useCascadeTasks();
 
   const task: CascadeTask | undefined = data?.groups
     .flatMap((g) => g.tasks)
-    .find((t) => t.id === taskId);
+    .find((t) => String(t.id) === String(taskId));
 
   const handleNavigate = useCallback(() => {
     if (!task) return;
@@ -42,10 +42,47 @@ export function CascadeTaskTab({ taskId }: { taskId: string }) {
     router.push(task.href);
   }, [task, closeDrawer, router]);
 
-  if (!task) {
+  const handleOpenDashboard = useCallback(() => {
+    closeDrawer();
+    router.push("/dashboard");
+  }, [closeDrawer, router]);
+
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12 text-sm text-white/30">
-        {t("entity_drawer.task_not_found")}
+        {t("entity_drawer.task_loading")}
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="space-y-3 p-4">
+        <div className="rounded-xl bg-white/[0.04] p-3 text-xs text-white/70">
+          {t("entity_drawer.task_load_failed")}
+        </div>
+        <button
+          onClick={() => void refetch()}
+          className="flex w-full items-center justify-center gap-2 rounded-[10px] border border-white/10 px-4 py-2.5 text-xs font-semibold text-white/80 transition-colors hover:bg-white/[0.06]"
+        >
+          {t("entity_drawer.task_retry")}
+        </button>
+      </div>
+    );
+  }
+
+  if (!task) {
+    return (
+      <div className="space-y-3 p-4">
+        <div className="rounded-xl bg-white/[0.04] p-3 text-xs text-white/70">
+          {t("entity_drawer.task_not_found")}
+        </div>
+        <button
+          onClick={handleOpenDashboard}
+          className="flex w-full items-center justify-center gap-2 rounded-[10px] border border-white/10 px-4 py-2.5 text-xs font-semibold text-white/80 transition-colors hover:bg-white/[0.06]"
+        >
+          {t("entity_drawer.task_open_dashboard")}
+        </button>
       </div>
     );
   }

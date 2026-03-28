@@ -16,11 +16,11 @@ tags: [dashboard, worktrees, tracking]
 | #    | Branch                         | Module     | Status      | Progress                                                      | Blockers | Health |
 | ---- | ------------------------------ | ---------- | ----------- | ------------------------------------------------------------- | -------- | ------ |
 | wt-1 | `feat/drift-insights`          | operations | in_progress | just started                                                  | —        | clean  |
-| wt-2 | `feat/season-operations-loop`  | operations | in_progress | just started — WS-1 Module Zero                               | —        | clean  |
+| wt-2 | —                              | —          | free        | —                                                             | —        | —      |
 | wt-3 | `feat/emma-arena-views`        | walkAi     | parked      | Spec + settings persistence done. Implementation not started. | —        | clean  |
 | wt-4 | `feat/training-agent-pipeline` | training   | in_progress | just started — WS-2 Module Zero                               | —        | clean  |
-| wt-5 | `feat/sjohuset-simulator`      | simulation | parked      | 10 commits. PR #72 (diverged). Parked.                        | —        | clean  |
-| wt-7 | `feat/dynamic-landing-engine`  | landing    | in_progress | just started                                                  | —        | clean  |
+| wt-5 | `feat/sjohuset-simulator`      | simulation | in_progress | 10 commits. Rebased on development.                           | —        | clean  |
+| wt-7 | `feat/dynamic-landing-engine`  | landing    | paused      | just started                                                  | —        | clean  |
 
 ## Parked Branches (no worktree)
 
@@ -53,12 +53,14 @@ tags: [dashboard, worktrees, tracking]
 | wt-1     | drift-insights          | `docs/journeys/JOURNEY-drift-insights.md`          | missing |
 | wt-2     | season-operations-loop  | `docs/journeys/JOURNEY-season-operations-loop.md`  | missing |
 | wt-4     | training-agent-pipeline | `docs/journeys/JOURNEY-training-agent-pipeline.md` | missing |
+| wt-5     | sjohuset-simulator      | `docs/journeys/JOURNEY-sjohuset-simulator.md`      | missing |
 | wt-7     | dynamic-landing-engine  | `docs/journeys/JOURNEY-dynamic-landing-engine.md`  | missing |
 
 ## Recent Closures
 
 | Date       | Feature                      | Branch                                                             | Merged To   |
 | ---------- | ---------------------------- | ------------------------------------------------------------------ | ----------- |
+| 2026-03-28 | season-operations-loop       | `feat/season-operations-loop`                                      | development |
 | 2026-03-28 | financial-esp-ux             | `feat/financial-esp-ux`                                            | development |
 | 2026-03-28 | gamification-foundation      | `feat/gamification-foundation`                                     | development |
 | 2026-03-28 | komm-migration               | `feat/komm-migration`                                              | development |
@@ -125,6 +127,8 @@ tags: [dashboard, worktrees, tracking]
 
 ## Session History
 
+| 2026-03-28 | sjohuset-simulator | resumed | wt-5, module: simulation. Rebased on development, 10 commits. |
+| 2026-03-28 | dynamic-landing-engine | session ended | session ended |
 | 2026-03-28 | dynamic-landing-engine | started | wt-7, module: landing. P1 plan: 14 tasks. Spec + ADR-0064 + council review done. |
 | 2026-03-28 | gamification-foundation | closed | WS-1 Tasks 1-7 complete. 8 commits, 854 lines added. Season PLAY, 3 cron EFs, 5 migrations. wt-6 freed. |
 | 2026-03-28 | gamification-foundation | started | wt-6, module: gamification. WS-3 Module Zero (Tasks 15-17). Blocked on WS-1 Task 2 (season activation trigger). |

@@ -6,7 +6,7 @@
  * Subscribes to realtime changes on time_entry for instant updates.
  */
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
@@ -45,6 +45,31 @@ function formatDuration(minutes: number): string {
   return h > 0 ? `${h}t ${m}m` : `${m}m`;
 }
 
+/**
+ * Parses shift start values that may be full timestamps or time-only strings.
+ *
+ * Why: schedule_shift.start_time can come as either ISO datetime or HH:mm(:ss).
+ * We need one robust parser to avoid "Invalid Date" in live widgets.
+ *
+ * @param rawStartTime - Raw start_time value from schedule_shift.
+ * @param shiftDate - Shift date in YYYY-MM-DD format.
+ * @returns Parsed Date, or null when value is not parseable.
+ */
+function parseShiftStart(rawStartTime: string | null, shiftDate: string): Date | null {
+  if (!rawStartTime) return null;
+
+  // Time-only value (e.g. 09:30 or 09:30:00) — combine with shift date.
+  if (/^\d{2}:\d{2}(:\d{2})?$/.test(rawStartTime)) {
+    const withSeconds = rawStartTime.length === 5 ? `${rawStartTime}:00` : rawStartTime;
+    const parsed = new Date(`${shiftDate}T${withSeconds}`);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  // Full timestamp value.
+  const parsed = new Date(rawStartTime);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 export function useLiveShifts() {
   const { workspace } = useWorkspace();
   const queryClient = useQueryClient();
@@ -52,7 +77,10 @@ export function useLiveShifts() {
   const workspaceId = workspace.workspace_id;
   const today = new Date().toISOString().slice(0, 10);
 
-  const queryKey = ["live-shifts", workspaceId, today];
+  const queryKey = useMemo(
+    () => ["live-shifts", workspaceId, today] as const,
+    [workspaceId, today],
+  );
 
   const query = useQuery<LiveShiftSummary>({
     queryKey,
@@ -114,9 +142,11 @@ export function useLiveShifts() {
           });
         } else {
           // No time_entry — waiting or late
-          const shiftStart = new Date(shift.start_time).getTime();
-          const minutesLate = Math.round((now - shiftStart) / 60_000);
-          const isLate = minutesLate > 10; // Use default threshold
+          const shiftStart = parseShiftStart(shift.start_time, today);
+          const shiftStartMs = shiftStart?.getTime() ?? null;
+          const minutesLate =
+            shiftStartMs !== null ? Math.round((now - shiftStartMs) / 60_000) : undefined;
+          const isLate = typeof minutesLate === "number" && minutesLate > 10; // Default threshold
 
           result.push({
             shiftId: shift.schedule_shift_id,
@@ -124,11 +154,13 @@ export function useLiveShifts() {
             initials: getInitials(name),
             role: shift.role ?? "",
             status: isLate ? "late" : "waiting",
-            startTime: new Date(shift.start_time).toLocaleTimeString("nb-NO", {
-              hour: "2-digit",
-              minute: "2-digit",
-            }),
-            minutesLate: isLate ? minutesLate : undefined,
+            startTime: shiftStart
+              ? shiftStart.toLocaleTimeString("nb-NO", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : undefined,
+            minutesLate: isLate && typeof minutesLate === "number" ? minutesLate : undefined,
           });
         }
       }

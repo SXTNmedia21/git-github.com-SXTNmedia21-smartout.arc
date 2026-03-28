@@ -208,6 +208,10 @@
     "department_positions": "Positions",
     "active": "Active",
     "inactive": "Inactive",
+    "task_loading": "Loading task...",
+    "task_load_failed": "Could not load task context",
+    "task_retry": "Retry",
+    "task_open_dashboard": "Open dashboard",
     "task_not_found": "Task not found",
     "coming_soon": "Coming soon"
   }

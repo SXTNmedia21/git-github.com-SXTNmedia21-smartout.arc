@@ -65,6 +65,9 @@ const ChangeProposalsPanel = lazy(() =>
 const FinancialCloseSettings = lazy(() =>
   import("./financial-close-settings").then((m) => ({ default: m.FinancialCloseSettings })),
 );
+const ShiftLockPolicySettings = lazy(() =>
+  import("./shift-lock-policy-settings").then((m) => ({ default: m.ShiftLockPolicySettings })),
+);
 
 type Tab = { id: string; label: string; icon: LucideIcon };
 type Section = { title: string; tabs: Tab[] };

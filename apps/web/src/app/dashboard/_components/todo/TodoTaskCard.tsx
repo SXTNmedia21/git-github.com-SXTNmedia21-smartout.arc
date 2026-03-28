@@ -117,23 +117,29 @@ export function TodoTaskCard({ task, index }: TodoTaskCardProps) {
       tabIndex={0}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
-      className={`flex cursor-pointer items-center gap-2.5 rounded-[10px] border-l-[3px] px-3 py-2 transition-all duration-200 hover:translate-x-0.5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none ${borderClass} bg-transparent hover:bg-card/40`}
+      className={`group focus-visible:ring-ring flex cursor-pointer items-center gap-2.5 rounded-[10px] border-l-[3px] px-3 py-2 transition-all duration-200 hover:translate-x-0.5 focus-visible:ring-2 focus-visible:outline-none ${borderClass} hover:bg-card/40 bg-transparent`}
     >
       <Icon className={`h-3.5 w-3.5 shrink-0 ${iconClass}`} />
       <span className="text-foreground min-w-0 flex-1 truncate text-xs font-medium">
         {interpolateParams(t(resolveKey(task.title_key)), task.title_params)}
       </span>
-      <span className={`shrink-0 rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ${
-        task.urgency === "critical"
-          ? "bg-destructive/10 text-destructive"
-          : task.urgency === "should"
-            ? "bg-warning/10 text-warning"
-            : "bg-muted text-muted-foreground"
-      }`}>
+      <span
+        className={`shrink-0 rounded-md px-1.5 py-0.5 text-[9px] font-bold tracking-wide uppercase ${
+          task.urgency === "critical"
+            ? "bg-destructive/10 text-destructive"
+            : task.urgency === "should"
+              ? "bg-warning/10 text-warning"
+              : "bg-muted text-muted-foreground"
+        }`}
+      >
         {t(`entity_drawer.urgency_${task.urgency}`)}
       </span>
       <span className="sr-only">
-        {task.urgency === "critical" ? "High urgency" : task.urgency === "should" ? "Medium urgency" : "Low urgency"}
+        {task.urgency === "critical"
+          ? "High urgency"
+          : task.urgency === "should"
+            ? "Medium urgency"
+            : "Low urgency"}
       </span>
       <ChevronRight className="text-muted-foreground h-3 w-3 shrink-0 opacity-0 transition-opacity group-hover:opacity-100" />
     </motion.div>
