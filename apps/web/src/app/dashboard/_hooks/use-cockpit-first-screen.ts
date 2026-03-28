@@ -178,7 +178,10 @@ function toOperationalRisks(
 export function useCockpitFirstScreen(
   options: UseCockpitFirstScreenOptions = {},
 ): CockpitFirstScreenReadModel {
-  const selectedRoles = options.selectedRoles ?? [];
+  const selectedRoles = useMemo<string[]>(
+    () => options.selectedRoles ?? [],
+    [options.selectedRoles],
+  );
   const feedLimit = options.feedLimit ?? DEFAULT_FEED_LIMIT;
   const feedCategory = options.feedFilters?.category ?? DEFAULT_FEED_FILTERS.category;
   const feedTimeRange = options.feedFilters?.timeRange ?? DEFAULT_FEED_FILTERS.timeRange;

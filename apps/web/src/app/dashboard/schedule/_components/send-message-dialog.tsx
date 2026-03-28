@@ -8,7 +8,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Send, MessageSquare, Bell, Mail, Users, Shield, UserCheck } from "lucide-react";
+import { Send, MessageSquare, Users, Shield, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -29,7 +29,7 @@ import type { ScheduleEmployee } from "../_hooks/use-employees";
 
 // ── Types ───────────────────────────────────────────────────
 
-type Channel = "sms" | "push" | "email";
+type Channel = "sms";
 type Audience = "all" | "leaders" | "specific";
 
 type SendMessageDialogProps = {
@@ -46,10 +46,10 @@ type SendMessageDialogProps = {
 
 /**
  * Full-featured "Send melding" dialog.
- * Step 1: Pick channels (SMS, Push, Email)
+ * Step 1: Confirm channel (SMS only for this endpoint)
  * Step 2: Pick audience (Alle på vakt, Ledere, Spesifikke ansatte)
  * Step 3: Write message
- * Step 4: Send (mock)
+ * Step 4: Send
  */
 export function SendMessageDialog({
   open,
@@ -62,7 +62,7 @@ export function SendMessageDialog({
   employees,
   onSent,
 }: SendMessageDialogProps) {
-  const [channels, setChannels] = useState<Set<Channel>>(new Set(["push"]));
+  const [channels, setChannels] = useState<Set<Channel>>(new Set(["sms"]));
   const [audience, setAudience] = useState<Audience>("all");
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<Set<string>>(new Set());
   const [message, setMessage] = useState("");
@@ -96,18 +96,6 @@ export function SendMessageDialog({
     return selectedEmployeeIds.size;
   }, [audience, dayEmployees.length, leaderEmployees.length, selectedEmployeeIds.size]);
 
-  function toggleChannel(ch: Channel) {
-    setChannels((prev) => {
-      const next = new Set(prev);
-      if (next.has(ch)) {
-        next.delete(ch);
-      } else {
-        next.add(ch);
-      }
-      return next;
-    });
-  }
-
   function toggleEmployee(id: string) {
     setSelectedEmployeeIds((prev) => {
       const next = new Set(prev);
@@ -123,13 +111,13 @@ export function SendMessageDialog({
   useEffect(() => {
     if (!open) return;
     setMessage(initialMessage ?? "");
-    setChannels(new Set(initialMessage ? ["sms"] : ["push"]));
+    setChannels(new Set(["sms"]));
     setAudience("all");
     setSelectedEmployeeIds(new Set());
   }, [open, initialMessage]);
 
   function resetForm() {
-    setChannels(new Set(["push"]));
+    setChannels(new Set(["sms"]));
     setAudience("all");
     setSelectedEmployeeIds(new Set());
     setMessage("");
@@ -164,16 +152,13 @@ export function SendMessageDialog({
         throw new Error(payload.error ?? "Kunne ikke sende melding");
       }
 
-      const channelLabels = Array.from(channels)
-        .map((ch) => (ch === "sms" ? "SMS" : ch === "push" ? "Push" : "E-post"))
-        .join(", ");
       const smsResult = payload.sms;
       if (smsResult && channels.has("sms")) {
         toast.success(
-          `Melding sendt via ${channelLabels}. SMS: ${smsResult.sent} sendt, ${smsResult.failed} feilet, ${smsResult.skippedNoPhone} uten nummer.`,
+          `Melding sendt via SMS. ${smsResult.sent} sendt, ${smsResult.failed} feilet, ${smsResult.skippedNoPhone} uten nummer.`,
         );
       } else {
-        toast.success(`Melding sendt via ${channelLabels} til ${recipientCount} mottakere`);
+        toast.success(`Melding sendt via SMS til ${recipientCount} mottakere`);
       }
 
       onSent?.(message, audience, recipientCount);
@@ -218,24 +203,16 @@ export function SendMessageDialog({
             <Label className="text-xs font-bold tracking-wider uppercase">Kanaler</Label>
             <div className="flex gap-2">
               <ChannelToggle
-                icon={<Bell className="h-3.5 w-3.5" />}
-                label="Push"
-                checked={channels.has("push")}
-                onToggle={() => toggleChannel("push")}
-              />
-              <ChannelToggle
                 icon={<MessageSquare className="h-3.5 w-3.5" />}
                 label="SMS"
                 checked={channels.has("sms")}
-                onToggle={() => toggleChannel("sms")}
-              />
-              <ChannelToggle
-                icon={<Mail className="h-3.5 w-3.5" />}
-                label="E-post"
-                checked={channels.has("email")}
-                onToggle={() => toggleChannel("email")}
+                onToggle={() => undefined}
+                disabled
               />
             </div>
+            <p className="text-muted-foreground text-xs">
+              Kun SMS er tilgjengelig for sending akkurat na.
+            </p>
           </div>
 
           {/* Audience selection */}
@@ -343,21 +320,24 @@ function ChannelToggle({
   label,
   checked,
   onToggle,
+  disabled = false,
 }: {
   icon: React.ReactNode;
   label: string;
   checked: boolean;
   onToggle: () => void;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onToggle}
+      disabled={disabled}
       className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-all ${
         checked
           ? "border-primary/30 bg-primary/10 text-primary"
           : "border-border text-muted-foreground hover:bg-muted/50"
-      }`}
+      } ${disabled ? "cursor-default" : ""}`}
     >
       {icon}
       {label}
