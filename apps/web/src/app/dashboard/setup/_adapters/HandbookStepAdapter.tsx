@@ -14,8 +14,9 @@ import type { SetupWizardState } from "@/components/dashboard/wizard-steps/wizar
 import { EMPTY_EXTRACTION } from "@/components/dashboard/wizard-steps/wizard-state";
 import { HandbookSetupStep } from "@/components/dashboard/wizard-steps/HandbookSetupStep";
 import { useIndustryPackage } from "@/lib/industry/use-industry-package";
+import { SetupStepHeader } from "../_components/SetupStepHeader";
 
-export function HandbookStepAdapter({ state }: WizardStepProps<SetupState>) {
+export function HandbookStepAdapter({ state, t }: WizardStepProps<SetupState>) {
   const { package: industryPackage } = useIndustryPackage();
 
   /** Reconstruct the legacy wizard state shape for handbook generation */
@@ -37,6 +38,13 @@ export function HandbookStepAdapter({ state }: WizardStepProps<SetupState>) {
 
   return (
     <div className="mx-auto w-full max-w-2xl px-8 py-12">
+      <SetupStepHeader
+        stepId="handbook"
+        stepIndex={8}
+        totalSteps={9}
+        t={t}
+        botssonTip={industryPackage.botsson?.handbook}
+      />
       <HandbookSetupStep wizardState={wizardState} />
     </div>
   );

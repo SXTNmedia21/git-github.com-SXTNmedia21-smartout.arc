@@ -70,6 +70,7 @@ export function WizardShell<TState extends Record<string, unknown>>({
     goTo: rawGoTo,
     wizardState,
     totalSteps,
+    loading,
   } = useWizardState(definition);
 
   const walkai = useWizardWalkAi(definition.id, currentStep?.id ?? "");
@@ -106,10 +107,10 @@ export function WizardShell<TState extends Record<string, unknown>>({
     onValidationFail,
   ]);
 
-  const handleBack = useCallback(() => {
+  const handleBack = useCallback(async () => {
     setValidationErrors([]);
     const fromStep = currentStep?.id ?? "";
-    rawBack();
+    await rawBack();
     const prevIndex = currentStepIndex - 1;
     const toStep = definition.steps[prevIndex]?.id ?? "";
     onStepBack?.(fromStep, toStep);
@@ -138,6 +139,15 @@ export function WizardShell<TState extends Record<string, unknown>>({
       onStepChange?.(currentStep.id, currentStepIndex);
     }
   }, [currentStep, currentStepIndex, onStepChange]);
+
+  /* Show a centered spinner while loadState is resolving */
+  if (loading) {
+    return (
+      <div className="flex min-h-[100dvh] items-center justify-center">
+        <div className="border-foreground/20 border-t-foreground h-8 w-8 animate-spin rounded-full border-2" />
+      </div>
+    );
+  }
 
   if (!currentStep) return null;
 

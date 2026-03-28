@@ -1,7 +1,7 @@
 // packages/ui/src/wizard/useWizardState.ts
 "use client";
 
-import { useState, useCallback, useRef, useMemo } from "react";
+import { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import type { WizardDefinition, WizardState } from "./types";
 
 export function useWizardState<TState extends Record<string, unknown>>(
@@ -10,8 +10,40 @@ export function useWizardState<TState extends Record<string, unknown>>(
   const [data, setData] = useState<TState>(definition.initialState);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(!!definition.loadState);
+  const loadAttempted = useRef(false);
   const startedAt = useRef(Date.now());
   const stepEnteredAt = useRef(Date.now());
+
+  /* Load persisted state on mount (guarded against React strict mode double-fire) */
+  useEffect(() => {
+    if (!definition.loadState || loadAttempted.current) return;
+    loadAttempted.current = true;
+
+    definition
+      .loadState()
+      .then((saved) => {
+        if (!saved) {
+          setLoading(false);
+          return;
+        }
+
+        const { _initialStepIndex, ...rest } = saved as Partial<TState> & {
+          _initialStepIndex?: number;
+        };
+
+        setData((prev) => ({ ...prev, ...rest }));
+
+        if (typeof _initialStepIndex === "number" && _initialStepIndex >= 0) {
+          setCurrentStepIndex(_initialStepIndex);
+        }
+
+        setLoading(false);
+      })
+      .catch(() => {
+        setLoading(false);
+      });
+  }, []);
 
   const currentStep = definition.steps[currentStepIndex];
   const isFirst = currentStepIndex === 0;
@@ -39,6 +71,9 @@ export function useWizardState<TState extends Record<string, unknown>>(
       }
     }
 
+    /* Let the step persist or clean up before we advance */
+    await step.onStepLeave?.(data);
+
     setCompletedSteps((prev) => new Set(prev).add(step.id));
 
     if (currentStepIndex < definition.steps.length - 1) {
@@ -62,12 +97,14 @@ export function useWizardState<TState extends Record<string, unknown>>(
     }
   }, [currentStepIndex, definition.steps]);
 
-  const back = useCallback(() => {
+  const back = useCallback(async () => {
     if (currentStepIndex > 0) {
+      const step = definition.steps[currentStepIndex];
+      await step?.onStepLeave?.(data);
       setCurrentStepIndex((i) => i - 1);
       stepEnteredAt.current = Date.now();
     }
-  }, [currentStepIndex]);
+  }, [currentStepIndex, data, definition.steps]);
 
   const goTo = useCallback(
     (stepId: string) => {
@@ -99,6 +136,7 @@ export function useWizardState<TState extends Record<string, unknown>>(
     completedSteps,
     isFirst,
     isLast,
+    loading,
     next,
     skip,
     back,
