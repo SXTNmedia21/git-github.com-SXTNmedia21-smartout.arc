@@ -120,7 +120,7 @@ Denne funksjonen eksporteres fra `packages/ai/` og importeres av `apps/landing/`
 
 TypeScript definerer **formen** (types, section keys, variant keys). Database inneholder **innholdet** (tekst, rekkefølge, varianter). Validering via Zod-schema ved skriving.
 
-Passer med eksisterende `landing_config` + `landing_config_version` + ADR-0046.
+Superseder ADR-0046 (block-based builder). Bruker eksisterende `landing_config` + `landing_config_version` tabeller, men erstatter block-modellen med section-engine. Krever ADR-0057.
 
 ### TypeScript types (packages/types/src/landing.ts)
 
@@ -254,14 +254,18 @@ Footer
 
 ## 5. Scroll & Parallax System
 
-### Beslutning: GSAP ScrollTrigger + Framer Motion hybrid
+### Beslutning: Framer Motion forst, GSAP betinget (ADR-0058)
+
+Framer Motion er primærbiblioteket. GSAP ScrollTrigger legges til KUN hvis FM-prototype viser at `useScroll`/`useTransform` ikke kan levere pin + scrub-kvaliteten vi trenger. Hvis GSAP trengs, skrives ADR-0058 med bevis.
+
+**Domene-deling (hvis GSAP trengs):**
 
 | Domene          | Bibliotek          | Ansvar                                                      |
 | --------------- | ------------------ | ----------------------------------------------------------- |
 | Scroll-kontroll | GSAP ScrollTrigger | Parallax (scrub), pin, momentum-kontroll                    |
 | UI-animasjon    | Framer Motion      | Entree, exit, crossfade, micro-interactions, spring physics |
 
-Delingen er ren — to biblioteker som aldri sloss om samme domene. GSAP eier scroll-bindingen, Framer Motion eier komponent-animasjon.
+**Boundary rule:** GSAP eier transforms pa layer containers (`.parallax-l0`, `.parallax-l2`, pinned wrappers). Framer Motion eier transforms pa alle elementer INNE I layer containers. Ingen element ma ha bade GSAP tween og Framer Motion `animate`/`layout` pa transforms samtidig.
 
 ### Tre parallax-lag
 
@@ -510,11 +514,11 @@ const defaultLanding: PageConfig = {
       type: "retriever",
       key: "qualifier",
       question: {
-        heading: "Hva driver du?",
+        heading: "landing:qualifier.heading", // i18n key → "Hva driver du?"
         options: [
           {
             id: "restaurant",
-            label: "Restaurant",
+            label: "landing:qualifier.restaurant", // → "Restaurant"
             icon: "UtensilsCrossed",
             scores: {
               scheduling: 0.5,
@@ -527,7 +531,7 @@ const defaultLanding: PageConfig = {
           },
           {
             id: "hotel",
-            label: "Hotell",
+            label: "landing:qualifier.hotel",
             icon: "Building2",
             scores: {
               scheduling: 0.3,
@@ -540,7 +544,7 @@ const defaultLanding: PageConfig = {
           },
           {
             id: "cafe",
-            label: "Kafe",
+            label: "landing:qualifier.cafe",
             icon: "Coffee",
             scores: {
               scheduling: 0.4,
@@ -553,7 +557,7 @@ const defaultLanding: PageConfig = {
           },
           {
             id: "bar",
-            label: "Bar / Nattklubb",
+            label: "landing:qualifier.bar",
             icon: "Wine",
             scores: {
               scheduling: 0.5,
@@ -574,8 +578,8 @@ const defaultLanding: PageConfig = {
       type: "retriever",
       key: "pain_selector",
       question: {
-        heading: "Kjenner du deg igjen?",
-        subtitle: "Trykk pa det som treffer.",
+        heading: "landing:painSelector.heading", // → "Kjenner du deg igjen?"
+        subtitle: "landing:painSelector.subtitle", // → "Trykk pa det som treffer."
         options: "DYNAMIC",
         mode: "multi",
         weights: "diminishing",
@@ -763,11 +767,12 @@ apps/landing/src/
       SectionRenderer.tsx       -- Dispatcher: presenter -> PresenterShell, retriever -> RetrieverShell
       PresenterShell.tsx        -- Wrapper: variant selection + parallax layer + entree animation
       RetrieverShell.tsx        -- Wrapper: sticky container + scroll observer + score output
-      ParallaxProvider.tsx      -- GSAP ScrollTrigger setup, 3-layer management
+      ParallaxProvider.tsx      -- Scroll-linked layers (FM useScroll/useTransform, GSAP betinget)
       ProfileContext.tsx        -- React Context for VisitorProfile
       useProfile.ts             -- Hook: read/write profile, trigger re-evaluation
       useAssembler.ts           -- Hook: evaluates redirectRules, returns resolved section list
-      useParallax.ts            -- Hook: GSAP scrub bindings, touch detection, layer offsets
+      useParallax.ts            -- Hook: FM useScroll/useTransform bindings, touch detection, layer offsets
+      useLandingMotion.ts       -- Hook: shared reduced-motion gate for FM (+ GSAP hvis brukt)
     sections/                   -- En komponent per seksjon
       Hero.tsx
       Qualifier.tsx             -- Retriever: industry selector
@@ -833,23 +838,130 @@ Server-rendrer universell variant. Personalisering skjer client-side etter hydra
 
 ---
 
-## 15. GSAP ScrollTrigger — spesifikt bruk
+## 15. Scroll-implementasjon — FM forst, GSAP betinget
 
-| Feature             | Desktop                                                          | Mobil                                 |
-| ------------------- | ---------------------------------------------------------------- | ------------------------------------- |
-| L0 parallax         | `scrub: true`, speed 0.3x                                        | Disabled — fixed position med pulsing |
-| L2 parallax         | `scrub: true`, speed 1.3–1.5x                                    | Disabled — L2 fjernet                 |
-| Retriever pin       | GSAP `pin: true` (valgfritt, starter som disabled for soft gate) | CSS `position: sticky`                |
-| Section entrance    | Framer Motion `whileInView`                                      | Framer Motion `whileInView`           |
-| Momentum etter svar | GSAP scroll-to med easing                                        | Native scroll momentum                |
+### Phase 1: Framer Motion only
 
-### GSAP lisens
+| Feature             | Desktop                                        | Mobil                             |
+| ------------------- | ---------------------------------------------- | --------------------------------- |
+| L0 parallax         | `useScroll` + `useTransform` (0.3x offset)     | Fixed position, pulsing animation |
+| L2 parallax         | `useScroll` + `useTransform` (1.3–1.5x offset) | Fjernet helt                      |
+| Retriever pin       | CSS `position: sticky` inne i 100vh container  | CSS `position: sticky`            |
+| Section entrance    | `whileInView` med spring physics               | `whileInView` med spring physics  |
+| Momentum etter svar | Native scroll                                  | Native scroll                     |
 
-GSAP gikk til fri lisens (no-charge) i 2024 for alle bruk inkludert kommersielt. ScrollTrigger er inkludert. Ingen lisenskostnad.
+### Phase 3 (betinget): GSAP ScrollTrigger
+
+Kun hvis FM-prototypen viser mangler — spesifikt:
+
+- Pin-during-scroll (seksjoner som "henger" mens scroll fortsetter)
+- Timeline-synkronisert scrub (animasjon koblet 1:1 til scroll-posisjon)
+- Momentum-kontroll etter retriever-svar
+
+Hvis GSAP trengs: skriv ADR-0058 med bevis (FM-prototype vs GSAP-prototype sammenligning).
+
+### GSAP lisens (for referanse)
+
+GSAP gikk til fri lisens (no-charge) i 2024 for alle bruk inkludert kommersielt. ScrollTrigger er inkludert.
 
 ---
 
-## 16. Beslutningslogg
+## 16. Agent System Boundary
+
+Landing engine er en **klient-side markedsforing-runtime**. Den har INGEN kobling til Smartouts agent-system.
+
+| Grense     | Landing Engine                                 | Agent System                                       |
+| ---------- | ---------------------------------------------- | -------------------------------------------------- |
+| Kjoring    | Client-side React state                        | Server-side, authenticated, workspace-scoped       |
+| Profil     | `VisitorProfile` — anonym, ephemeral           | `AgentContext` — autentisert, workspace-isolert    |
+| Persistens | Ingen (React context, forsvinner ved refresh)  | `engine_memory`, `engine_sessions` (RLS-beskyttet) |
+| Session ID | `landing_session_id` (PostHog/klient-generert) | `engine_sessions.id` (UUID, DB-backed)             |
+| Voice demo | Standalone Ultravox med statisk prompt         | Agent pipeline via Stage Engine                    |
+| Scoring    | Deterministisk dot-product                     | LLM-basert intent classification                   |
+
+**Regler:**
+
+- Ingen kall til Stage Engine endpoints (`/agent/chat`, `/sessions`)
+- Ingen opprettelse av `engine_sessions` rader
+- Ingen skriving til `engine_memory`
+- Voice demo (S12) bruker standalone Ultravox, IKKE agent pipeline
+- `landing_session_id` er distinkt fra `engine_sessions.id`
+- Fremtidig ML-personalisering gar IKKE gjennom AI router — separat lightweight endpoint
+
+Hvis noen foreslaar a "koble landing til agent-systemet" — svaret er nei. Ulike trust boundaries, ulike persistensmodeller, ulike brukskontekster.
+
+---
+
+## 17. Redirect Rule Precedence
+
+Redirect rules evalueres sekvensielt. Ved konflikt vinner **mest spesifikk regel**.
+
+### Presedensregler
+
+1. **Score-baserte regler** vinner over **industry-baserte regler** (score er mer spesifikt enn bransje)
+2. **Skip** vinner over **reorder** (hvis en seksjon skal skippes OG reorderes, skip vinner)
+3. Ved to regler pa samme presedense: **forste regel i listen** vinner
+
+### Eksempel: Bar med hoy compliance-score
+
+```
+Regel 1: industry == "bar" → skip feature_haccp
+Regel 2: scores.compliance > 0.8 → reorder feature_haccp after action_grid
+```
+
+Bar har aldri `scores.compliance > 0.8` fordi:
+
+- Bar industry seed-score for compliance = 0.3
+- Bar Pain Selector har IKKE compliance-kort (3 kort: tillegg, gjennomtrekk, topper)
+- Scores.compliance forblir 0.3 — aldri over 0.8
+
+Men HVIS en fremtidig config gir bar compliance-kort: **skip vinner** (regel #2 ovenfor).
+
+### Implementasjon
+
+```typescript
+function resolveRedirects(
+  sections: SectionConfig[],
+  rules: RedirecterRule[],
+  profile: VisitorProfile,
+): SectionConfig[] {
+  // Sorter: score-baserte forst, deretter industry-baserte
+  const sorted = rules.sort((a, b) => {
+    const aIsScore = a.condition.field.startsWith("scores.");
+    const bIsScore = b.condition.field.startsWith("scores.");
+    if (aIsScore && !bIsScore) return -1;
+    if (!aIsScore && bIsScore) return 1;
+    return 0;
+  });
+
+  const skipped = new Set<string>();
+  let result = [...sections];
+
+  for (const rule of sorted) {
+    if (!evaluateCondition(rule.condition, profile)) continue;
+
+    switch (rule.action.type) {
+      case "skip":
+        rule.action.sections.forEach((s) => skipped.add(s));
+        break;
+      case "reorder":
+        if (skipped.has(rule.action.move)) break; // skip vinner
+        result = moveSection(result, rule.action.move, rule.action.after);
+        break;
+      case "inject":
+        if (skipped.has(rule.action.section.key)) break;
+        result = injectAfter(result, rule.action.section, rule.action.after);
+        break;
+    }
+  }
+
+  return result.filter((s) => !skipped.has(s.key));
+}
+```
+
+---
+
+## 18. Beslutningslogg
 
 | #   | Beslutning                                     | Alternativ                  | Begrunnelse                                                              |
 | --- | ---------------------------------------------- | --------------------------- | ------------------------------------------------------------------------ |
@@ -875,12 +987,12 @@ GSAP gikk til fri lisens (no-charge) i 2024 for alle bruk inkludert kommersielt.
 
 ### Council-betingelser (fra review 2026-03-28)
 
-| #   | Betingelse                                             | Status  |
-| --- | ------------------------------------------------------ | ------- |
-| C1  | Skriv ADR-0057 som superseder ADR-0046                 | Pending |
-| C2  | Fas implementasjonen i 4 faser                         | Pending |
-| C3  | GSAP ikke pre-godkjent — FM-prototype forst            | Pending |
-| C4  | i18n fra dag en — ingen hardkodet norsk                | Pending |
-| C5  | Eksplisitt Agent System Boundary-seksjon               | Pending |
-| C6  | Redirect rule-presedensregler definert                 | Pending |
-| C7  | Telemetri-approach avklart (emit() vs direkte PostHog) | Pending |
+| #   | Betingelse                                             | Status                         |
+| --- | ------------------------------------------------------ | ------------------------------ |
+| C1  | Skriv ADR-0057 som superseder ADR-0046                 | Pending                        |
+| C2  | Fas implementasjonen i 4 faser                         | Pending                        |
+| C3  | GSAP ikke pre-godkjent — FM-prototype forst            | Pending                        |
+| C4  | i18n fra dag en — ingen hardkodet norsk                | Done — config bruker i18n keys |
+| C5  | Eksplisitt Agent System Boundary-seksjon               | Done — seksjon 16              |
+| C6  | Redirect rule-presedensregler definert                 | Done — seksjon 17              |
+| C7  | Telemetri-approach avklart (emit() vs direkte PostHog) | Pending                        |
