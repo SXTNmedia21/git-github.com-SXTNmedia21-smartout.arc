@@ -4,12 +4,12 @@
  * ConfirmDepartments — Step 2 of onboarding confirmation wizard.
  *
  * Shows department suggestions from Industry Intelligence (I1) as ghost cards.
- * Unselected = translucent ghost card (suggestion). Selected = solid card (confirmed).
- * User can toggle and add custom departments.
+ * Each selected department expands to show position tags with leader toggle
+ * and an add-more popover for unselected positions and custom entries.
  */
 
-import { useState } from "react";
-import { Plus, X, Sparkles } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Plus, X, Sparkles, Star } from "lucide-react";
 import type { WizardStepProps } from "@smartout/ui";
 import type { OnboardingConfirmState } from "../types-v2";
 
@@ -18,8 +18,26 @@ export function ConfirmDepartments({
   updateState,
   t,
 }: WizardStepProps<OnboardingConfirmState>) {
-  const [showInput, setShowInput] = useState(false);
-  const [customName, setCustomName] = useState("");
+  const [showDeptInput, setShowDeptInput] = useState(false);
+  const [customDeptName, setCustomDeptName] = useState("");
+  const [openPopover, setOpenPopover] = useState<string | null>(null);
+  const [customPosInput, setCustomPosInput] = useState<string | null>(null);
+  const [customPosName, setCustomPosName] = useState("");
+  const popoverRef = useRef<HTMLDivElement>(null);
+
+  // Close popover on outside click
+  useEffect(() => {
+    if (!openPopover) return;
+    function handleClick(e: MouseEvent) {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        setOpenPopover(null);
+        setCustomPosInput(null);
+        setCustomPosName("");
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [openPopover]);
 
   const departments = state.departments;
   const selectedCount = departments.filter((d) => d.selected).length;
@@ -32,18 +50,89 @@ export function ConfirmDepartments({
   }
 
   function addCustomDepartment() {
-    const trimmed = customName.trim();
+    const trimmed = customDeptName.trim();
     if (!trimmed) return;
-
-    const id = `custom-${Date.now()}-${departments.length}`;
     updateState({
       departments: [
         ...departments,
-        { id, name: trimmed, icon: "plus", selected: true, positions: [] },
+        {
+          id: `custom-${Date.now()}-${departments.length}`,
+          name: trimmed,
+          icon: "plus",
+          selected: true,
+          positions: [],
+        },
       ],
     });
-    setCustomName("");
-    setShowInput(false);
+    setCustomDeptName("");
+    setShowDeptInput(false);
+  }
+
+  function togglePosition(deptId: string, posId: string) {
+    updateState({
+      departments: departments.map((d) =>
+        d.id === deptId
+          ? {
+              ...d,
+              positions: d.positions.map((p) =>
+                p.id === posId ? { ...p, selected: !p.selected } : p,
+              ),
+            }
+          : d,
+      ),
+    });
+  }
+
+  function toggleLeader(deptId: string, posId: string) {
+    updateState({
+      departments: departments.map((d) =>
+        d.id === deptId
+          ? {
+              ...d,
+              positions: d.positions.map((p) =>
+                p.id === posId ? { ...p, isLeader: !p.isLeader } : p,
+              ),
+            }
+          : d,
+      ),
+    });
+  }
+
+  function addPositionFromSuggestion(deptId: string, posName: string) {
+    updateState({
+      departments: departments.map((d) =>
+        d.id === deptId
+          ? {
+              ...d,
+              positions: d.positions.map((p) =>
+                p.name === posName ? { ...p, selected: true } : p,
+              ),
+            }
+          : d,
+      ),
+    });
+    setOpenPopover(null);
+  }
+
+  function addCustomPosition(deptId: string) {
+    const trimmed = customPosName.trim();
+    if (!trimmed) return;
+    updateState({
+      departments: departments.map((d) =>
+        d.id === deptId
+          ? {
+              ...d,
+              positions: [
+                ...d.positions,
+                { id: `pos-custom-${Date.now()}`, name: trimmed, isLeader: false, selected: true },
+              ],
+            }
+          : d,
+      ),
+    });
+    setCustomPosName("");
+    setCustomPosInput(null);
+    setOpenPopover(null);
   }
 
   return (
@@ -57,64 +146,163 @@ export function ConfirmDepartments({
         </p>
       </div>
 
-      {/* Department ghost cards */}
       <div className="space-y-2">
         {departments.map((dept) => (
-          <button
-            key={dept.id}
-            type="button"
-            onClick={() => toggleDepartment(dept.id)}
-            className={[
-              "flex w-full items-center justify-between rounded-lg border px-4 py-3 text-left transition-all duration-200",
-              dept.selected
-                ? "text-foreground border-[var(--brand-orange)]/30 bg-[var(--brand-orange)]/5"
-                : "border-dashed border-border bg-white/50 text-muted-foreground hover:border-[var(--brand-orange)]/30 hover:bg-[var(--brand-orange)]/5 hover:text-foreground",
-            ].join(" ")}
-          >
-            <span className="flex items-center gap-3">
-              <span
-                className={[
-                  "flex size-5 shrink-0 items-center justify-center rounded border text-xs transition-all duration-200",
-                  dept.selected
-                    ? "border-[var(--brand-orange)]/40 bg-[var(--brand-orange)]/20 text-[var(--brand-orange)]"
-                    : "border-border bg-card text-transparent",
-                ].join(" ")}
-              >
-                &#10003;
-              </span>
-              <span className="text-sm font-medium">{dept.name}</span>
-              {dept.positions.length > 0 && (
+          <div key={dept.id}>
+            {/* Department toggle */}
+            <button
+              type="button"
+              onClick={() => toggleDepartment(dept.id)}
+              className={[
+                "flex w-full items-center justify-between rounded-lg border px-4 py-3 text-left transition-all duration-200",
+                dept.selected
+                  ? "text-foreground border-[var(--brand-orange)]/30 bg-[var(--brand-orange)]/5"
+                  : "border-border text-muted-foreground hover:text-foreground border-dashed bg-white/50 hover:border-[var(--brand-orange)]/30 hover:bg-[var(--brand-orange)]/5",
+              ].join(" ")}
+            >
+              <span className="flex items-center gap-3">
                 <span
                   className={[
-                    "rounded-full px-1.5 py-0.5 text-[10px]",
+                    "flex size-5 shrink-0 items-center justify-center rounded border text-xs transition-all duration-200",
                     dept.selected
-                      ? "bg-[var(--brand-orange)]/10 text-[var(--brand-orange)]"
-                      : "bg-muted text-muted-foreground",
+                      ? "border-[var(--brand-orange)]/40 bg-[var(--brand-orange)]/20 text-[var(--brand-orange)]"
+                      : "border-border bg-card text-transparent",
                   ].join(" ")}
                 >
-                  {dept.positions.length} stillinger
+                  &#10003;
+                </span>
+                <span className="text-sm font-medium">{dept.name}</span>
+              </span>
+              {!dept.selected && (
+                <span className="text-muted-foreground text-[10px] tracking-wider uppercase">
+                  Forslag
                 </span>
               )}
-            </span>
+            </button>
 
-            {!dept.selected && (
-              <span className="text-[10px] tracking-wider text-muted-foreground uppercase">Forslag</span>
+            {/* Position tags — only when department is selected */}
+            {dept.selected && (
+              <div className="mt-2 mb-1 ml-8 flex flex-wrap items-center gap-1.5">
+                {dept.positions
+                  .filter((p) => p.selected)
+                  .map((pos) => (
+                    <span
+                      key={pos.id}
+                      className={[
+                        "group flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
+                        pos.isLeader
+                          ? "border-[var(--brand-orange)]/30 bg-[var(--brand-orange)]/10 text-[var(--brand-orange)]"
+                          : "border-border bg-muted/50 text-foreground",
+                      ].join(" ")}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => toggleLeader(dept.id, pos.id)}
+                        title={t("confirm.positions_leader")}
+                      >
+                        <Star
+                          className={[
+                            "size-3",
+                            pos.isLeader ? "fill-current" : "text-muted-foreground/40",
+                          ].join(" ")}
+                        />
+                      </button>
+                      {pos.name}
+                      <button
+                        type="button"
+                        onClick={() => togglePosition(dept.id, pos.id)}
+                        className="text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100"
+                      >
+                        <X className="size-3" />
+                      </button>
+                    </span>
+                  ))}
+
+                {/* + Legg til popover */}
+                <div className="relative" ref={openPopover === dept.id ? popoverRef : undefined}>
+                  <button
+                    type="button"
+                    onClick={() => setOpenPopover(openPopover === dept.id ? null : dept.id)}
+                    className="border-border text-muted-foreground hover:text-foreground flex items-center gap-1 rounded-full border border-dashed px-2.5 py-1 text-xs transition-colors"
+                  >
+                    <Plus className="size-3" />
+                    {t("confirm.positions_add")}
+                  </button>
+
+                  {openPopover === dept.id && (
+                    <div className="border-border bg-card absolute left-0 z-20 mt-1 w-48 rounded-lg border py-1 shadow-lg">
+                      {dept.positions
+                        .filter((p) => !p.selected)
+                        .map((p) => (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onClick={() => addPositionFromSuggestion(dept.id, p.name)}
+                            className="text-foreground flex w-full items-center px-3 py-1.5 text-left text-xs hover:bg-[var(--brand-orange)]/10 hover:text-[var(--brand-orange)]"
+                          >
+                            {p.name}
+                          </button>
+                        ))}
+
+                      {dept.positions.filter((p) => !p.selected).length > 0 && (
+                        <div className="border-border my-1 border-t" />
+                      )}
+
+                      {customPosInput === dept.id ? (
+                        <div className="flex items-center gap-1 px-2 py-1">
+                          <input
+                            type="text"
+                            value={customPosName}
+                            onChange={(e) => setCustomPosName(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") addCustomPosition(dept.id);
+                              if (e.key === "Escape") {
+                                setCustomPosInput(null);
+                                setCustomPosName("");
+                              }
+                            }}
+                            placeholder={t("confirm.positions_custom_placeholder")}
+                            className="border-border bg-background text-foreground placeholder:text-muted-foreground flex-1 rounded border px-2 py-1 text-xs focus-visible:outline-none"
+                            autoFocus
+                          />
+                          <button
+                            type="button"
+                            onClick={() => addCustomPosition(dept.id)}
+                            className="px-1 text-xs font-medium text-[var(--brand-orange)]"
+                          >
+                            OK
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setCustomPosInput(dept.id)}
+                          className="text-muted-foreground hover:text-foreground flex w-full items-center gap-1.5 px-3 py-1.5 text-left text-xs"
+                        >
+                          <Plus className="size-3" />
+                          {t("confirm.positions_custom")}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
             )}
-          </button>
+          </div>
         ))}
 
         {/* Add custom department */}
-        {showInput ? (
+        {showDeptInput ? (
           <div className="flex items-center gap-2">
             <input
               type="text"
-              value={customName}
-              onChange={(e) => setCustomName(e.target.value)}
+              value={customDeptName}
+              onChange={(e) => setCustomDeptName(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter") addCustomDepartment();
                 if (e.key === "Escape") {
-                  setShowInput(false);
-                  setCustomName("");
+                  setShowDeptInput(false);
+                  setCustomDeptName("");
                 }
               }}
               placeholder="Avdelingsnavn"
@@ -131,8 +319,8 @@ export function ConfirmDepartments({
             <button
               type="button"
               onClick={() => {
-                setShowInput(false);
-                setCustomName("");
+                setShowDeptInput(false);
+                setCustomDeptName("");
               }}
               className="text-muted-foreground hover:text-foreground p-1.5 transition-colors"
             >
@@ -142,7 +330,7 @@ export function ConfirmDepartments({
         ) : (
           <button
             type="button"
-            onClick={() => setShowInput(true)}
+            onClick={() => setShowDeptInput(true)}
             className="text-muted-foreground hover:text-foreground flex items-center gap-1.5 px-1 text-xs transition-colors"
           >
             <Plus className="size-3.5" />
