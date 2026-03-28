@@ -275,6 +275,16 @@ All routes for the web dashboard (`apps/web`), landing page (`apps/landing`), an
 | `watchdog-uptime`               | Uptime monitoring                                 |
 | `web-search-intelligence`       | Web search for intelligence gathering             |
 
+### Workspace API routes (selected)
+
+`workspace-api` (`/functions/v1/workspace-api`) exposes scoped endpoints.  
+Temporal shift lock control routes:
+
+| Route                   | Method | Required Scope    | Purpose                                      |
+| ----------------------- | ------ | ----------------- | -------------------------------------------- |
+| `/v1/shift-lock-policy` | GET    | `schedules:read`  | Read current workspace lock mode             |
+| `/v1/shift-lock-policy` | PUT    | `schedules:write` | Set lock mode (`enforce` / `shadow` / `off`) |
+
 ---
 
 ## Routing Architecture

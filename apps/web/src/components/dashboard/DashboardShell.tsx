@@ -290,6 +290,10 @@ import { WorkspaceSwitcher } from "@/components/dashboard/WorkspaceSwitcher";
 import { VoiceToolsProvider, useVoiceTools } from "@/components/voice-tools-context";
 // Popover imports removed — location selector moved to PlannerCommandBar
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarUI } from "@/components/ui/calendar";
+import { format, getISOWeek, getISOWeekYear } from "date-fns";
+import { nb } from "date-fns/locale";
 import { DocumentModeShell } from "@/app/dashboard/_components/document-mode/document-mode-shell";
 import { DocumentModeSidebar } from "@/app/dashboard/_components/document-mode/document-mode-sidebar";
 import { DocumentModeProvider } from "@/app/dashboard/_components/document-mode/document-mode-context";
@@ -349,6 +353,7 @@ export function DashboardShell({
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [weeklyPeriodCount, setWeeklyPeriodCount] = useState(4);
   const [scheduleDateOffset, setScheduleDateOffset] = useState(0);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const onPublishAllRef = useRef<(() => void) | null>(null);
   const scheduleDraftCountRef = useRef(0);
   const [scheduleDraftCountDisplay, setScheduleDraftCountDisplay] = useState(0);
@@ -1728,38 +1733,103 @@ export function DashboardShell({
                         >
                           <ChevronLeft className="h-3.5 w-3.5" />
                         </button>
-                        <span
-                          className={`text-[13px] font-bold ${isDark ? "text-white" : "text-zinc-900"}`}
-                        >
-                          {(() => {
-                            const baseWeek = 52;
-                            if (scheduleLayout === "daily") {
-                              const w = baseWeek + scheduleDateOffset;
-                              return `Uke ${w}, 2026`;
-                            }
-                            if (scheduleLayout === "weekly") {
-                              return scheduleDateOffset === 0
-                                ? "Aktiv syklus"
-                                : `Syklus ${scheduleDateOffset > 0 ? "+" : ""}${scheduleDateOffset}`;
-                            }
-                            const months = [
-                              "Januar",
-                              "Februar",
-                              "Mars",
-                              "April",
-                              "Mai",
-                              "Juni",
-                              "Juli",
-                              "August",
-                              "September",
-                              "Oktober",
-                              "November",
-                              "Desember",
-                            ];
-                            const monthIdx = (((11 + scheduleDateOffset) % 12) + 12) % 12;
-                            return `${months[monthIdx]} 2026`;
-                          })()}
-                        </span>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button
+                              className={`cursor-pointer rounded-md px-1.5 py-1 transition-colors ${
+                                isDark
+                                  ? "text-white hover:bg-zinc-800"
+                                  : "text-zinc-900 hover:bg-zinc-200"
+                              } text-[13px] font-bold`}
+                            >
+                              {(() => {
+                                if (scheduleLayout === "daily") {
+                                  const now = new Date();
+                                  now.setDate(
+                                    now.getDate() -
+                                      ((now.getDay() + 6) % 7) +
+                                      scheduleDateOffset * 7,
+                                  );
+                                  const w = getISOWeek(now);
+                                  const y = getISOWeekYear(now);
+                                  return `Uke ${w}, ${y}`;
+                                }
+                                if (scheduleLayout === "weekly") {
+                                  return scheduleDateOffset === 0
+                                    ? "Aktiv syklus"
+                                    : `Syklus ${scheduleDateOffset > 0 ? "+" : ""}${scheduleDateOffset}`;
+                                }
+                                const now = new Date();
+                                now.setMonth(now.getMonth() + scheduleDateOffset);
+                                const months = [
+                                  "Januar",
+                                  "Februar",
+                                  "Mars",
+                                  "April",
+                                  "Mai",
+                                  "Juni",
+                                  "Juli",
+                                  "August",
+                                  "September",
+                                  "Oktober",
+                                  "November",
+                                  "Desember",
+                                ];
+                                return `${months[now.getMonth()]} ${now.getFullYear()}`;
+                              })()}
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="center">
+                            <CalendarUI
+                              mode="single"
+                              locale={nb}
+                              selected={(() => {
+                                const now = new Date();
+                                if (scheduleLayout === "monthly") {
+                                  now.setMonth(now.getMonth() + scheduleDateOffset);
+                                } else {
+                                  now.setDate(
+                                    now.getDate() -
+                                      ((now.getDay() + 6) % 7) +
+                                      scheduleDateOffset * 7,
+                                  );
+                                }
+                                return now;
+                              })()}
+                              onSelect={(date) => {
+                                if (!date) return;
+                                const now = new Date();
+                                if (scheduleLayout === "monthly") {
+                                  const diff =
+                                    (date.getFullYear() - now.getFullYear()) * 12 +
+                                    date.getMonth() -
+                                    now.getMonth();
+                                  setScheduleDateOffset(diff);
+                                } else {
+                                  const startOfCurrentWeek = new Date(now);
+                                  startOfCurrentWeek.setDate(
+                                    now.getDate() - ((now.getDay() + 6) % 7),
+                                  );
+                                  startOfCurrentWeek.setHours(0, 0, 0, 0);
+
+                                  const startOfSelectedWeek = new Date(date);
+                                  startOfSelectedWeek.setDate(
+                                    date.getDate() - ((date.getDay() + 6) % 7),
+                                  );
+                                  startOfSelectedWeek.setHours(0, 0, 0, 0);
+
+                                  const diffInDays = Math.round(
+                                    (startOfSelectedWeek.getTime() - startOfCurrentWeek.getTime()) /
+                                      (1000 * 60 * 60 * 24),
+                                  );
+                                  const offset = Math.round(diffInDays / 7);
+                                  setScheduleDateOffset(offset);
+                                }
+                              }}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
                         {scheduleDateOffset !== 0 && (
                           <button
                             onClick={() => setScheduleDateOffset(0)}

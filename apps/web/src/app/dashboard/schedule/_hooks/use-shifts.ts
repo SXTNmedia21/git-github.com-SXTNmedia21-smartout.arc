@@ -29,6 +29,15 @@ function isPermissionError(err: unknown): boolean {
   return false;
 }
 
+/** Check if a mutation failed due to temporal shift lock */
+function isShiftLockedError(err: unknown): boolean {
+  if (typeof err === "object" && err !== null) {
+    const e = err as Record<string, unknown>;
+    if (typeof e.message === "string" && e.message.includes("SHIFT_LOCKED_MUTATION")) return true;
+  }
+  return false;
+}
+
 // ══════════════════════════════════════════════════════════════
 // Query: Fetch shifts for a week
 // ══════════════════════════════════════════════════════════════
@@ -208,7 +217,9 @@ export function useUpdateShift(weekStart: string) {
       toast.error(
         isPermissionError(err)
           ? "Du har ikke tilgang til å oppdatere vakter"
-          : "Kunne ikke oppdatere vakt",
+          : isShiftLockedError(err)
+            ? "Vakten er låst fordi den har startet eller datoen er passert"
+            : "Kunne ikke oppdatere vakt",
       );
     },
 
@@ -277,7 +288,9 @@ export function useDeleteShift(weekStart: string) {
       toast.error(
         isPermissionError(err)
           ? "Du har ikke tilgang til å slette vakter"
-          : "Kunne ikke slette vakt",
+          : isShiftLockedError(err)
+            ? "Vakten er låst og kan ikke slettes etter start/passert dato"
+            : "Kunne ikke slette vakt",
       );
     },
 
@@ -361,7 +374,9 @@ export function useMoveShift(weekStart: string) {
       toast.error(
         isPermissionError(err)
           ? "Du har ikke tilgang til å flytte vakter"
-          : "Kunne ikke flytte vakt",
+          : isShiftLockedError(err)
+            ? "Vakten er låst og kan ikke flyttes etter start/passert dato"
+            : "Kunne ikke flytte vakt",
       );
     },
 
@@ -449,7 +464,9 @@ export function usePublishShifts(weekStart: string) {
       toast.error(
         isPermissionError(err)
           ? "Du har ikke tilgang til å publisere vakter"
-          : "Kunne ikke publisere vakter",
+          : isShiftLockedError(err)
+            ? "En eller flere vakter er låst fordi de har startet eller datoen er passert"
+            : "Kunne ikke publisere vakter",
       );
     },
 
@@ -624,7 +641,9 @@ export function useUnpublishShifts(weekStart: string) {
       toast.error(
         isPermissionError(err)
           ? "Du har ikke tilgang til å avpublisere vakter"
-          : "Kunne ikke avpublisere vakter",
+          : isShiftLockedError(err)
+            ? "En eller flere vakter er låst og kan ikke avpubliseres etter start/passert dato"
+            : "Kunne ikke avpublisere vakter",
       );
     },
 

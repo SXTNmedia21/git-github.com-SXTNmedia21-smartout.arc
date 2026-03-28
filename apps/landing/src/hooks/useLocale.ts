@@ -8,5 +8,6 @@ import { usePathname } from "next/navigation";
  */
 export function useLocale(): "nb" | "en" {
   const pathname = usePathname();
+  if (!pathname) return "nb";
   return pathname.startsWith("/en/") || pathname === "/en" ? "en" : "nb";
 }

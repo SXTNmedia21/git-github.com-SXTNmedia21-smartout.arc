@@ -61,7 +61,7 @@ export function createTranslator(locale: SupportedLocale, namespace: string) {
       const nested = messages[group];
       if (typeof nested === "object" && nested !== null) {
         const val = nested[subKey];
-        if (val) return interpolate(val, params);
+        if (typeof val === "string") return interpolate(val, params);
       }
     }
 
@@ -73,7 +73,7 @@ export function createTranslator(locale: SupportedLocale, namespace: string) {
       const fallbackNested = fallbackMessages[group];
       if (typeof fallbackNested === "object" && fallbackNested !== null) {
         const val = fallbackNested[subKey];
-        if (val) return interpolate(val, params);
+        if (typeof val === "string") return interpolate(val, params);
       }
     }
 

@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   LayoutDashboard,
   Building2,
@@ -32,6 +34,14 @@ type NavItem = {
 type NavGroup = {
   label: string;
   items: NavItem[];
+};
+
+type ShiftLockStatusResponse = {
+  services?: Array<{ status: "operational" | "degraded" | "down" }>;
+  shift_lock: {
+    severity: "normal" | "warning" | "critical";
+    off_workspaces: number;
+  } | null;
 };
 
 const navGroups: NavGroup[] = [
@@ -75,6 +85,59 @@ const navGroups: NavGroup[] = [
 
 export function PlatformAdminSidebarNav() {
   const pathname = usePathname();
+  const [shiftLockSeverity, setShiftLockSeverity] = useState<"normal" | "warning" | "critical">(
+    "normal",
+  );
+  const [shiftLockBadgeCount, setShiftLockBadgeCount] = useState(0);
+  const [servicesDownCount, setServicesDownCount] = useState(0);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    /**
+     * Loads shift lock severity from platform health endpoint.
+     * Why: sidebar should surface critical governance state globally.
+     */
+    async function loadShiftLockSeverity() {
+      try {
+        const res = await fetch("/api/platform-admin/health/status", { cache: "no-store" });
+        if (!res.ok) return;
+
+        const data = (await res.json()) as ShiftLockStatusResponse;
+        const severity = data.shift_lock?.severity ?? "normal";
+        const offWorkspaces = data.shift_lock?.off_workspaces ?? 0;
+        const count = severity === "critical" ? Math.max(offWorkspaces, 1) : 0;
+        const downCount = (data.services ?? []).filter((svc) => svc.status === "down").length;
+
+        if (!isMounted) return;
+        setShiftLockSeverity(severity);
+        setShiftLockBadgeCount(count);
+        setServicesDownCount(downCount);
+      } catch {
+        // Ignore fetch errors in sidebar; health page remains source of truth.
+      }
+    }
+
+    void loadShiftLockSeverity();
+    const interval = setInterval(() => void loadShiftLockSeverity(), 60_000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
+
+  const showCriticalShiftLockBadge = useMemo(
+    () => shiftLockSeverity === "critical" && shiftLockBadgeCount > 0,
+    [shiftLockSeverity, shiftLockBadgeCount],
+  );
+  const showServicesDownBadge = useMemo(() => servicesDownCount > 0, [servicesDownCount]);
+  const systemAlertsCount = useMemo(() => {
+    const shiftLockAlerts = showCriticalShiftLockBadge ? shiftLockBadgeCount : 0;
+    const serviceAlerts = showServicesDownBadge ? servicesDownCount : 0;
+    return shiftLockAlerts + serviceAlerts;
+  }, [showCriticalShiftLockBadge, shiftLockBadgeCount, showServicesDownBadge, servicesDownCount]);
+  const showSystemAlertsBadge = useMemo(() => systemAlertsCount > 0, [systemAlertsCount]);
 
   return (
     <nav className="space-y-4 px-2 py-4">
@@ -92,7 +155,11 @@ export function PlatformAdminSidebarNav() {
               return (
                 <Link
                   key={item.href}
-                  href={item.href}
+                  href={
+                    item.href === "/platform-admin/health" && showCriticalShiftLockBadge
+                      ? "/platform-admin/health?focus=shift-lock"
+                      : item.href
+                  }
                   className={cn(
                     "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
                     item.indent && "pl-8",
@@ -102,7 +169,58 @@ export function PlatformAdminSidebarNav() {
                   )}
                 >
                   <item.icon className="h-4 w-4 shrink-0" />
-                  {item.label}
+                  <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
+                    <span className="truncate">{item.label}</span>
+                    {item.href === "/platform-admin/health" && showCriticalShiftLockBadge ? (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="bg-destructive text-destructive-foreground inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] leading-none font-semibold">
+                              {shiftLockBadgeCount}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent side="right">
+                            Shift Lock critical: {shiftLockBadgeCount} workspace
+                            {shiftLockBadgeCount === 1 ? "" : "s"} need attention
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    ) : null}
+                    {item.href === "/platform-admin/services" && showServicesDownBadge ? (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="bg-destructive text-destructive-foreground inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] leading-none font-semibold">
+                              {servicesDownCount}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent side="right">
+                            Services down: {servicesDownCount}. Open Services/Health for details.
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    ) : null}
+                    {item.href === "/platform-admin/dashboard" && showSystemAlertsBadge ? (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="bg-destructive text-destructive-foreground inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] leading-none font-semibold">
+                              {systemAlertsCount}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent side="right">
+                            System alerts: {systemAlertsCount} total (
+                            {showCriticalShiftLockBadge
+                              ? `${shiftLockBadgeCount} shift-lock`
+                              : "0 shift-lock"}
+                            ,{" "}
+                            {showServicesDownBadge ? `${servicesDownCount} services` : "0 services"}
+                            )
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    ) : null}
+                  </span>
                 </Link>
               );
             })}

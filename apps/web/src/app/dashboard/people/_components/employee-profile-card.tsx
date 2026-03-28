@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { createClient } from "@smartout/supabase/client";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 
+import { cancelInvitation } from "../_actions/people-actions";
 import type { Employee, Department } from "./types";
 
 interface EmployeeProfileCardProps {
@@ -178,19 +179,13 @@ export function EmployeeProfileCard({
   async function handleCancelInvite() {
     if (!employee?.id) return;
     setSaving(true);
-    const supabase = createClient();
-    const { error } = await supabase
-      .from("invitation")
-      .update({ status: "cancelled" })
-      .eq("invitation_id", employee.id)
-      .eq("status", "pending");
-
-    if (error) {
-      toast.error("Kunne ikke avbryte invitasjonen");
-    } else {
+    try {
+      await cancelInvitation(employee.id);
       toast.success("Invitasjon avbrutt");
       onRefresh();
       onClose();
+    } catch {
+      toast.error("Kunne ikke avbryte invitasjonen");
     }
     setSaving(false);
   }

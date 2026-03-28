@@ -854,7 +854,9 @@ async function executeStep(
         // Load payroll profile for tariff context
         const { data: payroll } = await supabase
           .from("employee_payroll_profile")
-          .select("tariff_override_id, tariff_category, seniority_start_date, has_fagbrev")
+          .select(
+            "tariff_override_id, tariff_category, seniority_start_date, has_fagbrev, employment_contract:employment_contract_id(hourly_rate)",
+          )
           .eq("profile_id", shift.profile_id)
           .order("valid_from", { ascending: false })
           .limit(1)
@@ -908,10 +910,16 @@ async function executeStep(
             supplements.push({ type: "helgetillegg", amount: rate.amount, unit: rate.unit });
         }
 
-        // Base rate: deferred — requires loading employment_contract.hourly_rate per employee.
-        // kr/t supplements (kveldstillegg, helgetillegg) are correct absolute amounts.
-        // % supplements (helligdagstillegg, overtime) will compute to 0 until baseRate is loaded.
-        const baseRate = 0;
+        // 3-step fallback: contract -> tariff base rate -> 0 with warning
+        const contractRate = (payroll?.employment_contract as { hourly_rate: number | null } | null)
+          ?.hourly_rate;
+        const tariffBaseRate = allRates.find((r) => r.rate_type === "riksavtalen")?.amount ?? null;
+        const baseRate = contractRate ?? tariffBaseRate ?? 0;
+        if (baseRate === 0) {
+          console.warn(
+            `[cascade_cost_snapshot] baseRate=0 for profile ${shift.profile_id} — no contract hourly_rate or tariff base rate found`,
+          );
+        }
         const supplementCost = supplements.reduce((sum, s) => {
           if (s.unit === "kr/t") return sum + s.amount * baseHours;
           if (s.unit === "percent") return sum + (baseRate * baseHours * s.amount) / 100;
@@ -1235,6 +1243,77 @@ async function executeStep(
         console.error(`[ingest_workspace_knowledge] Failed:`, err);
         // Non-fatal — don't block engine flow if ingestion fails
       }
+
+      await advanceToNextStep(supabase, state, step);
+      break;
+    }
+
+    case "cascade_reconciliation_close": {
+      const ctx = state.context as Record<string, unknown>;
+      const payload = (ctx.data as Record<string, unknown>) ?? {};
+      const reconciliationId = payload.reconciliation_id as string;
+      const departmentId = payload.department_id as string;
+      const reconDate = payload.reconciliation_date as string;
+
+      if (!reconciliationId || !departmentId || !reconDate) {
+        console.error("[cascade_reconciliation_close] missing context fields");
+        await advanceToNextStep(supabase, state, step);
+        break;
+      }
+
+      // Get shift IDs for this date + department
+      const { data: dayShifts } = await supabase
+        .from("schedule_shift")
+        .select("schedule_shift_id")
+        .eq("workspace_id", state.workspace_id)
+        .eq("shift_date", reconDate)
+        .eq("department_id", departmentId);
+
+      const shiftIds = (dayShifts ?? []).map((s) => s.schedule_shift_id);
+
+      // Fetch cost snapshots for those shifts
+      let totalLaborCost = 0;
+      let totalActualHours = 0;
+
+      if (shiftIds.length > 0) {
+        const { data: costSnapshots } = await supabase
+          .from("shift_cost_snapshot")
+          .select("total_cost, base_hours")
+          .eq("workspace_id", state.workspace_id)
+          .in("schedule_shift_id", shiftIds)
+          .eq("basis", "planned");
+
+        totalLaborCost = (costSnapshots ?? []).reduce(
+          (sum, s) => sum + Number(s.total_cost ?? 0),
+          0,
+        );
+        totalActualHours = (costSnapshots ?? []).reduce(
+          (sum, s) => sum + Number(s.base_hours ?? 0),
+          0,
+        );
+      }
+
+      // Fetch revenue for KPI calculation
+      const { data: recon } = await supabase
+        .from("daily_reconciliation")
+        .select("revenue_total")
+        .eq("reconciliation_id", reconciliationId)
+        .single();
+
+      const revenueTotal = Number(recon?.revenue_total ?? 0);
+      const revenuePerHour = totalActualHours > 0 ? revenueTotal / totalActualHours : null;
+      const laborPercentage = revenueTotal > 0 ? (totalLaborCost / revenueTotal) * 100 : null;
+
+      await supabase
+        .from("daily_reconciliation")
+        .update({
+          total_labor_cost: totalLaborCost,
+          total_actual_hours: totalActualHours,
+          total_planned_hours: totalActualHours,
+          revenue_per_worked_hour: revenuePerHour,
+          labor_percentage: laborPercentage,
+        })
+        .eq("reconciliation_id", reconciliationId);
 
       await advanceToNextStep(supabase, state, step);
       break;

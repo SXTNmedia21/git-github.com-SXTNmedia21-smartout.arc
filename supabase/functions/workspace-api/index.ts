@@ -13,6 +13,10 @@ import {
 import { handleGetContracts } from "./handlers/contracts.ts";
 import { handleGetProtocols, handleGetAssignments } from "./handlers/training.ts";
 import { handleGetShifts, handleGetAbsences } from "./handlers/schedules.ts";
+import {
+  handleGetShiftLockPolicy,
+  handleSetShiftLockPolicy,
+} from "./handlers/shift-lock-policy.ts";
 import { handleGetSessions, handleGetDeviations } from "./handlers/operations.ts";
 import {
   handleGetReconciliations,
@@ -48,6 +52,8 @@ routes["GET /v1/protocols"] = handleGetProtocols;
 routes["GET /v1/assignments"] = handleGetAssignments;
 routes["GET /v1/shifts"] = handleGetShifts;
 routes["GET /v1/absences"] = handleGetAbsences;
+routes["GET /v1/shift-lock-policy"] = handleGetShiftLockPolicy;
+routes["PUT /v1/shift-lock-policy"] = handleSetShiftLockPolicy;
 routes["GET /v1/sessions"] = handleGetSessions;
 routes["GET /v1/deviations"] = handleGetDeviations;
 routes["GET /v1/reconciliations"] = handleGetReconciliations;

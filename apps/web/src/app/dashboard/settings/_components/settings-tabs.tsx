@@ -62,6 +62,9 @@ const TariffRatesPanel = lazy(() =>
 const ChangeProposalsPanel = lazy(() =>
   import("./ChangeProposalsPanel").then((m) => ({ default: m.ChangeProposalsPanel })),
 );
+const ShiftLockPolicySettings = lazy(() =>
+  import("./shift-lock-policy-settings").then((m) => ({ default: m.ShiftLockPolicySettings })),
+);
 
 type Tab = { id: string; label: string; icon: LucideIcon };
 type Section = { title: string; tabs: Tab[] };
@@ -216,6 +219,12 @@ function TabContent({ tabId, userId }: { tabId: TabId; userId: string | undefine
       );
     case "notifications":
       return <NotificationPreferences userId={userId} />;
+    case "security":
+      return (
+        <Suspense fallback={<SettingsLoadingSkeleton />}>
+          <ShiftLockPolicySettings />
+        </Suspense>
+      );
     default: {
       const tab = ALL_TABS.find((t) => t.id === tabId)!;
       return <TabPlaceholder icon={tab.icon} label={tab.label} />;

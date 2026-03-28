@@ -16,6 +16,15 @@ tags: [settlement, daily-close, ocr, reconciliation, cascade]
 >
 > **Architectural note:** This is NOT a standalone module. It is a **sub-module of Module 4 (Operations)** that extends the Department Session sign-off with a financial close layer. It hooks directly into the session lifecycle, the CLOSE hook, and the accountability system. It gets its own document because of its complexity and the dedicated data model it introduces.
 
+## Doc alignment (runtime source of truth)
+
+For runtime close status and reconciliation, source of truth is current code/runtime data:
+
+- `daily_reconciliation` + `reconciliation_status` for financial reconciliation flow.
+- `department_session.status` + current `department_session_status` enum values in code (`upcoming`, `active`, `pending_signoff`, `closed`, `missed`).
+
+Hospitality Operations Cockpit V1 must consume this runtime truth directly and must not introduce parallel workflow state.
+
 ---
 
 ## 1. The Core Insight

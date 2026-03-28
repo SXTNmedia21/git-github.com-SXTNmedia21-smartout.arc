@@ -1023,6 +1023,16 @@ export interface PayrollSettingsUpdated extends BaseEvent {
   };
 }
 
+// ─── Security Settings Events ────────────────────
+export interface ShiftLockPolicyUpdated extends BaseEvent {
+  event: "shift_lock_policy updated";
+  properties: {
+    data: {
+      lock_mode: "enforce" | "shadow" | "off";
+    };
+  };
+}
+
 // ─── Salary Code Events ──────────────────────────
 export interface SalaryCodeCreated extends BaseEvent {
   event: "salary_code created";
@@ -2021,6 +2031,7 @@ export type SmartoutEvent =
   | ConversationCreated
   | MessageSent
   | PayrollSettingsUpdated
+  | ShiftLockPolicyUpdated
   | SalaryCodeCreated
   | SalaryCodeUpdated
   | SalaryCodeDeleted
@@ -2549,6 +2560,10 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "payroll_settings updated": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "operations",
+  },
+  "shift_lock_policy updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "system",
   },
 
   "salary_code created": {

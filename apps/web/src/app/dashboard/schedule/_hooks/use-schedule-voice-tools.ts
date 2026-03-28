@@ -144,6 +144,14 @@ function findEmployeeByName(
   return tokenMatch ?? null;
 }
 
+/**
+ * Detects backend temporal shift lock errors from mutation responses.
+ * Why: voice should return human-readable refusal when shift is immutable.
+ */
+function isShiftLockedMutationError(err: unknown): boolean {
+  return err instanceof Error && err.message.includes("SHIFT_LOCKED_MUTATION");
+}
+
 // -- Hook -----------------------------------------------------------------
 
 export function useScheduleVoiceTools(input: ScheduleVoiceToolsInput): ClientTools {
@@ -466,6 +474,12 @@ export function useScheduleVoiceTools(input: ScheduleVoiceToolsInput): ClientToo
           message: `Updated shift for ${employee.name}: ${JSON.stringify(patch)}`,
         });
       } catch (err: unknown) {
+        if (isShiftLockedMutationError(err)) {
+          return JSON.stringify({
+            error:
+              "Kan ikke endre vakt: vakten er låst fordi den har startet eller datoen er passert.",
+          });
+        }
         return JSON.stringify({
           error: `Failed to update: ${err instanceof Error ? err.message : "unknown"}`,
         });
@@ -506,6 +520,12 @@ export function useScheduleVoiceTools(input: ScheduleVoiceToolsInput): ClientToo
           message: `Deleted ${employee.name}'s shift on ${dayLabel} (${shift.time})`,
         });
       } catch (err) {
+        if (isShiftLockedMutationError(err)) {
+          return JSON.stringify({
+            error:
+              "Kan ikke slette vakt: vakten er låst fordi den har startet eller datoen er passert.",
+          });
+        }
         return JSON.stringify({
           error: `Failed to delete: ${err instanceof Error ? err.message : "unknown"}`,
         });
@@ -540,6 +560,12 @@ export function useScheduleVoiceTools(input: ScheduleVoiceToolsInput): ClientToo
           message: `Published ${draftShifts.length} shift(s)`,
         });
       } catch (err) {
+        if (isShiftLockedMutationError(err)) {
+          return JSON.stringify({
+            error:
+              "Kan ikke publisere vakter: en eller flere vakter er låst fordi de har startet eller datoen er passert.",
+          });
+        }
         return JSON.stringify({
           error: `Failed to publish: ${err instanceof Error ? err.message : "unknown"}`,
         });

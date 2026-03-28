@@ -74,6 +74,21 @@ export async function handleDeleteShift(
     .eq("schedule_shift_id", input.shift_id);
 
   if (error) {
+    if (typeof error.message === "string" && error.message.includes("SHIFT_LOCKED_MUTATION")) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({
+              error:
+                "Shift is locked because it has started or the shift date has passed. Locked shifts cannot be deleted.",
+            }),
+          },
+        ],
+        isError: true,
+      };
+    }
+
     return {
       content: [{ type: "text", text: JSON.stringify({ error: error.message }) }],
       isError: true,

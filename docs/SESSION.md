@@ -9,44 +9,44 @@ tags: [session, continuity]
 
 ## Last Session
 
-| Field   | Value                         |
-| ------- | ----------------------------- |
-| Date    | 2026-03-28                    |
-| Branch  | `feat/dynamic-landing-engine` |
-| Feature | Dynamic Landing Engine        |
-| Status  | in_progress                   |
+| Field   | Value                   |
+| ------- | ----------------------- |
+| Date    | 2026-03-28              |
+| Branch  | `feat/financial-esp-ux` |
+| Feature | financial-esp-ux        |
+| Status  | in_progress             |
 
 ### What was done
 
-- Brainstormed dynamic landing engine architecture (Presenter/Retriever/Redirecter)
-- Designed 3-layer parallax system, soft-gate retrievers, diminishing-weight scoring
-- Council review (4 agents): APPROVE WITH CHANGES — 7 conditions, all resolved
-- Wrote design spec: `docs/superpowers/specs/2026-03-28-dynamic-landing-engine-design.md`
-- Wrote ADR-0064 superseding ADR-0046 (block builder → section engine)
-- Added I1 Industry Intelligence as data source (user-initiated correction)
-- Wrote Phase 1 implementation plan: `docs/superpowers/plans/2026-03-28-dynamic-landing-engine-p1.md`
-- Council review of plan (2 agents): PASS WITH CONDITIONS — 3 blockers fixed
-- Created worktree wt-7
+- Implemented WS-1 Tasks 1-7 from Module Zero completion plan
+- Task 1: Season PLAY button — activateSeason/archiveSeason mutations, telemetry events, UI controls
+- Task 2: Season activation trigger — Postgres trigger + extended upsert_session for season context
+- Task 3: Daily session replenishment — Edge Function + pg_cron (02:00 UTC)
+- Task 4: Session lifecycle auto-transitions — Edge Function + pg_cron (15 min)
+- Task 5: Session hook executor — Edge Function + pg_cron (5 min)
+- Task 6: Wire daily close to session pending_signoff trigger
+- Task 7: Operations dashboard verified (real data, no mock)
+- All closure gates completed: decision log, user journeys, handoff
 
 ### Where we stopped
 
-- Feature initialized in wt-7, ready for Phase 1 implementation
-- Plan has 14 tasks: types → Zod → scoring → I1 adapter → i18n → ProfileContext → useAssembler → shells → Assembler → Hero → Qualifier → PainSelector → FeatureDeep → wire to page
-- Recommended: subagent-driven development (fresh agent per task)
+- Feature ready for closure
+- Run: `~/.claude/scripts/close-feature.sh 6`
 
 ### Known blockers / errors
 
-- Decision log (`docs/decisions/0000-decision-log.md`) corrupted — only has empty komm header
-- ~300 uncommitted docs changes on development branch (pre-existing)
-- createTranslator may not support 4-level key resolution (check before Task 5)
+- None (all gates passed)
+- 138 pre-existing type errors from @smartout/ai, @smartout/types packages (not our changes)
 
 ### Pending decisions
 
-- [ ] Restore decision log from git history
-- [ ] Commit docs-reorganization (~300 files) on development
-- [ ] Verify createTranslator deep key support — may need to flatten i18n JSON
+- None
 
-### Next session
+### Previous session (dynamic-landing-engine)
+
+- wt-7 initialized, plan has 14 tasks, ready for Phase 1 implementation
+- Decision log may still need restoring from git history
+- ~300 uncommitted docs changes on development (pre-existing)
 
 - Execute WS-1 Tasks 1-7 in wt-2 (subagent-driven or inline)
 - Execute WS-2 Tasks 8-14 in wt-4 (subagent-driven or inline)

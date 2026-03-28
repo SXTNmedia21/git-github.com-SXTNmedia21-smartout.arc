@@ -727,7 +727,7 @@ export function ShiftModal() {
                                     : "text-muted-foreground"
                         }`}
                       >
-                        <div className="h-1.5 w-1.5 rounded-full bg-current" />
+                        <span className="h-1.5 w-1.5 rounded-full bg-current" />
                         {getStatusLabel(existingShift.status)}
                       </span>
                     </span>

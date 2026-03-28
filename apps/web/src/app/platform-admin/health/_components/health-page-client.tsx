@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
+import { useSearchParams } from "next/navigation";
 import { RefreshCw, Activity, Server, BookOpen } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import { OverallStatusBanner } from "./overall-status-banner";
 import { ServiceStatusCard } from "./service-status-card";
 import { ExternalServicesCard } from "./external-services-card";
 import { IntegrityChecksCard } from "./integrity-checks-card";
+import { ShiftLockAlertCard } from "./shift-lock-alert-card";
 
 const ApiRegistryTable = dynamic(
   () => import("./api-registry-table").then((m) => m.ApiRegistryTable),
@@ -42,10 +44,13 @@ type HealthPageClientProps = {
 };
 
 export function HealthPageClient({ initialMetrics }: HealthPageClientProps) {
+  const searchParams = useSearchParams();
   const [health, setHealth] = useState<HealthStatusResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [integrityLoading, setIntegrityLoading] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
+  const [activeTab, setActiveTab] = useState("overview");
+  const [highlightShiftLock, setHighlightShiftLock] = useState(false);
 
   const fetchHealth = useCallback(async (includeIntegrity = false) => {
     setLoading(true);
@@ -68,6 +73,28 @@ export function HealthPageClient({ initialMetrics }: HealthPageClientProps) {
   useEffect(() => {
     fetchHealth();
   }, [fetchHealth]);
+
+  useEffect(() => {
+    const shouldFocusShiftLock = searchParams.get("focus") === "shift-lock";
+    if (!shouldFocusShiftLock) return;
+
+    setActiveTab("overview");
+    setHighlightShiftLock(true);
+
+    const timer = setTimeout(() => {
+      const element = document.getElementById("shift-lock-alert-card");
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }, 100);
+
+    const clearHighlightTimer = setTimeout(() => setHighlightShiftLock(false), 5000);
+
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(clearHighlightTimer);
+    };
+  }, [searchParams]);
 
   function handleRunIntegrity() {
     setIntegrityLoading(true);
@@ -100,7 +127,7 @@ export function HealthPageClient({ initialMetrics }: HealthPageClientProps) {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="overview">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="overview">
             <Activity className="mr-1.5 h-3.5 w-3.5" />
@@ -128,6 +155,14 @@ export function HealthPageClient({ initialMetrics }: HealthPageClientProps) {
           ) : health ? (
             <OverallStatusBanner status={health.overall} />
           ) : null}
+
+          {health && (
+            <ShiftLockAlertCard
+              id="shift-lock-alert-card"
+              shiftLock={health.shift_lock}
+              highlighted={highlightShiftLock}
+            />
+          )}
 
           {/* Service Cards */}
           <div className="grid gap-3 sm:grid-cols-2">

@@ -102,6 +102,7 @@ Never skip this discussion. Undecided schema placement leads to 169-table `publi
 - `profile` has `display_name` only — NOT `first_name`/`last_name`. Identity data (first_name, last_name, email) lives on `user_identity`. Use `display_name` or join: `profile!inner(user_identity(first_name, last_name))`.
 - `engine_memory` — Persistent agent memories with pgvector embeddings. RLS: workspace isolation.
 - `engine_authority_config` — Per-workspace, per-capability authority levels. UNIQUE(workspace_id, capability).
+- Authority defaults should remain aligned across agent routers. Current fallback baseline is `read_only` for both Stage Engine and walkAi mission runner.
 - `engine_sessions.mode` — 'mission' (structured stages) or 'agent' (free-form conversation). Agent sessions have NULL mission_id.
 - Completion tracking: `knowledge_test_attempt`, `confirmation_signature`, `procedure_step_completion` — all FK to `protocol_assignment_id` + `profile_id`.
 - Session infrastructure: `session_hook` (hook_type enum), `session_task` (task_status enum), `session_note` (note_type enum). All FK to `department_session`.
@@ -109,7 +110,7 @@ Never skip this discussion. Undecided schema placement leads to 169-table `publi
 - Season table has `status` enum (draft/active/archived) — NOT `is_active` boolean.
 - Timestamp triggers should use `set_updated_at()` (not `moddatetime`) for migration compatibility.
 - Triple operating hours: `company_opening_hours` (wizard intake, keep), `operating_hours` (legacy — MUST migrate away), `department_operating_hours` (cascade runtime truth). Never read/write `operating_hours` in new code.
-- `hospitality.ts` rates are WRONG (kveldstillegg: 56 should be 15.65, helgetillegg: 56 should be 29.74, helligdagstillegg: 133% should be 100%). `tariff_rate_table` is cascade source of truth.
+- `packages/ai/src/industry/packages/hospitality.ts` contains corrected fallback tariff values (kveldstillegg 15.65, helgetillegg 29.74, helligdagstillegg 100%). Runtime truth remains `tariff_rate_table` (+ framework tables) via DB-first loading.
 - Cascade framework tables: `regulatory_framework`, `framework_rule`, `framework_trigger`, `tariff_rate_table`, `public_holiday`. Check seed status before assuming data exists.
 - `change_proposal_status` enum — do NOT confuse with `contract_status`.
 - Cascade tables use `btree_gist` extension for exclusion constraints.
@@ -283,7 +284,7 @@ Pre-runtime layer. Loads vertical defaults, applies SQL templates, seeds all dim
 
 - Canonical path: `docs/engines/industri-inteligence/hospitalety/`
 - Central documentation for: event-layer specialization, AI council and personas, default policy baselines, template families (structure/pipeline/journey), testing profiles, relevance mapping, company handbook template, role capability profiles, environment baseline, niche specialization
-- Code: `apps/web/src/lib/industry/` (hospitality.ts, types.ts)
+- Code (canonical): `packages/ai/src/industry/` (packages/hospitality.ts, loader.ts, index.ts). `apps/web/src/lib/industry/` is web-side adapter/hook surface.
 - Templates: `supabase/templates/restaurant/` (13 SQL + \_apply.sql)
 - Admin portal NEVER creates empty workspaces — always from I1 bootstrap.
 - When implementing or modifying event-layer, onboarding, readiness, or journey/testing behavior, consult this engine package before making changes.
@@ -296,7 +297,7 @@ Pre-runtime layer. Loads vertical defaults, applies SQL templates, seeds all dim
 - **Trainee Mode** (D2) — Status flag on profile (`profile_status = 'trainee'`). Timestamps: `trainee_started`, `trainee_completed`. Sandbox write restrictions and 48h escalation are planned but NOT yet implemented.
 - **Season** (D4/D5) — Time period wrapping operations, gamification, and revenue planning. Own leaderboard and point rules.
 - **Season Budget** (D4) — Strategic revenue target per season. 1:1 with season. Contains total target, labor %, avg hourly wage, base price per guest. Day/hour factors distribute targets across weekdays and hours. Calculation engine: `apps/web/src/lib/season-calculations.ts` (pure functions, no DB deps). UI: `/dashboard/season` with 4 tabs (overview, budget, day-factors, hour-factors).
-- **Event Engine** — Universal workflow runtime. `engine_process` (blueprint) → `engine_state` (live instance) → `engine_state_step` (per-step tracking). Cascade pipeline is a PRODUCER of events; Event Engine is the CONSUMER. New workflow = new engine_process + action_type handlers. Never create separate workflow state tables. Note: `journey` / `journey_step` / `journey_event` tables are a **metadata registry** (ADR-0031, 68 journey definitions from Bubble migration) — not workflow state tracking. Action type handlers: `wait_for_event`, `assign_task`, `send_notification` (stub), `update_entity`, `create_deviation`, `validate_settlement`, `lock_checkout`, `schedule_control` (reserved), `start_process`, `upsert_session`. Dispatch: `supabase/functions/engine-dispatch/index.ts`.
+- **Event Engine** — Universal workflow runtime. `engine_process` (blueprint) → `engine_state` (live instance) → `engine_state_step` (per-step tracking). Cascade pipeline is a PRODUCER of events; Event Engine is the CONSUMER. New workflow = new engine_process + action_type handlers. Never create separate workflow state tables. Note: `journey` / `journey_step` / `journey_event` tables are a **metadata registry** (ADR-0031, 68 journey definitions from Bubble migration) — not workflow state tracking. Action type handlers: `wait_for_event`, `assign_task`, `send_notification` (writes to `notification_outbox`), `update_entity`, `create_deviation`, `validate_settlement`, `lock_checkout`, `schedule_control` (reserved), `start_process`, `upsert_session`. Dispatch: `supabase/functions/engine-dispatch/index.ts`.
 - **Veikart → Reise → Protokoll** — Conceptual mapping (not yet implemented as routes/views). Veikart = engine_process (blueprint). Reise = engine_state (employee experience). Protokoll = engine_state (leader oversight). Norwegian terms are design vocabulary, not code constructs.
 - **Telemetry Registry** — Orthogonal to cascade. All valid events and their routing destinations defined in `packages/telemetry/src/registry.ts`. This is the single source of truth for what can be emitted and where it goes.
 
