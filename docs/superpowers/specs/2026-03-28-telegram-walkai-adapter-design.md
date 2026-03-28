@@ -29,11 +29,35 @@ Caddy reverse proxy
 Stage Engine (Hono, port 3000)
   /adapters/telegram/webhook
     ↕
-agent-router.chat() — full WalkAi pipeline
-  (intent → context → authority → tools → LLM → response)
+routeAdminMessage() — admin-specific pipeline
+  (no workspace scope, god-mode authority, admin tool set, admin persona)
 ```
 
 Follows the existing Ultravox voice adapter pattern in `services/stage-engine/src/routes/adapters/`.
+
+### Admin Pipeline vs Employee Pipeline (Council Decision)
+
+The existing `routeAgentMessage()` pipeline is workspace-scoped at every layer:
+
+- `chat.ts` rejects requests without workspace_id (403)
+- `agent-router.ts` requires workspaceId for authority, context, and tool selection
+- `createAgentSession()` takes `workspaceId: string` (not nullable)
+- Intent classifier categorizes into employee-facing capabilities
+
+Pontus is a platform admin, not an employee. His messages cross workspace boundaries.
+
+**Decision:** Create a separate lightweight `routeAdminMessage()` pipeline that:
+
+- Does NOT require workspace_id
+- Skips workspace-scoped authority loading (god-mode = full access)
+- Has its own admin tool set (Telegram tools + cross-workspace query tools)
+- Has its own system prompt (admin persona, not employee-facing Botsson)
+- Accepts an optional `workspaceId` parameter for workspace-scoped queries (e.g., `/workspace sjohuset` command to set context)
+- Reuses the LLM call infrastructure — just skips the workspace plumbing
+
+**ADR required:** Platform-admin pipeline vs workspace-scoped pipeline (ADR-0059 or next available).
+
+**Learning:** Nullable DB column != nullable pipeline. TypeScript types, function signatures, and middleware guards form an independent enforcement chain. Always trace the full call path before assuming a schema change enables a new use case.
 
 ## 1. Inbound: Telegram → WalkAi
 
@@ -41,39 +65,65 @@ Follows the existing Ultravox voice adapter pattern in `services/stage-engine/sr
 
 Route: `POST /adapters/telegram/webhook`
 
+Auth: Webhook route skips the global auth middleware (same pattern as WebSocket routes in `index.ts`). Self-authenticated via `X-Telegram-Bot-Api-Secret-Token`.
+
 Flow:
 
 1. Verify webhook via `X-Telegram-Bot-Api-Secret-Token` header against `TELEGRAM_WEBHOOK_SECRET`
-2. Parse Telegram update (message, callback_query, poll_answer)
-3. Reject if `chat.id !== TELEGRAM_ADMIN_CHAT_ID` (single-user guard)
-4. Route by update type:
-   - `message` → agent chat
+2. **Idempotency check:** Store `update_id` in a Set/LRU cache. Reject duplicates. Telegram may retry webhooks on timeout — duplicate actions (e.g., approving an absence twice) must be prevented.
+3. Parse Telegram update (message, callback_query, poll_answer)
+4. Reject if `chat.id !== TELEGRAM_ADMIN_CHAT_ID` (single-user guard)
+5. Route by update type:
+   - `message` → check for active chat bridge first, then admin chat
    - `callback_query` → button action handler
    - `poll_answer` → poll resolution handler
-5. For messages: load or create `engine_session` (channel = `'telegram'`, mode = `'agent'`)
-6. Call `agent-router.chat()` with message content + session
-7. Format response (Markdown → Telegram MarkdownV2, chunked if >4096 chars)
-8. Send reply via `sendMessage` Bot API call
-9. Return 200 immediately (Telegram requires fast response)
+6. For messages: load or create `engine_session` (channel = `'telegram'`, mode = `'agent'`)
+7. Call `routeAdminMessage()` with message content + session
+8. Format response (Markdown → Telegram MarkdownV2, chunked if >4096 chars)
+9. Send reply via `sendMessage` Bot API call
+10. Return 200 immediately (Telegram requires fast response)
 
 ### Session Management
 
 - One long-lived session per admin chat — reused across messages
 - Session lookup: query `engine_sessions` where `channel = 'telegram'` and `status = 'active'`
-- If no active session exists, create one with `workspace_id = NULL` (platform-level admin context)
+- If no active session exists, create one with `workspace_id = NULL` (allowed since migration 20260330)
 - No auto-expiry — Pontus explicitly ends sessions if needed
-- Conversation history persists in `collected_data.conversation[]`
+- **Conversation windowing:** Max 50 turns in context. Older turns are summarized into a context note and archived. Prevents unbounded JSONB growth in `collected_data.conversation[]`.
 
 ### Profile Linking
 
 No database table — `TELEGRAM_ADMIN_CHAT_ID` env var maps to Pontus's profile.
-Profile lookup: query `user_identity` by godmode flag or hardcoded admin user_id from env.
+Profile lookup: query `user_identity` by `is_godmode = true`.
+
+### Workspace Context Switching
+
+Pontus can scope queries to a specific workspace using a `/workspace <slug>` command:
+
+```
+/workspace sjohuset    → sets workspace context for subsequent queries
+/workspace clear       → removes workspace context (platform-level)
+```
+
+The admin pipeline passes `workspaceId` (when set) to tools that need it, but never requires it.
 
 ## 2. Outbound: WalkAi → Telegram
 
+### Architecture Decision: Plain Functions, Not Capabilities
+
+Council finding: Telegram outbound tools are delivery mechanisms, not domain capabilities. They should NOT be registered in the AI capability system (`CapabilityName`, `registry.ts`). Instead:
+
+- **Outbound functions** live in `services/stage-engine/src/core/telegram.ts` as plain TypeScript functions
+- **Admin tools** (for the LLM to call) are defined inline in the `routeAdminMessage()` pipeline, separate from the employee tool registry
+- Event handlers and engine-dispatch call the plain functions directly
+
+This avoids polluting the employee capability system with platform-admin infrastructure.
+
 ### 2.1 Event Notifications
 
-Tool: `send_telegram_message`
+Function: `sendTelegramNotification(text, parseMode?)`
+
+Admin tool (for LLM): `send_telegram_message`
 
 ```typescript
 {
@@ -88,9 +138,13 @@ Tool: `send_telegram_message`
 
 Used by: telemetry event handlers, engine-dispatch actions, proactive agent alerts.
 
+**Telemetry-to-Telegram routing:** A new handler in the Stage Engine subscribes to specific telemetry events (configurable list) and calls `sendTelegramNotification()` directly. Events to subscribe defined in a config object, not hardcoded.
+
 ### 2.2 Escalations
 
-Tool: `escalate_to_admin`
+Function: `sendTelegramEscalation(title, body, severity, actions)`
+
+Admin tool (for LLM): `escalate_to_admin`
 
 ```typescript
 {
@@ -102,24 +156,30 @@ Tool: `escalate_to_admin`
     severity: z.enum(['info', 'warning', 'critical']),
     actions: z.array(z.object({
       label: z.string(),
-      action_type: z.string(),  // e.g. 'approve_absence', 'flag_no_show'
+      action_type: z.string(),
       action_payload: z.record(z.unknown()),
-    })).max(8),  // Telegram inline keyboard limit per row
+    })).max(8),
   }),
 }
 ```
 
-Renders as a Telegram message with inline keyboard buttons. When Pontus taps a button:
+**Callback data size limit:** Telegram limits `callback_data` to 64 bytes. Actions are stored in a lookup table (`telegram_callback_action`), and `callback_data` contains only a short UUID reference (36 bytes). When Pontus taps a button:
 
 1. `callback_query` arrives at webhook
-2. Parse `callback_data` (JSON-encoded action reference)
-3. Execute the action via agent-router or direct DB mutation
-4. Edit original message to show resolved state
-5. Answer callback query (removes loading spinner)
+2. Look up action by UUID from `telegram_callback_action`
+3. Validate action_type against allowed list (Zod schema per action_type)
+4. Execute the action via `routeAdminMessage()` (preserves authority checks and audit trail)
+5. Edit original message to show resolved state
+6. Answer callback query (removes loading spinner)
+7. Emit telemetry: `telegram.escalation.resolved`
+
+**Action execution contract:** All callback actions route through `routeAdminMessage()`. No direct DB mutations from button presses. This ensures authority checks, telemetry, and audit trail are preserved.
 
 ### 2.3 Polls
 
-Tool: `send_admin_poll`
+Function: `sendTelegramPoll(question, options, allowsMultiple)`
+
+Admin tool (for LLM): `send_admin_poll`
 
 ```typescript
 {
@@ -140,25 +200,28 @@ Tool: `send_admin_poll`
 Flow:
 
 1. Send poll via `sendPoll` Bot API
-2. Store option→action mapping in `telegram_poll_action` table
+2. Store option-to-action mapping in `telegram_poll_action` table
 3. When `poll_answer` update arrives at webhook:
+   - Check idempotency (update_id dedup)
    - Look up mapping by `telegram_poll_id`
-   - Execute action(s) for selected option(s)
+   - Validate action_type + payload against Zod schemas
+   - Execute action(s) for selected option(s) via `routeAdminMessage()`
    - Mark poll as resolved
    - Send confirmation message
+   - Emit telemetry: `telegram.poll.resolved`
 
 ## 3. Chat Bridge: Smartout ↔ Telegram
 
 ### Opening a Bridge
 
-Tool: `bridge_chat_to_telegram`
+Admin tool (for LLM): `bridge_chat_to_telegram`
 
 ```typescript
 {
   name: 'bridge_chat_to_telegram',
   description: 'Connect a Smartout chat thread to Telegram for direct employee communication',
   schema: z.object({
-    channel_id: z.string().uuid().describe('Smartout comm_channel ID'),
+    channel_id: z.string().uuid().describe('Smartout channel ID'),
     context: z.string().optional().describe('Why the bridge was opened — shown to admin'),
   }),
 }
@@ -167,28 +230,44 @@ Tool: `bridge_chat_to_telegram`
 Flow:
 
 1. Insert row into `telegram_chat_bridge` (session_id, channel_id, telegram_chat_id, status=active)
-2. Subscribe to Supabase Realtime on `comm_channel_message` where `channel_id` matches
+2. Subscribe to new messages on `channel_message` where `channel_id` matches (see Relay Mechanism below)
 3. Send Telegram message: "Connected to [Employee Name]. Type to reply. /done to close."
 4. If `context` provided, include it: "Context: Employee missed shift, needs absence approval"
+5. Emit telemetry: `telegram.bridge.opened`
 
-### Message Relay (Active Bridge)
+### Message Relay Mechanism
+
+**Option A (recommended): DB trigger → engine_event → Stage Engine handler**
+
+Instead of Supabase Realtime subscriptions (which are designed for client-side use and add reconnection complexity), use:
+
+1. A DB trigger on `channel_message` INSERT that fires `pg_notify('telegram_bridge', ...)`
+2. Stage Engine listens via `pg_listen` on the `telegram_bridge` channel
+3. Handler checks if the message's `channel_id` has an active bridge
+4. If yes: format and forward to Telegram via `sendMessage`
+
+This is more reliable than Realtime — no WebSocket reconnection concerns, no service-role Realtime config needed, survives brief service restarts (messages queue in PG notify buffer).
 
 **Smartout → Telegram:**
 
-- Realtime subscription fires on new `comm_channel_message`
+- DB trigger fires on new `channel_message`
 - Format: `"[Employee Name]: message content"`
-- Forward to Telegram via `sendMessage`
+- Forward to Telegram via `sendTelegramNotification()`
+- Emit telemetry: `telegram.bridge.message_relayed`
 
 **Telegram → Smartout:**
 
 - Inbound message arrives at webhook
 - Check for active bridge (query `telegram_chat_bridge` where status=active)
-- If bridge active: insert message into `comm_channel_message` as Pontus's profile
-- If no bridge: route to normal WalkAi chat flow
+- If bridge active: insert message into `channel_message` using `supabaseAdmin` (service_role) as Pontus's profile
+- If no bridge: route to normal admin chat flow
+- Emit telemetry: `telegram.bridge.message_relayed`
+
+**Bridge profile attribution:** Pontus uses `is_godmode` identity. Messages are inserted via service_role with Pontus's `user_identity.id` as sender. The `channel_message.sender_profile_id` is set to NULL with a `sender_name` override field, or Pontus's profile is auto-created in the target workspace on bridge open. Decision: use service_role insert with `sender_name = 'Pontus (Admin)'` to avoid creating fake profiles.
 
 ### Closing a Bridge
 
-Tool: `close_chat_bridge`
+Admin tool (for LLM): `close_chat_bridge`
 
 ```typescript
 {
@@ -207,17 +286,22 @@ Also triggered by:
 
 ### Bridge Recovery on Restart
 
-On Stage Engine startup, query `telegram_chat_bridge WHERE status = 'active'` and re-subscribe to Realtime for each active bridge. Ensures bridges survive service restarts.
+On Stage Engine startup, query `telegram_chat_bridge WHERE status = 'active'` and re-establish `pg_listen` for the bridge channel. Since we use PG NOTIFY (not Realtime subscriptions), recovery is just re-listening — no per-bridge subscription needed.
+
+### Bridge Concurrency
+
+Only one bridge active at a time for v1. If Pontus opens a new bridge, the previous one auto-closes. This avoids routing ambiguity (which bridge gets the inbound message?).
 
 Flow:
 
 1. Update `telegram_chat_bridge` set status=closed, closed_at=now()
-2. Unsubscribe from Realtime channel
+2. Stop relaying messages for that channel
 3. Send Telegram confirmation: "Bridge closed."
+4. Emit telemetry: `telegram.bridge.closed`
 
 ## 4. Database Migration
 
-Schema: `public` — small integration (2 tables), tightly coupled to existing `engine_sessions` and `comm_channel`.
+Schema: `public` — small integration (3 tables), tightly coupled to existing `engine_sessions` and `channel`. No distinct domain boundary warrants a dedicated schema.
 
 ```sql
 -- 1. Add 'telegram' to engine_sessions channel constraint
@@ -229,7 +313,7 @@ ALTER TABLE engine_sessions ADD CONSTRAINT engine_sessions_channel_check
 CREATE TABLE telegram_chat_bridge (
   id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   session_id       UUID NOT NULL REFERENCES engine_sessions(id),
-  channel_id       UUID NOT NULL REFERENCES comm_channel(id),
+  channel_id       UUID NOT NULL REFERENCES channel(id),
   telegram_chat_id BIGINT NOT NULL,
   status           TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'closed')),
   created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -237,10 +321,8 @@ CREATE TABLE telegram_chat_bridge (
   closed_at        TIMESTAMPTZ
 );
 
--- Deny-all RLS (service_role only)
 ALTER TABLE telegram_chat_bridge ENABLE ROW LEVEL SECURITY;
 
--- Updated-at trigger
 CREATE TRIGGER set_updated_at_telegram_chat_bridge
   BEFORE UPDATE ON telegram_chat_bridge
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -253,16 +335,73 @@ CREATE TABLE telegram_poll_action (
   options          JSONB NOT NULL,  -- [{index, label, action_type, action_payload}]
   resolved         BOOLEAN NOT NULL DEFAULT false,
   created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
   resolved_at      TIMESTAMPTZ
 );
 
--- Deny-all RLS (service_role only)
 ALTER TABLE telegram_poll_action ENABLE ROW LEVEL SECURITY;
+
+CREATE TRIGGER set_updated_at_telegram_poll_action
+  BEFORE UPDATE ON telegram_poll_action
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- 4. Callback action lookup (for inline keyboard buttons)
+CREATE TABLE telegram_callback_action (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  action_type      TEXT NOT NULL,
+  action_payload   JSONB NOT NULL,
+  session_id       UUID NOT NULL REFERENCES engine_sessions(id),
+  resolved         BOOLEAN NOT NULL DEFAULT false,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+  resolved_at      TIMESTAMPTZ
+);
+
+ALTER TABLE telegram_callback_action ENABLE ROW LEVEL SECURITY;
+
+CREATE TRIGGER set_updated_at_telegram_callback_action
+  BEFORE UPDATE ON telegram_callback_action
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- 5. Bridge relay trigger (PG NOTIFY)
+CREATE OR REPLACE FUNCTION notify_telegram_bridge()
+RETURNS TRIGGER AS $$
+BEGIN
+  PERFORM pg_notify('telegram_bridge', json_build_object(
+    'channel_id', NEW.channel_id,
+    'sender_profile_id', NEW.sender_profile_id,
+    'content', NEW.content,
+    'id', NEW.id
+  )::text);
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_notify_telegram_bridge
+  AFTER INSERT ON channel_message
+  FOR EACH ROW EXECUTE FUNCTION notify_telegram_bridge();
 ```
 
-No workspace_id on either table — this is platform-admin infrastructure, not tenant-scoped.
+No workspace_id on any table — this is platform-admin infrastructure, not tenant-scoped. All tables use deny-all RLS (service_role only).
 
-## 5. Infrastructure
+## 5. Telemetry Events
+
+All events registered in `packages/telemetry/src/registry.ts`:
+
+| Event                             | When                                  | Destinations                    |
+| --------------------------------- | ------------------------------------- | ------------------------------- |
+| `telegram.session.created`        | New admin session created             | Logger, activity_trail          |
+| `telegram.message.received`       | Inbound message from Telegram         | Logger, activity_trail          |
+| `telegram.message.sent`           | Outbound message/notification sent    | Logger, activity_trail          |
+| `telegram.escalation.sent`        | Escalation with buttons pushed        | Logger, activity_trail          |
+| `telegram.escalation.resolved`    | Callback button action executed       | Logger, activity_trail, PostHog |
+| `telegram.poll.sent`              | Poll sent to admin                    | Logger, activity_trail          |
+| `telegram.poll.resolved`          | Poll answered + action executed       | Logger, activity_trail, PostHog |
+| `telegram.bridge.opened`          | Chat bridge created                   | Logger, activity_trail          |
+| `telegram.bridge.closed`          | Chat bridge closed                    | Logger, activity_trail          |
+| `telegram.bridge.message_relayed` | Message forwarded in either direction | Logger                          |
+
+## 6. Infrastructure
 
 ### Environment Variables
 
@@ -302,55 +441,80 @@ await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/setWebhook`, {
 
 Called once at deploy. Idempotent — safe to call repeatedly.
 
-## 6. Files
+## 7. TypeScript Type Updates
+
+The following types must be updated to include `'telegram'`:
+
+| File                                         | Type                       | Change                                                               |
+| -------------------------------------------- | -------------------------- | -------------------------------------------------------------------- |
+| `services/stage-engine/src/types/session.ts` | `SessionChannel`           | Add `'telegram'` to union                                            |
+| `services/stage-engine/src/types/agent.ts`   | `AgentChatRequest.channel` | Add `'telegram'` to union (or make it passthrough to SessionChannel) |
+
+NOT updated (Telegram tools are NOT capabilities):
+
+- `packages/ai/src/capabilities/types.ts` — `CapabilityName` stays unchanged
+- `packages/ai/src/capabilities/registry.ts` — no registration
+
+## 8. Files
 
 ### New Files
 
-| File                                                      | Purpose                                                                                                        |
-| --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `services/stage-engine/src/routes/adapters/telegram.ts`   | Webhook handler, Bot API client, message formatter, callback/poll handlers                                     |
-| `services/stage-engine/src/core/telegram-bridge.ts`       | Chat bridge lifecycle, Realtime subscription management, relay logic                                           |
-| `packages/ai/src/capabilities/telegram.ts`                | 5 tools: send_telegram_message, escalate_to_admin, bridge_chat_to_telegram, close_chat_bridge, send_admin_poll |
-| `supabase/migrations/YYYYMMDDHHMMSS_telegram_adapter.sql` | Channel constraint + 2 tables                                                                                  |
+| File                                                      | Purpose                                                                                                          |
+| --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `services/stage-engine/src/routes/adapters/telegram.ts`   | Webhook handler, message formatter, callback/poll handlers, auth bypass                                          |
+| `services/stage-engine/src/core/telegram.ts`              | Bot API client, outbound functions (sendNotification, sendEscalation, sendPoll), bridge relay, pg_listen handler |
+| `services/stage-engine/src/core/admin-router.ts`          | `routeAdminMessage()` — lightweight admin pipeline (no workspace scope, god-mode authority, admin tools)         |
+| `supabase/migrations/YYYYMMDDHHMMSS_telegram_adapter.sql` | Channel constraint + 3 tables + bridge trigger                                                                   |
 
 ### Modified Files
 
-| File                                                 | Change                                     |
-| ---------------------------------------------------- | ------------------------------------------ |
-| `packages/ai/src/capabilities/registry.ts`           | Register telegram capability               |
-| `services/stage-engine/src/routes/adapters/index.ts` | Mount telegram routes                      |
-| `infra/Caddyfile`                                    | Add telegram route                         |
-| `.env.template`                                      | Add 3 telegram env vars                    |
-| `services/stage-engine/src/index.ts`                 | Webhook registration on startup (optional) |
+| File                                         | Change                                                                                                                                       |
+| -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `services/stage-engine/src/index.ts`         | Mount telegram routes (same as Ultravox), auth middleware bypass for webhook path, pg_listen setup, optional webhook registration on startup |
+| `services/stage-engine/src/types/session.ts` | Add `'telegram'` to `SessionChannel`                                                                                                         |
+| `services/stage-engine/src/types/agent.ts`   | Add `'telegram'` to channel type                                                                                                             |
+| `packages/telemetry/src/registry.ts`         | Register 10 telegram events                                                                                                                  |
+| `infra/Caddyfile`                            | Add telegram route                                                                                                                           |
+| `.env.template`                              | Add 3 telegram env vars                                                                                                                      |
 
-## 7. Security
+## 9. Security
 
 - **Single-user guard:** All inbound messages rejected unless `chat.id === TELEGRAM_ADMIN_CHAT_ID`
 - **Webhook verification:** `X-Telegram-Bot-Api-Secret-Token` validated on every request
+- **Auth middleware bypass:** Webhook route skips JWT/API key auth (self-authenticated via secret token)
 - **Bot token:** 1Password vault, never in code or logs
-- **Deny-all RLS:** Both new tables use deny-all RLS — service_role access only
+- **Deny-all RLS:** All 3 new tables use deny-all RLS — service_role access only
 - **No user-facing exposure:** This adapter has no dashboard UI, no API routes, no customer access
+- **Bridge uses service_role:** Chat bridge inserts messages via supabaseAdmin, which is safe because the bridge is single-user admin-only with sender attribution
+- **Webhook idempotency:** `update_id` deduplication prevents duplicate action execution from Telegram retries
+- **Callback action validation:** All action_types validated against Zod schema before execution. Actions route through `routeAdminMessage()`, never direct DB mutations.
 
-## 8. Scope Boundaries
+## 10. Scope Boundaries
 
 **In scope:**
 
 - Telegram webhook adapter in Stage Engine
-- 5 WalkAi tools for outbound communication
-- Chat bridge with Realtime relay
-- Poll support with action mapping
-- Migration for channel constraint + 2 tables
+- Admin pipeline (`routeAdminMessage()`) — lightweight, no workspace requirement
+- 5 admin tools for LLM (send_message, escalate, bridge, close_bridge, poll)
+- Plain outbound functions for event handlers to call directly
+- Chat bridge with PG NOTIFY relay
+- Poll + callback action support with lookup tables
+- Migration for channel constraint + 3 tables + bridge trigger
+- Telemetry: 10 events registered
+- ADR: Platform-admin pipeline separation
 
 **Out of scope:**
 
 - Customer-facing Telegram integration (future product feature)
 - Telegram group management (only 1:1 admin chat)
 - Media/file handling (text-only for v1)
-- Notification system integration (this bypasses `notification_outbox` — direct Telegram via tools)
+- Notification system integration (this bypasses `notification_outbox` — direct Telegram via functions)
 - Dashboard UI for managing the bot
+- Multiple concurrent chat bridges (v1 = one bridge at a time)
 
-## 9. Dependencies
+## 11. Dependencies
 
 - No new npm packages — Telegram Bot API is a simple HTTP API (fetch calls)
-- Supabase Realtime client already available in Stage Engine
-- Agent-router pipeline unchanged — Telegram is just another channel
+- PG NOTIFY/LISTEN available via the existing Supabase connection
+- Agent-router pipeline unchanged — Telegram uses a separate admin pipeline
+- Existing `channel` and `channel_message` tables used for bridge (no schema changes to those tables)
