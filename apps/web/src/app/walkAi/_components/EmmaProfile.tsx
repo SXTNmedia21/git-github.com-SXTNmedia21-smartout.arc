@@ -7,13 +7,14 @@ import { VOICE_OPTIONS, LISA_PERSONALITIES } from "./types";
 import type { AgentPersona, AgentRank, PersonaRankBlend } from "./types";
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-/*  Emma — Editable Profile & Settings        */
+/*  Emma — Agent Settings & Identity          */
 /*                                             */
-/*  Full control over who she is and how she   */
-/*  speaks. Changes take effect immediately.   */
+/*  Controls who she is and how she speaks.    */
+/*  Settings persist across sessions via       */
+/*  localStorage and take effect on next call. */
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
-type Tab = "identity" | "voice" | "prompts";
+type Tab = "overview" | "identity" | "voice" | "prompts";
 
 export function EmmaProfile() {
   const {
@@ -30,13 +31,14 @@ export function EmmaProfile() {
     personaPrompt,
   } = useWalkAi();
 
-  const [activeTab, setActiveTab] = useState<Tab>("identity");
+  const [activeTab, setActiveTab] = useState<Tab>("overview");
 
   const persona = PERSONAS[identity.persona];
   const rank = RANKS[identity.rank];
   const voice = VOICE_OPTIONS.find((v) => v.id === selectedVoice);
 
   const tabs: { id: Tab; label: string }[] = [
+    { id: "overview", label: "Oversikt" },
     { id: "identity", label: "Personlighet" },
     { id: "voice", label: "Stemme" },
     { id: "prompts", label: "Prompt" },
@@ -44,53 +46,38 @@ export function EmmaProfile() {
 
   return (
     <div className="flex h-full flex-col">
-      {/* ━━━ Header — who she is + quick stats ━━━ */}
-      <div className="flex items-start gap-4 px-1 pb-3">
+      {/* ━━━ Compact header ━━━ */}
+      <div className="flex items-center gap-3 px-1 pb-2">
         <div className="relative flex-shrink-0">
-          <div className="from-brand-orange/20 to-brand-orange/5 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br">
-            <div className="bg-brand-orange/30 flex h-6 w-6 items-center justify-center rounded-full">
-              <div className="bg-brand-orange h-2 w-2 rounded-full" />
-            </div>
+          <div className="from-brand-orange/20 to-brand-orange/5 flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br">
+            <div className="bg-brand-orange h-2.5 w-2.5 rounded-full" />
           </div>
           {agent.isConnected && (
-            <div className="border-card absolute -right-0.5 -bottom-0.5 h-3 w-3 rounded-full border-2 bg-emerald-500" />
+            <div className="border-card absolute -right-0.5 -bottom-0.5 h-2.5 w-2.5 rounded-full border-2 bg-emerald-500" />
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <h2 className="text-foreground text-lg font-semibold">Emma</h2>
-          <p className="text-muted-foreground text-xs">
-            {voice?.description ?? "AI-stemme"} · {voice?.name ?? "Ukjent stemme"}
-          </p>
-          <p className="text-muted-foreground/60 mt-0.5 font-mono text-[10px]">{identityDisplay}</p>
-          {/* Quick stats bar */}
-          <div className="mt-2 flex items-center gap-3">
-            <span className="bg-accent/50 text-muted-foreground/60 inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px]">
-              {persona.name}
-            </span>
-            <span className="bg-accent/50 text-muted-foreground/60 inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px]">
-              {rank.name}
-            </span>
-            <span className="bg-accent/50 text-muted-foreground/60 inline-flex items-center gap-1 rounded-md px-2 py-0.5 font-mono text-[10px]">
-              T: {voiceTuning.temperature.toFixed(1)}
-            </span>
-            <span className="bg-accent/50 text-muted-foreground/60 inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px]">
-              B: {identity.blend}
-            </span>
+          <div className="flex items-baseline gap-2">
+            <h2 className="text-foreground text-base font-semibold">Emma</h2>
+            <span className="text-muted-foreground/40 font-mono text-[9px]">{identityDisplay}</span>
           </div>
+          <p className="text-muted-foreground/60 text-[11px]">
+            {voice?.name ?? "Ukjent"} · {persona.name} · {rank.name}
+          </p>
         </div>
       </div>
 
       {/* ━━━ Tab bar ━━━ */}
-      <div className="border-border/20 flex gap-1 border-b px-1 pb-3">
+      <div className="border-border/20 flex gap-0.5 border-b px-1 pb-2">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={[
-              "rounded-lg px-3 py-1.5 text-[12px] font-medium transition-all duration-150",
+              "rounded-lg px-2.5 py-1.5 text-[11px] font-medium transition-all duration-150",
               activeTab === tab.id
                 ? "bg-brand-orange/10 text-brand-orange"
-                : "text-muted-foreground/50 hover:text-muted-foreground hover:bg-accent/40",
+                : "text-muted-foreground/40 hover:text-muted-foreground hover:bg-accent/40",
             ].join(" ")}
           >
             {tab.label}
@@ -99,7 +86,18 @@ export function EmmaProfile() {
       </div>
 
       {/* ━━━ Tab content ━━━ */}
-      <div className="flex-1 space-y-4 overflow-y-auto px-1 py-4">
+      <div className="flex-1 space-y-4 overflow-y-auto px-1 py-3">
+        {activeTab === "overview" && (
+          <OverviewTab
+            identity={identity}
+            voiceTuning={voiceTuning}
+            selectedVoice={selectedVoice}
+            customPrompt={customPrompt}
+            personaPrompt={personaPrompt}
+            isConnected={agent.isConnected}
+            setActiveTab={setActiveTab}
+          />
+        )}
         {activeTab === "identity" && <IdentityTab identity={identity} setIdentity={setIdentity} />}
         {activeTab === "voice" && (
           <VoiceTab
@@ -118,6 +116,176 @@ export function EmmaProfile() {
         )}
       </div>
     </div>
+  );
+}
+
+/* ━━━ Overview Tab (new) ━━━━━━━━━━━━━━━━━━ */
+
+function OverviewTab({
+  identity,
+  voiceTuning,
+  selectedVoice,
+  customPrompt,
+  personaPrompt,
+  isConnected,
+  setActiveTab,
+}: {
+  identity: { rank: AgentRank; persona: AgentPersona; blend: PersonaRankBlend };
+  voiceTuning: {
+    temperature: number;
+    firstSpeaker: "user" | "agent";
+    greeting: string;
+    maxDuration: string;
+    inactivityTimeout: string;
+  };
+  selectedVoice: string;
+  customPrompt: string;
+  personaPrompt: string;
+  isConnected: boolean;
+  setActiveTab: (tab: Tab) => void;
+}) {
+  const persona = PERSONAS[identity.persona];
+  const rank = RANKS[identity.rank];
+  const voice = VOICE_OPTIONS.find((v) => v.id === selectedVoice);
+  const promptLength = (personaPrompt + (customPrompt ? `\n\n${customPrompt}` : "")).length;
+
+  return (
+    <>
+      {/* Status */}
+      <div
+        className={`flex items-center gap-2 rounded-xl border px-3.5 py-2.5 ${isConnected ? "border-emerald-500/20 bg-emerald-500/5" : "border-border/20 bg-card/30"}`}
+      >
+        <div
+          className={`h-2 w-2 rounded-full ${isConnected ? "animate-pulse bg-emerald-500" : "bg-muted-foreground/20"}`}
+        />
+        <span className="text-[11px] font-medium">
+          {isConnected ? "Tilkoblet" : "Ikke tilkoblet"}
+        </span>
+        <span className="text-muted-foreground/40 ml-auto text-[10px]">
+          Innstillinger lagres automatisk
+        </span>
+      </div>
+
+      {/* What gets sent — summary cards */}
+      <Section label="Hva sendes til agenten">
+        <div className="space-y-2">
+          {/* Personality card */}
+          <OverviewCard
+            title="Personlighet"
+            onClick={() => setActiveTab("identity")}
+            rows={[
+              { label: "Persona", value: `${persona.name} — "${persona.angle}"` },
+              { label: "Autoritet", value: `${rank.name} — ${rank.authority}` },
+              {
+                label: "Balanse",
+                value:
+                  identity.blend <= 3
+                    ? "Personlighet dominerer"
+                    : identity.blend >= 7
+                      ? "Autoritet dominerer"
+                      : "Balansert",
+              },
+            ]}
+          />
+
+          {/* Voice card */}
+          <OverviewCard
+            title="Stemme"
+            onClick={() => setActiveTab("voice")}
+            rows={[
+              { label: "Stemme", value: voice?.name ?? "Ukjent" },
+              {
+                label: "Temperatur",
+                value: `${voiceTuning.temperature.toFixed(1)} (${voiceTuning.temperature <= 0.3 ? "presis" : voiceTuning.temperature >= 0.7 ? "kreativ" : "balansert"})`,
+              },
+              {
+                label: "Starter",
+                value:
+                  voiceTuning.firstSpeaker === "agent"
+                    ? "Emma snakker forst"
+                    : "Bruker snakker forst",
+              },
+              ...(voiceTuning.greeting
+                ? [
+                    {
+                      label: "Hilsen",
+                      value:
+                        voiceTuning.greeting.slice(0, 50) +
+                        (voiceTuning.greeting.length > 50 ? "..." : ""),
+                    },
+                  ]
+                : []),
+            ]}
+          />
+
+          {/* Prompt card */}
+          <OverviewCard
+            title="Prompt"
+            onClick={() => setActiveTab("prompts")}
+            rows={[
+              { label: "Systemprompt", value: `${personaPrompt.split("\n").length} linjer` },
+              {
+                label: "Egendefinert",
+                value: customPrompt ? `${customPrompt.length} tegn` : "Ingen",
+              },
+              { label: "Totalt", value: `${promptLength} tegn sendt` },
+            ]}
+          />
+        </div>
+      </Section>
+
+      {/* Persistence notice */}
+      <div className="border-border/10 rounded-xl border px-3.5 py-2.5">
+        <p className="text-muted-foreground/40 text-[10px] leading-relaxed">
+          Alle innstillinger lagres automatisk og gjenopprettes neste gang du aper dashboardet.
+          Endringer i personlighet og stemme tar effekt ved neste samtale.
+        </p>
+      </div>
+    </>
+  );
+}
+
+function OverviewCard({
+  title,
+  rows,
+  onClick,
+}: {
+  title: string;
+  rows: { label: string; value: string }[];
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="border-border/20 bg-card/30 hover:border-border/40 hover:bg-accent/20 w-full rounded-xl border px-3.5 py-3 text-left transition-all duration-150"
+    >
+      <div className="mb-2 flex items-center justify-between">
+        <span className="text-foreground text-[12px] font-semibold">{title}</span>
+        <svg
+          width="12"
+          height="12"
+          viewBox="0 0 16 16"
+          fill="none"
+          className="text-muted-foreground/30"
+        >
+          <path
+            d="M6 4L10 8L6 12"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </div>
+      <div className="space-y-1">
+        {rows.map((row) => (
+          <div key={row.label} className="flex items-baseline justify-between gap-2">
+            <span className="text-muted-foreground/50 flex-shrink-0 text-[10px]">{row.label}</span>
+            <span className="text-foreground/70 truncate text-right text-[11px]">{row.value}</span>
+          </div>
+        ))}
+      </div>
+    </button>
   );
 }
 
