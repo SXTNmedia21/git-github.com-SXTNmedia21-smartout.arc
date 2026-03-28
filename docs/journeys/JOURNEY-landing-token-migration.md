@@ -1,7 +1,7 @@
 ---
 title: "Journey — Landing Token Migration"
 status: done
-updated: 2026-03-27
+updated: 2026-03-28
 created: 2026-03-27
 module: landing
 tags: [journey, landing, design-tokens]
@@ -43,3 +43,36 @@ tags: [journey, landing, design-tokens]
 
 - Developer uses hardcoded color (e.g. `text-zinc-400`) → Inconsistent with token palette, will not respond to theme changes — caught by code review
 - Developer nests `dark-section` inside another `dark-section` → No harm, CSS variables re-declare same values
+
+---
+
+## Journey: International Visitor — Browse in English
+
+**Precondition:** Visitor navigates to /en/ or clicks EN in language switcher.
+
+1. Visitor clicks EN toggle in navigation → LanguageSwitcher sets `smartout-locale=en` cookie and navigates to `/en{current_path}` → Visitor sees EN highlighted in the toggle
+2. Visitor arrives at `/en/pricing` → System renders English pricing page with translated content (tiers, features, CTAs) → Visitor sees pricing in English
+3. Visitor clicks nav links → Navigation auto-prefixes all links with `/en/` via `useLocale()` hook → Visitor stays in English context
+4. Visitor clicks NO toggle → LanguageSwitcher sets `smartout-locale=nb` cookie and navigates to stripped path → Visitor returns to Norwegian
+
+**Postcondition:** Visitor can browse pricing and about pages in English. Navigation maintains locale context.
+
+**Error paths:**
+
+- Visitor navigates to `/en/compare` (no English page yet) → 404 — page file not created yet
+- Client-side navigation loses locale on hard refresh → Middleware reads cookie and sets `x-locale` header correctly
+
+---
+
+## Journey: Visitor — Theme Toggle
+
+**Precondition:** Visitor is on any landing page.
+
+1. Visitor clicks theme toggle (sun/moon icon) → ThemeProvider switches class on html element → Body transitions smoothly via `transition-colors duration-300` → Visitor sees gradual color change over 300ms
+2. Visitor preference persists → next-themes stores in localStorage → On return visit, theme is restored
+
+**Postcondition:** Theme transitions are smooth, not abrupt.
+
+**Error paths:**
+
+- System preference changes while on page → `enableSystem` detects and transitions smoothly
