@@ -365,15 +365,5 @@ export async function completeSignup(data: SignupSetupData, accessToken?: string
     await admin.from("invitation").insert(invitations);
   }
 
-  // ── Telemetry ──────────────────────────────────────────────────
-  await emit({
-    event: "wizard completed",
-    workspace_id: workspace.workspace_id,
-    actor_id: actorId,
-    properties: {
-      data: { wizard_id: "setup", workspace_id: workspace.workspace_id },
-    },
-  });
-
   return { workspaceId: workspace.workspace_id, slug: workspace.slug };
 }

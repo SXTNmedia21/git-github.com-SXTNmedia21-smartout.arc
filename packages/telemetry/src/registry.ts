@@ -2908,7 +2908,7 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "onboarding",
   },
   "wizard step_completed": {
-    destinations: ["posthog", "logger", "engine_event"],
+    destinations: ["posthog", "logger"],
     category: "onboarding",
   },
   "wizard fact_edited": {
@@ -2916,7 +2916,7 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "onboarding",
   },
   "wizard completed": {
-    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    destinations: ["posthog", "logger", "activity_trail"],
     category: "onboarding",
   },
   "wizard started": {
