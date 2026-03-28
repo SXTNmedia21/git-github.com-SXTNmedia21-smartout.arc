@@ -17,7 +17,8 @@ import enJoin from "../locales/en/join.json";
 import enDashboard from "../locales/en/dashboard.json";
 import enMobile from "../locales/en/mobile.json";
 
-type Messages = Record<string, string | Record<string, string>>;
+type MessageValue = string | Record<string, string | Record<string, string>>;
+type Messages = Record<string, MessageValue>;
 
 const localeModules: Record<string, Record<string, Messages>> = {
   nb: {
@@ -51,31 +52,43 @@ export function createTranslator(locale: SupportedLocale, namespace: string) {
   const messages = localeModules[locale]?.[namespace] ?? {};
   const fallbackMessages = locale !== "nb" ? (localeModules["nb"]?.[namespace] ?? {}) : {};
 
-  return function t(key: string, params?: Record<string, string | number>): string {
-    // Try requested locale first
-    const direct = messages[key];
-    if (typeof direct === "string") return interpolate(direct, params);
+  /**
+   * Resolves a dot-separated key (up to 3 levels deep) against a messages object.
+   * Examples: "title", "hms.sessions_label", "hms.drift_insights.sessions_label"
+   */
+  function resolve(msgs: Messages, key: string): string | undefined {
+    const direct = msgs[key];
+    if (typeof direct === "string") return direct;
 
-    const [group, subKey] = key.split(".");
-    if (group && subKey) {
-      const nested = messages[group];
+    const parts = key.split(".");
+    if (parts.length === 2) {
+      const nested = msgs[parts[0]!];
       if (typeof nested === "object" && nested !== null) {
-        const val = nested[subKey];
-        if (val) return interpolate(val, params);
+        const val = nested[parts[1]!];
+        if (typeof val === "string") return val;
       }
     }
 
-    // Fallback to Norwegian
-    const fallbackDirect = fallbackMessages[key];
-    if (typeof fallbackDirect === "string") return interpolate(fallbackDirect, params);
-
-    if (group && subKey) {
-      const fallbackNested = fallbackMessages[group];
-      if (typeof fallbackNested === "object" && fallbackNested !== null) {
-        const val = fallbackNested[subKey];
-        if (val) return interpolate(val, params);
+    if (parts.length === 3) {
+      const top = msgs[parts[0]!];
+      if (typeof top === "object" && top !== null) {
+        const mid = top[parts[1]!];
+        if (typeof mid === "object" && mid !== null) {
+          const val = mid[parts[2]!];
+          if (typeof val === "string") return val;
+        }
       }
     }
+
+    return undefined;
+  }
+
+  return function t(key: string, params?: Record<string, string | number>): string {
+    const val = resolve(messages, key);
+    if (val !== undefined) return interpolate(val, params);
+
+    const fallbackVal = resolve(fallbackMessages, key);
+    if (fallbackVal !== undefined) return interpolate(fallbackVal, params);
 
     return key;
   };
