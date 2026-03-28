@@ -9,8 +9,9 @@ import {
   getDepartmentsForIndustry as getRawDepartments,
   getProceduresForIndustry as getRawProcedures,
 } from "@smartout/ai/industry";
-import type { DepartmentOption, PositionOption, ProcedureData } from "../types";
+import type { DepartmentOption, PositionOption, ProcedureData, ProfessionOption } from "../types";
 import type { PositionTemplate } from "@smartout/types";
+import { createClient } from "@smartout/supabase/client";
 
 /** Names that count as "opening" or "closing" procedures */
 const OPENING_NAMES = ["åpningsrutine", "innsjekk-rutine"];
@@ -57,6 +58,7 @@ function buildPositionOptions(
     return {
       id: `pos-${i}-${t.name.toLowerCase().replace(/\s/g, "-")}`,
       name: t.name,
+      slug: t.name.toLowerCase().replace(/\s/g, "-"),
       isLeader: t.isLeader,
       selected,
     };
@@ -76,6 +78,7 @@ export function getDepartmentsForIndustry(naceCode: string, employeeCount = 5): 
       : dept.positions.map((name, j) => ({
           id: `pos-${j}-${name.toLowerCase().replace(/\s/g, "-")}`,
           name,
+          slug: name.toLowerCase().replace(/\s/g, "-"),
           isLeader: j === 0,
           selected: true,
         })),
@@ -194,6 +197,7 @@ function getDefaultPositionsForProfession(slug: string): PositionOption[] {
     id: `pos-${slug}-${i}`,
     name: pos.name,
     slug: pos.name.toLowerCase().replace(/\s+/g, "-"),
+    isLeader: false,
     selected: pos.preselected,
   }));
 }

@@ -9,7 +9,6 @@ import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { emit } from "@smartout/telemetry";
 import { Input } from "@/components/ui/input";
 import { Plus, Loader2, CheckCircle2, Clock, Trash2 } from "lucide-react";
-import { HelpTip } from "@/components/dashboard/wizard-steps/HelpTip";
 import type { IndustryShiftTemplate } from "@/lib/industry/types";
 
 // ─── Types ───────────────────────────────────────────────
@@ -20,10 +19,8 @@ type TemplateEntry = {
   name: string;
   startTime: string;
   endTime: string;
-  _suggested?: boolean;
+  suggested?: boolean;
 };
-
-// ─── Helpers ─────────────────────────────────────────────
 
 type DayCategory = "morning" | "midday" | "afternoon" | "evening" | "night" | "weekend";
 
@@ -56,8 +53,6 @@ export function ShiftTemplateSetupStep({
   const queryClient = useQueryClient();
   const hasPreFilledRef = useRef(false);
 
-  // ── Queries ──
-
   const { data: departments } = useQuery({
     queryKey: ["departments", workspace.workspace.workspace_id],
     queryFn: async () => {
@@ -83,39 +78,29 @@ export function ShiftTemplateSetupStep({
     },
   });
 
-  // ── State ──
-
   const [entries, setEntries] = useState<TemplateEntry[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
-  // ── Pre-fill from suggested templates or extracted patterns ──
-
+  // Pre-fill
   useEffect(() => {
     if (hasPreFilledRef.current) return;
     if (entries.length > 0) return;
-
-    // Prefer extracted shift patterns, fall back to suggested templates
     const source = extractedShiftPatterns ?? suggestedTemplates;
     if (!source || source.length === 0) return;
-
     hasPreFilledRef.current = true;
-
     const deptNames = (departments ?? []).map((d) => d.name);
     const defaultDept = deptNames[0] ?? "";
-
-    const mapped: TemplateEntry[] = source.map((s) => ({
-      id: crypto.randomUUID(),
-      departmentName: "department" in s && s.department ? s.department : defaultDept,
-      name: "name" in s ? s.name : "",
-      startTime: "startTime" in s ? s.startTime : "",
-      endTime: "endTime" in s ? s.endTime : "",
-      _suggested: true,
-    })) as (TemplateEntry & { _suggested?: boolean })[];
-
-    setEntries(mapped);
+    setEntries(
+      source.map((s) => ({
+        id: crypto.randomUUID(),
+        departmentName: "department" in s && s.department ? s.department : defaultDept,
+        name: "name" in s ? s.name : "",
+        startTime: "startTime" in s ? s.startTime : "",
+        endTime: "endTime" in s ? s.endTime : "",
+        suggested: true,
+      })),
+    );
   }, [extractedShiftPatterns, suggestedTemplates, entries.length, departments]);
-
-  // ── Derived ──
 
   const templatesByDept = useMemo(() => {
     const map = new Map<string, typeof existingTemplates>();
@@ -128,18 +113,10 @@ export function ShiftTemplateSetupStep({
     return map;
   }, [existingTemplates]);
 
-  // ── Handlers ──
-
   const handleAddEntry = useCallback((departmentName: string) => {
     setEntries((prev) => [
       ...prev,
-      {
-        id: crypto.randomUUID(),
-        departmentName,
-        name: "",
-        startTime: "07:00",
-        endTime: "15:00",
-      },
+      { id: crypto.randomUUID(), departmentName, name: "", startTime: "07:00", endTime: "15:00" },
     ]);
   }, []);
 
@@ -161,13 +138,11 @@ export function ShiftTemplateSetupStep({
   const handleSave = useCallback(async () => {
     const validEntries = entries.filter((e) => e.name.trim() && e.startTime && e.endTime);
     if (validEntries.length === 0) {
-      toast.error("Legg til minst én vaktmal med navn og tider");
+      toast.error("Legg til minst \u00e9n vaktmal med navn og tider");
       return;
     }
-
     setIsSaving(true);
     const supabase = createClient();
-
     try {
       for (const entry of validEntries) {
         const { data: template, error: templateError } = await supabase
@@ -180,9 +155,7 @@ export function ShiftTemplateSetupStep({
           })
           .select()
           .single();
-
         if (templateError) throw templateError;
-
         const { error: shiftError } = await supabase.from("schedule_template_shift").insert({
           template_id: template.schedule_template_id,
           start_time: entry.startTime,
@@ -190,17 +163,14 @@ export function ShiftTemplateSetupStep({
           day_category: getDayCategory(entry.startTime),
           role: "general",
         });
-
         if (shiftError) throw shiftError;
       }
-
       void emit({
         event: "button clicked",
         workspace_id: workspace.workspace.workspace_id,
         actor_id: profileId ?? "",
         properties: { trackingId: "shift-template-created" },
       });
-
       toast.success(
         `${validEntries.length} vaktmal${validEntries.length !== 1 ? "er" : ""} opprettet`,
       );
@@ -215,136 +185,97 @@ export function ShiftTemplateSetupStep({
     }
   }, [entries, workspace.workspace.workspace_id, profileId, queryClient]);
 
-  // ── Render ──
-
   return (
     <div className="space-y-6">
-      {/* Departments with entries */}
-      {(departments ?? []).map((dept, i) => {
+      {(departments ?? []).map((dept) => {
         const deptEntries = entries.filter((e) => e.departmentName === dept.name);
         const existing = templatesByDept.get(dept.name) ?? [];
 
         return (
-          <div key={dept.department_id || `dept-${i}`} className="space-y-2">
+          <div key={dept.department_id} className="space-y-3">
+            {/* Department header */}
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <h4 className={`text-sm font-semibold ${"text-muted-foreground"}`}>{dept.name}</h4>
-                <HelpTip text="Legg til vaktmaler for denne avdelingen. Hver mal definerer en vakttype med start- og sluttid." />
-              </div>
+              <h4 className="text-foreground text-sm font-semibold">{dept.name}</h4>
               <button
+                type="button"
                 onClick={() => handleAddEntry(dept.name)}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${"bg-muted text-muted-foreground hover:bg-accent"}`}
+                className="text-muted-foreground hover:text-foreground flex items-center gap-1.5 text-xs font-medium transition-colors"
               >
                 <Plus className="h-3.5 w-3.5" />
-                Legg til vaktmal
+                Legg til
               </button>
             </div>
 
-            {/* Existing templates */}
+            {/* Existing (saved) templates */}
             {existing.map((t) => (
               <div
                 key={t.schedule_template_id}
-                className={`flex items-center gap-3 rounded-lg px-4 py-2.5 ${"bg-muted"}`}
+                className="border-border bg-card/50 flex items-center gap-3 rounded-xl border px-4 py-3"
               >
                 <CheckCircle2 className="text-success h-4 w-4 shrink-0" />
-                <span className={`flex-1 truncate text-sm font-medium ${"text-muted-foreground"}`}>
-                  {t.name}
-                </span>
+                <span className="text-foreground flex-1 text-sm font-medium">{t.name}</span>
               </div>
             ))}
 
-            {/* New entry rows */}
+            {/* New entries */}
             {deptEntries.map((entry) => (
               <div
                 key={entry.id}
-                className={`flex items-center gap-2 rounded-xl border px-4 py-3 ${"border-border bg-card"}`}
+                className={`border-border bg-card flex items-center gap-3 rounded-xl border px-4 py-3 ${
+                  entry.suggested ? "border-brand-orange/30" : ""
+                }`}
               >
-                <div className="flex flex-1 items-center gap-2">
-                  <Input
-                    placeholder="Morgenvakt"
-                    value={entry.name}
-                    onChange={(e) => handleUpdateEntry(entry.id, "name", e.target.value)}
-                    className="h-8 text-sm"
-                  />
-                  {entry._suggested && (
-                    <span
-                      className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${"bg-brand-orange text-brand-orange"}`}
-                    >
-                      Foreslått
-                    </span>
-                  )}
-                </div>
+                <Input
+                  placeholder="Vaktnavn"
+                  value={entry.name}
+                  onChange={(e) => handleUpdateEntry(entry.id, "name", e.target.value)}
+                  className="h-8 flex-1 text-sm"
+                />
                 <div className="flex items-center gap-1.5">
-                  <Clock className={`h-3.5 w-3.5 ${"text-muted-foreground"}`} />
+                  <Clock className="text-muted-foreground h-3.5 w-3.5 shrink-0" />
                   <Input
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="07:00"
+                    type="time"
                     value={entry.startTime}
-                    onChange={(e) => {
-                      let v = e.target.value.replace(/[^\d:]/g, "");
-                      if (v.length === 2 && !v.includes(":") && !entry.startTime.includes(":")) {
-                        v += ":";
-                      }
-                      if (v.length <= 5) handleUpdateEntry(entry.id, "startTime", v);
-                    }}
-                    onBlur={(e) => {
-                      const m = e.target.value.match(/^(\d{1,2}):?(\d{2})$/);
-                      if (m) {
-                        const h = Math.min(23, parseInt(m[1]!, 10));
-                        const min = Math.min(59, parseInt(m[2]!, 10));
-                        handleUpdateEntry(
-                          entry.id,
-                          "startTime",
-                          `${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`,
-                        );
-                      }
-                    }}
-                    className="h-8 w-20 text-center text-sm tabular-nums"
+                    onChange={(e) => handleUpdateEntry(entry.id, "startTime", e.target.value)}
+                    className="h-8 w-24 text-center text-sm tabular-nums"
                   />
-                  <span className={`text-xs ${"text-muted-foreground"}`}>–</span>
+                  <span className="text-muted-foreground text-xs">\u2013</span>
                   <Input
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="15:00"
+                    type="time"
                     value={entry.endTime}
-                    onChange={(e) => {
-                      let v = e.target.value.replace(/[^\d:]/g, "");
-                      if (v.length === 2 && !v.includes(":") && !entry.endTime.includes(":")) {
-                        v += ":";
-                      }
-                      if (v.length <= 5) handleUpdateEntry(entry.id, "endTime", v);
-                    }}
-                    onBlur={(e) => {
-                      const m = e.target.value.match(/^(\d{1,2}):?(\d{2})$/);
-                      if (m) {
-                        const h = Math.min(23, parseInt(m[1]!, 10));
-                        const min = Math.min(59, parseInt(m[2]!, 10));
-                        handleUpdateEntry(
-                          entry.id,
-                          "endTime",
-                          `${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`,
-                        );
-                      }
-                    }}
-                    className="h-8 w-20 text-center text-sm tabular-nums"
+                    onChange={(e) => handleUpdateEntry(entry.id, "endTime", e.target.value)}
+                    className="h-8 w-24 text-center text-sm tabular-nums"
                   />
                 </div>
                 <button
+                  type="button"
                   onClick={() => handleRemoveEntry(entry.id)}
-                  className={`rounded-md p-1.5 transition-colors ${"text-muted-foreground hover:bg-accent hover:text-foreground"}`}
+                  className="text-muted-foreground hover:text-foreground rounded-lg p-1.5 transition-colors"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
               </div>
             ))}
+
+            {/* Empty state per department */}
+            {existing.length === 0 && deptEntries.length === 0 && (
+              <button
+                type="button"
+                onClick={() => handleAddEntry(dept.name)}
+                className="border-border text-muted-foreground hover:border-muted-foreground hover:text-foreground flex w-full items-center justify-center gap-2 rounded-xl border border-dashed px-4 py-3 text-sm transition-colors"
+              >
+                <Plus className="h-4 w-4" />
+                Legg til vaktmal for {dept.name}
+              </button>
+            )}
           </div>
         );
       })}
 
-      {/* Save button */}
+      {/* Save */}
       {entries.length > 0 && (
         <button
+          type="button"
           onClick={handleSave}
           disabled={isSaving}
           className={`flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
@@ -353,17 +284,10 @@ export function ShiftTemplateSetupStep({
               : "bg-brand-orange hover:bg-brand-orange/90 text-white"
           }`}
         >
-          {isSaving ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Oppretter...
-            </>
-          ) : (
-            <>
-              <Plus className="h-4 w-4" />
-              Opprett maler ({entries.filter((e) => e.name.trim()).length})
-            </>
-          )}
+          {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+          {isSaving
+            ? "Oppretter..."
+            : `Opprett ${entries.filter((e) => e.name.trim()).length} vaktmal${entries.filter((e) => e.name.trim()).length !== 1 ? "er" : ""}`}
         </button>
       )}
     </div>

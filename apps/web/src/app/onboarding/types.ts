@@ -103,6 +103,7 @@ export interface ZoneData {
 export interface PositionOption {
   id: string;
   name: string;
+  slug: string;
   isLeader: boolean;
   selected: boolean;
 }
@@ -215,12 +216,4 @@ export interface ProfessionOption {
   name: string;
   isUniversal: boolean;
   positions: PositionOption[];
-}
-
-/** A position within a profession for onboarding confirmation */
-export interface PositionOption {
-  id: string;
-  name: string;
-  slug: string;
-  selected: boolean;
 }
