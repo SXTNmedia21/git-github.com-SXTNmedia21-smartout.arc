@@ -110,8 +110,8 @@ export default function ConversationScreen() {
       });
       setLkToken(tokenResult.token);
       setLkServerUrl(tokenResult.serverUrl);
-    } catch {
-      // Silently fail — toast would be better but not critical
+    } catch (err) {
+      console.error("[CallStart] Failed:", err);
     }
   }, [conversationId, workspaceId, profileId]);
 
@@ -165,7 +165,7 @@ export default function ConversationScreen() {
       const { data: conv } = await supabase
         .from("channel")
         .select("name, channel_type, workspace_id")
-        .eq("id", conversationId!)
+        .eq("channel_id", conversationId!)
         .single();
 
       if (conv) {
