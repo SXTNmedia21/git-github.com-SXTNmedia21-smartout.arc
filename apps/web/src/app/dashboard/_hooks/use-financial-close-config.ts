@@ -9,6 +9,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
+import { emit } from "@smartout/telemetry";
 
 export type FinancialCloseConfig = {
   config_id: string;
@@ -67,12 +68,30 @@ export function useFinancialCloseConfig() {
       return data;
     },
     onSuccess: () => {
+      void emit({
+        event: "financial_close_config updated",
+        workspace_id: wsId,
+        actor_id: "",
+        properties: { data: {} },
+      });
       queryClient.invalidateQueries({ queryKey: ["financial-close-config", wsId] });
     },
   });
 
-  const config: FinancialCloseConfig = query.data
-    ? (query.data as unknown as FinancialCloseConfig)
+  // Generated types match FinancialCloseConfig shape — safe to use directly
+  const row = query.data;
+  const config: FinancialCloseConfig = row
+    ? {
+        config_id: row.config_id,
+        workspace_id: row.workspace_id,
+        tolerance_type: row.tolerance_type as "fixed" | "percentage",
+        tolerance_value: Number(row.tolerance_value),
+        require_cash_count: row.require_cash_count,
+        cash_tolerance_type: row.cash_tolerance_type as "fixed" | "percentage",
+        cash_tolerance_value: Number(row.cash_tolerance_value),
+        approval_required: row.approval_required,
+        approval_deadline_hours: row.approval_deadline_hours,
+      }
     : { config_id: "", workspace_id: wsId, ...DEFAULTS };
 
   return { config, isLoading: query.isLoading, upsert };

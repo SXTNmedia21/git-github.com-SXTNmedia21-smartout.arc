@@ -100,7 +100,8 @@ export type EntityType =
   | "deviation"
   | "agent_session"
   | "task_surface"
-  | "entity_drawer";
+  | "entity_drawer"
+  | "financial_close_config";
 
 export type ActionVerb =
   | "created"
@@ -1009,6 +1010,14 @@ export interface MessageSent extends BaseEvent {
   event: "message sent";
   properties: {
     data: { conversation_id: string };
+  };
+}
+
+// ─── Financial Close Config Events ───────────────
+export interface FinancialCloseConfigUpdated extends BaseEvent {
+  event: "financial_close_config updated";
+  properties: {
+    data: Record<string, unknown>;
   };
 }
 
@@ -2030,6 +2039,7 @@ export type SmartoutEvent =
   | LeaderPulseDismissed
   | ConversationCreated
   | MessageSent
+  | FinancialCloseConfigUpdated
   | PayrollSettingsUpdated
   | ShiftLockPolicyUpdated
   | SalaryCodeCreated
@@ -2557,6 +2567,10 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "communication",
   },
 
+  "financial_close_config updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
   "payroll_settings updated": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "operations",

@@ -1271,24 +1271,32 @@ async function executeStep(
 
       const shiftIds = (dayShifts ?? []).map((s) => s.schedule_shift_id);
 
-      // Fetch cost snapshots for those shifts
+      // Fetch cost snapshots + planned shift hours
       let totalLaborCost = 0;
-      let totalActualHours = 0;
+      let totalSnapshotHours = 0;
+      let totalPlannedHours = 0;
 
       if (shiftIds.length > 0) {
-        const { data: costSnapshots } = await supabase
-          .from("shift_cost_snapshot")
-          .select("total_cost, base_hours")
-          .eq("workspace_id", state.workspace_id)
-          .in("schedule_shift_id", shiftIds)
-          .eq("basis", "planned");
+        const [{ data: costSnapshots }, { data: plannedShifts }] = await Promise.all([
+          supabase
+            .from("shift_cost_snapshot")
+            .select("total_cost, base_hours")
+            .eq("workspace_id", state.workspace_id)
+            .in("schedule_shift_id", shiftIds)
+            .eq("basis", "planned"),
+          supabase.from("schedule_shift").select("work_hours").in("schedule_shift_id", shiftIds),
+        ]);
 
         totalLaborCost = (costSnapshots ?? []).reduce(
           (sum, s) => sum + Number(s.total_cost ?? 0),
           0,
         );
-        totalActualHours = (costSnapshots ?? []).reduce(
+        totalSnapshotHours = (costSnapshots ?? []).reduce(
           (sum, s) => sum + Number(s.base_hours ?? 0),
+          0,
+        );
+        totalPlannedHours = (plannedShifts ?? []).reduce(
+          (sum, s) => sum + Number(s.work_hours ?? 0),
           0,
         );
       }
@@ -1301,15 +1309,15 @@ async function executeStep(
         .single();
 
       const revenueTotal = Number(recon?.revenue_total ?? 0);
-      const revenuePerHour = totalActualHours > 0 ? revenueTotal / totalActualHours : null;
+      const revenuePerHour = totalSnapshotHours > 0 ? revenueTotal / totalSnapshotHours : null;
       const laborPercentage = revenueTotal > 0 ? (totalLaborCost / revenueTotal) * 100 : null;
 
       await supabase
         .from("daily_reconciliation")
         .update({
           total_labor_cost: totalLaborCost,
-          total_actual_hours: totalActualHours,
-          total_planned_hours: totalActualHours,
+          total_actual_hours: totalSnapshotHours,
+          total_planned_hours: totalPlannedHours,
           revenue_per_worked_hour: revenuePerHour,
           labor_percentage: laborPercentage,
         })

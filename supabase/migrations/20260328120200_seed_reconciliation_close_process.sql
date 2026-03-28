@@ -16,7 +16,7 @@ VALUES (
   1,
   'cascade_reconciliation_close',
   '{}'::jsonb
-) ON CONFLICT DO NOTHING;
+) ON CONFLICT ON CONSTRAINT uq_process_step_order DO NOTHING;
 
 INSERT INTO engine_trigger (process_id, event_type, is_active)
 SELECT
