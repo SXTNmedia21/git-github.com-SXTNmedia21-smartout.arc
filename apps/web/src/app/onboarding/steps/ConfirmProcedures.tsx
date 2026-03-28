@@ -90,7 +90,7 @@ export function ConfirmProcedures({
               "flex w-full items-center justify-between rounded-lg border px-4 py-3 text-left transition-all duration-200",
               proc.selected
                 ? "text-foreground border-[var(--brand-orange)]/30 bg-[var(--brand-orange)]/5"
-                : "border-dashed border-border bg-white/50 text-muted-foreground hover:border-[var(--brand-orange)]/30 hover:bg-[var(--brand-orange)]/5 hover:text-foreground",
+                : "border-border text-muted-foreground hover:text-foreground border-dashed bg-white/50 hover:border-[var(--brand-orange)]/30 hover:bg-[var(--brand-orange)]/5",
             ].join(" ")}
           >
             <span className="flex items-center gap-3">
@@ -111,14 +111,16 @@ export function ConfirmProcedures({
                 </span>
               )}
               {proc.isCustom && (
-                <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                <span className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-[10px]">
                   Egendefinert
                 </span>
               )}
             </span>
 
             {!proc.selected && !proc.recommended && (
-              <span className="text-[10px] tracking-wider text-muted-foreground uppercase">Forslag</span>
+              <span className="text-muted-foreground text-[10px] tracking-wider uppercase">
+                Forslag
+              </span>
             )}
           </button>
         ))}
@@ -135,7 +137,7 @@ export function ConfirmProcedures({
                 <button
                   type="button"
                   onClick={confirmDeselect}
-                  className="rounded-md bg-muted px-2.5 py-1 text-xs text-muted-foreground hover:bg-accent"
+                  className="bg-muted text-muted-foreground hover:bg-accent rounded-md px-2.5 py-1 text-xs"
                 >
                   Ja, fjern
                 </button>

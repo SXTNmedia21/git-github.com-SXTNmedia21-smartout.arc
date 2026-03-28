@@ -44,16 +44,12 @@ export function useDriftInsights(date: string) {
   const ctx = useWorkspaceOptional();
   const wsId = ctx?.workspace.workspace_id;
 
-  const { data: sessions, isLoading: sessionsLoading } =
-    useDepartmentSessions(date);
+  const { data: sessions, isLoading: sessionsLoading } = useDepartmentSessions(date);
   const { data: deviations, isLoading: deviationsLoading } = useDeviations({
     status: ["open", "acknowledged", "escalated"],
   });
 
-  const sessionIds = useMemo(
-    () => (sessions ?? []).map((s) => s.sessionId),
-    [sessions],
-  );
+  const sessionIds = useMemo(() => (sessions ?? []).map((s) => s.sessionId), [sessions]);
 
   const { data: overdueCount, isLoading: overdueLoading } = useQuery({
     queryKey: ["hms", "overdue-tasks", wsId, date, sessionIds],
@@ -79,30 +75,18 @@ export function useDriftInsights(date: string) {
     if (!sessions) return EMPTY_INSIGHTS;
 
     const totalSessions = sessions.length;
-    const activeSessions = sessions.filter(
-      (s) => s.status === "active",
-    ).length;
-    const closedSessions = sessions.filter(
-      (s) => s.status === "closed",
-    ).length;
-    const missedSessions = sessions.filter(
-      (s) => s.status === "missed",
-    ).length;
-    const pendingSignoffSessions = sessions.filter(
-      (s) => s.status === "pending_signoff",
-    ).length;
+    const activeSessions = sessions.filter((s) => s.status === "active").length;
+    const closedSessions = sessions.filter((s) => s.status === "closed").length;
+    const missedSessions = sessions.filter((s) => s.status === "missed").length;
+    const pendingSignoffSessions = sessions.filter((s) => s.status === "pending_signoff").length;
 
     const totalTasks = sessions.reduce((sum, s) => sum + s.tasksTotal, 0);
-    const completedTasks = sessions.reduce(
-      (sum, s) => sum + s.tasksCompleted,
-      0,
-    );
+    const completedTasks = sessions.reduce((sum, s) => sum + s.tasksCompleted, 0);
     const taskCompletionPercent =
       totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
     const openDeviations = deviations?.length ?? 0;
-    const blockingDeviations =
-      deviations?.filter((d) => d.blocksDayApproval).length ?? 0;
+    const blockingDeviations = deviations?.filter((d) => d.blocksDayApproval).length ?? 0;
 
     return {
       totalSessions,

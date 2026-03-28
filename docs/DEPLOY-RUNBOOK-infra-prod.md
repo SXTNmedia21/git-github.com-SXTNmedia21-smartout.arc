@@ -234,23 +234,23 @@ npx supabase secrets list --project-ref yljaglomadbhyqpcigff
 
 Expected names in the list:
 
-| Secret | Status |
-|--------|--------|
-| `SCRAPLING_AUTH_TOKEN` | Must exist |
-| `SCRAPLING_SERVICE_URL` | Must exist |
-| `OPENROUTER_API_KEY` | Must exist |
-| `STAGE_ENGINE_URL` | Must exist |
-| `ULTRAVOX_API_KEY` | Must exist |
-| `SENDGRID_API_KEY` | Must exist |
-| `WATCHDOG_CRON_SECRET` | Must exist |
-| `GOOGLE_VISION_API_KEY` | Must exist |
-| `SUPABASE_URL` | Already set |
-| `SUPABASE_ANON_KEY` | Already set |
+| Secret                      | Status      |
+| --------------------------- | ----------- |
+| `SCRAPLING_AUTH_TOKEN`      | Must exist  |
+| `SCRAPLING_SERVICE_URL`     | Must exist  |
+| `OPENROUTER_API_KEY`        | Must exist  |
+| `STAGE_ENGINE_URL`          | Must exist  |
+| `ULTRAVOX_API_KEY`          | Must exist  |
+| `SENDGRID_API_KEY`          | Must exist  |
+| `WATCHDOG_CRON_SECRET`      | Must exist  |
+| `GOOGLE_VISION_API_KEY`     | Must exist  |
+| `SUPABASE_URL`              | Already set |
+| `SUPABASE_ANON_KEY`         | Already set |
 | `SUPABASE_SERVICE_ROLE_KEY` | Already set |
-| `SUPABASE_DB_URL` | Already set |
-| `SERPER_API_KEY` | Already set |
-| `GOOGLE_API_KEY` | Already set |
-| `CONTRACT_SERVICE_KEY` | Already set |
+| `SUPABASE_DB_URL`           | Already set |
+| `SERPER_API_KEY`            | Already set |
+| `GOOGLE_API_KEY`            | Already set |
+| `CONTRACT_SERVICE_KEY`      | Already set |
 
 ---
 
@@ -336,6 +336,7 @@ vercel env ls --environment production
 ```
 
 Cross-check both projects against:
+
 - `.env.template` (root) — authoritative list of all variables
 - `apps/web/src/env.ts` — what web actually reads
 - `apps/landing/src/env.ts` — what landing actually reads
@@ -451,8 +452,8 @@ If scrapling returns 401 after env sync:
 
 ## What Was Done in Code (Tasks 1-2, no manual steps needed)
 
-| Task | Fix | File |
-|------|-----|------|
-| Task 1 | `SUPABASE_URL` for stage-engine uses `${SUPABASE_URL}` env var instead of hardcoded localhost | `infra/docker-compose.yml:50` |
-| Task 2a | Auth header added to scrapling call in platform-admin lookup route | `apps/web/src/app/api/platform-admin/workspaces/lookup/route.ts` |
-| Task 2b | Auth header added to scrapling call in analyze-documents route | `apps/web/src/app/api/platform-admin/workspaces/analyze-documents/route.ts` |
+| Task    | Fix                                                                                           | File                                                                        |
+| ------- | --------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Task 1  | `SUPABASE_URL` for stage-engine uses `${SUPABASE_URL}` env var instead of hardcoded localhost | `infra/docker-compose.yml:50`                                               |
+| Task 2a | Auth header added to scrapling call in platform-admin lookup route                            | `apps/web/src/app/api/platform-admin/workspaces/lookup/route.ts`            |
+| Task 2b | Auth header added to scrapling call in analyze-documents route                                | `apps/web/src/app/api/platform-admin/workspaces/analyze-documents/route.ts` |

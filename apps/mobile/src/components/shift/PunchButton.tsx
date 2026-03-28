@@ -64,9 +64,20 @@ export function PunchButton() {
         {isClockedIn ? (
           <LogOut size={20} color={colors.primaryForeground} strokeWidth={2} />
         ) : (
-          <Fingerprint size={20} color={isIdle ? colors.mutedForeground : colors.primaryForeground} strokeWidth={2} />
+          <Fingerprint
+            size={20}
+            color={isIdle ? colors.mutedForeground : colors.primaryForeground}
+            strokeWidth={2}
+          />
         )}
-        <Text style={[styles.label, { color: isIdle ? colors.mutedForeground : colors.primaryForeground }]}>{label}</Text>
+        <Text
+          style={[
+            styles.label,
+            { color: isIdle ? colors.mutedForeground : colors.primaryForeground },
+          ]}
+        >
+          {label}
+        </Text>
       </Pressable>
     </Animated.View>
   );

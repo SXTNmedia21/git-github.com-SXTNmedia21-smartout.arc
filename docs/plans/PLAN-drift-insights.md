@@ -10,6 +10,7 @@ tags: [plan]
 # Plan — drift-insights
 
 > Branch: `feat/drift-insights` | Worktree: wt-1 | Module: operations | Started: 2026-03-28
+
 ## Goal
 
 <!-- What does this feature accomplish? One sentence. -->

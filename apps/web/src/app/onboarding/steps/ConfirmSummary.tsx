@@ -126,9 +126,7 @@ export function ConfirmSummary({ state, next, goTo, t }: WizardStepProps<Onboard
           <dl>
             <div>
               <dt className="text-muted-foreground text-xs font-medium">Fag & posisjoner</dt>
-              <dd className="text-foreground mt-1 text-sm">
-                {professionSummaryLines.join(" | ")}
-              </dd>
+              <dd className="text-foreground mt-1 text-sm">{professionSummaryLines.join(" | ")}</dd>
             </div>
           </dl>
         </div>
@@ -137,9 +135,7 @@ export function ConfirmSummary({ state, next, goTo, t }: WizardStepProps<Onboard
       {/* Ready indicator */}
       <div className="flex items-center gap-2.5 rounded-lg border border-[var(--success)]/20 bg-[var(--success)]/5 px-3 py-3">
         <CheckCircle className="text-success size-4" />
-        <p className="text-success text-xs">
-          Alt klart. Klikk nedenfor for a fullfare oppsettet.
-        </p>
+        <p className="text-success text-xs">Alt klart. Klikk nedenfor for a fullfare oppsettet.</p>
       </div>
 
       {/* Error display */}

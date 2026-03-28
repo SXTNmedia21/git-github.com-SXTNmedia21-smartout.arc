@@ -50,13 +50,13 @@ export function WizardLoadingOverlay({
 
       {/* Rotating message */}
       <p
-        className="text-center text-sm font-medium text-foreground transition-opacity duration-500"
+        className="text-foreground text-center text-sm font-medium transition-opacity duration-500"
         key={index}
       >
         {messages[index]}
       </p>
 
-      <p className="mt-2 text-center text-xs text-muted-foreground">
+      <p className="text-muted-foreground mt-2 text-center text-xs">
         Dette tar vanligvis noen sekunder
       </p>
 
