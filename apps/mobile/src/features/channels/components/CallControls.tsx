@@ -169,7 +169,7 @@ const useStyles = createStyles((theme) => ({
     justifyContent: "space-evenly",
     paddingVertical: theme.spacing.md,
     paddingHorizontal: theme.spacing.lg,
-    gap: theme.spacing.sm,
+    gap: theme.spacing.tight,
   },
 
   // Individual button wrapper keeps icon + label together
@@ -210,7 +210,7 @@ const useStyles = createStyles((theme) => ({
 
   // Listen-only badge shown in the left slot
   listenOnlyBadge: {
-    paddingHorizontal: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.tight,
     paddingVertical: theme.spacing.xs,
     borderRadius: theme.radius.sm,
     backgroundColor: theme.colors.muted,

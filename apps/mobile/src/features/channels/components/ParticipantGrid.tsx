@@ -118,8 +118,8 @@ const useStyles = createStyles((theme) => ({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    gap: theme.spacing[4],
-    paddingHorizontal: theme.spacing[6],
+    gap: theme.spacing.xs,
+    paddingHorizontal: theme.spacing.tight,
   },
   soloTileWrapper: {
     width: 160,
@@ -138,8 +138,8 @@ const useStyles = createStyles((theme) => ({
     flexWrap: "wrap",
     alignItems: "center",
     justifyContent: "center",
-    gap: theme.spacing[4],
-    padding: theme.spacing[4],
+    gap: theme.spacing.xs,
+    padding: theme.spacing.xs,
   },
   audioTileWrapper: {
     // Each avatar tile gets a fixed slot so the wrap is predictable
@@ -151,8 +151,8 @@ const useStyles = createStyles((theme) => ({
   videoGrid: {
     flex: 1,
     flexDirection: "row",
-    gap: theme.spacing[2],
-    padding: theme.spacing[2],
+    gap: theme.spacing.xxs,
+    padding: theme.spacing.xxs,
   },
 
   // --- Focus mode ---
@@ -162,7 +162,7 @@ const useStyles = createStyles((theme) => ({
   focusMain: {
     // Active speaker occupies ~75 % of vertical space
     flex: 3,
-    padding: theme.spacing[2],
+    padding: theme.spacing.xxs,
   },
   focusStrip: {
     // Strip takes ~25 % of vertical space
@@ -170,8 +170,8 @@ const useStyles = createStyles((theme) => ({
   },
   focusStripContent: {
     alignItems: "center",
-    paddingHorizontal: theme.spacing[2],
-    gap: theme.spacing[2],
+    paddingHorizontal: theme.spacing.xxs,
+    gap: theme.spacing.xxs,
   },
   focusStripTile: {
     width: 100,

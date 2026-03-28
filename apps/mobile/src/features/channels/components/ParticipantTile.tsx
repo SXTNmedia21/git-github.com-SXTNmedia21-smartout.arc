@@ -55,8 +55,7 @@ export function ParticipantTile({ participant, size = "large" }: Props) {
         accessible
       >
         <VideoView
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          track={participant.videoTrack as any}
+          videoTrack={participant.videoTrack as import("livekit-client").VideoTrack}
           style={styles.videoView}
           mirror={participant.isLocal}
         />
