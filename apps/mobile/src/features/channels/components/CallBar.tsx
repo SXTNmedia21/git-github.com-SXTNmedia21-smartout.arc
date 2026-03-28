@@ -38,10 +38,12 @@ export function CallBar({
       <View style={styles.container}>
         <View style={styles.info}>
           <View style={styles.statusDot} />
-          <Text style={styles.statusText}>I samtale ({participantCount})</Text>
+          <Text style={styles.statusText}>
+            {strings.call.inCall} ({participantCount})
+          </Text>
           {activeSpeakers.length > 0 && (
             <Text style={styles.speakerText} numberOfLines={1}>
-              {activeSpeakers.length === 1 ? "1 snakker" : `${activeSpeakers.length} snakker`}
+              {activeSpeakers.length} {strings.call.speaking}
             </Text>
           )}
         </View>
@@ -55,7 +57,7 @@ export function CallBar({
               pressed && styles.buttonPressed,
             ]}
             accessibilityRole="button"
-            accessibilityLabel={isMicEnabled ? "Demp mikrofon" : "Sl\u00e5 p\u00e5 mikrofon"}
+            accessibilityLabel={isMicEnabled ? strings.call.mute : strings.call.unmute}
           >
             {isMicEnabled ? <Mic size={18} color="#fff" /> : <MicOff size={18} color="#fff" />}
           </Pressable>
@@ -64,7 +66,7 @@ export function CallBar({
             onPress={onEndCall}
             style={({ pressed }) => [styles.endButton, pressed && styles.buttonPressed]}
             accessibilityRole="button"
-            accessibilityLabel="Avslutt samtale"
+            accessibilityLabel={strings.call.endCall}
           >
             <PhoneOff size={18} color="#fff" />
           </Pressable>
