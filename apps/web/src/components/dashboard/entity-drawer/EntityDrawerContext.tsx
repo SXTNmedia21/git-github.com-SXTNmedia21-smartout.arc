@@ -22,7 +22,7 @@ export type EntityType =
   | "profile"
   | "team"
   | "shift"
-  | "day_session"
+  | "department_session"
   | "shift_template"
   | "cascade_task";
 
