@@ -128,6 +128,7 @@ export const strings = {
     unmute: "Lyd p\u00e5",
     listenOnly: "Kun lytting",
     inCall: "I samtale",
+    startCall: "Start samtale",
   },
   payroll: {
     title: "Lønn & fravær",
