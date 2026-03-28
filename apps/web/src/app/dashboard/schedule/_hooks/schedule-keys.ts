@@ -36,4 +36,7 @@ export const scheduleKeys = {
 
   roster: (workspaceId: string, profileId: string) =>
     ["schedule", "roster", workspaceId, profileId] as const,
+
+  pendingAbsences: (workspaceId: string) =>
+    ["schedule", "pending-absences", workspaceId] as const,
 };
