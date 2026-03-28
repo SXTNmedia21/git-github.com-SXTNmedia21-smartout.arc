@@ -19,6 +19,7 @@ import type { EntityType } from "./EntityDrawerContext";
 type EntityTabConfig = {
   value: string;
   labelKey: string;
+  badge?: number;
 };
 
 type EntityConfig = {
