@@ -112,7 +112,7 @@ export function ConfirmProfessions({
                     "flex w-full items-center justify-between rounded-lg border px-4 py-3 text-left transition-all duration-200",
                     position.selected
                       ? "text-foreground border-[var(--brand-orange)]/30 bg-[var(--brand-orange)]/5"
-                      : "border-border text-muted-foreground hover:border-[var(--brand-orange)]/30 hover:bg-[var(--brand-orange)]/5 hover:text-foreground border-dashed bg-white/50",
+                      : "border-border text-muted-foreground hover:text-foreground bg-card/50 border-dashed hover:border-[var(--brand-orange)]/30 hover:bg-[var(--brand-orange)]/5",
                   ].join(" ")}
                 >
                   <span className="flex items-center gap-3">

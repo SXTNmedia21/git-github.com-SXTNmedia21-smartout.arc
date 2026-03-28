@@ -138,15 +138,15 @@ Single source of truth for all database tables, enums, RLS patterns, naming conv
 
 ### Profession System (workspace_id scoped + platform-level, ADR-TBD)
 
-| Table                   | PK                        | Scope                                              | Purpose                                                                                 |
-| ----------------------- | ------------------------- | -------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `profession`            | `profession_id`           | Platform (NULL) + workspace overrides              | K1a competence domain (Fag). Skills taxonomy. UNIQUE NULLS NOT DISTINCT (workspace_id, slug). |
-| `profession_industry`   | Composite (profession_id, nace_code) | Platform-level  | M2M mapping: NACE code → profession. Helps onboarding determine default professions.     |
-| `legal_function`        | `legal_function_id`       | Platform-level (K1a)                              | Law-mandated functions (Verneombud, Brannvernleder, etc.). Has legal_basis, training_hours. |
-| `profile_legal_function`| `id` (surrogate PK)       | workspace_id scoped                                | M2M assignment of legal functions to profiles. Tracks assigned_at, assigned_by. ON DELETE CASCADE. |
-| `profession_training`   | `profession_training_id`  | Platform (NULL) + workspace overrides              | Weighted M2M: profession → protocol (training). Weight 0.0-1.0. UNIQUE NULLS NOT DISTINCT (profession_id, protocol_id, workspace_id). |
-| `profile_access`        | `id` (surrogate PK)       | workspace_id scoped                                | Fine-grained system access scopes per profile. Scope validated by regex. Tracks granted_by. ON DELETE CASCADE. |
-| `profile_position`      | `id` (surrogate PK)       | workspace_id scoped                                | M2M: profile → position. Person can have multiple positions. Tracks is_primary. ON DELETE CASCADE. |
+| Table                    | PK                                          | Scope                                 | Purpose                                                                                                                               |
+| ------------------------ | ------------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `profession`             | `profession_id`                             | Platform (NULL) + workspace overrides | K1a competence domain (Fag). Skills taxonomy. UNIQUE NULLS NOT DISTINCT (workspace_id, slug).                                         |
+| `profession_industry`    | Composite (profession_id, nace_code)        | Platform-level                        | M2M mapping: NACE code → profession. Helps onboarding determine default professions.                                                  |
+| `legal_function`         | `legal_function_id`                         | Platform-level (K1a)                  | Law-mandated functions (Verneombud, Brannvernleder, etc.). Has legal_basis, training_hours.                                           |
+| `profile_legal_function` | Composite `(profile_id, legal_function_id)` | workspace_id scoped                   | M2M assignment of legal functions to profiles. Tracks assigned_at, assigned_by. ON DELETE CASCADE.                                    |
+| `profession_training`    | `profession_training_id`                    | Platform (NULL) + workspace overrides | Weighted M2M: profession → protocol (training). Weight 0.0-1.0. UNIQUE NULLS NOT DISTINCT (profession_id, protocol_id, workspace_id). |
+| `profile_access`         | Composite `(profile_id, scope)`             | workspace_id scoped                   | Fine-grained system access scopes per profile. Scope validated by regex. Tracks granted_by. ON DELETE CASCADE.                        |
+| `profile_position`       | Composite `(profile_id, position_id)`       | workspace_id scoped                   | M2M: profile → position. Person can have multiple positions. Tracks is_primary. ON DELETE CASCADE.                                    |
 
 **Key columns & validation:**
 
@@ -481,9 +481,9 @@ Enums from `packages/supabase/src/database.types.ts` (auto-generated, never edit
 
 ### Profession System
 
-| Enum               | Values                     |
-| ------------------ | -------------------------- |
-| `authority_level`  | duty, deputy, leader       |
+| Enum              | Values               |
+| ----------------- | -------------------- |
+| `authority_level` | duty, deputy, leader |
 
 ### Schedule
 
