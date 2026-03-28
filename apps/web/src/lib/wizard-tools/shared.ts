@@ -40,11 +40,11 @@ export function emitToolInvoked(
   actorId: string,
 ) {
   void emit({
-    event: "agent tool_called",
+    event: "agent tool_called" as const,
     workspace_id: workspaceId,
     actor_id: actorId,
     properties: {
-      entity: { type: "workspace", id: workspaceId },
+      entity: { entity_type: "workspace" as const, entity_id: workspaceId },
       data: { tool_name: toolName, capability: "wizard", success: true },
     },
   });
@@ -121,6 +121,5 @@ export function useWizardToolKit(
       },
     }),
     [], // empty deps — refs handle freshness
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   );
 }
