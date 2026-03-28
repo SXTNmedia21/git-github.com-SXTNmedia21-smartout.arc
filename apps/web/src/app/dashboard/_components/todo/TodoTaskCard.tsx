@@ -7,7 +7,7 @@
  */
 
 import { useCallback, useContext } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { AlertCircle, Clock, Info, ChevronRight } from "lucide-react";
 import { useTranslation } from "@smartout/i18n";
 import { emit } from "@smartout/telemetry";
@@ -64,6 +64,7 @@ const cardVariants = {
 
 export function TodoTaskCard({ task, index }: TodoTaskCardProps) {
   const { t } = useTranslation("dashboard");
+  const prefersReducedMotion = useReducedMotion();
   const { openDrawer } = useEntityDrawer();
   const { profileId } = useContext(DashboardContext);
   const ctx = useWorkspaceOptional();
@@ -108,16 +109,17 @@ export function TodoTaskCard({ task, index }: TodoTaskCardProps) {
   return (
     <motion.div
       layout
-      variants={cardVariants}
-      initial="initial"
-      animate="animate"
-      exit="exit"
+      variants={prefersReducedMotion ? undefined : cardVariants}
+      initial={prefersReducedMotion ? false : "initial"}
+      animate={prefersReducedMotion ? undefined : "animate"}
+      exit={prefersReducedMotion ? undefined : "exit"}
       custom={index}
-      role="button"
+      role="listitem"
       tabIndex={0}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
-      className={`group focus-visible:ring-ring flex cursor-pointer items-center gap-2.5 rounded-[10px] border-l-[3px] px-3 py-2 transition-all duration-200 hover:translate-x-0.5 focus-visible:ring-2 focus-visible:outline-none ${borderClass} hover:bg-card/40 bg-transparent`}
+      aria-label={`${interpolateParams(t(resolveKey(task.title_key)), task.title_params)} — ${t(`entity_drawer.urgency_${task.urgency}`)}`}
+      className={`group focus-visible:ring-ring flex cursor-pointer items-center gap-2.5 rounded-[10px] border-l-[3px] px-3 py-2.5 transition-all duration-200 hover:translate-x-0.5 focus-visible:ring-2 focus-visible:outline-none ${borderClass} hover:bg-card/40 bg-transparent`}
     >
       <Icon className={`h-3.5 w-3.5 shrink-0 ${iconClass}`} />
       <span className="text-foreground min-w-0 flex-1 truncate text-xs font-medium">

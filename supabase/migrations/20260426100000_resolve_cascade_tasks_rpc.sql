@@ -124,8 +124,15 @@ BEGIN
       'dimension', 'D1',
       'label_key', 'dashboard.todo.group.departments',
       'icon', 'Building2',
-      'done', (SELECT count(*) FROM dept_with_hours),
-      'total', (SELECT count(*) FROM dept_all),
+      'done', (
+        -- Checklist: 5 items. Count how many conditions are satisfied.
+        CASE WHEN (SELECT count(*) FROM dept_all) > 0 THEN 1 ELSE 0 END
+        + CASE WHEN (SELECT cnt FROM workspace_hours_check) > 0 THEN 1 ELSE 0 END
+        + CASE WHEN (SELECT count(*) FROM dept_all d LEFT JOIN dept_with_hours dh ON dh.department_id = d.department_id WHERE dh.department_id IS NULL) = 0 THEN 1 ELSE 0 END
+        + CASE WHEN (SELECT loc_count FROM location_check) > 0 THEN 1 ELSE 0 END
+        + CASE WHEN (SELECT count(*) FROM dept_no_positions) = 0 THEN 1 ELSE 0 END
+      ),
+      'total', 5,
       'tasks', COALESCE((SELECT jsonb_agg(task) FROM all_dept_tasks), '[]'::jsonb)
     ) AS summary
   ),

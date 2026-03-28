@@ -11,7 +11,11 @@ import { useTranslation } from "@smartout/i18n";
 export function TodoEmptyState() {
   const { t } = useTranslation("dashboard");
   return (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
+    <div
+      className="flex flex-col items-center justify-center py-20 text-center"
+      role="status"
+      aria-live="polite"
+    >
       {/* Ambient orb glow behind the icon */}
       <div className="relative">
         <div

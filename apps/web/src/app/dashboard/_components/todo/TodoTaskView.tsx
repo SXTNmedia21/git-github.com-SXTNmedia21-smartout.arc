@@ -116,7 +116,7 @@ export function TodoTaskView() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" aria-live="polite" aria-label={t("todo.task_list_label")}>
       {sortedGroups.map((group, index) => (
         <TodoGroupSection key={group.group} group={group} index={index} />
       ))}

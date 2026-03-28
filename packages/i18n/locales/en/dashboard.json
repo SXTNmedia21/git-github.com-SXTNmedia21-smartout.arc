@@ -102,6 +102,8 @@
     "completion": "{done} of {total}",
     "error_loading": "Could not load tasks",
     "error_retry": "Try again",
+    "pending_tasks": "pending tasks",
+    "task_list_label": "Task list",
     "dept_none_exist": "No departments created",
     "dept_none_exist_desc": "Create at least one department to get started with shift planning.",
     "dept_missing_hours": "{name} is missing opening hours",

@@ -6,7 +6,7 @@
  */
 
 import { useState, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { CheckCircle2, ChevronDown } from "lucide-react";
 import { useTranslation } from "@smartout/i18n";
 import { groupIcons } from "./todo-icons";
@@ -27,10 +27,15 @@ const expandSpring = { type: "spring" as const, stiffness: 30, damping: 24, mass
 
 export function TodoGroupSection({ group, index }: TodoGroupSectionProps) {
   const { t } = useTranslation("dashboard");
+  const prefersReducedMotion = useReducedMotion();
   const isComplete = group.tasks.length === 0;
   const [isOpen, setIsOpen] = useState(!isComplete);
   const Icon = groupIcons[group.group];
   const progress = group.total > 0 ? group.done / group.total : 0;
+
+  /** When user prefers reduced motion, skip springs and use instant transitions */
+  const resolvedExpandSpring = prefersReducedMotion ? { duration: 0.01 } : expandSpring;
+  const resolvedSwapSpring = prefersReducedMotion ? { duration: 0.01 } : swapSpring;
 
   /** Sort tasks by urgency: critical first, then should, then can_wait */
   const sortedTasks = useMemo(() => {
@@ -43,7 +48,7 @@ export function TodoGroupSection({ group, index }: TodoGroupSectionProps) {
       layout
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ ...expandSpring, delay: index * 0.06 }}
+      transition={{ ...resolvedExpandSpring, delay: prefersReducedMotion ? 0 : index * 0.06 }}
       className="space-y-3"
     >
       {/* Group header — clickable to toggle collapse */}
@@ -51,6 +56,8 @@ export function TodoGroupSection({ group, index }: TodoGroupSectionProps) {
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
         aria-expanded={isOpen}
+        aria-controls={`todo-group-${group.group}`}
+        aria-label={`${t(resolveKey(group.label_key))} — ${group.done} ${t("todo.completion", { done: String(group.done), total: String(group.total) })}${group.tasks.length > 0 ? `, ${group.tasks.length} ${t("todo.pending_tasks")}` : ""}`}
         className="hover:bg-muted/50 focus-visible:ring-ring flex w-full items-center gap-3 rounded-md px-1 py-1.5 text-left transition-colors focus-visible:ring-2 focus-visible:outline-none"
       >
         {isComplete ? (
@@ -74,7 +81,7 @@ export function TodoGroupSection({ group, index }: TodoGroupSectionProps) {
             className={`h-full rounded-full ${progress >= 1 ? "bg-success" : "bg-brand-orange"}`}
             initial={{ scaleX: 0 }}
             animate={{ scaleX: progress }}
-            transition={swapSpring}
+            transition={resolvedSwapSpring}
             style={{ transformOrigin: "left" }}
           />
         </div>
@@ -89,10 +96,13 @@ export function TodoGroupSection({ group, index }: TodoGroupSectionProps) {
         {isOpen && sortedTasks.length > 0 && (
           <motion.div
             key="task-list"
+            id={`todo-group-${group.group}`}
+            role="list"
+            aria-label={t(resolveKey(group.label_key))}
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={expandSpring}
+            transition={resolvedExpandSpring}
             className="space-y-0.5 overflow-hidden pl-8"
           >
             <AnimatePresence mode="popLayout">

@@ -102,6 +102,8 @@
     "completion": "{done} av {total}",
     "error_loading": "Kunne ikke laste oppgaver",
     "error_retry": "Prøv igjen",
+    "pending_tasks": "ventende oppgaver",
+    "task_list_label": "Oppgaveliste",
     "dept_none_exist": "Ingen avdelinger opprettet",
     "dept_none_exist_desc": "Opprett minst én avdeling for å komme i gang med vaktplanlegging.",
     "dept_missing_hours": "{name} mangler åpningstider",
