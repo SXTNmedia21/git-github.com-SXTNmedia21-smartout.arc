@@ -130,7 +130,71 @@ async function loadState(): Promise<Partial<SetupState>> {
     fieldSources: (companyDetails?.field_sources as Record<string, string>) ?? undefined,
   };
 
-  return { scrapedData, workspaceId, profileId };
+  // Compute initial step index from module completion (same logic as useWorkspaceSetup)
+  const STEP_TO_MODULE: Record<string, string> = {
+    welcome: "governance",
+    "document-drop": "governance",
+    governance: "governance",
+    payroll: "governance",
+    employment: "governance",
+    team: "people",
+    "shift-template": "schedule",
+    season: "season",
+    handbook: "governance",
+  };
+
+  const [policiesResult, profilesResult, shiftsResult, seasonsResult] = await Promise.all([
+    supabase
+      .from("policy")
+      .select("*", { count: "exact", head: true })
+      .eq("workspace_id", workspaceId),
+    supabase
+      .from("profile")
+      .select("*", { count: "exact", head: true })
+      .eq("workspace_id", workspaceId)
+      .eq("is_active", true),
+    supabase
+      .from("schedule_shift")
+      .select("*", { count: "exact", head: true })
+      .eq("workspace_id", workspaceId),
+    supabase
+      .from("season")
+      .select("*", { count: "exact", head: true })
+      .eq("workspace_id", workspaceId)
+      .eq("status", "active"),
+  ]);
+
+  const moduleComplete: Record<string, boolean> = {
+    governance: (policiesResult.count ?? 0) >= 3,
+    people: (profilesResult.count ?? 0) > 1,
+    schedule: (shiftsResult.count ?? 0) > 0,
+    season: (seasonsResult.count ?? 0) > 0,
+  };
+
+  const STEP_IDS = [
+    "welcome",
+    "document-drop",
+    "governance",
+    "payroll",
+    "employment",
+    "team",
+    "shift-template",
+    "season",
+    "handbook",
+  ];
+
+  let _initialStepIndex: number | undefined;
+  for (let i = 0; i < STEP_IDS.length; i++) {
+    const moduleId = STEP_TO_MODULE[STEP_IDS[i]!];
+    if (moduleId && !moduleComplete[moduleId]) {
+      _initialStepIndex = i;
+      break;
+    }
+  }
+
+  return { scrapedData, workspaceId, profileId, _initialStepIndex } as Partial<SetupState> & {
+    _initialStepIndex?: number;
+  };
 }
 
 /**

@@ -107,10 +107,10 @@ export function WizardShell<TState extends Record<string, unknown>>({
     onValidationFail,
   ]);
 
-  const handleBack = useCallback(() => {
+  const handleBack = useCallback(async () => {
     setValidationErrors([]);
     const fromStep = currentStep?.id ?? "";
-    rawBack();
+    await rawBack();
     const prevIndex = currentStepIndex - 1;
     const toStep = definition.steps[prevIndex]?.id ?? "";
     onStepBack?.(fromStep, toStep);
