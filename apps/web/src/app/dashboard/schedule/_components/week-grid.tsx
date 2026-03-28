@@ -9,6 +9,7 @@
  */
 
 import { useState, useContext, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
@@ -51,6 +52,8 @@ export function MalGrid({ departmentName, weekStart, departmentOptions }: MalGri
 
   const { workspace } = useWorkspace();
   const { isDark, activeDepartment, setActiveDepartment, profileId } = useContext(DashboardContext);
+
+  const router = useRouter();
 
   // Offset the base weekStart by the navigation offset to get the displayed week
   const currentWeekStart = useMemo(() => {
@@ -135,8 +138,10 @@ export function MalGrid({ departmentName, weekStart, departmentOptions }: MalGri
       )}
 
       {/* Empty state — no shift type configs for this department */}
-      {!isLoading && !error && data && data.columns.length === 0 && (
-        <WeekGridEmptyState onCreateShiftType={() => setCreateTemplateOpen(true)} />
+      {!isLoading && !error && (!data || data.columns.length === 0) && (
+        <WeekGridEmptyState
+          onCreateShiftType={() => router.push("/dashboard/settings#shift-types")}
+        />
       )}
 
       {/* Grid — only rendered when we have resolved data with columns */}

@@ -90,7 +90,7 @@ export function WelcomeStep({
           .from("company_details")
           .select("field_sources")
           .eq("workspace_id", workspace.workspace_id)
-          .single();
+          .maybeSingle();
 
         const existingSources = (details?.field_sources as Record<string, string>) ?? {};
         await supabase

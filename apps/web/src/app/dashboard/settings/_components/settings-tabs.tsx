@@ -229,12 +229,23 @@ export function SettingsTabs() {
   const [userId, setUserId] = useState<string | undefined>();
 
   useEffect(() => {
+    // Check hash on mount
+    const hash = window.location.hash.replace("#", "") as TabId;
+    if (hash && ALL_TABS.some((t) => t.id === hash)) {
+      setActiveTab(hash);
+    }
+
     createClient()
       .auth.getUser()
       .then(({ data }) => {
         if (data.user) setUserId(data.user.id);
       });
   }, []);
+
+  const handleTabChange = (id: TabId) => {
+    setActiveTab(id);
+    window.location.hash = id;
+  };
 
   return (
     <div className="flex gap-6">
@@ -252,7 +263,7 @@ export function SettingsTabs() {
                 return (
                   <button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
+                    onClick={() => handleTabChange(tab.id)}
                     className={cn(
                       "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
                       isActive

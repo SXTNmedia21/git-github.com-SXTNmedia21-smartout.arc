@@ -191,7 +191,7 @@ export function WorkspaceSetupWizard({
         .from("company_details")
         .select("*")
         .eq("workspace_id", workspaceId)
-        .single();
+        .maybeSingle();
       return data;
     },
     enabled: !!workspaceId,
