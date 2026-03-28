@@ -155,7 +155,8 @@ function toOperationalRisks(
       id: "ops-upcoming-tasks",
       severity: "warning",
       blockingDeviations: 0,
-      overdueTasks: operations.upcomingTasks,
+      // Upcoming work is not overdue debt, so keep overdue field at zero.
+      overdueTasks: 0,
       occurredAt,
     });
   }
@@ -173,10 +174,20 @@ function toOperationalRisks(
  * @returns Cockpit read model for staffing queue, operational queue, on-duty
  * entries, normalized feed, and consolidated loading/error state.
  */
-export function useCockpitFirstScreen(options: UseCockpitFirstScreenOptions = {}) {
+export function useCockpitFirstScreen(
+  options: UseCockpitFirstScreenOptions = {},
+): CockpitFirstScreenReadModel {
   const selectedRoles = options.selectedRoles ?? [];
   const feedLimit = options.feedLimit ?? DEFAULT_FEED_LIMIT;
-  const feedFilters = options.feedFilters ?? DEFAULT_FEED_FILTERS;
+  const feedCategory = options.feedFilters?.category ?? DEFAULT_FEED_FILTERS.category;
+  const feedTimeRange = options.feedFilters?.timeRange ?? DEFAULT_FEED_FILTERS.timeRange;
+  const feedFilters = useMemo<ActivityFeedFilters>(
+    () => ({
+      category: feedCategory,
+      timeRange: feedTimeRange,
+    }),
+    [feedCategory, feedTimeRange],
+  );
 
   const operations = useOperationsData();
   const liveShifts = useLiveShifts();
