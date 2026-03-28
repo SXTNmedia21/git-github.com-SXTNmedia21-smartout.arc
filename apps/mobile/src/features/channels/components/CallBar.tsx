@@ -30,49 +30,48 @@ export function CallBar({
   const styles = useStyles();
 
   return (
-    <Pressable
-      onPress={onPress}
+    <View
+      style={styles.container}
+      onTouchEnd={onPress}
       accessibilityRole="button"
       accessibilityLabel={strings.call.inCall}
     >
-      <View style={styles.container}>
-        <View style={styles.info}>
-          <View style={styles.statusDot} />
-          <Text style={styles.statusText}>
-            {strings.call.inCall} ({participantCount})
+      <View style={styles.info}>
+        <View style={styles.statusDot} />
+        <Text style={styles.statusText}>
+          {strings.call.inCall} ({participantCount})
+        </Text>
+        {activeSpeakers.length > 0 && (
+          <Text style={styles.speakerText} numberOfLines={1}>
+            {activeSpeakers.length} {strings.call.speaking}
           </Text>
-          {activeSpeakers.length > 0 && (
-            <Text style={styles.speakerText} numberOfLines={1}>
-              {activeSpeakers.length} {strings.call.speaking}
-            </Text>
-          )}
-        </View>
-
-        <View style={styles.controls}>
-          <Pressable
-            onPress={onToggleMic}
-            style={({ pressed }) => [
-              styles.button,
-              !isMicEnabled && styles.buttonMuted,
-              pressed && styles.buttonPressed,
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel={isMicEnabled ? strings.call.mute : strings.call.unmute}
-          >
-            {isMicEnabled ? <Mic size={18} color="#fff" /> : <MicOff size={18} color="#fff" />}
-          </Pressable>
-
-          <Pressable
-            onPress={onEndCall}
-            style={({ pressed }) => [styles.endButton, pressed && styles.buttonPressed]}
-            accessibilityRole="button"
-            accessibilityLabel={strings.call.endCall}
-          >
-            <PhoneOff size={18} color="#fff" />
-          </Pressable>
-        </View>
+        )}
       </View>
-    </Pressable>
+
+      <View style={styles.controls}>
+        <Pressable
+          onPress={onToggleMic}
+          style={({ pressed }) => [
+            styles.button,
+            !isMicEnabled && styles.buttonMuted,
+            pressed && styles.buttonPressed,
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel={isMicEnabled ? strings.call.mute : strings.call.unmute}
+        >
+          {isMicEnabled ? <Mic size={18} color="#fff" /> : <MicOff size={18} color="#fff" />}
+        </Pressable>
+
+        <Pressable
+          onPress={onEndCall}
+          style={({ pressed }) => [styles.endButton, pressed && styles.buttonPressed]}
+          accessibilityRole="button"
+          accessibilityLabel={strings.call.endCall}
+        >
+          <PhoneOff size={18} color="#fff" />
+        </Pressable>
+      </View>
+    </View>
   );
 }
 

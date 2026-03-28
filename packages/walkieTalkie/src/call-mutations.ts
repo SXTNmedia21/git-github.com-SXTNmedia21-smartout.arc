@@ -27,9 +27,23 @@ export async function startCall(
     body: { action: "start", ...params },
   });
   if (error) {
-    const detail =
-      typeof data === "object" && data ? JSON.stringify(data) : String(data ?? error.message);
-    throw new Error(`call-command failed: ${detail}`);
+    // supabase-js swallows the response body on error — try to extract it
+    let detail = error.message;
+    if (data && typeof data === "object") {
+      detail = JSON.stringify(data);
+    } else if (error.context instanceof Response) {
+      try {
+        const body = await error.context.clone().json();
+        detail = JSON.stringify(body);
+      } catch {
+        try {
+          detail = await error.context.clone().text();
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+    throw new Error(`call-command: ${detail}`);
   }
   return data as StartCallResult;
 }
