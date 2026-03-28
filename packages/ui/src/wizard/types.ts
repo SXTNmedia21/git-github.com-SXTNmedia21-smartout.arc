@@ -39,6 +39,8 @@ export interface WizardStepDef<TState> {
   skippable?: boolean;
   /** Hide the WizardNavBar for this step (step handles its own submit) */
   hideNavBar?: boolean;
+  /** Called when the user leaves this step (next or back). NOT called on skip. */
+  onStepLeave?: (state: TState) => void | Promise<void>;
   estimatedMinutes?: number;
 }
 
