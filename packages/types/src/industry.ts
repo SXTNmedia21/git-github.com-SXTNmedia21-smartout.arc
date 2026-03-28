@@ -58,12 +58,22 @@ export type IndustryPackage = {
   botsson: Record<string, string>;
 };
 
+export type PositionTier = "basis" | "mid" | "specialist";
+
+export type PositionTemplate = {
+  name: string;
+  isLeader: boolean;
+  tier: PositionTier;
+};
+
 /** Suggestion returned by NACE-based department/procedure lookups */
 export type IndustrySuggestion = {
   name: string;
   icon: string;
   preselected: boolean;
   positions: string[];
+  /** Tiered position templates for onboarding — if absent, falls back to positions[] */
+  positionTemplates?: PositionTemplate[];
 };
 
 /** Procedure suggestion from NACE lookup */
