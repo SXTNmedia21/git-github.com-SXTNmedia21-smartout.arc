@@ -62,8 +62,8 @@ const TariffRatesPanel = lazy(() =>
 const ChangeProposalsPanel = lazy(() =>
   import("./ChangeProposalsPanel").then((m) => ({ default: m.ChangeProposalsPanel })),
 );
-const ShiftLockPolicySettings = lazy(() =>
-  import("./shift-lock-policy-settings").then((m) => ({ default: m.ShiftLockPolicySettings })),
+const FinancialCloseSettings = lazy(() =>
+  import("./financial-close-settings").then((m) => ({ default: m.FinancialCloseSettings })),
 );
 
 type Tab = { id: string; label: string; icon: LucideIcon };
@@ -79,6 +79,7 @@ const SECTIONS: Section[] = [
       { id: "notifications", label: "Notifications", icon: Bell },
       { id: "teams", label: "Teams & Departments", icon: Users },
       { id: "security", label: "Security", icon: Shield },
+      { id: "financial-close", label: "Dagsoppgjor", icon: Receipt },
     ],
   },
   {
@@ -215,6 +216,12 @@ function TabContent({ tabId, userId }: { tabId: TabId; userId: string | undefine
       return (
         <Suspense fallback={<SettingsLoadingSkeleton />}>
           <ChangeProposalsPanel />
+        </Suspense>
+      );
+    case "financial-close":
+      return (
+        <Suspense fallback={<SettingsLoadingSkeleton />}>
+          <FinancialCloseSettings />
         </Suspense>
       );
     case "notifications":

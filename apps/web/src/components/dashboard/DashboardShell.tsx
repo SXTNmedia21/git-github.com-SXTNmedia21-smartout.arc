@@ -53,6 +53,7 @@ const ROUTE_MISSION_MAP: Record<string, MissionId> = {
   "/dashboard/my-training": "mr-botsson",
   "/dashboard/my-cv": "mr-botsson",
   "/dashboard/my-salary": "mr-botsson",
+  "/dashboard/reconciliation": "mr-botsson",
 };
 
 function resolveMissionForRoute(pathname: string): MissionId {
@@ -281,6 +282,7 @@ import {
   Sparkles,
   BookOpen,
   Globe,
+  Receipt,
 } from "lucide-react";
 
 import { ContractPendingBanner } from "./ContractPendingBanner";
@@ -1382,6 +1384,14 @@ export function DashboardShell({
                           label="Rapporter"
                           isDark={isDark}
                           active={isActive("/dashboard/reports")}
+                          isCollapsed={isSidebarCollapsed}
+                        />
+                        <NavItem
+                          href="/dashboard/reconciliation"
+                          icon={Receipt}
+                          label="Avstemming"
+                          isDark={isDark}
+                          active={isActive("/dashboard/reconciliation")}
                           isCollapsed={isSidebarCollapsed}
                         />
 

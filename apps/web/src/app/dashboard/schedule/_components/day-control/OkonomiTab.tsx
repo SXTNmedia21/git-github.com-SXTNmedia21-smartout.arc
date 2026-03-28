@@ -151,7 +151,7 @@ export function OkonomiTab({ dateId }: { dateId: string | null }) {
   const field = (label: string, key: keyof FormState, placeholder: string, required = false) => (
     <div>
       <label className="text-muted-foreground mb-1 block text-xs font-medium">
-        {label} {required && <span className="text-red-400">*</span>}
+        {label} {required && <span className="text-destructive">*</span>}
       </label>
       <input
         type="number"
@@ -175,9 +175,9 @@ export function OkonomiTab({ dateId }: { dateId: string | null }) {
         <div
           className={`flex items-center gap-2 rounded-xl border p-3 text-sm ${
             isApproved
-              ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+              ? "border-success/30 bg-success/10 text-success"
               : isSubmitted
-                ? "border-amber-500/30 bg-amber-500/10 text-amber-400"
+                ? "border-warning/30 bg-warning/10 text-warning"
                 : "border-border bg-muted/20 text-muted-foreground"
           }`}
         >
@@ -188,11 +188,13 @@ export function OkonomiTab({ dateId }: { dateId: string | null }) {
           ) : (
             <AlertCircle className="h-4 w-4" />
           )}
-          {isApproved
-            ? "Godkjent"
-            : isSubmitted
-              ? "Venter pa godkjenning"
-              : `Status: ${settlement?.status}`}
+          <span>
+            {isApproved
+              ? "Godkjent"
+              : isSubmitted
+                ? "Venter pa godkjenning"
+                : `Status: ${settlement?.status}`}
+          </span>
         </div>
       )}
 
