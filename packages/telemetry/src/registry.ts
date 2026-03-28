@@ -1644,6 +1644,195 @@ export interface WizardFactEdited extends BaseEvent {
   };
 }
 
+// ─── Error Events ───────────────────────────────
+export interface ScrapeFailed extends BaseEvent {
+  event: "scrape failed";
+  properties: {
+    data: {
+      error_code: string;
+      error_message: string;
+      step_id?: string;
+      wizard_id?: string;
+      recoverable: boolean;
+      context?: Record<string, unknown>;
+    };
+  };
+}
+
+export interface ScrapePartial extends BaseEvent {
+  event: "scrape partial";
+  properties: {
+    data: {
+      error_code: string;
+      error_message: string;
+      step_id?: string;
+      wizard_id?: string;
+      recoverable: boolean;
+      missing_fields?: string[];
+      context?: Record<string, unknown>;
+    };
+  };
+}
+
+export interface BrregLookupFailed extends BaseEvent {
+  event: "brreg lookup_failed";
+  properties: {
+    data: {
+      error_code: string;
+      error_message: string;
+      step_id?: string;
+      wizard_id?: string;
+      recoverable: boolean;
+      context?: Record<string, unknown>;
+    };
+  };
+}
+
+export interface AiGenerationFailed extends BaseEvent {
+  event: "ai generation_failed";
+  properties: {
+    data: {
+      error_code: string;
+      error_message: string;
+      step_id?: string;
+      wizard_id?: string;
+      recoverable: boolean;
+      context?: Record<string, unknown>;
+    };
+  };
+}
+
+export interface AuthSignupFailed extends BaseEvent {
+  event: "auth signup_failed";
+  properties: {
+    data: {
+      error_code: string;
+      error_message: string;
+      step_id?: string;
+      wizard_id?: string;
+      recoverable: boolean;
+      context?: Record<string, unknown>;
+    };
+  };
+}
+
+export interface WorkspaceProvisionFailed extends BaseEvent {
+  event: "workspace provision_failed";
+  properties: {
+    entity: { type: "workspace"; id: string; label: string };
+    data: {
+      error_code: string;
+      error_message: string;
+      step_id?: string;
+      wizard_id?: string;
+      recoverable: boolean;
+      context?: Record<string, unknown>;
+    };
+  };
+}
+
+export interface WorkspaceFinalizeFailed extends BaseEvent {
+  event: "workspace finalize_failed";
+  properties: {
+    entity: { type: "workspace"; id: string; label: string };
+    data: {
+      error_code: string;
+      error_message: string;
+      step_id?: string;
+      wizard_id?: string;
+      recoverable: boolean;
+      context?: Record<string, unknown>;
+    };
+  };
+}
+
+export interface IndustryPackageLoadFailed extends BaseEvent {
+  event: "industry_package load_failed";
+  properties: {
+    entity: { type: "workspace"; id: string; label: string };
+    data: {
+      error_code: string;
+      error_message: string;
+      step_id?: string;
+      wizard_id?: string;
+      recoverable: boolean;
+      context?: Record<string, unknown>;
+    };
+  };
+}
+
+// ─── Botsson Response Events ────────────────────
+export interface BotssonNudgeShown extends BaseEvent {
+  event: "botsson nudge_shown";
+  properties: {
+    data: {
+      trigger_type: "error" | "stall" | "user_request";
+      trigger_event?: string;
+      wizard_id: string;
+      step_id: string;
+      nudge_count: number;
+      action_type?: string;
+    };
+  };
+}
+
+export interface BotssonNudgeAccepted extends BaseEvent {
+  event: "botsson nudge_accepted";
+  properties: {
+    data: {
+      trigger_type: "error" | "stall" | "user_request";
+      trigger_event?: string;
+      wizard_id: string;
+      step_id: string;
+      nudge_count: number;
+      action_type?: string;
+    };
+  };
+}
+
+export interface BotssonNudgeDismissed extends BaseEvent {
+  event: "botsson nudge_dismissed";
+  properties: {
+    data: {
+      trigger_type: "error" | "stall" | "user_request";
+      trigger_event?: string;
+      wizard_id: string;
+      step_id: string;
+      nudge_count: number;
+    };
+  };
+}
+
+export interface BotssonAutofillApplied extends BaseEvent {
+  event: "botsson autofill_applied";
+  properties: {
+    data: {
+      trigger_type: "error" | "stall" | "user_request";
+      trigger_event?: string;
+      wizard_id: string;
+      step_id: string;
+      nudge_count: number;
+      field_count: number;
+      source: string;
+    };
+  };
+}
+
+export interface EscalationTriggered extends BaseEvent {
+  event: "escalation triggered";
+  properties: {
+    data: {
+      gate: string;
+      error_count: number;
+      error_codes: string[];
+      wizard_id: string;
+      last_step: string;
+      session_duration_ms: number;
+      user_email?: string;
+    };
+  };
+}
+
 // ─── Flow Events ───────────────────────────────
 export interface FlowStarted extends BaseEvent {
   event: "flow started";
@@ -2299,6 +2488,19 @@ export type SmartoutEvent =
   | WizardAbandoned
   | WizardValidationFailed
   | WizardFactEdited
+  | ScrapeFailed
+  | ScrapePartial
+  | BrregLookupFailed
+  | AiGenerationFailed
+  | AuthSignupFailed
+  | WorkspaceProvisionFailed
+  | WorkspaceFinalizeFailed
+  | IndustryPackageLoadFailed
+  | BotssonNudgeShown
+  | BotssonNudgeAccepted
+  | BotssonNudgeDismissed
+  | BotssonAutofillApplied
+  | EscalationTriggered
   | FlowStarted
   | FlowSlideViewed
   | FlowAnswerSubmitted
@@ -2741,6 +2943,32 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger"],
     category: "onboarding",
   },
+
+  // ─── Error events ───
+  "scrape failed": { destinations: ["posthog", "logger"], category: "onboarding" },
+  "scrape partial": { destinations: ["posthog", "logger"], category: "onboarding" },
+  "brreg lookup_failed": { destinations: ["posthog", "logger"], category: "onboarding" },
+  "ai generation_failed": { destinations: ["posthog", "logger"], category: "onboarding" },
+  "auth signup_failed": { destinations: ["posthog", "logger"], category: "auth" },
+  "workspace provision_failed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "onboarding",
+  },
+  "workspace finalize_failed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "onboarding",
+  },
+  "industry_package load_failed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "onboarding",
+  },
+
+  // ─── Botsson response events (circuit breaker: NO engine_event) ───
+  "botsson nudge_shown": { destinations: ["posthog", "logger"], category: "agent" },
+  "botsson nudge_accepted": { destinations: ["posthog", "logger"], category: "agent" },
+  "botsson nudge_dismissed": { destinations: ["posthog", "logger"], category: "agent" },
+  "botsson autofill_applied": { destinations: ["posthog", "logger"], category: "agent" },
+  "escalation triggered": { destinations: ["posthog", "logger"], category: "agent" },
 
   "flow started": { destinations: ["posthog", "logger"], category: "onboarding" },
   "flow slide_viewed": { destinations: ["posthog"], category: "onboarding" },
