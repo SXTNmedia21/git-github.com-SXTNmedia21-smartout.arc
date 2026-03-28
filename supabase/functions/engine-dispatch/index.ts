@@ -747,10 +747,49 @@ async function executeStep(
       // Context comes from telemetry payload where dates/department_ids
       // are nested under ctx.data (from event.properties.data)
       const ctxData = (ctx.data as Record<string, unknown>) ?? {};
-      const dates = (ctxData.dates as string[]) ??
-        (ctx.dates as string[]) ?? [new Date().toISOString().split("T")[0]];
-      const deptIds =
-        (ctxData.department_ids as string[]) ?? (ctx.department_ids as string[]) ?? [];
+
+      // Season activation: resolve departments + planning window from season data
+      const seasonId = (ctxData.season_id as string) ?? (ctx.season_id as string) ?? null;
+      let dates = (ctxData.dates as string[]) ?? (ctx.dates as string[]) ?? [];
+      let deptIds = (ctxData.department_ids as string[]) ?? (ctx.department_ids as string[]) ?? [];
+
+      if (seasonId && deptIds.length === 0) {
+        // Season activation path: resolve all operational departments in workspace
+        const { data: allDepts } = await supabase
+          .from("department")
+          .select("department_id, department_type")
+          .eq("workspace_id", state.workspace_id)
+          .eq("is_active", true);
+        deptIds = (allDepts ?? [])
+          .filter(
+            (d: { department_type: string | null }) =>
+              !d.department_type ||
+              d.department_type === "operational" ||
+              d.department_type === "hybrid",
+          )
+          .map((d: { department_id: string }) => d.department_id);
+
+        // Resolve planning window: today through min(season.end_date, today + 7 days)
+        if (dates.length === 0) {
+          const today = new Date();
+          const seasonEnd = (ctxData.end_date as string) ?? (ctx.end_date as string) ?? null;
+          const windowEnd = new Date(today);
+          windowEnd.setDate(windowEnd.getDate() + 7);
+          const effectiveEnd =
+            seasonEnd && new Date(seasonEnd) < windowEnd ? new Date(seasonEnd) : windowEnd;
+          dates = [];
+          const cursor = new Date(today);
+          while (cursor <= effectiveEnd) {
+            dates.push(cursor.toISOString().split("T")[0]!);
+            cursor.setDate(cursor.getDate() + 1);
+          }
+        }
+      }
+
+      // Fallback: if still no dates, use today
+      if (dates.length === 0) {
+        dates = [new Date().toISOString().split("T")[0]!];
+      }
 
       // Filter: only operational/hybrid departments create sessions (not administrative)
       const { data: deptRows } = await supabase
