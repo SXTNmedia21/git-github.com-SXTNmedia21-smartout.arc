@@ -13,6 +13,7 @@ import {
 } from "@livekit/components-react";
 import "@livekit/components-styles";
 import { Track } from "livekit-client";
+import { useTranslation } from "@smartout/i18n";
 import { Button } from "@/components/ui/button";
 import { PhoneOff, Minimize2, Maximize2, Users, MessageSquare } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
@@ -88,6 +89,7 @@ function CallRoomInner({
   onDisconnect: () => void;
   onParticipantCountChange?: (count: number) => void;
 }) {
+  const { t } = useTranslation("komm");
   const participants = useParticipants();
   const tracks = useTracks(
     [
@@ -113,12 +115,12 @@ function CallRoomInner({
     if (prev.size > 0) {
       for (const p of participants) {
         if (!prev.has(p.identity)) {
-          toast.info(`${p.name || p.identity} ble med i samtalen`);
+          toast.info(t("call.participant_joined", { name: p.name || p.identity }));
         }
       }
       for (const identity of prev) {
         if (!currentIdentities.has(identity)) {
-          toast.info(`${identity} forlot samtalen`);
+          toast.info(t("call.participant_left", { name: identity }));
         }
       }
     }
@@ -138,7 +140,7 @@ function CallRoomInner({
       {/* Header */}
       <div className="flex items-center justify-between border-b px-3 py-2">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">Samtale aktiv</span>
+          <span className="text-sm font-medium">{t("call.header")}</span>
           <span className="text-muted-foreground flex items-center gap-1 text-xs">
             <Users className="h-3 w-3" />
             {participantCount}
@@ -151,7 +153,7 @@ function CallRoomInner({
               size="icon"
               className="h-7 w-7"
               onClick={() => setShowChat(!showChat)}
-              aria-label={showChat ? "Skjul chat" : "Vis chat"}
+              aria-label={showChat ? t("call.hide_chat") : t("call.show_chat")}
               aria-pressed={showChat}
             >
               <MessageSquare className="h-3.5 w-3.5" />
@@ -162,7 +164,7 @@ function CallRoomInner({
             size="icon"
             className="h-7 w-7"
             onClick={() => setIsExpanded(!isExpanded)}
-            aria-label={isExpanded ? "Minimer" : "Utvid"}
+            aria-label={isExpanded ? t("call.minimize") : t("call.expand")}
           >
             {isExpanded ? (
               <Minimize2 className="h-3.5 w-3.5" />
@@ -175,7 +177,7 @@ function CallRoomInner({
             size="icon"
             className="h-7 w-7 rounded-full"
             onClick={onDisconnect}
-            aria-label="Avslutt samtale"
+            aria-label={t("call.disconnect")}
           >
             <PhoneOff className="h-3.5 w-3.5" />
           </Button>
@@ -217,13 +219,13 @@ function CallRoomInner({
           {showChat && (
             <div className="flex h-1/2 flex-col border-t md:h-auto md:w-80 md:border-t-0 md:border-l lg:w-96">
               <div className="flex items-center justify-between border-b px-3 py-2">
-                <span className="text-sm font-medium">Chat</span>
+                <span className="text-sm font-medium">{t("call.chat_panel")}</span>
                 <Button
                   variant="ghost"
                   size="icon"
                   className="h-6 w-6 md:hidden"
                   onClick={() => setShowChat(false)}
-                  aria-label="Lukk chat"
+                  aria-label={t("call.close_chat")}
                 >
                   <Minimize2 className="h-3 w-3" />
                 </Button>

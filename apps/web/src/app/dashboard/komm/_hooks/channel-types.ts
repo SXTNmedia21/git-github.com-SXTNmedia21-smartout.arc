@@ -100,6 +100,6 @@ export type ChannelMemberWithProfile = ChannelMemberRow & {
 // Group channels by type for the sidebar list
 export type ChannelGroup = {
   type: ChannelType;
-  label: string;
+  labelKey: string;
   channels: ChannelWithPreview[];
 };

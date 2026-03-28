@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallHistory } from "../_hooks/use-call-history";
+import { useTranslation } from "@smartout/i18n";
 import { Phone, Clock, Users } from "lucide-react";
 
 function formatDuration(seconds: number): string {
@@ -23,12 +24,13 @@ type Props = {
 };
 
 export function CallHistory({ channelId }: Props) {
+  const { t } = useTranslation("komm");
   const { data: history, isLoading } = useCallHistory(channelId);
 
   if (isLoading) {
     return (
       <div className="text-muted-foreground flex items-center justify-center p-6 text-sm">
-        Laster samtalehistorikk...
+        {t("call.loading_history")}
       </div>
     );
   }
@@ -37,7 +39,7 @@ export function CallHistory({ channelId }: Props) {
     return (
       <div className="text-muted-foreground flex flex-col items-center gap-2 p-6">
         <Phone className="h-8 w-8 opacity-40" />
-        <p className="text-sm">Ingen tidligere samtaler</p>
+        <p className="text-sm">{t("call.no_history")}</p>
       </div>
     );
   }

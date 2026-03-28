@@ -17,6 +17,7 @@ import {
   CalendarDays,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@smartout/i18n";
 
 const TYPE_ICONS: Record<string, typeof Hash> = {
   department: Building2,
@@ -55,12 +56,13 @@ export function ChannelHeader({
   onJoinCall,
   liveParticipantCount = 0,
 }: Props) {
+  const { t } = useTranslation("komm");
   const Icon = TYPE_ICONS[channel.channel_type] ?? Hash;
   const colorClass = TYPE_COLORS[channel.channel_type] ?? "bg-muted text-muted-foreground";
   const displayName =
     channel.channel_type === "direct"
-      ? (channel.other_member_name ?? "Direktemelding")
-      : (channel.name ?? "Kanal");
+      ? (channel.other_member_name ?? t("channel.direct_message"))
+      : (channel.name ?? t("channel.default_name"));
 
   const voiceEnabled = channel.audio_policy !== "disabled";
   const { data: callSession } = useCallState(voiceEnabled ? channel.channel_id : null);
@@ -95,7 +97,9 @@ export function ChannelHeader({
         <div className="min-w-0 flex-1">
           <h3 className="truncate text-sm font-semibold">{displayName}</h3>
           <p className="text-muted-foreground text-xs">
-            {channel.member_count} {channel.member_count === 1 ? "medlem" : "medlemmer"}
+            {channel.member_count === 1
+              ? t("channel.member_one", { count: channel.member_count })
+              : t("channel.member_other", { count: channel.member_count })}
             {channel.description && ` · ${channel.description}`}
           </p>
         </div>
@@ -106,7 +110,7 @@ export function ChannelHeader({
               className="h-8 w-8 rounded-full bg-green-500 text-white hover:bg-green-600"
               onClick={hasActiveCall ? onJoinCall : handleStartCall}
               disabled={startCall.isPending}
-              title={hasActiveCall ? "Bli med i samtale" : "Start samtale"}
+              title={hasActiveCall ? t("call.join_call") : t("call.start_call")}
             >
               <Phone className="h-4 w-4" />
             </Button>
@@ -127,10 +131,10 @@ export function ChannelHeader({
       {hasActiveCall && callSession && (
         <div className="bg-primary/10 text-primary flex items-center px-4 py-2 text-sm">
           <Users className="mr-1.5 h-3.5 w-3.5" />
-          Pågående samtale ({liveParticipantCount || callSession.maxParticipants} deltakere)
+          {t("call.active_call", { count: liveParticipantCount || callSession.maxParticipants })}
           {liveParticipantCount === 0 && (
             <Button size="sm" onClick={onJoinCall} className="ml-4">
-              Bli med
+              {t("call.join")}
             </Button>
           )}
         </div>

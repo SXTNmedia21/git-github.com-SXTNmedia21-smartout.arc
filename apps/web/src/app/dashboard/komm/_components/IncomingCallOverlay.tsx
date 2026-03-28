@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useTranslation } from "@smartout/i18n";
 import { Button } from "@/components/ui/button";
 import { Phone, PhoneOff } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -13,6 +14,7 @@ type Props = {
 };
 
 export function IncomingCallOverlay({ call, onAccept, onReject }: Props) {
+  const { t } = useTranslation("komm");
   const initials = call.callerName.slice(0, 2).toUpperCase();
   const acceptRef = useRef<HTMLButtonElement>(null);
 
@@ -50,7 +52,7 @@ export function IncomingCallOverlay({ call, onAccept, onReject }: Props) {
           <h3 id="incoming-call-title" className="text-lg font-semibold">
             {call.callerName}
           </h3>
-          <p className="text-muted-foreground text-sm">Ringer deg...</p>
+          <p className="text-muted-foreground text-sm">{t("incoming_call.ringing")}</p>
         </div>
 
         <div className="flex gap-6">
@@ -59,7 +61,7 @@ export function IncomingCallOverlay({ call, onAccept, onReject }: Props) {
             size="icon"
             className="h-14 w-14 rounded-full"
             onClick={onReject}
-            aria-label="Avslå anrop"
+            aria-label={t("incoming_call.reject_aria")}
           >
             <PhoneOff className="h-6 w-6" />
           </Button>
@@ -68,7 +70,7 @@ export function IncomingCallOverlay({ call, onAccept, onReject }: Props) {
             size="icon"
             className="h-14 w-14 rounded-full bg-green-500 text-white hover:bg-green-600"
             onClick={onAccept}
-            aria-label="Svar på anrop"
+            aria-label={t("incoming_call.accept_aria")}
           >
             <Phone className="h-6 w-6" />
           </Button>

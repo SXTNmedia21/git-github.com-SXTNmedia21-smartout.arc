@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useTranslation } from "@smartout/i18n";
 import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
@@ -68,6 +69,7 @@ type Props = {
 };
 
 export function ChatList({ channels, activeChannelId, onSelectChannel, profileId }: Props) {
+  const { t } = useTranslation("komm");
   const [filter, setFilter] = useState("");
   const { data: members } = useWorkspaceMembers(profileId);
   const { workspace } = useWorkspace();
@@ -110,7 +112,7 @@ export function ChatList({ channels, activeChannelId, onSelectChannel, profileId
         <Input
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          placeholder="Filtrer etter navn..."
+          placeholder={t("chat_list.filter_placeholder")}
           className="h-8 text-xs"
         />
       </div>
@@ -133,7 +135,7 @@ export function ChatList({ channels, activeChannelId, onSelectChannel, profileId
 
       {/* All team members directory */}
       <div className="text-muted-foreground px-3 pt-2 pb-1 text-[10px] font-semibold tracking-wider uppercase">
-        Alle medarbeidere
+        {t("chat_list.all_members")}
       </div>
       {(filteredMembers ?? []).map((member) => (
         <button
@@ -155,7 +157,9 @@ export function ChatList({ channels, activeChannelId, onSelectChannel, profileId
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium">{member.display_name ?? "Ukjent"}</p>
+            <p className="truncate text-sm font-medium">
+              {member.display_name ?? t("chat_list.unknown")}
+            </p>
             <p className="text-muted-foreground text-xs">
               {member.department_name ?? ""} · {member.role}
             </p>

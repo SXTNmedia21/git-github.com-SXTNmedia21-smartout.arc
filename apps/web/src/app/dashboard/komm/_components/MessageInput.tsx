@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Send, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useTranslation } from "@smartout/i18n";
 
 type PTTProps = {
   setMicEnabled: (enabled: boolean) => Promise<void>;
@@ -33,6 +34,7 @@ export function MessageInput({
   audioPolicy,
   pttProps,
 }: Props) {
+  const { t } = useTranslation("komm");
   const [content, setContent] = useState("");
   const [showAttachments, setShowAttachments] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -89,14 +91,14 @@ export function MessageInput({
   };
 
   const handleAttachmentSelect = (key: string) => {
-    toast.info(`${key} — kommer snart!`, { duration: 2000 });
+    toast.info(t("message.attachment_coming_soon", { key }), { duration: 2000 });
   };
 
   return (
     <div className="relative border-t">
       {replyToMessage && (
         <ReplyPreview
-          senderName={replyToMessage.sender_name ?? "Ukjent"}
+          senderName={replyToMessage.sender_name ?? t("message.unknown_sender")}
           content={replyToMessage.content}
           onCancel={onCancelReply}
         />
@@ -123,7 +125,7 @@ export function MessageInput({
           value={content}
           onChange={(e) => setContent(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Skriv en melding..."
+          placeholder={t("message.placeholder")}
           rows={1}
           className="bg-muted text-foreground placeholder:text-muted-foreground focus:ring-primary min-h-[36px] flex-1 resize-none rounded-xl border-0 px-3 py-2 text-sm focus:ring-1 focus:outline-none"
         />

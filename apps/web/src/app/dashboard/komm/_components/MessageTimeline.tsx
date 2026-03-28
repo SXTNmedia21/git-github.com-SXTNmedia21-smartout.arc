@@ -7,6 +7,7 @@ import { useMarkAsRead } from "../_hooks/use-mark-as-read";
 import { MessageBubble } from "./MessageBubble";
 import { SystemMessage } from "./SystemMessage";
 import { Loader2 } from "lucide-react";
+import { useTranslation } from "@smartout/i18n";
 
 const SYSTEM_TYPES = new Set(["system", "brief", "handoff", "announcement", "reminder", "summary"]);
 
@@ -17,6 +18,7 @@ type Props = {
 };
 
 export function MessageTimeline({ channelId, profileId, onReply }: Props) {
+  const { t } = useTranslation("komm");
   const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } =
     useChannelMessages(channelId);
   const markAsRead = useMarkAsRead(channelId, profileId);
@@ -86,7 +88,7 @@ export function MessageTimeline({ channelId, profileId, onReply }: Props) {
 
       {messages.length === 0 ? (
         <div className="flex h-full items-center justify-center">
-          <p className="text-muted-foreground text-sm">Ingen meldinger ennå. Start samtalen!</p>
+          <p className="text-muted-foreground text-sm">{t("message.empty_state")}</p>
         </div>
       ) : (
         groupedByDate.map((group) => (

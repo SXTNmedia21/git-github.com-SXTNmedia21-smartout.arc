@@ -8,6 +8,7 @@ import type { ChannelGroup } from "../_hooks/channel-types";
 import { Button } from "@/components/ui/button";
 import { Plus, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { useTranslation } from "@smartout/i18n";
 
 type Props = {
   channelGroups: ChannelGroup[];
@@ -24,6 +25,7 @@ export function ChannelList({
   onSelectChannel,
   profileId,
 }: Props) {
+  const { t } = useTranslation("komm");
   const { data: unreadCounts } = useUnreadCounts();
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
@@ -45,7 +47,7 @@ export function ChannelList({
     <div className="bg-card flex w-80 flex-shrink-0 flex-col border-r">
       {/* Header */}
       <div className="flex items-center justify-between border-b p-3">
-        <h2 className="text-sm font-semibold">Kanaler</h2>
+        <h2 className="text-sm font-semibold">{t("channel.header")}</h2>
         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowCreate(true)}>
           <Plus className="h-4 w-4" />
         </Button>
@@ -56,7 +58,7 @@ export function ChannelList({
         <div className="relative">
           <Search className="text-muted-foreground absolute top-2.5 left-2.5 h-3.5 w-3.5" />
           <Input
-            placeholder="Søk i kanaler..."
+            placeholder={t("channel.search_placeholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="h-8 pl-8 text-xs"
@@ -77,13 +79,13 @@ export function ChannelList({
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-6">
-            <p className="text-muted-foreground text-xs">Ingen kanaler ennå</p>
+            <p className="text-muted-foreground text-xs">{t("channel.empty")}</p>
           </div>
         ) : (
           filtered.map((group) => (
             <div key={group.type}>
               <div className="text-muted-foreground px-3 pt-3 pb-1 text-[11px] font-medium tracking-wider uppercase">
-                {group.label}
+                {t(group.labelKey)}
               </div>
               {group.channels.map((ch) => (
                 <ChannelItem
