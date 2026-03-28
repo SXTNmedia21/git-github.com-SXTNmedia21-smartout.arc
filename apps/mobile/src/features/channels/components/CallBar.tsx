@@ -7,6 +7,7 @@ import React from "react";
 import { View, Text, Pressable } from "react-native";
 import { Mic, MicOff, PhoneOff } from "lucide-react-native";
 import { createStyles, shadows } from "@/theme";
+import { strings } from "@/constants/strings";
 
 type Props = {
   participantCount: number;
@@ -14,6 +15,8 @@ type Props = {
   activeSpeakers: string[];
   onToggleMic: () => void;
   onEndCall: () => void;
+  /** Tapping the bar opens the full CallSheet */
+  onPress?: () => void;
 };
 
 export function CallBar({
@@ -22,45 +25,52 @@ export function CallBar({
   activeSpeakers,
   onToggleMic,
   onEndCall,
+  onPress,
 }: Props) {
   const styles = useStyles();
 
   return (
-    <View style={styles.container}>
-      <View style={styles.info}>
-        <View style={styles.statusDot} />
-        <Text style={styles.statusText}>I samtale ({participantCount})</Text>
-        {activeSpeakers.length > 0 && (
-          <Text style={styles.speakerText} numberOfLines={1}>
-            {activeSpeakers.length === 1 ? "1 snakker" : `${activeSpeakers.length} snakker`}
-          </Text>
-        )}
-      </View>
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={strings.call.inCall}
+    >
+      <View style={styles.container}>
+        <View style={styles.info}>
+          <View style={styles.statusDot} />
+          <Text style={styles.statusText}>I samtale ({participantCount})</Text>
+          {activeSpeakers.length > 0 && (
+            <Text style={styles.speakerText} numberOfLines={1}>
+              {activeSpeakers.length === 1 ? "1 snakker" : `${activeSpeakers.length} snakker`}
+            </Text>
+          )}
+        </View>
 
-      <View style={styles.controls}>
-        <Pressable
-          onPress={onToggleMic}
-          style={({ pressed }) => [
-            styles.button,
-            !isMicEnabled && styles.buttonMuted,
-            pressed && styles.buttonPressed,
-          ]}
-          accessibilityRole="button"
-          accessibilityLabel={isMicEnabled ? "Demp mikrofon" : "Sl\u00e5 p\u00e5 mikrofon"}
-        >
-          {isMicEnabled ? <Mic size={18} color="#fff" /> : <MicOff size={18} color="#fff" />}
-        </Pressable>
+        <View style={styles.controls}>
+          <Pressable
+            onPress={onToggleMic}
+            style={({ pressed }) => [
+              styles.button,
+              !isMicEnabled && styles.buttonMuted,
+              pressed && styles.buttonPressed,
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel={isMicEnabled ? "Demp mikrofon" : "Sl\u00e5 p\u00e5 mikrofon"}
+          >
+            {isMicEnabled ? <Mic size={18} color="#fff" /> : <MicOff size={18} color="#fff" />}
+          </Pressable>
 
-        <Pressable
-          onPress={onEndCall}
-          style={({ pressed }) => [styles.endButton, pressed && styles.buttonPressed]}
-          accessibilityRole="button"
-          accessibilityLabel="Avslutt samtale"
-        >
-          <PhoneOff size={18} color="#fff" />
-        </Pressable>
+          <Pressable
+            onPress={onEndCall}
+            style={({ pressed }) => [styles.endButton, pressed && styles.buttonPressed]}
+            accessibilityRole="button"
+            accessibilityLabel="Avslutt samtale"
+          >
+            <PhoneOff size={18} color="#fff" />
+          </Pressable>
+        </View>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
