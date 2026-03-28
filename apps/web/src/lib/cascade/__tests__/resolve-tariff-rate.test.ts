@@ -31,6 +31,7 @@ function makeContext(overrides: Partial<TariffContext> = {}): TariffContext {
       makeRate({ id: "plat-ot100", rateType: "overtidstillegg_100", amount: 100, unit: "percent" }),
     ],
     isPublicHoliday: false,
+    baseRate: null,
     ...overrides,
   };
 }

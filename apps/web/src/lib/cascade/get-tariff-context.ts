@@ -89,5 +89,6 @@ export async function getTariffContext(
     workspaceTariffRates,
     platformTariffRates,
     isPublicHoliday,
+    baseRate: null,
   };
 }

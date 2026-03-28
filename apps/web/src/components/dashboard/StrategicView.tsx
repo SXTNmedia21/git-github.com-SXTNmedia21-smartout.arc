@@ -19,6 +19,8 @@ import {
   useKpiTargets,
   useKpiCopy,
   useActiveSeason,
+  useAbsenceRate,
+  useStaffTurnover,
 } from "@/app/dashboard/_hooks";
 import type { KpiMetric } from "@/app/dashboard/_hooks";
 import { BudgetSettingsPanel } from "./BudgetSettingsPanel";
@@ -38,6 +40,8 @@ export function StrategicView({ isDark }: StrategicViewProps) {
   const { data: activeSeason } = useActiveSeason();
   const { data: pipeline } = useWorkforcePipeline();
   const { data: training } = useTrainingReadiness();
+  const { data: absenceData } = useAbsenceRate();
+  const { data: turnoverData } = useStaffTurnover();
 
   function handleTargetSave(metric: KpiMetric, value: number) {
     updateTarget.mutate({ metric, value });
@@ -136,20 +140,46 @@ export function StrategicView({ isDark }: StrategicViewProps) {
             onTargetSave={handleTargetSave}
           />
 
-          <EmptyKPICard
+          <KPICard
             isDark={isDark}
             title="Varekostnad %"
+            value={null}
+            targetDisplay={`< ${targets.cost_of_sales}%`}
+            status={null}
             icon={<BarChart3 className="h-5 w-5" />}
+            explanation="Kobles til regnskap. Krever integrasjon med varesystem."
+            metric="cost_of_sales"
+            targetValue={targets.cost_of_sales}
+            unit="%"
+            onTargetSave={handleTargetSave}
           />
-          <EmptyKPICard
+          <KPICard
             isDark={isDark}
             title="Personalomsetning"
+            value={turnoverData ? `${turnoverData.rate}%` : null}
+            targetDisplay={`< ${targets.turnover_90d}%`}
+            status={
+              turnoverData ? (turnoverData.rate > targets.turnover_90d ? "bad" : "good") : null
+            }
             icon={<Users className="h-5 w-5" />}
+            explanation={kpiCopy.turnover_90d}
+            metric="turnover_90d"
+            targetValue={targets.turnover_90d}
+            unit="%"
+            onTargetSave={handleTargetSave}
           />
-          <EmptyKPICard
+          <KPICard
             isDark={isDark}
             title="Fravaersrate"
+            value={absenceData ? `${absenceData.rate}%` : null}
+            targetDisplay={`< ${targets.absence_rate}%`}
+            status={absenceData ? (absenceData.rate > targets.absence_rate ? "bad" : "good") : null}
             icon={<Target className="h-5 w-5" />}
+            explanation={kpiCopy.absence_rate}
+            metric="absence_rate"
+            targetValue={targets.absence_rate}
+            unit="%"
+            onTargetSave={handleTargetSave}
           />
         </div>
       )}
