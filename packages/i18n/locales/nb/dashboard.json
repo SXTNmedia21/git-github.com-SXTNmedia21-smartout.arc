@@ -208,5 +208,29 @@
     "inactive": "Inaktiv",
     "task_not_found": "Oppgave ikke funnet",
     "coming_soon": "Kommer snart"
+  },
+  "schedule": {
+    "absence_approval": {
+      "title": "Fraværsforespørsler",
+      "empty": "Ingen ventende forespørsler",
+      "approve": "Godkjenn",
+      "reject": "Avslå",
+      "approved": "Godkjent",
+      "rejected": "Avslått",
+      "pending": "Venter",
+      "confirm_reject": "Er du sikker på at du vil avslå denne forespørselen?",
+      "cancel": "Avbryt",
+      "type_sick": "Sykdom",
+      "type_vacation": "Ferie",
+      "type_parental": "Foreldrepermisjon",
+      "type_unpaid": "Ulønnet permisjon",
+      "type_military": "Militærtjeneste",
+      "type_training": "Opplæring",
+      "type_welfare": "Velferdspermisjon",
+      "date_range": "{{start}} – {{end}}",
+      "full_day": "Hele dagen",
+      "days_count_one": "{{count}} dag",
+      "days_count_other": "{{count}} dager"
+    }
   }
 }

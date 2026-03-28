@@ -1,3 +1,12 @@
+---
+title: Research Results — The Reactive Operations Engine
+status: done
+updated: 2026-03-20
+created: 2026-03-20
+module: operations
+tags: [research, reactive, operations-engine]
+---
+
 # Research Results: The Reactive Operations Engine
 
 > **Date:** 2026-03-20

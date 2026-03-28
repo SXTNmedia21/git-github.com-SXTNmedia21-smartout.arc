@@ -208,5 +208,29 @@
     "inactive": "Inactive",
     "task_not_found": "Task not found",
     "coming_soon": "Coming soon"
+  },
+  "schedule": {
+    "absence_approval": {
+      "title": "Absence Requests",
+      "empty": "No pending requests",
+      "approve": "Approve",
+      "reject": "Reject",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "pending": "Pending",
+      "confirm_reject": "Are you sure you want to reject this request?",
+      "cancel": "Cancel",
+      "type_sick": "Sick leave",
+      "type_vacation": "Vacation",
+      "type_parental": "Parental leave",
+      "type_unpaid": "Unpaid leave",
+      "type_military": "Military service",
+      "type_training": "Training",
+      "type_welfare": "Welfare leave",
+      "date_range": "{{start}} – {{end}}",
+      "full_day": "Full day",
+      "days_count_one": "{{count}} day",
+      "days_count_other": "{{count}} days"
+    }
   }
 }

@@ -783,6 +783,22 @@ export interface AbsenceDeleted extends BaseEvent {
   };
 }
 
+export interface AbsenceApproved extends BaseEvent {
+  event: "absence approved";
+  properties: {
+    entity: EntityRef;
+    data: { profile_id: string; approved_by: string; start_date: string; end_date: string };
+  };
+}
+
+export interface AbsenceRejected extends BaseEvent {
+  event: "absence rejected";
+  properties: {
+    entity: EntityRef;
+    data: { profile_id: string; rejected_by: string; reason?: string };
+  };
+}
+
 export interface RosterCreated extends BaseEvent {
   event: "roster created";
   properties: {
@@ -2011,6 +2027,8 @@ export type SmartoutEvent =
   | WorkspaceBudgetUpdated
   | AbsenceCreated
   | AbsenceDeleted
+  | AbsenceApproved
+  | AbsenceRejected
   | RosterCreated
   | RosterUpdated
   | RosterDeleted
@@ -2448,6 +2466,14 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "scheduling",
   },
   "absence deleted": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "absence approved": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "absence rejected": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "scheduling",
   },

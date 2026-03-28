@@ -3,11 +3,11 @@ title: Decision Log
 status: in_progress
 updated: 2026-03-28
 created: 2026-03-28
-module: gamification
+module: scheduling
 tags: [decisions]
 ---
 
-# Decision Log — gamification-foundation
+# Decision Log — absence-approval
 
 | #   | Date       | Decision                                                                                                                                                               | Status   |
 | --- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
@@ -21,3 +21,5 @@ tags: [decisions]
 | 1   | 2026-03-28 | ADR-0065: Hospitality Operations Cockpit V1 Read/Action Contract                                                                                                       | accepted |
 | 2   | 2026-03-28 | ADR-0066: Temporal Shift Lock Architecture                                                                                                                             | accepted |
 | 3   | 2026-03-28 | ADR-0067: Smart Cover via Event Engine                                                                                                                                 | accepted |
+| #   | Date       | Decision                                                                                                                                                               | Status   |
+| --- | ----       | --------                                                                                                                                                               | ------   |
