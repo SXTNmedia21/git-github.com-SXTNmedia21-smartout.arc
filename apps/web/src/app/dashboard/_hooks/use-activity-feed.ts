@@ -10,7 +10,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
 
-type ActivityFeedFilters = {
+export type ActivityFeedFilters = {
   category?: "scheduling" | "operations" | "training" | "all";
   timeRange?: "today" | "7d" | "30d";
 };
