@@ -996,25 +996,6 @@ export interface MessageSent extends BaseEvent {
   };
 }
 
-export interface ChatReactionToggled extends BaseEvent {
-  event: "chat.reaction.toggled";
-  properties: {
-    conversation_id: string;
-    message_id: string;
-    emoji: string;
-    action: "added" | "removed";
-  };
-  entity: EntityRef;
-}
-
-export interface ChatRead extends BaseEvent {
-  event: "chat.read";
-  properties: {
-    conversation_id: string;
-  };
-  entity: EntityRef;
-}
-
 // ─── Payroll Settings Events ─────────────────────
 export interface PayrollSettingsUpdated extends BaseEvent {
   event: "payroll_settings updated";
@@ -2021,8 +2002,6 @@ export type SmartoutEvent =
   | LeaderPulseDismissed
   | ConversationCreated
   | MessageSent
-  | ChatReactionToggled
-  | ChatRead
   | PayrollSettingsUpdated
   | SalaryCodeCreated
   | SalaryCodeUpdated
@@ -2537,14 +2516,6 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "communication",
   },
   "message sent": {
-    destinations: ["posthog", "logger"],
-    category: "communication",
-  },
-  "chat.reaction.toggled": {
-    destinations: ["posthog", "logger", "activity_trail"],
-    category: "communication",
-  },
-  "chat.read": {
     destinations: ["posthog", "logger"],
     category: "communication",
   },

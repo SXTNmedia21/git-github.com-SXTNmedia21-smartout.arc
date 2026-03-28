@@ -67,7 +67,7 @@ const FILTER_TABS: FilterTab[] = [
   { id: "all", label: "Alle" },
   { id: "unread", label: "Uleste" },
   { id: "shift", label: "Vakter" },
-  { id: "chat", label: "Chat" },
+  { id: "chat", label: "Komm" },
   { id: "task", label: "Oppgaver" },
   { id: "deviation", label: "Avvik" },
   { id: "approval", label: "Godkjenning" },
