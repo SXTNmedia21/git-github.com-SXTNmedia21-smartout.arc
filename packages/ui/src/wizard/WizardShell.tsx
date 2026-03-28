@@ -76,6 +76,7 @@ export function WizardShell<TState extends Record<string, unknown>>({
   const walkai = useWizardWalkAi(definition.id, currentStep?.id ?? "");
   const theme: WizardThemeTokens = { name: definition.theme };
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [attempted, setAttempted] = useState(false);
 
   const stepsForNav = definition.steps as unknown as WizardStepDef<Record<string, unknown>>[];
 
@@ -86,6 +87,7 @@ export function WizardShell<TState extends Record<string, unknown>>({
     const result = await rawNext();
 
     if (result.success) {
+      setAttempted(false);
       if (prevStep) {
         onStepComplete?.(prevStep.id, currentStepIndex, durationMs);
       }
@@ -93,6 +95,7 @@ export function WizardShell<TState extends Record<string, unknown>>({
         onComplete?.();
       }
     } else if ("errors" in result) {
+      setAttempted(true);
       setValidationErrors(result.errors);
       onValidationFail?.(currentStep?.id ?? "", result.errors);
     }
@@ -135,6 +138,7 @@ export function WizardShell<TState extends Record<string, unknown>>({
   // Clear errors on step change
   useEffect(() => {
     setValidationErrors([]);
+    setAttempted(false);
     if (currentStep) {
       onStepChange?.(currentStep.id, currentStepIndex);
     }
@@ -160,6 +164,7 @@ export function WizardShell<TState extends Record<string, unknown>>({
     goTo: handleGoTo,
     isFirst,
     isLast,
+    attempted,
     t,
     theme,
     walkai,
@@ -202,9 +207,9 @@ export function WizardShell<TState extends Record<string, unknown>>({
           logoSrc: definition.brandPanel?.logoSrc,
         })}
 
-      {/* WIZARD CONTENT — warm background, full scroll */}
+      {/* WIZARD CONTENT — warm background, fixed footer nav */}
       <div
-        className="relative flex w-full flex-1 flex-col overflow-y-auto"
+        className="relative flex w-full flex-1 flex-col overflow-hidden"
         style={{ backgroundColor: "var(--wizard-bg)" }}
       >
         {/* Progress bar */}
@@ -215,30 +220,35 @@ export function WizardShell<TState extends Record<string, unknown>>({
           t={t}
         />
 
-        {/* Step content + nav together — both scroll */}
+        {/* Step content — scrollable */}
         <main
-          className="flex flex-1 flex-col items-center justify-start px-4 pt-4 pb-4 lg:px-8 xl:px-12"
+          className="flex-1 overflow-y-auto px-4 pt-4 pb-4 lg:px-8 xl:px-12"
           data-walkai-id={`${definition.id}-${currentStep.id}-step`}
           data-walkai-type="wizard-step"
         >
-          <div className="w-full flex-1">{renderedStep}</div>
-
-          {/* Navigation bar — inside scroll area so always reachable */}
-          {!currentStep.hideNavBar && (
-            <div className="mt-8 w-full">
-              <WizardNavBar
-                isFirst={isFirst}
-                isLast={isLast}
-                isSkippable={currentStep.skippable ?? false}
-                validationErrors={validationErrors}
-                t={t}
-                onBack={handleBack}
-                onNext={handleNext}
-                onSkip={currentStep.skippable ? handleSkip : undefined}
-              />
-            </div>
-          )}
+          <div className="flex min-h-full w-full items-start justify-center">
+            <div className="w-full">{renderedStep}</div>
+          </div>
         </main>
+
+        {/* Navigation bar — fixed at bottom, outside scroll */}
+        {!currentStep.hideNavBar && (
+          <div
+            className="w-full shrink-0 border-t border-[var(--brd,oklch(0.91_0.006_55))] pt-3"
+            style={{ backgroundColor: "var(--wizard-bg)" }}
+          >
+            <WizardNavBar
+              isFirst={isFirst}
+              isLast={isLast}
+              isSkippable={currentStep.skippable ?? false}
+              validationErrors={validationErrors}
+              t={t}
+              onBack={handleBack}
+              onNext={handleNext}
+              onSkip={currentStep.skippable ? handleSkip : undefined}
+            />
+          </div>
+        )}
       </div>
 
       {/* Brand panel — RIGHT position (after content, default) */}

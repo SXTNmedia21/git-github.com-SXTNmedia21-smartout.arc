@@ -156,11 +156,18 @@ export function useScrapedData() {
         });
 
         if (!res.ok) {
+          console.warn("[useScrapedData] Scrape request failed:", res.status);
           setScrapeStatus("failed");
           return;
         }
 
         const data = await res.json();
+
+        if (data.status === "failed") {
+          console.warn("[useScrapedData] Scrape returned failed status for:", url);
+          setScrapeStatus("failed");
+          return;
+        }
 
         if (data.status === "success") {
           handleScrapeSuccess(data.data ?? {});

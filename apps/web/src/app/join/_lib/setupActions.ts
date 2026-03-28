@@ -117,8 +117,8 @@ export async function completeSignup(data: SignupSetupData) {
   const { error: identityError } = await admin
     .from("user_identity")
     .update({
-      first_name: data.step2.firstName,
-      last_name: data.step2.lastName,
+      first_name: data.step1.firstName,
+      last_name: data.step1.lastName,
     })
     .eq("user_id", user.id);
 
@@ -206,7 +206,7 @@ export async function completeSignup(data: SignupSetupData) {
     .update({
       role: "owner",
       status: "active",
-      display_name: `${data.step2.firstName} ${data.step2.lastName}`,
+      display_name: `${data.step1.firstName} ${data.step1.lastName}`,
     })
     .eq("user_id", user.id)
     .eq("workspace_id", workspace.workspace_id)
@@ -312,6 +312,21 @@ export async function completeSignup(data: SignupSetupData) {
     .from("signup_progress")
     .update({ completed: true, current_step: 7 })
     .eq("auth_id", user.id);
+
+  // ── I1 Bootstrap: seed locations + departments from industry template ──
+  // Template functions are not in generated Supabase types — cast to bypass
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (admin as any).rpc("template_restaurant_locations", {
+      p_workspace_id: workspace.workspace_id,
+    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (admin as any).rpc("template_restaurant_departments", {
+      p_workspace_id: workspace.workspace_id,
+    });
+  } catch (e) {
+    console.error("[completeSignup] I1 template seeding failed:", e);
+  }
 
   // Keep invite capture non-breaking by recreating any pending invites on the shell.
   await admin

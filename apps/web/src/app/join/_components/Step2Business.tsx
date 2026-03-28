@@ -3,25 +3,26 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Sparkles } from "lucide-react";
+import { Loader2, Sparkles, ChevronDown } from "lucide-react";
 import type { WizardStepProps } from "@smartout/ui";
 import type { JoinState } from "../types";
 import { useJoinScraping } from "../_context/JoinScrapingProvider";
 import { useTypewriterSequence } from "../_hooks/useTypewriter";
 import { WizardLoadingOverlay } from "./WizardLoadingOverlay";
+import { DevAutoFill } from "./DevAutoFill";
 
-export function Step2Business({ state, updateState }: WizardStepProps<JoinState>) {
+const INITIAL_CANDIDATES = 3;
+
+export function Step2Business({ state, updateState, attempted, t }: WizardStepProps<JoinState>) {
   const { scrapeStatus, brregData, brregCandidates, brregLoading, selectBrregCandidate } =
     useJoinScraping();
 
-  const [firstName, setFirstName] = useState(state.business.firstName ?? "");
-  const [lastName, setLastName] = useState(state.business.lastName ?? "");
   const [street, setStreet] = useState(state.business.street ?? "");
   const [postalCode, setPostalCode] = useState(state.business.postalCode ?? "");
   const [city, setCity] = useState(state.business.city ?? "");
   const [orgNumber, setOrgNumber] = useState(state.business.orgNumber ?? "");
-  const [errors, setErrors] = useState<Record<string, string>>({});
   const [userEdited, setUserEdited] = useState<Record<string, boolean>>({});
+  const [showAllCandidates, setShowAllCandidates] = useState(false);
 
   // Build typewriter fields from BRREG data
   const hasAppliedBrreg = useRef(false);
@@ -73,24 +74,18 @@ export function Step2Business({ state, updateState }: WizardStepProps<JoinState>
     setUserEdited({});
   };
 
-  // Sync local fields to wizard state so WizardNavBar validation sees current data
+  // Sync local fields to wizard state
   useEffect(() => {
     updateState({
       business: {
         ...state.business,
-        firstName,
-        lastName,
         street,
         postalCode,
         city,
         orgNumber,
       },
     });
-  }, [firstName, lastName, street, postalCode, city, orgNumber]); // sync local fields only
-
-  const clearError = (field: string) => {
-    setErrors((prev) => ({ ...prev, [field]: "" }));
-  };
+  }, [street, postalCode, city, orgNumber]);
 
   const markEdited = (field: string) => {
     setUserEdited((prev) => ({ ...prev, [field]: true }));
@@ -115,21 +110,35 @@ export function Step2Business({ state, updateState }: WizardStepProps<JoinState>
     );
   }
 
+  // BRREG candidates — show max 3 with "vis mer"
+  const visibleCandidates = showAllCandidates
+    ? brregCandidates
+    : brregCandidates.slice(0, INITIAL_CANDIDATES);
+  const hasMoreCandidates = brregCandidates.length > INITIAL_CANDIDATES;
+
+  const devFill = () => {
+    setStreet("Langbrygga 5");
+    setPostalCode("3724");
+    setCity("Skien");
+    setOrgNumber("911 722 267");
+  };
+
   return (
     <div className="mx-auto w-full max-w-md space-y-6">
+      <DevAutoFill onFill={devFill} label="Fyll steg 2" />
       <div>
-        <h2 className="text-foreground text-2xl font-bold">Bedriftsinformasjon</h2>
-        <p className="text-muted-foreground mt-1 text-sm">Fortell oss om deg og bedriften.</p>
+        <h2 className="text-foreground text-2xl font-bold">{t("step2.heading")}</h2>
+        <p className="text-muted-foreground mt-1 text-sm">{t("step2.description")}</p>
         {scrapeStatus === "scraping" && (
           <p className="text-muted-foreground mt-2 flex items-center gap-1.5 text-xs">
             <Loader2 className="h-3 w-3 animate-spin" />
-            Henter data fra nettsiden din...
+            {t("step2.scraping")}
           </p>
         )}
         {allDone && (
           <p className="text-brand-orange mt-2 flex items-center gap-1.5 text-xs">
             <Sparkles className="h-3 w-3" />
-            Fylt ut fra Bronnoysundregistrene
+            {t("step2.brregDone")}
           </p>
         )}
       </div>
@@ -137,11 +146,9 @@ export function Step2Business({ state, updateState }: WizardStepProps<JoinState>
       {/* BRREG candidates selector — show if multiple matches */}
       {brregCandidates.length > 1 && (
         <div className="space-y-2">
-          <Label className="text-muted-foreground text-xs">
-            Vi fant flere bedrifter — velg riktig:
-          </Label>
+          <Label className="text-muted-foreground text-xs">{t("step2.multipleCandidates")}</Label>
           <div className="space-y-1">
-            {brregCandidates.map((c) => (
+            {visibleCandidates.map((c) => (
               <button
                 key={c.orgNumber}
                 type="button"
@@ -159,126 +166,96 @@ export function Step2Business({ state, updateState }: WizardStepProps<JoinState>
               </button>
             ))}
           </div>
+          {hasMoreCandidates && !showAllCandidates && (
+            <button
+              type="button"
+              onClick={() => setShowAllCandidates(true)}
+              className="text-muted-foreground hover:text-foreground flex items-center gap-1 text-xs transition-colors"
+            >
+              <ChevronDown className="h-3 w-3" />
+              {t("step2.showMore", { count: brregCandidates.length - INITIAL_CANDIDATES })}
+            </button>
+          )}
         </div>
       )}
 
       <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="firstName">Fornavn</Label>
-            <Input
-              id="firstName"
-              type="text"
-              value={firstName}
-              onChange={(e) => {
-                setFirstName(e.target.value);
-                clearError("firstName");
-              }}
-              aria-invalid={!!errors.firstName}
-            />
-            {errors.firstName && <p className="text-destructive text-xs">{errors.firstName}</p>}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="lastName">Etternavn</Label>
-            <Input
-              id="lastName"
-              type="text"
-              value={lastName}
-              onChange={(e) => {
-                setLastName(e.target.value);
-                clearError("lastName");
-              }}
-              aria-invalid={!!errors.lastName}
-            />
-            {errors.lastName && <p className="text-destructive text-xs">{errors.lastName}</p>}
-          </div>
-        </div>
-
         <TypewriterField
-          label="Gateadresse"
+          label={t("step2.street")}
           typing={typingField === "street"}
           autoFilled={allDone && !userEdited.street && !!brregData?.street}
         >
           <Input
             id="street"
             type="text"
-            placeholder="Storgata 1"
+            placeholder={t("step2.street_placeholder")}
             value={street}
             onChange={(e) => {
               setStreet(e.target.value);
-              clearError("street");
               markEdited("street");
             }}
-            aria-invalid={!!errors.street}
+            aria-invalid={attempted && street.length < 2}
           />
-          {errors.street && <p className="text-destructive text-xs">{errors.street}</p>}
         </TypewriterField>
 
         <div className="grid grid-cols-2 gap-4">
           <TypewriterField
-            label="Postnummer"
+            label={t("step2.postalCode")}
             typing={typingField === "postalCode"}
             autoFilled={allDone && !userEdited.postalCode && !!brregData?.postalCode}
           >
             <Input
               id="postalCode"
               type="text"
-              placeholder="0000"
+              placeholder={t("step2.postalCode_placeholder")}
               maxLength={4}
               value={postalCode}
               onChange={(e) => {
                 const val = e.target.value.replace(/\D/g, "").slice(0, 4);
                 setPostalCode(val);
-                clearError("postalCode");
                 markEdited("postalCode");
               }}
-              aria-invalid={!!errors.postalCode}
+              aria-invalid={attempted && !/^\d{4}$/.test(postalCode)}
             />
-            {errors.postalCode && <p className="text-destructive text-xs">{errors.postalCode}</p>}
           </TypewriterField>
 
           <TypewriterField
-            label="Poststed"
+            label={t("step2.postCity")}
             typing={typingField === "city"}
             autoFilled={allDone && !userEdited.city && !!brregData?.city}
           >
             <Input
               id="city"
               type="text"
-              placeholder="Oslo"
+              placeholder={t("step2.postCity_placeholder")}
               value={city}
               onChange={(e) => {
                 setCity(e.target.value);
-                clearError("city");
                 markEdited("city");
               }}
-              aria-invalid={!!errors.city}
+              aria-invalid={attempted && city.length < 2}
             />
-            {errors.city && <p className="text-destructive text-xs">{errors.city}</p>}
           </TypewriterField>
         </div>
 
         <TypewriterField
-          label="Org.nummer"
+          label={t("step2.orgNumber")}
           typing={typingField === "orgNumber"}
           autoFilled={allDone && !userEdited.orgNumber && !!brregData?.orgNumber}
         >
           <Input
             id="orgNumber"
             type="text"
-            placeholder="123 456 789"
+            placeholder={t("step2.orgNumber_placeholder")}
             maxLength={11}
             value={orgNumber}
             onChange={(e) => {
               const val = e.target.value.replace(/[^\d\s]/g, "");
               setOrgNumber(val);
-              clearError("orgNumber");
               markEdited("orgNumber");
             }}
-            aria-invalid={!!errors.orgNumber}
+            aria-invalid={attempted && orgNumber.replace(/\s/g, "").length < 9}
           />
-          {errors.orgNumber && <p className="text-destructive text-xs">{errors.orgNumber}</p>}
         </TypewriterField>
       </div>
     </div>

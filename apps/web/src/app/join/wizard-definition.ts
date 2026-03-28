@@ -65,14 +65,14 @@ async function onComplete(state: JoinState): Promise<void> {
   const setupData = {
     step1: {
       email: state.account.email ?? "",
+      firstName: state.account.firstName ?? "",
+      lastName: state.account.lastName ?? "",
       companyName: state.account.companyName ?? "",
       industry: state.account.industry ?? "",
       city: state.account.city,
       websiteUrl: state.account.websiteUrl ?? "",
     },
     step2: {
-      firstName: state.business.firstName ?? "",
-      lastName: state.business.lastName ?? "",
       street: state.business.street ?? "",
       postalCode: state.business.postalCode ?? "",
       city: state.business.city ?? "",

@@ -36,23 +36,7 @@ export function WizardNavBar({
   onSkip,
 }: WizardNavBarProps) {
   return (
-    <div className="mx-auto w-full max-w-md space-y-3 px-4 pb-8 lg:px-0">
-      {/* Validation error banner */}
-      {validationErrors && validationErrors.length > 0 && (
-        <div
-          className="rounded-xl px-4 py-3 text-sm"
-          style={{
-            background: "oklch(0.577 0.245 27 / 0.08)",
-            color: "var(--err, oklch(0.577 0.245 27))",
-            border: "1px solid oklch(0.577 0.245 27 / 0.2)",
-          }}
-        >
-          {validationErrors.map((err, i) => (
-            <p key={i}>{err}</p>
-          ))}
-        </div>
-      )}
-
+    <div className="mx-auto w-full max-w-md space-y-3 px-4 pb-4 lg:px-0">
       <div className="flex gap-3">
         {!isFirst && (
           <button

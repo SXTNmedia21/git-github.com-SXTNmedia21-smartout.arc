@@ -9,20 +9,25 @@ import {
   CheckCircle2,
   AlertCircle,
   Sparkles,
-  Eye,
   Users,
   Clock,
   BookOpen,
   DollarSign,
   Briefcase,
   ShieldCheck,
-  ChevronDown,
-  ChevronUp,
   FileSearch,
+  FolderOpen,
 } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@smartout/supabase/client";
 import { emit } from "@smartout/telemetry";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import { useWorkspace } from "@/lib/workspace-context";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import type { DocumentExtractionResult } from "./wizard-state";
@@ -75,356 +80,150 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-// ─── Extraction Summary Dialog ────────────────────────────
+/** Count how many data items were extracted */
+function countExtractions(result: DocumentExtractionResult): number {
+  let count = 0;
+  if (result.policies?.length) count += result.policies.length;
+  if (result.employees?.length) count += result.employees.length;
+  if (result.shiftPatterns?.length) count += result.shiftPatterns.length;
+  if (result.payroll) count += 1;
+  if (result.employmentTerms) count += 1;
+  if (result.handbookSections?.length) count += result.handbookSections.length;
+  return count;
+}
 
-function ExtractionSummary({
-  result,
-  onClose,
-  onUpdate,
-}: {
-  result: DocumentExtractionResult;
-  onClose: () => void;
-  onUpdate: (updated: DocumentExtractionResult) => void;
-}) {
-  type SectionItem = { label: string; detail: string; source: string; key: string; index: number };
-  type Section = {
-    key: keyof DocumentExtractionResult;
-    icon: React.ReactNode;
-    title: string;
-    items: SectionItem[];
-  };
-
-  const [expandedItem, setExpandedItem] = useState<string | null>(null);
-
-  const toggleExpand = (itemId: string) => {
-    setExpandedItem((prev) => (prev === itemId ? null : itemId));
-  };
-
-  const sections: Section[] = [];
-
+/** Build summary lines from extraction result */
+function buildSummaryLines(
+  result: DocumentExtractionResult,
+): { icon: React.ReactNode; text: string }[] {
+  const lines: { icon: React.ReactNode; text: string }[] = [];
   if (result.policies?.length) {
-    sections.push({
-      key: "policies",
+    lines.push({
       icon: <ShieldCheck className="h-4 w-4" />,
-      title: "Retningslinjer",
-      items: result.policies.map((p, i) => ({
-        label: p.name,
-        detail: p.content,
-        source: p.source,
-        key: "policies",
-        index: i,
-      })),
+      text: `${result.policies.length} retningslinje${result.policies.length !== 1 ? "r" : ""}`,
     });
   }
-
   if (result.employees?.length) {
-    sections.push({
-      key: "employees",
+    lines.push({
       icon: <Users className="h-4 w-4" />,
-      title: "Ansatte",
-      items: result.employees.map((e, i) => ({
-        label: `${e.firstName} ${e.lastName}${e.position ? ` — ${e.position}` : ""}`,
-        detail: [
-          e.email ? `E-post: ${e.email}` : "",
-          e.phone ? `Telefon: ${e.phone}` : "",
-          e.department ? `Avdeling: ${e.department}` : "",
-          e.position ? `Stilling: ${e.position}` : "",
-        ]
-          .filter(Boolean)
-          .join("\n"),
-        source: e.source,
-        key: "employees",
-        index: i,
-      })),
+      text: `${result.employees.length} ansatt${result.employees.length !== 1 ? "e" : ""}`,
     });
   }
-
   if (result.shiftPatterns?.length) {
-    sections.push({
-      key: "shiftPatterns",
+    lines.push({
       icon: <Clock className="h-4 w-4" />,
-      title: "Vaktmønstre",
-      items: result.shiftPatterns.map((s, i) => ({
-        label: `${s.name} (${s.startTime}–${s.endTime})`,
-        detail: [
-          `Start: ${s.startTime}`,
-          `Slutt: ${s.endTime}`,
-          s.department ? `Avdeling: ${s.department}` : "",
-        ]
-          .filter(Boolean)
-          .join("\n"),
-        source: s.source,
-        key: "shiftPatterns",
-        index: i,
-      })),
+      text: `${result.shiftPatterns.length} vaktm\u00f8nstre`,
     });
   }
-
   if (result.payroll) {
-    const supplements = result.payroll.supplements
-      ? Object.entries(result.payroll.supplements)
-          .map(([k, v]) => `${k}: ${v}`)
-          .join("\n")
-      : "";
-    sections.push({
-      key: "payroll",
-      icon: <DollarSign className="h-4 w-4" />,
-      title: "Lønn og tariff",
-      items: [
-        {
-          label: result.payroll.tariff ? `Tariff: ${result.payroll.tariff}` : "Tariffinfo funnet",
-          detail: [
-            result.payroll.tariff ? `Tariff: ${result.payroll.tariff}` : "",
-            supplements ? `Tillegg:\n${supplements}` : "",
-          ]
-            .filter(Boolean)
-            .join("\n"),
-          source: result.payroll.source,
-          key: "payroll",
-          index: 0,
-        },
-      ],
-    });
+    lines.push({ icon: <DollarSign className="h-4 w-4" />, text: "L\u00f8nn og tariff" });
   }
-
   if (result.employmentTerms) {
-    sections.push({
-      key: "employmentTerms",
-      icon: <Briefcase className="h-4 w-4" />,
-      title: "Ansettelsesvilkår",
-      items: [
-        {
-          label: [
-            result.employmentTerms.noticePeriod
-              ? `Oppsigelse: ${result.employmentTerms.noticePeriod}`
-              : "",
-            result.employmentTerms.probation ? `Prøvetid: ${result.employmentTerms.probation}` : "",
-          ]
-            .filter(Boolean)
-            .join(" · "),
-          detail: [
-            result.employmentTerms.noticePeriod
-              ? `Oppsigelsestid: ${result.employmentTerms.noticePeriod}`
-              : "",
-            result.employmentTerms.probation ? `Prøvetid: ${result.employmentTerms.probation}` : "",
-          ]
-            .filter(Boolean)
-            .join("\n"),
-          source: result.employmentTerms.source,
-          key: "employmentTerms",
-          index: 0,
-        },
-      ],
-    });
+    lines.push({ icon: <Briefcase className="h-4 w-4" />, text: "Ansettelsesvilk\u00e5r" });
   }
-
   if (result.handbookSections?.length) {
-    sections.push({
-      key: "handbookSections",
+    lines.push({
       icon: <BookOpen className="h-4 w-4" />,
-      title: "Handbokseksjoner",
-      items: result.handbookSections.map((h, i) => ({
-        label: h.chapterKey.replace(/-/g, " "),
-        detail: h.content,
-        source: h.source,
-        key: "handbookSections",
-        index: i,
-      })),
+      text: `${result.handbookSections.length} h\u00e5ndbokseksjon${result.handbookSections.length !== 1 ? "er" : ""}`,
     });
   }
+  return lines;
+}
 
-  const totalItems = sections.reduce((sum, s) => sum + s.items.length, 0);
+// ─── Document Drawer ─────────────────────────────────────
 
-  function handleRemoveItem(sectionKey: string, index: number) {
-    const updated = { ...result };
-
-    if (sectionKey === "policies" && updated.policies) {
-      updated.policies = updated.policies.filter((_, i) => i !== index);
-      if (updated.policies.length === 0) delete updated.policies;
-    } else if (sectionKey === "employees" && updated.employees) {
-      updated.employees = updated.employees.filter((_, i) => i !== index);
-      if (updated.employees.length === 0) delete updated.employees;
-    } else if (sectionKey === "shiftPatterns" && updated.shiftPatterns) {
-      updated.shiftPatterns = updated.shiftPatterns.filter((_, i) => i !== index);
-      if (updated.shiftPatterns.length === 0) delete updated.shiftPatterns;
-    } else if (sectionKey === "handbookSections" && updated.handbookSections) {
-      updated.handbookSections = updated.handbookSections.filter((_, i) => i !== index);
-      if (updated.handbookSections.length === 0) delete updated.handbookSections;
-    } else if (sectionKey === "payroll") {
-      delete updated.payroll;
-    } else if (sectionKey === "employmentTerms") {
-      delete updated.employmentTerms;
-    }
-
-    onUpdate(updated);
-  }
-
-  function handleRemoveSection(sectionKey: string) {
-    const updated = { ...result };
-    delete updated[sectionKey as keyof DocumentExtractionResult];
-    onUpdate(updated);
-  }
+function DocumentDrawer({
+  open,
+  onOpenChange,
+  files,
+  extractionResult,
+  onRemoveFile,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  files: UploadedFile[];
+  extractionResult: DocumentExtractionResult | null;
+  onRemoveFile: (file: UploadedFile) => void;
+}) {
+  const extractionCount = extractionResult ? countExtractions(extractionResult) : 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div
-        className={`mx-4 w-full max-w-lg rounded-2xl border shadow-2xl ${"border-border bg-card"}`}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-inherit px-6 py-4">
-          <div className="flex items-center gap-3">
-            <div className="bg-brand-orange/10 flex h-9 w-9 items-center justify-center rounded-full">
-              <Sparkles className="text-brand-orange h-5 w-5" />
-            </div>
-            <div>
-              <h3 className={`text-base font-bold ${"text-foreground"}`}>Analysert data</h3>
-              <p className={`text-xs ${"text-muted-foreground"}`}>
-                {totalItems} elementer funnet i {sections.length} kategorier
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className={`rounded-lg p-2 transition-colors ${"text-muted-foreground hover:bg-accent"}`}
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="left" className="w-full sm:max-w-lg">
+        <SheetHeader>
+          <SheetTitle>Dokumenter ({files.length})</SheetTitle>
+          <SheetDescription>
+            {extractionCount > 0
+              ? `${extractionCount} dataelementer funnet og fylt inn i de neste stegene.`
+              : "Last opp dokumenter for \u00e5 forh\u00e5ndsutfylle de neste stegene."}
+          </SheetDescription>
+        </SheetHeader>
 
-        {/* Content */}
-        <div className="max-h-[60vh] overflow-y-auto px-6 py-4">
-          {sections.length === 0 ? (
-            <div className="space-y-3 py-2">
-              <div
-                className={`flex items-center gap-3 rounded-xl border px-4 py-3 ${"border-warning bg-warning"}`}
-              >
-                <AlertCircle className={`h-5 w-5 shrink-0 ${"text-warning"}`} />
-                <p className={`text-sm font-medium ${"text-warning"}`}>
-                  Ingen relevant driftsdata funnet
+        <div className="mt-6 space-y-3 overflow-y-auto">
+          {files.map((file) => (
+            <div
+              key={file.id}
+              className="border-border bg-card flex items-start gap-3 rounded-xl border px-4 py-3"
+            >
+              <div className="mt-0.5 shrink-0">
+                {file.status === "uploading" && (
+                  <Loader2 className="text-brand-orange h-5 w-5 animate-spin" />
+                )}
+                {file.status === "uploaded" && (
+                  <FileText className="text-muted-foreground h-5 w-5" />
+                )}
+                {file.status === "analyzed" && <Sparkles className="text-brand-orange h-5 w-5" />}
+                {file.status === "error" && <AlertCircle className="text-destructive h-5 w-5" />}
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <p className="text-foreground truncate text-sm font-medium">{file.name}</p>
+                <p className="text-muted-foreground text-xs">
+                  {formatSize(file.size)}
+                  {file.status === "analyzed" && " \u2014 analysert"}
+                  {file.status === "uploading" && " \u2014 laster opp..."}
+                  {file.status === "error" && " \u2014 feilet"}
                 </p>
               </div>
-              <p className={`text-sm leading-relaxed ${"text-muted-foreground"}`}>
-                Dokumentene ser ikke ut til å inneholde informasjon vi kan bruke til å sette opp
-                arbeidsplassen din. Vi leter etter:
-              </p>
-              <ul className={`space-y-1.5 pl-1 text-sm ${"text-muted-foreground"}`}>
-                <li className="flex items-center gap-2">
-                  <ShieldCheck className="text-brand-orange h-3.5 w-3.5" /> Retningslinjer og
-                  rutiner (HMS, hygiene, etc.)
-                </li>
-                <li className="flex items-center gap-2">
-                  <Users className="text-brand-orange h-3.5 w-3.5" /> Ansattlister med navn, roller,
-                  kontaktinfo
-                </li>
-                <li className="flex items-center gap-2">
-                  <Clock className="text-brand-orange h-3.5 w-3.5" /> Vaktmønstre og arbeidstider
-                </li>
-                <li className="flex items-center gap-2">
-                  <DollarSign className="text-brand-orange h-3.5 w-3.5" /> Tariffavtaler og
-                  lønnstillegg
-                </li>
-                <li className="flex items-center gap-2">
-                  <Briefcase className="text-brand-orange h-3.5 w-3.5" /> Ansettelsesvilkår
-                  (oppsigelse, prøvetid)
-                </li>
-                <li className="flex items-center gap-2">
-                  <BookOpen className="text-brand-orange h-3.5 w-3.5" /> Personalhandbok
-                </li>
-              </ul>
-              <p className={`text-xs ${"text-muted-foreground"}`}>
-                Prøv å laste opp personalhandbok, tariffavtale, arbeidsavtale-mal, eller
-                ansattlister.
+
+              <button
+                type="button"
+                onClick={() => onRemoveFile(file)}
+                className="text-muted-foreground hover:bg-accent hover:text-foreground shrink-0 rounded-lg p-1.5 transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          ))}
+
+          {files.length === 0 && (
+            <div className="border-border rounded-xl border border-dashed px-4 py-8 text-center">
+              <p className="text-muted-foreground text-sm">
+                Ingen dokumenter lastet opp enn\u00e5.
               </p>
             </div>
-          ) : (
-            <div className="space-y-4">
-              {sections.map((section) => (
-                <div key={section.key}>
-                  <div className="mb-1.5 flex items-center gap-2">
-                    <span className="text-brand-orange">{section.icon}</span>
-                    <span className={`text-sm font-semibold ${"text-foreground"}`}>
-                      {section.title}
-                    </span>
-                    <span
-                      className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${"bg-muted text-muted-foreground"}`}
-                    >
-                      {section.items.length}
-                    </span>
-                    {section.items.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveSection(section.key)}
-                        className={`ml-auto rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors ${"text-destructive hover:bg-destructive/10 hover:text-destructive"}`}
-                      >
-                        Fjern alle
-                      </button>
-                    )}
-                  </div>
-                  <ul className="space-y-1 pl-6">
-                    {section.items.map((item) => {
-                      const itemId = `${item.key}-${item.index}`;
-                      const isExpanded = expandedItem === itemId;
-                      return (
-                        <li key={itemId} className="space-y-0">
-                          <div
-                            className={`group flex cursor-pointer items-center gap-2 rounded px-1.5 py-1 text-xs transition-colors ${"text-muted-foreground hover:bg-accent"}`}
-                            onClick={() => toggleExpand(itemId)}
-                          >
-                            {isExpanded ? (
-                              <ChevronUp className="text-brand-orange h-3 w-3 shrink-0" />
-                            ) : (
-                              <ChevronDown className="text-muted-foreground h-3 w-3 shrink-0" />
-                            )}
-                            <span className="min-w-0 flex-1 font-medium">{item.label}</span>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleRemoveItem(item.key, item.index);
-                              }}
-                              className={`shrink-0 rounded p-0.5 opacity-0 transition-opacity group-hover:opacity-100 ${"text-destructive hover:bg-destructive/10 hover:text-destructive"}`}
-                              title="Fjern dette elementet"
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </div>
-                          {isExpanded && (
-                            <div
-                              className={`mt-1 ml-5 rounded-lg border px-3 py-2 text-xs ${"border-border bg-muted text-muted-foreground"}`}
-                            >
-                              <p className="leading-relaxed whitespace-pre-wrap">
-                                {item.detail || "Ingen detaljer tilgjengelig."}
-                              </p>
-                              {item.source && (
-                                <p
-                                  className={`mt-2 flex items-center gap-1 text-[10px] ${"text-muted-foreground"}`}
-                                >
-                                  <FileSearch className="h-3 w-3" />
-                                  Kilde: {item.source}
-                                </p>
-                              )}
-                            </div>
-                          )}
-                        </li>
-                      );
-                    })}
-                  </ul>
+          )}
+
+          {/* Extraction summary inside drawer */}
+          {extractionResult && extractionCount > 0 && (
+            <div className="mt-4 space-y-2">
+              <p className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
+                Funnet data
+              </p>
+              {buildSummaryLines(extractionResult).map((line) => (
+                <div
+                  key={line.text}
+                  className="text-muted-foreground flex items-center gap-2.5 px-1 text-sm"
+                >
+                  <span className="text-brand-orange">{line.icon}</span>
+                  {line.text}
                 </div>
               ))}
             </div>
           )}
         </div>
-
-        {/* Footer */}
-        <div className="border-t border-inherit px-6 py-4">
-          <p className={`text-xs ${"text-muted-foreground"}`}>
-            Fjern elementer som er utdaterte eller feil. Gjenværende data forhåndsutfylles i de
-            neste stegene.
-          </p>
-        </div>
-      </div>
-    </div>
+      </SheetContent>
+    </Sheet>
   );
 }
 
@@ -443,9 +242,8 @@ export function DocumentDropStep({
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisComplete, setAnalysisComplete] = useState(false);
   const [extractionResult, setExtractionResult] = useState<DocumentExtractionResult | null>(null);
-  const [showSummary, setShowSummary] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   // ── Load existing files from bucket on mount ──
   useEffect(() => {
@@ -473,7 +271,6 @@ export function DocumentDropStep({
   }, [workspace.workspace_id, supabase.storage]);
 
   // ── Upload a single file to Storage ──
-
   const uploadFile = useCallback(
     async (file: File): Promise<UploadedFile> => {
       const id = crypto.randomUUID();
@@ -487,7 +284,6 @@ export function DocumentDropStep({
         storagePath,
         status: "uploading",
       };
-
       setFiles((prev) => [...prev, entry]);
 
       const { error } = await supabase.storage
@@ -507,17 +303,110 @@ export function DocumentDropStep({
     [workspace.workspace_id, supabase.storage],
   );
 
-  // ── Handle file selection ──
+  // ── Analyze documents ──
+  const analyzeDocuments = useCallback(
+    async (currentFiles: UploadedFile[]) => {
+      const uploadedPaths = currentFiles
+        .filter((f) => f.status === "uploaded" || f.status === "analyzed")
+        .map((f) => f.storagePath);
 
+      if (uploadedPaths.length === 0) return;
+
+      setIsAnalyzing(true);
+
+      try {
+        const { data, error } = await supabase.functions.invoke("analyze-setup-documents", {
+          body: {
+            workspace_id: workspace.workspace_id,
+            storage_paths: uploadedPaths,
+          },
+        });
+
+        if (error) throw error;
+
+        const response = data as {
+          result: DocumentExtractionResult;
+          files: Array<{
+            storagePath: string;
+            fileName: string;
+            status: "analyzed" | "failed";
+            error?: string;
+          }>;
+          error?: string;
+          errorCode?: string;
+        };
+
+        if (response.errorCode) {
+          const errorMessages: Record<string, string> = {
+            STORAGE_DOWNLOAD_FAILED:
+              "Filene kunne ikke lastes ned. Last opp p\u00e5 nytt og pr\u00f8v igjen.",
+            SCRAPLING_AUTH_FAILED: "Dokumenttjenesten avviste foresp\u00f8rselen. Kontakt support.",
+            SCRAPLING_EXTRACTION_FAILED:
+              "Dokumenttjenesten er utilgjengelig. Pr\u00f8v igjen om noen minutter.",
+            AI_ANALYSIS_FAILED: "AI-analysen feilet. Pr\u00f8v igjen.",
+          };
+          toast.error(errorMessages[response.errorCode] ?? response.error ?? "Analyse feilet");
+          return;
+        }
+
+        const result = response.result ?? {};
+        const fileStatuses = response.files ?? [];
+
+        onExtractionComplete(result);
+        setExtractionResult(result);
+
+        setFiles((prev) =>
+          prev.map((f) => {
+            if (f.status !== "uploaded") return f;
+            const match = fileStatuses.find((fs) => fs.storagePath === f.storagePath);
+            if (match?.status === "analyzed") return { ...f, status: "analyzed" as const };
+            if (match?.status === "failed") return { ...f, status: "error" as const };
+            return f;
+          }),
+        );
+
+        void emit({
+          event: "button clicked",
+          workspace_id: workspace.workspace_id,
+          actor_id: profileId ?? "",
+          properties: {
+            trackingId: "setup-documents-analyzed",
+            context: `${uploadedPaths.length} files`,
+          },
+        });
+
+        const failedFiles = fileStatuses.filter((fs) => fs.status === "failed");
+        if (failedFiles.length > 0) {
+          toast.warning(
+            `${failedFiles.length} fil(er) kunne ikke analyseres: ${failedFiles.map((f) => f.fileName).join(", ")}`,
+          );
+        }
+
+        const hasData = countExtractions(result) > 0;
+        if (hasData) {
+          const analyzedFileCount = fileStatuses.filter((fs) => fs.status === "analyzed").length;
+          toast.success(`${analyzedFileCount} dokument(er) analysert \u2014 data funnet!`);
+        } else {
+          toast.warning("Analysert, men ingen relevant driftsdata funnet.");
+        }
+      } catch {
+        toast.error("Kunne ikke analysere dokumentene. Pr\u00f8v igjen.");
+      } finally {
+        setIsAnalyzing(false);
+      }
+    },
+    [workspace.workspace_id, profileId, supabase.functions, onExtractionComplete],
+  );
+
+  // ── Handle file selection — upload then analyze immediately ──
   const handleFiles = useCallback(
     async (fileList: FileList | File[]) => {
       const incoming = Array.from(fileList);
 
-      // Validate
       const valid: File[] = [];
       for (const file of incoming) {
         if (!isAcceptedFile(file)) {
-          toast.error(`${file.name}: filtype ikke støttet`);
+          toast.error(`${file.name}: filtype ikke st\u00f8ttet`);
           continue;
         }
         if (file.size > MAX_FILE_SIZE) {
@@ -532,32 +421,35 @@ export function DocumentDropStep({
         return;
       }
 
-      // Reset analysis state when new files are added
-      setAnalysisComplete(false);
-      setExtractionResult(null);
+      // Upload all files
+      const uploaded = await Promise.all(valid.map(uploadFile));
+      const successfulUploads = uploaded.filter((f) => f.status === "uploaded");
 
-      await Promise.all(valid.map(uploadFile));
+      // Analyze immediately after upload
+      if (successfulUploads.length > 0) {
+        // Get the latest file state including new uploads
+        setFiles((prev) => {
+          const allFiles = prev;
+          void analyzeDocuments(allFiles);
+          return prev;
+        });
+      }
     },
-    [files.length, uploadFile],
+    [files.length, uploadFile, analyzeDocuments],
   );
 
   // ── Remove file ──
-
   const handleRemove = useCallback(
     async (file: UploadedFile) => {
       setFiles((prev) => prev.filter((f) => f.id !== file.id));
       if (file.status === "uploaded" || file.status === "analyzed") {
         await supabase.storage.from("setup-documents").remove([file.storagePath]);
       }
-      // Reset analysis if removing a file
-      setAnalysisComplete(false);
-      setExtractionResult(null);
     },
     [supabase.storage],
   );
 
   // ── Drag events ──
-
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(true);
@@ -579,136 +471,20 @@ export function DocumentDropStep({
     [handleFiles],
   );
 
-  // ── Analyze documents ──
-
-  const handleAnalyze = useCallback(async () => {
-    const uploadedPaths = files
-      .filter((f) => f.status === "uploaded" || f.status === "analyzed")
-      .map((f) => f.storagePath);
-
-    if (uploadedPaths.length === 0) {
-      toast.error("Ingen filer å analysere");
-      return;
-    }
-
-    setIsAnalyzing(true);
-
-    try {
-      const { data, error } = await supabase.functions.invoke("analyze-setup-documents", {
-        body: {
-          workspace_id: workspace.workspace_id,
-          storage_paths: uploadedPaths,
-        },
-      });
-
-      if (error) throw error;
-
-      // Edge function returns { result, files, errorCode? } — always 200
-      const response = data as {
-        result: DocumentExtractionResult;
-        files: Array<{
-          storagePath: string;
-          fileName: string;
-          status: "analyzed" | "failed";
-          error?: string;
-          characters?: number;
-        }>;
-        error?: string;
-        errorCode?: string;
-      };
-
-      // Handle structured errors from Edge Function
-      if (response.errorCode) {
-        const errorMessages: Record<string, string> = {
-          STORAGE_DOWNLOAD_FAILED: "Filene kunne ikke lastes ned. Last opp på nytt og prøv igjen.",
-          SCRAPLING_AUTH_FAILED: "Dokumenttjenesten avviste forespørselen. Kontakt support.",
-          SCRAPLING_EXTRACTION_FAILED:
-            "Dokumenttjenesten er utilgjengelig. Prøv igjen om noen minutter.",
-          AI_ANALYSIS_FAILED: "AI-analysen feilet. Prøv igjen.",
-        };
-        toast.error(errorMessages[response.errorCode] ?? response.error ?? "Analyse feilet");
-        setIsAnalyzing(false);
-        return;
-      }
-
-      const result = response.result ?? {};
-      const fileStatuses = response.files ?? [];
-
-      onExtractionComplete(result);
-      setExtractionResult(result);
-      setAnalysisComplete(true);
-
-      // Mark files based on per-file extraction status from edge function
-      setFiles((prev) =>
-        prev.map((f) => {
-          if (f.status !== "uploaded") return f;
-          const match = fileStatuses.find((fs) => fs.storagePath === f.storagePath);
-          if (match?.status === "analyzed") return { ...f, status: "analyzed" as const };
-          if (match?.status === "failed") return { ...f, status: "error" as const };
-          // No match = not sent or unknown — keep as uploaded
-          return f;
-        }),
-      );
-
-      void emit({
-        event: "button clicked",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
-        properties: {
-          trackingId: "setup-documents-analyzed",
-          context: `${uploadedPaths.length} files`,
-        },
-      });
-
-      const hasData = !!(
-        result.policies?.length ||
-        result.employees?.length ||
-        result.shiftPatterns?.length ||
-        result.payroll ||
-        result.employmentTerms ||
-        result.handbookSections?.length
-      );
-
-      const failedFiles = fileStatuses.filter((fs) => fs.status === "failed");
-      if (failedFiles.length > 0) {
-        toast.warning(
-          `${failedFiles.length} fil(er) kunne ikke analyseres: ${failedFiles.map((f) => f.fileName).join(", ")}`,
-        );
-      }
-
-      if (hasData) {
-        const analyzedCount = fileStatuses.filter((fs) => fs.status === "analyzed").length;
-        toast.success(`${analyzedCount} dokument(er) analysert — data funnet!`);
-      } else {
-        toast.warning("Analysert, men ingen relevant driftsdata funnet.");
-      }
-      setShowSummary(true);
-    } catch {
-      toast.error("Kunne ikke analysere dokumentene. Prøv igjen.");
-    } finally {
-      setIsAnalyzing(false);
-    }
-  }, [files, workspace.workspace_id, profileId, supabase.functions, onExtractionComplete]);
-
-  // ── Render ──
-
-  const readyCount = files.filter((f) => f.status === "uploaded").length;
-  const analyzedCount = files.filter((f) => f.status === "analyzed").length;
-  const hasUnanalyzed = readyCount > 0;
+  // ── Derived ──
+  const docCount = files.length;
+  const summaryLines = extractionResult ? buildSummaryLines(extractionResult) : [];
 
   return (
-    <div className="space-y-4">
-      {/* Extraction summary dialog */}
-      {showSummary && extractionResult && (
-        <ExtractionSummary
-          result={extractionResult}
-          onClose={() => setShowSummary(false)}
-          onUpdate={(updated) => {
-            setExtractionResult(updated);
-            onExtractionComplete(updated);
-          }}
-        />
-      )}
+    <div className="space-y-6">
+      {/* Document drawer */}
+      <DocumentDrawer
+        open={drawerOpen}
+        onOpenChange={setDrawerOpen}
+        files={files}
+        extractionResult={extractionResult}
+        onRemoveFile={handleRemove}
+      />
 
       {/* Drop zone */}
       <div
@@ -716,20 +492,19 @@ export function DocumentDropStep({
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
-        className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-10 transition-colors ${
+        className={`flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-12 transition-colors ${
           isDragging
-            ? "border-brand-orange bg-brand-orange"
+            ? "border-brand-orange bg-brand-orange/5"
             : "border-border bg-muted hover:border-muted-foreground"
         }`}
       >
         <Upload
-          className={`mb-3 h-8 w-8 ${isDragging ? "text-brand-orange" : "text-muted-foreground"}`}
+          className={`mb-4 h-10 w-10 ${isDragging ? "text-brand-orange" : "text-muted-foreground"}`}
         />
-        <p className={`text-sm font-medium ${"text-muted-foreground"}`}>
-          Dra og slipp dokumenter her, eller klikk for å velge
-        </p>
-        <p className={`mt-1 text-xs ${"text-muted-foreground"}`}>
-          PDF, DOCX, XLSX, CSV, bilder, TXT &middot; Maks {MAX_FILES} filer,{" "}
+        <p className="text-foreground text-base font-medium">Dra og slipp dokumenter her</p>
+        <p className="text-muted-foreground mt-1 text-sm">eller klikk for \u00e5 velge filer</p>
+        <p className="text-muted-foreground mt-3 text-xs">
+          PDF, DOCX, XLSX, CSV, bilder \u00b7 Maks {MAX_FILES} filer,{" "}
           {MAX_FILE_SIZE / (1024 * 1024)} MB per fil
         </p>
         <input
@@ -745,130 +520,52 @@ export function DocumentDropStep({
         />
       </div>
 
-      {/* File list */}
-      {files.length > 0 && (
-        <div className="space-y-1.5">
-          {files.map((file) => (
+      {/* Document count + drawer trigger */}
+      {docCount > 0 && (
+        <button
+          type="button"
+          onClick={() => setDrawerOpen(true)}
+          className="border-border bg-card hover:bg-accent flex w-full items-center gap-3 rounded-xl border px-5 py-4 text-left transition-colors"
+        >
+          <FolderOpen className="text-brand-orange h-5 w-5 shrink-0" />
+          <div className="min-w-0 flex-1">
+            <p className="text-foreground text-sm font-semibold">
+              {docCount} dokument{docCount !== 1 ? "er" : ""} lastet opp
+            </p>
+            {isAnalyzing && (
+              <p className="text-brand-orange flex items-center gap-1.5 text-sm">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                Analyserer...
+              </p>
+            )}
+            {!isAnalyzing && summaryLines.length > 0 && (
+              <p className="text-muted-foreground text-sm">
+                {summaryLines.map((l) => l.text).join(", ")}
+              </p>
+            )}
+          </div>
+          <span className="text-muted-foreground text-sm font-medium">Se dokumenter &rarr;</span>
+        </button>
+      )}
+
+      {/* Extraction summary cards */}
+      {!isAnalyzing && summaryLines.length > 0 && (
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {summaryLines.map((line) => (
             <div
-              key={file.id}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2 ${"bg-muted"}`}
+              key={line.text}
+              className="border-border bg-card/50 flex items-center gap-2.5 rounded-xl border px-4 py-3"
             >
-              {file.status === "uploading" && (
-                <Loader2 className="text-brand-orange h-4 w-4 shrink-0 animate-spin" />
-              )}
-              {file.status === "uploaded" && <FileText className="text-success h-4 w-4 shrink-0" />}
-              {file.status === "analyzed" && (
-                <Sparkles className="text-brand-orange h-4 w-4 shrink-0" />
-              )}
-              {file.status === "error" && (
-                <AlertCircle className="text-destructive h-4 w-4 shrink-0" />
-              )}
-
-              <span className={`min-w-0 flex-1 truncate text-sm ${"text-muted-foreground"}`}>
-                {file.name}
-              </span>
-
-              {file.status === "analyzed" && (
-                <span
-                  className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase ${"bg-brand-orange text-brand-orange"}`}
-                >
-                  Analysert
-                </span>
-              )}
-
-              <span className={`shrink-0 text-xs ${"text-muted-foreground"}`}>
-                {formatSize(file.size)}
-              </span>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  void handleRemove(file);
-                }}
-                className={`shrink-0 rounded p-1 transition-colors ${"text-muted-foreground hover:bg-accent hover:text-foreground"}`}
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
+              <span className="text-brand-orange shrink-0">{line.icon}</span>
+              <span className="text-foreground text-sm font-medium">{line.text}</span>
             </div>
           ))}
         </div>
       )}
 
-      {/* Analyze button */}
-      {readyCount + analyzedCount > 0 && !isAnalyzing && (
-        <button
-          type="button"
-          onClick={handleAnalyze}
-          className={`flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
-            hasUnanalyzed
-              ? "bg-brand-orange hover:bg-brand-orange/90 text-white"
-              : "bg-muted-foreground text-muted hover:bg-muted-foreground/80"
-          }`}
-        >
-          {hasUnanalyzed
-            ? `Analyser ${readyCount + analyzedCount} ${readyCount + analyzedCount === 1 ? "fil" : "filer"}`
-            : `Analyser på nytt (${analyzedCount} ${analyzedCount === 1 ? "fil" : "filer"})`}
-        </button>
-      )}
-
-      {/* Analyzing spinner */}
-      {isAnalyzing && (
-        <div className="bg-brand-orange flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-white opacity-70">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          Analyserer...
-        </div>
-      )}
-
-      {/* Analysis complete banner */}
-      {analysisComplete &&
-        !isAnalyzing &&
-        extractionResult &&
-        (() => {
-          const hasData = !!(
-            extractionResult.policies?.length ||
-            extractionResult.employees?.length ||
-            extractionResult.shiftPatterns?.length ||
-            extractionResult.payroll ||
-            extractionResult.employmentTerms ||
-            extractionResult.handbookSections?.length
-          );
-          return (
-            <div
-              className={`flex items-center justify-between rounded-xl border px-4 py-3 ${
-                hasData ? "border-success bg-success" : "border-warning bg-warning"
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                {hasData ? (
-                  <CheckCircle2 className="text-success h-5 w-5 shrink-0" />
-                ) : (
-                  <AlertCircle className={`h-5 w-5 shrink-0 ${"text-warning"}`} />
-                )}
-                <p className={`text-sm font-medium ${hasData ? "text-success" : "text-warning"}`}>
-                  {hasData
-                    ? "Dokumentene er analysert. Dataene er fylt inn i de neste stegene."
-                    : "Analysert, men ingen relevant driftsdata funnet. Prøv andre dokumenter."}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowSummary(true)}
-                className={`flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
-                  hasData
-                    ? "bg-success text-success hover:bg-success/30"
-                    : "bg-warning text-warning hover:bg-warning/30"
-                }`}
-              >
-                <Eye className="h-3.5 w-3.5" />
-                Se resultater
-              </button>
-            </div>
-          );
-        })()}
-
       {/* Skip hint */}
-      <p className={`text-center text-xs ${"text-muted-foreground"}`}>
-        Dette steget er valgfritt. Klikk &laquo;Neste&raquo; for å hoppe over.
+      <p className="text-muted-foreground text-center text-xs">
+        Dette steget er valgfritt. Klikk &laquo;Neste&raquo; for \u00e5 hoppe over.
       </p>
     </div>
   );

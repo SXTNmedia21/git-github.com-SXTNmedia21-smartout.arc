@@ -54,6 +54,8 @@ export interface WizardStepProps<TState> {
   goTo: (stepId: string) => void;
   isFirst: boolean;
   isLast: boolean;
+  /** True after the user clicked Neste and validation failed — use for red border on invalid fields */
+  attempted: boolean;
   t: (key: string, params?: Record<string, string | number>) => string;
   theme: WizardThemeTokens;
   walkai: WalkAiHelper;

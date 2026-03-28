@@ -8,7 +8,7 @@
  * The user reviews and adjusts before finalizing the workspace.
  */
 
-import { Building2, Layers, MapPin, ClipboardCheck, CheckCircle, Users } from "lucide-react";
+import { Layers, MapPin, ClipboardCheck, CheckCircle, Users } from "lucide-react";
 import type { WizardDefinition } from "@smartout/ui";
 import { createClient } from "@smartout/supabase/client";
 import type { OnboardingConfirmState } from "./types-v2";
@@ -24,7 +24,6 @@ import {
 } from "./lib/industry-defaults";
 import { buildWorkspaceFinalizationRequest } from "./lib/finalization";
 import { redirectToDashboard } from "./lib/redirect";
-import { ConfirmBusiness } from "./steps/ConfirmBusiness";
 import { ConfirmDepartments } from "./steps/ConfirmDepartments";
 import { ConfirmLocations } from "./steps/ConfirmLocations";
 import { ConfirmProfessions } from "./steps/ConfirmProfessions";
@@ -144,23 +143,43 @@ async function loadState(): Promise<Partial<OnboardingConfirmState>> {
   // Professions from DB (K1a platform data)
   const professions = await getProfessionsForIndustry(nace);
 
-  // Locations from scraped data
-  const locations: LocationData[] = Array.isArray(scraped?.locations)
-    ? (scraped.locations as Array<{ name: string; type?: string }>)
-        .filter(
-          (loc): loc is { name: string; type?: string } =>
-            typeof loc === "object" && loc !== null && typeof loc.name === "string",
-        )
-        .map((loc, i) => ({
-          id: `loc-resume-${i}`,
-          name: loc.name,
-          type:
-            loc.type === "outdoor" || loc.type === "satellite" || loc.type === "other"
-              ? (loc.type as LocationData["type"])
-              : "main",
-          zones: [],
-        }))
-    : [];
+  // Locations — prefer I1-seeded from DB, fall back to scraped data
+  let locations: LocationData[] = [];
+
+  const { data: dbLocations } = await supabase
+    .from("location")
+    .select("location_id, name, location_type")
+    .eq("workspace_id", ws.workspace_id)
+    .eq("is_active", true)
+    .order("sort_order");
+
+  if (dbLocations && dbLocations.length > 0) {
+    locations = dbLocations.map((loc) => ({
+      id: loc.location_id,
+      name: loc.name,
+      type: (loc.location_type === "outdoor" ||
+      loc.location_type === "kitchen" ||
+      loc.location_type === "other"
+        ? loc.location_type
+        : "main") as LocationData["type"],
+      zones: [],
+    }));
+  } else if (Array.isArray(scraped?.locations)) {
+    locations = (scraped.locations as Array<{ name: string; type?: string }>)
+      .filter(
+        (loc): loc is { name: string; type?: string } =>
+          typeof loc === "object" && loc !== null && typeof loc.name === "string",
+      )
+      .map((loc, i) => ({
+        id: `loc-resume-${i}`,
+        name: loc.name,
+        type:
+          loc.type === "outdoor" || loc.type === "satellite" || loc.type === "other"
+            ? (loc.type as LocationData["type"])
+            : "main",
+        zones: [],
+      }));
+  }
 
   // Auto-generate default location from business name if scraping returned none
   if (locations.length === 0 && merged.name) {
@@ -278,10 +297,6 @@ export const onboardingWizard: WizardDefinition<OnboardingConfirmState> = {
     logoSrc: "/smartout-logo.png",
     position: "right",
     messages: {
-      "confirm-business": {
-        heading: "brandPanel.confirmBusiness_heading",
-        sub: "brandPanel.confirmBusiness_sub",
-      },
       "confirm-departments": {
         heading: "brandPanel.confirmDepartments_heading",
         sub: "brandPanel.confirmDepartments_sub",
@@ -310,12 +325,6 @@ export const onboardingWizard: WizardDefinition<OnboardingConfirmState> = {
   onComplete,
 
   steps: [
-    {
-      id: "confirm-business",
-      labelKey: "confirm.business_title",
-      icon: Building2,
-      component: ConfirmBusiness,
-    },
     {
       id: "confirm-departments",
       labelKey: "confirm.departments_title",

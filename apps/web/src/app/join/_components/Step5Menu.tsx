@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -14,6 +13,7 @@ import {
 import { Sparkles } from "lucide-react";
 import type { WizardStepProps } from "@smartout/ui";
 import type { JoinState } from "../types";
+import { DevAutoFill } from "./DevAutoFill";
 
 const RESTAURANT_TYPES = [
   "Restaurant",
@@ -111,7 +111,7 @@ function mapRestaurantType(clues: string[], googleCategory?: string): string {
   return "";
 }
 
-export function Step5Menu({ state, updateState }: WizardStepProps<JoinState>) {
+export function Step5Menu({ state, updateState, t }: WizardStepProps<JoinState>) {
   const intel = state.intelligence as Record<string, unknown> | null;
 
   // Initialize empty to avoid hydration mismatch — localStorage values
@@ -202,11 +202,11 @@ export function Step5Menu({ state, updateState }: WizardStepProps<JoinState>) {
     );
   };
 
-  // Sync local fields to wizard state so WizardNavBar validation sees current data
+  // Sync local fields to wizard state — skip until restore is done to avoid wiping devFill data
   useEffect(() => {
+    if (!hasRestored.current) return;
     updateState({
       menu: {
-        ...state.menu,
         restaurantType: restaurantType || undefined,
         cuisineTypes: cuisineTypes.length > 0 ? cuisineTypes : undefined,
         priceCategory: priceCategory || undefined,
@@ -215,27 +215,35 @@ export function Step5Menu({ state, updateState }: WizardStepProps<JoinState>) {
     });
   }, [restaurantType, cuisineTypes, priceCategory, menuDescription]);
 
+  const devFill = () => {
+    setRestaurantType("Restaurant");
+    setCuisineTypes(["Norsk/Nordisk", "Sjomat", "Internasjonal"]);
+    setPriceCategory("moderate");
+    setMenuDescription(
+      "Sesongbasert nordisk meny med fokus pa lokale ravarer. Sjomatretter, kjottgryter og vegetariske alternativer. Fast lunsjmeny og a la carte pa kvelden.",
+    );
+  };
+
   return (
     <div className="mx-auto w-full max-w-md space-y-6">
+      <DevAutoFill onFill={devFill} label="Fyll steg 5" />
       <div>
-        <h2 className="text-foreground text-2xl font-bold">Meny</h2>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Fortell oss om maten og drikken dere serverer.
-        </p>
+        <h2 className="text-foreground text-2xl font-bold">{t("step5.heading")}</h2>
+        <p className="text-muted-foreground mt-1 text-sm">{t("step5.description")}</p>
         {prePopulated && (
           <p className="text-brand-orange mt-2 flex items-center gap-1.5 text-xs">
             <Sparkles className="h-3 w-3" />
-            Foreslatt basert pa det vi fant — endre fritt
+            {t("step5.aiSuggested")}
           </p>
         )}
       </div>
 
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="restaurantType">Restauranttype</Label>
+          <Label htmlFor="restaurantType">{t("step5.restaurantType")}</Label>
           <Select value={restaurantType} onValueChange={setRestaurantType}>
             <SelectTrigger id="restaurantType">
-              <SelectValue placeholder="Velg type..." />
+              <SelectValue placeholder={t("step5.restaurantType_placeholder")} />
             </SelectTrigger>
             <SelectContent>
               {RESTAURANT_TYPES.map((type) => (
@@ -248,28 +256,33 @@ export function Step5Menu({ state, updateState }: WizardStepProps<JoinState>) {
         </div>
 
         <div className="space-y-2">
-          <Label>Kjokkentype</Label>
-          <div className="grid grid-cols-2 gap-2">
-            {CUISINE_TYPES.map((cuisine) => (
-              <label
-                key={cuisine}
-                className="border-border hover:bg-accent flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors"
-              >
-                <Checkbox
-                  checked={cuisineTypes.includes(cuisine)}
-                  onCheckedChange={() => toggleCuisine(cuisine)}
-                />
-                {cuisine}
-              </label>
-            ))}
+          <Label>{t("step5.cuisineType")}</Label>
+          <div className="flex flex-wrap gap-1.5">
+            {CUISINE_TYPES.map((cuisine) => {
+              const isSelected = cuisineTypes.includes(cuisine);
+              return (
+                <button
+                  key={cuisine}
+                  type="button"
+                  onClick={() => toggleCuisine(cuisine)}
+                  className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                    isSelected
+                      ? "border-brand-orange bg-brand-orange/10 text-brand-orange"
+                      : "border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+                  }`}
+                >
+                  {cuisine}
+                </button>
+              );
+            })}
           </div>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="priceCategory">Priskategori</Label>
+          <Label htmlFor="priceCategory">{t("step5.priceCategory")}</Label>
           <Select value={priceCategory} onValueChange={setPriceCategory}>
             <SelectTrigger id="priceCategory">
-              <SelectValue placeholder="Velg priskategori..." />
+              <SelectValue placeholder={t("step5.priceCategory_placeholder")} />
             </SelectTrigger>
             <SelectContent>
               {PRICE_CATEGORIES.map((cat) => (
@@ -283,12 +296,13 @@ export function Step5Menu({ state, updateState }: WizardStepProps<JoinState>) {
 
         <div className="space-y-2">
           <Label htmlFor="menuDescription">
-            Menybeskrivelse <span className="text-muted-foreground">(valgfritt)</span>
+            {t("step5.menuDescription")}{" "}
+            <span className="text-muted-foreground">{t("step5.menuDescription_suffix")}</span>
           </Label>
           <Textarea
             id="menuDescription"
             rows={3}
-            placeholder="Beskriv menyen deres kort..."
+            placeholder={t("step5.menuDescription_placeholder")}
             value={menuDescription}
             onChange={(e) => setMenuDescription(e.target.value)}
           />

@@ -18,9 +18,17 @@ import type { LocationData } from "../types";
 const TYPE_LABELS: Record<string, string> = {
   main: "Hovedlokale",
   outdoor: "Uteservering",
+  kitchen: "Kjøkken",
   satellite: "Filial",
   other: "Annet",
 };
+
+/** Pre-filled suggestions — common areas most restaurants add beyond the defaults */
+const SUGGESTED_LOCATIONS: Array<{ name: string; type: LocationData["type"]; icon: string }> = [
+  { name: "Uteservering", type: "outdoor", icon: "☀️" },
+  { name: "Lager", type: "other", icon: "📦" },
+  { name: "Personalrom", type: "other", icon: "🚪" },
+];
 
 export function ConfirmLocations({
   state,
@@ -29,7 +37,7 @@ export function ConfirmLocations({
 }: WizardStepProps<OnboardingConfirmState>) {
   const [showLocationInput, setShowLocationInput] = useState(false);
   const [locationName, setLocationName] = useState("");
-  const [locationType, setLocationType] = useState<LocationData["type"]>("main");
+  const [locationType, setLocationType] = useState<string>("main");
   const [activeZoneInput, setActiveZoneInput] = useState<string | null>(null);
   const [zoneName, setZoneName] = useState("");
 
@@ -45,7 +53,7 @@ export function ConfirmLocations({
         {
           id: `loc-${Date.now()}-${locations.length}`,
           name: trimmed,
-          type: locationType,
+          type: locationType as LocationData["type"],
           zones: [],
         },
       ],
@@ -191,7 +199,7 @@ export function ConfirmLocations({
             </div>
           ))}
 
-          {/* Add location */}
+          {/* Quick-add suggestions + custom */}
           {showLocationInput ? (
             <div className="border-border bg-card rounded-lg border p-4">
               <div className="space-y-3">
@@ -200,12 +208,12 @@ export function ConfirmLocations({
                   value={locationName}
                   onChange={(e) => setLocationName(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && addLocation()}
-                  placeholder="Navn pa lokasjon"
+                  placeholder="Navn på lokasjon"
                   className="border-border bg-background text-foreground placeholder:text-muted-foreground focus-visible:ring-brand-orange/40 w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
                   autoFocus
                 />
                 <div className="flex flex-wrap gap-1.5">
-                  {(["main", "outdoor", "satellite", "other"] as const).map((type) => (
+                  {(["main", "outdoor", "kitchen", "other"] as const).map((type) => (
                     <button
                       key={type}
                       type="button"
@@ -242,14 +250,49 @@ export function ConfirmLocations({
               </div>
             </div>
           ) : (
-            <button
-              type="button"
-              onClick={() => setShowLocationInput(true)}
-              className="border-border text-muted-foreground hover:bg-accent flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed py-3 text-sm transition-colors"
-            >
-              <Plus className="size-3.5" />
-              Legg til lokasjon
-            </button>
+            <div className="space-y-2">
+              {/* Suggested locations — only show ones not already added */}
+              {SUGGESTED_LOCATIONS.filter((s) => !locations.some((l) => l.name === s.name)).length >
+                0 && (
+                <div className="flex flex-wrap gap-2">
+                  {SUGGESTED_LOCATIONS.filter((s) => !locations.some((l) => l.name === s.name)).map(
+                    (suggestion) => (
+                      <button
+                        key={suggestion.name}
+                        type="button"
+                        onClick={() => {
+                          updateState({
+                            locations: [
+                              ...locations,
+                              {
+                                id: `loc-${Date.now()}-${locations.length}`,
+                                name: suggestion.name,
+                                type: suggestion.type,
+                                zones: [],
+                              },
+                            ],
+                          });
+                        }}
+                        className="border-border hover:border-brand-orange/40 hover:bg-brand-orange/5 text-muted-foreground hover:text-foreground flex items-center gap-1.5 rounded-lg border border-dashed px-3 py-2 text-sm transition-colors"
+                      >
+                        <Plus className="size-3" />
+                        {suggestion.name}
+                      </button>
+                    ),
+                  )}
+                </div>
+              )}
+
+              {/* Custom location */}
+              <button
+                type="button"
+                onClick={() => setShowLocationInput(true)}
+                className="border-border text-muted-foreground hover:bg-accent flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed py-3 text-sm transition-colors"
+              >
+                <Plus className="size-3.5" />
+                Egendefinert
+              </button>
+            </div>
           )}
         </div>
       </div>

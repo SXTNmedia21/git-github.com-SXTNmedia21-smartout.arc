@@ -1,7 +1,7 @@
 ---
 title: Development Dashboard
 status: in_progress
-updated: 2026-03-28
+updated: 2026-03-29
 created: 2026-03-02
 module: meta
 tags: [dashboard, worktrees, tracking]
@@ -13,14 +13,14 @@ tags: [dashboard, worktrees, tracking]
 
 ## Active Worktrees
 
-| #    | Branch                         | Module     | Status      | Progress                                                      | Blockers | Health |
-| ---- | ------------------------------ | ---------- | ----------- | ------------------------------------------------------------- | -------- | ------ |
-| wt-1 | `feat/drift-insights`          | operations | in_progress | just started                                                  | —        | clean  |
-| wt-2 | —                              | —          | free        | —                                                             | —        | —      |
-| wt-3 | `feat/emma-arena-views`        | walkAi     | parked      | Spec + settings persistence done. Implementation not started. | —        | clean  |
-| wt-4 | `feat/training-agent-pipeline` | training   | in_progress | just started — WS-2 Module Zero                               | —        | clean  |
-| wt-5 | `feat/sjohuset-simulator`      | simulation | in_progress | 10 commits. Rebased on development.                           | —        | clean  |
-| wt-7 | `feat/dynamic-landing-engine`  | landing    | paused      | just started                                                  | —        | clean  |
+| #    | Branch                         | Module    | Status      | Progress                        | Blockers | Health |
+| ---- | ------------------------------ | --------- | ----------- | ------------------------------- | -------- | ------ |
+| wt-1 | —                              | —         | free        | —                               | —        | —      |
+| wt-2 | —                              | —         | free        | —                               | —        | —      |
+| wt-3 | `feat/dashboard-filters`       | dashboard | in_progress | just started                    | —        | clean  |
+| wt-4 | `feat/training-agent-pipeline` | training  | in_progress | just started — WS-2 Module Zero | —        | clean  |
+| wt-5 | —                              | —         | free        | —                               | —        | —      |
+| wt-7 | `feat/dynamic-landing-engine`  | landing   | paused      | just started                    | —        | clean  |
 
 ## Parked Branches (no worktree)
 
@@ -32,9 +32,11 @@ tags: [dashboard, worktrees, tracking]
 
 | #     | Available                           |
 | ----- | ----------------------------------- |
-| wt-1  | no — `feat/drift-insights`          |
-| wt-2  | no — `feat/season-operations-loop`  |
+| wt-1  | yes                                 |
+| wt-2  | yes                                 |
 | wt-4  | no — `feat/training-agent-pipeline` |
+| wt-3  | no — `feat/dashboard-filters`       |
+| wt-5  | yes                                 |
 | wt-6  | yes                                 |
 | wt-7  | no — `feat/dynamic-landing-engine`  |
 | wt-8  | yes                                 |
@@ -50,16 +52,18 @@ tags: [dashboard, worktrees, tracking]
 
 | Worktree | Feature                 | Journey File                                       | Status  |
 | -------- | ----------------------- | -------------------------------------------------- | ------- |
-| wt-1     | drift-insights          | `docs/journeys/JOURNEY-drift-insights.md`          | missing |
-| wt-2     | season-operations-loop  | `docs/journeys/JOURNEY-season-operations-loop.md`  | missing |
+| wt-1     | profession-system       | `docs/journeys/JOURNEY-profession-system.md`       | done    |
 | wt-4     | training-agent-pipeline | `docs/journeys/JOURNEY-training-agent-pipeline.md` | missing |
-| wt-5     | sjohuset-simulator      | `docs/journeys/JOURNEY-sjohuset-simulator.md`      | missing |
+| wt-3     | dashboard-filters       | `docs/journeys/JOURNEY-dashboard-filters.md`       | missing |
 | wt-7     | dynamic-landing-engine  | `docs/journeys/JOURNEY-dynamic-landing-engine.md`  | missing |
 
 ## Recent Closures
 
 | Date       | Feature                      | Branch                                                             | Merged To   |
 | ---------- | ---------------------------- | ------------------------------------------------------------------ | ----------- |
+| 2026-03-29 | telemetry-botsson-reactive   | `feat/telemetry-botsson-reactive`                                  | development |
+| 2026-03-28 | profession-system            | `feat/profession-system`                                           | development |
+| 2026-03-28 | sjohuset-simulator           | `feat/sjohuset-simulator`                                          | development |
 | 2026-03-28 | season-operations-loop       | `feat/season-operations-loop`                                      | development |
 | 2026-03-28 | financial-esp-ux             | `feat/financial-esp-ux`                                            | development |
 | 2026-03-28 | gamification-foundation      | `feat/gamification-foundation`                                     | development |
@@ -127,6 +131,12 @@ tags: [dashboard, worktrees, tracking]
 
 ## Session History
 
+| 2026-03-29 | telemetry-botsson-reactive | closed | 13 commits, 29 tests, 2200+ lines. Error telemetry + reactive Botsson + escalation gates. wt-2 freed. |
+| 2026-03-29 | dashboard-filters | started | wt-3, module: dashboard |
+| 2026-03-28 | dynamic-landing-engine | session ended | session ended |
+| 2026-03-29 | telemetry-botsson-reactive | started | wt-2, module: telemetry. Error-first telemetry + reactive Botsson. Plan: `docs/superpowers/plans/2026-03-28-telemetry-orchestration-botsson-reactive.md` |
+| 2026-03-28 | development | session ended | session ended |
+| 2026-03-28 | sjohuset-simulator | closed | 12 commits, 56 files, 7418 lines. Hono service + control panel + 46 tests. wt-5 freed. |
 | 2026-03-28 | sjohuset-simulator | resumed | wt-5, module: simulation. Rebased on development, 10 commits. |
 | 2026-03-28 | dynamic-landing-engine | session ended | session ended |
 | 2026-03-28 | dynamic-landing-engine | started | wt-7, module: landing. P1 plan: 14 tasks. Spec + ADR-0064 + council review done. |

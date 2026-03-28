@@ -9,14 +9,14 @@ describe("buildOnboardingShellIntelligence", () => {
     const result = buildOnboardingShellIntelligence({
       step1: {
         email: "owner@example.com",
+        firstName: "Ada",
+        lastName: "Lovelace",
         companyName: "Nordic Bistro",
         industry: "restaurant",
         city: "Oslo",
         websiteUrl: "https://nordic.example.com",
       },
       step2: {
-        firstName: "Ada",
-        lastName: "Lovelace",
         street: "Karl Johans gate 1",
         postalCode: "0154",
         city: "Oslo",

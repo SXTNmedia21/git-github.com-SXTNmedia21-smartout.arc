@@ -287,13 +287,7 @@ export function OnboardingGuide() {
 
       {/* Step content */}
       <div className="min-h-[200px]">
-        {step.id === "welcome" && (
-          <WelcomeStep
-            scrapedData={currentState.scrapedData}
-            detectedIndustry={detectedType}
-            onIndustryChange={setIndustryType}
-          />
-        )}
+        {step.id === "welcome" && <WelcomeStep />}
         {step.id === "document-drop" && (
           <DocumentDropStep onExtractionComplete={handleExtractionComplete} />
         )}

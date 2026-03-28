@@ -24,14 +24,14 @@ function resolveNaceFromIndustry(industry: string): string {
 export type SignupSetupData = {
   step1: {
     email: string;
+    firstName: string;
+    lastName: string;
     companyName: string;
     industry: string;
     city?: string;
     websiteUrl: string;
   };
   step2: {
-    firstName: string;
-    lastName: string;
     street: string;
     postalCode: string;
     city: string;
@@ -97,8 +97,8 @@ export function buildOnboardingShellIntelligence(data: SignupSetupData) {
     },
     join_intake: {
       ownerProfile: {
-        firstName: data.step2.firstName,
-        lastName: data.step2.lastName,
+        firstName: data.step1.firstName,
+        lastName: data.step1.lastName,
       },
       businessNarrative: {
         aboutUs: data.step3.aboutUs ?? "",
