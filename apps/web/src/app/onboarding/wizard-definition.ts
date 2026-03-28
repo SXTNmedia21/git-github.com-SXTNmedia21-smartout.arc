@@ -136,7 +136,8 @@ async function loadState(): Promise<Partial<OnboardingConfirmState>> {
 
   // Departments + procedures from industry NACE code
   const nace = merged.industryCode || resolveNaceCode(merged.industry);
-  const departments = getDepartmentsForIndustry(nace);
+  const employeeCount = parseInt(merged.employeeCount, 10) || 5;
+  const departments = getDepartmentsForIndustry(nace, employeeCount);
   const procedures = getProceduresForIndustry(nace);
 
   // Locations from scraped data
@@ -176,7 +177,12 @@ async function onComplete(state: OnboardingConfirmState): Promise<void> {
 
   const selectedDepts = state.departments
     .filter((d) => d.selected)
-    .map((d) => ({ name: d.name, positions: d.positions }));
+    .map((d) => ({
+      name: d.name,
+      positions: d.positions
+        .filter((p) => p.selected)
+        .map((p) => ({ name: p.name, isLeader: p.isLeader })),
+    }));
 
   const selectedProcs = state.procedures.filter((p) => p.selected).map((p) => p.name);
 
