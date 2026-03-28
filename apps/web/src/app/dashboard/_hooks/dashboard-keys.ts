@@ -86,4 +86,8 @@ export const dashboardKeys = {
   websitePages: (websiteId: string) => ["dashboard", "website-pages", websiteId] as const,
 
   websiteSections: (pageId: string) => ["dashboard", "website-sections", pageId] as const,
+
+  // Entity Drawer
+  drawerDepartment: (wsId: string, id: string) =>
+    ["dashboard", "entity-drawer", "department", wsId, id] as const,
 };

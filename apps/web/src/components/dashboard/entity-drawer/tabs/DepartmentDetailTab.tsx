@@ -10,6 +10,7 @@ import { Loader2 } from "lucide-react";
 import { useTranslation } from "@smartout/i18n";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
+import { dashboardKeys } from "@/app/dashboard/_hooks/dashboard-keys";
 
 export function DepartmentDetailTab({ departmentId }: { departmentId: string }) {
   const { t } = useTranslation("dashboard");
@@ -18,12 +19,14 @@ export function DepartmentDetailTab({ departmentId }: { departmentId: string }) 
   const supabase = createClient();
 
   const { data, isLoading } = useQuery({
-    queryKey: ["entity-drawer", "department", wsId, departmentId],
+    queryKey: dashboardKeys.drawerDepartment(wsId!, departmentId),
     queryFn: async () => {
       const [deptRes, profilesRes, hoursRes] = await Promise.all([
         supabase
           .from("department")
-          .select("department_id, name, is_active, manager_profile_id, color")
+          .select(
+            "department_id, name, is_active, manager_profile_id, color, manager:profile!manager_profile_id(display_name)",
+          )
           .eq("department_id", departmentId)
           .single(),
         supabase
@@ -38,21 +41,13 @@ export function DepartmentDetailTab({ departmentId }: { departmentId: string }) 
           .eq("department_id", departmentId),
       ]);
 
-      let managerName: string | null = null;
-      if (deptRes.data?.manager_profile_id) {
-        const { data: mgr } = await supabase
-          .from("profile")
-          .select("display_name")
-          .eq("profile_id", deptRes.data.manager_profile_id)
-          .single();
-        managerName = mgr?.display_name ?? null;
-      }
+      const manager = deptRes.data?.manager as { display_name: string } | null;
 
       return {
         department: deptRes.data,
         employeeCount: profilesRes.data?.length ?? 0,
         hours: hoursRes.data ?? [],
-        managerName,
+        managerName: manager?.display_name ?? null,
       };
     },
     enabled: !!wsId && !!departmentId,
