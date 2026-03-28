@@ -2485,6 +2485,17 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "onboarding",
   },
 
+  "flow started": { destinations: ["posthog", "logger"], category: "onboarding" },
+  "flow slide_viewed": { destinations: ["posthog"], category: "onboarding" },
+  "flow answer_submitted": {
+    destinations: ["posthog", "logger"],
+    category: "onboarding",
+  },
+  "flow completed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "onboarding",
+  },
+  "flow skipped": { destinations: ["posthog", "logger"], category: "onboarding" },
   "season created": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "operations",
