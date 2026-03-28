@@ -13,6 +13,10 @@ tags: [livekit, webrtc, mobile, group-call, video, ptt, walkie-talkie]
 
 Mobile has the infrastructure for group calls (LiveKit connection, signaling, PTT state machine, CallBar, GroupCallBanner) but lacks a proper in-call experience. CallBar shows participant count and mic toggle — nothing more. No way to see who's in the call, who's speaking, or enable video. Web has a full CallRoom with expandable grid, video tiles, and chat integration.
 
+## Council Review (2026-03-28)
+
+Reviewed by System Steward (chair), Supervisor, Frontend Designer. Verdict: **PASS WITH CONDITIONS**. This spec incorporates all required changes.
+
 ## Goal
 
 Add an expanded call UI to mobile: bottom sheet that slides up from CallBar showing participant grid, active speaker focus, and optional video. Respects channel audio/video policies. No backend changes.
@@ -64,7 +68,15 @@ RoomEvent.ActiveSpeakersChanged
 
 CallSession (from getActiveCallSession)
   → audioPolicy: "ptt" | "open_mic" | "listen_only" | "disabled"
+
+Channel query (video_policy lives on the channel table, NOT on CallSession)
   → videoPolicy: "disabled" | "optional" | "default_on" | "required"
+  → Source: channel.video_policy column, same query used by token minting
+
+NOTE: LiveKit token canPublish is a single boolean (audio OR video).
+Audio-only vs audio+video enforcement is UI-layer responsibility,
+not server-side token control. The PTT state machine and CallControls
+are the enforcement boundary.
 ```
 
 ## Detailed Design
@@ -86,7 +98,7 @@ Full-screen bottom sheet that slides up from CallBar. Uses React Native gesture 
 
 **Behavior:**
 
-- Opens with spring animation (matches Nordic Split: stiffness 40, damping 22)
+- Opens with spring animation (Nordic Split: stiffness 35, damping 22, mass 2.2 via `withSpring` from Reanimated)
 - Swipe down to minimize back to CallBar
 - Stays open across tab navigation (not modal — persistent overlay)
 - Closes automatically when call ends
@@ -114,14 +126,14 @@ Renders participants based on count and video state.
 - Active speaker takes ~75% of screen height
 - Remaining participants in horizontal ScrollView strip at bottom (~25%)
 - Speaker switches automatically based on `ActiveSpeakersChanged` event
-- Smooth crossfade transition (200ms) when speaker changes
+- Animated transition when speaker changes: focused tile scales up from grid position (shared element style via Reanimated `withSpring`), not a hard cut
 - If no one is speaking, last speaker stays focused
 
 **Edge cases:**
 
 - Mixed video/audio: participants without video show avatar tile in same grid
 - All cameras off in video-enabled channel: falls back to audio-only layout
-- Single participant (waiting for others): shows own video/avatar centered + "Venter pa deltakere..." text
+- Single participant (waiting for others): shows own video/avatar centered + i18n key `call.waiting_for_participants`
 
 ### 3. ParticipantTile (Single Participant)
 
@@ -139,13 +151,13 @@ Renders one participant as either video or avatar.
 
 - Circular avatar image (or initials fallback)
 - Name below
-- Amber glow ring when speaking (animated border, 2px → 4px, opacity pulse)
+- Amber glow ring when speaking (spring-driven opacity via Reanimated shared value, NOT CSS keyframe pulse — responds to audio level: silent=0, speaking=0.6, loud=1.0)
 - Mic-off icon overlay when muted
 - Subtle scale animation (1.0 → 1.05) when speaking
 
 **Shared:**
 
-- "(Du)" suffix on local participant name
+- i18n key `call.you_suffix` on local participant name (e.g. "(Du)")
 - "AI" badge if `isAi == true` (from participant metadata)
 
 ### 4. CallControls (Bottom Control Bar)
@@ -171,7 +183,7 @@ Adapts to `audio_policy` from the call session.
 - No mic button (can't talk)
 - Camera toggle (if video enabled)
 - End call button
-- "Kun lytting" label at top
+- i18n key `call.listen_only_label` at top
 
 ### 5. use-call-tracks Hook
 
@@ -237,20 +249,20 @@ Token minting already grants `canPublish: true` when video isn't disabled. No ba
 
 ## New Files
 
-| File                  | Location                                        | Responsibility                                            |
-| --------------------- | ----------------------------------------------- | --------------------------------------------------------- |
-| `CallSheet.tsx`       | `apps/mobile/src/features/channels/components/` | Bottom sheet, header, duration timer, orchestrates layout |
-| `ParticipantGrid.tsx` | `apps/mobile/src/features/channels/components/` | Adaptive layout — audio circles, grid, or focus           |
-| `ParticipantTile.tsx` | `apps/mobile/src/features/channels/components/` | Single participant — video or avatar + speaker indicator  |
-| `CallControls.tsx`    | `apps/mobile/src/features/channels/components/` | Mic, camera, PTT, end — adapts to audio_policy            |
-| `use-call-tracks.ts`  | `apps/mobile/src/hooks/mutations/`              | Track subscription, speaker detection, participant list   |
+| File                  | Location                                        | Responsibility                                                                          |
+| --------------------- | ----------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `CallSheet.tsx`       | `apps/mobile/src/features/channels/components/` | Bottom sheet, header, duration timer, orchestrates layout                               |
+| `ParticipantGrid.tsx` | `apps/mobile/src/features/channels/components/` | Adaptive layout — audio circles, grid, or focus                                         |
+| `ParticipantTile.tsx` | `apps/mobile/src/features/channels/components/` | Single participant — video or avatar + speaker indicator                                |
+| `CallControls.tsx`    | `apps/mobile/src/features/channels/components/` | Mic, camera, PTT, end — adapts to audio_policy                                          |
+| `use-call-tracks.ts`  | `apps/mobile/src/hooks/`                        | Track subscription, speaker detection, participant list (read-only — NOT in mutations/) |
 
 ## Modified Files
 
-| File                  | Change                                                           |
-| --------------------- | ---------------------------------------------------------------- |
-| `CallBar.tsx`         | Add `onPress` prop that opens CallSheet                          |
-| `use-livekit-call.ts` | Add `room` ref exposure for track access, add `setCameraEnabled` |
+| File                  | Change                                                                                                         |
+| --------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `CallBar.tsx`         | Add `onPress` prop that opens CallSheet                                                                        |
+| `use-livekit-call.ts` | Room already exposed. Only change: add `setCameraEnabled` wrapper if needed (or call directly in CallControls) |
 
 ## What Does NOT Change
 
@@ -270,10 +282,32 @@ Token minting already grants `canPublish: true` when video isn't disabled. No ba
 - `expo-haptics` (already in project) — PTT feedback
 - `expo-camera` (check if installed) — camera permissions
 
+## Telemetry
+
+Every mutation emits via `@smartout/telemetry`:
+
+| Action                  | Event                              | Properties                        |
+| ----------------------- | ---------------------------------- | --------------------------------- |
+| Sheet opened            | `call.sheet_opened`                | `{ channelId, participantCount }` |
+| Sheet closed            | `call.sheet_closed`                | `{ channelId, durationOpen }`     |
+| Camera toggled          | `call.camera_toggled`              | `{ channelId, enabled: boolean }` |
+| Call ended (from sheet) | Uses existing `channel.call.ended` | Already emitted by webhook        |
+
+Register new events in `packages/telemetry/src/registry.ts` with routing to `activity_trail`.
+
+## Accessibility
+
+- All tappable elements: minimum 48x48dp touch targets
+- `accessibilityLabel` on every ParticipantTile: `"{name}, {speaking ? 'snakker' : 'stille'}"` (via i18n)
+- `accessibilityRole="button"` on tiles that are tappable (for focus mode selection)
+- Visible minimize button (chevron-down, 48x48) — swipe-to-dismiss alone is NOT accessible
+- Respect `AccessibilityInfo.isReduceMotionEnabled`: all spring animations fall back to instant (0ms) transitions
+- PTT button: `accessibilityHint` explaining hold-to-talk behavior
+
 ## Scope
 
 - 5 new files (~400-500 lines total)
-- 2 modified files (~20 lines changed)
-- No new packages
+- 1-2 modified files (~20 lines changed)
+- No new packages (verify `expo-camera` installed)
 - No backend changes
 - No database changes
