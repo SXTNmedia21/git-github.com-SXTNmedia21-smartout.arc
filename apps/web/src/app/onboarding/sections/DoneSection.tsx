@@ -24,7 +24,7 @@ export function DoneSection() {
 
   const selectedDepartments = departments.filter((d) => d.selected);
   const totalPositions = selectedDepartments.reduce(
-    (sum, dept) => sum + (dept.positions?.length ?? 0),
+    (sum, dept) => sum + (dept.positions?.filter((p) => p.selected).length ?? 0),
     0,
   );
 
@@ -83,7 +83,7 @@ export function DoneSection() {
                     <div key={dept.name} className="flex items-center justify-between pl-4">
                       <span className="text-base text-white/40">{dept.name}</span>
                       <span className="text-base text-white/40">
-                        {dept.positions?.length ?? 0} stillinger
+                        {dept.positions?.filter((p) => p.selected).length ?? 0} stillinger
                       </span>
                     </div>
                   ))}
