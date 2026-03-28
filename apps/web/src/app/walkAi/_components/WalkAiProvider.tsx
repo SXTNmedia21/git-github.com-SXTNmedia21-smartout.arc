@@ -31,6 +31,7 @@ import type {
 import { DENSITY_DIMENSIONS, DEFAULT_VOICE_TUNING, DEFAULT_VOICE_ID } from "./types";
 import { buildPersonaPrompt, identityLabel } from "./persona-engine";
 import { buildWalkAiToolKit, type ViewActions, type ScheduledTask } from "./walkai-tools";
+import { useEntityDrawer } from "@/components/dashboard/entity-drawer/EntityDrawerContext";
 import { useEmmaTelemetry, buildTelemetrySummary, type TelemetryEntry } from "./emma-awareness";
 import { useRegisteredTools } from "./tool-registry";
 import { useEmmaTriggeredTasks } from "./use-emma-tasks";
@@ -310,6 +311,9 @@ export function WalkAiProvider({
   const personaPrompt = useMemo(() => buildPersonaPrompt(identity), [identity]);
   const identityDisplay = useMemo(() => identityLabel(identity), [identity]);
 
+  /* ━━━ Entity drawer bridge — lets Emma open entity panels ━━━ */
+  const { openDrawer } = useEntityDrawer();
+
   /* ━━━ View actions ref — lets tool impls morph the view ━━━ */
   const viewActionsRef = useRef<ViewActions | null>(null);
 
@@ -473,6 +477,9 @@ export function WalkAiProvider({
       navigateTo: (path: string) => {
         if (typeof window !== "undefined") window.location.href = path;
       },
+      openEntityDrawer: (entityType: string, entityId: string) => {
+        openDrawer(entityType as Parameters<typeof openDrawer>[0], entityId);
+      },
       completeTask: (taskId: string) => {
         setTasks((prev) =>
           prev.map((t) => (t.id === taskId ? { ...t, status: "done" as const } : t)),
@@ -492,7 +499,7 @@ export function WalkAiProvider({
       },
       getTasks: () => tasks,
     };
-  }, [switchView, activeView, workspaceId, state.density, tasks]);
+  }, [switchView, activeView, workspaceId, state.density, tasks, openDrawer]);
   const setPosition = useCallback(
     (position: WalkAiPosition) => dispatch({ type: "SET_POSITION", position }),
     [],

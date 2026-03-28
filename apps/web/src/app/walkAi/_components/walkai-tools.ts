@@ -36,6 +36,8 @@ export type ViewActions = {
   getDensity: () => string;
   /** Client-side navigation via Next.js router — preserves Emma's session */
   navigateTo: (path: string) => void;
+  /** Open the entity drawer to inspect an entity inline */
+  openEntityDrawer?: (entityType: string, entityId: string) => void;
   /** Complete a task by ID */
   completeTask: (taskId: string) => void;
   /** Update task fields */
@@ -247,6 +249,50 @@ const navigatePageDef: ClientToolDefinition = {
           type: "string",
           description:
             "Page key: dashboard, schedule, people, operations, season, handbook, governance, etc.",
+        },
+        required: true,
+      },
+    ],
+    client: {},
+  },
+};
+
+/* ━━━ Entity drawer — inspect entities inline ━━━ */
+
+const VALID_ENTITY_TYPES = new Set([
+  "department",
+  "profile",
+  "team",
+  "shift",
+  "department_session",
+  "cascade_task",
+]);
+
+const openEntityDrawerDef: ClientToolDefinition = {
+  temporaryTool: {
+    modelToolName: "open_entity_drawer",
+    description:
+      "Open the entity drawer to show details about a specific entity (department, employee, shift, etc.) " +
+      "without navigating away from the current page. Use when the user asks about a specific entity and " +
+      "you want to show its details inline. " +
+      "Valid entity types: department, profile, shift, department_session, team, cascade_task.",
+    dynamicParameters: [
+      {
+        name: "entity_type",
+        location: "PARAMETER_LOCATION_BODY",
+        schema: {
+          type: "string",
+          description:
+            "Entity type: department, profile, shift, department_session, team, cascade_task",
+        },
+        required: true,
+      },
+      {
+        name: "entity_id",
+        location: "PARAMETER_LOCATION_BODY",
+        schema: {
+          type: "string",
+          description: "UUID of the entity to inspect",
         },
         required: true,
       },
@@ -583,6 +629,28 @@ export function buildWalkAiToolKit(
       );
     },
 
+    open_entity_drawer: (params) => {
+      const actions = actionsRef.current;
+      if (!actions?.openEntityDrawer) return "Entity drawer not available";
+
+      const entityType = String(params.entity_type ?? "").trim();
+      const entityId = String(params.entity_id ?? "").trim();
+
+      if (!VALID_ENTITY_TYPES.has(entityType)) {
+        const valid = [...VALID_ENTITY_TYPES].join(", ");
+        return `Unknown entity type "${entityType}". Valid: ${valid}`;
+      }
+      if (!entityId) return "entity_id is required";
+
+      actions.openEntityDrawer(entityType, entityId);
+
+      return (
+        `Opened entity drawer for ${entityType} ${entityId}. ` +
+        "The user can now see the entity details in the side panel. " +
+        "Do NOT describe what is in the drawer — the user can see it."
+      );
+    },
+
     save_memory: (params) => {
       const content = String(params.content ?? "");
       if (!content) return "Nothing to save.";
@@ -738,6 +806,7 @@ export function buildWalkAiToolKit(
       expandArenaDef,
       collapseArenaDef,
       navigatePageDef,
+      openEntityDrawerDef,
       saveMemoryDef,
       scheduleTaskDef,
       completeTaskDef,

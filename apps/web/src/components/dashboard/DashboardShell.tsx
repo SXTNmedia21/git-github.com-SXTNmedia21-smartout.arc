@@ -1903,38 +1903,36 @@ export function DashboardShell({
                 </div>
               </div>
 
+              <EntityDrawerProvider>
               <DashboardContext.Provider value={dashboardContextValue}>
                 <GlobalSearchPalette />
                 {isDocumentMode ? (
                   <DocumentModeShell isDark={isDark} />
                 ) : (
-                  <EntityDrawerProvider>
-                    <div className="flex min-h-0 flex-1 overflow-hidden">
-                      <div className="scroll-overlay flex min-h-0 flex-1 flex-col overflow-hidden p-6 md:p-8 print:block print:h-auto print:overflow-visible print:p-0">
-                        {isAdminMode && isDashboardPage && (
-                          <>
-                            <div className="mb-4 flex-shrink-0">
-                              <ActionStrip isDark={isDark} />
-                            </div>
-                          </>
-                        )}
-                        {children}
-                      </div>
-                      <AnimatePresence>
-                        <EntityDrawer />
-                      </AnimatePresence>
+                  <div className="flex min-h-0 flex-1 overflow-hidden">
+                    <div className="scroll-overlay flex min-h-0 flex-1 flex-col overflow-hidden p-6 md:p-8 print:block print:h-auto print:overflow-visible print:p-0">
+                      {isAdminMode && isDashboardPage && (
+                        <>
+                          <div className="mb-4 flex-shrink-0">
+                            <ActionStrip isDark={isDark} />
+                          </div>
+                        </>
+                      )}
+                      {children}
                     </div>
-                  </EntityDrawerProvider>
+                    <AnimatePresence>
+                      <EntityDrawer />
+                    </AnimatePresence>
+                  </div>
                 )}
               </DashboardContext.Provider>
             </main>
           </div>
 
-          {/* Floating Voice Assistant removed and moved to header */}
-
-          {/* Emma — floating voice overlay */}
+          {/* Emma — floating voice overlay (inside EntityDrawerProvider for agent bridge) */}
           <EmmaOverlay />
         </div>
+      </EntityDrawerProvider>
       </VoiceToolsProvider>
     </DocumentModeProvider>
   );
