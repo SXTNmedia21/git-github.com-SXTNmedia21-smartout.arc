@@ -270,6 +270,20 @@ export default function PricingPage() {
           </motion.div>
         </div>
 
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="mt-12 text-center"
+        >
+          <Link
+            href="/compare"
+            className="text-brand-orange inline-flex items-center gap-2 font-bold hover:underline"
+          >
+            Se full sammenligning med konkurrentene <ArrowRight className="h-4 w-4" />
+          </Link>
+        </motion.div>
+
         {/* COMPARISON SHOWCASES */}
         <div className="mx-auto mt-32 max-w-7xl">
           <div className="mb-16 text-center">

@@ -55,14 +55,28 @@ export function middleware(request: NextRequest) {
     return NextResponse.rewrite(url);
   }
 
+  // Rewrite /en/* to /* so we don't need duplicate page files for every route.
+  // /en/docs has its own route files, so skip those.
+  if ((pathname.startsWith("/en/") || pathname === "/en") && !pathname.startsWith("/en/docs")) {
+    const strippedPath = pathname.replace(/^\/en/, "") || "/";
+    const url = request.nextUrl.clone();
+    url.pathname = strippedPath;
+    const response = NextResponse.rewrite(url);
+    response.headers.set("x-locale", "en");
+    return response;
+  }
+
   const locale = resolveLocale(request);
 
-  // If geo-detection says English but user is on root (no /en/ prefix),
-  // redirect to /en/ so URLs stay consistent.
-  // Only auto-redirect when no cookie is set (first visit from abroad).
-  // Once user clicks the language switcher, cookie takes over.
+  // Cookie says "en" but user navigated to non-/en/ path → redirect to /en/
   if (locale === "en" && !pathname.startsWith("/en") && pathname !== "/en") {
     const cookieLocale = request.cookies.get(LOCALE_COOKIE)?.value;
+    if (cookieLocale === "en") {
+      const url = request.nextUrl.clone();
+      url.pathname = `/en${pathname}`;
+      return NextResponse.redirect(url, 302);
+    }
+    // First visit from abroad (no cookie) → redirect to /en/
     if (!cookieLocale) {
       const url = request.nextUrl.clone();
       url.pathname = `/en${pathname}`;

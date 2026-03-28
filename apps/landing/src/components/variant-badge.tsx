@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Sparkles } from "lucide-react";
 
 const VARIANTS = [
-  { key: null, label: "Utforsk plattformen", tagline: "AI som gjør teamet klar" },
+  { key: null, label: "Utforsk plattformen", tagline: "" },
   { key: "E", label: "Rett på sak", tagline: "Kutt opplæringstiden i to" },
   { key: "T", label: "Enterprise-klar", tagline: "Data, kontroll og compliance" },
   { key: "K", label: "Konsulent-bevist", tagline: "ROI du kan vise kunden" },

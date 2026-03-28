@@ -6,7 +6,7 @@ import { ChevronUp, Sparkles } from "lucide-react";
 import { m, AnimatePresence } from "framer-motion";
 
 const PERSPECTIVES = [
-  { slug: "/", code: "B", tagline: "AI som gjør teamet klar", label: "Plattform" },
+  { slug: "/", code: "B", tagline: "", label: "Plattform" },
   { slug: "/drift", code: "E", tagline: "Kaos koster mer enn du tror", label: "Drift" },
   { slug: "/tilsyn", code: "T", tagline: "Alltid klar for tilsyn", label: "Compliance" },
   { slug: "/vekst", code: "K", tagline: "Voks uten å miste kvalitet", label: "Vekst" },
