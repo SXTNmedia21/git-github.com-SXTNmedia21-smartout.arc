@@ -1,7 +1,7 @@
 ---
 title: Development Dashboard
 status: in_progress
-updated: 2026-03-29
+updated: 2026-03-28
 created: 2026-03-02
 module: meta
 tags: [dashboard, worktrees, tracking]
@@ -61,6 +61,7 @@ tags: [dashboard, worktrees, tracking]
 
 | Date       | Feature                      | Branch                                                             | Merged To   |
 | ---------- | ---------------------------- | ------------------------------------------------------------------ | ----------- |
+| 2026-03-28 | telegram-walkai-adapter      | `feat/telegram-walkai-adapter`                                     | development |
 | 2026-03-29 | telemetry-botsson-reactive   | `feat/telemetry-botsson-reactive`                                  | development |
 | 2026-03-28 | profession-system            | `feat/profession-system`                                           | development |
 | 2026-03-28 | sjohuset-simulator           | `feat/sjohuset-simulator`                                          | development |
@@ -131,6 +132,7 @@ tags: [dashboard, worktrees, tracking]
 
 ## Session History
 
+| 2026-03-28 | development | session ended | session ended |
 | 2026-03-29 | telemetry-botsson-reactive | closed | 13 commits, 29 tests, 2200+ lines. Error telemetry + reactive Botsson + escalation gates. wt-2 freed. |
 | 2026-03-29 | dashboard-filters | started | wt-3, module: dashboard |
 | 2026-03-28 | dynamic-landing-engine | session ended | session ended |

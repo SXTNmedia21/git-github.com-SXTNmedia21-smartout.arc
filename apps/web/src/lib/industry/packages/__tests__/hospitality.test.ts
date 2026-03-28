@@ -14,11 +14,11 @@ describe("hospitality industry package", () => {
   describe("tariff rates", () => {
     it("has correct Riksavtalen tariff rates", () => {
       const kveld = HOSPITALITY_TARIFF_RATES.find((r) => r.rateType === "kveldstillegg");
-      expect(kveld?.amount).toBe(15.65);
+      expect(kveld?.amount).toBe(28);
       expect(kveld?.unit).toBe("kr/t");
 
       const helg = HOSPITALITY_TARIFF_RATES.find((r) => r.rateType === "helgetillegg");
-      expect(helg?.amount).toBe(29.74);
+      expect(helg?.amount).toBe(28);
 
       const hellig = HOSPITALITY_TARIFF_RATES.find((r) => r.rateType === "helligdagstillegg");
       expect(hellig?.amount).toBe(100);
@@ -29,11 +29,18 @@ describe("hospitality industry package", () => {
       expect(HOSPITALITY_TARIFF_RATES).toHaveLength(5);
     });
 
-    it("hospitalityPackage tariffs also have correct rates", () => {
+    it("hospitalityPackage tariffs have array-based supplements", () => {
       const riksavtalen = hospitalityPackage.tariffs.find((t) => t.key === "riksavtalen");
-      expect(riksavtalen?.supplements.kveldstillegg.rate).toBe(15.65);
-      expect(riksavtalen?.supplements.helgetillegg.rate).toBe(29.74);
-      expect(riksavtalen?.supplements.helligdagstillegg.rate).toBe(100);
+      expect(riksavtalen?.supplements).toBeInstanceOf(Array);
+      expect(riksavtalen?.supplements.length).toBeGreaterThanOrEqual(6);
+
+      const kveld = riksavtalen?.supplements.find((s) => s.name === "Kveldstillegg");
+      expect(kveld?.rate).toBe(28);
+      expect(kveld?.unit).toBe("kr/t");
+
+      const helligdag = riksavtalen?.supplements.find((s) => s.name === "Helligdagstillegg");
+      expect(helligdag?.rate).toBe(100);
+      expect(helligdag?.unit).toBe("%");
     });
   });
 

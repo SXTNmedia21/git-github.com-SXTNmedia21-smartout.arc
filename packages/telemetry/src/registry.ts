@@ -32,7 +32,8 @@ export type EventCategory =
   | "system"
   | "navigation"
   | "channels"
-  | "agent";
+  | "agent"
+  | "telegram";
 
 // ─── Entity Reference (for robust UI audit trails) ─
 export interface EntityRef {
@@ -2072,6 +2073,57 @@ export interface EntityDrawerTabSwitched extends BaseEvent {
   };
 }
 
+// ─── Telegram Events ────────────────────────────
+export interface TelegramSessionCreated extends BaseEvent {
+  event: "telegram session_created";
+  properties: { data: { session_id: string } };
+}
+
+export interface TelegramMessageReceived extends BaseEvent {
+  event: "telegram message_received";
+  properties: { data: { text: string } };
+}
+
+export interface TelegramMessageSent extends BaseEvent {
+  event: "telegram message_sent";
+  properties: { data: { text: string } };
+}
+
+export interface TelegramEscalationSent extends BaseEvent {
+  event: "telegram escalation_sent";
+  properties: { data: { title: string; severity: string } };
+}
+
+export interface TelegramEscalationResolved extends BaseEvent {
+  event: "telegram escalation_resolved";
+  properties: { data: { action_type: string } };
+}
+
+export interface TelegramPollSent extends BaseEvent {
+  event: "telegram poll_sent";
+  properties: { data: { question: string; option_count: number } };
+}
+
+export interface TelegramPollResolved extends BaseEvent {
+  event: "telegram poll_resolved";
+  properties: { data: { poll_id: string; selected_options: string[] } };
+}
+
+export interface TelegramBridgeOpened extends BaseEvent {
+  event: "telegram bridge_opened";
+  properties: { data: { channel_id: string } };
+}
+
+export interface TelegramBridgeClosed extends BaseEvent {
+  event: "telegram bridge_closed";
+  properties: { data: { channel_id: string; duration_ms: number } };
+}
+
+export interface TelegramBridgeMessageRelayed extends BaseEvent {
+  event: "telegram bridge_message_relayed";
+  properties: { data: { direction: "smartout_to_telegram" | "telegram_to_smartout" } };
+}
+
 // ─── The Single Truth Union ─────────────────────
 // Add every feature's events here. If it isn't here, it can't be emitted.
 export type SmartoutEvent =
@@ -2298,7 +2350,17 @@ export type SmartoutEvent =
   | LegalFunctionAssigned
   | ProfileAccessGranted
   | ProfileAccessRevoked
-  | OnboardingProfessionsConfirmed;
+  | OnboardingProfessionsConfirmed
+  | TelegramSessionCreated
+  | TelegramMessageReceived
+  | TelegramMessageSent
+  | TelegramEscalationSent
+  | TelegramEscalationResolved
+  | TelegramPollSent
+  | TelegramPollResolved
+  | TelegramBridgeOpened
+  | TelegramBridgeClosed
+  | TelegramBridgeMessageRelayed;
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -3161,5 +3223,46 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "profession confirmed": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "onboarding",
+  },
+  // ─── Telegram ─────────────────────────────────
+  "telegram session_created": {
+    destinations: ["logger", "activity_trail"],
+    category: "telegram",
+  },
+  "telegram message_received": {
+    destinations: ["logger", "activity_trail"],
+    category: "telegram",
+  },
+  "telegram message_sent": {
+    destinations: ["logger", "activity_trail"],
+    category: "telegram",
+  },
+  "telegram escalation_sent": {
+    destinations: ["logger", "activity_trail"],
+    category: "telegram",
+  },
+  "telegram escalation_resolved": {
+    destinations: ["logger", "activity_trail", "posthog"],
+    category: "telegram",
+  },
+  "telegram poll_sent": {
+    destinations: ["logger", "activity_trail"],
+    category: "telegram",
+  },
+  "telegram poll_resolved": {
+    destinations: ["logger", "activity_trail", "posthog"],
+    category: "telegram",
+  },
+  "telegram bridge_opened": {
+    destinations: ["logger", "activity_trail"],
+    category: "telegram",
+  },
+  "telegram bridge_closed": {
+    destinations: ["logger", "activity_trail"],
+    category: "telegram",
+  },
+  "telegram bridge_message_relayed": {
+    destinations: ["logger"],
+    category: "telegram",
   },
 };

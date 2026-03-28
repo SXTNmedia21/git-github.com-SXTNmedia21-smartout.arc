@@ -29,7 +29,8 @@ export type FilterKey =
   | "nightwork"
   | "minors"
   | "foreignWorkers"
-  | "cashHandling";
+  | "cashHandling"
+  | "tips";
 
 type Industry = "restaurant" | "hotel" | "cafe" | "bar" | "catering" | "other";
 
@@ -109,6 +110,11 @@ export const FILTER_QUESTIONS: Array<{ key: FilterKey; label: string; descriptio
     label: "Kontanth\u00e5ndtering",
     description: "H\u00e5ndterer dere kontanter i kasse?",
   },
+  {
+    key: "tips",
+    label: "Tipsh\u00e5ndtering",
+    description: "Mottar ansatte tips/drikkepenger?",
+  },
 ];
 
 // ══════════════════════════════════════════════════════════════
@@ -125,6 +131,7 @@ export const INDUSTRY_DEFAULTS: Record<Industry, Record<FilterKey, boolean>> = {
     minors: false,
     foreignWorkers: true,
     cashHandling: true,
+    tips: true,
   },
   hotel: {
     food: true,
@@ -135,6 +142,7 @@ export const INDUSTRY_DEFAULTS: Record<Industry, Record<FilterKey, boolean>> = {
     minors: false,
     foreignWorkers: true,
     cashHandling: true,
+    tips: true,
   },
   cafe: {
     food: true,
@@ -145,6 +153,7 @@ export const INDUSTRY_DEFAULTS: Record<Industry, Record<FilterKey, boolean>> = {
     minors: true,
     foreignWorkers: false,
     cashHandling: true,
+    tips: true,
   },
   bar: {
     food: false,
@@ -155,6 +164,7 @@ export const INDUSTRY_DEFAULTS: Record<Industry, Record<FilterKey, boolean>> = {
     minors: false,
     foreignWorkers: true,
     cashHandling: true,
+    tips: true,
   },
   catering: {
     food: true,
@@ -165,6 +175,7 @@ export const INDUSTRY_DEFAULTS: Record<Industry, Record<FilterKey, boolean>> = {
     minors: false,
     foreignWorkers: false,
     cashHandling: false,
+    tips: false,
   },
   other: {
     food: false,
@@ -175,6 +186,7 @@ export const INDUSTRY_DEFAULTS: Record<Industry, Record<FilterKey, boolean>> = {
     minors: false,
     foreignWorkers: false,
     cashHandling: false,
+    tips: false,
   },
 };
 
@@ -1433,6 +1445,89 @@ export const GOVERNANCE_TEMPLATES: GovernanceTemplate[] = [
     longDescription:
       "Virksomheter som handterer kontanter ma risikovurdere ranfare og ha forebyggende tiltak. Dekker kontantbegrensning i kasse, saferutiner, sikkerhet ved alenearbeid kveld/natt, handtering under ran, og pliktig psykologisk oppfolging etterpå.",
     legalBasis: "AML \u00A73-2 + Forskrift om utforelse av arbeid kap. 23A: Vold og trusler",
+  },
+
+  // ── FILTER: Tipsh\u00e5ndtering ──
+  {
+    id: "tpl-tipshandtering",
+    name: "Tipsh\u00e5ndtering",
+    description: "Retningslinjer for innsamling, fordeling og rapportering av tips.",
+    policy_type: "operational",
+    filterKey: "tips",
+    protocol: {
+      name: "Tipsprotokoll",
+      description: "Protokoll for rettferdig og lovlig h\u00e5ndtering av drikkepenger.",
+    },
+    procedures: [
+      {
+        name: "Tipsrutine",
+        description: "Rutiner for innsamling, fordeling og skattemessig rapportering av tips.",
+        procedure_type: "standard" as const,
+        steps: [
+          {
+            title: "Innsamling",
+            description:
+              "Tips samles via kasse, Vipps eller kontant. Alle tips registreres i kassasystemet eller eget skjema. Ingenting holdes utenfor.",
+            step_order: 1,
+            is_required: true,
+            estimated_minutes: 5,
+          },
+          {
+            title: "Fordeling",
+            description:
+              "Tips fordeles etter virksomhetens modell (likt, vektet etter timer, eller poolbasert). Fordelingsmodellen m\u00e5 v\u00e6re dokumentert og kjent for alle ansatte.",
+            step_order: 2,
+            is_required: true,
+            estimated_minutes: 10,
+          },
+          {
+            title: "Rapportering til skatt",
+            description:
+              "Arbeidsgiver rapporterer tips via a-meldingen. Alle tips er skattepliktig inntekt. Arbeidsgiveravgift beregnes p\u00e5 tips.",
+            step_order: 3,
+            is_required: true,
+            estimated_minutes: 10,
+          },
+        ],
+      },
+    ],
+    knowledgeTest: {
+      name: "Tips-kunnskapstest",
+      pass_threshold: 80,
+      questions: [
+        {
+          id: "tips-q1",
+          text: "Er tips skattepliktig inntekt i Norge?",
+          options: [
+            { id: "tips-q1-a", text: "Nei, tips er skattefritt" },
+            { id: "tips-q1-b", text: "Ja, alle tips er skattepliktig inntekt" },
+            { id: "tips-q1-c", text: "Bare tips over 500 kr" },
+            { id: "tips-q1-d", text: "Bare kontanttips" },
+          ],
+          correctOptionId: "tips-q1-b",
+        },
+        {
+          id: "tips-q2",
+          text: "Hvem har ansvar for \u00e5 rapportere tips til skattemyndighetene?",
+          options: [
+            { id: "tips-q2-a", text: "Hver enkelt ansatt" },
+            { id: "tips-q2-b", text: "Arbeidsgiver, via a-meldingen" },
+            { id: "tips-q2-c", text: "Ingen, det er frivillig" },
+            { id: "tips-q2-d", text: "Regnskapsf\u00f8rer" },
+          ],
+          correctOptionId: "tips-q2-b",
+        },
+      ],
+    },
+    confirmation: {
+      name: "Tips-bekreftelse",
+      confirmation_text:
+        "Jeg bekrefter at jeg har lest og forst\u00e5r tipsrutinene, og vet at alle tips er skattepliktig inntekt som rapporteres av arbeidsgiver.",
+      requires_signature: true,
+    },
+    longDescription:
+      "Alle tips er skattepliktig inntekt fra 2019. Arbeidsgiver m\u00e5 rapportere tips via a-meldingen og betale arbeidsgiveravgift. Denne retningslinjen dekker innsamling, fordelingsmodell og skattemessig rapportering. Skatteetaten utf\u00f8rer aktive kontroller i serveringsbransjen.",
+    legalBasis: "Skatteloven \u00A75-1 + A-opplysningsloven: Tips er skattepliktig inntekt",
   },
 
   // 10. Emballasjehygiene (delivery)

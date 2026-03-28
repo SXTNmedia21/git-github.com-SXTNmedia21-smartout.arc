@@ -25,13 +25,16 @@
     "@supabase/supabase-js": "^2.49.4",
     "ai": "^6.0.103",
     "hono": "^4.7.0",
+    "pg": "^8.20.0",
     "ws": "^8.19.0",
     "zod": "^3.24.2"
   },
   "devDependencies": {
     "@types/node": "^22.13.5",
+    "@types/pg": "^8.20.0",
     "@types/ws": "^8.18.1",
     "tsx": "^4.19.3",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vitest": "^4.0.18"
   }
 }

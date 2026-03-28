@@ -10,16 +10,23 @@ export type IndustryType = "hospitality" | "retail" | "default";
 
 export type IndustryFilterKey = "food" | "alcohol" | "overnight" | "delivery";
 
+export type TariffSupplement = {
+  id: string;
+  name: string;
+  rate: number;
+  unit: "kr/t" | "%";
+  condition_type: "time_range" | "after_hours" | "days" | "always";
+  from_hour?: string;
+  to_hour?: string;
+  after_hours?: number;
+  days?: string[];
+  description?: string;
+};
+
 export type IndustryTariff = {
   key: string;
   label: string;
-  supplements: {
-    kveldstillegg: { rate: number; unit: string; from_hour: string; to_hour: string };
-    helgetillegg: { rate: number; unit: string; days: string[] };
-    helligdagstillegg: { rate: number; unit: string };
-    overtid_50: { threshold_hours: number; unit: string };
-    overtid_100: { threshold_hours: number; unit: string };
-  };
+  supplements: TariffSupplement[];
   minWagePerHour: number;
 };
 

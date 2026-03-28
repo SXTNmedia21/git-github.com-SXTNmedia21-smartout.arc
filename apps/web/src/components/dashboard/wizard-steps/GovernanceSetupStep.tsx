@@ -1,16 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useMemo } from "react";
-import {
-  Plus,
-  Shield,
-  ShieldCheck,
-  CheckCircle2,
-  Loader2,
-  FileText,
-  ChevronDown,
-  ScrollText,
-} from "lucide-react";
+import { Plus, CheckCircle2, Loader2, FileText, ChevronDown, ScrollText } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import {
   Sheet,
@@ -178,8 +169,7 @@ function GovernanceDrawer({
           </SheetDescription>
         </SheetHeader>
 
-        <div className="mt-6 space-y-6">
-          {/* Create all button */}
+        <div className="mt-6 space-y-4">
           {uncreatedCount > 0 && (
             <button
               onClick={onCreateAll}
@@ -195,54 +185,23 @@ function GovernanceDrawer({
             </button>
           )}
 
-          {/* Mandatory */}
           <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="text-destructive h-4 w-4" />
-              <span className="text-destructive/80 text-xs font-bold tracking-wider uppercase">
-                Lovp&aring;lagt
-              </span>
-            </div>
-            <div className="space-y-2">
-              {mandatory.map((t) => (
+            {[...mandatory, ...recommended].map((t) => {
+              const isMandatory = mandatory.includes(t);
+              return (
                 <TemplateCard
                   key={t.id}
                   template={t}
                   isCreated={createdNames.has(t.name)}
                   isCreating={creatingId === t.id}
-                  isMandatory
-                  isChecked
+                  isMandatory={isMandatory}
+                  isChecked={isMandatory || !unchecked.has(t.id)}
+                  onToggle={isMandatory ? undefined : () => onTemplateToggle(t.id)}
                   onCreate={() => onCreate(t)}
                 />
-              ))}
-            </div>
+              );
+            })}
           </div>
-
-          {/* Recommended */}
-          {recommended.length > 0 && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Shield className="text-brand-orange h-4 w-4" />
-                <span className="text-brand-orange/80 text-xs font-bold tracking-wider uppercase">
-                  Anbefalt
-                </span>
-              </div>
-              <div className="space-y-2">
-                {recommended.map((t) => (
-                  <TemplateCard
-                    key={t.id}
-                    template={t}
-                    isCreated={createdNames.has(t.name)}
-                    isCreating={creatingId === t.id}
-                    isMandatory={false}
-                    isChecked={!unchecked.has(t.id)}
-                    onToggle={() => onTemplateToggle(t.id)}
-                    onCreate={() => onCreate(t)}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </SheetContent>
     </Sheet>
@@ -269,6 +228,7 @@ export function GovernanceSetupStep({
         minors: false,
         foreignWorkers: false,
         cashHandling: false,
+        tips: false,
       };
     return industryPackage.filterDefaults as Record<FilterKey, boolean>;
   }, [industryPackage]);
@@ -429,51 +389,25 @@ export function GovernanceSetupStep({
       </div>
 
       {/* Summary + open drawer */}
-      {activeFilters > 0 && (
-        <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="border-border bg-card/50 flex items-center gap-3 rounded-xl border px-5 py-4">
-              <ShieldCheck className="text-destructive h-5 w-5 shrink-0" />
-              <div>
-                <p className="text-foreground text-lg font-bold">{mandatory.length}</p>
-                <p className="text-muted-foreground text-xs">Lovp&aring;lagte</p>
-              </div>
-            </div>
-            <div className="border-border bg-card/50 flex items-center gap-3 rounded-xl border px-5 py-4">
-              <Shield className="text-brand-orange h-5 w-5 shrink-0" />
-              <div>
-                <p className="text-foreground text-lg font-bold">{recommended.length}</p>
-                <p className="text-muted-foreground text-xs">Anbefalte</p>
-              </div>
-            </div>
-          </div>
-
-          {createdCount > 0 && (
-            <div className="border-success/30 bg-success/5 flex items-center gap-3 rounded-xl border px-5 py-3">
-              <CheckCircle2 className="text-success h-5 w-5 shrink-0" />
-              <p className="text-success text-sm font-medium">
-                {createdCount} retningslinje{createdCount !== 1 ? "r" : ""} aktivert
-              </p>
-            </div>
-          )}
-
-          <button
-            type="button"
-            onClick={() => setDrawerOpen(true)}
-            className="border-border bg-card hover:bg-accent flex w-full items-center gap-3 rounded-xl border px-5 py-4 text-left transition-colors"
-          >
-            <ScrollText className="text-brand-orange h-5 w-5 shrink-0" />
-            <div className="min-w-0 flex-1">
-              <p className="text-foreground text-sm font-semibold">Se retningslinjer og policies</p>
-              <p className="text-muted-foreground text-sm">
-                {mandatory.length} lovp&aring;lagte, {recommended.length} anbefalte
-                {uncreatedCount > 0 ? ` \u2014 ${uncreatedCount} gjenstår` : ""}
-              </p>
-            </div>
-            <span className="text-muted-foreground text-sm font-medium">&rarr;</span>
-          </button>
+      <button
+        type="button"
+        onClick={() => setDrawerOpen(true)}
+        className="border-border bg-card hover:bg-accent flex w-full items-center gap-3 rounded-xl border px-5 py-4 text-left transition-colors"
+      >
+        <ScrollText className="text-brand-orange h-5 w-5 shrink-0" />
+        <div className="min-w-0 flex-1">
+          <p className="text-foreground text-sm font-semibold">
+            {mandatory.length + recommended.length} retningslinjer
+            {createdCount > 0 && (
+              <span className="text-success ml-2 text-xs font-normal">
+                ({createdCount} aktivert)
+              </span>
+            )}
+          </p>
+          <p className="text-muted-foreground text-sm">Trykk for &aring; se og aktivere</p>
         </div>
-      )}
+        <span className="text-muted-foreground text-sm font-medium">&rarr;</span>
+      </button>
     </div>
   );
 }

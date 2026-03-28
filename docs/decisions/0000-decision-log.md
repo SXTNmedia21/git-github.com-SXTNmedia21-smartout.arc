@@ -19,3 +19,14 @@ tags: [decisions]
 | 6   | 2026-03-28 | Skjenkeansvarlig has NULL profession_id — applies across all alcohol-serving professions      | accepted |
 | 7   | 2026-03-28 | `profile_access.scope` validated by regex CHECK — format: domain.action                       | accepted |
 | 8   | 2026-03-28 | All manage RLS policies require `is_admin_in_workspace()` — prevents employee self-assignment | accepted |
+
+module: stage-engine
+tags: [decisions]
+
+---
+
+# Decision Log — telegram-walkai-adapter
+
+| #    | Date       | Decision                           | Status   | Module       | Notes                                                                  |
+| ---- | ---------- | ---------------------------------- | -------- | ------------ | ---------------------------------------------------------------------- |
+| 0059 | 2026-03-28 | Platform Admin Pipeline Separation | accepted | stage-engine | routeAdminMessage() separate from workspace-scoped routeAgentMessage() |

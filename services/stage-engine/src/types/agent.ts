@@ -11,7 +11,7 @@ export type AgentChatRequest = {
   message: string;
   session_id?: string;
   profile_id: string;
-  channel?: "chat" | "voice";
+  channel?: "chat" | "voice" | "telegram";
 };
 
 /** Response from the agent chat endpoint */

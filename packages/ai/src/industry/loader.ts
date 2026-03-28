@@ -92,36 +92,18 @@ function findRate(rates: TariffRow[], rateType: string): TariffRow | undefined {
   return rates.find((r) => r.rate_type === rateType);
 }
 
-/** Apply DB tariff rates to the hardcoded package shape */
+/** Apply DB tariff rates to the hardcoded package supplements (array-based) */
 function applyRatesToPackage(base: IndustryPackage, rates: TariffRow[]): IndustryPackage {
-  const kveld = findRate(rates, "kveldstillegg");
-  const helg = findRate(rates, "helgetillegg");
-  const hellig = findRate(rates, "helligdagstillegg");
-  const ot50 = findRate(rates, "overtidstillegg_50");
-  const ot100 = findRate(rates, "overtidstillegg_100");
   const minWage = findRate(rates, "minstelonn");
 
   return {
     ...base,
     tariffs: base.tariffs.map((tariff) => ({
       ...tariff,
-      supplements: {
-        kveldstillegg: kveld
-          ? { ...tariff.supplements.kveldstillegg, rate: kveld.amount }
-          : tariff.supplements.kveldstillegg,
-        helgetillegg: helg
-          ? { ...tariff.supplements.helgetillegg, rate: helg.amount }
-          : tariff.supplements.helgetillegg,
-        helligdagstillegg: hellig
-          ? { ...tariff.supplements.helligdagstillegg, rate: hellig.amount }
-          : tariff.supplements.helligdagstillegg,
-        overtid_50: ot50
-          ? { ...tariff.supplements.overtid_50, threshold_hours: ot50.amount }
-          : tariff.supplements.overtid_50,
-        overtid_100: ot100
-          ? { ...tariff.supplements.overtid_100, threshold_hours: ot100.amount }
-          : tariff.supplements.overtid_100,
-      },
+      supplements: tariff.supplements.map((s) => {
+        const dbRate = findRate(rates, s.id) ?? findRate(rates, s.name.toLowerCase());
+        return dbRate ? { ...s, rate: dbRate.amount } : s;
+      }),
       minWagePerHour: minWage ? minWage.amount : tariff.minWagePerHour,
     })),
   };

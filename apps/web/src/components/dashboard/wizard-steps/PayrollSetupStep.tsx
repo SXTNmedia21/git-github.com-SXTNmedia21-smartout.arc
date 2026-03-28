@@ -6,68 +6,218 @@ import { toast } from "sonner";
 import { CheckCircle2, Loader2, Plus, X } from "lucide-react";
 import { createClient } from "@smartout/supabase/client";
 import type { Json } from "@smartout/supabase";
+import type { TariffSupplement, IndustryTariff } from "@smartout/types";
 import { useWorkspace } from "@/lib/workspace-context";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { emit } from "@smartout/telemetry";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { HelpTip } from "@/components/dashboard/wizard-steps/HelpTip";
-import type { IndustryTariff } from "@/lib/industry/types";
 
-// ─── Slug helper (duplicated to avoid org-component import) ──
+// ─── Add Supplement Dialog ──────────────────────────────
 
-function toSlug(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[æ]/g, "ae")
-    .replace(/[ø]/g, "oe")
-    .replace(/[å]/g, "aa")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
+const EMPTY_DRAFT: Omit<TariffSupplement, "id"> = {
+  name: "",
+  rate: 0,
+  unit: "kr/t",
+  condition_type: "always",
+  from_hour: "21:00",
+  to_hour: "06:00",
+  after_hours: 2,
+  description: "",
+};
+
+function AddSupplementDialog({
+  open,
+  onOpenChange,
+  onAdd,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onAdd: (supplement: TariffSupplement) => void;
+}) {
+  const [draft, setDraft] = useState<Omit<TariffSupplement, "id">>(EMPTY_DRAFT);
+
+  const handleAdd = useCallback(() => {
+    if (!draft.name.trim()) {
+      toast.error("Gi tillegget et navn");
+      return;
+    }
+    onAdd({ ...draft, id: crypto.randomUUID() });
+    setDraft(EMPTY_DRAFT);
+    onOpenChange(false);
+  }, [draft, onAdd, onOpenChange]);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Legg til tillegg</DialogTitle>
+          <DialogDescription>
+            Definer et nytt l&oslash;nnstillegg med sats og betingelser.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          <div className="space-y-2">
+            <Label className="text-sm">Navn</Label>
+            <Input
+              value={draft.name}
+              onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
+              placeholder="F.eks. Nattillegg, Ansiennitetstillegg"
+              autoFocus
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label className="text-sm">Sats</Label>
+              <Input
+                type="number"
+                value={draft.rate || ""}
+                onChange={(e) => setDraft((d) => ({ ...d, rate: Number(e.target.value) || 0 }))}
+                placeholder="0"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm">Type</Label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setDraft((d) => ({ ...d, unit: "kr/t" }))}
+                  className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+                    draft.unit === "kr/t"
+                      ? "border-brand-orange bg-brand-orange/5 text-foreground"
+                      : "border-border text-muted-foreground"
+                  }`}
+                >
+                  kr/t
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDraft((d) => ({ ...d, unit: "%" }))}
+                  className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+                    draft.unit === "%"
+                      ? "border-brand-orange bg-brand-orange/5 text-foreground"
+                      : "border-border text-muted-foreground"
+                  }`}
+                >
+                  %
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm">Betingelse</Label>
+            <div className="flex gap-2">
+              {(["always", "time_range", "after_hours", "days"] as const).map((ct) => (
+                <button
+                  key={ct}
+                  type="button"
+                  onClick={() => setDraft((d) => ({ ...d, condition_type: ct }))}
+                  className={`flex-1 rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${
+                    draft.condition_type === ct
+                      ? "border-brand-orange bg-brand-orange/5 text-foreground"
+                      : "border-border text-muted-foreground"
+                  }`}
+                >
+                  {ct === "always" && "Alltid"}
+                  {ct === "time_range" && "Tidsrom"}
+                  {ct === "after_hours" && "Etter X t"}
+                  {ct === "days" && "Ukedager"}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {draft.condition_type === "time_range" && (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label className="text-sm">Fra</Label>
+                <Input
+                  type="time"
+                  value={draft.from_hour ?? "21:00"}
+                  onChange={(e) => setDraft((d) => ({ ...d, from_hour: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm">Til</Label>
+                <Input
+                  type="time"
+                  value={draft.to_hour ?? "06:00"}
+                  onChange={(e) => setDraft((d) => ({ ...d, to_hour: e.target.value }))}
+                />
+              </div>
+            </div>
+          )}
+
+          {draft.condition_type === "after_hours" && (
+            <div className="space-y-2">
+              <Label className="text-sm">Etter antall timer</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  value={draft.after_hours ?? 2}
+                  onChange={(e) =>
+                    setDraft((d) => ({ ...d, after_hours: Number(e.target.value) || 0 }))
+                  }
+                  className="w-28"
+                />
+                <span className="text-muted-foreground text-sm">timer</span>
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Label className="text-sm">Beskrivelse (valgfritt)</Label>
+            <Input
+              value={draft.description ?? ""}
+              onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))}
+              placeholder="F.eks. Gjelder alle ansatte med nattskift"
+            />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            className="border-border text-muted-foreground hover:text-foreground rounded-lg border px-4 py-2 text-sm transition-colors"
+          >
+            Avbryt
+          </button>
+          <button
+            type="button"
+            onClick={handleAdd}
+            className="bg-brand-orange hover:bg-brand-orange/90 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors"
+          >
+            Legg til
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
-// ─── Types ───────────────────────────────────────────────
+// ─── Supplement description helper ──────────────────────
 
-type SupplementState = {
-  kveldstillegg: { rate: number; unit: string; from_hour: string; to_hour: string };
-  helgetillegg: { rate: number; unit: string; days: string[] };
-  helligdagstillegg: { rate: number; unit: string };
-  overtid_50: { threshold_hours: number; unit: string };
-  overtid_100: { threshold_hours: number; unit: string };
-};
-
-type CustomSupplement = {
-  id: string;
-  name: string;
-  rate: number;
-  unit: string;
-  description: string;
-};
-
-type PositionWage = {
-  position_id: string;
-  name: string;
-  hourly_rate: number;
-};
-
-// ─── Constants ───────────────────────────────────────────
-
-const EMPTY_SUPPLEMENT_STATE: SupplementState = {
-  kveldstillegg: { rate: 0, unit: "kr/t", from_hour: "21:00", to_hour: "06:00" },
-  helgetillegg: { rate: 0, unit: "kr/t", days: ["lordag", "sondag"] },
-  helligdagstillegg: { rate: 0, unit: "%" },
-  overtid_50: { threshold_hours: 9, unit: "t/dag" },
-  overtid_100: { threshold_hours: 13, unit: "t/dag" },
-};
-
-const SUPPLEMENT_LABELS: Record<keyof SupplementState, string> = {
-  kveldstillegg: "Kveldstillegg",
-  helgetillegg: "Helgetillegg",
-  helligdagstillegg: "Helligdagstillegg",
-  overtid_50: "Overtid 50%",
-  overtid_100: "Overtid 100%",
-};
+function supplementConditionText(s: TariffSupplement): string {
+  if (s.condition_type === "time_range" && s.from_hour && s.to_hour)
+    return `${s.from_hour} \u2013 ${s.to_hour}`;
+  if (s.condition_type === "after_hours" && s.after_hours) return `Etter ${s.after_hours} timer`;
+  if (s.condition_type === "days" && s.days?.length) return s.days.join(", ");
+  return s.description ?? "";
+}
 
 // ─── PayrollSetupStep ────────────────────────────────────
 
@@ -88,7 +238,6 @@ export function PayrollSetupStep({
   const { profileId } = useContext(DashboardContext);
   const queryClient = useQueryClient();
 
-  // ── Derived from industry package ──
   const tariffOptions = useMemo(() => {
     const options: { value: string; label: string }[] = [];
     if (industryTariffs) {
@@ -101,42 +250,27 @@ export function PayrollSetupStep({
     return options;
   }, [industryTariffs]);
 
-  const tariffPresets = useMemo(() => {
-    const presets: Record<string, SupplementState> = {};
+  const tariffSupplementMap = useMemo(() => {
+    const map: Record<string, TariffSupplement[]> = {};
     if (industryTariffs) {
       for (const t of industryTariffs) {
-        presets[t.key] = t.supplements;
+        map[t.key] = t.supplements;
       }
     }
-    presets.ingen = EMPTY_SUPPLEMENT_STATE;
-    presets.annen = EMPTY_SUPPLEMENT_STATE;
-    return presets;
+    map.ingen = [];
+    map.annen = [];
+    return map;
   }, [industryTariffs]);
-
-  const getHourlyRate = useCallback(
-    (tariffKey: string) => {
-      const tariff = industryTariffs?.find((t) => t.key === tariffKey);
-      return tariff?.minWagePerHour ?? 0;
-    },
-    [industryTariffs],
-  );
 
   // ── State ──
   const initialTariff = defaultTariffKey ?? "ingen";
   const [selectedTariff, setSelectedTariff] = useState(initialTariff);
-  const [supplements, setSupplements] = useState<SupplementState>(
-    () => tariffPresets[initialTariff] ?? EMPTY_SUPPLEMENT_STATE,
+  const [supplements, setSupplements] = useState<TariffSupplement[]>(
+    () => tariffSupplementMap[initialTariff] ?? [],
   );
-  const [positionWages, setPositionWages] = useState<PositionWage[]>([]);
-  const [customSupplements, setCustomSupplements] = useState<CustomSupplement[]>([]);
-  const [wagesInitialized, setWagesInitialized] = useState(false);
+  const [customSupplements, setCustomSupplements] = useState<TariffSupplement[]>([]);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
 
-  // ── Inline position creation state ──
-  const [newPositionName, setNewPositionName] = useState("");
-  const [newPositionDeptId, setNewPositionDeptId] = useState("");
-  const [isAddingPosition, setIsAddingPosition] = useState(false);
-
-  // ── Queries ──
   const { data: existingPolicies } = useQuery({
     queryKey: ["payroll-policies", workspace.workspace.workspace_id],
     queryFn: async () => {
@@ -151,211 +285,54 @@ export function PayrollSetupStep({
     },
   });
 
-  const { data: positions } = useQuery({
-    queryKey: ["positions", workspace.workspace.workspace_id],
-    queryFn: async () => {
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .from("position")
-        .select("position_id, name")
-        .eq("workspace_id", workspace.workspace.workspace_id)
-        .eq("is_active", true)
-        .order("name");
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const { data: departments } = useQuery({
-    queryKey: ["departments-for-positions", workspace.workspace.workspace_id],
-    queryFn: async () => {
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .from("department")
-        .select("department_id, name")
-        .eq("workspace_id", workspace.workspace.workspace_id)
-        .eq("is_active", true)
-        .order("name");
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const stableDepartments = useMemo(() => departments ?? [], [departments]);
-
-  const stablePositions = useMemo(() => positions ?? [], [positions]);
-
-  // Initialize position wages when positions load
-  useEffect(() => {
-    if (stablePositions.length > 0 && !wagesInitialized) {
-      const defaultRate = getHourlyRate(selectedTariff);
-      setPositionWages(
-        stablePositions.map((p) => ({
-          position_id: p.position_id,
-          name: p.name,
-          hourly_rate: defaultRate,
-        })),
-      );
-      setWagesInitialized(true);
-    }
-  }, [stablePositions, wagesInitialized, selectedTariff, getHourlyRate]);
-
   // ── Handlers ──
   const handleTariffChange = useCallback(
     (value: string) => {
       setSelectedTariff(value);
-      setSupplements(tariffPresets[value] ?? EMPTY_SUPPLEMENT_STATE);
-      const rate = getHourlyRate(value);
-      setPositionWages((prev) => prev.map((pw) => ({ ...pw, hourly_rate: rate })));
+      setSupplements(tariffSupplementMap[value] ?? []);
     },
-    [tariffPresets, getHourlyRate],
+    [tariffSupplementMap],
   );
 
-  // Wire extracted payroll — pre-fill tariff and supplements from extraction data
   useEffect(() => {
     if (!extractedPayroll?.tariff) return;
     const match = tariffOptions.find((o) =>
       o.label.toLowerCase().includes(extractedPayroll.tariff!.toLowerCase()),
     );
-    if (match) {
-      handleTariffChange(match.value);
-    }
+    if (match) handleTariffChange(match.value);
+  }, [extractedPayroll, handleTariffChange, tariffOptions]);
 
-    // Override supplements with extracted values if available
-    if (extractedPayroll.supplements && typeof extractedPayroll.supplements === "object") {
-      const ext = extractedPayroll.supplements as Record<string, unknown>;
-      setSupplements((prev) => {
-        const next = { ...prev };
-        if (typeof ext.kveldstillegg === "number")
-          next.kveldstillegg = { ...next.kveldstillegg, rate: ext.kveldstillegg };
-        if (typeof ext.helgetillegg === "number")
-          next.helgetillegg = { ...next.helgetillegg, rate: ext.helgetillegg };
-        if (typeof ext.helligdagstillegg === "number")
-          next.helligdagstillegg = { ...next.helligdagstillegg, rate: ext.helligdagstillegg };
-        return next;
-      });
-    }
-  }, [extractedPayroll, handleTariffChange]);
-
-  const handleSupplementChange = useCallback(
-    (key: keyof SupplementState, field: string, value: string) => {
-      setSupplements((prev) => ({
-        ...prev,
-        [key]: {
-          ...prev[key],
-          [field]: field === "rate" || field === "threshold_hours" ? Number(value) || 0 : value,
-        },
-      }));
-    },
-    [],
-  );
-
-  const handleWageChange = useCallback((positionId: string, value: string) => {
-    setPositionWages((prev) =>
-      prev.map((pw) =>
-        pw.position_id === positionId ? { ...pw, hourly_rate: Number(value) || 0 } : pw,
-      ),
+  const handleSupplementRateChange = useCallback((id: string, value: string) => {
+    setSupplements((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, rate: Number(value) || 0 } : s)),
     );
   }, []);
 
-  // ── Create position inline ──
-  const createPositionMutation = useMutation({
-    mutationFn: async ({ name, departmentId }: { name: string; departmentId: string }) => {
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .from("position")
-        .insert({
-          name: name.trim(),
-          slug: toSlug(name),
-          department_id: departmentId,
-          workspace_id: workspace.workspace.workspace_id,
-          is_active: true,
-          sort_order: positions?.length ?? 0,
-        })
-        .select("position_id, name")
-        .single();
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: (data) => {
-      void emit({
-        event: "button clicked",
-        workspace_id: workspace.workspace.workspace_id,
-        actor_id: profileId ?? "",
-        properties: { trackingId: "wizard-position-created", context: data.name },
-      });
-      toast.success(`Stilling "${data.name}" opprettet`);
-      setNewPositionName("");
-      setIsAddingPosition(false);
-      // Add to position wages immediately
-      const defaultRate = getHourlyRate(selectedTariff);
-      setPositionWages((prev) => [
-        ...prev,
-        { position_id: data.position_id, name: data.name, hourly_rate: defaultRate },
-      ]);
-      void queryClient.invalidateQueries({
-        queryKey: ["positions", workspace.workspace.workspace_id],
-      });
-    },
-    onError: () => {
-      toast.error("Kunne ikke opprette stilling");
-    },
-  });
-
-  const handleCreatePosition = useCallback(() => {
-    if (!newPositionName.trim()) return;
-    const deptId = newPositionDeptId || stableDepartments[0]?.department_id;
-    if (!deptId) {
-      toast.error("Opprett en avdeling først under Organisasjon");
-      return;
-    }
-    createPositionMutation.mutate({ name: newPositionName, departmentId: deptId });
-  }, [newPositionName, newPositionDeptId, stableDepartments, createPositionMutation.mutate]);
-
-  const handleAddCustomSupplement = useCallback(() => {
-    setCustomSupplements((prev) => [
-      ...prev,
-      {
-        id: crypto.randomUUID(),
-        name: "",
-        rate: 0,
-        unit: "kr/t",
-        description: "",
-      },
-    ]);
+  const handleRemoveSupplement = useCallback((id: string) => {
+    setSupplements((prev) => prev.filter((s) => s.id !== id));
   }, []);
 
-  const handleRemoveCustomSupplement = useCallback((id: string) => {
+  const handleAddCustom = useCallback((supplement: TariffSupplement) => {
+    setCustomSupplements((prev) => [...prev, supplement]);
+  }, []);
+
+  const handleRemoveCustom = useCallback((id: string) => {
     setCustomSupplements((prev) => prev.filter((s) => s.id !== id));
   }, []);
 
-  const handleCustomSupplementChange = useCallback(
-    (id: string, field: keyof Omit<CustomSupplement, "id" | "unit">, value: string) => {
-      setCustomSupplements((prev) =>
-        prev.map((s) =>
-          s.id === id ? { ...s, [field]: field === "rate" ? Number(value) || 0 : value } : s,
-        ),
-      );
-    },
-    [],
-  );
-
-  // ── Save mutation ──
+  // ── Save ──
   const saveMutation = useMutation({
     mutationFn: async () => {
       const supabase = createClient();
-
-      // Delete existing payroll policies first (upsert pattern)
       await supabase
         .from("policy")
         .delete()
         .eq("workspace_id", workspace.workspace.workspace_id)
         .eq("policy_type", "payroll");
 
-      // Insert tariff + supplements policy
-      const { error: tariffError } = await supabase.from("policy").insert({
+      const { error } = await supabase.from("policy").insert({
         name: "Tariffavtale og tillegg",
-        statement: "Lønnstillegg og overtidsregler",
+        statement: "L\u00f8nnstillegg og overtidsregler",
         policy_type: "payroll" as const,
         policy_scope: "workspace" as const,
         workspace_id: workspace.workspace.workspace_id,
@@ -366,23 +343,7 @@ export function PayrollSetupStep({
           custom_supplements: customSupplements.filter((s) => s.name.trim() !== ""),
         } as unknown as Json,
       });
-      if (tariffError) throw tariffError;
-
-      // Insert position wages policy (only if positions exist)
-      if (positionWages.length > 0) {
-        const { error: wagesError } = await supabase.from("policy").insert({
-          name: "Stillingslønn",
-          statement: "Grunnlønn per stilling",
-          policy_type: "payroll" as const,
-          policy_scope: "workspace" as const,
-          workspace_id: workspace.workspace.workspace_id,
-          created_by: profileId ?? "",
-          rules_json: {
-            positions: positionWages,
-          } as unknown as Json,
-        });
-        if (wagesError) throw wagesError;
-      }
+      if (error) throw error;
     },
     onSuccess: () => {
       void emit({
@@ -391,40 +352,39 @@ export function PayrollSetupStep({
         actor_id: profileId ?? "",
         properties: { trackingId: "payroll-setup-saved" },
       });
-      toast.success("Lønnsoppsett lagret");
+      toast.success("L\u00f8nnsoppsett lagret");
       void queryClient.invalidateQueries({
         queryKey: ["payroll-policies", workspace.workspace.workspace_id],
       });
     },
     onError: () => {
-      toast.error("Kunne ikke lagre lønnsoppsett");
+      toast.error("Kunne ikke lagre l\u00f8nnsoppsett");
     },
   });
 
-  const handleSave = useCallback(() => {
-    saveMutation.mutate();
-  }, [saveMutation.mutate]);
-
   const hasSaved = (existingPolicies ?? []).length > 0;
+  const allSupplements = [...supplements, ...customSupplements];
 
-  // ── Render ──
   return (
     <div className="space-y-8">
-      {/* Status banner */}
+      <AddSupplementDialog
+        open={addDialogOpen}
+        onOpenChange={setAddDialogOpen}
+        onAdd={handleAddCustom}
+      />
+
       {hasSaved && (
-        <div
-          className={`flex items-center gap-2 rounded-xl border px-4 py-3 ${"border-success bg-success"}`}
-        >
+        <div className="border-success bg-success flex items-center gap-2 rounded-xl border px-4 py-3">
           <CheckCircle2 className="text-success h-5 w-5" />
-          <span className={`text-sm font-medium ${"text-success"}`}>Lønnsoppsett er lagret</span>
+          <span className="text-success text-sm font-medium">L&oslash;nnsoppsett er lagret</span>
         </div>
       )}
 
-      {/* ── Del 1: Tariffavtale ── */}
+      {/* Tariffavtale */}
       <div className="space-y-3">
         <div className="flex items-center gap-2">
-          <h3 className={`text-sm font-bold ${"text-muted-foreground"}`}>Tariffavtale</h3>
-          <HelpTip text="Tariffavtalen bestemmer minstelønn og tillegg. Velg den avtalen din virksomhet følger." />
+          <h3 className="text-muted-foreground text-sm font-bold">Tariffavtale</h3>
+          <HelpTip text="Tariffavtalen bestemmer tillegg og satser. Velg den avtalen din virksomhet f\u00f8lger." />
         </div>
         <RadioGroup
           value={selectedTariff}
@@ -436,410 +396,108 @@ export function PayrollSetupStep({
               key={option.value}
               className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition-colors ${
                 selectedTariff === option.value
-                  ? "border-brand-orange bg-brand-orange/50"
+                  ? "border-brand-orange bg-brand-orange/5"
                   : "border-border bg-muted"
               }`}
             >
               <RadioGroupItem value={option.value} />
-              <span className={`text-sm font-medium ${"text-muted-foreground"}`}>
-                {option.label}
-              </span>
+              <span className="text-sm font-medium">{option.label}</span>
             </label>
           ))}
         </RadioGroup>
       </div>
 
-      {/* ── Del 2: Tillegg ── */}
+      {/* Tillegg */}
       <div className="space-y-3">
         <div className="flex items-center gap-2">
-          <h3 className={`text-sm font-bold ${"text-muted-foreground"}`}>Tillegg</h3>
-          <HelpTip text="Tillegg er ekstra betaling for kvelds-, helge- og overtidsarbeid. Satsene er forhåndsutfylt fra valgt tariff." />
+          <h3 className="text-muted-foreground text-sm font-bold">Tillegg</h3>
+          {supplements.length > 0 && (
+            <span className="text-muted-foreground text-xs">
+              {supplements.length} fra tariff
+              {customSupplements.length > 0 ? ` + ${customSupplements.length} egne` : ""}
+            </span>
+          )}
         </div>
-        <div className={`overflow-hidden rounded-xl border ${"border-border"}`}>
-          {/* Header */}
-          <div
-            className={`grid grid-cols-[1fr_100px_60px_1fr] gap-3 px-4 py-2 text-xs font-semibold tracking-wider uppercase ${"bg-muted text-muted-foreground"}`}
-          >
-            <span>Type</span>
-            <span>Sats</span>
-            <span>Enhet</span>
-            <span>Detaljer</span>
-          </div>
 
-          {/* Kveldstillegg */}
-          <div
-            className={`grid grid-cols-[1fr_100px_60px_1fr] items-center gap-3 border-t px-4 py-3 ${"border-border"}`}
-          >
-            <Label className={`text-sm ${"text-muted-foreground"}`}>
-              {SUPPLEMENT_LABELS.kveldstillegg}
-            </Label>
-            <Input
-              type="number"
-              value={supplements.kveldstillegg.rate}
-              onChange={(e) => handleSupplementChange("kveldstillegg", "rate", e.target.value)}
-              className="h-8 text-sm"
-            />
-            <span className={`text-xs ${"text-muted-foreground"}`}>
-              {supplements.kveldstillegg.unit}
-            </span>
-            <div className="flex items-center gap-2">
-              <Input
-                type="time"
-                value={supplements.kveldstillegg.from_hour}
-                onChange={(e) =>
-                  handleSupplementChange("kveldstillegg", "from_hour", e.target.value)
-                }
-                className="h-8 w-24 text-sm"
-              />
-              <span className={`text-xs ${"text-muted-foreground"}`}>-</span>
-              <Input
-                type="time"
-                value={supplements.kveldstillegg.to_hour}
-                onChange={(e) => handleSupplementChange("kveldstillegg", "to_hour", e.target.value)}
-                className="h-8 w-24 text-sm"
-              />
+        {allSupplements.length > 0 ? (
+          <div className="border-border overflow-hidden rounded-xl border">
+            <div className="bg-muted text-muted-foreground grid grid-cols-[1fr_80px_50px_1fr_32px] gap-3 px-4 py-2 text-xs font-semibold tracking-wider uppercase">
+              <span>Tillegg</span>
+              <span>Sats</span>
+              <span>Type</span>
+              <span>Betingelse</span>
+              <span />
             </div>
-          </div>
 
-          {/* Helgetillegg */}
-          <div
-            className={`grid grid-cols-[1fr_100px_60px_1fr] items-center gap-3 border-t px-4 py-3 ${"border-border"}`}
-          >
-            <Label className={`text-sm ${"text-muted-foreground"}`}>
-              {SUPPLEMENT_LABELS.helgetillegg}
-            </Label>
-            <Input
-              type="number"
-              value={supplements.helgetillegg.rate}
-              onChange={(e) => handleSupplementChange("helgetillegg", "rate", e.target.value)}
-              className="h-8 text-sm"
-            />
-            <span className={`text-xs ${"text-muted-foreground"}`}>
-              {supplements.helgetillegg.unit}
-            </span>
-            <span className={`text-xs ${"text-muted-foreground"}`}>
-              {supplements.helgetillegg.days.join(", ")}
-            </span>
-          </div>
-
-          {/* Helligdagstillegg */}
-          <div
-            className={`grid grid-cols-[1fr_100px_60px_1fr] items-center gap-3 border-t px-4 py-3 ${"border-border"}`}
-          >
-            <Label className={`text-sm ${"text-muted-foreground"}`}>
-              {SUPPLEMENT_LABELS.helligdagstillegg}
-            </Label>
-            <Input
-              type="number"
-              value={supplements.helligdagstillegg.rate}
-              onChange={(e) => handleSupplementChange("helligdagstillegg", "rate", e.target.value)}
-              className="h-8 text-sm"
-            />
-            <span className={`text-xs ${"text-muted-foreground"}`}>
-              {supplements.helligdagstillegg.unit}
-            </span>
-            <span />
-          </div>
-
-          {/* Overtid 50% */}
-          <div
-            className={`grid grid-cols-[1fr_100px_60px_1fr] items-center gap-3 border-t px-4 py-3 ${"border-border"}`}
-          >
-            <Label className={`text-sm ${"text-muted-foreground"}`}>
-              {SUPPLEMENT_LABELS.overtid_50}
-            </Label>
-            <Input
-              type="number"
-              value={supplements.overtid_50.threshold_hours}
-              onChange={(e) =>
-                handleSupplementChange("overtid_50", "threshold_hours", e.target.value)
-              }
-              className="h-8 text-sm"
-            />
-            <span className={`text-xs ${"text-muted-foreground"}`}>
-              {supplements.overtid_50.unit}
-            </span>
-            <span className={`text-xs ${"text-muted-foreground"}`}>
-              Etter {supplements.overtid_50.threshold_hours} timer
-            </span>
-          </div>
-
-          {/* Overtid 100% */}
-          <div
-            className={`grid grid-cols-[1fr_100px_60px_1fr] items-center gap-3 border-t px-4 py-3 ${"border-border"}`}
-          >
-            <Label className={`text-sm ${"text-muted-foreground"}`}>
-              {SUPPLEMENT_LABELS.overtid_100}
-            </Label>
-            <Input
-              type="number"
-              value={supplements.overtid_100.threshold_hours}
-              onChange={(e) =>
-                handleSupplementChange("overtid_100", "threshold_hours", e.target.value)
-              }
-              className="h-8 text-sm"
-            />
-            <span className={`text-xs ${"text-muted-foreground"}`}>
-              {supplements.overtid_100.unit}
-            </span>
-            <span className={`text-xs ${"text-muted-foreground"}`}>
-              Etter {supplements.overtid_100.threshold_hours} timer
-            </span>
-          </div>
-
-          {/* Custom supplements */}
-          {customSupplements.map((cs) => (
-            <div
-              key={cs.id}
-              className={`grid grid-cols-[1fr_100px_60px_1fr] items-center gap-3 border-t px-4 py-3 ${"border-border"}`}
-            >
-              <Input
-                type="text"
-                value={cs.name}
-                onChange={(e) => handleCustomSupplementChange(cs.id, "name", e.target.value)}
-                placeholder="Navn på tillegg"
-                className="h-8 text-sm"
-              />
-              <Input
-                type="number"
-                value={cs.rate || ""}
-                onChange={(e) => handleCustomSupplementChange(cs.id, "rate", e.target.value)}
-                placeholder="0"
-                className="h-8 text-sm"
-              />
-              <span className={`text-xs ${"text-muted-foreground"}`}>kr/t</span>
-              <div className="flex items-center gap-2">
+            {supplements.map((s) => (
+              <div
+                key={s.id}
+                className="border-border grid grid-cols-[1fr_80px_50px_1fr_32px] items-center gap-3 border-t px-4 py-3"
+              >
+                <span className="text-foreground text-sm font-medium">{s.name}</span>
                 <Input
-                  type="text"
-                  value={cs.description}
-                  onChange={(e) =>
-                    handleCustomSupplementChange(cs.id, "description", e.target.value)
-                  }
-                  placeholder="Beskrivelse"
-                  className="h-8 flex-1 text-sm"
+                  type="number"
+                  value={s.rate}
+                  onChange={(e) => handleSupplementRateChange(s.id, e.target.value)}
+                  className="h-8 text-sm"
                 />
+                <span className="text-muted-foreground text-xs">{s.unit}</span>
+                <span className="text-muted-foreground truncate text-xs">
+                  {supplementConditionText(s)}
+                </span>
                 <button
                   type="button"
-                  onClick={() => handleRemoveCustomSupplement(cs.id)}
-                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors ${"text-muted-foreground hover:bg-accent hover:text-foreground"}`}
+                  onClick={() => handleRemoveSupplement(s.id)}
+                  className="text-muted-foreground hover:text-foreground flex h-8 w-8 items-center justify-center rounded-lg transition-colors"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-3.5 w-3.5" />
                 </button>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
 
-        {/* Add custom supplement button */}
+            {customSupplements.map((s) => (
+              <div
+                key={s.id}
+                className="border-brand-orange/20 bg-brand-orange/5 grid grid-cols-[1fr_80px_50px_1fr_32px] items-center gap-3 border-t px-4 py-3"
+              >
+                <span className="text-foreground text-sm font-medium">{s.name}</span>
+                <span className="text-foreground text-sm">{s.rate}</span>
+                <span className="text-muted-foreground text-xs">{s.unit}</span>
+                <span className="text-muted-foreground truncate text-xs">
+                  {supplementConditionText(s)}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveCustom(s.id)}
+                  className="text-muted-foreground hover:text-foreground flex h-8 w-8 items-center justify-center rounded-lg transition-colors"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="border-border rounded-xl border border-dashed px-5 py-6 text-center">
+            <p className="text-muted-foreground text-sm">
+              Ingen tillegg. Legg til egne tillegg nedenfor.
+            </p>
+          </div>
+        )}
+
         <button
           type="button"
-          onClick={handleAddCustomSupplement}
-          className={`mt-2 flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors ${"border-border text-muted-foreground hover:border-muted-foreground hover:text-foreground"}`}
+          onClick={() => setAddDialogOpen(true)}
+          className="border-border text-muted-foreground hover:border-muted-foreground hover:text-foreground flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors"
         >
           <Plus className="h-4 w-4" />
           Legg til tillegg
         </button>
       </div>
 
-      {/* ── Del 3: Stillingslønn ── */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <h3 className={`text-sm font-bold ${"text-muted-foreground"}`}>Stillingslønn</h3>
-          <HelpTip text="Sett grunnlønn per stilling. Denne brukes som default når du inviterer ansatte." />
-        </div>
-
-        {stablePositions.length === 0 && !isAddingPosition ? (
-          <div className="space-y-3">
-            <p className={`text-sm ${"text-muted-foreground"}`}>Ingen stillinger opprettet enda.</p>
-            <button
-              type="button"
-              onClick={() => {
-                setIsAddingPosition(true);
-                if (stableDepartments.length > 0 && !newPositionDeptId) {
-                  setNewPositionDeptId(stableDepartments[0]!.department_id);
-                }
-              }}
-              className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors ${"border-border text-muted-foreground hover:border-muted-foreground hover:text-foreground"}`}
-            >
-              <Plus className="h-4 w-4" />
-              Legg til stilling
-            </button>
-          </div>
-        ) : stablePositions.length === 0 && isAddingPosition ? (
-          <div className="space-y-3">
-            {/* Inline add position form */}
-            <div className={`space-y-3 rounded-xl border p-4 ${"border-border bg-card"}`}>
-              <div className="space-y-2">
-                <Label className={`text-sm ${"text-muted-foreground"}`}>Stillingsnavn</Label>
-                <Input
-                  type="text"
-                  value={newPositionName}
-                  onChange={(e) => setNewPositionName(e.target.value)}
-                  placeholder="F.eks. Servitør, Kokk, Bartender"
-                  className="h-9 text-sm"
-                  autoFocus
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleCreatePosition();
-                    }
-                  }}
-                />
-              </div>
-              {stableDepartments.length > 1 && (
-                <div className="space-y-2">
-                  <Label className={`text-sm ${"text-muted-foreground"}`}>Avdeling</Label>
-                  <select
-                    value={newPositionDeptId}
-                    onChange={(e) => setNewPositionDeptId(e.target.value)}
-                    className={`h-9 w-full rounded-lg border px-3 text-sm ${"border-border text-foreground bg-card"}`}
-                  >
-                    {stableDepartments.map((d) => (
-                      <option key={d.department_id} value={d.department_id}>
-                        {d.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-              {stableDepartments.length === 0 && (
-                <p className={`text-xs ${"text-warning"}`}>
-                  Opprett minst én avdeling under Organisasjon først.
-                </p>
-              )}
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={handleCreatePosition}
-                  disabled={
-                    !newPositionName.trim() ||
-                    stableDepartments.length === 0 ||
-                    createPositionMutation.isPending
-                  }
-                  className="bg-brand-orange hover:bg-brand-orange/90 flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors disabled:opacity-50"
-                >
-                  {createPositionMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Plus className="h-4 w-4" />
-                  )}
-                  Opprett
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsAddingPosition(false)}
-                  className={`rounded-lg border px-4 py-2 text-sm transition-colors ${"border-border text-muted-foreground hover:text-foreground"}`}
-                >
-                  Avbryt
-                </button>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {positionWages.map((pw) => (
-              <div
-                key={pw.position_id}
-                className={`flex items-center justify-between rounded-xl border px-4 py-3 ${"border-border bg-card"}`}
-              >
-                <span className={`text-sm font-medium ${"text-muted-foreground"}`}>{pw.name}</span>
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    step="0.5"
-                    value={pw.hourly_rate || ""}
-                    onChange={(e) => handleWageChange(pw.position_id, e.target.value)}
-                    placeholder="0"
-                    className="h-8 w-28 text-right text-sm"
-                  />
-                  <span className={`text-xs ${"text-muted-foreground"}`}>kr/t</span>
-                </div>
-              </div>
-            ))}
-
-            {/* Add more positions button */}
-            {!isAddingPosition ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setIsAddingPosition(true);
-                  if (stableDepartments.length > 0 && !newPositionDeptId) {
-                    setNewPositionDeptId(stableDepartments[0]!.department_id);
-                  }
-                }}
-                className={`mt-2 flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors ${"border-border text-muted-foreground hover:border-muted-foreground hover:text-foreground"}`}
-              >
-                <Plus className="h-4 w-4" />
-                Legg til stilling
-              </button>
-            ) : (
-              <div className={`mt-2 space-y-3 rounded-xl border p-4 ${"border-border bg-card"}`}>
-                <div className="flex gap-2">
-                  <Input
-                    type="text"
-                    value={newPositionName}
-                    onChange={(e) => setNewPositionName(e.target.value)}
-                    placeholder="Stillingsnavn"
-                    className="h-9 flex-1 text-sm"
-                    autoFocus
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleCreatePosition();
-                      }
-                    }}
-                  />
-                  {stableDepartments.length > 1 && (
-                    <select
-                      value={newPositionDeptId}
-                      onChange={(e) => setNewPositionDeptId(e.target.value)}
-                      className={`h-9 rounded-lg border px-3 text-sm ${"border-border text-foreground bg-card"}`}
-                    >
-                      {stableDepartments.map((d) => (
-                        <option key={d.department_id} value={d.department_id}>
-                          {d.name}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                  <button
-                    type="button"
-                    onClick={handleCreatePosition}
-                    disabled={
-                      !newPositionName.trim() ||
-                      stableDepartments.length === 0 ||
-                      createPositionMutation.isPending
-                    }
-                    className="bg-brand-orange hover:bg-brand-orange/90 flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-semibold text-white transition-colors disabled:opacity-50"
-                  >
-                    {createPositionMutation.isPending ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Plus className="h-3.5 w-3.5" />
-                    )}
-                    Opprett
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsAddingPosition(false);
-                      setNewPositionName("");
-                    }}
-                    className={`flex h-9 items-center rounded-lg border px-3 text-sm transition-colors ${"border-border text-muted-foreground hover:text-foreground"}`}
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* ── Save button ── */}
+      {/* Save */}
       <div className="flex justify-end">
         <button
-          onClick={handleSave}
+          onClick={() => saveMutation.mutate()}
           disabled={saveMutation.isPending}
           className={`flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold transition-colors ${
             saveMutation.isPending

@@ -12970,6 +12970,136 @@ export type Database = {
           },
         ]
       }
+      telegram_callback_action: {
+        Row: {
+          action_payload: Json
+          action_type: string
+          created_at: string
+          id: string
+          resolved: boolean
+          resolved_at: string | null
+          session_id: string
+          updated_at: string
+        }
+        Insert: {
+          action_payload: Json
+          action_type: string
+          created_at?: string
+          id?: string
+          resolved?: boolean
+          resolved_at?: string | null
+          session_id: string
+          updated_at?: string
+        }
+        Update: {
+          action_payload?: Json
+          action_type?: string
+          created_at?: string
+          id?: string
+          resolved?: boolean
+          resolved_at?: string | null
+          session_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "telegram_callback_action_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "engine_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      telegram_chat_bridge: {
+        Row: {
+          channel_id: string
+          closed_at: string | null
+          created_at: string
+          id: string
+          session_id: string
+          status: string
+          telegram_chat_id: number
+          updated_at: string
+        }
+        Insert: {
+          channel_id: string
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          session_id: string
+          status?: string
+          telegram_chat_id: number
+          updated_at?: string
+        }
+        Update: {
+          channel_id?: string
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          session_id?: string
+          status?: string
+          telegram_chat_id?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "telegram_chat_bridge_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channel"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "telegram_chat_bridge_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "engine_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      telegram_poll_action: {
+        Row: {
+          created_at: string
+          id: string
+          options: Json
+          resolved: boolean
+          resolved_at: string | null
+          session_id: string
+          telegram_poll_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          options: Json
+          resolved?: boolean
+          resolved_at?: string | null
+          session_id: string
+          telegram_poll_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          options?: Json
+          resolved?: boolean
+          resolved_at?: string | null
+          session_id?: string
+          telegram_poll_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "telegram_poll_action_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "engine_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_identity: {
         Row: {
           auth_provider: Database["public"]["Enums"]["auth_provider"]

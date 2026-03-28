@@ -24,6 +24,7 @@ import { createClient } from "@smartout/supabase/client";
 import type { ScrapedIntelligence } from "@/components/dashboard/wizard-steps/wizard-state";
 import type { SetupState } from "./types";
 import { defaultSetupState } from "./types";
+import { callEmploymentSave } from "./_adapters/employment-save-bridge";
 import {
   WelcomeStepAdapter,
   DocumentDropStepAdapter,
@@ -389,6 +390,9 @@ export const dashboardSetupWizard: WizardDefinition<SetupState> = {
       labelKey: "steps.employment",
       icon: Briefcase,
       component: EmploymentStepAdapter,
+      onStepLeave: async () => {
+        await callEmploymentSave();
+      },
     },
     {
       id: "team",
