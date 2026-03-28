@@ -1,7 +1,7 @@
 ---
 title: Council Session Log
 status: in_progress
-updated: 2026-03-27
+updated: 2026-03-28
 created: 2026-03-26
 module: governance
 tags: [council, decisions, multi-agent, review]
@@ -22,3 +22,4 @@ Tracks all System Council sessions — multi-agent review meetings where specs, 
 | 2026-03-26 | Migration Ordering & Idempotency  | bug          | APPROVE WITH CHANGES | steward, supervisor                                       | None                                                  | `CREATE TABLE IF NOT EXISTS` silently ignores FK differences (CASCADE lost). Follow-up migration required. Timestamp collisions from parallel branches.                                                                                                         |
 | 2026-03-27 | Notification System Fixes (8-Fix) | bug          | APPROVE WITH CHANGES | steward, supervisor, agent-coordinator                    | Pending: Notification Outbox Architecture ADR         | Engine templates invisible to registry (different namespace). Recipient resolution is a feature, not a detail. Outbox RLS `WITH CHECK (TRUE)` is never safe.                                                                                                    |
 | 2026-03-27 | Profile Schema Mismatch Audit     | bug          | APPROVE WITH CHANGES | steward, supervisor                                       | None (CLAUDE.md trap added)                           | `profile` has `display_name` only, not `first_name`/`last_name`. 4 broken queries found (leader-pulse, session-manager x2, list-data-sources) + 2 guardian-bus downstream. 20 files confirmed OK. Data model is correct — identity layer vs D2 workspace layer. |
+| 2026-03-28 | Communications Stack Architecture | architecture | APPROVE WITH CHANGES | steward, supervisor, agent-coordinator, frontend-designer | ADR-0063: Comms consolidation                         | Komm canonical, Chat frozen. 3 telemetry gaps (reactions, read, mute). queueMicrotask anti-pattern in CallRoom. 4x MessageBubble maintenance problem. AI integration gap (no ai_assistant channel type yet). |
