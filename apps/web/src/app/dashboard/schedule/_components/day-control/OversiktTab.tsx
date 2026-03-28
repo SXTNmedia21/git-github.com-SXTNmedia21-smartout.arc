@@ -13,6 +13,7 @@ import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
 import { useScheduleUI } from "../schedule-ui-context";
+import { PendingAbsenceList } from "../pending-absence-list";
 import { useMoveShift, useUpdateShift } from "../../_hooks/use-shifts";
 import { useWeekRange } from "../../_hooks/use-week-range";
 import { usePlannedHours } from "../../_hooks/use-planned-hours";
@@ -34,7 +35,7 @@ import { HoursOverridePopover } from "./HoursOverridePopover";
 // - color-regime: status-based (published/active=emerald, draft=muted)
 
 export function OversiktTab({ dateId }: { dateId: string | null }) {
-  const { isDark } = useContext(DashboardContext);
+  const { isDark, isAdminMode } = useContext(DashboardContext);
   const { weekStart } = useWeekRange();
   const moveShiftMutation = useMoveShift(weekStart);
   const updateShiftMutation = useUpdateShift(weekStart);
@@ -156,6 +157,9 @@ export function OversiktTab({ dateId }: { dateId: string | null }) {
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-2 space-y-6 duration-200">
+      {/* Pending absence requests — admin only */}
+      {isAdminMode && <PendingAbsenceList />}
+
       {/* KPI Cards */}
       <section>
         <SectionHeader label="Nokkeltall">
