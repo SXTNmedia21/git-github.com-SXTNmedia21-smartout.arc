@@ -90,6 +90,8 @@ import { useScheduleRealtime } from "./_hooks/use-schedule-realtime";
 import { useShiftConflicts } from "./_hooks/useShiftConflicts";
 import { useScheduleComputed, type ScheduleComputed } from "./_hooks/use-schedule-computed";
 import { useDayInfo } from "./_hooks/use-day-info";
+import { useShiftReadinessCheck } from "./_hooks/use-shift-readiness-check";
+import { toast } from "sonner";
 
 // ---------------------------------------------------------------------------
 // Week range helper — supports week offset for navigation
@@ -336,6 +338,7 @@ function SchedulePageContent() {
   const dayTasksQuery = useDayTasks(weekStart, weekEnd, { enabled: shouldLoadDayContent });
   const dayBookingsQuery = useDayBookings(weekStart, weekEnd, { enabled: shouldLoadDayContent });
   const { dayInfoByDate } = useDayInfo(weekStart, weekEnd, { enabled: shouldLoadDayContent });
+  const { readinessMap } = useShiftReadinessCheck();
 
   // ── Enrich day columns with day info + real shift/staff/message/task counts ─
   const shouldComputeEnrichedDays =
@@ -721,6 +724,17 @@ function SchedulePageContent() {
     };
   }, [draftCount, draftIds, publishShifts.mutate, setScheduleDraftCount, setOnPublishAll]);
 
+  /** Warn if an employee has incomplete training when assigned a shift. */
+  const warnIfNotReady = (employeeId: string) => {
+    const entry = readinessMap.get(employeeId);
+    if (!entry || entry.readinessPercent >= 100) return;
+    const emp = employees.find((e: ScheduleEmployee) => e.id === employeeId);
+    const name = emp?.name ?? "Ansatt";
+    toast.warning(`${name} — ${entry.readinessPercent}% klar`, {
+      description: `Mangler: ${entry.pendingProtocols.slice(0, 3).join(", ")}${entry.pendingProtocols.length > 3 ? "…" : ""}`,
+    });
+  };
+
   /**
    * Handles DnD drop events.
    * Parses droppable ID format: "cell::employeeId::dateId" or "day-header::dateId"
@@ -795,10 +809,12 @@ function SchedulePageContent() {
               breaks: sourceShift.breaks,
               notes: sourceShift.notes,
             });
+            warnIfNotReady(toEmployeeId);
           }
         } else {
           // Normal drag → move shift
           moveShift.mutate({ id: shiftId, employeeId: toEmployeeId, dateId: toDateId });
+          warnIfNotReady(toEmployeeId);
         }
       }
     } else if (cellMatch && sourceType === "open-shift") {
@@ -824,6 +840,7 @@ function SchedulePageContent() {
               breaks: 0,
             },
           });
+          warnIfNotReady(employeeId);
         }
       }
     } else if (cellMatch && sourceType === "shift-template") {
@@ -1030,6 +1047,7 @@ function SchedulePageContent() {
                               weekStart={weekStart}
                               onTimeChange={handleGridShiftTimeChange}
                               conflictedShiftIds={conflictedShiftIds}
+                              readinessMap={readinessMap}
                             />
                           )}
                           {scheduleLayout === "weekly" && (
