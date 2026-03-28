@@ -1,10 +1,12 @@
-import dynamic from "next/dynamic";
+"use client";
 
-const WalkAiPlayground = dynamic(
-  () => import("./_components/WalkAiPlayground").then((m) => m.WalkAiPlayground),
-  { ssr: false },
-);
+import { EntityDrawerProvider } from "@/components/dashboard/entity-drawer/EntityDrawerContext";
+import { WalkAiPlayground } from "./_components/WalkAiPlayground";
 
 export default function WalkAiPage() {
-  return <WalkAiPlayground />;
+  return (
+    <EntityDrawerProvider>
+      <WalkAiPlayground />
+    </EntityDrawerProvider>
+  );
 }
