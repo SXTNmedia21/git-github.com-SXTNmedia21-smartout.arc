@@ -185,6 +185,26 @@ export function useReportStaffing() {
       // Sort by count descending for visual clarity
       shiftTypes.sort((a, b) => b.count - a.count);
 
+      // ── Fetch daily labor_hours_target for the 4-week period ──────────
+      const fourWeeksAgoStr = isoDate(fourWeeksAgo);
+      const toDate = isoDate(thisSunday);
+      const { data: weeklyBudgets } = await supabase
+        .from("workspace_budget")
+        .select("period_date, labor_hours_target")
+        .eq("workspace_id", wsId!)
+        .eq("period_type", "daily")
+        .gte("period_date", fourWeeksAgoStr)
+        .lte("period_date", toDate);
+
+      // Sum daily targets per ISO week
+      const budgetByWeek = new Map<number, number>();
+      for (const b of weeklyBudgets ?? []) {
+        if (!b.labor_hours_target) continue;
+        const d = new Date(b.period_date + "T00:00:00");
+        const wk = isoWeekNumber(d);
+        budgetByWeek.set(wk, (budgetByWeek.get(wk) ?? 0) + Number(b.labor_hours_target));
+      }
+
       // ── Labor hours over last 4 weeks ─────────────────────────────────
       // Group shifts by ISO week, sum planned hours (work_hours field)
       const weekBuckets = new Map<number, { planned: number; label: string }>();
@@ -205,13 +225,12 @@ export function useReportStaffing() {
       const laborHours4w: LaborHoursWeek[] = Array.from(weekBuckets.entries())
         .sort((a, b) => a[0] - b[0])
         .slice(-4)
-        .map(([, v]) => ({
+        .map(([weekNum, v]) => ({
           week: v.label,
           planned: Math.round(v.planned),
           // actual = same as planned until time_entry table integration
           actual: Math.round(v.planned),
-          // budget is a placeholder — no budget table column maps to weekly hours here
-          budget: 600,
+          budget: budgetByWeek.get(weekNum) ?? 0,
         }));
 
       // ── Unfilled shifts: no employee assigned, in the next 7 days ───────
