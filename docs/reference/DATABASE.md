@@ -5,7 +5,7 @@ version: "1.0"
 status: canonical
 layer: reference
 created: 2026-02-28
-updated: 2026-03-22
+updated: 2026-03-28
 author: claude
 supersedes: []
 superseded_by: null
@@ -65,8 +65,17 @@ tables:
     season_budget,
     day_factor,
     hour_factor,
+    profession,
+    profession_industry,
+    legal_function,
+    profile_legal_function,
+    profession_training,
+    profile_access,
+    profile_position,
   ]
 changelog:
+  - date: 2026-03-28
+    change: "Added profession system tables (profession, profession_industry, legal_function, profile_legal_function, profession_training, profile_access, profile_position; authority_level enum)"
   - date: 2026-03-06
     change: "Added season_budget, day_factor, hour_factor tables (Module 15 MVP)"
   - date: 2026-03-02
@@ -126,6 +135,48 @@ Single source of truth for all database tables, enums, RLS patterns, naming conv
 | `zone`        | `zone_id`        | Extends Location. Service sections. Season-aware.                                 |
 | `asset`       | `asset_id`       | Extends Location. Equipment. CCP flag for HACCP.                                  |
 | `position`    | `position_id`    | Extends Department. Job types. Assigned per shift, NOT per profile. Season-aware. |
+
+### Profession System (workspace_id scoped + platform-level, ADR-TBD)
+
+| Table                   | PK                        | Scope                                              | Purpose                                                                                 |
+| ----------------------- | ------------------------- | -------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `profession`            | `profession_id`           | Platform (NULL) + workspace overrides              | K1a competence domain (Fag). Skills taxonomy. UNIQUE NULLS NOT DISTINCT (workspace_id, slug). |
+| `profession_industry`   | Composite (profession_id, nace_code) | Platform-level  | M2M mapping: NACE code → profession. Helps onboarding determine default professions.     |
+| `legal_function`        | `legal_function_id`       | Platform-level (K1a)                              | Law-mandated functions (Verneombud, Brannvernleder, etc.). Has legal_basis, training_hours. |
+| `profile_legal_function`| `id` (surrogate PK)       | workspace_id scoped                                | M2M assignment of legal functions to profiles. Tracks assigned_at, assigned_by. ON DELETE CASCADE. |
+| `profession_training`   | `profession_training_id`  | Platform (NULL) + workspace overrides              | Weighted M2M: profession → protocol (training). Weight 0.0-1.0. UNIQUE NULLS NOT DISTINCT (profession_id, protocol_id, workspace_id). |
+| `profile_access`        | `id` (surrogate PK)       | workspace_id scoped                                | Fine-grained system access scopes per profile. Scope validated by regex. Tracks granted_by. ON DELETE CASCADE. |
+| `profile_position`      | `id` (surrogate PK)       | workspace_id scoped                                | M2M: profile → position. Person can have multiple positions. Tracks is_primary. ON DELETE CASCADE. |
+
+**Key columns & validation:**
+
+- `profession`: `profession_id` (UUID), `workspace_id` (nullable), `slug` (text, unique per scope), `name` (text), `description` (text), `is_universal` (boolean — true if platform-level, shared), `sort_order` (INTEGER)
+- `profession_industry`: `profession_id` (FK CASCADE), `nace_code` (TEXT, UNIQUE together), composite PK
+- `legal_function`: `legal_function_id` (UUID), `slug` (UNIQUE), `name`, `description`, `legal_basis` (text), `training_hours` (INTEGER), `profession_id` (FK, nullable — NULL means all professions)
+- `profile_legal_function`: `profile_id` (FK CASCADE), `legal_function_id` (FK), `assigned_at` (TIMESTAMPTZ), `assigned_by` (FK profile — who granted)
+- `profession_training`: `profession_training_id` (UUID), `profession_id`, `protocol_id`, `workspace_id` (nullable), `weight` (NUMERIC 0.0-1.0), `is_required` (boolean)
+- `profile_access`: `profile_id` (FK CASCADE), `scope` (TEXT, regex: `^[a-z_]+\.[a-z_]+$` — domain.action), `granted_by` (ENUM: authority, legal_function, manual), `created_at`, `created_by` (FK profile)
+- `profile_position`: `profile_id` (FK CASCADE), `position_id` (FK), `is_primary` (boolean, default false)
+
+**New SQL enum:** `authority_level` (duty | deputy | leader). Added to `profile` table.
+
+**Column additions to existing tables:**
+
+- `position.profession_id` (FK, ON DELETE SET NULL) — links position to profession
+- `profile.authority_level` (authority_level enum, nullable) — NULL = regular employee
+- `tariff_rate_table.profession_id` (FK, ON DELETE SET NULL) — optional profession-specific rates
+
+**RLS (dual-auth):**
+
+- `profession` (platform-level): readable by all authenticated users (NULL workspace_id). Workspace-scoped rows use JWT read + `is_admin_in_workspace` write, API key workspace isolation
+- `profession_industry`: readable by all authenticated (platform-level, no RLS required)
+- `legal_function`: readable by all authenticated (K1a platform data, no RLS required)
+- `profile_legal_function`: JWT via `get_workspace_ids_for_user()`, API key via `get_api_workspace_id()`
+- `profession_training`: platform-level readable all, workspace-scoped readable via JWT + `is_admin_in_workspace` write, API key via `get_api_workspace_id()`
+- `profile_access`: JWT via `get_workspace_ids_for_user()`, API key via `get_api_workspace_id()`
+- `profile_position`: JWT via `get_workspace_ids_for_user()`, API key via `get_api_workspace_id()`
+
+**Indexes:** `profession(workspace_id, slug)`, `profession_industry(profession_id)`, `legal_function(profession_id)`, `profile_legal_function(profile_id)`, `profile_legal_function(legal_function_id)`, `profession_training(profession_id)`, `profession_training(workspace_id)`, `profile_access(profile_id)`, `profile_position(profile_id)`, `profile_position(position_id)`.
 
 ### Governance Layer (workspace_id scoped)
 
@@ -427,6 +478,12 @@ Enums from `packages/supabase/src/database.types.ts` (auto-generated, never edit
 | `control_list_assigned_to_type` | team_leader, manager, admin, custom                     |
 | `routine_assigned_to_type`      | team, role, profile                                     |
 | `trigger_type`                  | scheduled, event                                        |
+
+### Profession System
+
+| Enum               | Values                     |
+| ------------------ | -------------------------- |
+| `authority_level`  | duty, deputy, leader       |
 
 ### Schedule
 
