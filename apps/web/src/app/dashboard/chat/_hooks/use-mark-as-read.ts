@@ -1,7 +1,11 @@
 "use client";
 
+// FROZEN: Chat module is superseded by Komm (ADR-0063).
+// Only bug fixes and telemetry backfill permitted. No new features.
+
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
+import { emit } from "@smartout/telemetry";
 import { useWorkspace } from "@/lib/workspace-context";
 import { chatKeys } from "./chat-keys";
 
@@ -31,6 +35,23 @@ export function useMarkAsRead() {
         .eq("profile_id", profileId);
 
       if (error) throw error;
+      return { conversationId, profileId };
+    },
+
+    onSuccess: (result) => {
+      if (!result) return;
+      void emit({
+        event: "chat.read",
+        workspace_id: workspaceId,
+        actor_id: result.profileId,
+        properties: {
+          conversation_id: result.conversationId,
+        },
+        entity: {
+          entity_type: "conversation",
+          entity_id: result.conversationId,
+        },
+      });
     },
 
     onSettled: () => {

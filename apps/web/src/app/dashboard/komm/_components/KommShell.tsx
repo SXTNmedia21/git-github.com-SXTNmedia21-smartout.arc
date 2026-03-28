@@ -51,7 +51,7 @@ export function KommShell({ profileId }: { profileId: string }) {
   useCallRealtime(activeChannelId);
   const callInvite = useCallInvite();
   const startCall = useStartCall();
-  const muteParticipant = useMuteParticipant();
+  const muteParticipant = useMuteParticipant(profileId);
 
   const handleJoinCall = useCallback(async () => {
     if (!activeChannelId) return;
@@ -117,7 +117,7 @@ export function KommShell({ profileId }: { profileId: string }) {
         muted: true,
       });
     },
-    [activeChannelId, muteParticipant],
+    [activeChannelId, muteParticipant.mutate],
   );
 
   // Calculate unread totals for sub-tab badges

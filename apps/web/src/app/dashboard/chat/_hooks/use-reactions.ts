@@ -1,7 +1,11 @@
 "use client";
 
+// FROZEN: Chat module is superseded by Komm (ADR-0063).
+// Only bug fixes and telemetry backfill permitted. No new features.
+
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
+import { emit } from "@smartout/telemetry";
 import { useWorkspace } from "@/lib/workspace-context";
 import { chatKeys } from "./chat-keys";
 import type { ReactionMap } from "./chat-types";
@@ -39,12 +43,12 @@ export function useToggleReaction(conversationId: string | null) {
       const reactions = (msg.reactions ?? {}) as ReactionMap;
       const current = reactions[emoji] ?? [];
 
-      if (current.includes(profileId)) {
-        // Remove reaction
+      const action = current.includes(profileId) ? ("removed" as const) : ("added" as const);
+
+      if (action === "removed") {
         reactions[emoji] = current.filter((id) => id !== profileId);
         if (reactions[emoji].length === 0) delete reactions[emoji];
       } else {
-        // Add reaction
         reactions[emoji] = [...current, profileId];
       }
 
@@ -54,6 +58,26 @@ export function useToggleReaction(conversationId: string | null) {
         .eq("id", messageId);
 
       if (updateError) throw updateError;
+      return { action, emoji, messageId, profileId };
+    },
+
+    onSuccess: (result) => {
+      if (!result) return;
+      void emit({
+        event: "chat.reaction.toggled",
+        workspace_id: workspaceId,
+        actor_id: result.profileId,
+        properties: {
+          conversation_id: conversationId ?? "",
+          message_id: result.messageId,
+          emoji: result.emoji,
+          action: result.action,
+        },
+        entity: {
+          entity_type: "chat_message",
+          entity_id: result.messageId,
+        },
+      });
     },
 
     onSettled: () => {

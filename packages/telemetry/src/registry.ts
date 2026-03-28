@@ -996,6 +996,25 @@ export interface MessageSent extends BaseEvent {
   };
 }
 
+export interface ChatReactionToggled extends BaseEvent {
+  event: "chat.reaction.toggled";
+  properties: {
+    conversation_id: string;
+    message_id: string;
+    emoji: string;
+    action: "added" | "removed";
+  };
+  entity: EntityRef;
+}
+
+export interface ChatRead extends BaseEvent {
+  event: "chat.read";
+  properties: {
+    conversation_id: string;
+  };
+  entity: EntityRef;
+}
+
 // ─── Payroll Settings Events ─────────────────────
 export interface PayrollSettingsUpdated extends BaseEvent {
   event: "payroll_settings updated";
@@ -1804,6 +1823,16 @@ export interface ChannelCallPttDeactivated extends BaseEvent {
   entity: EntityRef;
 }
 
+export interface ChannelCallParticipantMuted extends BaseEvent {
+  event: "channel.call.participant_muted";
+  properties: {
+    channel_id: string;
+    target_identity: string;
+    muted: boolean;
+  };
+  entity: EntityRef;
+}
+
 // ─── Agent Events ───────────────────────────────
 export interface AgentSessionStarted extends BaseEvent {
   event: "agent session_started";
@@ -1992,6 +2021,8 @@ export type SmartoutEvent =
   | LeaderPulseDismissed
   | ConversationCreated
   | MessageSent
+  | ChatReactionToggled
+  | ChatRead
   | PayrollSettingsUpdated
   | SalaryCodeCreated
   | SalaryCodeUpdated
@@ -2086,6 +2117,7 @@ export type SmartoutEvent =
   | ChannelCallGroupAnnounced
   | ChannelCallPttActivated
   | ChannelCallPttDeactivated
+  | ChannelCallParticipantMuted
   | AgentSessionStarted
   | AgentSessionClosed
   | AgentToolCalled
@@ -2508,6 +2540,14 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger"],
     category: "communication",
   },
+  "chat.reaction.toggled": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "communication",
+  },
+  "chat.read": {
+    destinations: ["posthog", "logger"],
+    category: "communication",
+  },
 
   "payroll_settings updated": {
     destinations: ["posthog", "logger", "activity_trail"],
@@ -2840,6 +2880,10 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "channel.call.ptt_deactivated": {
     destinations: ["posthog"],
+    category: "channels",
+  },
+  "channel.call.participant_muted": {
+    destinations: ["posthog", "logger", "activity_trail"],
     category: "channels",
   },
 

@@ -98,9 +98,10 @@ function CallRoomInner({
   );
 
   const participantCount = participants.length;
-  if (onParticipantCountChange) {
-    queueMicrotask(() => onParticipantCountChange(participantCount));
-  }
+
+  useEffect(() => {
+    onParticipantCountChange?.(participantCount);
+  }, [participantCount, onParticipantCountChange]);
 
   // Track participant joins/leaves and show toasts
   const prevIdentitiesRef = useRef<Set<string>>(new Set());
