@@ -144,8 +144,9 @@ function toOperationalRisks(
     risks.push({
       id: "ops-overdue-tasks",
       severity: "critical",
-      blockingDeviations: operations.overdueTasks,
+      blockingDeviations: 0,
       overdueTasks: operations.overdueTasks,
+      upcomingTasks: 0,
       occurredAt,
     });
   }
@@ -155,8 +156,8 @@ function toOperationalRisks(
       id: "ops-upcoming-tasks",
       severity: "warning",
       blockingDeviations: 0,
-      // Upcoming work is not overdue debt, so keep overdue field at zero.
       overdueTasks: 0,
+      upcomingTasks: operations.upcomingTasks,
       occurredAt,
     });
   }

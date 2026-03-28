@@ -26,6 +26,7 @@ vi.mock("@/app/dashboard/_hooks/use-cockpit-first-screen", () => ({
         severity: "warning",
         blockingDeviations: 0,
         overdueTasks: 3,
+        upcomingTasks: 0,
         occurredAt: "2026-03-28T08:05:00.000Z",
       },
     ],

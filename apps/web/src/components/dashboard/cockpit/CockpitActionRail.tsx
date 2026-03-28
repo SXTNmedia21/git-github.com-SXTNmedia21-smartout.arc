@@ -63,12 +63,20 @@ function buildActions(
   }
 
   if (operationalQueue.length > 0) {
+    const topOperationalRisk = operationalQueue[0]!;
+    const operationalDescription =
+      topOperationalRisk.blockingDeviations > 0
+        ? `${topOperationalRisk.blockingDeviations} blocking deviation${topOperationalRisk.blockingDeviations === 1 ? "" : "s"} in queue`
+        : topOperationalRisk.overdueTasks > 0
+          ? `${topOperationalRisk.overdueTasks} overdue task${topOperationalRisk.overdueTasks === 1 ? "" : "s"} in queue`
+          : `${topOperationalRisk.upcomingTasks} upcoming task${topOperationalRisk.upcomingTasks === 1 ? "" : "s"} to prepare`;
+
     actions.push({
       id: "clear-operational-blockers",
-      label: "Clear operational blockers",
-      description: `${operationalQueue[0]!.blockingDeviations} blocking deviation${operationalQueue[0]!.blockingDeviations === 1 ? "" : "s"} in queue`,
+      label: "Manage operational queue",
+      description: operationalDescription,
       href: "/dashboard/operations",
-      tone: operationalQueue[0]!.severity === "critical" ? "critical" : "warning",
+      tone: topOperationalRisk.severity === "critical" ? "critical" : "warning",
       icon: Siren,
     });
   }

@@ -44,7 +44,10 @@ function operationalSummary(risk: OperationalRisk): string {
   if (risk.blockingDeviations > 0) {
     return `${risk.blockingDeviations} blocking deviation${risk.blockingDeviations === 1 ? "" : "s"}`;
   }
-  return `${risk.overdueTasks} overdue task${risk.overdueTasks === 1 ? "" : "s"}`;
+  if (risk.overdueTasks > 0) {
+    return `${risk.overdueTasks} overdue task${risk.overdueTasks === 1 ? "" : "s"}`;
+  }
+  return `${risk.upcomingTasks} upcoming task${risk.upcomingTasks === 1 ? "" : "s"}`;
 }
 
 /**
@@ -134,7 +137,7 @@ export function CockpitRiskQueues({
       <QueueCard
         title="Operations queue"
         icon="operations"
-        emptyText="No operational blockers right now."
+        emptyText="No operational deviations, overdue tasks, or upcoming tasks right now."
         isLoading={isLoading}
         rows={operationalQueue.slice(0, 4).map((risk) => ({
           id: risk.id,

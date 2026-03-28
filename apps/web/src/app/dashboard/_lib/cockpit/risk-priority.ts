@@ -19,6 +19,7 @@ export type OperationalRisk = {
   severity: RiskSeverity;
   blockingDeviations: number;
   overdueTasks: number;
+  upcomingTasks: number;
   occurredAt: string;
 };
 
@@ -101,7 +102,8 @@ export function prioritizeStaffingRisks(risks: StaffingRisk[]): StaffingRisk[] {
  * Prioritizes operational risks for cockpit consumption.
  *
  * Why: Blocking deviations and overdue tasks represent immediate operational
- * debt, so they rank before time-based and id-based tie-breakers.
+ * debt, while upcoming tasks are planning pressure that should still be visible
+ * without being treated as overdue/deviation debt.
  *
  * @param risks - Raw operational risk list.
  * @returns New array sorted from highest to lowest operational urgency.
@@ -116,6 +118,11 @@ export function prioritizeOperationalRisks(risks: OperationalRisk[]): Operationa
     const byOverdueTasks = right.overdueTasks - left.overdueTasks;
     if (byOverdueTasks !== 0) {
       return byOverdueTasks;
+    }
+
+    const byUpcomingTasks = right.upcomingTasks - left.upcomingTasks;
+    if (byUpcomingTasks !== 0) {
+      return byUpcomingTasks;
     }
 
     return compareSharedRiskPriority(left, right);

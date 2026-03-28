@@ -90,13 +90,14 @@ describe("prioritizeStaffingRisks", () => {
 });
 
 describe("prioritizeOperationalRisks", () => {
-  it("orders by blocking deviations, then overdue tasks, then shared tie-breakers", () => {
+  it("orders by deviations, then overdue, then upcoming tasks, then shared tie-breakers", () => {
     const input: OperationalRisk[] = [
       {
         id: "ops-warning-heavy",
         severity: "warning",
         blockingDeviations: 2,
         overdueTasks: 1,
+        upcomingTasks: 0,
         occurredAt: "2026-03-28T08:00:00.000Z",
       },
       {
@@ -104,6 +105,7 @@ describe("prioritizeOperationalRisks", () => {
         severity: "critical",
         blockingDeviations: 1,
         overdueTasks: 4,
+        upcomingTasks: 0,
         occurredAt: "2026-03-28T10:00:00.000Z",
       },
       {
@@ -111,6 +113,7 @@ describe("prioritizeOperationalRisks", () => {
         severity: "critical",
         blockingDeviations: 1,
         overdueTasks: 1,
+        upcomingTasks: 5,
         occurredAt: "2026-03-28T12:00:00.000Z",
       },
       {
@@ -118,7 +121,16 @@ describe("prioritizeOperationalRisks", () => {
         severity: "info",
         blockingDeviations: 0,
         overdueTasks: 7,
+        upcomingTasks: 0,
         occurredAt: "2026-03-28T13:00:00.000Z",
+      },
+      {
+        id: "ops-upcoming-only",
+        severity: "warning",
+        blockingDeviations: 0,
+        overdueTasks: 0,
+        upcomingTasks: 9,
+        occurredAt: "2026-03-28T09:00:00.000Z",
       },
     ];
 
@@ -129,6 +141,7 @@ describe("prioritizeOperationalRisks", () => {
       "ops-critical-mid",
       "ops-critical-low",
       "ops-info",
+      "ops-upcoming-only",
     ]);
   });
 
@@ -139,6 +152,7 @@ describe("prioritizeOperationalRisks", () => {
         severity: "warning",
         blockingDeviations: 0,
         overdueTasks: 2,
+        upcomingTasks: 0,
         occurredAt: "not-a-date",
       },
       {
@@ -146,6 +160,7 @@ describe("prioritizeOperationalRisks", () => {
         severity: "warning",
         blockingDeviations: 0,
         overdueTasks: 2,
+        upcomingTasks: 0,
         occurredAt: "still-not-a-date",
       },
       {
@@ -153,6 +168,7 @@ describe("prioritizeOperationalRisks", () => {
         severity: "warning",
         blockingDeviations: 0,
         overdueTasks: 2,
+        upcomingTasks: 0,
         occurredAt: "2026-03-28T09:00:00.000Z",
       },
     ];
@@ -160,5 +176,50 @@ describe("prioritizeOperationalRisks", () => {
     const result = prioritizeOperationalRisks(input);
 
     expect(result.map((risk) => risk.id)).toEqual(["ops-c", "ops-a", "ops-b"]);
+  });
+
+  it("prioritizes upcoming tasks only after blocking and overdue debt", () => {
+    const input: OperationalRisk[] = [
+      {
+        id: "ops-overdue",
+        severity: "warning",
+        blockingDeviations: 0,
+        overdueTasks: 1,
+        upcomingTasks: 0,
+        occurredAt: "2026-03-28T11:00:00.000Z",
+      },
+      {
+        id: "ops-upcoming-high",
+        severity: "critical",
+        blockingDeviations: 0,
+        overdueTasks: 0,
+        upcomingTasks: 8,
+        occurredAt: "2026-03-28T12:00:00.000Z",
+      },
+      {
+        id: "ops-blocking",
+        severity: "info",
+        blockingDeviations: 1,
+        overdueTasks: 0,
+        upcomingTasks: 0,
+        occurredAt: "2026-03-28T09:00:00.000Z",
+      },
+      {
+        id: "ops-upcoming-low",
+        severity: "critical",
+        blockingDeviations: 0,
+        overdueTasks: 0,
+        upcomingTasks: 2,
+        occurredAt: "2026-03-28T13:00:00.000Z",
+      },
+    ];
+
+    const result = prioritizeOperationalRisks(input);
+    expect(result.map((risk) => risk.id)).toEqual([
+      "ops-blocking",
+      "ops-overdue",
+      "ops-upcoming-high",
+      "ops-upcoming-low",
+    ]);
   });
 });
