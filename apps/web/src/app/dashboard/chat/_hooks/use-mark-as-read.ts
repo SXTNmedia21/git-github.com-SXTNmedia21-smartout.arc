@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
+import { emit } from "@smartout/telemetry";
 import { useWorkspace } from "@/lib/workspace-context";
 import { chatKeys } from "./chat-keys";
 
@@ -31,6 +32,24 @@ export function useMarkAsRead() {
         .eq("profile_id", profileId);
 
       if (error) throw error;
+      return { conversationId, profileId };
+    },
+
+    onSuccess: (result) => {
+      if (!result) return;
+      void emit({
+        event: "chat.read",
+        workspace_id: workspaceId,
+        actor_id: result.profileId,
+        properties: {
+          conversation_id: result.conversationId,
+          profile_id: result.profileId,
+        },
+        entity: {
+          entity_type: "chat_message",
+          entity_id: result.conversationId,
+        },
+      });
     },
 
     onSettled: () => {
