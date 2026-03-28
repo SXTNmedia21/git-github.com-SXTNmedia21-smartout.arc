@@ -115,7 +115,7 @@ async function handleStart(
     .select("profile_id, display_name, avatar_url")
     .eq("user_id", userId)
     .eq("workspace_id", workspaceId)
-    .eq("is_active", true)
+    .in("status", ["active", "trainee"])
     .single();
 
   if (!profile) {
@@ -242,7 +242,7 @@ async function handleRespond(
     .select("profile_id, display_name")
     .eq("user_id", userId)
     .eq("workspace_id", workspaceId)
-    .eq("is_active", true)
+    .in("status", ["active", "trainee"])
     .single();
 
   if (!profile) {
@@ -326,7 +326,7 @@ async function handleMuteParticipant(
     .select("profile_id, workspace_role")
     .eq("user_id", userId)
     .eq("workspace_id", workspaceId)
-    .eq("is_active", true)
+    .in("status", ["active", "trainee"])
     .single();
 
   if (!profile) {
