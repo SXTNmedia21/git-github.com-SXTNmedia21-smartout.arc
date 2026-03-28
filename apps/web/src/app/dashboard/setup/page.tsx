@@ -31,15 +31,19 @@ export default function DashboardSetupPage() {
       }
     >
       <div className="relative flex h-full flex-col">
-        {/* Escape hatch — skip to dashboard */}
+        {/* Escape hatch — skip to dashboard (session-only, resets on reload) */}
         <div className="absolute top-4 right-4 z-50">
-          <a
-            href="/dashboard"
+          <button
+            type="button"
+            onClick={() => {
+              sessionStorage.setItem("setup_dismissed", "1");
+              window.location.href = "/dashboard";
+            }}
             className="text-muted-foreground hover:bg-accent hover:text-foreground flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
           >
             <SkipForward className="h-3.5 w-3.5" />
             {t("setup.skip_to_dashboard")}
-          </a>
+          </button>
         </div>
 
         <AnimatedWizardShell

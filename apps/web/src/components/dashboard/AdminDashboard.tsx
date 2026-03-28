@@ -3,7 +3,6 @@
 import { useCallback, useContext, useState } from "react";
 import dynamic from "next/dynamic";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import { DailyStatusBar } from "./DailyStatusBar";
 import { ScheduleUIProvider } from "@/app/dashboard/schedule/_components/schedule-ui-context";
 import { DayControlSheet, DayControlPanel } from "@/app/dashboard/schedule/_components/day-control";
 import { TodoTaskView } from "@/app/dashboard/_components/todo/TodoTaskView";
@@ -38,9 +37,6 @@ export default function AdminDashboard({ isDark }: AdminDashboardProps) {
   return (
     <ScheduleUIProvider>
       <div className="flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden">
-        <div className="px-4 pt-2">
-          <DailyStatusBar />
-        </div>
         {adminView === "todo" ? (
           <TodoTaskView />
         ) : adminView === "tactical" ? (
