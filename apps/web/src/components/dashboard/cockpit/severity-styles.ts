@@ -15,24 +15,24 @@ type SeverityToneStyles = {
 
 const SEVERITY_TONE_STYLE_MAP: Record<CockpitSeverityTone, SeverityToneStyles> = {
   critical: {
-    badge: "border-red-500/30 bg-red-500/10 text-red-500",
-    text: "text-red-500",
-    icon: "text-red-500",
+    badge: "border-destructive/30 bg-destructive/10 text-destructive",
+    text: "text-destructive",
+    icon: "text-destructive",
   },
   warning: {
-    badge: "border-orange-500/30 bg-orange-500/10 text-orange-500",
-    text: "text-orange-500",
-    icon: "text-orange-500",
+    badge: "border-warning/30 bg-warning/10 text-warning",
+    text: "text-warning",
+    icon: "text-warning",
   },
   info: {
-    badge: "border-blue-500/30 bg-blue-500/10 text-blue-500",
-    text: "text-blue-500",
-    icon: "text-blue-500",
+    badge: "border-primary/30 bg-primary/10 text-primary",
+    text: "text-primary",
+    icon: "text-primary",
   },
   good: {
-    badge: "border-emerald-500/30 bg-emerald-500/10 text-emerald-500",
-    text: "text-emerald-500",
-    icon: "text-emerald-500",
+    badge: "border-success/30 bg-success/10 text-success",
+    text: "text-success",
+    icon: "text-success",
   },
   neutral: {
     badge: "border-border bg-muted/50 text-muted-foreground",
