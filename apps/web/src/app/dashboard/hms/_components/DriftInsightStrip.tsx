@@ -15,13 +15,13 @@ type MetricCellProps = {
 function MetricCell({ icon: Icon, label, value, sublabel, variant = "default" }: MetricCellProps) {
   const variantStyles = {
     default: "border-border",
-    warning: "border-yellow-500/40",
+    warning: "border-warning/40",
     critical: "border-destructive/40",
   };
 
   const valueStyles = {
     default: "text-foreground",
-    warning: "text-yellow-500",
+    warning: "text-warning",
     critical: "text-destructive",
   };
 
@@ -65,12 +65,12 @@ export function DriftInsightStrip({ date }: DriftInsightStripProps) {
 
   const sessionSublabel =
     insights.activeSessions > 0
-      ? t("hms_drift_insights.sessions_active", {
+      ? t("hms.drift_insights.sessions_active", {
           count: insights.activeSessions,
         })
       : insights.closedSessions === insights.totalSessions
-        ? t("hms_drift_insights.sessions_all_closed")
-        : t("hms_drift_insights.sessions_closed", {
+        ? t("hms.drift_insights.sessions_all_closed")
+        : t("hms.drift_insights.sessions_closed", {
             count: insights.closedSessions,
           });
 
@@ -92,7 +92,7 @@ export function DriftInsightStrip({ date }: DriftInsightStripProps) {
 
   const deviationSublabel =
     insights.blockingDeviations > 0
-      ? t("hms_drift_insights.deviations_blocking", {
+      ? t("hms.drift_insights.deviations_blocking", {
           count: insights.blockingDeviations,
         })
       : undefined;
@@ -103,16 +103,16 @@ export function DriftInsightStrip({ date }: DriftInsightStripProps) {
     <div className="border-border bg-card/50 flex rounded-xl border">
       <MetricCell
         icon={CalendarCheck}
-        label={t("hms_drift_insights.sessions_label")}
+        label={t("hms.drift_insights.sessions_label")}
         value={`${insights.closedSessions}/${insights.totalSessions}`}
         sublabel={sessionSublabel}
         variant={sessionVariant}
       />
       <MetricCell
         icon={ClipboardCheck}
-        label={t("hms_drift_insights.tasks_label")}
+        label={t("hms.drift_insights.tasks_label")}
         value={`${insights.taskCompletionPercent}%`}
-        sublabel={t("hms_drift_insights.tasks_sublabel", {
+        sublabel={t("hms.drift_insights.tasks_sublabel", {
           completed: insights.completedTasks,
           total: insights.totalTasks,
         })}
@@ -120,20 +120,20 @@ export function DriftInsightStrip({ date }: DriftInsightStripProps) {
       />
       <MetricCell
         icon={AlertTriangle}
-        label={t("hms_drift_insights.deviations_label")}
+        label={t("hms.drift_insights.deviations_label")}
         value={
           insights.openDeviations > 0
             ? insights.openDeviations
-            : t("hms_drift_insights.deviations_none")
+            : t("hms.drift_insights.deviations_none")
         }
         sublabel={deviationSublabel}
         variant={deviationVariant}
       />
       <MetricCell
         icon={Clock}
-        label={t("hms_drift_insights.overdue_label")}
+        label={t("hms.drift_insights.overdue_label")}
         value={
-          insights.overdueTasks > 0 ? insights.overdueTasks : t("hms_drift_insights.overdue_none")
+          insights.overdueTasks > 0 ? insights.overdueTasks : t("hms.drift_insights.overdue_none")
         }
         variant={overdueVariant}
       />

@@ -9,6 +9,13 @@ tags: [decisions]
 
 # Decision Log — absence-approval
 
+module: gamification
+tags: [decisions]
+
+---
+
+# Decision Log — gamification-foundation
+
 | #   | Date       | Decision                                                                                                                                                               | Status   |
 | --- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
 | 1   | 2026-03-28 | Extend existing upsert_session handler for season activation instead of creating new action handler — reuses proven logic, avoids handler proliferation                | accepted |

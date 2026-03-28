@@ -17,8 +17,8 @@ import enJoin from "../locales/en/join.json";
 import enDashboard from "../locales/en/dashboard.json";
 import enMobile from "../locales/en/mobile.json";
 
-type NestedMessages = Record<string, string>;
-type Messages = Record<string, string | NestedMessages | Record<string, NestedMessages>>;
+type MessageValue = string | Record<string, string | Record<string, string>>;
+type Messages = Record<string, MessageValue>;
 
 const localeModules: Record<string, Record<string, Messages>> = {
   nb: {
@@ -52,29 +52,29 @@ export function createTranslator(locale: SupportedLocale, namespace: string) {
   const messages = localeModules[locale]?.[namespace] ?? {};
   const fallbackMessages = locale !== "nb" ? (localeModules["nb"]?.[namespace] ?? {}) : {};
 
+  /**
+   * Resolves a dot-separated key (up to 3 levels deep) against a messages object.
+   * Examples: "title", "hms.sessions_label", "hms.drift_insights.sessions_label"
+   */
   function resolve(msgs: Messages, key: string): string | undefined {
     const direct = msgs[key];
     if (typeof direct === "string") return direct;
 
     const parts = key.split(".");
-    const p0 = parts[0] ?? "";
-    const p1 = parts[1] ?? "";
-    const p2 = parts[2] ?? "";
-
-    if (parts.length === 2 && p0 && p1) {
-      const nested = msgs[p0];
+    if (parts.length === 2) {
+      const nested = msgs[parts[0]!];
       if (typeof nested === "object" && nested !== null) {
-        const val = (nested as Record<string, unknown>)[p1];
+        const val = nested[parts[1]!];
         if (typeof val === "string") return val;
       }
     }
 
-    if (parts.length === 3 && p0 && p1 && p2) {
-      const top = msgs[p0];
+    if (parts.length === 3) {
+      const top = msgs[parts[0]!];
       if (typeof top === "object" && top !== null) {
-        const mid = (top as Record<string, unknown>)[p1];
+        const mid = top[parts[1]!];
         if (typeof mid === "object" && mid !== null) {
-          const val = (mid as Record<string, unknown>)[p2];
+          const val = mid[parts[2]!];
           if (typeof val === "string") return val;
         }
       }
@@ -84,8 +84,12 @@ export function createTranslator(locale: SupportedLocale, namespace: string) {
   }
 
   return function t(key: string, params?: Record<string, string | number>): string {
-    const val = resolve(messages, key) ?? resolve(fallbackMessages, key);
-    if (val) return interpolate(val, params);
+    const val = resolve(messages, key);
+    if (val !== undefined) return interpolate(val, params);
+
+    const fallbackVal = resolve(fallbackMessages, key);
+    if (fallbackVal !== undefined) return interpolate(fallbackVal, params);
+
     return key;
   };
 }
