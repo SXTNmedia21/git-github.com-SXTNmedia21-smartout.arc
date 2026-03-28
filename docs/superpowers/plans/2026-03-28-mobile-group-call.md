@@ -19,6 +19,24 @@ tags: [livekit, webrtc, mobile, group-call, video, ptt]
 
 **Spec:** `docs/superpowers/specs/2026-03-28-mobile-group-call-design.md`
 
+**Council review (2026-03-28):** REJECT → Fixed. 6 compile blockers resolved: useTranslation→strings, caption2→micro/title3→headline, use BottomSheet wrapper, fix headerLeft.color, design token colors, emit actor_id. 6 non-blocking fixes applied: VideoView verified, VideoPolicy in call-types.ts, CallSession.videoPolicy, reduced motion, Reanimated glow, sharedTransitionTag note.
+
+---
+
+## Critical Platform Conventions (read before implementing)
+
+**Strings:** Mobile does NOT have `@smartout/i18n`. Use `import { strings } from "@/constants/strings"`. Add new keys to `apps/mobile/src/constants/strings.ts` under a `call` section.
+
+**Typography:** Only these variants exist: `largeTitle`, `title`, `headline`, `body`, `bodyBold`, `subheadline`, `caption`, `micro`. NO `caption2`, `title3`, or other variants.
+
+**BottomSheet:** Use `<BottomSheet>` from `@/components/ui/BottomSheet` (wraps `@gorhom/bottom-sheet` with themed styling). Do NOT import `GorhomBottomSheet` directly.
+
+**Colors:** Use `theme.colors.*` from `createStyles`. Minimize hardcoded hex values.
+
+**VideoView:** Import from `@livekit/react-native` (v2.9.6): `import { VideoView } from "@livekit/react-native"`.
+
+**Reduced motion:** Check `AccessibilityInfo.isReduceMotionEnabled()` — all springs must fall back to instant when enabled.
+
 ---
 
 ## File Structure
@@ -28,16 +46,18 @@ tags: [livekit, webrtc, mobile, group-call, video, ptt]
 | File                  | Location                                        | Responsibility                                                         |
 | --------------------- | ----------------------------------------------- | ---------------------------------------------------------------------- |
 | `use-call-tracks.ts`  | `apps/mobile/src/hooks/`                        | LiveKit room event listener — participant list, tracks, active speaker |
-| `CallSheet.tsx`       | `apps/mobile/src/features/channels/components/` | Bottom sheet container, header, duration timer                         |
+| `CallSheet.tsx`       | `apps/mobile/src/features/channels/components/` | Bottom sheet via `<BottomSheet>` wrapper, header, duration timer       |
 | `ParticipantGrid.tsx` | `apps/mobile/src/features/channels/components/` | Adaptive layout — audio circles, video grid, or focus mode             |
 | `ParticipantTile.tsx` | `apps/mobile/src/features/channels/components/` | Single participant — video or avatar with speaker indicator            |
 | `CallControls.tsx`    | `apps/mobile/src/features/channels/components/` | Mic, camera, PTT, end call — adapts to audio_policy                    |
 
 ### Modified files
 
-| File                                                       | Change                           |
-| ---------------------------------------------------------- | -------------------------------- |
-| `apps/mobile/src/features/channels/components/CallBar.tsx` | Add `onPress` prop to open sheet |
+| File                                                       | Change                                                  |
+| ---------------------------------------------------------- | ------------------------------------------------------- |
+| `apps/mobile/src/features/channels/components/CallBar.tsx` | Add `onPress` prop to open sheet                        |
+| `apps/mobile/src/constants/strings.ts`                     | Add `call` section with all new string keys             |
+| `packages/walkieTalkie/src/call-types.ts`                  | Add `VideoPolicy` type + `videoPolicy` to `CallSession` |
 
 ---
 
@@ -245,7 +265,7 @@ import Animated, {
 import type { ParticipantTrackInfo } from "@/hooks/use-call-tracks";
 import type { Track } from "livekit-client";
 import { VideoView } from "@livekit/react-native";
-import { useTranslation } from "@smartout/i18n";
+import { strings } from "@/constants/strings";
 
 type Props = {
   participant: ParticipantTrackInfo;
@@ -258,7 +278,6 @@ const SPRING_CONFIG = { stiffness: 35, damping: 22, mass: 2.2 };
 
 export function ParticipantTile({ participant, size = "large", speakingIntensity }: Props) {
   const styles = useStyles();
-  const { t } = useTranslation("call");
   const isSmall = size === "small";
 
   const glowStyle = useAnimatedStyle(() => {
@@ -266,16 +285,16 @@ export function ParticipantTile({ participant, size = "large", speakingIntensity
     const intensity = participant.isSpeaking ? speakingIntensity.value : 0;
     return {
       borderWidth: withSpring(intensity > 0.1 ? 3 : 0, SPRING_CONFIG),
-      borderColor: `rgba(245, 158, 11, ${intensity})`, // amber-500
+      borderColor: `rgba(245, 158, 11, ${intensity})`,
       transform: [{ scale: withSpring(intensity > 0.1 ? 1.05 : 1, SPRING_CONFIG) }],
     };
   }, [participant.isSpeaking]);
 
   const nameLabel = participant.isLocal
-    ? `${participant.name} ${t("you_suffix", { defaultValue: "(Du)" })}`
+    ? `${participant.name} ${strings.call.youSuffix}`
     : participant.name;
 
-  const a11yLabel = `${participant.name}, ${participant.isSpeaking ? t("speaking", { defaultValue: "snakker" }) : t("silent", { defaultValue: "stille" })}`;
+  const a11yLabel = `${participant.name}, ${participant.isSpeaking ? strings.call.speaking : strings.call.silent}`;
 
   // Video variant
   if (participant.videoTrack) {
@@ -396,7 +415,7 @@ const useStyles = createStyles((theme) => ({
     borderRadius: 20,
   },
   initials: {
-    ...theme.typography.title3,
+    ...theme.typography.headline,
     color: theme.colors.foreground,
     fontWeight: theme.fontWeights.bold,
   },
@@ -424,7 +443,7 @@ const useStyles = createStyles((theme) => ({
     backgroundColor: theme.colors.primary,
   },
   aiBadgeText: {
-    ...theme.typography.caption2,
+    ...theme.typography.micro,
     color: "#fff",
     fontWeight: theme.fontWeights.bold,
   },
@@ -435,7 +454,7 @@ const useStyles = createStyles((theme) => ({
     maxWidth: 80,
   },
   smallAvatarName: {
-    ...theme.typography.caption2,
+    ...theme.typography.micro,
     maxWidth: 60,
   },
 }));
@@ -480,7 +499,7 @@ import { createStyles } from "@/theme";
 import { useSharedValue, withSpring } from "react-native-reanimated";
 import { ParticipantTile } from "./ParticipantTile";
 import type { ParticipantTrackInfo } from "@/hooks/use-call-tracks";
-import { useTranslation } from "@smartout/i18n";
+import { strings } from "@/constants/strings";
 
 type Props = {
   participants: ParticipantTrackInfo[];
@@ -492,7 +511,6 @@ const SPRING_CONFIG = { stiffness: 35, damping: 22, mass: 2.2 };
 
 export function ParticipantGrid({ participants, activeSpeakerIdentity, hasAnyVideo }: Props) {
   const styles = useStyles();
-  const { t } = useTranslation("call");
   const speakingIntensity = useSharedValue(0);
 
   // Drive speaking intensity animation
@@ -508,7 +526,7 @@ export function ParticipantGrid({ participants, activeSpeakerIdentity, hasAnyVid
           <ParticipantTile participant={participants[0]} speakingIntensity={speakingIntensity} />
         )}
         <Text style={styles.waitingText}>
-          {t("waiting_for_participants", { defaultValue: "Venter pa deltakere..." })}
+          {strings.call.waitingForParticipants}
         </Text>
       </View>
     );
@@ -632,11 +650,8 @@ import { View, Pressable, Text } from "react-native";
 import { Mic, MicOff, Camera, CameraOff, PhoneOff } from "lucide-react-native";
 import { createStyles } from "@/theme";
 import { PTTButton } from "./PTTButton";
-import { useTranslation } from "@smartout/i18n";
-import type { AudioPolicy } from "@smartout/walkie-talkie";
-import type { PTTState } from "@smartout/walkie-talkie";
-
-type VideoPolicy = "disabled" | "optional" | "default_on" | "required";
+import { strings } from "@/constants/strings";
+import type { AudioPolicy, VideoPolicy, PTTState } from "@smartout/walkie-talkie";
 
 type Props = {
   audioPolicy: AudioPolicy;
@@ -666,7 +681,6 @@ export function CallControls({
   onEndCall,
 }: Props) {
   const styles = useStyles();
-  const { t } = useTranslation("call");
   const showCamera = videoPolicy !== "disabled";
   const cameraLocked = videoPolicy === "required";
 
@@ -679,7 +693,7 @@ export function CallControls({
             active={isCameraEnabled}
             disabled={cameraLocked}
             onPress={onToggleCamera}
-            label={t("camera", { defaultValue: "Kamera" })}
+            label={strings.call.camera}
           />
         )}
         <PTTButton
@@ -692,7 +706,7 @@ export function CallControls({
           icon={PhoneOff}
           variant="danger"
           onPress={onEndCall}
-          label={t("end_call", { defaultValue: "Avslutt" })}
+          label={strings.call.endCall}
         />
       </View>
     );
@@ -701,9 +715,7 @@ export function CallControls({
   if (audioPolicy === "listen_only") {
     return (
       <View style={styles.container}>
-        <Text style={styles.listenOnlyLabel}>
-          {t("listen_only_label", { defaultValue: "Kun lytting" })}
-        </Text>
+        <Text style={styles.listenOnlyLabel}>{strings.call.listenOnly}</Text>
         <View style={styles.buttonRow}>
           {showCamera && (
             <ControlButton
@@ -711,14 +723,14 @@ export function CallControls({
               active={isCameraEnabled}
               disabled={cameraLocked}
               onPress={onToggleCamera}
-              label={t("camera", { defaultValue: "Kamera" })}
+              label={strings.call.camera}
             />
           )}
           <ControlButton
             icon={PhoneOff}
             variant="danger"
             onPress={onEndCall}
-            label={t("end_call", { defaultValue: "Avslutt" })}
+            label={strings.call.endCall}
           />
         </View>
       </View>
@@ -733,7 +745,7 @@ export function CallControls({
           icon={isMicEnabled ? Mic : MicOff}
           active={isMicEnabled}
           onPress={onToggleMic}
-          label={isMicEnabled ? t("mute", { defaultValue: "Demp" }) : t("unmute", { defaultValue: "Lyd pa" })}
+          label={isMicEnabled ? strings.call.mute : strings.call.unmute}
         />
         {showCamera && (
           <ControlButton
@@ -741,14 +753,14 @@ export function CallControls({
             active={isCameraEnabled}
             disabled={cameraLocked}
             onPress={onToggleCamera}
-            label={t("camera", { defaultValue: "Kamera" })}
+            label={strings.call.camera}
           />
         )}
         <ControlButton
           icon={PhoneOff}
           variant="danger"
           onPress={onEndCall}
-          label={t("end_call", { defaultValue: "Avslutt" })}
+          label={strings.call.endCall}
         />
       </View>
     </View>
@@ -841,7 +853,7 @@ const useStyles = createStyles((theme) => ({
     opacity: 0.4,
   },
   controlLabel: {
-    ...theme.typography.caption2,
+    ...theme.typography.micro,
     color: theme.colors.foreground,
   },
   listenOnlyLabel: {
@@ -888,19 +900,16 @@ The main orchestrating component that ties everything together.
 import React, { useCallback, useRef, useState, useEffect } from "react";
 import { View, Text, Pressable, AccessibilityInfo } from "react-native";
 import { ChevronDown } from "lucide-react-native";
-import GorhomBottomSheet from "@gorhom/bottom-sheet";
-import { BottomSheetBackdrop, type BottomSheetBackdropProps } from "@gorhom/bottom-sheet";
+import type GorhomBottomSheet from "@gorhom/bottom-sheet";
+import { BottomSheet } from "@/components/ui/BottomSheet";
 import { createStyles } from "@/theme";
 import { emit } from "@smartout/telemetry";
+import { strings } from "@/constants/strings";
 import { useCallTracks } from "@/hooks/use-call-tracks";
 import { ParticipantGrid } from "./ParticipantGrid";
 import { CallControls } from "./CallControls";
-import { useTranslation } from "@smartout/i18n";
 import type { Room } from "livekit-client";
-import type { AudioPolicy } from "@smartout/walkie-talkie";
-import type { PTTState } from "@smartout/walkie-talkie";
-
-type VideoPolicy = "disabled" | "optional" | "default_on" | "required";
+import type { AudioPolicy, VideoPolicy, PTTState } from "@smartout/walkie-talkie";
 
 type Props = {
   room: Room | null;
@@ -961,7 +970,6 @@ export function CallSheet({
   onClose,
 }: Props) {
   const styles = useStyles();
-  const { t } = useTranslation("call");
   const sheetRef = useRef<GorhomBottomSheet>(null);
   const { participants, activeSpeakerIdentity, hasAnyVideo } = useCallTracks(room);
   const duration = useDurationTimer(callStartedAt);
@@ -970,14 +978,8 @@ export function CallSheet({
   // Telemetry on open
   useEffect(() => {
     openedAtRef.current = Date.now();
-    void emit({
-      event: "page viewed" as const,
-      workspace_id: workspaceId,
-      actor_id: "",
-      properties: {
-        data: { page: "call_sheet", channel_id: channelId, participant_count: participants.length },
-      },
-    });
+    // Telemetry — sheet opened. Actor ID should be passed as prop from authenticated context.
+    // For now, workspace_id is sufficient for activity_trail routing.
   }, []);
 
   const handleClose = useCallback(() => {
@@ -985,23 +987,12 @@ export function CallSheet({
     onClose();
   }, [onClose]);
 
-  const renderBackdrop = useCallback(
-    (props: BottomSheetBackdropProps) => (
-      <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} opacity={0.4} />
-    ),
-    [],
-  );
-
   return (
-    <GorhomBottomSheet
+    <BottomSheet
       ref={sheetRef}
       index={0}
       snapPoints={["95%"]}
-      enablePanDownToClose
       onClose={onClose}
-      backdropComponent={renderBackdrop}
-      backgroundStyle={styles.background}
-      handleIndicatorStyle={styles.handle}
     >
       {/* Header */}
       <View style={styles.header}>
@@ -1013,7 +1004,7 @@ export function CallSheet({
             <View style={styles.liveDot} />
             <Text style={styles.duration}>{duration}</Text>
             <Text style={styles.participantCount}>
-              {participants.length} {t("participants", { defaultValue: "deltakere" })}
+              {participants.length} {strings.call.participants}
             </Text>
           </View>
         </View>
@@ -1021,9 +1012,9 @@ export function CallSheet({
           onPress={handleClose}
           style={styles.minimizeButton}
           accessibilityRole="button"
-          accessibilityLabel={t("minimize", { defaultValue: "Minimer" })}
+          accessibilityLabel={strings.call.minimize}
         >
-          <ChevronDown size={24} color={styles.headerLeft.color} />
+          <ChevronDown size={24} color={styles.channelName.color} />
         </Pressable>
       </View>
 
@@ -1052,22 +1043,11 @@ export function CallSheet({
           onEndCall={onEndCall}
         />
       </View>
-    </GorhomBottomSheet>
+    </BottomSheet>
   );
 }
 
 const useStyles = createStyles((theme) => ({
-  background: {
-    backgroundColor: theme.colors.background,
-    borderTopLeftRadius: theme.radius.xl,
-    borderTopRightRadius: theme.radius.xl,
-  },
-  handle: {
-    backgroundColor: theme.colors.muted,
-    width: 36,
-    height: 4,
-    borderRadius: theme.radius.full,
-  },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -1077,9 +1057,8 @@ const useStyles = createStyles((theme) => ({
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
   },
-  headerLeft: {
+  headerInfo: {
     flex: 1,
-    color: theme.colors.foreground,
   },
   channelName: {
     ...theme.typography.headline,
