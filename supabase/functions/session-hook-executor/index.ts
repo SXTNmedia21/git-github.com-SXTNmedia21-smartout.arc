@@ -169,6 +169,18 @@ Deno.serve(async (req) => {
           if (!error) {
             totalTasksCreated += taskRows.length;
             existingSet.add(key);
+            // Emit engine event for notifications + escalation (ADR-0069)
+            await supabase.from("engine_event").insert({
+              workspace_id: session.workspace_id,
+              event_type: "session.hook_fired",
+              payload: {
+                department_session_id: session.department_session_id,
+                department_id: session.department_id,
+                session_hook_id: hook.id,
+                hook_type: hook.hook_type,
+                tasks_created: taskRows.length,
+              },
+            });
           }
         }
       } else if (hook.linked_routine_id) {
@@ -184,6 +196,18 @@ Deno.serve(async (req) => {
         if (!error) {
           totalTasksCreated += 1;
           existingSet.add(key);
+          // Emit engine event for notifications + escalation (ADR-0069)
+          await supabase.from("engine_event").insert({
+            workspace_id: session.workspace_id,
+            event_type: "session.hook_fired",
+            payload: {
+              department_session_id: session.department_session_id,
+              department_id: session.department_id,
+              session_hook_id: hook.id,
+              hook_type: hook.hook_type,
+              tasks_created: 1,
+            },
+          });
         }
       }
     }

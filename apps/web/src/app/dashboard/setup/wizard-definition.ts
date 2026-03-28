@@ -133,7 +133,7 @@ async function loadState(): Promise<Partial<SetupState>> {
 
   // Compute initial step index from module completion (same logic as useWorkspaceSetup)
   const STEP_TO_MODULE: Record<string, string> = {
-    welcome: "governance",
+    // welcome is always shown — it's a greeting, not a completable module
     "document-drop": "governance",
     governance: "governance",
     payroll: "governance",

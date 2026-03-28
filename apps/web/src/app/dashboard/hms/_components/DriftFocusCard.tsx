@@ -3,21 +3,15 @@
 import { useContext, useMemo } from "react";
 import Link from "next/link";
 import { ClipboardCheck, ChevronRight, Loader2 } from "lucide-react";
+import { useTranslation } from "@smartout/i18n";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useDepartmentSessions } from "../_hooks/use-department-sessions";
 import { useSessionTasks } from "../_hooks/use-session-tasks";
 
-// TODO: move to i18n
-const STRINGS = {
-  noTasks: "Ingen aktive oppgaver",
-  nextTask: "Neste oppgave",
-  goToDrift: "Ga til Drift",
-  tasksOf: "oppgaver",
-} as const;
-
 export function DriftFocusCard() {
+  const { t } = useTranslation("dashboard");
   const { profileId } = useContext(DashboardContext);
   const today = new Date().toISOString().split("T")[0]!;
   const { data: sessions, isLoading: sessionsLoading } = useDepartmentSessions(today);
@@ -58,7 +52,7 @@ export function DriftFocusCard() {
     return (
       <div className="border-border bg-card/50 flex items-center gap-3 rounded-xl border p-4">
         <ClipboardCheck className="text-muted-foreground h-8 w-8" />
-        <p className="text-muted-foreground text-sm">{STRINGS.noTasks}</p>
+        <p className="text-muted-foreground text-sm">{t("hms.drift_focus.no_tasks")}</p>
       </div>
     );
   }
@@ -68,10 +62,12 @@ export function DriftFocusCard() {
   return (
     <div className="border-border bg-card w-full rounded-xl border p-4">
       <div className="mb-2 flex items-center justify-between">
-        <p className="text-muted-foreground text-xs font-medium">{STRINGS.nextTask}</p>
+        <p className="text-muted-foreground text-xs font-medium">
+          {t("hms.drift_focus.next_task")}
+        </p>
         {isOverdue && (
           <Badge className="bg-red-500/15 text-[10px] text-red-600 hover:bg-red-500/15">
-            Forfalt
+            {t("hms.drift_focus.overdue")}
           </Badge>
         )}
       </div>
@@ -91,13 +87,13 @@ export function DriftFocusCard() {
           />
         ))}
         <span className="text-muted-foreground ml-2 text-[10px]">
-          {completedTasks}/{totalTasks} {STRINGS.tasksOf}
+          {completedTasks}/{totalTasks} {t("hms.drift_focus.tasks_of")}
         </span>
       </div>
 
       <Button asChild size="sm" className="w-full">
         <Link href="/dashboard/hms/drift">
-          {STRINGS.goToDrift}
+          {t("hms.drift_focus.go_to_drift")}
           <ChevronRight className="ml-1 h-3.5 w-3.5" />
         </Link>
       </Button>

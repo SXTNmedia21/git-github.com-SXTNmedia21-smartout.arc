@@ -1,5 +1,12 @@
 {
   "activityDemoWarning": "Aktivitetsdata vises som demo. Kobles til ekte data snart.",
+  "activity": {
+    "coming_soon_title": "Varmekart er under utvikling",
+    "coming_soon_description": "Aktivitetsvarmekart, filtre og statistikk er under utvikling. Aktivitetsloggen nedenfor viser sanntidsdata."
+  },
+  "reconciliation": {
+    "handoff_not_ready": "Handoff-funksjonen er under utvikling"
+  },
   "hms": {
     "drift_insights": {
       "sessions_label": "Økter i dag",

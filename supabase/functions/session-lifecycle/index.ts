@@ -51,7 +51,9 @@ Deno.serve(async (req) => {
   // 1. upcoming → active: session_date is today, NOW >= planned_open
   const { data: upcomingToday } = await supabase
     .from("department_session")
-    .select("department_session_id, session_date, planned_open, planned_close")
+    .select(
+      "department_session_id, workspace_id, department_id, session_date, planned_open, planned_close",
+    )
     .eq("status", "upcoming")
     .eq("session_date", today)
     .not("planned_open", "is", null);
@@ -63,14 +65,26 @@ Deno.serve(async (req) => {
         .from("department_session")
         .update({ status: "active", opened_at: now.toISOString() })
         .eq("department_session_id", session.department_session_id);
-      if (!error) results.opened++;
+      if (!error) {
+        results.opened++;
+        // Emit engine event for downstream processes (ADR-0069)
+        await supabase.from("engine_event").insert({
+          workspace_id: session.workspace_id,
+          event_type: "department_session.opened",
+          payload: {
+            department_session_id: session.department_session_id,
+            department_id: session.department_id,
+            session_date: session.session_date,
+          },
+        });
+      }
     }
   }
 
   // 2. active → pending_signoff: NOW >= planned_close
   const { data: activeSessions } = await supabase
     .from("department_session")
-    .select("department_session_id, session_date, planned_close")
+    .select("department_session_id, workspace_id, department_id, session_date, planned_close")
     .eq("status", "active")
     .in("session_date", [today, yesterdayStr])
     .not("planned_close", "is", null);
@@ -82,14 +96,26 @@ Deno.serve(async (req) => {
         .from("department_session")
         .update({ status: "pending_signoff" })
         .eq("department_session_id", session.department_session_id);
-      if (!error) results.pending_signoff++;
+      if (!error) {
+        results.pending_signoff++;
+        // Emit engine event — triggers daily_close process (ADR-0069)
+        await supabase.from("engine_event").insert({
+          workspace_id: session.workspace_id,
+          event_type: "department_session.pending_signoff",
+          payload: {
+            department_session_id: session.department_session_id,
+            department_id: session.department_id,
+            session_date: session.session_date,
+          },
+        });
+      }
     }
   }
 
   // 3. upcoming → missed: never opened, NOW > planned_close + 2h
   const { data: staleUpcoming } = await supabase
     .from("department_session")
-    .select("department_session_id, session_date, planned_close")
+    .select("department_session_id, workspace_id, department_id, session_date, planned_close")
     .eq("status", "upcoming")
     .in("session_date", [today, yesterdayStr])
     .not("planned_close", "is", null);
@@ -103,7 +129,19 @@ Deno.serve(async (req) => {
         .from("department_session")
         .update({ status: "missed" })
         .eq("department_session_id", session.department_session_id);
-      if (!error) results.missed++;
+      if (!error) {
+        results.missed++;
+        // Emit engine event for missed session tracking (ADR-0069)
+        await supabase.from("engine_event").insert({
+          workspace_id: session.workspace_id,
+          event_type: "department_session.missed",
+          payload: {
+            department_session_id: session.department_session_id,
+            department_id: session.department_id,
+            session_date: session.session_date,
+          },
+        });
+      }
     }
   }
 

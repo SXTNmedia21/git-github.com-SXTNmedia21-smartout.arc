@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
+import { useTranslation } from "@smartout/i18n";
 import { useMutation } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
 import { useDepartmentShifts } from "@/app/dashboard/_hooks";
@@ -164,11 +165,16 @@ export function ReconciliationView({ isDark }: { isDark: boolean }) {
     [handoffDraft],
   );
 
-  const sendHandoff = useCallback((shiftId: string) => {
-    setDecisions((prev) => ({ ...prev, [shiftId]: "handoff" }));
-    setHandoffDraft(null);
-    toast.success("Handoff sendt til ansatt via Smartout");
-  }, []);
+  const { t } = useTranslation("dashboard");
+
+  const sendHandoff = useCallback(
+    (shiftId: string) => {
+      setDecisions((prev) => ({ ...prev, [shiftId]: "handoff" }));
+      setHandoffDraft(null);
+      toast.info(t("reconciliation.handoff_not_ready"));
+    },
+    [t],
+  );
 
   const approveDay = useCallback(async () => {
     if (!departments) return;

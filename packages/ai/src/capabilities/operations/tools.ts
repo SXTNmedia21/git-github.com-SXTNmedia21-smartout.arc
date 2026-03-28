@@ -62,7 +62,9 @@ export const getSessionInfo = defineTool({
     const today = new Date().toISOString().split("T")[0];
     const { data, error } = await supabase
       .from("department_session")
-      .select("department_session_id, status, session_date, opened_at, closed_at, tasks_total, tasks_completed, department:department_id(name)")
+      .select(
+        "department_session_id, status, session_date, opened_at, closed_at, tasks_total, tasks_completed, department:department_id(name)",
+      )
       .eq("workspace_id", ctx.workspaceId)
       .eq("department_id", deptId)
       .eq("session_date", today)
@@ -198,6 +200,19 @@ export const createDeviation = defineTool({
       .single();
 
     if (error) return `Error creating deviation: ${error.message}`;
+
+    // Emit engine event for audit trail (ADR-0069 — agent tools must emit)
+    await supabase.from("engine_event").insert({
+      workspace_id: ctx.workspaceId,
+      event_type: "deviation.reported",
+      payload: {
+        deviation_id: data.deviation_id,
+        severity: params.severity,
+        source: "agent",
+        actor_id: ctx.profileId,
+      },
+    });
+
     return JSON.stringify({ created: true, deviation: data });
   },
 });
@@ -226,6 +241,18 @@ export const completeTask = defineTool({
 
     if (error) return `Error completing task: ${error.message}`;
     if (!data) return "Task not found or not assigned to you.";
+
+    // Emit engine event for audit trail (ADR-0069 — agent tools must emit)
+    await supabase.from("engine_event").insert({
+      workspace_id: ctx.workspaceId,
+      event_type: "session_task.completed",
+      payload: {
+        task_id: params.task_id,
+        source: "agent",
+        actor_id: ctx.profileId,
+      },
+    });
+
     return JSON.stringify({ completed: true, task: data });
   },
 });

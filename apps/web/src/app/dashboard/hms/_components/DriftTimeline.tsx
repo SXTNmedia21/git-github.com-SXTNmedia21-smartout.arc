@@ -1,25 +1,22 @@
 "use client";
 
 import { useContext, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { Loader2, ClipboardCheck } from "lucide-react";
+import { useTranslation } from "@smartout/i18n";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useDepartmentSessions } from "../_hooks/use-department-sessions";
 import { useSessionTasks, type SessionTask } from "../_hooks/use-session-tasks";
 import { useCompleteTask } from "../_hooks/use-complete-task";
 import { TaskCard } from "./TaskCard";
 
-// TODO: move to i18n
-const STRINGS = {
-  noSession: "Ingen aktiv okt.",
-  noTasks: "Ingen oppgaver.",
-  now: "NA",
-} as const;
-
 function timeLabel(date: string): string {
   return new Date(date).toLocaleTimeString("nb-NO", { hour: "2-digit", minute: "2-digit" });
 }
 
 export function DriftTimeline() {
+  const { t } = useTranslation("dashboard");
+  const router = useRouter();
   const { profileId } = useContext(DashboardContext);
   const today = new Date().toISOString().split("T")[0]!;
   const { data: sessions, isLoading: sessionsLoading } = useDepartmentSessions(today);
@@ -52,7 +49,7 @@ export function DriftTimeline() {
     return (
       <div className="border-border bg-card/50 flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-12">
         <ClipboardCheck className="text-muted-foreground mb-3 h-10 w-10" />
-        <p className="text-muted-foreground text-sm">{STRINGS.noSession}</p>
+        <p className="text-muted-foreground text-sm">{t("hms.drift_timeline.no_session")}</p>
       </div>
     );
   }
@@ -61,8 +58,10 @@ export function DriftTimeline() {
     completeTask.mutate({ taskId, sessionId: activeSession!.sessionId, evidence });
   }
 
-  function handleFlagDeviation(_task: SessionTask) {
-    // Phase 2 Task 9 wires this
+  function handleFlagDeviation(task: SessionTask) {
+    router.push(
+      `/dashboard/hms/deviations?prefill_task_id=${task.id}&prefill_session_id=${activeSession!.sessionId}`,
+    );
   }
 
   return (
@@ -74,7 +73,7 @@ export function DriftTimeline() {
       <div className="relative mb-4 flex items-center">
         <div className="absolute left-[-20px] h-3.5 w-3.5 rounded-full border-2 border-red-500 bg-red-500" />
         <span className="text-xs font-bold text-red-500">
-          {STRINGS.now} — {nowStr}
+          {t("hms.drift_timeline.now")} — {nowStr}
         </span>
       </div>
 
@@ -85,11 +84,11 @@ export function DriftTimeline() {
           <div
             className={`border-background absolute top-4 left-[-20px] h-2.5 w-2.5 rounded-full border-2 ${
               task.status === "completed"
-                ? "bg-green-500"
+                ? "bg-success"
                 : task.status === "overdue" || task.status === "escalated"
-                  ? "bg-red-500"
+                  ? "bg-destructive"
                   : task.status === "in_progress"
-                    ? "bg-yellow-500"
+                    ? "bg-warning"
                     : "bg-muted-foreground/30"
             }`}
           />

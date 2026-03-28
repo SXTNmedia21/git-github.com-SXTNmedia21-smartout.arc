@@ -42,11 +42,11 @@ export default function AdminDashboard({ isDark }: AdminDashboardProps) {
         ) : adminView === "tactical" ? (
           <HospitalityOperationsCockpit />
         ) : adminView === "strategic" ? (
-          <StrategicView isDark={isDark} />
+          <StrategicView />
         ) : adminView === "reconciliation" ? (
           <ReconciliationView isDark={isDark} />
         ) : adminView === "activity" ? (
-          <ActivityView isDark={isDark} />
+          <ActivityView />
         ) : null}
       </div>
 
@@ -57,26 +57,21 @@ export default function AdminDashboard({ isDark }: AdminDashboardProps) {
   );
 }
 
-function DashboardSkeleton({ isDark }: { isDark: boolean }) {
-  const bar = isDark ? "bg-zinc-800" : "bg-zinc-200";
+function DashboardSkeleton() {
   return (
     <div className="flex flex-1 flex-col gap-4 p-4">
-      <div className={`h-6 w-48 animate-pulse rounded ${bar}`} />
+      <div className="bg-muted h-6 w-48 animate-pulse rounded" />
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
         {Array.from({ length: 6 }).map((_, i) => (
           <div
             key={i}
-            className={`h-28 animate-pulse rounded-2xl border ${isDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-zinc-50"}`}
+            className="border-border bg-muted/50 h-28 animate-pulse rounded-2xl border"
           />
         ))}
       </div>
       <div className="flex gap-4">
-        <div
-          className={`h-56 flex-[2] animate-pulse rounded-2xl border ${isDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-zinc-50"}`}
-        />
-        <div
-          className={`h-56 flex-1 animate-pulse rounded-2xl border ${isDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-zinc-50"}`}
-        />
+        <div className="border-border bg-muted/50 h-56 flex-[2] animate-pulse rounded-2xl border" />
+        <div className="border-border bg-muted/50 h-56 flex-1 animate-pulse rounded-2xl border" />
       </div>
     </div>
   );

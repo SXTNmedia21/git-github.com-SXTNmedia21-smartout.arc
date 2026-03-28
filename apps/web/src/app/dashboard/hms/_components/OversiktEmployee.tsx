@@ -3,6 +3,7 @@
 import { useContext } from "react";
 import Link from "next/link";
 import { ChevronRight, Loader2 } from "lucide-react";
+import { useTranslation } from "@smartout/i18n";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { Button } from "@/components/ui/button";
 import { useReadinessScore } from "../_hooks/use-readiness-score";
@@ -11,15 +12,6 @@ import {
   type AssignedProtocol,
 } from "@/app/dashboard/my-training/_hooks/use-assigned-protocols";
 import { DriftFocusCard } from "./DriftFocusCard";
-
-// TODO: move to i18n
-const STRINGS = {
-  readiness: "Din opplaeringsgrad",
-  remaining: "ting gjenstar",
-  allDone: "Alt fullfort!",
-  continueLabel: "Fortsett",
-  noAssignments: "Ingen opplaering tildelt enna.",
-} as const;
 
 /** SVG readiness ring — simple donut chart */
 function ReadinessRing({ percent }: { percent: number }) {
@@ -58,6 +50,7 @@ function getNextProtocol(protocols: AssignedProtocol[]): AssignedProtocol | null
 }
 
 export function OversiktEmployee() {
+  const { t } = useTranslation("dashboard");
   const { profileId } = useContext(DashboardContext);
   const { score, isLoading: scoreLoading } = useReadinessScore(profileId);
   const { data: protocols, isLoading: protocolsLoading } = useAssignedProtocols(profileId);
@@ -80,16 +73,22 @@ export function OversiktEmployee() {
       {/* Readiness ring */}
       <div className="flex flex-col items-center gap-2">
         <ReadinessRing percent={score.percent} />
-        <p className="text-muted-foreground text-sm font-medium">{STRINGS.readiness}</p>
+        <p className="text-muted-foreground text-sm font-medium">
+          {t("hms.overview_employee.readiness")}
+        </p>
         <p className="text-foreground text-lg font-bold">
-          {remaining > 0 ? `${remaining} ${STRINGS.remaining}` : STRINGS.allDone}
+          {remaining > 0
+            ? `${remaining} ${t("hms.overview_employee.remaining")}`
+            : t("hms.overview_employee.all_done")}
         </p>
       </div>
 
       {/* Next action card */}
       {nextProtocol ? (
         <div className="border-border bg-card w-full rounded-xl border p-4">
-          <p className="text-muted-foreground mb-1 text-xs font-medium">Neste</p>
+          <p className="text-muted-foreground mb-1 text-xs font-medium">
+            {t("hms.overview_employee.next")}
+          </p>
           <p className="text-foreground mb-3 font-semibold">{nextProtocol.protocolName}</p>
           <div className="bg-muted mb-3 h-2 overflow-hidden rounded-full">
             <div
@@ -98,17 +97,18 @@ export function OversiktEmployee() {
             />
           </div>
           <p className="text-muted-foreground mb-3 text-xs">
-            {nextProtocol.progress.completedSteps}/{nextProtocol.progress.totalSteps} steg fullfort
+            {nextProtocol.progress.completedSteps}/{nextProtocol.progress.totalSteps}{" "}
+            {t("hms.overview_employee.steps_completed")}
           </p>
           <Button asChild className="w-full">
             <Link href="/dashboard/hms/training">
-              {STRINGS.continueLabel}
+              {t("hms.overview_employee.continue")}
               <ChevronRight className="ml-1 h-4 w-4" />
             </Link>
           </Button>
         </div>
       ) : (
-        <p className="text-muted-foreground text-sm">{STRINGS.noAssignments}</p>
+        <p className="text-muted-foreground text-sm">{t("hms.overview_employee.no_assignments")}</p>
       )}
 
       {/* Active session task widget */}
