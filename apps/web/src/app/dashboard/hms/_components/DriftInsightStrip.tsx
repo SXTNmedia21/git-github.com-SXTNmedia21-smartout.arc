@@ -1,13 +1,7 @@
 "use client";
 
 import { useTranslation } from "@smartout/i18n";
-import {
-  CalendarCheck,
-  ClipboardCheck,
-  AlertTriangle,
-  Clock,
-  Loader2,
-} from "lucide-react";
+import { CalendarCheck, ClipboardCheck, AlertTriangle, Clock, Loader2 } from "lucide-react";
 import { useDriftInsights } from "../_hooks/use-drift-insights";
 
 type MetricCellProps = {
@@ -18,22 +12,16 @@ type MetricCellProps = {
   variant?: "default" | "warning" | "critical";
 };
 
-function MetricCell({
-  icon: Icon,
-  label,
-  value,
-  sublabel,
-  variant = "default",
-}: MetricCellProps) {
+function MetricCell({ icon: Icon, label, value, sublabel, variant = "default" }: MetricCellProps) {
   const variantStyles = {
     default: "border-border",
-    warning: "border-yellow-500/40",
+    warning: "border-warning/40",
     critical: "border-destructive/40",
   };
 
   const valueStyles = {
     default: "text-foreground",
-    warning: "text-yellow-500",
+    warning: "text-warning",
     critical: "text-destructive",
   };
 
@@ -45,17 +33,11 @@ function MetricCell({
         <Icon className="text-muted-foreground h-4 w-4" />
       </div>
       <div className="min-w-0">
-        <p className="text-muted-foreground text-[10px] font-medium uppercase tracking-wider">
+        <p className="text-muted-foreground text-[10px] font-medium tracking-wider uppercase">
           {label}
         </p>
-        <p className={`text-lg font-bold leading-tight ${valueStyles[variant]}`}>
-          {value}
-        </p>
-        {sublabel && (
-          <p className="text-muted-foreground truncate text-[10px]">
-            {sublabel}
-          </p>
-        )}
+        <p className={`text-lg leading-tight font-bold ${valueStyles[variant]}`}>{value}</p>
+        {sublabel && <p className="text-muted-foreground truncate text-[10px]">{sublabel}</p>}
       </div>
     </div>
   );
@@ -92,8 +74,7 @@ export function DriftInsightStrip({ date }: DriftInsightStripProps) {
             count: insights.closedSessions,
           });
 
-  const sessionVariant =
-    insights.missedSessions > 0 ? "critical" : "default";
+  const sessionVariant = insights.missedSessions > 0 ? "critical" : "default";
 
   const taskVariant =
     insights.taskCompletionPercent < 50
@@ -116,8 +97,7 @@ export function DriftInsightStrip({ date }: DriftInsightStripProps) {
         })
       : undefined;
 
-  const overdueVariant =
-    insights.overdueTasks > 0 ? "warning" : "default";
+  const overdueVariant = insights.overdueTasks > 0 ? "warning" : "default";
 
   return (
     <div className="border-border bg-card/50 flex rounded-xl border">
@@ -153,9 +133,7 @@ export function DriftInsightStrip({ date }: DriftInsightStripProps) {
         icon={Clock}
         label={t("hms.drift_insights.overdue_label")}
         value={
-          insights.overdueTasks > 0
-            ? insights.overdueTasks
-            : t("hms.drift_insights.overdue_none")
+          insights.overdueTasks > 0 ? insights.overdueTasks : t("hms.drift_insights.overdue_none")
         }
         variant={overdueVariant}
       />
