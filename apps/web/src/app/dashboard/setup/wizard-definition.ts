@@ -134,11 +134,106 @@ async function loadState(): Promise<Partial<SetupState>> {
 }
 
 /**
- * onComplete — emits wizard completed event.
- * The actual query invalidation and routing is handled by the page component.
+ * sendTeamInvitations — creates pending invitation records for team members.
+ *
+ * Naturally idempotent: checks for existing pending invitations before inserting,
+ * so it's safe to call on both step leave AND wizard completion.
  */
-async function onComplete(_state: SetupState): Promise<void> {
-  // Completion logic handled in the page component via telemetry callbacks
+async function sendTeamInvitations(
+  supabase: ReturnType<typeof createClient>,
+  state: SetupState,
+): Promise<void> {
+  const members = state.teamMembers;
+  if (members.length === 0) return;
+
+  // Resolve company_id from workspace
+  const { data: ws } = await supabase
+    .from("workspace")
+    .select("company_id")
+    .eq("workspace_id", state.workspaceId)
+    .single();
+
+  const companyId = ws?.company_id;
+  if (!companyId) return;
+
+  // Check existing pending invitations to avoid duplicates
+  const emails = members.map((m) => m.email.trim()).filter(Boolean);
+  const { data: existing } = await supabase
+    .from("invitation")
+    .select("email")
+    .eq("workspace_id", state.workspaceId)
+    .eq("status", "pending")
+    .in("email", emails);
+
+  const existingEmails = new Set((existing ?? []).map((e) => e.email));
+  const newMembers = members.filter((m) => !existingEmails.has(m.email.trim()));
+  if (newMembers.length === 0) return;
+
+  const inviteRecords = newMembers.map((m) => ({
+    workspace_id: state.workspaceId,
+    company_id: companyId,
+    email: m.email.trim() || null,
+    first_name: m.firstName.trim(),
+    last_name: m.lastName.trim(),
+    role: m.role,
+    department_ids: m.departmentId ? [m.departmentId] : [],
+    status: "pending" as const,
+    invite_type: "email" as const,
+    invited_by: state.profileId,
+    metadata: {
+      ...(m.phone ? { phone: m.phone } : {}),
+      ...(m.positionId ? { positionId: m.positionId } : {}),
+      ...(m.employmentForm ? { employmentForm: m.employmentForm } : {}),
+      ...(m.hourlyRate ? { hourlyRate: m.hourlyRate } : {}),
+      ...(m.startDate ? { startDate: m.startDate } : {}),
+      ...(m.positionPct ? { positionPct: m.positionPct } : {}),
+      ...(m.birthDate ? { birthDate: m.birthDate } : {}),
+      ...(m.address ? { address: m.address } : {}),
+      ...(Object.keys(m.extraData).length > 0 ? { extraData: m.extraData } : {}),
+    },
+  }));
+
+  const { error } = await supabase.from("invitation").insert(inviteRecords);
+  if (error) {
+    console.error("[setup-wizard] Failed to create invitations:", error);
+  }
+}
+
+/**
+ * onComplete — finalizes the setup wizard.
+ *
+ * Marks workspace setup as complete, sends any pending team invitations,
+ * triggers K1b knowledge ingestion, and redirects to the dashboard.
+ * Telemetry is NOT emitted here — useWizardTelemetry handles that.
+ */
+async function onComplete(state: SetupState): Promise<void> {
+  const supabase = createClient();
+
+  // 1. Mark workspace setup as completed
+  const { error } = await supabase
+    .from("workspace")
+    .update({ setup_guide_completed: true })
+    .eq("workspace_id", state.workspaceId);
+
+  if (error) {
+    throw new Error(`Failed to update setup_guide_completed: ${error.message}`);
+  }
+
+  // 2. Send team invitations if any pending
+  if (state.teamMembers.length > 0) {
+    await sendTeamInvitations(supabase, state);
+  }
+
+  // 3. Trigger K1b knowledge ingestion (non-blocking)
+  void supabase.functions.invoke("ingest-workspace-knowledge", {
+    body: { workspace_id: state.workspaceId, force: true },
+  });
+
+  // 4. Clear session dismiss flag
+  sessionStorage.removeItem("setup_dismissed");
+
+  // 5. Hard navigation forces server layout re-fetch with updated setup state
+  window.location.href = "/dashboard";
 }
 
 export const dashboardSetupWizard: WizardDefinition<SetupState> = {
@@ -194,6 +289,11 @@ export const dashboardSetupWizard: WizardDefinition<SetupState> = {
       icon: Users,
       component: TeamStepAdapter,
       skippable: true,
+      onStepLeave: async (state: SetupState) => {
+        if (state.teamMembers.length > 0) {
+          await sendTeamInvitations(createClient(), state);
+        }
+      },
     },
     {
       id: "shift-template",
