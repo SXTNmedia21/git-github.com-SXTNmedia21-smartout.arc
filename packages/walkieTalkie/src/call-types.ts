@@ -1,6 +1,7 @@
 export type CallType = "direct" | "group" | "ptt";
 export type CallStatus = "active" | "ending" | "ended";
 export type AudioPolicy = "disabled" | "ptt" | "open_mic" | "listen_only";
+export type VideoPolicy = "disabled" | "optional" | "default_on" | "required";
 
 export type CallSession = {
   id: string;
@@ -10,6 +11,7 @@ export type CallSession = {
   livekitRoomName: string;
   status: CallStatus;
   audioPolicy: AudioPolicy;
+  videoPolicy: VideoPolicy;
   startedBy: string | null;
   maxParticipants: number;
   startedAt: string;

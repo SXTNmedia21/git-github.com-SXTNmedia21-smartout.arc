@@ -115,6 +115,20 @@ export const strings = {
     error: "Noe gikk galt",
     tryAgain: "Prøv igjen",
   },
+  call: {
+    youSuffix: "(Du)",
+    speaking: "snakker",
+    silent: "stille",
+    waitingForParticipants: "Venter p\u00e5 deltakere\u2026",
+    participants: "deltakere",
+    minimize: "Minimer",
+    camera: "Kamera",
+    endCall: "Avslutt",
+    mute: "Demp",
+    unmute: "Lyd p\u00e5",
+    listenOnly: "Kun lytting",
+    inCall: "I samtale",
+  },
   payroll: {
     title: "Lønn & fravær",
     /** Payroll hub — read-only employee screens */
