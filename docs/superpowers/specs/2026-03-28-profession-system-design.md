@@ -561,7 +561,7 @@ interface PositionOption {
   name: string;
   slug: string;
   selected: boolean;
-  authorityLevel: "duty" | "deputy" | "leader" | null;
+  // authority_level lives on profile, not position — set when employees are added
 }
 ```
 

@@ -4,7 +4,7 @@
 
 **Goal:** Introduce Fag (profession), Lovfunksjon (legal function), authority levels, and profile access as core dimensions in Smartout. Fix onboarding location bug. Add onboarding step #3 for profession/position confirmation.
 
-**Architecture:** K1a platform-level profession + legal_function tables with seed data. Existing `position` table extended with `profession_id` FK + `authority_level` enum. Profile-level access table seeded from position/legal_function. Onboarding wizard gets new step #3 for confirming positions grouped by profession.
+**Architecture:** K1a platform-level profession + legal_function tables with seed data. Existing `position` table extended with `profession_id` FK. Profile extended with `authority_level` enum + `profile_position` m2m. Profile-level access table seeded from authority + legal_function. Onboarding wizard gets new step #3 for confirming positions grouped by profession.
 
 **Tech Stack:** PostgreSQL (Supabase Local), Next.js 16 App Router, React 19, TypeScript strict, Tailwind v4, shadcn/ui, WizardShell
 
@@ -237,6 +237,11 @@ CREATE POLICY "api_key_read_profile_access" ON public.profile_access
     SELECT profile_id FROM profile
     WHERE workspace_id = get_api_workspace_id()
   ));
+CREATE POLICY "api_key_read_profile_position" ON public.profile_position
+  FOR SELECT USING (profile_id IN (
+    SELECT profile_id FROM profile
+    WHERE workspace_id = get_api_workspace_id()
+  ));
 
 -- ============================================================
 -- Seed Data
@@ -337,7 +342,7 @@ export interface PositionOption {
   name: string;
   slug: string;
   selected: boolean;
-  authorityLevel: "duty" | "deputy" | "leader" | null;
+  // authority_level lives on profile, not position — set when employees are added
 }
 ```
 
@@ -464,7 +469,7 @@ function getDefaultPositionsForProfession(slug: string): PositionOption[] {
     name: pos.name,
     slug: pos.name.toLowerCase().replace(/\s+/g, "-"),
     selected: pos.preselected,
-    authorityLevel: null,
+    // no authorityLevel — lives on profile, not position
   }));
 }
 ```
@@ -585,7 +590,6 @@ const professionPayload = state.professions
       .map((pos) => ({
         name: pos.name,
         slug: pos.slug,
-        authorityLevel: pos.authorityLevel,
       })),
   }));
 ```
@@ -681,7 +685,7 @@ export function ConfirmProfessions({
                   name: trimmed,
                   slug: trimmed.toLowerCase().replace(/\s+/g, "-"),
                   selected: true,
-                  authorityLevel: null,
+                  // no authorityLevel — lives on profile, not position
                 },
               ],
             }
@@ -883,13 +887,14 @@ Create `supabase/migrations/20260328200100_update_finalize_rpc_professions.sql`.
    v_prof RECORD;
    v_pos RECORD;
    v_profession_id UUID;
-   v_authority authority_level;
    v_dept_id UUID;
    ```
 4. APPEND the following block AFTER the locations section (before the END of the function):
 
    ```sql
    -- 8. Create positions linked to professions
+   -- NOTE: authority_level lives on profile (per-person), NOT on position.
+   -- Positions created here have no authority — that is assigned when employees are added.
    IF p_data->'professions' IS NOT NULL THEN
      FOR v_prof IN SELECT * FROM jsonb_array_elements(p_data->'professions')
      LOOP
@@ -898,14 +903,7 @@ Create `supabase/migrations/20260328200100_update_finalize_rpc_professions.sql`.
        IF v_prof.value->'positions' IS NOT NULL THEN
          FOR v_pos IN SELECT * FROM jsonb_array_elements(v_prof.value->'positions')
          LOOP
-           -- Map authority level (nullable)
-           v_authority := NULL;
-           IF v_pos.value->>'authorityLevel' IS NOT NULL
-              AND v_pos.value->>'authorityLevel' != '' THEN
-             v_authority := (v_pos.value->>'authorityLevel')::authority_level;
-           END IF;
-
-           -- Find matching department by profession slug, fall back to first department
+           -- Find matching department by profession name, fall back to first department
            SELECT d.department_id INTO v_dept_id
            FROM public.department d
            JOIN public.profession p ON p.profession_id = v_profession_id
@@ -921,7 +919,7 @@ Create `supabase/migrations/20260328200100_update_finalize_rpc_professions.sql`.
            END IF;
 
            INSERT INTO public.position (
-             workspace_id, department_id, name, slug, profession_id, authority_level
+             workspace_id, department_id, name, slug, profession_id
            ) VALUES (
              p_workspace_id,
              v_dept_id,
@@ -930,8 +928,7 @@ Create `supabase/migrations/20260328200100_update_finalize_rpc_professions.sql`.
                v_pos.value->>'slug',
                lower(regexp_replace(v_pos.value->>'name', '[^a-zA-Z0-9]+', '-', 'g'))
              ),
-             v_profession_id,
-             v_authority
+             v_profession_id
            );
          END LOOP;
        END IF;
