@@ -44,6 +44,7 @@ export function GridContent({
   onApproveProposal,
   onRejectProposal,
   conflictedShiftIds,
+  readinessMap,
 }: {
   isSidebarOpen: boolean;
   setIsSidebarOpen: (v: boolean) => void;
@@ -61,6 +62,7 @@ export function GridContent({
   onApproveProposal?: (id: string) => Promise<void>;
   onRejectProposal?: (id: string) => void;
   conflictedShiftIds?: Set<string>;
+  readinessMap?: Map<string, { readinessPercent: number }>;
 }) {
   const { isDark, scheduleView, scheduleCompactMode } = useContext(DashboardContext);
   const { active } = useDndContext();
@@ -347,6 +349,7 @@ export function GridContent({
                       onRejectProposal={onRejectProposal}
                       enableDroppable={enableDroppable}
                       conflictedShiftIds={conflictedShiftIds}
+                      readinessPercent={readinessMap?.get(employee.id)?.readinessPercent}
                     />
                   </div>
                 );
@@ -402,6 +405,7 @@ export function GridContent({
                       onRejectProposal={onRejectProposal}
                       enableDroppable={enableDroppable}
                       subtitle={emp.team}
+                      readinessPercent={readinessMap?.get(emp.id)?.readinessPercent}
                     />
                   ))}
                 </React.Fragment>
@@ -434,6 +438,7 @@ export function GridContent({
                       onRejectProposal={onRejectProposal}
                       enableDroppable={enableDroppable}
                       subtitle={emp.jobTitle || emp.role}
+                      readinessPercent={readinessMap?.get(emp.id)?.readinessPercent}
                     />
                   ))}
                 </React.Fragment>
@@ -470,6 +475,7 @@ export function GridContent({
                       onRejectProposal={onRejectProposal}
                       enableDroppable={enableDroppable}
                       subtitle={emp.departmentName}
+                      readinessPercent={readinessMap?.get(emp.id)?.readinessPercent}
                     />
                   ))}
                 </React.Fragment>
@@ -693,6 +699,7 @@ type SortableEmployeeRowProps = {
   onRejectProposal?: (id: string) => void;
   enableDroppable: boolean;
   conflictedShiftIds?: Set<string>;
+  readinessPercent?: number;
 };
 
 function SortableEmployeeRow(props: SortableEmployeeRowProps) {
@@ -737,6 +744,7 @@ export const EmployeeRow = React.memo(function EmployeeRow({
   dragHandleListeners,
   enableDroppable,
   conflictedShiftIds,
+  readinessPercent,
 }: {
   employee: ScheduleEmployee;
   employeeStats?: { hours: number; shiftCount: number };
@@ -755,6 +763,7 @@ export const EmployeeRow = React.memo(function EmployeeRow({
   dragHandleListeners?: ReturnType<typeof useSortable>["listeners"];
   enableDroppable: boolean;
   conflictedShiftIds?: Set<string>;
+  readinessPercent?: number;
 }) {
   const { isDark, scheduleCompactMode: isCompact } = useContext(DashboardContext);
   const scheduledHours = employeeStats?.hours ?? 0;
@@ -794,11 +803,21 @@ export const EmployeeRow = React.memo(function EmployeeRow({
           </div>
         </div>
         <div className="min-w-0 flex-1">
-          <h3
-            className={`text-foreground group-hover/row:text-foreground/80 truncate text-[13px] leading-tight font-bold transition-colors`}
-          >
-            {employee.name}
-          </h3>
+          <div className="flex items-center gap-1.5">
+            <h3
+              className={`text-foreground group-hover/row:text-foreground/80 truncate text-[13px] leading-tight font-bold transition-colors`}
+            >
+              {employee.name}
+            </h3>
+            {readinessPercent !== undefined && readinessPercent < 100 && (
+              <span
+                className="inline-flex shrink-0 items-center rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-bold text-amber-400"
+                title={`${readinessPercent}% opplæring fullført`}
+              >
+                {readinessPercent}%
+              </span>
+            )}
+          </div>
           <p className="text-muted-foreground mt-0.5 truncate text-[11px] leading-tight">
             {subtitle || employee.jobTitle || employee.role}
           </p>
