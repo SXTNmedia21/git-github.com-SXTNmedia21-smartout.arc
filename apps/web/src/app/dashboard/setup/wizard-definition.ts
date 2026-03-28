@@ -246,6 +246,49 @@ export const dashboardSetupWizard: WizardDefinition<SetupState> = {
     i18nNamespace: "dashboard",
   },
 
+  brandPanel: {
+    logoSrc: "/smartout-logo.png",
+    position: "right" as const,
+    messages: {
+      welcome: {
+        heading: "setup.brand_welcome_heading",
+        sub: "setup.brand_welcome_sub",
+      },
+      "document-drop": {
+        heading: "setup.brand_documents_heading",
+        sub: "setup.brand_documents_sub",
+      },
+      governance: {
+        heading: "setup.brand_governance_heading",
+        sub: "setup.brand_governance_sub",
+      },
+      payroll: {
+        heading: "setup.brand_payroll_heading",
+        sub: "setup.brand_payroll_sub",
+      },
+      employment: {
+        heading: "setup.brand_employment_heading",
+        sub: "setup.brand_employment_sub",
+      },
+      team: {
+        heading: "setup.brand_team_heading",
+        sub: "setup.brand_team_sub",
+      },
+      "shift-template": {
+        heading: "setup.brand_shifts_heading",
+        sub: "setup.brand_shifts_sub",
+      },
+      season: {
+        heading: "setup.brand_season_heading",
+        sub: "setup.brand_season_sub",
+      },
+      handbook: {
+        heading: "setup.brand_handbook_heading",
+        sub: "setup.brand_handbook_sub",
+      },
+    },
+  },
+
   initialState: defaultSetupState,
   loadState,
   onComplete,
