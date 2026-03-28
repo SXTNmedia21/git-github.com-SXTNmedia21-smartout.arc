@@ -967,7 +967,7 @@ function resolveRedirects(
 | --- | ---------------------------------------------- | --------------------------- | ------------------------------------------------------------------------ |
 | 1   | Hybrid: AI cherry-pick + state machine         | Ren config ELLER ren AI     | Personalisering + interaktiv scoring                                     |
 | 2   | Statiske komponenter i bundlen                 | CMS-rendret                 | Null nettverkslatency                                                    |
-| 3   | Config: TS types + DB innhold                  | Ren TS ELLER ren DB         | Typesikkerhet + fleksibilitet. Superseder ADR-0046 (krever ADR-0057)     |
+| 3   | Config: TS types + DB innhold                  | Ren TS ELLER ren DB         | Typesikkerhet + fleksibilitet. Superseder ADR-0046 (ADR-0064)            |
 | 4   | Alle seksjoner i DOM fra start                 | Lazy mount / virtualisering | Trivielt for 22 seksjoner, unnga kompleksitet                            |
 | 5   | Tre parallax-lag (L0, L1, L2)                  | Flat / ett lag              | Dybde og premium-folelse                                                 |
 | 6   | Mobil: L0 fixed + L1, ingen L2                 | Full parallax pa mobil      | iOS jank, GPU-kostnad pa touch                                           |
@@ -987,12 +987,12 @@ function resolveRedirects(
 
 ### Council-betingelser (fra review 2026-03-28)
 
-| #   | Betingelse                                             | Status                         |
-| --- | ------------------------------------------------------ | ------------------------------ |
-| C1  | Skriv ADR-0057 som superseder ADR-0046                 | Pending                        |
-| C2  | Fas implementasjonen i 4 faser                         | Pending                        |
-| C3  | GSAP ikke pre-godkjent — FM-prototype forst            | Pending                        |
-| C4  | i18n fra dag en — ingen hardkodet norsk                | Done — config bruker i18n keys |
-| C5  | Eksplisitt Agent System Boundary-seksjon               | Done — seksjon 16              |
-| C6  | Redirect rule-presedensregler definert                 | Done — seksjon 17              |
-| C7  | Telemetri-approach avklart (emit() vs direkte PostHog) | Pending                        |
+| #   | Betingelse                                             | Status                                              |
+| --- | ------------------------------------------------------ | --------------------------------------------------- |
+| C1  | Skriv ADR som superseder ADR-0046                      | Done — ADR-0064                                     |
+| C2  | Fas implementasjonen i 4 faser                         | Pending — defineres i plan                          |
+| C3  | GSAP ikke pre-godkjent — FM-prototype forst            | Done — seksjon 5 + 15                               |
+| C4  | i18n fra dag en — ingen hardkodet norsk                | Done — config bruker i18n keys                      |
+| C5  | Eksplisitt Agent System Boundary-seksjon               | Done — seksjon 16                                   |
+| C6  | Redirect rule-presedensregler definert                 | Done — seksjon 17                                   |
+| C7  | Telemetri-approach avklart (emit() vs direkte PostHog) | Done — ADR-0064 (existing pattern, documented debt) |
