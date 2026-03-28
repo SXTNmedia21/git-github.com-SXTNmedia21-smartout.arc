@@ -27,6 +27,62 @@ Landingssiden er en **konverteringsmotor** som bygger seg selv basert på hvem s
 
 AI/regelmotor velger _hvilke_ seksjoner som hentes fra biblioteket. De stables i en state-machine der **Retrievers** (interaktive spørsmål) gater ruten videre. Kombinerer personalisering med interaktiv scoring.
 
+### I1 Industry Intelligence som datakilde
+
+**Landing engine eier IKKE innholdsdata.** All industri-, persona-, smerte- og scoringsdata kommer fra I1 (Industry Intelligence Bootstrap). Landing engine er en **rendering runtime** som konsumerer I1-data.
+
+| Data                                       | Kilde i I1                                                            | Fil                                                            |
+| ------------------------------------------ | --------------------------------------------------------------------- | -------------------------------------------------------------- |
+| Industrier (restaurant, hotell, kafé, bar) | NACE-kode mapping + IndustryType                                      | `packages/ai/src/industry/defaults.ts`                         |
+| Personas (7 segmenter med risikoprofiler)  | AI Council personas                                                   | `docs/engines/industri-inteligence/hospitalety/01-ai-council/` |
+| Smertepunkter per bransje                  | Research pack: 5 kjernearbeidsflyter                                  | `docs/engines/industri-inteligence/hospitalety/04-research/`   |
+| Industry seed-scores                       | Capability relevance per NACE                                         | I1 relevance mapping (ny)                                      |
+| Action-relevance scores                    | Workflow-prioritet per niche                                          | I1 niche taxonomy + workflow KPIs                              |
+| Redirect-regler (bar skipper HACCP)        | Prosedyre-mapping per NACE (bar har ikke temperaturkontroll)          | `packages/ai/src/industry/defaults.ts`                         |
+| Feature-variant innhold                    | Avdelings-, stilling-, og prosedyredata per NACE                      | I1 bootstrap data                                              |
+| Persona-inferens heuristikker              | AI Council persona-profiler                                           | I1 persona model                                               |
+| Tariff/regulering-info                     | Riksavtalen, Hotelloverenskomsten                                     | `packages/ai/src/industry/packages/hospitality.ts`             |
+| Niche-spesialisering                       | 4 dimensjoner: cuisine, service model, quality, operational intensity | I1 niche taxonomy                                              |
+
+**Arkitektonisk prinsipp:** `sections/content/` importerer og transformerer I1-data til landing-format. Den genererer IKKE egne industridata. Hvis I1 ikke har dataen, utvides I1 — ikke landing engine.
+
+**Eksisterende I1-ressurser:**
+
+- `packages/types/src/industry.ts` — IndustryType, IndustryPackage, IndustryTariff, IndustrySuggestion
+- `packages/ai/src/industry/packages/hospitality.ts` — Tariffer, skiftmaler, sesongmaler, ansettelsesdefaults, Botsson-meldinger
+- `packages/ai/src/industry/defaults.ts` — NACE-koder, 80+ stillinger, 50+ prosedyrer, avdelingstyper med offsets
+- `packages/ai/src/industry/department-classifier.ts` — Avdelingsklassifisering med confidence
+- `packages/ai/src/industry/loader.ts` — 3-tier tariff resolution (workspace → platform → hardkodet)
+
+**Ny I1-utvidelse for landing:**
+
+I1 trenger et nytt lag: `LandingIntelligence` — en projeksjon av I1-data spesifikt for landing-kontekst.
+
+```typescript
+// packages/ai/src/industry/landing.ts (NY)
+type LandingIndustryProfile = {
+  id: string; // NACE-basert
+  label: string; // "Restaurant"
+  icon: string; // Lucide icon name
+  sublabel: string; // "15–50 ansatte"
+  seedScores: Record<string, number>; // scheduling: 0.5, haccp: 0.4, ...
+  painCards: PainCard[]; // 3-4 smertepunkter fra research pack
+  redirectRules: RedirecterRule[]; // bransjespesifikk logikk
+  featureVariants: Record<string, FeatureContent>; // per feature-seksjon
+};
+
+type LandingPersonaProfile = {
+  id: string; // "owner", "manager", "hr", "ops"
+  inferenceRules: InferenceRule[]; // heuristikker fra AI Council
+  ctaVariant: CtaContent; // persona-spesifikk CTA
+};
+
+function getLandingProfiles(): LandingIndustryProfile[];
+function getLandingPersonas(): LandingPersonaProfile[];
+```
+
+Denne funksjonen eksporteres fra `packages/ai/` og importeres av `apps/landing/`. Landing engine kaller den ved build-time (ISR) eller mount-time. Ingen duplisering.
+
 ---
 
 ## 2. Tre seksjonstyper
@@ -689,7 +745,7 @@ Alle events har felles properties:
   industry: string | null,
   persona: string | null,
   device: string,
-  session_id: string,
+  landing_session_id: string,
   page_variant: string,  // hash av aktive varianter
   profile_scores: Record<string, number>,
 }
@@ -726,19 +782,17 @@ apps/landing/src/
       PricingPreview.tsx
       Founder.tsx
       FinalCta.tsx
-    sections/content/           -- Innhold per variant (TS-filer, importeres statisk)
-      universal.ts
-      restaurant.ts
-      hotel.ts
-      cafe.ts
-      bar.ts
-      actions.ts                -- 12 ActionCard-definisjoner med relevance scores
+    sections/content/           -- I1-projeksjon: transformerer I1-data til landing-format
+      index.ts                  -- getLandingContent() — importerer fra packages/ai/src/industry/landing.ts
+      universal.ts              -- Universelt innhold (ikke bransjespesifikt)
+      actions.ts                -- 12 ActionCard-definisjoner med relevance scores FRA I1 workflow-prioriteter
     layers/                     -- Parallax-lag
       BackgroundLayer.tsx       -- L0: orbs, gradient-mesh, noise
       FloatingLayer.tsx         -- L2: dekorative former (desktop only)
   lib/
     scoring.ts                  -- scoreAction(), applyPainScores(), inferPersona()
     config-schema.ts            -- Zod schemas for PageConfig validation
+    i1-adapter.ts               -- Adapter: importerer getLandingProfiles() fra packages/ai, transformerer til landing-format
 ```
 
 ---
@@ -747,7 +801,7 @@ apps/landing/src/
 
 ### Alle seksjoner i DOM fra start
 
-Alle 22 seksjoner rendres ved mount med universelle varianter. Nar profilen oppdateres, crossfader berarte seksjoner til riktig variant. Null nettverkslatency — komponentene er i bundlen, innholdet er statiske TS-filer.
+Alle 22 seksjoner rendres ved mount med universelle varianter. Nar profilen oppdateres, crossfader berarte seksjoner til riktig variant. Null nettverkslatency — komponentene er i bundlen, innholdet er I1-data transformert til landing-format ved build-time (ISR).
 
 ### Variant-crossfade
 
@@ -758,10 +812,15 @@ const variant = selectVariant(sectionKey, profile, variants)
 <AnimatePresence mode="wait">
   <motion.div
     key={variant.id}
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
+    initial={{ opacity: 0, y: 12 }}
+    animate={{ opacity: 1, y: 0 }}
     exit={{ opacity: 0 }}
-    transition={{ duration: 0.3 }}
+    transition={{
+      // Asymmetrisk: spring entrance (500ms+), tween exit (250ms)
+      // Matcher Nordic Split motion.md: min 250ms exit, 500ms entrance
+      enter: { type: "spring", stiffness: 35, damping: 22, mass: 2 },
+      exit: { duration: 0.25, ease: [0.4, 0, 1, 1] },
+    }}
   >
     <SectionComponent content={variant.content} />
   </motion.div>
@@ -792,20 +851,36 @@ GSAP gikk til fri lisens (no-charge) i 2024 for alle bruk inkludert kommersielt.
 
 ## 16. Beslutningslogg
 
-| #   | Beslutning                                 | Alternativ                      | Begrunnelse                                      |
-| --- | ------------------------------------------ | ------------------------------- | ------------------------------------------------ |
-| 1   | Hybrid: AI cherry-pick + state machine     | Ren config ELLER ren AI         | Personalisering + interaktiv scoring             |
-| 2   | Statiske komponenter i bundlen             | CMS-rendret                     | Null nettverkslatency                            |
-| 3   | Config: TS types + DB innhold              | Ren TS ELLER ren DB             | Typesikkerhet + fleksibilitet. Matcher ADR-0046  |
-| 4   | Alle seksjoner i DOM fra start             | Lazy mount / virtualisering     | Trivielt for 22 seksjoner, unnga kompleksitet    |
-| 5   | Tre parallax-lag (L0, L1, L2)              | Flat / ett lag                  | Dybde og premium-folelse                         |
-| 6   | Mobil: L0 fixed + L1, ingen L2             | Full parallax pa mobil          | iOS jank, GPU-kostnad pa touch                   |
-| 7   | GSAP ScrollTrigger + Framer Motion         | Bare Framer / bare GSAP / Lenis | Ren domene-deling, best-in-class per domene      |
-| 8   | Soft gate (C) med C1 silent transition     | Hard scroll-lock (A/B)          | Respekterer brukerautonomi, upgrade path til A   |
-| 9   | B+C transition                             | Bare B / bare C                 | Parallax kontinuitet + naturlig momentum         |
-| 10  | Pain Selector absorberer Pain Points       | Separate seksjoner              | Reduserer stopp, dobbelt arbeid per interaksjon  |
-| 11  | Diminishing weights [1.0, 0.6, 0.35, 0.15] | Maks 2 valg                     | Klikkrekkefolge = prioritet, ingen restriksjoner |
-| 12  | Action Grid: vektet scoring, topp 6        | Fast rekkefolge                 | Personalisert uten ML                            |
-| 13  | Industry-scores som seed (0.2–0.5)         | Hoye seeds (0.7–0.9)            | Differensiering kommer fra Pain Selector         |
-| 14  | Redirecter = assembler-logikk              | DOM-node                        | Scroll-posisjon tilgjengelig via GSAP callbacks  |
-| 15  | Regelbasert persona-inferens               | ML-basert                       | Deterministisk, debuggbar, tilstrekkelig         |
+| #   | Beslutning                                     | Alternativ                  | Begrunnelse                                                              |
+| --- | ---------------------------------------------- | --------------------------- | ------------------------------------------------------------------------ |
+| 1   | Hybrid: AI cherry-pick + state machine         | Ren config ELLER ren AI     | Personalisering + interaktiv scoring                                     |
+| 2   | Statiske komponenter i bundlen                 | CMS-rendret                 | Null nettverkslatency                                                    |
+| 3   | Config: TS types + DB innhold                  | Ren TS ELLER ren DB         | Typesikkerhet + fleksibilitet. Superseder ADR-0046 (krever ADR-0057)     |
+| 4   | Alle seksjoner i DOM fra start                 | Lazy mount / virtualisering | Trivielt for 22 seksjoner, unnga kompleksitet                            |
+| 5   | Tre parallax-lag (L0, L1, L2)                  | Flat / ett lag              | Dybde og premium-folelse                                                 |
+| 6   | Mobil: L0 fixed + L1, ingen L2                 | Full parallax pa mobil      | iOS jank, GPU-kostnad pa touch                                           |
+| 7   | Framer Motion forst, GSAP kun ved bevist behov | Bare GSAP / Lenis           | Prototype parallax med FM. GSAP kun hvis pin/scrub krever det (ADR-0058) |
+| 8   | Soft gate (C) med C1 silent transition         | Hard scroll-lock (A/B)      | Respekterer brukerautonomi, upgrade path til A                           |
+| 9   | B+C transition                                 | Bare B / bare C             | Parallax kontinuitet + naturlig momentum                                 |
+| 10  | Pain Selector absorberer Pain Points           | Separate seksjoner          | Reduserer stopp, dobbelt arbeid per interaksjon                          |
+| 11  | Diminishing weights [1.0, 0.6, 0.35, 0.15]     | Maks 2 valg                 | Klikkrekkefolge = prioritet, ingen restriksjoner                         |
+| 12  | Action Grid: vektet scoring, topp 6            | Fast rekkefolge             | Personalisert uten ML                                                    |
+| 13  | Industry-scores som seed (0.2–0.5)             | Hoye seeds (0.7–0.9)        | Differensiering kommer fra Pain Selector                                 |
+| 14  | Redirecter = assembler-logikk                  | DOM-node                    | Scroll-posisjon tilgjengelig via GSAP callbacks                          |
+| 15  | Regelbasert persona-inferens                   | ML-basert                   | Deterministisk, debuggbar, tilstrekkelig                                 |
+| 16  | Landing engine er I1-konsument                 | Selvstendig datakilde       | All industri/persona/smerte-data fra I1. Ingen duplisering.              |
+| 17  | Asymmetrisk crossfade (500ms+ inn, 250ms ut)   | Flat 300ms                  | Matcher Nordic Split motion.md. Spring entrance, tween exit.             |
+| 18  | landing_session_id (ikke session_id)           | session_id                  | Unnga forveksling med engine_sessions.id i PostHog                       |
+| 19  | Types i apps/landing/ (ikke packages/types/)   | Shared package              | Landing-spesifikke typer, flyttes kun ved reell gjenbruk                 |
+
+### Council-betingelser (fra review 2026-03-28)
+
+| #   | Betingelse                                             | Status  |
+| --- | ------------------------------------------------------ | ------- |
+| C1  | Skriv ADR-0057 som superseder ADR-0046                 | Pending |
+| C2  | Fas implementasjonen i 4 faser                         | Pending |
+| C3  | GSAP ikke pre-godkjent — FM-prototype forst            | Pending |
+| C4  | i18n fra dag en — ingen hardkodet norsk                | Pending |
+| C5  | Eksplisitt Agent System Boundary-seksjon               | Pending |
+| C6  | Redirect rule-presedensregler definert                 | Pending |
+| C7  | Telemetri-approach avklart (emit() vs direkte PostHog) | Pending |
