@@ -528,3 +528,6 @@ verify_jwt = false
 
 [functions.session-lifecycle]
 verify_jwt = false
+
+[functions.session-hook-executor]
+verify_jwt = false
