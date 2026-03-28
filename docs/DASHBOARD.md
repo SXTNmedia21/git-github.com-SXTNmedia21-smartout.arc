@@ -13,16 +13,14 @@ tags: [dashboard, worktrees, tracking]
 
 ## Active Worktrees
 
-| #    | Branch                         | Module       | Status            | Progress                                                      | Blockers | Health |
-| ---- | ------------------------------ | ------------ | ----------------- | ------------------------------------------------------------- | -------- | ------ |
-| wt-1 | `feat/drift-insights`          | operations   | in_progress       | just started                                                  | —        | clean  |
-| wt-2 | `feat/season-operations-loop`  | operations   | in_progress       | just started — WS-1 Module Zero                               | —        | clean  |
-| wt-3 | `feat/emma-arena-views`        | walkAi       | parked            | Spec + settings persistence done. Implementation not started. | —        | clean  |
-| wt-4 | `feat/training-agent-pipeline` | training     | in_progress       | just started — WS-2 Module Zero                               | —        | clean  |
-| wt-5 | `feat/sjohuset-simulator`      | simulation   | parked            | 10 commits. PR #72 (diverged). Parked.                        | —        | clean  |
-| wt-6 | `feat/gamification-foundation` | gamification | ready_for_closure | WS-1 Tasks 1-7 complete. 8 commits.                           | —        | clean  |
-| wt-7 | `feat/dynamic-landing-engine`  | landing      | in_progress       | just started                                                  | —        | clean  |
-| wt-8 | `feat/financial-esp-ux`        | operations   | in_progress       | just started — nav, settings, badge, journeys                 | —        | clean  |
+| #    | Branch                         | Module     | Status      | Progress                                                      | Blockers | Health |
+| ---- | ------------------------------ | ---------- | ----------- | ------------------------------------------------------------- | -------- | ------ |
+| wt-1 | `feat/drift-insights`          | operations | in_progress | just started                                                  | —        | clean  |
+| wt-2 | `feat/season-operations-loop`  | operations | in_progress | just started — WS-1 Module Zero                               | —        | clean  |
+| wt-3 | `feat/emma-arena-views`        | walkAi     | parked      | Spec + settings persistence done. Implementation not started. | —        | clean  |
+| wt-4 | `feat/training-agent-pipeline` | training   | in_progress | just started — WS-2 Module Zero                               | —        | clean  |
+| wt-5 | `feat/sjohuset-simulator`      | simulation | parked      | 10 commits. PR #72 (diverged). Parked.                        | —        | clean  |
+| wt-7 | `feat/dynamic-landing-engine`  | landing    | in_progress | just started                                                  | —        | clean  |
 
 ## Parked Branches (no worktree)
 
@@ -37,9 +35,9 @@ tags: [dashboard, worktrees, tracking]
 | wt-1  | no — `feat/drift-insights`          |
 | wt-2  | no — `feat/season-operations-loop`  |
 | wt-4  | no — `feat/training-agent-pipeline` |
-| wt-6  | pending closure                     |
+| wt-6  | yes                                 |
 | wt-7  | no — `feat/dynamic-landing-engine`  |
-| wt-8  | no — `feat/financial-esp-ux`        |
+| wt-8  | yes                                 |
 | wt-9  | yes                                 |
 | wt-10 | yes                                 |
 | wt-11 | yes                                 |
@@ -55,14 +53,13 @@ tags: [dashboard, worktrees, tracking]
 | wt-1     | drift-insights          | `docs/journeys/JOURNEY-drift-insights.md`          | missing |
 | wt-2     | season-operations-loop  | `docs/journeys/JOURNEY-season-operations-loop.md`  | missing |
 | wt-4     | training-agent-pipeline | `docs/journeys/JOURNEY-training-agent-pipeline.md` | missing |
-| wt-6     | gamification-foundation | `docs/journeys/JOURNEY-gamification-foundation.md` | done    |
 | wt-7     | dynamic-landing-engine  | `docs/journeys/JOURNEY-dynamic-landing-engine.md`  | missing |
-| wt-8     | financial-esp-ux        | `docs/journeys/JOURNEY-financial-esp.md`           | missing |
 
 ## Recent Closures
 
 | Date       | Feature                      | Branch                                                             | Merged To   |
 | ---------- | ---------------------------- | ------------------------------------------------------------------ | ----------- |
+| 2026-03-28 | financial-esp-ux             | `feat/financial-esp-ux`                                            | development |
 | 2026-03-28 | gamification-foundation      | `feat/gamification-foundation`                                     | development |
 | 2026-03-28 | komm-migration               | `feat/komm-migration`                                              | development |
 | 2026-03-28 | comms-council-fixes          | `fix/comms-council-fixes`                                          | development |

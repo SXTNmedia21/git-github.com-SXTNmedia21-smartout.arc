@@ -121,6 +121,38 @@ function toStaffingRisk(entry: LiveShiftEntry, occurredAt: string): StaffingRisk
 }
 
 /**
+ * Builds aggregate staffing pressure risk from operations capacity metrics.
+ *
+ * Why: Late/waiting rows catch punctuality issues, but leaders also need
+ * explicit shortage pressure when expected staffing exceeds present staffing.
+ *
+ * @param operations - Aggregated operations snapshot for today.
+ * @param occurredAt - Timestamp used for deterministic ordering.
+ * @returns Aggregate staffing risk row when short-staffed, otherwise null.
+ */
+function toCapacityStaffingRisk(
+  operations: OperationsData | undefined,
+  occurredAt: string,
+): StaffingRisk | null {
+  if (!operations) {
+    return null;
+  }
+
+  const shortStaff = operations.staffPresent.expected - operations.staffPresent.present;
+  if (shortStaff <= 0) {
+    return null;
+  }
+
+  return {
+    id: "staffing-capacity-gap",
+    severity: shortStaff >= 2 ? "critical" : "warning",
+    uncoveredShifts: shortStaff,
+    affectedTeams: 1,
+    occurredAt,
+  };
+}
+
+/**
  * Builds operational risk rows from current operations aggregates.
  *
  * Why: The first-screen queue should expose only active operational pressure,
@@ -139,6 +171,17 @@ function toOperationalRisks(
   }
 
   const risks: OperationalRisk[] = [];
+
+  if (operations.openDeviations > 0) {
+    risks.push({
+      id: "ops-open-deviations",
+      severity: operations.openDeviations >= 3 ? "critical" : "warning",
+      blockingDeviations: operations.openDeviations,
+      overdueTasks: 0,
+      upcomingTasks: 0,
+      occurredAt,
+    });
+  }
 
   if (operations.overdueTasks > 0) {
     risks.push({
@@ -205,9 +248,12 @@ export function useCockpitFirstScreen(
     const onDutyEntries = filterOnDutyByRole(liveShifts.data?.entries ?? [], selectedRoles);
 
     const staffingQueue = prioritizeStaffingRisks(
-      onDutyEntries
-        .map((entry) => toStaffingRisk(entry, occurredAt))
-        .filter((risk): risk is StaffingRisk => risk !== null),
+      [
+        ...onDutyEntries
+          .map((entry) => toStaffingRisk(entry, occurredAt))
+          .filter((risk): risk is StaffingRisk => risk !== null),
+        toCapacityStaffingRisk(operations.data, occurredAt),
+      ].filter((risk): risk is StaffingRisk => risk !== null),
     );
 
     const operationalQueue = prioritizeOperationalRisks(

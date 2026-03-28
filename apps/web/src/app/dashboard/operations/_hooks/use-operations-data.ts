@@ -33,6 +33,7 @@ export type OperationsData = {
   overdueTasks: number;
   upcomingTasks: number;
   staffPresent: { present: number; expected: number; names: string[] };
+  openDeviations: number;
   activeTasks: number;
   // Revenue vs cost chart (hourly buckets, same count as opening hours)
   hourlyData: HourlyBar[];
@@ -234,8 +235,7 @@ export function useOperationsData() {
       }
 
       // ── Derive deviation counts ───────────────────────────────────────
-      // (kept for future use in card, currently feeds into stressLabel context)
-      void deviationList;
+      const openDeviations = deviationList.filter((d) => d.status !== "resolved").length;
 
       // ── Build hourly revenue vs cost chart ────────────────────────────
       // We show a fixed window: 09:00–22:00 (14 hourly bars) to cover typical
@@ -247,8 +247,6 @@ export function useOperationsData() {
       // evenly across past hours as an approximation. A future improvement
       // would store per-hour data in a separate column or use POS webhook data.
       const totalRevenueToday = Number(reconciliation?.revenue_total ?? 0);
-      const totalLaborCostToday = Number(reconciliation?.total_labor_cost ?? 0);
-
       // How many past hours have elapsed in our chart window
       const pastHoursInWindow = CHART_HOURS.filter((h) => h <= currentHour).length;
 
@@ -325,6 +323,7 @@ export function useOperationsData() {
         overdueTasks,
         upcomingTasks,
         staffPresent: { present: presentCount, expected: expectedCount, names: staffNames },
+        openDeviations,
         activeTasks,
         hourlyData,
         laborCostEstimated: !hasRealCosts,

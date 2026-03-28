@@ -14,18 +14,14 @@ tags: [session, continuity]
 | Date    | 2026-03-28              |
 | Branch  | `feat/financial-esp-ux` |
 | Feature | financial-esp-ux        |
-| Status  | in_progress             |
+| Status  | ready_for_closure       |
 
 ### What was done
 
-- Implemented WS-1 Tasks 1-7 from Module Zero completion plan
-- Task 1: Season PLAY button — activateSeason/archiveSeason mutations, telemetry events, UI controls
-- Task 2: Season activation trigger — Postgres trigger + extended upsert_session for season context
-- Task 3: Daily session replenishment — Edge Function + pg_cron (02:00 UTC)
-- Task 4: Session lifecycle auto-transitions — Edge Function + pg_cron (15 min)
-- Task 5: Session hook executor — Edge Function + pg_cron (5 min)
-- Task 6: Wire daily close to session pending_signoff trigger
-- Task 7: Operations dashboard verified (real data, no mock)
+- Financial ESP Alignment: full brainstorm → spec → plan → parallel team implementation → council review
+- Backend (on development): baseRate fix, 3 migrations, 6 hooks, engine action, types regen, report cleanup
+- UX wiring (on feat/financial-esp-ux): sidebar nav, settings config UI, Økonomi tab badge, user journeys
+- Council review: 4 agents reviewed, 6 blocking issues found and fixed
 - All closure gates completed: decision log, user journeys, handoff
 
 ### Where we stopped

@@ -27,6 +27,7 @@ type ActionItem = {
   id: string;
   label: string;
   description: string;
+  ctaLabel: string;
   href: string;
   tone: "critical" | "warning" | "neutral";
   icon: typeof Siren;
@@ -56,6 +57,7 @@ function buildActions(
       id: "cover-staffing-gaps",
       label: "Cover staffing gaps",
       description: `${staffingQueue[0]!.uncoveredShifts} uncovered shift${staffingQueue[0]!.uncoveredShifts === 1 ? "" : "s"} need assignment`,
+      ctaLabel: "Open schedule",
       href: "/dashboard/schedule",
       tone: staffingQueue[0]!.severity === "critical" ? "critical" : "warning",
       icon: CalendarClock,
@@ -75,6 +77,7 @@ function buildActions(
       id: "clear-operational-blockers",
       label: "Manage operational queue",
       description: operationalDescription,
+      ctaLabel: "Open operations",
       href: "/dashboard/operations",
       tone: topOperationalRisk.severity === "critical" ? "critical" : "warning",
       icon: Siren,
@@ -86,6 +89,7 @@ function buildActions(
       id: "follow-up-attendance",
       label: "Follow up attendance",
       description: `${lateCount} late, ${waitingCount} waiting to clock in`,
+      ctaLabel: "Check attendance",
       href: "/dashboard/schedule",
       tone: lateCount > 0 ? "critical" : "warning",
       icon: Users,
@@ -97,6 +101,7 @@ function buildActions(
       id: "daily-review",
       label: "Run daily review",
       description: "No urgent blockers. Confirm checklist completion.",
+      ctaLabel: "Open reconciliation",
       href: "/dashboard/reconciliation",
       tone: "neutral",
       icon: ListChecks,
@@ -144,9 +149,14 @@ export function CockpitActionRail({
                 </div>
                 <p className="text-sm font-semibold">{action.label}</p>
                 <p className="text-muted-foreground mt-1 text-xs">{action.description}</p>
-                <Button asChild variant="ghost" className="mt-2 h-7 px-0 text-xs font-semibold">
+                <Button
+                  asChild
+                  variant="outline"
+                  size="sm"
+                  className="mt-2 h-8 w-full justify-between text-xs font-semibold"
+                >
                   <Link href={action.href}>
-                    Open
+                    {action.ctaLabel}
                     <ArrowRight className="h-3.5 w-3.5" />
                   </Link>
                 </Button>
