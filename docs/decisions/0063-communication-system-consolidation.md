@@ -54,7 +54,8 @@ Chosen option: **"Freeze Chat, make Komm canonical"**, because Komm is architect
 
 - **Good, because** single source of truth for all messaging, eliminates DM ownership confusion, eliminates JSONB reaction race condition, halves UI surface to maintain
 - **Bad, because** Chat data migration effort (future), existing Chat users see no new features until migration
-- **Agent Impact:** Never add features to Chat hooks/components. All new messaging work targets Komm. When implementing AI-in-channels, use Komm `channel_type`, not Chat `type`.
+- **Agent Impact:** Never add features to Chat hooks/components. All new messaging work targets Komm. When implementing AI-in-channels, use Komm `channel_type`, not Chat `type`. The `communication` capability in `packages/ai/` currently queries Chat tables and must migrate to Komm before Phase 3.
+- **Freeze scope:** Bug fixes, security patches, and telemetry gap closures are permitted on frozen Chat code. No new features or capabilities.
 
 ---
 

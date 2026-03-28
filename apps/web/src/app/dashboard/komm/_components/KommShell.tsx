@@ -117,7 +117,7 @@ export function KommShell({ profileId }: { profileId: string }) {
         muted: true,
       });
     },
-    [activeChannelId, muteParticipant],
+    [activeChannelId, muteParticipant.mutate],
   );
 
   // Calculate unread totals for sub-tab badges

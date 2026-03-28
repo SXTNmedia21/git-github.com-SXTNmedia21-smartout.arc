@@ -1011,7 +1011,6 @@ export interface ChatRead extends BaseEvent {
   event: "chat.read";
   properties: {
     conversation_id: string;
-    profile_id: string;
   };
   entity: EntityRef;
 }

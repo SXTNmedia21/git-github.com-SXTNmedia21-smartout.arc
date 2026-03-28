@@ -1,5 +1,8 @@
 "use client";
 
+// FROZEN: Chat module is superseded by Komm (ADR-0063).
+// Only bug fixes and telemetry backfill permitted. No new features.
+
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
 import { emit } from "@smartout/telemetry";
@@ -40,9 +43,7 @@ export function useToggleReaction(conversationId: string | null) {
       const reactions = (msg.reactions ?? {}) as ReactionMap;
       const current = reactions[emoji] ?? [];
 
-      const action = current.includes(profileId)
-        ? ("removed" as const)
-        : ("added" as const);
+      const action = current.includes(profileId) ? ("removed" as const) : ("added" as const);
 
       if (action === "removed") {
         reactions[emoji] = current.filter((id) => id !== profileId);
