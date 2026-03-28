@@ -1,34 +1,53 @@
 "use client";
 
-import { createClient } from "@smartout/supabase/client";
-import { emit } from "@smartout/telemetry";
+/**
+ * Dashboard Setup page — thin shell that renders AnimatedWizardShell.
+ *
+ * This page does NOT own any business logic or workspace state mutations.
+ * All flag updates (setup_guide_completed), K1b ingestion triggers, and
+ * redirects live in wizard-definition.ts onComplete — keeping this page
+ * as a pure render wrapper with zero runtime truth ownership.
+ */
+
+import { Suspense, useContext } from "react";
+import { Loader2, SkipForward } from "lucide-react";
+import { useTranslation } from "@smartout/i18n";
+import { AnimatedWizardShell } from "@/components/wizard/AnimatedWizardShell";
 import { useWorkspace } from "@/lib/workspace-context";
-import { WorkspaceSetupWizard } from "@/components/dashboard/WorkspaceSetupWizard";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
+import { dashboardSetupWizard } from "./wizard-definition";
 
 export default function DashboardSetupPage() {
   const { workspace } = useWorkspace();
-  const supabase = createClient();
+  const { profileId } = useContext(DashboardContext);
+  const { t } = useTranslation("dashboard");
 
-  const handleComplete = async () => {
-    await supabase
-      .from("workspace")
-      .update({ setup_guide_completed: true })
-      .eq("workspace_id", workspace.workspace_id);
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-dvh items-center justify-center">
+          <Loader2 className="text-muted-foreground animate-spin" size={32} />
+        </div>
+      }
+    >
+      <div className="relative flex h-full flex-col">
+        {/* Escape hatch — skip to dashboard */}
+        <div className="absolute top-4 right-4 z-50">
+          <a
+            href="/dashboard"
+            className="text-muted-foreground hover:bg-accent hover:text-foreground flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+          >
+            <SkipForward className="h-3.5 w-3.5" />
+            {t("setup.skip_to_dashboard")}
+          </a>
+        </div>
 
-    void emit({
-      event: "setup_guide completed",
-      workspace_id: workspace.workspace_id,
-      actor_id: "",
-      properties: {},
-    });
-
-    // Clear session dismiss since setup is now permanently done
-    sessionStorage.removeItem("setup_dismissed");
-
-    // Hard navigation forces server layout to re-fetch workspace data
-    // (workspace context is server-set, not client-queryable)
-    window.location.href = "/dashboard";
-  };
-
-  return <WorkspaceSetupWizard onComplete={() => void handleComplete()} force />;
+        <AnimatedWizardShell
+          definition={dashboardSetupWizard}
+          workspaceId={workspace.workspace_id}
+          actorId={profileId ?? "anonymous"}
+        />
+      </div>
+    </Suspense>
+  );
 }

@@ -20,7 +20,8 @@
     "brand_season_heading": "Planlegg\nsesongen.",
     "brand_season_sub": "Budsjett og bemanning pa ett sted.",
     "brand_handbook_heading": "Din egen\nhandbok.",
-    "brand_handbook_sub": "Klar til bruk fra forste dag."
+    "brand_handbook_sub": "Klar til bruk fra forste dag.",
+    "skip_to_dashboard": "Hopp over og ga til dashboard"
   },
   "steps": {
     "welcome": "Velkommen",
