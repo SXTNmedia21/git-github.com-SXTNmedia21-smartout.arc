@@ -29,9 +29,9 @@ import * as Haptics from "expo-haptics";
 import { createStyles, useTheme } from "@/theme";
 import { strings } from "@/constants/strings";
 import { useBotssonChat } from "@/hooks/queries/use-botsson-chat";
+import type { BotssonMessage } from "@/hooks/queries/use-botsson-chat";
 import { useShiftPhase } from "@/hooks/stores/use-shift-phase";
-import { BotssonMessage } from "./BotssonMessage";
-import type { MessageWithSender } from "@/hooks/queries/use-messages";
+import { BotssonMessage as BotssonMessageComponent } from "./BotssonMessage";
 
 type BotssonSheetProps = {
   /** Called when the sheet is dismissed */
@@ -76,7 +76,7 @@ export const BotssonSheet = React.forwardRef<GorhomBottomSheet, BotssonSheetProp
     const greeting = useMemo(() => getGreeting(phase), [phase]);
 
     /** Build the greeting as a synthetic system message for display */
-    const greetingMessage: MessageWithSender = useMemo(
+    const greetingMessage: BotssonMessage = useMemo(
       () => ({
         id: "botsson-greeting",
         conversation_id: "",
@@ -132,13 +132,13 @@ export const BotssonSheet = React.forwardRef<GorhomBottomSheet, BotssonSheetProp
     );
 
     const renderMessage = useCallback(
-      ({ item }: { item: MessageWithSender }) => (
-        <BotssonMessage message={item} isOwnMessage={item.sender_id === profileId} />
+      ({ item }: { item: BotssonMessage }) => (
+        <BotssonMessageComponent message={item} isOwnMessage={item.sender_id === profileId} />
       ),
       [profileId],
     );
 
-    const keyExtractor = useCallback((item: MessageWithSender) => item.id, []);
+    const keyExtractor = useCallback((item: BotssonMessage) => item.id, []);
 
     const handleEndReached = useCallback(() => {
       if (hasNextPage) {

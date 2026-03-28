@@ -6,6 +6,10 @@
  * we create one on first message send. All messages include context
  * (shift phase, role, department, trainee status) so Stage Engine can
  * personalize its responses.
+ *
+ * NOTE: Botsson still uses the legacy chat_conversation/chat_message schema.
+ * BotssonMessage is a separate, simpler type — do NOT import MessageWithSender
+ * from use-messages (that type is for the new channel schema only).
  */
 
 import { useQuery, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
@@ -16,9 +20,31 @@ import { useMyProfile } from "@/hooks/queries/use-my-profile";
 import { useMyTasks } from "@/hooks/queries/use-my-tasks";
 import { useShiftPhase } from "@/hooks/stores/use-shift-phase";
 import type { Database } from "@smartout/supabase/database.types";
-import type { MessageWithSender } from "@/hooks/queries/use-messages";
 
 type ChatConversation = Database["public"]["Tables"]["chat_conversation"]["Row"];
+
+/**
+ * A simplified message type for Botsson's AI chat (chat_message schema).
+ * Separate from MessageWithSender which maps the new channel_message schema.
+ */
+export type BotssonMessage = {
+  id: string;
+  conversation_id: string;
+  content: string;
+  sender_id: string;
+  reply_to_id: string | null;
+  is_system: boolean;
+  attachments: unknown;
+  reactions: unknown;
+  created_at: string;
+  updated_at: string;
+  edited_at: string | null;
+  deleted_at: string | null;
+  /** Display name resolved from profile or "Mr. Botsson" for AI messages */
+  senderName: string;
+  /** Always null for AI chat (no avatars in this context) */
+  senderAvatarUrl: string | null;
+};
 type ShiftPhase = "no_shift" | "before_shift" | "during_shift" | "after_shift";
 
 /** Context payload attached to every message sent to Botsson */
@@ -104,7 +130,7 @@ async function createAiConversation(
 async function fetchBotssonMessages(
   conversationId: string,
   pageParam: number,
-): Promise<MessageWithSender[]> {
+): Promise<BotssonMessage[]> {
   const { data: messages, error } = await supabase
     .from("chat_message")
     .select("*")
@@ -118,7 +144,18 @@ async function fetchBotssonMessages(
 
   // For AI conversations, sender is either the user or "Mr. Botsson" (system)
   return messages.map((msg) => ({
-    ...msg,
+    id: msg.id,
+    conversation_id: msg.conversation_id,
+    content: msg.content,
+    sender_id: msg.sender_id,
+    reply_to_id: msg.reply_to_id ?? null,
+    is_system: msg.is_system,
+    attachments: msg.attachments,
+    reactions: msg.reactions,
+    created_at: msg.created_at,
+    updated_at: msg.updated_at,
+    edited_at: msg.edited_at,
+    deleted_at: msg.deleted_at,
     senderName: msg.is_system ? "Mr. Botsson" : "Du",
     senderAvatarUrl: null,
   }));
@@ -157,7 +194,7 @@ export function useBotssonChat() {
     hasNextPage,
     isFetchingNextPage,
     isLoading: isLoadingMessages,
-  } = useInfiniteQuery<MessageWithSender[]>({
+  } = useInfiniteQuery<BotssonMessage[]>({
     queryKey: ["botsson-messages", conversationId],
     queryFn: ({ pageParam }) => fetchBotssonMessages(conversationId!, pageParam as number),
     initialPageParam: 0,
@@ -171,7 +208,7 @@ export function useBotssonChat() {
 
   // Flatten paginated messages into a single array
   const messages = useMemo(() => {
-    if (!messagesData) return [];
+    if (!messagesData) return [] as BotssonMessage[];
     return messagesData.pages.flat();
   }, [messagesData]);
 
@@ -219,7 +256,7 @@ export function useBotssonChat() {
       const now = new Date().toISOString();
 
       // Optimistic update: show message immediately
-      const optimisticMessage: MessageWithSender = {
+      const optimisticMessage: BotssonMessage = {
         id: messageId,
         conversation_id: targetConversationId,
         content,
@@ -238,7 +275,7 @@ export function useBotssonChat() {
 
       queryClient.setQueryData(
         ["botsson-messages", targetConversationId],
-        (old: { pages: MessageWithSender[][]; pageParams: number[] } | undefined) => {
+        (old: { pages: BotssonMessage[][]; pageParams: number[] } | undefined) => {
           if (!old) {
             return { pages: [[optimisticMessage]], pageParams: [0] };
           }

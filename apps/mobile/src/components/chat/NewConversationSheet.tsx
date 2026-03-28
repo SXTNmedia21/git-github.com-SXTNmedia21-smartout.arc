@@ -227,7 +227,7 @@ const useStyles = createStyles((theme) => ({
   },
   listContent: {
     paddingHorizontal: theme.spacing.section,
-    paddingBottom: 40,
+    paddingBottom: 120,
   },
   profileRow: {
     flexDirection: "row",

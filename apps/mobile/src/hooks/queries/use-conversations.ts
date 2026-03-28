@@ -1,38 +1,60 @@
 /**
- * Fetches all conversations the current profile participates in.
+ * Fetches all channels the current profile is a member of.
  *
- * Joins chat_conversation via chat_participant to get only conversations
- * the user belongs to. Returns conversations sorted by last message timestamp
- * (most recent first). Groups are differentiated by source_type for sectioned display.
+ * Calls the `get_my_channels` RPC which returns channels with last message
+ * preview, unread count, member count, and media policies. Maps the result
+ * to `ConversationWithMeta` for backward compatibility with existing UI.
  *
- * Cache: MMKV with 5-minute stale time (spec 6.5).
+ * Cache: MMKV with 5-minute stale time.
  */
 
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { supabase } from "@/lib/supabase";
-import type { Database } from "@smartout/supabase/database.types";
+import { useMyProfile } from "@/hooks/queries/use-my-profile";
 
-type ChatConversation = Database["public"]["Tables"]["chat_conversation"]["Row"];
-type ChatParticipant = Database["public"]["Tables"]["chat_participant"]["Row"];
-type ChatMessage = Database["public"]["Tables"]["chat_message"]["Row"];
-
-/** Conversation with participant metadata and last message preview */
-export type ConversationWithMeta = ChatConversation & {
-  /** Current user's participant record — for last_read_at / is_muted */
-  participant: Pick<ChatParticipant, "last_read_at" | "is_muted">;
-  /** Most recent message in this conversation (null if no messages yet) */
-  lastMessage: Pick<ChatMessage, "content" | "created_at" | "sender_id"> | null;
+/** Channel data mapped for UI consumption — compatible with existing list components */
+export type ConversationWithMeta = {
+  /** channel_id from the channel table */
+  id: string;
+  name: string | null;
+  /** Maps to comm_channel_type: department, team, session, custom, direct, news, skill */
+  type: string;
+  /** Channel type used for section grouping (mirrors channel_type for new schema) */
+  source_type: string | null;
+  /** Not available in new channel schema — always false */
+  is_featured: boolean;
+  created_at: string;
+  /** Current user's membership metadata */
+  participant: { last_read_at: string | null; is_muted: boolean };
+  /** Most recent message preview (null if no messages yet) */
+  lastMessage: { content: string; created_at: string; sender_id: string } | null;
   /** Sender name for last message preview */
   lastMessageSenderName: string | null;
-  /** Count of messages after last_read_at */
+  /** Count of unread messages */
   unreadCount: number;
+  /** Channel audio policy (open_mic, push_to_talk, muted) */
+  audio_policy: string;
+  /** Channel video policy (off, optional, required) */
+  video_policy: string;
+  /** Number of active members */
+  member_count: number;
+  /** Channel avatar URL */
+  avatar_url: string | null;
+  /** For DMs: the other member's display name */
+  other_member_name: string | null;
+  /** For DMs: the other member's avatar URL */
+  other_member_avatar: string | null;
+  /** For DMs: the other member's profile ID */
+  other_member_profile_id: string | null;
+  /** Workspace this channel belongs to */
+  workspace_id: string;
 };
 
 /** Cache key for MMKV persistence */
 const CACHE_KEY = "cache:channels";
 
-/** 5-minute stale time per spec */
+/** 5-minute stale time */
 const STALE_TIME_MS = 5 * 60 * 1000;
 
 function getPlaceholderData(): ConversationWithMeta[] | undefined {
@@ -56,144 +78,68 @@ function persistToCache(data: ConversationWithMeta[]): void {
   }
 }
 
-async function fetchConversations(): Promise<ConversationWithMeta[]> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
-
-  // Get current profile
-  const { data: profile, error: profileError } = await supabase
-    .from("profile")
-    .select("profile_id")
-    .eq("user_id", user.id)
-    .limit(1)
-    .single();
-
-  if (profileError) throw profileError;
-
-  // Get all conversations this profile participates in, with participant metadata
-  const { data: participants, error: partError } = await supabase
-    .from("chat_participant")
-    .select("conversation_id, last_read_at, is_muted")
-    .eq("profile_id", profile.profile_id)
-    .is("left_at", null);
-
-  if (partError) throw partError;
-  if (!participants || participants.length === 0) return [];
-
-  const conversationIds = participants.map((p) => p.conversation_id);
-
-  // Fetch conversations
-  const { data: conversations, error: convError } = await supabase
-    .from("chat_conversation")
-    .select("*")
-    .in("id", conversationIds)
-    .eq("is_archived", false);
-
-  if (convError) throw convError;
-  if (!conversations) return [];
-
-  // Build participant lookup for quick access
-  const participantMap = new Map(participants.map((p) => [p.conversation_id, p]));
-
-  // Fetch last message for each conversation using a single query
-  // We get the most recent message per conversation by ordering and using limit logic
-  const { data: recentMessages, error: msgError } = await supabase
-    .from("chat_message")
-    .select("id, conversation_id, content, created_at, sender_id")
-    .in("conversation_id", conversationIds)
-    .is("deleted_at", null)
-    .order("created_at", { ascending: false });
-
-  if (msgError) throw msgError;
-
-  // Group by conversation — first occurrence is the most recent due to ordering
-  const lastMessageMap = new Map<
-    string,
-    Pick<ChatMessage, "content" | "created_at" | "sender_id">
-  >();
-  for (const msg of recentMessages ?? []) {
-    if (!lastMessageMap.has(msg.conversation_id)) {
-      lastMessageMap.set(msg.conversation_id, {
-        content: msg.content,
-        created_at: msg.created_at,
-        sender_id: msg.sender_id,
-      });
-    }
-  }
-
-  // Get sender names for last messages
-  const senderIds = new Set([...lastMessageMap.values()].map((m) => m.sender_id));
-  const senderNameMap = new Map<string, string>();
-
-  if (senderIds.size > 0) {
-    const { data: senderProfiles } = await supabase
-      .from("profile")
-      .select("profile_id, display_name")
-      .in("profile_id", [...senderIds]);
-
-    for (const sp of senderProfiles ?? []) {
-      senderNameMap.set(sp.profile_id, sp.display_name || "Ukjent");
-    }
-  }
-
-  // Calculate unread counts per conversation
-  const unreadCountMap = new Map<string, number>();
-  for (const conv of conversations) {
-    const participant = participantMap.get(conv.id);
-    if (!participant) continue;
-
-    const lastRead = participant.last_read_at;
-    const messagesInConv = (recentMessages ?? []).filter(
-      (m) =>
-        m.conversation_id === conv.id &&
-        m.sender_id !== profile.profile_id &&
-        (!lastRead || m.created_at > lastRead),
-    );
-    unreadCountMap.set(conv.id, messagesInConv.length);
-  }
-
-  // Assemble results
-  const results: ConversationWithMeta[] = conversations.map((conv) => {
-    const participant = participantMap.get(conv.id)!;
-    const lastMsg = lastMessageMap.get(conv.id) ?? null;
-    const senderName = lastMsg ? (senderNameMap.get(lastMsg.sender_id) ?? null) : null;
-
-    return {
-      ...conv,
-      participant: {
-        last_read_at: participant.last_read_at,
-        is_muted: participant.is_muted,
-      },
-      lastMessage: lastMsg,
-      lastMessageSenderName: senderName,
-      unreadCount: unreadCountMap.get(conv.id) ?? 0,
-    };
+async function fetchChannels(workspaceId: string): Promise<ConversationWithMeta[]> {
+  const { data, error } = await supabase.rpc("get_my_channels", {
+    p_workspace_id: workspaceId,
   });
 
-  // Sort by last message timestamp (newest first), conversations without messages last
-  results.sort((a, b) => {
-    const aTime = a.lastMessage?.created_at ?? a.created_at;
-    const bTime = b.lastMessage?.created_at ?? b.created_at;
-    return bTime.localeCompare(aTime);
-  });
+  if (error) throw error;
+  if (!data || data.length === 0) return [];
 
+  // Map RPC result to ConversationWithMeta for backward compatibility
+  const results: ConversationWithMeta[] = data.map((ch) => ({
+    id: ch.channel_id,
+    name: ch.channel_type === "direct" ? (ch.other_member_name ?? ch.name) : ch.name,
+    type: ch.channel_type,
+    source_type: ch.channel_type,
+    is_featured: false,
+    created_at: ch.last_message_at ?? "",
+    participant: {
+      // RPC doesn't expose last_read_at directly — null is safe for UI
+      last_read_at: null,
+      is_muted: false,
+    },
+    lastMessage: ch.last_message_content
+      ? {
+          content: ch.last_message_content,
+          created_at: ch.last_message_at ?? "",
+          sender_id: "",
+        }
+      : null,
+    lastMessageSenderName: ch.last_message_sender_name ?? null,
+    unreadCount: ch.unread_count ?? 0,
+    audio_policy: ch.audio_policy,
+    video_policy: ch.video_policy,
+    member_count: ch.member_count ?? 0,
+    avatar_url: ch.avatar_url ?? null,
+    other_member_name: ch.other_member_name ?? null,
+    other_member_avatar: ch.other_member_avatar ?? null,
+    other_member_profile_id: ch.other_member_profile_id ?? null,
+    workspace_id: ch.workspace_id,
+  }));
+
+  // RPC already returns sorted by last message timestamp (newest first)
   persistToCache(results);
   return results;
 }
 
 /**
- * Hook: returns all conversations the current profile participates in.
+ * Hook: returns all channels the current profile is a member of.
  * Sorted by last message timestamp. Includes unread count and last message preview.
  */
 export function useConversations() {
-  return useQuery<ConversationWithMeta[]>({
-    queryKey: ["conversations"],
-    queryFn: fetchConversations,
+  const { data: myProfile } = useMyProfile();
+  const workspaceId = myProfile?.workspace_id;
+
+  const query = useQuery<ConversationWithMeta[]>({
+    queryKey: ["channels", workspaceId],
+    queryFn: () => fetchChannels(workspaceId!),
     staleTime: STALE_TIME_MS,
+    enabled: !!workspaceId,
     placeholderData: getPlaceholderData,
   });
+
+  return query;
 }
 
 /** Sections for the channel list screen */
@@ -203,30 +149,46 @@ export type ConversationSection = {
 };
 
 /**
- * Groups conversations into display sections for the channel list:
+ * Groups channels into display sections for the channel list:
+ * - "Festet" (pinned by user, local MMKV)
  * - "Aktiv vakt" (session channels, only during shift)
- * - "Kanaler" (department + team groups)
- * - "Direktmeldinger" (DMs)
+ * - "Kanaler" (department + team + custom groups)
+ * - "Direktmeldinger" (DMs — channel_type = 'direct')
  *
  * AI conversations are excluded from the channel list (accessed via FAB).
  */
-export function useGroupedConversations(isDuringShift: boolean) {
+export function useGroupedConversations(isDuringShift: boolean, pinnedIds: string[] = []) {
   const { data, ...rest } = useConversations();
 
   const sections = useMemo((): ConversationSection[] => {
     if (!data) return [];
 
-    const sessionChannels = data.filter((c) => c.type === "group" && c.source_type === "session");
-    const groupChannels = data.filter(
-      (c) => c.type === "group" && (c.source_type === "department" || c.source_type === "team"),
+    const pinnedSet = new Set(pinnedIds);
+
+    const pinned = data.filter((c) => pinnedSet.has(c.id));
+    const unpinned = data.filter((c) => !pinnedSet.has(c.id));
+
+    // Group by channel_type instead of source_type
+    const sessionChannels = unpinned.filter((c) => c.type === "session");
+    const groupChannels = unpinned.filter(
+      (c) =>
+        c.type === "department" ||
+        c.type === "team" ||
+        c.type === "custom" ||
+        c.type === "news" ||
+        c.type === "skill",
     );
-    const dmChannels = data.filter((c) => c.type === "dm");
+    const dmChannels = unpinned.filter((c) => c.type === "direct");
 
     const result: ConversationSection[] = [];
 
-    // Only show session channels if employee is on shift
-    if (isDuringShift && sessionChannels.length > 0) {
-      result.push({ title: "Aktiv vakt", data: sessionChannels });
+    if (pinned.length > 0) {
+      result.push({ title: "Festet", data: pinned });
+    }
+
+    // Show session channels during shift, or always in dev mode for previewing
+    if ((isDuringShift || __DEV__) && sessionChannels.length > 0) {
+      result.push({ title: "Aktive vakter", data: sessionChannels });
     }
 
     if (groupChannels.length > 0) {
@@ -238,7 +200,7 @@ export function useGroupedConversations(isDuringShift: boolean) {
     }
 
     return result;
-  }, [data, isDuringShift]);
+  }, [data, isDuringShift, pinnedIds]);
 
   return { sections, data, ...rest };
 }

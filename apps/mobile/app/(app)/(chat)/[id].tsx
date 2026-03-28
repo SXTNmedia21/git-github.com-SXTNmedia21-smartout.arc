@@ -5,8 +5,8 @@
  * Messages: inverted FlatList with date markers, received/sent bubbles, system messages
  * Input: attachment button, text area with emoji, contextual mic/send button
  *
- * Subscribes to Supabase Realtime for live message delivery.
- * Messages are paginated (50 per page, load older on scroll).
+ * Subscribes to Supabase Realtime on `channel_message` for live message delivery.
+ * Messages are cursor-paginated (50 per page, load older on scroll).
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -142,14 +142,14 @@ export default function ConversationScreen() {
 
   const messages = useMemo(() => (data?.pages.flat() ?? []) as PendingMessage[], [data]);
 
-  // Load current profile, conversation name, and member count
+  // Load current profile, channel name, and member count from channel schema
   useEffect(() => {
     if (!user || !conversationId) return;
 
     async function loadContext() {
       const { data: profile } = await supabase
         .from("profile")
-        .select("profile_id, display_name, avatar_url")
+        .select("profile_id, display_name, avatar_url, workspace_id")
         .eq("user_id", user!.id)
         .limit(1)
         .single();
@@ -158,19 +158,13 @@ export default function ConversationScreen() {
         setProfileId(profile.profile_id);
         setProfileName(profile.display_name || "Meg");
         setProfileAvatarUrl(profile.avatar_url);
-
-        // Get workspace ID for call initiation
-        const { data: ws } = await supabase
-          .from("profile")
-          .select("workspace_id")
-          .eq("profile_id", profile.profile_id)
-          .single();
-        if (ws) setWorkspaceId(ws.workspace_id);
+        setWorkspaceId(profile.workspace_id);
       }
 
+      // Load channel info from the channel table
       const { data: conv } = await supabase
-        .from("chat_conversation")
-        .select("name, type, source_type")
+        .from("channel")
+        .select("name, channel_type, workspace_id")
         .eq("id", conversationId!)
         .single();
 
@@ -178,10 +172,11 @@ export default function ConversationScreen() {
         setConversationName(conv.name ?? "Samtale");
       }
 
+      // Get active member count from channel_member
       const { count } = await supabase
-        .from("chat_participant")
+        .from("channel_member")
         .select("id", { count: "exact", head: true })
-        .eq("conversation_id", conversationId!)
+        .eq("channel_id", conversationId!)
         .is("left_at", null);
 
       setMemberCount(count ?? 0);
@@ -190,35 +185,42 @@ export default function ConversationScreen() {
     loadContext();
   }, [user, conversationId]);
 
-  // Supabase Realtime subscription
+  // Supabase Realtime subscription on channel_message
   useEffect(() => {
     if (!conversationId) return;
 
     const channel = supabase
-      .channel(`chat:${conversationId}`)
+      .channel(`channel:${conversationId}`)
       .on(
         "postgres_changes",
         {
           event: "INSERT",
           schema: "public",
-          table: "chat_message",
-          filter: `conversation_id=eq.${conversationId}`,
+          table: "channel_message",
+          filter: `channel_id=eq.${conversationId}`,
         },
         async (payload) => {
-          const newMsg = payload.new as Database["public"]["Tables"]["chat_message"]["Row"];
+          const newMsg = payload.new as Database["public"]["Tables"]["channel_message"]["Row"];
 
+          // If this is our own message, replace the optimistic version
           if (newMsg.sender_id === profileId) {
             queryClient.setQueryData(
-              ["messages", conversationId],
-              (old: { pages: PendingMessage[][]; pageParams: number[] } | undefined) => {
+              ["channel-messages", conversationId],
+              (
+                old: { pages: PendingMessage[][]; pageParams: (string | undefined)[] } | undefined,
+              ) => {
                 if (!old) return old;
                 const newPages = old.pages.map((page) =>
                   page.map((msg) => {
-                    if (msg.id === newMsg.id && (msg as PendingMessage)._isPending) {
+                    // Match by client_message_id for dedup
+                    if (
+                      msg.client_message_id === newMsg.client_message_id &&
+                      (msg as PendingMessage)._isPending
+                    ) {
                       return {
-                        ...newMsg,
-                        senderName: msg.senderName,
-                        senderAvatarUrl: msg.senderAvatarUrl,
+                        ...msg,
+                        id: newMsg.id,
+                        created_at: newMsg.created_at,
                         _isPending: false,
                       };
                     }
@@ -231,6 +233,7 @@ export default function ConversationScreen() {
             return;
           }
 
+          // Message from someone else — fetch sender profile and prepend
           const { data: senderProfile } = await supabase
             .from("profile")
             .select("profile_id, display_name, avatar_url")
@@ -238,15 +241,38 @@ export default function ConversationScreen() {
             .single();
 
           const messageWithSender: MessageWithSender = {
-            ...newMsg,
+            id: newMsg.id,
+            channel_id: newMsg.channel_id,
+            content: newMsg.content,
+            sender_id: newMsg.sender_id,
             senderName: senderProfile?.display_name || "Ukjent",
             senderAvatarUrl: senderProfile?.avatar_url ?? null,
+            created_at: newMsg.created_at,
+            reply_to_id: newMsg.reply_to_id ?? null,
+            reply_to_content: null,
+            reply_to_sender_name: null,
+            reactions: [],
+            attachments: [],
+            is_pinned: newMsg.is_pinned,
+            message_type: newMsg.message_type,
+            origin_type: newMsg.origin_type,
+            visibility_scope: newMsg.visibility_scope,
+            sender_role: null,
+            system_data: newMsg.system_data,
+            edited_at: newMsg.edited_at,
+            deleted_at: newMsg.deleted_at,
+            client_message_id: newMsg.client_message_id,
+            conversation_id: newMsg.channel_id,
+            is_system: newMsg.message_type === "system",
+            updated_at: newMsg.created_at,
           };
 
           queryClient.setQueryData(
-            ["messages", conversationId],
-            (old: { pages: MessageWithSender[][]; pageParams: number[] } | undefined) => {
-              if (!old) return { pages: [[messageWithSender]], pageParams: [0] };
+            ["channel-messages", conversationId],
+            (
+              old: { pages: MessageWithSender[][]; pageParams: (string | undefined)[] } | undefined,
+            ) => {
+              if (!old) return { pages: [[messageWithSender]], pageParams: [undefined] };
               const newPages = [...old.pages];
               newPages[0] = [messageWithSender, ...(newPages[0] ?? [])];
               return { ...old, pages: newPages };
@@ -263,18 +289,19 @@ export default function ConversationScreen() {
 
   const handleSend = useCallback(
     async (content: string) => {
-      if (!profileId || !conversationId) return;
+      if (!profileId || !conversationId || !workspaceId) return;
       await sendMessage({
-        conversationId,
+        channelId: conversationId,
         content,
         senderProfileId: profileId,
         senderName: profileName,
         senderAvatarUrl: profileAvatarUrl,
         replyToId: replyTo?.id ?? null,
+        workspaceId,
       });
       setReplyTo(null);
     },
-    [profileId, conversationId, profileName, profileAvatarUrl, replyTo, sendMessage],
+    [profileId, conversationId, workspaceId, profileName, profileAvatarUrl, replyTo, sendMessage],
   );
 
   const handleLongPress = useCallback((messageId: string) => {
@@ -285,8 +312,8 @@ export default function ConversationScreen() {
     async (emoji: string) => {
       if (!selectedMessageId || !profileId) return;
       queryClient.setQueryData(
-        ["messages", conversationId],
-        (old: { pages: PendingMessage[][]; pageParams: number[] } | undefined) => {
+        ["channel-messages", conversationId],
+        (old: { pages: PendingMessage[][]; pageParams: (string | undefined)[] } | undefined) => {
           if (!old) return old;
           const newPages = old.pages.map((page) =>
             page.map((msg) => {
