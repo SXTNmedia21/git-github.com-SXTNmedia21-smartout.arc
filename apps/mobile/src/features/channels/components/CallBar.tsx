@@ -32,8 +32,10 @@ export function CallBar({
   return (
     <View
       style={styles.container}
-      onTouchEnd={onPress}
-      accessibilityRole="button"
+      onTouchEnd={(e) => {
+        // Only fire if the touch target is the container itself, not child buttons
+        if (e.target === e.currentTarget) onPress?.();
+      }}
       accessibilityLabel={strings.call.inCall}
     >
       <View style={styles.info}>
