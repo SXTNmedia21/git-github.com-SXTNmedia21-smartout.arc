@@ -11,12 +11,19 @@ import { useState } from "react";
 import { Plus, X, Sparkles } from "lucide-react";
 import type { WizardStepProps } from "@smartout/ui";
 import type { OnboardingConfirmState } from "../types-v2";
+import { useRegisterTools } from "@/app/walkAi/_components/tool-registry";
+import { useDepartmentsTools } from "./tools/departments-tools";
 
 export function ConfirmDepartments({
   state,
   updateState,
+  next,
+  back,
   t,
 }: WizardStepProps<OnboardingConfirmState>) {
+  const tools = useDepartmentsTools(state, updateState, next, back);
+  useRegisterTools("wizard-onboarding-departments", tools);
+
   const [showInput, setShowInput] = useState(false);
   const [customName, setCustomName] = useState("");
 
