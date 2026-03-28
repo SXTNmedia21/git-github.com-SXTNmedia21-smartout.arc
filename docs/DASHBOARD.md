@@ -13,55 +13,55 @@ tags: [dashboard, worktrees, tracking]
 
 ## Active Worktrees
 
-| #    | Branch                    | Module     | Status      | Progress                                                                                        | Blockers | Health |
-| ---- | ------------------------- | ---------- | ----------- | ----------------------------------------------------------------------------------------------- | -------- | ------ |
-| wt-3 | `feat/emma-arena-views`   | walkAi     | in_progress | Rebased on dev. Spec + settings persistence. Implementation not started. Stash: agent-chat WIP. | None     | clean  |
-| wt-5 | `feat/sjohuset-simulator` | simulation | parked      | Rebased, 10 commits, clean. PR #72 (diverged). Parked for now.                                  | —        | clean  |
+| #    | Branch                         | Module       | Status      | Progress                                                      | Blockers    | Health |
+| ---- | ------------------------------ | ------------ | ----------- | ------------------------------------------------------------- | ----------- | ------ |
+| wt-1 | `feat/drift-insights`          | operations   | in_progress | just started                                                  | —           | clean  |
+| wt-2 | `feat/season-operations-loop`  | operations   | in_progress | just started — WS-1 Module Zero                               | —           | clean  |
+| wt-3 | `feat/emma-arena-views`        | walkAi       | parked      | Spec + settings persistence done. Implementation not started. | —           | clean  |
+| wt-4 | `feat/training-agent-pipeline` | training     | in_progress | just started — WS-2 Module Zero                               | —           | clean  |
+| wt-5 | `feat/sjohuset-simulator`      | simulation   | parked      | 10 commits. PR #72 (diverged). Parked.                        | —           | clean  |
+| wt-6 | `feat/gamification-foundation` | gamification | in_progress | just started — WS-3 Module Zero                               | WS-1 Task 2 | clean  |
+| wt-7 | `feat/dynamic-landing-engine`  | landing      | in_progress | just started                                                  | —           | clean  |
 
 ## Parked Branches (no worktree)
 
-| Branch            | Status | Notes                                                                                                 |
-| ----------------- | ------ | ----------------------------------------------------------------------------------------------------- |
-| `feat/onboarding` | WIP    | FlowPlayer + alkohol flow. Rebased on dev, typefix committed. framer-motion devDep missing in ui pkg. |
-
-## Plans Without Worktree
-
-| Plan                | Status | Notes                                                            |
-| ------------------- | ------ | ---------------------------------------------------------------- |
-| sjohuset-simulator  | draft  | Council: APPROVED_WITH_CONDITIONS. No worktree assigned yet.     |
-| mobile-employee-app | done   | Moved to completed/. 2 gaps: missing emit() in 11 hooks, no ADR. |
+| Branch            | Status | Notes                                                              |
+| ----------------- | ------ | ------------------------------------------------------------------ |
+| `feat/onboarding` | parked | FlowPlayer + alkohol flow. framer-motion devDep missing in ui pkg. |
 
 ## Free Slots
 
-| #     | Available                                       |
-| ----- | ----------------------------------------------- |
-| wt-1  | occupied (training-platform repo, not smartout) |
-| wt-2  | occupied (training-platform repo, not smartout) |
-| wt-4  | yes                                             |
-| wt-6  | yes                                             |
-| wt-7  | yes                                             |
-| wt-8  | yes                                             |
-| wt-9  | yes                                             |
-| wt-10 | yes                                             |
-| wt-11 | yes                                             |
-| wt-12 | yes                                             |
-| wt-13 | yes                                             |
-| wt-15 | yes                                             |
-| wt-20 | yes                                             |
+| #     | Available                           |
+| ----- | ----------------------------------- |
+| wt-1  | no — `feat/drift-insights`          |
+| wt-2  | no — `feat/season-operations-loop`  |
+| wt-4  | no — `feat/training-agent-pipeline` |
+| wt-6  | no — `feat/gamification-foundation` |
+| wt-7  | no — `feat/dynamic-landing-engine`  |
+| wt-8  | yes                                 |
+| wt-9  | yes                                 |
+| wt-10 | yes                                 |
+| wt-11 | yes                                 |
+| wt-12 | yes                                 |
+| wt-13 | yes                                 |
+| wt-15 | yes                                 |
+| wt-20 | yes                                 |
 
 ## Pending Journeys
 
-| WT    | Feature                 | Journey File                                       | Status            |
-| ----- | ----------------------- | -------------------------------------------------- | ----------------- |
-| wt-4  | landing-token-migration | `docs/journeys/JOURNEY-landing-token-migration.md` | written (closing) |
-| wt-2  | entity-drawer           | `docs/journeys/JOURNEY-entity-drawer.md`           | written (closing) |
-| wt-10 | setup-guide-navigation  | `docs/journeys/JOURNEY-setup-guide-navigation.md`  | written (merged)  |
-| wt-9  | comms-council-fixes     | `docs/journeys/JOURNEY-comms-council-fixes.md`     | written (closing) |
+| Worktree | Feature                 | Journey File                                       | Status  |
+| -------- | ----------------------- | -------------------------------------------------- | ------- |
+| wt-1     | drift-insights          | `docs/journeys/JOURNEY-drift-insights.md`          | missing |
+| wt-2     | season-operations-loop  | `docs/journeys/JOURNEY-season-operations-loop.md`  | missing |
+| wt-4     | training-agent-pipeline | `docs/journeys/JOURNEY-training-agent-pipeline.md` | missing |
+| wt-6     | gamification-foundation | `docs/journeys/JOURNEY-gamification-foundation.md` | missing |
+| wt-7     | dynamic-landing-engine  | `docs/journeys/JOURNEY-dynamic-landing-engine.md`  | missing |
 
 ## Recent Closures
 
 | Date       | Feature                      | Branch                                                             | Merged To   |
 | ---------- | ---------------------------- | ------------------------------------------------------------------ | ----------- |
+| 2026-03-28 | komm-migration               | `feat/komm-migration`                                              | development |
 | 2026-03-28 | comms-council-fixes          | `fix/comms-council-fixes`                                          | development |
 | 2026-03-28 | landing-token-migration      | `feat/landing-token-migration`                                     | development |
 | 2026-03-28 | setup-wizard-shell-migration | `feat/setup-wizard-shell-migration`                                | development |
@@ -125,6 +125,13 @@ tags: [dashboard, worktrees, tracking]
 
 ## Session History
 
+| 2026-03-28 | dynamic-landing-engine | started | wt-7, module: landing. P1 plan: 14 tasks. Spec + ADR-0064 + council review done. |
+| 2026-03-28 | gamification-foundation | started | wt-6, module: gamification. WS-3 Module Zero (Tasks 15-17). Blocked on WS-1 Task 2 (season activation trigger). |
+| 2026-03-28 | season-operations-loop | started | wt-2, module: operations. WS-1 Module Zero (Tasks 1-7). Plan: `docs/superpowers/plans/2026-03-28-module-zero-completion.md` |
+| 2026-03-28 | training-agent-pipeline | started | wt-4, module: training. WS-2 Module Zero (Tasks 8-14). Plan: `docs/superpowers/plans/2026-03-28-module-zero-completion.md` |
+| 2026-03-28 | drift-insights | started | wt-1, module: operations |
+| 2026-03-28 | development | session ended | session ended |
+| 2026-03-28 | komm-migration | closed | 3 commits. Deleted chat route, i18n sweep (90 strings), AI tools migrated. wt-4 freed. |
 | 2026-03-28 | development | session ended | session ended |
 | 2026-03-28 | development | session ended | session ended |
 | 2026-03-28 | development | session ended | session ended |
