@@ -4,7 +4,7 @@ import { Suspense, useState, useEffect } from "react";
 import { VariantLink as Link } from "./tracking";
 import { usePathname } from "next/navigation";
 import { m, AnimatePresence } from "framer-motion";
-import { Building2, ArrowRight, Menu, X } from "lucide-react";
+import { ArrowRight, Menu, X } from "lucide-react";
 import { WEB_APP_LINKS } from "../lib/web-app-url";
 import { ThemeToggle } from "./theme-toggle";
 import { LanguageSwitcher } from "./language-switcher";
@@ -62,9 +62,11 @@ export default function Navigation({ locale: localeProp }: { locale?: "nb" | "en
       } backdrop-blur-3xl`}
     >
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
-        <Link href="/" className="group flex items-center gap-2.5">
-          <Building2 className="text-brand-orange h-5 w-5 transition-transform duration-300 group-hover:scale-110" />
-          <span className="text-foreground text-xl font-black tracking-tighter">SmartOut</span>
+        <Link href={`${prefix}/`} className="group flex items-center gap-2">
+          <span className="text-brand-orange text-2xl font-black tracking-tighter transition-transform duration-300 group-hover:scale-[1.02]">
+            Smart
+          </span>
+          <span className="text-foreground text-2xl font-black tracking-tighter">Out</span>
         </Link>
 
         {/* Desktop nav */}
