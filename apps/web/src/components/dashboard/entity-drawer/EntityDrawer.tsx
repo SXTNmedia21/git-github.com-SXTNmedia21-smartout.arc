@@ -275,31 +275,31 @@ export function EntityDrawer() {
 
       {/* Tabs */}
       {tabs.length > 1 && (
-        <div
-          className="relative z-10 flex gap-0 overflow-x-auto border-b border-border px-4"
-          role="tablist"
-        >
-          {tabs.map((tab) => (
-            <button
-              key={tab.value}
-              role="tab"
-              aria-selected={currentTab === tab.value}
-              aria-controls={`tabpanel-${tab.value}`}
-              onClick={() => handleTabSwitch(tab.value)}
-              className={`border-b-2 px-3 py-2.5 text-[13px] font-medium whitespace-nowrap transition-colors ${
-                currentTab === tab.value
-                  ? "font-semibold text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-              style={
-                currentTab === tab.value
-                  ? { borderColor: "var(--entity-accent)" }
-                  : undefined
-              }
-            >
-              {t(tab.labelKey)}
-            </button>
-          ))}
+        <div className="relative z-10 border-b border-border">
+          <div
+            className="scrollbar-none flex gap-0 overflow-x-auto px-4"
+            role="tablist"
+          >
+            {tabs.map((tab) => (
+              <button
+                key={tab.value}
+                role="tab"
+                aria-selected={currentTab === tab.value}
+                aria-controls={`tabpanel-${tab.value}`}
+                onClick={() => handleTabSwitch(tab.value)}
+                className={`min-h-[44px] border-b-2 px-3 py-2.5 text-[13px] font-medium whitespace-nowrap transition-colors ${
+                  currentTab === tab.value
+                    ? "border-[color:var(--entity-accent)] font-semibold text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground/70"
+                }`}
+              >
+                {t(tab.labelKey)}
+                {tab.badge && tab.badge > 0 ? (
+                  <span className="text-destructive ml-1.5 text-[9px] font-bold">{tab.badge}</span>
+                ) : null}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 

@@ -535,3 +535,12 @@
 .site-hover-bg-muted-soft:hover {
   background-color: color-mix(in srgb, var(--site-muted) 50%, transparent);
 }
+
+/* Utility: hide scrollbar while keeping scroll functionality */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
