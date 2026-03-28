@@ -58,6 +58,8 @@ export async function sendToEngine(event: SmartoutEvent): Promise<void> {
 
   if (typeof window !== "undefined") {
     // Client-side: relay through Next.js API route
+    // TODO: Enable once engine-dispatch Edge Function is deployed locally
+    if (process.env.NODE_ENV === "development") return;
     try {
       const res = await fetch("/api/engine-dispatch", {
         method: "POST",

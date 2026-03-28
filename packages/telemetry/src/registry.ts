@@ -1527,6 +1527,66 @@ export interface WizardFactEdited extends BaseEvent {
   };
 }
 
+// ─── Flow Events ───────────────────────────────
+export interface FlowStarted extends BaseEvent {
+  event: "flow started";
+  properties: {
+    data: {
+      flow_id: string;
+      total_slides: number;
+    };
+  };
+}
+
+export interface FlowSlideViewed extends BaseEvent {
+  event: "flow slide_viewed";
+  properties: {
+    data: {
+      flow_id: string;
+      slide_index: number;
+      slide_type: string;
+      duration_ms?: number;
+    };
+  };
+}
+
+export interface FlowAnswerSubmitted extends BaseEvent {
+  event: "flow answer_submitted";
+  properties: {
+    data: {
+      flow_id: string;
+      slide_index: number;
+      answer_key: string;
+      answer_value: string | string[];
+    };
+  };
+}
+
+export interface FlowCompleted extends BaseEvent {
+  event: "flow completed";
+  properties: {
+    data: {
+      flow_id: string;
+      total_slides: number;
+      duration_ms: number;
+      action?: string;
+      answers: Record<string, string | string[]>;
+    };
+  };
+}
+
+export interface FlowSkipped extends BaseEvent {
+  event: "flow skipped";
+  properties: {
+    data: {
+      flow_id: string;
+      slide_index: number;
+      slide_type: string;
+      duration_ms: number;
+    };
+  };
+}
+
 // ─── Channel Events ─────────────────────────────
 export interface ChannelCreated extends BaseEvent {
   event: "channel.created";
@@ -2015,6 +2075,11 @@ export type SmartoutEvent =
   | WizardAbandoned
   | WizardValidationFailed
   | WizardFactEdited
+  | FlowStarted
+  | FlowSlideViewed
+  | FlowAnswerSubmitted
+  | FlowCompleted
+  | FlowSkipped
   | SeasonCreated
   | SeasonActivated
   | SeasonArchived
