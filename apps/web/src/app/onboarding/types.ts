@@ -217,3 +217,13 @@ export interface ProfessionOption {
   isUniversal: boolean;
   positions: PositionOption[];
 }
+
+/** A leadership/organizational role — selected during onboarding */
+export interface RoleOption {
+  id: string;
+  name: string;
+  description: string;
+  selected: boolean;
+  /** Whether this role is required by regulation (cannot be deselected) */
+  required: boolean;
+}

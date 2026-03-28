@@ -62,6 +62,7 @@ export function ConfirmProfessions({
                   id: `pos-custom-${Date.now()}`,
                   name: trimmed,
                   slug: trimmed.toLowerCase().replace(/\s+/g, "-"),
+                  isLeader: false,
                   selected: true,
                 },
               ],

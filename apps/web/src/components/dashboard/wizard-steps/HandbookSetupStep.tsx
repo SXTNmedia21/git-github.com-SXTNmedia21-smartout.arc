@@ -21,7 +21,6 @@ import { emit } from "@smartout/telemetry";
 import { useWorkspace } from "@/lib/workspace-context";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { CHAPTERS } from "@/app/dashboard/_components/document-mode/chapters";
-import { HelpTip } from "@/components/dashboard/wizard-steps/HelpTip";
 import type { ChapterKey } from "@/app/dashboard/_components/document-mode/chapters";
 import type { SetupWizardState } from "./wizard-state";
 
@@ -74,111 +73,139 @@ function generateChapterContent(
 ): TipTapNode | null {
   if (!state) return null;
   const { scrapedData, extractedData } = state;
-  const companyName = scrapedData.companyName ?? "Virksomheten";
+  const name = scrapedData.companyName ?? "Virksomheten";
 
-  // Check if document extraction produced content for this chapter
   const extracted = extractedData.handbookSections?.find((s) => s.chapterKey === chapterKey);
   if (extracted) {
-    return doc(heading(2, chapterKey), para(extracted.content), para(`Kilde: ${extracted.source}`));
+    return doc(heading(2, chapterKey), para(extracted.content));
   }
 
   switch (chapterKey) {
     case "identity-mission": {
-      const nodes: TipTapNode[] = [
-        heading(2, `Om ${companyName}`),
+      const n: TipTapNode[] = [
+        heading(2, `Velkommen til ${name}`),
         para(
-          scrapedData.industryType
-            ? `${companyName} er en ${scrapedData.industryType}-virksomhet.`
-            : `${companyName} — vår identitet og misjon.`,
+          `${name} er ${scrapedData.industryType ? `en ${scrapedData.industryType}-virksomhet` : "en arbeidsplass"} som setter kvalitet og gjestene i sentrum. Denne h\u00e5ndboken er din guide til hvordan vi jobber, hva vi st\u00e5r for, og hva som forventes av deg som ansatt.`,
         ),
       ];
-      if (scrapedData.aboutUs) nodes.push(para(scrapedData.aboutUs));
-      if (scrapedData.ourHistory) {
-        nodes.push(heading(3, "Vår historie"), para(scrapedData.ourHistory));
-      }
-      if (scrapedData.ourConcept) {
-        nodes.push(heading(3, "Vårt konsept"), para(scrapedData.ourConcept));
-      }
-      if (scrapedData.cuisineTypes?.length) {
-        nodes.push(para(`Kjøkken: ${scrapedData.cuisineTypes.join(", ")}`));
-      }
-      if (scrapedData.menuDescription) {
-        nodes.push(heading(3, "Meny"), para(scrapedData.menuDescription));
-      }
-      if (scrapedData.address) nodes.push(para(`Adresse: ${scrapedData.address}`));
-      if (scrapedData.website) nodes.push(para(`Nettside: ${scrapedData.website}`));
-      nodes.push(
-        heading(3, "Serviceløfte"),
-        para("Beskriv virksomhetens serviceløfte og merkevare her."),
+      if (scrapedData.aboutUs) n.push(para(scrapedData.aboutUs));
+      if (scrapedData.ourHistory)
+        n.push(heading(3, "V\u00e5r historie"), para(scrapedData.ourHistory));
+      if (scrapedData.ourConcept)
+        n.push(heading(3, "V\u00e5rt konsept"), para(scrapedData.ourConcept));
+      n.push(
+        heading(3, "V\u00e5re verdier"),
+        para(
+          `Hos ${name} er vi opptatt av \u00e5 levere en opplevelse som gjestene husker. Det betyr at vi er oppmerksomme, im\u00f8tekommende og l\u00f8sningsorienterte \u2014 hver dag, hvert skift.`,
+        ),
       );
-      if (scrapedData.aboutUs) nodes.push(para("Kilde: AI-generert fra bedriftsprofil"));
-      return doc(...nodes);
+      if (scrapedData.address) n.push(para(`Adresse: ${scrapedData.address}`));
+      if (scrapedData.website) n.push(para(`Nettside: ${scrapedData.website}`));
+      return doc(...n);
     }
 
     case "organization-model": {
-      const nodes: TipTapNode[] = [heading(2, "Organisasjonsmodell")];
       const depts = scrapedData.departments ?? [];
+      const n: TipTapNode[] = [
+        heading(2, "Organisasjon og roller"),
+        para(
+          `${name} er organisert i avdelinger som samarbeider tett for \u00e5 gi gjestene en helhetlig opplevelse. Hver avdeling har en ansvarlig leder som rapporterer til daglig leder.`,
+        ),
+      ];
       if (depts.length > 0) {
-        nodes.push(para("Virksomheten har følgende avdelinger:"), bulletList(depts));
-      } else {
-        nodes.push(para("Legg til avdelingene og deres ansvarsområder her."));
+        n.push(heading(3, "Avdelinger"), bulletList(depts));
       }
-      nodes.push(heading(3, "Roller og ansvar"), para("Beskriv rollene i organisasjonen."));
-      return doc(...nodes);
+      n.push(
+        heading(3, "Ansvarsfordeling"),
+        bulletList([
+          "Daglig leder: overordnet ansvar for drift, \u00f8konomi og personal",
+          "Skiftleder: ansvarlig for daglig drift p\u00e5 sitt skift",
+          "Ansatte: f\u00f8lger retningslinjer, melder avvik, bidrar til godt arbeidsmilj\u00f8",
+        ]),
+        heading(3, "Rapporteringslinjer"),
+        para(
+          "Alle ansatte rapporterer til sin n\u00e6rmeste leder. Ved frav\u00e6r av leder g\u00e5r henvendelser til skiftleder eller daglig leder.",
+        ),
+      );
+      return doc(...n);
     }
 
     case "daily-operations": {
-      const nodes: TipTapNode[] = [heading(2, "Daglig Drift")];
+      const n: TipTapNode[] = [
+        heading(2, "Daglig drift"),
+        para(
+          `Driften hos ${name} f\u00f8lger faste rutiner som sikrer kvalitet og effektivitet. Alle ansatte skal kjenne disse rutinene og f\u00f8lge dem konsekvent.`,
+        ),
+      ];
       if (scrapedData.openingHours) {
-        nodes.push(para(`Åpningstider: ${scrapedData.openingHours}`));
+        n.push(heading(3, "\u00c5pningstider"), para(scrapedData.openingHours));
       }
       const shifts = extractedData.shiftPatterns ?? [];
       if (shifts.length > 0) {
-        nodes.push(
-          heading(3, "Vakter"),
-          bulletList(shifts.map((s) => `${s.name}: ${s.startTime}–${s.endTime}`)),
+        n.push(
+          heading(3, "Vakttyper"),
+          bulletList(shifts.map((s) => `${s.name}: ${s.startTime}\u2013${s.endTime}`)),
         );
       }
-      nodes.push(
-        heading(3, "Åpningsrutiner"),
-        para("Beskriv hva som skal gjøres ved åpning."),
+      n.push(
+        heading(3, "\u00c5pningsrutiner"),
+        bulletList([
+          "Ankomst minimum 15 minutter f\u00f8r skiftstart",
+          "Sjekk ren uniform, synlig navneskilt",
+          "Gjennomg\u00e5 dagens bookinger og eventuelle beskjeder",
+          "Sjekk at alle stasjoner er klargjort og rent",
+          "Sett p\u00e5 musikk, juster belysning, \u00e5pne d\u00f8rer",
+        ]),
         heading(3, "Lukkerutiner"),
-        para("Beskriv hva som skal gjøres ved lukking."),
+        bulletList([
+          "Siste gjest \u2014 like god service som f\u00f8rste gjest",
+          "Rydd, renholdssjekk alle omr\u00e5der",
+          "Kassaoppgj\u00f8r og daglig rapport",
+          "L\u00e5s d\u00f8rer, slukk lys, aktiver alarm",
+          "Meld avvik eller uregelmessigheter til leder",
+        ]),
       );
-      return doc(...nodes);
+      return doc(...n);
     }
 
     case "safety-compliance": {
-      const nodes: TipTapNode[] = [heading(2, "Sikkerhet og Etterlevelse")];
       const policies = extractedData.policies ?? [];
-      const safetyPolicies = policies.filter(
-        (p) =>
-          p.name.toLowerCase().includes("sikkerhet") ||
-          p.name.toLowerCase().includes("hygiene") ||
-          p.name.toLowerCase().includes("haccp"),
-      );
-      if (safetyPolicies.length > 0) {
-        nodes.push(
-          para("Følgende retningslinjer gjelder:"),
-          bulletList(safetyPolicies.map((p) => p.name)),
-        );
+      const n: TipTapNode[] = [
+        heading(2, "Sikkerhet, helse og milj\u00f8"),
+        para(
+          "Alle ansatte har b\u00e5de rett og plikt til et trygt arbeidsmilj\u00f8. HMS-arbeid er ikke noe vi gj\u00f8r ved siden av \u2014 det er en del av alt vi gj\u00f8r.",
+        ),
+      ];
+      if (policies.length > 0) {
+        n.push(heading(3, "Aktive retningslinjer"), bulletList(policies.map((p) => p.name)));
       }
-      nodes.push(
-        heading(3, "Mattrygghet"),
-        para("Beskriv rutiner for mattrygghet og allergenbehandling."),
+      n.push(
         heading(3, "Brannvern"),
-        para("Beskriv brannvernsrutiner og evakueringsplan."),
+        bulletList([
+          "Kj\u00f8nn deg til n\u00e6rmeste n\u00f8dutgang og slukkeutstyr f\u00f8rste dag",
+          "Ved brannalarm: evakuer via merket r\u00f8mningsvei til m\u00f8teplass",
+          "Ring 110 ved reell brann",
+          "Brannslukkere og branntepper skal alltid v\u00e6re tilgjengelige og synlige",
+        ]),
+        heading(3, "F\u00f8rstehjelp"),
+        bulletList([
+          "F\u00f8rstehjelpsskrin finnes ved hovedinngang og p\u00e5 kj\u00f8kkenet",
+          "Ved alvorlig skade: ring 113, sikre skadestedet, gi f\u00f8rstehjelp",
+          "Alle hendelser skal dokumenteres i avvikssystemet",
+        ]),
+        heading(3, "Mattrygghet"),
+        bulletList([
+          "HACCP-basert internkontroll \u2014 alle som h\u00e5ndterer mat m\u00e5 kjenne prinsippene",
+          "Temperaturlogg f\u00f8res daglig for kj\u00f8l, frys og varmholding",
+          "H\u00e5ndvask f\u00f8r og etter matbehandling, etter toalettbes\u00f8k",
+          "14 hovedallergener skal kunne kommuniseres til gjester",
+        ]),
       );
-      if (scrapedData.address) nodes.push(para(`Lokasjon: ${scrapedData.address}`));
-      if (scrapedData.phone) nodes.push(para(`Nødtelefon: ${scrapedData.phone}`));
-      return doc(...nodes);
+      if (scrapedData.phone) n.push(para(`N\u00f8dtelefon: ${scrapedData.phone}`));
+      return doc(...n);
     }
 
     case "communication": {
-      const commNodes: TipTapNode[] = [
-        heading(2, "Kommunikasjon"),
-        para("Beskriv kommunikasjonskanalene i virksomheten."),
-      ];
       const contactItems: string[] = [];
       if (scrapedData.phone) contactItems.push(`Telefon: ${scrapedData.phone}`);
       if (scrapedData.email) contactItems.push(`E-post: ${scrapedData.email}`);
@@ -188,97 +215,166 @@ function generateChapterContent(
           contactItems.push(`${platform}: ${url}`);
         }
       }
-      if (contactItems.length > 0) {
-        commNodes.push(heading(3, "Kontaktinformasjon"), bulletList(contactItems));
-      }
-      commNodes.push(
-        heading(3, "Eskalering"),
-        para("Beskriv eskaleringsprosedyren ved problemer eller klager."),
-      );
-      return doc(...commNodes);
-    }
-
-    case "onboarding-training": {
-      const onbNodes: TipTapNode[] = [
-        heading(2, "Onboarding og Opplæring"),
-        para(`Nye ansatte i ${companyName} gjennomgår følgende onboarding-prosess:`),
+      const n: TipTapNode[] = [
+        heading(2, "Kommunikasjon"),
+        para(
+          `God kommunikasjon er grunnlaget for god drift. Hos ${name} bruker vi f\u00f8lgende kanaler:`,
+        ),
         bulletList([
-          "Pre-boarding: dokumenter og kontrakt sendes digitalt",
-          "Første dag: omvisning, introduksjon, systemtilganger",
-          "Opplæringsperiode: veiledning og kunnskapstester",
-          "Fullført: selvstendig i rollen",
+          "Daglige beskjeder: oppslagstavle og skiftbriefing ved oppstart",
+          "Vaktplan og endringer: via Smartout-appen",
+          "Akutte henvendelser: direkte til skiftleder eller daglig leder",
+          "Varsling om kritikkverdige forhold: se retningslinje for varsling",
         ]),
       ];
-      if (scrapedData.aboutUs || scrapedData.ourConcept) {
-        onbNodes.push(
-          heading(3, "Om oss"),
-          para(
-            scrapedData.aboutUs ??
-              scrapedData.ourConcept ??
-              "Beskriv virksomheten for nye ansatte.",
-          ),
-        );
+      if (contactItems.length > 0) {
+        n.push(heading(3, "Kontaktinformasjon"), bulletList(contactItems));
       }
-      return doc(...onbNodes);
+      n.push(
+        heading(3, "Eskalering"),
+        para("Dersom noe ikke kan l\u00f8ses p\u00e5 stedet, eskaleres det slik:"),
+        bulletList([
+          "1. Pr\u00f8v \u00e5 l\u00f8se det selv eller med kollegaer",
+          "2. Kontakt skiftleder",
+          "3. Kontakt daglig leder",
+          "4. Ved alvorlige tilfeller: varsle skriftlig via Smartout",
+        ]),
+      );
+      return doc(...n);
     }
 
-    case "scheduling": {
-      const nodes: TipTapNode[] = [heading(2, "Vaktplan og Bemanning")];
-      if (state.seasonCreated) {
-        nodes.push(para("Sesong er opprettet og styrer bemanningsplanlegging."));
-      }
-      nodes.push(
-        heading(3, "Vaktbytter"),
-        para("Beskriv reglene for vaktbytte og varslingsfrist."),
-        heading(3, "Overtid"),
-        para("Beskriv reglene for overtid."),
+    case "onboarding-training":
+      return doc(
+        heading(2, "Onboarding og oppl\u00e6ring"),
+        para(
+          `Alle nye ansatte i ${name} gjennomg\u00e5r en strukturert oppl\u00e6ringsprosess. M\u00e5let er at du skal f\u00f8le deg trygg og selvstendig i rollen s\u00e5 raskt som mulig.`,
+        ),
+        heading(3, "Oppl\u00e6ringsforl\u00f8pet"),
+        bulletList([
+          "F\u00f8r oppstart: Du mottar kontrakt, h\u00e5ndbok og tilgang til Smartout digitalt",
+          "Dag 1: Omvisning, m\u00f8te med teamet, introduksjon til rutiner og systemer",
+          "Uke 1\u20132: Oppl\u00e6ring i kjerneoppgaver med fadder. Du f\u00f8lger en erfaren kollega",
+          "Uke 2\u20134: Gradvis selvstendighet. Kunnskapstester for retningslinjer",
+          "Etter 4 uker: Evaluering med leder. Du er klar for selvstendige skift",
+        ]),
+        heading(3, "Hva du m\u00e5 best\u00e5"),
+        bulletList([
+          "Kunnskapstest for alle aktive retningslinjer (HMS, hygiene, allergen, etc.)",
+          "Praktisk gjennomgang av \u00e5pnings- og lukkerutiner",
+          "Signert bekreftelse p\u00e5 at du har lest og forst\u00e5tt h\u00e5ndboken",
+        ]),
+        heading(3, "Pr\u00f8vetid"),
+        para(
+          "Pr\u00f8vetiden er normalt 6 m\u00e5neder. I denne perioden har du tett oppf\u00f8lging med jevnlige samtaler med din n\u00e6rmeste leder.",
+        ),
       );
-      return doc(...nodes);
-    }
+
+    case "scheduling":
+      return doc(
+        heading(2, "Vaktplan og bemanning"),
+        para(
+          `Vaktplanen hos ${name} publiseres via Smartout minimum 2 uker i forveien. Det er ditt ansvar \u00e5 sjekke vaktplanen og m\u00f8te til avtalt tid.`,
+        ),
+        heading(3, "Vaktbytte"),
+        bulletList([
+          "Vaktbytte m\u00e5 godkjennes av leder f\u00f8r det er gyldig",
+          "Du er ansvarlig for \u00e5 finne en erstatter ved bytte",
+          "Byttet m\u00e5 meldes minimum 48 timer f\u00f8r vakten",
+        ]),
+        heading(3, "Frav\u00e6r og sykdom"),
+        bulletList([
+          "Sykefrav\u00e6r meldes til n\u00e6rmeste leder s\u00e5 tidlig som mulig, senest 1 time f\u00f8r skiftstart",
+          "Egenmelding i inntil 3 dager, deretter legeerkl\u00e6ring",
+          "Planlagt frav\u00e6r (ferie, permisjon) s\u00f8kes via Smartout",
+        ]),
+        heading(3, "Overtid"),
+        para(
+          "Overtid skal alltid avtales med leder p\u00e5 forh\u00e5nd. Uautorisert overtid godkjennes ikke. Kompensasjon f\u00f8lger tariffavtalen: 50 % for de f\u00f8rste 2 timene, deretter 100 %.",
+        ),
+      );
 
     case "quality-service": {
-      const qualNodes: TipTapNode[] = [heading(2, "Kvalitet og Service")];
+      const n: TipTapNode[] = [
+        heading(2, "Kvalitet og service"),
+        para(
+          `Hos ${name} er kvalitet noe vi leverer i hvert m\u00f8te med gjesten \u2014 fra velkomsten til avskjeden. Vi m\u00e5ler oss ikke p\u00e5 hva vi tror vi leverer, men p\u00e5 hva gjesten opplever.`,
+        ),
+        heading(3, "Servicestandard"),
+        bulletList([
+          "Gjesten skal f\u00f8le seg velkommen innen 30 sekunder etter ankomst",
+          "\u00d8yekontakt, smil og en hilsen \u2014 uansett hvor travelt det er",
+          "Spesielle \u00f8nsker og allergier h\u00e5ndteres proaktivt, aldri defensivt",
+          "Klager er en gave \u2014 takk gjesten for tilbakemeldingen og l\u00f8s problemet med en gang",
+        ]),
+      ];
       if (scrapedData.restaurantType || scrapedData.cuisineTypes?.length) {
-        const typeInfo = [
-          scrapedData.restaurantType,
-          scrapedData.cuisineTypes?.join(", "),
-          scrapedData.priceCategory ? `Priskategori: ${scrapedData.priceCategory}` : null,
-        ]
+        const typeInfo = [scrapedData.restaurantType, scrapedData.cuisineTypes?.join(", ")]
           .filter(Boolean)
-          .join(" — ");
-        qualNodes.push(para(`Konsept: ${typeInfo}`));
+          .join(" \u2014 ");
+        n.push(para(`Konsept: ${typeInfo}`));
       }
-      qualNodes.push(
-        para("Beskriv servicenivået og standardene gjestene skal oppleve."),
-        heading(3, "Service Recovery"),
-        para("Beskriv hvordan klager og misnøye håndteres."),
+      n.push(
+        heading(3, "H\u00e5ndtering av klager"),
+        bulletList([
+          "Lytt uten \u00e5 avbryte",
+          "Beklager og vis forst\u00e5else",
+          "Tilby en l\u00f8sning med en gang (ny rett, rabatt, etc.)",
+          "F\u00f8lg opp \u2014 sjekk at gjesten er forn\u00f8yd f\u00f8r de g\u00e5r",
+          "Rapporter hendelsen s\u00e5 vi kan l\u00e6re av den",
+        ]),
       );
-      return doc(...qualNodes);
+      return doc(...n);
     }
 
     case "incident-response": {
-      const incNodes: TipTapNode[] = [
-        heading(2, "Avvik og Hendelser"),
-        heading(3, "Kategorier"),
-        bulletList(["Driftsforstyrrelser", "Sikkerhetsavvik", "Kvalitetsavvik", "HMS-hendelser"]),
-        heading(3, "Rapportering"),
-        para("Beskriv prosedyren for å rapportere avvik."),
+      const n: TipTapNode[] = [
+        heading(2, "Avvik og hendelser"),
+        para(
+          "N\u00e5r noe g\u00e5r galt \u2014 eller nesten g\u00e5r galt \u2014 er det viktig at det dokumenteres og f\u00f8lges opp. Avviksrapportering er ikke straff, det er l\u00e6ring.",
+        ),
+        heading(3, "Hva er et avvik?"),
+        bulletList([
+          "Driftsforstyrrelser: utstyr som ikke fungerer, mangel p\u00e5 varer",
+          "Sikkerhetsavvik: fall, brann, innbrudd, vold eller trusler",
+          "Kvalitetsavvik: feil i matlevering, gjesteklager, hygienebrist",
+          "HMS-hendelser: arbeidsulykker, nestenulykker, helsefare",
+        ]),
+        heading(3, "Slik rapporterer du"),
+        bulletList([
+          "Meld fra til skiftleder med en gang",
+          "Registrer avviket i Smartout innen skiftets slutt",
+          "Beskriv hva som skjedde, n\u00e5r, hvor, og hvilke tiltak som ble gjort",
+          "Alvorlige hendelser: ring n\u00f8dnummer f\u00f8rst, dokumenter etterp\u00e5",
+        ]),
       ];
-      if (scrapedData.address || scrapedData.phone) {
-        incNodes.push(heading(3, "Nødkontakt"));
-        if (scrapedData.address) incNodes.push(para(`Adresse: ${scrapedData.address}`));
-        if (scrapedData.phone) incNodes.push(para(`Telefon: ${scrapedData.phone}`));
-      }
-      return doc(...incNodes);
+      if (scrapedData.phone) n.push(para(`Virksomhetens n\u00f8dtelefon: ${scrapedData.phone}`));
+      n.push(
+        heading(3, "N\u00f8dnumre"),
+        bulletList(["Brann: 110", "Politi: 112", "Ambulanse: 113", "Giftinformasjon: 22 59 13 00"]),
+      );
+      return doc(...n);
     }
 
     case "kpi-review":
       return doc(
-        heading(2, "KPI og Evaluering"),
-        heading(3, "Daglig oppfølging"),
-        para("Beskriv hvilke tall som følges opp daglig."),
-        heading(3, "Ukentlig evaluering"),
-        para("Beskriv ukentlig gjennomgang og teamsamlinger."),
+        heading(2, "Oppf\u00f8lging og evaluering"),
+        para(
+          `Hos ${name} f\u00f8lger vi opp driften systematisk for \u00e5 sikre at vi leverer p\u00e5 det niv\u00e5et vi har satt oss. Tallene gir oss innsikt \u2014 samtalene gir oss retning.`,
+        ),
+        heading(3, "Daglig"),
+        bulletList(["Omsetning vs. budsjett", "Antall gjester og snittpris", "Avvik og hendelser"]),
+        heading(3, "Ukentlig"),
+        bulletList([
+          "Teammøte: hva gikk bra, hva kan forbedres?",
+          "Gjennomgang av gjesteklager og avvik",
+          "Status p\u00e5 oppl\u00e6ring og readiness",
+        ]),
+        heading(3, "M\u00e5nedlig"),
+        bulletList([
+          "L\u00f8nnskostnader vs. budsjett",
+          "Medarbeidersamtaler og oppf\u00f8lging av pr\u00f8vetid",
+          "Gjennomgang av retningslinjer \u2014 er de oppdaterte?",
+        ]),
       );
 
     default:
@@ -292,14 +388,14 @@ function EditorToolbar({ editor }: { editor: ReturnType<typeof useEditor> | null
   if (!editor) return null;
 
   const btnClass = (active: boolean) =>
-    `rounded p-1.5 transition-colors ${
+    `rounded-md p-2 transition-colors ${
       active
         ? "bg-brand-orange/20 text-brand-orange"
         : "text-muted-foreground hover:bg-accent hover:text-foreground"
     }`;
 
   return (
-    <div className={`flex items-center gap-1 border-b px-2 py-1.5 ${"border-border"}`}>
+    <div className="border-border flex items-center gap-1 border-b px-3 py-2">
       <button
         type="button"
         onClick={() => editor.chain().focus().toggleBold().run()}
@@ -434,14 +530,14 @@ function ChapterEditor({
   });
 
   return (
-    <div className={`mt-2 overflow-hidden rounded-xl border ${"border-border bg-card"}`}>
+    <div className="border-border bg-card mt-2 overflow-hidden rounded-xl border">
       <EditorToolbar editor={editor} />
       <EditorContent editor={editor} />
-      <div className={`flex items-center justify-end gap-2 border-t px-3 py-2 ${"border-border"}`}>
+      <div className="border-border flex items-center justify-end gap-2 border-t px-3 py-2">
         <button
           type="button"
           onClick={onCancel}
-          className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${"text-muted-foreground hover:bg-accent hover:text-foreground"}`}
+          className="text-muted-foreground hover:bg-accent hover:text-foreground rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
         >
           Avbryt
         </button>
@@ -518,14 +614,11 @@ export function HandbookSetupStep({ wizardState }: { wizardState?: SetupWizardSt
 
   return (
     <div className="space-y-6">
-      {/* Header summary */}
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <h3 className={`text-sm font-bold ${"text-muted-foreground"}`}>Håndbok-kapitler</h3>
-          <HelpTip text="Kapitlene er forhåndsutfylt basert på det du la inn i steg 1–6. Gå gjennom og rediger der det trengs." />
-        </div>
-        <span className={`text-xs font-medium ${"text-muted-foreground"}`}>
-          {completedCount} av {CHAPTERS.length} fullført
+        <h3 className="text-muted-foreground text-sm font-bold">Personalhåndbok</h3>
+        <span className="text-muted-foreground text-sm">
+          {completedCount}/{CHAPTERS.length} kapitler
         </span>
       </div>
 
@@ -541,72 +634,44 @@ export function HandbookSetupStep({ wizardState }: { wizardState?: SetupWizardSt
 
           return (
             <div key={chapter.key}>
-              {/* Chapter row */}
               <div
-                className={`flex items-center justify-between rounded-xl border px-4 py-3 transition-colors ${"border-border bg-card"}`}
+                className={`border-border bg-card flex items-center justify-between rounded-xl border px-5 py-4 transition-colors ${
+                  isSaved ? "border-success/30" : ""
+                }`}
               >
-                <div className="flex min-w-0 flex-1 items-center gap-3">
-                  <div
-                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${"bg-muted"}`}
-                  >
-                    <Icon className={`h-4 w-4 ${"text-muted-foreground"}`} />
+                <div className="flex min-w-0 flex-1 items-center gap-4">
+                  <div className="bg-muted flex h-9 w-9 shrink-0 items-center justify-center rounded-lg">
+                    <Icon className="text-muted-foreground h-4 w-4" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className={`truncate text-sm font-semibold ${"text-foreground"}`}>
+                    <p className="text-foreground text-sm font-semibold">
                       {chapter.number}. {chapter.title}
                     </p>
-                    <div className="flex items-center gap-2">
-                      <p className={`truncate text-xs ${"text-muted-foreground"}`}>
-                        {chapter.description}
-                      </p>
-                      {hasGenerated && (
-                        <span
-                          className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${"bg-brand-orange text-brand-orange"}`}
-                        >
-                          Forhåndsutfylt
-                        </span>
-                      )}
-                    </div>
+                    <p className="text-muted-foreground truncate text-sm">{chapter.description}</p>
                   </div>
                 </div>
 
-                {/* Action */}
                 <div className="ml-3 flex shrink-0 items-center gap-2">
-                  {isSaved ? (
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="text-success h-5 w-5" />
-                      <button
-                        type="button"
-                        onClick={() => handleWrite(chapter.key)}
-                        className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${"text-muted-foreground hover:bg-accent hover:text-foreground"}`}
-                      >
-                        Rediger
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleWrite(chapter.key)}
-                        className="bg-brand-orange hover:bg-brand-orange/90 rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-colors"
-                      >
-                        Skriv
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (isEditing) setEditingKey(null);
-                        }}
-                        className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${"text-muted-foreground hover:text-foreground"}`}
-                      >
-                        Hopp over
-                      </button>
-                    </div>
+                  {isSaved && <CheckCircle2 className="text-success h-5 w-5" />}
+                  {hasGenerated && !isSaved && (
+                    <span className="bg-brand-orange/10 text-brand-orange rounded-full px-2 py-0.5 text-xs font-medium">
+                      Klar
+                    </span>
                   )}
+                  <button
+                    type="button"
+                    onClick={() => handleWrite(chapter.key)}
+                    className={
+                      isSaved
+                        ? "text-muted-foreground hover:text-foreground rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
+                        : "bg-brand-orange hover:bg-brand-orange/90 rounded-lg px-3 py-1.5 text-sm font-semibold text-white transition-colors"
+                    }
+                  >
+                    {isSaved ? "Rediger" : "Skriv"}
+                  </button>
                 </div>
               </div>
 
-              {/* Inline editor */}
               {isEditing && (
                 <ChapterEditor
                   chapterKey={chapter.key}
