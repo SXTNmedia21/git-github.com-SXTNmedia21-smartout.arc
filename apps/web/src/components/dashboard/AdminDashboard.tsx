@@ -8,8 +8,10 @@ import { ScheduleUIProvider } from "@/app/dashboard/schedule/_components/schedul
 import { DayControlSheet, DayControlPanel } from "@/app/dashboard/schedule/_components/day-control";
 import { TodoTaskView } from "@/app/dashboard/_components/todo/TodoTaskView";
 
-const TacticalView = dynamic(() =>
-  import("./TacticalView").then((m) => ({ default: m.TacticalView })),
+const HospitalityOperationsCockpit = dynamic(() =>
+  import("./cockpit/HospitalityOperationsCockpit").then((m) => ({
+    default: m.HospitalityOperationsCockpit,
+  })),
 );
 const StrategicView = dynamic(() =>
   import("./StrategicView").then((m) => ({ default: m.StrategicView })),
@@ -42,7 +44,7 @@ export default function AdminDashboard({ isDark }: AdminDashboardProps) {
         {adminView === "todo" ? (
           <TodoTaskView />
         ) : adminView === "tactical" ? (
-          <TacticalView isDark={isDark} onDateClick={setSelectedDate} />
+          <HospitalityOperationsCockpit />
         ) : adminView === "strategic" ? (
           <StrategicView isDark={isDark} />
         ) : adminView === "reconciliation" ? (
