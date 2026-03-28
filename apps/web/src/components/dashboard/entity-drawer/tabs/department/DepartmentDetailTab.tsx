@@ -12,14 +12,14 @@ import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
 import { dashboardKeys } from "@/app/dashboard/_hooks/dashboard-keys";
 
-export function DepartmentDetailTab({ departmentId }: { departmentId: string }) {
+export function DepartmentDetailTab({ entityId }: { entityId: string }) {
   const { t } = useTranslation("dashboard");
   const ctx = useWorkspaceOptional();
   const wsId = ctx?.workspace.workspace_id;
   const supabase = createClient();
 
   const { data, isLoading } = useQuery({
-    queryKey: dashboardKeys.drawerDepartment(wsId!, departmentId),
+    queryKey: dashboardKeys.drawerDepartment(wsId!, entityId),
     queryFn: async () => {
       const [deptRes, profilesRes, hoursRes] = await Promise.all([
         supabase
@@ -27,18 +27,18 @@ export function DepartmentDetailTab({ departmentId }: { departmentId: string }) 
           .select(
             "department_id, name, is_active, manager_profile_id, color, manager:profile!manager_profile_id(display_name)",
           )
-          .eq("department_id", departmentId)
+          .eq("department_id", entityId)
           .single(),
         supabase
           .from("profile")
           .select("profile_id")
           .eq("workspace_id", wsId!)
-          .eq("department_id", departmentId)
+          .eq("department_id", entityId)
           .eq("is_active", true),
         supabase
           .from("department_operating_hours")
           .select("day_of_week, open_time, close_time, is_closed")
-          .eq("department_id", departmentId),
+          .eq("department_id", entityId),
       ]);
 
       const manager = deptRes.data?.manager as { display_name: string } | null;
@@ -50,7 +50,7 @@ export function DepartmentDetailTab({ departmentId }: { departmentId: string }) 
         managerName: manager?.display_name ?? null,
       };
     },
-    enabled: !!wsId && !!departmentId,
+    enabled: !!wsId && !!entityId,
     staleTime: 30_000,
   });
 

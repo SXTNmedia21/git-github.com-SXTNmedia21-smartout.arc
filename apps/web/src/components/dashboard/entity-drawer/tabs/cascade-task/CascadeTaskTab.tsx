@@ -12,7 +12,7 @@ import { useTranslation } from "@smartout/i18n";
 import { useCascadeTasks } from "@/app/dashboard/_hooks/use-cascade-tasks";
 import { resolveKey, interpolateParams } from "@/app/dashboard/_components/todo/translate-todo";
 import type { CascadeTask, TaskUrgency } from "@smartout/types";
-import { useEntityDrawer } from "../EntityDrawerContext";
+import { useEntityDrawer } from "../../EntityDrawerContext";
 
 const urgencyIcons: Record<TaskUrgency, typeof AlertCircle> = {
   critical: AlertCircle,
@@ -26,7 +26,7 @@ const urgencyColors: Record<TaskUrgency, string> = {
   can_wait: "text-muted-foreground",
 };
 
-export function CascadeTaskTab({ taskId }: { taskId: string }) {
+export function CascadeTaskTab({ entityId }: { entityId: string }) {
   const { t } = useTranslation("dashboard");
   const router = useRouter();
   const { closeDrawer } = useEntityDrawer();
@@ -34,7 +34,7 @@ export function CascadeTaskTab({ taskId }: { taskId: string }) {
 
   const task: CascadeTask | undefined = data?.groups
     .flatMap((g) => g.tasks)
-    .find((t) => t.id === taskId);
+    .find((t) => t.id === entityId);
 
   const handleNavigate = useCallback(() => {
     if (!task) return;
