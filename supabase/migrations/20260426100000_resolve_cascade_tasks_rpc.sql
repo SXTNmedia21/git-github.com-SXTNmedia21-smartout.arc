@@ -403,15 +403,8 @@ BEGIN
     FROM protocol_assignment pa
     JOIN profile pr ON pr.profile_id = pa.profile_id
       AND pr.workspace_id = p_workspace_id AND pr.is_active = true
-    LEFT JOIN knowledge_test_attempt kta
-      ON kta.protocol_assignment_id = pa.assignment_id
-    LEFT JOIN confirmation_signature cs
-      ON cs.protocol_assignment_id = pa.assignment_id
-    LEFT JOIN procedure_step_completion psc
-      ON psc.protocol_assignment_id = pa.assignment_id
-    WHERE kta.id IS NULL
-      AND cs.id IS NULL
-      AND psc.id IS NULL
+    WHERE pa.status != 'completed'
+      AND pa.completed_at IS NULL
   ),
   governance_tasks AS (
     SELECT jsonb_build_object(

@@ -65,7 +65,7 @@ export function TodoGroupSection({ group, index }: TodoGroupSectionProps) {
 
         {/* Fraction display — Geist Mono */}
         <span className="text-muted-foreground font-mono text-xs tabular-nums">
-          {group.done} av {group.total}
+          {t("todo.completion", { done: String(group.done), total: String(group.total) })}
         </span>
 
         {/* Progress bar */}

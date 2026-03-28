@@ -100,6 +100,8 @@
     "empty_title": "All clear",
     "empty_description": "No tasks require your attention",
     "completion": "{done} of {total}",
+    "error_loading": "Could not load tasks",
+    "error_retry": "Try again",
     "dept_none_exist": "No departments created",
     "dept_none_exist_desc": "Create at least one department to get started with shift planning.",
     "dept_missing_hours": "{name} is missing opening hours",

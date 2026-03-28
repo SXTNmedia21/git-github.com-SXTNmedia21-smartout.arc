@@ -17,8 +17,7 @@ export function useCascadeTaskCount() {
     refetchInterval: 5 * 60_000,
     queryFn: async (): Promise<CascadeTasksResult> => {
       const supabase = createClient();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RPC added in migration; types regenerated after apply
-      const { data, error } = await (supabase.rpc as any)("resolve_cascade_tasks", {
+      const { data, error } = await supabase.rpc("resolve_cascade_tasks", {
         p_workspace_id: workspaceId!,
       });
       if (error) throw error;

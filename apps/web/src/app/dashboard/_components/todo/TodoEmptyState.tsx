@@ -6,8 +6,10 @@
  */
 
 import { CircleCheck } from "lucide-react";
+import { useTranslation } from "@smartout/i18n";
 
 export function TodoEmptyState() {
+  const { t } = useTranslation("dashboard");
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
       {/* Ambient orb glow behind the icon */}
@@ -25,8 +27,8 @@ export function TodoEmptyState() {
         </div>
       </div>
 
-      <h2 className="font-heading text-foreground mt-6 text-lg">Alt er i orden</h2>
-      <p className="text-muted-foreground mt-1 text-sm">Ingen oppgaver krever oppmerksomhet</p>
+      <h2 className="font-heading text-foreground mt-6 text-lg">{t("todo.empty_title")}</h2>
+      <p className="text-muted-foreground mt-1 text-sm">{t("todo.empty_description")}</p>
     </div>
   );
 }

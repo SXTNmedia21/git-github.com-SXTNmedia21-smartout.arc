@@ -8,6 +8,7 @@
 
 import { useContext, useEffect, useMemo } from "react";
 import { AlertCircle } from "lucide-react";
+import { useTranslation } from "@smartout/i18n";
 import { emit } from "@smartout/telemetry";
 import { Button } from "@/components/ui/button";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
@@ -64,6 +65,7 @@ function TodoSkeleton() {
 }
 
 export function TodoTaskView() {
+  const { t } = useTranslation("dashboard");
   const { data, isLoading, error, refetch } = useCascadeTasks();
   const { profileId } = useContext(DashboardContext);
   const ctx = useWorkspaceOptional();
@@ -101,9 +103,9 @@ export function TodoTaskView() {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
         <AlertCircle className="text-destructive h-10 w-10" />
-        <p className="text-muted-foreground mt-4 text-sm">Kunne ikke laste oppgaver</p>
+        <p className="text-muted-foreground mt-4 text-sm">{t("todo.error_loading")}</p>
         <Button variant="outline" size="sm" className="mt-4" onClick={() => refetch()}>
-          Prøv igjen
+          {t("todo.error_retry")}
         </Button>
       </div>
     );
