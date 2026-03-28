@@ -44,14 +44,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       suppressHydrationWarning
     >
       <body
-        className={`${geistSans.className} bg-background text-foreground antialiased selection:bg-orange-500/30`}
+        className={`${geistSans.className} bg-background text-foreground antialiased transition-colors duration-300 selection:bg-orange-500/30`}
       >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <ConsentProvider locale={locale as "nb" | "en"}>
             <MotionProvider>{children}</MotionProvider>
             <AnalyticsGate>

@@ -1,16 +1,19 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { useLocale } from "../hooks/useLocale";
 
 /**
  * Language switcher — NO | EN toggle.
  * Sets a cookie so middleware remembers the choice, then navigates.
  *
  * URL mapping:
- * - nb → en: /docs/vaktplan → /en/docs/vaktplan (slug stays same, en/ route resolves)
- * - en → nb: /en/docs/shift-planning → /docs/shift-planning (strip /en prefix)
+ * - nb → en: /pricing → /en/pricing
+ * - en → nb: /en/pricing → /pricing
  */
-export function LanguageSwitcher({ locale = "nb" }: { locale?: "nb" | "en" }) {
+export function LanguageSwitcher({ locale: localeProp }: { locale?: "nb" | "en" }) {
+  const detectedLocale = useLocale();
+  const locale = localeProp ?? detectedLocale;
   const pathname = usePathname();
 
   function switchTo(target: "nb" | "en") {

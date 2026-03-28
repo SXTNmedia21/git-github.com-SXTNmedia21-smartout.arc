@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { headers } from "next/headers";
 import VariantMLanding from "../components/landing/VariantMLanding";
 
 export const metadata: Metadata = {
@@ -12,9 +11,6 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function SmartoutLandingPage() {
-  const headersList = await headers();
-  const locale = (headersList.get("x-locale") ?? "nb") as "nb" | "en";
-
-  return <VariantMLanding locale={locale} />;
+export default function SmartoutLandingPage() {
+  return <VariantMLanding />;
 }
