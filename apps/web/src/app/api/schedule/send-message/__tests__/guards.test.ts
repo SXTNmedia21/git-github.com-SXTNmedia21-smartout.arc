@@ -11,12 +11,16 @@ describe("canSendScheduleMessage", () => {
     expect(canSendScheduleMessage(role)).toBe(true);
   });
 
-  it.each(["employee", "trainee", "viewer", "guest"])(
+  it.each(["employee", "trainee", "viewer", "guest", "system"])(
     "forbids '%s' from sending schedule messages",
     (role) => {
       expect(canSendScheduleMessage(role)).toBe(false);
     },
   );
+
+  it.each([" manager ", "owner\n", "  "])("forbids malformed role string '%s'", (role) => {
+    expect(canSendScheduleMessage(role)).toBe(false);
+  });
 
   it("forbids missing role values", () => {
     expect(canSendScheduleMessage(null)).toBe(false);
