@@ -183,6 +183,11 @@ export function ConfirmDepartments({
             {/* Position tags — only when department is selected */}
             {dept.selected && (
               <div className="mt-2 mb-1 ml-8 flex flex-wrap items-center gap-1.5">
+                {dept.positions.filter((p) => p.selected).length === 0 && (
+                  <span className="text-muted-foreground/60 text-xs italic">
+                    Ingen stillinger valgt
+                  </span>
+                )}
                 {dept.positions
                   .filter((p) => p.selected)
                   .map((pos) => (
