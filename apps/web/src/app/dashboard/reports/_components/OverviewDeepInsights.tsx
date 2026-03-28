@@ -8,7 +8,56 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Building2, MapPin, Users, Layers, Pause, Play, Square, StepBack } from "lucide-react";
-import { chartTheme, ENTITY_STEERING_STACK, HEATMAP_LABELS } from "./report-data";
+import { chartTheme } from "./chart-utils";
+
+const ENTITY_STEERING_STACK = [
+  {
+    id: "locations",
+    label: "Locations",
+    subtitle: "Steder med omsetning",
+    value: 12,
+    turnoverNok: 3_850_000,
+    controlLevel: 62,
+    trendLabel: "+6.2% siste 30d",
+  },
+  {
+    id: "profiles",
+    label: "Profiles",
+    subtitle: "Aktive profiler i drift",
+    value: 47,
+    turnoverNok: 5_420_000,
+    controlLevel: 58,
+    trendLabel: "+3.1% siste 30d",
+  },
+  {
+    id: "departments",
+    label: "Departments",
+    subtitle: "Avdelinger med KPI-sporing",
+    value: 9,
+    turnoverNok: 4_980_000,
+    controlLevel: 67,
+    trendLabel: "+4.8% siste 30d",
+  },
+] as const;
+
+const HEATMAP_LABELS = {
+  locations: [
+    "Baardshaug Vegkro",
+    "Trondheim City",
+    "Oslo S Kiosk",
+    "Lillehammer Diner",
+    "Stavanger FNB",
+  ],
+  profiles: [
+    "Anna Olsen",
+    "Ola Nordmann",
+    "Kari Svendsen",
+    "Jens Hansen",
+    "Bente Johansen",
+    "Svein Eide",
+  ],
+  departments: ["Kjokken", "Servering", "Bar", "Oppvask", "Renhold", "Lager"],
+} as const;
 import type { ReportInsightCard } from "./report-insight-types";
 
 type HeatmapTab = "locations" | "profiles" | "departments";

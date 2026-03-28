@@ -8,7 +8,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
-import { CHART_COLORS } from "../_components/report-data";
+import { CHART_COLORS } from "../_components/chart-utils";
 
 // ── Return types (must match PeopleSection chart props exactly) ───────────
 

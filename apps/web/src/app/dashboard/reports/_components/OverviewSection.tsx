@@ -25,7 +25,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { CHART_COLORS, chartTheme } from "./report-data";
+import { CHART_COLORS, chartTheme } from "./chart-utils";
 import type { ReportInsightCard } from "./report-insight-types";
 import { OverviewDeepInsights } from "./OverviewDeepInsights";
 import { useReportOverview } from "../_hooks/use-report-overview";

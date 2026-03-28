@@ -39,3 +39,5 @@ export { useProtocolAssignees } from "./use-protocol-assignees";
 export { useProtocolJourney } from "./use-protocol-journey";
 export { useActiveSeason } from "./use-active-season";
 export type { ActiveSeasonData } from "./use-active-season";
+export { useAbsenceRate } from "./use-absence-rate";
+export { useStaffTurnover } from "./use-staff-turnover";
