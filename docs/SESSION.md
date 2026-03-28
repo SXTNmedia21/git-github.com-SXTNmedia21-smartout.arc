@@ -9,30 +9,32 @@ tags: [session, continuity]
 
 ## Last Session
 
-| Field   | Value                     |
-| ------- | ------------------------- |
-| Date    | 2026-03-28                |
-| Branch  | `fix/comms-council-fixes` |
-| Feature | comms-council-fixes       |
-| Status  | ready_for_closure         |
+| Field   | Value         |
+| ------- | ------------- |
+| Date    | 2026-03-28    |
+| Branch  | `development` |
+| Feature | development   |
+| Status  | in_progress   |
 
 ### What was done
 
-- Implemented 7-task comms council fixes plan (from 2026-03-28 council audit)
-- 3 telemetry gaps closed: chat reactions, chat read, komm mute
-- 1 React anti-pattern fixed: queueMicrotask → useEffect in CallRoom
-- ADR-0063 written: Komm canonical, Chat frozen
-- Council review (4 agents): 6 fixes applied (decision log, .mutate deps, entity_type, redundant prop, freeze comments, ADR migration note)
-- All closure gates verified: decision log, user journeys, handoff written
+- Full system verification: typecheck (0 errors), lint (0 errors), worktree audit, dashboard audit
+- Confirmed wt-6 (setup-wizard-shell-migration) and wt-9 (comms-council-fixes) already merged to development
+- Removed wt-4 worktree + deleted feat/ai-council-phase-1a branch (0 unique commits)
+- Confirmed wt-6 and wt-9 worktrees + branches already cleaned up
+- Dropped 3 stale stashes, kept 1 (agent-chat WIP for wt-3)
+- Synced DASHBOARD.md to match actual worktree state
+- Identified wt-1 and wt-2 as training-platform repo directories (not smartout)
 
 ### Where we stopped
 
-- Feature ready for closure
-- Run: `~/.claude/scripts/close-feature.sh 9`
+- Development branch clean and up to date
+- All merges complete, all stale worktrees removed
+- Only SESSION.md + DASHBOARD.md uncommitted (from end-session script)
 
 ### Known blockers / errors
 
-- None (all gates passed)
+- None
 
 ### Pending decisions
 
@@ -40,4 +42,4 @@ tags: [session, continuity]
 - [ ] wt-5: sjohuset-simulator (parked, PR #72 diverged)
 - [ ] Follow-up: Agent communication capability migration (Chat → Komm)
 - [ ] Follow-up: i18n sweep across Chat + Komm (~20+ hardcoded Norwegian strings)
-- [ ] Clean up stale wt-1 directory
+- [ ] feat/onboarding branch parked (FlowPlayer + alkohol flow, framer-motion devDep missing)
