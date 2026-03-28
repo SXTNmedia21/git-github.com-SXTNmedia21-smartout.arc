@@ -148,4 +148,30 @@
     --sidebar-border: oklch(1 0 0 / 8%);
     --sidebar-ring: oklch(0.556 0 0);
   }
+
+  /* Dark Section — forces dark palette on any element tree.
+     Use on footer, blocks, demo shell, and other always-dark regions.
+     Components inside use standard token classes (bg-background, text-foreground, etc.). */
+  .dark-section {
+    --background: oklch(0.06 0.015 50);
+    --foreground: oklch(0.95 0.005 55);
+    --card: oklch(0.10 0.02 50);
+    --card-foreground: oklch(0.95 0.005 55);
+    --popover: oklch(0.10 0.02 50);
+    --popover-foreground: oklch(0.95 0.005 55);
+    --primary: oklch(0.922 0 0);
+    --primary-foreground: oklch(0.205 0.01 50);
+    --secondary: oklch(0.18 0.015 50);
+    --secondary-foreground: oklch(0.985 0 0);
+    --muted: oklch(0.18 0.015 50);
+    --muted-foreground: oklch(0.55 0.01 52);
+    --accent: oklch(0.18 0.015 50);
+    --accent-foreground: oklch(0.985 0 0);
+    --destructive: oklch(0.704 0.191 22.216);
+    --border: oklch(1 0 0 / 8%);
+    --input: oklch(1 0 0 / 10%);
+    --ring: oklch(0.556 0 0);
+
+    color-scheme: dark;
+  }
 }

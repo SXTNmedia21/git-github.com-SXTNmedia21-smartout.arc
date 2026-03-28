@@ -37,12 +37,12 @@ export function DemoShell({ config }: DemoShellProps) {
   const FeatureComponent = config.featureComponent;
 
   return (
-    <div className="flex h-[100dvh] flex-col bg-[#050505] text-zinc-100">
+    <div className="dark-section bg-background text-foreground flex h-[100dvh] flex-col">
       {/* Top bar — back button, progress, reset */}
-      <header className="flex shrink-0 items-center gap-4 border-b border-white/[0.06] px-4 py-3 sm:px-6">
+      <header className="border-border flex shrink-0 items-center gap-4 border-b px-4 py-3 sm:px-6">
         <button
           onClick={() => router.push("/demo")}
-          className="flex items-center gap-1.5 text-sm text-zinc-500 transition-colors hover:text-white"
+          className="text-muted-foreground hover:text-foreground flex items-center gap-1.5 text-sm transition-colors"
           aria-label="Tilbake til demo-oversikt"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -61,7 +61,7 @@ export function DemoShell({ config }: DemoShellProps) {
         {journey.isComplete && (
           <button
             onClick={journey.reset}
-            className="flex items-center gap-1.5 rounded-lg border border-white/[0.06] px-3 py-1.5 text-xs text-zinc-400 transition-colors hover:border-white/10 hover:text-white"
+            className="border-border text-muted-foreground hover:border-border hover:text-foreground flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition-colors"
           >
             <RotateCcw className="h-3 w-3" />
             Start på nytt
@@ -81,7 +81,7 @@ export function DemoShell({ config }: DemoShellProps) {
         </div>
 
         {/* Right: Assistant panel (30% on desktop, top on mobile) */}
-        <div className="order-1 h-[40vh] shrink-0 border-b border-white/[0.06] p-3 lg:order-2 lg:h-auto lg:w-[30%] lg:min-w-[320px] lg:border-b-0 lg:border-l">
+        <div className="border-border order-1 h-[40vh] shrink-0 border-b p-3 lg:order-2 lg:h-auto lg:w-[30%] lg:min-w-[320px] lg:border-b-0 lg:border-l">
           <AssistantPanel
             messages={journey.messages}
             isTyping={journey.isTyping}

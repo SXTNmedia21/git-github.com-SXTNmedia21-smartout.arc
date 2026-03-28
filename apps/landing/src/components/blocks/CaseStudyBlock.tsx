@@ -16,21 +16,21 @@ export default function CaseStudyBlock({ content, settings }: BlockProps<CaseStu
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="mx-auto max-w-4xl overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]"
+          className="border-border bg-foreground/[0.03] mx-auto max-w-4xl overflow-hidden rounded-2xl border"
         >
           {/* Header */}
-          <div className="border-b border-white/10 px-8 py-6">
-            <p className="mb-1 text-xs font-bold tracking-wider text-zinc-500 uppercase">
+          <div className="border-border border-b px-8 py-6">
+            <p className="text-muted-foreground mb-1 text-xs font-bold tracking-wider uppercase">
               Casestudie
             </p>
-            <h3 className="text-2xl font-bold text-white">{content.heading}</h3>
-            <p className="mt-1 text-sm text-zinc-400">{content.company}</p>
+            <h3 className="text-foreground text-2xl font-bold">{content.heading}</h3>
+            <p className="text-muted-foreground mt-1 text-sm">{content.company}</p>
           </div>
 
           {/* Metrics grid */}
           {content.metrics.length > 0 && (
             <div
-              className={`grid gap-px bg-white/5 ${
+              className={`bg-foreground/5 grid gap-px ${
                 content.metrics.length === 2
                   ? "grid-cols-2"
                   : content.metrics.length >= 3
@@ -39,9 +39,9 @@ export default function CaseStudyBlock({ content, settings }: BlockProps<CaseStu
               }`}
             >
               {content.metrics.map((metric) => (
-                <div key={metric.label} className="bg-zinc-950 p-6 text-center">
-                  <p className="text-3xl font-black text-white">{metric.value}</p>
-                  <p className="mt-1 text-xs text-zinc-500">{metric.label}</p>
+                <div key={metric.label} className="bg-background p-6 text-center">
+                  <p className="text-foreground text-3xl font-black">{metric.value}</p>
+                  <p className="text-muted-foreground mt-1 text-xs">{metric.label}</p>
                 </div>
               ))}
             </div>
@@ -49,15 +49,15 @@ export default function CaseStudyBlock({ content, settings }: BlockProps<CaseStu
 
           {/* Quote */}
           {content.quote && (
-            <div className="border-t border-white/10 px-8 py-6">
+            <div className="border-border border-t px-8 py-6">
               <div className="flex items-start gap-3">
-                <Quote className="mt-0.5 h-5 w-5 shrink-0 text-white/20" />
+                <Quote className="text-foreground/20 mt-0.5 h-5 w-5 shrink-0" />
                 <div>
-                  <p className="text-sm leading-relaxed text-zinc-300 italic">
+                  <p className="text-foreground text-sm leading-relaxed italic">
                     &ldquo;{content.quote}&rdquo;
                   </p>
                   {content.author_name && (
-                    <p className="mt-2 text-xs text-zinc-500">
+                    <p className="text-muted-foreground mt-2 text-xs">
                       &mdash; {content.author_name}
                       {content.author_role && `, ${content.author_role}`}
                     </p>

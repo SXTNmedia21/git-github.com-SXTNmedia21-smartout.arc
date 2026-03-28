@@ -54,7 +54,7 @@ const MOCK_SCORES: ScoreCard[] = [
     suffix: "/100",
     insight: "God grunnstruktur, men mangler digitale rutiner",
     icon: TrendingUp,
-    color: "text-orange-400",
+    color: "text-brand-orange",
   },
   {
     label: "Review Score",
@@ -72,7 +72,7 @@ const MOCK_SCORES: ScoreCard[] = [
     suffix: "/100",
     insight: "Mangler digital meny og opplevelsesguide",
     icon: MessageSquare,
-    color: "text-blue-400",
+    color: "text-brand-purple",
   },
 ];
 
@@ -167,30 +167,30 @@ export default function WorkspaceAnalyzer() {
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
           >
-            <div className="rounded-2xl border border-white/10 bg-[#0a0a0c]/80 p-1.5 backdrop-blur-xl">
+            <div className="border-border bg-background/80 rounded-2xl border p-1.5 backdrop-blur-xl">
               <div className="flex items-center gap-2">
                 <div className="relative flex-1">
-                  <Globe className="absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+                  <Globe className="text-muted-foreground absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2" />
                   <input
                     type="url"
                     value={url}
                     onChange={(e) => setUrl(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && runAnalysis()}
                     placeholder="https://din-restaurant.no"
-                    className="w-full rounded-xl bg-white/5 py-3.5 pr-4 pl-11 text-sm text-white placeholder:text-zinc-500 focus:ring-1 focus:ring-white/20 focus:outline-none"
+                    className="bg-foreground/5 text-foreground placeholder:text-muted-foreground focus:ring-foreground/20 w-full rounded-xl py-3.5 pr-4 pl-11 text-sm focus:ring-1 focus:outline-none"
                   />
                 </div>
                 <button
                   onClick={runAnalysis}
                   disabled={!url.trim()}
-                  className="shrink-0 rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 px-6 py-3.5 text-sm font-bold text-white transition-all hover:from-blue-500 hover:to-violet-500 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="from-brand-purple to-brand-purple-light text-foreground hover:from-brand-purple-light hover:to-brand-purple shrink-0 rounded-xl bg-gradient-to-r px-6 py-3.5 text-sm font-bold transition-all disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   Generer
                 </button>
               </div>
             </div>
 
-            <p className="mt-3 text-center text-xs text-zinc-500">
+            <p className="text-muted-foreground mt-3 text-center text-xs">
               Skriv inn nettadressen til arbeidsplassen din for en gratis analyse
             </p>
           </m.div>
@@ -204,12 +204,13 @@ export default function WorkspaceAnalyzer() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
-            className="rounded-2xl border border-white/10 bg-[#0a0a0c]/80 p-6 backdrop-blur-xl"
+            className="border-border bg-background/80 rounded-2xl border p-6 backdrop-blur-xl"
           >
-            <p className="mb-1 text-sm font-semibold text-white">
-              Analyserer <span className="text-orange-400">{url.replace(/^https?:\/\//, "")}</span>
+            <p className="text-foreground mb-1 text-sm font-semibold">
+              Analyserer{" "}
+              <span className="text-brand-orange">{url.replace(/^https?:\/\//, "")}</span>
             </p>
-            <p className="mb-5 text-xs text-zinc-500">Dette tar bare noen sekunder...</p>
+            <p className="text-muted-foreground mb-5 text-xs">Dette tar bare noen sekunder...</p>
 
             <div className="space-y-3">
               {ANALYSIS_STEPS.map((step, i) => {
@@ -231,21 +232,25 @@ export default function WorkspaceAnalyzer() {
                         isCompleted
                           ? "bg-emerald-500/20"
                           : isActive
-                            ? "bg-orange-500/20"
-                            : "bg-white/5"
+                            ? "bg-brand-orange/20"
+                            : "bg-foreground/5"
                       }`}
                     >
                       {isCompleted ? (
                         <CheckCircle2 className="h-4 w-4 text-emerald-400" />
                       ) : isActive ? (
-                        <Loader2 className="h-4 w-4 animate-spin text-orange-400" />
+                        <Loader2 className="text-brand-orange h-4 w-4 animate-spin" />
                       ) : (
-                        <Icon className="h-4 w-4 text-zinc-600" />
+                        <Icon className="text-muted-foreground/70 h-4 w-4" />
                       )}
                     </div>
                     <span
                       className={`text-sm transition-colors duration-300 ${
-                        isCompleted ? "text-emerald-400" : isActive ? "text-white" : "text-zinc-600"
+                        isCompleted
+                          ? "text-emerald-400"
+                          : isActive
+                            ? "text-foreground"
+                            : "text-muted-foreground/70"
                       }`}
                     >
                       {step.label}
@@ -277,20 +282,22 @@ export default function WorkspaceAnalyzer() {
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: i * 0.12, duration: 0.35 }}
-                    className="rounded-2xl border border-white/10 bg-[#0a0a0c]/80 p-5 backdrop-blur-xl"
+                    className="border-border bg-background/80 rounded-2xl border p-5 backdrop-blur-xl"
                   >
                     <div className="mb-3 flex items-center gap-2">
                       <Icon className={`h-4 w-4 ${score.color}`} />
-                      <span className="text-xs font-medium text-zinc-400">{score.label}</span>
+                      <span className="text-muted-foreground text-xs font-medium">
+                        {score.label}
+                      </span>
                     </div>
                     <div className="mb-1 flex items-baseline gap-0.5">
-                      <span className="text-3xl font-black text-white tabular-nums">
+                      <span className="text-foreground text-3xl font-black tabular-nums">
                         <AnimatedNumber target={score.value} decimals={score.max === 5 ? 1 : 0} />
                       </span>
-                      <span className="text-sm text-zinc-500">{score.suffix}</span>
+                      <span className="text-muted-foreground text-sm">{score.suffix}</span>
                     </div>
                     {/* Progress bar */}
-                    <div className="mb-3 h-1 overflow-hidden rounded-full bg-white/5">
+                    <div className="bg-foreground/5 mb-3 h-1 overflow-hidden rounded-full">
                       <m.div
                         initial={{ width: 0 }}
                         animate={{
@@ -301,12 +308,12 @@ export default function WorkspaceAnalyzer() {
                           score.value / score.max > 0.7
                             ? "bg-emerald-500"
                             : score.value / score.max > 0.5
-                              ? "bg-orange-500"
+                              ? "bg-brand-orange"
                               : "bg-red-500"
                         }`}
                       />
                     </div>
-                    <p className="text-xs leading-relaxed text-zinc-500">{score.insight}</p>
+                    <p className="text-muted-foreground text-xs leading-relaxed">{score.insight}</p>
                   </m.div>
                 );
               })}
@@ -321,13 +328,13 @@ export default function WorkspaceAnalyzer() {
             >
               <a
                 href={WEB_APP_LINKS.login}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-bold text-zinc-950 transition-colors hover:bg-zinc-200 sm:w-auto"
+                className="bg-foreground text-background hover:bg-foreground/90 flex w-full items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-sm font-bold transition-colors sm:w-auto"
               >
                 Registrer deg <ArrowRight className="h-4 w-4" />
               </a>
               <a
                 href={WEB_APP_LINKS.login}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-6 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-white/10 sm:w-auto"
+                className="border-border bg-foreground/5 text-foreground hover:bg-foreground/10 flex w-full items-center justify-center gap-2 rounded-xl border px-6 py-3.5 text-sm font-semibold transition-colors sm:w-auto"
               >
                 Optimaliser din arbeidsplass
               </a>
@@ -337,7 +344,7 @@ export default function WorkspaceAnalyzer() {
             <div className="text-center">
               <button
                 onClick={reset}
-                className="text-xs text-zinc-500 transition-colors hover:text-zinc-300"
+                className="text-muted-foreground hover:text-foreground text-xs transition-colors"
               >
                 Analyser en annen arbeidsplass
               </button>

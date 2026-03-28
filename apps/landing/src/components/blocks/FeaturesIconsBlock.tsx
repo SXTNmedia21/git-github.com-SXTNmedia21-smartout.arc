@@ -20,7 +20,7 @@ export default function FeaturesIconsBlock({
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
-            className="mb-16 text-center text-3xl font-bold text-white lg:text-4xl"
+            className="text-foreground mb-16 text-center text-3xl font-bold lg:text-4xl"
           >
             {content.heading}
           </m.h2>
@@ -36,14 +36,14 @@ export default function FeaturesIconsBlock({
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: idx * 0.1 }}
-                className="flex flex-col items-center rounded-3xl border border-white/10 bg-white/5 p-8 lg:p-12"
+                className="border-border bg-foreground/5 flex flex-col items-center rounded-3xl border p-8 lg:p-12"
               >
                 <Icon
-                  className="mb-6 h-20 w-20 text-white lg:h-28 lg:w-28"
+                  className="text-foreground mb-6 h-20 w-20 lg:h-28 lg:w-28"
                   aria-label={item.label}
                   role="img"
                 />
-                <span className="text-center text-xl font-bold text-white">{item.label}</span>
+                <span className="text-foreground text-center text-xl font-bold">{item.label}</span>
               </m.div>
             );
           })}

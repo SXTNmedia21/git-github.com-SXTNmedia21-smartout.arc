@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Sparkles } from "lucide-react";
 
 const VARIANTS = [
-  { key: null, label: "Utforsk plattformen", tagline: "AI som gjør teamet klar" },
+  { key: null, label: "Utforsk plattformen", tagline: "" },
   { key: "E", label: "Rett på sak", tagline: "Kutt opplæringstiden i to" },
   { key: "T", label: "Enterprise-klar", tagline: "Data, kontroll og compliance" },
   { key: "K", label: "Konsulent-bevist", tagline: "ROI du kan vise kunden" },
@@ -37,13 +37,13 @@ export function VariantBadge() {
   return (
     <button
       onClick={cycleVariant}
-      className="group flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900/80 px-3 py-1.5 text-xs backdrop-blur transition-all hover:border-orange-500/40 hover:bg-zinc-800/80"
+      className="group border-border bg-background/80 hover:border-brand-orange/40 hover:bg-muted/80 flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs backdrop-blur transition-all"
     >
-      <Sparkles className="h-3 w-3 text-orange-500 transition-transform group-hover:rotate-12" />
-      <span className="font-medium text-zinc-400 transition-colors group-hover:text-zinc-200">
+      <Sparkles className="text-brand-orange h-3 w-3 transition-transform group-hover:rotate-12" />
+      <span className="text-muted-foreground group-hover:text-foreground font-medium transition-colors">
         {active.tagline}
       </span>
-      <span className="rounded-full bg-orange-500/15 px-1.5 py-0.5 text-[10px] font-bold text-orange-400">
+      <span className="bg-brand-orange/15 text-brand-orange rounded-full px-1.5 py-0.5 text-[10px] font-bold">
         {active.key ?? "B"}
       </span>
     </button>

@@ -4,24 +4,26 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2, ChevronRight, MessageCircleQuestion, Users } from "lucide-react";
 import { postEvent } from "../../hooks/useTracking"; // For sending the poll answer to DB
+import { createTranslator } from "@smartout/i18n";
 
 type PollState = "idle" | "answering" | "done";
 
-export function LandingInteractivePoll() {
+export function LandingInteractivePoll({ locale = "nb" }: { locale?: "nb" | "en" }) {
+  const t = createTranslator(locale, "landing");
   const [step, setStep] = useState<number>(1);
   const [state, setState] = useState<PollState>("idle");
   const [answers, setAnswers] = useState<{ size?: string; problem?: string }>({});
 
   const sizeOptions = [
-    { id: "1-10", label: "1 - 10 ansatte" },
-    { id: "11-30", label: "11 - 30 ansatte" },
-    { id: "30+", label: "Over 30 ansatte" },
+    { id: "1-10", label: t("poll.size.small") },
+    { id: "11-30", label: t("poll.size.medium") },
+    { id: "30+", label: t("poll.size.large") },
   ];
 
   const problemOptions = [
-    { id: "scheduling", label: "Evig puslespill med vaktplan og fravær" },
-    { id: "communication", label: "Beskjeder forsvinner i Facebook-grupper" },
-    { id: "compliance", label: "Sliter med å dokumentere IK-Mat og rutiner" },
+    { id: "scheduling", label: t("poll.problem.scheduling") },
+    { id: "communication", label: t("poll.problem.communication") },
+    { id: "compliance", label: t("poll.problem.compliance") },
   ];
 
   function handleSizeSelect(id: string) {
@@ -62,10 +64,8 @@ export function LandingInteractivePoll() {
                   <Users className="text-primary h-6 w-6" />
                 </div>
                 <div>
-                  <h3 className="text-2xl font-bold tracking-tight">Hvor stort er teamet ditt?</h3>
-                  <p className="text-muted-foreground mt-1 text-sm">
-                    Vi tilpasser Smartout etter din skala.
-                  </p>
+                  <h3 className="text-2xl font-bold tracking-tight">{t("poll.step1.title")}</h3>
+                  <p className="text-muted-foreground mt-1 text-sm">{t("poll.step1.subtitle")}</p>
                 </div>
               </div>
 
@@ -97,12 +97,8 @@ export function LandingInteractivePoll() {
                   <MessageCircleQuestion className="text-brand-orange h-6 w-6" />
                 </div>
                 <div>
-                  <h3 className="text-2xl font-bold tracking-tight">
-                    Hva stjeler mest av tiden din i dag?
-                  </h3>
-                  <p className="text-muted-foreground mt-1 text-sm">
-                    De fleste ledere mister 10-15 timer i uka på ren administrasjon.
-                  </p>
+                  <h3 className="text-2xl font-bold tracking-tight">{t("poll.step2.title")}</h3>
+                  <p className="text-muted-foreground mt-1 text-sm">{t("poll.step2.subtitle")}</p>
                 </div>
               </div>
 
@@ -132,13 +128,9 @@ export function LandingInteractivePoll() {
               <div className="bg-success/20 mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full">
                 <CheckCircle2 className="text-success h-10 w-10" />
               </div>
-              <h3 className="mb-3 text-3xl font-bold tracking-tight">Vi hører deg.</h3>
+              <h3 className="mb-3 text-3xl font-bold tracking-tight">{t("poll.done.title")}</h3>
               <p className="text-muted-foreground mx-auto max-w-md text-lg">
-                {answers.problem === "scheduling"
-                  ? "Smarout sin AI-motoren bygger ferdige vaktplaner på sekunder, og håndterer vaktbytter for deg."
-                  : answers.problem === "communication"
-                    ? "Samle alt i én proff app. Integrert chat, Dagens Beskjed og push-varsler som faktisk når frem."
-                    : "Slutt på permer og papir. Alt av sjekklister, temperaturlogger og kontrakter signeres digitalt."}
+                {t(`poll.done.${answers.problem ?? "scheduling"}`)}
               </p>
             </motion.div>
           )}

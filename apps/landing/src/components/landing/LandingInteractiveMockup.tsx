@@ -14,9 +14,12 @@ import {
   Calendar,
 } from "lucide-react";
 
+import { createTranslator } from "@smartout/i18n";
+
 type InteractiveState = "idle" | "shift-clicked" | "botsson-clicked" | "vacation-clicked";
 
-export function LandingInteractiveMockup() {
+export function LandingInteractiveMockup({ locale = "nb" }: { locale?: "nb" | "en" }) {
+  const t = createTranslator(locale, "landing");
   const [activeState, setActiveState] = useState<InteractiveState>("idle");
 
   const closeOverlay = () => setActiveState("idle");
@@ -59,19 +62,31 @@ export function LandingInteractiveMockup() {
                 <div className="bg-brand-orange/20 flex h-10 w-10 items-center justify-center rounded-xl">
                   <Bot className="text-brand-orange h-5 w-5" />
                 </div>
-                <span className="text-lg font-bold">Hovedkjøkken</span>
+                <span className="text-lg font-bold">{t("mockup.sidebar.kitchen")}</span>
               </div>
 
               <div className="space-y-2">
                 {[
-                  { label: "Dashboard", icon: <Info className="h-4 w-4" />, active: false },
-                  { label: "Vaktplan", icon: <CalendarClock className="h-4 w-4" />, active: true },
                   {
-                    label: "Meldinger",
+                    label: t("mockup.sidebar.dashboard"),
+                    icon: <Info className="h-4 w-4" />,
+                    active: false,
+                  },
+                  {
+                    label: t("mockup.sidebar.schedule"),
+                    icon: <CalendarClock className="h-4 w-4" />,
+                    active: true,
+                  },
+                  {
+                    label: t("mockup.sidebar.messages"),
                     icon: <MessageSquare className="h-4 w-4" />,
                     active: false,
                   },
-                  { label: "Ferie & Fravær", icon: <Sun className="h-4 w-4" />, active: false },
+                  {
+                    label: t("mockup.sidebar.vacation"),
+                    icon: <Sun className="h-4 w-4" />,
+                    active: false,
+                  },
                 ].map((item) => (
                   <div
                     key={item.label}
@@ -92,13 +107,13 @@ export function LandingInteractiveMockup() {
             <div className="relative flex-1 overflow-y-auto p-6 sm:p-8">
               <div className="border-border/50 mb-8 flex items-center justify-between border-b pb-6">
                 <div>
-                  <h4 className="text-2xl font-bold tracking-tight">Vaktplan — Uke 42</h4>
+                  <h4 className="text-2xl font-bold tracking-tight">{t("mockup.header.title")}</h4>
                   <p className="text-muted-foreground mt-1 flex items-center gap-2 text-sm">
                     <span className="relative flex h-2 w-2">
                       <span className="bg-brand-orange absolute inline-flex h-full w-full animate-ping rounded-full opacity-75"></span>
                       <span className="bg-brand-orange relative inline-flex h-2 w-2 rounded-full"></span>
                     </span>
-                    AI Event Motor bygger vakter live...
+                    {t("mockup.header.subtitle")}
                   </p>
                 </div>
                 <div className="border-brand-orange flex h-12 w-12 animate-spin items-center justify-center rounded-full border-2 border-t-transparent shadow-lg">
@@ -118,11 +133,11 @@ export function LandingInteractiveMockup() {
                 >
                   <AlertCircle className="text-primary mt-0.5 h-5 w-5 flex-shrink-0" />
                   <div>
-                    <h5 className="text-sm font-semibold">Dagens Beskjed publisert</h5>
+                    <h5 className="text-sm font-semibold">{t("mockup.notice.title")}</h5>
                     <p className="text-muted-foreground mt-1 text-xs">
-                      {`"Husk at vi får inn 40 personer på langbord kl 19:00. Prepp stasjonen."`}
+                      {`"${t("mockup.notice.message")}"`}
                       <span className="text-primary ml-2 font-medium">
-                        Lest av 4/5 ansatte på vakt.
+                        {t("mockup.notice.readBy")}
                       </span>
                     </p>
                   </div>
@@ -142,16 +157,16 @@ export function LandingInteractiveMockup() {
                       J
                     </div>
                     <div>
-                      <div className="text-foreground font-semibold">Jonas (Servitør)</div>
+                      <div className="text-foreground font-semibold">{t("mockup.shift1.name")}</div>
                       <div className="text-muted-foreground mt-0.5 text-xs">
-                        16:00 - 23:30 (7.5t)
+                        {t("mockup.shift1.time")}
                       </div>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-3">
                     <div className="bg-success/10 text-success rounded-lg px-3 py-1.5 text-[11px] font-bold tracking-wide uppercase">
-                      Godkjent & Signert
+                      {t("mockup.shift1.status")}
                     </div>
                     <ChevronRight className="text-muted-foreground group-hover:text-brand-orange h-4 w-4 transition-transform group-hover:translate-x-1" />
                   </div>
@@ -171,16 +186,16 @@ export function LandingInteractiveMockup() {
                       M
                     </div>
                     <div>
-                      <div className="text-foreground font-semibold">Maria (Kokk)</div>
+                      <div className="text-foreground font-semibold">{t("mockup.shift2.name")}</div>
                       <div className="text-muted-foreground mt-0.5 text-xs">
-                        14:00 - 22:00 (8.0t)
+                        {t("mockup.shift2.time")}
                       </div>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-3">
                     <div className="bg-success/10 text-success rounded-lg px-3 py-1.5 text-[11px] font-bold tracking-wide uppercase">
-                      Godkjent & Signert
+                      {t("mockup.shift2.status")}
                     </div>
                     <ChevronRight className="text-muted-foreground group-hover:text-brand-orange h-4 w-4 transition-transform group-hover:translate-x-1" />
                   </div>
@@ -200,14 +215,18 @@ export function LandingInteractiveMockup() {
                       <Sun className="h-5 w-5" />
                     </div>
                     <div>
-                      <div className="text-foreground font-semibold">Ferieforespørsel: Peder</div>
-                      <div className="text-muted-foreground mt-0.5 text-xs">Uke 43 (5 dager)</div>
+                      <div className="text-foreground font-semibold">
+                        {t("mockup.vacation.title")}
+                      </div>
+                      <div className="text-muted-foreground mt-0.5 text-xs">
+                        {t("mockup.vacation.duration")}
+                      </div>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-3">
                     <div className="bg-warning text-warning-foreground rounded-lg px-3 py-1.5 text-[11px] font-bold tracking-wide uppercase shadow-sm">
-                      Må behandles
+                      {t("mockup.vacation.status")}
                     </div>
                     <ChevronRight className="text-warning h-4 w-4 transition-transform group-hover:translate-x-1" />
                   </div>
@@ -231,49 +250,55 @@ export function LandingInteractiveMockup() {
                     >
                       <div className="mb-4 flex items-center justify-between">
                         <div className="bg-brand-orange/10 text-brand-orange rounded-lg px-3 py-1 text-xs font-bold uppercase">
-                          Vakt-innsikt
+                          {t("mockup.overlay.shift.badge")}
                         </div>
                         <button
                           onClick={closeOverlay}
                           className="text-muted-foreground hover:text-foreground text-xs font-medium"
                         >
-                          Lukk
+                          {t("mockup.overlay.shift.close")}
                         </button>
                       </div>
 
-                      <h3 className="mb-1 text-xl font-bold">Krav & Tariff</h3>
+                      <h3 className="mb-1 text-xl font-bold">{t("mockup.overlay.shift.title")}</h3>
                       <p className="text-muted-foreground mb-6 text-sm">
-                        Automatisert av Event Motoren
+                        {t("mockup.overlay.shift.subtitle")}
                       </p>
 
                       <div className="space-y-4">
                         <div className="border-border/50 rounded-xl border p-3">
                           <span className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
-                            Krav til vakt
+                            {t("mockup.overlay.shift.reqLabel")}
                           </span>
                           <p className="text-foreground mt-1 text-sm font-medium">
-                            Minimum &quot;Servitør Erfaren&quot; eller &quot;Sommelier&quot;
+                            {t("mockup.overlay.shift.reqValue")}
                           </p>
                         </div>
                         <div className="border-border/50 rounded-xl border p-3">
                           <span className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
-                            Tariff Tillegg
+                            {t("mockup.overlay.shift.tariffLabel")}
                           </span>
                           <ul className="mt-2 space-y-1">
                             <li className="flex justify-between text-sm">
                               <span className="text-muted-foreground">
-                                Kveldstillegg (etter 18:00)
+                                {t("mockup.overlay.shift.evening")}
                               </span>{" "}
-                              <span className="font-semibold">+ 29,-/t</span>
+                              <span className="font-semibold">
+                                {t("mockup.overlay.shift.eveningRate")}
+                              </span>
                             </li>
                             <li className="flex justify-between text-sm">
-                              <span className="text-muted-foreground">Helgetillegg</span>{" "}
-                              <span className="font-semibold">+ 55,-/t</span>
+                              <span className="text-muted-foreground">
+                                {t("mockup.overlay.shift.weekend")}
+                              </span>{" "}
+                              <span className="font-semibold">
+                                {t("mockup.overlay.shift.weekendRate")}
+                              </span>
                             </li>
                           </ul>
                         </div>
                         <div className="bg-success/10 text-success rounded-xl p-3 text-sm font-medium">
-                          Systemet sjekker automatisk HMS-krav før noen kan godta denne vakten.
+                          {t("mockup.overlay.shift.hmsNote")}
                         </div>
                       </div>
                     </div>
@@ -293,24 +318,26 @@ export function LandingInteractiveMockup() {
                       className="border-border bg-card w-full max-w-sm rounded-3xl border p-6 shadow-2xl"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <h3 className="mb-1 text-xl font-bold">Ferieforespørsel</h3>
+                      <h3 className="mb-1 text-xl font-bold">
+                        {t("mockup.overlay.vacation.title")}
+                      </h3>
                       <p className="text-muted-foreground mb-6 text-sm">
-                        Peder søker om ferie uke 43.
+                        {t("mockup.overlay.vacation.subtitle")}
                       </p>
 
                       <div className="bg-primary/5 text-foreground border-primary/10 rounded-xl border p-4 text-sm leading-relaxed">
-                        <strong className="text-primary mb-2 block">Botsson Insight:</strong>
-                        {`"Peder har 12 feriedager igjen i år. Hvis du godkjenner, mangler vi én kokk
-                        på Torsdag og Fredag uke 43. Vil du at jeg skal sende ut et bytte-forslag
-                        til Maria og Thomas?"`}
+                        <strong className="text-primary mb-2 block">
+                          {t("mockup.overlay.vacation.insightLabel")}
+                        </strong>
+                        {`"${t("mockup.overlay.vacation.insight")}"`}
                       </div>
 
                       <div className="mt-6 flex gap-3">
                         <button className="bg-success text-background flex-1 rounded-xl py-3 text-sm font-bold transition hover:opacity-90">
-                          Godkjenn
+                          {t("mockup.overlay.vacation.approve")}
                         </button>
                         <button className="bg-muted text-foreground hover:bg-muted/80 flex-1 rounded-xl py-3 text-sm font-bold transition">
-                          Avslå
+                          {t("mockup.overlay.vacation.reject")}
                         </button>
                       </div>
                     </div>
@@ -337,8 +364,10 @@ export function LandingInteractiveMockup() {
               <Bot className="text-brand-orange h-5 w-5" />
             </div>
             <div>
-              <p className="text-base leading-none font-bold">Lise Botsson</p>
-              <p className="text-brand-orange mt-1 text-xs font-semibold">AI Assistent</p>
+              <p className="text-base leading-none font-bold">{t("mockup.botsson.name")}</p>
+              <p className="text-brand-orange mt-1 text-xs font-semibold">
+                {t("mockup.botsson.role")}
+              </p>
             </div>
           </div>
 
@@ -351,15 +380,13 @@ export function LandingInteractiveMockup() {
                 exit={{ opacity: 0, height: 0 }}
                 className="text-foreground text-sm leading-relaxed"
               >
-                <strong>Smartout er AI Native.</strong>
+                <strong>{t("mockup.botsson.expanded.title")}</strong>
                 <br />
                 <br />
-                Mitt AI-rammeverk lærer bedriften din å kjenne. Jeg følger med på fravær, sjekker at
-                lovverk og tariffer følges, og jeg kan kommunisere med de ansatte på deres eget
-                språk for å dekke vakter.
+                {t("mockup.botsson.expanded.body")}
                 <br />
                 <br />
-                <em>Mens du eier restauranten, eier jeg driften for deg.</em>
+                <em>{t("mockup.botsson.expanded.tagline")}</em>
               </motion.div>
             ) : (
               <motion.div
@@ -369,7 +396,7 @@ export function LandingInteractiveMockup() {
                 exit={{ opacity: 0 }}
                 className="text-muted-foreground text-xs leading-relaxed"
               >
-                Klikk på meg for å se hvordan jeg eier driften for deg mens du sover.
+                {t("mockup.botsson.collapsed")}
               </motion.div>
             )}
           </AnimatePresence>
