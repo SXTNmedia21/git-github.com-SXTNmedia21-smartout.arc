@@ -101,7 +101,9 @@ export type EntityType =
   | "agent_session"
   | "task_surface"
   | "entity_drawer"
-  | "financial_close_config";
+  | "financial_close_config"
+  | "profession"
+  | "legal_function";
 
 export type ActionVerb =
   | "created"
@@ -160,7 +162,10 @@ export type ActionVerb =
   | "failed"
   | "generated"
   | "late_detected"
-  | "no_show_escalated";
+  | "no_show_escalated"
+  | "confirmed"
+  | "granted"
+  | "revoked";
 
 // ─── Auth Module Events ─────────────────────────
 export interface AuthSignedUp extends BaseEvent {
@@ -215,6 +220,63 @@ export interface DepartmentArchived extends BaseEvent {
   properties: {
     entity: EntityRef;
     data: { name: string };
+  };
+}
+
+// ─── Profession System Events ──────────────────────────
+export interface ProfessionCreated extends BaseEvent {
+  event: "profession created";
+  properties: {
+    entity: EntityRef;
+    data: { name: string; slug: string; source: "onboarding" | "admin" };
+  };
+}
+
+export interface PositionCreated extends BaseEvent {
+  event: "position created";
+  properties: {
+    entity: EntityRef;
+    data: { name: string; profession_id?: string; authority_level?: string };
+  };
+}
+
+export interface PositionAuthorityChanged extends BaseEvent {
+  event: "position updated";
+  properties: {
+    entity: EntityRef;
+    changes: { authority_level: { before: string | null; after: string } };
+  };
+}
+
+export interface LegalFunctionAssigned extends BaseEvent {
+  event: "legal_function assigned";
+  properties: {
+    entity: EntityRef;
+    data: { profile_id: string; slug: string };
+  };
+}
+
+export interface ProfileAccessGranted extends BaseEvent {
+  event: "profile granted";
+  properties: {
+    entity: EntityRef;
+    data: { scope: string; granted_by: "authority" | "legal_function" | "manual" };
+  };
+}
+
+export interface ProfileAccessRevoked extends BaseEvent {
+  event: "profile revoked";
+  properties: {
+    entity: EntityRef;
+    data: { scope: string };
+  };
+}
+
+export interface OnboardingProfessionsConfirmed extends BaseEvent {
+  event: "profession confirmed";
+  properties: {
+    entity: EntityRef;
+    data: { profession_count: number; position_count: number };
   };
 }
 
@@ -2229,7 +2291,14 @@ export type SmartoutEvent =
   | EntityDrawerOpened
   | EntityDrawerClosed
   | EntityDrawerPinned
-  | EntityDrawerTabSwitched;
+  | EntityDrawerTabSwitched
+  | ProfessionCreated
+  | PositionCreated
+  | PositionAuthorityChanged
+  | LegalFunctionAssigned
+  | ProfileAccessGranted
+  | ProfileAccessRevoked
+  | OnboardingProfessionsConfirmed;
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -3063,5 +3132,34 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "entity_drawer tab_switched": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "navigation",
+  },
+
+  "profession created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "org_structure",
+  },
+  "position created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "org_structure",
+  },
+  "position updated": {
+    destinations: ["logger", "activity_trail"],
+    category: "org_structure",
+  },
+  "legal_function assigned": {
+    destinations: ["logger", "activity_trail", "engine_event"],
+    category: "org_structure",
+  },
+  "profile granted": {
+    destinations: ["logger", "activity_trail"],
+    category: "org_structure",
+  },
+  "profile revoked": {
+    destinations: ["logger", "activity_trail"],
+    category: "org_structure",
+  },
+  "profession confirmed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "onboarding",
   },
 };

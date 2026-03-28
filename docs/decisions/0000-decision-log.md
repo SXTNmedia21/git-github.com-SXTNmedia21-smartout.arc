@@ -3,41 +3,19 @@ title: Decision Log
 status: in_progress
 updated: 2026-03-28
 created: 2026-03-28
-module: scheduling
+module: onboarding
 tags: [decisions]
 ---
 
-# Decision Log — absence-approval
+# Decision Log — profession-system
 
-module: gamification
-tags: [decisions]
-
----
-
-# Decision Log — gamification-foundation
-
-| #   | Date       | Decision                                                                                                                                                               | Status   |
-| --- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| 1   | 2026-03-28 | Extend existing upsert_session handler for season activation instead of creating new action handler — reuses proven logic, avoids handler proliferation                | accepted |
-| 2   | 2026-03-28 | 7-day rolling planning window for session creation — balances schedule visibility with operational flexibility                                                         | accepted |
-| 3   | 2026-03-28 | Three separate cron Edge Functions (replenish 02:00, lifecycle 15min, hooks 5min) instead of one monolithic function — independent scaling and debugging               | accepted |
-| 4   | 2026-03-28 | Season activation auto-archives previous active season — enforces single-active-season constraint at application level rather than DB constraint                       | accepted |
-| 5   | 2026-03-28 | Postgres triggers on season.status and department_session.status emit engine_events — keeps event-driven architecture consistent with existing shift.published pattern | accepted |
-| #   | Date       | Decision                                                                                                                                                               | Status   |
-| --- | ----       | --------                                                                                                                                                               | ------   |
-| 1   | 2026-03-28 | ADR-0065: Hospitality Operations Cockpit V1 Read/Action Contract                                                                                                       | accepted |
-| 2   | 2026-03-28 | ADR-0066: Temporal Shift Lock Architecture                                                                                                                             | accepted |
-| 3   | 2026-03-28 | ADR-0067: Smart Cover via Event Engine                                                                                                                                 | accepted |
-| #   | Date       | Decision                                                                                                                                                               | Status   |
-| --- | ----       | --------                                                                                                                                                               | ------   |
-
-module: operations
-tags: [decisions]
-
----
-
-# Decision Log — season-operations-loop
-
-| #   | Date       | Decision                                                                                                                             | Status   |
-| --- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------ | -------- |
-| 1   | 2026-03-28 | ADR-0068: Entity Drawer Surface Pattern — read-only inspection, isolated context, declarative registry, agent bridge via WalkAi tool | accepted |
+| #   | Date       | Decision                                                                                      | Status   |
+| --- | ---------- | --------------------------------------------------------------------------------------------- | -------- |
+| 1   | 2026-03-28 | `public` schema for profession tables (not `intelligence`) — follows existing K1a pattern     | accepted |
+| 2   | 2026-03-28 | `authority_level` on profile, not position — stable per person, not per job slot              | accepted |
+| 3   | 2026-03-28 | `profile_position` m2m — a person can have multiple positions (multi-fag)                     | accepted |
+| 4   | 2026-03-28 | `is_regulated` removed from position — redundant with `legal_function` table                  | accepted |
+| 5   | 2026-03-28 | Keep POSITION_MAP as @deprecated — 5 active consumers, remove in follow-up                    | accepted |
+| 6   | 2026-03-28 | Skjenkeansvarlig has NULL profession_id — applies across all alcohol-serving professions      | accepted |
+| 7   | 2026-03-28 | `profile_access.scope` validated by regex CHECK — format: domain.action                       | accepted |
+| 8   | 2026-03-28 | All manage RLS policies require `is_admin_in_workspace()` — prevents employee self-assignment | accepted |

@@ -8,7 +8,7 @@
  * The user reviews and adjusts before finalizing the workspace.
  */
 
-import { Building2, Layers, MapPin, ClipboardCheck, CheckCircle } from "lucide-react";
+import { Building2, Layers, MapPin, ClipboardCheck, CheckCircle, Users } from "lucide-react";
 import type { WizardDefinition } from "@smartout/ui";
 import { createClient } from "@smartout/supabase/client";
 import type { OnboardingConfirmState } from "./types-v2";
@@ -19,6 +19,7 @@ import type { PlacesData } from "./lib/data-merger";
 import {
   getDepartmentsForIndustry,
   getProceduresForIndustry,
+  getProfessionsForIndustry,
   resolveNaceCode,
 } from "./lib/industry-defaults";
 import { buildWorkspaceFinalizationRequest } from "./lib/finalization";
@@ -26,6 +27,7 @@ import { redirectToDashboard } from "./lib/redirect";
 import { ConfirmBusiness } from "./steps/ConfirmBusiness";
 import { ConfirmDepartments } from "./steps/ConfirmDepartments";
 import { ConfirmLocations } from "./steps/ConfirmLocations";
+import { ConfirmProfessions } from "./steps/ConfirmProfessions";
 import { ConfirmProcedures } from "./steps/ConfirmProcedures";
 import { ConfirmSummary } from "./steps/ConfirmSummary";
 
@@ -139,6 +141,9 @@ async function loadState(): Promise<Partial<OnboardingConfirmState>> {
   const departments = getDepartmentsForIndustry(nace);
   const procedures = getProceduresForIndustry(nace);
 
+  // Professions from DB (K1a platform data)
+  const professions = await getProfessionsForIndustry(nace);
+
   // Locations from scraped data
   const locations: LocationData[] = Array.isArray(scraped?.locations)
     ? (scraped.locations as Array<{ name: string; type?: string }>)
@@ -157,11 +162,22 @@ async function loadState(): Promise<Partial<OnboardingConfirmState>> {
         }))
     : [];
 
+  // Auto-generate default location from business name if scraping returned none
+  if (locations.length === 0 && merged.name) {
+    locations.push({
+      id: "loc-default-0",
+      name: merged.name,
+      type: "main",
+      zones: [],
+    });
+  }
+
   return {
     business: merged,
     departments,
     locations,
     procedures,
+    professions,
     workspaceId: ws.workspace_id,
     workspaceSlug: ws.slug,
   };
@@ -185,6 +201,20 @@ async function onComplete(state: OnboardingConfirmState): Promise<void> {
     type: loc.type,
     zones: loc.zones.map((z) => z.name),
   }));
+
+  const professionPayload = state.professions
+    .filter((p) => p.positions.some((pos) => pos.selected))
+    .map((p) => ({
+      professionId: p.id,
+      professionSlug: p.slug,
+      professionName: p.name,
+      positions: p.positions
+        .filter((pos) => pos.selected)
+        .map((pos) => ({
+          name: pos.name,
+          slug: pos.slug,
+        })),
+    }));
 
   const workspacePayload = {
     name: state.business.name || "Min bedrift",
@@ -215,6 +245,7 @@ async function onComplete(state: OnboardingConfirmState): Promise<void> {
     menuDescription: state.business.menuDescription,
     socialLinks: state.business.socialLinks,
     logoUrl: state.business.logoUrl,
+    professions: professionPayload,
   };
 
   const finalizationRequest = buildWorkspaceFinalizationRequest(
@@ -259,6 +290,10 @@ export const onboardingWizard: WizardDefinition<OnboardingConfirmState> = {
         heading: "brandPanel.confirmLocations_heading",
         sub: "brandPanel.confirmLocations_sub",
       },
+      "confirm-professions": {
+        heading: "brandPanel.confirmProfessions_heading",
+        sub: "brandPanel.confirmProfessions_sub",
+      },
       "confirm-procedures": {
         heading: "brandPanel.confirmProcedures_heading",
         sub: "brandPanel.confirmProcedures_sub",
@@ -293,6 +328,12 @@ export const onboardingWizard: WizardDefinition<OnboardingConfirmState> = {
       icon: MapPin,
       component: ConfirmLocations,
       skippable: true,
+    },
+    {
+      id: "confirm-professions",
+      labelKey: "confirm.professions_title",
+      icon: Users,
+      component: ConfirmProfessions,
     },
     {
       id: "confirm-procedures",

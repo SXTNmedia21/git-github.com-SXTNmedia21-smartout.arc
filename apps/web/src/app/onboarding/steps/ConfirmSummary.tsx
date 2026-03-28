@@ -71,6 +71,14 @@ export function ConfirmSummary({ state, next, goTo, t }: WizardStepProps<Onboard
     },
   ];
 
+  // Build a readable summary of selected professions and their positions
+  const professionSummaryLines = state.professions
+    .filter((p) => p.positions.some((pos) => pos.selected))
+    .map((p) => {
+      const selected = p.positions.filter((pos) => pos.selected);
+      return `${p.name}: ${selected.map((pos) => pos.name).join(", ")}`;
+    });
+
   return (
     <div className="mx-auto w-full max-w-md space-y-6">
       <div>
@@ -111,6 +119,20 @@ export function ConfirmSummary({ state, next, goTo, t }: WizardStepProps<Onboard
           );
         })}
       </div>
+
+      {/* Professions & Positions */}
+      {professionSummaryLines.length > 0 && (
+        <div className="border-border bg-card rounded-lg border p-4">
+          <dl>
+            <div>
+              <dt className="text-muted-foreground text-xs font-medium">Fag & posisjoner</dt>
+              <dd className="text-foreground mt-1 text-sm">
+                {professionSummaryLines.join(" | ")}
+              </dd>
+            </div>
+          </dl>
+        </div>
+      )}
 
       {/* Ready indicator */}
       <div className="flex items-center gap-2.5 rounded-lg border border-[var(--success)]/20 bg-[var(--success)]/5 px-3 py-3">

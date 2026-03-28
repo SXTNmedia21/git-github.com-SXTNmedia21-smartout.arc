@@ -8141,6 +8141,53 @@ export type Database = {
           },
         ]
       }
+      legal_function: {
+        Row: {
+          created_at: string
+          description: string | null
+          legal_basis: string | null
+          legal_function_id: string
+          name: string
+          profession_id: string | null
+          slug: string
+          sort_order: number
+          training_hours: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          legal_basis?: string | null
+          legal_function_id?: string
+          name: string
+          profession_id?: string | null
+          slug: string
+          sort_order?: number
+          training_hours?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          legal_basis?: string | null
+          legal_function_id?: string
+          name?: string
+          profession_id?: string | null
+          slug?: string
+          sort_order?: number
+          training_hours?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legal_function_profession_id_fkey"
+            columns: ["profession_id"]
+            isOneToOne: false
+            referencedRelation: "profession"
+            referencedColumns: ["profession_id"]
+          },
+        ]
+      }
       location: {
         Row: {
           address: string | null
@@ -9703,6 +9750,7 @@ export type Database = {
           minimum_role: Database["public"]["Enums"]["profile_role"] | null
           name: string
           position_id: string
+          profession_id: string | null
           season_id: string | null
           skill_requirements: Json | null
           slug: string
@@ -9720,6 +9768,7 @@ export type Database = {
           minimum_role?: Database["public"]["Enums"]["profile_role"] | null
           name: string
           position_id?: string
+          profession_id?: string | null
           season_id?: string | null
           skill_requirements?: Json | null
           slug: string
@@ -9737,6 +9786,7 @@ export type Database = {
           minimum_role?: Database["public"]["Enums"]["profile_role"] | null
           name?: string
           position_id?: string
+          profession_id?: string | null
           season_id?: string | null
           skill_requirements?: Json | null
           slug?: string
@@ -9758,6 +9808,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "workspace"
             referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "position_profession_id_fkey"
+            columns: ["profession_id"]
+            isOneToOne: false
+            referencedRelation: "profession"
+            referencedColumns: ["profession_id"]
           },
           {
             foreignKeyName: "position_season_id_fkey"
@@ -10022,10 +10079,139 @@ export type Database = {
           },
         ]
       }
+      profession: {
+        Row: {
+          created_at: string
+          description: string | null
+          is_universal: boolean
+          name: string
+          profession_id: string
+          slug: string
+          sort_order: number
+          updated_at: string
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          is_universal?: boolean
+          name: string
+          profession_id?: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          is_universal?: boolean
+          name?: string
+          profession_id?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profession_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      profession_industry: {
+        Row: {
+          created_at: string
+          nace_code: string
+          profession_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          nace_code: string
+          profession_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          nace_code?: string
+          profession_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profession_industry_profession_id_fkey"
+            columns: ["profession_id"]
+            isOneToOne: false
+            referencedRelation: "profession"
+            referencedColumns: ["profession_id"]
+          },
+        ]
+      }
+      profession_training: {
+        Row: {
+          created_at: string
+          is_required: boolean
+          profession_id: string
+          profession_training_id: string
+          protocol_id: string
+          updated_at: string
+          weight: number
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          is_required?: boolean
+          profession_id: string
+          profession_training_id?: string
+          protocol_id: string
+          updated_at?: string
+          weight?: number
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          is_required?: boolean
+          profession_id?: string
+          profession_training_id?: string
+          protocol_id?: string
+          updated_at?: string
+          weight?: number
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profession_training_profession_id_fkey"
+            columns: ["profession_id"]
+            isOneToOne: false
+            referencedRelation: "profession"
+            referencedColumns: ["profession_id"]
+          },
+          {
+            foreignKeyName: "profession_training_protocol_id_fkey"
+            columns: ["protocol_id"]
+            isOneToOne: false
+            referencedRelation: "protocol"
+            referencedColumns: ["protocol_id"]
+          },
+          {
+            foreignKeyName: "profession_training_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       profile: {
         Row: {
           address_line_1: string | null
           address_line_2: string | null
+          authority_level: Database["public"]["Enums"]["authority_level"] | null
           avatar_url: string | null
           bank_account: string | null
           city: string | null
@@ -10064,6 +10250,9 @@ export type Database = {
         Insert: {
           address_line_1?: string | null
           address_line_2?: string | null
+          authority_level?:
+            | Database["public"]["Enums"]["authority_level"]
+            | null
           avatar_url?: string | null
           bank_account?: string | null
           city?: string | null
@@ -10102,6 +10291,9 @@ export type Database = {
         Update: {
           address_line_1?: string | null
           address_line_2?: string | null
+          authority_level?:
+            | Database["public"]["Enums"]["authority_level"]
+            | null
           avatar_url?: string | null
           bank_account?: string | null
           city?: string | null
@@ -10172,6 +10364,126 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "workspace"
             referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      profile_access: {
+        Row: {
+          created_at: string
+          granted_by: string
+          profile_id: string
+          scope: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          granted_by?: string
+          profile_id: string
+          scope: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          granted_by?: string
+          profile_id?: string
+          scope?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_access_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+        ]
+      }
+      profile_legal_function: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          created_at: string
+          legal_function_id: string
+          profile_id: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          created_at?: string
+          legal_function_id: string
+          profile_id: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          created_at?: string
+          legal_function_id?: string
+          profile_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_legal_function_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "profile_legal_function_legal_function_id_fkey"
+            columns: ["legal_function_id"]
+            isOneToOne: false
+            referencedRelation: "legal_function"
+            referencedColumns: ["legal_function_id"]
+          },
+          {
+            foreignKeyName: "profile_legal_function_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+        ]
+      }
+      profile_position: {
+        Row: {
+          created_at: string
+          is_primary: boolean
+          position_id: string
+          profile_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          is_primary?: boolean
+          position_id: string
+          profile_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          is_primary?: boolean
+          position_id?: string
+          profile_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_position_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: false
+            referencedRelation: "position"
+            referencedColumns: ["position_id"]
+          },
+          {
+            foreignKeyName: "profile_position_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
           },
         ]
       }
@@ -12482,6 +12794,7 @@ export type Database = {
           effective_until: string | null
           id: string
           metadata: Json | null
+          profession_id: string | null
           provenance: Json
           rate_type: string
           seeded_at: string | null
@@ -12499,6 +12812,7 @@ export type Database = {
           effective_until?: string | null
           id?: string
           metadata?: Json | null
+          profession_id?: string | null
           provenance?: Json
           rate_type: string
           seeded_at?: string | null
@@ -12516,6 +12830,7 @@ export type Database = {
           effective_until?: string | null
           id?: string
           metadata?: Json | null
+          profession_id?: string | null
           provenance?: Json
           rate_type?: string
           seeded_at?: string | null
@@ -12526,7 +12841,15 @@ export type Database = {
           updated_at?: string
           workspace_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tariff_rate_table_profession_id_fkey"
+            columns: ["profession_id"]
+            isOneToOne: false
+            referencedRelation: "profession"
+            referencedColumns: ["profession_id"]
+          },
+        ]
       }
       team: {
         Row: {
@@ -14015,6 +14338,14 @@ export type Database = {
         Args: { p_workspace_id: string }
         Returns: string
       }
+      template_restaurant_departments: {
+        Args: { p_workspace_id: string }
+        Returns: undefined
+      }
+      template_restaurant_locations: {
+        Args: { p_workspace_id: string }
+        Returns: undefined
+      }
       trigger_due_emma_tasks: { Args: never; Returns: number }
       upsert_secret: {
         Args: { p_description?: string; p_name: string; p_secret: string }
@@ -14029,6 +14360,7 @@ export type Database = {
       asset_type: "equipment" | "safety" | "storage" | "station" | "other"
       audit_operation: "INSERT" | "UPDATE" | "DELETE"
       auth_provider: "supabase" | "google" | "microsoft"
+      authority_level: "duty" | "deputy" | "leader"
       booking_status: "confirmed" | "pending" | "cancelled"
       budget_period_type: "monthly" | "weekly" | "daily" | "hourly"
       budget_status: "draft" | "active" | "locked"
@@ -15428,6 +15760,7 @@ export const Constants = {
       asset_type: ["equipment", "safety", "storage", "station", "other"],
       audit_operation: ["INSERT", "UPDATE", "DELETE"],
       auth_provider: ["supabase", "google", "microsoft"],
+      authority_level: ["duty", "deputy", "leader"],
       booking_status: ["confirmed", "pending", "cancelled"],
       budget_period_type: ["monthly", "weekly", "daily", "hourly"],
       budget_status: ["draft", "active", "locked"],

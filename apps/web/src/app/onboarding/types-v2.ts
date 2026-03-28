@@ -6,7 +6,7 @@
  * or adjust departments, locations, and procedures before finalizing.
  */
 
-import type { BusinessData, DepartmentOption, LocationData, ProcedureData } from "./types";
+import type { BusinessData, DepartmentOption, LocationData, ProcedureData, ProfessionOption } from "./types";
 import { EMPTY_BUSINESS_DATA } from "./types";
 
 export interface OnboardingConfirmState extends Record<string, unknown> {
@@ -27,6 +27,9 @@ export interface OnboardingConfirmState extends Record<string, unknown> {
 
   /** Workspace slug for post-finalization redirect */
   workspaceSlug: string | null;
+
+  /** Professions with positions, loaded from K1a platform data */
+  professions: ProfessionOption[];
 }
 
 export const defaultOnboardingConfirmState: OnboardingConfirmState = {
@@ -36,4 +39,5 @@ export const defaultOnboardingConfirmState: OnboardingConfirmState = {
   procedures: [],
   workspaceId: null,
   workspaceSlug: null,
+  professions: [],
 };
