@@ -48,7 +48,11 @@ const DEPARTMENT_CONFIGS: Record<string, { name: string; icon: string; preselect
   ],
 };
 
-/** Position templates per department name */
+/**
+ * @deprecated Use profession + position tables in DB instead.
+ * Kept for backward compatibility with TeamSetupStep and getDepartmentsForIndustry.
+ * Remove after migrating all consumers to DB-based profession data.
+ */
 const POSITION_MAP: Record<string, string[]> = {
   Kjøkken: ["Kokk", "Sous Chef", "Kjøkkenassistent"],
   Sal: ["Servitør", "Hovmester"],
@@ -109,7 +113,10 @@ export function getDepartmentsForIndustry(naceCode: string): IndustrySuggestion[
   }));
 }
 
-/** Get positions for a specific department name */
+/**
+ * @deprecated Use profession + position tables in DB instead.
+ * Kept for backward compatibility with TeamSetupStep.
+ */
 export function getPositionsForDepartment(departmentName: string): string[] {
   return POSITION_MAP[departmentName] ?? [];
 }

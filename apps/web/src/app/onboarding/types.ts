@@ -199,3 +199,20 @@ export const DEFAULT_SEASON_DATA: SeasonData = {
   expectedRevenue: null,
   targetMargin: null,
 };
+
+/** A profession (Fag) with positions for onboarding confirmation */
+export interface ProfessionOption {
+  id: string;
+  slug: string;
+  name: string;
+  isUniversal: boolean;
+  positions: PositionOption[];
+}
+
+/** A position within a profession for onboarding confirmation */
+export interface PositionOption {
+  id: string;
+  name: string;
+  slug: string;
+  selected: boolean;
+}
