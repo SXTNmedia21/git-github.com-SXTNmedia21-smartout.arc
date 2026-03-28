@@ -85,13 +85,13 @@ async function setupPgNotifyListener() {
       console.warn("[telegram] DATABASE_URL not set — bridge relay unavailable");
       return;
     }
-    const { default: pg } = await import("pg");
-    const client = new pg.Client({ connectionString: dbUrl });
+    const { Client } = await import("pg");
+    const client = new Client({ connectionString: dbUrl });
     await client.connect();
     await client.query("LISTEN telegram_bridge");
     console.log("[telegram] PG NOTIFY listener active for chat bridge relay");
 
-    client.on("notification", async (msg) => {
+    client.on("notification", async (msg: { channel: string; payload?: string }) => {
       if (msg.channel !== "telegram_bridge" || !msg.payload) return;
       try {
         const payload = JSON.parse(msg.payload) as {
@@ -116,7 +116,7 @@ async function setupPgNotifyListener() {
     });
 
     // Reconnect automatically if the pg connection drops
-    client.on("error", (err) => {
+    client.on("error", (err: Error) => {
       console.error("[telegram] PG NOTIFY connection error:", err);
       setTimeout(setupPgNotifyListener, 5000);
     });
