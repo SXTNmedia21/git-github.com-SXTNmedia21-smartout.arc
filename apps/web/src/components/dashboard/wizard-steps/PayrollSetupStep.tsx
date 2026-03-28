@@ -22,6 +22,8 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { HelpTip } from "@/components/dashboard/wizard-steps/HelpTip";
+import { useRegisterTools } from "@/app/walkAi/_components/tool-registry";
+import { usePayrollTools } from "./tools/payroll-tools";
 
 // ─── Add Supplement Dialog ──────────────────────────────
 
@@ -364,6 +366,15 @@ export function PayrollSetupStep({
 
   const hasSaved = (existingPolicies ?? []).length > 0;
   const allSupplements = [...supplements, ...customSupplements];
+
+  const payrollTools = usePayrollTools(
+    selectedTariff,
+    allSupplements,
+    tariffOptions,
+    handleTariffChange,
+    handleAddCustom,
+  );
+  useRegisterTools("wizard-setup-payroll", payrollTools);
 
   return (
     <div className="space-y-8">
