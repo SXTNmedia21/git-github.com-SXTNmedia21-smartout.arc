@@ -221,6 +221,7 @@
       "rejected": "Avslått",
       "pending": "Venter",
       "confirm_reject": "Er du sikker på at du vil avslå denne forespørselen?",
+      "cancel": "Avbryt",
       "type_sick": "Sykdom",
       "type_vacation": "Ferie",
       "type_parental": "Foreldrepermisjon",

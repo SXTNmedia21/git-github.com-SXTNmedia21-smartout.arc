@@ -221,6 +221,7 @@
       "rejected": "Rejected",
       "pending": "Pending",
       "confirm_reject": "Are you sure you want to reject this request?",
+      "cancel": "Cancel",
       "type_sick": "Sick leave",
       "type_vacation": "Vacation",
       "type_parental": "Parental leave",

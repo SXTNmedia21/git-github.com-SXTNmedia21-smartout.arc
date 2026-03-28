@@ -60,7 +60,7 @@ export function usePendingAbsences() {
         employeeId: row.employee_id,
         employeeName:
           (row.profile as unknown as { display_name: string | null })
-            ?.display_name ?? "Ukjent",
+            ?.display_name ?? "–",
         absenceType: row.absence_type,
         shiftDate: row.shift_date,
         startDate: row.start_date,

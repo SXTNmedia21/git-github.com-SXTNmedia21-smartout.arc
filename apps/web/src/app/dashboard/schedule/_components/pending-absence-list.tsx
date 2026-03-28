@@ -150,7 +150,7 @@ export function PendingAbsenceList() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Avbryt</AlertDialogCancel>
+            <AlertDialogCancel>{t("schedule.absence_approval.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleReject}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
