@@ -6,7 +6,14 @@
  * or adjust departments, locations, and procedures before finalizing.
  */
 
-import type { BusinessData, DepartmentOption, LocationData, ProcedureData, ProfessionOption } from "./types";
+import type {
+  BusinessData,
+  DepartmentOption,
+  LocationData,
+  ProcedureData,
+  ProfessionOption,
+  RoleOption,
+} from "./types";
 import { EMPTY_BUSINESS_DATA } from "./types";
 
 export interface OnboardingConfirmState extends Record<string, unknown> {
@@ -15,6 +22,9 @@ export interface OnboardingConfirmState extends Record<string, unknown> {
 
   /** Departments suggested by I1 based on NACE code */
   departments: DepartmentOption[];
+
+  /** Leadership/organizational roles */
+  roles: RoleOption[];
 
   /** Locations scraped from website + Google Places */
   locations: LocationData[];
@@ -35,6 +45,7 @@ export interface OnboardingConfirmState extends Record<string, unknown> {
 export const defaultOnboardingConfirmState: OnboardingConfirmState = {
   business: EMPTY_BUSINESS_DATA,
   departments: [],
+  roles: [],
   locations: [],
   procedures: [],
   workspaceId: null,

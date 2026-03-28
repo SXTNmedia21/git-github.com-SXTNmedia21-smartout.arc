@@ -137,12 +137,6 @@ export function ConfirmDepartments({
           </button>
         )}
       </div>
-
-      {hasSuggestions && (
-        <p className="text-muted-foreground text-xs">
-          Stiplede kort er forslag basert på bransjen din. Klikk for å velge.
-        </p>
-      )}
     </div>
   );
 }

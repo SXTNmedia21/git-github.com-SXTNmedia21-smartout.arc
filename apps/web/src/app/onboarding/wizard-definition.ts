@@ -8,7 +8,7 @@
  * The user reviews and adjusts before finalizing the workspace.
  */
 
-import { Layers, MapPin, ClipboardCheck, CheckCircle, Users } from "lucide-react";
+import { Layers, MapPin, ClipboardCheck, CheckCircle, Users, Crown, Briefcase } from "lucide-react";
 import type { WizardDefinition } from "@smartout/ui";
 import { createClient } from "@smartout/supabase/client";
 import type { OnboardingConfirmState } from "./types-v2";
@@ -25,8 +25,9 @@ import {
 import { buildWorkspaceFinalizationRequest } from "./lib/finalization";
 import { redirectToDashboard } from "./lib/redirect";
 import { ConfirmDepartments } from "./steps/ConfirmDepartments";
+import { ConfirmRoles } from "./steps/ConfirmRoles";
+import { ConfirmPositions } from "./steps/ConfirmPositions";
 import { ConfirmLocations } from "./steps/ConfirmLocations";
-import { ConfirmProfessions } from "./steps/ConfirmProfessions";
 import { ConfirmProcedures } from "./steps/ConfirmProcedures";
 import { ConfirmSummary } from "./steps/ConfirmSummary";
 
@@ -155,16 +156,25 @@ async function loadState(): Promise<Partial<OnboardingConfirmState>> {
     .order("sort_order");
 
   if (dbLocations && dbLocations.length > 0) {
-    locations = dbLocations.map((loc) => ({
-      id: loc.location_id,
-      name: loc.name,
-      type: (loc.location_type === "outdoor" ||
-      loc.location_type === "kitchen" ||
-      loc.location_type === "other"
-        ? loc.location_type
-        : "main") as LocationData["type"],
-      zones: [],
-    }));
+    // Deduplicate by name (I1 template may have run multiple times)
+    const seen = new Set<string>();
+    locations = dbLocations
+      .filter((loc) => {
+        const key = loc.name.toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .map((loc) => ({
+        id: loc.location_id,
+        name: loc.name,
+        type: (loc.location_type === "outdoor" ||
+        loc.location_type === "kitchen" ||
+        loc.location_type === "other"
+          ? loc.location_type
+          : "main") as LocationData["type"],
+        zones: [],
+      }));
   } else if (Array.isArray(scraped?.locations)) {
     locations = (scraped.locations as Array<{ name: string; type?: string }>)
       .filter(
@@ -286,7 +296,7 @@ async function onComplete(state: OnboardingConfirmState): Promise<void> {
     throw new Error(error.message || "Failed to finalize workspace");
   }
 
-  redirectToDashboard(state.workspaceSlug);
+  redirectToDashboard(state.workspaceSlug, "/dashboard/setup");
 }
 
 export const onboardingWizard: WizardDefinition<OnboardingConfirmState> = {
@@ -307,13 +317,17 @@ export const onboardingWizard: WizardDefinition<OnboardingConfirmState> = {
         heading: "brandPanel.confirmDepartments_heading",
         sub: "brandPanel.confirmDepartments_sub",
       },
+      "confirm-roles": {
+        heading: "brandPanel.confirmRoles_heading",
+        sub: "brandPanel.confirmRoles_sub",
+      },
+      "confirm-positions": {
+        heading: "brandPanel.confirmPositions_heading",
+        sub: "brandPanel.confirmPositions_sub",
+      },
       "confirm-locations": {
         heading: "brandPanel.confirmLocations_heading",
         sub: "brandPanel.confirmLocations_sub",
-      },
-      "confirm-professions": {
-        heading: "brandPanel.confirmProfessions_heading",
-        sub: "brandPanel.confirmProfessions_sub",
       },
       "confirm-procedures": {
         heading: "brandPanel.confirmProcedures_heading",
@@ -338,17 +352,23 @@ export const onboardingWizard: WizardDefinition<OnboardingConfirmState> = {
       component: ConfirmDepartments,
     },
     {
+      id: "confirm-roles",
+      labelKey: "confirm.roles_title",
+      icon: Crown,
+      component: ConfirmRoles,
+    },
+    {
+      id: "confirm-positions",
+      labelKey: "confirm.positions_title",
+      icon: Briefcase,
+      component: ConfirmPositions,
+    },
+    {
       id: "confirm-locations",
       labelKey: "confirm.locations_title",
       icon: MapPin,
       component: ConfirmLocations,
       skippable: true,
-    },
-    {
-      id: "confirm-professions",
-      labelKey: "confirm.professions_title",
-      icon: Users,
-      component: ConfirmProfessions,
     },
     {
       id: "confirm-procedures",
@@ -361,6 +381,7 @@ export const onboardingWizard: WizardDefinition<OnboardingConfirmState> = {
       labelKey: "confirm.summary_title",
       icon: CheckCircle,
       component: ConfirmSummary,
+      hideNavBar: true,
     },
   ],
 };

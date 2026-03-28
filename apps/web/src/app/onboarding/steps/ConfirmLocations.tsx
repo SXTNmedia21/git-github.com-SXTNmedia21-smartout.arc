@@ -1,15 +1,14 @@
 "use client";
 
 /**
- * ConfirmLocations — Step 3 of onboarding confirmation wizard.
+ * ConfirmLocations — compact 2-column layout.
  *
- * Shows location cards with zones. Pre-filled from scraping.
- * User can add/remove locations and zones.
- * Design matches the Join wizard pattern (Nordic Split, max-w-lg for card layouts).
+ * Lighter design than the full card pattern. Each location is a
+ * small row with zones as inline tags. Suggestions appear as
+ * quick-add buttons below.
  */
 
 import { useState } from "react";
-import { Label } from "@/components/ui/label";
 import { MapPin, Plus, X, Layers } from "lucide-react";
 import type { WizardStepProps } from "@smartout/ui";
 import type { OnboardingConfirmState } from "../types-v2";
@@ -23,11 +22,10 @@ const TYPE_LABELS: Record<string, string> = {
   other: "Annet",
 };
 
-/** Pre-filled suggestions — common areas most restaurants add beyond the defaults */
-const SUGGESTED_LOCATIONS: Array<{ name: string; type: LocationData["type"]; icon: string }> = [
-  { name: "Uteservering", type: "outdoor", icon: "☀️" },
-  { name: "Lager", type: "other", icon: "📦" },
-  { name: "Personalrom", type: "other", icon: "🚪" },
+const SUGGESTED_LOCATIONS: Array<{ name: string; type: LocationData["type"] }> = [
+  { name: "Uteservering", type: "outdoor" },
+  { name: "Lager", type: "other" },
+  { name: "Personalrom", type: "other" },
 ];
 
 export function ConfirmLocations({
@@ -35,7 +33,7 @@ export function ConfirmLocations({
   updateState,
   t,
 }: WizardStepProps<OnboardingConfirmState>) {
-  const [showLocationInput, setShowLocationInput] = useState(false);
+  const [showInput, setShowInput] = useState(false);
   const [locationName, setLocationName] = useState("");
   const [locationType, setLocationType] = useState<string>("main");
   const [activeZoneInput, setActiveZoneInput] = useState<string | null>(null);
@@ -46,7 +44,6 @@ export function ConfirmLocations({
   function addLocation() {
     const trimmed = locationName.trim();
     if (!trimmed) return;
-
     updateState({
       locations: [
         ...locations,
@@ -59,20 +56,17 @@ export function ConfirmLocations({
       ],
     });
     setLocationName("");
-    setShowLocationInput(false);
+    setShowInput(false);
     setLocationType("main");
   }
 
   function removeLocation(id: string) {
-    updateState({
-      locations: locations.filter((l) => l.id !== id),
-    });
+    updateState({ locations: locations.filter((l) => l.id !== id) });
   }
 
   function addZone(locationId: string) {
     const trimmed = zoneName.trim();
     if (!trimmed) return;
-
     updateState({
       locations: locations.map((loc) =>
         loc.id === locationId
@@ -98,204 +92,193 @@ export function ConfirmLocations({
     });
   }
 
+  const unusedSuggestions = SUGGESTED_LOCATIONS.filter(
+    (s) => !locations.some((l) => l.name === s.name),
+  );
+
   return (
-    <div className="mx-auto w-full max-w-lg space-y-6">
+    <div className="mx-auto w-full max-w-md space-y-6">
       <div>
         <h2 className="text-foreground text-2xl font-bold">{t("confirm.locations_title")}</h2>
         <p className="text-muted-foreground mt-1 text-sm">{t("confirm.locations_description")}</p>
       </div>
 
-      {/* Location cards */}
-      <div className="space-y-3">
-        <Label className="text-sm font-semibold">Lokasjoner</Label>
-        <div className="space-y-2">
-          {locations.map((loc) => (
-            <div key={loc.id} className="border-border bg-card rounded-lg border p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <MapPin className="text-muted-foreground size-4" />
-                  <span className="text-foreground text-sm font-medium">{loc.name}</span>
-                  <span className="text-muted-foreground text-xs">{TYPE_LABELS[loc.type]}</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => removeLocation(loc.id)}
-                  className="text-muted-foreground/50 hover:text-foreground p-1 transition-colors"
-                >
-                  <X className="size-3.5" />
-                </button>
-              </div>
-
-              {/* Zones */}
-              <div className="mt-3">
-                <div className="text-muted-foreground flex items-center gap-1.5 text-[10px]">
-                  <Layers className="size-2.5" />
-                  <span>Soner</span>
-                </div>
-                <div className="mt-1.5 flex flex-wrap gap-1.5">
-                  {loc.zones.map((zone) => (
-                    <span
-                      key={zone.id}
-                      className="group border-border bg-muted/50 text-foreground flex items-center gap-1 rounded-md border px-2 py-1 text-xs"
-                    >
-                      {zone.name}
-                      <button
-                        type="button"
-                        onClick={() => removeZone(loc.id, zone.id)}
-                        className="text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100"
-                      >
-                        <X className="size-2.5" />
-                      </button>
-                    </span>
-                  ))}
-
-                  {activeZoneInput === loc.id ? (
-                    <div className="flex items-center gap-1.5">
-                      <input
-                        type="text"
-                        value={zoneName}
-                        onChange={(e) => setZoneName(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") addZone(loc.id);
-                          if (e.key === "Escape") {
-                            setActiveZoneInput(null);
-                            setZoneName("");
-                          }
-                        }}
-                        placeholder="Sonenavn"
-                        className="border-border bg-background text-foreground placeholder:text-muted-foreground focus-visible:ring-brand-orange/40 rounded-md border px-2 py-1 text-xs focus-visible:ring-2 focus-visible:outline-none"
-                        autoFocus
-                      />
-                      <button
-                        type="button"
-                        onClick={() => addZone(loc.id)}
-                        className="bg-brand-orange/10 text-foreground hover:bg-brand-orange/20 rounded-md px-2 py-1 text-xs"
-                      >
-                        Legg til
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveZoneInput(null);
-                          setZoneName("");
-                        }}
-                        className="text-muted-foreground hover:text-foreground p-0.5"
-                      >
-                        <X className="size-3" />
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setActiveZoneInput(loc.id)}
-                      className="border-border text-muted-foreground hover:text-foreground flex items-center gap-1 rounded-md border border-dashed px-2 py-1 text-xs transition-colors"
-                    >
-                      <Plus className="size-2.5" />
-                      Sone
-                    </button>
-                  )}
+      {/* Location grid — 2 columns */}
+      <div className="grid grid-cols-2 gap-2">
+        {locations.map((loc) => (
+          <div key={loc.id} className="border-border rounded-lg border px-3 py-2.5">
+            {/* Header */}
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-1.5">
+                <MapPin className="text-muted-foreground size-3.5 shrink-0" />
+                <div>
+                  <span className="text-foreground text-xs leading-tight font-medium">
+                    {loc.name}
+                  </span>
+                  <span className="text-muted-foreground ml-1 text-[10px]">
+                    {TYPE_LABELS[loc.type]}
+                  </span>
                 </div>
               </div>
-            </div>
-          ))}
-
-          {/* Quick-add suggestions + custom */}
-          {showLocationInput ? (
-            <div className="border-border bg-card rounded-lg border p-4">
-              <div className="space-y-3">
-                <input
-                  type="text"
-                  value={locationName}
-                  onChange={(e) => setLocationName(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && addLocation()}
-                  placeholder="Navn på lokasjon"
-                  className="border-border bg-background text-foreground placeholder:text-muted-foreground focus-visible:ring-brand-orange/40 w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
-                  autoFocus
-                />
-                <div className="flex flex-wrap gap-1.5">
-                  {(["main", "outdoor", "kitchen", "other"] as const).map((type) => (
-                    <button
-                      key={type}
-                      type="button"
-                      onClick={() => setLocationType(type)}
-                      className={`rounded-md px-2.5 py-1.5 text-xs transition-colors ${
-                        locationType === type
-                          ? "bg-brand-orange/10 text-foreground"
-                          : "bg-muted text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      {TYPE_LABELS[type]}
-                    </button>
-                  ))}
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={addLocation}
-                    className="bg-brand-orange/10 text-foreground hover:bg-brand-orange/20 flex-1 rounded-md py-2 text-sm transition-colors"
-                  >
-                    Legg til
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowLocationInput(false);
-                      setLocationName("");
-                    }}
-                    className="text-muted-foreground hover:text-foreground px-3 py-2 text-sm transition-colors"
-                  >
-                    Avbryt
-                  </button>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {/* Suggested locations — only show ones not already added */}
-              {SUGGESTED_LOCATIONS.filter((s) => !locations.some((l) => l.name === s.name)).length >
-                0 && (
-                <div className="flex flex-wrap gap-2">
-                  {SUGGESTED_LOCATIONS.filter((s) => !locations.some((l) => l.name === s.name)).map(
-                    (suggestion) => (
-                      <button
-                        key={suggestion.name}
-                        type="button"
-                        onClick={() => {
-                          updateState({
-                            locations: [
-                              ...locations,
-                              {
-                                id: `loc-${Date.now()}-${locations.length}`,
-                                name: suggestion.name,
-                                type: suggestion.type,
-                                zones: [],
-                              },
-                            ],
-                          });
-                        }}
-                        className="border-border hover:border-brand-orange/40 hover:bg-brand-orange/5 text-muted-foreground hover:text-foreground flex items-center gap-1.5 rounded-lg border border-dashed px-3 py-2 text-sm transition-colors"
-                      >
-                        <Plus className="size-3" />
-                        {suggestion.name}
-                      </button>
-                    ),
-                  )}
-                </div>
-              )}
-
-              {/* Custom location */}
               <button
                 type="button"
-                onClick={() => setShowLocationInput(true)}
-                className="border-border text-muted-foreground hover:bg-accent flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed py-3 text-sm transition-colors"
+                onClick={() => removeLocation(loc.id)}
+                className="text-muted-foreground/40 hover:text-foreground -mt-0.5 -mr-1 p-0.5 transition-colors"
               >
-                <Plus className="size-3.5" />
-                Egendefinert
+                <X className="size-3" />
               </button>
             </div>
-          )}
-        </div>
+
+            {/* Zones */}
+            <div className="mt-2">
+              <div className="text-muted-foreground flex items-center gap-1 text-[9px]">
+                <Layers className="size-2" />
+                Soner
+              </div>
+              <div className="mt-1 flex flex-wrap gap-1">
+                {loc.zones.map((zone) => (
+                  <span
+                    key={zone.id}
+                    className="group border-border bg-muted/50 text-foreground flex items-center gap-0.5 rounded border px-1.5 py-0.5 text-[10px]"
+                  >
+                    {zone.name}
+                    <button
+                      type="button"
+                      onClick={() => removeZone(loc.id, zone.id)}
+                      className="text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100"
+                    >
+                      <X className="size-2" />
+                    </button>
+                  </span>
+                ))}
+
+                {activeZoneInput === loc.id ? (
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="text"
+                      value={zoneName}
+                      onChange={(e) => setZoneName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") addZone(loc.id);
+                        if (e.key === "Escape") {
+                          setActiveZoneInput(null);
+                          setZoneName("");
+                        }
+                      }}
+                      placeholder="Sone"
+                      className="border-border bg-background text-foreground placeholder:text-muted-foreground w-16 rounded border px-1.5 py-0.5 text-[10px] focus-visible:outline-none"
+                      autoFocus
+                    />
+                    <button
+                      type="button"
+                      onClick={() => addZone(loc.id)}
+                      className="text-[10px] font-medium text-[var(--brand-orange)]"
+                    >
+                      OK
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setActiveZoneInput(loc.id)}
+                    className="border-border text-muted-foreground hover:text-foreground flex items-center gap-0.5 rounded border border-dashed px-1.5 py-0.5 text-[10px] transition-colors"
+                  >
+                    <Plus className="size-2" />
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
+
+      {/* Quick-add suggestions */}
+      {unusedSuggestions.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {unusedSuggestions.map((s) => (
+            <button
+              key={s.name}
+              type="button"
+              onClick={() => {
+                updateState({
+                  locations: [
+                    ...locations,
+                    {
+                      id: `loc-${Date.now()}-${locations.length}`,
+                      name: s.name,
+                      type: s.type,
+                      zones: [],
+                    },
+                  ],
+                });
+              }}
+              className="border-border text-muted-foreground hover:text-foreground flex items-center gap-1 rounded-lg border border-dashed px-2.5 py-1.5 text-xs transition-colors hover:border-[var(--brand-orange)]/30 hover:bg-[var(--brand-orange)]/5"
+            >
+              <Plus className="size-3" />
+              {s.name}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Custom location */}
+      {showInput ? (
+        <div className="border-border rounded-lg border p-3">
+          <input
+            type="text"
+            value={locationName}
+            onChange={(e) => setLocationName(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && addLocation()}
+            placeholder="Navn på lokasjon"
+            className="border-border bg-background text-foreground placeholder:text-muted-foreground w-full rounded-md border px-3 py-1.5 text-sm focus-visible:ring-2 focus-visible:ring-[var(--brand-orange)]/40 focus-visible:outline-none"
+            autoFocus
+          />
+          <div className="mt-2 flex flex-wrap gap-1">
+            {(["main", "outdoor", "kitchen", "other"] as const).map((type) => (
+              <button
+                key={type}
+                type="button"
+                onClick={() => setLocationType(type)}
+                className={`rounded px-2 py-1 text-[10px] transition-colors ${
+                  locationType === type
+                    ? "text-foreground bg-[var(--brand-orange)]/10"
+                    : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {TYPE_LABELS[type]}
+              </button>
+            ))}
+          </div>
+          <div className="mt-2 flex gap-2">
+            <button
+              type="button"
+              onClick={addLocation}
+              className="text-foreground flex-1 rounded-md bg-[var(--brand-orange)]/10 py-1.5 text-xs transition-colors hover:bg-[var(--brand-orange)]/20"
+            >
+              Legg til
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowInput(false);
+                setLocationName("");
+              }}
+              className="text-muted-foreground hover:text-foreground px-3 py-1.5 text-xs transition-colors"
+            >
+              Avbryt
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setShowInput(true)}
+          className="text-muted-foreground hover:text-foreground flex items-center gap-1.5 px-1 text-xs transition-colors"
+        >
+          <Plus className="size-3.5" />
+          Egendefinert lokasjon
+        </button>
+      )}
     </div>
   );
 }
