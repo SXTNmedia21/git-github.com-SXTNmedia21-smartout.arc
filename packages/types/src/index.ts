@@ -9,3 +9,4 @@ export * from "./engine.js";
 export * from "./mission-protocol.js";
 export * from "./cascade-tasks.js";
 export * from "./industry.js";
+export * from "./cockpit.js";
