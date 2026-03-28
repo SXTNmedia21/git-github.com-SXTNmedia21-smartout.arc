@@ -714,6 +714,22 @@ export interface DayFactorsUpdated extends BaseEvent {
   };
 }
 
+export interface SeasonActivated extends BaseEvent {
+  event: "season activated";
+  properties: {
+    entity: EntityRef;
+    data: { status: "active" };
+  };
+}
+
+export interface SeasonArchived extends BaseEvent {
+  event: "season archived";
+  properties: {
+    entity: EntityRef;
+    data: { status: "archived" };
+  };
+}
+
 export interface HourFactorsUpdated extends BaseEvent {
   event: "hour_factors updated";
   properties: {
@@ -1965,6 +1981,8 @@ export type SmartoutEvent =
   | WizardValidationFailed
   | WizardFactEdited
   | SeasonCreated
+  | SeasonActivated
+  | SeasonArchived
   | SeasonBudgetUpdated
   | DayFactorsUpdated
   | HourFactorsUpdated
@@ -2364,6 +2382,14 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
 
   "season created": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  "season activated": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  "season archived": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "operations",
   },
