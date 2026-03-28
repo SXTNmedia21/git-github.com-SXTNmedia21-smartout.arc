@@ -1,7 +1,7 @@
 ---
 title: Council Session Log
 status: in_progress
-updated: 2026-03-28
+updated: 2026-03-29
 created: 2026-03-26
 module: governance
 tags: [council, decisions, multi-agent, review]
@@ -27,3 +27,4 @@ Tracks all System Council sessions — multi-agent review meetings where specs, 
 | 2026-03-28 | Communications Stack Architecture | architecture | APPROVE WITH CHANGES    | steward, supervisor, agent-coordinator, frontend-designer | ADR-0063: Comms consolidation                                        | Komm canonical, Chat frozen. 3 telemetry gaps (reactions, read, mute). queueMicrotask anti-pattern in CallRoom. 4x MessageBubble maintenance problem. AI integration gap (no ai_assistant channel type yet).                                                                                    |
 | 2026-03-28 | Chat→Komm Migration + i18n Sweep  | architecture | APPROVE WITH CHANGES    | steward, supervisor, agent-coordinator, frontend-explorer | ADR-0063 amendment pending                                           | Parallel table systems create hidden coupling through AI tools, mobile hooks, telemetry that survives UI deletion. ~90 hardcoded strings (3x initial estimate). Two tool sets for same domain (communication/ + channels.ts) — only one registered. useShiftChat blind spot in both web+mobile. |
 | 2026-03-28 | Dynamic Landing Engine Spec       | spec         | APPROVE WITH CHANGES    | steward, supervisor, agent-coordinator, frontend-designer | Pending: ADR-0057 (supersedes ADR-0046), ADR-0058 (conditional GSAP) | ADR-0046 block-builder silently superseded without declaration. Landing engine must be I1 consumer, not standalone data source. 300ms crossfade violates motion.md (500ms min entrance). GSAP/Framer transform boundary must be explicit. 7 landing tables in DB undocumented in DATABASE.md.   |
+| 2026-03-28 | Drift Insights Branch Review      | feature      | APPROVE WITH CHANGES    | steward, supervisor, frontend-designer                    | None                                                                 | i18n interpolation convention mismatch (`{x}` vs `{{x}}`) fails silently — no runtime error. Shared index files (decision log, learning log) must never be overwritten in feature branches. Hardcoded colors bypass OKLCH warm hue-shifting in dark mode.                                       |
