@@ -9,22 +9,76 @@ import {
   getDepartmentsForIndustry as getRawDepartments,
   getProceduresForIndustry as getRawProcedures,
 } from "@smartout/ai/industry";
-import { createClient } from "@smartout/supabase/client";
-import type { DepartmentOption, ProcedureData, ProfessionOption, PositionOption } from "../types";
+import type { DepartmentOption, PositionOption, ProcedureData } from "../types";
+import type { PositionTemplate } from "@smartout/types";
 
 /** Names that count as "opening" or "closing" procedures */
 const OPENING_NAMES = ["åpningsrutine", "innsjekk-rutine"];
 const CLOSING_NAMES = ["stengerutine", "lukkerutine", "utsjekk-rutine"];
 
+/** Tier thresholds — positions at or below this tier are pre-selected */
+function getMaxPreselectedTier(employeeCount: number): "basis" | "mid" | "specialist" {
+  if (employeeCount >= 16) return "specialist";
+  if (employeeCount >= 6) return "mid";
+  return "basis";
+}
+
+/** How many non-leader positions to pre-select per tier threshold */
+function getPreselectedCount(employeeCount: number): number {
+  if (employeeCount >= 30) return 6;
+  if (employeeCount >= 16) return 4;
+  if (employeeCount >= 6) return 3;
+  return 1;
+}
+
+const TIER_ORDER: Record<string, number> = { basis: 0, mid: 1, specialist: 2 };
+
+function buildPositionOptions(
+  templates: PositionTemplate[],
+  employeeCount: number,
+): PositionOption[] {
+  const maxTier = getMaxPreselectedTier(employeeCount);
+  const maxPreselected = getPreselectedCount(employeeCount);
+
+  const sorted = [...templates].sort((a, b) => TIER_ORDER[a.tier]! - TIER_ORDER[b.tier]!);
+
+  let nonLeaderCount = 0;
+  return sorted.map((t, i) => {
+    const withinTier = TIER_ORDER[t.tier]! <= TIER_ORDER[maxTier]!;
+    let selected: boolean;
+
+    if (t.isLeader) {
+      selected = withinTier;
+    } else {
+      selected = withinTier && nonLeaderCount < maxPreselected;
+      if (withinTier) nonLeaderCount++;
+    }
+
+    return {
+      id: `pos-${i}-${t.name.toLowerCase().replace(/\s/g, "-")}`,
+      name: t.name,
+      isLeader: t.isLeader,
+      selected,
+    };
+  });
+}
+
 /** Get departments mapped to onboarding wizard state shape */
-export function getDepartmentsForIndustry(naceCode: string): DepartmentOption[] {
+export function getDepartmentsForIndustry(naceCode: string, employeeCount = 5): DepartmentOption[] {
   const suggestions = getRawDepartments(naceCode);
   return suggestions.map((dept, i) => ({
     id: `dept-${i}`,
     name: dept.name,
     icon: dept.icon,
     selected: dept.preselected,
-    positions: dept.positions,
+    positions: dept.positionTemplates
+      ? buildPositionOptions(dept.positionTemplates, employeeCount)
+      : dept.positions.map((name, j) => ({
+          id: `pos-${j}-${name.toLowerCase().replace(/\s/g, "-")}`,
+          name,
+          isLeader: j === 0,
+          selected: true,
+        })),
   }));
 }
 
@@ -79,9 +133,7 @@ export {
 } from "@smartout/ai/industry";
 
 /** Fetch platform professions relevant for a NACE code from DB */
-export async function getProfessionsForIndustry(
-  naceCode: string,
-): Promise<ProfessionOption[]> {
+export async function getProfessionsForIndustry(naceCode: string): Promise<ProfessionOption[]> {
   const supabase = createClient();
 
   const { data: professions } = await supabase
@@ -97,13 +149,9 @@ export async function getProfessionsForIndustry(
     .select("profession_id")
     .eq("nace_code", naceCode);
 
-  const relevantIds = new Set(
-    industryLinks?.map((l) => l.profession_id) ?? [],
-  );
+  const relevantIds = new Set(industryLinks?.map((l) => l.profession_id) ?? []);
 
-  const filtered = professions.filter(
-    (p) => p.is_universal || relevantIds.has(p.profession_id),
-  );
+  const filtered = professions.filter((p) => p.is_universal || relevantIds.has(p.profession_id));
 
   return filtered.map((p) => ({
     id: p.profession_id,
@@ -116,10 +164,7 @@ export async function getProfessionsForIndustry(
 
 /** Map profession slug to default positions */
 function getDefaultPositionsForProfession(slug: string): PositionOption[] {
-  const PROFESSION_POSITION_MAP: Record<
-    string,
-    { name: string; preselected: boolean }[]
-  > = {
+  const PROFESSION_POSITION_MAP: Record<string, { name: string; preselected: boolean }[]> = {
     kjokken: [
       { name: "Kokk", preselected: true },
       { name: "Sous Chef", preselected: false },

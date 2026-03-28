@@ -81,7 +81,7 @@ export interface DepartmentOption {
   name: string;
   icon: string;
   selected: boolean;
-  positions: string[];
+  positions: PositionOption[];
 }
 
 /** Contract template state */
@@ -97,6 +97,14 @@ export interface ContractData {
 export interface ZoneData {
   id: string;
   name: string;
+}
+
+/** A position within a department — used in onboarding wizard */
+export interface PositionOption {
+  id: string;
+  name: string;
+  isLeader: boolean;
+  selected: boolean;
 }
 
 /** A physical location */

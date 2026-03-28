@@ -174,7 +174,11 @@
     "procedures_description": "Velg hvilke rutiner som skal aktiveres.",
     "summary_title": "Oppsummering",
     "summary_description": "Alt klart. Bekreft for å fullføre oppsettet.",
-    "finalize": "Fullfør oppsett"
+    "finalize": "Fullfør oppsett",
+    "positions_add": "Legg til",
+    "positions_custom": "Egendefinert...",
+    "positions_custom_placeholder": "Stillingstittel",
+    "positions_leader": "Leder"
   },
   "drawers": {
     "editDepartment": "Rediger avdeling",

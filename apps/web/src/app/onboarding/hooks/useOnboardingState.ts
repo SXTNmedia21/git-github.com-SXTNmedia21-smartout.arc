@@ -729,7 +729,12 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
     try {
       const selectedDepts = departments
         .filter((d) => d.selected)
-        .map((d) => ({ name: d.name, positions: d.positions }));
+        .map((d) => ({
+          name: d.name,
+          positions: d.positions
+            .filter((p) => p.selected)
+            .map((p) => ({ name: p.name, isLeader: p.isLeader })),
+        }));
 
       const selectedProcs = procedures.filter((p) => p.selected).map((p) => p.name);
 

@@ -7,7 +7,11 @@
  * Previously existed in three copies — now single source of truth.
  */
 
-import type { IndustrySuggestion, IndustryProcedureSuggestion } from "@smartout/types";
+import type {
+  IndustrySuggestion,
+  IndustryProcedureSuggestion,
+  PositionTemplate,
+} from "@smartout/types";
 
 /** NACE code lookup from common industry keywords */
 export const INDUSTRY_NACE_MAP: Record<string, string> = {
@@ -48,24 +52,71 @@ const DEPARTMENT_CONFIGS: Record<string, { name: string; icon: string; preselect
   ],
 };
 
-/**
- * @deprecated Use profession + position tables in DB instead.
- * Kept for backward compatibility with TeamSetupStep and getDepartmentsForIndustry.
- * Remove after migrating all consumers to DB-based profession data.
- */
-const POSITION_MAP: Record<string, string[]> = {
-  Kjøkken: ["Kokk", "Sous Chef", "Kjøkkenassistent"],
-  Sal: ["Servitør", "Hovmester"],
-  Bar: ["Bartender", "Barback"],
-  Ledelse: ["Daglig leder", "Skiftleder"],
-  Event: ["Eventkoordinator"],
-  Housekeeping: ["Renholder"],
-  Resepsjon: ["Resepsjonist", "Nattevakt"],
-  Restaurant: ["Servitør", "Kokk", "Hovmester"],
-  Spa: ["Terapeut", "Resepsjonist"],
-  Administrasjon: ["Leder", "Koordinator"],
-  Drift: ["Driftsansvarlig", "Tekniker"],
-  Kundeservice: ["Kundebehandler"],
+/** Tiered position registry — tier controls visibility by employee count */
+const POSITION_REGISTRY: Record<string, PositionTemplate[]> = {
+  Kjøkken: [
+    { name: "Kjøkkensjef", isLeader: true, tier: "basis" },
+    { name: "Kokk", isLeader: false, tier: "basis" },
+    { name: "Sous Chef", isLeader: false, tier: "mid" },
+    { name: "Kjøkkenassistent", isLeader: false, tier: "mid" },
+    { name: "Gardemanger", isLeader: false, tier: "specialist" },
+    { name: "Patissier", isLeader: false, tier: "specialist" },
+    { name: "Oppvaskhjelp", isLeader: false, tier: "specialist" },
+  ],
+  Sal: [
+    { name: "Hovmester", isLeader: true, tier: "basis" },
+    { name: "Servitør", isLeader: false, tier: "basis" },
+    { name: "Runner", isLeader: false, tier: "mid" },
+    { name: "Sommelier", isLeader: false, tier: "specialist" },
+    { name: "Vertinne", isLeader: false, tier: "specialist" },
+  ],
+  Bar: [
+    { name: "Bartender", isLeader: true, tier: "basis" },
+    { name: "Barback", isLeader: false, tier: "mid" },
+    { name: "Barsjef", isLeader: true, tier: "specialist" },
+  ],
+  Ledelse: [
+    { name: "Daglig leder", isLeader: true, tier: "basis" },
+    { name: "Skiftleder", isLeader: false, tier: "mid" },
+  ],
+  Event: [
+    { name: "Eventkoordinator", isLeader: true, tier: "basis" },
+    { name: "Eventmedarbeider", isLeader: false, tier: "mid" },
+  ],
+  Housekeeping: [
+    { name: "Renholder", isLeader: true, tier: "basis" },
+    { name: "Renholdsansvarlig", isLeader: true, tier: "specialist" },
+  ],
+  Resepsjon: [
+    { name: "Resepsjonist", isLeader: true, tier: "basis" },
+    { name: "Nattevakt", isLeader: false, tier: "mid" },
+  ],
+  Restaurant: [
+    { name: "Hovmester", isLeader: true, tier: "basis" },
+    { name: "Servitør", isLeader: false, tier: "basis" },
+    { name: "Kokk", isLeader: false, tier: "basis" },
+  ],
+  Spa: [
+    { name: "Terapeut", isLeader: true, tier: "basis" },
+    { name: "Resepsjonist", isLeader: false, tier: "mid" },
+  ],
+  Administrasjon: [
+    { name: "Leder", isLeader: true, tier: "basis" },
+    { name: "Koordinator", isLeader: false, tier: "mid" },
+  ],
+  Drift: [
+    { name: "Driftsansvarlig", isLeader: true, tier: "basis" },
+    { name: "Tekniker", isLeader: false, tier: "mid" },
+  ],
+  Kundeservice: [{ name: "Kundebehandler", isLeader: true, tier: "basis" }],
+  Catering: [
+    { name: "Cateringsjef", isLeader: true, tier: "basis" },
+    { name: "Cateringmedarbeider", isLeader: false, tier: "mid" },
+  ],
+  Levering: [
+    { name: "Sjåfør", isLeader: true, tier: "basis" },
+    { name: "Leveringskoordinator", isLeader: true, tier: "specialist" },
+  ],
 };
 
 /** Procedure templates per NACE code */
@@ -109,16 +160,14 @@ export function getDepartmentsForIndustry(naceCode: string): IndustrySuggestion[
     name: dept.name,
     icon: dept.icon,
     preselected: dept.preselected,
-    positions: POSITION_MAP[dept.name] ?? [],
+    positions: (POSITION_REGISTRY[dept.name] ?? []).map((p) => p.name),
+    positionTemplates: POSITION_REGISTRY[dept.name] ?? [],
   }));
 }
 
-/**
- * @deprecated Use profession + position tables in DB instead.
- * Kept for backward compatibility with TeamSetupStep.
- */
-export function getPositionsForDepartment(departmentName: string): string[] {
-  return POSITION_MAP[departmentName] ?? [];
+/** Get tiered position templates for a department */
+export function getPositionsForDepartment(departmentName: string): PositionTemplate[] {
+  return POSITION_REGISTRY[departmentName] ?? [];
 }
 
 /** Get suggested procedures for a NACE code */

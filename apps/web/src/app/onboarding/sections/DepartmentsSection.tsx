@@ -90,7 +90,7 @@ export function DepartmentsSection() {
                   dept.selected ? "bg-white/10 text-white/60" : "bg-white/[0.04] text-white/20"
                 }`}
               >
-                {dept.positions.length}
+                {dept.positions.filter((p) => p.selected).length}
               </span>
             </motion.button>
           ))}

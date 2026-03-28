@@ -174,7 +174,11 @@
     "procedures_description": "Choose which routines to enable.",
     "summary_title": "Summary",
     "summary_description": "All set. Confirm to finalize your workspace setup.",
-    "finalize": "Finalize Setup"
+    "finalize": "Finalize Setup",
+    "positions_add": "Add",
+    "positions_custom": "Custom...",
+    "positions_custom_placeholder": "Position title",
+    "positions_leader": "Leader"
   },
   "drawers": {
     "editDepartment": "Edit Department",
