@@ -33,6 +33,7 @@ import { DENSITY_DIMENSIONS, DEFAULT_VOICE_TUNING, DEFAULT_VOICE_ID } from "./ty
 import { buildPersonaPrompt, identityLabel } from "./persona-engine";
 import { buildWalkAiToolKit, type ViewActions, type ScheduledTask } from "./walkai-tools";
 import { SCHEDULE_TOOL_DEFINITIONS } from "@/app/dashboard/schedule/_hooks/schedule-tool-definitions";
+import { useEntityDrawer } from "@/components/dashboard/entity-drawer/EntityDrawerContext";
 import { useEmmaTelemetry, buildTelemetrySummary, type TelemetryEntry } from "./emma-awareness";
 import { useRegisteredTools } from "./tool-registry";
 import { useEmmaTriggeredTasks } from "./use-emma-tasks";
@@ -586,6 +587,9 @@ export function WalkAiProvider({
   const personaPrompt = useMemo(() => buildPersonaPrompt(identity), [identity]);
   const identityDisplay = useMemo(() => identityLabel(identity), [identity]);
 
+  /* ━━━ Entity drawer bridge — lets Emma open entity panels ━━━ */
+  const { openDrawer } = useEntityDrawer();
+
   /* ━━━ View actions ref — lets tool impls morph the view ━━━ */
   const viewActionsRef = useRef<ViewActions | null>(null);
 
@@ -923,12 +927,15 @@ export function WalkAiProvider({
       collapseArena: () => dispatch({ type: "SET_DENSITY", density: "orb" }),
       getDensity: () => densityRef.current,
       navigateTo: (path: string) => routerRef.current.push(path),
+      openEntityDrawer: (entityType: string, entityId: string) => {
+        openDrawer(entityType as Parameters<typeof openDrawer>[0], entityId);
+      },
       completeTask: (taskId: string) => completeTaskRef.current(taskId),
       updateTask: (taskId: string, updates) => updateTaskRef.current(taskId, updates),
       reorderTask: (taskId: string, newPos: number) => reorderTaskRef.current(taskId, newPos),
       getTasks: () => tasksRef.current,
     };
-  }, [switchView, activeView, workspaceId, state.density, tasks]);
+  }, [switchView, activeView, workspaceId, state.density, tasks, openDrawer]);
   const setPosition = useCallback(
     (position: WalkAiPosition) => dispatch({ type: "SET_POSITION", position }),
     [],

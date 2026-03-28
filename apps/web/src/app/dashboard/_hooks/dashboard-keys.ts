@@ -89,4 +89,17 @@ export const dashboardKeys = {
   websitePages: (websiteId: string) => ["dashboard", "website-pages", websiteId] as const,
 
   websiteSections: (pageId: string) => ["dashboard", "website-sections", pageId] as const,
+
+  // Entity Drawer
+  drawerDepartment: (wsId: string, id: string) =>
+    ["dashboard", "entity-drawer", "department", wsId, id] as const,
+
+  drawerShift: (wsId: string, id: string) =>
+    ["dashboard", "entity-drawer", "shift", wsId, id] as const,
+
+  drawerProfile: (wsId: string, id: string) =>
+    ["dashboard", "entity-drawer", "profile", wsId, id] as const,
+
+  drawerSession: (wsId: string, id: string) =>
+    ["dashboard", "entity-drawer", "session", wsId, id] as const,
 };

@@ -10,52 +10,47 @@ import { Loader2 } from "lucide-react";
 import { useTranslation } from "@smartout/i18n";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
+import { dashboardKeys } from "@/app/dashboard/_hooks/dashboard-keys";
 
-export function DepartmentDetailTab({ departmentId }: { departmentId: string }) {
+export function DepartmentDetailTab({ entityId }: { entityId: string }) {
   const { t } = useTranslation("dashboard");
   const ctx = useWorkspaceOptional();
   const wsId = ctx?.workspace.workspace_id;
   const supabase = createClient();
 
   const { data, isLoading } = useQuery({
-    queryKey: ["entity-drawer", "department", wsId, departmentId],
+    queryKey: dashboardKeys.drawerDepartment(wsId!, entityId),
     queryFn: async () => {
       const [deptRes, profilesRes, hoursRes] = await Promise.all([
         supabase
           .from("department")
-          .select("department_id, name, is_active, manager_profile_id, color")
-          .eq("department_id", departmentId)
+          .select(
+            "department_id, name, is_active, manager_profile_id, color, manager:profile!manager_profile_id(display_name)",
+          )
+          .eq("department_id", entityId)
           .single(),
         supabase
           .from("profile")
           .select("profile_id")
           .eq("workspace_id", wsId!)
-          .eq("department_id", departmentId)
+          .eq("department_id", entityId)
           .eq("is_active", true),
         supabase
           .from("department_operating_hours")
           .select("day_of_week, open_time, close_time, is_closed")
-          .eq("department_id", departmentId),
+          .eq("department_id", entityId),
       ]);
 
-      let managerName: string | null = null;
-      if (deptRes.data?.manager_profile_id) {
-        const { data: mgr } = await supabase
-          .from("profile")
-          .select("display_name")
-          .eq("profile_id", deptRes.data.manager_profile_id)
-          .single();
-        managerName = mgr?.display_name ?? null;
-      }
+      const manager = deptRes.data?.manager as { display_name: string } | null;
 
       return {
         department: deptRes.data,
         employeeCount: profilesRes.data?.length ?? 0,
         hours: hoursRes.data ?? [],
-        managerName,
+        managerName: manager?.display_name ?? null,
       };
     },
-    enabled: !!wsId && !!departmentId,
+    enabled: !!wsId && !!entityId,
     staleTime: 30_000,
   });
 
@@ -74,14 +69,12 @@ export function DepartmentDetailTab({ departmentId }: { departmentId: string }) 
     <div className="space-y-4 p-4">
       {/* Status */}
       <div>
-        <div className="mb-1 text-[9px] font-bold uppercase tracking-wider text-white/30">
+        <div className="mb-1 text-[9px] font-bold tracking-wider text-white/30 uppercase">
           {t("entity_drawer.department_status")}
         </div>
         <span
           className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-semibold ${
-            dept.is_active
-              ? "bg-emerald-500/10 text-emerald-400"
-              : "bg-white/[0.06] text-white/40"
+            dept.is_active ? "bg-emerald-500/10 text-emerald-400" : "bg-white/[0.06] text-white/40"
           }`}
         >
           <span
@@ -94,7 +87,7 @@ export function DepartmentDetailTab({ departmentId }: { departmentId: string }) 
       {/* Manager */}
       {data.managerName && (
         <div>
-          <div className="mb-1 text-[9px] font-bold uppercase tracking-wider text-white/30">
+          <div className="mb-1 text-[9px] font-bold tracking-wider text-white/30 uppercase">
             {t("entity_drawer.department_manager")}
           </div>
           <div className="flex items-center gap-2">
@@ -113,7 +106,7 @@ export function DepartmentDetailTab({ departmentId }: { departmentId: string }) 
       {/* Hours */}
       {weekdayHours && (
         <div>
-          <div className="mb-1 text-[9px] font-bold uppercase tracking-wider text-white/30">
+          <div className="mb-1 text-[9px] font-bold tracking-wider text-white/30 uppercase">
             {t("entity_drawer.department_hours")}
           </div>
           <span className="font-mono text-[13px] text-white/80">
@@ -129,7 +122,10 @@ export function DepartmentDetailTab({ departmentId }: { departmentId: string }) 
           <div className="text-[10px] text-white/30">{t("entity_drawer.department_employees")}</div>
         </div>
         <div className="rounded-[10px] border border-white/[0.07] bg-white/[0.03] p-3">
-          <div className="font-mono text-lg font-bold text-white" style={{ color: dept.color ?? undefined }}>
+          <div
+            className="font-mono text-lg font-bold text-white"
+            style={{ color: dept.color ?? undefined }}
+          >
             {dept.name.charAt(0)}
           </div>
           <div className="text-[10px] text-white/30">{dept.name}</div>
