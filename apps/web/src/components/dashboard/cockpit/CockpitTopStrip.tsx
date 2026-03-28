@@ -11,6 +11,7 @@
 import { AlertTriangle, Clock3, ShieldAlert, Users } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { getSeverityToneStyles, type CockpitSeverityTone } from "./severity-styles";
 
 type CockpitTopStripProps = {
   isLoading: boolean;
@@ -64,28 +65,28 @@ export function CockpitTopStrip({
       label: "On duty",
       value: onDutyCount,
       icon: Users,
-      valueClassName: "text-foreground",
+      tone: "neutral" as CockpitSeverityTone,
     },
     {
       id: "critical",
       label: "Critical now",
       value: criticalCount,
       icon: ShieldAlert,
-      valueClassName: "text-red-500",
+      tone: "critical" as CockpitSeverityTone,
     },
     {
       id: "warning",
       label: "Watch list",
       value: warningCount,
       icon: AlertTriangle,
-      valueClassName: "text-orange-500",
+      tone: "warning" as CockpitSeverityTone,
     },
     {
       id: "activity",
       label: "Feed events",
       value: eventCount,
       icon: Clock3,
-      valueClassName: "text-blue-500",
+      tone: "info" as CockpitSeverityTone,
     },
   ] as const;
 
@@ -110,10 +111,12 @@ export function CockpitTopStrip({
               key={metric.id}
               className="bg-muted/40 border-border/60 flex items-center gap-3 rounded-lg border px-3 py-2.5"
             >
-              <metric.icon className="text-muted-foreground h-4 w-4 shrink-0" />
+              <metric.icon
+                className={`h-4 w-4 shrink-0 ${getSeverityToneStyles(metric.tone).icon}`}
+              />
               <div className="min-w-0">
                 <p
-                  className={`text-lg leading-none font-bold tabular-nums ${metric.valueClassName}`}
+                  className={`text-lg leading-none font-bold tabular-nums ${getSeverityToneStyles(metric.tone).text}`}
                 >
                   {isLoading ? "--" : metric.value}
                 </p>

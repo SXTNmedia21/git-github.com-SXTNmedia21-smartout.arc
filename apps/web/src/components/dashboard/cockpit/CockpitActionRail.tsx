@@ -9,10 +9,12 @@
 // ============================================
 
 import { ArrowRight, CalendarClock, ListChecks, Siren, Users } from "lucide-react";
+import Link from "next/link";
 import type { OperationalRisk, StaffingRisk } from "@/app/dashboard/_lib/cockpit/risk-priority";
 import type { LiveShiftEntry } from "@/app/dashboard/_hooks/use-live-shifts";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getSeverityToneStyles } from "./severity-styles";
 
 type CockpitActionRailProps = {
   staffingQueue: StaffingRisk[];
@@ -29,24 +31,6 @@ type ActionItem = {
   tone: "critical" | "warning" | "neutral";
   icon: typeof Siren;
 };
-
-/**
- * Maps action tone to visual token classes.
- *
- * Why: The action rail should make urgency visible without noisy styling.
- *
- * @param tone - Urgency tone for one action row.
- * @returns Tailwind classes for the tone chip.
- */
-function getToneClasses(tone: ActionItem["tone"]): string {
-  if (tone === "critical") {
-    return "border-red-500/30 bg-red-500/10 text-red-500";
-  }
-  if (tone === "warning") {
-    return "border-orange-500/30 bg-orange-500/10 text-orange-500";
-  }
-  return "border-border bg-muted/50 text-muted-foreground";
-}
 
 /**
  * Builds prioritized first-screen actions from current cockpit signals.
@@ -145,7 +129,7 @@ export function CockpitActionRail({
                 <div className="mb-2 flex items-center gap-2">
                   <action.icon className="text-muted-foreground h-4 w-4" />
                   <span
-                    className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold ${getToneClasses(action.tone)}`}
+                    className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold ${getSeverityToneStyles(action.tone).badge}`}
                   >
                     {action.tone}
                   </span>
@@ -153,10 +137,10 @@ export function CockpitActionRail({
                 <p className="text-sm font-semibold">{action.label}</p>
                 <p className="text-muted-foreground mt-1 text-xs">{action.description}</p>
                 <Button asChild variant="ghost" className="mt-2 h-7 px-0 text-xs font-semibold">
-                  <a href={action.href}>
+                  <Link href={action.href}>
                     Open
                     <ArrowRight className="h-3.5 w-3.5" />
-                  </a>
+                  </Link>
                 </Button>
               </div>
             ))

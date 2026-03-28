@@ -4,11 +4,15 @@ import { useCallback, useContext, useState } from "react";
 import dynamic from "next/dynamic";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { DailyStatusBar } from "./DailyStatusBar";
-import { HospitalityOperationsCockpit } from "./cockpit/HospitalityOperationsCockpit";
 import { ScheduleUIProvider } from "@/app/dashboard/schedule/_components/schedule-ui-context";
 import { DayControlSheet, DayControlPanel } from "@/app/dashboard/schedule/_components/day-control";
 import { TodoTaskView } from "@/app/dashboard/_components/todo/TodoTaskView";
 
+const HospitalityOperationsCockpit = dynamic(() =>
+  import("./cockpit/HospitalityOperationsCockpit").then((m) => ({
+    default: m.HospitalityOperationsCockpit,
+  })),
+);
 const StrategicView = dynamic(() =>
   import("./StrategicView").then((m) => ({ default: m.StrategicView })),
 );

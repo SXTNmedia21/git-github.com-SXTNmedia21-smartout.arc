@@ -11,6 +11,7 @@
 import type { CockpitEventEnvelope } from "@smartout/types";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getSeverityToneStyles } from "./severity-styles";
 
 type CockpitActivityFeedProps = {
   feed: CockpitEventEnvelope[];
@@ -31,24 +32,6 @@ function formatTime(occurredAt: string): string {
     return "--:--";
   }
   return parsed.toLocaleTimeString("nb-NO", { hour: "2-digit", minute: "2-digit" });
-}
-
-/**
- * Maps event severity to stable visual token classes.
- *
- * Why: A shared map keeps severity emphasis consistent in all feed rows.
- *
- * @param severity - Event severity value.
- * @returns Tailwind classes for severity badge.
- */
-function severityClasses(severity: CockpitEventEnvelope["severity"]): string {
-  if (severity === "critical") {
-    return "border-red-500/30 bg-red-500/10 text-red-500";
-  }
-  if (severity === "warning") {
-    return "border-orange-500/30 bg-orange-500/10 text-orange-500";
-  }
-  return "border-blue-500/30 bg-blue-500/10 text-blue-500";
 }
 
 /**
@@ -87,7 +70,7 @@ export function CockpitActivityFeed({ feed, isLoading }: CockpitActivityFeedProp
                   <span className="text-muted-foreground text-xs tabular-nums">
                     {formatTime(event.occurredAt)}
                   </span>
-                  <Badge variant="outline" className={severityClasses(event.severity)}>
+                  <Badge variant="outline" className={getSeverityToneStyles(event.severity).badge}>
                     {event.severity}
                   </Badge>
                 </div>

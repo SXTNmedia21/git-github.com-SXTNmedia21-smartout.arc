@@ -11,6 +11,7 @@
 import type { LiveShiftEntry } from "@/app/dashboard/_hooks/use-live-shifts";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getSeverityToneStyles, type CockpitSeverityTone } from "./severity-styles";
 
 type CockpitOnDutyProgressProps = {
   entries: LiveShiftEntry[];
@@ -25,17 +26,17 @@ type CockpitOnDutyProgressProps = {
  * @param status - Shift live status.
  * @returns Tailwind classes for status badge rendering.
  */
-function getStatusClasses(status: LiveShiftEntry["status"]): string {
+function getStatusTone(status: LiveShiftEntry["status"]): CockpitSeverityTone {
   if (status === "late") {
-    return "border-red-500/30 bg-red-500/10 text-red-500";
+    return "critical";
   }
   if (status === "waiting") {
-    return "border-orange-500/30 bg-orange-500/10 text-orange-500";
+    return "warning";
   }
   if (status === "on_break") {
-    return "border-blue-500/30 bg-blue-500/10 text-blue-500";
+    return "info";
   }
-  return "border-emerald-500/30 bg-emerald-500/10 text-emerald-500";
+  return "good";
 }
 
 /**
@@ -121,7 +122,10 @@ export function CockpitOnDutyProgress({ entries, isLoading }: CockpitOnDutyProgr
                         Start {entry.startTime}
                       </span>
                     ) : null}
-                    <Badge variant="outline" className={getStatusClasses(entry.status)}>
+                    <Badge
+                      variant="outline"
+                      className={getSeverityToneStyles(getStatusTone(entry.status)).badge}
+                    >
                       {entry.status.replace("_", " ")}
                     </Badge>
                   </div>

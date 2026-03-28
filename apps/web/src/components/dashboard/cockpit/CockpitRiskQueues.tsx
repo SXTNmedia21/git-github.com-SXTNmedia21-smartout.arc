@@ -12,30 +12,13 @@ import { AlertTriangle, ShieldAlert } from "lucide-react";
 import type { OperationalRisk, StaffingRisk } from "@/app/dashboard/_lib/cockpit/risk-priority";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getSeverityToneStyles } from "./severity-styles";
 
 type CockpitRiskQueuesProps = {
   staffingQueue: StaffingRisk[];
   operationalQueue: OperationalRisk[];
   isLoading: boolean;
 };
-
-/**
- * Returns badge classes for risk severity tokens.
- *
- * Why: Shared risk rendering should use one deterministic visual mapping.
- *
- * @param severity - Risk severity value.
- * @returns Tailwind classes matching the severity level.
- */
-function getSeverityClasses(severity: "critical" | "warning" | "info"): string {
-  if (severity === "critical") {
-    return "border-red-500/30 bg-red-500/10 text-red-500";
-  }
-  if (severity === "warning") {
-    return "border-orange-500/30 bg-orange-500/10 text-orange-500";
-  }
-  return "border-blue-500/30 bg-blue-500/10 text-blue-500";
-}
 
 /**
  * Humanizes one staffing risk row for queue output.
@@ -91,9 +74,9 @@ function QueueCard({
         <CardTitle className="text-base font-semibold">
           <span className="flex items-center gap-2">
             {icon === "staffing" ? (
-              <AlertTriangle className="h-4 w-4 text-orange-500" />
+              <AlertTriangle className={`h-4 w-4 ${getSeverityToneStyles("warning").icon}`} />
             ) : (
-              <ShieldAlert className="h-4 w-4 text-red-500" />
+              <ShieldAlert className={`h-4 w-4 ${getSeverityToneStyles("critical").icon}`} />
             )}
             {title}
           </span>
@@ -111,7 +94,7 @@ function QueueCard({
               className="border-border bg-muted/30 flex items-start justify-between gap-2 rounded-lg border px-3 py-2.5"
             >
               <p className="text-sm font-medium">{row.summary}</p>
-              <Badge variant="outline" className={getSeverityClasses(row.severity)}>
+              <Badge variant="outline" className={getSeverityToneStyles(row.severity).badge}>
                 {row.severity}
               </Badge>
             </div>
