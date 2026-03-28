@@ -1,0 +1,172 @@
+{
+  "shell": {
+    "title": "Komm",
+    "empty_state": "Velg en kanal eller person for å begynne",
+    "connection_error": "Kunne ikke koble til samtale",
+    "retry": "Prøv igjen",
+    "loading_profile": "Laster profil..."
+  },
+  "tabs": {
+    "channels": "Kanaler",
+    "chat": "Chat",
+    "news": "Nyheter"
+  },
+  "channel": {
+    "header": "Kanaler",
+    "search_placeholder": "Søk i kanaler...",
+    "empty": "Ingen kanaler ennå",
+    "direct_message": "Direktemelding",
+    "default_name": "Kanal",
+    "member_one": "{{count}} medlem",
+    "member_other": "{{count}} medlemmer",
+    "no_messages": "Ingen meldinger ennå",
+    "yesterday": "I går"
+  },
+  "channel_type": {
+    "department": "Avdelinger",
+    "team": "Team",
+    "session": "Sesjoner",
+    "channel": "Kanaler",
+    "direct": "Direktemeldinger",
+    "news": "Nyheter",
+    "skill": "Ferdigheter"
+  },
+  "create": {
+    "title": "Opprett kanal",
+    "description": "Opprett en gruppekanal eller start en direktemelding.",
+    "type_label": "Type",
+    "channel_option": "Kanal",
+    "channel_sublabel": "Gruppesamtale for teamet",
+    "direct_option": "Direkte",
+    "direct_sublabel": "1-til-1 melding",
+    "name_label": "Navn",
+    "name_placeholder": "f.eks. #kjøkkenet",
+    "select_person": "Velg person",
+    "filter_placeholder": "Filtrer etter navn...",
+    "loading": "Laster...",
+    "no_members_found": "Ingen medarbeidere funnet",
+    "unknown": "Ukjent",
+    "cancel": "Avbryt",
+    "creating": "Oppretter...",
+    "submit": "Opprett",
+    "error": "Kunne ikke opprette kanal"
+  },
+  "message": {
+    "placeholder": "Skriv en melding...",
+    "deleted": "Melding slettet",
+    "edited": "(redigert)",
+    "unknown_sender": "Ukjent",
+    "reply_to": "Svarer {{name}}",
+    "empty_state": "Ingen meldinger ennå. Start samtalen!",
+    "send_error": "Kunne ikke sende melding",
+    "attachment_coming_soon": "{{key}} — kommer snart!"
+  },
+  "member": {
+    "header": "Medlemmer",
+    "unknown": "Ukjent",
+    "you_suffix": "(deg)",
+    "mute_aria": "Demp {{name}}",
+    "participant_fallback": "deltaker",
+    "add_error": "Kunne ikke legge til medlem",
+    "remove_error": "Kunne ikke fjerne medlem"
+  },
+  "chat_list": {
+    "filter_placeholder": "Filtrer etter navn...",
+    "all_members": "Alle medarbeidere",
+    "unknown": "Ukjent"
+  },
+  "call": {
+    "header": "Samtale aktiv",
+    "hide_chat": "Skjul chat",
+    "show_chat": "Vis chat",
+    "minimize": "Minimer",
+    "expand": "Utvid",
+    "disconnect": "Avslutt samtale",
+    "chat_panel": "Chat",
+    "close_chat": "Lukk chat",
+    "participant_joined": "{{name}} ble med i samtalen",
+    "participant_left": "{{name}} forlot samtalen",
+    "join_call": "Bli med i samtale",
+    "start_call": "Start samtale",
+    "active_call": "Pågående samtale ({{count}} deltakere)",
+    "join": "Bli med",
+    "start_error": "Kunne ikke starte samtale",
+    "invite_error": "Kunne ikke svare på samtale",
+    "loading_history": "Laster samtalehistorikk...",
+    "no_history": "Ingen tidligere samtaler",
+    "in_call": "{{count}} i samtale",
+    "mute_error": "Kunne ikke dempe deltaker"
+  },
+  "incoming_call": {
+    "ringing": "Ringer deg...",
+    "reject_aria": "Avslå anrop",
+    "accept_aria": "Svar på anrop"
+  },
+  "helpdesk": {
+    "ask_botsson": "Spør Botsson",
+    "ai_assistant": "AI-assistent",
+    "report_problem": "Meld problem",
+    "to_manager": "Til leder",
+    "find_manual": "Finn manual",
+    "search_handbook": "Søk i håndboken",
+    "call_manager": "Ring leder",
+    "direct_contact": "Direkte kontakt",
+    "dialog_title": "Trenger du hjelp?",
+    "subject_label": "Hva trenger du hjelp med?",
+    "subject_placeholder": "f.eks. Oppvaskmaskin lekker",
+    "description_label": "Beskrivelse (valgfritt)",
+    "description_placeholder": "Beskriv problemet...",
+    "back": "Tilbake",
+    "submit": "Send henvendelse",
+    "my_requests": "Mine henvendelser",
+    "loading": "Laster...",
+    "no_requests": "Ingen henvendelser ennå",
+    "status_open": "Åpen",
+    "status_in_progress": "Under arbeid",
+    "status_resolved": "Løst",
+    "status_closed": "Lukket",
+    "create_success": "Henvendelse opprettet",
+    "create_error": "Kunne ikke opprette henvendelse"
+  },
+  "news": {
+    "empty_no_channel": "Ingen nyhetskanal ennå",
+    "empty_no_messages": "Ingen nyheter ennå"
+  },
+  "time": {
+    "just_now": "Akkurat nå",
+    "hours_ago": "{{count}}t siden",
+    "yesterday": "I går",
+    "days_ago": "{{count}} dager siden"
+  },
+  "ptt": {
+    "release_to_stop": "Slipper for å stoppe",
+    "hold_to_talk": "Hold for å snakke (mellomrom)"
+  },
+  "attachment": {
+    "images": "Bilder",
+    "task": "Oppgave",
+    "procedure": "Prosedyre",
+    "link": "Lenke",
+    "training": "Opplæring",
+    "quiz": "Quiz",
+    "roadmap": "Veikart",
+    "shortcut": "Snarvei"
+  },
+  "knowledge": {
+    "procedure": "Prosedyre",
+    "manual": "Manual",
+    "quiz": "Quiz",
+    "training": "Opplæring",
+    "task": "Oppgave",
+    "roadmap": "Veikart",
+    "open_action": "Åpne {{type}} →"
+  },
+  "system_message": {
+    "system": "System",
+    "briefing": "Briefing",
+    "handover": "Overlevering",
+    "announcement": "Kunngjøring",
+    "reminder": "Påminnelse",
+    "summary": "Oppsummering"
+  }
+}

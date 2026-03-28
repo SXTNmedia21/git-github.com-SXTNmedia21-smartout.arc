@@ -226,7 +226,7 @@ const DASHBOARD_PAGES: Record<string, { path: string; label: string }> = {
   reports: { path: "/dashboard/reports", label: "Rapporter" },
   close: { path: "/dashboard/close", label: "Dagsslutt" },
   settings: { path: "/dashboard/settings", label: "Innstillinger" },
-  chat: { path: "/dashboard/chat", label: "Chat" },
+  komm: { path: "/dashboard/komm", label: "Kommunikasjon" },
   help: { path: "/dashboard/help", label: "Hjelp" },
 };
 
@@ -237,7 +237,7 @@ const navigatePageDef: ClientToolDefinition = {
       "Navigate the user to a different page in the dashboard. " +
       "Use when the user says 'gå til vaktplanen', 'vis ansatte', 'åpne rapporter', or similar. " +
       "Available pages: dashboard, schedule, my-schedule, operations, people, organization, " +
-      "season, handbook, governance, my-training, reconciliation, reports, close, settings, chat, help. " +
+      "season, handbook, governance, my-training, reconciliation, reports, close, settings, komm, help. " +
       "After navigating, briefly confirm where you went.",
     dynamicParameters: [
       {

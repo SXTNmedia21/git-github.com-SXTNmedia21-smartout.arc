@@ -40,7 +40,7 @@ const ROUTE_MISSION_MAP: Record<string, MissionId> = {
   "/dashboard/schedule": "shift-assistant",
   "/dashboard/hms": "haccp-inspector",
   "/dashboard/operations": "mr-botsson",
-  "/dashboard/chat": "mr-botsson",
+  "/dashboard/komm": "mr-botsson",
   "/dashboard/people": "mr-botsson",
   "/dashboard/reports": "mr-botsson",
   "/dashboard/season": "mr-botsson",
@@ -761,10 +761,10 @@ export function DashboardShell({
         expectedPathname: "/dashboard/organization",
       },
       {
-        id: "chat",
-        label: "Open team chat",
-        selector: '[data-autoplay="nav-/dashboard/chat"]',
-        expectedPathname: "/dashboard/chat",
+        id: "komm",
+        label: "Open team communication",
+        selector: '[data-autoplay="nav-/dashboard/komm"]',
+        expectedPathname: "/dashboard/komm",
       },
       {
         id: "ai",
@@ -1509,15 +1509,6 @@ export function DashboardShell({
                         isCollapsed={isSidebarCollapsed}
                       />
                       <NavItem
-                        href="/dashboard/chat"
-                        icon={MessageSquare}
-                        label="Chat"
-                        isDark={isDark}
-                        badge="3"
-                        active={isActive("/dashboard/chat")}
-                        isCollapsed={isSidebarCollapsed}
-                      />
-                      <NavItem
                         href="/dashboard/ai"
                         icon={Bot}
                         label="Mr. Botsson"
@@ -1647,7 +1638,7 @@ export function DashboardShell({
                             organization: "Organisasjon",
                             settings: "Innstillinger",
                             help: "Hjelp",
-                            chat: "Chat",
+                            komm: "Komm",
                             ai: "Mr. Botsson",
                             "onboarding-assistant": "Onboarding-assistent",
                             "my-schedule": "Min vaktplan",

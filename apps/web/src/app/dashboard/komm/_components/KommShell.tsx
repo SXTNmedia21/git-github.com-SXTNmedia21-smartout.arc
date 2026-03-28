@@ -24,6 +24,7 @@ import { IncomingCallOverlay } from "./IncomingCallOverlay";
 import { CallRoom } from "./CallRoom";
 import { MessageSquare } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "@smartout/i18n";
 
 type LiveKitConnection = {
   serverUrl: string;
@@ -31,6 +32,7 @@ type LiveKitConnection = {
 };
 
 export function KommShell({ profileId }: { profileId: string }) {
+  const { t } = useTranslation("komm");
   const { workspace } = useWorkspace();
   const workspaceId = workspace.workspace_id;
   const [activeTab, setActiveTab] = useState<KommTab>("kanaler");
@@ -63,9 +65,9 @@ export function KommShell({ profileId }: { profileId: string }) {
       });
       setLivekitConnection({ serverUrl, token });
     } catch {
-      toast.error("Kunne ikke koble til samtale");
+      toast.error(t("shell.connection_error"));
     }
-  }, [activeChannelId, workspaceId]);
+  }, [activeChannelId, workspaceId, t]);
 
   const handleAcceptCall = useCallback(async () => {
     if (!incomingCall) return;
@@ -84,14 +86,14 @@ export function KommShell({ profileId }: { profileId: string }) {
       });
       setLivekitConnection({ serverUrl, token });
     } catch {
-      toast.error("Kunne ikke koble til samtale", {
+      toast.error(t("shell.connection_error"), {
         action: {
-          label: "Prøv igjen",
+          label: t("shell.retry"),
           onClick: () => void handleJoinCall(),
         },
       });
     }
-  }, [incomingCall, callInvite, profileId, dismissIncoming, workspaceId, handleJoinCall]);
+  }, [incomingCall, callInvite, profileId, dismissIncoming, workspaceId, handleJoinCall, t]);
 
   const handleRejectCall = useCallback(() => {
     if (!incomingCall) return;
@@ -143,7 +145,7 @@ export function KommShell({ profileId }: { profileId: string }) {
       {/* Left panel: sub-tabs + list */}
       <div className="bg-card flex w-80 flex-shrink-0 flex-col border-r">
         <div className="flex items-center justify-between border-b px-4 py-2.5">
-          <h2 className="text-base font-semibold">Komm</h2>
+          <h2 className="text-base font-semibold">{t("shell.title")}</h2>
         </div>
         <SubTabs
           activeTab={activeTab}
@@ -217,9 +219,7 @@ export function KommShell({ profileId }: { profileId: string }) {
         ) : (
           <div className="flex flex-1 flex-col items-center justify-center gap-3">
             <MessageSquare className="text-muted-foreground/40 h-12 w-12" />
-            <p className="text-muted-foreground text-sm">
-              Velg en kanal eller person for å begynne
-            </p>
+            <p className="text-muted-foreground text-sm">{t("shell.empty_state")}</p>
           </div>
         )}
       </div>

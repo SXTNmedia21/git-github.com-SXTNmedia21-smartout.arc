@@ -15,7 +15,7 @@ const suggestTools = [sendMessage] as unknown as ReadonlyArray<SmartoutTool<Agen
 
 export const communicationCapability: CapabilityDefinition = {
   name: "communication",
-  description: "Chat messaging: conversations, unread counts, and message sending",
+  description: "Channel messaging: conversations, unread counts, and message sending",
   tools: allTools,
   readOnlyTools,
   suggestTools,
