@@ -170,12 +170,14 @@ function StepContent({
   step,
   stepIndex,
   totalSteps,
+  t,
   onPrev,
   onNext,
 }: {
   step: ProcedureStepWithTraining;
   stepIndex: number;
   totalSteps: number;
+  t: (key: string) => string;
   onPrev: () => void;
   onNext: () => void;
 }) {
@@ -185,11 +187,11 @@ function StepContent({
       <div className="border-b border-inherit p-4">
         <div className="mb-1 flex items-center gap-2">
           <Badge variant="outline" className="text-xs">
-            {STRINGS.stepOf} {stepIndex + 1}/{totalSteps}
+            {t("hms.learn_flow.step_of")} {stepIndex + 1}/{totalSteps}
           </Badge>
           {step.isRequired && (
             <Badge variant="secondary" className="text-xs">
-              Pakrevd
+              {t("hms.learn_flow.required")}
             </Badge>
           )}
           {step.estimatedMinutes && (
@@ -234,7 +236,7 @@ function StepContent({
         {/* AI placeholder */}
         <Button variant="ghost" size="sm" disabled className="text-muted-foreground">
           <Sparkles className="mr-1.5 h-3.5 w-3.5" />
-          {STRINGS.explainSimpler}
+          {t("hms.learn_flow.explain_simpler")}
         </Button>
       </div>
 
@@ -242,10 +244,10 @@ function StepContent({
       <div className="flex items-center justify-between border-t border-inherit p-4">
         <Button variant="outline" size="sm" onClick={onPrev} disabled={stepIndex === 0}>
           <ChevronLeft className="mr-1 h-3.5 w-3.5" />
-          {STRINGS.previous}
+          {t("hms.learn_flow.previous")}
         </Button>
         <Button size="sm" onClick={onNext}>
-          {stepIndex === totalSteps - 1 ? "Neste fase" : STRINGS.next}
+          {stepIndex === totalSteps - 1 ? t("hms.learn_flow.next_phase") : t("hms.learn_flow.next")}
           <ChevronRight className="ml-1 h-3.5 w-3.5" />
         </Button>
       </div>

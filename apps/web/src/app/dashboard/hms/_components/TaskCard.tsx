@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ChevronDown, ChevronUp, CheckCircle2, AlertTriangle, Clock, Camera } from "lucide-react";
+import { useTranslation } from "@smartout/i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -34,31 +35,31 @@ function statusColor(status: SessionTask["status"]): string {
   }
 }
 
-function statusBadge(status: SessionTask["status"]) {
+function statusBadge(status: SessionTask["status"], t: (key: string) => string) {
   switch (status) {
     case "completed":
       return (
         <Badge className="bg-green-500/15 text-[10px] text-green-600 hover:bg-green-500/15">
-          Fullfort
+          {t("hms.task_card.status_completed")}
         </Badge>
       );
     case "overdue":
       return (
         <Badge className="bg-red-500/15 text-[10px] text-red-600 hover:bg-red-500/15">
-          Forfalt
+          {t("hms.task_card.status_overdue")}
         </Badge>
       );
     case "in_progress":
       return (
         <Badge className="bg-yellow-500/15 text-[10px] text-yellow-600 hover:bg-yellow-500/15">
-          Pagang
+          {t("hms.task_card.status_in_progress")}
         </Badge>
       );
     case "pending":
     case "available":
       return (
         <Badge variant="outline" className="text-[10px]">
-          Venter
+          {t("hms.task_card.status_pending")}
         </Badge>
       );
     default:
@@ -67,6 +68,7 @@ function statusBadge(status: SessionTask["status"]) {
 }
 
 export function TaskCard({ task, onComplete, onFlagDeviation, compact = false }: Props) {
+  const { t } = useTranslation("dashboard");
   const [expanded, setExpanded] = useState(false);
   const [measuredValue, setMeasuredValue] = useState("");
   const [notes, setNotes] = useState("");
@@ -109,10 +111,10 @@ export function TaskCard({ task, onComplete, onFlagDeviation, compact = false }:
         <div className="flex items-center gap-2">
           {task.isComplianceRequired && (
             <Badge variant="destructive" className="text-[9px]">
-              Pakrevd
+              {t("hms.task_card.required")}
             </Badge>
           )}
-          {statusBadge(task.status)}
+          {statusBadge(task.status, t)}
           {!compact &&
             (expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />)}
         </div>
@@ -128,13 +130,13 @@ export function TaskCard({ task, onComplete, onFlagDeviation, compact = false }:
           {/* Evidence inputs */}
           <div className="mb-3 space-y-2">
             <Input
-              placeholder="Malt verdi (f.eks. temperatur)"
+              placeholder={t("hms.task_card.measured_value_placeholder")}
               value={measuredValue}
               onChange={(e) => setMeasuredValue(e.target.value)}
               className="text-sm"
             />
             <Textarea
-              placeholder="Notater..."
+              placeholder={t("hms.task_card.notes_placeholder")}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
@@ -142,7 +144,7 @@ export function TaskCard({ task, onComplete, onFlagDeviation, compact = false }:
             />
             <Button variant="outline" size="sm" disabled>
               <Camera className="mr-1.5 h-3.5 w-3.5" />
-              Legg til bilde
+              {t("hms.task_card.add_photo")}
             </Button>
           </div>
 
@@ -150,7 +152,7 @@ export function TaskCard({ task, onComplete, onFlagDeviation, compact = false }:
           <div className="flex gap-2">
             <Button size="sm" className="flex-1" onClick={handleComplete}>
               <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
-              Fullfor
+              {t("hms.task_card.complete")}
             </Button>
             <Button
               variant="outline"
@@ -159,7 +161,7 @@ export function TaskCard({ task, onComplete, onFlagDeviation, compact = false }:
               onClick={() => onFlagDeviation(task)}
             >
               <AlertTriangle className="mr-1.5 h-3.5 w-3.5" />
-              Avvik
+              {t("hms.task_card.deviation")}
             </Button>
           </div>
         </div>
@@ -170,7 +172,7 @@ export function TaskCard({ task, onComplete, onFlagDeviation, compact = false }:
         <div className="border-t border-inherit px-3 pt-2 pb-3">
           <p className="text-muted-foreground text-xs">
             <Clock className="mr-1 inline h-3 w-3" />
-            Fullfort{" "}
+            {t("hms.task_card.completed_at")}{" "}
             {task.completedAt
               ? new Date(task.completedAt).toLocaleTimeString("nb-NO", {
                   hour: "2-digit",
