@@ -63,8 +63,9 @@ packages/i18n/locales/en/
 ### Modified files
 
 ```
-apps/landing/src/app/page.tsx    -- Import Assembler instead of VariantMLanding
-packages/ai/src/industry/index.ts -- Export new landing.ts functions
+apps/landing/src/app/page.tsx      -- Import Assembler instead of VariantMLanding
+packages/ai/src/industry/index.ts  -- Export new landing.ts functions
+packages/i18n/src/translate.ts     -- Register landing-engine namespace in locale maps
 ```
 
 ### NOT touched (frozen per ADR-0064)
@@ -208,26 +209,16 @@ export type ResolvedVariant = {
   content: unknown;
 };
 
-/* ── I1 Landing Projection ── */
-
-export type LandingIndustryProfile = {
-  id: string;
-  labelKey: string;
-  icon: string;
-  sublabelKey: string;
-  seedScores: Record<string, number>;
-  painCards: PainCard[];
-  redirectRules: RedirecterRule[];
-  featureVariants: Record<string, FeatureContent>;
-};
-
-export type LandingPersonaProfile = {
-  id: string;
-  ctaHeadingKey: string;
-  ctaSubtitleKey: string;
-  ctaLabelKey: string;
-  ctaHref: string;
-};
+/* ── I1 Landing Projection types ── */
+// NOTE: LandingIndustryProfile, LandingPersonaProfile, PainCard are
+// co-located with the I1 adapter in packages/ai/src/industry/landing.ts
+// per council decision #19. Import them from @smartout/ai/industry.
+// Re-export here for convenience within apps/landing/:
+export type {
+  LandingIndustryProfile,
+  LandingPersonaProfile,
+  PainCard,
+} from "@smartout/ai/industry";
 ```
 
 - [ ] **Step 2: Verify types compile**
@@ -475,7 +466,7 @@ Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 
 **Files:**
 
-- Create: `packages/ai/src/industry/landing.ts`
+- Create: `packages/ai/src/industry/landing.ts` (types + functions co-located)
 - Modify: `packages/ai/src/industry/index.ts`
 
 - [ ] **Step 1: Create the I1 landing projection**
@@ -487,13 +478,57 @@ import {
   getProceduresForIndustry,
   INDUSTRY_NACE_MAP,
 } from "./defaults.js";
-import type {
-  LandingIndustryProfile,
-  LandingPersonaProfile,
-  PainCard,
-  RedirecterRule,
-  FeatureContent,
-} from "@smartout/types";
+
+/* ── Landing-specific types (co-located with adapter per council decision #19) ── */
+
+export type PainCard = {
+  id: string;
+  titleKey: string;
+  bodyKey: string;
+  icon: string;
+  scores: Record<string, number>;
+};
+
+export type FeatureContent = {
+  labelKey: string;
+  headingKey: string;
+  bodyKey: string;
+  features: { icon: string; textKey: string }[];
+  ctaKey: string;
+  ctaHref: string;
+};
+
+type RedirecterRuleAction =
+  | { type: "skip"; sections: string[] }
+  | { type: "reorder"; move: string; after: string };
+
+export type RedirecterRule = {
+  condition: {
+    field: string;
+    operator: ">" | "<" | "==" | "exists";
+    value: number | string | boolean;
+  };
+  action: RedirecterRuleAction;
+};
+
+export type LandingIndustryProfile = {
+  id: string;
+  labelKey: string;
+  icon: string;
+  sublabelKey: string;
+  seedScores: Record<string, number>;
+  painCards: PainCard[];
+  redirectRules: RedirecterRule[];
+  featureVariants: Record<string, FeatureContent>;
+};
+
+export type LandingPersonaProfile = {
+  id: string;
+  ctaHeadingKey: string;
+  ctaSubtitleKey: string;
+  ctaLabelKey: string;
+  ctaHref: string;
+};
 
 /**
  * Maps NACE-based industry data to landing page profiles.
@@ -747,44 +782,9 @@ export function getLandingProfileById(id: string): LandingIndustryProfile | unde
 }
 ```
 
-- [ ] **Step 2: Add types to packages/types**
+**Note:** Types are co-located in `landing.ts` itself (council decision #19 — landing types stay out of `packages/types/`). The `apps/landing/` code imports types from `@smartout/ai/industry` alongside the functions.
 
-Add to `packages/types/src/industry.ts` (at the bottom, before the file ends):
-
-```typescript
-/* ── Landing Intelligence Projection ── */
-
-export type PainCard = {
-  id: string;
-  titleKey: string;
-  bodyKey: string;
-  icon: string;
-  scores: Record<string, number>;
-};
-
-export type LandingIndustryProfile = {
-  id: string;
-  labelKey: string;
-  icon: string;
-  sublabelKey: string;
-  seedScores: Record<string, number>;
-  painCards: PainCard[];
-  redirectRules: RedirecterRule[];
-  featureVariants: Record<string, FeatureContent>;
-};
-
-export type LandingPersonaProfile = {
-  id: string;
-  ctaHeadingKey: string;
-  ctaSubtitleKey: string;
-  ctaLabelKey: string;
-  ctaHref: string;
-};
-```
-
-Note: `RedirecterRule` and `FeatureContent` are defined in `apps/landing/src/lib/engine-types.ts`. For the shared types package, use simplified versions or keep landing-specific types in `apps/landing/` and only export the I1 projection types from `packages/types/`. The adapter in `packages/ai/` should import from `@smartout/types`.
-
-- [ ] **Step 3: Export from packages/ai/src/industry/index.ts**
+- [ ] **Step 2: Export from packages/ai/src/industry/index.ts**
 
 Add to the exports:
 
@@ -792,15 +792,15 @@ Add to the exports:
 export { getLandingProfiles, getLandingPersonas, getLandingProfileById } from "./landing.js";
 ```
 
-- [ ] **Step 4: Verify compilation**
+- [ ] **Step 3: Verify compilation**
 
-Run: `pnpm turbo typecheck --filter=@smartout/ai --filter=@smartout/types`
+Run: `pnpm turbo typecheck --filter=@smartout/ai`
 Expected: No errors
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
-git add packages/ai/src/industry/landing.ts packages/ai/src/industry/index.ts packages/types/src/industry.ts
+git add packages/ai/src/industry/landing.ts packages/ai/src/industry/index.ts
 git commit -m "feat(ai): add I1 landing intelligence projection
 
 getLandingProfiles() projects industry data (seed scores, pain cards,
@@ -1057,14 +1057,36 @@ Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 }
 ```
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 3: Register namespace in translate.ts**
+
+Modify `packages/i18n/src/translate.ts` — add imports and register in locale maps:
+
+```typescript
+// Add these imports alongside existing namespace imports:
+import nbLandingEngine from "../locales/nb/landing-engine.json";
+import enLandingEngine from "../locales/en/landing-engine.json";
+
+// Add to the nb locale map (alongside existing entries like "landing", "common", etc.):
+"landing-engine": nbLandingEngine,
+
+// Add to the en locale map:
+"landing-engine": enLandingEngine,
+```
+
+Without this step, `createTranslator(locale, "landing-engine")` returns empty messages and all `t()` calls return raw keys silently.
+
+**Important:** The existing `createTranslator` only supports 2-level key resolution (`group.subKey`). The i18n JSON uses 2-level nesting (e.g., `qualifier.heading`, `painSelector.subtitle`). The deeper keys like `pain.restaurant.scheduling.title` are 4-level — these are the i18n key REFERENCES used in I1 data (e.g., `titleKey: "landing-engine:pain.restaurant.scheduling.title"`). At render time, the component strips the namespace prefix and calls `t("pain.restaurant.scheduling.title")`.
+
+If `createTranslator` doesn't support 4-level resolution, flatten the JSON structure. Replace nested `pain.restaurant.scheduling.title` with flat `painRestaurantSchedulingTitle` keys, and update all `titleKey`/`bodyKey` references in `packages/ai/src/industry/landing.ts` to match. Check the actual implementation of `createTranslator` before deciding — if it uses recursive dot-path lookup, 4-level works. If it only does `messages[group][key]`, flatten.
+
+- [ ] **Step 4: Commit**
 
 ```bash
-git add packages/i18n/locales/nb/landing-engine.json packages/i18n/locales/en/landing-engine.json
+git add packages/i18n/locales/nb/landing-engine.json packages/i18n/locales/en/landing-engine.json packages/i18n/src/translate.ts
 git commit -m "feat(i18n): add landing-engine namespace for dynamic landing
 
 Norwegian and English translations for qualifier, pain selector,
-hero, and CTA sections. All content sourced from I1 research pack.
+hero, and CTA sections. Registered in translate.ts locale maps.
 
 Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 ```
@@ -1377,14 +1399,18 @@ export function PresenterShell({ config, component: Component, locale, resolveVa
       <AnimatePresence mode="wait">
         <m.div
           key={variant.id}
+          variants={{
+            enter: { opacity: 1, y: 0 },
+            exit: { opacity: 0 },
+          }}
           initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0 }}
+          animate="enter"
+          exit="exit"
           transition={{
-            type: "spring",
-            stiffness: 35,
-            damping: 22,
-            mass: 2,
+            // Asymmetric: spring entrance (500ms+), tween exit (250ms)
+            // Matches Nordic Split motion.md: min 250ms exit, 500ms entrance
+            enter: { type: "spring", stiffness: 35, damping: 22, mass: 2 },
+            exit: { duration: 0.25, ease: [0.4, 0, 1, 1] },
           }}
         >
           <Component content={variant.content} locale={locale} />
