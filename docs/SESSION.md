@@ -9,35 +9,48 @@ tags: [session, continuity]
 
 ## Last Session
 
-| Field   | Value         |
-| ------- | ------------- |
-| Date    | 2026-03-28    |
-| Branch  | `development` |
-| Feature | development   |
-| Status  | paused        |
+| Field   | Value                    |
+| ------- | ------------------------ |
+| Date    | 2026-03-28               |
+| Branch  | `feat/mobile-group-call` |
+| Feature | mobile-group-call        |
+| Status  | in_progress              |
 
 ### What was done
 
-**Two council sessions ran + all fixes implemented:**
+**Session covered two major features:**
 
-#### Council 1: Cascade Tasks ("Å gjøre") — APPROVE WITH CHANGES → All fixed
+#### 1. WizardShell + WalkAi Integration (COMPLETE — merged to development)
 
-- Fixed `incomplete_training` CTE (was zero-touch only, now checks `status != 'completed'`)
-- Fixed `dept_summary` done/total (5-item checklist instead of misleading hours-only progress)
-- Added ARIA attributes (aria-expanded, aria-controls, aria-label, aria-live, role)
-- Added `prefers-reduced-motion` support
-- Replaced hardcoded Norwegian with i18n keys + added missing keys
-- Reclassified messages group from C2 to C4
-- Refactored `useCascadeTaskCount` to reuse `useCascadeTasks` via select
-- Replaced blur-orb with radial-gradient in empty state
-- Added `task_surface snapshot` telemetry event
-- Regenerated `database.types.ts`, removed `as any` casts
+- Spec → 2x council → plan → council → subagent-driven implementation → merge
+- 22 commits, 70 files, +1997 / -6477 lines (netto -4480)
+- ADR-0070: Emma-Wizard Bridge pattern
+- 14 tool builder files (9 setup + 5 onboarding)
+- Deleted legacy Botsson (1076 lines) + scroll-based onboarding (30 files)
+- `useEntityDrawer` made optional — WalkAiProvider works outside DashboardShell
+- Branch: `feat/wizardshell-walkai-integration` in wt-1 (merged, cleanup pending)
 
-#### Council 2: Dashboard + HMS/Drift — NOT READY → P0+P1 all fixed
+#### 2. Mobile Group Call — Expanded UI + Video (IN PROGRESS)
 
-- **ADR-0069 written:** Edge Functions own execution, Engine owns side-effects (hybrid model)
-- **Session lifecycle fixed:** `useSignoffSession` now transitions through `pending_signoff` before `closed`
-- **Edge Function telemetry:** Added `engine_event` inserts to `session-lifecycle` (3 events) and `session-hook-executor` (2 events)
+- Spec written + council reviewed (PASS WITH CONDITIONS)
+- Plan written + council reviewed (REJECT → Fixed with 12 amendments)
+- Feature started: wt-2, branch `feat/mobile-group-call`
+- 5 tasks: useCallTracks hook, ParticipantTile, ParticipantGrid, CallControls, CallSheet
+- Ready for subagent-driven implementation
+
+### Where we stopped
+
+- wt-2 set up, plan is council-approved and ready for execution
+- Tasks not yet started — next action: dispatch subagents for Tasks 1-5
+
+### Known blockers / errors
+
+- `VideoView` from `@livekit/react-native` — verified in package.json but untested at runtime
+- `expo-camera` needs installing (Task 1 Step 1)
+
+### Pending decisions
+
+- None — all design decisions made during brainstorm + council
 - **Agent tools fixed:** `completeTask` + `createDeviation` now emit `engine_event` entries
 - **Fake stubs fixed:** Activity view heatmap gated with coming-soon empty state, sendHandoff toast changed to honest "under development", deviation flagging wired to navigate to DeviationForm with prefill
 - **i18n sweep:** 11 HMS components migrated from hardcoded Norwegian STRINGS to `useTranslation` — ~100 new i18n keys in nb + en with correct diacritics (ø, å, æ)
