@@ -1,5 +1,23 @@
 {
   "activityDemoWarning": "Aktivitetsdata vises som demo. Kobles til ekte data snart.",
+  "hms": {
+    "drift_insights": {
+      "sessions_label": "Økter i dag",
+      "sessions_active": "{{count}} aktiv",
+      "sessions_active_plural": "{{count}} aktive",
+      "sessions_closed": "{{count}} lukket",
+      "sessions_all_closed": "Alle lukket",
+      "sessions_none": "Ingen økter",
+      "tasks_label": "Oppgaver fullført",
+      "tasks_sublabel": "{{completed}} av {{total}}",
+      "deviations_label": "Åpne avvik",
+      "deviations_none": "Ingen",
+      "deviations_blocking": "{{count}} blokkerer",
+      "overdue_label": "Forfalte oppgaver",
+      "overdue_none": "Ingen",
+      "no_data": "Ingen data for denne datoen"
+    }
+  },
   "setup": {
     "title": "Oppsett",
     "description": "Konfigurer workspace",

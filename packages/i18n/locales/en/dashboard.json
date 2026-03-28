@@ -1,5 +1,23 @@
 {
   "activityDemoWarning": "Activity data shown as demo. Real data coming soon.",
+  "hms": {
+    "drift_insights": {
+      "sessions_label": "Sessions today",
+      "sessions_active": "{{count}} active",
+      "sessions_active_plural": "{{count}} active",
+      "sessions_closed": "{{count}} closed",
+      "sessions_all_closed": "All closed",
+      "sessions_none": "No sessions",
+      "tasks_label": "Tasks completed",
+      "tasks_sublabel": "{{completed}} of {{total}}",
+      "deviations_label": "Open deviations",
+      "deviations_none": "None",
+      "deviations_blocking": "{{count}} blocking",
+      "overdue_label": "Overdue tasks",
+      "overdue_none": "None",
+      "no_data": "No data for this date"
+    }
+  },
   "setup": {
     "title": "Setup",
     "description": "Configure workspace",
