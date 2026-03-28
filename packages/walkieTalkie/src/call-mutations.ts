@@ -26,7 +26,11 @@ export async function startCall(
   const { data, error } = await supabase.functions.invoke("call-command", {
     body: { action: "start", ...params },
   });
-  if (error) throw new Error(error.message);
+  if (error) {
+    const detail =
+      typeof data === "object" && data ? JSON.stringify(data) : String(data ?? error.message);
+    throw new Error(`call-command failed: ${detail}`);
+  }
   return data as StartCallResult;
 }
 

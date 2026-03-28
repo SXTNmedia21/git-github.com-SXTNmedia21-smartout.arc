@@ -82,7 +82,18 @@ export default function ConversationScreen() {
   });
 
   const handleStartCall = useCallback(async () => {
-    if (!conversationId || !workspaceId) return;
+    console.log(
+      "[CallStart] conversationId:",
+      conversationId,
+      "workspaceId:",
+      workspaceId,
+      "profileId:",
+      profileId,
+    );
+    if (!conversationId || !workspaceId) {
+      console.error("[CallStart] Missing:", !conversationId ? "conversationId" : "workspaceId");
+      return;
+    }
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       const result = await startCall(supabase, {
@@ -165,7 +176,7 @@ export default function ConversationScreen() {
       const { data: conv } = await supabase
         .from("channel")
         .select("name, channel_type, workspace_id")
-        .eq("channel_id", conversationId!)
+        .eq("id", conversationId!)
         .single();
 
       if (conv) {
