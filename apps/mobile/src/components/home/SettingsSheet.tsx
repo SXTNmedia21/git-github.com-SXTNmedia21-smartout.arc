@@ -24,6 +24,7 @@ import {
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { BottomSheet } from "@/components/ui/BottomSheet";
+import { supabase } from "@/lib/supabase";
 import { createStyles, useTheme, withOpacity } from "@/theme";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
 import { useThemeStore } from "@/hooks/stores/use-theme-store";
@@ -147,19 +148,19 @@ export const SettingsSheet = forwardRef<GorhomBottomSheet>(function SettingsShee
             router.push("/(app)/(me)");
             break;
           case "navigate-absence":
-            router.push("/(app)/(me)/absence-request");
+            router.push("/(app)/(payroll)/absence-request");
             break;
           case "navigate-absence-balance":
-            router.push("/(app)/(me)/absence-balance");
+            router.push("/(app)/(payroll)/absence-balance");
             break;
           case "navigate-timebank":
-            router.push("/(app)/(me)/timebank");
+            router.push("/(app)/(payroll)/timebank");
             break;
           case "navigate-pay":
-            router.push("/(app)/(me)/payslip");
+            router.push("/(app)/(payroll)/payslip");
             break;
           case "logout":
-            router.push("/(app)/(me)");
+            supabase.auth.signOut();
             break;
           default:
             break;

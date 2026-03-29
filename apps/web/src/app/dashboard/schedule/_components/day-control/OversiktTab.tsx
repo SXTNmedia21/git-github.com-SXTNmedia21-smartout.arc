@@ -5,7 +5,7 @@
 // ============================================
 "use client";
 
-import { useContext, useMemo, useState, useCallback } from "react";
+import { useContext, useMemo, useState, useCallback, useEffect } from "react";
 import { Clock, Pencil, Phone, Mail, CheckCircle2, AlertCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -48,7 +48,8 @@ export function OversiktTab({ dateId }: { dateId: string | null }) {
   // Budget edit state
   const [isEditingBudget, setIsEditingBudget] = useState(false);
   const [budget, setBudget] = useState(15000);
-  const [dutyManagers, setDutyManagers] = useState("");
+  const [_dutyManagers, _setDutyManagers] = useState("");
+  const [dutyLeaderId, setDutyLeaderId] = useState<string | null>(null);
 
   // Hours override popover
   const [showOverridePopover, setShowOverridePopover] = useState(false);
@@ -73,20 +74,43 @@ export function OversiktTab({ dateId }: { dateId: string | null }) {
   });
   const departmentId = departments?.[0]?.department_id;
 
+  // Load active session's duty leader
+  const { data: activeSession } = useQuery({
+    queryKey: ["active-session-duty", departmentId, dateId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("department_session")
+        .select("department_session_id, opened_by")
+        .eq("department_id", departmentId!)
+        .eq("session_date", dateId!)
+        .in("status", ["active", "upcoming"])
+        .limit(1)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!departmentId && !!dateId,
+  });
+
+  useEffect(() => {
+    if (activeSession) {
+      setDutyLeaderId(activeSession.opened_by);
+    }
+  }, [activeSession]);
+
   const plannedHours = usePlannedHours(departmentId, dateId);
 
   // Find duty managers from shifts
   const managerShifts = dayShifts.filter(
     (s) => s.role.toLowerCase().includes("manager") || s.indicator === "purple",
   );
-  const managerNames = managerShifts
+  const _managerNames = managerShifts
     .map((s) => {
       const emp = s.employeeId ? employees.find((e) => e.id === s.employeeId) : null;
       return emp?.name;
     })
     .filter(Boolean);
 
-  const shiftDateByDays = useCallback(
+  const _shiftDateByDays = useCallback(
     (sourceShiftId: string, offsetDays: number) => {
       const shift = dayShifts.find((item) => item.id === sourceShiftId);
       if (!shift || !shift.employeeId) return;
@@ -100,7 +124,7 @@ export function OversiktTab({ dateId }: { dateId: string | null }) {
     [dayShifts, moveShiftMutation],
   );
 
-  const adjustShiftTime = useCallback(
+  const _adjustShiftTime = useCallback(
     (sourceShiftId: string, edge: "start" | "end", deltaMinutes: number) => {
       const shift = dayShifts.find((item) => item.id === sourceShiftId);
       if (!shift) return;
@@ -222,18 +246,23 @@ export function OversiktTab({ dateId }: { dateId: string | null }) {
           </div>
           <div>
             <span className="text-muted-foreground font-bold">Duty Manager:</span>{" "}
-            {isEditingBudget ? (
-              <input
-                type="text"
-                value={dutyManagers || managerNames.join(", ")}
-                onChange={(e) => setDutyManagers(e.target.value)}
-                className="border-input ml-1 w-40 rounded border bg-transparent px-1.5 py-0.5 text-[11px]"
-              />
-            ) : (
-              <span className="text-foreground">
-                {dutyManagers || managerNames.join(", ") || "Ingen"}
-              </span>
-            )}
+            <select
+              value={dutyLeaderId ?? ""}
+              onChange={async (e) => {
+                const newId = e.target.value || null;
+                setDutyLeaderId(newId);
+                // TODO: duty_leader_id column does not exist on department_session yet
+                // When added, persist the selection here
+              }}
+              className="border-input bg-background text-foreground ml-1 rounded border px-1.5 py-0.5 text-[11px]"
+            >
+              <option value="">Ingen</option>
+              {employees.map((emp) => (
+                <option key={emp.id} value={emp.id}>
+                  {emp.name}
+                </option>
+              ))}
+            </select>
           </div>
           <div>
             <span className="text-muted-foreground font-bold">Forrige ar:</span>{" "}

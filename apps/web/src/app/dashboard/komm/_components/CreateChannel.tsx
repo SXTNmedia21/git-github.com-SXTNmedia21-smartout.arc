@@ -48,7 +48,7 @@ function useWorkspaceMembers(profileId: string) {
         .from("profile")
         .select("profile_id, display_name, avatar_url, role")
         .eq("workspace_id", workspaceId)
-        .eq("is_active", true)
+        .in("status", ["active", "trainee"])
         .neq("profile_id", profileId)
         .neq("role", "system")
         .order("display_name");

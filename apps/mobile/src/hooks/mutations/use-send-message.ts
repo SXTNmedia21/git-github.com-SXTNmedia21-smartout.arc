@@ -1,130 +1,230 @@
 /**
- * Mutation hook for sending chat messages with offline support.
+ * Mutation hook for sending chat messages with optional attachments.
  *
- * Enqueues the message via the sync queue (SQLite) so it works offline.
- * Performs an optimistic update: the message appears immediately in the
- * conversation with a "pending" indicator. When the sync worker processes
- * it successfully, the pending state clears.
- *
- * The message ID is generated client-side (UUID) so it can be matched
- * after syncing.
+ * Flow:
+ * 1. Optimistic update — message appears immediately with pending indicator
+ * 2. Upload attachments to Supabase Storage (chat-media bucket)
+ * 3. Insert channel_message row
+ * 4. Insert channel_message_attachment rows for each uploaded file
+ * 5. On failure — roll back optimistic message
  */
 
 import { useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { randomUUID } from "expo-crypto";
-import { enqueue } from "@/lib/sync/queue";
-import type { MessageWithSender } from "@/hooks/queries/use-messages";
+import { supabase } from "@/lib/supabase";
+import type { MessageWithSender, MessageAttachment } from "@/hooks/queries/use-messages";
 
-type SendMessageParams = {
-  conversationId: string;
-  content: string;
-  /** Current user's profile ID — needed for sender info */
-  senderProfileId: string;
-  /** Current user's display name — for optimistic display */
-  senderName: string;
-  /** Current user's avatar URL — for optimistic display */
-  senderAvatarUrl?: string | null;
-  /** If replying to a message, its ID */
-  replyToId?: string | null;
+type Attachment = {
+  uri: string;
+  type: "image" | "video";
+  fileName?: string;
 };
 
-/**
- * Hook: sends a chat message via the offline sync queue.
- *
- * Returns a `sendMessage` function that:
- * 1. Generates a client-side UUID for the message
- * 2. Optimistically adds it to the query cache (with pending state)
- * 3. Enqueues it in the SQLite write queue for background sync
- *
- * The optimistic message has `_isPending: true` for the UI to show
- * a clock icon. When Supabase Realtime delivers the INSERT event,
- * the cache is updated with the server version (without _isPending).
- */
+type SendMessageParams = {
+  channelId: string;
+  content: string;
+  senderProfileId: string;
+  senderName: string;
+  senderAvatarUrl?: string | null;
+  replyToId?: string | null;
+  workspaceId: string;
+  attachments?: Attachment[];
+};
+
+/** Upload a single file to Supabase Storage and return the public URL */
+async function uploadAttachment(
+  workspaceId: string,
+  channelId: string,
+  messageId: string,
+  attachment: Attachment,
+): Promise<{
+  url: string;
+  fileType: string;
+  mimeType: string;
+  sizeBytes: number;
+  fileName: string;
+}> {
+  const ext = attachment.uri.split(".").pop()?.toLowerCase() ?? "jpg";
+  const mimeType =
+    attachment.type === "video"
+      ? ext === "mov"
+        ? "video/quicktime"
+        : "video/mp4"
+      : ext === "png"
+        ? "image/png"
+        : ext === "gif"
+          ? "image/gif"
+          : "image/jpeg";
+
+  const fileName = attachment.fileName ?? `${randomUUID()}.${ext}`;
+  const storagePath = `${workspaceId}/${channelId}/${messageId}/${fileName}`;
+
+  // Fetch the file as blob for upload
+  const response = await fetch(attachment.uri);
+  const blob = await response.blob();
+
+  const { error: uploadError } = await supabase.storage
+    .from("chat-media")
+    .upload(storagePath, blob, {
+      contentType: mimeType,
+      upsert: false,
+    });
+
+  if (uploadError) throw uploadError;
+
+  // Get the signed URL (1 year expiry for chat media)
+  const { data: urlData } = await supabase.storage
+    .from("chat-media")
+    .createSignedUrl(storagePath, 365 * 24 * 60 * 60);
+
+  const url = urlData?.signedUrl ?? "";
+
+  return {
+    url,
+    fileType: attachment.type,
+    mimeType,
+    sizeBytes: blob.size,
+    fileName,
+  };
+}
+
 export function useSendMessage() {
   const queryClient = useQueryClient();
 
   const sendMessage = useCallback(
     async (params: SendMessageParams) => {
-      const { conversationId, content, senderProfileId, senderName, senderAvatarUrl, replyToId } =
-        params;
+      const {
+        channelId,
+        content,
+        senderProfileId,
+        senderName,
+        senderAvatarUrl,
+        replyToId,
+        workspaceId,
+        attachments = [],
+      } = params;
 
-      const messageId = randomUUID();
+      const clientMessageId = randomUUID();
       const now = new Date().toISOString();
 
-      // Build the optimistic message for immediate display
+      // Build optimistic attachments from local URIs
+      const optimisticAttachments: MessageAttachment[] = attachments.map((att) => ({
+        id: randomUUID(),
+        url: att.uri,
+        file_type: att.type,
+        mime_type: att.type === "video" ? "video/mp4" : "image/jpeg",
+        filename: att.fileName ?? "file",
+        size_bytes: 0,
+        duration_seconds: null,
+      }));
+
       const optimisticMessage: MessageWithSender & { _isPending: boolean } = {
-        id: messageId,
-        conversation_id: conversationId,
+        id: clientMessageId,
+        channel_id: channelId,
         content,
         sender_id: senderProfileId,
-        reply_to_id: replyToId ?? null,
-        is_system: false,
-        attachments: [],
-        reactions: [],
-        created_at: now,
-        updated_at: now,
-        edited_at: null,
-        deleted_at: null,
         senderName,
         senderAvatarUrl: senderAvatarUrl ?? null,
+        created_at: now,
+        reply_to_id: replyToId ?? null,
+        reply_to_content: null,
+        reply_to_sender_name: null,
+        reactions: [],
+        attachments: optimisticAttachments,
+        is_pinned: false,
+        message_type: attachments.length > 0 ? "media" : "text",
+        origin_type: "user",
+        visibility_scope: "everyone",
+        sender_role: null,
+        system_data: null,
+        edited_at: null,
+        deleted_at: null,
+        client_message_id: clientMessageId,
+        conversation_id: channelId,
+        is_system: false,
+        updated_at: now,
         _isPending: true,
       };
 
-      // Optimistic update: prepend message to the first page of the infinite query
+      // Optimistic update — prepend to first page
       queryClient.setQueryData(
-        ["messages", conversationId],
-        (old: { pages: MessageWithSender[][]; pageParams: number[] } | undefined) => {
+        ["channel-messages", channelId],
+        (old: { pages: MessageWithSender[][]; pageParams: (string | undefined)[] } | undefined) => {
           if (!old) {
-            return {
-              pages: [[optimisticMessage]],
-              pageParams: [0],
-            };
+            return { pages: [[optimisticMessage]], pageParams: [undefined] };
           }
-
-          // Messages are newest-first, so prepend to the first page
           const newPages = [...old.pages];
           newPages[0] = [optimisticMessage, ...(newPages[0] ?? [])];
-
-          return {
-            ...old,
-            pages: newPages,
-          };
+          return { ...old, pages: newPages };
         },
       );
 
-      // Also update the conversations list to show this as the latest message
-      queryClient.setQueryData(["conversations"], (old: unknown[] | undefined) => {
-        if (!old || !Array.isArray(old)) return old;
-        return (old as Record<string, unknown>[]).map((conv) => {
-          if (conv.id === conversationId) {
-            return {
-              ...conv,
-              lastMessage: {
-                content,
-                created_at: now,
-                sender_id: senderProfileId,
-              },
-              lastMessageSenderName: senderName,
-            };
+      void queryClient.invalidateQueries({ queryKey: ["channels"] });
+
+      try {
+        // Upload attachments to Storage
+        const uploadedFiles = await Promise.all(
+          attachments.map((att) => uploadAttachment(workspaceId, channelId, clientMessageId, att)),
+        );
+
+        // Insert message
+        const { data: messageRow, error: msgError } = await supabase
+          .from("channel_message")
+          .insert({
+            channel_id: channelId,
+            workspace_id: workspaceId,
+            content: content || (attachments.length > 0 ? "" : content),
+            sender_id: senderProfileId,
+            client_message_id: clientMessageId,
+            reply_to_id: replyToId ?? null,
+            message_type: attachments.length > 0 ? "image" : "text",
+          })
+          .select("id")
+          .single();
+
+        if (msgError) throw msgError;
+
+        // Insert attachment rows
+        if (uploadedFiles.length > 0 && messageRow) {
+          const attachmentRows = uploadedFiles.map((file) => ({
+            message_id: messageRow.id,
+            channel_id: channelId,
+            workspace_id: workspaceId,
+            url: file.url,
+            file_type: file.fileType,
+            mime_type: file.mimeType,
+            filename: file.fileName,
+            size_bytes: file.sizeBytes,
+          }));
+
+          const { error: attError } = await supabase
+            .from("channel_message_attachment")
+            .insert(attachmentRows);
+
+          if (attError) {
+            // Attachment insert failed but message was sent — log but don't throw
+            console.warn("Failed to insert attachment rows:", attError);
           }
-          return conv;
-        });
-      });
+        }
 
-      // Enqueue in the SQLite write queue for background sync
-      await enqueue("send_message", {
-        id: messageId,
-        conversation_id: conversationId,
-        content,
-        sender_id: senderProfileId,
-        reply_to_id: replyToId ?? null,
-        is_system: false,
-        attachments: [],
-        reactions: [],
-      });
-
-      return messageId;
+        return clientMessageId;
+      } catch (error) {
+        // Roll back optimistic message on failure
+        queryClient.setQueryData(
+          ["channel-messages", channelId],
+          (
+            old: { pages: MessageWithSender[][]; pageParams: (string | undefined)[] } | undefined,
+          ) => {
+            if (!old) return old;
+            const newPages = old.pages.map((page) =>
+              page.filter((msg) => msg.client_message_id !== clientMessageId),
+            );
+            return { ...old, pages: newPages };
+          },
+        );
+        throw error;
+      }
     },
     [queryClient],
   );

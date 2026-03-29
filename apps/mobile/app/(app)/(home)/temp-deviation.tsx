@@ -1,0 +1,316 @@
+/**
+ * Temperature Deviation — HACCP temp control handling screen.
+ *
+ * Layout:
+ * 1. Context header — "Håndter avvik" label
+ * 2. Hero — "Temp-avvik: Walk-in Kjøkken" + temp badge (6.2°C > 4.0°C)
+ * 3. Action steps checklist — step-by-step corrective actions
+ * 4. System status info card
+ * 5. CTA — "Bekreft tiltak utført"
+ */
+
+import React, { useState } from "react";
+import { View, Text, ScrollView, Pressable } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
+import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
+import * as Haptics from "expo-haptics";
+import { ChevronLeft, Check, Clock, Wrench, BadgeCheck } from "lucide-react-native";
+import { createStyles, useTheme, withOpacity } from "@/theme";
+
+type StepStatus = "done" | "pending";
+
+type ActionStep = {
+  id: string;
+  title: string;
+  subtitle: string;
+  status: StepStatus;
+  icon?: React.ComponentType<{ size: number; color: string; strokeWidth: number }>;
+};
+
+const STEPS: ActionStep[] = [
+  { id: "1", title: "Nullstill kompressor", subtitle: "Fullført 09:12", status: "done" },
+  {
+    id: "2",
+    title: "Mål på nytt etter 30 min",
+    subtitle: "Anbefalt tid: 09:42",
+    status: "pending",
+    icon: Clock,
+  },
+  {
+    id: "3",
+    title: "Meld fra til tekniker om temp ikke synker",
+    subtitle: "Eskaleringsprosedyre",
+    status: "pending",
+    icon: Wrench,
+  },
+];
+
+export default function TempDeviationScreen() {
+  const styles = useStyles();
+  const theme = useTheme();
+  const router = useRouter();
+  const [completed, setCompleted] = useState<Record<string, boolean>>({ "1": true });
+
+  const handleToggle = (stepId: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setCompleted((prev) => ({ ...prev, [stepId]: !prev[stepId] }));
+  };
+
+  return (
+    <SafeAreaView style={styles.container} edges={["top"]}>
+      {/* Header */}
+      <View style={styles.headerBar}>
+        <Pressable
+          onPress={() => {
+            Haptics.selectionAsync();
+            router.back();
+          }}
+          hitSlop={12}
+          style={styles.backButton}
+        >
+          <ChevronLeft size={24} color={theme.colors.foreground} strokeWidth={1.8} />
+        </Pressable>
+        <Text style={styles.headerTitle}>Temp-avvik</Text>
+        <View style={{ width: 40 }} />
+      </View>
+
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Context */}
+        <Animated.View entering={FadeIn.delay(50).duration(400)} style={styles.contextRow}>
+          <Text style={styles.contextLabel}>HÅNDTER AVVIK</Text>
+        </Animated.View>
+
+        {/* Hero */}
+        <Animated.View entering={FadeInDown.delay(100).duration(500).springify()}>
+          <Text style={styles.heroTitle}>
+            Temp-avvik:{"\n"}
+            <Text style={styles.heroAccent}>Walk-in Kjøkken</Text>
+          </Text>
+          <View style={styles.tempBadge}>
+            <Text style={styles.tempValue}>6.2°C</Text>
+            <View style={styles.tempDivider} />
+            <Text style={styles.tempLimit}>Grense: &lt; 4.0°C</Text>
+          </View>
+        </Animated.View>
+
+        {/* Action Steps */}
+        <View style={styles.stepsSection}>
+          <Text style={styles.stepsSectionTitle}>TILTAKSTRINN</Text>
+          {STEPS.map((step, i) => {
+            const isDone = completed[step.id] ?? false;
+            const IconComponent = step.icon;
+            return (
+              <Animated.View
+                key={step.id}
+                entering={FadeInDown.delay(250 + i * 80)
+                  .duration(400)
+                  .springify()}
+              >
+                <Pressable
+                  onPress={() => handleToggle(step.id)}
+                  style={({ pressed }) => [
+                    styles.stepRow,
+                    isDone && styles.stepRowDone,
+                    pressed && styles.stepRowPressed,
+                  ]}
+                >
+                  <View style={[styles.stepCircle, isDone && styles.stepCircleDone]}>
+                    {isDone && <Check size={14} color="#ffffff" strokeWidth={2.5} />}
+                  </View>
+                  <View style={styles.stepContent}>
+                    <Text style={styles.stepTitle}>{step.title}</Text>
+                    <Text style={styles.stepSubtitle}>{step.subtitle}</Text>
+                  </View>
+                  {!isDone && IconComponent && (
+                    <IconComponent
+                      size={18}
+                      color={withOpacity(theme.colors.mutedForeground, 0.3)}
+                      strokeWidth={1.5}
+                    />
+                  )}
+                </Pressable>
+              </Animated.View>
+            );
+          })}
+        </View>
+
+        {/* System Status */}
+        <Animated.View
+          entering={FadeInDown.delay(500).duration(400).springify()}
+          style={styles.statusCard}
+        >
+          <Text style={styles.statusLabel}>SYSTEMSTATUS</Text>
+          <Text style={styles.statusText}>
+            Siste vellykkede logg var i går kl. 23:45. Sensoren rapporterer stabil spenning, noe som
+            tyder på mekanisk svikt eller åpen dør.
+          </Text>
+        </Animated.View>
+
+        {/* CTA */}
+        <Animated.View
+          entering={FadeInDown.delay(600).duration(500).springify()}
+          style={styles.ctaSection}
+        >
+          <Pressable
+            onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
+            style={({ pressed }) => [styles.ctaButton, pressed && styles.ctaPressed]}
+          >
+            <BadgeCheck size={20} color="#ffffff" strokeWidth={2} />
+            <Text style={styles.ctaText}>Bekreft tiltak utført</Text>
+          </Pressable>
+          <Text style={styles.ctaId}>ID: HSE-2023-09412-KJK</Text>
+        </Animated.View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const useStyles = createStyles((theme) => ({
+  container: { flex: 1, backgroundColor: theme.colors.background },
+  headerBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.element,
+  },
+  backButton: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
+  headerTitle: {
+    fontSize: 22,
+    fontStyle: "italic",
+    fontWeight: "300",
+    color: theme.colors.brandOrange,
+    letterSpacing: -0.3,
+  },
+  scrollContent: { paddingHorizontal: theme.spacing.section, paddingBottom: theme.spacing.xl + 40 },
+
+  contextRow: { marginBottom: theme.spacing.md },
+  contextLabel: {
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 2,
+    color: theme.colors.brandOrange,
+  },
+
+  heroTitle: {
+    fontSize: 36,
+    fontWeight: "300",
+    lineHeight: 44,
+    color: theme.colors.foreground,
+    marginBottom: theme.spacing.section,
+  },
+  heroAccent: { fontStyle: "italic", color: theme.colors.brandOrange },
+  tempBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.md,
+    alignSelf: "flex-start",
+    backgroundColor: withOpacity(theme.colors.destructive, 0.08),
+    paddingHorizontal: theme.spacing.section,
+    paddingVertical: 14,
+    borderRadius: theme.radius.full,
+    borderWidth: 1,
+    borderColor: withOpacity(theme.colors.destructive, 0.1),
+    marginBottom: theme.spacing.page,
+  },
+  tempValue: { fontSize: 20, fontWeight: "600", color: theme.colors.destructive },
+  tempDivider: {
+    width: 1,
+    height: 16,
+    backgroundColor: withOpacity(theme.colors.destructive, 0.2),
+  },
+  tempLimit: {
+    ...theme.typography.subheadline,
+    fontWeight: "500",
+    color: theme.colors.mutedForeground,
+  },
+
+  stepsSection: { gap: theme.spacing.element, marginBottom: theme.spacing.page },
+  stepsSectionTitle: {
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 2,
+    color: withOpacity(theme.colors.mutedForeground, 0.6),
+    marginBottom: theme.spacing.element,
+    paddingHorizontal: 4,
+  },
+  stepRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: theme.spacing.card,
+    backgroundColor: theme.isDark ? withOpacity(theme.colors.card, 0.4) : theme.colors.background,
+    borderRadius: theme.radius.lg,
+    borderWidth: 1,
+    borderColor: withOpacity(theme.colors.border, 0.1),
+    ...theme.shadows.sm,
+  },
+  stepRowDone: {
+    backgroundColor: theme.isDark ? withOpacity(theme.colors.card, 0.3) : theme.colors.secondary,
+  },
+  stepRowPressed: { opacity: 0.85 },
+  stepCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: theme.colors.border,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: theme.spacing.md,
+  },
+  stepCircleDone: {
+    backgroundColor: theme.colors.brandOrange,
+    borderColor: theme.colors.brandOrange,
+  },
+  stepContent: { flex: 1, gap: 2 },
+  stepTitle: { ...theme.typography.body, fontWeight: "500", color: theme.colors.foreground },
+  stepSubtitle: {
+    ...theme.typography.caption,
+    color: withOpacity(theme.colors.mutedForeground, 0.6),
+  },
+
+  statusCard: {
+    backgroundColor: theme.isDark ? withOpacity(theme.colors.card, 0.5) : theme.colors.muted,
+    borderRadius: theme.radius.xl,
+    padding: theme.spacing.section,
+    gap: theme.spacing.element,
+    borderWidth: 1,
+    borderColor: withOpacity(theme.colors.border, 0.1),
+    marginBottom: theme.spacing.page,
+  },
+  statusLabel: {
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 2,
+    color: theme.colors.brandOrange,
+  },
+  statusText: {
+    ...theme.typography.subheadline,
+    color: theme.colors.mutedForeground,
+    lineHeight: 22,
+  },
+
+  ctaSection: { paddingTop: theme.spacing.md },
+  ctaButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: theme.spacing.element,
+    height: 56,
+    borderRadius: theme.radius.lg,
+    backgroundColor: theme.colors.brandOrange,
+    ...theme.shadows.lg,
+  },
+  ctaPressed: { transform: [{ scale: 0.98 }], opacity: 0.9 },
+  ctaText: { ...theme.typography.bodyBold, color: "#ffffff" },
+  ctaId: {
+    fontSize: 10,
+    fontWeight: "500",
+    letterSpacing: 1,
+    color: withOpacity(theme.colors.mutedForeground, 0.5),
+    textAlign: "center",
+    marginTop: theme.spacing.md,
+    textTransform: "uppercase",
+  },
+}));

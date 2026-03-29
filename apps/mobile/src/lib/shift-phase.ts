@@ -36,8 +36,8 @@ export type ShiftPhaseResult = {
 };
 
 const HOURS_MS = 60 * 60 * 1000;
-const DEFAULT_BEFORE_SHIFT_HOURS = 4;
-const LOOKAHEAD_HOURS = 24;
+const DEFAULT_BEFORE_SHIFT_HOURS = 12;
+const LOOKAHEAD_HOURS = 48;
 
 /**
  * Builds a UTC Date from a shift's shift_date (DATE "YYYY-MM-DD") + start_time/end_time (TIME "HH:MM:SS").

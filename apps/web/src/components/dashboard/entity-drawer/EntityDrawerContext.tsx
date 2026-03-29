@@ -132,3 +132,8 @@ export function useEntityDrawer(): EntityDrawerContextValue {
   if (!ctx) throw new Error("useEntityDrawer must be used within EntityDrawerProvider");
   return ctx;
 }
+
+/** Safe version — returns null when used outside EntityDrawerProvider */
+export function useEntityDrawerOptional(): EntityDrawerContextValue | null {
+  return useContext(EntityDrawerCtx);
+}

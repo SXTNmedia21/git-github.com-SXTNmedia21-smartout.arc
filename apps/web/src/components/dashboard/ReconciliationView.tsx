@@ -28,6 +28,7 @@ import {
   useRejectReconciliation,
 } from "@/app/dashboard/reconciliation/_hooks/useReconciliation";
 import { useWorkspace } from "@/lib/workspace-context";
+import { useEntityDrawer } from "@/components/dashboard/entity-drawer/EntityDrawerContext";
 import type {
   DepartmentShiftGroup,
   DepartmentShiftDetail,
@@ -79,7 +80,7 @@ function formatTime(time: string): string {
 
 // ── Main Component ────────────────────────────────────────────────────────────
 
-export function ReconciliationView({ isDark }: { isDark: boolean }) {
+export function ReconciliationView({ isDark: _isDark }: { isDark: boolean }) {
   const { workspace } = useWorkspace();
 
   // Default to yesterday — the morning routine starts here
@@ -504,6 +505,7 @@ function ShiftRow({
   onHandoffSend: () => void;
   onHandoffCancel: () => void;
 }) {
+  const { openDrawer } = useEntityDrawer();
   const isHandled = status !== "pending";
   const cfg = STATUS_CONFIG[status];
   const initials = (shift.employeeName ?? "?")
@@ -531,13 +533,19 @@ function ShiftRow({
           {initials}
         </div>
 
-        {/* Name + role + time */}
-        <div className="min-w-0 flex-1">
+        {/* Name + role + time — clickable to open shift drawer */}
+        <button
+          type="button"
+          onClick={() => openDrawer("shift", shift.shiftId)}
+          className="min-w-0 flex-1 text-left transition-opacity hover:opacity-70"
+        >
           <div className="flex items-baseline gap-2">
             <span className="text-foreground truncate text-sm font-semibold">
               {shift.employeeName ?? "Ikke tildelt"}
             </span>
-            <span className="text-muted-foreground shrink-0 text-xs">{shift.role}</span>
+            <span className="text-muted-foreground shrink-0 text-xs">
+              {shift.positionName ?? shift.role}
+            </span>
           </div>
           <div className="text-muted-foreground mt-0.5 flex items-center gap-1.5 text-xs">
             <Clock className="h-3 w-3 shrink-0" />
@@ -546,7 +554,7 @@ function ShiftRow({
             </span>
             <span className="text-foreground font-semibold">· {shift.workHours.toFixed(1)}h</span>
           </div>
-        </div>
+        </button>
 
         {/* Status pill */}
         <span

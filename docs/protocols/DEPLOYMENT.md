@@ -1,36 +1,30 @@
 ---
 title: "Deployment Dashboard"
 status: in_progress
-updated: 2026-03-25
-created: 2026-03-25
+updated: 2026-03-29
+created: 2026-03-29
 module: cross-cutting
 tags: [deployment, ci, vercel, supabase, docker]
 ---
 
-# Deployment Dashboard — 2026-03-25
+# Deployment Dashboard — 2026-03-29
 
 ## Current Run
 
-| Field   | Value                                           |
-| ------- | ----------------------------------------------- |
-| Branch  | `development`                                   |
-| Trigger | Mobile improvements + notification-system merge |
-| Started | 2026-03-25                                      |
-| Status  | **Running**                                     |
-
-## What's being deployed
-
-- feat(mobile): theme, payroll restructure, shift clock, auth screens, design tokens
-- feat(notifications): full notification system (17 commits) — DB, Edge Functions, hooks, UI, mobile
-- 3 new migrations, 2 new Edge Functions, new packages/notifications exports
+| Field   | Value                                                                 |
+| ------- | --------------------------------------------------------------------- |
+| Branch  | `development`                                                         |
+| Trigger | Schedule fixes + mobile enhancements + chat/notification improvements |
+| Started | 2026-03-29                                                            |
+| Status  | **Running**                                                           |
 
 ## Agent Progress
 
 | Agent       | Status      | Result | Learnings |
 | ----------- | ----------- | ------ | --------- |
-| gate-runner | Pending     | —      | —         |
-| env-checker | Pending     | —      | —         |
-| git-checker | Pending     | —      | —         |
+| gate-runner | Running     | —      | —         |
+| env-checker | Running     | —      | —         |
+| git-checker | Running     | —      | —         |
 | ci-monitor  | Not started | —      | —         |
 
 ## Pipeline Health

@@ -295,6 +295,26 @@
   animation: dashboard-enter 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* Glow pulse — 2s cycle for critical severity cards */
+@keyframes glow-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 var(--glow-brand, rgba(255, 107, 53, 0));
+  }
+  50% {
+    box-shadow: 0 0 10px 3px var(--glow-brand, rgba(255, 107, 53, 0.3));
+  }
+}
+.animate-glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-glow-pulse {
+    animation: none;
+  }
+}
+
 /* Overlay scroll utility — scrollbar-gutter: stable prevents layout shift */
 .scroll-overlay {
   overflow-y: auto;

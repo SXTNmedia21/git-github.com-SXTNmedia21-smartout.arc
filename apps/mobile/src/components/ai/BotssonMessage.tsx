@@ -12,10 +12,10 @@
 import React from "react";
 import { View, Text } from "react-native";
 import { createStyles } from "@/theme";
-import type { MessageWithSender } from "@/hooks/queries/use-messages";
+import type { BotssonMessage as BotssonMessageType } from "@/hooks/queries/use-botsson-chat";
 
 type BotssonMessageProps = {
-  message: MessageWithSender;
+  message: BotssonMessageType;
   /** Whether this message was sent by the current user */
   isOwnMessage: boolean;
 };

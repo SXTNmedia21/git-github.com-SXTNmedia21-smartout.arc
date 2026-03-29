@@ -110,20 +110,23 @@ async function handleStart(
   }
 
   // Get caller profile
-  const { data: profile } = await supabase
+  const { data: profile, error: profileErr } = await supabase
     .from("profile")
     .select("profile_id, display_name, avatar_url")
     .eq("user_id", userId)
     .eq("workspace_id", workspaceId)
-    .eq("is_active", true)
+    .in("status", ["active", "trainee"])
     .single();
 
   if (!profile) {
-    return errorResponse("No active profile", 403);
+    return errorResponse(
+      `No active profile for user=${userId} workspace=${workspaceId}: ${profileErr?.message ?? "not found"}`,
+      403,
+    );
   }
 
   // Verify channel membership
-  const { data: membership } = await supabase
+  const { data: membership, error: memberErr } = await supabase
     .from("channel_member")
     .select("id")
     .eq("channel_id", channelId)
@@ -132,11 +135,14 @@ async function handleStart(
     .single();
 
   if (!membership) {
-    return errorResponse("Not a member of this channel", 403);
+    return errorResponse(
+      `Not a member: profile=${profile.profile_id} channel=${channelId}: ${memberErr?.message ?? "not found"}`,
+      403,
+    );
   }
 
   // Check channel policies
-  const { data: channel } = await supabase
+  const { data: channel, error: channelErr } = await supabase
     .from("channel")
     .select("audio_policy, video_policy")
     .eq("id", channelId)
@@ -242,7 +248,7 @@ async function handleRespond(
     .select("profile_id, display_name")
     .eq("user_id", userId)
     .eq("workspace_id", workspaceId)
-    .eq("is_active", true)
+    .in("status", ["active", "trainee"])
     .single();
 
   if (!profile) {
@@ -326,7 +332,7 @@ async function handleMuteParticipant(
     .select("profile_id, workspace_role")
     .eq("user_id", userId)
     .eq("workspace_id", workspaceId)
-    .eq("is_active", true)
+    .in("status", ["active", "trainee"])
     .single();
 
   if (!profile) {

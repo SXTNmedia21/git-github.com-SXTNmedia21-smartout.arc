@@ -14,8 +14,14 @@
  * is always reachable even on short viewports or long forms.
  */
 
-import { useState, useEffect, useCallback } from "react";
-import type { WizardDefinition, WizardStepDef, WizardStepProps, WizardThemeTokens } from "./types";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import type {
+  WizardDefinition,
+  WizardStepDef,
+  WizardStepProps,
+  WizardThemeTokens,
+  WizardContextPayload,
+} from "./types";
 import { useWizardState } from "./useWizardState";
 import { useWizardWalkAi } from "./useWizardWalkAi";
 import { WizardTopBar } from "./WizardTopBar";
@@ -30,6 +36,7 @@ interface WizardShellProps<TState extends Record<string, unknown>> {
   onStepBack?: (stepId: string, toStep: string) => void;
   onComplete?: () => void;
   onValidationFail?: (stepId: string, errors: string[]) => void;
+  onContextChange?: (context: WizardContextPayload) => void;
   renderStep?: (
     stepContent: React.ReactNode,
     direction: "forward" | "back",
@@ -53,6 +60,7 @@ export function WizardShell<TState extends Record<string, unknown>>({
   onStepBack,
   onComplete,
   onValidationFail,
+  onContextChange,
   renderStep,
   renderBrandPanel,
 }: WizardShellProps<TState>) {
@@ -135,14 +143,34 @@ export function WizardShell<TState extends Record<string, unknown>>({
     [rawGoTo],
   );
 
-  // Clear errors on step change
+  // Stable serialized key so the effect doesn't re-run on every Set reference change
+  const completedKey = useMemo(() => Array.from(completedSteps).sort().join(","), [completedSteps]);
+
+  // Clear errors on step change and emit context to external consumers
   useEffect(() => {
     setValidationErrors([]);
     setAttempted(false);
     if (currentStep) {
       onStepChange?.(currentStep.id, currentStepIndex);
+      onContextChange?.({
+        wizardId: definition.id,
+        stepId: currentStep.id,
+        stepIndex: currentStepIndex,
+        totalSteps,
+        completedSteps: Array.from(completedSteps),
+        theme: definition.theme,
+      });
     }
-  }, [currentStep, currentStepIndex, onStepChange]);
+  }, [
+    currentStep,
+    currentStepIndex,
+    onStepChange,
+    onContextChange,
+    definition.id,
+    totalSteps,
+    completedKey,
+    definition.theme,
+  ]);
 
   /* Show a centered spinner while loadState is resolving */
   if (loading) {

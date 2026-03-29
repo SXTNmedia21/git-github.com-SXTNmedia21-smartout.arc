@@ -19,6 +19,8 @@ tags: [walkai, botsson, emma, wizard, onboarding, setup, voice-agent]
 
 **Spec:** `docs/superpowers/specs/2026-03-28-wizardshell-walkai-integration-design.md`
 
+**Council review (2026-03-28):** APPROVE WITH CHANGES. 3 blockers fixed: WalkAiProvider crash contingency (Task 7), dead context bridge (Task 3 now uses sendContext), nav tool no-ops (Task 5 omits nav tools). 4 recommendations applied: completedSteps stability, emit() verification, ARIA live region in V1, explicit git staging.
+
 ---
 
 ## File Structure
@@ -123,7 +125,13 @@ useEffect(() => {
 ]);
 ```
 
-Note: `completedSteps` comes from `useWizardState` as a `Set`. The `Array.from()` call converts it for the payload. The `useEffect` dependency on a Set is stable (same reference until mutation).
+**Important:** `completedSteps` is a Set that may be a new reference on each state update. To prevent the effect from firing on every render, use a serialized key:
+
+```typescript
+const completedKey = useMemo(() => Array.from(completedSteps).sort().join(","), [completedSteps]);
+```
+
+Then use `completedKey` in the dependency array instead of `completedSteps`, and `Array.from(completedSteps)` in the payload.
 
 - [ ] **Step 4: Export the new type from `index.ts`**
 
@@ -298,13 +306,17 @@ export function useWizardToolKit(
 }
 ```
 
-- [ ] **Step 2: Verify typecheck**
+- [ ] **Step 2: Verify `emit()` works client-side**
+
+Check `packages/telemetry/src/emit.ts` for an `isServer` guard. If `emit()` is server-only, the `emitToolInvoked` helper will be a silent no-op in the browser. If so, use PostHog's client SDK directly (`posthog.capture()`) or the project's existing client telemetry pattern. Document the finding and adjust `emitToolInvoked` accordingly.
+
+- [ ] **Step 3: Verify typecheck**
 
 Run: `pnpm turbo typecheck --filter=web`
 
 Expected: 0 errors.
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
 git add apps/web/src/lib/wizard-tools/shared.ts
@@ -344,7 +356,7 @@ The app-level hook that translates WizardShell's `onContextChange` callback into
  * package agent-agnostic.
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import type { WizardContextPayload } from "@smartout/ui";
 
 /** The current wizard context, or null if no wizard is active. */
@@ -353,12 +365,25 @@ export type WizardContext = WizardContextPayload | null;
 /**
  * Returns a callback to pass as WizardShell's onContextChange prop,
  * plus the latest wizard context for consumption by WalkAiProvider.
+ *
+ * IMPORTANT: This hook must be used INSIDE WalkAiProvider's React tree
+ * so it can access the agent session for mid-session context injection.
+ * The agentRef should come from WalkAiProvider's useAgent() hook.
  */
-export function useWizardWalkAiContext() {
+export function useWizardWalkAiContext(sendContext?: (text: string) => void) {
   const [wizardContext, setWizardContext] = useState<WizardContext>(null);
+  const sendContextRef = useRef(sendContext);
+  useEffect(() => {
+    sendContextRef.current = sendContext;
+  }, [sendContext]);
 
   const handleContextChange = useCallback((ctx: WizardContextPayload) => {
     setWizardContext(ctx);
+    // Deliver context to Emma's live Ultravox session
+    sendContextRef.current?.(
+      `[Wizard navigation] Step ${ctx.stepIndex + 1}/${ctx.totalSteps}: ${ctx.stepId}. ` +
+        `Completed: ${ctx.completedSteps.join(", ") || "none"}.`,
+    );
   }, []);
 
   /** Call when wizard unmounts to clear context */
@@ -513,8 +538,6 @@ export function useSeasonTools(
   setStartDate: (v: string) => void,
   setEndDate: (v: string) => void,
   handleSave: () => Promise<void>,
-  next: () => void | Promise<void>,
-  back: () => void,
 ) {
   const nameRef = useSyncRef(name);
   const startRef = useSyncRef(startDate);
@@ -523,8 +546,6 @@ export function useSeasonTools(
   const setStartRef = useSyncRef(setStartDate);
   const setEndRef = useSyncRef(setEndDate);
   const saveRef = useSyncRef(handleSave);
-  const nextRef = useSyncRef(next);
-  const backRef = useSyncRef(back);
 
   const definitions = useMemo<ClientToolDefinition[]>(
     () => [
@@ -626,9 +647,19 @@ export function useSeasonTools(
     [],
   );
 
-  return useWizardToolKit(definitions, implementations, nextRef, backRef);
+  // Note: nav tools omitted — this step has custom props, not WizardStepProps.
+  // Only include nav tools for steps that receive next/back from WizardStepProps.
+  return useMemo(
+    () => ({
+      definitions,
+      implementations,
+    }),
+    [],
+  );
 }
 ```
+
+**Important:** `SeasonSetupStep` has custom props (`{ suggestedSeasons?: IndustrySeasonTemplate[] }`), NOT `WizardStepProps`. It cannot access `next()`/`back()`. Therefore this step does NOT use `useWizardToolKit` (which adds nav tools) — it returns a plain `ClientToolKit` without nav tools. Nav tools will be added when this step is migrated to `WizardStepProps` in a future refactor.
 
 - [ ] **Step 2: Wire tool registration in SeasonSetupStep**
 
@@ -650,13 +681,11 @@ const seasonTools = useSeasonTools(
   setStartDate,
   setEndDate,
   handleSave,
-  () => {},
-  () => {}, // next/back not available in this step (it has its own save)
 );
 useRegisterTools("wizard-setup-season", seasonTools);
 ```
 
-Note: `next` and `back` are not available in this step's props (it uses `handleSave` directly). Pass no-ops for now — they will be wired when the step receives `WizardStepProps` in a future task.
+Note: This step does NOT register `advance_to_next_step`/`go_back` tools because it has custom props without `next`/`back` callbacks. Emma will see the step-specific tools (set name, set dates, save, get status) but cannot navigate from this step. This is correct — silent no-op nav tools would mislead Emma.
 
 - [ ] **Step 3: Verify typecheck**
 
@@ -754,20 +783,29 @@ Before any onboarding tool migration, WalkAiProvider must wrap the `/onboarding`
 
 - Modify: `apps/web/src/app/onboarding/layout.tsx`
 
-- [ ] **Step 1: Check WalkAiProvider's import path and required props**
+- [ ] **Step 1: HARD BLOCKER — Research WalkAiProvider dependencies**
 
-Read `apps/web/src/app/walkAi/_components/WalkAiProvider.tsx` to understand what props it needs and whether it can work outside DashboardShell.
+Read `apps/web/src/app/walkAi/_components/WalkAiProvider.tsx` thoroughly. It has known hard dependencies:
 
-This is a research step. The provider may depend on DashboardContext, workspace context, or other dashboard-only providers. If so, we need a lighter wrapper or must satisfy those dependencies.
+- `useEntityDrawer()` — requires `EntityDrawerContext` (only in DashboardShell)
+- Static import of `SCHEDULE_TOOL_DEFINITIONS` — pulls in dashboard schedule code
 
-Document findings before proceeding.
+**Do NOT proceed to Step 2 until this research is complete.** Document ALL provider dependencies.
 
-- [ ] **Step 2: Add WalkAiProvider to onboarding layout**
+**Three resolution paths (pick one):**
+
+- **(A)** Create `OnboardingWalkAiProvider` — a lightweight variant that strips entity-drawer, schedule tools, and dashboard-only deps. Reuses the core agent session logic.
+- **(B)** Make `useEntityDrawer` optional in WalkAiProvider — wrap in try-catch or check for context existence.
+- **(C)** Add `EntityDrawerProvider` (stub/empty) to the onboarding layout alongside WalkAiProvider.
+
+Choose the path with lowest risk and document the decision.
+
+- [ ] **Step 2: Implement the chosen resolution and add WalkAiProvider to onboarding layout**
 
 In `apps/web/src/app/onboarding/layout.tsx`, wrap the children:
 
 ```typescript
-import { WalkAiProvider } from "@/app/walkAi/_components/WalkAiProvider";
+import { WalkAiProvider } from "@/app/walkAi/_components/WalkAiProvider"; // or OnboardingWalkAiProvider
 
 export default async function OnboardingLayout({ children }: { children: React.ReactNode }) {
   // ... existing auth guard ...
@@ -946,7 +984,7 @@ Expected: 0 errors. If anything breaks, a consumer was missed — fix before com
 - [ ] **Step 4: Commit**
 
 ```bash
-git add -A
+git add apps/web/src/app/onboarding/hooks/useBotsson.ts apps/web/src/app/onboarding/WizardContext.tsx
 git commit -m "refactor(onboarding): delete legacy Botsson + WizardContext (Phase E)
 
 Removes 1076 lines of parallel voice-agent infrastructure.
@@ -1014,5 +1052,8 @@ These items from the spec are intentionally deferred to follow-up work:
 | -------------------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------ |
 | Concurrent input mutex (activeElement check)             | Section 6                     | UX polish — requires per-field focus tracking. Ship core integration first.                |
 | Agent Presence visual layer (glow on Emma-filled fields) | Council: Frontend Designer R1 | Visual design work — needs separate spec for the presence indicator component.             |
-| ARIA live region for agent mutations                     | Council: Frontend Designer R4 | Accessibility — ship after core integration proves stable.                                 |
 | Tool-call queue during step transitions                  | Council: Frontend Designer R2 | Edge case — AnimatePresence `mode="wait"` creates a brief dead zone. Low risk in practice. |
+
+### V1 Accessibility (must ship with core integration)
+
+**ARIA live region for agent mutations.** Add a single `aria-live="polite"` hidden div in WizardShell or AnimatedWizardShell that announces field changes driven by Emma. Without this, screen reader users get zero feedback when the agent fills fields (WCAG 2.1 AA violation). Minimal effort (~30 min). Include in Task 4 or as a small follow-up task before merge.

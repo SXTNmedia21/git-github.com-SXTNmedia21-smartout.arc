@@ -1,38 +1,25 @@
 /**
- * PayslipScreen (Min Lønn) — Employee payslip detail view.
+ * PayslipScreen — Nordic Split payroll detail with hero card, breakdown, and history grid.
  *
- * Shows net pay hero for the selected period, a line-item breakdown
- * (base pay, supplements, overtime, deductions), a vacation balance strip,
- * and a list of previous settled periods to navigate between.
+ * Layout:
+ * 1. Hero: Period "Mars 2026" + "UTBETALT" green badge + net amount centered + ambient glow + PDF/share
+ * 2. Spesifikasjon: line items with badges (PURPLE=overtime, ORANGE=evening, RED=tax)
+ * 3. Tidligere perioder: 2x2 grid cards with month, amount, status + "Vis alle" dashed card
  *
- * Read-only. Data from usePayslips() for the period list and
- * usePayslipDetail(periodId) for the selected period's calculation lines.
- *
- * Trust tier: Settled — all figures come from payroll.calculation + payroll.calculation_line.
+ * Data from usePayslips() + usePayslipDetail().
  */
 
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { View, Text, ScrollView, Pressable, ActivityIndicator } from "react-native";
+import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
+import { Download, Share2, Check, ChevronRight } from "lucide-react-native";
 import { createStyles, useTheme, withOpacity } from "@/theme";
-import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { SectionHeader } from "@/components/common/SectionHeader";
 import { strings } from "@/constants/strings";
 import { usePayslips, usePayslipDetail } from "@/hooks/queries/use-payslips";
-import { useAbsenceBalance } from "@/hooks/queries/use-absence-balance";
-import { useAbsenceTypes } from "@/hooks/queries/use-absence-types";
-import { SupplementBadges } from "@/components/payroll/SupplementBadges";
-import type { ShiftSupplement } from "@/lib/supplements";
-import type { PayslipEntry } from "@/hooks/queries/use-payslips";
 
-// UI Events:
-// - action: selectPeriod(periodId) — switches hero/breakdown to that period
-// - nav: /(app)/(me)/absence-balance — vacation strip press
-// - display-only: all payroll figures are read-only
-
-/** Norwegian month names — indexed 0-11 */
 const MONTH_NAMES = [
   "Januar",
   "Februar",
@@ -48,140 +35,85 @@ const MONTH_NAMES = [
   "Desember",
 ] as const;
 
-/** Formats a date string (YYYY-MM-DD) as "Måned YYYY" — e.g., "Mars 2026" */
 function formatPeriodName(startDate: string): string {
-  const date = new Date(startDate);
-  const monthName = MONTH_NAMES[date.getMonth()];
-  return `${monthName} ${date.getFullYear()}`;
+  const d = new Date(startDate);
+  return `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
 }
 
-/** Formats a date string as "DD. måned" — e.g., "25. mars" */
-function formatDayMonth(dateStr: string): string {
-  const date = new Date(dateStr);
-  const day = date.getDate();
-  const monthName = MONTH_NAMES[date.getMonth()].toLowerCase();
-  return `${day}. ${monthName}`;
+function formatPeriodShort(startDate: string): string {
+  const d = new Date(startDate);
+  return `${MONTH_NAMES[d.getMonth()]?.slice(0, 3)} ${d.getFullYear()}`;
 }
 
-/** Formats a date range as "DD. mmm – DD. mmm" */
-function formatDateRange(startDate: string, endDate: string): string {
-  return `${formatDayMonth(startDate)} – ${formatDayMonth(endDate)}`;
-}
-
-/** Format NOK amount — "kr 21 146" */
 function formatNOK(amount: number): string {
-  const rounded = Math.round(amount);
-  const formatted = rounded.toLocaleString("nb-NO");
-  return `kr ${formatted}`;
+  return amount.toLocaleString("nb-NO", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 }
 
-/** Convert minutes to "Xt Ym" display */
-function formatMinutesToHours(minutes: number): string {
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  if (m === 0) return `${h}t`;
-  return `${h}t ${m}m`;
-}
-
-/**
- * Extract supplement badges from calculation lines.
- * Lines with line_type containing supplement info are mapped to ShiftSupplement.
- */
-function extractSupplementBadges(
-  lines: { line_type: string; description: string; hours: number | null; amount: number }[],
-): ShiftSupplement[] {
-  const supplements: ShiftSupplement[] = [];
-
-  for (const line of lines) {
-    if (line.line_type !== "supplement") continue;
-
-    const desc = line.description.toLowerCase();
-    if (desc.includes("kveld")) {
-      supplements.push({
-        type: "kveld",
-        label: strings.payroll.eveningSupplement,
-        hours: line.hours ?? 0,
-        estimatedAmount: line.amount,
-      });
-    } else if (desc.includes("helg") || desc.includes("helge")) {
-      supplements.push({
-        type: "helg",
-        label: strings.payroll.weekendSupplement,
-        hours: line.hours ?? 0,
-        estimatedAmount: line.amount,
-      });
-    } else if (desc.includes("helligdag")) {
-      supplements.push({
-        type: "helligdag",
-        label: strings.payroll.holidaySupplement,
-        hours: line.hours ?? 0,
-        estimatedAmount: line.amount,
-      });
-    }
+/** Determine badge color for supplement line items */
+function getSupplementBadge(description: string): {
+  label: string;
+  bgColor: string;
+  textColor: string;
+} | null {
+  const desc = description.toLowerCase();
+  if (desc.includes("overtid")) {
+    return { label: "OVERTID", bgColor: "rgba(139,92,246,0.12)", textColor: "#8b5cf6" };
   }
-
-  return supplements;
+  if (desc.includes("kveld")) {
+    return { label: "KVELD", bgColor: "rgba(249,115,22,0.12)", textColor: "#f97316" };
+  }
+  if (desc.includes("helg")) {
+    return { label: "HELG", bgColor: "rgba(249,115,22,0.12)", textColor: "#f97316" };
+  }
+  if (desc.includes("helligdag")) {
+    return { label: "HELLIGDAG", bgColor: "rgba(249,115,22,0.12)", textColor: "#f97316" };
+  }
+  return null;
 }
 
 export function PayslipScreen() {
   const styles = useStyles();
   const theme = useTheme();
-  const router = useRouter();
+  const _router = useRouter();
 
-  const { data: payslipsData, isLoading: payslipsLoading, error: payslipsError } = usePayslips();
-  const absenceBalance = useAbsenceBalance();
-  const absenceTypesQuery = useAbsenceTypes();
-  const currentYear = new Date().getFullYear();
-
+  const { data: payslipsData, isLoading, error } = usePayslips();
   const payslips = payslipsData?.payslips ?? [];
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const activeId = selectedId ?? payslips[0]?.period.id ?? "";
+  const { data: detailData, isLoading: detailLoading } = usePayslipDetail(activeId);
 
-  /** Selected period ID — defaults to the most recent payslip */
-  const [selectedPeriodId, setSelectedPeriodId] = useState<string | null>(null);
-
-  const activePeriodId = selectedPeriodId ?? payslips[0]?.period.id ?? "";
-
-  const { data: detailData, isLoading: detailLoading } = usePayslipDetail(activePeriodId);
-
-  /** Find the selected payslip entry from the list */
   const activePayslip = useMemo(
-    () => payslips.find((p) => p.period.id === activePeriodId) ?? null,
-    [payslips, activePeriodId],
+    () => payslips.find((p) => p.period.id === activeId) ?? null,
+    [payslips, activeId],
   );
 
-  /** Previous periods — all except the currently selected one */
+  const lines = detailData?.lines ?? [];
+  const calc = activePayslip?.calculation;
+
+  const supplementLines = lines.filter((l) => l.line_type === "supplement");
+  const deductionLines = lines.filter(
+    (l) => l.line_type === "deduction" || l.line_type === "absence",
+  );
+
+  /* Previous periods (exclude active) for the history grid */
   const previousPayslips = useMemo(
-    () => payslips.filter((p) => p.period.id !== activePeriodId),
-    [payslips, activePeriodId],
+    () => payslips.filter((p) => p.period.id !== activeId).slice(0, 3),
+    [payslips, activeId],
   );
 
-  const handleSelectPeriod = useCallback((periodId: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setSelectedPeriodId(periodId);
-  }, []);
-
-  const handleVacationPress = useCallback(() => {
-    Haptics.selectionAsync();
-    router.push("/(app)/(me)/absence-balance");
-  }, [router]);
-
-  if (payslipsLoading) {
+  if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={styles.centered}>
         <ActivityIndicator size="large" />
         <Text style={styles.loadingText}>{strings.common.loading}</Text>
       </View>
     );
   }
 
-  if (payslipsError) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.errorText}>{strings.payroll.loadErrorPayslip}</Text>
-      </View>
-    );
-  }
-
-  if (payslips.length === 0) {
+  if (error || payslips.length === 0) {
     return (
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         <EmptyState title={strings.payroll.myPay} subtitle={strings.payroll.noPayslips} />
@@ -189,257 +121,204 @@ export function PayslipScreen() {
     );
   }
 
-  const period = activePayslip?.period;
-  const calculation = activePayslip?.calculation;
-  const lines = detailData?.lines ?? [];
-
-  /** Aggregate amounts from calculation lines by type */
-  const supplementTotal = lines
-    .filter((l) => l.line_type === "supplement")
-    .reduce((sum, l) => sum + l.amount, 0);
-  const overtimeTotal = lines
-    .filter((l) => l.line_type === "overtime")
-    .reduce((sum, l) => sum + l.amount, 0);
-  const deductionTotal = lines
-    .filter((l) => l.line_type === "deduction" || l.line_type === "absence")
-    .reduce((sum, l) => sum + l.amount, 0);
-
-  const supplementBadges = extractSupplementBadges(lines);
-
-  /** Vacation quota for the vacation strip.
-   *
-   * We need the quota whose absence type has category "vacation" — not just any
-   * quota for the current year. useAbsenceTypes() is called at the top of the
-   * component (before any early returns, as required by React's Rules of Hooks)
-   * and is already cached via the shared hook. */
-  const vacationQuota = useMemo(() => {
-    const quotas = absenceBalance.data?.quotas ?? [];
-    const types = absenceTypesQuery.data ?? [];
-
-    // Find the absence type id for the vacation category
-    const vacationType = types.find((t) => t.category === "vacation");
-    if (!vacationType) {
-      // Fallback: if we can't identify the vacation type yet, use the first
-      // quota for the current year (matches pre-existing behavior)
-      return quotas.find((q) => q.year === currentYear) ?? null;
-    }
-
-    return (
-      quotas.find((q) => q.year === currentYear && q.absence_type_id === vacationType.id) ?? null
-    );
-  }, [absenceBalance.data?.quotas, absenceTypesQuery.data, currentYear]);
+  const netPay = calc?.total_pay ?? 0;
+  const basePay = calc?.base_pay ?? 0;
+  const totalDeductions = calc?.total_deductions ?? 0;
+  const workMinutes = calc?.net_working_minutes ?? 0;
+  const workHours = (workMinutes / 60).toFixed(1);
+  const hourlyRate = workMinutes > 0 ? Math.round(basePay / (workMinutes / 60)) : 0;
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Net pay hero */}
-      {period && (
-        <Card style={styles.heroCard}>
-          <Text style={styles.heroPeriod}>{formatPeriodName(period.start_date)}</Text>
-          <Text style={styles.heroAmount}>
-            {calculation ? formatNOK(calculation.total_pay) : "—"}
-          </Text>
-          <Text style={styles.heroLabel}>{strings.payroll.netPay}</Text>
-          {period.exported_at && (
-            <View style={styles.statusBadge}>
-              <Text style={styles.statusBadgeText}>
-                {strings.payroll.netPay} {formatDayMonth(period.exported_at)}
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+    >
+      {/* ── Hero Card — net payout with ambient glow ── */}
+      <Animated.View entering={FadeIn.delay(50).duration(500)} style={styles.heroCard}>
+        {/* Ambient glow effect */}
+        <View style={styles.heroGlow} />
+
+        <Text style={styles.heroPeriod}>
+          {formatPeriodName(activePayslip?.period.start_date ?? "")}
+        </Text>
+
+        {/* UTBETALT badge */}
+        <View style={styles.paidBadge}>
+          <Check size={10} color="#11ad32" strokeWidth={3} />
+          <Text style={styles.paidBadgeText}>UTBETALT</Text>
+        </View>
+
+        {/* Net amount */}
+        <Text style={styles.heroAmount}>kr {formatNOK(netPay)}</Text>
+
+        {/* Action buttons */}
+        <View style={styles.heroActions}>
+          <Pressable
+            onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+            style={styles.heroActionButton}
+          >
+            <Download size={18} color={theme.colors.foreground} strokeWidth={1.5} />
+            <Text style={styles.heroActionText}>PDF</Text>
+          </Pressable>
+          <View style={styles.heroActionDivider} />
+          <Pressable
+            onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+            style={styles.heroActionButton}
+          >
+            <Share2 size={18} color={theme.colors.foreground} strokeWidth={1.5} />
+            <Text style={styles.heroActionText}>Del</Text>
+          </Pressable>
+        </View>
+      </Animated.View>
+
+      {/* ── Spesifikasjon ── */}
+      <Animated.View
+        entering={FadeInDown.delay(150).duration(400).springify()}
+        style={styles.specSection}
+      >
+        <Text style={styles.sectionTitle}>Spesifikasjon</Text>
+
+        <View style={styles.specCard}>
+          {/* Base salary — Arbeidstimer */}
+          <View style={styles.specRow}>
+            <View style={styles.specRowLeft}>
+              <Text style={styles.specLabel}>Arbeidstimer</Text>
+              <Text style={styles.specMeta}>
+                {workHours} timer @ {formatNOK(hourlyRate)}
               </Text>
             </View>
-          )}
-        </Card>
-      )}
+            <Text style={styles.specAmount}>{formatNOK(basePay)}</Text>
+          </View>
 
-      {/* Vacation strip — links to absence balance */}
-      {vacationQuota && (
-        <Pressable
-          onPress={handleVacationPress}
-          style={styles.vacationStrip}
-          accessibilityRole="link"
-          accessibilityLabel={strings.payroll.absenceBalance}
-        >
-          <Text style={styles.vacationText}>
-            {strings.payroll.vacationDaysLeftIn} {currentYear}: {vacationQuota.remaining_days ?? 0}{" "}
-            {strings.payroll.of} {vacationQuota.entitled_days}
-          </Text>
-          <Text style={styles.chevron}>›</Text>
-        </Pressable>
-      )}
+          <View style={styles.divider} />
 
-      {/* Breakdown: Spesifikasjon */}
-      {calculation && (
-        <View style={styles.breakdownSection}>
-          <SectionHeader title={strings.payroll.specification} />
-          <Card>
-            {/* Work hours */}
-            <BreakdownRow
-              label={strings.payroll.workHours}
-              value={formatMinutesToHours(calculation.net_working_minutes)}
-            />
+          {/* Grunnlonn */}
+          <View style={styles.specRow}>
+            <Text style={styles.specLabel}>Grunnlonn</Text>
+            <Text style={styles.specAmount}>{formatNOK(basePay)}</Text>
+          </View>
 
-            {/* Base salary */}
-            <View style={styles.divider} />
-            <BreakdownRow
-              label={strings.payroll.baseSalary}
-              value={formatNOK(calculation.base_pay)}
-            />
-
-            {/* Supplements */}
-            {supplementTotal > 0 && (
-              <>
+          {/* Supplement lines with badges */}
+          {supplementLines.map((line, i) => {
+            const badge = getSupplementBadge(line.description);
+            return (
+              <View key={`supp-${i}`}>
                 <View style={styles.divider} />
-                <BreakdownRow
-                  label={strings.payroll.supplements}
-                  value={formatNOK(supplementTotal)}
-                />
-                {supplementBadges.length > 0 && (
-                  <View style={styles.badgeRow}>
-                    <SupplementBadges supplements={supplementBadges} />
+                <View style={styles.specRow}>
+                  <View style={styles.specRowLeft}>
+                    <View style={styles.specLabelRow}>
+                      <Text style={styles.specLabel}>{line.description}</Text>
+                      {badge && (
+                        <View style={[styles.lineBadge, { backgroundColor: badge.bgColor }]}>
+                          <Text style={[styles.lineBadgeText, { color: badge.textColor }]}>
+                            {badge.label}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
                   </View>
-                )}
-              </>
-            )}
+                  <Text style={styles.specAmountPositive}>+{formatNOK(line.amount)}</Text>
+                </View>
+              </View>
+            );
+          })}
 
-            {/* Overtime */}
-            {overtimeTotal > 0 && (
-              <>
-                <View style={styles.divider} />
-                <BreakdownRow label={strings.payroll.overtime} value={formatNOK(overtimeTotal)} />
-              </>
-            )}
+          {/* Deduction lines — tax in red */}
+          {deductionLines.length > 0 && (
+            <>
+              <View style={styles.dividerThick} />
+              {deductionLines.map((line, i) => (
+                <View key={`ded-${i}`}>
+                  {i > 0 && <View style={styles.divider} />}
+                  <View style={[styles.specRow, styles.specRowDeduction]}>
+                    <Text style={styles.specLabelDeduction}>{line.description}</Text>
+                    <Text style={styles.specAmountDeduction}>
+                      -{formatNOK(Math.abs(line.amount))}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </>
+          )}
 
-            {/* Heavy divider before gross */}
-            <View style={styles.heavyDivider} />
-
-            {/* Gross pay */}
-            <BreakdownRow
-              label={strings.payroll.grossPay}
-              value={formatNOK(calculation.base_pay + calculation.total_supplements)}
-              bold
-            />
-
-            {/* Tax / deductions */}
-            {calculation.total_deductions > 0 && (
-              <>
-                <View style={styles.divider} />
-                <BreakdownRow
-                  label={strings.payroll.taxDeduction}
-                  value={`-${formatNOK(calculation.total_deductions)}`}
-                  negative
-                />
-              </>
-            )}
-
-            {/* Heavy divider before net */}
-            <View style={styles.heavyDivider} />
-
-            {/* Net pay */}
-            <BreakdownRow
-              label={strings.payroll.netPay}
-              value={formatNOK(calculation.total_pay)}
-              positive
-              bold
-            />
-          </Card>
-
-          {detailLoading && (
-            <View style={styles.detailLoading}>
-              <ActivityIndicator size="small" />
-            </View>
+          {/* Fallback deduction if no detailed lines */}
+          {deductionLines.length === 0 && totalDeductions > 0 && (
+            <>
+              <View style={styles.dividerThick} />
+              <View style={[styles.specRow, styles.specRowDeduction]}>
+                <Text style={styles.specLabelDeduction}>{strings.payroll.taxDeduction}</Text>
+                <Text style={styles.specAmountDeduction}>-{formatNOK(totalDeductions)}</Text>
+              </View>
+            </>
           )}
         </View>
+      </Animated.View>
+
+      {/* ── Tidligere perioder — 2x2 grid ── */}
+      {previousPayslips.length > 0 && (
+        <Animated.View
+          entering={FadeInDown.delay(300).duration(400).springify()}
+          style={styles.historySection}
+        >
+          <Text style={styles.sectionTitle}>Tidligere perioder</Text>
+
+          <View style={styles.historyGrid}>
+            {previousPayslips.map((payslip) => {
+              const pCalc = payslip.calculation;
+              const pNet = pCalc?.total_pay ?? 0;
+              const isExported = !!payslip.period.exported_at;
+
+              return (
+                <Pressable
+                  key={payslip.period.id}
+                  style={styles.historyCard}
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    setSelectedId(payslip.period.id);
+                  }}
+                >
+                  <View style={styles.historyCardTop}>
+                    <Text style={styles.historyMonth}>
+                      {formatPeriodShort(payslip.period.start_date)}
+                    </Text>
+                    {isExported && (
+                      <View style={styles.historyCheck}>
+                        <Check size={12} color="#11ad32" strokeWidth={2.5} />
+                      </View>
+                    )}
+                  </View>
+                  <Text style={styles.historyAmount}>kr {formatNOK(pNet)}</Text>
+                </Pressable>
+              );
+            })}
+
+            {/* "Vis alle" dashed card */}
+            <Pressable style={styles.historyCardDashed} onPress={() => Haptics.selectionAsync()}>
+              <Text style={styles.historyShowAll}>Vis alle</Text>
+              <ChevronRight size={16} color={theme.colors.mutedForeground} strokeWidth={1.5} />
+            </Pressable>
+          </View>
+        </Animated.View>
       )}
 
-      {/* Previous periods */}
-      {previousPayslips.length > 0 && (
-        <View style={styles.previousSection}>
-          <SectionHeader title={strings.payroll.previousPeriods} />
-          {previousPayslips.map((payslip) => (
-            <PeriodCard
-              key={payslip.period.id}
-              payslip={payslip}
-              onPress={() => handleSelectPeriod(payslip.period.id)}
-            />
-          ))}
+      {detailLoading && (
+        <View style={styles.detailLoading}>
+          <ActivityIndicator size="small" />
         </View>
       )}
     </ScrollView>
   );
 }
 
-/** Single row in the payslip breakdown */
-function BreakdownRow({
-  label,
-  value,
-  bold = false,
-  positive = false,
-  negative = false,
-}: {
-  label: string;
-  value: string;
-  bold?: boolean;
-  positive?: boolean;
-  negative?: boolean;
-}) {
-  const styles = useStyles();
-  const theme = useTheme();
-
-  return (
-    <View style={styles.breakdownRow}>
-      <Text style={[styles.breakdownLabel, bold && styles.boldText]}>{label}</Text>
-      <Text
-        style={[
-          styles.breakdownValue,
-          bold && styles.boldText,
-          positive && { color: theme.colors.success },
-          negative && { color: theme.colors.destructive },
-        ]}
-      >
-        {value}
-      </Text>
-    </View>
-  );
-}
-
-/** Pressable card for a previous period — tapping switches the hero view */
-function PeriodCard({ payslip, onPress }: { payslip: PayslipEntry; onPress: () => void }) {
-  const styles = useStyles();
-
-  return (
-    <Card
-      onPress={onPress}
-      style={styles.periodCard}
-      accessibilityRole="button"
-      accessibilityLabel={formatPeriodName(payslip.period.start_date)}
-    >
-      <View style={styles.periodCardContent}>
-        <View style={styles.periodCardLeft}>
-          <Text style={styles.periodCardName}>{formatPeriodName(payslip.period.start_date)}</Text>
-          <Text style={styles.periodCardRange}>
-            {formatDateRange(payslip.period.start_date, payslip.period.end_date)}
-          </Text>
-        </View>
-        <View style={styles.periodCardRight}>
-          <Text style={styles.periodCardAmount}>
-            {payslip.calculation ? formatNOK(payslip.calculation.total_pay) : "—"}
-          </Text>
-          <Text style={styles.chevron}>›</Text>
-        </View>
-      </View>
-    </Card>
-  );
-}
-
 const useStyles = createStyles((theme) => ({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
+  container: { flex: 1, backgroundColor: theme.colors.background },
   content: {
-    paddingHorizontal: theme.spacing.card,
-    paddingTop: theme.spacing.section,
-    paddingBottom: theme.spacing.xl,
+    paddingHorizontal: theme.spacing.section,
+    paddingTop: theme.spacing.md,
+    paddingBottom: 120,
   },
-  loadingContainer: {
+  centered: {
     flex: 1,
     alignItems: "center" as const,
     justifyContent: "center" as const,
@@ -449,141 +328,231 @@ const useStyles = createStyles((theme) => ({
     ...theme.typography.subheadline,
     color: theme.colors.mutedForeground,
   },
-  errorText: {
-    ...theme.typography.body,
-    color: theme.colors.destructive,
-    textAlign: "center" as const,
-  },
 
-  /* Hero card — net pay display */
+  /* ── Hero Card ── */
   heroCard: {
+    backgroundColor: theme.isDark ? theme.colors.card : theme.colors.secondary,
+    borderRadius: theme.radius.xl,
+    paddingHorizontal: theme.spacing.card,
+    paddingVertical: theme.spacing.page,
     alignItems: "center" as const,
+    marginTop: theme.spacing.section,
     marginBottom: theme.spacing.section,
+    overflow: "hidden" as const,
+    ...theme.shadows.lg,
+  },
+  heroGlow: {
+    position: "absolute" as const,
+    top: -60,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: withOpacity(theme.colors.brandOrange, 0.06),
   },
   heroPeriod: {
-    ...theme.typography.headline,
-    color: theme.colors.mutedForeground,
-  },
-  heroAmount: {
-    ...theme.typography.largeTitle,
-    fontSize: 36,
-    lineHeight: 44,
-    fontWeight: theme.fontWeights.bold,
-    color: theme.colors.success,
-    marginTop: theme.spacing.tight,
-  },
-  heroLabel: {
-    ...theme.typography.subheadline,
-    color: theme.colors.mutedForeground,
-    marginTop: theme.spacing.xs,
-  },
-  statusBadge: {
-    backgroundColor: withOpacity(theme.colors.success, 0.1),
-    borderRadius: theme.radius.sm,
-    paddingHorizontal: theme.spacing.tight,
-    paddingVertical: theme.spacing.xxs,
-    marginTop: theme.spacing.element,
-  },
-  statusBadgeText: {
-    ...theme.typography.caption,
-    fontWeight: theme.fontWeights.medium,
-    color: theme.colors.success,
-  },
-
-  /* Vacation strip */
-  vacationStrip: {
-    flexDirection: "row" as const,
-    justifyContent: "space-between" as const,
-    alignItems: "center" as const,
-    backgroundColor: withOpacity(theme.colors.success, 0.1),
-    borderRadius: theme.radius.lg,
-    paddingVertical: theme.spacing.element,
-    paddingHorizontal: theme.spacing.card,
-    marginBottom: theme.spacing.section,
-  },
-  vacationText: {
     ...theme.typography.subheadline,
     fontWeight: theme.fontWeights.medium,
-    color: theme.colors.success,
-    flex: 1,
-  },
-  chevron: {
-    ...theme.typography.headline,
     color: theme.colors.mutedForeground,
-    marginLeft: theme.spacing.tight,
-  },
-
-  /* Breakdown section */
-  breakdownSection: {
-    marginBottom: theme.spacing.section,
-    gap: theme.spacing.tight,
-  },
-  breakdownRow: {
-    flexDirection: "row" as const,
-    justifyContent: "space-between" as const,
-    alignItems: "center" as const,
-    paddingVertical: theme.spacing.element,
-  },
-  breakdownLabel: {
-    ...theme.typography.body,
-    color: theme.colors.foreground,
-  },
-  breakdownValue: {
-    ...theme.typography.bodyBold,
-    color: theme.colors.foreground,
-  },
-  boldText: {
-    fontWeight: theme.fontWeights.bold,
-  },
-  badgeRow: {
-    paddingBottom: theme.spacing.tight,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: theme.colors.border,
-  },
-  heavyDivider: {
-    height: 2,
-    backgroundColor: theme.colors.border,
-    marginVertical: theme.spacing.xs,
-  },
-  detailLoading: {
-    alignItems: "center" as const,
-    paddingVertical: theme.spacing.element,
-  },
-
-  /* Previous periods section */
-  previousSection: {
-    gap: theme.spacing.tight,
-  },
-  periodCard: {
+    letterSpacing: 0.5,
     marginBottom: theme.spacing.tight,
   },
-  periodCardContent: {
+  paidBadge: {
     flexDirection: "row" as const,
-    justifyContent: "space-between" as const,
     alignItems: "center" as const,
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: theme.radius.full,
+    backgroundColor: withOpacity(theme.colors.success, 0.1),
+    marginBottom: theme.spacing.element,
   },
-  periodCardLeft: {
-    flex: 1,
+  paidBadgeText: {
+    ...theme.typography.micro,
+    fontWeight: theme.fontWeights.semibold,
+    color: theme.colors.success,
+    letterSpacing: 1,
   },
-  periodCardName: {
-    ...theme.typography.body,
+  heroAmount: {
+    fontSize: 36,
+    lineHeight: 42,
+    fontWeight: "300" as const,
+    color: theme.colors.foreground,
+    letterSpacing: -1,
+    marginBottom: theme.spacing.card,
+  },
+  heroActions: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    backgroundColor: theme.isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)",
+    borderRadius: theme.radius.full,
+    paddingVertical: theme.spacing.tight,
+    paddingHorizontal: theme.spacing.md,
+  },
+  heroActionButton: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 6,
+    paddingHorizontal: theme.spacing.element,
+    paddingVertical: theme.spacing.xs,
+  },
+  heroActionText: {
+    ...theme.typography.subheadline,
     fontWeight: theme.fontWeights.medium,
     color: theme.colors.foreground,
   },
-  periodCardRange: {
+  heroActionDivider: {
+    width: 1,
+    height: 20,
+    backgroundColor: theme.isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)",
+  },
+
+  /* ── Spesifikasjon ── */
+  specSection: {
+    marginBottom: theme.spacing.section,
+  },
+  sectionTitle: {
+    ...theme.typography.title,
+    color: theme.colors.foreground,
+    marginBottom: theme.spacing.element,
+  },
+  specCard: {
+    backgroundColor: theme.isDark ? theme.colors.card : theme.colors.secondary,
+    borderRadius: theme.radius.xl,
+    paddingHorizontal: theme.spacing.card,
+    paddingVertical: theme.spacing.element,
+  },
+  specRow: {
+    flexDirection: "row" as const,
+    justifyContent: "space-between" as const,
+    alignItems: "flex-start" as const,
+    paddingVertical: theme.spacing.element,
+  },
+  specRowLeft: {
+    flex: 1,
+    marginRight: theme.spacing.element,
+  },
+  specLabelRow: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: theme.spacing.tight,
+    flexWrap: "wrap" as const,
+  },
+  specLabel: {
+    ...theme.typography.subheadline,
+    fontWeight: theme.fontWeights.medium,
+    color: theme.colors.foreground,
+  },
+  specMeta: {
     ...theme.typography.caption,
     color: theme.colors.mutedForeground,
     marginTop: 2,
   },
-  periodCardRight: {
+  specAmount: {
+    ...theme.typography.subheadline,
+    fontWeight: theme.fontWeights.bold,
+    color: theme.colors.foreground,
+  },
+  specAmountPositive: {
+    ...theme.typography.subheadline,
+    fontWeight: theme.fontWeights.bold,
+    color: theme.colors.success,
+  },
+  lineBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: theme.radius.sm,
+  },
+  lineBadgeText: {
+    fontSize: 9,
+    fontWeight: "700" as const,
+    letterSpacing: 0.5,
+  },
+  specRowDeduction: {
+    backgroundColor: withOpacity(theme.colors.destructive, 0.04),
+    marginHorizontal: -theme.spacing.card,
+    paddingHorizontal: theme.spacing.card,
+    borderRadius: theme.radius.sm,
+  },
+  specLabelDeduction: {
+    ...theme.typography.subheadline,
+    fontWeight: theme.fontWeights.medium,
+    color: theme.colors.destructive,
+  },
+  specAmountDeduction: {
+    ...theme.typography.subheadline,
+    fontWeight: theme.fontWeights.bold,
+    color: theme.colors.destructive,
+  },
+  divider: {
+    height: 0.5,
+    backgroundColor: theme.isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)",
+  },
+  dividerThick: {
+    height: 1,
+    backgroundColor: theme.isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)",
+    marginVertical: theme.spacing.xs,
+  },
+
+  /* ── Tidligere perioder — 2x2 grid ── */
+  historySection: {
+    marginBottom: theme.spacing.section,
+  },
+  historyGrid: {
     flexDirection: "row" as const,
-    alignItems: "center" as const,
+    flexWrap: "wrap" as const,
+    gap: theme.spacing.element,
+  },
+  historyCard: {
+    width: "47%" as unknown as number,
+    backgroundColor: theme.isDark ? theme.colors.card : theme.colors.secondary,
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.element,
     gap: theme.spacing.tight,
   },
-  periodCardAmount: {
+  historyCardTop: {
+    flexDirection: "row" as const,
+    justifyContent: "space-between" as const,
+    alignItems: "center" as const,
+  },
+  historyMonth: {
+    ...theme.typography.caption,
+    fontWeight: theme.fontWeights.semibold,
+    color: theme.colors.mutedForeground,
+    textTransform: "uppercase" as const,
+    letterSpacing: 0.5,
+  },
+  historyCheck: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: withOpacity(theme.colors.success, 0.1),
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+  },
+  historyAmount: {
     ...theme.typography.bodyBold,
     color: theme.colors.foreground,
+  },
+  historyCardDashed: {
+    width: "47%" as unknown as number,
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.element,
+    borderWidth: 1.5,
+    borderStyle: "dashed" as const,
+    borderColor: theme.isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)",
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    gap: 4,
+  },
+  historyShowAll: {
+    ...theme.typography.subheadline,
+    fontWeight: theme.fontWeights.medium,
+    color: theme.colors.mutedForeground,
+  },
+
+  detailLoading: {
+    alignItems: "center" as const,
+    paddingVertical: theme.spacing.element,
   },
 }));

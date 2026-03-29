@@ -2381,3 +2381,610 @@ VALUES (
 UPDATE public.workspace
 SET setup_guide_completed = true
 WHERE workspace_id = 'b0000000-0000-0000-0000-000000000000';
+
+-- ============================================================================
+-- 15. Schedule Shifts — Mobile seed data
+-- Gives Anna (Kitchen), Ole (Bar), and Kari (Service) shifts over the next 2 weeks.
+-- Uses CURRENT_DATE-relative dates so shifts are always "upcoming" during dev.
+-- ============================================================================
+
+INSERT INTO public.schedule_shift (
+  schedule_shift_id, workspace_id, employee_id, shift_date, role, start_time, end_time,
+  work_hours, breaks, day_category, status, is_published, zone, indicator
+) VALUES
+  -- Anna Olsen (Kitchen, f...01) — 5 shifts
+  ('aa000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000001', CURRENT_DATE + 1, 'Kokk', '07:00', '15:00',
+   7.5, 30, 'morning', 'published', true, 'Kjøkken', 'blue'),
+  ('aa000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000001', CURRENT_DATE + 3, 'Kokk', '10:00', '18:00',
+   7.5, 30, 'midday', 'published', true, 'Kjøkken', 'blue'),
+  ('aa000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000001', CURRENT_DATE + 5, 'Kokk', '16:00', '23:30',
+   7.0, 30, 'evening', 'published', true, 'Kjøkken', 'emerald'),
+  ('aa000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000001', CURRENT_DATE + 6, 'Kokk', '17:00', '02:00',
+   8.5, 30, 'weekend', 'published', true, 'Kjøkken (Hovedsal)', 'orange'),
+  ('aa000000-0000-0000-0000-000000000005', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000001', CURRENT_DATE + 8, 'Kokk', '07:00', '15:00',
+   7.5, 30, 'morning', 'published', true, 'Kjøkken', 'blue'),
+
+  -- Ole Torp (Bar, f...04) — 4 shifts
+  ('aa000000-0000-0000-0000-000000000010', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000004', CURRENT_DATE + 1, 'Bartender', '16:00', '23:00',
+   6.5, 30, 'evening', 'published', true, 'Bar', 'purple'),
+  ('aa000000-0000-0000-0000-000000000011', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000004', CURRENT_DATE + 2, 'Bartender', '15:30', '00:00',
+   8.0, 30, 'evening', 'published', true, 'Bar', 'purple'),
+  ('aa000000-0000-0000-0000-000000000012', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000004', CURRENT_DATE + 5, 'Bartender', '17:00', '02:00',
+   8.5, 30, 'weekend', 'published', true, 'Bar', 'orange'),
+  ('aa000000-0000-0000-0000-000000000013', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000004', CURRENT_DATE + 6, 'Bartender', '17:00', '02:00',
+   8.5, 30, 'weekend', 'published', true, 'Bar', 'orange'),
+
+  -- Kari Nilsen (Service, f...05) — 4 shifts
+  ('aa000000-0000-0000-0000-000000000020', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000005', CURRENT_DATE + 1, 'Servitør', '16:00', '23:00',
+   6.5, 30, 'evening', 'published', true, 'Sjøhuset', 'emerald'),
+  ('aa000000-0000-0000-0000-000000000021', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000005', CURRENT_DATE + 3, 'Servitør', '15:30', '00:00',
+   8.0, 30, 'evening', 'published', true, 'Sjøhuset', 'emerald'),
+  ('aa000000-0000-0000-0000-000000000022', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000005', CURRENT_DATE + 5, 'Hovmester', '17:00', '02:00',
+   8.5, 30, 'weekend', 'published', true, 'Sjøhuset (Hovedsal)', 'orange'),
+  ('aa000000-0000-0000-0000-000000000023', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000005', CURRENT_DATE + 9, 'Servitør', '16:00', '23:00',
+   6.5, 30, 'evening', 'published', true, 'Sjøhuset', 'emerald');
+
+-- Pre-confirm a couple of shifts so the UI shows both states
+UPDATE public.schedule_shift
+SET confirmed_at = now(), confirmed_by = 'f0000000-0000-0000-0000-000000000001'
+WHERE schedule_shift_id IN (
+  'aa000000-0000-0000-0000-000000000001',
+  'aa000000-0000-0000-0000-000000000003'
+);
+
+-- ============================================================================
+-- 16. Chat Conversations — Mobile seed data
+-- Creates department channels, a session channel, and DM conversations.
+-- ============================================================================
+
+-- 16.1 Department group channels
+INSERT INTO public.chat_conversation (
+  id, workspace_id, type, name, source_type, source_id, created_by
+) VALUES
+  ('cc000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000000',
+   'group', 'Kjøkken', 'department', 'd0000000-0000-0000-0000-000000000001',
+   'f0000000-0000-0000-0000-000000000000'),
+  ('cc000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000000',
+   'group', 'Bar', 'department', 'd0000000-0000-0000-0000-000000000003',
+   'f0000000-0000-0000-0000-000000000000'),
+  ('cc000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000',
+   'group', 'Service', 'department', 'd0000000-0000-0000-0000-000000000002',
+   'f0000000-0000-0000-0000-000000000000');
+
+-- 16.2 Session channel (active shift channel)
+INSERT INTO public.chat_conversation (
+  id, workspace_id, type, name, source_type, created_by
+) VALUES
+  ('cc000000-0000-0000-0000-000000000010', 'b0000000-0000-0000-0000-000000000000',
+   'group', 'Kjøkken-sesjon', 'session',
+   'f0000000-0000-0000-0000-000000000000');
+
+-- 16.3 DM conversations
+INSERT INTO public.chat_conversation (
+  id, workspace_id, type, name, created_by
+) VALUES
+  ('cc000000-0000-0000-0000-000000000020', 'b0000000-0000-0000-0000-000000000000',
+   'dm', 'Erik Pedersen',
+   'f0000000-0000-0000-0000-000000000001'),
+  ('cc000000-0000-0000-0000-000000000021', 'b0000000-0000-0000-0000-000000000000',
+   'dm', 'Kari Nilsen',
+   'f0000000-0000-0000-0000-000000000001');
+
+-- 16.4 Chat participants — add Anna to all channels, others to relevant ones
+INSERT INTO public.chat_participant (conversation_id, profile_id, role) VALUES
+  -- Kjøkken channel: Anna, Erik, Jonas
+  ('cc000000-0000-0000-0000-000000000001', 'f0000000-0000-0000-0000-000000000001', 'member'),
+  ('cc000000-0000-0000-0000-000000000001', 'f0000000-0000-0000-0000-000000000002', 'admin'),
+  ('cc000000-0000-0000-0000-000000000001', 'f0000000-0000-0000-0000-000000000008', 'member'),
+  -- Bar channel: Ole, Anna (cross-dept visibility)
+  ('cc000000-0000-0000-0000-000000000002', 'f0000000-0000-0000-0000-000000000004', 'member'),
+  ('cc000000-0000-0000-0000-000000000002', 'f0000000-0000-0000-0000-000000000001', 'member'),
+  -- Service channel: Kari, Lise, Sara, Anna
+  ('cc000000-0000-0000-0000-000000000003', 'f0000000-0000-0000-0000-000000000005', 'member'),
+  ('cc000000-0000-0000-0000-000000000003', 'f0000000-0000-0000-0000-000000000003', 'member'),
+  ('cc000000-0000-0000-0000-000000000003', 'f0000000-0000-0000-0000-000000000007', 'admin'),
+  ('cc000000-0000-0000-0000-000000000003', 'f0000000-0000-0000-0000-000000000001', 'member'),
+  -- Session channel: Anna, Erik
+  ('cc000000-0000-0000-0000-000000000010', 'f0000000-0000-0000-0000-000000000001', 'member'),
+  ('cc000000-0000-0000-0000-000000000010', 'f0000000-0000-0000-0000-000000000002', 'member'),
+  -- DM: Anna <-> Erik
+  ('cc000000-0000-0000-0000-000000000020', 'f0000000-0000-0000-0000-000000000001', 'member'),
+  ('cc000000-0000-0000-0000-000000000020', 'f0000000-0000-0000-0000-000000000002', 'member'),
+  -- DM: Anna <-> Kari
+  ('cc000000-0000-0000-0000-000000000021', 'f0000000-0000-0000-0000-000000000001', 'member'),
+  ('cc000000-0000-0000-0000-000000000021', 'f0000000-0000-0000-0000-000000000005', 'member');
+
+-- 16.5 Chat messages — realistic Norwegian conversation snippets
+INSERT INTO public.chat_message (conversation_id, sender_id, content, created_at) VALUES
+  -- Kjøkken channel
+  ('cc000000-0000-0000-0000-000000000001', 'f0000000-0000-0000-0000-000000000002',
+   'Husk at vi har ny meny fra torsdag. Briefing kl 14.', now() - interval '2 hours'),
+  ('cc000000-0000-0000-0000-000000000001', 'f0000000-0000-0000-0000-000000000001',
+   'Hvem tar kveldsrunden i dag?', now() - interval '45 minutes'),
+  ('cc000000-0000-0000-0000-000000000001', 'f0000000-0000-0000-0000-000000000008',
+   'Jeg kan ta den!', now() - interval '30 minutes'),
+
+  -- Bar channel
+  ('cc000000-0000-0000-0000-000000000002', 'f0000000-0000-0000-0000-000000000004',
+   'Lagerbeholdning av tonic er lav. Bestiller i morgen.', now() - interval '1 day'),
+
+  -- Service channel
+  ('cc000000-0000-0000-0000-000000000003', 'f0000000-0000-0000-0000-000000000007',
+   'Nye bordplasseringer for helgen er klare i systemet.', now() - interval '2 days'),
+  ('cc000000-0000-0000-0000-000000000003', 'f0000000-0000-0000-0000-000000000005',
+   'Flott, takk Sara!', now() - interval '2 days' + interval '15 minutes'),
+
+  -- Session channel (active shift)
+  ('cc000000-0000-0000-0000-000000000010', 'f0000000-0000-0000-0000-000000000001',
+   'Vi trenger mer smør her inne, kan noen sjekke kjølerommet?', now() - interval '20 minutes'),
+  ('cc000000-0000-0000-0000-000000000010', 'f0000000-0000-0000-0000-000000000002',
+   'Jeg sjekker nå!', now() - interval '15 minutes'),
+
+  -- DM: Anna <-> Erik
+  ('cc000000-0000-0000-0000-000000000020', 'f0000000-0000-0000-0000-000000000002',
+   'Kan du ta tidligvakten på onsdag? Trenger noen med erfaring.', now() - interval '3 hours'),
+  ('cc000000-0000-0000-0000-000000000020', 'f0000000-0000-0000-0000-000000000001',
+   'Ja, det går fint! Sender deg bekreftelse.', now() - interval '2 hours' - interval '30 minutes'),
+
+  -- DM: Anna <-> Kari
+  ('cc000000-0000-0000-0000-000000000021', 'f0000000-0000-0000-0000-000000000005',
+   'Takk for hjelpen i går! Lærte masse.', now() - interval '5 hours'),
+  ('cc000000-0000-0000-0000-000000000021', 'f0000000-0000-0000-0000-000000000001',
+   'Bare hyggelig! Du gjør det bra 💪', now() - interval '4 hours');
+
+-- Set last_read_at to create some unread messages for Anna
+UPDATE public.chat_participant
+SET last_read_at = now() - interval '1 hour'
+WHERE profile_id = 'f0000000-0000-0000-0000-000000000001'
+  AND conversation_id IN (
+    'cc000000-0000-0000-0000-000000000001',
+    'cc000000-0000-0000-0000-000000000010'
+  );
+
+
+-- ============================================================================
+-- 20. SCHEDULE SHIFTS — Actual assigned shifts for the coming week
+-- ============================================================================
+
+INSERT INTO public.schedule_shift (
+  schedule_shift_id, workspace_id, employee_id, department_id,
+  shift_date, role, start_time, end_time, work_hours, breaks,
+  day_category, status, is_published, indicator
+) VALUES
+  -- ── Anna (Kokk, Kitchen) — this week ──
+  ('ee000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000001',
+   CURRENT_DATE, 'Kokk', '10:00:00', '18:00:00', 7.5, 30,
+   'morning', 'published', true, 'green'),
+  ('ee000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000001',
+   CURRENT_DATE + 1, 'Kokk', '10:00:00', '18:00:00', 7.5, 30,
+   'morning', 'published', true, 'green'),
+  ('ee000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000001',
+   CURRENT_DATE + 2, 'Kokk', '10:00:00', '18:00:00', 7.5, 30,
+   'morning', 'published', true, 'green'),
+  ('ee000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000001',
+   CURRENT_DATE + 4, 'Kokk', '10:00:00', '18:00:00', 7.5, 30,
+   'morning', 'published', true, 'green'),
+  ('ee000000-0000-0000-0000-000000000005', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000001',
+   CURRENT_DATE + 5, 'Kokk', '09:00:00', '17:00:00', 7.5, 30,
+   'weekend', 'published', true, 'green'),
+
+  -- ── Erik (Sous Chef, Kitchen) — this week ──
+  ('ee000000-0000-0000-0000-000000000010', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000002', 'd0000000-0000-0000-0000-000000000001',
+   CURRENT_DATE, 'Sous Chef', '10:00:00', '22:00:00', 11.5, 30,
+   'morning', 'published', true, 'green'),
+  ('ee000000-0000-0000-0000-000000000011', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000002', 'd0000000-0000-0000-0000-000000000001',
+   CURRENT_DATE + 1, 'Sous Chef', '10:00:00', '22:00:00', 11.5, 30,
+   'morning', 'published', true, 'green'),
+  ('ee000000-0000-0000-0000-000000000012', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000002', 'd0000000-0000-0000-0000-000000000001',
+   CURRENT_DATE + 3, 'Sous Chef', '10:00:00', '22:00:00', 11.5, 30,
+   'morning', 'published', true, 'green'),
+
+  -- ── Ole (Bartender, Bar) — this week ──
+  ('ee000000-0000-0000-0000-000000000020', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000004', 'd0000000-0000-0000-0000-000000000003',
+   CURRENT_DATE, 'Bartender', '16:00:00', '00:00:00', 7.5, 30,
+   'evening', 'published', true, 'blue'),
+  ('ee000000-0000-0000-0000-000000000021', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000004', 'd0000000-0000-0000-0000-000000000003',
+   CURRENT_DATE + 1, 'Bartender', '16:00:00', '00:00:00', 7.5, 30,
+   'evening', 'published', true, 'blue'),
+  ('ee000000-0000-0000-0000-000000000022', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000004', 'd0000000-0000-0000-0000-000000000003',
+   CURRENT_DATE + 2, 'Bartender', '16:00:00', '00:00:00', 7.5, 30,
+   'evening', 'published', true, 'blue'),
+  ('ee000000-0000-0000-0000-000000000023', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000004', 'd0000000-0000-0000-0000-000000000003',
+   CURRENT_DATE + 4, 'Bartender', '16:00:00', '00:00:00', 7.5, 30,
+   'evening', 'published', true, 'blue'),
+  ('ee000000-0000-0000-0000-000000000024', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000004', 'd0000000-0000-0000-0000-000000000003',
+   CURRENT_DATE + 5, 'Bartender', '18:00:00', '02:00:00', 7.5, 30,
+   'weekend', 'published', true, 'blue'),
+
+  -- ── Kari (Servitør, Service) — this week ──
+  ('ee000000-0000-0000-0000-000000000030', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000005', 'd0000000-0000-0000-0000-000000000002',
+   CURRENT_DATE, 'Servitør', '11:00:00', '19:00:00', 7.5, 30,
+   'midday', 'published', true, 'green'),
+  ('ee000000-0000-0000-0000-000000000031', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000005', 'd0000000-0000-0000-0000-000000000002',
+   CURRENT_DATE + 2, 'Servitør', '11:00:00', '19:00:00', 7.5, 30,
+   'midday', 'published', true, 'green'),
+  ('ee000000-0000-0000-0000-000000000032', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000005', 'd0000000-0000-0000-0000-000000000002',
+   CURRENT_DATE + 3, 'Servit��r', '16:00:00', '23:00:00', 6.5, 30,
+   'evening', 'published', true, 'green'),
+
+  -- ── Open shifts (unassigned) ──
+  ('ee000000-0000-0000-0000-000000000040', 'b0000000-0000-0000-0000-000000000000',
+   NULL, 'd0000000-0000-0000-0000-000000000002',
+   CURRENT_DATE + 1, 'Servitør Kveld', '16:00:00', '23:00:00', 6.5, 30,
+   'evening', 'published', true, 'yellow'),
+  ('ee000000-0000-0000-0000-000000000041', 'b0000000-0000-0000-0000-000000000000',
+   NULL, 'd0000000-0000-0000-0000-000000000001',
+   CURRENT_DATE + 5, 'Kokk Kveld', '15:00:00', '23:00:00', 7.5, 30,
+   'weekend', 'published', true, 'yellow'),
+
+  -- ── Past shifts (last week, for payroll) ──
+  ('ee000000-0000-0000-0000-000000000050', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000001',
+   CURRENT_DATE - 7, 'Kokk', '10:00:00', '18:00:00', 7.5, 30,
+   'morning', 'completed', true, 'green'),
+  ('ee000000-0000-0000-0000-000000000051', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000001',
+   CURRENT_DATE - 6, 'Kokk', '10:00:00', '18:00:00', 7.5, 30,
+   'morning', 'completed', true, 'green'),
+  ('ee000000-0000-0000-0000-000000000052', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000001',
+   CURRENT_DATE - 5, 'Kokk', '10:00:00', '18:00:00', 7.5, 30,
+   'morning', 'completed', true, 'green'),
+  ('ee000000-0000-0000-0000-000000000053', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000001',
+   CURRENT_DATE - 3, 'Kokk', '10:00:00', '20:00:00', 9.5, 30,
+   'morning', 'completed', true, 'green'),
+  ('ee000000-0000-0000-0000-000000000054', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000001',
+   CURRENT_DATE - 2, 'Kokk', '09:00:00', '17:00:00', 7.5, 30,
+   'weekend', 'completed', true, 'green');
+
+
+-- ============================================================================
+-- 21. PAYROLL — Periods, Calculations, Lines (for Anna)
+-- ============================================================================
+
+-- ── 21.1 Payroll Periods (3 months) ──
+INSERT INTO payroll.period (id, workspace_id, start_date, end_date, status, exported_at) VALUES
+  ('ab000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000000',
+   (date_trunc('month', CURRENT_DATE) - interval '2 months')::date,
+   (date_trunc('month', CURRENT_DATE) - interval '2 months' + interval '1 month' - interval '1 day')::date,
+   'exported', (date_trunc('month', CURRENT_DATE) - interval '2 months' + interval '1 month' + interval '11 days')::timestamptz),
+  ('ab000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000000',
+   (date_trunc('month', CURRENT_DATE) - interval '1 month')::date,
+   (date_trunc('month', CURRENT_DATE) - interval '1 day')::date,
+   'exported', (date_trunc('month', CURRENT_DATE) + interval '11 days')::timestamptz),
+  ('ab000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000',
+   date_trunc('month', CURRENT_DATE)::date,
+   (date_trunc('month', CURRENT_DATE) + interval '1 month' - interval '1 day')::date,
+   'approved', NULL);
+
+-- ── 21.2 Calculations for Anna (3 months) ──
+INSERT INTO payroll.calculation (
+  id, workspace_id, period_id, profile_id, schedule_shift_id,
+  shift_date, scheduled_start, scheduled_end,
+  base_rate, gross_minutes, net_working_minutes, break_minutes_paid, break_minutes_unpaid,
+  base_pay, total_supplements, total_deductions, total_pay, calculation_version
+) VALUES
+  -- January: 162.5 hrs, 280kr/hr
+  ('ac000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000000',
+   'ab000000-0000-0000-0000-000000000001', 'f0000000-0000-0000-0000-000000000001',
+   'ee000000-0000-0000-0000-000000000050',
+   (date_trunc('month', CURRENT_DATE) - interval '2 months')::date,
+   (date_trunc('month', CURRENT_DATE) - interval '2 months' + interval '10 hours')::timestamptz,
+   (date_trunc('month', CURRENT_DATE) - interval '2 months' + interval '18 hours')::timestamptz,
+   280.00, 9750, 9750, 0, 30,
+   45500.00, 5220.00, 16230.40, 34489.60, 1),
+  -- February: 150 hrs
+  ('ac000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000000',
+   'ab000000-0000-0000-0000-000000000002', 'f0000000-0000-0000-0000-000000000001',
+   'ee000000-0000-0000-0000-000000000051',
+   (date_trunc('month', CURRENT_DATE) - interval '1 month')::date,
+   (date_trunc('month', CURRENT_DATE) - interval '1 month' + interval '10 hours')::timestamptz,
+   (date_trunc('month', CURRENT_DATE) - interval '1 month' + interval '18 hours')::timestamptz,
+   280.00, 9000, 9000, 0, 30,
+   42000.00, 4850.00, 14992.00, 31858.00, 1),
+  -- March (current): 127.5 hrs so far
+  ('ac000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000',
+   'ab000000-0000-0000-0000-000000000003', 'f0000000-0000-0000-0000-000000000001',
+   'ee000000-0000-0000-0000-000000000052',
+   date_trunc('month', CURRENT_DATE)::date,
+   (date_trunc('month', CURRENT_DATE) + interval '10 hours')::timestamptz,
+   (date_trunc('month', CURRENT_DATE) + interval '18 hours')::timestamptz,
+   280.00, 7650, 7650, 0, 30,
+   35700.00, 3980.00, 12697.60, 26982.40, 1);
+
+-- ── 21.3 Calculation Lines (January detail) ──
+INSERT INTO payroll.calculation_line (
+  id, workspace_id, calculation_id, line_type, salary_code, description, amount, hours, rate
+) VALUES
+  ('ad000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000000',
+   'ac000000-0000-0000-0000-000000000001', 'base', 'BASE', 'Grunnlønn', 45500.00, 162.5, 280.00),
+  ('ad000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000000',
+   'ac000000-0000-0000-0000-000000000001', 'supplement', 'EVE', 'Kveldstillegg', 2450.00, 35.0, 70.00),
+  ('ad000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000',
+   'ac000000-0000-0000-0000-000000000001', 'supplement', 'WKD', 'Helgetillegg', 1820.00, 16.0, 113.75),
+  ('ad000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000000',
+   'ac000000-0000-0000-0000-000000000001', 'supplement', 'HOL', 'Helligdagstillegg', 950.00, 8.0, 118.75),
+  ('ad000000-0000-0000-0000-000000000005', 'b0000000-0000-0000-0000-000000000000',
+   'ac000000-0000-0000-0000-000000000001', 'deduction', 'TAX', 'Skattetrekk (32%)', 16230.40, NULL, NULL),
+  ('ad000000-0000-0000-0000-000000000006', 'b0000000-0000-0000-0000-000000000000',
+   'ac000000-0000-0000-0000-000000000001', 'deduction', 'PEN', 'Pensjonsinnskudd (2%)', 1014.40, NULL, NULL),
+
+  -- February lines
+  ('ad000000-0000-0000-0000-000000000010', 'b0000000-0000-0000-0000-000000000000',
+   'ac000000-0000-0000-0000-000000000002', 'base', 'BASE', 'Grunnlønn', 42000.00, 150.0, 280.00),
+  ('ad000000-0000-0000-0000-000000000011', 'b0000000-0000-0000-0000-000000000000',
+   'ac000000-0000-0000-0000-000000000002', 'supplement', 'EVE', 'Kveldstillegg', 2100.00, 30.0, 70.00),
+  ('ad000000-0000-0000-0000-000000000012', 'b0000000-0000-0000-0000-000000000000',
+   'ac000000-0000-0000-0000-000000000002', 'supplement', 'WKD', 'Helgetillegg', 1820.00, 16.0, 113.75),
+  ('ad000000-0000-0000-0000-000000000013', 'b0000000-0000-0000-0000-000000000000',
+   'ac000000-0000-0000-0000-000000000002', 'supplement', 'OT50', 'Overtid 50%', 930.00, 3.0, 310.00),
+  ('ad000000-0000-0000-0000-000000000014', 'b0000000-0000-0000-0000-000000000000',
+   'ac000000-0000-0000-0000-000000000002', 'deduction', 'TAX', 'Skattetrekk (32%)', 14992.00, NULL, NULL),
+
+  -- March lines (partial)
+  ('ad000000-0000-0000-0000-000000000020', 'b0000000-0000-0000-0000-000000000000',
+   'ac000000-0000-0000-0000-000000000003', 'base', 'BASE', 'Grunnlønn', 35700.00, 127.5, 280.00),
+  ('ad000000-0000-0000-0000-000000000021', 'b0000000-0000-0000-0000-000000000000',
+   'ac000000-0000-0000-0000-000000000003', 'supplement', 'EVE', 'Kveldstillegg', 1960.00, 28.0, 70.00),
+  ('ad000000-0000-0000-0000-000000000022', 'b0000000-0000-0000-0000-000000000000',
+   'ac000000-0000-0000-0000-000000000003', 'supplement', 'WKD', 'Helgetillegg', 2020.00, 17.75, 113.75),
+  ('ad000000-0000-0000-0000-000000000023', 'b0000000-0000-0000-0000-000000000000',
+   'ac000000-0000-0000-0000-000000000003', 'deduction', 'TAX', 'Skattetrekk (32%)', 12697.60, NULL, NULL);
+
+
+-- ============================================================================
+-- 22. TIMEBANK — Entries for Anna
+-- ============================================================================
+
+INSERT INTO payroll.timebank_entry (
+  id, workspace_id, profile_id, entry_type, hours, effective_date, description
+) VALUES
+  ('db000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000001', 'accrual', 2.0, CURRENT_DATE - 30, 'Overtid 50%'),
+  ('db000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000001', 'accrual', 3.5, CURRENT_DATE - 25, 'Merarbeid prosjekt'),
+  ('db000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000001', 'withdrawal', 4.0, CURRENT_DATE - 20, 'Uttak avspasering'),
+  ('db000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000001', 'accrual', 1.5, CURRENT_DATE - 15, 'Overtid kveldsvakt'),
+  ('db000000-0000-0000-0000-000000000005', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000001', 'withdrawal', 2.0, CURRENT_DATE - 10, 'Tidlig avgang fredag'),
+  ('db000000-0000-0000-0000-000000000006', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000001', 'accrual', 2.0, CURRENT_DATE - 5, 'Overtid 50%'),
+  ('db000000-0000-0000-0000-000000000007', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000001', 'accrual', 1.5, CURRENT_DATE - 2, 'Ekstra timer selskap'),
+  -- Ole (Bartender)
+  ('db000000-0000-0000-0000-000000000010', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000004', 'accrual', 3.0, CURRENT_DATE - 14, 'Overtid helg'),
+  ('db000000-0000-0000-0000-000000000011', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000004', 'withdrawal', 1.5, CURRENT_DATE - 7, 'Uttak avspasering');
+
+
+-- ============================================================================
+-- 23. MORE ABSENCES — Vacation & sick leave history
+-- ============================================================================
+
+INSERT INTO public.schedule_absence (
+  workspace_id, employee_id, shift_date, absence_type, reason,
+  start_date, end_date, is_full_day, status
+) VALUES
+  -- Anna — vacation last month (5 days)
+  ('b0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000001',
+   CURRENT_DATE - 35, 'vacation', 'Vinterferie',
+   CURRENT_DATE - 35, CURRENT_DATE - 31, true, 'approved'),
+  -- Anna — sick 2 days
+  ('b0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000001',
+   CURRENT_DATE - 14, 'sick_leave', 'Forkjølelse',
+   CURRENT_DATE - 14, CURRENT_DATE - 13, true, 'approved'),
+  -- Anna — vacation request next month (pending)
+  ('b0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000001',
+   CURRENT_DATE + 30, 'vacation', 'Påskeferie',
+   CURRENT_DATE + 28, CURRENT_DATE + 35, true, 'pending'),
+  -- Erik — vacation approved
+  ('b0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000002',
+   CURRENT_DATE - 60, 'vacation', 'Vinterferie',
+   CURRENT_DATE - 67, CURRENT_DATE - 58, true, 'approved'),
+  -- Ole — sick day
+  ('b0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000004',
+   CURRENT_DATE - 21, 'sick_leave', 'Mageproblemer',
+   CURRENT_DATE - 21, CURRENT_DATE - 21, true, 'approved');
+
+
+-- ============================================================================
+-- 25. CHANNELS — Department, team, direct, and news channels with messages
+-- ============================================================================
+
+-- ── 25.1 Channels ──
+-- Department channels auto-created by triggers, so use custom + team + news + direct
+INSERT INTO public.channel (
+  id, workspace_id, channel_type, name, description, created_by, team_id
+) VALUES
+  -- Custom channels (replacing dept — dept channels may already exist from triggers)
+  ('ca000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000000',
+   'custom', 'Kjøkken Generell', 'Kjøkkenteamets diskusjonskanal', 'f0000000-0000-0000-0000-000000000000', NULL),
+  ('ca000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000000',
+   'custom', 'Service Generell', 'Serviceteamets diskusjonskanal', 'f0000000-0000-0000-0000-000000000000', NULL),
+  ('ca000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000',
+   'custom', 'Bar Generell', 'Barteamets diskusjonskanal', 'f0000000-0000-0000-0000-000000000000', NULL),
+  -- Team channel
+  ('ca000000-0000-0000-0000-000000000010', 'b0000000-0000-0000-0000-000000000000',
+   'custom', 'Kitchen A-Team', 'Morgenvakt kjøkken', 'f0000000-0000-0000-0000-000000000002', NULL),
+  -- News channel
+  ('ca000000-0000-0000-0000-000000000020', 'b0000000-0000-0000-0000-000000000000',
+   'news', 'Nyheter & oppdateringer', 'Viktig info fra ledelsen', 'f0000000-0000-0000-0000-000000000000', NULL),
+  -- Direct messages
+  ('ca000000-0000-0000-0000-000000000030', 'b0000000-0000-0000-0000-000000000000',
+   'direct', NULL, NULL, 'f0000000-0000-0000-0000-000000000001', NULL),
+  ('ca000000-0000-0000-0000-000000000031', 'b0000000-0000-0000-0000-000000000000',
+   'direct', NULL, NULL, 'f0000000-0000-0000-0000-000000000004', NULL);
+
+-- Set direct_pair_hash for DM channels
+UPDATE public.channel SET direct_pair_hash = 'anna-erik' WHERE id = 'ca000000-0000-0000-0000-000000000030';
+UPDATE public.channel SET direct_pair_hash = 'ole-anna' WHERE id = 'ca000000-0000-0000-0000-000000000031';
+
+-- ── 25.2 Channel Members ──
+INSERT INTO public.channel_member (workspace_id, channel_id, profile_id, role) VALUES
+  -- Kjøkken: Anna, Erik, Jonas
+  ('b0000000-0000-0000-0000-000000000000', 'ca000000-0000-0000-0000-000000000001', 'f0000000-0000-0000-0000-000000000001', 'member'),
+  ('b0000000-0000-0000-0000-000000000000', 'ca000000-0000-0000-0000-000000000001', 'f0000000-0000-0000-0000-000000000002', 'admin'),
+  ('b0000000-0000-0000-0000-000000000000', 'ca000000-0000-0000-0000-000000000001', 'f0000000-0000-0000-0000-000000000008', 'member'),
+  -- Service: Kari, Silje, Sara
+  ('b0000000-0000-0000-0000-000000000000', 'ca000000-0000-0000-0000-000000000002', 'f0000000-0000-0000-0000-000000000005', 'member'),
+  ('b0000000-0000-0000-0000-000000000000', 'ca000000-0000-0000-0000-000000000002', 'f0000000-0000-0000-0000-000000000009', 'member'),
+  ('b0000000-0000-0000-0000-000000000000', 'ca000000-0000-0000-0000-000000000002', 'f0000000-0000-0000-0000-000000000007', 'member'),
+  -- Bar: Ole, Admin
+  ('b0000000-0000-0000-0000-000000000000', 'ca000000-0000-0000-0000-000000000003', 'f0000000-0000-0000-0000-000000000004', 'member'),
+  ('b0000000-0000-0000-0000-000000000000', 'ca000000-0000-0000-0000-000000000003', 'f0000000-0000-0000-0000-000000000000', 'admin'),
+  -- Kitchen A-Team: Anna, Erik, Jonas
+  ('b0000000-0000-0000-0000-000000000000', 'ca000000-0000-0000-0000-000000000010', 'f0000000-0000-0000-0000-000000000001', 'member'),
+  ('b0000000-0000-0000-0000-000000000000', 'ca000000-0000-0000-0000-000000000010', 'f0000000-0000-0000-0000-000000000002', 'admin'),
+  ('b0000000-0000-0000-0000-000000000000', 'ca000000-0000-0000-0000-000000000010', 'f0000000-0000-0000-0000-000000000008', 'member'),
+  -- News: Admin + all active
+  ('b0000000-0000-0000-0000-000000000000', 'ca000000-0000-0000-0000-000000000020', 'f0000000-0000-0000-0000-000000000000', 'admin'),
+  ('b0000000-0000-0000-0000-000000000000', 'ca000000-0000-0000-0000-000000000020', 'f0000000-0000-0000-0000-000000000001', 'member'),
+  ('b0000000-0000-0000-0000-000000000000', 'ca000000-0000-0000-0000-000000000020', 'f0000000-0000-0000-0000-000000000002', 'member'),
+  ('b0000000-0000-0000-0000-000000000000', 'ca000000-0000-0000-0000-000000000020', 'f0000000-0000-0000-0000-000000000004', 'member'),
+  ('b0000000-0000-0000-0000-000000000000', 'ca000000-0000-0000-0000-000000000020', 'f0000000-0000-0000-0000-000000000005', 'member'),
+  -- DM: Anna <-> Erik
+  ('b0000000-0000-0000-0000-000000000000', 'ca000000-0000-0000-0000-000000000030', 'f0000000-0000-0000-0000-000000000001', 'member'),
+  ('b0000000-0000-0000-0000-000000000000', 'ca000000-0000-0000-0000-000000000030', 'f0000000-0000-0000-0000-000000000002', 'member'),
+  -- DM: Ole <-> Anna
+  ('b0000000-0000-0000-0000-000000000000', 'ca000000-0000-0000-0000-000000000031', 'f0000000-0000-0000-0000-000000000004', 'member'),
+  ('b0000000-0000-0000-0000-000000000000', 'ca000000-0000-0000-0000-000000000031', 'f0000000-0000-0000-0000-000000000001', 'member');
+
+-- ── 25.3 Channel Messages ──
+INSERT INTO public.channel_message (
+  workspace_id, channel_id, sender_id, content, origin_type, created_at
+) VALUES
+  -- Kjøkken dept channel
+  ('b0000000-0000-0000-0000-000000000000', 'ca000000-0000-0000-0000-000000000001',
+   'f0000000-0000-0000-0000-000000000002',
+   'Husk at vi bytter til ny sesongmeny fra mandag. Alle allergener er oppdatert i systemet.',
+   'human', now() - interval '2 days'),
+  ('b0000000-0000-0000-0000-000000000000', 'ca000000-0000-0000-0000-000000000001',
+   'f0000000-0000-0000-0000-000000000001',
+   'Topp! Har sjekket allergenene. Alt ser bra ut.',
+   'human', now() - interval '2 days' + interval '15 minutes'),
+  ('b0000000-0000-0000-0000-000000000000', 'ca000000-0000-0000-0000-000000000001',
+   'f0000000-0000-0000-0000-000000000008',
+   'Skal jeg ta meg av forberedelsene til dessertmenyen?',
+   'human', now() - interval '2 days' + interval '30 minutes'),
+  ('b0000000-0000-0000-0000-000000000000', 'ca000000-0000-0000-0000-000000000001',
+   'f0000000-0000-0000-0000-000000000002',
+   'Ja, Jonas! Start med sjokoladefondue-basen i morgen tidlig.',
+   'human', now() - interval '2 days' + interval '45 minutes'),
+  ('b0000000-0000-0000-0000-000000000000', 'ca000000-0000-0000-0000-000000000001',
+   'f0000000-0000-0000-0000-000000000001',
+   'Vi trenger mer smør. Kan noen sjekke kjølerommet?',
+   'human', now() - interval '20 minutes'),
+  ('b0000000-0000-0000-0000-000000000000', 'ca000000-0000-0000-0000-000000000001',
+   'f0000000-0000-0000-0000-000000000002',
+   'Jeg sjekker nå!',
+   'human', now() - interval '15 minutes'),
+
+  -- Service dept channel
+  ('b0000000-0000-0000-0000-000000000000', 'ca000000-0000-0000-0000-000000000002',
+   'f0000000-0000-0000-0000-000000000005',
+   'Bordplasseringene for helgen er klare. Sjekk i POS-systemet.',
+   'human', now() - interval '1 day'),
+  ('b0000000-0000-0000-0000-000000000000', 'ca000000-0000-0000-0000-000000000002',
+   'f0000000-0000-0000-0000-000000000009',
+   'Takk Kari! Ser at bord 8-12 er reservert for stort selskap i morgen.',
+   'human', now() - interval '1 day' + interval '20 minutes'),
+  ('b0000000-0000-0000-0000-000000000000', 'ca000000-0000-0000-0000-000000000002',
+   'f0000000-0000-0000-0000-000000000005',
+   'Stemmer. 30 personer fra kl 19. Vi trenger ekstra bestikk og glass.',
+   'human', now() - interval '1 day' + interval '25 minutes'),
+
+  -- Bar channel
+  ('b0000000-0000-0000-0000-000000000000', 'ca000000-0000-0000-0000-000000000003',
+   'f0000000-0000-0000-0000-000000000004',
+   'Lagerbeholdning av tonic er lav. Bestiller i morgen.',
+   'human', now() - interval '3 hours'),
+  ('b0000000-0000-0000-0000-000000000000', 'ca000000-0000-0000-0000-000000000003',
+   'f0000000-0000-0000-0000-000000000000',
+   'Bra Ole. Bestill også ekstra sitrus — vi har cocktailmeny i helgen.',
+   'human', now() - interval '2 hours'),
+
+  -- Kitchen A-Team channel
+  ('b0000000-0000-0000-0000-000000000000', 'ca000000-0000-0000-0000-000000000010',
+   'f0000000-0000-0000-0000-000000000002',
+   'Morgenvakt i morgen: Anna tar gardemanger, Jonas tar varm, jeg tar pass.',
+   'human', now() - interval '5 hours'),
+  ('b0000000-0000-0000-0000-000000000000', 'ca000000-0000-0000-0000-000000000010',
+   'f0000000-0000-0000-0000-000000000001',
+   'Perfekt. Har preppen klar fra i dag.',
+   'human', now() - interval '4 hours' - interval '30 minutes'),
+  ('b0000000-0000-0000-0000-000000000000', 'ca000000-0000-0000-0000-000000000010',
+   'f0000000-0000-0000-0000-000000000008',
+   'Gleder meg! Første gang på varm 💪',
+   'human', now() - interval '4 hours'),
+
+  -- News channel
+  ('b0000000-0000-0000-0000-000000000000', 'ca000000-0000-0000-0000-000000000020',
+   'f0000000-0000-0000-0000-000000000000',
+   'Ny sesongmeny lanseres mandag! Alle avdelinger må gjennomgå allergeninformasjonen innen fredag. Sjekk opplæringsmodulen.',
+   'human', now() - interval '3 days'),
+  ('b0000000-0000-0000-0000-000000000000', 'ca000000-0000-0000-0000-000000000020',
+   'f0000000-0000-0000-0000-000000000000',
+   'Påminnelse: HMS-kontroll fredag kl 09. Alle avdelingsledere stiller.',
+   'human', now() - interval '1 day'),
+  ('b0000000-0000-0000-0000-000000000000', 'ca000000-0000-0000-0000-000000000020',
+   'f0000000-0000-0000-0000-000000000000',
+   'Flott innsats i helgen alle sammen! Omsetningsrekord 🎉',
+   'human', now() - interval '6 hours'),
+
+  -- DM: Anna <-> Erik
+  ('b0000000-0000-0000-0000-000000000000', 'ca000000-0000-0000-0000-000000000030',
+   'f0000000-0000-0000-0000-000000000002',
+   'Kan du ta tidligvakten på onsdag? Trenger noen med erfaring på gardemanger.',
+   'human', now() - interval '3 hours'),
+  ('b0000000-0000-0000-0000-000000000000', 'ca000000-0000-0000-0000-000000000030',
+   'f0000000-0000-0000-0000-000000000001',
+   'Ja, det går fint! Sender bekreftelse.',
+   'human', now() - interval '2 hours' - interval '30 minutes'),
+  ('b0000000-0000-0000-0000-000000000000', 'ca000000-0000-0000-0000-000000000030',
+   'f0000000-0000-0000-0000-000000000002',
+   'Takk Anna! Du er gull verdt.',
+   'human', now() - interval '2 hours'),
+
+  -- DM: Ole <-> Anna
+  ('b0000000-0000-0000-0000-000000000000', 'ca000000-0000-0000-0000-000000000031',
+   'f0000000-0000-0000-0000-000000000004',
+   'Hei Anna, har du allergeninformasjon for den nye cocktailmenyen? Trenger det til baren.',
+   'human', now() - interval '1 hour'),
+  ('b0000000-0000-0000-0000-000000000000', 'ca000000-0000-0000-0000-000000000031',
+   'f0000000-0000-0000-0000-000000000001',
+   'Sender det nå! Sjekk opplæringsmodulen også, der ligger alt.',
+   'human', now() - interval '45 minutes');

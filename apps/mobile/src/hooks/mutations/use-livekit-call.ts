@@ -4,9 +4,15 @@
  * Platform-specific: uses @livekit/react-native AudioSession for audio routing.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Platform } from "react-native";
 import { Room, RoomEvent, type Participant } from "livekit-client";
-import { AudioSession } from "@livekit/react-native";
 import type { CallSession } from "@smartout/walkie-talkie";
+
+// AudioSession uses native WebRTC modules — only available on iOS/Android, crashes on web
+const AudioSession =
+  Platform.OS !== "web"
+    ? require("@livekit/react-native").AudioSession
+    : { startAudioSession: () => {}, stopAudioSession: () => {} };
 
 type UseLiveKitCallParams = {
   token: string | null;

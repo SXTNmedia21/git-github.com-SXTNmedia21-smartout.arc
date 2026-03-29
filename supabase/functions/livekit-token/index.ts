@@ -50,7 +50,7 @@ Deno.serve(async (req: Request) => {
       .select("profile_id, display_name, avatar_url")
       .eq("user_id", user.id)
       .eq("workspace_id", workspaceId)
-      .eq("is_active", true)
+      .in("status", ["active", "trainee"])
       .single();
 
     if (profileError || !profile) {

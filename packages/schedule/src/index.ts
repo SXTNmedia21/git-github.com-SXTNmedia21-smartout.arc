@@ -12,4 +12,6 @@ export {
   usePublishWeek,
   useResetWeek,
   useAssignEmployee,
+  useCreateGridShift,
+  useRemoveGridShift,
 } from "./use-grid-mutations";

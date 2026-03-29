@@ -861,9 +861,12 @@ export function ShiftModal() {
                       <div className="relative flex items-center">
                         <Input
                           id="startTime"
-                          type="time"
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-2][0-9]:[0-5][0-9]"
+                          placeholder="HH:MM"
                           value={form.startTime}
-                          className="bg-background/80 border-border/60 h-10 rounded-xl pr-8 font-medium [color-scheme:light] shadow-sm transition-all focus:ring-2 focus:ring-emerald-500/20 dark:[color-scheme:dark]"
+                          className="bg-background/80 border-border/60 h-10 rounded-xl pr-8 font-medium tabular-nums shadow-sm transition-all focus:ring-2 focus:ring-emerald-500/20"
                           onChange={(e) => handleStartTimeChange(e.target.value)}
                         />
                         <DropdownMenu>
@@ -915,9 +918,12 @@ export function ShiftModal() {
                       <div className="relative flex items-center">
                         <Input
                           id="endTime"
-                          type="time"
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-2][0-9]:[0-5][0-9]"
+                          placeholder="HH:MM"
                           value={form.endTime}
-                          className="bg-background/80 border-border/60 h-10 rounded-xl pr-8 font-medium [color-scheme:light] shadow-sm transition-all focus:ring-2 focus:ring-emerald-500/20 dark:[color-scheme:dark]"
+                          className="bg-background/80 border-border/60 h-10 rounded-xl pr-8 font-medium tabular-nums shadow-sm transition-all focus:ring-2 focus:ring-emerald-500/20"
                           onChange={(e) => updateField("endTime", e.target.value)}
                         />
                         <DropdownMenu>

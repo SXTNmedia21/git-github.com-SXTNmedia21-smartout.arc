@@ -27,7 +27,12 @@ tags: [decisions]
 
 # Decision Log — telegram-walkai-adapter
 
-| #    | Date       | Decision                                              | Status   | Module       | Notes                                                                                             |
-| ---- | ---------- | ----------------------------------------------------- | -------- | ------------ | ------------------------------------------------------------------------------------------------- |
-| 0059 | 2026-03-28 | Platform Admin Pipeline Separation                    | accepted | stage-engine | routeAdminMessage() separate from workspace-scoped routeAgentMessage()                            |
-| 0069 | 2026-03-28 | Session Execution Ownership: EF + Engine Side-Effects | accepted | hms          | Edge Functions own execution, Engine owns side-effects (notifications, escalation). Hybrid model. |
+| #    | Date       | Decision                                                       | Status   | Module       | Notes                                                                                                                                                       |
+| ---- | ---------- | -------------------------------------------------------------- | -------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0059 | 2026-03-28 | Platform Admin Pipeline Separation                             | accepted | stage-engine | routeAdminMessage() separate from workspace-scoped routeAgentMessage()                                                                                      |
+| 0069 | 2026-03-28 | Session Execution Ownership: EF + Engine Side-Effects          | accepted | hms          | Edge Functions own execution, Engine owns side-effects (notifications, escalation). Hybrid model.                                                           |
+| 0070 | 2026-03-28 | Emma-Wizard Bridge: tool-based agent control over wizard flows | accepted | onboarding   | Step-level useRegisterTools, ref-based implementations, callback context push, WalkAiProvider outside DashboardShell. Supersedes ADR-0049 for wizard tools. |
+| #    | Date       | Decision                                                       | Status   | Module       | Notes                                                                                                                                                       |
+| ---- | ---------- | -----------------------------------------------------          | -------- | ------------ | -------------------------------------------------------------------------------------------------                                                           |
+| 0059 | 2026-03-28 | Platform Admin Pipeline Separation                             | accepted | stage-engine | routeAdminMessage() separate from workspace-scoped routeAgentMessage()                                                                                      |
+| 0069 | 2026-03-28 | Session Execution Ownership: EF + Engine Side-Effects          | accepted | hms          | Edge Functions own execution, Engine owns side-effects (notifications, escalation). Hybrid model.                                                           |

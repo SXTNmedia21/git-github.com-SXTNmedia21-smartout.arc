@@ -14,6 +14,13 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getSeverityToneStyles } from "./severity-styles";
 
+type QueueRow = {
+  id: string;
+  severity: "critical" | "warning" | "info";
+  summary: string;
+  onPress?: () => void;
+};
+
 type CockpitRiskQueuesProps = {
   staffingQueue: StaffingRisk[];
   operationalQueue: OperationalRisk[];
@@ -69,7 +76,7 @@ function QueueCard({
   icon: "staffing" | "operations";
   emptyText: string;
   isLoading: boolean;
-  rows: { id: string; severity: "critical" | "warning" | "info"; summary: string }[];
+  rows: QueueRow[];
 }) {
   return (
     <Card className="border-border h-full shadow-none">
@@ -92,15 +99,17 @@ function QueueCard({
           <p className="text-muted-foreground text-sm">{emptyText}</p>
         ) : (
           rows.map((row) => (
-            <div
+            <button
+              type="button"
               key={row.id}
-              className="border-border bg-muted/30 flex items-start justify-between gap-2 rounded-lg border px-3 py-2.5"
+              onClick={row.onPress}
+              className="border-border bg-muted/30 hover:bg-muted/60 flex w-full cursor-pointer items-start justify-between gap-2 rounded-lg border px-3 py-2.5 text-left transition-colors"
             >
               <p className="text-sm font-medium">{row.summary}</p>
               <Badge variant="outline" className={getSeverityToneStyles(row.severity).badge}>
                 {row.severity}
               </Badge>
-            </div>
+            </button>
           ))
         )}
       </CardContent>
@@ -120,7 +129,12 @@ export function CockpitRiskQueues({
   staffingQueue,
   operationalQueue,
   isLoading,
-}: CockpitRiskQueuesProps) {
+  onStaffingPress,
+  onOperationalPress,
+}: CockpitRiskQueuesProps & {
+  onStaffingPress?: (riskId: string) => void;
+  onOperationalPress?: (riskId: string) => void;
+}) {
   return (
     <section data-testid="cockpit-risk-queues" className="grid grid-cols-1 gap-4 xl:grid-cols-2">
       <QueueCard
@@ -132,6 +146,7 @@ export function CockpitRiskQueues({
           id: risk.id,
           severity: risk.severity,
           summary: staffingSummary(risk),
+          onPress: onStaffingPress ? () => onStaffingPress(risk.id) : undefined,
         }))}
       />
       <QueueCard
@@ -143,6 +158,7 @@ export function CockpitRiskQueues({
           id: risk.id,
           severity: risk.severity,
           summary: operationalSummary(risk),
+          onPress: onOperationalPress ? () => onOperationalPress(risk.id) : undefined,
         }))}
       />
     </section>

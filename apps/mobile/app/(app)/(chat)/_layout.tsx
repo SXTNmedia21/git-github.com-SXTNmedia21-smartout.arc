@@ -18,7 +18,8 @@ export default function ChatLayout() {
       }}
     >
       <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen name="[id]" options={{ headerShown: true, title: "Samtale" }} />
+      <Stack.Screen name="settings" options={{ headerShown: false }} />
+      <Stack.Screen name="[id]" options={{ headerShown: false }} />
     </Stack>
   );
 }

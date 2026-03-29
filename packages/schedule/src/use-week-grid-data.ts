@@ -49,6 +49,12 @@ function calcHours(start: string, end: string): number {
   return hours;
 }
 
+/** Convert HH:MM(:SS) to minutes since midnight — used for nearest-config matching */
+function timeToMinutes(t: string): number {
+  const [h = 0, m = 0] = t.split(":").map(Number);
+  return h * 60 + m;
+}
+
 /** Generate two-letter initials from a full name */
 function initials(name: string): string {
   return name
@@ -611,7 +617,7 @@ export function useWeekGridData(params: {
 // ── Pure builder — assembles WeekGridData from resolved query results ──
 
 function buildWeekGridData(input: {
-  configs: NonNullable<ReturnType<typeof useConfigQueryData>>;
+  configs: ConfigRow[];
   shiftTypeById: Map<string, { id: string; name: string; color: string | null }>;
   shifts: ShiftRow[];
   tasks: TaskRow[];
@@ -654,11 +660,16 @@ function buildWeekGridData(input: {
     };
   });
 
-  // Build a lookup from shift_type_id → config(s) per department
-  // A shift matches a column when shift_type_id matches AND department matches
-  const configByTypeAndDept = new Map<string, (typeof configs)[number]>();
+  // Build a lookup: group configs by shift_type_id + department_id.
+  // A department can have multiple configs for the same shift_type_id (e.g.
+  // "Kokk 10-18" and "Kokk Kveld 15-23" both reference shift_type Kokk).
+  // We collect all candidates and pick the best match by start time proximity.
+  const configsByTypeAndDept = new Map<string, (typeof configs)[number][]>();
   for (const cfg of configs) {
-    configByTypeAndDept.set(`${cfg.shift_type_id}::${cfg.department_id}`, cfg);
+    const key = `${cfg.shift_type_id}::${cfg.department_id}`;
+    const existing = configsByTypeAndDept.get(key) ?? [];
+    existing.push(cfg);
+    configsByTypeAndDept.set(key, existing);
   }
 
   // Initialize empty cells for every day × column combination
@@ -677,11 +688,25 @@ function buildWeekGridData(input: {
     }
   }
 
-  // Populate cells with shift assignments — match by shift_type_id + department
+  // Populate cells with shift assignments — match by shift_type_id + department + time
   for (const shift of shifts) {
     if (!shift.shift_type_id || !shift.department_id) continue;
-    const cfg = configByTypeAndDept.get(`${shift.shift_type_id}::${shift.department_id}`);
-    if (!cfg) continue; // Overflow shift — no matching config column
+    const candidates = configsByTypeAndDept.get(`${shift.shift_type_id}::${shift.department_id}`);
+    if (!candidates || candidates.length === 0) continue;
+
+    // Pick the config whose default_start_time is closest to the shift's start_time
+    const cfg =
+      candidates.length === 1
+        ? candidates[0]!
+        : candidates.reduce((best, c) => {
+            const diffBest = Math.abs(
+              timeToMinutes(best.default_start_time) - timeToMinutes(shift.start_time),
+            );
+            const diffC = Math.abs(
+              timeToMinutes(c.default_start_time) - timeToMinutes(shift.start_time),
+            );
+            return diffC < diffBest ? c : best;
+          });
 
     const key = gridCellKey(shift.shift_date, cfg.id);
     const cell = cells.get(key);
@@ -782,11 +807,6 @@ type ConfigRow = {
   sort_order: number;
   is_active: boolean;
 };
-
-/** Helper to extract config query return type for the builder */
-function useConfigQueryData(): ConfigRow[] | undefined {
-  return undefined;
-}
 
 type ShiftRow = {
   schedule_shift_id: string;

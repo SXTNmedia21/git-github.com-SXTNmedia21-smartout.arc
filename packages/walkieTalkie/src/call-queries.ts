@@ -28,6 +28,7 @@ export async function getActiveCallSession(
     maxParticipants: data.max_participants,
     startedAt: data.started_at,
     endedAt: data.ended_at,
+    videoPolicy: data.video_policy ?? "disabled",
   };
 }
 

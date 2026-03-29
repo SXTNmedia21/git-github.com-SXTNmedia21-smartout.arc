@@ -14,8 +14,20 @@ import { Building2, Layers, MapPin, ClipboardCheck, Loader2, CheckCircle } from 
 import { Button } from "@/components/ui/button";
 import type { WizardStepProps } from "@smartout/ui";
 import type { OnboardingConfirmState } from "../types-v2";
+import { useRegisterTools } from "@/app/walkAi/_components/tool-registry";
+import { useSummaryTools } from "./tools/summary-tools";
 
-export function ConfirmSummary({ state, next, goTo, t }: WizardStepProps<OnboardingConfirmState>) {
+export function ConfirmSummary({
+  state,
+  updateState,
+  next,
+  back,
+  goTo,
+  t,
+}: WizardStepProps<OnboardingConfirmState>) {
+  const tools = useSummaryTools(state, updateState, next, back);
+  useRegisterTools("wizard-onboarding-summary", tools);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

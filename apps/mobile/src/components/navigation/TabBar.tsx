@@ -1,46 +1,38 @@
 /**
- * Custom tab bar with 4 tabs and a center AI FAB cutout.
+ * Custom tab bar — Nordic Split glass bar with center AI FAB.
  *
- * Tabs: Hjem, Vakter, [FAB], Chat, Meg
- * The FAB occupies the center position — it's not a tab but a floating
- * circular button that breaks the tab bar line upward.
- * Unread badge shown on the Chat tab.
- * Notification dot shown on the Meg tab when there are unread notifications.
+ * Layout: Kalender | [FAB] | Chat | Me
+ * All items rendered in a flat flexbox row with flex:1 each.
+ * FAB is inserted at the midpoint.
  */
 
 import React from "react";
-import { View, Text, Pressable, Platform } from "react-native";
+import { View, Text, Pressable, Platform, StyleSheet } from "react-native";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
-import { Home, CalendarDays, Radio, MessageCircle, User } from "lucide-react-native";
+import { Sun, CalendarDays, MessageCircle, User } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
-import { createStyles } from "@/theme";
+import { useTheme, withOpacity } from "@/theme";
 import { Badge } from "@/components/ui/Badge";
 import { strings } from "@/constants/strings";
 import type { LucideIcon } from "lucide-react-native";
 
-/** Tab icon mapping — Lucide icons for crisp, scalable rendering */
 const TAB_ICONS: Record<string, LucideIcon> = {
-  "(home)": Home,
+  digest: Sun,
   "(shifts)": CalendarDays,
-  "(komm)": Radio,
   "(chat)": MessageCircle,
   "(me)": User,
 };
 
 const TAB_LABELS: Record<string, string> = {
-  "(home)": strings.tabs.home,
-  "(shifts)": strings.tabs.shifts,
-  "(komm)": "Komm",
+  digest: "Digest",
+  "(shifts)": "Vakter",
   "(chat)": strings.tabs.chat,
-  "(me)": strings.tabs.me,
+  "(me)": "Min side",
 };
 
 type TabBarProps = BottomTabBarProps & {
-  /** Unread chat message count for badge */
   unreadCount?: number;
-  /** Unread notification count — shows a dot on the Meg tab when > 0 */
   unreadNotificationCount?: number;
-  /** Center FAB component — rendered in the middle slot */
   centerFab: React.ReactNode;
 };
 
@@ -52,120 +44,150 @@ export function TabBar({
   unreadNotificationCount = 0,
   centerFab,
 }: TabBarProps) {
-  const styles = useStyles();
+  const theme = useTheme();
 
-  // Filter out hidden tabs — respect Expo Router's href: null config
+  const hiddenTabs = new Set(["(home)", "(payroll)"]);
   const visibleRoutes = state.routes.filter((r) => {
+    if (hiddenTabs.has(r.name)) return false;
     const options = descriptors[r.key]?.options;
     return (options as Record<string, unknown>)?.href !== null;
   });
-  const leftRoutes = visibleRoutes.slice(0, 2);
-  const rightRoutes = visibleRoutes.slice(2);
 
-  function renderTab(route: (typeof state)["routes"][number]) {
+  const midpoint = Math.floor(visibleRoutes.length / 2);
+
+  // Build flat list: tabs interleaved with FAB at midpoint
+  const items: React.ReactNode[] = [];
+
+  visibleRoutes.forEach((route, i) => {
+    // Insert FAB before the midpoint tab
+    if (i === midpoint) {
+      items.push(
+        <View key="__fab__" style={styles.slot}>
+          {centerFab}
+        </View>,
+      );
+    }
+
     const routeIndex = state.routes.findIndex((r) => r.key === route.key);
     const isFocused = state.index === routeIndex;
     const IconComponent = TAB_ICONS[route.name];
     const isChatTab = route.name === "(chat)";
     const isMeTab = route.name === "(me)";
     const label = TAB_LABELS[route.name] ?? route.name;
+    const iconColor = isFocused
+      ? theme.colors.brandOrange
+      : withOpacity(theme.colors.mutedForeground, 0.45);
 
-    return (
+    items.push(
       <Pressable
         key={route.key}
         onPress={() => {
           Haptics.selectionAsync();
           if (!isFocused) {
-            navigation.navigate(route.name);
+            navigation.navigate(route.name, { screen: "index" });
+          } else {
+            navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
+            navigation.navigate(route.name, { screen: "index" });
           }
         }}
-        style={styles.tab}
+        style={styles.slot}
         accessibilityRole="tab"
         accessibilityState={{ selected: isFocused }}
         accessibilityLabel={label}
       >
-        <View style={styles.tabIconContainer}>
+        <View style={styles.iconWrap}>
           {IconComponent && (
-            <IconComponent
-              size={22}
-              color={isFocused ? styles.tabIconActiveColor.color : styles.tabIconColor.color}
-              strokeWidth={isFocused ? 2.2 : 1.8}
-            />
+            <IconComponent size={24} color={iconColor} strokeWidth={isFocused ? 2 : 1.5} />
           )}
           {isChatTab && <Badge count={unreadCount} style={styles.badge} />}
-          {/* Notification dot on the Meg tab — shows when there are unread notifications */}
-          {isMeTab && unreadNotificationCount > 0 && <View style={styles.notificationDot} />}
+          {isMeTab && unreadNotificationCount > 0 && (
+            <View style={[styles.notificationDot, { borderColor: theme.colors.background }]} />
+          )}
         </View>
-        <Text style={[styles.tabLabel, isFocused && styles.tabLabelActive]}>{label}</Text>
-      </Pressable>
+        <Text
+          style={[
+            styles.label,
+            {
+              color: isFocused
+                ? theme.colors.brandOrange
+                : withOpacity(theme.colors.mutedForeground, 0.45),
+            },
+            isFocused && styles.labelActive,
+          ]}
+        >
+          {label}
+        </Text>
+        {isFocused && (
+          <View style={[styles.activeDot, { backgroundColor: theme.colors.brandOrange }]} />
+        )}
+      </Pressable>,
     );
-  }
+  });
 
   return (
-    <View style={styles.container} pointerEvents="box-none">
-      <View style={styles.barBackground}>
-        {/* Left tabs */}
-        {leftRoutes.map((route) => renderTab(route))}
-
-        {/* Center FAB placeholder — takes up tab width */}
-        <View style={styles.fabSlot} />
-
-        {/* Right tabs */}
-        {rightRoutes.map((route) => renderTab(route))}
-      </View>
-      <View style={styles.absoluteFabContainer} pointerEvents="box-none">
-        {centerFab}
-      </View>
+    <View
+      style={[
+        styles.bar,
+        {
+          backgroundColor: withOpacity(theme.colors.background, 0.88),
+          borderTopColor: withOpacity(theme.colors.brandOrange, 0.08),
+        },
+      ]}
+    >
+      {items}
     </View>
   );
 }
 
-const useStyles = createStyles((theme) => ({
-  container: {
-    position: "relative",
-  },
-  barBackground: {
+const styles = StyleSheet.create({
+  bar: {
     flexDirection: "row",
-    alignItems: "flex-end",
-    justifyContent: "space-around",
-    backgroundColor: theme.colors.card,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
-    paddingBottom: Platform.OS === "ios" ? 20 : 8,
-    paddingTop: 8,
-    ...theme.shadows.md,
+    alignItems: "center",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderTopWidth: 0.5,
+    minHeight: 80,
+    paddingBottom: Platform.OS === "ios" ? 28 : 14,
+    paddingTop: 14,
+    // Shadow
+    shadowColor: "#1c1c19",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 24,
+    elevation: 8,
   },
-  tab: {
+  slot: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    gap: 2,
-    paddingVertical: 4,
+    minHeight: 44,
+    gap: 4,
   },
-  tabIconContainer: {
+  iconWrap: {
     position: "relative",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  /** Color-only styles used to pass color values to Lucide components */
-  tabIconColor: {
-    color: theme.colors.mutedForeground,
+  label: {
+    fontSize: 10,
+    fontWeight: "500",
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
   },
-  tabIconActiveColor: {
-    color: theme.colors.brandOrange,
+  labelActive: {
+    fontWeight: "600",
   },
-  tabLabel: {
-    ...theme.typography.micro,
-    color: theme.colors.mutedForeground,
-  },
-  tabLabelActive: {
-    color: theme.colors.brandOrange,
-    fontWeight: theme.fontWeights.semibold,
+  activeDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    marginTop: 2,
   },
   badge: {
     position: "absolute",
-    top: -4,
-    right: -10,
+    top: -6,
+    right: -12,
   },
-  /** Small filled dot on the Meg tab when unread notifications exist */
   notificationDot: {
     position: "absolute",
     top: -3,
@@ -175,19 +197,5 @@ const useStyles = createStyles((theme) => ({
     borderRadius: 4,
     backgroundColor: "#e85c0d",
     borderWidth: 1.5,
-    borderColor: "#ffffff",
   },
-  fabSlot: {
-    flex: 1,
-  },
-  absoluteFabContainer: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    alignItems: "center",
-    justifyContent: "flex-start",
-    zIndex: 10,
-    elevation: 10,
-  },
-}));
+});

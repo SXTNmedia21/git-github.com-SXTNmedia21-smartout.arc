@@ -7,6 +7,8 @@ import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { emit } from "@smartout/telemetry";
+import { useRegisterTools } from "@/app/walkAi/_components/tool-registry";
+import { useShiftTemplateTools } from "./tools/shift-template-tools";
 import { Input } from "@/components/ui/input";
 import { Plus, Loader2, CheckCircle2, Clock, Trash2 } from "lucide-react";
 import type { IndustryShiftTemplate } from "@/lib/industry/types";
@@ -184,6 +186,30 @@ export function ShiftTemplateSetupStep({
       setIsSaving(false);
     }
   }, [entries, workspace.workspace.workspace_id, profileId, queryClient]);
+
+  // Adapter that matches the tool hook signature (dept name + template fields)
+  const handleAddTemplateEntry = useCallback(
+    (departmentName: string, name: string, startTime: string, endTime: string) => {
+      handleAddEntry(departmentName);
+      // Update the last entry with name and times
+      setEntries((prev) => {
+        const last = prev[prev.length - 1];
+        if (!last) return prev;
+        return prev.map((e, i) =>
+          i === prev.length - 1 ? { ...last, name, startTime, endTime } : e,
+        );
+      });
+    },
+    [handleAddEntry],
+  );
+
+  const shiftTemplateTools = useShiftTemplateTools(
+    entries,
+    existingTemplates ?? [],
+    departments ?? [],
+    handleAddTemplateEntry,
+  );
+  useRegisterTools("wizard-setup-shift-templates", shiftTemplateTools);
 
   return (
     <div className="space-y-6">

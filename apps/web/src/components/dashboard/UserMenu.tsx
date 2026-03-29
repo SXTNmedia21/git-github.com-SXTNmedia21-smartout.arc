@@ -81,7 +81,7 @@ export function UserMenu({ isDark }: { isDark: boolean }) {
         className="group flex cursor-pointer items-center gap-3 rounded-lg px-2 py-1 transition-colors hover:bg-zinc-800/50 focus:outline-none"
       >
         <div className="text-right">
-          <p className="text-sm leading-tight font-semibold text-white">{displayName}</p>
+          <p className="text-foreground text-sm leading-tight font-semibold">{displayName}</p>
           <p className="text-[10px] font-bold tracking-wider text-zinc-400 uppercase">Admin</p>
         </div>
         <div className="flex h-8 w-8 items-center justify-center rounded-full border border-zinc-700 bg-zinc-800">
@@ -97,7 +97,7 @@ export function UserMenu({ isDark }: { isDark: boolean }) {
       <DropdownMenuTrigger asChild>
         <button className="group flex cursor-pointer items-center gap-3 rounded-lg px-2 py-1 transition-colors hover:bg-zinc-800/50 focus:outline-none">
           <div className="text-right">
-            <p className="text-sm leading-tight font-semibold text-white">{displayName}</p>
+            <p className="text-foreground text-sm leading-tight font-semibold">{displayName}</p>
             <p className="text-[10px] font-bold tracking-wider text-zinc-400 uppercase">
               {user?.isSuperAdmin ? "Super Admin" : "Admin"}
             </p>

@@ -71,12 +71,14 @@ interface AnimatedWizardShellProps<TState extends Record<string, unknown>> {
   definition: WizardDefinition<TState>;
   workspaceId?: string | null;
   actorId?: string;
+  onContextChange?: (context: import("@smartout/ui").WizardContextPayload) => void;
 }
 
 export function AnimatedWizardShell<TState extends Record<string, unknown>>({
   definition,
   workspaceId = null,
   actorId = "anonymous",
+  onContextChange,
 }: AnimatedWizardShellProps<TState>) {
   const { t: tShell } = useTranslation("wizard");
   const { t: tWizard } = useTranslation(definition.metadata.i18nNamespace);
@@ -236,6 +238,7 @@ export function AnimatedWizardShell<TState extends Record<string, unknown>>({
       onStepBack={telemetry.onStepBack}
       onComplete={telemetry.onComplete}
       onValidationFail={telemetry.onValidationFail}
+      onContextChange={onContextChange}
       renderStep={renderStep}
       renderBrandPanel={definition.brandPanel ? renderBrandPanel : undefined}
     />

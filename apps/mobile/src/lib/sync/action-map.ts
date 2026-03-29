@@ -61,7 +61,7 @@ export const actionMap: Record<WriteAction, ActionHandler> = {
 
   report_deviation: (p) => assertOk(supabase.from("deviation").insert(p as any)),
 
-  send_message: (p) => assertOk(supabase.from("chat_message").insert(p as any)),
+  send_message: (p) => assertOk(supabase.from("channel_message").insert(p as any)),
 
   complete_task: (p) =>
     assertOk(

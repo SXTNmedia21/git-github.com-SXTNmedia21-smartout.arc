@@ -21,6 +21,8 @@ import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { useRegisterTools } from "@/app/walkAi/_components/tool-registry";
+import { useEmploymentTools } from "./tools/employment-tools";
 
 // ─── Types ───────────────────────────────────────────────
 
@@ -331,6 +333,24 @@ export const EmploymentSetupStep = forwardRef<
     }),
     [saveMutation.mutateAsync, queryClient, workspace.workspace.workspace_id],
   );
+
+  // Build summary view for Emma — just type/label/enabled
+  const formSummary = useMemo(
+    () => forms.map((f) => ({ type: f.type, label: f.label, enabled: f.enabled })),
+    [forms],
+  );
+
+  // Emma toggles by label — map back to index for handleFormToggle
+  const handleToggleByLabel = useCallback(
+    (label: string) => {
+      const idx = forms.findIndex((f) => f.label === label);
+      if (idx !== -1) handleFormToggle(idx);
+    },
+    [forms, handleFormToggle],
+  );
+
+  const employmentTools = useEmploymentTools(formSummary, handleToggleByLabel);
+  useRegisterTools("wizard-setup-employment", employmentTools);
 
   return (
     <div className="space-y-6">

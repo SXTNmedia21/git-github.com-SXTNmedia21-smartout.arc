@@ -16,11 +16,13 @@ import { AnimatedWizardShell } from "@/components/wizard/AnimatedWizardShell";
 import { useWorkspace } from "@/lib/workspace-context";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { dashboardSetupWizard } from "./wizard-definition";
+import { useWizardWalkAiContext } from "@/app/walkAi/_hooks/useWizardWalkAiContext";
 
 export default function DashboardSetupPage() {
   const { workspace } = useWorkspace();
   const { profileId } = useContext(DashboardContext);
   const { t } = useTranslation("dashboard");
+  const { handleContextChange } = useWizardWalkAiContext();
 
   return (
     <Suspense
@@ -50,6 +52,7 @@ export default function DashboardSetupPage() {
           definition={dashboardSetupWizard}
           workspaceId={workspace.workspace_id}
           actorId={profileId ?? "anonymous"}
+          onContextChange={handleContextChange}
         />
       </div>
     </Suspense>

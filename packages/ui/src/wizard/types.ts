@@ -79,6 +79,17 @@ export type WalkAiDataAttributes = {
   "data-walkai-context"?: string;
 };
 
+// -- Wizard context payload for external consumers (WalkAi, telemetry) --
+
+export type WizardContextPayload = {
+  wizardId: string;
+  stepId: string;
+  stepIndex: number;
+  totalSteps: number;
+  completedSteps: string[];
+  theme: "dark" | "warm" | "light";
+};
+
 // -- Internal state --
 
 export interface WizardState {

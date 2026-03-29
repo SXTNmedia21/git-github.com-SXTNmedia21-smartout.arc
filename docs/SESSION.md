@@ -1,7 +1,7 @@
 ---
 title: Session Log
 status: in_progress
-updated: 2026-03-28
+updated: 2026-03-29
 created: 2026-03-02
 module: meta
 tags: [session, continuity]
@@ -11,56 +11,70 @@ tags: [session, continuity]
 
 | Field   | Value         |
 | ------- | ------------- |
-| Date    | 2026-03-28    |
+| Date    | 2026-03-29    |
 | Branch  | `development` |
 | Feature | development   |
-| Status  | paused        |
+| Status  | in_progress   |
 
 ### What was done
 
-**Two council sessions ran + all fixes implemented:**
+**Massive session — two major features + extensive bug fixing:**
 
-#### Council 1: Cascade Tasks ("Å gjøre") — APPROVE WITH CHANGES → All fixed
+#### 1. WizardShell + WalkAi Integration (COMPLETE)
 
-- Fixed `incomplete_training` CTE (was zero-touch only, now checks `status != 'completed'`)
-- Fixed `dept_summary` done/total (5-item checklist instead of misleading hours-only progress)
-- Added ARIA attributes (aria-expanded, aria-controls, aria-label, aria-live, role)
-- Added `prefers-reduced-motion` support
-- Replaced hardcoded Norwegian with i18n keys + added missing keys
-- Reclassified messages group from C2 to C4
-- Refactored `useCascadeTaskCount` to reuse `useCascadeTasks` via select
-- Replaced blur-orb with radial-gradient in empty state
-- Added `task_surface snapshot` telemetry event
-- Regenerated `database.types.ts`, removed `as any` casts
+- Spec + 2x council + plan + council + subagent-driven implementation + merge
+- 22 commits, 70 files, +1997/-6477 lines (netto -4480)
+- ADR-0070: Emma-Wizard Bridge pattern
+- 14 tool builder files (9 setup + 5 onboarding)
+- Deleted legacy Botsson (1076 lines) + scroll-based onboarding (30 files)
+- useEntityDrawer made optional — WalkAiProvider works outside DashboardShell
+- Branch: feat/wizardshell-walkai-integration (wt-1, merged)
 
-#### Council 2: Dashboard + HMS/Drift — NOT READY → P0+P1 all fixed
+#### 2. Mobile Group Call — Expanded UI + Video (COMPLETE)
 
-- **ADR-0069 written:** Edge Functions own execution, Engine owns side-effects (hybrid model)
-- **Session lifecycle fixed:** `useSignoffSession` now transitions through `pending_signoff` before `closed`
-- **Edge Function telemetry:** Added `engine_event` inserts to `session-lifecycle` (3 events) and `session-hook-executor` (2 events)
-- **Agent tools fixed:** `completeTask` + `createDeviation` now emit `engine_event` entries
-- **Fake stubs fixed:** Activity view heatmap gated with coming-soon empty state, sendHandoff toast changed to honest "under development", deviation flagging wired to navigate to DeviationForm with prefill
-- **i18n sweep:** 11 HMS components migrated from hardcoded Norwegian STRINGS to `useTranslation` — ~100 new i18n keys in nb + en with correct diacritics (ø, å, æ)
-- **Color migration:** StrategicView, AdminDashboard, ActivityView, DriftTimeline — all `isDark ? zinc` ternaries replaced with CSS variable classes
-- **Bug fix:** SessionSignoffDrawer had `t` variable shadowing (loop var vs translate fn)
+- Spec + council + plan + council + subagent implementation + merge
+- 5 new components: CallSheet, ParticipantGrid, ParticipantTile, CallControls, useCallTracks
+- LiveKit wired into chat [id].tsx — phone button starts group call
+- Old (komm) route deleted, VideoCallOverlay mock replaced with real LiveKit
+- Native module lazy-import for Expo web compat
+- Chat schema already migrated (chat\_\* → channel)
+
+#### 3. Duty Leader / Ring Sjefen
+
+- Added duty_leader_id to department_session (migration)
+- useDutyLeader hook on mobile reads active session → leader phone
+- DuringShiftView Ring leder button now calls on-duty leader
+- Dashboard OversiktTab wired: Duty Manager dropdown writes to DB
+
+#### 4. Schedule Fixes
+
+- Shift modal time inputs: type=time → type=text for 24h format (Chrome Windows)
+- Rullerende button hidden (not implemented)
+- Individual shifts in weekly view (was summary, now shows each shift)
+- Absence filter no longer hides all shifts
+
+#### 5. Edge Function Fixes
+
+- call-command + livekit-token: is_active → status filter
+- Detailed error messages in call-command for debugging
+- LiveKit env vars in supabase/.env.local
 
 ### Where we stopped
 
-- 0 uncommitted changes on `development`
-- All council P0+P1 items implemented and committed
-- Typecheck passes (only pre-existing errors in onboarding/industry-defaults)
+- 138 uncommitted files on development (from other branches, not this session)
+- wt-1 still has wizardshell branch (can be cleaned up)
+- wt-2 still has mobile-group-call branch (can be cleaned up)
 
 ### Known blockers / errors
 
-- None blocking. Pre-existing typecheck errors in `onboarding/lib/industry-defaults.ts` and `onboarding/steps/ConfirmDepartments.tsx` (PositionOption missing `isLeader`/`slug`)
+- LiveKit video only works on native (iOS/Android), not Expo web preview (by design)
+- useLiveKitCall.connect() doesn't auto-enable camera for video_policy=default_on (follow-up)
+- Hardcoded hex colors in mobile call components (logged as debt)
+- No emit() in mobile call components (parent hooks handle telemetry)
 
 ### Pending decisions
 
-- [ ] DashboardShell.tsx (2255 lines) decomposition — logged as P2 debt, not started
-- [ ] Spring animations for dashboard views — P2 debt, not started
-- [ ] Noise overlay on dark surfaces — P2 debt, not started
-- [ ] `isDark` ternary cleanup in remaining 5 dashboard files (DashboardShell, UserMenu, WorkspaceSwitcher, EmployeeDashboard, GlobalSearchPalette, SwipeReconciliation, ActionStrip)
-- [ ] `session_task` RLS UPDATE policy — currently any workspace member can complete any task. Intentional? Needs Pontus decision.
-- [ ] `pending_signoff` timeout — sessions can stay in pending_signoff indefinitely if nobody signs off. Need auto-close after N hours?
-- [ ] Telegram bot credentials (from previous session) — create via BotFather, store in 1Password
-- [ ] Close telegram-walkai-adapter feature branch (wt-6) — was ready for closure last session
+- [ ] Clean up wt-1 and wt-2 worktrees
+- [ ] Test LiveKit calls on real device (native) vs web preview
+- [ ] Add GroupCallBanner to mobile channel list (incoming call notification)
+- [ ] Implement reduced motion check in call components (accessibility)

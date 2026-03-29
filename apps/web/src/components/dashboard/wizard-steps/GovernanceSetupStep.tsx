@@ -23,6 +23,8 @@ import type {
   GovernanceTemplate,
 } from "@/app/dashboard/governance/_hooks/use-governance-templates";
 import type { IndustryPackage } from "@/lib/industry/types";
+import { useRegisterTools } from "@/app/walkAi/_components/tool-registry";
+import { useGovernanceTools } from "./tools/governance-tools";
 
 // ─── TemplateCard (used inside drawer) ───────────────────
 
@@ -345,6 +347,14 @@ export function GovernanceSetupStep({
   ).length;
 
   const activeFilters = Object.values(filters).filter(Boolean).length;
+
+  const governanceTools = useGovernanceTools(
+    filters,
+    createdCount,
+    mandatory.length + recommended.length,
+    handleFilterToggle,
+  );
+  useRegisterTools("wizard-setup-governance", governanceTools);
 
   return (
     <div className="space-y-8">

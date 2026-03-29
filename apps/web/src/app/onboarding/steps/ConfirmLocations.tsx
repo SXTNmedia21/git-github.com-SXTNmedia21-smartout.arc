@@ -13,6 +13,8 @@ import { MapPin, Plus, X, Layers } from "lucide-react";
 import type { WizardStepProps } from "@smartout/ui";
 import type { OnboardingConfirmState } from "../types-v2";
 import type { LocationData } from "../types";
+import { useRegisterTools } from "@/app/walkAi/_components/tool-registry";
+import { useLocationsTools } from "./tools/locations-tools";
 
 const TYPE_LABELS: Record<string, string> = {
   main: "Hovedlokale",
@@ -31,8 +33,13 @@ const SUGGESTED_LOCATIONS: Array<{ name: string; type: LocationData["type"] }> =
 export function ConfirmLocations({
   state,
   updateState,
+  next,
+  back,
   t,
 }: WizardStepProps<OnboardingConfirmState>) {
+  const tools = useLocationsTools(state, updateState, next, back);
+  useRegisterTools("wizard-onboarding-locations", tools);
+
   const [showInput, setShowInput] = useState(false);
   const [locationName, setLocationName] = useState("");
   const [locationType, setLocationType] = useState<string>("main");

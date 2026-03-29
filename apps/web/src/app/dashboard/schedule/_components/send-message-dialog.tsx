@@ -8,7 +8,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Send, MessageSquare, Users, Shield, UserCheck } from "lucide-react";
+import { Send, MessageSquare, Mail, Users, Shield, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -29,7 +29,7 @@ import type { ScheduleEmployee } from "../_hooks/use-employees";
 
 // ── Types ───────────────────────────────────────────────────
 
-type Channel = "sms";
+type Channel = "sms" | "email";
 type Audience = "all" | "leaders" | "specific";
 
 type SendMessageDialogProps = {
@@ -62,7 +62,7 @@ export function SendMessageDialog({
   employees,
   onSent,
 }: SendMessageDialogProps) {
-  const [channels, setChannels] = useState<Set<Channel>>(new Set(["sms"]));
+  const [channels, setChannels] = useState<Set<Channel>>(new Set(["sms", "email"]));
   const [audience, setAudience] = useState<Audience>("all");
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<Set<string>>(new Set());
   const [message, setMessage] = useState("");
@@ -111,13 +111,13 @@ export function SendMessageDialog({
   useEffect(() => {
     if (!open) return;
     setMessage(initialMessage ?? "");
-    setChannels(new Set(["sms"]));
+    setChannels(new Set(["sms", "email"]));
     setAudience("all");
     setSelectedEmployeeIds(new Set());
   }, [open, initialMessage]);
 
   function resetForm() {
-    setChannels(new Set(["sms"]));
+    setChannels(new Set(["sms", "email"]));
     setAudience("all");
     setSelectedEmployeeIds(new Set());
     setMessage("");
@@ -146,20 +146,23 @@ export function SendMessageDialog({
       const payload = (await response.json().catch(() => ({}))) as {
         error?: string;
         sms?: { sent: number; failed: number; skippedNoPhone: number };
+        email?: { sent: number; failed: number; skippedNoEmail: number };
       };
 
       if (!response.ok) {
         throw new Error(payload.error ?? "Kunne ikke sende melding");
       }
 
-      const smsResult = payload.sms;
-      if (smsResult && channels.has("sms")) {
-        toast.success(
-          `Melding sendt via SMS. ${smsResult.sent} sendt, ${smsResult.failed} feilet, ${smsResult.skippedNoPhone} uten nummer.`,
-        );
-      } else {
-        toast.success(`Melding sendt via SMS til ${recipientCount} mottakere`);
+      const parts: string[] = [];
+      if (payload.sms && channels.has("sms")) {
+        parts.push(`SMS: ${payload.sms.sent} sendt`);
+        if (payload.sms.failed > 0) parts.push(`${payload.sms.failed} feilet`);
       }
+      if (payload.email && channels.has("email")) {
+        parts.push(`E-post: ${payload.email.sent} sendt`);
+        if (payload.email.failed > 0) parts.push(`${payload.email.failed} feilet`);
+      }
+      toast.success(parts.length > 0 ? parts.join(" · ") : `Sendt til ${recipientCount}`);
 
       onSent?.(message, audience, recipientCount);
       resetForm();
@@ -206,13 +209,29 @@ export function SendMessageDialog({
                 icon={<MessageSquare className="h-3.5 w-3.5" />}
                 label="SMS"
                 checked={channels.has("sms")}
-                onToggle={() => undefined}
-                disabled
+                onToggle={() => {
+                  setChannels((prev) => {
+                    const next = new Set(prev);
+                    if (next.has("sms")) next.delete("sms");
+                    else next.add("sms");
+                    return next;
+                  });
+                }}
+              />
+              <ChannelToggle
+                icon={<Mail className="h-3.5 w-3.5" />}
+                label="E-post"
+                checked={channels.has("email")}
+                onToggle={() => {
+                  setChannels((prev) => {
+                    const next = new Set(prev);
+                    if (next.has("email")) next.delete("email");
+                    else next.add("email");
+                    return next;
+                  });
+                }}
               />
             </div>
-            <p className="text-muted-foreground text-xs">
-              Kun SMS er tilgjengelig for sending akkurat na.
-            </p>
           </div>
 
           {/* Audience selection */}

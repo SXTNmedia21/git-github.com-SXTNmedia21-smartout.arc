@@ -1,7 +1,7 @@
 ---
 title: Development Dashboard
 status: in_progress
-updated: 2026-03-28
+updated: 2026-03-29
 created: 2026-03-02
 module: meta
 tags: [dashboard, worktrees, tracking]
@@ -13,14 +13,14 @@ tags: [dashboard, worktrees, tracking]
 
 ## Active Worktrees
 
-| #    | Branch                         | Module    | Status      | Progress                        | Blockers | Health |
-| ---- | ------------------------------ | --------- | ----------- | ------------------------------- | -------- | ------ |
-| wt-1 | —                              | —         | free        | —                               | —        | —      |
-| wt-2 | —                              | —         | free        | —                               | —        | —      |
-| wt-3 | `feat/dashboard-filters`       | dashboard | in_progress | just started                    | —        | clean  |
-| wt-4 | `feat/training-agent-pipeline` | training  | in_progress | just started — WS-2 Module Zero | —        | clean  |
-| wt-5 | —                              | —         | free        | —                               | —        | —      |
-| wt-7 | `feat/dynamic-landing-engine`  | landing   | paused      | just started                    | —        | clean  |
+| #    | Branch                                | Module         | Status      | Progress                          | Blockers | Health |
+| ---- | ------------------------------------- | -------------- | ----------- | --------------------------------- | -------- | ------ |
+| wt-1 | `feat/wizardshell-walkai-integration` | wizard         | done        | 22 commits, merged to development | —        | clean  |
+| wt-2 | `feat/mobile-group-call`              | communications | in_progress | just started                      | —        | clean  |
+| wt-3 | `feat/dashboard-filters`              | dashboard      | in_progress | just started                      | —        | clean  |
+| wt-4 | `feat/training-agent-pipeline`        | training       | in_progress | just started — WS-2 Module Zero   | —        | clean  |
+| wt-5 | —                                     | —              | free        | —                                 | —        | —      |
+| wt-7 | `feat/dynamic-landing-engine`         | landing        | paused      | just started                      | —        | clean  |
 
 ## Parked Branches (no worktree)
 
@@ -30,23 +30,23 @@ tags: [dashboard, worktrees, tracking]
 
 ## Free Slots
 
-| #     | Available                           |
-| ----- | ----------------------------------- |
-| wt-1  | yes                                 |
-| wt-2  | yes                                 |
-| wt-4  | no — `feat/training-agent-pipeline` |
-| wt-3  | no — `feat/dashboard-filters`       |
-| wt-5  | yes                                 |
-| wt-6  | yes                                 |
-| wt-7  | no — `feat/dynamic-landing-engine`  |
-| wt-8  | yes                                 |
-| wt-9  | yes                                 |
-| wt-10 | yes                                 |
-| wt-11 | yes                                 |
-| wt-12 | yes                                 |
-| wt-13 | yes                                 |
-| wt-15 | yes                                 |
-| wt-20 | yes                                 |
+| #     | Available                                                          |
+| ----- | ------------------------------------------------------------------ |
+| wt-1  | no — `feat/wizardshell-walkai-integration` (done, cleanup pending) |
+| wt-2  | no — `feat/mobile-group-call`                                      |
+| wt-4  | no — `feat/training-agent-pipeline`                                |
+| wt-3  | no — `feat/dashboard-filters`                                      |
+| wt-5  | yes                                                                |
+| wt-6  | yes                                                                |
+| wt-7  | no — `feat/dynamic-landing-engine`                                 |
+| wt-8  | yes                                                                |
+| wt-9  | yes                                                                |
+| wt-10 | yes                                                                |
+| wt-11 | yes                                                                |
+| wt-12 | yes                                                                |
+| wt-13 | yes                                                                |
+| wt-15 | yes                                                                |
+| wt-20 | yes                                                                |
 
 ## Pending Journeys
 
@@ -56,11 +56,13 @@ tags: [dashboard, worktrees, tracking]
 | wt-4     | training-agent-pipeline | `docs/journeys/JOURNEY-training-agent-pipeline.md` | missing |
 | wt-3     | dashboard-filters       | `docs/journeys/JOURNEY-dashboard-filters.md`       | missing |
 | wt-7     | dynamic-landing-engine  | `docs/journeys/JOURNEY-dynamic-landing-engine.md`  | missing |
+| wt-2     | mobile-group-call       | `docs/journeys/JOURNEY-mobile-group-call.md`       | missing |
 
 ## Recent Closures
 
 | Date       | Feature                      | Branch                                                             | Merged To   |
 | ---------- | ---------------------------- | ------------------------------------------------------------------ | ----------- |
+| 2026-03-29 | interactive-dashboard        | `feat/interactive-dashboard`                                       | development |
 | 2026-03-28 | telegram-walkai-adapter      | `feat/telegram-walkai-adapter`                                     | development |
 | 2026-03-29 | telemetry-botsson-reactive   | `feat/telemetry-botsson-reactive`                                  | development |
 | 2026-03-28 | profession-system            | `feat/profession-system`                                           | development |
@@ -132,6 +134,12 @@ tags: [dashboard, worktrees, tracking]
 
 ## Session History
 
+| 2026-03-29 | development | session ended | session ended |
+| 2026-03-28 | development | session ended | session ended |
+| 2026-03-28 | development | session ended | session ended |
+| 2026-03-28 | development | session ended | session ended |
+| 2026-03-28 | mobile-group-call | started | wt-2, module: communications. Spec + plan council-reviewed. 5 tasks. |
+| 2026-03-28 | wizardshell-walkai-integration | closed | wt-1, 22 commits, 70 files, -4480 netto. ADR-0070. Merged to development. |
 | 2026-03-28 | development | session ended | session ended |
 | 2026-03-28 | development | session ended | session ended |
 | 2026-03-29 | telemetry-botsson-reactive | closed | 13 commits, 29 tests, 2200+ lines. Error telemetry + reactive Botsson + escalation gates. wt-2 freed. |

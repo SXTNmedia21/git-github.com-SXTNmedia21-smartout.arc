@@ -34,6 +34,9 @@ export function useDepartmentShifts(date: string) {
           end_time,
           work_hours,
           status,
+          profile:employee_id (
+            display_name
+          ),
           position:position_id (
             position_id,
             name,
@@ -64,6 +67,10 @@ export function useDepartmentShifts(date: string) {
       >();
 
       for (const shift of data ?? []) {
+        const profile = shift.profile as unknown as {
+          display_name: string;
+        } | null;
+
         const position = shift.position as unknown as {
           position_id: string;
           name: string;
@@ -87,9 +94,10 @@ export function useDepartmentShifts(date: string) {
         const group = deptMap.get(deptId)!;
         group.shifts.push({
           shiftId: shift.schedule_shift_id,
-          employeeName: null, // Would need profile join for name
+          employeeName: profile?.display_name ?? null,
           employeeId: shift.employee_id,
           role: shift.role,
+          positionName: position?.name ?? null,
           startTime: shift.start_time,
           endTime: shift.end_time,
           workHours: shift.work_hours,

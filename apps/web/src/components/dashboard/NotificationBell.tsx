@@ -9,7 +9,7 @@
  * browser notification permission on first interaction.
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useContext } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -31,6 +31,8 @@ import {
   useMarkAllAsRead,
 } from "@smartout/notifications/client";
 import { useNotificationRealtime } from "@/hooks/use-notification-realtime";
+import { useTranslation } from "@smartout/i18n";
+import { ChatPanelContext } from "./ChatPanel";
 
 /* ------------------------------------------------------------------ */
 /*  Icon mapping — one icon per notification icon_type                */
@@ -50,15 +52,17 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
 /*  Relative time helper (Norwegian, inline — no external library)    */
 /* ------------------------------------------------------------------ */
 
-function timeAgo(date: string): string {
-  const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
-  if (seconds < 60) return "nå";
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes} min siden`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}t siden`;
-  const days = Math.floor(hours / 24);
-  return `${days}d siden`;
+function createTimeAgo(t: (key: string, params?: Record<string, string | number>) => string) {
+  return function timeAgo(date: string): string {
+    const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
+    if (seconds < 60) return t("time.now");
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return t("time.minutesAgo", { count: minutes });
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return t("time.hoursAgo", { count: hours });
+    const days = Math.floor(hours / 24);
+    return t("time.daysAgo", { count: days });
+  };
 }
 
 /* ------------------------------------------------------------------ */
@@ -78,6 +82,8 @@ interface NotificationBellProps {
 export function NotificationBell({ profileId }: NotificationBellProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const { t } = useTranslation("notifications");
+  const timeAgo = createTimeAgo(t);
 
   // Data hooks
   const { data: unreadCount = 0 } = useUnreadCount(profileId);
@@ -85,8 +91,8 @@ export function NotificationBell({ profileId }: NotificationBellProps) {
   const markAsRead = useMarkAsRead();
   const markAllAsRead = useMarkAllAsRead(profileId);
 
-  // Realtime subscription — invalidates queries on new INSERT
-  useNotificationRealtime(profileId);
+  // Realtime subscription — invalidates queries + glow on new INSERT
+  const { isGlowing } = useNotificationRealtime(profileId);
 
   // Flatten infinite query pages and take first 8
   const notifications = (notificationsData?.pages ?? [])
@@ -111,32 +117,62 @@ export function NotificationBell({ profileId }: NotificationBellProps) {
     }
   }, []);
 
+  const { openChat } = useContext(ChatPanelContext);
+
   /**
-   * Click a notification row: mark it as read and navigate to action_url.
+   * Click a notification row: mark as read, then open chat panel for chat
+   * notifications or navigate to action_url for everything else.
    */
   const handleRowClick = useCallback(
-    (id: string, actionUrl: string | null, isRead: boolean) => {
+    (id: string, actionUrl: string | null, isRead: boolean, iconType: string) => {
       if (!isRead) {
         markAsRead.mutate(id);
       }
-      if (actionUrl) {
+      // Chat notifications open the side panel instead of navigating
+      if (iconType === "chat" && actionUrl) {
+        const channelId = actionUrl.split("/").pop();
+        if (channelId) {
+          openChat(channelId);
+        }
+      } else if (actionUrl) {
         router.push(actionUrl);
       }
       setOpen(false);
     },
-    [markAsRead, router],
+    [markAsRead, router, openChat],
   );
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <button
+        <motion.button
           type="button"
           onClick={handleBellClick}
+          animate={
+            isGlowing
+              ? {
+                  boxShadow: [
+                    "0 0 0 0 rgba(255, 107, 53, 0)",
+                    "0 0 16px 4px rgba(255, 107, 53, 0.4)",
+                    "0 0 0 0 rgba(255, 107, 53, 0)",
+                  ],
+                }
+              : { boxShadow: "0 0 0 0 rgba(255, 107, 53, 0)" }
+          }
+          transition={
+            isGlowing ? { duration: 1.5, repeat: 1, ease: "easeInOut" } : { duration: 0.3 }
+          }
           className="hover:bg-muted relative flex h-9 w-9 items-center justify-center rounded-lg transition-colors"
-          aria-label="Varsler"
+          aria-label={t("bell.label")}
         >
-          <Bell className="text-muted-foreground h-5 w-5" />
+          <motion.div
+            animate={isGlowing ? { rotate: [0, -12, 12, -8, 8, 0] } : { rotate: 0 }}
+            transition={isGlowing ? { duration: 0.6, ease: "easeInOut" } : { duration: 0.2 }}
+          >
+            <Bell
+              className={isGlowing ? "h-5 w-5 text-[#FF6B35]" : "text-muted-foreground h-5 w-5"}
+            />
+          </motion.div>
 
           {/* Animated unread badge */}
           <AnimatePresence>
@@ -153,7 +189,7 @@ export function NotificationBell({ profileId }: NotificationBellProps) {
               </motion.span>
             )}
           </AnimatePresence>
-        </button>
+        </motion.button>
       </PopoverTrigger>
 
       <PopoverContent align="end" sideOffset={8} className="w-[360px] p-0">
@@ -164,7 +200,7 @@ export function NotificationBell({ profileId }: NotificationBellProps) {
         >
           {/* Header */}
           <div className="flex items-center justify-between border-b px-4 py-3">
-            <h3 className="text-foreground text-sm font-semibold">Varsler</h3>
+            <h3 className="text-foreground text-sm font-semibold">{t("bell.title")}</h3>
             {unreadCount > 0 && (
               <button
                 type="button"
@@ -173,7 +209,7 @@ export function NotificationBell({ profileId }: NotificationBellProps) {
                 className="text-muted-foreground hover:text-foreground flex items-center gap-1 text-xs transition-colors"
               >
                 <CheckCheck className="h-3.5 w-3.5" />
-                Marker alle som lest
+                {t("bell.markAllRead")}
               </button>
             )}
           </div>
@@ -183,7 +219,7 @@ export function NotificationBell({ profileId }: NotificationBellProps) {
             {notifications.length === 0 ? (
               <div className="text-muted-foreground flex flex-col items-center justify-center py-10">
                 <Bell className="mb-2 h-8 w-8 opacity-30" />
-                <p className="text-sm">Ingen varsler enn&aring;</p>
+                <p className="text-sm">{t("bell.empty")}</p>
               </div>
             ) : (
               <ul className="divide-y">
@@ -193,7 +229,7 @@ export function NotificationBell({ profileId }: NotificationBellProps) {
                     <li key={n.id}>
                       <button
                         type="button"
-                        onClick={() => handleRowClick(n.id, n.action_url, n.is_read)}
+                        onClick={() => handleRowClick(n.id, n.action_url, n.is_read, n.icon_type)}
                         className="hover:bg-muted/50 flex w-full items-start gap-3 px-4 py-3 text-left transition-colors"
                       >
                         {/* Icon */}
@@ -236,7 +272,7 @@ export function NotificationBell({ profileId }: NotificationBellProps) {
               }}
               className="text-primary hover:text-primary/80 w-full text-center text-xs font-medium transition-colors"
             >
-              Se alle varsler
+              {t("bell.seeAll")}
             </button>
           </div>
         </motion.div>

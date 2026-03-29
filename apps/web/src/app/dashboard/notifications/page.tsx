@@ -29,6 +29,7 @@ import {
   useMarkAsRead,
   useMarkAllAsRead,
 } from "@smartout/notifications/client";
+import { useTranslation } from "@smartout/i18n";
 
 /* ------------------------------------------------------------------ */
 /*  Icon mapping — mirrors NotificationBell for visual consistency     */
@@ -58,36 +59,16 @@ type FilterId =
   | "approval"
   | "training";
 
-type FilterTab = {
-  id: FilterId;
-  label: string;
-};
-
-const FILTER_TABS: FilterTab[] = [
-  { id: "all", label: "Alle" },
-  { id: "unread", label: "Uleste" },
-  { id: "shift", label: "Vakter" },
-  { id: "chat", label: "Komm" },
-  { id: "task", label: "Oppgaver" },
-  { id: "deviation", label: "Avvik" },
-  { id: "approval", label: "Godkjenning" },
-  { id: "training", label: "Opplæring" },
+const FILTER_IDS: FilterId[] = [
+  "all",
+  "unread",
+  "shift",
+  "chat",
+  "task",
+  "deviation",
+  "approval",
+  "training",
 ];
-
-/* ------------------------------------------------------------------ */
-/*  Relative time helper (Norwegian, inline — no external library)    */
-/* ------------------------------------------------------------------ */
-
-function timeAgo(date: string): string {
-  const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
-  if (seconds < 60) return "nå";
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes} min siden`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}t siden`;
-  const days = Math.floor(hours / 24);
-  return `${days}d siden`;
-}
 
 /* ------------------------------------------------------------------ */
 /*  Page component                                                     */
@@ -96,8 +77,32 @@ function timeAgo(date: string): string {
 export default function NotificationsPage() {
   const router = useRouter();
   const { profileId } = useContext(DashboardContext);
+  const { t } = useTranslation("notifications");
 
   const [activeFilter, setActiveFilter] = useState<FilterId>("all");
+
+  function timeAgo(date: string): string {
+    const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
+    if (seconds < 60) return t("time.now");
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return t("time.minutesAgo", { count: minutes });
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return t("time.hoursAgo", { count: hours });
+    const days = Math.floor(hours / 24);
+    return t("time.daysAgo", { count: days });
+  }
+
+  // i18n label for each filter tab
+  const filterLabel: Record<FilterId, string> = {
+    all: t("filter.all"),
+    unread: t("filter.unread"),
+    shift: t("filter.shift"),
+    chat: t("filter.chat"),
+    task: t("filter.task"),
+    deviation: t("filter.deviation"),
+    approval: t("filter.approval"),
+    training: t("filter.training"),
+  };
 
   // Build filter params for useNotifications based on active tab
   const queryFilter =
@@ -136,7 +141,6 @@ export default function NotificationsPage() {
 
     const observer = new IntersectionObserver(
       (entries) => {
-        // When the sentinel becomes visible and there's more data, load the next page
         if (entries[0]?.isIntersecting && hasNextPage && !isFetchingNextPage) {
           void fetchNextPage();
         }
@@ -148,9 +152,6 @@ export default function NotificationsPage() {
     return () => observer.disconnect();
   }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
-  /**
-   * Click a notification row: mark it as read and navigate to action_url.
-   */
   const handleRowClick = useCallback(
     (id: string, actionUrl: string | null, isRead: boolean) => {
       if (!isRead) {
@@ -168,7 +169,7 @@ export default function NotificationsPage() {
       {/* Header */}
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <h1 className="text-foreground text-2xl font-semibold">Varsler</h1>
+          <h1 className="text-foreground text-2xl font-semibold">{t("page.title")}</h1>
           {unreadCount > 0 && (
             <span className="bg-destructive text-destructive-foreground flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-semibold">
               {unreadCount > 99 ? "99+" : unreadCount}
@@ -176,7 +177,6 @@ export default function NotificationsPage() {
           )}
         </div>
 
-        {/* Mark all as read — only shown when unread notifications exist */}
         {unreadCount > 0 && (
           <Button
             variant="ghost"
@@ -186,22 +186,22 @@ export default function NotificationsPage() {
             className="text-muted-foreground hover:text-foreground gap-1.5 text-xs"
           >
             <CheckCheck className="h-3.5 w-3.5" />
-            Marker alle som lest
+            {t("page.markAllRead")}
           </Button>
         )}
       </div>
 
       {/* Filter tabs */}
       <div className="mb-6 flex flex-wrap gap-2">
-        {FILTER_TABS.map((tab) => (
+        {FILTER_IDS.map((id) => (
           <Button
-            key={tab.id}
-            variant={activeFilter === tab.id ? "default" : "outline"}
+            key={id}
+            variant={activeFilter === id ? "default" : "outline"}
             size="sm"
-            onClick={() => setActiveFilter(tab.id)}
+            onClick={() => setActiveFilter(id)}
             className="rounded-full text-xs"
           >
-            {tab.label}
+            {filterLabel[id]}
           </Button>
         ))}
       </div>
@@ -210,7 +210,7 @@ export default function NotificationsPage() {
       {notifications.length === 0 ? (
         <div className="text-muted-foreground flex flex-col items-center justify-center py-20">
           <Bell className="mb-3 h-10 w-10 opacity-25" />
-          <p className="text-sm">Ingen varsler ennå</p>
+          <p className="text-sm">{t("page.empty")}</p>
         </div>
       ) : (
         <ul className="space-y-2">
@@ -223,12 +223,10 @@ export default function NotificationsPage() {
                   onClick={() => handleRowClick(n.id, n.action_url, n.is_read)}
                   className="hover:bg-muted/50 flex w-full items-start gap-3 rounded-lg border p-4 text-left transition-colors"
                 >
-                  {/* Icon */}
                   <div className="bg-muted mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full">
                     <IconComponent className="text-muted-foreground h-4 w-4" />
                   </div>
 
-                  {/* Content */}
                   <div className="flex-1 overflow-hidden">
                     <p className="text-foreground text-sm font-medium">{n.title}</p>
                     {n.body && (
@@ -239,7 +237,6 @@ export default function NotificationsPage() {
                     </p>
                   </div>
 
-                  {/* Unread dot */}
                   {!n.is_read && <span className="bg-primary mt-2 h-2 w-2 shrink-0 rounded-full" />}
                 </button>
               </li>
@@ -248,10 +245,10 @@ export default function NotificationsPage() {
         </ul>
       )}
 
-      {/* Infinite scroll sentinel — becomes visible when user reaches the bottom */}
+      {/* Infinite scroll sentinel */}
       <div ref={sentinelRef} className="py-4 text-center">
         {isFetchingNextPage && (
-          <p className="text-muted-foreground text-xs">Laster flere varsler...</p>
+          <p className="text-muted-foreground text-xs">{t("page.loadingMore")}</p>
         )}
       </div>
     </div>

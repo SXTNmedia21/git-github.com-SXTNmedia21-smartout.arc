@@ -10,7 +10,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@smartout/supabase/server";
 import { createAdminClient } from "@smartout/supabase/admin";
-import { sendSmsBatch } from "@smartout/notifications";
+import { sendSmsBatch, sendEmailBatch } from "@smartout/notifications";
 import { canSendScheduleMessage } from "./guards";
 
 const SendScheduleMessageSchema = z.object({
@@ -76,16 +76,6 @@ export async function POST(request: NextRequest) {
   }
 
   const { workspaceId, message, channels, audience, selectedEmployeeIds } = parsed.data;
-  const unsupportedChannels = channels.filter((channel) => channel !== "sms");
-  if (unsupportedChannels.length > 0) {
-    return NextResponse.json(
-      {
-        error: "Unsupported channel selection: this endpoint currently supports sms only.",
-        unsupportedChannels,
-      },
-      { status: 400 },
-    );
-  }
 
   const { data: membership, error: membershipError } = await supabase
     .from("profile")
@@ -125,40 +115,67 @@ export async function POST(request: NextRequest) {
   const userIds = recipients.map((recipient) => recipient.user_id).filter(Boolean);
   const { data: identities, error: identityError } = await admin
     .from("user_identity")
-    .select("user_id, phone")
+    .select("user_id, phone, email")
     .in("user_id", userIds);
 
   if (identityError) {
     return NextResponse.json(
-      { error: "Could not resolve recipient phone numbers" },
+      { error: "Could not resolve recipient contact info" },
       { status: 500 },
     );
   }
 
   const phoneByUserId = new Map<string, string>();
+  const emailByUserId = new Map<string, string>();
   for (const identity of identities ?? []) {
-    if (identity.phone) {
-      phoneByUserId.set(identity.user_id, identity.phone);
+    if (identity.phone) phoneByUserId.set(identity.user_id, identity.phone);
+    if (identity.email) emailByUserId.set(identity.user_id, identity.email);
+  }
+
+  // ── SMS ────────────────────────────────────────────────
+  const smsResult = { sent: 0, failed: 0, skippedNoPhone: 0 };
+
+  if (channels.includes("sms")) {
+    const smsRecipients = recipients
+      .map((r) => {
+        const phone = phoneByUserId.get(r.user_id);
+        return phone ? { phone, body: message } : null;
+      })
+      .filter((item): item is { phone: string; body: string } => item !== null);
+
+    smsResult.skippedNoPhone = recipients.length - smsRecipients.length;
+
+    if (smsRecipients.length > 0) {
+      const result = await sendSmsBatch(smsRecipients);
+      smsResult.sent = result.sent;
+      smsResult.failed = result.failed;
     }
   }
 
-  const smsRecipients = recipients
-    .map((recipient) => {
-      const phone = phoneByUserId.get(recipient.user_id);
-      return phone ? { phone, body: message } : null;
-    })
-    .filter((item): item is { phone: string; body: string } => item !== null);
+  // ── Email ──────────────────────────────────────────────
+  const emailResult = { sent: 0, failed: 0, skippedNoEmail: 0 };
 
-  const skippedNoPhone = recipients.length - smsRecipients.length;
-  let smsResult = { sent: 0, failed: 0, skippedNoPhone };
+  if (channels.includes("email")) {
+    const emailRecipients = recipients
+      .map((r) => {
+        const email = emailByUserId.get(r.user_id);
+        return email
+          ? {
+              email,
+              subject: "Melding fra leder",
+              html: `<p>${message.replace(/\n/g, "<br>")}</p>`,
+            }
+          : null;
+      })
+      .filter((item): item is { email: string; subject: string; html: string } => item !== null);
 
-  if (channels.includes("sms") && smsRecipients.length > 0) {
-    const result = await sendSmsBatch(smsRecipients);
-    smsResult = {
-      sent: result.sent,
-      failed: result.failed,
-      skippedNoPhone,
-    };
+    emailResult.skippedNoEmail = recipients.length - emailRecipients.length;
+
+    if (emailRecipients.length > 0) {
+      const result = await sendEmailBatch(emailRecipients, "varsler@smartout.ai");
+      emailResult.sent = result.sent;
+      emailResult.failed = result.failed;
+    }
   }
 
   return NextResponse.json({
@@ -166,5 +183,6 @@ export async function POST(request: NextRequest) {
     recipients: recipients.length,
     channels,
     sms: smsResult,
+    email: emailResult,
   });
 }

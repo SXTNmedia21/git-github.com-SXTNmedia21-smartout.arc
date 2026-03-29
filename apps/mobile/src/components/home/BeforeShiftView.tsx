@@ -1,23 +1,30 @@
 /**
- * BeforeShiftView — Home screen content when an upcoming shift is within
- * the "before_shift" window (default 4 hours).
+ * BeforeShiftView — "God morgen" home screen when an upcoming shift is near.
  *
- * Shows: rich shift card with confirm button, day brief (bookings + deviations),
- * pre-shift tasks. When the shift has already started but the employee hasn't
- * punched in, shows a prominent late punch-in warning.
+ * Mockup sections:
+ * 1. Header — "God morgen, {name}" + date
+ * 2. Din Vakt — featured card with time, location, leader note
+ * 3. Dagens Info — 2-col grid (bookings + expected volume)
+ * 4. Teamet i dag — horizontal avatar scroll of colleagues
+ * 5. Åpne vakter — ghost cards for available extra shifts
  */
 
-import React, { useCallback, useMemo } from "react";
-import { View, Text, ScrollView } from "react-native";
+import React, { useMemo } from "react";
+import { View, Text, Pressable, ScrollView } from "react-native";
+import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
-import { createStyles, withOpacity } from "@/theme";
-import { Button } from "@/components/ui/Button";
-import { SectionHeader } from "@/components/common/SectionHeader";
-import { ShiftCardRich } from "@/components/shift/ShiftCardRich";
-import { strings } from "@/constants/strings";
-import { formatTime } from "@/components/shift/ShiftCard";
-import { PayrollHomeCard } from "@/components/payroll/PayrollHomeCard";
-import { usePayrollSummary } from "@/hooks/queries/use-payroll-summary";
+import { useRouter } from "expo-router";
+import {
+  CalendarDays,
+  BookOpen,
+  BarChart3,
+  ChevronRight,
+  Utensils,
+  UserRound,
+  Zap,
+} from "lucide-react-native";
+import { createStyles, useTheme, withOpacity } from "@/theme";
+import { Avatar } from "@/components/common/Avatar";
 import type { Colleague } from "@/hooks/queries/use-shift-colleagues";
 import type { DayInfo } from "@/hooks/queries/use-day-info";
 import type { Database } from "@smartout/supabase/database.types";
@@ -35,150 +42,331 @@ type BeforeShiftViewProps = {
   onPunchIn?: () => void;
 };
 
-/**
- * Calculates minutes since the shift started (for late punch warning).
- * Returns 0 if the shift hasn't started yet.
- */
-function minutesSinceShiftStart(shift: ScheduleShift): number {
-  const cleanTime = shift.start_time.replace(/[Z+-].*$/, "");
-  const shiftStart = new Date(`${shift.shift_date}T${cleanTime}Z`);
-  const now = new Date();
-  const diffMs = now.getTime() - shiftStart.getTime();
-  return diffMs > 0 ? Math.floor(diffMs / 60_000) : 0;
+const DAY_NAMES = ["søndag", "mandag", "tirsdag", "onsdag", "torsdag", "fredag", "lørdag"];
+const MONTH_NAMES = [
+  "januar",
+  "februar",
+  "mars",
+  "april",
+  "mai",
+  "juni",
+  "juli",
+  "august",
+  "september",
+  "oktober",
+  "november",
+  "desember",
+];
+
+function formatShiftTime(time: string): string {
+  return time.slice(0, 5);
 }
 
-export function BeforeShiftView({
-  shift,
-  colleagues = [],
-  dayInfo,
-  tasks = [],
-  onConfirm,
-  confirming = false,
-  onPunchIn,
-}: BeforeShiftViewProps) {
+function formatDateLabel(dateStr: string): string {
+  const d = new Date(dateStr + "T00:00:00");
+  const day = DAY_NAMES[d.getDay()] ?? "";
+  const date = d.getDate();
+  const month = MONTH_NAMES[d.getMonth()] ?? "";
+  return `${day.charAt(0).toUpperCase() + day.slice(1)} ${date}. ${month}`;
+}
+
+function hoursUntilShift(shift: ScheduleShift): string {
+  const cleanTime = shift.start_time.replace(/[Z+-].*$/, "");
+  const shiftStart = new Date(`${shift.shift_date}T${cleanTime}`);
+  const diffMs = shiftStart.getTime() - Date.now();
+  if (diffMs <= 0) return "Nå";
+  const hours = Math.floor(diffMs / 3600000);
+  const mins = Math.floor((diffMs % 3600000) / 60000);
+  if (hours > 0) return `Live om ${hours}t`;
+  return `Live om ${mins}m`;
+}
+
+export function BeforeShiftView({ shift, colleagues = [], dayInfo }: BeforeShiftViewProps) {
   const styles = useStyles();
-  const lateMinutes = useMemo(() => minutesSinceShiftStart(shift), [shift]);
-  const isLate = lateMinutes > 0;
-  const pendingTasks = tasks.filter((t) => t.status === "pending" || t.status === "available");
-  const summary = usePayrollSummary();
+  const theme = useTheme();
+  const router = useRouter();
+
+  const dateLabel = useMemo(() => formatDateLabel(shift.shift_date), [shift.shift_date]);
+  const countdown = useMemo(() => hoursUntilShift(shift), [shift]);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Shift time header */}
-      <Text style={styles.header}>Vakt i dag kl. {formatTime(shift.start_time)}</Text>
-
-      {/* Late punch-in warning — shift started but no punch */}
-      {isLate && (
-        <View style={styles.lateWarning}>
-          <Text style={styles.lateText}>
-            {strings.home.shiftStartedAgo} {lateMinutes} {strings.home.minutesAgo}
-          </Text>
-          {onPunchIn && (
-            <Button
-              title={strings.shift.punchIn}
-              variant="primary"
-              size="lg"
-              fullWidth
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-                onPunchIn();
-              }}
-            />
-          )}
+    <View style={styles.content}>
+      {/* Header */}
+      <Animated.View entering={FadeIn.delay(50).duration(500)} style={styles.header}>
+        <Text style={styles.greeting}>God morgen</Text>
+        <View style={styles.dateRow}>
+          <CalendarDays
+            size={12}
+            color={withOpacity(theme.colors.mutedForeground, 0.5)}
+            strokeWidth={1.5}
+          />
+          <Text style={styles.dateText}>{dateLabel.toUpperCase()}</Text>
         </View>
-      )}
+      </Animated.View>
 
-      {/* Rich shift card with all details */}
-      <ShiftCardRich
-        shift={shift}
-        colleagues={colleagues}
-        dayInfo={dayInfo}
-        onConfirm={onConfirm}
-        confirming={confirming}
-      />
+      {/* Din Vakt — featured card */}
+      <Animated.View entering={FadeInDown.delay(150).duration(400).springify()}>
+        <View style={styles.shiftLabelRow}>
+          <Text style={styles.sectionTitle}>Din Vakt</Text>
+          <Text style={styles.countdown}>{countdown.toUpperCase()}</Text>
+        </View>
+        <Pressable
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            router.push(`/(app)/(shifts)/${shift.schedule_shift_id}`);
+          }}
+          style={({ pressed }) => [styles.shiftCard, pressed && styles.shiftCardPressed]}
+        >
+          {/* Background icon */}
+          <View style={styles.shiftCardBgIcon}>
+            <Utensils size={64} color="rgba(255,255,255,0.15)" strokeWidth={1} />
+          </View>
 
-      {/* Pre-shift tasks */}
-      {pendingTasks.length > 0 && (
-        <View style={styles.tasksSection}>
-          <SectionHeader title={`${pendingTasks.length} oppgaver ${isLate ? "" : "for apning"}`} />
-          {pendingTasks.map((task) => (
-            <View key={task.id} style={styles.taskRow}>
-              <View
-                style={[styles.taskDot, task.is_compliance_required && styles.taskDotCompliance]}
-              />
-              <Text style={styles.taskTitle} numberOfLines={1}>
-                {task.title}
-              </Text>
+          <View style={styles.shiftCardContent}>
+            <Text style={styles.shiftLocation}>
+              {shift.zone ?? "Arbeidsplass"}, {shift.role}
+            </Text>
+            <Text style={styles.shiftTime}>
+              {formatShiftTime(shift.start_time)} — {formatShiftTime(shift.end_time)}
+            </Text>
+
+            {/* Leader note — placeholder for now */}
+            <View style={styles.leaderNote}>
+              <UserRound size={16} color="rgba(255,219,204,0.8)" strokeWidth={1.5} />
+              <View>
+                <Text style={styles.leaderNoteLabel}>LEADER NOTE</Text>
+                <Text style={styles.leaderNoteText}>Husk bordoppsett før åpning</Text>
+              </View>
             </View>
-          ))}
+          </View>
+        </Pressable>
+      </Animated.View>
+
+      {/* Dagens Info — 2-col grid */}
+      <Animated.View
+        entering={FadeInDown.delay(300).duration(400).springify()}
+        style={styles.infoGrid}
+      >
+        <View style={styles.infoCard}>
+          <BookOpen size={20} color={theme.colors.brandOrange} strokeWidth={1.5} />
+          <View style={styles.infoBottom}>
+            <Text style={styles.infoNumber}>{dayInfo?.bookings?.length ?? 0}</Text>
+            <Text style={styles.infoLabel}>Bookinger</Text>
+          </View>
         </View>
+        <View style={styles.infoCard}>
+          <BarChart3 size={20} color={theme.colors.mutedForeground} strokeWidth={1.5} />
+          <View style={styles.infoBottom}>
+            <Text style={styles.infoDesc}>Normalt trykk forventet</Text>
+            <Text style={styles.infoMeta}>BASERT PÅ HISTORIKK</Text>
+          </View>
+        </View>
+      </Animated.View>
+
+      {/* Teamet i dag */}
+      {colleagues.length > 0 && (
+        <Animated.View
+          entering={FadeInDown.delay(450).duration(400).springify()}
+          style={styles.teamSection}
+        >
+          <Text style={styles.sectionTitle}>Teamet i dag</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.teamScroll}
+          >
+            {colleagues.map((c) => (
+              <View key={c.profileId} style={styles.teamMember}>
+                <View style={styles.teamAvatarRing}>
+                  <Avatar name={`${c.firstName} ${c.lastName}`} imageUrl={c.avatarUrl} size="lg" />
+                </View>
+                <Text style={styles.teamName}>{c.firstName}</Text>
+              </View>
+            ))}
+          </ScrollView>
+        </Animated.View>
       )}
 
-      {/* Supplement preview — informational, below all action items */}
-      <View style={styles.payrollCard}>
-        <PayrollHomeCard
-          phase="before_shift"
-          shift={shift}
-          timeEntry={null}
-          summary={summary.data ?? null}
-        />
-      </View>
-    </ScrollView>
+      {/* Åpne vakter */}
+      <Animated.View
+        entering={FadeInDown.delay(600).duration(400).springify()}
+        style={styles.openSection}
+      >
+        <Text style={styles.sectionTitle}>Åpne vakter</Text>
+        <View style={styles.openList}>
+          <Pressable style={({ pressed }) => [styles.openCard, pressed && { opacity: 0.7 }]}>
+            <View
+              style={[
+                styles.openIcon,
+                { backgroundColor: withOpacity(theme.colors.brandOrange, 0.1) },
+              ]}
+            >
+              <Zap size={18} color={theme.colors.brandOrange} strokeWidth={1.5} />
+            </View>
+            <View style={styles.openInfo}>
+              <Text style={styles.openTitle}>Extra Runner</Text>
+              <Text style={styles.openMeta}>START 17:00</Text>
+            </View>
+            <ChevronRight
+              size={18}
+              color={withOpacity(theme.colors.mutedForeground, 0.3)}
+              strokeWidth={1.5}
+            />
+          </Pressable>
+        </View>
+      </Animated.View>
+    </View>
   );
 }
 
 const useStyles = createStyles((theme) => ({
-  container: {
-    flex: 1,
-  },
-  content: {
-    paddingHorizontal: theme.spacing.card,
-    paddingTop: theme.spacing.section,
-    paddingBottom: theme.spacing.xl,
-  },
-  header: {
-    ...theme.typography.title,
-    color: theme.colors.foreground,
-    marginBottom: theme.spacing.element,
-  },
-  lateWarning: {
-    backgroundColor: withOpacity(theme.colors.warning, 0.12),
-    borderRadius: theme.radius.lg,
-    padding: theme.spacing.card,
-    marginBottom: theme.spacing.element,
-    gap: theme.spacing.element,
-  },
-  lateText: {
-    ...theme.typography.bodyBold,
-    color: theme.colors.warning,
-    textAlign: "center",
-  },
-  tasksSection: {
-    marginTop: theme.spacing.section,
-  },
-  taskRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing.tight,
-    paddingVertical: theme.spacing.tight,
-  },
-  taskDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: theme.colors.muted,
-  },
-  taskDotCompliance: {
-    backgroundColor: theme.colors.destructive,
-  },
-  taskTitle: {
-    ...theme.typography.body,
-    color: theme.colors.foreground,
-    flex: 1,
+  content: { gap: theme.spacing.page },
+
+  /* Header */
+  header: { gap: 4 },
+  greeting: { fontSize: 40, fontWeight: "300", letterSpacing: -1, color: theme.colors.foreground },
+  dateRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  dateText: {
+    fontSize: 11,
+    fontWeight: "500",
+    letterSpacing: 2,
+    color: withOpacity(theme.colors.mutedForeground, 0.6),
   },
 
-  /* Payroll card spacing — sits below shift card and tasks */
-  payrollCard: {
-    marginTop: theme.spacing.section,
+  /* Section title */
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: "300",
+    letterSpacing: -0.5,
+    color: theme.colors.foreground,
+    paddingHorizontal: 4,
+  },
+
+  /* Shift card */
+  shiftLabelRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "baseline",
+    marginBottom: theme.spacing.element,
+    paddingHorizontal: 4,
+  },
+  countdown: { fontSize: 11, fontWeight: "700", letterSpacing: 1, color: theme.colors.brandOrange },
+
+  shiftCard: {
+    backgroundColor: theme.colors.brandOrange,
+    borderRadius: theme.radius.xl,
+    padding: theme.spacing.page + 4,
+    overflow: "hidden",
+    position: "relative",
+    ...theme.shadows.lg,
+  },
+  shiftCardPressed: { transform: [{ scale: 0.98 }], opacity: 0.95 },
+  shiftCardBgIcon: { position: "absolute", top: 16, right: 16, opacity: 0.2 },
+  shiftCardContent: { gap: theme.spacing.md },
+  shiftLocation: {
+    fontSize: 11,
+    fontWeight: "500",
+    letterSpacing: 2,
+    textTransform: "uppercase",
+    color: "rgba(255,255,255,0.75)",
+  },
+  shiftTime: { fontSize: 36, fontWeight: "300", letterSpacing: -1, color: "#ffffff" },
+
+  leaderNote: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.card,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+  },
+  leaderNoteLabel: {
+    fontSize: 9,
+    fontWeight: "700",
+    letterSpacing: 1,
+    color: "rgba(255,255,255,0.6)",
+  },
+  leaderNoteText: {
+    fontSize: 16,
+    fontWeight: "300",
+    fontStyle: "italic",
+    color: "#ffffff",
+    marginTop: 2,
+  },
+
+  /* Info grid */
+  infoGrid: { flexDirection: "row", gap: theme.spacing.md },
+  infoCard: {
+    flex: 1,
+    aspectRatio: 1,
+    backgroundColor: theme.isDark ? withOpacity(theme.colors.card, 0.5) : theme.colors.secondary,
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.section,
+    justifyContent: "space-between",
+  },
+  infoBottom: { gap: 2 },
+  infoNumber: {
+    fontSize: 28,
+    fontWeight: "700",
+    letterSpacing: -1,
+    color: theme.colors.foreground,
+  },
+  infoLabel: { fontSize: 13, fontWeight: "500", color: theme.colors.mutedForeground },
+  infoDesc: { fontSize: 13, fontWeight: "500", color: theme.colors.foreground, lineHeight: 18 },
+  infoMeta: {
+    fontSize: 9,
+    fontWeight: "500",
+    letterSpacing: 1,
+    color: withOpacity(theme.colors.mutedForeground, 0.6),
+    marginTop: 4,
+  },
+
+  /* Team */
+  teamSection: { gap: theme.spacing.md },
+  teamScroll: { gap: 16, paddingHorizontal: 4 },
+  teamMember: { alignItems: "center", gap: 6 },
+  teamAvatarRing: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    padding: 2,
+    borderWidth: 1,
+    borderColor: withOpacity(theme.colors.border, 0.2),
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  teamName: { fontSize: 11, fontWeight: "500", color: theme.colors.mutedForeground },
+
+  /* Open shifts */
+  openSection: { gap: theme.spacing.md },
+  openList: { gap: theme.spacing.element },
+  openCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.md,
+    padding: theme.spacing.card,
+    backgroundColor: theme.isDark
+      ? withOpacity(theme.colors.card, 0.3)
+      : withOpacity(theme.colors.muted, 0.3),
+    borderRadius: theme.radius.lg,
+    borderWidth: 1,
+    borderColor: withOpacity(theme.colors.border, 0.1),
+  },
+  openIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  openInfo: { flex: 1, gap: 2 },
+  openTitle: { fontSize: 13, fontWeight: "600", color: theme.colors.foreground },
+  openMeta: {
+    fontSize: 9,
+    fontWeight: "500",
+    letterSpacing: 1,
+    color: withOpacity(theme.colors.mutedForeground, 0.6),
   },
 }));
