@@ -1,4 +1,7 @@
-/* eslint-disable */
+npm warn Unknown project config "public-hoist-pattern". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+WARN: environment variable is unset: SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID
+WARN: environment variable is unset: SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET
+Connecting to db 5432
 export type Json =
   | string
   | number
@@ -13371,11 +13374,13 @@ export type Database = {
           short_description: string | null
           slogan: string | null
           slug: string
+          status: Database["public"]["Enums"]["workspace_status"]
           suspended_at: string | null
           timezone: string
           trial_ends_at: string | null
           trial_started_at: string | null
           updated_at: string
+          verification_deadline: string | null
           workspace_id: string
         }
         Insert: {
@@ -13424,11 +13429,13 @@ export type Database = {
           short_description?: string | null
           slogan?: string | null
           slug: string
+          status?: Database["public"]["Enums"]["workspace_status"]
           suspended_at?: string | null
           timezone?: string
           trial_ends_at?: string | null
           trial_started_at?: string | null
           updated_at?: string
+          verification_deadline?: string | null
           workspace_id?: string
         }
         Update: {
@@ -13477,11 +13484,13 @@ export type Database = {
           short_description?: string | null
           slogan?: string | null
           slug?: string
+          status?: Database["public"]["Enums"]["workspace_status"]
           suspended_at?: string | null
           timezone?: string
           trial_ends_at?: string | null
           trial_started_at?: string | null
           updated_at?: string
+          verification_deadline?: string | null
           workspace_id?: string
         }
         Relationships: [
@@ -14346,6 +14355,7 @@ export type Database = {
         Args: { uid: string; wid: string }
         Returns: boolean
       }
+      is_email_verified: { Args: { user_uuid: string }; Returns: boolean }
       is_participant_in_conversation: {
         Args: { conv_id: string }
         Returns: boolean
@@ -14700,7 +14710,7 @@ export type Database = {
         | "inactive"
         | "broken"
       journey_test_result: "pass" | "fail" | "skip" | "running"
-      journey_test_type: "automated" | "manual"
+      journey_test_type: "automated" | "manual" | "protocol"
       landing_block_type:
         | "hero"
         | "features_grid"
@@ -14844,6 +14854,7 @@ export type Database = {
         | "documentation"
         | "review"
       wizard_session_status: "active" | "completed" | "abandoned"
+      workspace_status: "sandbox" | "active" | "suspended" | "archived"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -16120,7 +16131,7 @@ export const Constants = {
         "broken",
       ],
       journey_test_result: ["pass", "fail", "skip", "running"],
-      journey_test_type: ["automated", "manual"],
+      journey_test_type: ["automated", "manual", "protocol"],
       landing_block_type: [
         "hero",
         "features_grid",
@@ -16280,6 +16291,7 @@ export const Constants = {
         "review",
       ],
       wizard_session_status: ["active", "completed", "abandoned"],
+      workspace_status: ["sandbox", "active", "suspended", "archived"],
     },
   },
   timesheet: {
