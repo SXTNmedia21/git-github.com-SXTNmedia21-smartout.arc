@@ -6,6 +6,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@smartout/supabase/client";
+import { cn } from "@smartout/ui/lib/utils";
+import { OtpVerificationForm } from "@/components/auth/OtpVerificationForm";
 
 /* ─────────────────────────────────────────────────────
    Nordic Split — Choreographed panel swap
@@ -153,6 +155,10 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
+  // OTP login method state
+  const [authMethod, setAuthMethod] = useState<"password" | "otp">("password");
+  const [otpSent, setOtpSent] = useState(false);
+
   // Delayed mode switch: let button animation breathe, then start transition
   const switchMode = useCallback((next: Mode) => {
     if (switchTimer.current) clearTimeout(switchTimer.current);
@@ -179,7 +185,7 @@ export default function LoginPage() {
       const t = setTimeout(() => setNavStep((s) => s + 1), delays[navStep]);
       return () => clearTimeout(t);
     }
-    console.log("[hype] Redirecting to /join");
+    console.warn("[hype] Redirecting to /join");
     window.location.href = "/join";
   }, [mode, navStep]);
 
@@ -212,6 +218,26 @@ export default function LoginPage() {
       setError("Noe gikk galt med Google-innlogging.");
       setGoogleLoading(false);
     }
+  }
+
+  // Sends an OTP to the given email. Never reveals whether the email exists in the system.
+  async function handleSendOtp() {
+    setError(null);
+    setLoading(true);
+    const supabase = createClient();
+    // shouldCreateUser: false — OTP login only works for existing accounts.
+    // We don't await for a specific error to avoid leaking email existence.
+    await supabase.auth.signInWithOtp({
+      email,
+      options: { shouldCreateUser: false },
+    });
+    setOtpSent(true);
+    setLoading(false);
+  }
+
+  function handleOtpVerified() {
+    setHasInteracted(true);
+    setTimeout(() => setPendingMode("logging-in"), 200);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -469,7 +495,48 @@ export default function LoginPage() {
                   </div>
                 </motion.div>
 
-                {/* Error */}
+                {/* Auth method tabs — toggle between password and OTP */}
+                <motion.div
+                  variants={itemVariant}
+                  className={!hasInteracted ? "animate-auth-in" : undefined}
+                  style={!hasInteracted ? { animationDelay: "40ms" } : undefined}
+                >
+                  <div className="mb-6 flex gap-1 rounded-xl bg-[oklch(0.95_0.004_55)] p-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthMethod("password");
+                        setOtpSent(false);
+                        setError(null);
+                      }}
+                      className={cn(
+                        "flex-1 rounded-lg py-2 text-[0.8125rem] font-medium transition-all duration-200",
+                        authMethod === "password"
+                          ? "bg-white text-[oklch(0.15_0.01_50)] shadow-sm"
+                          : "text-[oklch(0.5_0.01_52)] hover:text-[oklch(0.3_0.01_50)]",
+                      )}
+                    >
+                      E-post og passord
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthMethod("otp");
+                        setError(null);
+                      }}
+                      className={cn(
+                        "flex-1 rounded-lg py-2 text-[0.8125rem] font-medium transition-all duration-200",
+                        authMethod === "otp"
+                          ? "bg-white text-[oklch(0.15_0.01_50)] shadow-sm"
+                          : "text-[oklch(0.5_0.01_52)] hover:text-[oklch(0.3_0.01_50)]",
+                      )}
+                    >
+                      Engangskode
+                    </button>
+                  </div>
+                </motion.div>
+
+                {/* Error — shown for both auth methods */}
                 {error && (
                   <motion.div
                     initial={{ opacity: 0, height: 0, marginBottom: 0 }}
@@ -482,105 +549,164 @@ export default function LoginPage() {
                   </motion.div>
                 )}
 
-                {/* Google SSO */}
-                <motion.div
-                  variants={itemVariant}
-                  className={!hasInteracted ? "animate-auth-in" : undefined}
-                  style={!hasInteracted ? { animationDelay: "80ms" } : undefined}
-                >
-                  <button
-                    type="button"
-                    onClick={handleGoogleLogin}
-                    disabled={googleLoading || loading}
-                    className="mb-4 flex w-full items-center justify-center gap-3 rounded-xl border border-[oklch(0.9_0.006_55)] bg-white px-4 py-2.5 text-[0.875rem] font-medium text-[oklch(0.2_0.01_50)] shadow-sm transition-all duration-200 hover:shadow-md active:scale-[0.98] disabled:opacity-50"
-                  >
-                    <GoogleIcon />
-                    {googleLoading ? "Logger inn..." : "Fortsett med Google"}
-                  </button>
-                </motion.div>
-
-                {/* Divider */}
-                <motion.div
-                  variants={itemVariant}
-                  className={!hasInteracted ? "animate-auth-in" : undefined}
-                  style={!hasInteracted ? { animationDelay: "140ms" } : undefined}
-                >
-                  <div className="relative my-7">
-                    <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-[oklch(0.92_0.005_55)]" />
-                    </div>
-                    <div className="relative flex justify-center">
-                      <span className="bg-[oklch(0.99_0.004_60)] px-3 text-xs text-[oklch(0.6_0.01_52)]">
-                        eller
-                      </span>
-                    </div>
-                  </div>
-                </motion.div>
-
-                {/* Form */}
-                <motion.div
-                  variants={itemVariant}
-                  className={!hasInteracted ? "animate-auth-in" : undefined}
-                  style={!hasInteracted ? { animationDelay: "200ms" } : undefined}
-                >
-                  <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                      <label
-                        htmlFor="email"
-                        className="mb-1.5 block text-[0.8125rem] font-medium text-[oklch(0.3_0.01_50)]"
-                      >
-                        E-post
-                      </label>
-                      <input
-                        id="email"
-                        name="email"
-                        type="email"
-                        autoComplete="email"
-                        required
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="din@epost.no"
-                        className="block w-full rounded-xl border border-[oklch(0.9_0.006_55)] bg-white px-4 py-2.5 text-[0.875rem] text-[oklch(0.15_0.01_50)] shadow-sm transition-all duration-200 placeholder:text-[oklch(0.7_0.005_52)] focus:border-[oklch(0.65_0.22_40)] focus:shadow-[0_0_0_3px_oklch(0.65_0.22_40/0.08)] focus:outline-none"
-                      />
-                    </div>
-                    <div>
-                      <div className="mb-1.5 flex items-center justify-between">
-                        <label
-                          htmlFor="password"
-                          className="text-[0.8125rem] font-medium text-[oklch(0.3_0.01_50)]"
-                        >
-                          Passord
-                        </label>
-                        <Link
-                          href="/reset-password"
-                          className="text-[0.8125rem] text-[oklch(0.55_0.01_52)] transition-colors hover:text-[oklch(0.65_0.22_40)]"
-                        >
-                          Glemt passord?
-                        </Link>
-                      </div>
-                      <input
-                        id="password"
-                        name="password"
-                        type="password"
-                        autoComplete="current-password"
-                        required
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Passord"
-                        className="block w-full rounded-xl border border-[oklch(0.9_0.006_55)] bg-white px-4 py-2.5 text-[0.875rem] text-[oklch(0.15_0.01_50)] shadow-sm transition-all duration-200 placeholder:text-[oklch(0.7_0.005_52)] focus:border-[oklch(0.65_0.22_40)] focus:shadow-[0_0_0_3px_oklch(0.65_0.22_40/0.08)] focus:outline-none"
-                      />
-                    </div>
-                    <div className="pt-2">
+                {/* Password method: Google SSO + divider + email/password form */}
+                {authMethod === "password" && (
+                  <>
+                    {/* Google SSO */}
+                    <motion.div
+                      variants={itemVariant}
+                      className={!hasInteracted ? "animate-auth-in" : undefined}
+                      style={!hasInteracted ? { animationDelay: "80ms" } : undefined}
+                    >
                       <button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full rounded-xl bg-[oklch(0.65_0.22_40)] px-4 py-3 text-[0.875rem] font-semibold text-white shadow-[0_2px_12px_oklch(0.65_0.22_40/0.25)] transition-all duration-200 hover:shadow-[0_4px_20px_oklch(0.65_0.22_40/0.35)] hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
+                        type="button"
+                        onClick={handleGoogleLogin}
+                        disabled={googleLoading || loading}
+                        className="mb-4 flex w-full items-center justify-center gap-3 rounded-xl border border-[oklch(0.9_0.006_55)] bg-white px-4 py-2.5 text-[0.875rem] font-medium text-[oklch(0.2_0.01_50)] shadow-sm transition-all duration-200 hover:shadow-md active:scale-[0.98] disabled:opacity-50"
                       >
-                        {loading ? "Logger inn..." : "Logg inn"}
+                        <GoogleIcon />
+                        {googleLoading ? "Logger inn..." : "Fortsett med Google"}
                       </button>
-                    </div>
-                  </form>
-                </motion.div>
+                    </motion.div>
+
+                    {/* Divider */}
+                    <motion.div
+                      variants={itemVariant}
+                      className={!hasInteracted ? "animate-auth-in" : undefined}
+                      style={!hasInteracted ? { animationDelay: "140ms" } : undefined}
+                    >
+                      <div className="relative my-7">
+                        <div className="absolute inset-0 flex items-center">
+                          <div className="w-full border-t border-[oklch(0.92_0.005_55)]" />
+                        </div>
+                        <div className="relative flex justify-center">
+                          <span className="bg-[oklch(0.99_0.004_60)] px-3 text-xs text-[oklch(0.6_0.01_52)]">
+                            eller
+                          </span>
+                        </div>
+                      </div>
+                    </motion.div>
+
+                    {/* Form */}
+                    <motion.div
+                      variants={itemVariant}
+                      className={!hasInteracted ? "animate-auth-in" : undefined}
+                      style={!hasInteracted ? { animationDelay: "200ms" } : undefined}
+                    >
+                      <form onSubmit={handleSubmit} className="space-y-4">
+                        <div>
+                          <label
+                            htmlFor="email"
+                            className="mb-1.5 block text-[0.8125rem] font-medium text-[oklch(0.3_0.01_50)]"
+                          >
+                            E-post
+                          </label>
+                          <input
+                            id="email"
+                            name="email"
+                            type="email"
+                            autoComplete="email"
+                            required
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="din@epost.no"
+                            className="block w-full rounded-xl border border-[oklch(0.9_0.006_55)] bg-white px-4 py-2.5 text-[0.875rem] text-[oklch(0.15_0.01_50)] shadow-sm transition-all duration-200 placeholder:text-[oklch(0.7_0.005_52)] focus:border-[oklch(0.65_0.22_40)] focus:shadow-[0_0_0_3px_oklch(0.65_0.22_40/0.08)] focus:outline-none"
+                          />
+                        </div>
+                        <div>
+                          <div className="mb-1.5 flex items-center justify-between">
+                            <label
+                              htmlFor="password"
+                              className="text-[0.8125rem] font-medium text-[oklch(0.3_0.01_50)]"
+                            >
+                              Passord
+                            </label>
+                            <Link
+                              href="/reset-password"
+                              className="text-[0.8125rem] text-[oklch(0.55_0.01_52)] transition-colors hover:text-[oklch(0.65_0.22_40)]"
+                            >
+                              Glemt passord?
+                            </Link>
+                          </div>
+                          <input
+                            id="password"
+                            name="password"
+                            type="password"
+                            autoComplete="current-password"
+                            required
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder="Passord"
+                            className="block w-full rounded-xl border border-[oklch(0.9_0.006_55)] bg-white px-4 py-2.5 text-[0.875rem] text-[oklch(0.15_0.01_50)] shadow-sm transition-all duration-200 placeholder:text-[oklch(0.7_0.005_52)] focus:border-[oklch(0.65_0.22_40)] focus:shadow-[0_0_0_3px_oklch(0.65_0.22_40/0.08)] focus:outline-none"
+                          />
+                        </div>
+                        <div className="pt-2">
+                          <button
+                            type="submit"
+                            disabled={loading}
+                            className="w-full rounded-xl bg-[oklch(0.65_0.22_40)] px-4 py-3 text-[0.875rem] font-semibold text-white shadow-[0_2px_12px_oklch(0.65_0.22_40/0.25)] transition-all duration-200 hover:shadow-[0_4px_20px_oklch(0.65_0.22_40/0.35)] hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
+                          >
+                            {loading ? "Logger inn..." : "Logg inn"}
+                          </button>
+                        </div>
+                      </form>
+                    </motion.div>
+                  </>
+                )}
+
+                {/* OTP method: email input → send code → OTP digit inputs */}
+                {authMethod === "otp" && (
+                  <motion.div
+                    variants={itemVariant}
+                    className={!hasInteracted ? "animate-auth-in" : undefined}
+                    style={!hasInteracted ? { animationDelay: "80ms" } : undefined}
+                  >
+                    {otpSent ? (
+                      <div className="space-y-4">
+                        <p className="text-center text-[0.8125rem] text-[oklch(0.5_0.01_52)]">
+                          Hvis denne e-posten finnes, har vi sendt en kode
+                        </p>
+                        <OtpVerificationForm
+                          email={email}
+                          context="login"
+                          onVerified={handleOtpVerified}
+                        />
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <p className="text-[0.8125rem] text-[oklch(0.5_0.01_52)]">
+                          Vi sender en engangskode til e-posten din
+                        </p>
+                        <div>
+                          <label
+                            htmlFor="otp-email"
+                            className="mb-1.5 block text-[0.8125rem] font-medium text-[oklch(0.3_0.01_50)]"
+                          >
+                            E-post
+                          </label>
+                          <input
+                            id="otp-email"
+                            type="email"
+                            autoComplete="email"
+                            required
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="din@epost.no"
+                            className="block w-full rounded-xl border border-[oklch(0.9_0.006_55)] bg-white px-4 py-2.5 text-[0.875rem] text-[oklch(0.15_0.01_50)] shadow-sm transition-all duration-200 placeholder:text-[oklch(0.7_0.005_52)] focus:border-[oklch(0.65_0.22_40)] focus:shadow-[0_0_0_3px_oklch(0.65_0.22_40/0.08)] focus:outline-none"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleSendOtp}
+                          disabled={loading || !email.includes("@")}
+                          className="w-full rounded-xl bg-[oklch(0.65_0.22_40)] px-4 py-3 text-[0.875rem] font-semibold text-white shadow-[0_2px_12px_oklch(0.65_0.22_40/0.25)] transition-all duration-200 hover:shadow-[0_4px_20px_oklch(0.65_0.22_40/0.35)] hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
+                        >
+                          {loading ? "Sender..." : "Send kode"}
+                        </button>
+                      </div>
+                    )}
+                  </motion.div>
+                )}
 
                 {/* Footer: Opprett konto */}
                 <motion.div

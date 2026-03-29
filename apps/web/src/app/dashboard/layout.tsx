@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { WorkspaceProvider, type WorkspaceData } from "@/lib/workspace-context";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { QueryProvider } from "./query-provider";
+import { VerificationGate } from "./_components/VerificationGate";
 import {
   getUser,
   getWorkspaceBySlug,
@@ -116,10 +117,26 @@ export default async function DashboardLayout({
       enforceWorkspaceAccess(workspace);
     }
 
+    // Sandbox workspaces need email verification before the owner can use the dashboard.
+    // Showcase mode skips this gate — it has no real auth user to verify.
+    const needsVerification = !isShowcaseMode && !user.email_confirmed_at;
+
+    const content = <DashboardShell profileId={profileId}>{children}</DashboardShell>;
+
     return (
       <QueryProvider>
         <WorkspaceProvider workspace={workspace}>
-          <DashboardShell profileId={profileId}>{children}</DashboardShell>
+          {needsVerification ? (
+            <VerificationGate
+              workspaceId={workspace.workspace_id}
+              userEmail={user.email ?? ""}
+              actorId={profileId ?? ""}
+            >
+              {content}
+            </VerificationGate>
+          ) : (
+            content
+          )}
         </WorkspaceProvider>
       </QueryProvider>
     );
