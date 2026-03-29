@@ -17,6 +17,12 @@ import type {
   FrictionData,
 } from "../protocols/types";
 import { checkGate } from "./gate-checker";
+import {
+  initProgress,
+  markStepRunning,
+  recordStepResult,
+  finalizeProgress,
+} from "./progress-writer";
 import * as path from "path";
 import * as fs from "fs";
 
@@ -273,7 +279,12 @@ export async function runProtocol(
 
   let allPassed = true;
 
-  for (const step of protocol.steps) {
+  // Initialize progress file for live dashboard monitoring
+  initProgress(protocol);
+
+  for (let i = 0; i < protocol.steps.length; i++) {
+    const step = protocol.steps[i];
+    markStepRunning(protocol.id, i);
     const stepStart = Date.now();
     let actionMs = 0;
     let settleMs = 0;
@@ -350,6 +361,7 @@ export async function runProtocol(
     };
 
     stepResults.push(stepResult);
+    recordStepResult(protocol.id, i, stepResult);
 
     // 6. If gate fails → STOP, persist partial results
     if (stepFailed) {
@@ -365,6 +377,9 @@ export async function runProtocol(
     steps: stepResults,
     friction_data: buildFrictionData(stepResults),
   };
+
+  // Finalize progress file
+  finalizeProgress(protocol.id, allPassed);
 
   // Persist to database (non-blocking — failures are logged, not thrown)
   const journeyTestRunId = await persistTestRun(supabase, protocol, output, allPassed);
