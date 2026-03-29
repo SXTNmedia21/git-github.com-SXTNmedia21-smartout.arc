@@ -537,6 +537,7 @@ export default function LoginPage() {
                         type="email"
                         autoComplete="email"
                         required
+                        data-testid="login-email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="din@epost.no"
@@ -564,6 +565,7 @@ export default function LoginPage() {
                         type="password"
                         autoComplete="current-password"
                         required
+                        data-testid="login-password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="Passord"
@@ -574,6 +576,7 @@ export default function LoginPage() {
                       <button
                         type="submit"
                         disabled={loading}
+                        data-testid="login-submit"
                         className="w-full rounded-xl bg-[oklch(0.65_0.22_40)] px-4 py-3 text-[0.875rem] font-semibold text-white shadow-[0_2px_12px_oklch(0.65_0.22_40/0.25)] transition-all duration-200 hover:shadow-[0_4px_20px_oklch(0.65_0.22_40/0.35)] hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
                       >
                         {loading ? "Logger inn..." : "Logg inn"}
