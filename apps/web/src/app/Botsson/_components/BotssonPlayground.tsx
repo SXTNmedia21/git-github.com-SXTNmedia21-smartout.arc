@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import "./botsson.css";
+import "./Botsson.css";
 import { BotssonProvider } from "./BotssonProvider";
 import { BotssonShell } from "./BotssonShell";
 import { EmmaProfile } from "./EmmaProfile";
