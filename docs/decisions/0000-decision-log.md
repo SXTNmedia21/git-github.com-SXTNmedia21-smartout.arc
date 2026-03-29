@@ -36,5 +36,3 @@ tags: [decisions]
 | ---- | ---------- | -----------------------------------------------------          | -------- | ------------ | -------------------------------------------------------------------------------------------------                                                           |
 | 0059 | 2026-03-28 | Platform Admin Pipeline Separation                             | accepted | stage-engine | routeAdminMessage() separate from workspace-scoped routeAgentMessage()                                                                                      |
 | 0069 | 2026-03-28 | Session Execution Ownership: EF + Engine Side-Effects          | accepted | hms          | Edge Functions own execution, Engine owns side-effects (notifications, escalation). Hybrid model.                                                           |
-| #    | Date       | Decision                                                       | Status   |
-| ---  | ----       | --------                                                       | ------   |
