@@ -8,7 +8,7 @@
 /*  Loaded via dynamic import — zero SSR.     */
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
-import "./botsson.css";
+import "./Botsson.css";
 import { BotssonProvider } from "./BotssonProvider";
 import { BotssonShell } from "./BotssonShell";
 import { useWorkspaceOptional } from "@/lib/workspace-context";

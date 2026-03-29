@@ -70,9 +70,10 @@ export function Step6CreateAccount({ state, updateState, next, t }: WizardStepPr
 
     try {
       const supabase = createClient();
+      let accessToken: string | undefined;
 
       if (mode === "signin") {
-        const { error: signInError } = await supabase.auth.signInWithPassword({
+        const { data, error: signInError } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
@@ -81,8 +82,9 @@ export function Step6CreateAccount({ state, updateState, next, t }: WizardStepPr
           setLoading(false);
           return;
         }
+        accessToken = data.session?.access_token;
       } else {
-        const { error: signUpError } = await supabase.auth.signUp({
+        const { data, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -96,39 +98,29 @@ export function Step6CreateAccount({ state, updateState, next, t }: WizardStepPr
         if (signUpError) {
           // User was created between our check and now — try signin
           if (signUpError.message.includes("already registered")) {
-            const { error: signInError } = await supabase.auth.signInWithPassword({
-              email,
-              password,
-            });
+            const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword(
+              { email, password },
+            );
             if (signInError) {
               setError("Feil passord for eksisterende konto.");
               setLoading(false);
               return;
             }
+            accessToken = signInData.session?.access_token;
           } else {
             setError(signUpError.message);
             setLoading(false);
             return;
           }
+        } else {
+          accessToken = data.session?.access_token;
         }
       }
 
-      // Wait for auth session to be fully established in cookies
-      // before calling the server action (which reads cookies).
-      const { data: session } = await supabase.auth.getSession();
-      if (!session?.session) {
-        // Session not ready yet — poll briefly
-        await new Promise<void>((resolve) => {
-          let attempts = 0;
-          const poll = setInterval(async () => {
-            attempts++;
-            const { data } = await supabase.auth.getSession();
-            if (data?.session || attempts > 10) {
-              clearInterval(poll);
-              resolve();
-            }
-          }, 200);
-        });
+      // Pass token via state — server action can't read cookies in the
+      // same request cycle after signup/signin.
+      if (accessToken) {
+        updateState({ _accessToken: accessToken } as Partial<JoinState>);
       }
 
       await next();
