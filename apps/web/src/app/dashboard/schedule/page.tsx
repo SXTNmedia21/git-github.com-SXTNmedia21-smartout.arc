@@ -1647,23 +1647,45 @@ function WeeklyGridContent({
                       })[0]?.status ?? "created")
                     : null;
 
+                const empIndicator = emp.avatarColor.includes("orange")
+                  ? "orange"
+                  : emp.avatarColor.includes("purple")
+                    ? "purple"
+                    : emp.avatarColor.includes("blue")
+                      ? "blue"
+                      : "emerald";
+
                 return (
                   <WeeklyGridCell key={emp.id} enableDroppable={enableDroppable}>
                     {shiftCount > 0 ? (
-                      <ShiftCard
-                        role={emp.jobTitle || emp.role}
-                        time={`${shiftCount} vakter · ${totalHours.toFixed(1)}t`}
-                        status={dominantStatus as "published" | "draft" | "active" | "completed"}
-                        indicator={
-                          emp.avatarColor.includes("orange")
-                            ? "orange"
-                            : emp.avatarColor.includes("purple")
-                              ? "purple"
-                              : emp.avatarColor.includes("blue")
-                                ? "blue"
-                                : "emerald"
-                        }
-                      />
+                      <div className="flex w-full flex-col gap-[2px]">
+                        {weekShifts.map((shift, idx) =>
+                          idx === 0 ? (
+                            <ShiftCard
+                              key={shift.id}
+                              role={emp.jobTitle || emp.role}
+                              time={shift.time}
+                              status={
+                                shift.status as "published" | "draft" | "active" | "completed"
+                              }
+                              indicator={empIndicator}
+                            />
+                          ) : (
+                            <div
+                              key={shift.id}
+                              className="group/mini border-border/40 bg-muted/30 hover:bg-muted relative flex items-center rounded-md border px-1.5 py-[2px] text-[9px] tabular-nums transition-all"
+                              title={`${shift.time} · ${emp.jobTitle || emp.role}`}
+                            >
+                              <span className="text-muted-foreground font-medium">
+                                {shift.startTime}
+                              </span>
+                              <span className="text-muted-foreground/0 group-hover/mini:text-muted-foreground ml-1 transition-colors">
+                                – {shift.endTime} · {shift.workHours.toFixed(1)}t
+                              </span>
+                            </div>
+                          ),
+                        )}
+                      </div>
                     ) : (
                       <WeeklyEmptyCell
                         onClick={() =>
