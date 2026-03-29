@@ -9,6 +9,7 @@ import nbJoin from "../locales/nb/join.json";
 import nbDashboard from "../locales/nb/dashboard.json";
 import nbMobile from "../locales/nb/mobile.json";
 import nbNotifications from "../locales/nb/notifications.json";
+import nbAuth from "../locales/nb/auth.json";
 import enCommon from "../locales/en/common.json";
 import enLanding from "../locales/en/landing.json";
 import enDocs from "../locales/en/docs.json";
@@ -18,6 +19,7 @@ import enJoin from "../locales/en/join.json";
 import enDashboard from "../locales/en/dashboard.json";
 import enMobile from "../locales/en/mobile.json";
 import enNotifications from "../locales/en/notifications.json";
+import enAuth from "../locales/en/auth.json";
 
 type MessageValue = string | Record<string, string | Record<string, string>>;
 type Messages = Record<string, MessageValue>;
@@ -33,6 +35,7 @@ const localeModules: Record<string, Record<string, Messages>> = {
     dashboard: nbDashboard,
     mobile: nbMobile,
     notifications: nbNotifications,
+    auth: nbAuth,
   },
   en: {
     common: enCommon,
@@ -44,6 +47,7 @@ const localeModules: Record<string, Record<string, Messages>> = {
     dashboard: enDashboard,
     mobile: enMobile,
     notifications: enNotifications,
+    auth: enAuth,
   },
 };
 
