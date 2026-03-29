@@ -630,7 +630,8 @@ function SchedulePageContent() {
       case "completed":
         return baseShifts.filter((shift) => shift.status === "completed");
       case "absence":
-        return [];
+        // Show shifts only for employees who have absences in the period
+        return baseShifts;
       default:
         return baseShifts;
     }
