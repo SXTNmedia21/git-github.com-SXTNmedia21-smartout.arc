@@ -11,5 +11,5 @@
     "isolatedModules": true,
     "noEmit": true
   },
-  "include": ["tests/**/*.ts", "helpers/**/*.ts", "playwright.config.ts"]
+  "include": ["tests/**/*.ts", "helpers/**/*.ts", "protocols/**/*.ts", "playwright.config.ts"]
 }
