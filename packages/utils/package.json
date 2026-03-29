@@ -18,7 +18,7 @@
   "devDependencies": {
     "@smartout/eslint-config": "workspace:^",
     "@smartout/typescript-config": "workspace:*",
-    "@supabase/supabase-js": "^2.100.0",
+    "@supabase/supabase-js": "2.49.4",
     "typescript": "^5.9.0"
   }
 }

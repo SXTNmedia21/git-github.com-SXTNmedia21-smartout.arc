@@ -22,7 +22,7 @@
     "@smartout/ai": "workspace:*",
     "@smartout/supabase": "workspace:*",
     "@smartout/types": "workspace:^",
-    "@supabase/supabase-js": "^2.49.4",
+    "@supabase/supabase-js": "2.49.4",
     "ai": "^6.0.103",
     "hono": "^4.7.0",
     "pg": "^8.20.0",

@@ -28,7 +28,7 @@
     "@smartout/types": "workspace:*",
     "@smartout/utils": "workspace:*",
     "@smartout/walkie-talkie": "workspace:*",
-    "@supabase/supabase-js": "^2",
+    "@supabase/supabase-js": "2.49.4",
     "@tanstack/react-query": "^5",
     "expo": "~55.0.7",
     "expo-camera": "~55.0.11",

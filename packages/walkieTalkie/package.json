@@ -13,7 +13,7 @@
     "@smartout/supabase": "workspace:*",
     "@smartout/telemetry": "workspace:*",
     "@smartout/types": "workspace:*",
-    "@supabase/supabase-js": "^2",
+    "@supabase/supabase-js": "2.49.4",
     "@tanstack/react-query": "^5"
   },
   "devDependencies": {
