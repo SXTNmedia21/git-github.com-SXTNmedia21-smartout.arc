@@ -5,7 +5,7 @@
   "types": "src/index.ts",
   "scripts": {
     "lint": "eslint src/",
-    "typecheck": "npx tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "clean": "rimraf dist .turbo"
   },
   "peerDependencies": {

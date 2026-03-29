@@ -6,10 +6,10 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "npx tsc && node ../../scripts/fix-esm-imports.mjs",
-    "dev": "npx tsc --watch",
+    "build": "tsc && node ../../scripts/fix-esm-imports.mjs",
+    "dev": "tsc --watch",
     "lint": "eslint src/",
-    "typecheck": "npx tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "clean": "rimraf dist .turbo"
   },
   "dependencies": {
