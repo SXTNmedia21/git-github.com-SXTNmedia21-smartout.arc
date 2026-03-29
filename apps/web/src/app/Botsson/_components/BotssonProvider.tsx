@@ -675,7 +675,7 @@ export function BotssonProvider({
 
   /* ━━━ Voice agent — Emma via Ultravox ━━━ */
   const agent = useAgent({
-    missionId: "Botsson-session",
+    missionId: "botsson-session",
     provider: "ultravox",
     tools: botssonTools,
     apiParams: {
