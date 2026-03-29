@@ -38,7 +38,7 @@
     "docs:watch": "pnpm --filter @smartout/docs-pipeline watch",
     "docs:ingest:git": "pnpm --filter @smartout/docs-pipeline ingest -- --mode git",
     "docs:ingest:git:main": "pnpm --filter @smartout/docs-pipeline ingest -- --mode git --git-ref origin/main",
-    "prepare": "husky || true"
+    "prepare": "test -x node_modules/.bin/husky && husky || true"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.4.2",
