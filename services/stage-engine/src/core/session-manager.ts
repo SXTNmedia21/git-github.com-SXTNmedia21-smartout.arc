@@ -312,7 +312,7 @@ export async function createSession(
   const current = firstStage ? 1 : 0;
   const progress = `${current}/${total}`;
 
-  // Persona prompt from client (WalkAi persona engine) overrides mission system_prompt.
+  // Persona prompt from client (Botsson persona engine) overrides mission system_prompt.
   // This lets the frontend control who the agent IS — name, personality, behavior rules.
   const personaPrompt = typeof context.persona_prompt === "string" ? context.persona_prompt : null;
   const basePrompt = personaPrompt ?? mission.system_prompt ?? null;

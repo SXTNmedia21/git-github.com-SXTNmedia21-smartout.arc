@@ -7,7 +7,7 @@ import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { emit } from "@smartout/telemetry";
-import { useRegisterTools } from "@/app/walkAi/_components/tool-registry";
+import { useRegisterTools } from "@/app/Botsson/_components/tool-registry";
 import { useShiftTemplateTools } from "./tools/shift-template-tools";
 import { Input } from "@/components/ui/input";
 import { Plus, Loader2, CheckCircle2, Clock, Trash2 } from "lucide-react";

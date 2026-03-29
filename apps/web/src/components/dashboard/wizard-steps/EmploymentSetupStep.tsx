@@ -21,7 +21,7 @@ import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { useRegisterTools } from "@/app/walkAi/_components/tool-registry";
+import { useRegisterTools } from "@/app/Botsson/_components/tool-registry";
 import { useEmploymentTools } from "./tools/employment-tools";
 
 // ─── Types ───────────────────────────────────────────────

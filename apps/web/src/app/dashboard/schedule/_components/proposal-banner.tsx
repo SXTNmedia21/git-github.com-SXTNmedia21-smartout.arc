@@ -33,12 +33,12 @@ export function ProposalBanner() {
   };
 
   return (
-    <div className="border-brand-orange/20 bg-brand-orange/[0.04] sticky top-0 z-30 flex animate-[walkai-fade-in_200ms_ease-out] items-center justify-between gap-3 border-b px-4 py-2 backdrop-blur-sm">
+    <div className="border-brand-orange/20 bg-brand-orange/[0.04] sticky top-0 z-30 flex animate-[botsson-fade-in_200ms_ease-out] items-center justify-between gap-3 border-b px-4 py-2 backdrop-blur-sm">
       <div className="flex items-center gap-2.5">
         {/* Pulsing orb */}
         <div className="relative flex items-center justify-center">
-          <div className="bg-brand-orange/60 h-2.5 w-2.5 animate-[walkai-pulse_2s_ease-in-out_infinite] rounded-full" />
-          <div className="border-brand-orange/20 absolute h-5 w-5 animate-[walkai-pulse_2s_ease-in-out_infinite_0.5s] rounded-full border" />
+          <div className="bg-brand-orange/60 h-2.5 w-2.5 animate-[botsson-pulse_2s_ease-in-out_infinite] rounded-full" />
+          <div className="border-brand-orange/20 absolute h-5 w-5 animate-[botsson-pulse_2s_ease-in-out_infinite_0.5s] rounded-full border" />
         </div>
 
         <div>

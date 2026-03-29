@@ -13,8 +13,8 @@
     "no_shift_today": "Ingen skift i dag. Neste: {next}",
     "priority_actions": "Viktige handlinger"
   },
-  "walkai": {
-    "title": "WalkAi",
+  "botsson": {
+    "title": "Botsson",
     "connecting": "Kobler til...",
     "listening": "Lytter...",
     "thinking": "Tenker...",

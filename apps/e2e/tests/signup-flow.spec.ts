@@ -49,8 +49,8 @@ test.describe("signup-flow", () => {
   test("onboarding wizard starts on /onboarding with WizardShell", async ({ page }) => {
     await page.goto("/onboarding");
 
-    // WizardShell renders with data-walkai-id attribute
-    const wizardShell = page.locator('[data-walkai-id="onboarding-shell"]');
+    // WizardShell renders with data-botsson-id attribute
+    const wizardShell = page.locator('[data-botsson-id="onboarding-shell"]');
     await expect(wizardShell).toBeVisible({ timeout: 15_000 });
 
     // First step is "Bekreft bedriftsinformasjon" (confirm business)
@@ -65,11 +65,11 @@ test.describe("signup-flow", () => {
   test("onboarding wizard shows single step at a time (not all sections)", async ({ page }) => {
     await page.goto("/onboarding");
 
-    const wizardShell = page.locator('[data-walkai-id="onboarding-shell"]');
+    const wizardShell = page.locator('[data-botsson-id="onboarding-shell"]');
     await expect(wizardShell).toBeVisible({ timeout: 15_000 });
 
     // Should have exactly one visible step content area
-    const stepArea = page.locator('[data-walkai-type="wizard-step"]');
+    const stepArea = page.locator('[data-botsson-type="wizard-step"]');
     await expect(stepArea).toBeVisible();
 
     // Navigation buttons should be present (WizardNavBar)

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@smartout/supabase/server";
-import { WalkAiProvider } from "@/app/walkAi/_components/WalkAiProvider";
+import { BotssonProvider } from "@/app/Botsson/_components/BotssonProvider";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +40,7 @@ export default async function OnboardingLayout({ children }: { children: React.R
 
   return (
     <div className="h-dvh w-full overflow-hidden bg-[oklch(0.08_0.015_50)]">
-      <WalkAiProvider>{children}</WalkAiProvider>
+      <BotssonProvider>{children}</BotssonProvider>
     </div>
   );
 }

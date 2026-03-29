@@ -1,7 +1,7 @@
 "use client";
 
 import { Sparkles } from "lucide-react";
-import { useRegisterTools } from "@/app/walkAi/_components/tool-registry";
+import { useRegisterTools } from "@/app/Botsson/_components/tool-registry";
 import { useWelcomeTools } from "./tools/welcome-tools";
 
 const VALUE_PROPS = [

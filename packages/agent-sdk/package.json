@@ -28,8 +28,8 @@
     }
   },
   "scripts": {
-    "build": "tsc && node ../../scripts/fix-esm-imports.mjs",
-    "typecheck": "tsc --noEmit",
+    "build": "npx tsc && node ../../scripts/fix-esm-imports.mjs",
+    "typecheck": "npx tsc --noEmit",
     "lint": "eslint src/",
     "clean": "rimraf dist .turbo"
   },

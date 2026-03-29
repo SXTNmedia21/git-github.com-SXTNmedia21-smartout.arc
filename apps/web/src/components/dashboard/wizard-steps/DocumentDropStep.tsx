@@ -31,7 +31,7 @@ import {
 import { useWorkspace } from "@/lib/workspace-context";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import type { DocumentExtractionResult } from "./wizard-state";
-import { useRegisterTools } from "@/app/walkAi/_components/tool-registry";
+import { useRegisterTools } from "@/app/Botsson/_components/tool-registry";
 import { useDocumentDropTools } from "./tools/document-drop-tools";
 
 // ─── Constants ────────────────────────────────────────────

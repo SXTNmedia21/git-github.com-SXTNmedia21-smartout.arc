@@ -58,7 +58,7 @@ export interface WizardStepProps<TState> {
   attempted: boolean;
   t: (key: string, params?: Record<string, string | number>) => string;
   theme: WizardThemeTokens;
-  walkai: WalkAiHelper;
+  botsson: BotssonHelper;
 }
 
 export interface WizardThemeTokens {
@@ -67,19 +67,23 @@ export interface WizardThemeTokens {
 
 // -- Walk AI semantic tagging --
 
-export interface WalkAiHelper {
+export interface BotssonHelper {
   id: (element: string) => string;
-  tag: (element: string, intent: string, context?: Record<string, unknown>) => WalkAiDataAttributes;
+  tag: (
+    element: string,
+    intent: string,
+    context?: Record<string, unknown>,
+  ) => BotssonDataAttributes;
 }
 
-export type WalkAiDataAttributes = {
-  "data-walkai-id": string;
-  "data-walkai-intent": string;
-  "data-walkai-type": string;
-  "data-walkai-context"?: string;
+export type BotssonDataAttributes = {
+  "data-botsson-id": string;
+  "data-botsson-intent": string;
+  "data-botsson-type": string;
+  "data-botsson-context"?: string;
 };
 
-// -- Wizard context payload for external consumers (WalkAi, telemetry) --
+// -- Wizard context payload for external consumers (Botsson, telemetry) --
 
 export type WizardContextPayload = {
   wizardId: string;

@@ -39,7 +39,7 @@ export const GhostShiftCard = React.memo(function GhostShiftCard({
   if (isCompact) {
     // Matches ShiftCardView compact: flex items-center, rounded-md, px-2 py-1
     return (
-      <div className="group border-brand-orange/40 bg-brand-orange/[0.06] relative flex animate-[walkai-fade-in_200ms_ease-out] items-center gap-2 overflow-hidden rounded-md border border-dashed px-2 py-1 transition-colors duration-200">
+      <div className="group border-brand-orange/40 bg-brand-orange/[0.06] relative flex animate-[botsson-fade-in_200ms_ease-out] items-center gap-2 overflow-hidden rounded-md border border-dashed px-2 py-1 transition-colors duration-200">
         <div className="bg-brand-orange/50 absolute top-1 bottom-1 left-0 w-0.5 rounded-r-full" />
         <span className="text-brand-orange/80 truncate pl-1 text-[11px] leading-tight font-semibold">
           {label}
@@ -92,8 +92,8 @@ export const GhostShiftCard = React.memo(function GhostShiftCard({
 
   // Normal mode — matches ShiftCardView: flex-col gap-2.5, rounded-lg, p-2.5 xl:p-3
   return (
-    <div className="group border-brand-orange/40 bg-brand-orange/[0.06] hover:bg-brand-orange/[0.1] relative flex animate-[walkai-fade-in_200ms_ease-out] flex-col gap-2.5 overflow-hidden rounded-lg border border-dashed p-2.5 transition-colors duration-200 xl:p-3">
-      <div className="bg-brand-orange/50 absolute top-2.5 bottom-2.5 left-0 w-1 animate-[walkai-pulse_2s_ease-in-out_infinite] rounded-r-full" />
+    <div className="group border-brand-orange/40 bg-brand-orange/[0.06] hover:bg-brand-orange/[0.1] relative flex animate-[botsson-fade-in_200ms_ease-out] flex-col gap-2.5 overflow-hidden rounded-lg border border-dashed p-2.5 transition-colors duration-200 xl:p-3">
+      <div className="bg-brand-orange/50 absolute top-2.5 bottom-2.5 left-0 w-1 animate-[botsson-pulse_2s_ease-in-out_infinite] rounded-r-full" />
 
       {/* Ghost label */}
       <div className="bg-brand-orange/10 text-brand-orange/60 absolute -top-2 left-3 rounded px-1.5 py-0 text-[8px] font-bold tracking-wider uppercase">
@@ -107,7 +107,7 @@ export const GhostShiftCard = React.memo(function GhostShiftCard({
           </span>
         </div>
         <div className="relative flex h-5 w-5 shrink-0 items-center justify-center">
-          <div className="border-brand-orange/30 bg-brand-orange/10 h-2.5 w-2.5 animate-[walkai-pulse_2s_ease-in-out_infinite] rounded-full border-2" />
+          <div className="border-brand-orange/30 bg-brand-orange/10 h-2.5 w-2.5 animate-[botsson-pulse_2s_ease-in-out_infinite] rounded-full border-2" />
         </div>
       </div>
 

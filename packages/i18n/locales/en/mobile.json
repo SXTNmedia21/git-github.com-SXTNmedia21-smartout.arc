@@ -13,8 +13,8 @@
     "no_shift_today": "No shift today. Next: {next}",
     "priority_actions": "Priority actions"
   },
-  "walkai": {
-    "title": "WalkAi",
+  "botsson": {
+    "title": "Botsson",
     "connecting": "Connecting...",
     "listening": "Listening...",
     "thinking": "Thinking...",

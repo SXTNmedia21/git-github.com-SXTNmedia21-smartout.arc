@@ -23,7 +23,7 @@ import type {
   WizardContextPayload,
 } from "./types";
 import { useWizardState } from "./useWizardState";
-import { useWizardWalkAi } from "./useWizardWalkAi";
+import { useWizardBotsson } from "./useWizardBotsson";
 import { WizardTopBar } from "./WizardTopBar";
 import { WizardNavBar } from "./WizardNavBar";
 
@@ -81,7 +81,7 @@ export function WizardShell<TState extends Record<string, unknown>>({
     loading,
   } = useWizardState(definition);
 
-  const walkai = useWizardWalkAi(definition.id, currentStep?.id ?? "");
+  const botsson = useWizardBotsson(definition.id, currentStep?.id ?? "");
   const theme: WizardThemeTokens = { name: definition.theme };
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [attempted, setAttempted] = useState(false);
@@ -195,7 +195,7 @@ export function WizardShell<TState extends Record<string, unknown>>({
     attempted,
     t,
     theme,
-    walkai,
+    botsson,
   };
 
   const stepContent = <StepComponent {...stepProps} />;
@@ -211,9 +211,9 @@ export function WizardShell<TState extends Record<string, unknown>>({
     <div
       className="relative flex min-h-[100dvh]"
       data-wizard-theme={definition.theme}
-      data-walkai-id={`${definition.id}-shell`}
-      data-walkai-type="wizard"
-      data-walkai-context={JSON.stringify({
+      data-botsson-id={`${definition.id}-shell`}
+      data-botsson-type="wizard"
+      data-botsson-context={JSON.stringify({
         wizardId: definition.id,
         currentStep: currentStep.id,
         currentStepIndex,
@@ -251,8 +251,8 @@ export function WizardShell<TState extends Record<string, unknown>>({
         {/* Step content — scrollable */}
         <main
           className="flex-1 overflow-y-auto px-4 pt-4 pb-4 lg:px-8 xl:px-12"
-          data-walkai-id={`${definition.id}-${currentStep.id}-step`}
-          data-walkai-type="wizard-step"
+          data-botsson-id={`${definition.id}-${currentStep.id}-step`}
+          data-botsson-type="wizard-step"
         >
           <div className="flex min-h-full w-full items-start justify-center">
             <div className="w-full">{renderedStep}</div>

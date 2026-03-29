@@ -1,128 +1,152 @@
 /**
- * BotssonSheet — Bottom sheet (70% height) for the Mr. Botsson AI chat.
+ * BotssonSheet — Bottom sheet (75% height) for voice AI interaction.
  *
- * Opened via the center FAB tap. Contains:
- * - Header with "Mr. Botsson" title
- * - Inverted FlatList of messages (newest at bottom)
- * - Context-aware greeting message based on current shift phase
- * - Text input with send button
+ * Tap → mic toggles mute/unmute. Shows real-time transcript.
+ * Status orb indicates: connecting (pulse), listening (glow),
+ * thinking (rotate), speaking (wave).
  *
- * Messages are sent with full context payload (shift phase, role, department,
- * trainee status) so Stage Engine can tailor responses.
+ * Voice session powered by Ultravox WebRTC (browser context via Expo Web).
+ * Text fallback: swipe down to dismiss, long-press FAB for BotssonSheet.
  */
 
-import React, { useCallback, useRef, useMemo, useState } from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  TextInput,
-  Pressable,
-  KeyboardAvoidingView,
-  Platform,
-} from "react-native";
+import React, { useCallback, useMemo, useRef, useState } from "react";
+import { View, Text, ScrollView, Pressable } from "react-native";
 import GorhomBottomSheet, {
   BottomSheetBackdrop,
   type BottomSheetBackdropProps,
 } from "@gorhom/bottom-sheet";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withTiming,
+  withSpring,
+} from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { createStyles, useTheme } from "@/theme";
-import { strings } from "@/constants/strings";
-import { useBotssonChat } from "@/hooks/queries/use-botsson-chat";
-import type { BotssonMessage } from "@/hooks/queries/use-botsson-chat";
-import { useShiftPhase } from "@/hooks/stores/use-shift-phase";
-import { BotssonMessage as BotssonMessageComponent } from "./BotssonMessage";
+import { useBotsson } from "@/providers/botsson-provider";
+
+type TranscriptEntry = {
+  id: string;
+  role: "agent" | "user";
+  text: string;
+  timestamp: number;
+};
 
 type BotssonSheetProps = {
   /** Called when the sheet is dismissed */
   onDismiss: () => void;
 };
 
-/**
- * Returns a context-aware Norwegian greeting based on the current shift phase.
- * The greeting appears as the first system message when the conversation is empty.
- */
-function getGreeting(phase: string, departmentName?: string | null): string {
-  switch (phase) {
-    case "before_shift":
-      return "Hei! Du har vakt snart. Hva trenger du?";
-    case "during_shift":
-      return departmentName
-        ? `Hei! Du er p\u00e5 vakt p\u00e5 ${departmentName}. Hva trenger du hjelp med?`
-        : "Hei! Du er p\u00e5 vakt. Hva trenger du hjelp med?";
-    case "after_shift":
-      return "Vakt avsluttet. Trenger du hjelp med noe?";
-    default:
-      return "Hei! Hva kan jeg hjelpe med?";
-  }
-}
+/** Nordic Split spring physics — stiffness 35, damping 22, mass 2.2 */
+const SPRING_CONFIG = { stiffness: 35, damping: 22, mass: 2.2 } as const;
+
+const MIC_SIZE = 64;
+const ORB_SIZE = 80;
 
 export const BotssonSheet = React.forwardRef<GorhomBottomSheet, BotssonSheetProps>(
   function BotssonSheet({ onDismiss }, ref) {
     const styles = useStyles();
     const theme = useTheme();
-    const [inputText, setInputText] = useState("");
-    const inputRef = useRef<TextInput>(null);
-    const flatListRef = useRef<FlatList>(null);
+    const { status, startVoiceSession, endSession } = useBotsson();
+    const scrollRef = useRef<ScrollView>(null);
 
-    const { messages, isLoading, sendMessage, profileId, fetchNextPage, hasNextPage } =
-      useBotssonChat();
-    const { phase } = useShiftPhase();
+    // Transcript is local state for now — Ultravox WebRTC integration will populate it
+    const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
+    const [isMuted, setIsMuted] = useState(false);
 
-    const snapPoints = useMemo(() => ["70%"], []);
+    const snapPoints = useMemo(() => ["75%"], []);
 
-    const canSend = inputText.trim().length > 0;
+    // Status orb animation values
+    const orbScale = useSharedValue(1);
+    const orbOpacity = useSharedValue(0.6);
 
-    const greeting = useMemo(() => getGreeting(phase), [phase]);
+    const orbStyle = useAnimatedStyle(() => ({
+      transform: [{ scale: orbScale.value }],
+      opacity: orbOpacity.value,
+    }));
 
-    /** Build the greeting as a synthetic system message for display */
-    const greetingMessage: BotssonMessage = useMemo(
-      () => ({
-        id: "botsson-greeting",
-        conversation_id: "",
-        content: greeting,
-        sender_id: "botsson",
-        reply_to_id: null,
-        is_system: true,
-        attachments: [],
-        reactions: [],
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        edited_at: null,
-        deleted_at: null,
-        senderName: "Mr. Botsson",
-        senderAvatarUrl: null,
-      }),
-      [greeting],
-    );
+    // Drive orb animation from session status — each state has a distinct visual rhythm
+    React.useEffect(() => {
+      switch (status) {
+        case "connecting":
+          // Pulse to signal active connection attempt
+          orbScale.value = withRepeat(withTiming(1.2, { duration: 800 }), -1, true);
+          orbOpacity.value = withRepeat(withTiming(1, { duration: 800 }), -1, true);
+          break;
+        case "active":
+          // Settle to solid glow when connected
+          orbScale.value = withSpring(1, SPRING_CONFIG);
+          orbOpacity.value = withTiming(1, { duration: 300 });
+          break;
+        default:
+          // Idle/error — dim and resting
+          orbScale.value = withSpring(1, SPRING_CONFIG);
+          orbOpacity.value = withTiming(0.6, { duration: 300 });
+      }
+    }, [status, orbScale, orbOpacity]);
+
+    /** Human-readable status label shown above the orb */
+    const statusLabel = useMemo(() => {
+      switch (status) {
+        case "connecting":
+          return "Kobler til...";
+        case "active":
+          return isMuted ? "Mikrofon av" : "Lytter...";
+        case "error":
+          return "Feil — prøv igjen";
+        default:
+          return "Klar";
+      }
+    }, [status, isMuted]);
 
     /**
-     * Messages for display — real messages + greeting at the end (bottom of inverted list).
-     * The greeting always shows as the first message in the conversation.
+     * Orb color encodes session state at a glance:
+     * - warning (amber) = connecting
+     * - brandOrange = active and listening
+     * - muted (gray) = muted
+     * - destructive (red) = error
      */
-    const displayMessages = useMemo(() => {
-      return [...messages, greetingMessage];
-    }, [messages, greetingMessage]);
-
-    const handleSend = useCallback(async () => {
-      const trimmed = inputText.trim();
-      if (!trimmed) return;
-
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      setInputText("");
-
-      try {
-        await sendMessage(trimmed);
-      } catch {
-        // Message send failed — optimistic update was reverted by the hook
+    const orbColor = useMemo(() => {
+      switch (status) {
+        case "connecting":
+          return theme.colors.warning;
+        case "active":
+          return isMuted ? theme.colors.muted : theme.colors.brandOrange;
+        case "error":
+          return theme.colors.destructive;
+        default:
+          return theme.colors.muted;
       }
-    }, [inputText, sendMessage]);
+    }, [status, isMuted, theme]);
 
-    const handleChange = useCallback((index: number) => {
-      if (index >= 0) {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const handleMicPress = useCallback(async () => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      if (status === "idle" || status === "error") {
+        // Start a fresh voice session
+        await startVoiceSession();
+      } else if (status === "active") {
+        // Toggle mute while session is running
+        setIsMuted((prev) => !prev);
       }
-    }, []);
+    }, [status, startVoiceSession]);
+
+    const handleClose = useCallback(() => {
+      endSession();
+      onDismiss();
+    }, [endSession, onDismiss]);
+
+    const handleChange = useCallback(
+      (index: number) => {
+        if (index === -1) {
+          // Sheet was dragged fully closed
+          handleClose();
+        } else {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        }
+      },
+      [handleClose],
+    );
 
     const renderBackdrop = useCallback(
       (props: BottomSheetBackdropProps) => (
@@ -131,94 +155,77 @@ export const BotssonSheet = React.forwardRef<GorhomBottomSheet, BotssonSheetProp
       [],
     );
 
-    const renderMessage = useCallback(
-      ({ item }: { item: BotssonMessage }) => (
-        <BotssonMessageComponent message={item} isOwnMessage={item.sender_id === profileId} />
-      ),
-      [profileId],
-    );
-
-    const keyExtractor = useCallback((item: BotssonMessage) => item.id, []);
-
-    const handleEndReached = useCallback(() => {
-      if (hasNextPage) {
-        fetchNextPage();
-      }
-    }, [hasNextPage, fetchNextPage]);
-
     return (
       <GorhomBottomSheet
         ref={ref}
         index={-1}
         snapPoints={snapPoints}
         enablePanDownToClose
-        onClose={onDismiss}
+        onClose={handleClose}
         onChange={handleChange}
         backgroundStyle={styles.sheetBackground}
         handleIndicatorStyle={styles.handle}
         backdropComponent={renderBackdrop}
-        keyboardBehavior="interactive"
-        keyboardBlurBehavior="restore"
-        android_keyboardInputMode="adjustResize"
       >
-        <KeyboardAvoidingView
-          style={styles.container}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          keyboardVerticalOffset={0}
-        >
+        <View style={styles.container}>
           {/* Header */}
           <View style={styles.header}>
-            <View style={styles.headerAvatar}>
-              <Text style={styles.headerAvatarText}>S</Text>
-            </View>
-            <Text style={styles.headerTitle}>Mr. Botsson</Text>
+            <Pressable onPress={handleClose} accessibilityLabel="Lukk" accessibilityRole="button">
+              <Text style={styles.closeButton}>✕</Text>
+            </Pressable>
+            <Text style={styles.headerTitle}>Botsson</Text>
+            {/* Spacer keeps title visually centered */}
+            <View style={styles.headerSpacer} />
           </View>
 
-          {/* Message list — inverted so newest messages appear at the bottom */}
-          <FlatList
-            ref={flatListRef}
-            data={displayMessages}
-            renderItem={renderMessage}
-            keyExtractor={keyExtractor}
-            inverted
-            contentContainerStyle={styles.messageList}
+          {/* Transcript — scrollable conversation history */}
+          <ScrollView
+            ref={scrollRef}
+            style={styles.transcript}
+            contentContainerStyle={styles.transcriptContent}
             showsVerticalScrollIndicator={false}
-            onEndReached={handleEndReached}
-            onEndReachedThreshold={0.3}
-            keyboardShouldPersistTaps="handled"
-          />
-
-          {/* Input area */}
-          <View style={styles.inputContainer}>
-            <View style={styles.inputRow}>
-              <TextInput
-                ref={inputRef}
-                style={styles.input}
-                value={inputText}
-                onChangeText={setInputText}
-                placeholder={strings.chat.placeholder}
-                placeholderTextColor={theme.colors.mutedForeground}
-                multiline
-                maxLength={2000}
-                returnKeyType="default"
-                blurOnSubmit={false}
-                accessibilityLabel={strings.chat.placeholder}
-              />
-              <Pressable
-                onPress={handleSend}
-                disabled={!canSend}
-                style={[styles.sendButton, !canSend && styles.sendButtonDisabled]}
-                accessibilityRole="button"
-                accessibilityLabel={strings.common.send}
-                accessibilityState={{ disabled: !canSend }}
+          >
+            {transcript.length === 0 && (
+              <Text style={styles.emptyText}>Trykk på mikrofonen for å starte en samtale</Text>
+            )}
+            {transcript.map((entry) => (
+              <View
+                key={entry.id}
+                style={[
+                  styles.transcriptEntry,
+                  entry.role === "user" ? styles.userEntry : styles.agentEntry,
+                ]}
               >
-                <Text style={[styles.sendIcon, !canSend && styles.sendIconDisabled]}>
-                  {"\u2191"}
+                <Text style={styles.transcriptRole}>
+                  {entry.role === "agent" ? "Botsson" : "Du"}
                 </Text>
-              </Pressable>
-            </View>
+                <Text style={styles.transcriptText}>{entry.text}</Text>
+              </View>
+            ))}
+          </ScrollView>
+
+          {/* Control area — status orb + mic button in thumb zone */}
+          <View style={styles.controlArea}>
+            <Text style={styles.statusLabel}>{statusLabel}</Text>
+
+            {/* Animated orb — color + pulse encode session state */}
+            <Animated.View style={[styles.orb, orbStyle, { backgroundColor: orbColor }]} />
+
+            {/* Large mic button — positioned in thumb zone at bottom of sheet */}
+            <Pressable
+              onPress={handleMicPress}
+              style={({ pressed }) => [
+                styles.micButton,
+                pressed && styles.micButtonPressed,
+                isMuted && status === "active" && styles.micButtonMuted,
+              ]}
+              accessibilityLabel={isMuted ? "Slå på mikrofon" : "Slå av mikrofon"}
+              accessibilityRole="button"
+            >
+              <Text style={styles.micIcon}>{isMuted ? "🔇" : "🎙"}</Text>
+            </Pressable>
           </View>
-        </KeyboardAvoidingView>
+        </View>
       </GorhomBottomSheet>
     );
   },
@@ -242,76 +249,97 @@ const useStyles = createStyles((theme) => ({
   header: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: theme.spacing.card,
     paddingBottom: theme.spacing.element,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
-    gap: theme.spacing.tight,
   },
-  headerAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: theme.colors.brandOrange,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerAvatarText: {
-    color: theme.colors.primaryForeground,
-    fontSize: 16,
-    fontWeight: theme.fontWeights.bold,
+  closeButton: {
+    color: theme.colors.mutedForeground,
+    fontSize: 20,
+    padding: theme.spacing.tight,
   },
   headerTitle: {
     ...theme.typography.headline,
     color: theme.colors.foreground,
   },
-  messageList: {
+  // Matches the close button's effective width to keep the title centered
+  headerSpacer: {
+    width: 36,
+  },
+  transcript: {
+    flex: 1,
+  },
+  transcriptContent: {
     paddingHorizontal: theme.spacing.card,
     paddingVertical: theme.spacing.element,
+    gap: theme.spacing.element,
   },
-  inputContainer: {
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
-    backgroundColor: theme.colors.background,
-    paddingHorizontal: theme.spacing.card,
-    paddingTop: theme.spacing.tight,
-    paddingBottom: theme.spacing.element,
+  emptyText: {
+    ...theme.typography.body,
+    color: theme.colors.mutedForeground,
+    textAlign: "center",
+    marginTop: theme.spacing.section,
   },
-  inputRow: {
-    flexDirection: "row",
+  transcriptEntry: {
+    gap: 2,
+  },
+  userEntry: {
     alignItems: "flex-end",
-    gap: theme.spacing.tight,
   },
-  input: {
-    flex: 1,
+  agentEntry: {
+    alignItems: "flex-start",
+  },
+  transcriptRole: {
+    ...theme.typography.caption,
+    color: theme.colors.mutedForeground,
+    fontWeight: theme.fontWeights.medium,
+  },
+  transcriptText: {
     ...theme.typography.body,
     color: theme.colors.foreground,
     backgroundColor: theme.colors.secondary,
-    borderRadius: theme.radius.lg,
     paddingHorizontal: theme.spacing.element,
-    paddingTop: theme.spacing.tight,
-    paddingBottom: theme.spacing.tight,
-    maxHeight: 120,
-    minHeight: 40,
+    paddingVertical: theme.spacing.tight,
+    borderRadius: theme.radius.lg,
+    maxWidth: "85%",
+    overflow: "hidden",
   },
-  sendButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  controlArea: {
+    alignItems: "center",
+    paddingVertical: theme.spacing.section,
+    gap: theme.spacing.element,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
+  },
+  statusLabel: {
+    ...theme.typography.caption,
+    color: theme.colors.mutedForeground,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+  },
+  orb: {
+    width: ORB_SIZE,
+    height: ORB_SIZE,
+    borderRadius: ORB_SIZE / 2,
+  },
+  micButton: {
+    width: MIC_SIZE,
+    height: MIC_SIZE,
+    borderRadius: MIC_SIZE / 2,
     backgroundColor: theme.colors.brandOrange,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 2,
+    ...theme.shadows.lg,
   },
-  sendButtonDisabled: {
-    backgroundColor: theme.colors.secondary,
+  micButtonPressed: {
+    opacity: 0.8,
   },
-  sendIcon: {
-    color: theme.colors.primaryForeground,
-    fontSize: 18,
-    fontWeight: theme.fontWeights.bold,
+  micButtonMuted: {
+    backgroundColor: theme.colors.muted,
   },
-  sendIconDisabled: {
-    color: theme.colors.mutedForeground,
+  micIcon: {
+    fontSize: 28,
   },
 }));

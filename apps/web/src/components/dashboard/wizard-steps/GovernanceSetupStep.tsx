@@ -23,7 +23,7 @@ import type {
   GovernanceTemplate,
 } from "@/app/dashboard/governance/_hooks/use-governance-templates";
 import type { IndustryPackage } from "@/lib/industry/types";
-import { useRegisterTools } from "@/app/walkAi/_components/tool-registry";
+import { useRegisterTools } from "@/app/Botsson/_components/tool-registry";
 import { useGovernanceTools } from "./tools/governance-tools";
 
 // ─── TemplateCard (used inside drawer) ───────────────────

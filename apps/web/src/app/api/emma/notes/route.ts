@@ -74,7 +74,7 @@ export async function POST(req: Request) {
       topic: body.topic,
       content: body.content ?? "",
       tags: body.tags ?? [],
-      screen: body.screen ?? "walkai",
+      screen: body.screen ?? "botsson",
       context: body.context ?? "",
     })
     .select("id, topic, content, tags, screen, context, status, created_at, updated_at")

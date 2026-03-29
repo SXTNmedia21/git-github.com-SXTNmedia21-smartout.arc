@@ -14,7 +14,7 @@
     "validate": "tsx src/index.ts validate",
     "validate:strict": "tsx src/index.ts validate --strict",
     "watch": "tsx src/index.ts watch",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "npx tsc --noEmit",
     "clean": "rimraf dist .turbo"
   },
   "dependencies": {

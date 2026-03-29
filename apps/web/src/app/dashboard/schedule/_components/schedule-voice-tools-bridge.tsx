@@ -7,7 +7,7 @@
 // Connected to: use-schedule-voice-tools.ts and voice-tools-context.tsx.
 // ============================================
 
-import { useRegisterTools } from "@/app/walkAi/_components/tool-registry";
+import { useRegisterTools } from "@/app/Botsson/_components/tool-registry";
 
 import { useScheduleVoiceTools } from "../_hooks/use-schedule-voice-tools";
 import { AgentConfirmationDialog } from "./agent-confirmation-dialog";
@@ -88,7 +88,7 @@ export function ScheduleVoiceToolsBridge({
     requestConfirmation,
   });
 
-  // Register into WalkAi tool registry — Emma gets schedule tools when on this page
+  // Register into Botsson tool registry — Emma gets schedule tools when on this page
   useRegisterTools("schedule", voiceTools);
 
   return (

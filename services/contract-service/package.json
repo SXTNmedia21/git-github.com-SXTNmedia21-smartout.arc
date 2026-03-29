@@ -5,15 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch --env-file=.env src/server.ts",
-    "build": "tsc && node ../../scripts/fix-esm-imports.mjs",
+    "build": "npx tsc && node ../../scripts/fix-esm-imports.mjs",
     "start": "node dist/server.js",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "npx tsc --noEmit"
   },
   "dependencies": {
     "@docuseal/api": "^1.0.21",
     "@smartout/supabase": "workspace:*",
     "@smartout/utils": "workspace:*",
-    "@supabase/supabase-js": "^2.49.4",
+    "@supabase/supabase-js": "2.49.4",
     "fastify": "^5.2.1",
     "zod": "^3.24.2"
   },

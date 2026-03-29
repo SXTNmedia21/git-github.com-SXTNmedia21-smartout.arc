@@ -16,13 +16,13 @@ import { AnimatedWizardShell } from "@/components/wizard/AnimatedWizardShell";
 import { useWorkspace } from "@/lib/workspace-context";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { dashboardSetupWizard } from "./wizard-definition";
-import { useWizardWalkAiContext } from "@/app/walkAi/_hooks/useWizardWalkAiContext";
+import { useWizardBotssonContext } from "@/app/Botsson/_hooks/useWizardBotssonContext";
 
 export default function DashboardSetupPage() {
   const { workspace } = useWorkspace();
   const { profileId } = useContext(DashboardContext);
   const { t } = useTranslation("dashboard");
-  const { handleContextChange } = useWizardWalkAiContext();
+  const { handleContextChange } = useWizardBotssonContext();
 
   return (
     <Suspense

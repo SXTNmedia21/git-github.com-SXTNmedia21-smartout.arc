@@ -43,6 +43,7 @@
   "devDependencies": {
     "@commitlint/cli": "^20.4.2",
     "@commitlint/config-conventional": "^20.4.2",
+    "typescript": "^5.9.0",
     "@remotion/google-fonts": "^4.0.428",
     "@remotion/lottie": "^4.0.428",
     "@remotion/shapes": "^4.0.428",
