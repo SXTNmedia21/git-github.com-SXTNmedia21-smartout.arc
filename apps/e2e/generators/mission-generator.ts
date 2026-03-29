@@ -108,5 +108,7 @@ function formatGateAsCriteria(gate: ProtocolDefinition["steps"][0]["gate"]): str
       return `Element [data-testid="${gate.testid}"] is ${gate.visible ? "visible" : "hidden"}`;
     case "url_match":
       return `URL matches pattern: ${gate.pattern}`;
+    case "telemetry_event":
+      return `Telemetry event "${gate.event_name}" emitted`;
   }
 }

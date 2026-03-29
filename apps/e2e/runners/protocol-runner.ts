@@ -78,6 +78,13 @@ function buildDefaultContext(overrides?: Partial<VariableContext>): VariableCont
 // ---------------------------------------------------------------------------
 
 async function executeAction(page: Page, action: Action, vars: VariableContext): Promise<void> {
+  // Dismiss Next.js dev overlay before any interaction (it intercepts pointer events)
+  await page
+    .evaluate(() => {
+      document.querySelectorAll("nextjs-portal").forEach((el) => el.remove());
+    })
+    .catch(() => {});
+
   switch (action.type) {
     case "navigate":
       await page.goto(interpolate(action.url, vars));
@@ -88,11 +95,11 @@ async function executeAction(page: Page, action: Action, vars: VariableContext):
       break;
 
     case "click":
-      await page.getByTestId(action.testid).click();
+      await page.getByTestId(action.testid).click({ force: true });
       break;
 
     case "click_text":
-      await page.getByText(action.text, { exact: false }).first().click();
+      await page.getByText(action.text, { exact: false }).first().click({ force: true });
       break;
 
     case "wait_visible":
@@ -121,6 +128,8 @@ function buildGateQuery(gate: Gate): Record<string, unknown> {
       return { testid: gate.testid, visible: gate.visible };
     case "url_match":
       return { pattern: gate.pattern };
+    case "telemetry_event":
+      return { event_name: gate.event_name, actor_id: gate.actor_id };
   }
 }
 

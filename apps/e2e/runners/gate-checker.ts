@@ -88,6 +88,42 @@ async function checkUiState(
   };
 }
 
+/** Check whether a telemetry event has been emitted to activity_trail. */
+async function checkTelemetryEvent(
+  gate: Extract<Gate, { type: "telemetry_event" }>,
+  supabase: SupabaseClient,
+): Promise<GateResult> {
+  let query = supabase
+    .from("activity_trail")
+    .select("activity_trail_id, event, actor_id, created_at")
+    .eq("event", gate.event_name)
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  if (gate.actor_id) {
+    query = query.eq("actor_id", gate.actor_id);
+  }
+
+  if (gate.since) {
+    query = query.gte("created_at", gate.since);
+  }
+
+  const { data, error } = await query.maybeSingle();
+
+  if (error) {
+    return { passed: false, error: `Telemetry query failed: ${error.message}` };
+  }
+
+  if (data) {
+    return { passed: true, data: data as Record<string, unknown> };
+  }
+
+  return {
+    passed: false,
+    error: `Telemetry event "${gate.event_name}" not found in activity_trail`,
+  };
+}
+
 /** Test whether the current browser URL matches a regex pattern. */
 async function checkUrlMatch(
   gate: Extract<Gate, { type: "url_match" }>,
@@ -127,7 +163,8 @@ export async function checkGate(
   supabase: SupabaseClient,
 ): Promise<GateResult> {
   const deadline = Date.now() + gate.timeout_ms;
-  const interval = gate.type === "db_record" ? gate.retry_interval_ms : 500;
+  const interval =
+    gate.type === "db_record" || gate.type === "telemetry_event" ? gate.retry_interval_ms : 500;
 
   while (Date.now() < deadline) {
     let result: GateResult;
@@ -141,6 +178,9 @@ export async function checkGate(
         break;
       case "url_match":
         result = await checkUrlMatch(gate, page);
+        break;
+      case "telemetry_event":
+        result = await checkTelemetryEvent(gate, supabase);
         break;
     }
 

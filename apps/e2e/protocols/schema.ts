@@ -37,11 +37,22 @@ const UrlMatchGateSchema = z.object({
   timeout_ms: z.number().default(10_000),
 });
 
+/** Verifies a telemetry event has been emitted to activity_trail */
+const TelemetryEventGateSchema = z.object({
+  type: z.literal("telemetry_event"),
+  event_name: z.string(),
+  actor_id: z.string().optional(),
+  since: z.string().optional(),
+  timeout_ms: z.number().default(10_000),
+  retry_interval_ms: z.number().default(1_000),
+});
+
 /** Discriminated union of all gate types */
 export const GateSchema = z.discriminatedUnion("type", [
   DbRecordGateSchema,
   UiStateGateSchema,
   UrlMatchGateSchema,
+  TelemetryEventGateSchema,
 ]);
 
 // ---------------------------------------------------------------------------
