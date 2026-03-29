@@ -16,6 +16,8 @@
     "helpers/**/*.ts",
     "protocols/**/*.ts",
     "runners/**/*.ts",
+    "generators/**/*.ts",
+    "reporters/**/*.ts",
     "playwright.config.ts"
   ]
 }

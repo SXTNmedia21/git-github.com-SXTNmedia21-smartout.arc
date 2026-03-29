@@ -6,7 +6,8 @@
     "test:e2e": "bash ./scripts/playwright-with-libs.sh pnpm exec playwright test",
     "test:e2e:ui": "bash ./scripts/playwright-with-libs.sh pnpm exec playwright test --ui",
     "test:e2e:report": "bash ./scripts/playwright-with-libs.sh pnpm exec playwright show-report",
-    "test:e2e:telemetry-smoke": "bash ./scripts/playwright-with-libs.sh pnpm exec node ./scripts/telemetry-smoke.mjs"
+    "test:e2e:telemetry-smoke": "bash ./scripts/playwright-with-libs.sh pnpm exec node ./scripts/telemetry-smoke.mjs",
+    "test:protocol": "bash ./scripts/playwright-with-libs.sh pnpm exec playwright test tests/protocol.spec.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.49.4"
