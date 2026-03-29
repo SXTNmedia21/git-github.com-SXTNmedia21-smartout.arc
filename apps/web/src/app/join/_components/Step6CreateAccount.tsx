@@ -113,6 +113,24 @@ export function Step6CreateAccount({ state, next, t }: WizardStepProps<JoinState
         }
       }
 
+      // Wait for auth session to be fully established in cookies
+      // before calling the server action (which reads cookies).
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session) {
+        // Session not ready yet — poll briefly
+        await new Promise<void>((resolve) => {
+          let attempts = 0;
+          const poll = setInterval(async () => {
+            attempts++;
+            const { data } = await supabase.auth.getSession();
+            if (data?.session || attempts > 10) {
+              clearInterval(poll);
+              resolve();
+            }
+          }, 200);
+        });
+      }
+
       await next();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Noe gikk galt. Prøv igjen.");
