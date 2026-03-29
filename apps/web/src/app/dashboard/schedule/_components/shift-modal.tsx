@@ -862,6 +862,8 @@ export function ShiftModal() {
                         <Input
                           id="startTime"
                           type="time"
+                          lang="nb-NO"
+                          step="60"
                           value={form.startTime}
                           className="bg-background/80 border-border/60 h-10 rounded-xl pr-8 font-medium shadow-sm transition-all focus:ring-2 focus:ring-emerald-500/20"
                           onChange={(e) => handleStartTimeChange(e.target.value)}
@@ -916,6 +918,8 @@ export function ShiftModal() {
                         <Input
                           id="endTime"
                           type="time"
+                          lang="nb-NO"
+                          step="60"
                           value={form.endTime}
                           className="bg-background/80 border-border/60 h-10 rounded-xl pr-8 font-medium shadow-sm transition-all focus:ring-2 focus:ring-emerald-500/20"
                           onChange={(e) => updateField("endTime", e.target.value)}
