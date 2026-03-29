@@ -115,6 +115,21 @@ export function useAgent(config: AgentConfig): AgentSession {
     onStatusChange?.("connecting");
 
     try {
+      // Pre-request mic permission while the user gesture from the click is still active.
+      // Once granted, the browser stores the permission for this origin so the
+      // Ultravox SDK's later getUserMedia() call (inside a WebSocket handler) succeeds.
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach((t) => t.stop());
+      } catch {
+        addDebug("event", "Microphone permission denied");
+        console.error("[useAgent] Microphone permission denied — cannot start voice session");
+        startingRef.current = false;
+        setStatus("idle");
+        onStatusChange?.("idle");
+        return;
+      }
+
       const provider = getProvider(providerName);
       const session = provider.createSession();
       sessionRef.current = session;

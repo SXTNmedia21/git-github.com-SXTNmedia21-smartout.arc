@@ -23,8 +23,7 @@ const DATA_SOURCE_CATALOG = [
     description: "Alle ansatte i workspace — status, rolle, avdeling, team",
     fields: [
       { name: "profile_id", type: "uuid", label: "Profil-ID" },
-      { name: "first_name", type: "text", label: "Fornavn" },
-      { name: "last_name", type: "text", label: "Etternavn" },
+      { name: "display_name", type: "text", label: "Visningsnavn" },
       { name: "email", type: "text", label: "E-post" },
       {
         name: "role",

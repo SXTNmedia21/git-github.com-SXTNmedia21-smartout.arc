@@ -8,11 +8,12 @@
  * - Quick actions are subtle icons, not competing colored circles
  */
 
-import React, { useMemo, useCallback } from "react";
+import React, { useMemo } from "react";
 import { View, Text, Pressable } from "react-native";
-import { Menu, Bell, CheckSquare, GraduationCap, AlertTriangle, Clock } from "lucide-react-native";
+import { Menu, CheckSquare, GraduationCap, AlertTriangle, Clock } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import Animated, {
   FadeIn,
   FadeInDown,
@@ -28,7 +29,10 @@ import type { LucideIcon } from "lucide-react-native";
 type HomeHeaderProps = {
   displayName: string;
   avatarUrl?: string | null;
+  /** Profile id used to drive the notification bell badge */
+  profileId?: string;
   onMenuPress?: () => void;
+  /** @deprecated Pass profileId instead — NotificationBell handles navigation */
   onNotificationPress?: () => void;
 };
 
@@ -41,7 +45,7 @@ type QuickActionItem = {
 
 const QUICK_ACTIONS: QuickActionItem[] = [
   { key: "tasks", label: "Oppgaver", icon: CheckSquare, route: "/(app)/(home)/haccp" },
-  { key: "training", label: "Opplaering", icon: GraduationCap, route: "/(app)/(me)" },
+  { key: "training", label: "Opplaering", icon: GraduationCap, route: "/(app)/(komm)" },
   { key: "deviation", label: "Avvik", icon: AlertTriangle, route: "/(app)/(home)/deviation" },
   { key: "punch", label: "Stempling", icon: Clock, route: "/(app)/(home)/punch-clock" },
 ];
@@ -103,6 +107,7 @@ function QuickActionButton({ action, index }: { action: QuickActionItem; index: 
 export function HomeHeader({
   displayName,
   avatarUrl,
+  profileId,
   onMenuPress,
   onNotificationPress,
 }: HomeHeaderProps) {
@@ -126,17 +131,8 @@ export function HomeHeader({
         >
           <Menu size={22} color={styles.topBarIconColor.color} strokeWidth={1.6} />
         </Pressable>
-        <Pressable
-          onPress={() => {
-            Haptics.selectionAsync();
-            onNotificationPress?.();
-          }}
-          style={styles.topBarButton}
-          accessibilityRole="button"
-          accessibilityLabel="Varsler"
-        >
-          <Bell size={22} color={styles.topBarIconColor.color} strokeWidth={1.6} />
-        </Pressable>
+        {/* NotificationBell handles its own navigation and live badge */}
+        <NotificationBell profileId={profileId} />
       </Animated.View>
 
       {/* Avatar — the hero element */}
@@ -186,7 +182,7 @@ const useActionStyles = createStyles((theme) => ({
     backgroundColor: theme.isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
   },
   iconColor: {
-    color: theme.isDark ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.5)",
+    color: theme.isDark ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.5)",
   },
   actionLabel: {
     ...theme.typography.micro,
@@ -217,7 +213,7 @@ const useStyles = createStyles((theme) => ({
     borderRadius: 22,
   },
   topBarIconColor: {
-    color: theme.isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.35)",
+    color: theme.isDark ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.35)",
   },
   avatarContainer: {
     marginBottom: theme.spacing.element,

@@ -55,6 +55,10 @@ export type Shift = {
   notes?: string;
   createdAt: string;
   updatedAt: string;
+  /** Timestamp when the employee confirmed/acknowledged the shift */
+  confirmedAt?: string;
+  /** Profile ID of the employee who confirmed */
+  confirmedBy?: string;
 };
 
 // ── Absence (maps to future absence table) ──────────────────
@@ -173,6 +177,7 @@ export type ShiftProposalCreate = {
   id: string;
   type: "create";
   employeeId: string;
+  employeeName?: string;
   dateId: string;
   role: string;
   startTime: string;
@@ -181,6 +186,8 @@ export type ShiftProposalCreate = {
   dayCategory: string;
   indicator: string;
   breaks: number;
+  /** Links proposal to a grid column (department_shift_type_config.id). */
+  shiftTypeConfigId?: string;
 };
 
 export type ShiftProposalUpdate = {

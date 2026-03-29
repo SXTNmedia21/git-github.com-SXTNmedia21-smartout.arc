@@ -1,64 +1,31 @@
 ---
 title: Learning Log
 status: in_progress
-updated: 2026-03-22
-created: 2026-03-22
-module: hms
-updated: 2026-03-10
-created: 2026-03-10
-module: feat/web
+updated: 2026-03-28
+created: 2026-03-26
+module: schedule
 tags: [learnings]
 ---
 
-# Learning Log — hms-phase-1
+# Learning Log — mal-modus-schedule
 
-| #   | Date       | Learning                                                                               | Impact                          |
-| --- | ---------- | -------------------------------------------------------------------------------------- | ------------------------------- |
-| 1   | 2026-03-22 | Profile table uses display_name, not first_name/last_name                              | Fixed CompetenceMatrix query    |
-| 2   | 2026-03-22 | Pre-existing help_request type error in use-help-requests.ts                           | Not from HMS, ignored           |
-| 3   | 2026-03-22 | DashboardShell wraps children with p-6 md:p-8 — HMS layout should not add own padding  | Avoided double padding          |
-| 4   | 2026-03-22 | deviation push trigger uses `id` not `profile_id` — pre-existing bug                   | Seed data needs trigger disable |
-| 5   | 2026-03-22 | `supabase gen types` captures stderr warnings in stdout — use `2>/dev/null`            | Fixed corrupt types file        |
-| 6   | 2026-03-22 | `npx turbo typecheck` stricter than `npx tsc --noEmit` — catches null issues           | Must run turbo, not just tsc    |
-| 7   | 2026-03-22 | Telemetry emit event name must be literal, not dynamic string — TS discriminated union | Split into if/else branches     |
-| 8   | 2026-03-22 | `supabase db reset` fails on 20260422300500 channel seed FK — blocks all E2E           | Pre-existing, needs fix         |
-| 9   | 2026-03-22 | public schema has 169 tables — need mandatory schema placement brainstorm              | Added to CLAUDE.md rules        |
+| #   | Date       | Learning                                                                                                                | Impact                                                                               |
+| --- | ---------- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| 1   | 2026-03-26 | session_task PK is `id` not `session_task_id` — confirmed from database.types.ts                                        | Avoided broken FK joins in task query                                                |
+| 2   | 2026-03-26 | TS strict mode rejects `parts[0]![0]` on string arrays — need optional chaining `parts[0]?.[0]`                         | Fixed TS2532 in MalGhostTag getInitials                                              |
+| 3   | 2026-03-26 | schedule_shift.template_shift_id added by our migration must be included in ALL test fixtures                           | Fixed mobile typecheck failure in shift-phase.test.ts                                |
+| 4   | 2026-03-26 | Bridge component returning null can be changed to render dialog alongside children without breaking side-effect pattern | Enabled AgentConfirmationDialog rendering in bridge                                  |
+| 5   | 2026-03-28 | Drift councils must truth-sync key doc claims against runtime before prioritization                                     | Avoided false P0 urgency and aligned roadmap to real blockers                        |
+| 6   | 2026-03-28 | Live ops feed must normalize mixed human/agent/system events before first-screen rendering                              | Prevented noisy timeline and authority confusion in cockpit V1                       |
+| 7   | 2026-03-28 | Temporal shift lock must be DB-canonical across web/voice/MCP channels                                                  | Prevented bypass risk from service-role and side-channel writes                      |
+| 8   | 2026-03-28 | Absence approval flow is a missing prerequisite — status field exists but no transition logic, no UI, no hooks          | Any absence-triggered workflow (smart-cover, payroll, guardian) will fail without it |
 
-module: cross-cutting
-module: unspecified
+module: dashboard
 tags: [learnings]
 
 ---
 
-# Learning Log — cascade-foundation
-
-| #   | Date       | Learning                                                                                                                                                                    | Impact                                                           |
-| --- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| 1   | 2026-03-22 | channel_seed_data migration FK error blocks all subsequent migrations in db reset — seed data must reference existing workspace IDs                                         | High — must fix before new migrations can validate via db reset  |
-| 2   | 2026-03-22 | department_operating_hours unique constraint includes location_id + season_id (NULLS NOT DISTINCT) — simple upsert onConflict doesn't work, need select-then-insert pattern | Medium — affects bootstrap and any hours upsert                  |
-| 3   | 2026-03-22 | engine_process PK column is `id` (TEXT), not `process_id` as some docs suggest                                                                                              | Low — naming inconsistency, just need to verify                  |
-| 4   | 2026-03-22 | date_of_birth lives on user_identity, not profile — schedule hooks need join through profile.user_id                                                                        | Medium — affects employee rule context loading                   |
-| 5   | 2026-03-22 | actual_start/actual_end columns don't exist on schedule_shift yet — completion emit only sets status for now                                                                | Medium — needs schema addition before actual cost snapshots work |
-| 6   | 2026-03-22 | season_budget/day_factors events don't route to engine_event by default — must explicitly add destination in telemetry registry                                             | High — engine triggers won't fire without this                   |
-| 7   | 2026-03-22 | workspace_budget upsert needs 6-column unique constraint (NULLS NOT DISTINCT) including nullable location_id, department_id, hour_slot                                      | Medium — affects demand propagation upsert pattern               |
-
-# Learning Log — fix-invitation-flow
+# Learning Log — admin-daily-loop
 
 | #   | Date | Learning | Impact |
 | --- | ---- | -------- | ------ |
-
-module: webrtc
-tags: [learnings]
-
----
-
-# Learning Log — livekit-phase2
-
-| #   | Date       | Learning                                                                                                                       | Impact                                             |
-| --- | ---------- | ------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------- |
-| 1   | 2026-03-22 | @livekit/react-native does NOT export Room/RoomEvent — import from livekit-client directly                                     | High — wrong import causes TS2305                  |
-| 2   | 2026-03-22 | livekit-client is a transitive dep via @livekit/react-native — must add explicitly to package.json                             | Medium — pnpm strict mode won't resolve transitive |
-| 3   | 2026-03-22 | RoomEvent.TrackMuted callback signature is (TrackPublication, Participant), not (unknown, RemoteParticipant\|LocalParticipant) | Medium — use Participant base type                 |
-| 4   | 2026-03-22 | Mobile theme typography has no title2 — only largeTitle, title, headline, body, subheadline, caption, micro                    | Low — check theme types before using               |
-| 5   | 2026-03-22 | AudioSession.startAudioSession() must be called before any LiveKit audio on RN — stopAudioSession() on unmount                 | High — no audio without this                       |
-| 6   | 2026-03-22 | registerGlobals() from @livekit/react-native must be called at app entry BEFORE any LiveKit component                          | High — runtime crash without this                  |

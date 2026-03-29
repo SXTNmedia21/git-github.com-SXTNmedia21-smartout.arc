@@ -3,21 +3,12 @@
 import { useContext, useMemo, useState } from "react";
 import { Loader2, Filter } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "@smartout/i18n";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspace } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-
-// TODO: move to i18n
-const STRINGS = {
-  title: "Kompetansematrise",
-  description: "Oversikt over ansattes opplaeringsfremdrift per protokoll.",
-  noData: "Ingen protokolltildelinger funnet.",
-  employee: "Ansatt",
-  readiness: "Klar",
-  filterAll: "Alle",
-} as const;
 
 type MatrixRow = {
   profileId: string;
@@ -115,24 +106,30 @@ function useCompetenceData() {
   });
 }
 
-function CellBadge({ status }: { status: "completed" | "pending" | "expired" | "not_assigned" }) {
+function CellBadge({
+  status,
+  t,
+}: {
+  status: "completed" | "pending" | "expired" | "not_assigned";
+  t: (key: string) => string;
+}) {
   switch (status) {
     case "completed":
       return (
         <Badge className="bg-green-500/15 text-[10px] text-green-600 hover:bg-green-500/15">
-          OK
+          {t("hms.competence_matrix.status_ok")}
         </Badge>
       );
     case "pending":
       return (
         <Badge variant="outline" className="text-[10px]">
-          Pagang
+          {t("hms.competence_matrix.status_pending")}
         </Badge>
       );
     case "expired":
       return (
         <Badge className="bg-red-500/15 text-[10px] text-red-600 hover:bg-red-500/15">
-          Forfalt
+          {t("hms.competence_matrix.status_expired")}
         </Badge>
       );
     case "not_assigned":
@@ -141,6 +138,7 @@ function CellBadge({ status }: { status: "completed" | "pending" | "expired" | "
 }
 
 export function CompetenceMatrix() {
+  const { t } = useTranslation("dashboard");
   const { isDark } = useContext(DashboardContext);
   const { data, isLoading } = useCompetenceData();
   const [departmentFilter, setDepartmentFilter] = useState<string | null>(null);
@@ -168,7 +166,7 @@ export function CompetenceMatrix() {
   if (!data || data.rows.length === 0) {
     return (
       <div className="border-border rounded-xl border-2 border-dashed p-8 text-center">
-        <p className="text-muted-foreground text-sm">{STRINGS.noData}</p>
+        <p className="text-muted-foreground text-sm">{t("hms.competence_matrix.no_data")}</p>
       </div>
     );
   }
@@ -178,8 +176,8 @@ export function CompetenceMatrix() {
       {/* Header + filter */}
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h2 className="text-foreground text-lg font-bold">{STRINGS.title}</h2>
-          <p className="text-muted-foreground text-sm">{STRINGS.description}</p>
+          <h2 className="text-foreground text-lg font-bold">{t("hms.competence_matrix.title")}</h2>
+          <p className="text-muted-foreground text-sm">{t("hms.competence_matrix.description")}</p>
         </div>
         {departments.length > 1 && (
           <div className="flex items-center gap-1">
@@ -190,7 +188,7 @@ export function CompetenceMatrix() {
               className="text-xs"
               onClick={() => setDepartmentFilter(null)}
             >
-              {STRINGS.filterAll}
+              {t("hms.competence_matrix.filter_all")}
             </Button>
             {departments.map((dept) => (
               <Button
@@ -213,7 +211,7 @@ export function CompetenceMatrix() {
           <thead>
             <tr className={`border-b ${isDark ? "border-zinc-800" : "border-border"}`}>
               <th className="text-muted-foreground px-3 py-2 text-left text-xs font-medium">
-                {STRINGS.employee}
+                {t("hms.competence_matrix.employee")}
               </th>
               {data.columns.map((col) => (
                 <th
@@ -225,7 +223,7 @@ export function CompetenceMatrix() {
                 </th>
               ))}
               <th className="text-muted-foreground px-3 py-2 text-center text-xs font-medium">
-                {STRINGS.readiness}
+                {t("hms.competence_matrix.readiness")}
               </th>
             </tr>
           </thead>
@@ -243,7 +241,10 @@ export function CompetenceMatrix() {
                 </td>
                 {data.columns.map((col) => (
                   <td key={col.protocolId} className="px-2 py-2 text-center">
-                    <CellBadge status={row.protocols[col.protocolId]?.status ?? "not_assigned"} />
+                    <CellBadge
+                      status={row.protocols[col.protocolId]?.status ?? "not_assigned"}
+                      t={t}
+                    />
                   </td>
                 ))}
                 <td className="px-3 py-2 text-center">

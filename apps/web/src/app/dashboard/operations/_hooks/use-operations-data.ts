@@ -33,9 +33,12 @@ export type OperationsData = {
   overdueTasks: number;
   upcomingTasks: number;
   staffPresent: { present: number; expected: number; names: string[] };
+  openDeviations: number;
   activeTasks: number;
   // Revenue vs cost chart (hourly buckets, same count as opening hours)
   hourlyData: HourlyBar[];
+  /** True when labor costs are estimated (no real shift_cost_snapshot data) */
+  laborCostEstimated: boolean;
 };
 
 // ─── Query key ─────────────────────────────────────────────────────────────
@@ -43,10 +46,6 @@ export type OperationsData = {
 export function operationsDataKey(workspaceId: string, date: string) {
   return ["operations", "live-data", workspaceId, date] as const;
 }
-
-// ─── Fallback hourly rate when no payroll workspace_settings row exists ────
-
-const FALLBACK_HOURLY_RATE_NOK = 200;
 
 // ─── Hook ──────────────────────────────────────────────────────────────────
 
@@ -132,6 +131,15 @@ export function useOperationsData() {
         .eq("workspace_id", wsId)
         .maybeSingle();
 
+      // ── 8. Fetch today's shift cost snapshots (real labor cost) ───────
+      const shiftCostPromise = supabase
+        .from("shift_cost_snapshot")
+        .select("total_cost, effective_start, base_rate")
+        .eq("workspace_id", wsId)
+        .gte("effective_start", `${today}T00:00:00.000Z`)
+        .lte("effective_start", `${today}T23:59:59.999Z`)
+        .eq("basis", "planned");
+
       // Run all in parallel
       const [
         { data: sessions, error: sessionsError },
@@ -139,13 +147,16 @@ export function useOperationsData() {
         { data: deviations, error: deviationsError },
         { data: reconciliation, error: reconciliationError },
         { data: hourlyBudgets },
+        ,
+        { data: shiftCosts },
       ] = await Promise.all([
         sessionsPromise,
         shiftsPromise,
         deviationsPromise,
         reconciliationPromise,
         hourlyBudgetPromise,
-        payrollSettingsPromise, // result intentionally unused — just confirming row exists
+        payrollSettingsPromise,
+        shiftCostPromise,
       ]);
 
       // Surface errors without crashing — log and return zeros
@@ -224,8 +235,7 @@ export function useOperationsData() {
       }
 
       // ── Derive deviation counts ───────────────────────────────────────
-      // (kept for future use in card, currently feeds into stressLabel context)
-      void deviationList;
+      const openDeviations = deviationList.filter((d) => d.status !== "resolved").length;
 
       // ── Build hourly revenue vs cost chart ────────────────────────────
       // We show a fixed window: 09:00–22:00 (14 hourly bars) to cover typical
@@ -237,22 +247,30 @@ export function useOperationsData() {
       // evenly across past hours as an approximation. A future improvement
       // would store per-hour data in a separate column or use POS webhook data.
       const totalRevenueToday = Number(reconciliation?.revenue_total ?? 0);
-      const totalLaborCostToday = Number(reconciliation?.total_labor_cost ?? 0);
-
       // How many past hours have elapsed in our chart window
       const pastHoursInWindow = CHART_HOURS.filter((h) => h <= currentHour).length;
 
       // Per-hour estimates: divide total by elapsed hours for past, 0 for future
       const avgRevenuePerHour = pastHoursInWindow > 0 ? totalRevenueToday / pastHoursInWindow : 0;
 
-      // Shift hours per hour bucket: sum work_hours for shifts whose start_time
-      // falls in that hour. Use payroll fallback rate for cost.
+      // Build real labor cost per hour from shift_cost_snapshot
       const shiftCostByHour = new Map<number, number>();
-      for (const shift of shiftList) {
-        if (!shift.start_time) continue;
-        const startHour = parseInt(shift.start_time.slice(0, 2), 10);
-        const shiftCost = shift.work_hours * FALLBACK_HOURLY_RATE_NOK;
-        shiftCostByHour.set(startHour, (shiftCostByHour.get(startHour) ?? 0) + shiftCost);
+      const hasRealCosts = (shiftCosts ?? []).some((sc) => sc.base_rate > 0);
+
+      if (hasRealCosts) {
+        for (const sc of shiftCosts ?? []) {
+          if (!sc.effective_start) continue;
+          const startHour = new Date(sc.effective_start).getHours();
+          shiftCostByHour.set(startHour, (shiftCostByHour.get(startHour) ?? 0) + sc.total_cost);
+        }
+      } else {
+        // Fallback: estimate from shift hours x 200 NOK
+        for (const shift of shiftList) {
+          if (!shift.start_time) continue;
+          const startHour = parseInt(shift.start_time.slice(0, 2), 10);
+          const shiftCost = shift.work_hours * 200;
+          shiftCostByHour.set(startHour, (shiftCostByHour.get(startHour) ?? 0) + shiftCost);
+        }
       }
 
       // Also fold in budget targets where available
@@ -305,8 +323,10 @@ export function useOperationsData() {
         overdueTasks,
         upcomingTasks,
         staffPresent: { present: presentCount, expected: expectedCount, names: staffNames },
+        openDeviations,
         activeTasks,
         hourlyData,
+        laborCostEstimated: !hasRealCosts,
       };
     },
   });

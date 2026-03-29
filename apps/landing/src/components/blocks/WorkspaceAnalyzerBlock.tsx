@@ -25,12 +25,14 @@ export default function WorkspaceAnalyzerBlock({
             className="mb-12 text-center"
           >
             {content.heading && (
-              <h2 className="mb-4 text-4xl font-bold tracking-tight text-white lg:text-5xl">
+              <h2 className="text-foreground mb-4 text-4xl font-bold tracking-tight lg:text-5xl">
                 {content.heading}
               </h2>
             )}
             {content.subheading && (
-              <p className="mx-auto max-w-2xl text-lg text-zinc-400">{content.subheading}</p>
+              <p className="text-muted-foreground mx-auto max-w-2xl text-lg">
+                {content.subheading}
+              </p>
             )}
           </m.div>
         )}

@@ -115,10 +115,10 @@ function validateRow(row: InviteRow, channels: Set<InviteChannel>): string[] {
 // ─── Shared styles ──────────────────────────────────────────
 
 const inputClass =
-  "w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground transition-all focus:border-orange-500/50 focus:ring-2 focus:ring-orange-500/20 focus:outline-none";
+  "w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground transition-all focus:border-brand-orange/50 focus:ring-2 focus:ring-brand-orange/20 focus:outline-none";
 
 const selectClass =
-  "w-full appearance-none rounded-xl border border-border bg-background px-3 py-2.5 pr-8 text-sm text-foreground transition-all focus:border-orange-500/50 focus:ring-2 focus:ring-orange-500/20 focus:outline-none";
+  "w-full appearance-none rounded-xl border border-border bg-background px-3 py-2.5 pr-8 text-sm text-foreground transition-all focus:border-brand-orange/50 focus:ring-2 focus:ring-brand-orange/20 focus:outline-none";
 
 const labelClass = "text-xs font-semibold tracking-wider uppercase text-muted-foreground";
 
@@ -130,7 +130,7 @@ export function InviteMemberDialog({
   departments,
   onRefresh,
 }: InviteMemberDialogProps) {
-  const { isDark, workspaceData, profileId } = useContext(DashboardContext);
+  const { workspaceData, profileId } = useContext(DashboardContext);
   const [mode, setMode] = useState<InviteMode>("single");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -442,8 +442,8 @@ export function InviteMemberDialog({
                   <ArrowLeft className="h-5 w-5" />
                 </button>
               ) : (
-                <div className={`rounded-xl p-2.5 ${isDark ? "bg-orange-500/10" : "bg-orange-50"}`}>
-                  <UserPlus className="h-5 w-5 text-orange-500" />
+                <div className={`bg-brand-orange/10 rounded-xl p-2.5`}>
+                  <UserPlus className="text-brand-orange h-5 w-5" />
                 </div>
               )}
               <div>
@@ -470,7 +470,6 @@ export function InviteMemberDialog({
             {generatedLink ? (
               <GeneratedLinkView
                 link={generatedLink}
-                isDark={isDark}
                 copied={linkCopied}
                 onCopy={() => {
                   void navigator.clipboard.writeText(generatedLink);
@@ -484,7 +483,6 @@ export function InviteMemberDialog({
                 onChange={setSingleRow}
                 departments={departments}
                 templates={templates}
-                isDark={isDark}
                 channels={channels}
                 onToggleChannel={toggleChannel}
               />
@@ -492,7 +490,6 @@ export function InviteMemberDialog({
               <CsvImportView
                 rows={csvRows}
                 departments={departments}
-                isDark={isDark}
                 onUploadClick={() => fileInputRef.current?.click()}
                 onRemoveRow={removeCsvRow}
               />
@@ -522,7 +519,7 @@ export function InviteMemberDialog({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="flex items-center gap-2 rounded-xl bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-orange-400 hover:shadow-[0_0_20px_rgba(249,115,22,0.3)]"
+                  className="bg-brand-orange hover:bg-brand-orange/90 flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition-all hover:shadow-lg"
                 >
                   Lukk
                 </button>
@@ -546,7 +543,7 @@ export function InviteMemberDialog({
                       (mode === "single" && channels.has("sms") && !singleRow.phone) ||
                       (mode === "csv" && csvRows.length === 0)
                     }
-                    className="flex items-center gap-2 rounded-xl bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-orange-400 hover:shadow-[0_0_20px_rgba(249,115,22,0.3)] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="bg-brand-orange hover:bg-brand-orange/90 flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition-all hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {isSubmitting ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -579,7 +576,6 @@ export function InviteMemberDialog({
       <CsvMappingDialog
         open={csvMappingOpen}
         onOpenChange={setCsvMappingOpen}
-        isDark={isDark}
         csvHeaders={csvHeaders}
         csvPreviewRows={csvPreviewRows}
         totalRowCount={csvTotalCount}
@@ -596,7 +592,6 @@ function SingleInviteForm({
   onChange,
   departments,
   templates,
-  isDark,
   channels,
   onToggleChannel,
 }: {
@@ -604,7 +599,6 @@ function SingleInviteForm({
   onChange: (row: InviteRow) => void;
   departments: Department[];
   templates: PayrollTemplate[];
-  isDark: boolean;
   channels: Set<InviteChannel>;
   onToggleChannel: (ch: InviteChannel) => void;
 }) {
@@ -680,9 +674,7 @@ function SingleInviteForm({
                 onClick={() => !locked && onToggleChannel(ch)}
                 className={`relative flex flex-col items-center gap-1.5 rounded-xl px-3 py-3 text-xs font-medium transition-all ${
                   isActive
-                    ? isDark
-                      ? "bg-orange-500/15 text-orange-400 ring-1 ring-orange-500/30"
-                      : "bg-orange-50 text-orange-600 ring-1 ring-orange-200"
+                    ? "bg-brand-orange/10 text-brand-orange ring-brand-orange/30 ring-1"
                     : "border-border bg-background text-muted-foreground hover:text-foreground hover:border-border/70 border"
                 } ${locked ? "cursor-default" : "cursor-pointer"}`}
               >
@@ -690,7 +682,7 @@ function SingleInviteForm({
                 {label}
                 {isActive && (
                   <div
-                    className={`absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full ${locked ? "bg-orange-500/50" : "bg-orange-500"}`}
+                    className={`absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full ${locked ? "bg-brand-orange/50" : "bg-brand-orange"}`}
                   />
                 )}
               </button>
@@ -782,9 +774,7 @@ function SingleInviteForm({
               onClick={() => update({ inviteEmploymentType: type })}
               className={`rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
                 row.inviteEmploymentType === type
-                  ? isDark
-                    ? "bg-orange-500/15 text-orange-400 ring-1 ring-orange-500/30"
-                    : "bg-orange-50 text-orange-600 ring-1 ring-orange-200"
+                  ? "bg-brand-orange/10 text-brand-orange ring-brand-orange/30 ring-1"
                   : "border-border bg-background text-muted-foreground hover:text-foreground hover:border-border/70 border"
               }`}
             >
@@ -805,7 +795,7 @@ function SingleInviteForm({
             <span>
               Ansettelsesprofil
               {selectedTemplate && (
-                <span className="ml-2 font-medium tracking-normal text-orange-500 normal-case">
+                <span className="text-brand-orange ml-2 font-medium tracking-normal normal-case">
                   — {selectedTemplate.name}
                 </span>
               )}
@@ -830,9 +820,7 @@ function SingleInviteForm({
                           onClick={() => handleTemplateSelect(isSelected ? "" : t.id)}
                           className={`flex flex-col items-start rounded-xl px-3 py-2.5 text-left transition-all ${
                             isSelected
-                              ? isDark
-                                ? "bg-orange-500/15 text-orange-400 ring-1 ring-orange-500/30"
-                                : "bg-orange-50 text-orange-600 ring-1 ring-orange-200"
+                              ? "bg-brand-orange/10 text-brand-orange ring-brand-orange/30 ring-1"
                               : "border-border bg-background text-muted-foreground hover:text-foreground hover:border-border/70 border"
                           }`}
                         >
@@ -912,7 +900,7 @@ function SingleInviteForm({
 
       {row.errors.length > 0 && (
         <div
-          className={`flex items-start gap-2 rounded-xl px-4 py-3 text-xs ${isDark ? "bg-red-500/10 text-red-400" : "bg-red-50 text-red-600"}`}
+          className={`flex items-start gap-2 rounded-xl px-4 py-3 text-xs ${"bg-destructive text-destructive"}`}
         >
           <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           <span>{row.errors.join(", ")}</span>
@@ -927,13 +915,11 @@ function SingleInviteForm({
 function CsvImportView({
   rows,
   departments,
-  isDark,
   onUploadClick,
   onRemoveRow,
 }: {
   rows: InviteRow[];
   departments: Department[];
-  isDark: boolean;
   onUploadClick: () => void;
   onRemoveRow: (id: string) => void;
 }) {
@@ -942,9 +928,7 @@ function CsvImportView({
   if (rows.length === 0) {
     return (
       <div className="flex flex-col items-center gap-4 py-8">
-        <div
-          className={`border-border rounded-2xl border-2 border-dashed p-6 ${isDark ? "bg-muted/30" : "bg-muted/50"}`}
-        >
+        <div className={`border-border rounded-2xl border-2 border-dashed p-6 ${"bg-muted/50"}`}>
           <Upload className="text-muted-foreground h-8 w-8" />
         </div>
         <div className="text-center">
@@ -956,7 +940,7 @@ function CsvImportView({
         <button
           type="button"
           onClick={onUploadClick}
-          className="flex items-center gap-2 rounded-xl bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-orange-400"
+          className="bg-brand-orange hover:bg-brand-orange/90 flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition-colors"
         >
           <Upload className="h-4 w-4" />
           Velg fil
@@ -975,7 +959,7 @@ function CsvImportView({
           <span className="text-foreground text-sm font-medium">{rows.length} rader importert</span>
           {errorCount > 0 && (
             <span
-              className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${isDark ? "bg-red-500/10 text-red-400" : "bg-red-50 text-red-600"}`}
+              className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${"bg-destructive text-destructive"}`}
             >
               {errorCount} feil
             </span>
@@ -1009,11 +993,7 @@ function CsvImportView({
                 <tr
                   key={row.id}
                   className={`border-t ${
-                    hasError
-                      ? isDark
-                        ? "border-red-500/20 bg-red-950/10"
-                        : "border-red-200 bg-red-50/50"
-                      : "border-border"
+                    hasError ? "border-destructive bg-destructive/50" : "border-border"
                   }`}
                 >
                   <td className="px-3 py-2">
@@ -1021,7 +1001,7 @@ function CsvImportView({
                       {row.firstName} {row.lastName}
                     </span>
                     {hasError && (
-                      <p className="mt-0.5 text-[10px] text-red-400">{row.errors.join(", ")}</p>
+                      <p className="text-destructive mt-0.5 text-[10px]">{row.errors.join(", ")}</p>
                     )}
                   </td>
                   <td className="text-muted-foreground px-3 py-2">{row.email}</td>
@@ -1054,19 +1034,17 @@ function CsvImportView({
 
 function GeneratedLinkView({
   link,
-  isDark,
   copied,
   onCopy,
 }: {
   link: string;
-  isDark: boolean;
   copied: boolean;
   onCopy: () => void;
 }) {
   return (
     <div className="flex flex-col items-center gap-5 py-6">
-      <div className={`rounded-2xl p-4 ${isDark ? "bg-orange-500/10" : "bg-orange-50"}`}>
-        <Link2 className="h-8 w-8 text-orange-500" />
+      <div className={`bg-brand-orange/10 rounded-2xl p-4`}>
+        <Link2 className="text-brand-orange h-8 w-8" />
       </div>
 
       <div className="text-center">

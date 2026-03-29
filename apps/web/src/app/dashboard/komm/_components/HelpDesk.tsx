@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslation } from "@smartout/i18n";
 import { useHelpRequests, useCreateHelpRequest } from "../_hooks/use-help-requests";
 import {
   Dialog,
@@ -19,33 +20,33 @@ import { cn } from "@/lib/utils";
 const QUICK_ACTIONS = [
   {
     key: "botsson",
-    label: "Spør Botsson",
-    sub: "AI-assistent",
+    labelKey: "helpdesk.ask_botsson",
+    subKey: "helpdesk.ai_assistant",
     icon: Bot,
     color: "bg-amber-500/15 text-amber-500",
   },
   {
     key: "problem",
-    label: "Meld problem",
-    sub: "Til leder",
+    labelKey: "helpdesk.report_problem",
+    subKey: "helpdesk.to_manager",
     icon: AlertTriangle,
     color: "bg-red-500/15 text-red-500",
   },
   {
     key: "manual",
-    label: "Finn manual",
-    sub: "Søk i håndboken",
+    labelKey: "helpdesk.find_manual",
+    subKey: "helpdesk.search_handbook",
     icon: BookOpen,
     color: "bg-blue-500/15 text-blue-500",
   },
   {
     key: "call",
-    label: "Ring leder",
-    sub: "Direkte kontakt",
+    labelKey: "helpdesk.call_manager",
+    subKey: "helpdesk.direct_contact",
     icon: Phone,
     color: "bg-green-500/15 text-green-500",
   },
-];
+] as const;
 
 type Props = {
   profileId: string;
@@ -53,6 +54,7 @@ type Props = {
 };
 
 export function HelpDesk({ profileId, onClose }: Props) {
+  const { t } = useTranslation("komm");
   const { data: requests, isLoading } = useHelpRequests();
   const createRequest = useCreateHelpRequest(profileId);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -84,41 +86,41 @@ export function HelpDesk({ profileId, onClose }: Props) {
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Trenger du hjelp?</DialogTitle>
+          <DialogTitle>{t("helpdesk.dialog_title")}</DialogTitle>
         </DialogHeader>
 
         {showCreateForm ? (
           <div className="space-y-3">
             <div className="space-y-1.5">
-              <Label className="text-xs">Hva trenger du hjelp med?</Label>
+              <Label className="text-xs">{t("helpdesk.subject_label")}</Label>
               <Input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="f.eks. Oppvaskmaskin lekker"
+                placeholder={t("helpdesk.subject_placeholder")}
                 className="h-9"
                 autoFocus
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">Beskrivelse (valgfritt)</Label>
+              <Label className="text-xs">{t("helpdesk.description_label")}</Label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Beskriv problemet..."
+                placeholder={t("helpdesk.description_placeholder")}
                 rows={3}
                 className="bg-muted focus:ring-primary w-full resize-none rounded-md px-3 py-2 text-sm focus:ring-1 focus:outline-none"
               />
             </div>
             <DialogFooter>
               <Button variant="outline" size="sm" onClick={() => setShowCreateForm(false)}>
-                Tilbake
+                {t("helpdesk.back")}
               </Button>
               <Button
                 size="sm"
                 onClick={handleCreateRequest}
                 disabled={!title.trim() || createRequest.isPending}
               >
-                Send henvendelse
+                {t("helpdesk.submit")}
               </Button>
             </DialogFooter>
           </div>
@@ -143,8 +145,8 @@ export function HelpDesk({ profileId, onClose }: Props) {
                       <Icon className="h-4 w-4" />
                     </div>
                     <div className="text-center">
-                      <p className="text-sm font-medium">{action.label}</p>
-                      <p className="text-muted-foreground text-xs">{action.sub}</p>
+                      <p className="text-sm font-medium">{t(action.labelKey)}</p>
+                      <p className="text-muted-foreground text-xs">{t(action.subKey)}</p>
                     </div>
                   </button>
                 );
@@ -154,13 +156,13 @@ export function HelpDesk({ profileId, onClose }: Props) {
             {/* My tickets */}
             <div>
               <p className="text-muted-foreground mb-2 text-xs font-semibold tracking-wide uppercase">
-                Mine henvendelser
+                {t("helpdesk.my_requests")}
               </p>
               <ScrollArea className="max-h-48">
                 {isLoading ? (
-                  <p className="text-muted-foreground p-2 text-xs">Laster...</p>
+                  <p className="text-muted-foreground p-2 text-xs">{t("helpdesk.loading")}</p>
                 ) : !requests || requests.length === 0 ? (
-                  <p className="text-muted-foreground p-2 text-xs">Ingen henvendelser ennå</p>
+                  <p className="text-muted-foreground p-2 text-xs">{t("helpdesk.no_requests")}</p>
                 ) : (
                   <div className="space-y-2">
                     {requests.map((req) => (
@@ -175,12 +177,12 @@ export function HelpDesk({ profileId, onClose }: Props) {
                             )}
                           >
                             {req.status === "open"
-                              ? "Åpen"
+                              ? t("helpdesk.status_open")
                               : req.status === "in_progress"
-                                ? "Under arbeid"
+                                ? t("helpdesk.status_in_progress")
                                 : req.status === "resolved"
-                                  ? "Løst"
-                                  : "Lukket"}
+                                  ? t("helpdesk.status_resolved")
+                                  : t("helpdesk.status_closed")}
                           </span>
                           <span className="truncate text-sm font-medium">{req.title}</span>
                         </div>

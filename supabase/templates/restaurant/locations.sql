@@ -1,7 +1,6 @@
 -- Template: Restaurant Locations & Zones
 -- Industry:   restaurant (NACE 56.101)
--- Locations:  3 (Hovedrestaurant, Uteservering, Cateringbase)
--- Zones:      12 across all locations
+-- Philosophy: Start with what EVERY restaurant has. Less is more.
 -- Depends:    workspace must exist
 -- Usage:      SELECT template_restaurant_locations(p_workspace_id);
 
@@ -11,90 +10,61 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 DECLARE
-  v_loc_main uuid;
-  v_loc_outdoor uuid;
-  v_loc_catering uuid;
+  v_loc_restaurant uuid;
+  v_loc_kitchen uuid;
 BEGIN
   -- ==========================================================================
-  -- LOCATIONS
+  -- LOCATIONS — two physical areas most restaurants share
   -- ==========================================================================
 
-  INSERT INTO public.location (workspace_id, name, slug, location_type)
-  VALUES (p_workspace_id, 'Hovedrestaurant', 'hovedrestaurant', 'main')
+  INSERT INTO public.location (workspace_id, name, slug, location_type, sort_order)
+  VALUES (p_workspace_id, 'Restauranten', 'restauranten', 'main', 0)
   ON CONFLICT DO NOTHING
-  RETURNING location_id INTO v_loc_main;
+  RETURNING location_id INTO v_loc_restaurant;
 
-  IF v_loc_main IS NULL THEN
-    SELECT location_id INTO v_loc_main FROM public.location
-    WHERE workspace_id = p_workspace_id AND slug = 'hovedrestaurant';
+  IF v_loc_restaurant IS NULL THEN
+    SELECT location_id INTO v_loc_restaurant FROM public.location
+    WHERE workspace_id = p_workspace_id AND slug = 'restauranten';
   END IF;
 
-  INSERT INTO public.location (workspace_id, name, slug, location_type)
-  VALUES (p_workspace_id, 'Uteservering', 'uteservering', 'outdoor')
+  INSERT INTO public.location (workspace_id, name, slug, location_type, sort_order)
+  VALUES (p_workspace_id, 'Kjøkken', 'kjokken', 'kitchen', 1)
   ON CONFLICT DO NOTHING
-  RETURNING location_id INTO v_loc_outdoor;
+  RETURNING location_id INTO v_loc_kitchen;
 
-  IF v_loc_outdoor IS NULL THEN
-    SELECT location_id INTO v_loc_outdoor FROM public.location
-    WHERE workspace_id = p_workspace_id AND slug = 'uteservering';
-  END IF;
-
-  INSERT INTO public.location (workspace_id, name, slug, location_type)
-  VALUES (p_workspace_id, 'Cateringbase', 'cateringbase', 'kitchen')
-  ON CONFLICT DO NOTHING
-  RETURNING location_id INTO v_loc_catering;
-
-  IF v_loc_catering IS NULL THEN
-    SELECT location_id INTO v_loc_catering FROM public.location
-    WHERE workspace_id = p_workspace_id AND slug = 'cateringbase';
+  IF v_loc_kitchen IS NULL THEN
+    SELECT location_id INTO v_loc_kitchen FROM public.location
+    WHERE workspace_id = p_workspace_id AND slug = 'kjokken';
   END IF;
 
   -- ==========================================================================
-  -- ZONES — Hovedrestaurant
+  -- ZONES — Restauranten (gjestesiden)
   -- ==========================================================================
 
   INSERT INTO public.zone (workspace_id, location_id, name, slug, description, capacity, sort_order)
   VALUES
-    (p_workspace_id, v_loc_main, 'Spisesal', 'spisesal',
-     'Hovedsal med bordplasser. 60 sitteplasser.', 60, 0),
-    (p_workspace_id, v_loc_main, 'Bar', 'bar-sone',
-     'Bardisk med barkrakker. 12 sitteplasser.', 12, 1),
-    (p_workspace_id, v_loc_main, 'Kjøkken', 'kjokken-sone',
-     'Produksjonskjøkken med varm- og kaldside.', NULL, 2),
-    (p_workspace_id, v_loc_main, 'Privat spiserom', 'privat-spiserom',
-     'Separat rom for selskaper og møter. 20 plasser.', 20, 3),
-    (p_workspace_id, v_loc_main, 'Inngangsparti', 'inngangsparti',
-     'Resepsjon, garderobe, ventesone.', NULL, 4),
-    (p_workspace_id, v_loc_main, 'Lager', 'lager',
-     'Tørrlager, kjølerom og fryserom.', NULL, 5),
-    (p_workspace_id, v_loc_main, 'Personalrom', 'personalrom',
-     'Garderobe, pauserom, kontor.', NULL, 6)
+    (p_workspace_id, v_loc_restaurant, 'Hovedsal', 'hovedsal',
+     'Spisesal med bordplasser.', NULL, 0),
+    (p_workspace_id, v_loc_restaurant, 'Inngangsparti', 'inngangsparti',
+     'Resepsjon, garderobe, ventesone.', NULL, 1),
+    (p_workspace_id, v_loc_restaurant, 'Bar', 'bar',
+     'Bardisk og barkrakker.', NULL, 2),
+    (p_workspace_id, v_loc_restaurant, 'Gjeste-WC', 'gjeste-wc',
+     'Toaletter for gjester.', NULL, 3)
   ON CONFLICT DO NOTHING;
 
   -- ==========================================================================
-  -- ZONES — Uteservering
+  -- ZONES — Kjøkken (produksjonssiden)
   -- ==========================================================================
 
   INSERT INTO public.zone (workspace_id, location_id, name, slug, description, capacity, sort_order)
   VALUES
-    (p_workspace_id, v_loc_outdoor, 'Terrasse', 'terrasse',
-     'Hovedterrasse med parasoller. 40 sitteplasser.', 40, 0),
-    (p_workspace_id, v_loc_outdoor, 'Lounge', 'lounge-ute',
-     'Sofagrupper med varmelamper. 16 plasser.', 16, 1)
-  ON CONFLICT DO NOTHING;
-
-  -- ==========================================================================
-  -- ZONES — Cateringbase
-  -- ==========================================================================
-
-  INSERT INTO public.zone (workspace_id, location_id, name, slug, description, capacity, sort_order)
-  VALUES
-    (p_workspace_id, v_loc_catering, 'Produksjonskjøkken', 'produksjonskjokken',
-     'Kjøkken for catering-prep og pakking.', NULL, 0),
-    (p_workspace_id, v_loc_catering, 'Lastesone', 'lastesone',
-     'Lasting/lossing for leveranser og utkjøring.', NULL, 1),
-    (p_workspace_id, v_loc_catering, 'Utstyrslager', 'utstyrslager',
-     'Cateringustyr: chafing dishes, bestikk, tallerkener.', NULL, 2)
+    (p_workspace_id, v_loc_kitchen, 'Varmkjøkken', 'varmkjokken',
+     'Hovedproduksjon — varm- og kaldside.', NULL, 0),
+    (p_workspace_id, v_loc_kitchen, 'Oppvask', 'oppvask',
+     'Oppvaskmaskin og rengjøring.', NULL, 1),
+    (p_workspace_id, v_loc_kitchen, 'Kjølerom', 'kjolerom',
+     'Kjøle- og fryselagring.', NULL, 2)
   ON CONFLICT DO NOTHING;
 
 END;

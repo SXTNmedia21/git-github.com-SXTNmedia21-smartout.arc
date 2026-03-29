@@ -2,9 +2,13 @@
 
 import { useState, useRef, useEffect, useCallback, createContext, useMemo } from "react";
 import dynamic from "next/dynamic";
+import { AnimatePresence } from "framer-motion";
 import type { MissionId } from "@smartout/ai/missions";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
-import { useWorkspaceSetup } from "@/app/dashboard/_hooks/use-workspace-setup";
+import { createClient } from "@smartout/supabase/client";
+import { useCascadeTaskCount } from "@/app/dashboard/_hooks/use-cascade-task-count";
+import { EntityDrawerProvider } from "./entity-drawer/EntityDrawerContext";
+import { EntityDrawer } from "./entity-drawer/EntityDrawer";
 
 const VoiceAssistant = dynamic(() => import("@/components/voice-assistant"), {
   ssr: false,
@@ -26,12 +30,17 @@ const EmmaOverlay = dynamic(
   { ssr: false },
 );
 
+const NotificationBell = dynamic(
+  () => import("./NotificationBell").then((m) => ({ default: m.NotificationBell })),
+  { ssr: false },
+);
+
 const ROUTE_MISSION_MAP: Record<string, MissionId> = {
   "/dashboard": "mr-botsson",
   "/dashboard/schedule": "shift-assistant",
   "/dashboard/hms": "haccp-inspector",
   "/dashboard/operations": "mr-botsson",
-  "/dashboard/chat": "mr-botsson",
+  "/dashboard/komm": "mr-botsson",
   "/dashboard/people": "mr-botsson",
   "/dashboard/reports": "mr-botsson",
   "/dashboard/season": "mr-botsson",
@@ -44,6 +53,7 @@ const ROUTE_MISSION_MAP: Record<string, MissionId> = {
   "/dashboard/my-training": "mr-botsson",
   "/dashboard/my-cv": "mr-botsson",
   "/dashboard/my-salary": "mr-botsson",
+  "/dashboard/reconciliation": "mr-botsson",
 };
 
 function resolveMissionForRoute(pathname: string): MissionId {
@@ -55,9 +65,9 @@ function resolveMissionForRoute(pathname: string): MissionId {
   return (match !== undefined ? ROUTE_MISSION_MAP[match] : undefined) ?? "mr-botsson";
 }
 
-export type AdminViewType = "tactical" | "strategic" | "reconciliation" | "activity" | "guardian";
-export type ScheduleLayoutMode = "daily" | "weekly" | "monthly" | "list";
-export type ScheduleViewMode = "ansatt" | "jobb" | "team";
+export type AdminViewType = "tactical" | "strategic" | "reconciliation" | "activity" | "todo";
+export type ScheduleLayoutMode = "daily" | "weekly" | "monthly" | "list" | "grid";
+export type ScheduleViewMode = "ansatt" | "jobb" | "team" | "lokasjon";
 type VoiceSessionContext = {
   page: string;
   story: string;
@@ -76,21 +86,21 @@ type WalkthroughNotice = {
 
 function buildVoiceSessionContext(pathname: string, adminView: AdminViewType): VoiceSessionContext {
   if (pathname === "/dashboard") {
-    if (adminView === "guardian") {
+    if (adminView === "todo") {
       return {
-        page: "dashboard.guardian",
+        page: "dashboard.todo",
         story:
-          "Du er i event center. Forklar hva systemet fanger opp, hvorfor signalene betyr noe, og hvilken handling lederen bør ta nå.",
+          "Du er i oppgaveoversikten. Forklar hva som mangler i virksomheten, prioriter etter viktighet, og veiled lederen til neste steg.",
         workingElements: [
-          "Guardian signal stream",
-          "Mission control panel",
-          "Critical alerts list",
-          "Compliance checkpoints",
+          "Cascade task groups",
+          "Progress bars per domain",
+          "Urgency-sorted task cards",
+          "Completion tracking",
         ],
         availableInputs: [
-          "Active guardian signals",
+          "Cascade task surface data",
           "Workspace context",
-          "Current admin view (guardian)",
+          "Current admin view (todo)",
           "User follow-up questions",
         ],
       };
@@ -205,8 +215,8 @@ export const DashboardContext = createContext({
   setScheduleView: (_val: ScheduleViewMode) => {
     void _val;
   },
-  activeLocation: "Alle Lokasjoner",
-  setActiveLocation: (_val: string) => {
+  activeDepartment: "Alle avdelinger",
+  setActiveDepartment: (_val: string) => {
     void _val;
   },
   isSidebarCollapsed: false,
@@ -237,7 +247,6 @@ export const DashboardContext = createContext({
   profileId: null as string | null,
   isSetupMode: false,
   isSetupLoading: false,
-  setupModules: [] as import("@/app/dashboard/_hooks/use-workspace-setup").SetupModule[],
   dismissSetup: () => {},
 });
 import Link from "next/link";
@@ -264,7 +273,7 @@ import {
   Banknote,
   FileText,
   CalendarDays,
-  Shield,
+  ListChecks,
   ShieldCheck,
   Mic,
   Bell,
@@ -273,6 +282,7 @@ import {
   Sparkles,
   BookOpen,
   Globe,
+  Receipt,
 } from "lucide-react";
 
 import { ContractPendingBanner } from "./ContractPendingBanner";
@@ -282,12 +292,15 @@ import { WorkspaceSwitcher } from "@/components/dashboard/WorkspaceSwitcher";
 import { VoiceToolsProvider, useVoiceTools } from "@/components/voice-tools-context";
 // Popover imports removed — location selector moved to PlannerCommandBar
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarUI } from "@/components/ui/calendar";
+import { format, getISOWeek, getISOWeekYear } from "date-fns";
+import { nb } from "date-fns/locale";
 import { DocumentModeShell } from "@/app/dashboard/_components/document-mode/document-mode-shell";
 import { DocumentModeSidebar } from "@/app/dashboard/_components/document-mode/document-mode-sidebar";
 import { DocumentModeProvider } from "@/app/dashboard/_components/document-mode/document-mode-context";
 
-/** Demo location options for the schedule page location selector */
-// LOCATIONS moved to schedule PlannerCommandBar
+// Department filter state is managed via activeDepartment in context
 
 function VoiceAssistantWithTools({
   isOpen,
@@ -322,17 +335,27 @@ export function DashboardShell({
   children: React.ReactNode;
   profileId?: string | null;
 }) {
-  const [isDark, setIsDark] = useState(true);
+  const [isDark, setIsDarkRaw] = useState(false); // SSR-safe default
+  const [themeReady, setThemeReady] = useState(false);
+  useEffect(() => {
+    const stored = localStorage.getItem("smartout-theme");
+    if (stored === "dark") setIsDarkRaw(true);
+    setThemeReady(true);
+  }, []);
+  const setIsDark = useCallback((val: boolean) => {
+    setIsDarkRaw(val);
+    localStorage.setItem("smartout-theme", val ? "dark" : "light");
+  }, []);
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [isAdminMode, setIsAdminMode] = useState(true);
-  const [adminView, setAdminView] = useState<AdminViewType>("strategic");
+  const [adminView, setAdminView] = useState<AdminViewType>("tactical");
   const [scheduleLayout, setScheduleLayout] = useState<ScheduleLayoutMode>("daily");
   const [scheduleView, setScheduleView] = useState<ScheduleViewMode>("ansatt");
-  const [activeLocation, setActiveLocation] = useState("Alle Lokasjoner");
-  // locationMenuOpen removed — location selector moved to PlannerCommandBar
+  const [activeDepartment, setActiveDepartment] = useState("Alle avdelinger");
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [weeklyPeriodCount, setWeeklyPeriodCount] = useState(4);
   const [scheduleDateOffset, setScheduleDateOffset] = useState(0);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const onPublishAllRef = useRef<(() => void) | null>(null);
   const scheduleDraftCountRef = useRef(0);
   const [scheduleDraftCountDisplay, setScheduleDraftCountDisplay] = useState(0);
@@ -356,10 +379,14 @@ export function DashboardShell({
     isSettling: false,
     notices: [],
   });
-  const [setupDismissed, setSetupDismissed] = useState(false);
-  const { data: setupStatus, isLoading: isSetupLoading } = useWorkspaceSetup();
-  const isSetupMode = !isSetupLoading && !setupDismissed && (setupStatus?.needsSetup ?? false);
-  const dismissSetup = useCallback(() => setSetupDismissed(true), []);
+  const [setupDismissed, setSetupDismissed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return sessionStorage.getItem("setup_dismissed") === "1";
+  });
+  const dismissSetup = useCallback(() => {
+    setSetupDismissed(true);
+    sessionStorage.setItem("setup_dismissed", "1");
+  }, []);
   const [isDocumentMode, setIsDocumentMode] = useState(false);
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -369,6 +396,10 @@ export function DashboardShell({
   const autoplayStartedRef = useRef(false);
   const noticeIdRef = useRef(0);
   const workspaceCtx = useWorkspaceOptional();
+  // Derive setup mode from the DB flag rather than cascade task count.
+  // Defaults to true (no redirect) when workspace context is not yet available.
+  const setupGuideCompleted = workspaceCtx?.workspace.setup_guide_completed ?? true;
+  const isSetupMode = !setupGuideCompleted && !setupDismissed;
   const workspaceData = useMemo(
     () =>
       workspaceCtx
@@ -380,6 +411,45 @@ export function DashboardShell({
         : null,
     [workspaceCtx],
   );
+
+  // Live inbound join request count for the Ansatte nav badge
+  const [inboundRequestCount, setInboundRequestCount] = useState(0);
+  useEffect(() => {
+    if (!workspaceData?.workspace_id) return;
+    const supabase = createClient();
+
+    async function fetchCount() {
+      const { count } = await supabase
+        .from("invitation")
+        .select("invitation_id", { count: "exact", head: true })
+        .eq("workspace_id", workspaceData!.workspace_id)
+        .eq("direction", "inbound")
+        .eq("status", "pending");
+      setInboundRequestCount(count ?? 0);
+    }
+
+    void fetchCount();
+
+    // Subscribe to realtime changes on invitation table for this workspace
+    const channel = supabase
+      .channel("inbound-requests")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "invitation",
+          filter: `workspace_id=eq.${workspaceData.workspace_id}`,
+        },
+        () => void fetchCount(),
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [workspaceData?.workspace_id]);
+
   /** Stable setter that schedule page calls to register the publish callback */
   const setOnPublishAll = useCallback((fn: (() => void) | null) => {
     onPublishAllRef.current = fn;
@@ -407,8 +477,8 @@ export function DashboardShell({
       setScheduleLayout,
       scheduleView,
       setScheduleView,
-      activeLocation,
-      setActiveLocation,
+      activeDepartment,
+      setActiveDepartment,
       isSidebarCollapsed,
       setIsSidebarCollapsed,
       weeklyPeriodCount,
@@ -424,8 +494,9 @@ export function DashboardShell({
       workspaceData,
       profileId,
       isSetupMode,
-      isSetupLoading,
-      setupModules: setupStatus?.modules ?? [],
+      // isSetupLoading is no longer used — setup is now flag-driven, not
+      // cascade-task-driven. Kept as false for context shape compatibility.
+      isSetupLoading: false,
       dismissSetup,
     }),
     [
@@ -434,7 +505,7 @@ export function DashboardShell({
       adminView,
       scheduleLayout,
       scheduleView,
-      activeLocation,
+      activeDepartment,
       isSidebarCollapsed,
       weeklyPeriodCount,
       scheduleDateOffset,
@@ -446,8 +517,6 @@ export function DashboardShell({
       workspaceData,
       profileId,
       isSetupMode,
-      isSetupLoading,
-      setupStatus?.modules,
       dismissSetup,
     ],
   );
@@ -699,10 +768,10 @@ export function DashboardShell({
         expectedPathname: "/dashboard/organization",
       },
       {
-        id: "chat",
-        label: "Open team chat",
-        selector: '[data-autoplay="nav-/dashboard/chat"]',
-        expectedPathname: "/dashboard/chat",
+        id: "komm",
+        label: "Open team communication",
+        selector: '[data-autoplay="nav-/dashboard/komm"]',
+        expectedPathname: "/dashboard/komm",
       },
       {
         id: "ai",
@@ -892,6 +961,19 @@ export function DashboardShell({
     };
   }, [isAutoplayMode]);
 
+  const isSetupPage = pathname === "/dashboard/setup";
+
+  // Redirect to setup guide on page load when setup is incomplete.
+  // Only fires once per mount (not on in-app navigation) via ref guard.
+  // Uses window.location.href for hard navigation to force server layout re-fetch.
+  const setupRedirectFired = useRef(false);
+  useEffect(() => {
+    if (setupRedirectFired.current) return;
+    if (isSetupPage || setupGuideCompleted || setupDismissed) return;
+    setupRedirectFired.current = true;
+    window.location.href = "/dashboard/setup";
+  }, [isSetupPage, setupGuideCompleted, setupDismissed]);
+
   // Helper to determine if a link is active
   const isActive = (path: string) => {
     // Exact match for dashboard root, otherwise starts with
@@ -901,20 +983,10 @@ export function DashboardShell({
     return pathname.startsWith(path);
   };
 
-  const isSetupPage = pathname === "/dashboard/setup";
-
-  // Route incomplete workspaces into the setup guide using live module status,
-  // not the legacy onboarding_completed flag from older onboarding narratives.
-  useEffect(() => {
-    if (isSetupLoading || !isSetupMode || isSetupPage || isDashboardPage) {
-      return;
-    }
-
-    window.location.href = "/dashboard/setup";
-  }, [isSetupLoading, isSetupMode, isSetupPage, isDashboardPage]);
-
-  // ── Setup mode: fullscreen, no chrome ──
-  if ((isSetupMode && isDashboardPage) || isSetupPage) {
+  // /dashboard/setup renders full-screen (no header/menu) — kept as-is.
+  // Routing is decoupled from cascade tasks: setup redirect is now driven by
+  // the workspace.setup_guide_completed flag (see useEffect above).
+  if (isSetupPage) {
     return (
       <DashboardContext.Provider value={dashboardContextValue}>
         <div
@@ -931,946 +1003,1062 @@ export function DashboardShell({
   return (
     <DocumentModeProvider>
       <VoiceToolsProvider>
-        <div
-          className={`flex h-screen flex-col overflow-hidden font-sans transition-colors duration-300 selection:bg-orange-500/30 ${
-            isDark ? "dark" : ""
-          } bg-background text-foreground print:block print:h-auto print:overflow-visible`}
-        >
-          {/* TOP CONTEXT BAR */}
-          {/* UI Events:
+        <EntityDrawerProvider>
+          <div
+            style={themeReady ? undefined : { opacity: 0 }}
+            className={`flex h-screen flex-col overflow-hidden font-sans transition-colors duration-300 selection:bg-orange-500/30 ${
+              isDark ? "dark" : ""
+            } bg-background text-foreground print:block print:h-auto print:overflow-visible`}
+          >
+            {/* TOP CONTEXT BAR */}
+            {/* UI Events:
             - action: toggleTheme() (sun/moon button)
             - action: openVoiceAssistant() (mic button)
             - color-regime: isDark — dark=near-black, light=warm-cream header with orange accent */}
-          <header
-            className={`relative z-30 flex h-14 items-center justify-between border-b px-6 transition-colors duration-300 ${
-              isDark
-                ? "border-border bg-background"
-                : "border-[oklch(0.91_0.004_55)] bg-[oklch(0.98_0.003_55)] shadow-sm"
-            } print:hidden`}
-          >
-            <div className="flex items-center gap-6">
-              <WorkspaceSwitcher isDark={isDark} />
+            <header
+              className={`relative z-30 flex h-14 items-center justify-between border-b px-6 transition-colors duration-300 ${
+                isDark
+                  ? "border-border bg-background"
+                  : "border-[oklch(0.91_0.004_55)] bg-[oklch(0.98_0.003_55)] shadow-sm"
+              } print:hidden`}
+            >
+              <div className="flex items-center gap-6">
+                <WorkspaceSwitcher isDark={isDark} />
 
-              <div className="flex items-center gap-2 text-sm">
-                <span className={isDark ? "text-muted-foreground" : "text-[oklch(0.52_0.02_50)]"}>
-                  Sesong:
-                </span>
-                <span
-                  className={`font-semibold ${isDark ? "text-foreground" : "text-[oklch(0.25_0.01_50)]"}`}
-                >
-                  Vinter 2026
-                </span>
-                <div
-                  className={`ml-2 flex items-center gap-1.5 rounded border px-2 py-0.5 ${
-                    isDark
-                      ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
-                      : "border-emerald-200 bg-emerald-50 text-emerald-700"
-                  }`}
-                >
-                  <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
-                  <span className="text-[10px] font-bold tracking-wider uppercase">Aktiv</span>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className={isDark ? "text-muted-foreground" : "text-[oklch(0.52_0.02_50)]"}>
+                    Sesong:
+                  </span>
+                  <span
+                    className={`font-semibold ${isDark ? "text-foreground" : "text-[oklch(0.25_0.01_50)]"}`}
+                  >
+                    Vinter 2026
+                  </span>
+                  <div
+                    className={`ml-2 flex items-center gap-1.5 rounded border px-2 py-0.5 ${
+                      isDark
+                        ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
+                        : "border-emerald-200 bg-emerald-50 text-emerald-700"
+                    }`}
+                  >
+                    <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+                    <span className="text-[10px] font-bold tracking-wider uppercase">Aktiv</span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => setIsDemoMode((prev) => !prev)}
-                data-autoplay="top-demo-toggle"
-                className={`rounded-md border px-2.5 py-1 text-[11px] font-bold tracking-wide transition-colors ${
-                  isDemoMode
-                    ? isDark
-                      ? "border-orange-500/30 bg-orange-500/15 text-orange-300"
-                      : "border-orange-300 bg-orange-100 text-orange-700"
-                    : isDark
-                      ? "border-zinc-700 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
-                      : "border-zinc-300 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-800"
-                }`}
-              >
-                Showcase {isDemoMode ? "On" : "Off"}
-              </button>
-
-              <button
-                onClick={() => setIsDocumentMode(!isDocumentMode)}
-                className={`rounded-md p-1.5 transition-colors ${
-                  isDocumentMode
-                    ? "bg-orange-500/20 text-orange-400"
-                    : isDark
-                      ? "text-zinc-400 hover:bg-zinc-800 hover:text-white"
-                      : "text-[oklch(0.48_0.02_50)] hover:bg-[oklch(0.93_0.005_55)] hover:text-[oklch(0.25_0.01_50)]"
-                }`}
-                title={isDocumentMode ? "Tilbake til drift" : "Dokumentmodus"}
-              >
-                <BookOpen className="h-4 w-4" />
-              </button>
-
-              <button
-                onClick={() => setIsDark(!isDark)}
-                data-autoplay="top-theme-toggle"
-                className={`rounded-md p-1.5 transition-colors ${
-                  isDark
-                    ? "text-zinc-400 hover:bg-zinc-800 hover:text-white"
-                    : "text-[oklch(0.48_0.02_50)] hover:bg-[oklch(0.93_0.005_55)] hover:text-[oklch(0.25_0.01_50)]"
-                }`}
-              >
-                {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-              </button>
-
-              {/* Header Voice Assistant (lazy-loaded to avoid shell bundle bloat) */}
-              <div className="relative">
+              <div className="flex items-center gap-4">
                 <button
-                  onClick={() => {
-                    setVoiceSessionOverride(null);
-                    setIsAssistantOpen(!isAssistantOpen);
-                  }}
-                  data-autoplay="top-mic-toggle"
+                  onClick={() => setIsDemoMode((prev) => !prev)}
+                  data-autoplay="top-demo-toggle"
+                  className={`rounded-md border px-2.5 py-1 text-[11px] font-bold tracking-wide transition-colors ${
+                    isDemoMode
+                      ? isDark
+                        ? "border-orange-500/30 bg-orange-500/15 text-orange-300"
+                        : "border-orange-300 bg-orange-100 text-orange-700"
+                      : isDark
+                        ? "border-zinc-700 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
+                        : "border-zinc-300 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-800"
+                  }`}
+                >
+                  Showcase {isDemoMode ? "On" : "Off"}
+                </button>
+
+                <button
+                  onClick={() => setIsDocumentMode(!isDocumentMode)}
                   className={`rounded-md p-1.5 transition-colors ${
-                    isAssistantOpen
+                    isDocumentMode
                       ? "bg-orange-500/20 text-orange-400"
                       : isDark
                         ? "text-zinc-400 hover:bg-zinc-800 hover:text-white"
                         : "text-[oklch(0.48_0.02_50)] hover:bg-[oklch(0.93_0.005_55)] hover:text-[oklch(0.25_0.01_50)]"
                   }`}
+                  title={isDocumentMode ? "Tilbake til drift" : "Dokumentmodus"}
                 >
-                  <Mic className="h-4 w-4" />
+                  <BookOpen className="h-4 w-4" />
                 </button>
 
-                <VoiceAssistantWithTools
-                  isOpen={isAssistantOpen}
-                  missionId={resolveMissionForRoute(pathname)}
-                  sessionContext={
-                    voiceSessionOverride ?? buildVoiceSessionContext(pathname, adminView)
-                  }
-                  onClose={() => {
-                    setIsAssistantOpen(false);
-                    setVoiceSessionOverride(null);
-                  }}
-                />
-              </div>
-
-              <UserMenu isDark={isDark} />
-            </div>
-          </header>
-
-          <ContractPendingBanner />
-
-          {(autoplayUiState.isRunning || autoplayUiState.notices.length > 0) && (
-            <div className="pointer-events-none fixed top-18 right-6 z-[90] flex max-h-[calc(100vh-5rem)] w-[360px] flex-col gap-3 overflow-hidden">
-              <div
-                className={`animate-in slide-in-from-right-2 fade-in rounded-xl border p-3 shadow-xl backdrop-blur-sm ${
-                  isDark
-                    ? "border-zinc-700 bg-zinc-900/92 text-zinc-100"
-                    : "border-zinc-200 bg-white/95 text-zinc-900"
-                }`}
-              >
-                <div className="mb-2 flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-orange-500" />
-                    <span className="text-xs font-semibold tracking-wide uppercase">
-                      Showcase Flow
-                    </span>
-                  </div>
-                  {autoplayUiState.isRunning ? (
-                    <span className="flex items-center gap-1 text-[11px] text-orange-500">
-                      <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
-                      Running
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-1 text-[11px] text-emerald-500">
-                      <CheckCircle2 className="h-3.5 w-3.5" />
-                      Done
-                    </span>
-                  )}
-                </div>
-
-                <p
-                  className={`mb-2 text-[13px] font-medium ${isDark ? "text-zinc-100" : "text-zinc-900"}`}
+                <button
+                  onClick={() => setIsDark(!isDark)}
+                  data-autoplay="top-theme-toggle"
+                  className={`rounded-md p-1.5 transition-colors ${
+                    isDark
+                      ? "text-zinc-400 hover:bg-zinc-800 hover:text-white"
+                      : "text-[oklch(0.48_0.02_50)] hover:bg-[oklch(0.93_0.005_55)] hover:text-[oklch(0.25_0.01_50)]"
+                  }`}
                 >
-                  {autoplayUiState.currentStepLabel || "Waiting for autoplay"}
-                </p>
+                  {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                </button>
 
-                <div
-                  className={`mb-2 h-1.5 overflow-hidden rounded-full ${isDark ? "bg-zinc-800" : "bg-zinc-200"}`}
-                >
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-orange-500 to-rose-500 transition-all duration-500"
-                    style={{
-                      width:
-                        autoplayUiState.totalCount > 0
-                          ? `${Math.round((autoplayUiState.completedCount / autoplayUiState.totalCount) * 100)}%`
-                          : "0%",
+                {/* Header Voice Assistant (lazy-loaded to avoid shell bundle bloat) */}
+                <div className="relative">
+                  <button
+                    onClick={() => {
+                      setVoiceSessionOverride(null);
+                      setIsAssistantOpen(!isAssistantOpen);
+                    }}
+                    data-autoplay="top-mic-toggle"
+                    className={`rounded-md p-1.5 transition-colors ${
+                      isAssistantOpen
+                        ? "bg-orange-500/20 text-orange-400"
+                        : isDark
+                          ? "text-zinc-400 hover:bg-zinc-800 hover:text-white"
+                          : "text-[oklch(0.48_0.02_50)] hover:bg-[oklch(0.93_0.005_55)] hover:text-[oklch(0.25_0.01_50)]"
+                    }`}
+                  >
+                    <Mic className="h-4 w-4" />
+                  </button>
+
+                  <VoiceAssistantWithTools
+                    isOpen={isAssistantOpen}
+                    missionId={resolveMissionForRoute(pathname)}
+                    sessionContext={
+                      voiceSessionOverride ?? buildVoiceSessionContext(pathname, adminView)
+                    }
+                    onClose={() => {
+                      setIsAssistantOpen(false);
+                      setVoiceSessionOverride(null);
                     }}
                   />
                 </div>
 
-                <div
-                  className={`flex items-center justify-between text-[11px] ${isDark ? "text-zinc-400" : "text-zinc-600"}`}
-                >
-                  <span>
-                    {autoplayUiState.completedCount}/{autoplayUiState.totalCount} steps
-                  </span>
-                  <span>
-                    {autoplayUiState.isSettling ? "Waiting for UI settle..." : "UI settled"}
-                  </span>
-                </div>
+                <NotificationBell profileId={profileId ?? undefined} />
+                <UserMenu isDark={isDark} />
               </div>
+            </header>
 
-              {autoplayUiState.notices.map((notice) => (
+            <ContractPendingBanner />
+
+            {(autoplayUiState.isRunning || autoplayUiState.notices.length > 0) && (
+              <div className="pointer-events-none fixed top-18 right-6 z-[90] flex max-h-[calc(100vh-5rem)] w-[360px] flex-col gap-3 overflow-hidden">
                 <div
-                  key={notice.id}
-                  className={`animate-in slide-in-from-right-3 fade-in rounded-xl border p-3 shadow-lg ${
-                    notice.tone === "success"
-                      ? isDark
-                        ? "border-emerald-700/70 bg-emerald-950/70 text-emerald-100"
-                        : "border-emerald-200 bg-emerald-50 text-emerald-900"
-                      : notice.tone === "warning"
-                        ? isDark
-                          ? "border-amber-700/70 bg-amber-950/70 text-amber-100"
-                          : "border-amber-200 bg-amber-50 text-amber-900"
-                        : isDark
-                          ? "border-zinc-700 bg-zinc-900/95 text-zinc-100"
-                          : "border-zinc-200 bg-white text-zinc-900"
+                  className={`animate-in slide-in-from-right-2 fade-in rounded-xl border p-3 shadow-xl backdrop-blur-sm ${
+                    isDark
+                      ? "border-zinc-700 bg-zinc-900/92 text-zinc-100"
+                      : "border-zinc-200 bg-white/95 text-zinc-900"
                   }`}
                 >
-                  <div className="mb-1 flex items-center gap-2 text-[11px] font-semibold tracking-wide uppercase">
-                    <Bell className="h-3.5 w-3.5" />
-                    {notice.title}
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-orange-500" />
+                      <span className="text-xs font-semibold tracking-wide uppercase">
+                        Showcase Flow
+                      </span>
+                    </div>
+                    {autoplayUiState.isRunning ? (
+                      <span className="flex items-center gap-1 text-[11px] text-orange-500">
+                        <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
+                        Running
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1 text-[11px] text-emerald-500">
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        Done
+                      </span>
+                    )}
                   </div>
-                  <p
-                    className={`text-[12px] leading-relaxed ${isDark ? "text-zinc-300" : "text-zinc-700"}`}
-                  >
-                    {notice.message}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
 
-          <div className="relative flex flex-1 overflow-hidden">
-            {/* LEFT SIDEBAR NAVIGATION */}
-            {/* UI Events:
+                  <p
+                    className={`mb-2 text-[13px] font-medium ${isDark ? "text-zinc-100" : "text-zinc-900"}`}
+                  >
+                    {autoplayUiState.currentStepLabel || "Waiting for autoplay"}
+                  </p>
+
+                  <div
+                    className={`mb-2 h-1.5 overflow-hidden rounded-full ${isDark ? "bg-zinc-800" : "bg-zinc-200"}`}
+                  >
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-orange-500 to-rose-500 transition-all duration-500"
+                      style={{
+                        width:
+                          autoplayUiState.totalCount > 0
+                            ? `${Math.round((autoplayUiState.completedCount / autoplayUiState.totalCount) * 100)}%`
+                            : "0%",
+                      }}
+                    />
+                  </div>
+
+                  <div
+                    className={`flex items-center justify-between text-[11px] ${isDark ? "text-zinc-400" : "text-zinc-600"}`}
+                  >
+                    <span>
+                      {autoplayUiState.completedCount}/{autoplayUiState.totalCount} steps
+                    </span>
+                    <span>
+                      {autoplayUiState.isSettling ? "Waiting for UI settle..." : "UI settled"}
+                    </span>
+                  </div>
+                </div>
+
+                {autoplayUiState.notices.map((notice) => (
+                  <div
+                    key={notice.id}
+                    className={`animate-in slide-in-from-right-3 fade-in rounded-xl border p-3 shadow-lg ${
+                      notice.tone === "success"
+                        ? isDark
+                          ? "border-emerald-700/70 bg-emerald-950/70 text-emerald-100"
+                          : "border-emerald-200 bg-emerald-50 text-emerald-900"
+                        : notice.tone === "warning"
+                          ? isDark
+                            ? "border-amber-700/70 bg-amber-950/70 text-amber-100"
+                            : "border-amber-200 bg-amber-50 text-amber-900"
+                          : isDark
+                            ? "border-zinc-700 bg-zinc-900/95 text-zinc-100"
+                            : "border-zinc-200 bg-white text-zinc-900"
+                    }`}
+                  >
+                    <div className="mb-1 flex items-center gap-2 text-[11px] font-semibold tracking-wide uppercase">
+                      <Bell className="h-3.5 w-3.5" />
+                      {notice.title}
+                    </div>
+                    <p
+                      className={`text-[12px] leading-relaxed ${isDark ? "text-zinc-300" : "text-zinc-700"}`}
+                    >
+                      {notice.message}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="relative flex flex-1 overflow-hidden">
+              {/* LEFT SIDEBAR NAVIGATION */}
+              {/* UI Events:
               - nav: all NavItem hrefs
               - action: toggleSidebarCollapse() (chevron button)
               - action: toggleAdminMode() (bottom toggle)
               - color-regime: isDark — dark=near-black, light=warm-cream gradient */}
-            <aside
-              className={`z-20 flex flex-col overflow-hidden border-r transition-[width] duration-200 ${
-                isSidebarCollapsed ? "w-16" : "w-64"
-              } ${
-                isDark
-                  ? "border-zinc-800 bg-[#0c0c0e]"
-                  : "border-[oklch(0.91_0.004_55)] bg-[oklch(0.98_0.003_55)] shadow-[1px_0_12px_-4px_oklch(0.6_0.05_50/0.08)]"
-              } print:hidden`}
-            >
-              <TooltipProvider delayDuration={0}>
-                {/* Sidebar collapse toggle — top */}
-                <div
-                  className={`flex items-center border-b ${isSidebarCollapsed ? "justify-center px-2" : "justify-end px-3"} py-2 ${
-                    isDark ? "border-zinc-800" : "border-[oklch(0.92_0.004_55)]"
-                  }`}
-                >
-                  <button
-                    onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                    className={`rounded-lg p-1.5 transition-colors ${
-                      isDark
-                        ? "text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300"
-                        : "text-[oklch(0.52_0.02_50)] hover:bg-[oklch(0.94_0.005_55)] hover:text-[oklch(0.3_0.02_50)]"
-                    }`}
-                  >
-                    {isSidebarCollapsed ? (
-                      <ChevronRight className="h-4 w-4" />
-                    ) : (
-                      <ChevronLeft className="h-4 w-4" />
-                    )}
-                  </button>
-                </div>
-
-                <nav
-                  className={`relative flex-1 space-y-0 overflow-hidden py-1 ${isSidebarCollapsed ? "px-2" : "px-2.5"}`}
-                >
-                  {isDocumentMode ? (
-                    <DocumentModeSidebar isDark={isDark} />
-                  ) : isAdminMode ? (
-                    isDemoMode ? (
-                      <>
-                        {!isSidebarCollapsed && (
-                          <div
-                            className={`mt-1 mb-1 px-2 text-[9px] font-bold tracking-widest uppercase ${
-                              isDark ? "text-zinc-500" : "text-[oklch(0.60_0.018_45)]"
-                            }`}
-                          >
-                            Showcase
-                          </div>
-                        )}
-                        <NavItem
-                          href="/dashboard"
-                          icon={LayoutDashboard}
-                          label="Oversikt"
-                          isDark={isDark}
-                          active={isActive("/dashboard")}
-                          isCollapsed={isSidebarCollapsed}
-                        />
-                        <NavItem
-                          href="/dashboard"
-                          icon={Shield}
-                          label="Event Center"
-                          isDark={isDark}
-                          active={isDashboardPage && adminView === "guardian"}
-                          isCollapsed={isSidebarCollapsed}
-                          onClick={() => setAdminView("guardian")}
-                          useButton
-                        />
-                        <NavItem
-                          href="/dashboard/schedule"
-                          icon={CalendarDays}
-                          label="Templates"
-                          isDark={isDark}
-                          active={isActive("/dashboard/schedule")}
-                          isCollapsed={isSidebarCollapsed}
-                        />
-                        <NavItem
-                          href="/dashboard/reports"
-                          icon={TrendingUp}
-                          label="Analytics"
-                          isDark={isDark}
-                          active={isActive("/dashboard/reports")}
-                          isCollapsed={isSidebarCollapsed}
-                        />
-                        <NavItem
-                          href="/onboarding"
-                          icon={Bot}
-                          label="System Intelligence"
-                          isDark={isDark}
-                          active={false}
-                          isCollapsed={isSidebarCollapsed}
-                        />
-                      </>
-                    ) : (
-                      <>
-                        {!isSidebarCollapsed && (
-                          <div
-                            className={`mt-1 mb-1 px-2 text-[9px] font-bold tracking-widest uppercase ${
-                              isDark ? "text-zinc-500" : "text-[oklch(0.60_0.018_45)]"
-                            }`}
-                          >
-                            Ledelse
-                          </div>
-                        )}
-                        <NavItem
-                          href="/dashboard"
-                          icon={LayoutDashboard}
-                          label="Oversikt"
-                          isDark={isDark}
-                          active={isActive("/dashboard")}
-                          isCollapsed={isSidebarCollapsed}
-                        />
-                        <NavItem
-                          href="/dashboard/people"
-                          icon={Users}
-                          label="Ansatte"
-                          isDark={isDark}
-                          badge="2 Forespørsler"
-                          active={isActive("/dashboard/people")}
-                          isCollapsed={isSidebarCollapsed}
-                        />
-                        <NavItem
-                          href="/dashboard/schedule"
-                          icon={CalendarDays}
-                          label="Vaktplan"
-                          isDark={isDark}
-                          active={isActive("/dashboard/schedule")}
-                          isCollapsed={isSidebarCollapsed}
-                        />
-
-                        {!isSidebarCollapsed && (
-                          <div
-                            className={`mt-3 mb-1 px-2 text-[9px] font-bold tracking-widest uppercase ${
-                              isDark ? "text-zinc-500" : "text-[oklch(0.60_0.018_45)]"
-                            }`}
-                          >
-                            Operasjoner
-                          </div>
-                        )}
-                        {isSidebarCollapsed && <div className="mt-2" />}
-                        <NavItem
-                          href="/dashboard/operations"
-                          icon={Activity}
-                          label="Drift"
-                          isDark={isDark}
-                          active={isActive("/dashboard/operations")}
-                          isCollapsed={isSidebarCollapsed}
-                        />
-                        <NavItem
-                          href="/dashboard/reports"
-                          icon={TrendingUp}
-                          label="Rapporter"
-                          isDark={isDark}
-                          active={isActive("/dashboard/reports")}
-                          isCollapsed={isSidebarCollapsed}
-                        />
-
-                        {!isSidebarCollapsed && (
-                          <div
-                            className={`mt-3 mb-1 px-2 text-[9px] font-bold tracking-widest uppercase ${
-                              isDark ? "text-zinc-500" : "text-[oklch(0.60_0.018_45)]"
-                            }`}
-                          >
-                            Administrasjon
-                          </div>
-                        )}
-                        {isSidebarCollapsed && <div className="mt-2" />}
-                        <NavItem
-                          href="/dashboard/hms"
-                          icon={ShieldCheck}
-                          label="HMS"
-                          isDark={isDark}
-                          active={isActive("/dashboard/hms")}
-                          isCollapsed={isSidebarCollapsed}
-                        />
-                        <NavItem
-                          href="/dashboard/season"
-                          icon={Gamepad2}
-                          label="Sesong"
-                          isDark={isDark}
-                          active={isActive("/dashboard/season")}
-                          isCollapsed={isSidebarCollapsed}
-                        />
-                        <NavItem
-                          href="/dashboard/organization"
-                          icon={Building2}
-                          label="Organisasjon"
-                          isDark={isDark}
-                          active={isActive("/dashboard/organization")}
-                          isCollapsed={isSidebarCollapsed}
-                        />
-                        <NavItem
-                          href="/dashboard/website"
-                          icon={Globe}
-                          label="Nettside"
-                          isDark={isDark}
-                          active={isActive("/dashboard/website")}
-                          isCollapsed={isSidebarCollapsed}
-                        />
-                        <NavItem
-                          href="/dashboard"
-                          icon={Shield}
-                          label="Vakt"
-                          isDark={isDark}
-                          active={isDashboardPage && adminView === "guardian"}
-                          isCollapsed={isSidebarCollapsed}
-                          onClick={() => setAdminView("guardian")}
-                        />
-                      </>
-                    )
-                  ) : (
-                    <>
-                      {!isSidebarCollapsed && (
-                        <div
-                          className={`mt-1 mb-1 px-2 text-[9px] font-bold tracking-widest uppercase ${
-                            isDark ? "text-zinc-500" : "text-[oklch(0.60_0.018_45)]"
-                          }`}
-                        >
-                          Mitt arbeidsrom
-                        </div>
-                      )}
-                      <NavItem
-                        href="/dashboard"
-                        icon={LayoutDashboard}
-                        label="Oversikt"
-                        isDark={isDark}
-                        active={isActive("/dashboard")}
-                        isCollapsed={isSidebarCollapsed}
-                      />
-                      <NavItem
-                        href="/dashboard/my-schedule"
-                        icon={Calendar}
-                        label="Min vaktplan"
-                        isDark={isDark}
-                        active={isActive("/dashboard/my-schedule")}
-                        isCollapsed={isSidebarCollapsed}
-                      />
-                      <NavItem
-                        href="/dashboard/my-training"
-                        icon={GraduationCap}
-                        label="Min opplæring"
-                        isDark={isDark}
-                        badge="1 forfalt"
-                        active={isActive("/dashboard/my-training")}
-                        isCollapsed={isSidebarCollapsed}
-                      />
-                      <NavItem
-                        href="/dashboard/my-cv"
-                        icon={FileText}
-                        label="Min profil"
-                        isDark={isDark}
-                        active={isActive("/dashboard/my-cv")}
-                        isCollapsed={isSidebarCollapsed}
-                      />
-                      <NavItem
-                        href="/dashboard/my-salary"
-                        icon={Banknote}
-                        label="Min lønn"
-                        isDark={isDark}
-                        active={isActive("/dashboard/my-salary")}
-                        isCollapsed={isSidebarCollapsed}
-                      />
-                    </>
-                  )}
-
-                  {!isDemoMode && (
-                    <>
-                      {!isSidebarCollapsed && (
-                        <div
-                          className={`mt-3 mb-1 px-2 text-[9px] font-bold tracking-widest uppercase ${
-                            isDark ? "text-zinc-500" : "text-zinc-400"
-                          }`}
-                        >
-                          Kommunikasjon
-                        </div>
-                      )}
-                      {isSidebarCollapsed && <div className="mt-2" />}
-                      <NavItem
-                        href="/dashboard/komm"
-                        icon={Radio}
-                        label="Komm"
-                        isDark={isDark}
-                        active={isActive("/dashboard/komm")}
-                        isCollapsed={isSidebarCollapsed}
-                      />
-                      <NavItem
-                        href="/dashboard/chat"
-                        icon={MessageSquare}
-                        label="Chat"
-                        isDark={isDark}
-                        badge="3"
-                        active={isActive("/dashboard/chat")}
-                        isCollapsed={isSidebarCollapsed}
-                      />
-                      <NavItem
-                        href="/dashboard/ai"
-                        icon={Bot}
-                        label="Mr. Botsson"
-                        isDark={isDark}
-                        ai
-                        active={isActive("/dashboard/ai")}
-                        isCollapsed={isSidebarCollapsed}
-                      />
-                      <NavItem
-                        href="/dashboard/onboarding-assistant"
-                        icon={Bot}
-                        label="Onboarding-assistent"
-                        isDark={isDark}
-                        ai
-                        active={isActive("/dashboard/onboarding-assistant")}
-                        isCollapsed={isSidebarCollapsed}
-                      />
-
-                      <div className="mt-3 space-y-0.5 pt-1">
-                        <NavItem
-                          href="/dashboard/settings"
-                          icon={Settings}
-                          label="Innstillinger"
-                          isDark={isDark}
-                          active={isActive("/dashboard/settings")}
-                          isCollapsed={isSidebarCollapsed}
-                        />
-                        <NavItem
-                          href="/dashboard/help"
-                          icon={HelpCircle}
-                          label="Hjelp"
-                          isDark={isDark}
-                          active={isActive("/dashboard/help")}
-                          isCollapsed={isSidebarCollapsed}
-                        />
-                      </div>
-                    </>
-                  )}
-                </nav>
-
-                {/* Sidebar bottom controls */}
-                <div
-                  className={`border-t ${isSidebarCollapsed ? "p-2" : "p-4"} ${
-                    isDark
-                      ? "border-zinc-800 bg-[#0a0a0c]"
-                      : "border-[oklch(0.92_0.004_55)] bg-[oklch(0.96_0.004_55)]"
-                  } ${isSidebarCollapsed ? "p-1.5" : "p-2"} space-y-1`}
-                >
-                  {/* Admin/Employee toggle */}
-                  <button
-                    onClick={() => setIsAdminMode(!isAdminMode)}
-                    data-autoplay="admin-mode-toggle"
-                    className={`flex w-full items-center ${isSidebarCollapsed ? "justify-center" : "justify-between"} rounded-lg border ${isSidebarCollapsed ? "px-0 py-1.5" : "px-2.5 py-1.5"} text-xs font-semibold transition-all ${
-                      isAdminMode
-                        ? isDark
-                          ? "border-orange-500/20 bg-orange-500/10 text-orange-500"
-                          : "border-orange-200 bg-orange-50 text-orange-600"
-                        : isDark
-                          ? "border-zinc-700 bg-zinc-800 text-zinc-300"
-                          : "border-zinc-200 bg-white text-zinc-700 shadow-sm"
-                    }`}
-                  >
-                    {!isSidebarCollapsed && (
-                      <span>{isAdminMode ? "Adminmodus" : "Ansattmodus"}</span>
-                    )}
-                    <div
-                      className={`flex h-4 w-8 items-center rounded-full p-0.5 transition-colors ${
-                        isAdminMode ? "bg-orange-500" : "bg-zinc-400"
-                      }`}
-                    >
-                      <div
-                        className={`h-3 w-3 rounded-full bg-white shadow-sm transition-transform ${
-                          isAdminMode ? "translate-x-4" : "translate-x-0"
-                        }`}
-                      />
-                    </div>
-                  </button>
-                </div>
-              </TooltipProvider>
-            </aside>
-
-            {/* MAIN CONTENT AREA */}
-            <main
-              className={`relative flex h-full flex-1 flex-col overflow-hidden transition-colors duration-300 ${
-                isDark ? "bg-zinc-950" : "bg-[oklch(0.965_0.003_55)]"
-              } print:block print:h-auto print:overflow-visible print:bg-white`}
-            >
-              {/* ACTION BAR */}
-              <div
-                className={`sticky top-0 z-10 flex h-16 flex-shrink-0 items-center justify-between border-b px-6 transition-colors duration-300 md:px-8 ${
+              <aside
+                className={`z-20 flex flex-col overflow-hidden border-r transition-[width] duration-200 ${
+                  isSidebarCollapsed ? "w-16" : "w-64"
+                } ${
                   isDark
-                    ? "border-zinc-900 bg-zinc-950/90"
-                    : "border-[oklch(0.92_0.004_55)] bg-[oklch(0.98_0.003_55/0.92)] shadow-sm backdrop-blur-md"
+                    ? "border-zinc-800 bg-[#0c0c0e]"
+                    : "border-[oklch(0.91_0.004_55)] bg-[oklch(0.98_0.003_55)] shadow-[1px_0_12px_-4px_oklch(0.6_0.05_50/0.08)]"
                 } print:hidden`}
               >
-                <div
-                  className={`flex items-center gap-2.5 text-sm ${
-                    isDark ? "text-zinc-400" : "text-[oklch(0.52_0.02_50)]"
-                  }`}
-                >
-                  <span
-                    className={`cursor-pointer transition-colors ${
-                      isDark ? "hover:text-zinc-200" : "hover:text-[oklch(0.25_0.015_45)]"
+                <TooltipProvider delayDuration={0}>
+                  {/* Sidebar collapse toggle — top */}
+                  <div
+                    className={`flex items-center border-b ${isSidebarCollapsed ? "justify-center px-2" : "justify-end px-3"} py-2 ${
+                      isDark ? "border-zinc-800" : "border-[oklch(0.92_0.004_55)]"
                     }`}
                   >
-                    {isDocumentMode ? "Handbok" : isAdminMode ? "Drift" : "Arbeidsrom"}
-                  </span>
-                  <ChevronRight className="h-3.5 w-3.5" />
-                  <span
-                    className={`rounded-md border px-2.5 py-1 font-semibold capitalize shadow-sm ${
-                      isDark
-                        ? "border-zinc-800 bg-zinc-900 text-zinc-100"
-                        : "border-[oklch(0.88_0.015_50)] bg-[oklch(0.95_0.004_55)] text-[oklch(0.22_0.02_45)]"
-                    }`}
-                  >
-                    {isDocumentMode
-                      ? "Dokumentmodus"
-                      : ((
-                          {
-                            schedule: "Vaktplan",
-                            people: "Ansatte",
-                            reports: "Rapporter",
-                            operations: "Drift",
-                            hms: "HMS",
-                            governance: "HMS",
-                            season: "Sesong",
-                            organization: "Organisasjon",
-                            settings: "Innstillinger",
-                            help: "Hjelp",
-                            chat: "Chat",
-                            ai: "Mr. Botsson",
-                            "onboarding-assistant": "Onboarding-assistent",
-                            "my-schedule": "Min vaktplan",
-                            "my-training": "Min opplæring",
-                            "my-cv": "Min profil",
-                            "my-salary": "Min lønn",
-                          } as Record<string, string>
-                        )[pathname.split("/").pop() ?? ""] ?? "Oversikt")}
-                  </span>
-                </div>
+                    <button
+                      onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                      className={`rounded-lg p-1.5 transition-colors ${
+                        isDark
+                          ? "text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300"
+                          : "text-[oklch(0.52_0.02_50)] hover:bg-[oklch(0.94_0.005_55)] hover:text-[oklch(0.3_0.02_50)]"
+                      }`}
+                    >
+                      {isSidebarCollapsed ? (
+                        <ChevronRight className="h-4 w-4" />
+                      ) : (
+                        <ChevronLeft className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
 
-                <div className="flex items-center gap-5">
-                  {/* Schedule page specific controls */}
-                  {!isDocumentMode && pathname === "/dashboard/schedule" && isAdminMode && (
-                    <>
-                      {/* LAYOUT TOGGLE */}
+                  <nav
+                    className={`relative flex-1 space-y-0 overflow-hidden py-1 ${isSidebarCollapsed ? "px-2" : "px-2.5"}`}
+                  >
+                    {isDocumentMode ? (
+                      <DocumentModeSidebar isDark={isDark} />
+                    ) : isAdminMode ? (
+                      isDemoMode ? (
+                        <>
+                          {!isSidebarCollapsed && (
+                            <div
+                              className={`mt-1 mb-1 px-2 text-[9px] font-bold tracking-widest uppercase ${
+                                isDark ? "text-zinc-500" : "text-[oklch(0.60_0.018_45)]"
+                              }`}
+                            >
+                              Showcase
+                            </div>
+                          )}
+                          <NavItem
+                            href="/dashboard"
+                            icon={LayoutDashboard}
+                            label="Oversikt"
+                            isDark={isDark}
+                            active={isActive("/dashboard")}
+                            isCollapsed={isSidebarCollapsed}
+                          />
+                          <NavItem
+                            href="/dashboard"
+                            icon={ListChecks}
+                            label="Å gjøre"
+                            isDark={isDark}
+                            active={isDashboardPage && adminView === "todo"}
+                            isCollapsed={isSidebarCollapsed}
+                            onClick={() => setAdminView("todo")}
+                            useButton
+                          />
+                          <NavItem
+                            href="/dashboard/schedule"
+                            icon={CalendarDays}
+                            label="Templates"
+                            isDark={isDark}
+                            active={isActive("/dashboard/schedule")}
+                            isCollapsed={isSidebarCollapsed}
+                          />
+                          <NavItem
+                            href="/dashboard/reports"
+                            icon={TrendingUp}
+                            label="Analytics"
+                            isDark={isDark}
+                            active={isActive("/dashboard/reports")}
+                            isCollapsed={isSidebarCollapsed}
+                          />
+                          <NavItem
+                            href="/onboarding"
+                            icon={Bot}
+                            label="System Intelligence"
+                            isDark={isDark}
+                            active={false}
+                            isCollapsed={isSidebarCollapsed}
+                          />
+                        </>
+                      ) : (
+                        <>
+                          {!isSidebarCollapsed && (
+                            <div
+                              className={`mt-1 mb-1 px-2 text-[9px] font-bold tracking-widest uppercase ${
+                                isDark ? "text-zinc-500" : "text-[oklch(0.60_0.018_45)]"
+                              }`}
+                            >
+                              Ledelse
+                            </div>
+                          )}
+                          <NavItem
+                            href="/dashboard"
+                            icon={LayoutDashboard}
+                            label="Oversikt"
+                            isDark={isDark}
+                            active={isActive("/dashboard")}
+                            isCollapsed={isSidebarCollapsed}
+                          />
+                          <NavItem
+                            href="/dashboard/people"
+                            icon={Users}
+                            label="Ansatte"
+                            isDark={isDark}
+                            badge={
+                              inboundRequestCount > 0
+                                ? `${inboundRequestCount} Forespørsler`
+                                : undefined
+                            }
+                            active={isActive("/dashboard/people")}
+                            isCollapsed={isSidebarCollapsed}
+                          />
+                          <NavItem
+                            href="/dashboard/schedule"
+                            icon={CalendarDays}
+                            label="Vaktplan"
+                            isDark={isDark}
+                            active={isActive("/dashboard/schedule")}
+                            isCollapsed={isSidebarCollapsed}
+                          />
+
+                          {!isSidebarCollapsed && (
+                            <div
+                              className={`mt-3 mb-1 px-2 text-[9px] font-bold tracking-widest uppercase ${
+                                isDark ? "text-zinc-500" : "text-[oklch(0.60_0.018_45)]"
+                              }`}
+                            >
+                              Operasjoner
+                            </div>
+                          )}
+                          {isSidebarCollapsed && <div className="mt-2" />}
+                          <NavItem
+                            href="/dashboard/operations"
+                            icon={Activity}
+                            label="Drift"
+                            isDark={isDark}
+                            active={isActive("/dashboard/operations")}
+                            isCollapsed={isSidebarCollapsed}
+                          />
+                          <NavItem
+                            href="/dashboard/reports"
+                            icon={TrendingUp}
+                            label="Rapporter"
+                            isDark={isDark}
+                            active={isActive("/dashboard/reports")}
+                            isCollapsed={isSidebarCollapsed}
+                          />
+                          <NavItem
+                            href="/dashboard/reconciliation"
+                            icon={Receipt}
+                            label="Avstemming"
+                            isDark={isDark}
+                            active={isActive("/dashboard/reconciliation")}
+                            isCollapsed={isSidebarCollapsed}
+                          />
+
+                          {!isSidebarCollapsed && (
+                            <div
+                              className={`mt-3 mb-1 px-2 text-[9px] font-bold tracking-widest uppercase ${
+                                isDark ? "text-zinc-500" : "text-[oklch(0.60_0.018_45)]"
+                              }`}
+                            >
+                              Administrasjon
+                            </div>
+                          )}
+                          {isSidebarCollapsed && <div className="mt-2" />}
+                          <NavItem
+                            href="/dashboard/hms"
+                            icon={ShieldCheck}
+                            label="HMS"
+                            isDark={isDark}
+                            active={isActive("/dashboard/hms")}
+                            isCollapsed={isSidebarCollapsed}
+                          />
+                          <NavItem
+                            href="/dashboard/season"
+                            icon={Gamepad2}
+                            label="Sesong"
+                            isDark={isDark}
+                            active={isActive("/dashboard/season")}
+                            isCollapsed={isSidebarCollapsed}
+                          />
+                          <NavItem
+                            href="/dashboard/organization"
+                            icon={Building2}
+                            label="Organisasjon"
+                            isDark={isDark}
+                            active={isActive("/dashboard/organization")}
+                            isCollapsed={isSidebarCollapsed}
+                          />
+                          <NavItem
+                            href="/dashboard/website"
+                            icon={Globe}
+                            label="Nettside"
+                            isDark={isDark}
+                            active={isActive("/dashboard/website")}
+                            isCollapsed={isSidebarCollapsed}
+                          />
+                          <NavItem
+                            href="/dashboard"
+                            icon={ListChecks}
+                            label="Å gjøre"
+                            isDark={isDark}
+                            active={isDashboardPage && adminView === "todo"}
+                            isCollapsed={isSidebarCollapsed}
+                            onClick={() => setAdminView("todo")}
+                          />
+                        </>
+                      )
+                    ) : (
+                      <>
+                        {!isSidebarCollapsed && (
+                          <div
+                            className={`mt-1 mb-1 px-2 text-[9px] font-bold tracking-widest uppercase ${
+                              isDark ? "text-zinc-500" : "text-[oklch(0.60_0.018_45)]"
+                            }`}
+                          >
+                            Mitt arbeidsrom
+                          </div>
+                        )}
+                        <NavItem
+                          href="/dashboard"
+                          icon={LayoutDashboard}
+                          label="Oversikt"
+                          isDark={isDark}
+                          active={isActive("/dashboard")}
+                          isCollapsed={isSidebarCollapsed}
+                        />
+                        <NavItem
+                          href="/dashboard/my-schedule"
+                          icon={Calendar}
+                          label="Min vaktplan"
+                          isDark={isDark}
+                          active={isActive("/dashboard/my-schedule")}
+                          isCollapsed={isSidebarCollapsed}
+                        />
+                        <NavItem
+                          href="/dashboard/my-training"
+                          icon={GraduationCap}
+                          label="Min opplæring"
+                          isDark={isDark}
+                          badge="1 forfalt"
+                          active={isActive("/dashboard/my-training")}
+                          isCollapsed={isSidebarCollapsed}
+                        />
+                        <NavItem
+                          href="/dashboard/my-cv"
+                          icon={FileText}
+                          label="Min profil"
+                          isDark={isDark}
+                          active={isActive("/dashboard/my-cv")}
+                          isCollapsed={isSidebarCollapsed}
+                        />
+                        <NavItem
+                          href="/dashboard/my-salary"
+                          icon={Banknote}
+                          label="Min lønn"
+                          isDark={isDark}
+                          active={isActive("/dashboard/my-salary")}
+                          isCollapsed={isSidebarCollapsed}
+                        />
+                      </>
+                    )}
+
+                    {!isDemoMode && (
+                      <>
+                        {!isSidebarCollapsed && (
+                          <div
+                            className={`mt-3 mb-1 px-2 text-[9px] font-bold tracking-widest uppercase ${
+                              isDark ? "text-zinc-500" : "text-zinc-400"
+                            }`}
+                          >
+                            Kommunikasjon
+                          </div>
+                        )}
+                        {isSidebarCollapsed && <div className="mt-2" />}
+                        <NavItem
+                          href="/dashboard/komm"
+                          icon={Radio}
+                          label="Komm"
+                          isDark={isDark}
+                          active={isActive("/dashboard/komm")}
+                          isCollapsed={isSidebarCollapsed}
+                        />
+                        <NavItem
+                          href="/dashboard/ai"
+                          icon={Bot}
+                          label="Mr. Botsson"
+                          isDark={isDark}
+                          ai
+                          active={isActive("/dashboard/ai")}
+                          isCollapsed={isSidebarCollapsed}
+                        />
+                        <NavItem
+                          href="/dashboard/onboarding-assistant"
+                          icon={Bot}
+                          label="Onboarding-assistent"
+                          isDark={isDark}
+                          ai
+                          active={isActive("/dashboard/onboarding-assistant")}
+                          isCollapsed={isSidebarCollapsed}
+                        />
+
+                        <div className="mt-3 space-y-0.5 pt-1">
+                          <NavItem
+                            href="/dashboard/settings"
+                            icon={Settings}
+                            label="Innstillinger"
+                            isDark={isDark}
+                            active={isActive("/dashboard/settings")}
+                            isCollapsed={isSidebarCollapsed}
+                          />
+                          <NavItem
+                            href="/dashboard/help"
+                            icon={HelpCircle}
+                            label="Hjelp"
+                            isDark={isDark}
+                            active={isActive("/dashboard/help")}
+                            isCollapsed={isSidebarCollapsed}
+                          />
+                        </div>
+                      </>
+                    )}
+                  </nav>
+
+                  {/* Sidebar bottom controls */}
+                  <div
+                    className={`border-t ${isSidebarCollapsed ? "p-2" : "p-4"} ${
+                      isDark
+                        ? "border-zinc-800 bg-[#0a0a0c]"
+                        : "border-[oklch(0.92_0.004_55)] bg-[oklch(0.96_0.004_55)]"
+                    } ${isSidebarCollapsed ? "p-1.5" : "p-2"} space-y-1`}
+                  >
+                    {/* Admin/Employee toggle */}
+                    <button
+                      onClick={() => setIsAdminMode(!isAdminMode)}
+                      data-autoplay="admin-mode-toggle"
+                      className={`flex w-full items-center ${isSidebarCollapsed ? "justify-center" : "justify-between"} rounded-lg border ${isSidebarCollapsed ? "px-0 py-1.5" : "px-2.5 py-1.5"} text-xs font-semibold transition-all ${
+                        isAdminMode
+                          ? isDark
+                            ? "border-orange-500/20 bg-orange-500/10 text-orange-500"
+                            : "border-orange-200 bg-orange-50 text-orange-600"
+                          : isDark
+                            ? "border-zinc-700 bg-zinc-800 text-zinc-300"
+                            : "border-zinc-200 bg-white text-zinc-700 shadow-sm"
+                      }`}
+                    >
+                      {!isSidebarCollapsed && (
+                        <span>{isAdminMode ? "Adminmodus" : "Ansattmodus"}</span>
+                      )}
+                      <div
+                        className={`flex h-4 w-8 items-center rounded-full p-0.5 transition-colors ${
+                          isAdminMode ? "bg-orange-500" : "bg-zinc-400"
+                        }`}
+                      >
+                        <div
+                          className={`h-3 w-3 rounded-full bg-white shadow-sm transition-transform ${
+                            isAdminMode ? "translate-x-4" : "translate-x-0"
+                          }`}
+                        />
+                      </div>
+                    </button>
+                  </div>
+                </TooltipProvider>
+              </aside>
+
+              {/* MAIN CONTENT AREA */}
+              <main
+                className={`relative flex h-full flex-1 flex-col overflow-hidden transition-colors duration-300 ${
+                  isDark ? "bg-zinc-950" : "bg-[oklch(0.965_0.003_55)]"
+                } print:block print:h-auto print:overflow-visible print:bg-white`}
+              >
+                {/* ACTION BAR */}
+                <div
+                  className={`sticky top-0 z-10 flex h-16 flex-shrink-0 items-center justify-between border-b px-6 transition-colors duration-300 md:px-8 ${
+                    isDark
+                      ? "border-zinc-900 bg-zinc-950/90"
+                      : "border-[oklch(0.92_0.004_55)] bg-[oklch(0.98_0.003_55/0.92)] shadow-sm backdrop-blur-md"
+                  } print:hidden`}
+                >
+                  <div
+                    className={`flex items-center gap-2.5 text-sm ${
+                      isDark ? "text-zinc-400" : "text-[oklch(0.52_0.02_50)]"
+                    }`}
+                  >
+                    <span
+                      className={`cursor-pointer transition-colors ${
+                        isDark ? "hover:text-zinc-200" : "hover:text-[oklch(0.25_0.015_45)]"
+                      }`}
+                    >
+                      {isDocumentMode ? "Handbok" : isAdminMode ? "Drift" : "Arbeidsrom"}
+                    </span>
+                    <ChevronRight className="h-3.5 w-3.5" />
+                    <span
+                      className={`rounded-md border px-2.5 py-1 font-semibold capitalize shadow-sm ${
+                        isDark
+                          ? "border-zinc-800 bg-zinc-900 text-zinc-100"
+                          : "border-[oklch(0.88_0.015_50)] bg-[oklch(0.95_0.004_55)] text-[oklch(0.22_0.02_45)]"
+                      }`}
+                    >
+                      {isDocumentMode
+                        ? "Dokumentmodus"
+                        : ((
+                            {
+                              schedule: "Vaktplan",
+                              people: "Ansatte",
+                              reports: "Rapporter",
+                              operations: "Drift",
+                              hms: "HMS",
+                              governance: "HMS",
+                              season: "Sesong",
+                              organization: "Organisasjon",
+                              settings: "Innstillinger",
+                              help: "Hjelp",
+                              komm: "Komm",
+                              ai: "Mr. Botsson",
+                              "onboarding-assistant": "Onboarding-assistent",
+                              "my-schedule": "Min vaktplan",
+                              "my-training": "Min opplæring",
+                              "my-cv": "Min profil",
+                              "my-salary": "Min lønn",
+                            } as Record<string, string>
+                          )[pathname.split("/").pop() ?? ""] ?? "Oversikt")}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-5">
+                    {/* Schedule page specific controls */}
+                    {!isDocumentMode && pathname === "/dashboard/schedule" && isAdminMode && (
+                      <>
+                        {/* LAYOUT TOGGLE */}
+                        <div
+                          className={`hidden rounded-xl border p-1 shadow-sm md:flex ${isDark ? "border-zinc-800 bg-[#0a0a0c]" : "border-zinc-200 bg-zinc-100"} mr-2`}
+                        >
+                          <button
+                            onClick={() => setScheduleLayout("daily")}
+                            data-autoplay="schedule-layout-daily"
+                            className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "daily" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : isDark ? "text-zinc-500 hover:text-white" : "text-zinc-500 hover:text-zinc-900"}`}
+                          >
+                            Uke
+                          </button>
+                          <button
+                            onClick={() => setScheduleLayout("weekly")}
+                            data-autoplay="schedule-layout-weekly"
+                            className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "weekly" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : isDark ? "text-zinc-500 hover:text-white" : "text-zinc-500 hover:text-zinc-900"}`}
+                          >
+                            Rullerende
+                          </button>
+                          <button
+                            onClick={() => setScheduleLayout("monthly")}
+                            data-autoplay="schedule-layout-monthly"
+                            className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "monthly" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : isDark ? "text-zinc-500 hover:text-white" : "text-zinc-500 hover:text-zinc-900"}`}
+                          >
+                            Måned
+                          </button>
+                          <button
+                            onClick={() => setScheduleLayout("list")}
+                            data-autoplay="schedule-layout-list"
+                            className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "list" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : isDark ? "text-zinc-500 hover:text-white" : "text-zinc-500 hover:text-zinc-900"}`}
+                          >
+                            Vaktliste
+                          </button>
+                          <button
+                            onClick={() => setScheduleLayout("grid")}
+                            data-autoplay="schedule-layout-grid"
+                            className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "grid" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : isDark ? "text-zinc-500 hover:text-white" : "text-zinc-500 hover:text-zinc-900"}`}
+                          >
+                            Vaktgrid
+                          </button>
+                        </div>
+
+                        {/* PERIOD COUNT SELECTOR (weekly only) */}
+                        {scheduleLayout === "weekly" && (
+                          <div
+                            className={`hidden items-center gap-0.5 rounded-xl border p-1 shadow-sm md:flex ${isDark ? "border-zinc-800 bg-[#0a0a0c]" : "border-zinc-200 bg-zinc-100"} mr-2`}
+                          >
+                            {[
+                              { label: "3d", count: 3 },
+                              { label: "1u", count: 7 },
+                              { label: "2u", count: 10 },
+                              { label: "3u", count: 14 },
+                            ].map(({ label, count }) => (
+                              <button
+                                key={label}
+                                onClick={() => setWeeklyPeriodCount(count)}
+                                className={`rounded-lg px-2.5 py-1.5 text-xs font-bold tabular-nums transition-all ${weeklyPeriodCount === count ? (isDark ? "bg-zinc-800 text-white shadow-sm" : "bg-white text-zinc-900 shadow-sm") : isDark ? "text-zinc-500 hover:text-white" : "text-zinc-500 hover:text-zinc-900"}`}
+                              >
+                                {label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* DATE NAVIGATION */}
+                        <div
+                          className={`flex items-center gap-2 rounded-xl border p-1 pr-3 ${isDark ? "border-zinc-800 bg-[#0a0a0c]" : "border-zinc-200 bg-zinc-100"} mr-2`}
+                        >
+                          <button
+                            onClick={() => setScheduleDateOffset((prev) => prev - 1)}
+                            data-autoplay="schedule-date-prev"
+                            className={`rounded-md p-1.5 transition-colors ${isDark ? "text-zinc-400 hover:bg-zinc-800 hover:text-white" : "text-zinc-500 hover:bg-zinc-200 hover:text-zinc-900"}`}
+                          >
+                            <ChevronLeft className="h-3.5 w-3.5" />
+                          </button>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <button
+                                className={`cursor-pointer rounded-md px-1.5 py-1 transition-colors ${
+                                  isDark
+                                    ? "text-white hover:bg-zinc-800"
+                                    : "text-zinc-900 hover:bg-zinc-200"
+                                } text-[13px] font-bold`}
+                              >
+                                {(() => {
+                                  if (scheduleLayout === "daily") {
+                                    const now = new Date();
+                                    now.setDate(
+                                      now.getDate() -
+                                        ((now.getDay() + 6) % 7) +
+                                        scheduleDateOffset * 7,
+                                    );
+                                    const w = getISOWeek(now);
+                                    const y = getISOWeekYear(now);
+                                    return `Uke ${w}, ${y}`;
+                                  }
+                                  if (scheduleLayout === "weekly") {
+                                    return scheduleDateOffset === 0
+                                      ? "Aktiv syklus"
+                                      : `Syklus ${scheduleDateOffset > 0 ? "+" : ""}${scheduleDateOffset}`;
+                                  }
+                                  const now = new Date();
+                                  now.setMonth(now.getMonth() + scheduleDateOffset);
+                                  const months = [
+                                    "Januar",
+                                    "Februar",
+                                    "Mars",
+                                    "April",
+                                    "Mai",
+                                    "Juni",
+                                    "Juli",
+                                    "August",
+                                    "September",
+                                    "Oktober",
+                                    "November",
+                                    "Desember",
+                                  ];
+                                  return `${months[now.getMonth()]} ${now.getFullYear()}`;
+                                })()}
+                              </button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="center">
+                              <CalendarUI
+                                mode="single"
+                                locale={nb}
+                                selected={(() => {
+                                  const now = new Date();
+                                  if (scheduleLayout === "monthly") {
+                                    now.setMonth(now.getMonth() + scheduleDateOffset);
+                                  } else {
+                                    now.setDate(
+                                      now.getDate() -
+                                        ((now.getDay() + 6) % 7) +
+                                        scheduleDateOffset * 7,
+                                    );
+                                  }
+                                  return now;
+                                })()}
+                                onSelect={(date) => {
+                                  if (!date) return;
+                                  const now = new Date();
+                                  if (scheduleLayout === "monthly") {
+                                    const diff =
+                                      (date.getFullYear() - now.getFullYear()) * 12 +
+                                      date.getMonth() -
+                                      now.getMonth();
+                                    setScheduleDateOffset(diff);
+                                  } else {
+                                    const startOfCurrentWeek = new Date(now);
+                                    startOfCurrentWeek.setDate(
+                                      now.getDate() - ((now.getDay() + 6) % 7),
+                                    );
+                                    startOfCurrentWeek.setHours(0, 0, 0, 0);
+
+                                    const startOfSelectedWeek = new Date(date);
+                                    startOfSelectedWeek.setDate(
+                                      date.getDate() - ((date.getDay() + 6) % 7),
+                                    );
+                                    startOfSelectedWeek.setHours(0, 0, 0, 0);
+
+                                    const diffInDays = Math.round(
+                                      (startOfSelectedWeek.getTime() -
+                                        startOfCurrentWeek.getTime()) /
+                                        (1000 * 60 * 60 * 24),
+                                    );
+                                    const offset = Math.round(diffInDays / 7);
+                                    setScheduleDateOffset(offset);
+                                  }
+                                }}
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
+                          {scheduleDateOffset !== 0 && (
+                            <button
+                              onClick={() => setScheduleDateOffset(0)}
+                              data-autoplay="schedule-date-today"
+                              className="rounded-md px-2 py-0.5 text-[10px] font-bold text-orange-400 transition-colors hover:bg-orange-500/10"
+                            >
+                              I dag
+                            </button>
+                          )}
+                          <button
+                            onClick={() => setScheduleDateOffset((prev) => prev + 1)}
+                            data-autoplay="schedule-date-next"
+                            className={`rounded-md p-1.5 transition-colors ${isDark ? "text-zinc-400 hover:bg-zinc-800 hover:text-white" : "text-zinc-500 hover:bg-zinc-200 hover:text-zinc-900"}`}
+                          >
+                            <ChevronRight className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+
+                        <button
+                          onClick={onPublishAllStable}
+                          disabled={scheduleDraftCountDisplay === 0}
+                          className={`mr-2 hidden rounded-lg px-4 py-1.5 text-[13px] font-bold text-white shadow-sm transition-all sm:block ${
+                            scheduleDraftCountDisplay > 0
+                              ? "bg-gradient-to-r from-orange-600 to-rose-600 hover:from-orange-500 hover:to-rose-500"
+                              : "cursor-not-allowed bg-zinc-700 opacity-50"
+                          }`}
+                        >
+                          Publiser ({scheduleDraftCountDisplay})
+                        </button>
+                      </>
+                    )}
+
+                    {/* Tactical/Strategic Switcher (Only on Dashboard) */}
+                    {!isDocumentMode && isDashboardPage && isAdminMode && (
                       <div
                         className={`hidden rounded-xl border p-1 shadow-sm md:flex ${isDark ? "border-zinc-800 bg-[#0a0a0c]" : "border-zinc-200 bg-zinc-100"} mr-2`}
                       >
                         <button
-                          onClick={() => setScheduleLayout("daily")}
-                          data-autoplay="schedule-layout-daily"
-                          className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "daily" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : isDark ? "text-zinc-500 hover:text-white" : "text-zinc-500 hover:text-zinc-900"}`}
-                        >
-                          Uke
-                        </button>
-                        <button
-                          onClick={() => setScheduleLayout("weekly")}
-                          data-autoplay="schedule-layout-weekly"
-                          className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "weekly" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : isDark ? "text-zinc-500 hover:text-white" : "text-zinc-500 hover:text-zinc-900"}`}
-                        >
-                          Rullerende
-                        </button>
-                        <button
-                          onClick={() => setScheduleLayout("monthly")}
-                          data-autoplay="schedule-layout-monthly"
-                          className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "monthly" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : isDark ? "text-zinc-500 hover:text-white" : "text-zinc-500 hover:text-zinc-900"}`}
-                        >
-                          Måned
-                        </button>
-                        <button
-                          onClick={() => setScheduleLayout("list")}
-                          data-autoplay="schedule-layout-list"
-                          className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "list" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : isDark ? "text-zinc-500 hover:text-white" : "text-zinc-500 hover:text-zinc-900"}`}
-                        >
-                          Vaktliste
-                        </button>
-                      </div>
-
-                      {/* PERIOD COUNT SELECTOR (weekly only) */}
-                      {scheduleLayout === "weekly" && (
-                        <div
-                          className={`hidden items-center gap-0.5 rounded-xl border p-1 shadow-sm md:flex ${isDark ? "border-zinc-800 bg-[#0a0a0c]" : "border-zinc-200 bg-zinc-100"} mr-2`}
-                        >
-                          {[
-                            { label: "3d", count: 3 },
-                            { label: "1u", count: 7 },
-                            { label: "2u", count: 10 },
-                            { label: "3u", count: 14 },
-                          ].map(({ label, count }) => (
-                            <button
-                              key={label}
-                              onClick={() => setWeeklyPeriodCount(count)}
-                              className={`rounded-lg px-2.5 py-1.5 text-xs font-bold tabular-nums transition-all ${weeklyPeriodCount === count ? (isDark ? "bg-zinc-800 text-white shadow-sm" : "bg-white text-zinc-900 shadow-sm") : isDark ? "text-zinc-500 hover:text-white" : "text-zinc-500 hover:text-zinc-900"}`}
-                            >
-                              {label}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* DATE NAVIGATION */}
-                      <div
-                        className={`flex items-center gap-2 rounded-xl border p-1 pr-3 ${isDark ? "border-zinc-800 bg-[#0a0a0c]" : "border-zinc-200 bg-zinc-100"} mr-2`}
-                      >
-                        <button
-                          onClick={() => setScheduleDateOffset((prev) => prev - 1)}
-                          data-autoplay="schedule-date-prev"
-                          className={`rounded-md p-1.5 transition-colors ${isDark ? "text-zinc-400 hover:bg-zinc-800 hover:text-white" : "text-zinc-500 hover:bg-zinc-200 hover:text-zinc-900"}`}
-                        >
-                          <ChevronLeft className="h-3.5 w-3.5" />
-                        </button>
-                        <span
-                          className={`text-[13px] font-bold ${isDark ? "text-white" : "text-zinc-900"}`}
-                        >
-                          {(() => {
-                            const baseWeek = 52;
-                            if (scheduleLayout === "daily") {
-                              const w = baseWeek + scheduleDateOffset;
-                              return `Uke ${w}, 2026`;
-                            }
-                            if (scheduleLayout === "weekly") {
-                              return scheduleDateOffset === 0
-                                ? "Aktiv syklus"
-                                : `Syklus ${scheduleDateOffset > 0 ? "+" : ""}${scheduleDateOffset}`;
-                            }
-                            const months = [
-                              "Januar",
-                              "Februar",
-                              "Mars",
-                              "April",
-                              "Mai",
-                              "Juni",
-                              "Juli",
-                              "August",
-                              "September",
-                              "Oktober",
-                              "November",
-                              "Desember",
-                            ];
-                            const monthIdx = (((11 + scheduleDateOffset) % 12) + 12) % 12;
-                            return `${months[monthIdx]} 2026`;
-                          })()}
-                        </span>
-                        {scheduleDateOffset !== 0 && (
-                          <button
-                            onClick={() => setScheduleDateOffset(0)}
-                            data-autoplay="schedule-date-today"
-                            className="rounded-md px-2 py-0.5 text-[10px] font-bold text-orange-400 transition-colors hover:bg-orange-500/10"
-                          >
-                            I dag
-                          </button>
-                        )}
-                        <button
-                          onClick={() => setScheduleDateOffset((prev) => prev + 1)}
-                          data-autoplay="schedule-date-next"
-                          className={`rounded-md p-1.5 transition-colors ${isDark ? "text-zinc-400 hover:bg-zinc-800 hover:text-white" : "text-zinc-500 hover:bg-zinc-200 hover:text-zinc-900"}`}
-                        >
-                          <ChevronRight className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-
-                      <button
-                        onClick={onPublishAllStable}
-                        disabled={scheduleDraftCountDisplay === 0}
-                        className={`mr-2 hidden rounded-lg px-4 py-1.5 text-[13px] font-bold text-white shadow-sm transition-all sm:block ${
-                          scheduleDraftCountDisplay > 0
-                            ? "bg-gradient-to-r from-orange-600 to-rose-600 hover:from-orange-500 hover:to-rose-500"
-                            : "cursor-not-allowed bg-zinc-700 opacity-50"
-                        }`}
-                      >
-                        Publiser ({scheduleDraftCountDisplay})
-                      </button>
-                    </>
-                  )}
-
-                  {/* Tactical/Strategic Switcher (Only on Dashboard) */}
-                  {!isDocumentMode && isDashboardPage && isAdminMode && (
-                    <div
-                      className={`hidden rounded-xl border p-1 shadow-sm md:flex ${isDark ? "border-zinc-800 bg-[#0a0a0c]" : "border-zinc-200 bg-zinc-100"} mr-2`}
-                    >
-                      <button
-                        onClick={() => setAdminView("tactical")}
-                        className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
-                          adminView === "tactical"
-                            ? isDark
-                              ? "bg-zinc-800 text-white shadow-sm"
-                              : "bg-white text-zinc-900 shadow-sm"
-                            : isDark
-                              ? "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200"
-                              : "text-zinc-500 hover:bg-zinc-200/50 hover:text-zinc-700"
-                        }`}
-                      >
-                        Taktisk
-                      </button>
-                      <button
-                        onClick={() => setAdminView("strategic")}
-                        className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
-                          adminView === "strategic"
-                            ? isDark
-                              ? "bg-zinc-800 text-white shadow-sm"
-                              : "bg-white text-zinc-900 shadow-sm"
-                            : isDark
-                              ? "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200"
-                              : "text-zinc-500 hover:bg-zinc-200/50 hover:text-zinc-700"
-                        }`}
-                      >
-                        Strategisk
-                      </button>
-                      <button
-                        onClick={() => setAdminView("reconciliation")}
-                        className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
-                          adminView === "reconciliation"
-                            ? isDark
-                              ? "bg-zinc-800 text-white shadow-sm"
-                              : "bg-white text-zinc-900 shadow-sm"
-                            : isDark
-                              ? "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200"
-                              : "text-zinc-500 hover:bg-zinc-200/50 hover:text-zinc-700"
-                        }`}
-                      >
-                        Avstemming
-                      </button>
-                      <button
-                        onClick={() => setAdminView("activity")}
-                        className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
-                          adminView === "activity"
-                            ? isDark
-                              ? "bg-zinc-800 text-white shadow-sm"
-                              : "bg-white text-zinc-900 shadow-sm"
-                            : isDark
-                              ? "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200"
-                              : "text-zinc-500 hover:bg-zinc-200/50 hover:text-zinc-700"
-                        }`}
-                      >
-                        Aktivitet
-                      </button>
-                      <button
-                        onClick={() => setAdminView("guardian")}
-                        className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
-                          adminView === "guardian"
-                            ? isDark
-                              ? "bg-zinc-800 text-white shadow-sm"
-                              : "bg-white text-zinc-900 shadow-sm"
-                            : isDark
-                              ? "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200"
-                              : "text-zinc-500 hover:bg-zinc-200/50 hover:text-zinc-700"
-                        }`}
-                      >
-                        <Shield className="h-3.5 w-3.5" />
-                        Vakt
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Standard Search Bar, hidden on schedule page and document mode */}
-                  {!isDocumentMode && pathname !== "/dashboard/schedule" && (
-                    <div className="group relative">
-                      <Search
-                        className={`absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transition-colors ${
-                          isDark
-                            ? "text-zinc-500 group-focus-within:text-orange-500"
-                            : "text-zinc-400 group-focus-within:text-orange-600"
-                        }`}
-                      />
-                      <button
-                        type="button"
-                        onClick={() =>
-                          window.dispatchEvent(new Event("smartout:open-global-search"))
-                        }
-                        className={`flex w-64 items-center justify-between rounded-lg border py-2 pr-3 pl-9 text-sm shadow-sm transition-all focus:ring-1 focus:outline-none ${
-                          isDark
-                            ? "border-zinc-800 bg-zinc-900 text-zinc-100 hover:bg-zinc-800/80 focus:border-orange-500/50 focus:ring-orange-500/50"
-                            : "border-zinc-200 bg-white text-zinc-900 hover:bg-zinc-50 focus:border-orange-500/50 focus:ring-orange-500/50"
-                        }`}
-                        aria-label="Open global search palette"
-                      >
-                        <span className={isDark ? "text-zinc-500" : "text-zinc-400"}>
-                          Søk i drift...
-                        </span>
-                        <kbd
-                          className={`rounded border px-1.5 py-0.5 font-mono text-[10px] font-medium ${
-                            isDark
-                              ? "border-zinc-700 bg-zinc-800 text-zinc-400"
-                              : "border-zinc-200 bg-zinc-100 text-zinc-500"
+                          onClick={() => setAdminView("tactical")}
+                          className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+                            adminView === "tactical"
+                              ? isDark
+                                ? "bg-zinc-800 text-white shadow-sm"
+                                : "bg-white text-zinc-900 shadow-sm"
+                              : isDark
+                                ? "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200"
+                                : "text-zinc-500 hover:bg-zinc-200/50 hover:text-zinc-700"
                           }`}
                         >
-                          {typeof navigator !== "undefined" && navigator.platform.includes("Mac")
-                            ? "⌘K"
-                            : "Ctrl+K"}
-                        </kbd>
-                      </button>
+                          Taktisk
+                        </button>
+                        <button
+                          onClick={() => setAdminView("strategic")}
+                          className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+                            adminView === "strategic"
+                              ? isDark
+                                ? "bg-zinc-800 text-white shadow-sm"
+                                : "bg-white text-zinc-900 shadow-sm"
+                              : isDark
+                                ? "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200"
+                                : "text-zinc-500 hover:bg-zinc-200/50 hover:text-zinc-700"
+                          }`}
+                        >
+                          Strategisk
+                        </button>
+                        <button
+                          onClick={() => setAdminView("reconciliation")}
+                          className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+                            adminView === "reconciliation"
+                              ? isDark
+                                ? "bg-zinc-800 text-white shadow-sm"
+                                : "bg-white text-zinc-900 shadow-sm"
+                              : isDark
+                                ? "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200"
+                                : "text-zinc-500 hover:bg-zinc-200/50 hover:text-zinc-700"
+                          }`}
+                        >
+                          Avstemming
+                        </button>
+                        <button
+                          onClick={() => setAdminView("activity")}
+                          className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+                            adminView === "activity"
+                              ? isDark
+                                ? "bg-zinc-800 text-white shadow-sm"
+                                : "bg-white text-zinc-900 shadow-sm"
+                              : isDark
+                                ? "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200"
+                                : "text-zinc-500 hover:bg-zinc-200/50 hover:text-zinc-700"
+                          }`}
+                        >
+                          Aktivitet
+                        </button>
+                        <TodoTabButton
+                          adminView={adminView}
+                          isDark={isDark}
+                          onClick={() => setAdminView("todo")}
+                        />
+                      </div>
+                    )}
+
+                    {/* Standard Search Bar, hidden on schedule page and document mode */}
+                    {!isDocumentMode && pathname !== "/dashboard/schedule" && (
+                      <div className="group relative">
+                        <Search
+                          className={`absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transition-colors ${
+                            isDark
+                              ? "text-zinc-500 group-focus-within:text-orange-500"
+                              : "text-zinc-400 group-focus-within:text-orange-600"
+                          }`}
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            window.dispatchEvent(new Event("smartout:open-global-search"))
+                          }
+                          className={`flex w-64 items-center justify-between rounded-lg border py-2 pr-3 pl-9 text-sm shadow-sm transition-all focus:ring-1 focus:outline-none ${
+                            isDark
+                              ? "border-zinc-800 bg-zinc-900 text-zinc-100 hover:bg-zinc-800/80 focus:border-orange-500/50 focus:ring-orange-500/50"
+                              : "border-zinc-200 bg-white text-zinc-900 hover:bg-zinc-50 focus:border-orange-500/50 focus:ring-orange-500/50"
+                          }`}
+                          aria-label="Open global search palette"
+                        >
+                          <span className={isDark ? "text-zinc-500" : "text-zinc-400"}>
+                            Søk i drift...
+                          </span>
+                          <kbd
+                            className={`rounded border px-1.5 py-0.5 font-mono text-[10px] font-medium ${
+                              isDark
+                                ? "border-zinc-700 bg-zinc-800 text-zinc-400"
+                                : "border-zinc-200 bg-zinc-100 text-zinc-500"
+                            }`}
+                          >
+                            {typeof navigator !== "undefined" && navigator.platform.includes("Mac")
+                              ? "⌘K"
+                              : "Ctrl+K"}
+                          </kbd>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <DashboardContext.Provider value={dashboardContextValue}>
+                  <GlobalSearchPalette />
+                  {isDocumentMode ? (
+                    <DocumentModeShell isDark={isDark} />
+                  ) : (
+                    <div className="flex min-h-0 flex-1 overflow-hidden">
+                      <div className="scroll-overlay flex min-h-0 flex-1 flex-col overflow-hidden p-6 md:p-8 print:block print:h-auto print:overflow-visible print:p-0">
+                        {isAdminMode && isDashboardPage && (
+                          <>
+                            <div className="mb-4 flex-shrink-0">
+                              <ActionStrip isDark={isDark} />
+                            </div>
+                          </>
+                        )}
+                        {children}
+                      </div>
+                      <AnimatePresence>
+                        <EntityDrawer />
+                      </AnimatePresence>
                     </div>
                   )}
-                </div>
-              </div>
+                </DashboardContext.Provider>
+              </main>
+            </div>
 
-              <DashboardContext.Provider value={dashboardContextValue}>
-                <GlobalSearchPalette />
-                {isDocumentMode ? (
-                  <DocumentModeShell isDark={isDark} />
-                ) : (
-                  <div className="scroll-overlay flex min-h-0 flex-1 flex-col overflow-hidden p-6 md:p-8 print:block print:h-auto print:overflow-visible print:p-0">
-                    {isAdminMode && isDashboardPage && (
-                      <>
-                        <div className="mb-4 flex-shrink-0">
-                          <ActionStrip isDark={isDark} />
-                        </div>
-                      </>
-                    )}
-                    {children}
-                  </div>
-                )}
-              </DashboardContext.Provider>
-            </main>
+            {/* Emma — floating voice overlay (inside EntityDrawerProvider for agent bridge) */}
+            <EmmaOverlay />
           </div>
-
-          {/* Floating Voice Assistant removed and moved to header */}
-
-          {/* Emma — floating voice overlay */}
-          <EmmaOverlay />
-        </div>
+        </EntityDrawerProvider>
       </VoiceToolsProvider>
     </DocumentModeProvider>
+  );
+}
+
+/**
+ * Tab button for the "Å gjøre" (Todo) view in the dashboard tab switcher.
+ * Shows a badge with pending task count from cascade task resolution.
+ */
+function TodoTabButton({
+  adminView,
+  isDark,
+  onClick,
+}: {
+  adminView: AdminViewType;
+  isDark: boolean;
+  onClick: () => void;
+}) {
+  const { data: taskCount } = useCascadeTaskCount();
+  const pendingCount = (taskCount?.critical ?? 0) + (taskCount?.should ?? 0);
+
+  return (
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+        adminView === "todo"
+          ? isDark
+            ? "bg-zinc-800 text-white shadow-sm"
+            : "bg-white text-zinc-900 shadow-sm"
+          : isDark
+            ? "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200"
+            : "text-zinc-500 hover:bg-zinc-200/50 hover:text-zinc-700"
+      }`}
+    >
+      <ListChecks className="h-3.5 w-3.5" />Å gjøre
+      {pendingCount > 0 && (
+        <span
+          className={`rounded-full px-1.5 py-0.5 text-[10px] leading-none font-bold ${
+            isDark ? "bg-orange-500/20 text-orange-400" : "bg-orange-100 text-orange-600"
+          }`}
+        >
+          {pendingCount}
+        </span>
+      )}
+    </button>
   );
 }
 

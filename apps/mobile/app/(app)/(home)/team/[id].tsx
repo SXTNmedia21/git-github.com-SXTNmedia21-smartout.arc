@@ -357,7 +357,7 @@ const useStyles = createStyles((theme) => ({
     marginBottom: theme.spacing.tight,
   },
   avatarText: {
-    color: "#ffffff",
+    color: theme.colors.primaryForeground,
     fontWeight: theme.fontWeights.bold,
     fontSize: 32,
   },

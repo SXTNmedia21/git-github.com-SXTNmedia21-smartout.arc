@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { useTranslation } from "@smartout/i18n";
 import { useChannelMessages } from "../_hooks/use-channel-messages";
 import type { ChannelWithPreview, MessageWithSender } from "../_hooks/channel-types";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -10,21 +11,30 @@ type Props = {
   profileId: string;
 };
 
-function formatRelativeTime(dateStr: string): string {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
+function useFormatRelativeTime() {
+  const { t } = useTranslation("komm");
+  return (dateStr: string): string => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
 
-  if (diffHours < 1) return "Akkurat nå";
-  if (diffHours < 24) return `${diffHours}t siden`;
-  if (diffDays === 1) return "I går";
-  if (diffDays < 7) return `${diffDays} dager siden`;
-  return date.toLocaleDateString("nb-NO", { day: "numeric", month: "short" });
+    if (diffHours < 1) return t("time.just_now");
+    if (diffHours < 24) return t("time.hours_ago", { count: diffHours });
+    if (diffDays === 1) return t("time.yesterday");
+    if (diffDays < 7) return t("time.days_ago", { count: diffDays });
+    return date.toLocaleDateString("nb-NO", { day: "numeric", month: "short" });
+  };
 }
 
-function NewsCard({ message }: { message: MessageWithSender }) {
+function NewsCard({
+  message,
+  formatRelativeTime,
+}: {
+  message: MessageWithSender;
+  formatRelativeTime: (dateStr: string) => string;
+}) {
   const reactions = message.reactions ?? [];
   const groupedReactions = reactions.reduce<Record<string, number>>((acc, r) => {
     acc[r.emoji] = (acc[r.emoji] ?? 0) + 1;
@@ -64,6 +74,8 @@ function NewsCard({ message }: { message: MessageWithSender }) {
 }
 
 export function NewsFeed({ channels, profileId }: Props) {
+  const { t } = useTranslation("komm");
+  const formatRelativeTime = useFormatRelativeTime();
   // Find news channels
   const newsChannel = useMemo(() => channels.find((ch) => ch.channel_type === "news"), [channels]);
 
@@ -74,7 +86,7 @@ export function NewsFeed({ channels, profileId }: Props) {
   if (!newsChannel) {
     return (
       <div className="flex flex-col items-center justify-center p-8">
-        <p className="text-muted-foreground text-xs">Ingen nyhetskanal ennå</p>
+        <p className="text-muted-foreground text-xs">{t("news.empty_no_channel")}</p>
       </div>
     );
   }
@@ -92,7 +104,7 @@ export function NewsFeed({ channels, profileId }: Props) {
   if (messages.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center p-8">
-        <p className="text-muted-foreground text-xs">Ingen nyheter ennå</p>
+        <p className="text-muted-foreground text-xs">{t("news.empty_no_messages")}</p>
       </div>
     );
   }
@@ -100,7 +112,7 @@ export function NewsFeed({ channels, profileId }: Props) {
   return (
     <div className="py-1">
       {messages.map((msg: MessageWithSender) => (
-        <NewsCard key={msg.message_id} message={msg} />
+        <NewsCard key={msg.message_id} message={msg} formatRelativeTime={formatRelativeTime} />
       ))}
     </div>
   );

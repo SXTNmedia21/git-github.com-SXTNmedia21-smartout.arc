@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { supabase } from "@/lib/supabase";
+import { useTheme } from "@/theme";
 
 type InviteWorkspace = {
   workspaceId: string;
@@ -31,6 +32,7 @@ type InviteEntryProps = {
 
 export function InviteEntry({ initialToken, onBack }: InviteEntryProps) {
   const router = useRouter();
+  const _theme = useTheme();
   const [token, setToken] = useState(initialToken ?? "");
   const [workspace, setWorkspace] = useState<InviteWorkspace | null>(null);
   const [isLoading, setIsLoading] = useState(false);

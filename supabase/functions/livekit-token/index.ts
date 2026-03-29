@@ -30,12 +30,24 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const { channelId, workspaceId } = await req.json();
+    const body = await req.json();
+    const { channelId, workspaceId } = body;
+
+    // H2: Validate required fields
+    if (!channelId || !workspaceId) {
+      return new Response(
+        JSON.stringify({ error: "Missing required fields: channelId, workspaceId" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
 
     // Verify profile exists in workspace
     const { data: profile, error: profileError } = await supabase
       .from("profile")
-      .select("profile_id, full_name, avatar_url")
+      .select("profile_id, display_name, avatar_url")
       .eq("user_id", user.id)
       .eq("workspace_id", workspaceId)
       .eq("is_active", true)
@@ -64,19 +76,24 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Read channel audio policy for grant decisions
+    // Read channel policies for grant decisions
     const { data: channel } = await supabase
       .from("channel")
-      .select("audio_policy")
+      .select("audio_policy, video_policy")
       .eq("id", channelId)
       .single();
 
     const audioPolicy = channel?.audio_policy ?? "disabled";
-    if (audioPolicy === "disabled") {
-      return new Response(JSON.stringify({ error: "Voice is disabled for this channel" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    const videoPolicy = channel?.video_policy ?? "disabled";
+
+    if (audioPolicy === "disabled" && videoPolicy === "disabled") {
+      return new Response(
+        JSON.stringify({ error: "Voice and video are disabled for this channel" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
     const roomName = `${workspaceId}:${channelId}`;
@@ -86,25 +103,27 @@ Deno.serve(async (req: Request) => {
       Deno.env.get("LIVEKIT_API_SECRET")!,
       {
         identity: profile.profile_id,
-        name: profile.full_name ?? "Unknown",
+        name: profile.display_name ?? "Unknown",
         ttl: "6h",
         metadata: JSON.stringify({
           device_type: "web",
-          display_name: profile.full_name,
+          display_name: profile.display_name,
           avatar_url: profile.avatar_url,
           is_ai: false,
         }),
       },
     );
 
+    const canPublishAudio = audioPolicy !== "disabled" && audioPolicy !== "listen_only";
+    const canPublishVideo = videoPolicy !== "disabled";
+
     at.addGrant({
       roomJoin: true,
       room: roomName,
-      canPublish: audioPolicy !== "listen_only",
+      canPublish: canPublishAudio || canPublishVideo,
       canSubscribe: true,
       canPublishData: true,
       canUpdateOwnMetadata: true,
-      canPublishSources: audioPolicy === "listen_only" ? [] : ["microphone"],
     });
 
     const token = await at.toJwt();
@@ -112,7 +131,7 @@ Deno.serve(async (req: Request) => {
     return new Response(
       JSON.stringify({
         token,
-        serverUrl: Deno.env.get("NEXT_PUBLIC_LIVEKIT_URL") ?? Deno.env.get("LIVEKIT_URL"),
+        serverUrl: Deno.env.get("LIVEKIT_URL") ?? Deno.env.get("NEXT_PUBLIC_LIVEKIT_URL"),
         roomName,
         profileId: profile.profile_id,
       }),

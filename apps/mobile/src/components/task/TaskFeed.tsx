@@ -84,8 +84,10 @@ export function TaskFeed({ tasks, profileId }: TaskFeedProps) {
 /** A single task row with priority indicator, label, and optional deadline */
 function TaskRow({ task, onPress }: { task: SessionTask; onPress: () => void }) {
   const styles = useStyles();
+  const { colors } = useTheme();
   const now = Date.now();
   const priority = getTaskPriority(task, now);
+  const priorityColor = (colors as Record<string, string>)[PRIORITY_COLOR_KEYS[priority]];
 
   return (
     <Pressable
@@ -94,7 +96,7 @@ function TaskRow({ task, onPress }: { task: SessionTask; onPress: () => void }) 
       accessibilityRole="button"
       accessibilityLabel={`${task.title}, ${priorityLabel(priority)}`}
     >
-      <View style={[styles.indicator, indicatorColor(priority)]} />
+      <View style={[styles.indicator, { backgroundColor: priorityColor }]} />
       <View style={styles.rowContent}>
         <Text style={styles.rowTitle} numberOfLines={1}>
           {task.title}
@@ -127,17 +129,11 @@ function getTaskPriority(task: SessionTask, now: number): Priority {
   return "general";
 }
 
-/** Hex colors for priority indicators — red/yellow/gray from the design token palette */
-const PRIORITY_COLORS: Record<Priority, string> = {
-  compliance: "#dc2626",
-  deadline: "#d97706",
-  general: "#a3a3a3",
+const PRIORITY_COLOR_KEYS: Record<Priority, string> = {
+  compliance: "destructive",
+  deadline: "warning",
+  general: "mutedForeground",
 };
-
-/** Color for the priority dot indicator */
-function indicatorColor(priority: Priority): { backgroundColor: string } {
-  return { backgroundColor: PRIORITY_COLORS[priority] };
-}
 
 /** Accessibility label for priority level */
 function priorityLabel(priority: Priority): string {
@@ -192,7 +188,7 @@ const useStyles = createStyles((theme) => ({
   },
   deadlineLabel: {
     ...theme.typography.caption,
-    color: PRIORITY_COLORS.deadline,
+    color: theme.colors.warning,
     fontWeight: theme.fontWeights.semibold,
   },
 }));

@@ -1,0 +1,172 @@
+{
+  "shell": {
+    "title": "Komm",
+    "empty_state": "Select a channel or person to get started",
+    "connection_error": "Could not connect to conversation",
+    "retry": "Try again",
+    "loading_profile": "Loading profile..."
+  },
+  "tabs": {
+    "channels": "Channels",
+    "chat": "Chat",
+    "news": "News"
+  },
+  "channel": {
+    "header": "Channels",
+    "search_placeholder": "Search channels...",
+    "empty": "No channels yet",
+    "direct_message": "Direct message",
+    "default_name": "Channel",
+    "member_one": "{{count}} member",
+    "member_other": "{{count}} members",
+    "no_messages": "No messages yet",
+    "yesterday": "Yesterday"
+  },
+  "channel_type": {
+    "department": "Departments",
+    "team": "Teams",
+    "session": "Sessions",
+    "channel": "Channels",
+    "direct": "Direct messages",
+    "news": "News",
+    "skill": "Skills"
+  },
+  "create": {
+    "title": "Create channel",
+    "description": "Create a group channel or start a direct message.",
+    "type_label": "Type",
+    "channel_option": "Channel",
+    "channel_sublabel": "Group conversation for the team",
+    "direct_option": "Direct",
+    "direct_sublabel": "1-to-1 message",
+    "name_label": "Name",
+    "name_placeholder": "e.g. #kitchen",
+    "select_person": "Select person",
+    "filter_placeholder": "Filter by name...",
+    "loading": "Loading...",
+    "no_members_found": "No members found",
+    "unknown": "Unknown",
+    "cancel": "Cancel",
+    "creating": "Creating...",
+    "submit": "Create",
+    "error": "Could not create channel"
+  },
+  "message": {
+    "placeholder": "Write a message...",
+    "deleted": "Message deleted",
+    "edited": "(edited)",
+    "unknown_sender": "Unknown",
+    "reply_to": "Replying to {{name}}",
+    "empty_state": "No messages yet. Start the conversation!",
+    "send_error": "Could not send message",
+    "attachment_coming_soon": "{{key}} — coming soon!"
+  },
+  "member": {
+    "header": "Members",
+    "unknown": "Unknown",
+    "you_suffix": "(you)",
+    "mute_aria": "Mute {{name}}",
+    "participant_fallback": "participant",
+    "add_error": "Could not add member",
+    "remove_error": "Could not remove member"
+  },
+  "chat_list": {
+    "filter_placeholder": "Filter by name...",
+    "all_members": "All members",
+    "unknown": "Unknown"
+  },
+  "call": {
+    "header": "Call active",
+    "hide_chat": "Hide chat",
+    "show_chat": "Show chat",
+    "minimize": "Minimize",
+    "expand": "Expand",
+    "disconnect": "End call",
+    "chat_panel": "Chat",
+    "close_chat": "Close chat",
+    "participant_joined": "{{name}} joined the call",
+    "participant_left": "{{name}} left the call",
+    "join_call": "Join call",
+    "start_call": "Start call",
+    "active_call": "Active call ({{count}} participants)",
+    "join": "Join",
+    "start_error": "Could not start call",
+    "invite_error": "Could not answer call",
+    "loading_history": "Loading call history...",
+    "no_history": "No previous calls",
+    "in_call": "{{count}} in call",
+    "mute_error": "Could not mute participant"
+  },
+  "incoming_call": {
+    "ringing": "Calling you...",
+    "reject_aria": "Reject call",
+    "accept_aria": "Answer call"
+  },
+  "helpdesk": {
+    "ask_botsson": "Ask Botsson",
+    "ai_assistant": "AI assistant",
+    "report_problem": "Report problem",
+    "to_manager": "To manager",
+    "find_manual": "Find manual",
+    "search_handbook": "Search handbook",
+    "call_manager": "Call manager",
+    "direct_contact": "Direct contact",
+    "dialog_title": "Need help?",
+    "subject_label": "What do you need help with?",
+    "subject_placeholder": "e.g. Dishwasher is leaking",
+    "description_label": "Description (optional)",
+    "description_placeholder": "Describe the problem...",
+    "back": "Back",
+    "submit": "Send request",
+    "my_requests": "My requests",
+    "loading": "Loading...",
+    "no_requests": "No requests yet",
+    "status_open": "Open",
+    "status_in_progress": "In progress",
+    "status_resolved": "Resolved",
+    "status_closed": "Closed",
+    "create_success": "Request created",
+    "create_error": "Could not create request"
+  },
+  "news": {
+    "empty_no_channel": "No news channel yet",
+    "empty_no_messages": "No news yet"
+  },
+  "time": {
+    "just_now": "Just now",
+    "hours_ago": "{{count}}h ago",
+    "yesterday": "Yesterday",
+    "days_ago": "{{count}} days ago"
+  },
+  "ptt": {
+    "release_to_stop": "Release to stop",
+    "hold_to_talk": "Hold to talk (space)"
+  },
+  "attachment": {
+    "images": "Images",
+    "task": "Task",
+    "procedure": "Procedure",
+    "link": "Link",
+    "training": "Training",
+    "quiz": "Quiz",
+    "roadmap": "Roadmap",
+    "shortcut": "Shortcut"
+  },
+  "knowledge": {
+    "procedure": "Procedure",
+    "manual": "Manual",
+    "quiz": "Quiz",
+    "training": "Training",
+    "task": "Task",
+    "roadmap": "Roadmap",
+    "open_action": "Open {{type}} →"
+  },
+  "system_message": {
+    "system": "System",
+    "briefing": "Briefing",
+    "handover": "Handover",
+    "announcement": "Announcement",
+    "reminder": "Reminder",
+    "summary": "Summary"
+  }
+}

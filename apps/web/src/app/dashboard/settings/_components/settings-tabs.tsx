@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, lazy, Suspense } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import {
   Clock,
   Target,
@@ -22,7 +22,9 @@ import {
 } from "lucide-react";
 import { cn } from "@smartout/ui";
 import { Skeleton } from "@/components/ui/skeleton";
+import { createClient } from "@smartout/supabase/client";
 import { OpeningHoursSettings } from "./opening-hours-settings";
+import { NotificationPreferences } from "./NotificationPreferences";
 
 const PayrollGeneralSettings = lazy(() =>
   import("./payroll-general-settings").then((m) => ({ default: m.PayrollGeneralSettings })),
@@ -60,6 +62,12 @@ const TariffRatesPanel = lazy(() =>
 const ChangeProposalsPanel = lazy(() =>
   import("./ChangeProposalsPanel").then((m) => ({ default: m.ChangeProposalsPanel })),
 );
+const FinancialCloseSettings = lazy(() =>
+  import("./financial-close-settings").then((m) => ({ default: m.FinancialCloseSettings })),
+);
+const ShiftLockPolicySettings = lazy(() =>
+  import("./shift-lock-policy-settings").then((m) => ({ default: m.ShiftLockPolicySettings })),
+);
 
 type Tab = { id: string; label: string; icon: LucideIcon };
 type Section = { title: string; tabs: Tab[] };
@@ -74,6 +82,7 @@ const SECTIONS: Section[] = [
       { id: "notifications", label: "Notifications", icon: Bell },
       { id: "teams", label: "Teams & Departments", icon: Users },
       { id: "security", label: "Security", icon: Shield },
+      { id: "financial-close", label: "Dagsoppgjor", icon: Receipt },
     ],
   },
   {
@@ -136,7 +145,7 @@ function SettingsLoadingSkeleton() {
   );
 }
 
-function TabContent({ tabId }: { tabId: TabId }) {
+function TabContent({ tabId, userId }: { tabId: TabId; userId: string | undefined }) {
   switch (tabId) {
     case "hours":
       return <OpeningHoursSettings />;
@@ -212,6 +221,20 @@ function TabContent({ tabId }: { tabId: TabId }) {
           <ChangeProposalsPanel />
         </Suspense>
       );
+    case "financial-close":
+      return (
+        <Suspense fallback={<SettingsLoadingSkeleton />}>
+          <FinancialCloseSettings />
+        </Suspense>
+      );
+    case "notifications":
+      return <NotificationPreferences userId={userId} />;
+    case "security":
+      return (
+        <Suspense fallback={<SettingsLoadingSkeleton />}>
+          <ShiftLockPolicySettings />
+        </Suspense>
+      );
     default: {
       const tab = ALL_TABS.find((t) => t.id === tabId)!;
       return <TabPlaceholder icon={tab.icon} label={tab.label} />;
@@ -221,6 +244,27 @@ function TabContent({ tabId }: { tabId: TabId }) {
 
 export function SettingsTabs() {
   const [activeTab, setActiveTab] = useState<TabId>("hours");
+  // Fetch auth user id for notification preferences (keyed by user_id, not profile_id)
+  const [userId, setUserId] = useState<string | undefined>();
+
+  useEffect(() => {
+    // Check hash on mount
+    const hash = window.location.hash.replace("#", "") as TabId;
+    if (hash && ALL_TABS.some((t) => t.id === hash)) {
+      setActiveTab(hash);
+    }
+
+    createClient()
+      .auth.getUser()
+      .then(({ data }) => {
+        if (data.user) setUserId(data.user.id);
+      });
+  }, []);
+
+  const handleTabChange = (id: TabId) => {
+    setActiveTab(id);
+    window.location.hash = id;
+  };
 
   return (
     <div className="flex gap-6">
@@ -238,7 +282,7 @@ export function SettingsTabs() {
                 return (
                   <button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
+                    onClick={() => handleTabChange(tab.id)}
                     className={cn(
                       "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
                       isActive
@@ -258,7 +302,7 @@ export function SettingsTabs() {
 
       {/* Content area */}
       <div className="flex-1 overflow-y-auto">
-        <TabContent tabId={activeTab} />
+        <TabContent tabId={activeTab} userId={userId} />
       </div>
     </div>
   );

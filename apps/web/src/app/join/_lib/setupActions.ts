@@ -105,28 +105,11 @@ export async function completeSignup(data: SignupSetupData) {
 
   const admin = createAdminClient();
 
-  // ── Idempotency guard: prevent duplicate company creation ──────
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: existingProgress } = await (admin as any)
-    .from("signup_progress")
-    .select("completed")
-    .eq("auth_id", user.id)
-    .single();
-
+  // ── Check for existing onboarding workspace to reuse ──────────
+  // If the user already has a workspace in onboarding state, reuse it.
+  // If the user already completed signup before, provision a NEW workspace
+  // (additional workspace for the same user account).
   const existingShell = await findExistingOnboardingWorkspace(admin, user.id);
-
-  if (existingProgress?.completed) {
-    const completedWorkspace = existingShell ?? (await findExistingWorkspace(admin, user.id));
-
-    if (completedWorkspace) {
-      return {
-        workspaceId: completedWorkspace.workspace_id,
-        slug: completedWorkspace.slug,
-      };
-    }
-
-    throw new Error("Signup already completed but workspace not found");
-  }
 
   // ── Phase 1: Provision or reuse a workspace shell ─────────────
 
@@ -134,8 +117,8 @@ export async function completeSignup(data: SignupSetupData) {
   const { error: identityError } = await admin
     .from("user_identity")
     .update({
-      first_name: data.step2.firstName,
-      last_name: data.step2.lastName,
+      first_name: data.step1.firstName,
+      last_name: data.step1.lastName,
     })
     .eq("user_id", user.id);
 
@@ -223,7 +206,7 @@ export async function completeSignup(data: SignupSetupData) {
     .update({
       role: "owner",
       status: "active",
-      display_name: `${data.step2.firstName} ${data.step2.lastName}`,
+      display_name: `${data.step1.firstName} ${data.step1.lastName}`,
     })
     .eq("user_id", user.id)
     .eq("workspace_id", workspace.workspace_id)
@@ -252,6 +235,7 @@ export async function completeSignup(data: SignupSetupData) {
     menu_description: data.step5.menuDescription || null,
     employee_count: data.step6.employeeCount || null,
     ai_generated_fields: [],
+    field_sources: data.intelligence ? shellIntelligence.join_intake.fieldSources : {},
   });
 
   if (detailsError) {
@@ -329,6 +313,21 @@ export async function completeSignup(data: SignupSetupData) {
     .update({ completed: true, current_step: 7 })
     .eq("auth_id", user.id);
 
+  // ── I1 Bootstrap: seed locations + departments from industry template ──
+  // Template functions are not in generated Supabase types — cast to bypass
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (admin as any).rpc("template_restaurant_locations", {
+      p_workspace_id: workspace.workspace_id,
+    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (admin as any).rpc("template_restaurant_departments", {
+      p_workspace_id: workspace.workspace_id,
+    });
+  } catch (e) {
+    console.error("[completeSignup] I1 template seeding failed:", e);
+  }
+
   // Keep invite capture non-breaking by recreating any pending invites on the shell.
   await admin
     .from("invitation")
@@ -355,7 +354,7 @@ export async function completeSignup(data: SignupSetupData) {
     workspace_id: workspace.workspace_id,
     actor_id: actorId,
     properties: {
-      data: { workspace_id: workspace.workspace_id },
+      data: { wizard_id: "setup", workspace_id: workspace.workspace_id },
     },
   });
 

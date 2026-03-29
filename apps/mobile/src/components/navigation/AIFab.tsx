@@ -2,7 +2,7 @@
  * AIFab — Smartout logo button centered in the tab bar.
  *
  * The logo overflows the circle slightly for a bold, branded feel.
- * Tap → navigate home. Swipe up → QuickActions.
+ * Tap → WalkAi voice session. Long press → Botsson text chat.
  */
 
 import React, { useCallback } from "react";
@@ -17,49 +17,58 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import * as Haptics from "expo-haptics";
 import { createStyles } from "@/theme";
 
-const SWIPE_THRESHOLD = 40;
 const FAB_SIZE = 56;
 /** Logo extends beyond the circle for visual impact */
 const LOGO_SIZE = FAB_SIZE + 16;
 
 type AIFabProps = {
-  onPress?: () => void;
-  onSwipeUp?: () => void;
+  /** Tap → WalkAi voice session */
+  onTap?: () => void;
+  /** Long press → Botsson text chat */
+  onLongPress?: () => void;
 };
 
-export function AIFab({ onPress, onSwipeUp }: AIFabProps) {
+export function AIFab({ onTap, onLongPress }: AIFabProps) {
   const styles = useStyles();
   const scale = useSharedValue(1);
 
-  const handlePress = useCallback(() => {
+  const handleTap = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    onPress?.();
-  }, [onPress]);
+    onTap?.();
+  }, [onTap]);
 
-  const handleSwipeUp = useCallback(() => {
+  const handleLongPress = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    onSwipeUp?.();
-  }, [onSwipeUp]);
+    onLongPress?.();
+  }, [onLongPress]);
 
-  const panGesture = Gesture.Pan()
+  const longPressGesture = Gesture.LongPress()
+    .minDuration(300)
     .onBegin(() => {
       scale.value = withSpring(0.92, { damping: 15, stiffness: 200 });
     })
-    .onEnd((event) => {
+    .onEnd(() => {
       scale.value = withSpring(1, { damping: 15, stiffness: 200 });
-      if (event.translationY < -SWIPE_THRESHOLD) {
-        runOnJS(handleSwipeUp)();
-      }
+      runOnJS(handleLongPress)();
     })
     .onFinalize(() => {
       scale.value = withSpring(1, { damping: 15, stiffness: 200 });
     });
 
-  const tapGesture = Gesture.Tap().onEnd(() => {
-    runOnJS(handlePress)();
-  });
+  const tapGesture = Gesture.Tap()
+    .onBegin(() => {
+      scale.value = withSpring(0.92, { damping: 15, stiffness: 200 });
+    })
+    .onEnd(() => {
+      scale.value = withSpring(1, { damping: 15, stiffness: 200 });
+      runOnJS(handleTap)();
+    })
+    .onFinalize(() => {
+      scale.value = withSpring(1, { damping: 15, stiffness: 200 });
+    });
 
-  const composed = Gesture.Race(panGesture, tapGesture);
+  // Exclusive: long press takes priority, tap fires only if not long pressing
+  const composed = Gesture.Exclusive(longPressGesture, tapGesture);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],

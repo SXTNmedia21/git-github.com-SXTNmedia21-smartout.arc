@@ -1,3 +1,12 @@
+---
+title: Infrastructure Production Alignment
+status: in_progress
+updated: 2026-03-26
+created: 2026-03-18
+module: infra
+tags: [infra, production, alignment]
+---
+
 # Infrastructure Production Alignment Plan
 
 > **For agentic workers:** REQUIRED: Use superpowers:subagent-driven-development (if subagents available) or superpowers:executing-plans to implement this plan. Steps use checkbox (`- [ ]`) syntax for tracking.
@@ -67,7 +76,7 @@ The base `docker-compose.yml` hardcodes `SUPABASE_URL=http://host.docker.interna
 - Modify: `infra/docker-compose.yml:52`
 - Modify: `infra/docker-compose.override.yml:17`
 
-- [ ] **Step 1: Change `docker-compose.yml` stage-engine SUPABASE_URL to use env var**
+- [x] **Step 1: Change `docker-compose.yml` stage-engine SUPABASE_URL to use env var**
 
 In `infra/docker-compose.yml`, line 52, change the hardcoded value to an env var substitution:
 
@@ -80,7 +89,7 @@ In `infra/docker-compose.yml`, line 52, change the hardcoded value to an env var
 
 This makes it consistent with how `shift-mcp` and `contract-service` already handle it (lines 80 and 105).
 
-- [ ] **Step 2: Keep the dev override for local development**
+- [x] **Step 2: Keep the dev override for local development**
 
 Verify `infra/docker-compose.override.yml` still has the localhost value for dev:
 
@@ -93,7 +102,7 @@ Verify `infra/docker-compose.override.yml` still has the localhost value for dev
 
 This file already has this on line 17. No change needed — just verify.
 
-- [ ] **Step 3: Verify typecheck / lint is not affected**
+- [x] **Step 3: Verify typecheck / lint is not affected**
 
 This is a YAML-only change. No code typecheck needed. Verify docker-compose config is valid:
 
@@ -103,7 +112,7 @@ cd infra && docker compose -f docker-compose.yml -f docker-compose.override.yml 
 
 Expected: `OK` (no errors)
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add infra/docker-compose.yml
@@ -130,7 +139,7 @@ Two Next.js API routes call scrapling without sending the `Authorization` header
 - Modify: `apps/web/src/app/api/platform-admin/workspaces/lookup/route.ts:105-121`
 - Modify: `apps/web/src/app/api/platform-admin/workspaces/analyze-documents/route.ts:68-76`
 
-- [ ] **Step 1: Fix `lookup/route.ts` — add auth header to scrapling call**
+- [x] **Step 1: Fix `lookup/route.ts` — add auth header to scrapling call**
 
 In `apps/web/src/app/api/platform-admin/workspaces/lookup/route.ts`, replace the `scrapeWebsite` function (lines 105-122):
 
@@ -159,7 +168,7 @@ async function scrapeWebsite(url: string): Promise<{ email?: string; phone?: str
 }
 ```
 
-- [ ] **Step 2: Fix `analyze-documents/route.ts` — add auth header to scrapling call**
+- [x] **Step 2: Fix `analyze-documents/route.ts` — add auth header to scrapling call**
 
 In `apps/web/src/app/api/platform-admin/workspaces/analyze-documents/route.ts`, replace the fetch block around lines 68-76. Add auth headers but do NOT set Content-Type (FormData sets it automatically):
 
@@ -175,12 +184,12 @@ const res = await fetch(`${scraplingUrl}/extract/document`, {
 });
 ```
 
-- [ ] **Step 3: Verify typecheck passes**
+- [x] **Step 3: Verify typecheck passes**
 
 Run: `pnpm turbo typecheck --filter=web`
 Expected: 0 errors
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add apps/web/src/app/api/platform-admin/workspaces/lookup/route.ts apps/web/src/app/api/platform-admin/workspaces/analyze-documents/route.ts
@@ -586,3 +595,32 @@ Expected: No matches. If confirmed unused, pause it in Supabase dashboard to sav
 | `SENDGRID_API_KEY`              | —                                          | Must be set                  | Set (from 1Password)                       | —                                          |
 | `SENTRY_DSN`                    | —                                          | —                            | Set (from 1Password)                       | —                                          |
 | `UPSTASH_REDIS_REST_URL`        | —                                          | —                            | Set (from 1Password)                       | —                                          |
+
+---
+
+## Council Review (2026-03-26)
+
+**Verdict:** APPROVED_WITH_CONDITIONS
+**Reviewer:** Plan Audit Council
+
+**Issues found:**
+
+- **Missing YAML frontmatter** — All docs in `docs/` MUST have frontmatter (`title`, `status`, `updated`, `created`, `module`, `tags`). This plan has none. Violates CLAUDE.md mandatory requirement.
+- **Task 1 already done** — `infra/docker-compose.yml` line 50 already uses `SUPABASE_URL=${SUPABASE_URL}` (env var substitution). The hardcoded `http://host.docker.internal:54321` the plan describes does NOT exist in the current codebase. This fix was already merged to `development`.
+- **Task 2 already done** — Both `lookup/route.ts` (lines 107-109) and `analyze-documents/route.ts` (lines 73-75) already have the conditional `Authorization: Bearer` header using `process.env.SCRAPLING_AUTH_TOKEN`. These fixes are already in `development`.
+- **Task 5 Step 3 (Preview scope) is incomplete** — The plan says "repeat the commands with `preview`" for non-Stripe vars but gives no concrete commands. An executor could skip this entirely.
+- **`docker-compose.override.yml` survives `git pull`** — Task 3 Step 4 correctly addresses this (rm -f after pull), but the plan should note that `docker-compose.override.yml` is tracked in git and will return on every pull. Production deployment must always include this rm step in the runbook.
+
+**Recommendations:**
+
+- Add YAML frontmatter before implementation begins (status: `in_progress`, module: `infra`)
+- Skip Tasks 1 and 2 code changes entirely — they are already in `development`. Task 3 Step 3 (`git pull`) will pull them to the Droplet automatically.
+- For Task 5 Step 3, explicitly list all vars that need `preview` scope or link to the Vercel dashboard URL for bulk scoping.
+- Consider adding a permanent note to the production deployment runbook: always `rm -f infra/docker-compose.override.yml` after any `git pull` on the Droplet.
+- The two Supabase project situation (`hcmhwsewrcjmldjezaqk`) should be addressed promptly — Task 6 Step 7 covers verification, but pausing the unused project should be an explicit action item with a deadline.
+
+**Security check:** PASSED — all secrets use `op read 'op://...'` references, no hardcoded values, no secrets in plan body. 1Password paths look correct. Supabase project ref `yljaglomadbhyqpcigff` is a non-secret identifier (safe to document).
+
+**Scope check:** PASSED — realistic scope, well-bounded, clear done criteria for each step.
+
+**Overall:** The plan is structurally sound and safe to execute. Tasks 3–6 are the remaining work. The executor should begin at Task 3 (Droplet update) and can skip the code changes in Tasks 1 and 2 since they are already merged.

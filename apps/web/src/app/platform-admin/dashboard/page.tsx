@@ -2,7 +2,11 @@ import { createAdminClient } from "@smartout/supabase/admin";
 import { getSuperAdminId } from "@/lib/platform-admin";
 import { redirect } from "next/navigation";
 import { unstable_cache } from "next/cache";
+import Link from "next/link";
 import { KpiCard } from "@/components/platform-admin/kpi-card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { DashboardClient } from "./_components/dashboard-client";
 
 type MetricsRow = {
@@ -22,6 +26,17 @@ type ActivityRow = {
   created_at: string;
 };
 
+type ShiftLockDashboardHealth = {
+  severity: "normal" | "warning" | "critical";
+  total_attempts_24h: number;
+  override_attempts_24h: number;
+  override_rate_pct_24h: number;
+  off_workspaces: number;
+  shadow_workspaces: number;
+  enforce_workspaces: number;
+  active_workspaces: number;
+};
+
 /**
  * Loads the platform-admin dashboard dataset with a short cache TTL.
  * This reduces repeated expensive count queries during admin navigation.
@@ -38,6 +53,10 @@ const getPlatformAdminDashboardData = unstable_cache(
       { count: pausedCount },
       { data: metrics },
       { data: recentActivity },
+      { count: activeWorkspacesCount },
+      { data: shiftLockPolicyRows },
+      { count: shiftLockAttemptsCount },
+      { count: shiftLockOverridesCount },
     ] = await Promise.all([
       admin
         .from("company")
@@ -59,11 +78,57 @@ const getPlatformAdminDashboardData = unstable_cache(
         .select("id, action, entity_type, details, created_at")
         .order("created_at", { ascending: false })
         .limit(15),
+      admin.from("workspace").select("*", { count: "exact", head: true }).eq("is_active", true),
+      admin.from("schedule_shift_lock_policy").select("workspace_id, lock_mode"),
+      admin
+        .from("schedule_shift_lock_audit")
+        .select("*", { count: "exact", head: true })
+        .gte("created_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()),
+      admin
+        .from("schedule_shift_lock_audit")
+        .select("*", { count: "exact", head: true })
+        .gte("created_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+        .eq("is_overridden_by_high_access", true),
     ]);
 
     const metricsRows = (metrics ?? []) as MetricsRow[];
     const latestMetrics = metricsRows[metricsRows.length - 1];
     const activityRows = (recentActivity ?? []) as ActivityRow[];
+    const shiftLockPolicy = shiftLockPolicyRows ?? [];
+
+    const activeWorkspaces = activeWorkspacesCount ?? 0;
+    const offWorkspaces = shiftLockPolicy.filter((row) => row.lock_mode === "off").length;
+    const shadowWorkspaces = shiftLockPolicy.filter((row) => row.lock_mode === "shadow").length;
+    const explicitEnforceWorkspaces = shiftLockPolicy.filter(
+      (row) => row.lock_mode === "enforce",
+    ).length;
+    const implicitEnforceWorkspaces = Math.max(
+      0,
+      activeWorkspaces - offWorkspaces - shadowWorkspaces - explicitEnforceWorkspaces,
+    );
+    const enforceWorkspaces = explicitEnforceWorkspaces + implicitEnforceWorkspaces;
+
+    const shiftLockAttempts24h = shiftLockAttemptsCount ?? 0;
+    const shiftLockOverrides24h = shiftLockOverridesCount ?? 0;
+    const overrideRate24h =
+      shiftLockAttempts24h === 0
+        ? 0
+        : Number(((shiftLockOverrides24h / shiftLockAttempts24h) * 100).toFixed(2));
+
+    let shiftLockSeverity: ShiftLockDashboardHealth["severity"] = "normal";
+    if (offWorkspaces > 0 || overrideRate24h >= 15) shiftLockSeverity = "critical";
+    else if (overrideRate24h >= 5) shiftLockSeverity = "warning";
+
+    const shiftLockHealth: ShiftLockDashboardHealth = {
+      severity: shiftLockSeverity,
+      total_attempts_24h: shiftLockAttempts24h,
+      override_attempts_24h: shiftLockOverrides24h,
+      override_rate_pct_24h: overrideRate24h,
+      off_workspaces: offWorkspaces,
+      shadow_workspaces: shadowWorkspaces,
+      enforce_workspaces: enforceWorkspaces,
+      active_workspaces: activeWorkspaces,
+    };
 
     return {
       totalWorkspaces: latestMetrics?.total_workspaces ?? 0,
@@ -75,6 +140,7 @@ const getPlatformAdminDashboardData = unstable_cache(
       pausedCount: pausedCount ?? 0,
       metricsRows,
       activityRows,
+      shiftLockHealth,
     };
   },
   ["platform-admin-dashboard-v1"],
@@ -98,6 +164,7 @@ export default async function DashboardPage() {
     pausedCount,
     metricsRows,
     activityRows,
+    shiftLockHealth,
   } = dashboardData;
 
   // Build sparkline arrays from metrics (may be empty)
@@ -192,6 +259,38 @@ export default async function DashboardPage() {
           }
         />
       </div>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center justify-between text-sm font-medium">
+            <span>Shift Lock Governance</span>
+            <Badge
+              variant={
+                shiftLockHealth.severity === "critical"
+                  ? "destructive"
+                  : shiftLockHealth.severity === "warning"
+                    ? "secondary"
+                    : "default"
+              }
+            >
+              {shiftLockHealth.severity}
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-wrap items-center justify-between gap-4">
+          <div className="text-muted-foreground flex flex-wrap items-center gap-4 text-xs">
+            <span>Attempts 24h: {shiftLockHealth.total_attempts_24h}</span>
+            <span>Overrides 24h: {shiftLockHealth.override_attempts_24h}</span>
+            <span>Override rate: {shiftLockHealth.override_rate_pct_24h}%</span>
+            <span>Off workspaces: {shiftLockHealth.off_workspaces}</span>
+            <span>Shadow: {shiftLockHealth.shadow_workspaces}</span>
+            <span>Enforce: {shiftLockHealth.enforce_workspaces}</span>
+          </div>
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/platform-admin/health">Open Health Monitor</Link>
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Client-rendered sections: Quick Actions, Charts, Activity Feed */}
       <DashboardClient subscriptionData={subscriptionData} recentActivity={activityEntries} />

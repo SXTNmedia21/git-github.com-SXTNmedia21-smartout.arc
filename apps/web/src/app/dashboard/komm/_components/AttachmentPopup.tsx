@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslation } from "@smartout/i18n";
 import {
   Image,
   CheckSquare,
@@ -13,24 +14,54 @@ import {
 import { cn } from "@/lib/utils";
 
 const SHARE_OPTIONS = [
-  { key: "bilder", label: "Bilder", icon: Image, color: "bg-blue-500/15 text-blue-500" },
-  { key: "oppgave", label: "Oppgave", icon: CheckSquare, color: "bg-green-500/15 text-green-500" },
+  {
+    key: "bilder",
+    labelKey: "attachment.images",
+    icon: Image,
+    color: "bg-blue-500/15 text-blue-500",
+  },
+  {
+    key: "oppgave",
+    labelKey: "attachment.task",
+    icon: CheckSquare,
+    color: "bg-green-500/15 text-green-500",
+  },
   {
     key: "prosedyre",
-    label: "Prosedyre",
+    labelKey: "attachment.procedure",
     icon: FileText,
     color: "bg-orange-500/15 text-orange-500",
   },
-  { key: "lenke", label: "Lenke", icon: Link2, color: "bg-orange-500/15 text-orange-500" },
+  {
+    key: "lenke",
+    labelKey: "attachment.link",
+    icon: Link2,
+    color: "bg-orange-500/15 text-orange-500",
+  },
   {
     key: "opplaering",
-    label: "Opplæring",
+    labelKey: "attachment.training",
     icon: GraduationCap,
     color: "bg-cyan-500/15 text-cyan-500",
   },
-  { key: "quiz", label: "Quiz", icon: HelpCircle, color: "bg-pink-500/15 text-pink-500" },
-  { key: "veikart", label: "Veikart", icon: Map, color: "bg-muted text-muted-foreground" },
-  { key: "snarvei", label: "Snarvei", icon: Zap, color: "bg-muted text-muted-foreground" },
+  {
+    key: "quiz",
+    labelKey: "attachment.quiz",
+    icon: HelpCircle,
+    color: "bg-pink-500/15 text-pink-500",
+  },
+  {
+    key: "veikart",
+    labelKey: "attachment.roadmap",
+    icon: Map,
+    color: "bg-muted text-muted-foreground",
+  },
+  {
+    key: "snarvei",
+    labelKey: "attachment.shortcut",
+    icon: Zap,
+    color: "bg-muted text-muted-foreground",
+  },
 ] as const;
 
 type Props = {
@@ -39,6 +70,7 @@ type Props = {
 };
 
 export function AttachmentPopup({ onSelect, onClose }: Props) {
+  const { t } = useTranslation("komm");
   return (
     <>
       {/* Backdrop */}
@@ -61,7 +93,9 @@ export function AttachmentPopup({ onSelect, onClose }: Props) {
               >
                 <Icon className="h-4 w-4" />
               </div>
-              <span className="text-muted-foreground text-[10px] font-medium">{opt.label}</span>
+              <span className="text-muted-foreground text-[10px] font-medium">
+                {t(opt.labelKey)}
+              </span>
             </button>
           );
         })}

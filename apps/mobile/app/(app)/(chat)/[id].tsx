@@ -22,6 +22,8 @@ import { strings } from "@/constants/strings";
 import { MessageBubble } from "@/components/chat/MessageBubble";
 import { MessageInput } from "@/components/chat/MessageInput";
 import { ReactionBar } from "@/components/chat/ReactionBar";
+import { VideoCallOverlay } from "@/components/chat/VideoCallOverlay";
+import { Video } from "lucide-react-native";
 import { useMessages, type MessageWithSender } from "@/hooks/queries/use-messages";
 import { useSendMessage } from "@/hooks/mutations/use-send-message";
 import type { Database } from "@smartout/supabase/database.types";
@@ -43,6 +45,7 @@ export default function ConversationScreen() {
   const [profileName, setProfileName] = useState("");
   const [profileAvatarUrl, setProfileAvatarUrl] = useState<string | null>(null);
   const [conversationName, setConversationName] = useState("");
+  const [isVideoCallActive, setIsVideoCallActive] = useState(false);
 
   const listRef = useRef<FlatList>(null);
 
@@ -265,8 +268,17 @@ export default function ConversationScreen() {
         <Text style={styles.headerTitle} numberOfLines={1}>
           {conversationName}
         </Text>
-        <View style={styles.headerSpacer} />
+        <Pressable onPress={() => setIsVideoCallActive(true)} hitSlop={8}>
+          <Video size={24} color={theme.colors.primary} />
+        </Pressable>
       </View>
+
+      {/* Video Call Overlay */}
+      <VideoCallOverlay
+        active={isVideoCallActive}
+        participantName={conversationName}
+        onEndCall={() => setIsVideoCallActive(false)}
+      />
 
       {/* Messages */}
       {messages.length === 0 ? (

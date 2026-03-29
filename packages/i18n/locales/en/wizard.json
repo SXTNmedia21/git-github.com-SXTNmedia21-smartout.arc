@@ -1,0 +1,12 @@
+{
+  "nav": {
+    "back": "Back",
+    "next": "Next",
+    "skip": "Skip",
+    "finish": "Finish"
+  },
+  "progress": {
+    "step": "Step {current} of {total}",
+    "estimated": "About {minutes} min"
+  }
+}

@@ -37,9 +37,18 @@ describe("getDepartmentsForIndustry", () => {
 describe("getPositionsForDepartment", () => {
   it("returns kitchen positions for Kjøkken", () => {
     const positions = getPositionsForDepartment("Kjøkken");
-    expect(positions).toContain("Kokk");
-    expect(positions).toContain("Sous Chef");
-    expect(positions).toContain("Kjøkkenassistent");
+    const names = positions.map((p) => p.name);
+    expect(names).toContain("Kokk");
+    expect(names).toContain("Sous Chef");
+    expect(names).toContain("Kjøkkenassistent");
+  });
+
+  it("returns positions with tier and leader data", () => {
+    const positions = getPositionsForDepartment("Kjøkken");
+    const leader = positions.find((p) => p.isLeader);
+    expect(leader).toBeDefined();
+    expect(leader!.name).toBe("Kjøkkensjef");
+    expect(leader!.tier).toBe("basis");
   });
 
   it("returns empty array for unknown department", () => {

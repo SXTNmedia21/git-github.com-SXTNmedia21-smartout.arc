@@ -1,8 +1,16 @@
 "use client";
 
-import { useState, useCallback, useContext, useMemo, useEffect } from "react";
-import { CheckCircle2, Loader2, Briefcase, Plus, X } from "lucide-react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useState,
+  useCallback,
+  useContext,
+  useMemo,
+  useEffect,
+  useImperativeHandle,
+  forwardRef,
+} from "react";
+import { Briefcase, Plus, X } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { createClient } from "@smartout/supabase/client";
 import type { Json } from "@smartout/supabase";
@@ -13,7 +21,6 @@ import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { HelpTip } from "@/components/dashboard/wizard-steps/HelpTip";
 
 // ─── Types ───────────────────────────────────────────────
 
@@ -32,7 +39,6 @@ type CommonTerms = {
   probationMonths: number;
   vacationDays: number;
   extraVacationDays: boolean;
-  vacationPayPct: number;
   otpPct: number;
   employerTaxPct: number;
 };
@@ -65,14 +71,14 @@ const INITIAL_FORMS: EmploymentForm[] = [
     label: "Tilkallingshjelp",
     defaultHoursPerWeek: 0,
     defaultNotice: { value: 14, unit: "days" },
-    enabled: false,
+    enabled: true,
     hoursPerWeek: 0,
     noticeValue: 14,
     noticeUnit: "days",
   },
   {
     type: "laerling",
-    label: "Lærling",
+    label: "L\u00e6rling",
     defaultHoursPerWeek: 37.5,
     defaultNotice: { value: 1, unit: "months" },
     enabled: false,
@@ -82,170 +88,32 @@ const INITIAL_FORMS: EmploymentForm[] = [
   },
 ];
 
-// ─── EmploymentFormCard ──────────────────────────────────
-
-function EmploymentFormCard({
-  form,
-  isDark,
-  onToggle,
-  onUpdate,
-  isCustom,
-  onRemove,
-}: {
-  form: EmploymentForm;
-  isDark: boolean;
-  onToggle: () => void;
-  onUpdate: (updates: Partial<EmploymentForm>) => void;
-  isCustom?: boolean;
-  onRemove?: () => void;
-}) {
-  const noticeUnitLabel = form.noticeUnit === "months" ? "mnd" : "dager";
-
-  return (
-    <div
-      className={`overflow-hidden rounded-xl border transition-colors ${
-        form.enabled
-          ? isDark
-            ? "border-orange-500/40 bg-orange-500/5"
-            : "border-orange-300 bg-orange-50/50"
-          : isDark
-            ? "border-zinc-800 bg-zinc-900/30"
-            : "border-zinc-200 bg-zinc-50/50"
-      }`}
-    >
-      <label className="flex cursor-pointer items-center justify-between px-4 py-3">
-        <div className="flex items-center gap-3">
-          <Briefcase
-            className={`h-4 w-4 ${
-              form.enabled ? "text-orange-500" : isDark ? "text-zinc-600" : "text-zinc-400"
-            }`}
-          />
-          {isCustom ? (
-            <Input
-              type="text"
-              placeholder="Navn på ansettelsesform"
-              value={form.label}
-              onClick={(e) => e.stopPropagation()}
-              onChange={(e) => onUpdate({ label: e.target.value })}
-              className={`h-7 w-48 text-sm font-semibold ${
-                isDark
-                  ? "border-zinc-700 bg-zinc-800 text-zinc-200 placeholder:text-zinc-500"
-                  : "border-zinc-300 bg-white text-zinc-800 placeholder:text-zinc-400"
-              }`}
-            />
-          ) : (
-            <span className={`text-sm font-semibold ${isDark ? "text-zinc-200" : "text-zinc-800"}`}>
-              {form.label}
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          {isCustom && onRemove && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onRemove();
-              }}
-              className={`rounded-md p-1 transition-colors ${
-                isDark
-                  ? "text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300"
-                  : "text-zinc-400 hover:bg-zinc-200 hover:text-zinc-600"
-              }`}
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
-          <Switch checked={form.enabled} onCheckedChange={onToggle} />
-        </div>
-      </label>
-
-      {form.enabled && (
-        <div
-          className={`border-t px-4 pt-3 pb-3 ${isDark ? "border-zinc-800" : "border-zinc-200"}`}
-        >
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label className={`text-xs ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
-                Normalarbeidstid
-              </Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number"
-                  min={0}
-                  max={100}
-                  step={0.5}
-                  value={form.hoursPerWeek}
-                  onChange={(e) => onUpdate({ hoursPerWeek: parseFloat(e.target.value) || 0 })}
-                  className={`h-8 w-20 text-sm ${
-                    isDark
-                      ? "border-zinc-700 bg-zinc-800 text-zinc-200"
-                      : "border-zinc-300 bg-white text-zinc-800"
-                  }`}
-                />
-                <span className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
-                  t/uke
-                </span>
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className={`text-xs ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
-                Oppsigelsestid
-              </Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number"
-                  min={0}
-                  max={365}
-                  step={1}
-                  value={form.noticeValue}
-                  onChange={(e) => onUpdate({ noticeValue: parseInt(e.target.value, 10) || 0 })}
-                  className={`h-8 w-20 text-sm ${
-                    isDark
-                      ? "border-zinc-700 bg-zinc-800 text-zinc-200"
-                      : "border-zinc-300 bg-white text-zinc-800"
-                  }`}
-                />
-                <span className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
-                  {noticeUnitLabel}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ─── EmploymentSetupStep ─────────────────────────────────
 
-export function EmploymentSetupStep({
-  isDark,
-  industryDefaults,
-  extractedTerms,
-}: {
-  isDark: boolean;
-  industryDefaults?: IndustryEmploymentDefaults;
-  extractedTerms?: {
-    noticePeriod?: string;
-    probation?: string;
-    source: string;
-  };
-}) {
+export type EmploymentSetupHandle = {
+  save: () => Promise<void>;
+};
+
+export const EmploymentSetupStep = forwardRef<
+  EmploymentSetupHandle,
+  {
+    industryDefaults?: IndustryEmploymentDefaults;
+    extractedTerms?: {
+      noticePeriod?: string;
+      probation?: string;
+      source: string;
+    };
+  }
+>(function EmploymentSetupStep({ industryDefaults, extractedTerms }, ref) {
   const workspace = useWorkspace();
   const { profileId } = useContext(DashboardContext);
   const queryClient = useQueryClient();
 
-  // ── State ──
   const initialCommonTerms = useMemo<CommonTerms>(
     () => ({
       probationMonths: industryDefaults?.probationMonths ?? 6,
       vacationDays: industryDefaults?.vacationDays ?? 25,
       extraVacationDays: industryDefaults?.extraVacationDays ?? false,
-      vacationPayPct: 10.2,
       otpPct: industryDefaults?.otpPct ?? 2,
       employerTaxPct: industryDefaults?.employerTaxPct ?? 14.1,
     }),
@@ -255,7 +123,6 @@ export function EmploymentSetupStep({
   const [forms, setForms] = useState<EmploymentForm[]>(INITIAL_FORMS);
   const [commonTerms, setCommonTerms] = useState<CommonTerms>(initialCommonTerms);
 
-  // ── Existing policy query ──
   const { data: existingPolicy } = useQuery({
     queryKey: ["employment-policy", workspace.workspace.workspace_id],
     queryFn: async () => {
@@ -265,17 +132,16 @@ export function EmploymentSetupStep({
         .select("policy_id, rules_json")
         .eq("workspace_id", workspace.workspace.workspace_id)
         .eq("policy_type", "hr")
-        .eq("name", "Ansettelsesvilkår")
+        .eq("name", "Ansettelsesvilk\u00e5r")
         .eq("is_active", true)
         .maybeSingle();
       return data;
     },
   });
 
-  // ── Pre-populate from existing policy ──
+  // Pre-populate from existing policy
   useEffect(() => {
     if (!existingPolicy?.rules_json) return;
-
     const rules = existingPolicy.rules_json as {
       employment_forms?: Array<{
         type: string;
@@ -288,7 +154,6 @@ export function EmploymentSetupStep({
         probation_months?: number;
         vacation_days?: number;
         extra_vacation_days?: number;
-        vacation_pay_pct?: number;
         otp_pct?: number;
         employer_tax_pct?: number;
       };
@@ -314,7 +179,7 @@ export function EmploymentSetupStep({
           .filter((form) => !form.type.startsWith("custom_"))
           .map((form) => {
             const saved = rules.employment_forms?.find((f) => f.type === form.type);
-            if (saved) {
+            if (saved)
               return {
                 ...form,
                 enabled: true,
@@ -322,7 +187,6 @@ export function EmploymentSetupStep({
                 noticeValue: saved.notice_value,
                 noticeUnit: saved.notice_unit,
               };
-            }
             return { ...form, enabled: enabledTypes.has(form.type) };
           });
         return [...presetForms, ...customForms];
@@ -335,14 +199,12 @@ export function EmploymentSetupStep({
         probationMonths: ct.probation_months ?? 6,
         vacationDays: ct.vacation_days ?? 25,
         extraVacationDays: (ct.extra_vacation_days ?? 0) > 0,
-        vacationPayPct: ct.vacation_pay_pct ?? 10.2,
         otpPct: ct.otp_pct ?? 2,
         employerTaxPct: ct.employer_tax_pct ?? 14.1,
       });
     }
   }, [existingPolicy]);
 
-  // ── Pre-fill from extracted terms ──
   useEffect(() => {
     if (!extractedTerms) return;
     setCommonTerms((prev) => {
@@ -353,9 +215,16 @@ export function EmploymentSetupStep({
       }
       return next;
     });
+    if (extractedTerms.noticePeriod) {
+      const periodStr = extractedTerms.noticePeriod.toLowerCase();
+      let noticeValue = parseInt(periodStr, 10);
+      let noticeUnit: "months" | "days" = "months";
+      if (periodStr.includes("dag") || periodStr.includes("day")) noticeUnit = "days";
+      if (isNaN(noticeValue)) noticeValue = 1;
+      setForms((prev) => prev.map((f) => (f.enabled ? { ...f, noticeValue, noticeUnit } : f)));
+    }
   }, [extractedTerms]);
 
-  // ── Handlers ──
   const handleFormToggle = useCallback((index: number) => {
     setForms((prev) => prev.map((f, i) => (i === index ? { ...f, enabled: !f.enabled } : f)));
   }, []);
@@ -391,11 +260,10 @@ export function EmploymentSetupStep({
     [],
   );
 
-  // ── Save mutation ──
+  // Save is called externally (on "Neste") via onSave or exposed via ref
   const saveMutation = useMutation({
     mutationFn: async () => {
       const supabase = createClient();
-
       const rulesJson = {
         employment_forms: forms
           .filter((f) => f.enabled)
@@ -424,8 +292,8 @@ export function EmploymentSetupStep({
         if (error) throw error;
       } else {
         const { error } = await supabase.from("policy").insert({
-          name: "Ansettelsesvilkår",
-          statement: "Standard ansettelsesvilkår for virksomheten",
+          name: "Ansettelsesvilk\u00e5r",
+          statement: "Standard ansettelsesvilk\u00e5r",
           policy_type: "hr" as const,
           policy_scope: "workspace" as const,
           workspace_id: workspace.workspace.workspace_id,
@@ -439,7 +307,6 @@ export function EmploymentSetupStep({
       void queryClient.invalidateQueries({
         queryKey: ["employment-policy", workspace.workspace.workspace_id],
       });
-      toast.success("Ansettelsesvilkår lagret");
       void emit({
         event: "button clicked",
         workspace_id: workspace.workspace.workspace_id,
@@ -448,171 +315,166 @@ export function EmploymentSetupStep({
       });
     },
     onError: () => {
-      toast.error("Kunne ikke lagre vilkår");
+      toast.error("Kunne ikke lagre vilk\u00e5r");
     },
   });
 
-  // ── Preview text ──
-  const previewText = useMemo(() => {
-    const enabledForms = forms.filter((f) => f.enabled);
-    if (enabledForms.length === 0) return "Ingen ansettelsesformer valgt.";
+  useImperativeHandle(
+    ref,
+    () => ({
+      save: async () => {
+        await saveMutation.mutateAsync();
+        await queryClient.invalidateQueries({
+          queryKey: ["employment-policy", workspace.workspace.workspace_id],
+        });
+      },
+    }),
+    [saveMutation.mutateAsync, queryClient, workspace.workspace.workspace_id],
+  );
 
-    const formDescriptions = enabledForms.map((f) => {
-      const noticeLabel = f.noticeUnit === "months" ? "mnd" : "dager";
-      return `**${f.label.toLowerCase()}** (${f.hoursPerWeek} t/uke, ${f.noticeValue} ${noticeLabel} oppsigelsestid)`;
-    });
-
-    const formsStr =
-      formDescriptions.length === 1
-        ? formDescriptions[0]
-        : formDescriptions.slice(0, -1).join(", ") +
-          " og " +
-          formDescriptions[formDescriptions.length - 1];
-
-    const totalVacation = commonTerms.extraVacationDays
-      ? `${commonTerms.vacationDays} + 5`
-      : `${commonTerms.vacationDays}`;
-
-    return `Nye ansatte får tilbud om: ${formsStr}. Prøvetid: ${commonTerms.probationMonths} måneder. Ferie: ${totalVacation} dager. Feriepenger: 10,2%. OTP: ${commonTerms.otpPct}%.`;
-  }, [forms, commonTerms]);
-
-  const enabledCount = forms.filter((f) => f.enabled).length;
-
-  // ── Render ──
   return (
-    <div className="space-y-8">
-      {/* ── Del 1: Ansettelsesformer ── */}
+    <div className="space-y-6">
+      {/* Ansettelsesformer */}
       <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <h3 className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-            Ansettelsesformer
-          </h3>
-          <HelpTip text="Velg hvilke ansettelsestyper dere bruker. Dette bestemmer kontraktsmalene." />
-        </div>
-        <p className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
-          Velg hvilke ansettelsesformer som brukes i virksomheten.
-        </p>
+        <h3 className="text-muted-foreground text-sm font-bold">Ansettelsesformer</h3>
         <div className="space-y-2">
-          {forms.map((form, index) => (
-            <EmploymentFormCard
-              key={form.type}
-              form={form}
-              isDark={isDark}
-              onToggle={() => handleFormToggle(index)}
-              onUpdate={(updates) => handleFormUpdate(index, updates)}
-              isCustom={form.type.startsWith("custom_")}
-              onRemove={form.type.startsWith("custom_") ? () => handleRemoveForm(index) : undefined}
-            />
-          ))}
+          {forms.map((form, index) => {
+            const isCustom = form.type.startsWith("custom_");
+            const noticeLabel = form.noticeUnit === "months" ? "mnd" : "dager";
+            return (
+              <div
+                key={form.type}
+                className={`rounded-xl border transition-colors ${
+                  form.enabled ? "border-brand-orange bg-brand-orange/5" : "border-border bg-muted"
+                }`}
+              >
+                <label className="flex cursor-pointer items-center justify-between px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <Briefcase
+                      className={`h-4 w-4 ${form.enabled ? "text-brand-orange" : "text-muted-foreground"}`}
+                    />
+                    {isCustom ? (
+                      <Input
+                        type="text"
+                        placeholder="Navn"
+                        value={form.label}
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={(e) => handleFormUpdate(index, { label: e.target.value })}
+                        className="border-border bg-card text-foreground h-7 w-40 text-sm font-semibold"
+                      />
+                    ) : (
+                      <span className="text-foreground text-sm font-semibold">{form.label}</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {isCustom && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleRemoveForm(index);
+                        }}
+                        className="text-muted-foreground hover:text-foreground rounded-md p-1"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
+                    <Switch
+                      checked={form.enabled}
+                      onCheckedChange={() => handleFormToggle(index)}
+                    />
+                  </div>
+                </label>
+                {form.enabled && (
+                  <div className="border-border flex items-center gap-4 border-t px-4 py-2">
+                    <div className="flex items-center gap-1.5">
+                      <Input
+                        type="number"
+                        min={0}
+                        max={100}
+                        step={0.5}
+                        value={form.hoursPerWeek}
+                        onChange={(e) =>
+                          handleFormUpdate(index, { hoursPerWeek: parseFloat(e.target.value) || 0 })
+                        }
+                        className="border-border bg-card text-foreground h-7 w-16 text-xs"
+                      />
+                      <span className="text-muted-foreground text-xs">t/uke</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Input
+                        type="number"
+                        min={0}
+                        max={365}
+                        step={1}
+                        value={form.noticeValue}
+                        onChange={(e) =>
+                          handleFormUpdate(index, {
+                            noticeValue: parseInt(e.target.value, 10) || 0,
+                          })
+                        }
+                        className="border-border bg-card text-foreground h-7 w-16 text-xs"
+                      />
+                      <span className="text-muted-foreground text-xs">
+                        {noticeLabel} oppsigelse
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
         <button
           type="button"
           onClick={handleAddCustomForm}
-          className={`flex w-full items-center justify-center gap-2 rounded-xl border border-dashed px-4 py-2.5 text-sm font-medium transition-colors ${
-            isDark
-              ? "border-zinc-700 text-zinc-400 hover:border-zinc-600 hover:text-zinc-300"
-              : "border-zinc-300 text-zinc-500 hover:border-zinc-400 hover:text-zinc-600"
-          }`}
+          className="border-border text-muted-foreground hover:border-muted-foreground hover:text-foreground flex w-full items-center justify-center gap-2 rounded-xl border border-dashed px-4 py-2 text-sm font-medium transition-colors"
         >
           <Plus className="h-4 w-4" />
           Legg til ansettelsesform
         </button>
       </div>
 
-      {/* ── Del 2: Fellesvilkår ── */}
+      {/* Fellesvilk\u00e5r — compact */}
       <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <h3 className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-            Fellesvilkår
-          </h3>
-          <HelpTip text="Standardbetingelser som gjelder alle ansatte: prøvetid, ferie, pensjon og avgifter." />
-        </div>
-        <div
-          className={`grid grid-cols-1 gap-4 rounded-xl border p-4 sm:grid-cols-2 ${
-            isDark ? "border-zinc-800 bg-zinc-900/30" : "border-zinc-200 bg-zinc-50/50"
-          }`}
-        >
-          {/* Prøvetid */}
-          <div className="space-y-1.5">
-            <Label className={`text-xs font-medium ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
-              Prøvetid
-            </Label>
-            <div className="flex items-center gap-2">
+        <h3 className="text-muted-foreground text-sm font-bold">Fellesvilk&aring;r</h3>
+        <div className="border-border bg-muted grid grid-cols-2 gap-x-4 gap-y-3 rounded-xl border p-4 sm:grid-cols-3">
+          <div className="space-y-1">
+            <Label className="text-muted-foreground text-xs">Pr&oslash;vetid</Label>
+            <div className="flex items-center gap-1.5">
               <Input
                 type="number"
                 min={0}
                 max={12}
-                step={1}
                 value={commonTerms.probationMonths}
                 onChange={(e) =>
                   handleCommonTermChange("probationMonths", parseInt(e.target.value, 10) || 0)
                 }
-                className={`h-8 w-20 text-sm ${
-                  isDark
-                    ? "border-zinc-700 bg-zinc-800 text-zinc-200"
-                    : "border-zinc-300 bg-white text-zinc-800"
-                }`}
+                className="border-border bg-card text-foreground h-7 w-14 text-xs"
               />
-              <span className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>mnd</span>
+              <span className="text-muted-foreground text-xs">mnd</span>
             </div>
           </div>
-
-          {/* Feriedager */}
-          <div className="space-y-1.5">
-            <Label className={`text-xs font-medium ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
-              Feriedager
-            </Label>
-            <div className="flex items-center gap-2">
+          <div className="space-y-1">
+            <Label className="text-muted-foreground text-xs">Ferie</Label>
+            <div className="flex items-center gap-1.5">
               <Input
                 type="number"
                 min={0}
                 max={60}
-                step={1}
                 value={commonTerms.vacationDays}
                 onChange={(e) =>
                   handleCommonTermChange("vacationDays", parseInt(e.target.value, 10) || 0)
                 }
-                className={`h-8 w-20 text-sm ${
-                  isDark
-                    ? "border-zinc-700 bg-zinc-800 text-zinc-200"
-                    : "border-zinc-300 bg-white text-zinc-800"
-                }`}
+                className="border-border bg-card text-foreground h-7 w-14 text-xs"
               />
-              <span className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>dager</span>
-            </div>
-            <label className="flex items-center gap-2 pt-1">
-              <Switch
-                checked={commonTerms.extraVacationDays}
-                onCheckedChange={(checked) => handleCommonTermChange("extraVacationDays", checked)}
-              />
-              <span className={`text-xs ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
-                Avtalefestet ferie (+5)
-              </span>
-            </label>
-          </div>
-
-          {/* Feriepenger (read-only) */}
-          <div className="space-y-1.5">
-            <Label className={`text-xs font-medium ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
-              Feriepenger
-            </Label>
-            <div
-              className={`flex h-8 w-20 items-center rounded-md border px-3 text-sm ${
-                isDark
-                  ? "border-zinc-700 bg-zinc-800/50 text-zinc-400"
-                  : "border-zinc-200 bg-zinc-100 text-zinc-500"
-              }`}
-            >
-              10,2%
+              <span className="text-muted-foreground text-xs">dager</span>
             </div>
           </div>
-
-          {/* OTP pensjon */}
-          <div className="space-y-1.5">
-            <Label className={`text-xs font-medium ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
-              OTP pensjon
-            </Label>
-            <div className="flex items-center gap-2">
+          <div className="space-y-1">
+            <Label className="text-muted-foreground text-xs">OTP</Label>
+            <div className="flex items-center gap-1.5">
               <Input
                 type="number"
                 min={0}
@@ -620,22 +482,14 @@ export function EmploymentSetupStep({
                 step={0.1}
                 value={commonTerms.otpPct}
                 onChange={(e) => handleCommonTermChange("otpPct", parseFloat(e.target.value) || 0)}
-                className={`h-8 w-20 text-sm ${
-                  isDark
-                    ? "border-zinc-700 bg-zinc-800 text-zinc-200"
-                    : "border-zinc-300 bg-white text-zinc-800"
-                }`}
+                className="border-border bg-card text-foreground h-7 w-14 text-xs"
               />
-              <span className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>%</span>
+              <span className="text-muted-foreground text-xs">%</span>
             </div>
           </div>
-
-          {/* Arbeidsgiveravgift */}
-          <div className="space-y-1.5">
-            <Label className={`text-xs font-medium ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
-              Arbeidsgiveravgift
-            </Label>
-            <div className="flex items-center gap-2">
+          <div className="space-y-1">
+            <Label className="text-muted-foreground text-xs">Arb.giveravgift</Label>
+            <div className="flex items-center gap-1.5">
               <Input
                 type="number"
                 min={0}
@@ -645,68 +499,24 @@ export function EmploymentSetupStep({
                 onChange={(e) =>
                   handleCommonTermChange("employerTaxPct", parseFloat(e.target.value) || 0)
                 }
-                className={`h-8 w-20 text-sm ${
-                  isDark
-                    ? "border-zinc-700 bg-zinc-800 text-zinc-200"
-                    : "border-zinc-300 bg-white text-zinc-800"
-                }`}
+                className="border-border bg-card text-foreground h-7 w-14 text-xs"
               />
-              <span className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>%</span>
+              <span className="text-muted-foreground text-xs">%</span>
             </div>
           </div>
+          <div className="space-y-1">
+            <Label className="text-muted-foreground text-xs">Feriepenger</Label>
+            <div className="text-muted-foreground flex h-7 items-center text-xs">10,2%</div>
+          </div>
+          <label className="flex items-center gap-2 self-end">
+            <Switch
+              checked={commonTerms.extraVacationDays}
+              onCheckedChange={(checked) => handleCommonTermChange("extraVacationDays", checked)}
+            />
+            <span className="text-muted-foreground text-xs">+5 ferie</span>
+          </label>
         </div>
-      </div>
-
-      {/* ── Del 3: Forhåndsvisning ── */}
-      <div className="space-y-3">
-        <h3 className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-          Forhåndsvisning
-        </h3>
-        <div
-          className={`rounded-xl border p-4 text-sm leading-relaxed ${
-            isDark
-              ? "border-zinc-700 bg-zinc-800/50 text-zinc-300"
-              : "border-zinc-200 bg-amber-50/50 text-zinc-700"
-          }`}
-        >
-          {previewText.split("**").map((part, i) =>
-            i % 2 === 1 ? (
-              <strong key={i} className={isDark ? "text-zinc-100" : "text-zinc-900"}>
-                {part}
-              </strong>
-            ) : (
-              <span key={i}>{part}</span>
-            ),
-          )}
-        </div>
-      </div>
-
-      {/* ── Save button ── */}
-      <div className="flex items-center gap-3">
-        <button
-          onClick={() => saveMutation.mutate()}
-          disabled={saveMutation.isPending || enabledCount === 0}
-          className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition-colors ${
-            saveMutation.isPending || enabledCount === 0
-              ? "cursor-not-allowed opacity-50"
-              : "bg-orange-500 text-white hover:bg-orange-600"
-          }`}
-        >
-          {saveMutation.isPending ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : existingPolicy ? (
-            <CheckCircle2 className="h-4 w-4" />
-          ) : null}
-          {existingPolicy ? "Oppdater vilkår" : "Lagre vilkår"}
-        </button>
-
-        {existingPolicy && !saveMutation.isPending && (
-          <span className="flex items-center gap-1.5 text-xs text-emerald-500">
-            <CheckCircle2 className="h-3.5 w-3.5" />
-            Lagret
-          </span>
-        )}
       </div>
     </div>
   );
-}
+});

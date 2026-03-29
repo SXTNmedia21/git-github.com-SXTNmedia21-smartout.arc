@@ -6,17 +6,32 @@
 // /onboarding owns final workspace truth.
 // ============================================
 
+const INDUSTRY_NACE_MAP: Record<string, string> = {
+  restaurant: "56.101",
+  cafe: "56.102",
+  bar: "56.301",
+  hotel: "55.101",
+  catering: "56.210",
+  fast_food: "56.102",
+  retail: "47.110",
+  other: "",
+};
+
+function resolveNaceFromIndustry(industry: string): string {
+  return INDUSTRY_NACE_MAP[industry] ?? "";
+}
+
 export type SignupSetupData = {
   step1: {
     email: string;
+    firstName: string;
+    lastName: string;
     companyName: string;
     industry: string;
     city?: string;
     websiteUrl: string;
   };
   step2: {
-    firstName: string;
-    lastName: string;
     street: string;
     postalCode: string;
     city: string;
@@ -71,6 +86,7 @@ export function buildOnboardingShellIntelligence(data: SignupSetupData) {
     brreg: {
       legalName: data.step1.companyName,
       orgNumber: data.step2.orgNumber,
+      naceCode: resolveNaceFromIndustry(data.step1.industry),
       naceDescription: data.step1.industry,
       address: {
         street: data.step2.street,
@@ -81,8 +97,8 @@ export function buildOnboardingShellIntelligence(data: SignupSetupData) {
     },
     join_intake: {
       ownerProfile: {
-        firstName: data.step2.firstName,
-        lastName: data.step2.lastName,
+        firstName: data.step1.firstName,
+        lastName: data.step1.lastName,
       },
       businessNarrative: {
         aboutUs: data.step3.aboutUs ?? "",
@@ -101,6 +117,17 @@ export function buildOnboardingShellIntelligence(data: SignupSetupData) {
       },
       rawOpeningHours: data.step4.openingHours,
       generatedIntelligence: data.intelligence ?? null,
+      fieldSources: {
+        aboutUs: data.intelligence ? "user_confirmed" : "user_input",
+        ourHistory: data.intelligence ? "user_confirmed" : "user_input",
+        ourConcept: data.intelligence ? "user_confirmed" : "user_input",
+        restaurantType: data.intelligence ? "ai_generated" : "user_input",
+        cuisineTypes: data.intelligence ? "ai_generated" : "user_input",
+        priceCategory: data.intelligence ? "ai_generated" : "user_input",
+        menuDescription: data.intelligence ? "ai_generated" : "user_input",
+        phone: "user_input",
+        email: "user_input",
+      },
     },
   };
 }

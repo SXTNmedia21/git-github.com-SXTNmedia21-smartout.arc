@@ -57,15 +57,15 @@ export function FeaturePunchIn({ currentStepId, uiState, onInteraction }: DemoFe
             className="flex flex-1 flex-col items-center justify-center gap-6"
           >
             {/* Location badge */}
-            <div className="flex items-center gap-2 rounded-full border border-white/[0.06] bg-[#0a0a0c] px-4 py-2">
-              <MapPin className="h-4 w-4 text-zinc-500" />
-              <span className="text-sm text-zinc-400">Grand Hotel — Kjøkken</span>
+            <div className="border-border bg-background flex items-center gap-2 rounded-full border px-4 py-2">
+              <MapPin className="text-muted-foreground h-4 w-4" />
+              <span className="text-muted-foreground text-sm">Grand Hotel — Kjøkken</span>
             </div>
 
             {/* Clock display */}
             <div className="text-center">
-              <p className="text-5xl font-black text-white tabular-nums">06:58</p>
-              <p className="mt-1 text-sm text-zinc-500">Vakt starter 07:00</p>
+              <p className="text-foreground text-5xl font-black tabular-nums">06:58</p>
+              <p className="text-muted-foreground mt-1 text-sm">Vakt starter 07:00</p>
             </div>
 
             {/* Punch button */}
@@ -74,7 +74,7 @@ export function FeaturePunchIn({ currentStepId, uiState, onInteraction }: DemoFe
               className={`flex items-center gap-3 rounded-2xl px-8 py-4 text-lg font-bold transition-all ${
                 clockedIn
                   ? "border border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
-                  : "border border-orange-500/30 bg-orange-500/10 text-orange-300 hover:bg-orange-500/20"
+                  : "border-brand-orange/30 bg-brand-orange/10 text-brand-orange hover:bg-brand-orange/20 border"
               }`}
               animate={
                 !clockedIn && currentStepId === "clock-in-prompt"
@@ -126,26 +126,26 @@ export function FeaturePunchIn({ currentStepId, uiState, onInteraction }: DemoFe
             {/* Header */}
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-bold text-white">Dagens oppgaver</h2>
-                <p className="mt-0.5 text-sm text-zinc-500">Mandag 3. mars — Morgenvakt</p>
+                <h2 className="text-foreground text-xl font-bold">Dagens oppgaver</h2>
+                <p className="text-muted-foreground mt-0.5 text-sm">Mandag 3. mars — Morgenvakt</p>
               </div>
-              <div className="flex items-center gap-1.5 rounded-lg border border-white/[0.06] bg-[#0a0a0c] px-3 py-1.5">
-                <User className="h-3.5 w-3.5 text-zinc-500" />
-                <span className="text-xs text-zinc-400">Maria S.</span>
+              <div className="border-border bg-background flex items-center gap-1.5 rounded-lg border px-3 py-1.5">
+                <User className="text-muted-foreground h-3.5 w-3.5" />
+                <span className="text-muted-foreground text-xs">Maria S.</span>
               </div>
             </div>
 
             {/* Progress bar */}
-            <div className="rounded-xl border border-white/[0.06] bg-[#0a0a0c] p-3">
-              <div className="flex items-center justify-between text-xs text-zinc-400">
+            <div className="border-border bg-background rounded-xl border p-3">
+              <div className="text-muted-foreground flex items-center justify-between text-xs">
                 <span>
                   {completedTasks} av {TASKS.length} fullført
                 </span>
                 <span>{Math.round((completedTasks / TASKS.length) * 100)}%</span>
               </div>
-              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-zinc-800">
+              <div className="bg-muted mt-2 h-1.5 overflow-hidden rounded-full">
                 <m.div
-                  className="h-full rounded-full bg-orange-500"
+                  className="bg-brand-orange h-full rounded-full"
                   animate={{ width: `${(completedTasks / TASKS.length) * 100}%` }}
                   transition={{ duration: 0.5 }}
                 />
@@ -168,8 +168,8 @@ export function FeaturePunchIn({ currentStepId, uiState, onInteraction }: DemoFe
                       isDone
                         ? "border-emerald-500/20 bg-emerald-500/5"
                         : isCurrent
-                          ? "border-orange-500/20 bg-orange-500/5 hover:border-orange-500/40"
-                          : "border-white/[0.06] bg-[#0a0a0c] opacity-50"
+                          ? "border-brand-orange/20 bg-brand-orange/5 hover:border-brand-orange/40"
+                          : "border-border bg-background opacity-50"
                     }`}
                     animate={
                       isCurrent && currentStepId === "check-task"
@@ -193,17 +193,17 @@ export function FeaturePunchIn({ currentStepId, uiState, onInteraction }: DemoFe
                       <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-400" />
                     ) : (
                       <Circle
-                        className={`h-5 w-5 shrink-0 ${isCurrent ? "text-orange-400" : "text-zinc-600"}`}
+                        className={`h-5 w-5 shrink-0 ${isCurrent ? "text-brand-orange" : "text-muted-foreground/70"}`}
                       />
                     )}
                     <div className="flex-1">
                       <p
-                        className={`text-sm font-medium ${isDone ? "text-zinc-500 line-through" : "text-white"}`}
+                        className={`text-sm font-medium ${isDone ? "text-muted-foreground line-through" : "text-foreground"}`}
                       >
                         {task.label}
                       </p>
                     </div>
-                    <span className="text-xs text-zinc-500">{task.time}</span>
+                    <span className="text-muted-foreground text-xs">{task.time}</span>
                   </m.button>
                 );
               })}
@@ -222,8 +222,10 @@ export function FeaturePunchIn({ currentStepId, uiState, onInteraction }: DemoFe
             className="flex flex-1 flex-col gap-5"
           >
             <div>
-              <h2 className="text-xl font-bold text-white">Ledervisning — sanntid</h2>
-              <p className="mt-0.5 text-sm text-zinc-500">Slik ser det ut fra lederens dashboard</p>
+              <h2 className="text-foreground text-xl font-bold">Ledervisning — sanntid</h2>
+              <p className="text-muted-foreground mt-0.5 text-sm">
+                Slik ser det ut fra lederens dashboard
+              </p>
             </div>
 
             {/* Stats grid */}
@@ -255,10 +257,10 @@ export function FeaturePunchIn({ currentStepId, uiState, onInteraction }: DemoFe
             </div>
 
             {/* Live feed */}
-            <div className="flex-1 rounded-xl border border-white/[0.06] bg-[#0a0a0c] p-4">
+            <div className="border-border bg-background flex-1 rounded-xl border p-4">
               <div className="mb-3 flex items-center gap-2">
-                <BarChart3 className="h-4 w-4 text-zinc-500" />
-                <span className="text-sm font-medium text-zinc-300">Aktivitetslogg</span>
+                <BarChart3 className="text-muted-foreground h-4 w-4" />
+                <span className="text-foreground text-sm font-medium">Aktivitetslogg</span>
               </div>
               <div className="flex flex-col gap-2">
                 {[
@@ -267,12 +269,12 @@ export function FeaturePunchIn({ currentStepId, uiState, onInteraction }: DemoFe
                   {
                     time: "07:16",
                     text: "Maria S. fullførte: Sjekk kjøletemperatur",
-                    color: "text-orange-400",
+                    color: "text-brand-orange",
                   },
                   {
                     time: "07:31",
                     text: "Maria S. fullførte: Klargjør frokostbuffet",
-                    color: "text-orange-400",
+                    color: "text-brand-orange",
                   },
                 ].map((entry, i) => (
                   <m.div
@@ -282,7 +284,7 @@ export function FeaturePunchIn({ currentStepId, uiState, onInteraction }: DemoFe
                     transition={{ delay: i * 0.15, duration: 0.3 }}
                     className="flex items-center gap-3"
                   >
-                    <span className="w-12 shrink-0 text-xs text-zinc-600 tabular-nums">
+                    <span className="text-muted-foreground/70 w-12 shrink-0 text-xs tabular-nums">
                       {entry.time}
                     </span>
                     <span className={`text-sm ${entry.color}`}>{entry.text}</span>
@@ -311,16 +313,16 @@ function StatsCard({
 }) {
   const colors = {
     emerald: "border-emerald-500/20 text-emerald-400",
-    orange: "border-orange-500/20 text-orange-400",
+    orange: "border-brand-orange/20 text-brand-orange",
     cyan: "border-cyan-500/20 text-cyan-400",
     purple: "border-purple-500/20 text-purple-400",
   };
 
   return (
-    <div className={`rounded-xl border bg-[#0a0a0c] p-4 ${colors[color]}`}>
+    <div className={`bg-background rounded-xl border p-4 ${colors[color]}`}>
       <div className="mb-2">{icon}</div>
       <p className="text-2xl font-bold">{value}</p>
-      <p className="mt-0.5 text-xs text-zinc-500">{label}</p>
+      <p className="text-muted-foreground mt-0.5 text-xs">{label}</p>
     </div>
   );
 }

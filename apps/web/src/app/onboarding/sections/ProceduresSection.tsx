@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Plus, X, AlertTriangle } from "lucide-react";
 import { motion } from "framer-motion";
 import { useOnboarding } from "../WizardContext";
+import { EASE_EXPO } from "../lib/motion";
 
 export function ProceduresSection() {
   const { procedures, toggleProcedure, addCustomProcedure, completeSection, business } =
@@ -48,7 +49,7 @@ export function ProceduresSection() {
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.8, ease: EASE_EXPO }}
         >
           <p className="text-xs font-semibold tracking-[0.25em] text-white/20 uppercase">
             Prosedyrer
@@ -90,7 +91,7 @@ export function ProceduresSection() {
               onClick={() => handleToggle(proc.id)}
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.05, duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ delay: i * 0.05, duration: 0.45, ease: EASE_EXPO }}
               className={`flex items-center justify-between rounded-2xl border px-5 py-4 text-left transition-all ${
                 proc.selected
                   ? "border-white/[0.12] bg-white/[0.08] text-white"
@@ -109,7 +110,7 @@ export function ProceduresSection() {
                 </span>
                 <span className="text-base">{proc.name}</span>
                 {proc.recommended && (
-                  <span className="rounded-md bg-emerald-500/[0.12] px-1.5 py-0.5 text-xs text-emerald-400">
+                  <span className="bg-success/[0.12] text-success rounded-md px-1.5 py-0.5 text-xs">
                     Anbefalt
                   </span>
                 )}
@@ -123,10 +124,10 @@ export function ProceduresSection() {
           ))}
 
           {pendingProc && (
-            <div className="mt-2 flex items-start gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/[0.08] px-5 py-4">
-              <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-400" />
+            <div className="border-warning/20 bg-warning/[0.08] mt-2 flex items-start gap-3 rounded-2xl border px-5 py-4">
+              <AlertTriangle className="text-warning mt-0.5 size-4 shrink-0" />
               <div className="flex flex-col gap-2">
-                <p className="text-sm text-amber-200">
+                <p className="text-warning text-sm">
                   <strong>{pendingProc.name}</strong> er anbefalt for din bransje. Sikker?
                 </p>
                 <div className="flex gap-2">

@@ -23,7 +23,7 @@ import Animated, {
 import { ChevronRight, Wallet, Plane, Clock } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
-import { createStyles } from "@/theme";
+import { createStyles, useTheme } from "@/theme";
 import { strings } from "@/constants/strings";
 import { getTrustLabel } from "@/lib/trust-labels";
 import { getShiftSupplements, mapDbRules } from "@/lib/supplements";
@@ -52,11 +52,11 @@ type PayrollHomeCardProps = {
 // Top stripe color palette per phase
 // ---------------------------------------------------------------------------
 
-const stripeColors = {
-  no_shift: ["#22c55e", "#3b82f6"] as const, // green → blue
-  before_shift: ["#8b5cf6", "#e85c0d"] as const, // purple → orange
-  during_shift: ["#e85c0d", "#e85c0d"] as const, // solid orange
-  after_shift: ["#22c55e", "#22c55e"] as const, // solid green
+const stripeColorKeys = {
+  no_shift: ["success", "info"] as const,
+  before_shift: ["brandPurple", "brandOrange"] as const,
+  during_shift: ["brandOrange", "brandOrange"] as const,
+  after_shift: ["success", "success"] as const,
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -83,6 +83,7 @@ function getElapsedMinutes(punchIn: string, punchOut: string | null): number {
 
 function NoShiftContent({ summary }: { summary: PayrollSummary }) {
   const styles = useStyles();
+  const { colors } = useTheme();
   const router = useRouter();
 
   // Find the vacation balance (first absence balance, typically ferie)
@@ -96,7 +97,7 @@ function NoShiftContent({ summary }: { summary: PayrollSummary }) {
       {vacationBalance && (
         <View style={styles.row}>
           <View style={styles.rowIcon}>
-            <Plane size={16} color="#22c55e" strokeWidth={1.8} />
+            <Plane size={16} color={colors.success} strokeWidth={1.8} />
           </View>
           <View style={styles.rowBody}>
             <Text style={styles.rowLabel}>{strings.payroll.vacation}</Text>
@@ -111,7 +112,7 @@ function NoShiftContent({ summary }: { summary: PayrollSummary }) {
       {summary.timebankHours !== null && (
         <View style={styles.row}>
           <View style={styles.rowIcon}>
-            <Clock size={16} color="#3b82f6" strokeWidth={1.8} />
+            <Clock size={16} color={colors.info} strokeWidth={1.8} />
           </View>
           <View style={styles.rowBody}>
             <Text style={styles.rowLabel}>{strings.payroll.timebank}</Text>
@@ -144,7 +145,7 @@ function NoShiftContent({ summary }: { summary: PayrollSummary }) {
       <Pressable
         onPress={() => {
           Haptics.selectionAsync();
-          router.push("/(app)/(me)/payslip");
+          router.push("/(app)/(me)/payroll");
         }}
         style={({ pressed }) => [styles.seeAllRow, pressed && styles.seeAllPressed]}
         accessibilityRole="link"
@@ -432,7 +433,10 @@ export function PayrollHomeCard({ phase, shift, timeEntry, summary }: PayrollHom
 // ---------------------------------------------------------------------------
 
 function TopStripe({ phase }: { phase: PayrollHomeCardProps["phase"] }) {
-  const [left, right] = stripeColors[phase];
+  const { colors } = useTheme();
+  const [leftKey, rightKey] = stripeColorKeys[phase];
+  const left = colors[leftKey];
+  const right = colors[rightKey];
   const isGradient = left !== right;
 
   if (!isGradient) {
@@ -474,10 +478,10 @@ const useStyles = createStyles((theme) => ({
     backgroundColor: theme.colors.card,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: theme.isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.04)",
+    borderColor: theme.isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: theme.isDark ? 0.25 : 0.08,
+    shadowOpacity: theme.isDark ? 0.3 : 0.08,
     shadowRadius: 8,
     elevation: 3,
     overflow: "hidden" as const,

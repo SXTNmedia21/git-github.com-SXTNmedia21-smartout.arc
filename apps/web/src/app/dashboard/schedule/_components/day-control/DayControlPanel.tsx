@@ -21,6 +21,9 @@ import {
   Users,
   Clock,
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { createClient } from "@smartout/supabase/client";
+import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useScheduleUI } from "../schedule-ui-context";
 import { formatDateLabel } from "./shared";
@@ -33,9 +36,17 @@ import { StaffingTab } from "./StaffingTab";
 import { BroadcastFooter } from "./BroadcastFooter";
 import { DaySessionProvider } from "./DaySessionProvider";
 import { SessionTasksTab } from "./SessionTasksTab";
+import { OkonomiTab } from "./OkonomiTab";
 import { useDaySession } from "./use-day-session";
 
-type TabId = "oversikt" | "meldinger" | "bookings" | "oppgaver" | "budsjett" | "bemanning";
+type TabId =
+  | "oversikt"
+  | "meldinger"
+  | "bookings"
+  | "oppgaver"
+  | "budsjett"
+  | "bemanning"
+  | "okonomi";
 
 /**
  * Hosts the day control panel inside the shared day-session provider.
@@ -83,6 +94,26 @@ function DayControlPanelContent({
   const { dayControlFullscreen, setDayControlFullscreen } = useScheduleUI();
   const [activeTab, setActiveTab] = useState<TabId>("oversikt");
   const { snapshot, dayBookings, dayMessages } = useDaySession();
+
+  const ctx = useWorkspaceOptional();
+  const workspaceId = ctx?.workspace.workspace_id;
+
+  // Lightweight check for settlement status — drives the Okonomi tab badge
+  const { data: settlementStatus } = useQuery({
+    queryKey: ["settlement-status", workspaceId, date],
+    enabled: !!workspaceId && !!date,
+    staleTime: 2 * 60 * 1000,
+    queryFn: async () => {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("daily_reconciliation")
+        .select("status")
+        .eq("workspace_id", workspaceId!)
+        .eq("reconciliation_date", date)
+        .maybeSingle();
+      return data?.status ?? null;
+    },
+  });
 
   const dateLabel = useMemo(() => formatDateLabel(date), [date]);
 
@@ -227,6 +258,19 @@ function DayControlPanelContent({
             icon={<Users className="h-3 w-3" />}
             label="Bemanning"
           />
+          <TabButton
+            active={activeTab === "okonomi"}
+            onClick={() => setActiveTab("okonomi")}
+            icon={<DollarSign className="h-3 w-3" />}
+            label="Okonomi"
+            badge={
+              settlementStatus === "submitted"
+                ? 1
+                : settlementStatus === "approved" || settlementStatus === "locked"
+                  ? 0
+                  : undefined
+            }
+          />
         </div>
       </div>
 
@@ -238,6 +282,7 @@ function DayControlPanelContent({
         {activeTab === "oppgaver" && <SessionTasksTab />}
         {activeTab === "budsjett" && <BudgetTab dateId={date} />}
         {activeTab === "bemanning" && <StaffingTab dateId={date} />}
+        {activeTab === "okonomi" && <OkonomiTab dateId={date} />}
       </div>
 
       {/* Footer */}

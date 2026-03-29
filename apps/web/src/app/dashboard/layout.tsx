@@ -23,6 +23,7 @@ const SHOWCASE_WORKSPACE: WorkspaceData = {
   timezone: "Europe/Oslo",
   contract_status: "active",
   onboarding_completed: true,
+  setup_guide_completed: true,
 };
 
 /**

@@ -21,7 +21,16 @@ import { dashboardKeys } from "@/app/dashboard/_hooks";
 // Types
 // ══════════════════════════════════════════════════════════════
 
-export type FilterKey = "food" | "alcohol" | "overnight" | "delivery";
+export type FilterKey =
+  | "food"
+  | "alcohol"
+  | "overnight"
+  | "delivery"
+  | "nightwork"
+  | "minors"
+  | "foreignWorkers"
+  | "cashHandling"
+  | "tips";
 
 type Industry = "restaurant" | "hotel" | "cafe" | "bar" | "catering" | "other";
 
@@ -76,11 +85,36 @@ export type GovernanceTemplate = {
 // Filter Questions
 // ══════════════════════════════════════════════════════════════
 
-export const FILTER_QUESTIONS: Array<{ key: FilterKey; label: string }> = [
-  { key: "food", label: "Serverer dere mat?" },
-  { key: "alcohol", label: "Serverer dere alkohol?" },
-  { key: "overnight", label: "Har dere overnattingsgjester?" },
-  { key: "delivery", label: "Tilbyr dere take-away eller levering?" },
+export const FILTER_QUESTIONS: Array<{ key: FilterKey; label: string; description: string }> = [
+  { key: "food", label: "Matservering", description: "Serverer dere mat til gjester?" },
+  { key: "alcohol", label: "Alkoholservering", description: "Har dere skjenkebevilling?" },
+  { key: "nightwork", label: "Nattarbeid", description: "Jobber ansatte etter kl. 00:00?" },
+  { key: "overnight", label: "Overnatting", description: "Har dere overnattingsgjester?" },
+  {
+    key: "delivery",
+    label: "Take-away / levering",
+    description: "Tilbyr dere henting eller utkj\u00f8ring?",
+  },
+  {
+    key: "minors",
+    label: "Under\u00e5rige i arbeid",
+    description: "Har dere ansatte under 18 \u00e5r?",
+  },
+  {
+    key: "foreignWorkers",
+    label: "Utenlandske arbeidstakere",
+    description: "Ansetter dere arbeidstakere fra utlandet?",
+  },
+  {
+    key: "cashHandling",
+    label: "Kontanth\u00e5ndtering",
+    description: "H\u00e5ndterer dere kontanter i kasse?",
+  },
+  {
+    key: "tips",
+    label: "Tipsh\u00e5ndtering",
+    description: "Mottar ansatte tips/drikkepenger?",
+  },
 ];
 
 // ══════════════════════════════════════════════════════════════
@@ -88,12 +122,72 @@ export const FILTER_QUESTIONS: Array<{ key: FilterKey; label: string }> = [
 // ══════════════════════════════════════════════════════════════
 
 export const INDUSTRY_DEFAULTS: Record<Industry, Record<FilterKey, boolean>> = {
-  restaurant: { food: true, alcohol: true, overnight: false, delivery: true },
-  hotel: { food: true, alcohol: true, overnight: true, delivery: false },
-  cafe: { food: true, alcohol: false, overnight: false, delivery: false },
-  bar: { food: false, alcohol: true, overnight: false, delivery: false },
-  catering: { food: true, alcohol: false, overnight: false, delivery: true },
-  other: { food: false, alcohol: false, overnight: false, delivery: false },
+  restaurant: {
+    food: true,
+    alcohol: true,
+    overnight: false,
+    delivery: true,
+    nightwork: true,
+    minors: false,
+    foreignWorkers: true,
+    cashHandling: true,
+    tips: true,
+  },
+  hotel: {
+    food: true,
+    alcohol: true,
+    overnight: true,
+    delivery: false,
+    nightwork: true,
+    minors: false,
+    foreignWorkers: true,
+    cashHandling: true,
+    tips: true,
+  },
+  cafe: {
+    food: true,
+    alcohol: false,
+    overnight: false,
+    delivery: false,
+    nightwork: false,
+    minors: true,
+    foreignWorkers: false,
+    cashHandling: true,
+    tips: true,
+  },
+  bar: {
+    food: false,
+    alcohol: true,
+    overnight: false,
+    delivery: false,
+    nightwork: true,
+    minors: false,
+    foreignWorkers: true,
+    cashHandling: true,
+    tips: true,
+  },
+  catering: {
+    food: true,
+    alcohol: false,
+    overnight: false,
+    delivery: true,
+    nightwork: false,
+    minors: false,
+    foreignWorkers: false,
+    cashHandling: false,
+    tips: false,
+  },
+  other: {
+    food: false,
+    alcohol: false,
+    overnight: false,
+    delivery: false,
+    nightwork: false,
+    minors: false,
+    foreignWorkers: false,
+    cashHandling: false,
+    tips: false,
+  },
 };
 
 // ══════════════════════════════════════════════════════════════
@@ -819,6 +913,621 @@ export const GOVERNANCE_TEMPLATES: GovernanceTemplate[] = [
     longDescription:
       "Trygg handtering av mat for take-away og levering. Dekker temperaturkontroll under transport, korrekt emballering, allergenmerking pa emballasje, og kontroll av bestillinger for utlevering.",
     legalBasis: "Matloven \u00A75: Krav til naeringsmiddelsikkerhet ved omsetning",
+  },
+
+  // ── MANDATORY: Trakassering og varsling ──
+  {
+    id: "tpl-trakassering-varsling",
+    name: "Trakassering og varsling",
+    description: "Forebygging av trakassering og rutiner for varsling pa arbeidsplassen.",
+    policy_type: "hr",
+    filterKey: null,
+    protocol: {
+      name: "Trakasseringsprotokoll",
+      description: "Protokoll for forebygging, varsling og handtering av trakassering.",
+    },
+    procedures: [
+      {
+        name: "Varslingsprosedyre",
+        description:
+          "Hvordan ansatte kan varsle om kritikkverdige forhold, trakassering eller diskriminering.",
+        procedure_type: "standard",
+        steps: [
+          {
+            title: "Identifiser forholdet",
+            description:
+              "Vurder om situasjonen utgjor trakassering, diskriminering eller annet kritikkverdig forhold.",
+            step_order: 1,
+            is_required: true,
+            estimated_minutes: 10,
+          },
+          {
+            title: "Dokumenter hendelsen",
+            description:
+              "Skriv ned hva som skjedde, nar, hvor, hvem var involvert og eventuelle vitner.",
+            step_order: 2,
+            is_required: true,
+            estimated_minutes: 15,
+          },
+          {
+            title: "Varsle leder eller verneombud",
+            description:
+              "Meld fra til naermeste leder, verneombud, eller bruk virksomhetens varslingskanal. Du kan ogsa varsle eksternt til Arbeidstilsynet.",
+            step_order: 3,
+            is_required: true,
+            estimated_minutes: 10,
+          },
+        ],
+      },
+    ],
+    knowledgeTest: {
+      name: "Trakassering-kunnskapstest",
+      pass_threshold: 80,
+      questions: [
+        {
+          id: "trk-q1",
+          text: "Hva er arbeidsgivers plikt nar det gjelder trakassering?",
+          options: [
+            { id: "trk-q1-a", text: "Ha nulltoleranse og skrive det pa veggen" },
+            {
+              id: "trk-q1-b",
+              text: "Aktivt forebygge, ha rutiner for varsling, og folge opp alle meldinger",
+            },
+            { id: "trk-q1-c", text: "Handtere det nar det skjer" },
+            { id: "trk-q1-d", text: "Overlate det til de ansatte selv" },
+          ],
+          correctOptionId: "trk-q1-b",
+        },
+        {
+          id: "trk-q2",
+          text: "Hva er viktig nar du varsler om trakassering?",
+          options: [
+            { id: "trk-q2-a", text: "Bare si fra muntlig og hape det ordner seg" },
+            { id: "trk-q2-b", text: "Dokumentere hendelsen skriftlig med tid, sted og vitner" },
+            { id: "trk-q2-c", text: "Vente til det skjer flere ganger" },
+            { id: "trk-q2-d", text: "Konfrontere personen alene" },
+          ],
+          correctOptionId: "trk-q2-b",
+        },
+      ],
+    },
+    confirmation: {
+      name: "Trakassering-bekreftelse",
+      confirmation_text:
+        "Jeg bekrefter at jeg har lest og forstar retningslinjene for forebygging av trakassering og varsling, og vet hvordan jeg melder fra.",
+      requires_signature: true,
+    },
+    longDescription:
+      "Alle arbeidsgivere har plikt til a aktivt forebygge trakassering og diskriminering. Denne retningslinjen dekker hva trakassering er, hvordan varsle, varslervern, og arbeidsgivers handteringsplikt. Serveringsbransjen har et av de hoyeste nivaene av seksuell trakassering i Norge.",
+    legalBasis:
+      "Likestillings- og diskrimineringsloven \u00A726 + AML \u00A72A-1: Aktivitetsplikt og varslervern",
+  },
+
+  // ── MANDATORY: Forstehjelp ──
+  {
+    id: "tpl-forstehjelp",
+    name: "Forstehjelp",
+    description: "Retningslinjer for forstehjelpsberedskap, utstyr og nodprosedyrer.",
+    policy_type: "safety",
+    filterKey: null,
+    protocol: {
+      name: "Forstehjelpprotokoll",
+      description: "Protokoll for forstehjelpsberedskap og nodhandtering.",
+    },
+    procedures: [
+      {
+        name: "Forstehjelpsprosedyre",
+        description: "Handtering av skader og akutte medisinske hendelser pa arbeidsplassen.",
+        procedure_type: "safety",
+        steps: [
+          {
+            title: "Sikre skadestedet",
+            description:
+              "Vurder faren. Sikre omradet for deg selv og den skadde. Ring 113 ved alvorlige hendelser.",
+            step_order: 1,
+            is_required: true,
+            estimated_minutes: 2,
+          },
+          {
+            title: "Gi forstehjelp",
+            description:
+              "Stans blodning, legg i stabilt sideleie ved bevisstloshet, start HLR om nodvendig. Bruk forstehjelpsskrin.",
+            step_order: 2,
+            is_required: true,
+            estimated_minutes: 10,
+          },
+          {
+            title: "Dokumenter og fold opp",
+            description:
+              "Registrer hendelsen i avvikssystemet. Varsle leder. Sikre oppfolging av den skadde.",
+            step_order: 3,
+            is_required: true,
+            estimated_minutes: 10,
+          },
+        ],
+      },
+    ],
+    knowledgeTest: {
+      name: "Forstehjelp-kunnskapstest",
+      pass_threshold: 80,
+      questions: [
+        {
+          id: "fh-q1",
+          text: "Hvilket nummer ringer du ved akutt sykdom eller skade?",
+          options: [
+            { id: "fh-q1-a", text: "110 (brann)" },
+            { id: "fh-q1-b", text: "112 (politi)" },
+            { id: "fh-q1-c", text: "113 (ambulanse)" },
+            { id: "fh-q1-d", text: "116 117 (legevakt)" },
+          ],
+          correctOptionId: "fh-q1-c",
+        },
+        {
+          id: "fh-q2",
+          text: "Hvor finner du forstehjelpsutstyret pa arbeidsplassen?",
+          options: [
+            { id: "fh-q2-a", text: "Det vet jeg ikke" },
+            { id: "fh-q2-b", text: "Pa merket og tilgjengelig plass — sjekk ved oppstart" },
+            { id: "fh-q2-c", text: "I bilen utenfor" },
+            { id: "fh-q2-d", text: "Bare leder vet det" },
+          ],
+          correctOptionId: "fh-q2-b",
+        },
+      ],
+    },
+    confirmation: {
+      name: "Forstehjelp-bekreftelse",
+      confirmation_text:
+        "Jeg bekrefter at jeg vet hvor forstehjelpsutstyret er, og har lest prosedyren for nodhandtering pa arbeidsplassen.",
+      requires_signature: true,
+    },
+    longDescription:
+      "Arbeidsgiver ma sikre tilstrekkelig forstehjelpsberedskap. Denne retningslinjen dekker plassering av utstyr, hvem som er forstehjelpansvarlig, nodprosedyrer og dokumentasjon av hendelser.",
+    legalBasis: "AML \u00A73-2 + Forskrift om organisering \u00A714-2: Krav til forstehjelp",
+  },
+
+  // ── FILTER: Nattarbeid ──
+  {
+    id: "tpl-nattarbeid",
+    name: "Nattarbeid",
+    description: "Retningslinjer for arbeid etter kl. 21:00 med hensyn til helse og sikkerhet.",
+    policy_type: "hr",
+    filterKey: "nightwork",
+    protocol: {
+      name: "Nattarbeidprotokoll",
+      description: "Protokoll for helse, sikkerhet og arbeidstid ved nattarbeid.",
+    },
+    procedures: [
+      {
+        name: "Nattarbeidsprosedyre",
+        description: "Rutiner for a ivareta ansattes helse og sikkerhet under nattarbeid.",
+        procedure_type: "standard",
+        steps: [
+          {
+            title: "Arbeidstidskontroll",
+            description:
+              "Maks 8 timer per 24 timer i gjennomsnitt for nattarbeidere. Minimum 11 timer hvile mellom vakter.",
+            step_order: 1,
+            is_required: true,
+            estimated_minutes: 5,
+          },
+          {
+            title: "Helsetilbud",
+            description:
+              "Arbeidsgiver ma tilby helseundersokelse til nattarbeidere. Ved helseproblemer har arbeidstaker rett til overgang til dagarbeid.",
+            step_order: 2,
+            is_required: true,
+            estimated_minutes: 5,
+          },
+          {
+            title: "Sikkerhet ved alenearbeid",
+            description:
+              "Aldri alene pa nattskift uten kommunikasjonsmulighet. Sjekk at nodutganger er tilgjengelige.",
+            step_order: 3,
+            is_required: true,
+            estimated_minutes: 5,
+          },
+        ],
+      },
+    ],
+    knowledgeTest: {
+      name: "Nattarbeid-kunnskapstest",
+      pass_threshold: 80,
+      questions: [
+        {
+          id: "natt-q1",
+          text: "Hva er minste hvile mellom en kveldsvakt (slutt 03:00) og neste vakt?",
+          options: [
+            { id: "natt-q1-a", text: "8 timer" },
+            { id: "natt-q1-b", text: "11 timer" },
+            { id: "natt-q1-c", text: "6 timer" },
+            { id: "natt-q1-d", text: "Det er ingen regel" },
+          ],
+          correctOptionId: "natt-q1-b",
+        },
+        {
+          id: "natt-q2",
+          text: "Hvilke rettigheter har nattarbeidere?",
+          options: [
+            { id: "natt-q2-a", text: "Ingen spesielle rettigheter" },
+            {
+              id: "natt-q2-b",
+              text: "Rett til helseundersokelse og overgang til dagarbeid ved helseproblemer",
+            },
+            { id: "natt-q2-c", text: "Bare hoyere lonn" },
+            { id: "natt-q2-d", text: "Lengre ferie" },
+          ],
+          correctOptionId: "natt-q2-b",
+        },
+      ],
+    },
+    confirmation: {
+      name: "Nattarbeid-bekreftelse",
+      confirmation_text:
+        "Jeg bekrefter at jeg har lest og forstar retningslinjene for nattarbeid, inkludert arbeidstidsregler og helsetilbud.",
+      requires_signature: true,
+    },
+    longDescription:
+      "Nattarbeid (etter kl. 21:00) har egne regler for arbeidstid, hvileperioder og helse. Arbeidsgiver ma tilby helseundersokelse, overholde maks 8-timersregel, og sikre minimum 11 timers hvile mellom vakter. Gravide har rett til fritak fra nattarbeid.",
+    legalBasis: "AML \u00A710-11: Nattarbeid — arbeidstid, helse og sikkerhet",
+  },
+
+  // ── FILTER: Underarige i arbeid ──
+  {
+    id: "tpl-underaarige",
+    name: "Underarige i arbeid",
+    description: "Retningslinjer for ansettelse og arbeid med personer under 18 ar.",
+    policy_type: "hr",
+    filterKey: "minors",
+    protocol: {
+      name: "Underarigeprotokoll",
+      description: "Protokoll for sikker sysselsetting av arbeidstakere under 18 ar.",
+    },
+    procedures: [
+      {
+        name: "Risikovurdering for unge arbeidstakere",
+        description: "Pliktig risikovurdering for inntak av arbeidstaker under 18 ar.",
+        procedure_type: "safety",
+        steps: [
+          {
+            title: "Kartlegg arbeidsoppgaver",
+            description:
+              "Identifiser hvilke oppgaver den unge skal utfore. Sjekk mot forbudte oppgaver: alkoholservering, farlige maskiner (oppvaskmaskin OK, slicer/frityr under 16 ikke OK), alenearbeid pa kveld.",
+            step_order: 1,
+            is_required: true,
+            estimated_minutes: 15,
+          },
+          {
+            title: "Gjennomfor risikovurdering",
+            description:
+              "Vurder fysiske, kjemiske og psykiske farer. Dokumenter vurderingen skriftlig FoR den unge starter.",
+            step_order: 2,
+            is_required: true,
+            estimated_minutes: 20,
+          },
+          {
+            title: "Innhent foresattes samtykke",
+            description:
+              "For arbeidstakere under 15 ar: skriftlig samtykke fra foresatte. For 15-17 ar: informer foresatte om arbeidstid og oppgaver.",
+            step_order: 3,
+            is_required: true,
+            estimated_minutes: 10,
+          },
+        ],
+      },
+      {
+        name: "Arbeidstidskontroll for unge",
+        description: "Overholdelse av arbeidstidsregler for arbeidstakere under 18 ar.",
+        procedure_type: "standard",
+        steps: [
+          {
+            title: "Sjekk arbeidstidsgrenser",
+            description:
+              "Under 15: maks 2t/dag pa skoledager, 7t frie dager. 15-17: maks 8t/dag, 40t/uke. Aldri mer enn dette.",
+            step_order: 1,
+            is_required: true,
+            estimated_minutes: 5,
+          },
+          {
+            title: "Kontroller kveldsgrenser",
+            description:
+              "Under 15: ikke etter kl. 20:00. 15-17: ikke etter kl. 21:00 (23:00 med tariffavtale i serveringsbransjen). Aldri etter midnatt.",
+            step_order: 2,
+            is_required: true,
+            estimated_minutes: 5,
+          },
+          {
+            title: "Sikre hvileperioder",
+            description:
+              "Minimum 12 timer sammenhengende hvile per dogn. Minimum 48 timer sammenhengende hvile per uke, inkludert sondag.",
+            step_order: 3,
+            is_required: true,
+            estimated_minutes: 5,
+          },
+        ],
+      },
+    ],
+    knowledgeTest: {
+      name: "Underaarige-kunnskapstest",
+      pass_threshold: 80,
+      questions: [
+        {
+          id: "ung-q1",
+          text: "Kan en 16-aring servere alkohol?",
+          options: [
+            { id: "ung-q1-a", text: "Ja, med opplaering" },
+            { id: "ung-q1-b", text: "Ja, men bare ol og vin" },
+            { id: "ung-q1-c", text: "Nei, man ma vaere 18 for a servere alkohol" },
+            { id: "ung-q1-d", text: "Ja, hvis leder er til stede" },
+          ],
+          correctOptionId: "ung-q1-c",
+        },
+        {
+          id: "ung-q2",
+          text: "Hva ma gjores FoR en underarig starter i jobb?",
+          options: [
+            { id: "ung-q2-a", text: "Ingenting spesielt" },
+            {
+              id: "ung-q2-b",
+              text: "Skriftlig risikovurdering og samtykke fra foresatte (under 15)",
+            },
+            { id: "ung-q2-c", text: "Bare signere arbeidskontrakt" },
+            { id: "ung-q2-d", text: "La dem prove en dag forst" },
+          ],
+          correctOptionId: "ung-q2-b",
+        },
+      ],
+    },
+    confirmation: {
+      name: "Underaarige-bekreftelse",
+      confirmation_text:
+        "Jeg bekrefter at jeg har lest og forstar reglene for sysselsetting av underarige, inkludert arbeidstidsgrenser, forbudte oppgaver og risikovurderingskrav.",
+      requires_signature: true,
+    },
+    longDescription:
+      "Strenge regler for arbeidstakere under 18. Dekker arbeidstidsgrenser (varierer med alder), forbudte oppgaver (alkoholservering, farlig utstyr, alenearbeid kveld/natt), pliktig risikovurdering for oppstart, og krav til foresattes samtykke. Brudd kan medfoere bater og straffeansvar.",
+    legalBasis: "AML kap. 11 + Forskrift om organisering kap. 12: Unge arbeidstakere",
+  },
+
+  // ── FILTER: Utenlandske arbeidstakere ──
+  {
+    id: "tpl-utenlandske-arbeidstakere",
+    name: "Utenlandske arbeidstakere",
+    description: "Retningslinjer for ansettelse og oppfolging av utenlandske arbeidstakere.",
+    policy_type: "hr",
+    filterKey: "foreignWorkers",
+    protocol: {
+      name: "Utenlandske arbeidstakere-protokoll",
+      description:
+        "Protokoll for lovlig ansettelse og likebehandling av utenlandske arbeidstakere.",
+    },
+    procedures: [
+      {
+        name: "Kontroll av arbeidstillatelse",
+        description:
+          "Verifisering av oppholdstillatelse og arbeidsrett for utenlandske arbeidstakere.",
+        procedure_type: "standard",
+        steps: [
+          {
+            title: "Sjekk oppholdsstatus",
+            description:
+              "EU/EoS-borgere: registreringsbevis. Tredjelandsborgere: gyldig oppholdstillatelse med arbeidsrett. Ta kopi av dokumentene.",
+            step_order: 1,
+            is_required: true,
+            estimated_minutes: 10,
+          },
+          {
+            title: "Registrer i a-melding",
+            description:
+              "Alle utenlandske arbeidstakere ma registreres korrekt i a-meldingen med riktig nasjonalitet og ID-nummer.",
+            step_order: 2,
+            is_required: true,
+            estimated_minutes: 10,
+          },
+          {
+            title: "Sikre allmenngjort lonn",
+            description:
+              "Serveringsbransjen er allmenngjort. Alle ansatte — uansett nasjonalitet — har krav pa minstelonnen i tariffavtalen.",
+            step_order: 3,
+            is_required: true,
+            estimated_minutes: 5,
+          },
+        ],
+      },
+    ],
+    knowledgeTest: {
+      name: "Utenlandske-arbeidstakere-kunnskapstest",
+      pass_threshold: 80,
+      questions: [
+        {
+          id: "utl-q1",
+          text: "Hva ma du sjekke for du ansetter en utenlandsk arbeidstaker?",
+          options: [
+            { id: "utl-q1-a", text: "Ingenting spesielt" },
+            { id: "utl-q1-b", text: "At de har gyldig oppholdstillatelse med arbeidsrett" },
+            { id: "utl-q1-c", text: "Bare at de snakker norsk" },
+            { id: "utl-q1-d", text: "At de har bodd i Norge i 3 ar" },
+          ],
+          correctOptionId: "utl-q1-b",
+        },
+      ],
+    },
+    confirmation: {
+      name: "Utenlandske-arbeidstakere-bekreftelse",
+      confirmation_text:
+        "Jeg bekrefter at jeg har lest og forstar reglene for ansettelse av utenlandske arbeidstakere, inkludert krav til arbeidstillatelse og allmenngjort lonn.",
+      requires_signature: true,
+    },
+    longDescription:
+      "Serveringsbransjen har mange utenlandske ansatte og er gjenstand for malrettede tilsyn fra Arbeidstilsynet. Denne retningslinjen dekker kontroll av arbeidstillatelse, krav til allmenngjort lonn (minstelonnen gjelder alle uansett nasjonalitet), og dokumentasjonsplikt.",
+    legalBasis:
+      "Utlendingsloven \u00A727 + Allmenngjoeringsloven: Arbeidstillatelse og minstelonnsgaranti",
+  },
+
+  // ── FILTER: Kassahandtering og ranforebygging ──
+  {
+    id: "tpl-kassahandtering-ran",
+    name: "Kassahandtering og ranforebygging",
+    description: "Retningslinjer for sikker kontanthandtering og forebygging av ran.",
+    policy_type: "safety",
+    filterKey: "cashHandling",
+    protocol: {
+      name: "Kassahandteringsprotokoll",
+      description: "Protokoll for sikker kassahandtering, nattsafe og ranforebygging.",
+    },
+    procedures: [
+      {
+        name: "Ranforebyggende rutiner",
+        description: "Tiltak for a redusere ranrisiko og beskytte ansatte.",
+        procedure_type: "safety",
+        steps: [
+          {
+            title: "Begrens kontanter i kassen",
+            description:
+              "Maks kontantbehold i kassen til et minimum. Legg overskytende i safe regelmessig gjennom skiftet.",
+            step_order: 1,
+            is_required: true,
+            estimated_minutes: 5,
+          },
+          {
+            title: "Sikkerhet ved stenging",
+            description:
+              "Aldri forlat lokalet alene med kontanter pa kveld/natt. To personer ved kassaoppgjor. Varier bankinnleveringstidspunkt.",
+            step_order: 2,
+            is_required: true,
+            estimated_minutes: 5,
+          },
+          {
+            title: "Ved ran: gi fra deg verdiene",
+            description:
+              "Din sikkerhet forst. Gi fra deg pengene uten motstand. Observer gjerningspersonen. Ring 112 nar det er trygt. Ikke ror noe pa astedet.",
+            step_order: 3,
+            is_required: true,
+            estimated_minutes: 5,
+          },
+          {
+            title: "Etter ran: oppfolging",
+            description:
+              "Arbeidsgiver ma sikre psykologisk oppfolging for alle involvert. Rapporter til forsikring og Arbeidstilsynet.",
+            step_order: 4,
+            is_required: true,
+            estimated_minutes: 10,
+          },
+        ],
+      },
+    ],
+    knowledgeTest: {
+      name: "Kassahandtering-kunnskapstest",
+      pass_threshold: 80,
+      questions: [
+        {
+          id: "kassa-q1",
+          text: "Hva gjor du hvis du blir utsatt for ran?",
+          options: [
+            { id: "kassa-q1-a", text: "Forsok a stoppe raneren" },
+            {
+              id: "kassa-q1-b",
+              text: "Gi fra deg verdiene uten motstand og ring 112 nar det er trygt",
+            },
+            { id: "kassa-q1-c", text: "Lop ut av lokalet" },
+            { id: "kassa-q1-d", text: "Aktiver alarmen mens raneren ser pa" },
+          ],
+          correctOptionId: "kassa-q1-b",
+        },
+      ],
+    },
+    confirmation: {
+      name: "Kassahandtering-bekreftelse",
+      confirmation_text:
+        "Jeg bekrefter at jeg har lest og forstar rutinene for kassahandtering og ranforebygging, og vet hva jeg skal gjore ved et ran.",
+      requires_signature: true,
+    },
+    longDescription:
+      "Virksomheter som handterer kontanter ma risikovurdere ranfare og ha forebyggende tiltak. Dekker kontantbegrensning i kasse, saferutiner, sikkerhet ved alenearbeid kveld/natt, handtering under ran, og pliktig psykologisk oppfolging etterpå.",
+    legalBasis: "AML \u00A73-2 + Forskrift om utforelse av arbeid kap. 23A: Vold og trusler",
+  },
+
+  // ── FILTER: Tipsh\u00e5ndtering ──
+  {
+    id: "tpl-tipshandtering",
+    name: "Tipsh\u00e5ndtering",
+    description: "Retningslinjer for innsamling, fordeling og rapportering av tips.",
+    policy_type: "operational",
+    filterKey: "tips",
+    protocol: {
+      name: "Tipsprotokoll",
+      description: "Protokoll for rettferdig og lovlig h\u00e5ndtering av drikkepenger.",
+    },
+    procedures: [
+      {
+        name: "Tipsrutine",
+        description: "Rutiner for innsamling, fordeling og skattemessig rapportering av tips.",
+        procedure_type: "standard" as const,
+        steps: [
+          {
+            title: "Innsamling",
+            description:
+              "Tips samles via kasse, Vipps eller kontant. Alle tips registreres i kassasystemet eller eget skjema. Ingenting holdes utenfor.",
+            step_order: 1,
+            is_required: true,
+            estimated_minutes: 5,
+          },
+          {
+            title: "Fordeling",
+            description:
+              "Tips fordeles etter virksomhetens modell (likt, vektet etter timer, eller poolbasert). Fordelingsmodellen m\u00e5 v\u00e6re dokumentert og kjent for alle ansatte.",
+            step_order: 2,
+            is_required: true,
+            estimated_minutes: 10,
+          },
+          {
+            title: "Rapportering til skatt",
+            description:
+              "Arbeidsgiver rapporterer tips via a-meldingen. Alle tips er skattepliktig inntekt. Arbeidsgiveravgift beregnes p\u00e5 tips.",
+            step_order: 3,
+            is_required: true,
+            estimated_minutes: 10,
+          },
+        ],
+      },
+    ],
+    knowledgeTest: {
+      name: "Tips-kunnskapstest",
+      pass_threshold: 80,
+      questions: [
+        {
+          id: "tips-q1",
+          text: "Er tips skattepliktig inntekt i Norge?",
+          options: [
+            { id: "tips-q1-a", text: "Nei, tips er skattefritt" },
+            { id: "tips-q1-b", text: "Ja, alle tips er skattepliktig inntekt" },
+            { id: "tips-q1-c", text: "Bare tips over 500 kr" },
+            { id: "tips-q1-d", text: "Bare kontanttips" },
+          ],
+          correctOptionId: "tips-q1-b",
+        },
+        {
+          id: "tips-q2",
+          text: "Hvem har ansvar for \u00e5 rapportere tips til skattemyndighetene?",
+          options: [
+            { id: "tips-q2-a", text: "Hver enkelt ansatt" },
+            { id: "tips-q2-b", text: "Arbeidsgiver, via a-meldingen" },
+            { id: "tips-q2-c", text: "Ingen, det er frivillig" },
+            { id: "tips-q2-d", text: "Regnskapsf\u00f8rer" },
+          ],
+          correctOptionId: "tips-q2-b",
+        },
+      ],
+    },
+    confirmation: {
+      name: "Tips-bekreftelse",
+      confirmation_text:
+        "Jeg bekrefter at jeg har lest og forst\u00e5r tipsrutinene, og vet at alle tips er skattepliktig inntekt som rapporteres av arbeidsgiver.",
+      requires_signature: true,
+    },
+    longDescription:
+      "Alle tips er skattepliktig inntekt fra 2019. Arbeidsgiver m\u00e5 rapportere tips via a-meldingen og betale arbeidsgiveravgift. Denne retningslinjen dekker innsamling, fordelingsmodell og skattemessig rapportering. Skatteetaten utf\u00f8rer aktive kontroller i serveringsbransjen.",
+    legalBasis: "Skatteloven \u00A75-1 + A-opplysningsloven: Tips er skattepliktig inntekt",
   },
 
   // 10. Emballasjehygiene (delivery)

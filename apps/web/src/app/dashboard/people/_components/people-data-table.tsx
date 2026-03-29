@@ -332,9 +332,9 @@ export function PeopleDataTable({
       const term = searchTerm.toLowerCase();
       result = result.filter(
         (emp) =>
-          emp.name.toLowerCase().includes(term) ||
-          emp.email.toLowerCase().includes(term) ||
-          emp.role.toLowerCase().includes(term),
+          (emp.name || "").toLowerCase().includes(term) ||
+          (emp.email || "").toLowerCase().includes(term) ||
+          (emp.role || "").toLowerCase().includes(term),
       );
     }
 
@@ -765,7 +765,7 @@ export function PeopleDataTable({
                               className="h-full w-full object-cover"
                             />
                           ) : (
-                            emp.name.charAt(0)
+                            (emp.name || "?").charAt(0)
                           )}
                         </div>
                         {emp.status === "active" && (

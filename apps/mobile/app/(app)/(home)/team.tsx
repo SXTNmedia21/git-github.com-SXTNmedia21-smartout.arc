@@ -293,7 +293,7 @@ const useStyles = createStyles((theme) => ({
   },
   avatarText: {
     ...theme.typography.body,
-    color: "#ffffff",
+    color: theme.colors.primaryForeground,
     fontWeight: theme.fontWeights.semibold,
     fontSize: 18,
   },

@@ -6,28 +6,14 @@
 "use client";
 
 import { useContext, useMemo, useState, useCallback } from "react";
-import {
-  Clock,
-  Pencil,
-  Phone,
-  Mail,
-  CheckCircle2,
-  ArrowUp,
-  ArrowDown,
-  ChevronsUp,
-  ChevronsDown,
-  Minus,
-  Plus,
-  ChevronLeft,
-  ChevronRight,
-  AlertCircle,
-} from "lucide-react";
+import { Clock, Pencil, Phone, Mail, CheckCircle2, AlertCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
 import { useScheduleUI } from "../schedule-ui-context";
+import { PendingAbsenceList } from "../pending-absence-list";
 import { useMoveShift, useUpdateShift } from "../../_hooks/use-shifts";
 import { useWeekRange } from "../../_hooks/use-week-range";
 import { usePlannedHours } from "../../_hooks/use-planned-hours";
@@ -49,7 +35,7 @@ import { HoursOverridePopover } from "./HoursOverridePopover";
 // - color-regime: status-based (published/active=emerald, draft=muted)
 
 export function OversiktTab({ dateId }: { dateId: string | null }) {
-  const { isDark } = useContext(DashboardContext);
+  const { isDark, isAdminMode } = useContext(DashboardContext);
   const { weekStart } = useWeekRange();
   const moveShiftMutation = useMoveShift(weekStart);
   const updateShiftMutation = useUpdateShift(weekStart);
@@ -58,7 +44,6 @@ export function OversiktTab({ dateId }: { dateId: string | null }) {
   const stats = dateId ? dayStats : null;
   const employees = dayEmployees;
   const totalWorkHours = dayShifts.reduce((sum, s) => sum + s.workHours, 0);
-  const [shiftOrder, setShiftOrder] = useState<string[]>([]);
 
   // Budget edit state
   const [isEditingBudget, setIsEditingBudget] = useState(false);
@@ -100,63 +85,6 @@ export function OversiktTab({ dateId }: { dateId: string | null }) {
       return emp?.name;
     })
     .filter(Boolean);
-
-  // Build timeline data
-  const timelineData: TimelineEntry[] = useMemo(() => {
-    return dayShifts
-      .filter((s) => s.employeeId)
-      .map((s) => {
-        const emp = employees.find((e) => e.id === s.employeeId);
-        return {
-          shiftId: s.id,
-          name: emp?.name ?? "Ukjent",
-          initials: emp?.initials ?? "??",
-          avatarColor: emp?.avatarColor ?? "bg-zinc-500/20 text-zinc-400 border-zinc-500/30",
-          role: s.role,
-          startHour: timeToHour(s.startTime),
-          endHour: timeToHour(s.endTime),
-          time: s.time,
-          status: s.status,
-        };
-      });
-  }, [dayShifts, employees]);
-
-  const orderedTimelineData = useMemo(() => {
-    if (shiftOrder.length === 0) return timelineData;
-    const index = new Map(shiftOrder.map((id, i) => [id, i]));
-    return [...timelineData].sort(
-      (a, b) => (index.get(a.shiftId) ?? 9999) - (index.get(b.shiftId) ?? 9999),
-    );
-  }, [timelineData, shiftOrder]);
-
-  const reorderShift = useCallback(
-    (shiftId: string, mode: "up" | "down" | "front" | "back") => {
-      setShiftOrder((previous) => {
-        const current = previous.length > 0 ? [...previous] : dayShifts.map((shift) => shift.id);
-        const fromIndex = current.indexOf(shiftId);
-        if (fromIndex === -1) return current;
-
-        if (mode === "front") {
-          current.splice(fromIndex, 1);
-          current.unshift(shiftId);
-          return current;
-        }
-        if (mode === "back") {
-          current.splice(fromIndex, 1);
-          current.push(shiftId);
-          return current;
-        }
-        const toIndex =
-          mode === "up" ? Math.max(0, fromIndex - 1) : Math.min(current.length - 1, fromIndex + 1);
-        if (toIndex === fromIndex) return current;
-        const [item] = current.splice(fromIndex, 1);
-        if (typeof item !== "string") return current;
-        current.splice(toIndex, 0, item);
-        return current;
-      });
-    },
-    [dayShifts],
-  );
 
   const shiftDateByDays = useCallback(
     (sourceShiftId: string, offsetDays: number) => {
@@ -207,8 +135,31 @@ export function OversiktTab({ dateId }: { dateId: string | null }) {
     [dayShifts, updateShiftMutation],
   );
 
+  // Build timeline data
+  const timelineData: TimelineEntry[] = useMemo(() => {
+    return dayShifts
+      .filter((s) => s.employeeId)
+      .map((s) => {
+        const emp = employees.find((e) => e.id === s.employeeId);
+        return {
+          shiftId: s.id,
+          name: emp?.name ?? "Ukjent",
+          initials: emp?.initials ?? "??",
+          avatarColor: emp?.avatarColor ?? "bg-zinc-500/20 text-zinc-400 border-zinc-500/30",
+          role: s.role,
+          startHour: timeToHour(s.startTime),
+          endHour: timeToHour(s.endTime),
+          time: s.time,
+          status: s.status,
+        };
+      });
+  }, [dayShifts, employees]);
+
   return (
     <div className="animate-in fade-in slide-in-from-bottom-2 space-y-6 duration-200">
+      {/* Pending absence requests — admin only */}
+      {isAdminMode && <PendingAbsenceList />}
+
       {/* KPI Cards */}
       <section>
         <SectionHeader label="Nokkeltall">
@@ -294,19 +245,36 @@ export function OversiktTab({ dateId }: { dateId: string | null }) {
       {/* Timeline */}
       <section>
         <SectionHeader label="Tidslinje" />
-        <TimelineView entries={orderedTimelineData} onShiftClick={setSelectedShift} />
+        <TimelineView
+          entries={timelineData}
+          onShiftClick={setSelectedShift}
+          onShiftUpdate={(id, startHour, endHour) => {
+            const formatTime = (hourDec: number) => {
+              const h = Math.floor(hourDec);
+              const m = Math.round((hourDec - h) * 60);
+              return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+            };
+            const shift = dayShifts.find((s) => s.id === id);
+            if (!shift) return;
+            const workHours = Math.max(0.5, endHour - startHour);
+            updateShiftMutation.mutate({
+              id,
+              patch: { startTime: formatTime(startHour), endTime: formatTime(endHour), workHours },
+            });
+          }}
+        />
       </section>
 
       {/* Employee list */}
       <section>
-        <SectionHeader label={`Ansatte pa vakt (${orderedTimelineData.length})`} />
+        <SectionHeader label={`Ansatte pa vakt (${timelineData.length})`} />
         <div className="space-y-2">
-          {orderedTimelineData.length === 0 ? (
+          {timelineData.length === 0 ? (
             <p className="text-muted-foreground py-4 text-center text-xs">
               Ingen ansatte pa vakt denne dagen
             </p>
           ) : (
-            orderedTimelineData.map((entry) => (
+            timelineData.map((entry) => (
               <EmployeeListRow
                 key={entry.shiftId}
                 name={entry.name}
@@ -317,16 +285,6 @@ export function OversiktTab({ dateId }: { dateId: string | null }) {
                 status={entry.status}
                 dateId={dateId ?? ""}
                 onShiftClick={() => setSelectedShift(entry.shiftId)}
-                onMoveLeft={() => shiftDateByDays(entry.shiftId, -1)}
-                onMoveRight={() => shiftDateByDays(entry.shiftId, 1)}
-                onStartEarlier={() => adjustShiftTime(entry.shiftId, "start", -15)}
-                onStartLater={() => adjustShiftTime(entry.shiftId, "start", 15)}
-                onEndEarlier={() => adjustShiftTime(entry.shiftId, "end", -15)}
-                onEndLater={() => adjustShiftTime(entry.shiftId, "end", 15)}
-                onBringForward={() => reorderShift(entry.shiftId, "up")}
-                onSendBackward={() => reorderShift(entry.shiftId, "down")}
-                onToFront={() => reorderShift(entry.shiftId, "front")}
-                onToBack={() => reorderShift(entry.shiftId, "back")}
               />
             ))
           )}
@@ -402,16 +360,6 @@ function EmployeeListRow({
   status,
   dateId,
   onShiftClick,
-  onMoveLeft,
-  onMoveRight,
-  onStartEarlier,
-  onStartLater,
-  onEndEarlier,
-  onEndLater,
-  onBringForward,
-  onSendBackward,
-  onToFront,
-  onToBack,
 }: {
   name: string;
   initials: string;
@@ -421,16 +369,6 @@ function EmployeeListRow({
   status: string;
   dateId: string;
   onShiftClick: () => void;
-  onMoveLeft: () => void;
-  onMoveRight: () => void;
-  onStartEarlier: () => void;
-  onStartLater: () => void;
-  onEndEarlier: () => void;
-  onEndLater: () => void;
-  onBringForward: () => void;
-  onSendBackward: () => void;
-  onToFront: () => void;
-  onToBack: () => void;
 }) {
   const { isDark } = useContext(DashboardContext);
   const isActive = status === "published" || status === "active";
@@ -439,8 +377,8 @@ function EmployeeListRow({
     <div
       className={`rounded-xl border p-3 transition-colors ${isDark ? "border-border bg-muted/20 hover:border-border/80" : "border-border bg-card hover:border-border/80"}`}
     >
-      <div className="flex items-start gap-3">
-        <div className="shrink-0 pt-0.5">
+      <div className="flex items-center gap-3">
+        <div className="shrink-0">
           {isActive ? (
             <CheckCircle2 className="h-4 w-4 text-emerald-400" />
           ) : (
@@ -454,8 +392,8 @@ function EmployeeListRow({
         </div>
 
         <button onClick={onShiftClick} className="min-w-0 flex-1 text-left">
-          <div className="text-foreground truncate text-xs font-bold">{name}</div>
-          <div className="text-muted-foreground text-[10px]">
+          <div className="text-foreground truncate text-sm font-bold">{name}</div>
+          <div className="text-muted-foreground text-xs">
             {time} &middot; {role}
           </div>
         </button>
@@ -475,7 +413,7 @@ function EmployeeListRow({
             }}
             className="text-muted-foreground hover:bg-muted rounded-lg p-1.5 transition-colors hover:text-blue-400"
           >
-            <Phone className="h-3.5 w-3.5" />
+            <Phone className="h-4 w-4" />
           </button>
           <button
             onClick={() => {
@@ -491,60 +429,8 @@ function EmployeeListRow({
             }}
             className="text-muted-foreground hover:bg-muted rounded-lg p-1.5 transition-colors hover:text-orange-400"
           >
-            <Mail className="h-3.5 w-3.5" />
+            <Mail className="h-4 w-4" />
           </button>
-        </div>
-      </div>
-      <div className="mt-3 grid grid-cols-2 gap-2 text-[10px] sm:grid-cols-4">
-        <div className="border-border/70 bg-background/40 rounded-lg border p-1.5">
-          <p className="text-muted-foreground mb-1 font-semibold">Flytt dag</p>
-          <div className="flex items-center gap-1">
-            <button onClick={onMoveLeft} className="hover:bg-muted rounded p-1">
-              <ChevronLeft className="h-3 w-3" />
-            </button>
-            <button onClick={onMoveRight} className="hover:bg-muted rounded p-1">
-              <ChevronRight className="h-3 w-3" />
-            </button>
-          </div>
-        </div>
-        <div className="border-border/70 bg-background/40 rounded-lg border p-1.5">
-          <p className="text-muted-foreground mb-1 font-semibold">Starttid</p>
-          <div className="flex items-center gap-1">
-            <button onClick={onStartEarlier} className="hover:bg-muted rounded p-1">
-              <Minus className="h-3 w-3" />
-            </button>
-            <button onClick={onStartLater} className="hover:bg-muted rounded p-1">
-              <Plus className="h-3 w-3" />
-            </button>
-          </div>
-        </div>
-        <div className="border-border/70 bg-background/40 rounded-lg border p-1.5">
-          <p className="text-muted-foreground mb-1 font-semibold">Sluttid</p>
-          <div className="flex items-center gap-1">
-            <button onClick={onEndEarlier} className="hover:bg-muted rounded p-1">
-              <Minus className="h-3 w-3" />
-            </button>
-            <button onClick={onEndLater} className="hover:bg-muted rounded p-1">
-              <Plus className="h-3 w-3" />
-            </button>
-          </div>
-        </div>
-        <div className="border-border/70 bg-background/40 rounded-lg border p-1.5">
-          <p className="text-muted-foreground mb-1 font-semibold">Lag</p>
-          <div className="flex items-center gap-1">
-            <button onClick={onBringForward} className="hover:bg-muted rounded p-1" title="Frem">
-              <ArrowUp className="h-3 w-3" />
-            </button>
-            <button onClick={onSendBackward} className="hover:bg-muted rounded p-1" title="Bak">
-              <ArrowDown className="h-3 w-3" />
-            </button>
-            <button onClick={onToFront} className="hover:bg-muted rounded p-1" title="Foran alle">
-              <ChevronsUp className="h-3 w-3" />
-            </button>
-            <button onClick={onToBack} className="hover:bg-muted rounded p-1" title="Bak alle">
-              <ChevronsDown className="h-3 w-3" />
-            </button>
-          </div>
         </div>
       </div>
     </div>

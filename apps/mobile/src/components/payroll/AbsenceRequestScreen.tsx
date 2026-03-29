@@ -37,11 +37,13 @@ import type { ProjectionResult } from "@/lib/absence-projection";
 // - action: pickStartDate / pickEndDate (date field press)
 // - color-regime: balance-health-based (green > 20%, amber < 20%, red = 0)
 
-/** Maps absence category to the top-border accent color */
-const CATEGORY_COLORS: Record<string, { accent: string; label: string }> = {
-  vacation: { accent: "#22c55e", label: strings.payroll.vacation },
-  sick_self: { accent: "#f59e0b", label: strings.payroll.selfReported },
-  care_of_child: { accent: "#a855f7", label: strings.payroll.careDays },
+const CATEGORY_COLOR_KEYS: Record<
+  string,
+  { colorKey: keyof ReturnType<typeof useTheme>["colors"]; label: string }
+> = {
+  vacation: { colorKey: "success", label: strings.payroll.vacation },
+  sick_self: { colorKey: "warning", label: strings.payroll.selfReported },
+  care_of_child: { colorKey: "brandPurple", label: strings.payroll.careDays },
 };
 
 /** Maps schedule_absence.status to StatusBadge variant + label */
@@ -248,9 +250,8 @@ export function AbsenceRequestScreen() {
           const remaining = quota.remaining_days ?? 0;
           const entitled = quota.entitled_days;
           const absType = absenceTypes.find((t) => t.id === quota.absence_type_id);
-          const accent = absType
-            ? (CATEGORY_COLORS[absType.category]?.accent ?? theme.colors.mutedForeground)
-            : theme.colors.mutedForeground;
+          const accentKey = absType ? CATEGORY_COLOR_KEYS[absType.category]?.colorKey : undefined;
+          const accent = accentKey ? theme.colors[accentKey] : theme.colors.mutedForeground;
 
           return (
             <View key={quota.id} style={styles.balanceCard}>
@@ -283,7 +284,10 @@ export function AbsenceRequestScreen() {
         >
           {absenceTypes.map((type) => {
             const isSelected = type.id === selectedTypeId;
-            const accent = CATEGORY_COLORS[type.category]?.accent ?? theme.colors.mutedForeground;
+            const accentColorKey = CATEGORY_COLOR_KEYS[type.category]?.colorKey;
+            const accent = accentColorKey
+              ? theme.colors[accentColorKey]
+              : theme.colors.mutedForeground;
             return (
               <Pressable
                 key={type.id}

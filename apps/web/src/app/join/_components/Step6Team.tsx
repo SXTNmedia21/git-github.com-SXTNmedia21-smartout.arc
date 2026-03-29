@@ -12,7 +12,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ArrowLeft, Plus, X } from "lucide-react";
-import { useSignupWizard } from "../_hooks/useSignupWizard";
+import type { WizardStepProps } from "@smartout/ui";
+import type { JoinState } from "../types";
 
 const EMPLOYEE_COUNTS = [
   { value: "1-5", label: "1-5" },
@@ -22,11 +23,9 @@ const EMPLOYEE_COUNTS = [
   { value: "50+", label: "50+" },
 ];
 
-export function Step6Team() {
-  const { state, updateStep, prevStep, goToStep } = useSignupWizard();
-
-  const [employeeCount, setEmployeeCount] = useState(state.step6.employeeCount ?? "");
-  const [invites, setInvites] = useState<string[]>(state.step6.teamInvites ?? [""]);
+export function Step6Team({ state, updateState, next, back }: WizardStepProps<JoinState>) {
+  const [employeeCount, setEmployeeCount] = useState(state.team.employeeCount ?? "");
+  const [invites, setInvites] = useState<string[]>(state.team.teamInvites ?? [""]);
   const [inviteErrors, setInviteErrors] = useState<Record<number, string>>({});
 
   const addInvite = () => {
@@ -36,9 +35,9 @@ export function Step6Team() {
   const removeInvite = (index: number) => {
     setInvites((prev) => prev.filter((_, i) => i !== index));
     setInviteErrors((prev) => {
-      const next = { ...prev };
-      delete next[index];
-      return next;
+      const updated = { ...prev };
+      delete updated[index];
+      return updated;
     });
   };
 
@@ -68,18 +67,16 @@ export function Step6Team() {
 
     const validEmails = invites.filter((email) => email && validateEmail(email));
 
-    updateStep("step6", {
-      employeeCount: employeeCount || undefined,
-      teamInvites: validEmails.length > 0 ? validEmails : undefined,
+    updateState({
+      team: {
+        ...state.team,
+        employeeCount: employeeCount || undefined,
+        teamInvites: validEmails.length > 0 ? validEmails : undefined,
+      },
     });
 
-    // Go to step 7 (setup loading)
-    goToStep(7);
-  };
-
-  const handleSkip = () => {
-    updateStep("step6", {});
-    goToStep(7);
+    // Trigger wizard completion (last step)
+    next();
   };
 
   return (
@@ -150,22 +147,24 @@ export function Step6Team() {
 
       <div className="flex flex-col gap-3">
         <div className="flex gap-3">
-          <Button type="button" variant="outline" onClick={prevStep} className="flex-1">
+          <Button type="button" variant="outline" onClick={back} className="flex-1">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Tilbake
           </Button>
           <Button
             type="button"
             onClick={handleFinish}
-            className="flex-1 bg-orange-500 text-white hover:bg-orange-600"
+            className="bg-brand-orange hover:bg-brand-orange-dark flex-1 text-white"
           >
             Fullfor registrering
-            <ArrowLeft className="ml-2 h-4 w-4 rotate-180" />
           </Button>
         </div>
         <button
           type="button"
-          onClick={handleSkip}
+          onClick={() => {
+            updateState({ team: {} });
+            next();
+          }}
           className="text-muted-foreground hover:text-foreground text-center text-sm underline transition-colors"
         >
           Hopp over

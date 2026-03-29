@@ -1,0 +1,56 @@
+{
+  "hub": {
+    "greeting_morning": "Good morning, {name}",
+    "greeting_afternoon": "Hi, {name}",
+    "greeting_evening": "Good evening, {name}",
+    "punch_in_now": "Punch in now",
+    "break_duration": "Break has lasted {minutes} min",
+    "overdue_task": "{task} is overdue",
+    "guardian_signal": "Deviation reported in {department}",
+    "shift_upcoming": "Your shift starts in {minutes} min",
+    "confirm_hours": "Confirm hours from yesterday",
+    "unread_messages": "{count} unread messages",
+    "no_shift_today": "No shift today. Next: {next}",
+    "priority_actions": "Priority actions"
+  },
+  "walkai": {
+    "title": "WalkAi",
+    "connecting": "Connecting...",
+    "listening": "Listening...",
+    "thinking": "Thinking...",
+    "speaking": "Speaking...",
+    "error_connection": "Could not connect. Try again.",
+    "error_microphone": "Microphone access required for voice.",
+    "tap_to_speak": "Tap to speak",
+    "end_session": "End conversation",
+    "text_placeholder": "Write a message...",
+    "voice_mode": "Voice",
+    "text_mode": "Text"
+  },
+  "ring_leader": {
+    "button": "Call leader",
+    "no_leader": "No leader available. Use chat.",
+    "calling": "Calling {name}..."
+  },
+  "notifications": {
+    "shift_reminder": "Shift reminder",
+    "chat_message": "New message",
+    "task_assigned": "New task assigned",
+    "deviation_reported": "Deviation reported",
+    "hours_confirmation": "Confirm hours",
+    "absence_approved": "Absence approved",
+    "komm_message": "New komm message"
+  },
+  "pre_shift": {
+    "title": "Upcoming shift",
+    "colleagues": "Your colleagues",
+    "pending_tasks": "Pending tasks",
+    "supplement_preview": "~kr {amount} {type}",
+    "punch_in": "Punch in"
+  },
+  "offline": {
+    "voice_unavailable": "Voice requires internet connection",
+    "chat_unavailable": "Chat requires internet connection",
+    "data_may_be_stale": "Showing cached data"
+  }
+}

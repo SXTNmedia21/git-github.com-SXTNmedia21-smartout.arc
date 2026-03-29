@@ -14,7 +14,10 @@ import { useRouter } from "expo-router";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { ChevronLeft, Thermometer, CheckCircle2, AlertTriangle, Shield } from "lucide-react-native";
-import { createStyles } from "@/theme";
+import { useQuery } from "@tanstack/react-query";
+import { createStyles, useTheme, withOpacity } from "@/theme";
+import { supabase } from "@/lib/supabase";
+import { useMyProfile } from "@/hooks/queries/use-my-profile";
 
 type UnitStatus = "pending" | "ok" | "avvik" | "resolved";
 
@@ -26,32 +29,78 @@ type CoolingUnit = {
   threshold: number;
 };
 
-const UNITS: CoolingUnit[] = [
+/** Demo data used as fallback when no cooling units are registered in the asset table */
+const DEMO_UNITS: CoolingUnit[] = [
   { id: "u1", name: "Kjoleskap 1", location: "Hovedkjokken", temperature: 3.2, threshold: 4 },
   { id: "u2", name: "Kjolerom", location: "Lager B", temperature: 9.1, threshold: 4 },
   { id: "u3", name: "Fryser", location: "Hovedkjokken", temperature: -18.5, threshold: -15 },
 ];
 
-function getStatusColor(status: UnitStatus, theme: { isDark: boolean }) {
+/** Fetches cooling units from the asset table for the current workspace */
+function useHaccpUnits(workspaceId: string | undefined) {
+  return useQuery({
+    queryKey: ["haccp-units", workspaceId],
+    queryFn: async () => {
+      if (!workspaceId) return [];
+      // asset_type "storage" covers refrigeration/cooling units in the schema enum.
+      // The asset table doesn't store live temperature — temperature is logged via haccp_log.
+      // We fetch units for display only; temperature defaults to 0 until a reading is logged.
+      const { data, error } = await supabase
+        .from("asset")
+        .select("asset_id, name, location:location_id(name)")
+        .eq("workspace_id", workspaceId)
+        .eq("asset_type", "storage")
+        .eq("is_active", true)
+        .order("name");
+      if (error) throw error;
+      return (data ?? []).map((a) => ({
+        id: a.asset_id,
+        name: a.name,
+        location: (a.location as { name: string } | null)?.name ?? "Ukjent",
+        temperature: 0,
+        threshold: 4,
+      }));
+    },
+    enabled: !!workspaceId,
+  });
+}
+
+function getStatusColor(status: UnitStatus, theme: ReturnType<typeof useTheme>) {
   switch (status) {
     case "ok":
-      return { bg: "rgba(34,197,94,0.08)", border: "rgba(34,197,94,0.2)", text: "#22c55e" };
+      return {
+        bg: withOpacity(theme.colors.success, 0.08),
+        border: withOpacity(theme.colors.success, 0.2),
+        text: theme.colors.success,
+      };
     case "avvik":
-      return { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", text: "#ef4444" };
+      return {
+        bg: withOpacity(theme.colors.destructive, 0.08),
+        border: withOpacity(theme.colors.destructive, 0.25),
+        text: theme.colors.destructive,
+      };
     case "resolved":
-      return { bg: "rgba(245,158,11,0.08)", border: "rgba(245,158,11,0.2)", text: "#f59e0b" };
+      return {
+        bg: withOpacity(theme.colors.warning, 0.08),
+        border: withOpacity(theme.colors.warning, 0.2),
+        text: theme.colors.warning,
+      };
     default:
       return {
         bg: "transparent",
         border: theme.isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)",
-        text: "#737373",
+        text: theme.colors.mutedForeground,
       };
   }
 }
 
 export default function HaccpScreen() {
   const styles = useStyles();
+  const theme = useTheme();
   const router = useRouter();
+  const { data: profile } = useMyProfile();
+  const { data: fetchedUnits = [] } = useHaccpUnits(profile?.workspace_id);
+  const UNITS = fetchedUnits.length > 0 ? fetchedUnits : DEMO_UNITS;
   const [checkedCount, setCheckedCount] = useState(0);
   const [resolved, setResolved] = useState(false);
 
@@ -74,7 +123,7 @@ export default function HaccpScreen() {
       setCheckedCount((c) => c + 1);
 
       // Auto-resolve after all checked and avvik found
-      const unit = UNITS[index]!;
+      const _unit = UNITS[index]!;
       const isLast = index === UNITS.length - 1;
       if (isLast) {
         setTimeout(() => {
@@ -113,7 +162,7 @@ export default function HaccpScreen() {
           </Text>
         </View>
         <View style={styles.mattilsynBadge}>
-          <Shield size={12} color="#22c55e" strokeWidth={2} />
+          <Shield size={12} color={theme.colors.success} strokeWidth={2} />
           <Text style={styles.mattilsynText}>Mattilsynet</Text>
         </View>
       </View>
@@ -145,9 +194,7 @@ export default function HaccpScreen() {
           const status = getUnitStatus(i);
           const isCurrent = i === checkedCount && checkedCount < UNITS.length;
           const isOver = unit.temperature > unit.threshold;
-          const colors = getStatusColor(status, {
-            isDark: styles.container.backgroundColor !== "#ffffff",
-          });
+          const colors = getStatusColor(status, theme);
 
           return (
             <Animated.View key={unit.id} entering={FadeInDown.delay(200 + i * 100).duration(300)}>
@@ -184,12 +231,14 @@ export default function HaccpScreen() {
                         {unit.temperature}°C
                       </Text>
                     )}
-                    {status === "ok" && <CheckCircle2 size={20} color="#22c55e" strokeWidth={2} />}
+                    {status === "ok" && (
+                      <CheckCircle2 size={20} color={theme.colors.success} strokeWidth={2} />
+                    )}
                     {status === "avvik" && (
-                      <AlertTriangle size={20} color="#ef4444" strokeWidth={2} />
+                      <AlertTriangle size={20} color={theme.colors.destructive} strokeWidth={2} />
                     )}
                     {status === "resolved" && (
-                      <CheckCircle2 size={20} color="#f59e0b" strokeWidth={2} />
+                      <CheckCircle2 size={20} color={theme.colors.warning} strokeWidth={2} />
                     )}
                   </View>
                 </View>
@@ -221,7 +270,7 @@ export default function HaccpScreen() {
         {/* Alert banner */}
         {hasAvvik && !resolved && (
           <Animated.View entering={FadeInUp.delay(300).duration(400)} style={styles.alertBanner}>
-            <AlertTriangle size={18} color="#ef4444" strokeWidth={2} />
+            <AlertTriangle size={18} color={theme.colors.destructive} strokeWidth={2} />
             <View style={styles.alertText}>
               <Text style={styles.alertTitle}>Temperaturavvik registrert</Text>
               <Text style={styles.alertSubtitle}>
@@ -234,7 +283,7 @@ export default function HaccpScreen() {
         {/* Success banner */}
         {resolved && (
           <Animated.View entering={FadeInUp.delay(200).duration(400)} style={styles.successBanner}>
-            <CheckCircle2 size={18} color="#22c55e" strokeWidth={2} />
+            <CheckCircle2 size={18} color={theme.colors.success} strokeWidth={2} />
             <View style={styles.alertText}>
               <Text style={styles.successTitle}>HACCP-kontroll fullfort</Text>
               <Text style={styles.alertSubtitle}>
@@ -287,13 +336,15 @@ const useStyles = createStyles((theme) => ({
     paddingHorizontal: theme.spacing.tight,
     paddingVertical: 4,
     borderRadius: theme.radius.md,
-    backgroundColor: theme.isDark ? "rgba(34,197,94,0.08)" : "rgba(34,197,94,0.06)",
+    backgroundColor: theme.isDark
+      ? "rgba(255,255,255,0.06)"
+      : withOpacity(theme.colors.success, 0.06),
     borderWidth: 1,
-    borderColor: "rgba(34,197,94,0.2)",
+    borderColor: withOpacity(theme.colors.success, 0.2),
   },
   mattilsynText: {
     ...theme.typography.micro,
-    color: "#22c55e",
+    color: theme.colors.success,
     fontWeight: theme.fontWeights.medium,
   },
   content: {
@@ -306,7 +357,7 @@ const useStyles = createStyles((theme) => ({
   progressCard: {
     padding: theme.spacing.element,
     borderRadius: theme.radius.lg,
-    backgroundColor: theme.isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)",
+    backgroundColor: theme.isDark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)",
     borderWidth: 1,
     borderColor: theme.colors.border,
   },
@@ -334,10 +385,10 @@ const useStyles = createStyles((theme) => ({
     borderRadius: 3,
   },
   progressFillSuccess: {
-    backgroundColor: "#22c55e",
+    backgroundColor: theme.colors.success,
   },
   progressFillDanger: {
-    backgroundColor: "#ef4444",
+    backgroundColor: theme.colors.destructive,
   },
 
   /* Unit cards */
@@ -348,7 +399,7 @@ const useStyles = createStyles((theme) => ({
     gap: theme.spacing.tight,
   },
   unitCardCurrent: {
-    borderColor: "rgba(34,197,94,0.3)",
+    borderColor: withOpacity(theme.colors.success, 0.3),
   },
   unitCardPending: {
     opacity: 0.4,
@@ -392,10 +443,10 @@ const useStyles = createStyles((theme) => ({
     fontVariant: ["tabular-nums" as const],
   },
   tempOk: {
-    color: "#22c55e",
+    color: theme.colors.success,
   },
   tempDanger: {
-    color: "#ef4444",
+    color: theme.colors.destructive,
   },
   thresholdRow: {
     flexDirection: "row",
@@ -408,22 +459,22 @@ const useStyles = createStyles((theme) => ({
   },
   statusOk: {
     ...theme.typography.caption,
-    color: "#22c55e",
+    color: theme.colors.success,
     fontWeight: theme.fontWeights.medium,
   },
   statusDanger: {
     ...theme.typography.caption,
-    color: "#ef4444",
+    color: theme.colors.destructive,
     fontWeight: theme.fontWeights.medium,
   },
   statusWarning: {
     ...theme.typography.caption,
-    color: "#f59e0b",
+    color: theme.colors.warning,
     fontWeight: theme.fontWeights.medium,
   },
   tapHint: {
     ...theme.typography.caption,
-    color: "#22c55e",
+    color: theme.colors.success,
     textAlign: "center",
     marginTop: theme.spacing.xs,
   },
@@ -435,9 +486,9 @@ const useStyles = createStyles((theme) => ({
     gap: theme.spacing.element,
     padding: theme.spacing.md,
     borderRadius: theme.radius.lg,
-    backgroundColor: "rgba(239,68,68,0.06)",
+    backgroundColor: withOpacity(theme.colors.destructive, 0.06),
     borderWidth: 1,
-    borderColor: "rgba(239,68,68,0.2)",
+    borderColor: withOpacity(theme.colors.destructive, 0.2),
   },
   successBanner: {
     flexDirection: "row",
@@ -445,9 +496,9 @@ const useStyles = createStyles((theme) => ({
     gap: theme.spacing.element,
     padding: theme.spacing.md,
     borderRadius: theme.radius.lg,
-    backgroundColor: "rgba(34,197,94,0.06)",
+    backgroundColor: withOpacity(theme.colors.success, 0.06),
     borderWidth: 1,
-    borderColor: "rgba(34,197,94,0.2)",
+    borderColor: withOpacity(theme.colors.success, 0.2),
   },
   alertText: {
     flex: 1,
@@ -456,12 +507,12 @@ const useStyles = createStyles((theme) => ({
   alertTitle: {
     ...theme.typography.subheadline,
     fontWeight: theme.fontWeights.semibold,
-    color: "#ef4444",
+    color: theme.colors.destructive,
   },
   successTitle: {
     ...theme.typography.subheadline,
     fontWeight: theme.fontWeights.semibold,
-    color: "#22c55e",
+    color: theme.colors.success,
   },
   alertSubtitle: {
     ...theme.typography.caption,

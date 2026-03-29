@@ -90,6 +90,8 @@ export const strings = {
     logout: "Logg ut",
     logoutConfirm: "Er du sikker pa at du vil logge ut?",
     callLeader: "Ring leder",
+    callLeaderNoPhone: "Ingen leder er tilgjengelig. Bruk chat.",
+    callLeaderUnsupported: "Kan ikke åpne telefon på denne enheten.",
     trainingLocked: "Trening & sertifikat",
     comingSoon: "Kommer snart",
     notifications: "Varsler",
@@ -115,6 +117,10 @@ export const strings = {
   },
   payroll: {
     title: "Lønn & fravær",
+    /** Payroll hub — read-only employee screens */
+    hubIntro: "Velg hva du vil se. Alt her er kun til lesing.",
+    supplementTemplateLead:
+      "Eksempel for en typisk kveldsvakt (15:00–23:00). Faktiske tillegg avhenger av planlagt vakt.",
     absence: "Fravær",
     absenceBalance: "Fraværssaldo",
     timebank: "Timebank",

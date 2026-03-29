@@ -3,19 +3,16 @@ import { validateOrgNumber } from "./orgNumberValidator";
 
 export const step1Schema = z.object({
   email: z.string().email("Ugyldig e-postadresse"),
-  companyName: z.string().min(2, "Minimum 2 tegn"),
+  firstName: z.string().min(2, "Påkrevd"),
+  lastName: z.string().min(2, "Påkrevd"),
+  companyName: z.string().min(2, "Påkrevd"),
   industry: z.string().min(1, "Velg bransje"),
-  city: z.string().min(2, "Oppgi by"),
-  websiteUrl: z
-    .string()
-    .min(4, "Ugyldig URL")
-    .transform((v) => (v.startsWith("http") ? v : `https://${v}`))
-    .pipe(z.string().url("Ugyldig URL")),
+  city: z.string().min(2, "Påkrevd"),
+  /** websiteUrl lives on Step4 UI but is stored on account state for intelligence pipeline */
+  websiteUrl: z.string().optional(),
 });
 
 export const step2Schema = z.object({
-  firstName: z.string().min(2, "Minimum 2 tegn"),
-  lastName: z.string().min(2, "Minimum 2 tegn"),
   street: z.string().min(2, "Påkrevd"),
   postalCode: z.string().regex(/^\d{4}$/, "Må være 4 siffer"),
   city: z.string().min(2, "Påkrevd"),

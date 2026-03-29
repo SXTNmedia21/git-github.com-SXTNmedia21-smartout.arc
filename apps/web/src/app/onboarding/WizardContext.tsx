@@ -9,12 +9,12 @@ import {
   useMemo,
   type ReactNode,
 } from "react";
-import { useRouter } from "next/navigation";
 import { useOnboardingState, type OnboardingActions } from "./hooks/useOnboardingState";
 import { useScrollProgress } from "./hooks/useScrollProgress";
 import { useBotsson, type BotssonActions } from "./hooks/useBotsson";
 import type { OnboardingState, OnboardingSection } from "./types";
 import { VISIBLE_SECTIONS } from "./types";
+import { redirectToDashboard } from "./lib/redirect";
 
 interface OnboardingContextValue extends OnboardingState, OnboardingActions {
   activeSection: OnboardingSection;
@@ -30,7 +30,6 @@ const OnboardingContext = createContext<OnboardingContextValue | null>(null);
 
 export function OnboardingProvider({ children }: { children: ReactNode }) {
   const containerRef = useRef<HTMLElement>(null);
-  const router = useRouter();
   const state = useOnboardingState();
   const scroll = useScrollProgress(containerRef);
 
@@ -106,12 +105,13 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     [],
   );
 
-  // Add a key fact to the visual panel (agent tool)
+  // Add a key fact to the visual panel AND persist via API
   const addKeyFact = useCallback(
     (label: string, value: string) => {
       state.saveMemory(`${label}: ${value}`);
+      saveMemory(`${label}: ${value}`, "constant").catch(() => {});
     },
-    [state.saveMemory],
+    [state.saveMemory, saveMemory],
   );
 
   // Finalize onboarding — called by Botsson's finalizeOnboarding tool
@@ -123,14 +123,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     try {
       const { slug } = await state.finalize();
       // Give Botsson time to say "Velkommen!" before redirect
-      setTimeout(() => {
-        const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN;
-        if (rootDomain && rootDomain !== "localhost" && slug) {
-          window.location.href = `https://${slug}.${rootDomain}/dashboard`;
-        } else {
-          router.push("/dashboard");
-        }
-      }, 2000);
+      setTimeout(() => redirectToDashboard(slug), 2000);
       return { success: true, slug: slug ?? undefined };
     } catch (err) {
       return {
@@ -138,7 +131,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
         error: err instanceof Error ? err.message : "Finalization failed",
       };
     }
-  }, [state.finalize, router]);
+  }, [state.finalize]);
 
   // Helper: add locations by name+type (called by agent)
   const addLocations = useCallback(

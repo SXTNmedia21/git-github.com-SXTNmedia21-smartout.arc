@@ -3,9 +3,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
 import { emit } from "@smartout/telemetry";
-import { hospitalityPackage } from "./packages/hospitality";
-import { defaultPackage } from "./packages/default";
-import type { IndustryPackage, IndustryType } from "./types";
+import { hospitalityPackage, defaultPackage } from "@smartout/ai/industry";
+import type { IndustryPackage, IndustryType } from "@smartout/types";
 
 const PACKAGES: Record<IndustryType, IndustryPackage> = {
   hospitality: hospitalityPackage,
@@ -30,8 +29,8 @@ function detectIndustryType(intelligenceData: unknown): IndustryType {
     if (manual in PACKAGES) return manual as IndustryType;
   }
 
-  // Check brregData for NACE code
-  const brreg = data.brregData as Record<string, unknown> | undefined;
+  // Check brregData/brreg for NACE code (shell writes "brreg", pipeline writes "brregData")
+  const brreg = (data.brregData ?? data.brreg) as Record<string, unknown> | undefined;
   const naceCode = brreg?.naceCode;
   if (typeof naceCode === "string") {
     if (naceCode.startsWith("56") || naceCode.startsWith("55")) {
@@ -42,8 +41,8 @@ function detectIndustryType(intelligenceData: unknown): IndustryType {
     }
   }
 
-  // Fallback: check scrapedData for restaurant-related keywords
-  const scraped = data.scrapedData as Record<string, unknown> | undefined;
+  // Fallback: check scrapedData/scraped for restaurant-related keywords (shell writes "scraped", pipeline writes "scrapedData")
+  const scraped = (data.scrapedData ?? data.scraped) as Record<string, unknown> | undefined;
   const companyType = scraped?.companyType;
   if (typeof companyType === "string" && /restaurant|cafe|bar|hotel|servering/i.test(companyType)) {
     return "hospitality";

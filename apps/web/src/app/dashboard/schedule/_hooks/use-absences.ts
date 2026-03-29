@@ -184,3 +184,153 @@ export function useDeleteAbsence(weekStart: string) {
     },
   });
 }
+
+// ══════════════════════════════════════════════════════════════
+// Mutation: Approve absence (pending → approved)
+// ══════════════════════════════════════════════════════════════
+
+export function useApproveAbsence(weekStart: string) {
+  const queryClient = useQueryClient();
+  const { workspace } = useWorkspace();
+  const { profileId } = useContext(DashboardContext);
+  const queryKey = scheduleKeys.absences(workspace.workspace_id, weekStart);
+
+  return useMutation({
+    mutationFn: async (absenceId: string) => {
+      const supabase = createClient();
+
+      const { data, error } = await supabase
+        .from("schedule_absence")
+        .update({ status: "approved" })
+        .eq("schedule_absence_id", absenceId)
+        .eq("status", "pending")
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      return fromDbAbsence(data);
+    },
+
+    onMutate: async (absenceId) => {
+      await queryClient.cancelQueries({ queryKey });
+
+      const previous = queryClient.getQueryData<Absence[]>(queryKey);
+
+      queryClient.setQueryData<Absence[]>(queryKey, (old) =>
+        (old ?? []).map((a) => (a.id === absenceId ? { ...a, status: "approved" as const } : a)),
+      );
+
+      return { previous };
+    },
+
+    onSuccess: (data) => {
+      void emit({
+        event: "absence approved",
+        workspace_id: workspace.workspace_id,
+        actor_id: profileId ?? "",
+        properties: {
+          entity: {
+            entity_type: "absence",
+            entity_id: data.id,
+          },
+          data: {
+            profile_id: data.employeeId,
+            approved_by: profileId ?? "",
+            start_date: data.startDate,
+            end_date: data.endDate,
+          },
+        },
+      });
+      toast.success("Fravær godkjent");
+    },
+
+    onError: (_err, _absenceId, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(queryKey, context.previous);
+      }
+      toast.error("Kunne ikke godkjenne fravær");
+    },
+
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey });
+      queryClient.invalidateQueries({
+        queryKey: scheduleKeys.pendingAbsences(workspace.workspace_id),
+      });
+    },
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// Mutation: Reject absence (pending → rejected)
+// ══════════════════════════════════════════════════════════════
+
+export function useRejectAbsence(weekStart: string) {
+  const queryClient = useQueryClient();
+  const { workspace } = useWorkspace();
+  const { profileId } = useContext(DashboardContext);
+  const queryKey = scheduleKeys.absences(workspace.workspace_id, weekStart);
+
+  return useMutation({
+    mutationFn: async (absenceId: string) => {
+      const supabase = createClient();
+
+      const { data, error } = await supabase
+        .from("schedule_absence")
+        .update({ status: "rejected" })
+        .eq("schedule_absence_id", absenceId)
+        .eq("status", "pending")
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      return fromDbAbsence(data);
+    },
+
+    onMutate: async (absenceId) => {
+      await queryClient.cancelQueries({ queryKey });
+
+      const previous = queryClient.getQueryData<Absence[]>(queryKey);
+
+      queryClient.setQueryData<Absence[]>(queryKey, (old) =>
+        (old ?? []).map((a) => (a.id === absenceId ? { ...a, status: "rejected" as const } : a)),
+      );
+
+      return { previous };
+    },
+
+    onSuccess: (data) => {
+      void emit({
+        event: "absence rejected",
+        workspace_id: workspace.workspace_id,
+        actor_id: profileId ?? "",
+        properties: {
+          entity: {
+            entity_type: "absence",
+            entity_id: data.id,
+          },
+          data: {
+            profile_id: data.employeeId,
+            rejected_by: profileId ?? "",
+          },
+        },
+      });
+      toast.success("Fravær avslått");
+    },
+
+    onError: (_err, _absenceId, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(queryKey, context.previous);
+      }
+      toast.error("Kunne ikke avslå fravær");
+    },
+
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey });
+      queryClient.invalidateQueries({
+        queryKey: scheduleKeys.pendingAbsences(workspace.workspace_id),
+      });
+    },
+  });
+}

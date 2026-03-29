@@ -1,16 +1,16 @@
-import { Suspense } from "react";
-import { SignupWizard } from "./_components/SignupWizard";
+"use client";
 
-export default async function JoinPage() {
+import { Suspense } from "react";
+import { AnimatedWizardShell } from "@/components/wizard/AnimatedWizardShell";
+import { JoinScrapingProvider } from "./_context/JoinScrapingProvider";
+import { joinWizard } from "./wizard-definition";
+
+export default function JoinPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-screen items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-orange-500 border-t-transparent" />
-        </div>
-      }
-    >
-      <SignupWizard />
+    <Suspense fallback={<div className="flex h-dvh items-center justify-center">Loading...</div>}>
+      <JoinScrapingProvider>
+        <AnimatedWizardShell definition={joinWizard} />
+      </JoinScrapingProvider>
     </Suspense>
   );
 }

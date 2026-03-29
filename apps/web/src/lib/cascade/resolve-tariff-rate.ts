@@ -57,7 +57,7 @@ export function resolveTariffRate(
   const sourceTier = hasWorkspaceRates ? ("workspace" as const) : ("platform" as const);
 
   // Base rate from payroll profile (not from tariff table — that's for supplements)
-  const baseRate = 0; // Actual base rate comes from employment_contract.hourly_rate
+  const baseRate = context.baseRate ?? 0;
   const baseRateUnit = "hourly" as const;
 
   // Check evening supplement

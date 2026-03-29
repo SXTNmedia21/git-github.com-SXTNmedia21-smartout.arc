@@ -15,9 +15,10 @@ import { Fingerprint, LogOut } from "lucide-react-native";
 import { useShiftPhase } from "@/hooks/stores/use-shift-phase";
 import { useActiveTimeEntry } from "@/hooks/queries/use-active-time-entry";
 import { strings } from "@/constants/strings";
-import { createStyles } from "@/theme";
+import { useTheme } from "@/theme";
 
 export function PunchButton() {
+  const { colors } = useTheme();
   const { phase, activeShift, nextShift, activeTimeEntry } = useShiftPhase();
   const { data: timeEntry } = useActiveTimeEntry();
   const router = useRouter();
@@ -31,8 +32,8 @@ export function PunchButton() {
   const isClockedIn = currentTimeEntry?.status === "clocked_in";
   const shiftForPunch = activeShift ?? nextShift;
 
-  const shouldShow = isClockedIn || (phase !== "no_shift" && shiftForPunch);
-  if (!shouldShow) return null;
+  // Always show punch button — employees may need ad-hoc punch even without scheduled shifts
+  const isIdle = !isClockedIn && phase === "no_shift";
 
   const label = isClockedIn ? strings.shift.punchOut : strings.shift.punchIn;
 
@@ -49,16 +50,34 @@ export function PunchButton() {
         onPressOut={() => {
           scale.value = withSpring(1, { damping: 12, stiffness: 200 });
         }}
-        style={[styles.button, isClockedIn ? styles.punchOut : styles.punchIn]}
+        style={[
+          styles.button,
+          isClockedIn
+            ? { backgroundColor: colors.destructive }
+            : isIdle
+              ? { backgroundColor: colors.muted }
+              : { backgroundColor: colors.brandOrange },
+        ]}
         accessibilityRole="button"
         accessibilityLabel={label}
       >
         {isClockedIn ? (
-          <LogOut size={20} color="#ffffff" strokeWidth={2} />
+          <LogOut size={20} color={colors.primaryForeground} strokeWidth={2} />
         ) : (
-          <Fingerprint size={20} color="#ffffff" strokeWidth={2} />
+          <Fingerprint
+            size={20}
+            color={isIdle ? colors.mutedForeground : colors.primaryForeground}
+            strokeWidth={2}
+          />
         )}
-        <Text style={styles.label}>{label}</Text>
+        <Text
+          style={[
+            styles.label,
+            { color: isIdle ? colors.mutedForeground : colors.primaryForeground },
+          ]}
+        >
+          {label}
+        </Text>
       </Pressable>
     </Animated.View>
   );
@@ -84,16 +103,9 @@ const styles = (() => {
       shadowRadius: 12,
       elevation: 4,
     },
-    punchIn: {
-      backgroundColor: "#e85c0d",
-    },
-    punchOut: {
-      backgroundColor: "#dc2626",
-    },
     label: {
       fontSize: 16,
       fontWeight: "600" as const,
-      color: "#ffffff",
       letterSpacing: 0.5,
     },
   };

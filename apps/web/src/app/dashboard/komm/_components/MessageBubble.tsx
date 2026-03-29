@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Reply, SmilePlus, Pin } from "lucide-react";
 import { KnowledgeCard } from "./KnowledgeCard";
+import { useTranslation } from "@smartout/i18n";
 
 const QUICK_EMOJIS = ["👍", "❤️", "😂", "🎉", "👀", "🙏"];
 
@@ -19,6 +20,7 @@ type Props = {
 };
 
 export function MessageBubble({ message, channelId, profileId, isOwn, onReply }: Props) {
+  const { t } = useTranslation("komm");
   const [showActions, setShowActions] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const toggleReaction = useToggleReaction(channelId, profileId);
@@ -41,7 +43,7 @@ export function MessageBubble({ message, channelId, profileId, isOwn, onReply }:
   if (message.deleted_at) {
     return (
       <div className="px-4 py-1">
-        <p className="text-muted-foreground text-xs italic">Melding slettet</p>
+        <p className="text-muted-foreground text-xs italic">{t("message.deleted")}</p>
       </div>
     );
   }
@@ -83,11 +85,11 @@ export function MessageBubble({ message, channelId, profileId, isOwn, onReply }:
                 message.sender_role === "system" && "text-amber-500",
               )}
             >
-              {message.sender_name ?? "Ukjent"}
+              {message.sender_name ?? t("message.unknown_sender")}
             </span>
             <span className="text-muted-foreground text-[10px]">{time}</span>
             {message.edited_at && (
-              <span className="text-muted-foreground text-[10px]">(redigert)</span>
+              <span className="text-muted-foreground text-[10px]">{t("message.edited")}</span>
             )}
             {message.is_pinned && <Pin className="h-3 w-3 text-amber-500" />}
           </div>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Building2, Search, Menu, X, BookOpen } from "lucide-react";
+import { createTranslator } from "@smartout/i18n";
 
 type DocsNavItem = {
   title: string;
@@ -11,7 +12,14 @@ type DocsNavItem = {
   description: string;
 };
 
-export function DocsSidebar({ navigation }: { navigation: DocsNavItem[] }) {
+export function DocsSidebar({
+  navigation,
+  locale = "nb",
+}: {
+  navigation: DocsNavItem[];
+  locale?: "nb" | "en";
+}) {
+  const t = createTranslator(locale, "docs");
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -33,7 +41,7 @@ export function DocsSidebar({ navigation }: { navigation: DocsNavItem[] }) {
           <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Søk i dokumentasjonen..."
+            placeholder={t("sidebar.search")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="border-border/50 bg-background placeholder:text-muted-foreground focus:border-brand-orange/40 focus:ring-brand-orange/20 w-full rounded-xl border py-2.5 pr-4 pl-10 text-sm transition-all focus:ring-1 focus:outline-none"
@@ -66,7 +74,7 @@ export function DocsSidebar({ navigation }: { navigation: DocsNavItem[] }) {
 
         {filteredNav.length === 0 && (
           <p className="text-muted-foreground py-8 text-center text-sm">
-            Ingen resultater for &ldquo;{searchQuery}&rdquo;
+            {t("sidebar.noResults")} &ldquo;{searchQuery}&rdquo;
           </p>
         )}
       </nav>
@@ -76,7 +84,7 @@ export function DocsSidebar({ navigation }: { navigation: DocsNavItem[] }) {
           href="/pricing"
           className="text-muted-foreground hover:bg-foreground/5 hover:text-foreground flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition-colors"
         >
-          Trenger du hjelp? Kontakt oss
+          {t("sidebar.contact")}
         </Link>
       </div>
     </div>

@@ -5,10 +5,12 @@
   "types": "src/index.ts",
   "exports": {
     ".": "./src/index.ts",
+    "./client": "./src/client.ts",
     "./sms": "./src/sms-service.ts",
     "./templates": "./src/templates.ts",
     "./audiences": "./src/audiences.ts",
-    "./compliance": "./src/compliance.ts"
+    "./compliance": "./src/compliance.ts",
+    "./deep-links": "./src/deep-links.ts"
   },
   "scripts": {
     "lint": "eslint src/",
@@ -21,6 +23,10 @@
     "@supabase/supabase-js": "2.49.4",
     "twilio": "^5.5.0",
     "zod": "^3.24.2"
+  },
+  "peerDependencies": {
+    "@tanstack/react-query": "^5",
+    "react": "^18 || ^19"
   },
   "devDependencies": {
     "@smartout/eslint-config": "workspace:^",

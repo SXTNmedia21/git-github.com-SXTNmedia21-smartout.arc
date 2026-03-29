@@ -1,6 +1,14 @@
 "use client";
 
-import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  Suspense,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Users,
   Briefcase,
@@ -12,7 +20,7 @@ import {
   Printer,
 } from "lucide-react";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import { useWorkspace } from "@/lib/workspace-context";
+import { useWorkspaceOptional } from "@/lib/workspace-context";
 import {
   DndContext,
   type CollisionDetection,
@@ -28,6 +36,7 @@ import {
   useDroppable,
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates, arrayMove } from "@dnd-kit/sortable";
+import { MalGrid } from "./_components/week-grid";
 import { PlannerCommandBar } from "./_components/planner-command-bar";
 import { StatusStrip } from "./_components/status-strip";
 import { GridSurface } from "./_components/grid-surface";
@@ -78,8 +87,11 @@ import {
   useDayBookings,
 } from "./_hooks/use-day-content";
 import { useScheduleRealtime } from "./_hooks/use-schedule-realtime";
+import { useShiftConflicts } from "./_hooks/useShiftConflicts";
 import { useScheduleComputed, type ScheduleComputed } from "./_hooks/use-schedule-computed";
 import { useDayInfo } from "./_hooks/use-day-info";
+import { useShiftReadinessCheck } from "./_hooks/use-shift-readiness-check";
+import { toast } from "sonner";
 
 // ---------------------------------------------------------------------------
 // Week range helper — supports week offset for navigation
@@ -308,7 +320,8 @@ function SchedulePageContent() {
   const days = useMemo(() => generateDayColumns(weekStart, dayCount), [weekStart, dayCount]);
 
   // ── Workspace context ───────────────────────────────────────
-  const { workspace } = useWorkspace();
+  const ctx = useWorkspaceOptional();
+  const workspace = ctx?.workspace;
 
   const shouldLoadSidebarData = loadSecondaryData || isSidebarOpen || sidebarMode === "templates";
   const shouldLoadDayContent =
@@ -325,6 +338,7 @@ function SchedulePageContent() {
   const dayTasksQuery = useDayTasks(weekStart, weekEnd, { enabled: shouldLoadDayContent });
   const dayBookingsQuery = useDayBookings(weekStart, weekEnd, { enabled: shouldLoadDayContent });
   const { dayInfoByDate } = useDayInfo(weekStart, weekEnd, { enabled: shouldLoadDayContent });
+  const { readinessMap } = useShiftReadinessCheck();
 
   // ── Enrich day columns with day info + real shift/staff/message/task counts ─
   const shouldComputeEnrichedDays =
@@ -493,6 +507,24 @@ function SchedulePageContent() {
 
   // ── Derived values ──────────────────────────────────────────
   const shifts = useMemo(() => shiftsQuery.data ?? [], [shiftsQuery.data]);
+
+  // Shift conflict detection — flags overlapping shifts for the same employee
+  const conflictSlots = useMemo(
+    () =>
+      shifts.map((s) => ({
+        shiftId: s.id,
+        employeeId: s.employeeId,
+        startTime: s.startTime,
+        endTime: s.endTime,
+      })),
+    [shifts],
+  );
+  const conflicts = useShiftConflicts(conflictSlots);
+  const conflictedShiftIds = useMemo(
+    () => new Set(conflicts.flatMap((c) => [c.shiftIdA, c.shiftIdB])),
+    [conflicts],
+  );
+
   const templates = templatesQuery.data ?? [];
   const openShifts = openShiftsQuery.data ?? [];
   const statusSummary = computed.getStatusSummary();
@@ -553,51 +585,31 @@ function SchedulePageContent() {
     return sorted;
   }, [employees, employeeOrder, scheduleCompactMode, employeesWithShifts]);
 
-  // ── Location-based employee filtering ─────────────────────
-  const { activeLocation, setActiveLocation } = useContext(DashboardContext);
+  // ── Department-based employee filtering ──────────────────
+  const { activeDepartment, setActiveDepartment } = useContext(DashboardContext);
 
-  const locationFilteredEmployees = useMemo(() => {
-    if (!activeLocation || activeLocation === "Alle Lokasjoner") return sortedEmployees;
-    const loc = activeLocation.toLowerCase();
-    return sortedEmployees.filter((emp) => {
-      const dept = (emp.jobTitle || "").toLowerCase();
-      const team = (emp.team || "").toLowerCase();
-      const role = (emp.role || "").toLowerCase();
-      // Match location to employee attributes
-      return (
-        dept.includes(loc) ||
-        team.includes(loc) ||
-        role.includes(loc) ||
-        loc.includes(dept) ||
-        loc.includes(team)
-      );
-    });
-  }, [sortedEmployees, activeLocation]);
+  const departmentFilteredEmployees = useMemo(() => {
+    if (!activeDepartment || activeDepartment === "Alle avdelinger") return sortedEmployees;
+    return sortedEmployees.filter((emp) => emp.departmentName === activeDepartment);
+  }, [sortedEmployees, activeDepartment]);
 
-  const locationOptions = useMemo(() => {
-    const values = new Set<string>();
-    for (const employee of employees) {
-      const candidates = [employee.team, employee.jobTitle, employee.role];
-      for (const candidate of candidates) {
-        if (!candidate) continue;
-        const trimmed = candidate.trim();
-        if (trimmed.length === 0) continue;
-        values.add(trimmed);
-      }
+  const departmentOptions = useMemo(() => {
+    const names = new Set<string>();
+    for (const emp of employees) {
+      if (emp.departmentName) names.add(emp.departmentName);
     }
-    return Array.from(values).sort((a, b) => a.localeCompare(b, "nb"));
+    return Array.from(names).sort((a, b) => a.localeCompare(b, "nb"));
   }, [employees]);
 
   useEffect(() => {
-    if (activeLocation === "Alle Lokasjoner") return;
-    if (locationOptions.includes(activeLocation)) return;
-    const fallback = locationOptions[0] ?? "Alle Lokasjoner";
-    setActiveLocation(fallback);
-  }, [activeLocation, locationOptions, setActiveLocation]);
+    if (activeDepartment === "Alle avdelinger") return;
+    if (departmentOptions.includes(activeDepartment)) return;
+    setActiveDepartment("Alle avdelinger");
+  }, [activeDepartment, departmentOptions, setActiveDepartment]);
 
   const visibleEmployeeIds = useMemo(
-    () => new Set(locationFilteredEmployees.map((employee) => employee.id)),
-    [locationFilteredEmployees],
+    () => new Set(departmentFilteredEmployees.map((employee) => employee.id)),
+    [departmentFilteredEmployees],
   );
 
   const filteredShifts = useMemo(() => {
@@ -712,6 +724,17 @@ function SchedulePageContent() {
     };
   }, [draftCount, draftIds, publishShifts.mutate, setScheduleDraftCount, setOnPublishAll]);
 
+  /** Warn if an employee has incomplete training when assigned a shift. */
+  const warnIfNotReady = (employeeId: string) => {
+    const entry = readinessMap.get(employeeId);
+    if (!entry || entry.readinessPercent >= 100) return;
+    const emp = employees.find((e: ScheduleEmployee) => e.id === employeeId);
+    const name = emp?.name ?? "Ansatt";
+    toast.warning(`${name} — ${entry.readinessPercent}% klar`, {
+      description: `Mangler: ${entry.pendingProtocols.slice(0, 3).join(", ")}${entry.pendingProtocols.length > 3 ? "…" : ""}`,
+    });
+  };
+
   /**
    * Handles DnD drop events.
    * Parses droppable ID format: "cell::employeeId::dateId" or "day-header::dateId"
@@ -786,10 +809,12 @@ function SchedulePageContent() {
               breaks: sourceShift.breaks,
               notes: sourceShift.notes,
             });
+            warnIfNotReady(toEmployeeId);
           }
         } else {
           // Normal drag → move shift
           moveShift.mutate({ id: shiftId, employeeId: toEmployeeId, dateId: toDateId });
+          warnIfNotReady(toEmployeeId);
         }
       }
     } else if (cellMatch && sourceType === "open-shift") {
@@ -815,6 +840,7 @@ function SchedulePageContent() {
               breaks: 0,
             },
           });
+          warnIfNotReady(employeeId);
         }
       }
     } else if (cellMatch && sourceType === "shift-template") {
@@ -931,7 +957,7 @@ function SchedulePageContent() {
       <ScheduleVoiceToolsBridge
         weekStart={weekStart}
         weekEnd={weekEnd}
-        workspaceId={workspace.workspace_id}
+        workspaceId={workspace?.workspace_id ?? ""}
         enrichedDays={enrichedDays}
         shifts={shiftsQuery.data ?? []}
         absences={absencesQuery.data ?? []}
@@ -945,7 +971,7 @@ function SchedulePageContent() {
         publishShifts={publishShifts}
       />
       <div
-        className={`flex flex-1 flex-col ${isDark ? "bg-[#050505]" : "bg-zinc-50"} relative isolate h-full overflow-hidden rounded-2xl border border-white/[0.04] font-sans text-zinc-100 shadow-2xl print:block print:h-auto print:overflow-visible print:border-none print:bg-white print:shadow-none`}
+        className={`bg-background border-border text-foreground relative isolate flex h-full flex-1 flex-col overflow-hidden rounded-2xl border font-sans shadow-2xl print:block print:h-auto print:overflow-visible print:border-none print:bg-white print:shadow-none`}
       >
         {isLoading ? (
           <ScheduleLoadingSkeleton isDark={isDark} />
@@ -959,102 +985,117 @@ function SchedulePageContent() {
             {/* Agent proposal banner — shows when Emma has pending shift proposals */}
             <ProposalBanner />
 
-            {/* MAIN CONTENT AREA — sidebar spans full height alongside command bar, status strip, and grid */}
-            <DndContext
-              sensors={sensors}
-              collisionDetection={scheduleCollisionDetection}
-              autoScroll={false}
-              onDragStart={handleDragStart}
-              onDragEnd={handleDragEnd}
-              onDragCancel={handleDragCancel}
-            >
-              <div className="flex flex-1 overflow-hidden">
-                {/* Sidebar — full height from top of schedule container to bottom */}
-                <ScheduleSidebar
-                  isDark={isDark}
-                  isSidebarOpen={isSidebarOpen}
-                  sidebarMode={sidebarMode}
-                  setSidebarMode={setSidebarMode}
-                  templates={templates}
-                  openShifts={openShifts}
+            {/* VAKTGRID — single grid, columns grouped by department horizontally */}
+            {scheduleLayout === "grid" && (
+              <Suspense fallback={<div className="bg-muted/20 flex-1 animate-pulse" />}>
+                <MalGrid
+                  departmentName={activeDepartment}
+                  weekStart={weekStart}
+                  departmentOptions={departmentOptions}
                 />
+              </Suspense>
+            )}
 
-                {/* Main content column — command bar, status strip, then grid */}
-                <div className="flex min-w-0 flex-1 flex-col">
-                  <PlannerCommandBar
+            {/* MAIN CONTENT AREA — sidebar spans full height alongside command bar, status strip, and grid */}
+            {scheduleLayout !== "grid" && (
+              <DndContext
+                sensors={sensors}
+                collisionDetection={scheduleCollisionDetection}
+                autoScroll={false}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+                onDragCancel={handleDragCancel}
+              >
+                <div className="flex flex-1 overflow-hidden">
+                  {/* Sidebar — full height from top of schedule container to bottom */}
+                  <ScheduleSidebar
                     isDark={isDark}
-                    filterSituation={filterSituation}
-                    setFilterSituation={setFilterSituation}
-                    weekSpan={weekSpan}
-                    setWeekSpan={setWeekSpan}
-                    scheduleLayout={scheduleLayout}
-                    locationOptions={locationOptions}
+                    isSidebarOpen={isSidebarOpen}
+                    sidebarMode={sidebarMode}
+                    setSidebarMode={setSidebarMode}
+                    templates={templates}
+                    openShifts={openShifts}
                   />
 
-                  <GridSurface
-                    centerContent={
-                      <>
-                        {scheduleLayout === "daily" && (
-                          <GridContentWithProposals
-                            isSidebarOpen={isSidebarOpen}
-                            setIsSidebarOpen={setIsSidebarOpen}
-                            onDateClick={handleSetSelectedDate}
-                            filterSituation={filterSituation}
-                            activeStatusFilter={activeStatusFilter}
-                            visibleDays={situationFilteredDays}
-                            employees={locationFilteredEmployees}
-                            shifts={filteredShifts}
-                            absences={filteredAbsences}
-                            highlightedDayId={highlightedDayId}
-                            weekStart={weekStart}
-                            onTimeChange={handleGridShiftTimeChange}
-                          />
-                        )}
-                        {scheduleLayout === "weekly" && (
-                          <WeeklyGridContent
-                            isSidebarOpen={isSidebarOpen}
-                            setIsSidebarOpen={setIsSidebarOpen}
-                            onDateClick={handleSetSelectedDate}
-                            filterSituation={filterSituation}
-                            computed={computed}
-                            scheduleUI={scheduleUI}
-                            employees={locationFilteredEmployees}
-                            shifts={filteredShifts}
-                            days={days}
-                            weekStart={weekStart}
-                          />
-                        )}
-                        {scheduleLayout === "monthly" && (
-                          <MonthlyView
-                            onDateClick={handleSetSelectedDate}
-                            shifts={filteredShifts}
-                            computed={computed}
-                            employees={locationFilteredEmployees}
-                          />
-                        )}
-                        {scheduleLayout === "list" && (
-                          <ListGridContent
-                            onDateClick={handleSetSelectedDate}
-                            computed={computed}
-                            days={days}
-                            employees={locationFilteredEmployees}
-                            weekStart={weekStart}
-                          />
-                        )}
-                      </>
-                    }
-                  />
+                  {/* Main content column — command bar, status strip, then grid */}
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <PlannerCommandBar
+                      isDark={isDark}
+                      filterSituation={filterSituation}
+                      setFilterSituation={setFilterSituation}
+                      weekSpan={weekSpan}
+                      setWeekSpan={setWeekSpan}
+                      scheduleLayout={scheduleLayout}
+                      departmentOptions={departmentOptions}
+                    />
 
-                  <StatusStrip
-                    statusSummary={statusSummary}
-                    activeFilter={activeStatusFilter}
-                    onFilterClick={setActiveStatusFilter}
-                  />
+                    <GridSurface
+                      centerContent={
+                        <>
+                          {scheduleLayout === "daily" && (
+                            <GridContentWithProposals
+                              isSidebarOpen={isSidebarOpen}
+                              setIsSidebarOpen={setIsSidebarOpen}
+                              onDateClick={handleSetSelectedDate}
+                              filterSituation={filterSituation}
+                              activeStatusFilter={activeStatusFilter}
+                              visibleDays={situationFilteredDays}
+                              employees={departmentFilteredEmployees}
+                              shifts={filteredShifts}
+                              absences={filteredAbsences}
+                              highlightedDayId={highlightedDayId}
+                              weekStart={weekStart}
+                              onTimeChange={handleGridShiftTimeChange}
+                              conflictedShiftIds={conflictedShiftIds}
+                              readinessMap={readinessMap}
+                            />
+                          )}
+                          {scheduleLayout === "weekly" && (
+                            <WeeklyGridContent
+                              isSidebarOpen={isSidebarOpen}
+                              setIsSidebarOpen={setIsSidebarOpen}
+                              onDateClick={handleSetSelectedDate}
+                              filterSituation={filterSituation}
+                              computed={computed}
+                              scheduleUI={scheduleUI}
+                              employees={departmentFilteredEmployees}
+                              shifts={filteredShifts}
+                              days={days}
+                              weekStart={weekStart}
+                            />
+                          )}
+                          {scheduleLayout === "monthly" && (
+                            <MonthlyView
+                              onDateClick={handleSetSelectedDate}
+                              shifts={filteredShifts}
+                              computed={computed}
+                              employees={departmentFilteredEmployees}
+                            />
+                          )}
+                          {scheduleLayout === "list" && (
+                            <ListGridContent
+                              onDateClick={handleSetSelectedDate}
+                              computed={computed}
+                              days={days}
+                              employees={departmentFilteredEmployees}
+                              weekStart={weekStart}
+                            />
+                          )}
+                        </>
+                      }
+                    />
+
+                    <StatusStrip
+                      statusSummary={statusSummary}
+                      activeFilter={activeStatusFilter}
+                      onFilterClick={setActiveStatusFilter}
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <ScheduleDragOverlay isDark={isDark} />
-            </DndContext>
+                <ScheduleDragOverlay isDark={isDark} />
+              </DndContext>
+            )}
 
             {/* Day control sheet — rendered at page level so it escapes GridSurface stacking context */}
             <DayControlSheet
@@ -1088,11 +1129,15 @@ function SchedulePageContent() {
               employees={employees}
               onPublish={(ids) => publishShifts.mutate(ids)}
               isPublishing={publishShifts.isPending}
+              onEditShift={(id) => {
+                setPublishOverviewOpen(false);
+                scheduleUI.setSelectedShift(id);
+              }}
             />
             <SendMessageDialog
               open={sendMessageDialog.open}
               onOpenChange={(open) => setSendMessageDialog((prev) => ({ ...prev, open }))}
-              workspaceId={workspace.workspace_id}
+              workspaceId={workspace?.workspace_id ?? ""}
               dateId={sendMessageDialog.dateId}
               dateLabel={sendMessageDialog.dateLabel}
               initialMessage={sendMessageDialog.initialMessage}
@@ -1464,6 +1509,16 @@ function WeeklyGridContent({
       }
       return Array.from(map.entries());
     }
+    if (scheduleView === "lokasjon") {
+      const map = new Map<string, ScheduleEmployee[]>();
+      for (const emp of employees) {
+        const key = emp.locationName || "Uten lokasjon";
+        const list = map.get(key) ?? [];
+        list.push(emp);
+        map.set(key, list);
+      }
+      return Array.from(map.entries());
+    }
     return [["Alle ansatte", employees] as [string, ScheduleEmployee[]]];
   }, [scheduleView, employees]);
 
@@ -1499,7 +1554,13 @@ function WeeklyGridContent({
           >
             <span className="text-foreground/50 text-xs font-bold tracking-widest uppercase">
               Visning:{" "}
-              {scheduleView === "ansatt" ? "Ansatt" : scheduleView === "jobb" ? "Rolle" : "Team"}
+              {scheduleView === "ansatt"
+                ? "Ansatt"
+                : scheduleView === "jobb"
+                  ? "Rolle"
+                  : scheduleView === "lokasjon"
+                    ? "Lokasjon"
+                    : "Team"}
             </span>
           </div>
         </div>
@@ -1513,7 +1574,13 @@ function WeeklyGridContent({
                   <EntityRow
                     key={emp.id}
                     name={emp.name}
-                    subtitle={scheduleView === "jobb" ? emp.team : emp.jobTitle || emp.role}
+                    subtitle={
+                      scheduleView === "jobb"
+                        ? emp.team
+                        : scheduleView === "lokasjon"
+                          ? emp.departmentName
+                          : emp.jobTitle || emp.role
+                    }
                     hours={stats.totalHours.toFixed(1)}
                     shifts={String(stats.shiftCount)}
                     avatarColor={emp.avatarColor}
@@ -1808,7 +1875,8 @@ function ListGridContent({
   weekStart: string;
 }) {
   const { isDark } = useContext(DashboardContext);
-  const { workspace } = useWorkspace();
+  const ctx = useWorkspaceOptional();
+  const workspace = ctx?.workspace;
   const employeeById = useMemo(
     () => new Map(employees.map((employee) => [employee.id, employee])),
     [employees],

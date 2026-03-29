@@ -1,21 +1,15 @@
 "use client";
 
 import { useContext, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { Loader2, ClipboardCheck } from "lucide-react";
+import { useTranslation } from "@smartout/i18n";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspace } from "@/lib/workspace-context";
 import { useDepartmentSessions } from "../_hooks/use-department-sessions";
 import { useSessionTasks, type SessionTask } from "../_hooks/use-session-tasks";
 import { useCompleteTask } from "../_hooks/use-complete-task";
 import { TaskCard } from "./TaskCard";
-
-// TODO: move to i18n
-const STRINGS = {
-  noSession: "Ingen aktiv okt i dag.",
-  noTasks: "Ingen oppgaver for denne okten.",
-  completed: "fullfort",
-  overdue: "forfalt",
-} as const;
 
 type Props = {
   /** Override session ID — used by admin drill-down */
@@ -25,6 +19,8 @@ type Props = {
 };
 
 export function DriftTaskList({ sessionId: overrideSessionId, showAll = false }: Props) {
+  const { t } = useTranslation("dashboard");
+  const router = useRouter();
   const { profileId } = useContext(DashboardContext);
   const { workspace } = useWorkspace();
   const today = new Date().toISOString().split("T")[0]!;
@@ -74,7 +70,7 @@ export function DriftTaskList({ sessionId: overrideSessionId, showAll = false }:
     return (
       <div className="border-border bg-card/50 flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-12">
         <ClipboardCheck className="text-muted-foreground mb-3 h-10 w-10" />
-        <p className="text-muted-foreground text-sm">{STRINGS.noSession}</p>
+        <p className="text-muted-foreground text-sm">{t("hms.drift_task_list.no_session")}</p>
       </div>
     );
   }
@@ -83,7 +79,7 @@ export function DriftTaskList({ sessionId: overrideSessionId, showAll = false }:
     return (
       <div className="border-border bg-card/50 flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-12">
         <ClipboardCheck className="text-muted-foreground mb-3 h-10 w-10" />
-        <p className="text-muted-foreground text-sm">{STRINGS.noTasks}</p>
+        <p className="text-muted-foreground text-sm">{t("hms.drift_task_list.no_tasks")}</p>
       </div>
     );
   }
@@ -92,8 +88,10 @@ export function DriftTaskList({ sessionId: overrideSessionId, showAll = false }:
     completeTask.mutate({ taskId, sessionId: activeSessionId!, evidence });
   }
 
-  function handleFlagDeviation(_task: SessionTask) {
-    // Phase 2 Task 9 wires this to DeviationForm
+  function handleFlagDeviation(task: SessionTask) {
+    router.push(
+      `/dashboard/hms/deviations?prefill_task_id=${task.id}&prefill_session_id=${activeSessionId}`,
+    );
   }
 
   return (
@@ -110,11 +108,11 @@ export function DriftTaskList({ sessionId: overrideSessionId, showAll = false }:
       {/* Summary bar */}
       <div className="bg-muted/50 flex items-center justify-between rounded-lg px-4 py-2">
         <span className="text-muted-foreground text-xs">
-          {completedCount}/{sortedTasks.length} {STRINGS.completed}
+          {completedCount}/{sortedTasks.length} {t("hms.drift_task_list.completed")}
         </span>
         {overdueCount > 0 && (
           <span className="text-xs font-semibold text-red-500">
-            {overdueCount} {STRINGS.overdue}
+            {overdueCount} {t("hms.drift_task_list.overdue")}
           </span>
         )}
       </div>

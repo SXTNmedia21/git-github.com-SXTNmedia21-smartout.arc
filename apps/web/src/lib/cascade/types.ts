@@ -239,6 +239,8 @@ export type TariffContext = {
   workspaceTariffRates: TariffRateRow[];
   platformTariffRates: TariffRateRow[];
   isPublicHoliday: boolean;
+  /** Hourly rate from employment_contract. Null = no contract found. */
+  baseRate: number | null;
 };
 
 export type TariffRateRow = {

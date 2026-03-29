@@ -12,7 +12,7 @@ export type MissionMode = "sequential" | "free" | "hybrid";
 export type SessionMode = "mission" | "agent";
 
 /** Channel through which the agent communicates */
-export type SessionChannel = "voice" | "sms" | "chat" | "email" | "autonomous";
+export type SessionChannel = "voice" | "sms" | "chat" | "email" | "autonomous" | "telegram";
 
 /** Session lifecycle status */
 export type SessionStatus = "active" | "complete" | "expired" | "abandoned";

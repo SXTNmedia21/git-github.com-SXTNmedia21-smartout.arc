@@ -116,6 +116,8 @@ export function fromDbShift(row: ShiftRow): Shift {
     notes: row.notes ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    confirmedAt: row.confirmed_at ?? undefined,
+    confirmedBy: row.confirmed_by ?? undefined,
   };
 }
 

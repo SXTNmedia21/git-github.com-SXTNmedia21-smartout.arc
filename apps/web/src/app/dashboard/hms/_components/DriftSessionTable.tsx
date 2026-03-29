@@ -1,7 +1,8 @@
 "use client";
 
-import { useContext, useState } from "react";
+import { Fragment, useContext, useState } from "react";
 import { ChevronLeft, ChevronRight, Loader2, PenLine } from "lucide-react";
+import { useTranslation } from "@smartout/i18n";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,16 +12,6 @@ import {
 } from "../_hooks/use-department-sessions";
 import { DriftTaskList } from "./DriftTaskList";
 import { SessionSignoffDrawer } from "./SessionSignoffDrawer";
-
-// TODO: move to i18n
-const STRINGS = {
-  department: "Avdeling",
-  status: "Status",
-  tasks: "Oppgaver",
-  deviations: "Avvik",
-  signoff: "Signering",
-  noSessions: "Ingen okter for denne datoen.",
-} as const;
 
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr + "T00:00:00");
@@ -32,19 +23,23 @@ function formatDate(dateStr: string): string {
   });
 }
 
-function statusBadge(status: DepartmentSessionRow["status"]) {
-  const styles: Record<string, { bg: string; label: string }> = {
-    upcoming: { bg: "bg-blue-500/15 text-blue-600", label: "Kommende" },
-    active: { bg: "bg-green-500/15 text-green-600", label: "Aktiv" },
-    pending_signoff: { bg: "bg-yellow-500/15 text-yellow-600", label: "Venter" },
-    closed: { bg: "bg-muted text-muted-foreground", label: "Lukket" },
-    missed: { bg: "bg-red-500/15 text-red-600", label: "Uteblitt" },
+function statusBadge(status: DepartmentSessionRow["status"], t: (key: string) => string) {
+  const styles: Record<string, { bg: string; labelKey: string }> = {
+    upcoming: { bg: "bg-blue-500/15 text-blue-600", labelKey: "hms.session_table.status_upcoming" },
+    active: { bg: "bg-green-500/15 text-green-600", labelKey: "hms.session_table.status_active" },
+    pending_signoff: {
+      bg: "bg-yellow-500/15 text-yellow-600",
+      labelKey: "hms.session_table.status_pending",
+    },
+    closed: { bg: "bg-muted text-muted-foreground", labelKey: "hms.session_table.status_closed" },
+    missed: { bg: "bg-red-500/15 text-red-600", labelKey: "hms.session_table.status_missed" },
   };
   const s = styles[status] ?? styles.upcoming!;
-  return <Badge className={`${s!.bg} text-[10px] hover:${s!.bg}`}>{s!.label}</Badge>;
+  return <Badge className={`${s!.bg} text-[10px] hover:${s!.bg}`}>{t(s!.labelKey)}</Badge>;
 }
 
 export function DriftSessionTable() {
+  const { t } = useTranslation("dashboard");
   const { isDark } = useContext(DashboardContext);
   const [date, setDate] = useState(() => new Date().toISOString().split("T")[0]!);
   const [expandedSession, setExpandedSession] = useState<string | null>(null);
@@ -83,7 +78,7 @@ export function DriftSessionTable() {
       {/* Table */}
       {!sessions || sessions.length === 0 ? (
         <div className="border-border bg-card/50 rounded-xl border-2 border-dashed p-8 text-center">
-          <p className="text-muted-foreground text-sm">{STRINGS.noSessions}</p>
+          <p className="text-muted-foreground text-sm">{t("hms.session_table.no_sessions")}</p>
         </div>
       ) : (
         <div className="overflow-x-auto">
@@ -91,24 +86,23 @@ export function DriftSessionTable() {
             <thead>
               <tr className={`border-b ${isDark ? "border-zinc-800" : "border-border"}`}>
                 <th className="text-muted-foreground px-3 py-2 text-left text-xs font-medium">
-                  {STRINGS.department}
+                  {t("hms.session_table.department")}
                 </th>
                 <th className="text-muted-foreground px-3 py-2 text-center text-xs font-medium">
-                  {STRINGS.status}
+                  {t("hms.session_table.status")}
                 </th>
                 <th className="text-muted-foreground px-3 py-2 text-center text-xs font-medium">
-                  {STRINGS.tasks}
+                  {t("hms.session_table.tasks")}
                 </th>
                 <th className="text-muted-foreground px-3 py-2 text-center text-xs font-medium">
-                  {STRINGS.signoff}
+                  {t("hms.session_table.signoff")}
                 </th>
               </tr>
             </thead>
             <tbody>
               {sessions.map((session) => (
-                <>
+                <Fragment key={session.sessionId}>
                   <tr
-                    key={session.sessionId}
                     onClick={() =>
                       setExpandedSession(
                         expandedSession === session.sessionId ? null : session.sessionId,
@@ -119,7 +113,7 @@ export function DriftSessionTable() {
                     <td className="text-foreground px-3 py-3 font-medium">
                       {session.departmentName}
                     </td>
-                    <td className="px-3 py-3 text-center">{statusBadge(session.status)}</td>
+                    <td className="px-3 py-3 text-center">{statusBadge(session.status, t)}</td>
                     <td className="px-3 py-3 text-center">
                       <div className="flex items-center justify-center gap-2">
                         <div className="bg-muted h-1.5 w-16 overflow-hidden rounded-full">
@@ -147,10 +141,12 @@ export function DriftSessionTable() {
                           }}
                         >
                           <PenLine className="mr-1 h-3 w-3" />
-                          Signer
+                          {t("hms.session_table.sign")}
                         </Button>
                       ) : session.status === "closed" ? (
-                        <span className="text-muted-foreground text-xs">Signert</span>
+                        <span className="text-muted-foreground text-xs">
+                          {t("hms.session_table.signed")}
+                        </span>
                       ) : (
                         <span className="text-muted-foreground text-xs">—</span>
                       )}
@@ -164,7 +160,7 @@ export function DriftSessionTable() {
                       </td>
                     </tr>
                   )}
-                </>
+                </Fragment>
               ))}
             </tbody>
           </table>

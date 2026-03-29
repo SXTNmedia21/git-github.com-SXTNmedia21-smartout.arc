@@ -11,7 +11,16 @@ import { SeasonManagementCard } from "./_components/SeasonManagementCard";
 import { useDayFactors, useHourFactors, useSeasonBudget, useSeasons } from "./_hooks";
 import { PlanningEventsTab } from "./_components/PlanningEventsTab";
 import { PlanningCycleSelector } from "./_components/PlanningCycleSelector";
-import { Target, BarChart3, Clock, LayoutDashboard, CalendarDays } from "lucide-react";
+import {
+  Target,
+  BarChart3,
+  Clock,
+  LayoutDashboard,
+  CalendarDays,
+  Play,
+  Archive,
+  Loader2,
+} from "lucide-react";
 import { isSeasonSetupReady } from "./_definitions/season-planning";
 
 type SeasonTab = "overview" | "budget" | "day-factors" | "hour-factors" | "events";
@@ -29,7 +38,7 @@ export default function SeasonPage() {
   const [activeTab, setActiveTab] = useState<SeasonTab>("overview");
   const [selectedSeasonId, setSelectedSeasonId] = useState<string | null>(null);
 
-  const { seasons } = useSeasons();
+  const { seasons, activateSeason, archiveSeason } = useSeasons();
   const { budget } = useSeasonBudget(selectedSeasonId);
   const { dayFactors } = useDayFactors(budget?.season_budget_id ?? null);
   const { hourFactors } = useHourFactors(budget?.season_budget_id ?? null);
@@ -141,17 +150,51 @@ export default function SeasonPage() {
 
           {budget && (
             <div
-              className={`mb-6 rounded-xl border px-4 py-3 text-sm ${
+              className={`mb-6 flex items-center justify-between gap-4 rounded-xl border px-4 py-3 text-sm ${
                 isDark
                   ? "border-zinc-800 bg-zinc-900/40 text-zinc-400"
                   : "border-zinc-200 bg-zinc-50 text-zinc-600"
               }`}
             >
-              Oppsettstatus: Budsjett {setupStatus.hasBudget ? "OK" : "Mangler"} - Dagfaktorer{" "}
-              {setupStatus.hasDayFactors ? "OK" : "Mangler"} - Timefaktorer{" "}
-              {setupStatus.hasHourFactors ? "OK" : "Mangler"} -{" "}
-              <strong>{isReady ? "Klar for drift" : "Ferdigstill oppsett"}</strong>
-              {isBudgetLocked ? " - Budsjett er låst" : ""}
+              <span>
+                Oppsettstatus: Budsjett {setupStatus.hasBudget ? "OK" : "Mangler"} - Dagfaktorer{" "}
+                {setupStatus.hasDayFactors ? "OK" : "Mangler"} - Timefaktorer{" "}
+                {setupStatus.hasHourFactors ? "OK" : "Mangler"} -{" "}
+                <strong>{isReady ? "Klar for drift" : "Ferdigstill oppsett"}</strong>
+                {isBudgetLocked ? " - Budsjett er låst" : ""}
+              </span>
+
+              <div className="flex items-center gap-2">
+                {selectedSeason?.status === "draft" && (
+                  <button
+                    onClick={() => activateSeason.mutate(selectedSeasonId!)}
+                    disabled={activateSeason.isPending || !isReady}
+                    title={!isReady ? "Fullfør oppsett først" : "Aktiver sesong"}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-emerald-500 disabled:opacity-50"
+                  >
+                    {activateSeason.isPending ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Play className="h-3.5 w-3.5" />
+                    )}
+                    Aktiver sesong
+                  </button>
+                )}
+                {selectedSeason?.status === "active" && (
+                  <button
+                    onClick={() => archiveSeason.mutate(selectedSeasonId!)}
+                    disabled={archiveSeason.isPending}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-600 px-3 py-1.5 text-xs font-bold text-zinc-300 transition-colors hover:bg-zinc-800 disabled:opacity-50"
+                  >
+                    {archiveSeason.isPending ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Archive className="h-3.5 w-3.5" />
+                    )}
+                    Arkiver sesong
+                  </button>
+                )}
+              </div>
             </div>
           )}
 

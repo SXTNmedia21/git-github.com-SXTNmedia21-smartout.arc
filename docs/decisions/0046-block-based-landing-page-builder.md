@@ -1,7 +1,8 @@
 ---
 title: "Block-based Landing Page Builder"
 id: ADR_0046
-status: accepted
+status: superseded
+superseded_by: ADR_0064
 layer: decision
 created: 2026-03-02
 updated: 2026-03-02

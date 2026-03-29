@@ -949,6 +949,20 @@ function TranscriptPane() {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [agent.transcript]);
 
+  // When the agent is speaking, the live "speaking" bubble (below) already shows
+  // the current text with an animated cursor. Filter out the last agent entry
+  // from the transcript to avoid showing the same message twice.
+  const lastAgentIdx = (() => {
+    for (let i = agent.transcript.length - 1; i >= 0; i--) {
+      if (agent.transcript[i]?.role === "agent") return i;
+    }
+    return -1;
+  })();
+  const displayTranscript =
+    agent.isSpeaking && lastAgentIdx >= 0
+      ? agent.transcript.filter((_, i) => i !== lastAgentIdx)
+      : agent.transcript;
+
   return (
     <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
       {agent.transcript.length === 0 ? (
@@ -980,7 +994,7 @@ function TranscriptPane() {
           </p>
         </div>
       ) : (
-        agent.transcript.map((entry, i) => (
+        displayTranscript.map((entry, i) => (
           <div
             key={i}
             className={entry.role === "user" ? "flex justify-end" : "flex justify-start"}

@@ -8,12 +8,14 @@ type ChatMessage = {
   content: string;
 };
 
-export function DocsAgentPanel() {
+export function DocsAgentPanel({ locale = "nb" }: { locale?: "nb" | "en" }) {
+  const isEn = locale === "en";
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       role: "assistant",
-      content:
-        "Hei! Jeg er LISA Docs Agent. Spør meg om setup, vaktplan, onboarding, HACCP eller rapporter.",
+      content: isEn
+        ? "Hi! I'm the LISA Docs Agent. Ask me about setup, shift planning, onboarding, HACCP or reports."
+        : "Hei! Jeg er LISA Docs Agent. Spør meg om setup, vaktplan, onboarding, HACCP eller rapporter.",
     },
   ]);
   const [input, setInput] = useState("");
@@ -79,7 +81,11 @@ export function DocsAgentPanel() {
         </div>
         <div>
           <h3 className="text-foreground font-bold tracking-tight">LISA Docs Agent</h3>
-          <p className="text-muted-foreground text-sm">Spør om hele Smartout-dokumentasjonen</p>
+          <p className="text-muted-foreground text-sm">
+            {isEn
+              ? "Ask about the full SmartOut documentation"
+              : "Spør om hele Smartout-dokumentasjonen"}
+          </p>
         </div>
       </div>
 
@@ -99,7 +105,7 @@ export function DocsAgentPanel() {
         {isLoading && (
           <div className="border-border bg-foreground/5 text-muted-foreground flex items-center gap-2 rounded-2xl border px-4 py-3 text-sm">
             <Loader2 className="h-4 w-4 animate-spin" />
-            Tenker...
+            {isEn ? "Thinking..." : "Tenker..."}
           </div>
         )}
       </div>
@@ -115,7 +121,7 @@ export function DocsAgentPanel() {
                 void handleSend();
               }
             }}
-            placeholder="Spør om Smartout docs..."
+            placeholder={isEn ? "Ask about SmartOut docs..." : "Spør om Smartout docs..."}
             className="border-border/50 bg-background text-foreground placeholder:text-muted-foreground focus:border-brand-orange/40 focus:ring-brand-orange/40 flex-1 rounded-xl border px-3 py-2.5 text-sm focus:ring-1 focus:outline-none"
           />
           <button

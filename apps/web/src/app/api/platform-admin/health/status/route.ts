@@ -33,6 +33,18 @@ type MetricsSnapshot = {
   computed_at: string;
 } | null;
 
+type ShiftLockHealth = {
+  severity: "normal" | "warning" | "critical";
+  total_attempts_24h: number;
+  override_attempts_24h: number;
+  override_rate_pct_24h: number;
+  off_workspaces: number;
+  shadow_workspaces: number;
+  enforce_workspaces: number;
+  active_workspaces: number;
+  evaluated_at: string;
+};
+
 export type HealthStatusResponse = {
   overall: ServiceStatus;
   timestamp: string;
@@ -40,6 +52,7 @@ export type HealthStatusResponse = {
   external: ExternalServiceConfig[];
   integrity: IntegrityCheck[] | null;
   metrics: MetricsSnapshot;
+  shift_lock: ShiftLockHealth | null;
 };
 
 const TIMEOUT_MS = 5000;
@@ -336,6 +349,81 @@ async function fetchMetrics(): Promise<MetricsSnapshot> {
   }
 }
 
+/**
+ * Computes platform-level shift lock health for rollout governance.
+ *
+ * Why: platform-admin needs one place to detect risky override behavior
+ * and emergency `off` mode usage across workspaces.
+ *
+ * @returns Aggregated shift lock health snapshot for alerting.
+ */
+async function fetchShiftLockHealth(): Promise<ShiftLockHealth | null> {
+  try {
+    const admin = createAdminClient();
+    const windowStartIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+    const [activeWorkspacesResult, policyRowsResult, totalAttemptsResult, overrideAttemptsResult] =
+      await Promise.all([
+        admin
+          .from("workspace")
+          .select("workspace_id", { count: "exact", head: true })
+          .eq("is_active", true),
+        admin.from("schedule_shift_lock_policy").select("workspace_id, lock_mode"),
+        admin
+          .from("schedule_shift_lock_audit")
+          .select("id", { count: "exact", head: true })
+          .gte("created_at", windowStartIso),
+        admin
+          .from("schedule_shift_lock_audit")
+          .select("id", { count: "exact", head: true })
+          .gte("created_at", windowStartIso)
+          .eq("is_overridden_by_high_access", true),
+      ]);
+
+    const activeWorkspaces = activeWorkspacesResult.count ?? 0;
+    const policyRows = policyRowsResult.data ?? [];
+    const totalAttempts24h = totalAttemptsResult.count ?? 0;
+    const overrideAttempts24h = overrideAttemptsResult.count ?? 0;
+
+    const offWorkspaces = policyRows.filter((row) => row.lock_mode === "off").length;
+    const shadowWorkspaces = policyRows.filter((row) => row.lock_mode === "shadow").length;
+    const explicitEnforceWorkspaces = policyRows.filter(
+      (row) => row.lock_mode === "enforce",
+    ).length;
+    const implicitEnforceWorkspaces = Math.max(
+      0,
+      activeWorkspaces - offWorkspaces - shadowWorkspaces - explicitEnforceWorkspaces,
+    );
+    const enforceWorkspaces = explicitEnforceWorkspaces + implicitEnforceWorkspaces;
+
+    const overrideRatePct24h =
+      totalAttempts24h === 0
+        ? 0
+        : Number(((overrideAttempts24h / totalAttempts24h) * 100).toFixed(2));
+
+    // Alert thresholds (platform governance defaults)
+    // - critical: any workspace in off mode OR override rate >= 15%
+    // - warning: override rate >= 5%
+    let severity: ShiftLockHealth["severity"] = "normal";
+    if (offWorkspaces > 0 || overrideRatePct24h >= 15) severity = "critical";
+    else if (overrideRatePct24h >= 5) severity = "warning";
+
+    return {
+      severity,
+      total_attempts_24h: totalAttempts24h,
+      override_attempts_24h: overrideAttempts24h,
+      override_rate_pct_24h: overrideRatePct24h,
+      off_workspaces: offWorkspaces,
+      shadow_workspaces: shadowWorkspaces,
+      enforce_workspaces: enforceWorkspaces,
+      active_workspaces: activeWorkspaces,
+      evaluated_at: new Date().toISOString(),
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(req: NextRequest) {
   const adminId = await getSuperAdminId();
   if (!adminId) {
@@ -344,7 +432,7 @@ export async function GET(req: NextRequest) {
 
   const includeIntegrity = req.nextUrl.searchParams.get("include") === "integrity";
 
-  const [services, metrics, integrity] = await Promise.all([
+  const [services, metrics, integrity, shiftLock] = await Promise.all([
     Promise.allSettled([
       checkSupabaseDb(),
       checkContractService(),
@@ -354,6 +442,7 @@ export async function GET(req: NextRequest) {
     ]),
     fetchMetrics(),
     includeIntegrity ? runIntegrityChecks() : Promise.resolve(null),
+    fetchShiftLockHealth(),
   ]);
 
   const serviceResults: ServiceResult[] = services.map((s) =>
@@ -384,6 +473,7 @@ export async function GET(req: NextRequest) {
     external,
     integrity,
     metrics,
+    shift_lock: shiftLock,
   };
 
   return NextResponse.json(response);

@@ -147,6 +147,47 @@
     "subtitle": "Velkommen til fremtiden for hospitality-styring.",
     "dashboard": "G\u00e5 til dashbord"
   },
+  "wizard": {
+    "title": "Bekreft workspace",
+    "description": "Sjekk og juster informasjonen vi har samlet inn."
+  },
+  "brandPanel": {
+    "confirmBusiness_heading": "Sjekk at alt\nstemmer.",
+    "confirmBusiness_sub": "Vi har samlet informasjon fra registre og nettet. Juster det som trengs.",
+    "confirmDepartments_heading": "Dine\navdelinger.",
+    "confirmDepartments_sub": "Velg hvilke avdelinger som er aktive i din virksomhet.",
+    "confirmRoles_heading": "Hvem\nleder?",
+    "confirmRoles_sub": "Definer lederskap og ansvarsroller i virksomheten.",
+    "confirmPositions_heading": "Hvilke\nstillinger?",
+    "confirmPositions_sub": "Velg hvilke stillinger dere opererer med per avdeling.",
+    "confirmLocations_heading": "Hvor holder\ndere til?",
+    "confirmLocations_sub": "Bekreft lokasjoner og legg til soner.",
+    "confirmProcedures_heading": "Rutiner.",
+    "confirmProcedures_sub": "Velg hvilke rutiner som skal aktiveres for teamet.",
+    "summary_heading": "Alt klart.",
+    "summary_sub": "Sjekk oppsummeringen og aktiver workspace."
+  },
+  "confirm": {
+    "business_title": "Bekreft bedriftsinformasjon",
+    "business_description": "Vi har samlet denne informasjonen. Sjekk at alt stemmer.",
+    "departments_title": "Avdelinger",
+    "departments_description": "Velg hvilke avdelinger som er aktive.",
+    "roles_title": "Roller",
+    "roles_description": "Hvilke lederskap- og ansvarsroller har dere?",
+    "positions_title": "Stillinger",
+    "positions_description": "Hvilke stillinger opererer dere med per avdeling?",
+    "locations_title": "Lokasjoner",
+    "locations_description": "Bekreft dine lokasjoner og soner.",
+    "procedures_title": "Rutiner",
+    "procedures_description": "Velg hvilke rutiner som skal aktiveres.",
+    "summary_title": "Oppsummering",
+    "summary_description": "Alt klart. Bekreft for å fullføre oppsettet.",
+    "finalize": "Fullfør oppsett",
+    "positions_add": "Legg til",
+    "positions_custom": "Egendefinert...",
+    "positions_custom_placeholder": "Stillingstittel",
+    "positions_leader": "Leder"
+  },
   "drawers": {
     "editDepartment": "Rediger avdeling",
     "editTeam": "Rediger team",

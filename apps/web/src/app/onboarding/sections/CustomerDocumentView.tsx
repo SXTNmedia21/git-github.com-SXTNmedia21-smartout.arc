@@ -64,8 +64,8 @@ function TierHeader({
   complete: boolean;
 }) {
   const dotStyles = {
-    required: complete ? "bg-emerald-400" : "bg-red-400",
-    recommended: complete ? "bg-blue-400" : "bg-white/20",
+    required: complete ? "bg-success" : "bg-destructive",
+    recommended: complete ? "bg-info" : "bg-white/20",
     optional: "bg-white/10 ring-1 ring-white/20",
   };
 
@@ -220,8 +220,8 @@ export function CustomerDocumentView() {
       <SectionReveal>
         <RevealItem>
           <div className="flex flex-col items-center gap-6 py-12 text-center">
-            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/20">
-              <Check className="h-10 w-10 text-emerald-400" />
+            <div className="bg-success/20 flex h-20 w-20 items-center justify-center rounded-full">
+              <Check className="text-success h-10 w-10" />
             </div>
             <h2 className="font-heading text-4xl leading-tight tracking-tight text-white">
               Kontraktet er sendt!
@@ -379,11 +379,11 @@ export function CustomerDocumentView() {
         {/* Error message */}
         {contractStatus === "error" && contractError && (
           <RevealItem>
-            <div className="mt-6 flex items-start gap-3 rounded-xl border border-red-500/20 bg-red-500/10 p-4">
-              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-400" />
+            <div className="border-destructive/20 bg-destructive/10 mt-6 flex items-start gap-3 rounded-xl border p-4">
+              <AlertTriangle className="text-destructive mt-0.5 h-5 w-5 shrink-0" />
               <div>
-                <p className="text-sm font-medium text-red-300">{contractError}</p>
-                <p className="mt-1 text-xs text-red-400/60">Du kan prove igjen nedenfor.</p>
+                <p className="text-destructive text-sm font-medium">{contractError}</p>
+                <p className="text-destructive/60 mt-1 text-xs">Du kan prove igjen nedenfor.</p>
               </div>
             </div>
           </RevealItem>

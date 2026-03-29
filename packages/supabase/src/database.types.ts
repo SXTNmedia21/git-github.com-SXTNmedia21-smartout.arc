@@ -793,9 +793,13 @@ export type Database = {
           amount: number;
           created_at: string;
           description: string;
+          employee_comment: string | null;
           id: string;
+          reviewed_at: string | null;
+          reviewed_by: string | null;
           salary_code: string | null;
           schedule_shift_id: string;
+          status: Database["public"]["Enums"]["supplement_claim_status"] | null;
           supplement_rule_id: string | null;
           updated_at: string;
           workspace_id: string;
@@ -805,9 +809,13 @@ export type Database = {
           amount: number;
           created_at?: string;
           description: string;
+          employee_comment?: string | null;
           id?: string;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
           salary_code?: string | null;
           schedule_shift_id: string;
+          status?: Database["public"]["Enums"]["supplement_claim_status"] | null;
           supplement_rule_id?: string | null;
           updated_at?: string;
           workspace_id: string;
@@ -817,9 +825,13 @@ export type Database = {
           amount?: number;
           created_at?: string;
           description?: string;
+          employee_comment?: string | null;
           id?: string;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
           salary_code?: string | null;
           schedule_shift_id?: string;
+          status?: Database["public"]["Enums"]["supplement_claim_status"] | null;
           supplement_rule_id?: string | null;
           updated_at?: string;
           workspace_id?: string;
@@ -2351,6 +2363,8 @@ export type Database = {
           device_type: string | null;
           id: string;
           is_ai: boolean;
+          is_camera_on: boolean;
+          is_screen_sharing: boolean;
           joined_at: string;
           left_at: string | null;
           mic_enabled: boolean;
@@ -2365,6 +2379,8 @@ export type Database = {
           device_type?: string | null;
           id?: string;
           is_ai?: boolean;
+          is_camera_on?: boolean;
+          is_screen_sharing?: boolean;
           joined_at?: string;
           left_at?: string | null;
           mic_enabled?: boolean;
@@ -2379,6 +2395,8 @@ export type Database = {
           device_type?: string | null;
           id?: string;
           is_ai?: boolean;
+          is_camera_on?: boolean;
+          is_screen_sharing?: boolean;
           joined_at?: string;
           left_at?: string | null;
           mic_enabled?: boolean;
@@ -3549,6 +3567,7 @@ export type Database = {
           created_at: string;
           cuisine_types: string[] | null;
           employee_count: string | null;
+          field_sources: Json | null;
           id: string;
           menu_description: string | null;
           our_concept: string | null;
@@ -3564,6 +3583,7 @@ export type Database = {
           created_at?: string;
           cuisine_types?: string[] | null;
           employee_count?: string | null;
+          field_sources?: Json | null;
           id?: string;
           menu_description?: string | null;
           our_concept?: string | null;
@@ -3579,6 +3599,7 @@ export type Database = {
           created_at?: string;
           cuisine_types?: string[] | null;
           employee_count?: string | null;
+          field_sources?: Json | null;
           id?: string;
           menu_description?: string | null;
           our_concept?: string | null;
@@ -4393,6 +4414,10 @@ export type Database = {
           approval_notes: string | null;
           approved_at: string | null;
           approved_by: string | null;
+          cash_counted: number | null;
+          cash_difference: number | null;
+          cash_expected: number | null;
+          closed_by: string | null;
           created_at: string;
           department_id: string;
           labor_percentage: number | null;
@@ -4421,6 +4446,10 @@ export type Database = {
           approval_notes?: string | null;
           approved_at?: string | null;
           approved_by?: string | null;
+          cash_counted?: number | null;
+          cash_difference?: number | null;
+          cash_expected?: number | null;
+          closed_by?: string | null;
           created_at?: string;
           department_id: string;
           labor_percentage?: number | null;
@@ -4449,6 +4478,10 @@ export type Database = {
           approval_notes?: string | null;
           approved_at?: string | null;
           approved_by?: string | null;
+          cash_counted?: number | null;
+          cash_difference?: number | null;
+          cash_expected?: number | null;
+          closed_by?: string | null;
           created_at?: string;
           department_id?: string;
           labor_percentage?: number | null;
@@ -4477,6 +4510,13 @@ export type Database = {
           {
             foreignKeyName: "daily_reconciliation_approved_by_fkey";
             columns: ["approved_by"];
+            isOneToOne: false;
+            referencedRelation: "profile";
+            referencedColumns: ["profile_id"];
+          },
+          {
+            foreignKeyName: "daily_reconciliation_closed_by_fkey";
+            columns: ["closed_by"];
             isOneToOne: false;
             referencedRelation: "profile";
             referencedColumns: ["profile_id"];
@@ -4897,6 +4937,72 @@ export type Database = {
           },
           {
             foreignKeyName: "department_session_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspace";
+            referencedColumns: ["workspace_id"];
+          },
+        ];
+      };
+      department_shift_type_config: {
+        Row: {
+          applicable_day_types: string[];
+          created_at: string;
+          default_break_minutes: number;
+          default_end_time: string;
+          default_start_time: string;
+          department_id: string;
+          id: string;
+          is_active: boolean;
+          label: string;
+          shift_type_id: string;
+          slot_count: number;
+          sort_order: number;
+          updated_at: string;
+          workspace_id: string;
+        };
+        Insert: {
+          applicable_day_types?: string[];
+          created_at?: string;
+          default_break_minutes?: number;
+          default_end_time?: string;
+          default_start_time?: string;
+          department_id: string;
+          id?: string;
+          is_active?: boolean;
+          label: string;
+          shift_type_id: string;
+          slot_count?: number;
+          sort_order?: number;
+          updated_at?: string;
+          workspace_id: string;
+        };
+        Update: {
+          applicable_day_types?: string[];
+          created_at?: string;
+          default_break_minutes?: number;
+          default_end_time?: string;
+          default_start_time?: string;
+          department_id?: string;
+          id?: string;
+          is_active?: boolean;
+          label?: string;
+          shift_type_id?: string;
+          slot_count?: number;
+          sort_order?: number;
+          updated_at?: string;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "department_shift_type_config_department_id_fkey";
+            columns: ["department_id"];
+            isOneToOne: false;
+            referencedRelation: "department";
+            referencedColumns: ["department_id"];
+          },
+          {
+            foreignKeyName: "department_shift_type_config_workspace_id_fkey";
             columns: ["workspace_id"];
             isOneToOne: false;
             referencedRelation: "workspace";
@@ -6339,6 +6445,56 @@ export type Database = {
             foreignKeyName: "engine_trigger_workspace_id_fkey";
             columns: ["workspace_id"];
             isOneToOne: false;
+            referencedRelation: "workspace";
+            referencedColumns: ["workspace_id"];
+          },
+        ];
+      };
+      financial_close_config: {
+        Row: {
+          approval_deadline_hours: number;
+          approval_required: boolean;
+          cash_tolerance_type: string;
+          cash_tolerance_value: number;
+          config_id: string;
+          created_at: string;
+          require_cash_count: boolean;
+          tolerance_type: string;
+          tolerance_value: number;
+          updated_at: string;
+          workspace_id: string;
+        };
+        Insert: {
+          approval_deadline_hours?: number;
+          approval_required?: boolean;
+          cash_tolerance_type?: string;
+          cash_tolerance_value?: number;
+          config_id?: string;
+          created_at?: string;
+          require_cash_count?: boolean;
+          tolerance_type?: string;
+          tolerance_value?: number;
+          updated_at?: string;
+          workspace_id: string;
+        };
+        Update: {
+          approval_deadline_hours?: number;
+          approval_required?: boolean;
+          cash_tolerance_type?: string;
+          cash_tolerance_value?: number;
+          config_id?: string;
+          created_at?: string;
+          require_cash_count?: boolean;
+          tolerance_type?: string;
+          tolerance_value?: number;
+          updated_at?: string;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "financial_close_config_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: true;
             referencedRelation: "workspace";
             referencedColumns: ["workspace_id"];
           },
@@ -7952,6 +8108,53 @@ export type Database = {
           },
         ];
       };
+      legal_function: {
+        Row: {
+          created_at: string;
+          description: string | null;
+          legal_basis: string | null;
+          legal_function_id: string;
+          name: string;
+          profession_id: string | null;
+          slug: string;
+          sort_order: number;
+          training_hours: number | null;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          description?: string | null;
+          legal_basis?: string | null;
+          legal_function_id?: string;
+          name: string;
+          profession_id?: string | null;
+          slug: string;
+          sort_order?: number;
+          training_hours?: number | null;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          description?: string | null;
+          legal_basis?: string | null;
+          legal_function_id?: string;
+          name?: string;
+          profession_id?: string | null;
+          slug?: string;
+          sort_order?: number;
+          training_hours?: number | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "legal_function_profession_id_fkey";
+            columns: ["profession_id"];
+            isOneToOne: false;
+            referencedRelation: "profession";
+            referencedColumns: ["profession_id"];
+          },
+        ];
+      };
       location: {
         Row: {
           address: string | null;
@@ -8071,6 +8274,69 @@ export type Database = {
         };
         Relationships: [];
       };
+      notification: {
+        Row: {
+          action_url: string | null;
+          body: string | null;
+          created_at: string;
+          group_key: string | null;
+          icon_type: string;
+          id: string;
+          is_read: boolean;
+          metadata: Json | null;
+          read_at: string | null;
+          recipient_id: string;
+          title: string;
+          updated_at: string;
+          workspace_id: string;
+        };
+        Insert: {
+          action_url?: string | null;
+          body?: string | null;
+          created_at?: string;
+          group_key?: string | null;
+          icon_type?: string;
+          id?: string;
+          is_read?: boolean;
+          metadata?: Json | null;
+          read_at?: string | null;
+          recipient_id: string;
+          title: string;
+          updated_at?: string;
+          workspace_id: string;
+        };
+        Update: {
+          action_url?: string | null;
+          body?: string | null;
+          created_at?: string;
+          group_key?: string | null;
+          icon_type?: string;
+          id?: string;
+          is_read?: boolean;
+          metadata?: Json | null;
+          read_at?: string | null;
+          recipient_id?: string;
+          title?: string;
+          updated_at?: string;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "notification_recipient_id_fkey";
+            columns: ["recipient_id"];
+            isOneToOne: false;
+            referencedRelation: "profile";
+            referencedColumns: ["profile_id"];
+          },
+          {
+            foreignKeyName: "notification_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspace";
+            referencedColumns: ["workspace_id"];
+          },
+        ];
+      };
       notification_outbox: {
         Row: {
           action_url: string | null;
@@ -8084,9 +8350,11 @@ export type Database = {
           priority: number;
           processed_at: string | null;
           recipient_id: string;
+          retry_count: number;
           scheduled_for: string | null;
           status: Database["public"]["Enums"]["notification_status"] | null;
           title: string;
+          updated_at: string;
           workspace_id: string;
         };
         Insert: {
@@ -8101,9 +8369,11 @@ export type Database = {
           priority?: number;
           processed_at?: string | null;
           recipient_id: string;
+          retry_count?: number;
           scheduled_for?: string | null;
           status?: Database["public"]["Enums"]["notification_status"] | null;
           title: string;
+          updated_at?: string;
           workspace_id: string;
         };
         Update: {
@@ -8118,9 +8388,11 @@ export type Database = {
           priority?: number;
           processed_at?: string | null;
           recipient_id?: string;
+          retry_count?: number;
           scheduled_for?: string | null;
           status?: Database["public"]["Enums"]["notification_status"] | null;
           title?: string;
+          updated_at?: string;
           workspace_id?: string;
         };
         Relationships: [
@@ -8142,6 +8414,7 @@ export type Database = {
       };
       notification_preference: {
         Row: {
+          browser_enabled: boolean | null;
           community_enabled: boolean | null;
           created_at: string;
           email_enabled: boolean | null;
@@ -8156,6 +8429,7 @@ export type Database = {
           work_enabled: boolean | null;
         };
         Insert: {
+          browser_enabled?: boolean | null;
           community_enabled?: boolean | null;
           created_at?: string;
           email_enabled?: boolean | null;
@@ -8170,6 +8444,7 @@ export type Database = {
           work_enabled?: boolean | null;
         };
         Update: {
+          browser_enabled?: boolean | null;
           community_enabled?: boolean | null;
           created_at?: string;
           email_enabled?: boolean | null;
@@ -9436,6 +9711,7 @@ export type Database = {
           minimum_role: Database["public"]["Enums"]["profile_role"] | null;
           name: string;
           position_id: string;
+          profession_id: string | null;
           season_id: string | null;
           skill_requirements: Json | null;
           slug: string;
@@ -9453,6 +9729,7 @@ export type Database = {
           minimum_role?: Database["public"]["Enums"]["profile_role"] | null;
           name: string;
           position_id?: string;
+          profession_id?: string | null;
           season_id?: string | null;
           skill_requirements?: Json | null;
           slug: string;
@@ -9470,6 +9747,7 @@ export type Database = {
           minimum_role?: Database["public"]["Enums"]["profile_role"] | null;
           name?: string;
           position_id?: string;
+          profession_id?: string | null;
           season_id?: string | null;
           skill_requirements?: Json | null;
           slug?: string;
@@ -9491,6 +9769,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "workspace";
             referencedColumns: ["workspace_id"];
+          },
+          {
+            foreignKeyName: "position_profession_id_fkey";
+            columns: ["profession_id"];
+            isOneToOne: false;
+            referencedRelation: "profession";
+            referencedColumns: ["profession_id"];
           },
           {
             foreignKeyName: "position_season_id_fkey";
@@ -9755,10 +10040,139 @@ export type Database = {
           },
         ];
       };
+      profession: {
+        Row: {
+          created_at: string;
+          description: string | null;
+          is_universal: boolean;
+          name: string;
+          profession_id: string;
+          slug: string;
+          sort_order: number;
+          updated_at: string;
+          workspace_id: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          description?: string | null;
+          is_universal?: boolean;
+          name: string;
+          profession_id?: string;
+          slug: string;
+          sort_order?: number;
+          updated_at?: string;
+          workspace_id?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          description?: string | null;
+          is_universal?: boolean;
+          name?: string;
+          profession_id?: string;
+          slug?: string;
+          sort_order?: number;
+          updated_at?: string;
+          workspace_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "profession_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspace";
+            referencedColumns: ["workspace_id"];
+          },
+        ];
+      };
+      profession_industry: {
+        Row: {
+          created_at: string;
+          nace_code: string;
+          profession_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          nace_code: string;
+          profession_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          nace_code?: string;
+          profession_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "profession_industry_profession_id_fkey";
+            columns: ["profession_id"];
+            isOneToOne: false;
+            referencedRelation: "profession";
+            referencedColumns: ["profession_id"];
+          },
+        ];
+      };
+      profession_training: {
+        Row: {
+          created_at: string;
+          is_required: boolean;
+          profession_id: string;
+          profession_training_id: string;
+          protocol_id: string;
+          updated_at: string;
+          weight: number;
+          workspace_id: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          is_required?: boolean;
+          profession_id: string;
+          profession_training_id?: string;
+          protocol_id: string;
+          updated_at?: string;
+          weight?: number;
+          workspace_id?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          is_required?: boolean;
+          profession_id?: string;
+          profession_training_id?: string;
+          protocol_id?: string;
+          updated_at?: string;
+          weight?: number;
+          workspace_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "profession_training_profession_id_fkey";
+            columns: ["profession_id"];
+            isOneToOne: false;
+            referencedRelation: "profession";
+            referencedColumns: ["profession_id"];
+          },
+          {
+            foreignKeyName: "profession_training_protocol_id_fkey";
+            columns: ["protocol_id"];
+            isOneToOne: false;
+            referencedRelation: "protocol";
+            referencedColumns: ["protocol_id"];
+          },
+          {
+            foreignKeyName: "profession_training_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspace";
+            referencedColumns: ["workspace_id"];
+          },
+        ];
+      };
       profile: {
         Row: {
           address_line_1: string | null;
           address_line_2: string | null;
+          authority_level: Database["public"]["Enums"]["authority_level"] | null;
           avatar_url: string | null;
           bank_account: string | null;
           city: string | null;
@@ -9795,6 +10209,7 @@ export type Database = {
         Insert: {
           address_line_1?: string | null;
           address_line_2?: string | null;
+          authority_level?: Database["public"]["Enums"]["authority_level"] | null;
           avatar_url?: string | null;
           bank_account?: string | null;
           city?: string | null;
@@ -9831,6 +10246,7 @@ export type Database = {
         Update: {
           address_line_1?: string | null;
           address_line_2?: string | null;
+          authority_level?: Database["public"]["Enums"]["authority_level"] | null;
           avatar_url?: string | null;
           bank_account?: string | null;
           city?: string | null;
@@ -9899,6 +10315,126 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "workspace";
             referencedColumns: ["workspace_id"];
+          },
+        ];
+      };
+      profile_access: {
+        Row: {
+          created_at: string;
+          granted_by: string;
+          profile_id: string;
+          scope: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          granted_by?: string;
+          profile_id: string;
+          scope: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          granted_by?: string;
+          profile_id?: string;
+          scope?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "profile_access_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profile";
+            referencedColumns: ["profile_id"];
+          },
+        ];
+      };
+      profile_legal_function: {
+        Row: {
+          assigned_at: string;
+          assigned_by: string | null;
+          created_at: string;
+          legal_function_id: string;
+          profile_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          assigned_at?: string;
+          assigned_by?: string | null;
+          created_at?: string;
+          legal_function_id: string;
+          profile_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          assigned_at?: string;
+          assigned_by?: string | null;
+          created_at?: string;
+          legal_function_id?: string;
+          profile_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "profile_legal_function_assigned_by_fkey";
+            columns: ["assigned_by"];
+            isOneToOne: false;
+            referencedRelation: "profile";
+            referencedColumns: ["profile_id"];
+          },
+          {
+            foreignKeyName: "profile_legal_function_legal_function_id_fkey";
+            columns: ["legal_function_id"];
+            isOneToOne: false;
+            referencedRelation: "legal_function";
+            referencedColumns: ["legal_function_id"];
+          },
+          {
+            foreignKeyName: "profile_legal_function_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profile";
+            referencedColumns: ["profile_id"];
+          },
+        ];
+      };
+      profile_position: {
+        Row: {
+          created_at: string;
+          is_primary: boolean;
+          position_id: string;
+          profile_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          is_primary?: boolean;
+          position_id: string;
+          profile_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          is_primary?: boolean;
+          position_id?: string;
+          profile_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "profile_position_position_id_fkey";
+            columns: ["position_id"];
+            isOneToOne: false;
+            referencedRelation: "position";
+            referencedColumns: ["position_id"];
+          },
+          {
+            foreignKeyName: "profile_position_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profile";
+            referencedColumns: ["profile_id"];
           },
         ];
       };
@@ -10679,6 +11215,8 @@ export type Database = {
       };
       schedule_shift: {
         Row: {
+          adhoc_approved_at: string | null;
+          adhoc_approved_by: string | null;
           approved_at: string | null;
           approved_by: string | null;
           breaks: number;
@@ -10692,6 +11230,7 @@ export type Database = {
           employee_id: string | null;
           end_time: string;
           indicator: string;
+          is_adhoc: boolean | null;
           is_published: boolean;
           location_id: string | null;
           notes: string | null;
@@ -10703,12 +11242,15 @@ export type Database = {
           start_time: string;
           status: Database["public"]["Enums"]["shift_status"];
           team_id: string | null;
+          template_shift_id: string | null;
           updated_at: string;
           work_hours: number;
           workspace_id: string;
           zone: string | null;
         };
         Insert: {
+          adhoc_approved_at?: string | null;
+          adhoc_approved_by?: string | null;
           approved_at?: string | null;
           approved_by?: string | null;
           breaks?: number;
@@ -10722,6 +11264,7 @@ export type Database = {
           employee_id?: string | null;
           end_time: string;
           indicator?: string;
+          is_adhoc?: boolean | null;
           is_published?: boolean;
           location_id?: string | null;
           notes?: string | null;
@@ -10733,12 +11276,15 @@ export type Database = {
           start_time: string;
           status?: Database["public"]["Enums"]["shift_status"];
           team_id?: string | null;
+          template_shift_id?: string | null;
           updated_at?: string;
           work_hours?: number;
           workspace_id: string;
           zone?: string | null;
         };
         Update: {
+          adhoc_approved_at?: string | null;
+          adhoc_approved_by?: string | null;
           approved_at?: string | null;
           approved_by?: string | null;
           breaks?: number;
@@ -10752,6 +11298,7 @@ export type Database = {
           employee_id?: string | null;
           end_time?: string;
           indicator?: string;
+          is_adhoc?: boolean | null;
           is_published?: boolean;
           location_id?: string | null;
           notes?: string | null;
@@ -10763,12 +11310,20 @@ export type Database = {
           start_time?: string;
           status?: Database["public"]["Enums"]["shift_status"];
           team_id?: string | null;
+          template_shift_id?: string | null;
           updated_at?: string;
           work_hours?: number;
           workspace_id?: string;
           zone?: string | null;
         };
         Relationships: [
+          {
+            foreignKeyName: "schedule_shift_adhoc_approved_by_fkey";
+            columns: ["adhoc_approved_by"];
+            isOneToOne: false;
+            referencedRelation: "profile";
+            referencedColumns: ["profile_id"];
+          },
           {
             foreignKeyName: "schedule_shift_approved_by_fkey";
             columns: ["approved_by"];
@@ -10819,9 +11374,104 @@ export type Database = {
             referencedColumns: ["team_id"];
           },
           {
+            foreignKeyName: "schedule_shift_template_shift_id_fkey";
+            columns: ["template_shift_id"];
+            isOneToOne: false;
+            referencedRelation: "schedule_template_shift";
+            referencedColumns: ["schedule_template_shift_id"];
+          },
+          {
             foreignKeyName: "schedule_shift_workspace_id_fkey";
             columns: ["workspace_id"];
             isOneToOne: false;
+            referencedRelation: "workspace";
+            referencedColumns: ["workspace_id"];
+          },
+        ];
+      };
+      schedule_shift_lock_audit: {
+        Row: {
+          actor_user_id: string | null;
+          created_at: string;
+          id: string;
+          is_enforced: boolean;
+          is_overridden_by_high_access: boolean;
+          lock_mode: string;
+          new_row: Json | null;
+          old_row: Json;
+          operation: string;
+          reason_code: string;
+          schedule_shift_id: string;
+          shift_date: string;
+          start_time: string;
+          workspace_id: string;
+        };
+        Insert: {
+          actor_user_id?: string | null;
+          created_at?: string;
+          id?: string;
+          is_enforced: boolean;
+          is_overridden_by_high_access?: boolean;
+          lock_mode: string;
+          new_row?: Json | null;
+          old_row: Json;
+          operation: string;
+          reason_code: string;
+          schedule_shift_id: string;
+          shift_date: string;
+          start_time: string;
+          workspace_id: string;
+        };
+        Update: {
+          actor_user_id?: string | null;
+          created_at?: string;
+          id?: string;
+          is_enforced?: boolean;
+          is_overridden_by_high_access?: boolean;
+          lock_mode?: string;
+          new_row?: Json | null;
+          old_row?: Json;
+          operation?: string;
+          reason_code?: string;
+          schedule_shift_id?: string;
+          shift_date?: string;
+          start_time?: string;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "schedule_shift_lock_audit_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspace";
+            referencedColumns: ["workspace_id"];
+          },
+        ];
+      };
+      schedule_shift_lock_policy: {
+        Row: {
+          created_at: string;
+          lock_mode: string;
+          updated_at: string;
+          workspace_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          lock_mode?: string;
+          updated_at?: string;
+          workspace_id: string;
+        };
+        Update: {
+          created_at?: string;
+          lock_mode?: string;
+          updated_at?: string;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "schedule_shift_lock_policy_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: true;
             referencedRelation: "workspace";
             referencedColumns: ["workspace_id"];
           },
@@ -10904,6 +11554,7 @@ export type Database = {
           role: string;
           schedule_template_shift_id: string;
           shift_function: Database["public"]["Enums"]["shift_function"] | null;
+          slot_count: number;
           slot_order: number | null;
           start_anchor_type: Database["public"]["Enums"]["anchor_type"] | null;
           start_offset_min: number | null;
@@ -10929,6 +11580,7 @@ export type Database = {
           role: string;
           schedule_template_shift_id?: string;
           shift_function?: Database["public"]["Enums"]["shift_function"] | null;
+          slot_count?: number;
           slot_order?: number | null;
           start_anchor_type?: Database["public"]["Enums"]["anchor_type"] | null;
           start_offset_min?: number | null;
@@ -10954,6 +11606,7 @@ export type Database = {
           role?: string;
           schedule_template_shift_id?: string;
           shift_function?: Database["public"]["Enums"]["shift_function"] | null;
+          slot_count?: number;
           slot_order?: number | null;
           start_anchor_type?: Database["public"]["Enums"]["anchor_type"] | null;
           start_offset_min?: number | null;
@@ -11478,11 +12131,14 @@ export type Database = {
       };
       settlement_image: {
         Row: {
+          captured_by: string | null;
           image_id: string;
+          image_type: Database["public"]["Enums"]["close_image_type"] | null;
           ocr_confidence: number | null;
           ocr_parsed: Json | null;
           ocr_processed_at: string | null;
           ocr_raw_text: string | null;
+          parse_status: string | null;
           reconciliation_id: string;
           source_type: Database["public"]["Enums"]["settlement_source_type"];
           storage_path: string;
@@ -11492,11 +12148,14 @@ export type Database = {
           workspace_id: string;
         };
         Insert: {
+          captured_by?: string | null;
           image_id?: string;
+          image_type?: Database["public"]["Enums"]["close_image_type"] | null;
           ocr_confidence?: number | null;
           ocr_parsed?: Json | null;
           ocr_processed_at?: string | null;
           ocr_raw_text?: string | null;
+          parse_status?: string | null;
           reconciliation_id: string;
           source_type: Database["public"]["Enums"]["settlement_source_type"];
           storage_path: string;
@@ -11506,11 +12165,14 @@ export type Database = {
           workspace_id: string;
         };
         Update: {
+          captured_by?: string | null;
           image_id?: string;
+          image_type?: Database["public"]["Enums"]["close_image_type"] | null;
           ocr_confidence?: number | null;
           ocr_parsed?: Json | null;
           ocr_processed_at?: string | null;
           ocr_raw_text?: string | null;
+          parse_status?: string | null;
           reconciliation_id?: string;
           source_type?: Database["public"]["Enums"]["settlement_source_type"];
           storage_path?: string;
@@ -11520,6 +12182,13 @@ export type Database = {
           workspace_id?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "settlement_image_captured_by_fkey";
+            columns: ["captured_by"];
+            isOneToOne: false;
+            referencedRelation: "profile";
+            referencedColumns: ["profile_id"];
+          },
           {
             foreignKeyName: "settlement_image_reconciliation_id_fkey";
             columns: ["reconciliation_id"];
@@ -11693,6 +12362,76 @@ export type Database = {
           },
         ];
       };
+      shift_clock_config: {
+        Row: {
+          adhoc_requires_approval: boolean;
+          adhoc_shifts_enabled: boolean;
+          created_at: string;
+          department_id: string | null;
+          gps_radius_meters: number;
+          gps_reference_lat: number | null;
+          gps_reference_lng: number | null;
+          gps_required: boolean;
+          id: string;
+          punch_window_minutes: number;
+          team_id: string | null;
+          updated_at: string;
+          workspace_id: string;
+        };
+        Insert: {
+          adhoc_requires_approval?: boolean;
+          adhoc_shifts_enabled?: boolean;
+          created_at?: string;
+          department_id?: string | null;
+          gps_radius_meters?: number;
+          gps_reference_lat?: number | null;
+          gps_reference_lng?: number | null;
+          gps_required?: boolean;
+          id?: string;
+          punch_window_minutes?: number;
+          team_id?: string | null;
+          updated_at?: string;
+          workspace_id: string;
+        };
+        Update: {
+          adhoc_requires_approval?: boolean;
+          adhoc_shifts_enabled?: boolean;
+          created_at?: string;
+          department_id?: string | null;
+          gps_radius_meters?: number;
+          gps_reference_lat?: number | null;
+          gps_reference_lng?: number | null;
+          gps_required?: boolean;
+          id?: string;
+          punch_window_minutes?: number;
+          team_id?: string | null;
+          updated_at?: string;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "shift_clock_config_department_id_fkey";
+            columns: ["department_id"];
+            isOneToOne: false;
+            referencedRelation: "department";
+            referencedColumns: ["department_id"];
+          },
+          {
+            foreignKeyName: "shift_clock_config_team_id_fkey";
+            columns: ["team_id"];
+            isOneToOne: false;
+            referencedRelation: "team";
+            referencedColumns: ["team_id"];
+          },
+          {
+            foreignKeyName: "shift_clock_config_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspace";
+            referencedColumns: ["workspace_id"];
+          },
+        ];
+      };
       shift_cost_snapshot: {
         Row: {
           base_cost: number;
@@ -11765,6 +12504,58 @@ export type Database = {
           },
           {
             foreignKeyName: "shift_cost_snapshot_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspace";
+            referencedColumns: ["workspace_id"];
+          },
+        ];
+      };
+      shift_note: {
+        Row: {
+          content: string;
+          created_at: string;
+          id: string;
+          profile_id: string;
+          shift_id: string;
+          updated_at: string;
+          workspace_id: string;
+        };
+        Insert: {
+          content: string;
+          created_at?: string;
+          id?: string;
+          profile_id: string;
+          shift_id: string;
+          updated_at?: string;
+          workspace_id: string;
+        };
+        Update: {
+          content?: string;
+          created_at?: string;
+          id?: string;
+          profile_id?: string;
+          shift_id?: string;
+          updated_at?: string;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "shift_note_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profile";
+            referencedColumns: ["profile_id"];
+          },
+          {
+            foreignKeyName: "shift_note_shift_id_fkey";
+            columns: ["shift_id"];
+            isOneToOne: false;
+            referencedRelation: "schedule_shift";
+            referencedColumns: ["schedule_shift_id"];
+          },
+          {
+            foreignKeyName: "shift_note_workspace_id_fkey";
             columns: ["workspace_id"];
             isOneToOne: false;
             referencedRelation: "workspace";
@@ -11948,6 +12739,7 @@ export type Database = {
           effective_until: string | null;
           id: string;
           metadata: Json | null;
+          profession_id: string | null;
           provenance: Json;
           rate_type: string;
           seeded_at: string | null;
@@ -11965,6 +12757,7 @@ export type Database = {
           effective_until?: string | null;
           id?: string;
           metadata?: Json | null;
+          profession_id?: string | null;
           provenance?: Json;
           rate_type: string;
           seeded_at?: string | null;
@@ -11982,6 +12775,7 @@ export type Database = {
           effective_until?: string | null;
           id?: string;
           metadata?: Json | null;
+          profession_id?: string | null;
           provenance?: Json;
           rate_type?: string;
           seeded_at?: string | null;
@@ -11992,7 +12786,15 @@ export type Database = {
           updated_at?: string;
           workspace_id?: string | null;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "tariff_rate_table_profession_id_fkey";
+            columns: ["profession_id"];
+            isOneToOne: false;
+            referencedRelation: "profession";
+            referencedColumns: ["profession_id"];
+          },
+        ];
       };
       team: {
         Row: {
@@ -12110,6 +12912,136 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "team";
             referencedColumns: ["team_id"];
+          },
+        ];
+      };
+      telegram_callback_action: {
+        Row: {
+          action_payload: Json;
+          action_type: string;
+          created_at: string;
+          id: string;
+          resolved: boolean;
+          resolved_at: string | null;
+          session_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          action_payload: Json;
+          action_type: string;
+          created_at?: string;
+          id?: string;
+          resolved?: boolean;
+          resolved_at?: string | null;
+          session_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          action_payload?: Json;
+          action_type?: string;
+          created_at?: string;
+          id?: string;
+          resolved?: boolean;
+          resolved_at?: string | null;
+          session_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "telegram_callback_action_session_id_fkey";
+            columns: ["session_id"];
+            isOneToOne: false;
+            referencedRelation: "engine_sessions";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      telegram_chat_bridge: {
+        Row: {
+          channel_id: string;
+          closed_at: string | null;
+          created_at: string;
+          id: string;
+          session_id: string;
+          status: string;
+          telegram_chat_id: number;
+          updated_at: string;
+        };
+        Insert: {
+          channel_id: string;
+          closed_at?: string | null;
+          created_at?: string;
+          id?: string;
+          session_id: string;
+          status?: string;
+          telegram_chat_id: number;
+          updated_at?: string;
+        };
+        Update: {
+          channel_id?: string;
+          closed_at?: string | null;
+          created_at?: string;
+          id?: string;
+          session_id?: string;
+          status?: string;
+          telegram_chat_id?: number;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "telegram_chat_bridge_channel_id_fkey";
+            columns: ["channel_id"];
+            isOneToOne: false;
+            referencedRelation: "channel";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "telegram_chat_bridge_session_id_fkey";
+            columns: ["session_id"];
+            isOneToOne: false;
+            referencedRelation: "engine_sessions";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      telegram_poll_action: {
+        Row: {
+          created_at: string;
+          id: string;
+          options: Json;
+          resolved: boolean;
+          resolved_at: string | null;
+          session_id: string;
+          telegram_poll_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          options: Json;
+          resolved?: boolean;
+          resolved_at?: string | null;
+          session_id: string;
+          telegram_poll_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          options?: Json;
+          resolved?: boolean;
+          resolved_at?: string | null;
+          session_id?: string;
+          telegram_poll_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "telegram_poll_action_session_id_fkey";
+            columns: ["session_id"];
+            isOneToOne: false;
+            referencedRelation: "engine_sessions";
+            referencedColumns: ["id"];
           },
         ];
       };
@@ -12366,6 +13298,7 @@ export type Database = {
           override_note: string | null;
           phone: string | null;
           postal_code: string | null;
+          setup_guide_completed: boolean;
           short_description: string | null;
           slogan: string | null;
           slug: string;
@@ -12418,6 +13351,7 @@ export type Database = {
           override_note?: string | null;
           phone?: string | null;
           postal_code?: string | null;
+          setup_guide_completed?: boolean;
           short_description?: string | null;
           slogan?: string | null;
           slug: string;
@@ -12470,6 +13404,7 @@ export type Database = {
           override_note?: string | null;
           phone?: string | null;
           postal_code?: string | null;
+          setup_guide_completed?: boolean;
           short_description?: string | null;
           slogan?: string | null;
           slug?: string;
@@ -13146,6 +14081,10 @@ export type Database = {
         Args: { p_workspace_ids: string[] };
         Returns: undefined;
       };
+      can_override_schedule_shift_lock: {
+        Args: { p_workspace_id: string };
+        Returns: boolean;
+      };
       cleanup_expired_api_keys: { Args: never; Returns: number };
       compute_platform_metrics: { Args: never; Returns: undefined };
       count_dangling_company_members: { Args: never; Returns: number };
@@ -13195,6 +14134,34 @@ export type Database = {
         Returns: undefined;
       };
       expire_stale_invitations: { Args: never; Returns: number };
+      fetch_pending_outbox: {
+        Args: { p_batch_size?: number };
+        Returns: {
+          action_url: string | null;
+          allowed_channels: Database["public"]["Enums"]["notification_channel"][] | null;
+          body: string;
+          created_at: string;
+          error_log: string | null;
+          id: number;
+          metadata: Json | null;
+          mode: Database["public"]["Enums"]["notification_mode"];
+          priority: number;
+          processed_at: string | null;
+          recipient_id: string;
+          retry_count: number;
+          scheduled_for: string | null;
+          status: Database["public"]["Enums"]["notification_status"] | null;
+          title: string;
+          updated_at: string;
+          workspace_id: string;
+        }[];
+        SetofOptions: {
+          from: "*";
+          to: "notification_outbox";
+          isOneToOne: false;
+          isSetofReturn: true;
+        };
+      };
       finalize_onboarding_workspace: {
         Args: { p_data: Json; p_workspace_id: string };
         Returns: string;
@@ -13245,10 +14212,15 @@ export type Database = {
           name: string;
           other_member_avatar: string;
           other_member_name: string;
+          other_member_profile_id: string;
           unread_count: number;
           video_policy: Database["public"]["Enums"]["channel_video_policy"];
           workspace_id: string;
         }[];
+      };
+      get_schedule_shift_lock_mode: {
+        Args: { p_workspace_id: string };
+        Returns: string;
       };
       get_secret: { Args: { secret_name: string }; Returns: string };
       get_unread_counts: {
@@ -13259,12 +14231,37 @@ export type Database = {
         }[];
       };
       get_workspace_ids_for_user: { Args: { uid: string }; Returns: string[] };
+      get_workspace_readiness: {
+        Args: { p_workspace_id: string };
+        Returns: {
+          completed: number;
+          profile_id: string;
+          total: number;
+        }[];
+      };
+      handle_schedule_shift_lock_violation: {
+        Args: {
+          p_new_row: Json;
+          p_old_row: Json;
+          p_operation: string;
+          p_reason_code: string;
+          p_schedule_shift_id: string;
+          p_shift_date: string;
+          p_start_time: string;
+          p_workspace_id: string;
+        };
+        Returns: undefined;
+      };
       increment_communication_counter: {
         Args: { p_communication_id: string; p_field: string };
         Returns: undefined;
       };
       is_admin_in_workspace: {
         Args: { uid: string; wid: string };
+        Returns: boolean;
+      };
+      is_participant_in_conversation: {
+        Args: { conv_id: string };
         Returns: boolean;
       };
       log_api_key_usage: {
@@ -13321,6 +14318,39 @@ export type Database = {
         };
         Returns: string;
       };
+      record_schedule_shift_lock_audit:
+        | {
+            Args: {
+              p_is_enforced: boolean;
+              p_is_overridden_by_high_access: boolean;
+              p_lock_mode: string;
+              p_new_row: Json;
+              p_old_row: Json;
+              p_operation: string;
+              p_reason_code: string;
+              p_schedule_shift_id: string;
+              p_shift_date: string;
+              p_start_time: string;
+              p_workspace_id: string;
+            };
+            Returns: undefined;
+          }
+        | {
+            Args: {
+              p_is_enforced: boolean;
+              p_lock_mode: string;
+              p_new_row: Json;
+              p_old_row: Json;
+              p_operation: string;
+              p_reason_code: string;
+              p_schedule_shift_id: string;
+              p_shift_date: string;
+              p_start_time: string;
+              p_workspace_id: string;
+            };
+            Returns: undefined;
+          };
+      resolve_cascade_tasks: { Args: { p_workspace_id: string }; Returns: Json };
       rollback_audit_entry: { Args: { p_audit_log_id: string }; Returns: Json };
       rotate_api_key: {
         Args: {
@@ -13332,6 +14362,14 @@ export type Database = {
           p_workspace_id: string;
         };
         Returns: string;
+      };
+      schedule_shift_is_temporally_locked: {
+        Args: {
+          p_shift_date: string;
+          p_start_time: string;
+          p_workspace_id: string;
+        };
+        Returns: boolean;
       };
       search_dependency_graph: {
         Args: { p_limit?: number; p_query: string; p_workspace_id: string };
@@ -13367,6 +14405,14 @@ export type Database = {
         Args: { p_workspace_id: string };
         Returns: string;
       };
+      template_restaurant_departments: {
+        Args: { p_workspace_id: string };
+        Returns: undefined;
+      };
+      template_restaurant_locations: {
+        Args: { p_workspace_id: string };
+        Returns: undefined;
+      };
       trigger_due_emma_tasks: { Args: never; Returns: number };
       upsert_secret: {
         Args: { p_description?: string; p_name: string; p_secret: string };
@@ -13381,6 +14427,7 @@ export type Database = {
       asset_type: "equipment" | "safety" | "storage" | "station" | "other";
       audit_operation: "INSERT" | "UPDATE" | "DELETE";
       auth_provider: "supabase" | "google" | "microsoft";
+      authority_level: "duty" | "deputy" | "leader";
       booking_status: "confirmed" | "pending" | "cancelled";
       budget_period_type: "monthly" | "weekly" | "daily" | "hourly";
       budget_status: "draft" | "active" | "locked";
@@ -13419,6 +14466,13 @@ export type Database = {
       channel_recording_policy: "off" | "optional" | "auto";
       channel_video_policy: "disabled" | "optional" | "default_on" | "required";
       chat_conversation_type: "group" | "dm" | "ai";
+      close_image_type:
+        | "isettle_settlement"
+        | "pos_closing_screen"
+        | "z_report"
+        | "cash_drawer"
+        | "receipt_bundle"
+        | "other";
       comm_channel_type: "department" | "team" | "session" | "custom" | "direct" | "news" | "skill";
       communication_channel: "email" | "sms" | "push" | "in_app";
       communication_status: "pending" | "sent" | "delivered" | "failed" | "opened" | "clicked";
@@ -13520,7 +14574,7 @@ export type Database = {
       landing_variant_status: "draft" | "published" | "archived";
       location_type: "main" | "outdoor" | "kitchen" | "event" | "storage" | "other";
       message_visibility: "all_day" | "until_16" | "permanent";
-      notification_channel: "push" | "sms" | "email" | "voice";
+      notification_channel: "push" | "sms" | "email" | "voice" | "in_app";
       notification_mode: "training" | "work" | "community";
       notification_status: "pending" | "processing" | "delivered" | "failed" | "suppressed";
       planning_cycle_status: "draft" | "active" | "archived";
@@ -13573,6 +14627,7 @@ export type Database = {
       shift_function: "opening" | "closing" | "supporting" | "rush_hour" | "sub_supply";
       shift_status: "created" | "assigned" | "published" | "active" | "completed" | "unpublished";
       snapshot_basis: "planned" | "actual";
+      supplement_claim_status: "pending" | "approved" | "rejected";
       sync_direction: "inbound" | "outbound" | "bidirectional";
       sync_status: "pending" | "synced" | "failed" | "conflict";
       tariff_source: "riksavtalen" | "allmenngjoring" | "internal";
@@ -13603,12 +14658,15 @@ export type Database = {
     Tables: {
       time_entry: {
         Row: {
+          break_locations: Json | null;
           breaks: Json | null;
           created_at: string;
+          notes: string | null;
           profile_id: string;
           punch_in: string;
           punch_in_location: Json | null;
           punch_out: string | null;
+          punch_out_location: Json | null;
           shift_id: string;
           status: Database["timesheet"]["Enums"]["time_entry_status"];
           time_entry_id: string;
@@ -13616,12 +14674,15 @@ export type Database = {
           workspace_id: string;
         };
         Insert: {
+          break_locations?: Json | null;
           breaks?: Json | null;
           created_at?: string;
+          notes?: string | null;
           profile_id: string;
           punch_in: string;
           punch_in_location?: Json | null;
           punch_out?: string | null;
+          punch_out_location?: Json | null;
           shift_id: string;
           status?: Database["timesheet"]["Enums"]["time_entry_status"];
           time_entry_id?: string;
@@ -13629,12 +14690,15 @@ export type Database = {
           workspace_id: string;
         };
         Update: {
+          break_locations?: Json | null;
           breaks?: Json | null;
           created_at?: string;
+          notes?: string | null;
           profile_id?: string;
           punch_in?: string;
           punch_in_location?: Json | null;
           punch_out?: string | null;
+          punch_out_location?: Json | null;
           shift_id?: string;
           status?: Database["timesheet"]["Enums"]["time_entry_status"];
           time_entry_id?: string;
@@ -14624,6 +15688,7 @@ export const Constants = {
       asset_type: ["equipment", "safety", "storage", "station", "other"],
       audit_operation: ["INSERT", "UPDATE", "DELETE"],
       auth_provider: ["supabase", "google", "microsoft"],
+      authority_level: ["duty", "deputy", "leader"],
       booking_status: ["confirmed", "pending", "cancelled"],
       budget_period_type: ["monthly", "weekly", "daily", "hourly"],
       budget_status: ["draft", "active", "locked"],
@@ -14657,6 +15722,14 @@ export const Constants = {
       channel_recording_policy: ["off", "optional", "auto"],
       channel_video_policy: ["disabled", "optional", "default_on", "required"],
       chat_conversation_type: ["group", "dm", "ai"],
+      close_image_type: [
+        "isettle_settlement",
+        "pos_closing_screen",
+        "z_report",
+        "cash_drawer",
+        "receipt_bundle",
+        "other",
+      ],
       comm_channel_type: ["department", "team", "session", "custom", "direct", "news", "skill"],
       communication_channel: ["email", "sms", "push", "in_app"],
       communication_status: ["pending", "sent", "delivered", "failed", "opened", "clicked"],
@@ -14763,7 +15836,7 @@ export const Constants = {
       landing_variant_status: ["draft", "published", "archived"],
       location_type: ["main", "outdoor", "kitchen", "event", "storage", "other"],
       message_visibility: ["all_day", "until_16", "permanent"],
-      notification_channel: ["push", "sms", "email", "voice"],
+      notification_channel: ["push", "sms", "email", "voice", "in_app"],
       notification_mode: ["training", "work", "community"],
       notification_status: ["pending", "processing", "delivered", "failed", "suppressed"],
       planning_cycle_status: ["draft", "active", "archived"],
@@ -14820,6 +15893,7 @@ export const Constants = {
       shift_function: ["opening", "closing", "supporting", "rush_hour", "sub_supply"],
       shift_status: ["created", "assigned", "published", "active", "completed", "unpublished"],
       snapshot_basis: ["planned", "actual"],
+      supplement_claim_status: ["pending", "approved", "rejected"],
       sync_direction: ["inbound", "outbound", "bidirectional"],
       sync_status: ["pending", "synced", "failed", "conflict"],
       tariff_source: ["riksavtalen", "allmenngjoring", "internal"],

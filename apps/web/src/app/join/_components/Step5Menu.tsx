@@ -3,8 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -12,8 +10,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, ArrowRight, Sparkles } from "lucide-react";
-import { useSignupWizard } from "../_hooks/useSignupWizard";
+import { Sparkles } from "lucide-react";
+import type { WizardStepProps } from "@smartout/ui";
+import type { JoinState } from "../types";
+import { DevAutoFill } from "./DevAutoFill";
 
 const RESTAURANT_TYPES = [
   "Restaurant",
@@ -90,7 +90,7 @@ function mapRestaurantType(clues: string[], googleCategory?: string): string {
     const cat = googleCategory.toLowerCase();
     if (cat.includes("fine dining")) return "Fine dining";
     if (cat.includes("fast food")) return "Fast food";
-    if (cat.includes("kaffebar") || cat.includes("café") || cat.includes("cafe")) return "Kafe";
+    if (cat.includes("kaffebar") || cat.includes("cafe") || cat.includes("cafe")) return "Kafe";
     if (cat.includes("bakeri") || cat.includes("bakery")) return "Bakeri";
     if (cat.includes("catering")) return "Catering";
     // "Restaurant" is the Google default for most dining places, including those with bars
@@ -102,7 +102,7 @@ function mapRestaurantType(clues: string[], googleCategory?: string): string {
   if (joined.includes("fine dining")) return "Fine dining";
   if (joined.includes("fast food") || joined.includes("take away")) return "Fast food";
   if (joined.includes("bakeri")) return "Bakeri";
-  if (joined.includes("kafé")) return "Kafe";
+  if (joined.includes("kafe")) return "Kafe";
   // "restaurant" clue takes priority over "bar" — a restaurant with a bar is still a restaurant
   if (joined.includes("restaurant")) return "Restaurant";
   if (joined.includes("bistro") || joined.includes("casual dining")) return "Restaurant";
@@ -111,8 +111,7 @@ function mapRestaurantType(clues: string[], googleCategory?: string): string {
   return "";
 }
 
-export function Step5Menu() {
-  const { state, updateStep, nextStep, prevStep } = useSignupWizard();
+export function Step5Menu({ state, updateState, t }: WizardStepProps<JoinState>) {
   const intel = state.intelligence as Record<string, unknown> | null;
 
   // Initialize empty to avoid hydration mismatch — localStorage values
@@ -128,10 +127,10 @@ export function Step5Menu() {
   useEffect(() => {
     if (hasRestored.current) return;
     hasRestored.current = true;
-    if (state.step5.restaurantType) setRestaurantType(state.step5.restaurantType);
-    if (state.step5.cuisineTypes?.length) setCuisineTypes(state.step5.cuisineTypes);
-    if (state.step5.priceCategory) setPriceCategory(state.step5.priceCategory);
-    if (state.step5.menuDescription) setMenuDescription(state.step5.menuDescription);
+    if (state.menu.restaurantType) setRestaurantType(state.menu.restaurantType);
+    if (state.menu.cuisineTypes?.length) setCuisineTypes(state.menu.cuisineTypes);
+    if (state.menu.priceCategory) setPriceCategory(state.menu.priceCategory);
+    if (state.menu.menuDescription) setMenuDescription(state.menu.menuDescription);
   }, []);
 
   // Pre-populate from intelligence data (once)
@@ -203,42 +202,48 @@ export function Step5Menu() {
     );
   };
 
-  const handleNext = () => {
-    updateStep("step5", {
-      restaurantType: restaurantType || undefined,
-      cuisineTypes: cuisineTypes.length > 0 ? cuisineTypes : undefined,
-      priceCategory: priceCategory || undefined,
-      menuDescription: menuDescription || undefined,
+  // Sync local fields to wizard state — skip until restore is done to avoid wiping devFill data
+  useEffect(() => {
+    if (!hasRestored.current) return;
+    updateState({
+      menu: {
+        restaurantType: restaurantType || undefined,
+        cuisineTypes: cuisineTypes.length > 0 ? cuisineTypes : undefined,
+        priceCategory: priceCategory || undefined,
+        menuDescription: menuDescription || undefined,
+      },
     });
-    nextStep();
-  };
+  }, [restaurantType, cuisineTypes, priceCategory, menuDescription]);
 
-  const handleSkip = () => {
-    updateStep("step5", {});
-    nextStep();
+  const devFill = () => {
+    setRestaurantType("Restaurant");
+    setCuisineTypes(["Norsk/Nordisk", "Sjomat", "Internasjonal"]);
+    setPriceCategory("moderate");
+    setMenuDescription(
+      "Sesongbasert nordisk meny med fokus pa lokale ravarer. Sjomatretter, kjottgryter og vegetariske alternativer. Fast lunsjmeny og a la carte pa kvelden.",
+    );
   };
 
   return (
     <div className="mx-auto w-full max-w-md space-y-6">
+      <DevAutoFill onFill={devFill} label="Fyll steg 5" />
       <div>
-        <h2 className="text-foreground text-2xl font-bold">Meny</h2>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Fortell oss om maten og drikken dere serverer.
-        </p>
+        <h2 className="text-foreground text-2xl font-bold">{t("step5.heading")}</h2>
+        <p className="text-muted-foreground mt-1 text-sm">{t("step5.description")}</p>
         {prePopulated && (
-          <p className="mt-2 flex items-center gap-1.5 text-xs text-orange-500">
+          <p className="text-brand-orange mt-2 flex items-center gap-1.5 text-xs">
             <Sparkles className="h-3 w-3" />
-            Foreslått basert på det vi fant — endre fritt
+            {t("step5.aiSuggested")}
           </p>
         )}
       </div>
 
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="restaurantType">Restauranttype</Label>
+          <Label htmlFor="restaurantType">{t("step5.restaurantType")}</Label>
           <Select value={restaurantType} onValueChange={setRestaurantType}>
             <SelectTrigger id="restaurantType">
-              <SelectValue placeholder="Velg type..." />
+              <SelectValue placeholder={t("step5.restaurantType_placeholder")} />
             </SelectTrigger>
             <SelectContent>
               {RESTAURANT_TYPES.map((type) => (
@@ -251,28 +256,33 @@ export function Step5Menu() {
         </div>
 
         <div className="space-y-2">
-          <Label>Kjokkentype</Label>
-          <div className="grid grid-cols-2 gap-2">
-            {CUISINE_TYPES.map((cuisine) => (
-              <label
-                key={cuisine}
-                className="border-border hover:bg-accent flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors"
-              >
-                <Checkbox
-                  checked={cuisineTypes.includes(cuisine)}
-                  onCheckedChange={() => toggleCuisine(cuisine)}
-                />
-                {cuisine}
-              </label>
-            ))}
+          <Label>{t("step5.cuisineType")}</Label>
+          <div className="flex flex-wrap gap-1.5">
+            {CUISINE_TYPES.map((cuisine) => {
+              const isSelected = cuisineTypes.includes(cuisine);
+              return (
+                <button
+                  key={cuisine}
+                  type="button"
+                  onClick={() => toggleCuisine(cuisine)}
+                  className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                    isSelected
+                      ? "border-brand-orange bg-brand-orange/10 text-brand-orange"
+                      : "border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+                  }`}
+                >
+                  {cuisine}
+                </button>
+              );
+            })}
           </div>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="priceCategory">Priskategori</Label>
+          <Label htmlFor="priceCategory">{t("step5.priceCategory")}</Label>
           <Select value={priceCategory} onValueChange={setPriceCategory}>
             <SelectTrigger id="priceCategory">
-              <SelectValue placeholder="Velg priskategori..." />
+              <SelectValue placeholder={t("step5.priceCategory_placeholder")} />
             </SelectTrigger>
             <SelectContent>
               {PRICE_CATEGORIES.map((cat) => (
@@ -286,40 +296,17 @@ export function Step5Menu() {
 
         <div className="space-y-2">
           <Label htmlFor="menuDescription">
-            Menybeskrivelse <span className="text-muted-foreground">(valgfritt)</span>
+            {t("step5.menuDescription")}{" "}
+            <span className="text-muted-foreground">{t("step5.menuDescription_suffix")}</span>
           </Label>
           <Textarea
             id="menuDescription"
             rows={3}
-            placeholder="Beskriv menyen deres kort..."
+            placeholder={t("step5.menuDescription_placeholder")}
             value={menuDescription}
             onChange={(e) => setMenuDescription(e.target.value)}
           />
         </div>
-      </div>
-
-      <div className="flex flex-col gap-3">
-        <div className="flex gap-3">
-          <Button type="button" variant="outline" onClick={prevStep} className="flex-1">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Tilbake
-          </Button>
-          <Button
-            type="button"
-            onClick={handleNext}
-            className="flex-1 bg-orange-500 text-white hover:bg-orange-600"
-          >
-            Neste
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-        </div>
-        <button
-          type="button"
-          onClick={handleSkip}
-          className="text-muted-foreground hover:text-foreground text-center text-sm underline transition-colors"
-        >
-          Hopp over
-        </button>
       </div>
     </div>
   );

@@ -24,7 +24,7 @@ import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
 import { Camera, X, Sparkles, ChevronDown } from "lucide-react-native";
 import { Button } from "@/components/ui";
-import { createStyles, useTheme } from "@/theme";
+import { createStyles, useTheme, withOpacity } from "@/theme";
 import { supabase } from "@/lib/supabase";
 import { AiWritingPanel } from "./AiWritingPanel";
 import type { ContentTaskItem } from "./ContentTaskList";
@@ -189,7 +189,7 @@ export function ContentCreator({
                       style={styles.removeImage}
                       hitSlop={4}
                     >
-                      <X size={12} color="#ffffff" strokeWidth={2.5} />
+                      <X size={12} color={theme.colors.primaryForeground} strokeWidth={2.5} />
                     </Pressable>
                   </View>
                 ))}
@@ -227,7 +227,7 @@ export function ContentCreator({
                 >
                   <Sparkles
                     size={14}
-                    color={showAi ? "#a855f7" : theme.colors.mutedForeground}
+                    color={showAi ? theme.colors.brandPurple : theme.colors.mutedForeground}
                     strokeWidth={2}
                   />
                   <Text style={[styles.aiButtonLabel, showAi && styles.aiButtonLabelActive]}>
@@ -416,8 +416,8 @@ const useStyles = createStyles((theme) => ({
     backgroundColor: "transparent",
   },
   aiButtonActive: {
-    borderColor: "#a855f7",
-    backgroundColor: theme.isDark ? "rgba(168,85,247,0.1)" : "rgba(168,85,247,0.06)",
+    borderColor: theme.colors.brandPurple,
+    backgroundColor: withOpacity(theme.colors.brandPurple, theme.isDark ? 0.1 : 0.06),
   },
   aiButtonLabel: {
     ...theme.typography.caption,
@@ -425,7 +425,7 @@ const useStyles = createStyles((theme) => ({
     fontWeight: theme.fontWeights.medium,
   },
   aiButtonLabelActive: {
-    color: "#a855f7",
+    color: theme.colors.brandPurple,
   },
   textInput: {
     ...theme.typography.body,

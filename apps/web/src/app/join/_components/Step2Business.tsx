@@ -3,32 +3,26 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, Loader2, Sparkles } from "lucide-react";
-import { useSignupWizard } from "../_hooks/useSignupWizard";
+import { Loader2, Sparkles, ChevronDown } from "lucide-react";
+import type { WizardStepProps } from "@smartout/ui";
+import type { JoinState } from "../types";
+import { useJoinScraping } from "../_context/JoinScrapingProvider";
 import { useTypewriterSequence } from "../_hooks/useTypewriter";
-import type { ScrapeStatus } from "../_hooks/useScrapedData";
-import { step2Schema } from "../_lib/validation";
+import { WizardLoadingOverlay } from "./WizardLoadingOverlay";
+import { DevAutoFill } from "./DevAutoFill";
 
-interface Step2BusinessProps {
-  scrapeStatus?: ScrapeStatus;
-}
+const INITIAL_CANDIDATES = 3;
 
-export function Step2Business({ scrapeStatus }: Step2BusinessProps) {
-  const wizard = useSignupWizard();
-  const { state, updateStep, nextStep, prevStep } = wizard;
-  const brregData = wizard.brregData ?? null;
-  const brregCandidates = wizard.brregCandidates ?? [];
-  const selectBrregCandidate = wizard.selectBrregCandidate ?? (() => {});
+export function Step2Business({ state, updateState, attempted, t }: WizardStepProps<JoinState>) {
+  const { scrapeStatus, brregData, brregCandidates, brregLoading, selectBrregCandidate } =
+    useJoinScraping();
 
-  const [firstName, setFirstName] = useState(state.step2.firstName ?? "");
-  const [lastName, setLastName] = useState(state.step2.lastName ?? "");
-  const [street, setStreet] = useState(state.step2.street ?? "");
-  const [postalCode, setPostalCode] = useState(state.step2.postalCode ?? "");
-  const [city, setCity] = useState(state.step2.city ?? "");
-  const [orgNumber, setOrgNumber] = useState(state.step2.orgNumber ?? "");
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [street, setStreet] = useState(state.business.street ?? "");
+  const [postalCode, setPostalCode] = useState(state.business.postalCode ?? "");
+  const [city, setCity] = useState(state.business.city ?? "");
+  const [orgNumber, setOrgNumber] = useState(state.business.orgNumber ?? "");
   const [userEdited, setUserEdited] = useState<Record<string, boolean>>({});
+  const [showAllCandidates, setShowAllCandidates] = useState(false);
 
   // Build typewriter fields from BRREG data
   const hasAppliedBrreg = useRef(false);
@@ -80,33 +74,18 @@ export function Step2Business({ scrapeStatus }: Step2BusinessProps) {
     setUserEdited({});
   };
 
-  const handleNext = () => {
-    const result = step2Schema.safeParse({
-      firstName,
-      lastName,
-      street,
-      postalCode,
-      city,
-      orgNumber,
+  // Sync local fields to wizard state
+  useEffect(() => {
+    updateState({
+      business: {
+        ...state.business,
+        street,
+        postalCode,
+        city,
+        orgNumber,
+      },
     });
-
-    if (!result.success) {
-      const fieldErrors: Record<string, string> = {};
-      for (const issue of result.error.issues) {
-        const field = issue.path[0] as string;
-        fieldErrors[field] = issue.message;
-      }
-      setErrors(fieldErrors);
-      return;
-    }
-
-    updateStep("step2", result.data);
-    nextStep();
-  };
-
-  const clearError = (field: string) => {
-    setErrors((prev) => ({ ...prev, [field]: "" }));
-  };
+  }, [street, postalCode, city, orgNumber]);
 
   const markEdited = (field: string) => {
     setUserEdited((prev) => ({ ...prev, [field]: true }));
@@ -118,21 +97,48 @@ export function Step2Business({ scrapeStatus }: Step2BusinessProps) {
       ? typewriterFields[activeIndex]!.key
       : null;
 
+  // Show loading overlay when BRREG lookup is in progress
+  if (brregLoading && !brregData) {
+    return (
+      <WizardLoadingOverlay
+        messages={[
+          "Soker i Bronnoysundregistrene...",
+          "Finner bedriftsinformasjon...",
+          "Henter adresse og organisasjonsnummer...",
+        ]}
+      />
+    );
+  }
+
+  // BRREG candidates — show max 3 with "vis mer"
+  const visibleCandidates = showAllCandidates
+    ? brregCandidates
+    : brregCandidates.slice(0, INITIAL_CANDIDATES);
+  const hasMoreCandidates = brregCandidates.length > INITIAL_CANDIDATES;
+
+  const devFill = () => {
+    setStreet("Langbrygga 5");
+    setPostalCode("3724");
+    setCity("Skien");
+    setOrgNumber("911 722 267");
+  };
+
   return (
     <div className="mx-auto w-full max-w-md space-y-6">
+      <DevAutoFill onFill={devFill} label="Fyll steg 2" />
       <div>
-        <h2 className="text-foreground text-2xl font-bold">Bedriftsinformasjon</h2>
-        <p className="text-muted-foreground mt-1 text-sm">Fortell oss om deg og bedriften.</p>
+        <h2 className="text-foreground text-2xl font-bold">{t("step2.heading")}</h2>
+        <p className="text-muted-foreground mt-1 text-sm">{t("step2.description")}</p>
         {scrapeStatus === "scraping" && (
           <p className="text-muted-foreground mt-2 flex items-center gap-1.5 text-xs">
             <Loader2 className="h-3 w-3 animate-spin" />
-            Henter data fra nettsiden din...
+            {t("step2.scraping")}
           </p>
         )}
         {allDone && (
-          <p className="mt-2 flex items-center gap-1.5 text-xs text-orange-500">
+          <p className="text-brand-orange mt-2 flex items-center gap-1.5 text-xs">
             <Sparkles className="h-3 w-3" />
-            Fylt ut fra Brønnøysundregistrene
+            {t("step2.brregDone")}
           </p>
         )}
       </div>
@@ -140,18 +146,16 @@ export function Step2Business({ scrapeStatus }: Step2BusinessProps) {
       {/* BRREG candidates selector — show if multiple matches */}
       {brregCandidates.length > 1 && (
         <div className="space-y-2">
-          <Label className="text-muted-foreground text-xs">
-            Vi fant flere bedrifter — velg riktig:
-          </Label>
+          <Label className="text-muted-foreground text-xs">{t("step2.multipleCandidates")}</Label>
           <div className="space-y-1">
-            {brregCandidates.map((c) => (
+            {visibleCandidates.map((c) => (
               <button
                 key={c.orgNumber}
                 type="button"
                 onClick={() => handleSelectCandidate(c)}
                 className={`w-full rounded-lg border px-3 py-2 text-left text-xs transition-colors ${
                   brregData?.orgNumber === c.orgNumber
-                    ? "border-orange-500 bg-orange-500/10"
+                    ? "border-brand-orange bg-brand-orange/10"
                     : "border-border hover:bg-accent"
                 }`}
               >
@@ -162,148 +166,103 @@ export function Step2Business({ scrapeStatus }: Step2BusinessProps) {
               </button>
             ))}
           </div>
+          {hasMoreCandidates && !showAllCandidates && (
+            <button
+              type="button"
+              onClick={() => setShowAllCandidates(true)}
+              className="text-muted-foreground hover:text-foreground flex items-center gap-1 text-xs transition-colors"
+            >
+              <ChevronDown className="h-3 w-3" />
+              {t("step2.showMore", { count: brregCandidates.length - INITIAL_CANDIDATES })}
+            </button>
+          )}
         </div>
       )}
 
       <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="firstName">Fornavn</Label>
-            <Input
-              id="firstName"
-              type="text"
-              value={firstName}
-              onChange={(e) => {
-                setFirstName(e.target.value);
-                clearError("firstName");
-              }}
-              aria-invalid={!!errors.firstName}
-            />
-            {errors.firstName && <p className="text-destructive text-xs">{errors.firstName}</p>}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="lastName">Etternavn</Label>
-            <Input
-              id="lastName"
-              type="text"
-              value={lastName}
-              onChange={(e) => {
-                setLastName(e.target.value);
-                clearError("lastName");
-              }}
-              aria-invalid={!!errors.lastName}
-            />
-            {errors.lastName && <p className="text-destructive text-xs">{errors.lastName}</p>}
-          </div>
-        </div>
-
         <TypewriterField
-          label="Gateadresse"
+          label={t("step2.street")}
           typing={typingField === "street"}
           autoFilled={allDone && !userEdited.street && !!brregData?.street}
         >
           <Input
             id="street"
             type="text"
-            placeholder="Storgata 1"
+            placeholder={t("step2.street_placeholder")}
             value={street}
             onChange={(e) => {
               setStreet(e.target.value);
-              clearError("street");
               markEdited("street");
             }}
-            aria-invalid={!!errors.street}
+            aria-invalid={attempted && street.length < 2}
           />
-          {errors.street && <p className="text-destructive text-xs">{errors.street}</p>}
         </TypewriterField>
 
         <div className="grid grid-cols-2 gap-4">
           <TypewriterField
-            label="Postnummer"
+            label={t("step2.postalCode")}
             typing={typingField === "postalCode"}
             autoFilled={allDone && !userEdited.postalCode && !!brregData?.postalCode}
           >
             <Input
               id="postalCode"
               type="text"
-              placeholder="0000"
+              placeholder={t("step2.postalCode_placeholder")}
               maxLength={4}
               value={postalCode}
               onChange={(e) => {
                 const val = e.target.value.replace(/\D/g, "").slice(0, 4);
                 setPostalCode(val);
-                clearError("postalCode");
                 markEdited("postalCode");
               }}
-              aria-invalid={!!errors.postalCode}
+              aria-invalid={attempted && !/^\d{4}$/.test(postalCode)}
             />
-            {errors.postalCode && <p className="text-destructive text-xs">{errors.postalCode}</p>}
           </TypewriterField>
 
           <TypewriterField
-            label="Poststed"
+            label={t("step2.postCity")}
             typing={typingField === "city"}
             autoFilled={allDone && !userEdited.city && !!brregData?.city}
           >
             <Input
               id="city"
               type="text"
-              placeholder="Oslo"
+              placeholder={t("step2.postCity_placeholder")}
               value={city}
               onChange={(e) => {
                 setCity(e.target.value);
-                clearError("city");
                 markEdited("city");
               }}
-              aria-invalid={!!errors.city}
+              aria-invalid={attempted && city.length < 2}
             />
-            {errors.city && <p className="text-destructive text-xs">{errors.city}</p>}
           </TypewriterField>
         </div>
 
         <TypewriterField
-          label="Org.nummer"
+          label={t("step2.orgNumber")}
           typing={typingField === "orgNumber"}
           autoFilled={allDone && !userEdited.orgNumber && !!brregData?.orgNumber}
         >
           <Input
             id="orgNumber"
             type="text"
-            placeholder="123 456 789"
+            placeholder={t("step2.orgNumber_placeholder")}
             maxLength={11}
             value={orgNumber}
             onChange={(e) => {
               const val = e.target.value.replace(/[^\d\s]/g, "");
               setOrgNumber(val);
-              clearError("orgNumber");
               markEdited("orgNumber");
             }}
-            aria-invalid={!!errors.orgNumber}
+            aria-invalid={attempted && orgNumber.replace(/\s/g, "").length < 9}
           />
-          {errors.orgNumber && <p className="text-destructive text-xs">{errors.orgNumber}</p>}
         </TypewriterField>
-      </div>
-
-      <div className="flex gap-3">
-        <Button type="button" variant="outline" onClick={prevStep} className="flex-1">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Tilbake
-        </Button>
-        <Button
-          type="button"
-          onClick={handleNext}
-          className="flex-1 bg-orange-500 text-white hover:bg-orange-600"
-        >
-          Neste
-          <ArrowRight className="ml-2 h-4 w-4" />
-        </Button>
       </div>
     </div>
   );
 }
 
-/* ── Typewriter field wrapper ── */
+/* -- Typewriter field wrapper -- */
 
 function TypewriterField({
   label,
@@ -321,12 +280,12 @@ function TypewriterField({
       <div className="flex items-center gap-1.5">
         <Label>{label}</Label>
         {typing && (
-          <span className="flex animate-pulse items-center gap-0.5 text-[10px] text-orange-500">
+          <span className="text-brand-orange flex animate-pulse items-center gap-0.5 text-[10px]">
             <Sparkles className="h-2.5 w-2.5" />
           </span>
         )}
         {autoFilled && !typing && (
-          <span className="flex items-center gap-0.5 text-[10px] text-orange-500/60">
+          <span className="text-brand-orange/60 flex items-center gap-0.5 text-[10px]">
             <Sparkles className="h-2.5 w-2.5" />
             BRREG
           </span>

@@ -7,9 +7,9 @@ import type { BlockProps, CtaSectionContent } from "../../lib/block-schemas";
 import { getPaddingClasses, getLayoutClasses } from "./block-helpers";
 
 const bgVariants: Record<CtaSectionContent["background"], string> = {
-  dark: "bg-zinc-900/50",
+  dark: "bg-muted",
   accent: "bg-[hsl(var(--accent)/0.1)]",
-  gradient: "bg-gradient-to-b from-transparent via-white/[0.03] to-transparent",
+  gradient: "bg-gradient-to-b from-transparent via-foreground/[0.03] to-transparent",
 };
 
 export default function CtaSectionBlock({ content, settings }: BlockProps<CtaSectionContent>) {
@@ -24,12 +24,12 @@ export default function CtaSectionBlock({ content, settings }: BlockProps<CtaSec
         transition={{ duration: 0.6 }}
         className={`mx-auto ${getLayoutClasses(settings.layout)} text-center`}
       >
-        <h2 className="mb-6 text-4xl font-bold tracking-tight text-white lg:text-5xl">
+        <h2 className="text-foreground mb-6 text-4xl font-bold tracking-tight lg:text-5xl">
           {content.heading}
         </h2>
 
         {content.subheading && (
-          <p className="mx-auto mb-10 max-w-2xl text-lg leading-relaxed text-zinc-400">
+          <p className="text-muted-foreground mx-auto mb-10 max-w-2xl text-lg leading-relaxed">
             {content.subheading}
           </p>
         )}
@@ -42,7 +42,7 @@ export default function CtaSectionBlock({ content, settings }: BlockProps<CtaSec
                   <Link
                     key={button.label}
                     href={button.href}
-                    className="flex items-center justify-center gap-2 rounded-full border border-white/20 px-8 py-4 font-bold text-white transition-all hover:border-white/40 hover:bg-white/5"
+                    className="border-border text-foreground hover:border-foreground/40 hover:bg-foreground/5 flex items-center justify-center gap-2 rounded-full border px-8 py-4 font-bold transition-all"
                   >
                     {button.label}
                   </Link>
@@ -53,7 +53,7 @@ export default function CtaSectionBlock({ content, settings }: BlockProps<CtaSec
                   <Link
                     key={button.label}
                     href={button.href}
-                    className="flex items-center justify-center gap-2 px-8 py-4 font-bold text-zinc-400 transition-colors hover:text-white"
+                    className="text-muted-foreground hover:text-foreground flex items-center justify-center gap-2 px-8 py-4 font-bold transition-colors"
                   >
                     {button.label}
                     <ArrowRight className="h-4 w-4" />
@@ -64,7 +64,7 @@ export default function CtaSectionBlock({ content, settings }: BlockProps<CtaSec
                 <Link
                   key={button.label}
                   href={button.href}
-                  className="flex items-center justify-center gap-2 rounded-full bg-white px-10 py-4 text-lg font-bold text-zinc-950 transition-all hover:bg-zinc-200"
+                  className="bg-foreground text-background hover:bg-foreground/90 flex items-center justify-center gap-2 rounded-full px-10 py-4 text-lg font-bold transition-all"
                 >
                   {button.label}
                   <ArrowRight className="h-5 w-5" />

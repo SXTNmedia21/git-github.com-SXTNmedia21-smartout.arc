@@ -1,12 +1,16 @@
 "use client";
 
 import { useState, useContext } from "react";
-import { CheckCircle2, XCircle, MessageSquare, Loader2 } from "lucide-react";
+import { CheckCircle2, XCircle, MessageSquare, Loader2, Lock } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
+import { createClient } from "@smartout/supabase/client";
+import { emit } from "@smartout/telemetry";
 import { RevenueSection } from "./RevenueSection";
 import { ShiftApprovalSection } from "./ShiftApprovalSection";
 import { DeviationSection } from "./DeviationSection";
@@ -28,9 +32,52 @@ export function DayApproval({ reconciliationId }: DayApprovalProps) {
   const approveMutation = useApproveReconciliation();
   const rejectMutation = useRejectReconciliation();
 
+  const queryClient = useQueryClient();
   const [approvalNotes, setApprovalNotes] = useState("");
   const [rejectReason, setRejectReason] = useState("");
   const [showRejectForm, setShowRejectForm] = useState(false);
+
+  const lockDayMutation = useMutation({
+    mutationFn: async () => {
+      if (!detail) throw new Error("No detail");
+      const supabase = createClient();
+      const { error } = await supabase
+        .from("daily_reconciliation")
+        .update({
+          locked_at: new Date().toISOString(),
+          locked_by: profileId,
+          status: "locked" as const,
+        })
+        .eq("reconciliation_id", detail.reconciliation_id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      if (!detail) return;
+      emit({
+        event: "reconciliation locked",
+        workspace_id: detail.workspace_id,
+        actor_id: profileId,
+        properties: {
+          entity: {
+            entity_type: "reconciliation",
+            entity_id: detail.reconciliation_id,
+          },
+          data: {
+            reconciliation_id: detail.reconciliation_id,
+            reconciliation_date: detail.reconciliation_date,
+          },
+        },
+      });
+      toast.success("Dagen er last");
+      queryClient.invalidateQueries({ queryKey: ["reconciliation"] });
+      queryClient.invalidateQueries({ queryKey: ["reconciliation-detail"] });
+      queryClient.invalidateQueries({ queryKey: ["unreconciled-days"] });
+    },
+    onError: () => {
+      toast.error("Kunne ikke lase dagen");
+    },
+  });
 
   if (isLoading) {
     return (
@@ -90,6 +137,8 @@ export function DayApproval({ reconciliationId }: DayApprovalProps) {
     detail.status === "awaiting_approval" &&
     blockingDeviations.length === 0 &&
     pendingShifts.length === 0;
+
+  const isLocked = !!detail.locked_at;
 
   async function handleApprove() {
     await approveMutation.mutateAsync({
@@ -261,16 +310,52 @@ export function DayApproval({ reconciliationId }: DayApprovalProps) {
         </Card>
       )}
 
-      {/* Already approved */}
-      {detail.status === "approved" && (
+      {/* Already approved — show lock button */}
+      {detail.status === "approved" && !isLocked && (
         <Card className="border-emerald-500/30 bg-emerald-500/5">
-          <CardContent className="flex items-center gap-3 p-4">
-            <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-            <div>
-              <p className="text-sm font-medium">Dagen er godkjent</p>
-              {detail.approval_notes && (
-                <p className="text-muted-foreground text-xs">{detail.approval_notes}</p>
+          <CardContent className="flex items-center justify-between gap-3 p-4">
+            <div className="flex items-center gap-3">
+              <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+              <div>
+                <p className="text-sm font-medium">Dagen er godkjent</p>
+                {detail.approval_notes && (
+                  <p className="text-muted-foreground text-xs">{detail.approval_notes}</p>
+                )}
+              </div>
+            </div>
+            <Button
+              onClick={() => lockDayMutation.mutate()}
+              disabled={lockDayMutation.isPending}
+              variant="default"
+              size="sm"
+            >
+              {lockDayMutation.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Lock className="mr-2 h-4 w-4" />
               )}
+              {lockDayMutation.isPending ? "Laser..." : "Godkjenn og las dag"}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Locked */}
+      {isLocked && (
+        <Card className="border-border bg-muted/30">
+          <CardContent className="flex items-center gap-3 p-4">
+            <Lock className="text-muted-foreground h-5 w-5" />
+            <div>
+              <p className="text-sm font-medium">Dagen er last</p>
+              <p className="text-muted-foreground text-xs">
+                Last{" "}
+                {new Date(detail.locked_at!).toLocaleDateString("nb-NO", {
+                  day: "numeric",
+                  month: "long",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </p>
             </div>
           </CardContent>
         </Card>

@@ -45,8 +45,8 @@ export function FeatureDeviation({ uiState }: DemoFeatureProps) {
               <AlertTriangle className="h-8 w-8 text-amber-400" />
             </div>
             <div className="text-center">
-              <h2 className="text-2xl font-bold text-white">Avviksmeldning</h2>
-              <p className="mt-2 max-w-sm text-sm text-zinc-400">
+              <h2 className="text-foreground text-2xl font-bold">Avviksmeldning</h2>
+              <p className="text-muted-foreground mt-2 max-w-sm text-sm">
                 Meld inn avvik via chat med Lise. Hun hjelper deg å strukturere meldingen.
               </p>
             </div>
@@ -68,7 +68,7 @@ export function FeatureDeviation({ uiState }: DemoFeatureProps) {
             className="flex flex-1 flex-col gap-4"
           >
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-white">Ny avviksmeldning</h2>
+              <h2 className="text-foreground text-xl font-bold">Ny avviksmeldning</h2>
               <span className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-2.5 py-1 text-xs text-amber-300">
                 Pågår
               </span>
@@ -82,13 +82,13 @@ export function FeatureDeviation({ uiState }: DemoFeatureProps) {
                     key="what"
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="rounded-xl border border-white/[0.06] bg-[#0a0a0c] p-4"
+                    className="border-border bg-background rounded-xl border p-4"
                   >
-                    <label className="mb-1 flex items-center gap-2 text-xs font-medium text-zinc-500">
+                    <label className="text-muted-foreground mb-1 flex items-center gap-2 text-xs font-medium">
                       <AlertTriangle className="h-3 w-3" />
                       Hva skjedde
                     </label>
-                    <p className="text-sm text-zinc-200">{fields.what}</p>
+                    <p className="text-foreground text-sm">{fields.what}</p>
                   </m.div>
                 )}
 
@@ -97,13 +97,13 @@ export function FeatureDeviation({ uiState }: DemoFeatureProps) {
                     key="when"
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="rounded-xl border border-white/[0.06] bg-[#0a0a0c] p-4"
+                    className="border-border bg-background rounded-xl border p-4"
                   >
-                    <label className="mb-1 flex items-center gap-2 text-xs font-medium text-zinc-500">
+                    <label className="text-muted-foreground mb-1 flex items-center gap-2 text-xs font-medium">
                       <Clock className="h-3 w-3" />
                       Når skjedde det
                     </label>
-                    <p className="text-sm text-zinc-200">{fields.when}</p>
+                    <p className="text-foreground text-sm">{fields.when}</p>
                   </m.div>
                 )}
 
@@ -112,13 +112,13 @@ export function FeatureDeviation({ uiState }: DemoFeatureProps) {
                     key="where"
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="rounded-xl border border-white/[0.06] bg-[#0a0a0c] p-4"
+                    className="border-border bg-background rounded-xl border p-4"
                   >
-                    <label className="mb-1 flex items-center gap-2 text-xs font-medium text-zinc-500">
+                    <label className="text-muted-foreground mb-1 flex items-center gap-2 text-xs font-medium">
                       <MapPin className="h-3 w-3" />
                       Hvor skjedde det
                     </label>
-                    <p className="text-sm text-zinc-200">{fields.where}</p>
+                    <p className="text-foreground text-sm">{fields.where}</p>
                   </m.div>
                 )}
 
@@ -127,9 +127,9 @@ export function FeatureDeviation({ uiState }: DemoFeatureProps) {
                     key="severity"
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="rounded-xl border border-white/[0.06] bg-[#0a0a0c] p-4"
+                    className="border-border bg-background rounded-xl border p-4"
                   >
-                    <label className="mb-1 flex items-center gap-2 text-xs font-medium text-zinc-500">
+                    <label className="text-muted-foreground mb-1 flex items-center gap-2 text-xs font-medium">
                       <AlertTriangle className="h-3 w-3" />
                       Alvorlighetsgrad
                     </label>
@@ -144,7 +144,7 @@ export function FeatureDeviation({ uiState }: DemoFeatureProps) {
                                 : level === "Middels"
                                   ? "border-amber-500/30 bg-amber-500/10 text-amber-300"
                                   : "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
-                              : "border-white/[0.06] bg-transparent text-zinc-600"
+                              : "border-border text-muted-foreground/70 bg-transparent"
                           }`}
                         >
                           {level}
@@ -158,7 +158,7 @@ export function FeatureDeviation({ uiState }: DemoFeatureProps) {
 
             {/* Waiting indicator when not all fields are filled */}
             {Object.keys(fields).length < 4 && (
-              <div className="flex items-center gap-2 text-xs text-zinc-500">
+              <div className="text-muted-foreground flex items-center gap-2 text-xs">
                 <m.div
                   className="h-1.5 w-1.5 rounded-full bg-amber-500"
                   animate={{ opacity: [0.3, 1, 0.3] }}
@@ -189,15 +189,15 @@ export function FeatureDeviation({ uiState }: DemoFeatureProps) {
               <CheckCircle2 className="h-5 w-5 text-emerald-400" />
               <div>
                 <p className="text-sm font-medium text-emerald-300">Avviksmeldning registrert</p>
-                <p className="text-xs text-zinc-500">Sendt til avdelingsleder kl. 14:32</p>
+                <p className="text-muted-foreground text-xs">Sendt til avdelingsleder kl. 14:32</p>
               </div>
             </m.div>
 
             {/* Summary card */}
-            <div className="rounded-2xl border border-white/[0.06] bg-[#0a0a0c] p-5">
+            <div className="border-border bg-background rounded-2xl border p-5">
               <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-white">Oppsummering</h3>
-                <span className="text-xs text-zinc-500">AV-2026-0047</span>
+                <h3 className="text-foreground text-sm font-semibold">Oppsummering</h3>
+                <span className="text-muted-foreground text-xs">AV-2026-0047</span>
               </div>
 
               <div className="flex flex-col gap-3">
@@ -223,7 +223,7 @@ export function FeatureDeviation({ uiState }: DemoFeatureProps) {
                 />
               </div>
 
-              <div className="mt-4 flex items-center justify-between border-t border-white/[0.06] pt-3">
+              <div className="border-border mt-4 flex items-center justify-between border-t pt-3">
                 <span
                   className={`rounded-lg border px-2.5 py-1 text-xs font-medium ${
                     fields.severity === "Høy"
@@ -233,7 +233,7 @@ export function FeatureDeviation({ uiState }: DemoFeatureProps) {
                 >
                   {fields.severity ?? "Middels"}
                 </span>
-                <div className="flex items-center gap-1.5 text-xs text-zinc-500">
+                <div className="text-muted-foreground flex items-center gap-1.5 text-xs">
                   <Send className="h-3 w-3" />
                   Varslet: Erik Paulsen (leder)
                 </div>
@@ -258,10 +258,10 @@ function SummaryRow({
 }) {
   return (
     <div className="flex items-start gap-3">
-      <div className="mt-0.5 text-zinc-500">{icon}</div>
+      <div className="text-muted-foreground mt-0.5">{icon}</div>
       <div>
-        <p className="text-xs text-zinc-500">{label}</p>
-        <p className="text-sm text-zinc-200">{value}</p>
+        <p className="text-muted-foreground text-xs">{label}</p>
+        <p className="text-foreground text-sm">{value}</p>
       </div>
     </div>
   );

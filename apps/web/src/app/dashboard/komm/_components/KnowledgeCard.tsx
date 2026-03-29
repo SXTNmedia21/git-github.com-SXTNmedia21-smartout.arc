@@ -1,15 +1,24 @@
 "use client";
 
+import { useTranslation } from "@smartout/i18n";
 import { FileText, BookOpen, HelpCircle, GraduationCap, CheckSquare, Map } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const TYPE_CONFIG: Record<string, { icon: typeof FileText; color: string; label: string }> = {
-  procedure: { icon: FileText, color: "bg-orange-500/15 text-orange-500", label: "Prosedyre" },
-  manual: { icon: BookOpen, color: "bg-blue-500/15 text-blue-500", label: "Manual" },
-  quiz: { icon: HelpCircle, color: "bg-pink-500/15 text-pink-500", label: "Quiz" },
-  training: { icon: GraduationCap, color: "bg-cyan-500/15 text-cyan-500", label: "Opplæring" },
-  task: { icon: CheckSquare, color: "bg-green-500/15 text-green-500", label: "Oppgave" },
-  roadmap: { icon: Map, color: "bg-muted text-muted-foreground", label: "Veikart" },
+const TYPE_CONFIG: Record<string, { icon: typeof FileText; color: string; labelKey: string }> = {
+  procedure: {
+    icon: FileText,
+    color: "bg-orange-500/15 text-orange-500",
+    labelKey: "knowledge.procedure",
+  },
+  manual: { icon: BookOpen, color: "bg-blue-500/15 text-blue-500", labelKey: "knowledge.manual" },
+  quiz: { icon: HelpCircle, color: "bg-pink-500/15 text-pink-500", labelKey: "knowledge.quiz" },
+  training: {
+    icon: GraduationCap,
+    color: "bg-cyan-500/15 text-cyan-500",
+    labelKey: "knowledge.training",
+  },
+  task: { icon: CheckSquare, color: "bg-green-500/15 text-green-500", labelKey: "knowledge.task" },
+  roadmap: { icon: Map, color: "bg-muted text-muted-foreground", labelKey: "knowledge.roadmap" },
 };
 
 type SharedData = {
@@ -24,6 +33,7 @@ type Props = {
 };
 
 export function KnowledgeCard({ data }: Props) {
+  const { t } = useTranslation("komm");
   const config = (TYPE_CONFIG[data.shared_type] ?? TYPE_CONFIG.manual)!;
   const Icon = config.icon;
 
@@ -39,7 +49,7 @@ export function KnowledgeCard({ data }: Props) {
             config.color.split(" ")[1],
           )}
         >
-          {config.label}
+          {t(config.labelKey)}
         </span>
       </div>
       <div className="px-3 py-2">
@@ -50,7 +60,7 @@ export function KnowledgeCard({ data }: Props) {
       </div>
       <div className="border-t px-3 py-1.5">
         <span className="text-primary text-[10px] font-medium">
-          Åpne {config.label.toLowerCase()} →
+          {t("knowledge.open_action", { type: t(config.labelKey).toLowerCase() })}
         </span>
       </div>
     </div>

@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Users, Calendar, ClipboardList, ArrowRight, Loader2 } from "lucide-react";
 import { useOnboarding } from "../WizardContext";
 import { SectionReveal, RevealItem } from "../components/SectionReveal";
+import { redirectToDashboard } from "../lib/redirect";
 
 function formatDateRange(startDate: string, endDate: string) {
   const start = new Date(startDate);
@@ -19,13 +19,12 @@ function formatDateRange(startDate: string, endDate: string) {
 
 export function DoneSection() {
   const { season, departments, finalize } = useOnboarding();
-  const router = useRouter();
   const [isActivating, setIsActivating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const selectedDepartments = departments.filter((d) => d.selected);
   const totalPositions = selectedDepartments.reduce(
-    (sum, dept) => sum + (dept.positions?.length ?? 0),
+    (sum, dept) => sum + (dept.positions?.filter((p) => p.selected).length ?? 0),
     0,
   );
 
@@ -33,10 +32,10 @@ export function DoneSection() {
     setIsActivating(true);
     setError(null);
     try {
-      await finalize();
-      router.push("/dashboard");
+      const { slug } = await finalize();
+      redirectToDashboard(slug);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Noe gikk galt. Prov igjen.");
+      setError(err instanceof Error ? err.message : "Noe gikk galt. Prøv igjen.");
       setIsActivating(false);
     }
   }
@@ -84,7 +83,7 @@ export function DoneSection() {
                     <div key={dept.name} className="flex items-center justify-between pl-4">
                       <span className="text-base text-white/40">{dept.name}</span>
                       <span className="text-base text-white/40">
-                        {dept.positions?.length ?? 0} stillinger
+                        {dept.positions?.filter((p) => p.selected).length ?? 0} stillinger
                       </span>
                     </div>
                   ))}
@@ -135,7 +134,7 @@ export function DoneSection() {
               </>
             )}
           </button>
-          {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
+          {error && <p className="text-destructive mt-2 text-sm">{error}</p>}
         </RevealItem>
       </div>
     </SectionReveal>

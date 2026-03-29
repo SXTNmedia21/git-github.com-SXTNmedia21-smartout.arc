@@ -167,8 +167,7 @@ export async function revokeSpokesperson(
     if (error) return { success: false, error: error.message };
 
     await emit({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      event: "website spokesperson_revoked" as any,
+      event: "website spokesperson_revoked",
       workspace_id: workspaceId,
       actor_id: user.id,
       properties: {
@@ -188,6 +187,9 @@ export async function revokeSpokesperson(
 /**
  * Fetches the active spokesperson record for a section, joined with profile data.
  * Returns null when no spokesperson is assigned (PGRST116 — zero rows).
+ *
+ * Requires the caller to be authenticated AND a member of the workspace
+ * that owns this section (blocks cross-workspace access).
  */
 export async function getSpokespersonForSection(
   sectionId: string,
@@ -199,7 +201,7 @@ export async function getSpokespersonForSection(
 
   if (!user) throw new Error("Not authenticated");
 
-  // Use admin client so we can join across schemas
+  // Admin client needed for cross-schema join (websites schema → public.profile)
   const admin = getAdminClient();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -235,9 +237,21 @@ export async function getSpokespersonForSection(
   if (error) throw new Error(error.message);
   if (!data) return null;
 
-  // Fetch profile separately (cross-schema join not supported via .schema())
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const row = data as any;
+
+  // Verify caller is a member of this workspace (workspace_id from the record).
+  // Employees get here via a push notification link — they are workspace members.
+  // Admins get here from the dashboard — they are also workspace members.
+  const { count: memberCount } = await userClient
+    .from("profile")
+    .select("*", { count: "exact", head: true })
+    .eq("workspace_id", row.workspace_id)
+    .eq("user_id", user.id);
+
+  if (!memberCount) throw new Error("Access denied — not a workspace member");
+
+  // Fetch profile separately (cross-schema join not supported via .schema())
   const { data: profile } = await admin
     .from("profile")
     .select("display_name, avatar_url, job_title, role")

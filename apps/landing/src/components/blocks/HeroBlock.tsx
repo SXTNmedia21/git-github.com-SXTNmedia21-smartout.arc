@@ -22,12 +22,12 @@ export default function HeroBlock({ content, settings }: BlockProps<HeroContent>
           transition={{ duration: 0.6 }}
           className={isCentered ? "mx-auto max-w-4xl" : "max-w-3xl"}
         >
-          <h1 className="mb-6 text-5xl leading-[1.08] font-black tracking-tight text-white lg:text-7xl">
+          <h1 className="text-foreground mb-6 text-5xl leading-[1.08] font-black tracking-tight lg:text-7xl">
             {content.heading}
           </h1>
 
           {content.subheading && (
-            <p className="mb-10 text-lg leading-relaxed text-zinc-400 lg:text-xl">
+            <p className="text-muted-foreground mb-10 text-lg leading-relaxed lg:text-xl">
               {content.subheading}
             </p>
           )}
@@ -42,7 +42,7 @@ export default function HeroBlock({ content, settings }: BlockProps<HeroContent>
                     <Link
                       key={button.label}
                       href={button.href}
-                      className="flex items-center justify-center gap-2 rounded-full border border-white/20 px-8 py-4 font-bold text-white transition-all hover:border-white/40 hover:bg-white/5"
+                      className="border-border text-foreground hover:border-foreground/40 hover:bg-foreground/5 flex items-center justify-center gap-2 rounded-full border px-8 py-4 font-bold transition-all"
                     >
                       {button.label}
                     </Link>
@@ -53,7 +53,7 @@ export default function HeroBlock({ content, settings }: BlockProps<HeroContent>
                     <Link
                       key={button.label}
                       href={button.href}
-                      className="flex items-center justify-center gap-2 px-8 py-4 font-bold text-zinc-400 transition-colors hover:text-white"
+                      className="text-muted-foreground hover:text-foreground flex items-center justify-center gap-2 px-8 py-4 font-bold transition-colors"
                     >
                       {button.label}
                       <ArrowRight className="h-4 w-4" />
@@ -65,7 +65,7 @@ export default function HeroBlock({ content, settings }: BlockProps<HeroContent>
                   <Link
                     key={button.label}
                     href={button.href}
-                    className="flex items-center justify-center gap-2 rounded-full bg-white px-8 py-4 font-bold text-zinc-950 transition-all hover:bg-zinc-200"
+                    className="bg-foreground text-background hover:bg-foreground/90 flex items-center justify-center gap-2 rounded-full px-8 py-4 font-bold transition-all"
                   >
                     {button.label}
                     <ArrowRight className="h-4 w-4" />

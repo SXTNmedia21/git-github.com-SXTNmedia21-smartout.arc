@@ -19,7 +19,7 @@ export default function LogoStripBlock({ content, settings }: BlockProps<LogoStr
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
-            className="mb-10 text-center text-sm font-bold tracking-wider text-zinc-500 uppercase"
+            className="text-muted-foreground mb-10 text-center text-sm font-bold tracking-wider uppercase"
           >
             {content.heading}
           </m.p>

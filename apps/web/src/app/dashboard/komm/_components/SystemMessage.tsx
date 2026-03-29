@@ -1,15 +1,16 @@
 "use client";
 
+import { useTranslation } from "@smartout/i18n";
 import type { MessageWithSender } from "../_hooks/channel-types";
 import { Info, ArrowRightLeft, Bell, FileText, Megaphone, Clock } from "lucide-react";
 
-const TYPE_CONFIG: Record<string, { icon: typeof Info; label: string }> = {
-  system: { icon: Info, label: "System" },
-  brief: { icon: FileText, label: "Briefing" },
-  handoff: { icon: ArrowRightLeft, label: "Overlevering" },
-  announcement: { icon: Megaphone, label: "Kunngjøring" },
-  reminder: { icon: Clock, label: "Påminnelse" },
-  summary: { icon: Bell, label: "Oppsummering" },
+const TYPE_CONFIG: Record<string, { icon: typeof Info; labelKey: string }> = {
+  system: { icon: Info, labelKey: "system_message.system" },
+  brief: { icon: FileText, labelKey: "system_message.briefing" },
+  handoff: { icon: ArrowRightLeft, labelKey: "system_message.handover" },
+  announcement: { icon: Megaphone, labelKey: "system_message.announcement" },
+  reminder: { icon: Clock, labelKey: "system_message.reminder" },
+  summary: { icon: Bell, labelKey: "system_message.summary" },
 };
 
 type Props = {
@@ -17,6 +18,7 @@ type Props = {
 };
 
 export function SystemMessage({ message }: Props) {
+  const { t } = useTranslation("komm");
   const config = (TYPE_CONFIG[message.message_type] ?? TYPE_CONFIG.system)!;
   const Icon = config.icon;
 
@@ -28,7 +30,7 @@ export function SystemMessage({ message }: Props) {
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline gap-2">
           <span className="text-muted-foreground text-xs font-medium uppercase">
-            {config.label}
+            {t(config.labelKey)}
           </span>
           <span className="text-muted-foreground text-[10px]">
             {new Date(message.created_at).toLocaleTimeString("nb-NO", {

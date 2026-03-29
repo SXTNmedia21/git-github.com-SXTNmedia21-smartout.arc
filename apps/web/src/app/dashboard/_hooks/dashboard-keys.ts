@@ -56,14 +56,14 @@ export const dashboardKeys = {
 
   operatingHours: (workspaceId: string) => ["dashboard", "operating-hours", workspaceId] as const,
 
-  // Guardian Protocol
-  guardianSignals: (workspaceId: string) => ["dashboard", "guardian-signals", workspaceId] as const,
+  workspaceOperatingHours: (workspaceId: string) =>
+    ["dashboard", "workspace-operating-hours", workspaceId] as const,
 
-  guardianSessions: (workspaceId: string) =>
-    ["dashboard", "guardian-sessions", workspaceId] as const,
+  shiftLockPolicy: (workspaceId: string) =>
+    ["dashboard", "shift-lock-policy", workspaceId] as const,
 
-  guardianSeasonPulse: (workspaceId: string) =>
-    ["dashboard", "guardian-season-pulse", workspaceId] as const,
+  // Cascade Tasks (replaces Guardian Protocol)
+  cascadeTasks: (workspaceId: string) => ["dashboard", "cascade-tasks", workspaceId] as const,
 
   // Leader Pulse
   leaderPulse: (workspaceId: string) => ["dashboard", "leader-pulse", workspaceId] as const,
@@ -89,4 +89,17 @@ export const dashboardKeys = {
   websitePages: (websiteId: string) => ["dashboard", "website-pages", websiteId] as const,
 
   websiteSections: (pageId: string) => ["dashboard", "website-sections", pageId] as const,
+
+  // Entity Drawer
+  drawerDepartment: (wsId: string, id: string) =>
+    ["dashboard", "entity-drawer", "department", wsId, id] as const,
+
+  drawerShift: (wsId: string, id: string) =>
+    ["dashboard", "entity-drawer", "shift", wsId, id] as const,
+
+  drawerProfile: (wsId: string, id: string) =>
+    ["dashboard", "entity-drawer", "profile", wsId, id] as const,
+
+  drawerSession: (wsId: string, id: string) =>
+    ["dashboard", "entity-drawer", "session", wsId, id] as const,
 };

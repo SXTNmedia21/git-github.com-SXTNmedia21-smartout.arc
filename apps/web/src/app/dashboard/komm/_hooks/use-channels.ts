@@ -6,14 +6,14 @@ import { useWorkspace } from "@/lib/workspace-context";
 import { channelKeys } from "./channel-keys";
 import type { ChannelWithPreview, ChannelGroup, ChannelType } from "./channel-types";
 
-const TYPE_LABELS: Record<ChannelType, string> = {
-  department: "Avdelinger",
-  team: "Team",
-  session: "Sesjoner",
-  custom: "Kanaler",
-  direct: "Direktemeldinger",
-  news: "Nyheter",
-  skill: "Ferdigheter",
+const TYPE_LABEL_KEYS: Record<ChannelType, string> = {
+  department: "channel_type.department",
+  team: "channel_type.team",
+  session: "channel_type.session",
+  custom: "channel_type.channel",
+  direct: "channel_type.direct",
+  news: "channel_type.news",
+  skill: "channel_type.skill",
 };
 
 const TYPE_ORDER: ChannelType[] = [
@@ -52,7 +52,7 @@ export function useChannels() {
 
       return TYPE_ORDER.filter((t) => grouped.has(t)).map((t) => ({
         type: t,
-        label: TYPE_LABELS[t],
+        labelKey: TYPE_LABEL_KEYS[t],
         channels: grouped.get(t)!,
       }));
     },

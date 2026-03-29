@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { AlertTriangle, Camera, Loader2, Send } from "lucide-react";
+import { useTranslation } from "@smartout/i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,22 +22,6 @@ import {
 } from "@smartout/hms";
 import { useCreateDeviation } from "../_hooks/use-create-deviation";
 
-// TODO: move to i18n
-const DOMAIN_LABELS: Record<string, string> = {
-  safety: "Sikkerhet",
-  customer: "Kunde",
-  procedure: "Prosedyre",
-  system: "System",
-  material: "Materiell",
-};
-
-const SEVERITY_LABELS: Record<string, string> = {
-  low: "Lav",
-  medium: "Middels",
-  high: "Hoy",
-  critical: "Kritisk",
-};
-
 type DeviationFormPrefill = {
   sessionId?: string;
   departmentId?: string;
@@ -52,6 +37,7 @@ type Props = {
 };
 
 export function DeviationForm({ prefill, onSuccess }: Props) {
+  const { t } = useTranslation("dashboard");
   const createDeviation = useCreateDeviation();
   const [title, setTitle] = useState("");
   const [domain, setDomain] = useState<DeviationDomain | "">(prefill?.domain ?? "");
@@ -94,19 +80,19 @@ export function DeviationForm({ prefill, onSuccess }: Props) {
           <AlertTriangle className="h-5 w-5 text-red-500" />
         </div>
         <div>
-          <h2 className="text-foreground text-lg font-bold">Meld avvik</h2>
-          <p className="text-muted-foreground text-xs">Rapporter et avvik eller en hendelse.</p>
+          <h2 className="text-foreground text-lg font-bold">{t("hms.deviation_form.title")}</h2>
+          <p className="text-muted-foreground text-xs">{t("hms.deviation_form.subtitle")}</p>
         </div>
       </div>
 
       {/* Title */}
       <div className="space-y-1.5">
         <Label htmlFor="deviation-title">
-          Hva skjedde? <span className="text-red-500">*</span>
+          {t("hms.deviation_form.what_happened")} <span className="text-red-500">*</span>
         </Label>
         <Input
           id="deviation-title"
-          placeholder="Kort beskrivelse av avviket..."
+          placeholder={t("hms.deviation_form.title_placeholder")}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
         />
@@ -116,16 +102,16 @@ export function DeviationForm({ prefill, onSuccess }: Props) {
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <Label>
-            Kategori <span className="text-red-500">*</span>
+            {t("hms.deviation_form.category")} <span className="text-red-500">*</span>
           </Label>
           <Select value={domain} onValueChange={(v) => setDomain(v as DeviationDomain)}>
             <SelectTrigger>
-              <SelectValue placeholder="Velg..." />
+              <SelectValue placeholder={t("hms.deviation_form.select_placeholder")} />
             </SelectTrigger>
             <SelectContent>
               {deviationDomainValues.map((d) => (
                 <SelectItem key={d} value={d}>
-                  {DOMAIN_LABELS[d] ?? d}
+                  {t(`hms.deviation_form.domain_${d}`)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -133,16 +119,16 @@ export function DeviationForm({ prefill, onSuccess }: Props) {
         </div>
         <div className="space-y-1.5">
           <Label>
-            Alvorlighet <span className="text-red-500">*</span>
+            {t("hms.deviation_form.severity")} <span className="text-red-500">*</span>
           </Label>
           <Select value={severity} onValueChange={(v) => setSeverity(v as DeviationSeverity)}>
             <SelectTrigger>
-              <SelectValue placeholder="Velg..." />
+              <SelectValue placeholder={t("hms.deviation_form.select_placeholder")} />
             </SelectTrigger>
             <SelectContent>
               {deviationSeverityValues.map((s) => (
                 <SelectItem key={s} value={s}>
-                  {SEVERITY_LABELS[s] ?? s}
+                  {t(`hms.deviation_form.severity_${s}`)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -152,10 +138,10 @@ export function DeviationForm({ prefill, onSuccess }: Props) {
 
       {/* Description */}
       <div className="space-y-1.5">
-        <Label htmlFor="deviation-desc">Beskrivelse</Label>
+        <Label htmlFor="deviation-desc">{t("hms.deviation_form.description")}</Label>
         <Textarea
           id="deviation-desc"
-          placeholder="Utdypende beskrivelse av hva som skjedde, hvordan, og konsekvenser..."
+          placeholder={t("hms.deviation_form.description_placeholder")}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={4}
@@ -166,9 +152,11 @@ export function DeviationForm({ prefill, onSuccess }: Props) {
       <div>
         <Button variant="outline" size="sm" disabled>
           <Camera className="mr-1.5 h-3.5 w-3.5" />
-          Legg til bilde
+          {t("hms.deviation_form.add_photo")}
         </Button>
-        <p className="text-muted-foreground mt-1 text-[10px]">Bildeopplasting kommer snart.</p>
+        <p className="text-muted-foreground mt-1 text-[10px]">
+          {t("hms.deviation_form.photo_coming_soon")}
+        </p>
       </div>
 
       {/* Submit */}
@@ -182,7 +170,7 @@ export function DeviationForm({ prefill, onSuccess }: Props) {
         ) : (
           <Send className="mr-2 h-4 w-4" />
         )}
-        Meld avvik
+        {t("hms.deviation_form.submit")}
       </Button>
     </div>
   );

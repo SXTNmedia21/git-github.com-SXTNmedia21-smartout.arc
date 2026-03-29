@@ -83,23 +83,23 @@ export function AssistantPanel({
   }
 
   return (
-    <div className="flex h-full flex-col rounded-2xl border border-white/[0.06] bg-[#0a0a0c]">
+    <div className="border-border bg-background flex h-full flex-col rounded-2xl border">
       {/* Header — Lise Botsson avatar and name */}
-      <div className="flex items-center gap-3 border-b border-white/[0.06] px-4 py-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-orange-500/20">
-          <Bot className="h-5 w-5 text-orange-400" />
+      <div className="border-border flex items-center gap-3 border-b px-4 py-3">
+        <div className="bg-brand-orange/20 flex h-9 w-9 items-center justify-center rounded-full">
+          <Bot className="text-brand-orange h-5 w-5" />
         </div>
         <div className="flex-1">
-          <p className="text-sm font-semibold text-white">Lise Botsson</p>
-          <p className="text-xs text-zinc-500">Din AI-assistent</p>
+          <p className="text-foreground text-sm font-semibold">Lise Botsson</p>
+          <p className="text-muted-foreground text-xs">Din AI-assistent</p>
         </div>
         {/* Voice toggle button */}
         <button
           onClick={onToggleVoice}
           className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
             isVoiceActive
-              ? "bg-orange-500/20 text-orange-400"
-              : "text-zinc-500 hover:bg-white/[0.06] hover:text-zinc-300"
+              ? "bg-brand-orange/20 text-brand-orange"
+              : "text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground"
           }`}
           aria-label={isVoiceActive ? "Slå av stemme" : "Slå på stemme"}
         >
@@ -120,8 +120,8 @@ export function AssistantPanel({
               <div
                 className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
                   msg.role === "assistant"
-                    ? "bg-white/[0.06] text-zinc-200"
-                    : "bg-orange-500/20 text-orange-100"
+                    ? "bg-foreground/[0.06] text-foreground"
+                    : "bg-brand-orange/20 text-brand-orange-light"
                 }`}
               >
                 {msg.content}
@@ -139,7 +139,7 @@ export function AssistantPanel({
                   <button
                     key={reply.label}
                     onClick={() => onQuickReply(reply)}
-                    className="rounded-full border border-orange-500/30 bg-orange-500/10 px-3.5 py-1.5 text-xs font-medium text-orange-300 transition-colors hover:bg-orange-500/20 hover:text-orange-200"
+                    className="border-brand-orange/30 bg-brand-orange/10 text-brand-orange hover:bg-brand-orange/20 hover:text-brand-orange-light rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors"
                   >
                     {reply.label}
                   </button>
@@ -160,7 +160,7 @@ export function AssistantPanel({
               {[0, 1, 2].map((i) => (
                 <m.span
                   key={i}
-                  className="h-1.5 w-1.5 rounded-full bg-zinc-500"
+                  className="bg-muted-foreground h-1.5 w-1.5 rounded-full"
                   animate={{ y: [0, -4, 0] }}
                   transition={{
                     duration: 0.6,
@@ -177,7 +177,7 @@ export function AssistantPanel({
       {/* Input area — text field + send button */}
       <form
         onSubmit={handleSubmit}
-        className="flex items-center gap-2 border-t border-white/[0.06] px-3 py-3"
+        className="border-border flex items-center gap-2 border-t px-3 py-3"
       >
         {/* Voice mode indicator */}
         {isVoiceActive && (
@@ -197,12 +197,12 @@ export function AssistantPanel({
           onChange={(e) => setInputValue(e.target.value)}
           placeholder={isVoiceActive ? "Lytter..." : "Skriv en melding..."}
           disabled={isVoiceActive}
-          className="flex-1 rounded-xl border border-white/[0.06] bg-white/[0.03] px-3.5 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-orange-500/30 focus:outline-none disabled:opacity-50"
+          className="border-border bg-foreground/[0.03] text-foreground placeholder:text-muted-foreground focus:border-brand-orange/30 flex-1 rounded-xl border px-3.5 py-2 text-sm focus:outline-none disabled:opacity-50"
         />
         <button
           type="submit"
           disabled={!inputValue.trim() || isVoiceActive}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-orange-500/20 text-orange-400 transition-colors hover:bg-orange-500/30 disabled:opacity-30 disabled:hover:bg-orange-500/20"
+          className="bg-brand-orange/20 text-brand-orange hover:bg-brand-orange/30 disabled:hover:bg-brand-orange/20 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors disabled:opacity-30"
           aria-label="Send melding"
         >
           <Send className="h-4 w-4" />

@@ -19,7 +19,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { PIE_COLORS, CHART_COLORS, chartTheme } from "./report-data";
+import { PIE_COLORS, CHART_COLORS, chartTheme } from "./chart-utils";
 import type { ReportInsightCard } from "./report-insight-types";
 import { useReportPeople } from "../_hooks/use-report-people";
 import { useReportOverview } from "../_hooks/use-report-overview";

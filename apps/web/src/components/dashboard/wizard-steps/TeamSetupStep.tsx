@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import Papa from "papaparse";
 import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
+import { getPositionsForDepartment } from "@/app/onboarding/lib/industry-defaults";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -70,7 +71,6 @@ function validateRow(row: InviteRow): string[] {
 
 function InviteRowCard({
   row,
-  isDark,
   departments,
   positions,
   employmentForms,
@@ -78,7 +78,6 @@ function InviteRowCard({
   onRemove,
 }: {
   row: InviteRow;
-  isDark: boolean;
   departments: { department_id: string; name: string }[];
   positions: { position_id: string; name: string }[];
   employmentForms: { type: string; label: string }[];
@@ -87,16 +86,22 @@ function InviteRowCard({
 }) {
   const hasValidationErrors = row.validationErrors.length > 0;
 
+  // Suggest positions based on selected department using industry defaults
+  const selectedDept = departments.find((d) => d.department_id === row.departmentId);
+  const suggestedTemplates = selectedDept ? getPositionsForDepartment(selectedDept.name) : [];
+  const suggestedSet = new Set(suggestedTemplates.map((t) => t.name.toLowerCase()));
+
+  // Sort: DB positions matching department suggestions first, then the rest
+  const sortedPositions = useMemo(() => {
+    const matched = positions.filter((p) => suggestedSet.has(p.name.toLowerCase()));
+    const rest = positions.filter((p) => !suggestedSet.has(p.name.toLowerCase()));
+    return [...matched, ...rest];
+  }, [positions, suggestedSet]);
+
   return (
     <div
       className={`rounded-xl border p-4 transition-colors ${
-        hasValidationErrors
-          ? isDark
-            ? "border-red-800/40 bg-red-950/20"
-            : "border-red-200 bg-red-50/30"
-          : isDark
-            ? "border-zinc-800 bg-zinc-900/50"
-            : "border-zinc-200 bg-white"
+        hasValidationErrors ? "border-destructive bg-destructive/30" : "border-border bg-card"
       }`}
     >
       {/* Row 1: Name + Email + Phone */}
@@ -105,27 +110,27 @@ function InviteRowCard({
           placeholder="Fornavn"
           value={row.firstName}
           onChange={(e) => onUpdate(row.id, { firstName: e.target.value })}
-          className={`h-9 text-sm ${!row.firstName.trim() && hasValidationErrors ? "border-red-500" : ""} ${isDark ? "border-zinc-700 bg-zinc-800/50" : ""}`}
+          className={`h-9 text-sm ${!row.firstName.trim() && hasValidationErrors ? "border-destructive" : ""} `}
         />
         <Input
           placeholder="Etternavn"
           value={row.lastName}
           onChange={(e) => onUpdate(row.id, { lastName: e.target.value })}
-          className={`h-9 text-sm ${!row.lastName.trim() && hasValidationErrors ? "border-red-500" : ""} ${isDark ? "border-zinc-700 bg-zinc-800/50" : ""}`}
+          className={`h-9 text-sm ${!row.lastName.trim() && hasValidationErrors ? "border-destructive" : ""} `}
         />
         <Input
           placeholder="E-post"
           type="email"
           value={row.email}
           onChange={(e) => onUpdate(row.id, { email: e.target.value })}
-          className={`h-9 text-sm ${row.validationErrors.some((e) => e.includes("post")) ? "border-red-500" : ""} ${isDark ? "border-zinc-700 bg-zinc-800/50" : ""}`}
+          className={`h-9 text-sm ${row.validationErrors.some((e) => e.includes("post")) ? "border-destructive" : ""} `}
         />
         <Input
           placeholder="Telefon"
           type="tel"
           value={row.phone}
           onChange={(e) => onUpdate(row.id, { phone: e.target.value })}
-          className={`h-9 text-sm ${isDark ? "border-zinc-700 bg-zinc-800/50" : ""}`}
+          className="h-9 text-sm"
         />
       </div>
 
@@ -137,13 +142,7 @@ function InviteRowCard({
         >
           <SelectTrigger
             className={`h-9 text-sm ${
-              row.role !== "employee"
-                ? isDark
-                  ? "border-orange-500/40 text-orange-300"
-                  : "border-orange-300 text-orange-700"
-                : isDark
-                  ? "border-zinc-700 bg-zinc-800/50"
-                  : ""
+              row.role !== "employee" ? "border-brand-orange text-brand-orange" : ""
             }`}
           >
             <div className="flex items-center gap-1.5 truncate">
@@ -157,7 +156,7 @@ function InviteRowCard({
             {ROLE_OPTIONS.map((opt) => (
               <SelectItem key={opt.value} value={opt.value}>
                 <span className="font-medium">{opt.label}</span>
-                <span className="ml-1.5 text-xs text-zinc-400">— {opt.description}</span>
+                <span className="text-muted-foreground ml-1.5 text-xs">— {opt.description}</span>
               </SelectItem>
             ))}
           </SelectContent>
@@ -167,9 +166,7 @@ function InviteRowCard({
           value={row.departmentId || undefined}
           onValueChange={(v) => onUpdate(row.id, { departmentId: v })}
         >
-          <SelectTrigger
-            className={`h-9 text-sm ${isDark ? "border-zinc-700 bg-zinc-800/50" : ""}`}
-          >
+          <SelectTrigger className="h-9 text-sm">
             <SelectValue placeholder="Avdeling" />
           </SelectTrigger>
           <SelectContent>
@@ -185,9 +182,7 @@ function InviteRowCard({
           value={row.employmentForm || undefined}
           onValueChange={(v) => onUpdate(row.id, { employmentForm: v })}
         >
-          <SelectTrigger
-            className={`h-9 text-sm ${isDark ? "border-zinc-700 bg-zinc-800/50" : ""}`}
-          >
+          <SelectTrigger className="h-9 text-sm">
             <SelectValue placeholder="Ansettelsesform" />
           </SelectTrigger>
           <SelectContent>
@@ -203,15 +198,14 @@ function InviteRowCard({
           value={row.positionId || undefined}
           onValueChange={(v) => onUpdate(row.id, { positionId: v })}
         >
-          <SelectTrigger
-            className={`h-9 text-sm ${isDark ? "border-zinc-700 bg-zinc-800/50" : ""}`}
-          >
+          <SelectTrigger className="h-9 text-sm">
             <SelectValue placeholder="Stilling" />
           </SelectTrigger>
           <SelectContent>
-            {positions.map((p) => (
+            {sortedPositions.map((p) => (
               <SelectItem key={p.position_id} value={p.position_id}>
                 {p.name}
+                {suggestedSet.has(p.name.toLowerCase()) ? " ★" : ""}
               </SelectItem>
             ))}
           </SelectContent>
@@ -223,12 +217,10 @@ function InviteRowCard({
             placeholder="0"
             value={row.hourlyRate || ""}
             onChange={(e) => onUpdate(row.id, { hourlyRate: parseFloat(e.target.value) || 0 })}
-            className={`h-9 pr-10 text-sm ${isDark ? "border-zinc-700 bg-zinc-800/50" : ""}`}
+            className="h-9 pr-10 text-sm"
           />
           <span
-            className={`pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs ${
-              isDark ? "text-zinc-500" : "text-zinc-400"
-            }`}
+            className={`pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs ${"text-muted-foreground"}`}
           >
             kr/t
           </span>
@@ -239,7 +231,7 @@ function InviteRowCard({
       <div className="mt-2 flex items-center justify-between">
         <div>
           {hasValidationErrors && (
-            <div className="flex items-center gap-1.5 text-xs text-red-500">
+            <div className="text-destructive flex items-center gap-1.5 text-xs">
               <AlertCircle className="h-3.5 w-3.5" />
               {row.validationErrors.join(", ")}
             </div>
@@ -247,11 +239,7 @@ function InviteRowCard({
         </div>
         <button
           onClick={() => onRemove(row.id)}
-          className={`rounded-lg p-1.5 transition-colors ${
-            isDark
-              ? "text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300"
-              : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
-          }`}
+          className={`rounded-lg p-1.5 transition-colors ${"text-muted-foreground hover:bg-accent hover:text-foreground"}`}
         >
           <Trash2 className="h-4 w-4" />
         </button>
@@ -263,12 +251,10 @@ function InviteRowCard({
 // ─── TeamSetupStep ──────────────────────────────────────────
 
 export function TeamSetupStep({
-  isDark,
   extractedEmployees,
   teamMembers,
   onTeamChange,
 }: {
-  isDark: boolean;
   extractedEmployees?: Array<{
     firstName: string;
     lastName: string;
@@ -626,12 +612,10 @@ export function TeamSetupStep({
       {/* Header */}
       <div className="space-y-1">
         <div className="flex items-center gap-2">
-          <h3 className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-            Legg til teamet ditt
-          </h3>
+          <h3 className={`text-sm font-bold ${"text-muted-foreground"}`}>Legg til teamet ditt</h3>
           <HelpTip text="Legg til ansatte manuelt eller last opp en CSV-fil. Alle invitasjoner sendes når du fullfører oppsettet." />
         </div>
-        <p className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+        <p className={`text-xs ${"text-muted-foreground"}`}>
           Sett tilgangsniv&aring; per person. Invitasjoner sendes n&aring;r du trykker
           &laquo;Fullf&oslash;r&raquo; i siste steg.
         </p>
@@ -640,16 +624,14 @@ export function TeamSetupStep({
       {/* Summary */}
       {filledCount > 0 && (
         <div
-          className={`flex items-center gap-4 rounded-lg px-4 py-2.5 text-xs font-medium ${
-            isDark ? "bg-zinc-900/50 text-zinc-400" : "bg-zinc-50 text-zinc-500"
-          }`}
+          className={`flex items-center gap-4 rounded-lg px-4 py-2.5 text-xs font-medium ${"bg-muted text-muted-foreground"}`}
         >
           <span>
             {filledCount} {filledCount === 1 ? "person" : "personer"} lagt til
           </span>
           {leaderCount > 0 && (
             <span className="flex items-center gap-1">
-              <Shield className="h-3 w-3 text-orange-500" />
+              <Shield className="text-brand-orange h-3 w-3" />
               {leaderCount} {leaderCount === 1 ? "leder" : "ledere"}
             </span>
           )}
@@ -662,7 +644,6 @@ export function TeamSetupStep({
           <InviteRowCard
             key={row.id}
             row={row}
-            isDark={isDark}
             departments={departments}
             positions={positions}
             employmentForms={employmentForms}
@@ -676,11 +657,7 @@ export function TeamSetupStep({
       <div className="flex flex-wrap items-center gap-3">
         <button
           onClick={handleAddRow}
-          className={`flex items-center gap-1.5 rounded-xl border-2 border-dashed px-4 py-2.5 text-sm font-medium transition-colors ${
-            isDark
-              ? "border-zinc-700 text-zinc-400 hover:border-zinc-600 hover:text-zinc-300"
-              : "border-zinc-300 text-zinc-500 hover:border-zinc-400 hover:text-zinc-600"
-          }`}
+          className={`flex items-center gap-1.5 rounded-xl border-2 border-dashed px-4 py-2.5 text-sm font-medium transition-colors ${"border-border text-muted-foreground hover:border-muted-foreground hover:text-foreground"}`}
         >
           <Plus className="h-4 w-4" />
           Legg til manuelt
@@ -695,11 +672,7 @@ export function TeamSetupStep({
         />
         <button
           onClick={() => fileInputRef.current?.click()}
-          className={`flex items-center gap-1.5 rounded-xl border-2 border-dashed px-4 py-2.5 text-sm font-medium transition-colors ${
-            isDark
-              ? "border-zinc-700 text-zinc-400 hover:border-zinc-600 hover:text-zinc-300"
-              : "border-zinc-300 text-zinc-500 hover:border-zinc-400 hover:text-zinc-600"
-          }`}
+          className={`flex items-center gap-1.5 rounded-xl border-2 border-dashed px-4 py-2.5 text-sm font-medium transition-colors ${"border-border text-muted-foreground hover:border-muted-foreground hover:text-foreground"}`}
         >
           <Upload className="h-4 w-4" />
           Last opp CSV
@@ -707,7 +680,7 @@ export function TeamSetupStep({
       </div>
 
       {/* CSV format hint */}
-      <p className={`text-[11px] leading-relaxed ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>
+      <p className={`text-[11px] leading-relaxed ${"text-muted-foreground"}`}>
         Last opp en CSV-fil med kolonnenavn i første rad. Du kobler kolonnene til riktige felt i
         neste steg.
       </p>
@@ -715,7 +688,6 @@ export function TeamSetupStep({
       <CsvMappingDialog
         open={csvMappingOpen}
         onOpenChange={setCsvMappingOpen}
-        isDark={isDark}
         csvHeaders={csvHeaders}
         csvPreviewRows={csvRawRows.slice(0, 3)}
         totalRowCount={csvRawRows.length}

@@ -13,7 +13,7 @@ import {
   type TextStyle,
 } from "react-native";
 import * as Haptics from "expo-haptics";
-import { createStyles, withOpacity } from "@/theme";
+import { createStyles } from "@/theme";
 
 type ButtonVariant = "primary" | "secondary" | "ghost" | "destructive";
 type ButtonSize = "sm" | "md" | "lg";
@@ -81,7 +81,11 @@ export function Button({
       {loading ? (
         <ActivityIndicator
           size="small"
-          color={variant === "primary" || variant === "destructive" ? "#fff" : undefined}
+          color={
+            variant === "primary" || variant === "destructive"
+              ? styles.text_primary.color
+              : undefined
+          }
         />
       ) : (
         <Text style={[styles.text, textVariant, textSize]}>{title}</Text>
@@ -137,7 +141,7 @@ const useStyles = createStyles((theme) => ({
     color: theme.colors.foreground,
   },
   text_destructive: {
-    color: "#ffffff",
+    color: theme.colors.primaryForeground,
   },
 
   // Sizes

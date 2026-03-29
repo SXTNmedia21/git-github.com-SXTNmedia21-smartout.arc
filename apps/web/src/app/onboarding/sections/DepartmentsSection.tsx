@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Plus, X } from "lucide-react";
 import { motion } from "framer-motion";
 import { useOnboarding } from "../WizardContext";
+import { EASE_EXPO } from "../lib/motion";
 
 export function DepartmentsSection() {
   const { departments, toggleDepartment, addCustomDepartment, completeSection, business } =
@@ -29,7 +30,7 @@ export function DepartmentsSection() {
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.8, ease: EASE_EXPO }}
         >
           <p className="text-xs font-semibold tracking-[0.25em] text-white/20 uppercase">
             Avdelinger
@@ -76,7 +77,7 @@ export function DepartmentsSection() {
               onClick={() => toggleDepartment(dept.id)}
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.07, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ delay: i * 0.07, duration: 0.5, ease: EASE_EXPO }}
               className={`flex items-center gap-2.5 rounded-2xl border px-5 py-3.5 text-base transition-all ${
                 dept.selected
                   ? "border-white/15 bg-white/12 text-white"
@@ -89,7 +90,7 @@ export function DepartmentsSection() {
                   dept.selected ? "bg-white/10 text-white/60" : "bg-white/[0.04] text-white/20"
                 }`}
               >
-                {dept.positions.length}
+                {dept.positions.filter((p) => p.selected).length}
               </span>
             </motion.button>
           ))}

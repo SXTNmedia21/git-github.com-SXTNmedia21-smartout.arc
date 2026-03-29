@@ -75,6 +75,8 @@ function hideWorkspaceData() {
   sql(`UPDATE schedule_shift SET workspace_id = '${TEMP_WS_ID}' WHERE workspace_id = '${WS_ID}'`);
   // Deactivate seasons
   sql(`UPDATE season SET status = 'draft' WHERE workspace_id = '${WS_ID}' AND status = 'active'`);
+  // Reset setup_guide_completed so DashboardShell triggers redirect to /dashboard/setup
+  sql(`UPDATE workspace SET setup_guide_completed = false WHERE workspace_id = '${WS_ID}'`);
 }
 
 function restoreWorkspaceData() {
@@ -86,13 +88,19 @@ function restoreWorkspaceData() {
   sql(`UPDATE schedule_shift SET workspace_id = '${WS_ID}' WHERE workspace_id = '${TEMP_WS_ID}'`);
   // Reactivate seasons
   sql(`UPDATE season SET status = 'active' WHERE workspace_id = '${WS_ID}' AND status = 'draft'`);
+  // Mark setup as complete so DashboardShell skips the redirect
+  sql(`UPDATE workspace SET setup_guide_completed = true WHERE workspace_id = '${WS_ID}'`);
   // Clean up temp workspace
   sql(`DELETE FROM workspace WHERE workspace_id = '${TEMP_WS_ID}'`);
 }
 
 async function clearSkipFlag(page: Page) {
   await page.goto("http://localhost:3060");
-  await page.evaluate((wsId) => localStorage.removeItem(`smartout_setup_skipped_${wsId}`), WS_ID);
+  await page.evaluate((wsId) => {
+    localStorage.removeItem(`smartout_setup_skipped_${wsId}`);
+    // Also clear the DashboardShell sessionStorage dismiss flag
+    sessionStorage.removeItem("setup_dismissed");
+  }, WS_ID);
 }
 
 // ─── Test Suite ───────────────────────────────────────────

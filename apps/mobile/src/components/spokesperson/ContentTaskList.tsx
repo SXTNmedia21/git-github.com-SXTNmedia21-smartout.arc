@@ -8,7 +8,7 @@ import { View, Text, Pressable, FlatList } from "react-native";
 import * as Haptics from "expo-haptics";
 import { Camera, PenLine, MessageSquareQuote, Wrench, ChevronRight } from "lucide-react-native";
 import { EmptyState } from "@/components/ui";
-import { createStyles, useTheme } from "@/theme";
+import { createStyles, useTheme, withOpacity } from "@/theme";
 import { ContentCreator } from "./ContentCreator";
 
 // ─── Types ────────────────────────────────────────────────────────
@@ -65,28 +65,10 @@ function TaskIcon({ type, color }: { type: ContentTaskItem["type"]; color: strin
 
 // ─── Status configuration ─────────────────────────────────────────
 
-const STATUS_CONFIG: Record<
-  ContentTaskStatus,
-  { label: string; bg: string; border: string; text: string }
-> = {
-  overdue: {
-    label: "Forfalt",
-    bg: "rgba(239,68,68,0.08)",
-    border: "rgba(239,68,68,0.25)",
-    text: "#ef4444",
-  },
-  upcoming: {
-    label: "Kommende",
-    bg: "rgba(245,158,11,0.08)",
-    border: "rgba(245,158,11,0.25)",
-    text: "#f59e0b",
-  },
-  completed: {
-    label: "Levert",
-    bg: "rgba(34,197,94,0.08)",
-    border: "rgba(34,197,94,0.25)",
-    text: "#22c55e",
-  },
+const STATUS_COLOR_KEYS: Record<ContentTaskStatus, { label: string; colorKey: string }> = {
+  overdue: { label: "Forfalt", colorKey: "destructive" },
+  upcoming: { label: "Kommende", colorKey: "warning" },
+  completed: { label: "Levert", colorKey: "success" },
 };
 
 // ─── Component ────────────────────────────────────────────────────
@@ -146,7 +128,8 @@ export function ContentTaskList({ tasks, spokespersonId, onTaskSubmitted }: Cont
 function TaskRow({ task, onPress }: { task: ContentTaskItem; onPress: () => void }) {
   const styles = useStyles();
   const theme = useTheme();
-  const config = STATUS_CONFIG[task.status];
+  const config = STATUS_COLOR_KEYS[task.status];
+  const statusColor = (theme.colors as Record<string, string>)[config.colorKey];
 
   const dueDate = new Date(task.dueDate).toLocaleDateString("nb-NO", {
     day: "numeric",
@@ -155,9 +138,9 @@ function TaskRow({ task, onPress }: { task: ContentTaskItem; onPress: () => void
 
   const iconColor =
     task.status === "overdue"
-      ? "#ef4444"
+      ? theme.colors.destructive
       : task.status === "completed"
-        ? "#22c55e"
+        ? theme.colors.success
         : theme.colors.mutedForeground;
 
   return (
@@ -191,9 +174,15 @@ function TaskRow({ task, onPress }: { task: ContentTaskItem; onPress: () => void
       <View style={styles.rowRight}>
         {/* Status badge */}
         <View
-          style={[styles.statusBadge, { backgroundColor: config.bg, borderColor: config.border }]}
+          style={[
+            styles.statusBadge,
+            {
+              backgroundColor: withOpacity(statusColor, 0.08),
+              borderColor: withOpacity(statusColor, 0.25),
+            },
+          ]}
         >
-          <Text style={[styles.statusLabel, { color: config.text }]}>{config.label}</Text>
+          <Text style={[styles.statusLabel, { color: statusColor }]}>{config.label}</Text>
         </View>
 
         {task.status !== "completed" && (

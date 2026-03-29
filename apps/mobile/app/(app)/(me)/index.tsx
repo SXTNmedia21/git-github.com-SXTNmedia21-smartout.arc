@@ -7,13 +7,13 @@
  */
 
 import React, { useCallback, useState } from "react";
-import { View, Text, Switch, Pressable, Alert, Linking, ScrollView } from "react-native";
+import { View, Text, Switch, Pressable, Alert, ScrollView, Linking } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 
-import { Phone, Lock, Settings } from "lucide-react-native";
-import { createStyles, withOpacity } from "@/theme";
+import { Phone, Lock, Wallet, UserPen, Users } from "lucide-react-native";
+import { createStyles, useTheme } from "@/theme";
 import { strings } from "@/constants/strings";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -24,6 +24,7 @@ import { supabase } from "@/lib/supabase";
 import { cacheClearAll } from "@/lib/cache/mmkv";
 import { getDb } from "@/lib/sync/db";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
+import { useLeaderPhone } from "@/hooks/queries/use-leader-phone";
 import { useShiftPhase } from "@/hooks/stores/use-shift-phase";
 import { storage } from "@/lib/cache/mmkv";
 
@@ -44,8 +45,10 @@ function setPushPref(enabled: boolean): void {
 
 export default function MeScreen() {
   const styles = useStyles();
+  const { colors } = useTheme();
   const router = useRouter();
   const { data: profile, isLoading } = useMyProfile();
+  const { data: leaderPhone } = useLeaderPhone(profile?.profile_id);
   const { phase } = useShiftPhase();
   const [pushEnabled, setPushEnabled] = useState(getPushPref);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -61,13 +64,22 @@ export default function MeScreen() {
     setPushPref(value);
   }, []);
 
-  const handleCallLeader = useCallback(() => {
-    // Leader phone would come from the profile's team leader query.
-    // For now, this button is only rendered when leaderPhone exists.
-    // Placeholder: the actual phone should come from a query on the team leader.
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    // TODO: Wire to actual leader phone from shift context
-  }, []);
+  const handleCallLeader = useCallback(async () => {
+    if (!leaderPhone) {
+      Alert.alert("", strings.me.callLeaderNoPhone);
+      return;
+    }
+
+    const url = `tel:${leaderPhone}`;
+    const canOpen = await Linking.canOpenURL(url);
+    if (!canOpen) {
+      Alert.alert("", strings.me.callLeaderUnsupported);
+      return;
+    }
+
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    await Linking.openURL(url);
+  }, [leaderPhone]);
 
   const handleLogout = useCallback(() => {
     Alert.alert(strings.me.logout, strings.me.logoutConfirm, [
@@ -126,6 +138,53 @@ export default function MeScreen() {
           </View>
         </Card>
 
+        {/* Profile actions — edit profile and team links */}
+        <View style={styles.profileActions}>
+          <Pressable
+            style={({ pressed }) => [styles.profileActionButton, pressed && styles.pressed]}
+            onPress={() => {
+              Haptics.selectionAsync();
+              router.push("/(app)/(home)/edit-profile");
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Rediger profil"
+          >
+            <UserPen size={18} color={colors.mutedForeground} strokeWidth={1.8} />
+            <Text style={styles.profileActionText}>Rediger profil</Text>
+          </Pressable>
+
+          <Pressable
+            style={({ pressed }) => [styles.profileActionButton, pressed && styles.pressed]}
+            onPress={() => {
+              Haptics.selectionAsync();
+              router.push("/(app)/(home)/team");
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Mitt team"
+          >
+            <Users size={18} color={colors.mutedForeground} strokeWidth={1.8} />
+            <Text style={styles.profileActionText}>Mitt team</Text>
+          </Pressable>
+        </View>
+
+        {/* Payroll hub — lønn, fravær, timebank, tillegg */}
+        <Pressable
+          style={({ pressed }) => [styles.payrollRow, pressed && styles.pressed]}
+          onPress={() => {
+            Haptics.selectionAsync();
+            router.push("/(app)/(me)/payroll");
+          }}
+          accessibilityRole="button"
+          accessibilityLabel={strings.payroll.title}
+        >
+          <Wallet size={22} color={styles.payrollIconColor.color} strokeWidth={2} />
+          <View style={styles.payrollTextWrap}>
+            <Text style={styles.payrollTitle}>{strings.payroll.title}</Text>
+            <Text style={styles.payrollSubtitle}>{strings.payroll.myPay}</Text>
+          </View>
+          <Text style={styles.chevronRight}>›</Text>
+        </Pressable>
+
         {/* Notification preferences */}
         <Card style={styles.section}>
           <SectionHeader title={strings.me.notifications} />
@@ -134,8 +193,8 @@ export default function MeScreen() {
             <Switch
               value={pushEnabled}
               onValueChange={handleTogglePush}
-              trackColor={{ false: "#767577", true: "#e85c0d" }}
-              thumbColor="#ffffff"
+              trackColor={{ false: colors.mutedForeground, true: colors.brandOrange }}
+              thumbColor={colors.primaryForeground}
             />
           </View>
         </Card>
@@ -148,7 +207,7 @@ export default function MeScreen() {
             accessibilityRole="button"
             accessibilityLabel={strings.me.callLeader}
           >
-            <Phone size={20} color="#e85c0d" strokeWidth={2} />
+            <Phone size={20} color={colors.brandOrange} strokeWidth={2} />
             <Text style={styles.callLeaderText}>{strings.me.callLeader}</Text>
           </Pressable>
         )}
@@ -197,7 +256,62 @@ const useStyles = createStyles((theme) => ({
   },
   profileCard: {
     marginHorizontal: theme.spacing.card,
+    marginBottom: theme.spacing.element,
+  },
+  profileActions: {
+    flexDirection: "row",
+    gap: theme.spacing.element,
+    paddingHorizontal: theme.spacing.card,
     marginBottom: theme.spacing.section,
+  },
+  profileActionButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 12,
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  profileActionText: {
+    ...theme.typography.caption,
+    color: theme.colors.mutedForeground,
+    fontWeight: theme.fontWeights.medium,
+  },
+  payrollRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.element,
+    marginHorizontal: theme.spacing.card,
+    marginBottom: theme.spacing.section,
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.card,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  payrollIconColor: {
+    color: theme.colors.brandOrange,
+  },
+  payrollTextWrap: {
+    flex: 1,
+    gap: 2,
+  },
+  payrollTitle: {
+    ...theme.typography.bodyBold,
+    color: theme.colors.foreground,
+  },
+  payrollSubtitle: {
+    ...theme.typography.caption,
+    color: theme.colors.mutedForeground,
+  },
+  chevronRight: {
+    fontSize: 22,
+    color: theme.colors.mutedForeground,
+    fontWeight: "300",
   },
   profileRow: {
     flexDirection: "row",

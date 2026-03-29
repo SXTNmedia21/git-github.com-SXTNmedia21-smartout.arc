@@ -4,6 +4,19 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { UltravoxSession, UltravoxSessionStatus, Role } from "ultravox-client";
 import { toast } from "sonner";
 import type { BusinessData, SeasonData, BrregCandidate } from "../types";
+import {
+  updateBusinessSchema,
+  updateSeasonSchema,
+  addDepartmentsSchema,
+  addLocationsSchema,
+  addZonesSchema,
+  addProceduresSchema,
+  searchCompanySchema,
+  identifyCompanySchema,
+  scrapeWebsiteSchema,
+  addKeyFactSchema,
+  saveMemorySchema,
+} from "../lib/tool-schemas";
 
 type GetOnboardingState = () => Record<string, unknown>;
 
@@ -353,79 +366,63 @@ export function useBotsson(actions?: BotssonActions): BotssonState {
       });
 
       session.registerToolImplementation("updateBusiness", (params) => {
-        try {
-          const fields = JSON.parse(String(params.fields ?? "{}"));
-          actionsRef.current?.updateBusiness(fields);
-          return JSON.stringify({ success: true });
-        } catch {
-          return JSON.stringify({ success: false, error: "Invalid JSON" });
-        }
+        const parsed = updateBusinessSchema.safeParse(params);
+        if (!parsed.success) return JSON.stringify({ success: false, error: parsed.error.message });
+        actionsRef.current?.updateBusiness(parsed.data.fields as Partial<BusinessData>);
+        return JSON.stringify({ success: true });
       });
 
       session.registerToolImplementation("updateSeason", (params) => {
-        try {
-          const fields = JSON.parse(String(params.fields ?? "{}"));
-          actionsRef.current?.updateSeason(fields);
-          return JSON.stringify({ success: true });
-        } catch {
-          return JSON.stringify({ success: false, error: "Invalid JSON" });
-        }
+        const parsed = updateSeasonSchema.safeParse(params);
+        if (!parsed.success) return JSON.stringify({ success: false, error: parsed.error.message });
+        actionsRef.current?.updateSeason(parsed.data.fields as Partial<SeasonData>);
+        return JSON.stringify({ success: true });
       });
 
       session.registerToolImplementation("addDepartments", (params) => {
-        try {
-          const names = JSON.parse(String(params.names ?? "[]")) as string[];
-          actionsRef.current?.addDepartments(names);
-          return JSON.stringify({ success: true, added: names });
-        } catch {
-          return JSON.stringify({ success: false, error: "Invalid JSON" });
-        }
+        const parsed = addDepartmentsSchema.safeParse(params);
+        if (!parsed.success) return JSON.stringify({ success: false, error: parsed.error.message });
+        actionsRef.current?.addDepartments(parsed.data.names);
+        return JSON.stringify({ success: true, added: parsed.data.names });
       });
 
       session.registerToolImplementation("addLocations", (params) => {
-        try {
-          const locs = JSON.parse(String(params.locations ?? "[]")) as {
-            name: string;
-            type?: string;
-          }[];
-          actionsRef.current?.addLocations(locs);
-          return JSON.stringify({ success: true, added: locs.length });
-        } catch {
-          return JSON.stringify({ success: false, error: "Invalid JSON" });
-        }
+        const parsed = addLocationsSchema.safeParse(params);
+        if (!parsed.success) return JSON.stringify({ success: false, error: parsed.error.message });
+        actionsRef.current?.addLocations(parsed.data.locations);
+        return JSON.stringify({ success: true, added: parsed.data.locations.length });
       });
 
       session.registerToolImplementation("addZones", (params) => {
-        try {
-          const locationName = String(params.locationName ?? "");
-          const zones = JSON.parse(String(params.zones ?? "[]")) as { name: string }[];
-          actionsRef.current?.addZones(locationName, zones);
-          return JSON.stringify({
-            success: true,
-            location: locationName,
-            zonesAdded: zones.length,
-          });
-        } catch {
-          return JSON.stringify({ success: false, error: "Invalid JSON" });
-        }
+        const parsed = addZonesSchema.safeParse(params);
+        if (!parsed.success) return JSON.stringify({ success: false, error: parsed.error.message });
+        actionsRef.current?.addZones(parsed.data.locationName, parsed.data.zones);
+        return JSON.stringify({
+          success: true,
+          location: parsed.data.locationName,
+          zonesAdded: parsed.data.zones.length,
+        });
       });
 
       session.registerToolImplementation("addProcedures", (params) => {
-        try {
-          const names = JSON.parse(String(params.names ?? "[]")) as string[];
-          actionsRef.current?.addProcedures(names);
-          return JSON.stringify({ success: true, added: names });
-        } catch {
-          return JSON.stringify({ success: false, error: "Invalid JSON" });
-        }
+        const parsed = addProceduresSchema.safeParse(params);
+        if (!parsed.success) return JSON.stringify({ success: false, error: parsed.error.message });
+        actionsRef.current?.addProcedures(parsed.data.names);
+        return JSON.stringify({ success: true, added: parsed.data.names });
       });
 
       session.registerToolImplementation("searchCompany", async (params) => {
-        try {
-          const name = String(params.name ?? "");
-          const city = String(params.city ?? "");
-          if (!name) return JSON.stringify({ found: false, count: 0, candidates: [] });
+        const parsed = searchCompanySchema.safeParse(params);
+        if (!parsed.success)
+          return JSON.stringify({
+            found: false,
+            count: 0,
+            candidates: [],
+            error: parsed.error.message,
+          });
 
+        try {
+          const { name, city } = parsed.data;
           const candidates = await actionsRef.current?.searchCompany(name, city || undefined);
           return JSON.stringify({
             found: (candidates?.length ?? 0) > 0,
@@ -445,11 +442,11 @@ export function useBotsson(actions?: BotssonActions): BotssonState {
       });
 
       session.registerToolImplementation("identifyCompany", async (params) => {
-        try {
-          const orgNumber = String(params.orgNumber ?? "");
-          if (!orgNumber) return JSON.stringify({ success: false, error: "orgNumber is required" });
+        const parsed = identifyCompanySchema.safeParse(params);
+        if (!parsed.success) return JSON.stringify({ success: false, error: parsed.error.message });
 
-          const result = await actionsRef.current?.identifyCompany(orgNumber);
+        try {
+          const result = await actionsRef.current?.identifyCompany(parsed.data.orgNumber);
           if (!result) return JSON.stringify({ success: false, error: "Identification failed" });
 
           const company = result.company as Record<string, unknown>;
@@ -481,11 +478,11 @@ export function useBotsson(actions?: BotssonActions): BotssonState {
       });
 
       session.registerToolImplementation("scrapeWebsite", async (params) => {
-        try {
-          const url = String(params.url ?? "");
-          if (!url) return JSON.stringify({ success: false, error: "url is required" });
+        const parsed = scrapeWebsiteSchema.safeParse(params);
+        if (!parsed.success) return JSON.stringify({ success: false, error: parsed.error.message });
 
-          const result = await actionsRef.current?.scrapeWebsite(url);
+        try {
+          const result = await actionsRef.current?.scrapeWebsite(parsed.data.url);
           const scraped = result?.scrapedData;
 
           return JSON.stringify({
@@ -510,19 +507,21 @@ export function useBotsson(actions?: BotssonActions): BotssonState {
       });
 
       session.registerToolImplementation("addKeyFact", (params) => {
-        const label = String(params.label ?? "");
-        const value = String(params.value ?? "");
-        if (label && value) {
-          actionsRef.current?.addKeyFact(label, value);
-        }
-        return JSON.stringify({ success: true, message: `Added: ${label}: ${value}` });
+        const parsed = addKeyFactSchema.safeParse(params);
+        if (!parsed.success) return JSON.stringify({ success: false, error: parsed.error.message });
+        actionsRef.current?.addKeyFact(parsed.data.label, parsed.data.value);
+        return JSON.stringify({
+          success: true,
+          message: `Added: ${parsed.data.label}: ${parsed.data.value}`,
+        });
       });
 
       session.registerToolImplementation("saveMemory", (params) => {
-        const content = String(params.content ?? "");
-        const memoryType = String(params.memoryType ?? "constant");
-        const expiresAt = params.expiresAt ? String(params.expiresAt) : undefined;
-        actionsRef.current?.saveMemory(content, memoryType, expiresAt).catch(() => {});
+        const parsed = saveMemorySchema.safeParse(params);
+        if (!parsed.success) return JSON.stringify({ success: false, error: parsed.error.message });
+        actionsRef.current
+          ?.saveMemory(parsed.data.content, parsed.data.memoryType, parsed.data.expiresAt)
+          .catch(() => {});
         return JSON.stringify({ success: true, message: "Memory saved" });
       });
 

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { EASE_EXPO } from "../lib/motion";
 import {
   Building2,
   Globe,
@@ -91,7 +92,7 @@ export function BigBoard() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{
                 duration: 0.6,
-                ease: [0.16, 1, 0.3, 1],
+                ease: EASE_EXPO,
                 delay: idx * 0.05,
               }}
               className="rounded-2xl border border-white/[0.06] bg-white/[0.04] p-5"
@@ -112,7 +113,7 @@ export function BigBoard() {
                     animate={{ scale: 1 }}
                     transition={{ type: "spring", stiffness: 500, damping: 25 }}
                   >
-                    <Check className="h-4 w-4 text-emerald-400" />
+                    <Check className="text-success h-4 w-4" />
                   </motion.div>
                 ) : scrapeStatus === "scraping" ? (
                   <Loader2 className="h-4 w-4 animate-spin text-white/30" />
@@ -129,7 +130,7 @@ export function BigBoard() {
                         <motion.div
                           initial={{ opacity: 0, x: -12 }}
                           animate={{ opacity: 1, x: 0 }}
-                          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                          transition={{ duration: 0.5, ease: EASE_EXPO }}
                           className="flex items-baseline justify-between gap-3"
                         >
                           <span className="shrink-0 text-xs text-white/35">{field.label}</span>

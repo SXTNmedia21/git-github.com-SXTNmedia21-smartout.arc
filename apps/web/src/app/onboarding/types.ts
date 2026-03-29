@@ -54,6 +54,16 @@ export interface BusinessData {
   latitude: number | null;
   longitude: number | null;
   photos: string[];
+  // Join intake fields — restored from intelligence_data
+  socialLinks?: Record<string, string>;
+  restaurantType?: string;
+  cuisineTypes?: string[];
+  menuDescription?: string;
+  priceCategory?: string;
+  ourHistory?: string;
+  ourConcept?: string;
+  reservationUrl?: string;
+  menuLinks?: Array<{ href: string; text: string }>;
 }
 
 /** Season configuration */
@@ -71,7 +81,7 @@ export interface DepartmentOption {
   name: string;
   icon: string;
   selected: boolean;
-  positions: string[];
+  positions: PositionOption[];
 }
 
 /** Contract template state */
@@ -87,6 +97,15 @@ export interface ContractData {
 export interface ZoneData {
   id: string;
   name: string;
+}
+
+/** A position within a department — used in onboarding wizard */
+export interface PositionOption {
+  id: string;
+  name: string;
+  slug: string;
+  isLeader: boolean;
+  selected: boolean;
 }
 
 /** A physical location */
@@ -189,3 +208,22 @@ export const DEFAULT_SEASON_DATA: SeasonData = {
   expectedRevenue: null,
   targetMargin: null,
 };
+
+/** A profession (Fag) with positions for onboarding confirmation */
+export interface ProfessionOption {
+  id: string;
+  slug: string;
+  name: string;
+  isUniversal: boolean;
+  positions: PositionOption[];
+}
+
+/** A leadership/organizational role — selected during onboarding */
+export interface RoleOption {
+  id: string;
+  name: string;
+  description: string;
+  selected: boolean;
+  /** Whether this role is required by regulation (cannot be deselected) */
+  required: boolean;
+}

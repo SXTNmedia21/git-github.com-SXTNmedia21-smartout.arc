@@ -31,7 +31,9 @@ export type EventCategory =
   | "communication"
   | "system"
   | "navigation"
-  | "channels";
+  | "channels"
+  | "agent"
+  | "telegram";
 
 // ─── Entity Reference (for robust UI audit trails) ─
 export interface EntityRef {
@@ -96,7 +98,13 @@ export type EntityType =
   | "website_section"
   | "website_asset"
   | "website_spokesperson"
-  | "deviation";
+  | "deviation"
+  | "agent_session"
+  | "task_surface"
+  | "entity_drawer"
+  | "financial_close_config"
+  | "profession"
+  | "legal_function";
 
 export type ActionVerb =
   | "created"
@@ -138,6 +146,7 @@ export type ActionVerb =
   | "dismissed"
   | "answered"
   | "loaded"
+  | "locked"
   | "auto_filled"
   | "joined"
   | "left"
@@ -152,7 +161,12 @@ export type ActionVerb =
   | "rollback"
   | "verified"
   | "failed"
-  | "generated";
+  | "generated"
+  | "late_detected"
+  | "no_show_escalated"
+  | "confirmed"
+  | "granted"
+  | "revoked";
 
 // ─── Auth Module Events ─────────────────────────
 export interface AuthSignedUp extends BaseEvent {
@@ -207,6 +221,63 @@ export interface DepartmentArchived extends BaseEvent {
   properties: {
     entity: EntityRef;
     data: { name: string };
+  };
+}
+
+// ─── Profession System Events ──────────────────────────
+export interface ProfessionCreated extends BaseEvent {
+  event: "profession created";
+  properties: {
+    entity: EntityRef;
+    data: { name: string; slug: string; source: "onboarding" | "admin" };
+  };
+}
+
+export interface PositionCreated extends BaseEvent {
+  event: "position created";
+  properties: {
+    entity: EntityRef;
+    data: { name: string; profession_id?: string; authority_level?: string };
+  };
+}
+
+export interface PositionAuthorityChanged extends BaseEvent {
+  event: "position updated";
+  properties: {
+    entity: EntityRef;
+    changes: { authority_level: { before: string | null; after: string } };
+  };
+}
+
+export interface LegalFunctionAssigned extends BaseEvent {
+  event: "legal_function assigned";
+  properties: {
+    entity: EntityRef;
+    data: { profile_id: string; slug: string };
+  };
+}
+
+export interface ProfileAccessGranted extends BaseEvent {
+  event: "profile granted";
+  properties: {
+    entity: EntityRef;
+    data: { scope: string; granted_by: "authority" | "legal_function" | "manual" };
+  };
+}
+
+export interface ProfileAccessRevoked extends BaseEvent {
+  event: "profile revoked";
+  properties: {
+    entity: EntityRef;
+    data: { scope: string };
+  };
+}
+
+export interface OnboardingProfessionsConfirmed extends BaseEvent {
+  event: "profession confirmed";
+  properties: {
+    entity: EntityRef;
+    data: { profession_count: number; position_count: number };
   };
 }
 
@@ -269,6 +340,127 @@ export interface ShiftCompleted extends BaseEvent {
       shift_ids: string[];
       department_id: string;
     };
+  };
+}
+
+// ─── Scheduling: Shift Clock Events ─────────────
+export interface ShiftPunchedIn extends BaseEvent {
+  event: "shift punched_in";
+  properties: {
+    entity: EntityRef;
+    data: {
+      shift_id: string;
+      time_entry_id: string;
+      punch_time: string;
+      is_adhoc: boolean;
+      gps_verified: boolean;
+      gps_distance_meters: number | null;
+    };
+  };
+}
+
+export interface ShiftPunchedOut extends BaseEvent {
+  event: "shift punched_out";
+  properties: {
+    entity: EntityRef;
+    data: {
+      shift_id: string;
+      time_entry_id: string;
+      punch_time: string;
+      work_minutes: number;
+      break_minutes: number;
+      gps_verified: boolean;
+    };
+  };
+}
+
+export interface ShiftBreakStarted extends BaseEvent {
+  event: "shift break_started";
+  properties: {
+    entity: EntityRef;
+    data: { shift_id: string; time_entry_id: string };
+  };
+}
+
+export interface ShiftBreakEnded extends BaseEvent {
+  event: "shift break_ended";
+  properties: {
+    entity: EntityRef;
+    data: {
+      shift_id: string;
+      time_entry_id: string;
+      break_minutes: number;
+      is_paid: boolean;
+    };
+  };
+}
+
+export interface ShiftSupplementClaimed extends BaseEvent {
+  event: "shift supplement_claimed";
+  properties: {
+    entity: EntityRef;
+    data: { shift_id: string; supplement_rule_id: string; amount: number };
+  };
+}
+
+export interface ShiftSupplementReviewed extends BaseEvent {
+  event: "shift supplement_reviewed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      supplement_id: string;
+      status: "approved" | "rejected";
+      reviewed_by: string;
+    };
+  };
+}
+
+export interface ShiftNoteAdded extends BaseEvent {
+  event: "shift note_added";
+  properties: {
+    entity: EntityRef;
+    data: { shift_id: string; note_id: string };
+  };
+}
+
+export interface ShiftAdhocCreated extends BaseEvent {
+  event: "shift adhoc_created";
+  properties: {
+    entity: EntityRef;
+    data: { shift_id: string; department_id: string; requires_approval: boolean };
+  };
+}
+
+export interface ShiftAdhocApproved extends BaseEvent {
+  event: "shift adhoc_approved";
+  properties: {
+    entity: EntityRef;
+    data: { shift_id: string; approved_by: string };
+  };
+}
+
+export interface ShiftCallInitiated extends BaseEvent {
+  event: "shift call_initiated";
+  properties: {
+    entity: EntityRef;
+    data: { shift_id: string; department_id: string; leaders_on_duty: number };
+  };
+}
+
+// ─── Scheduling: Lateness Detection ─────────────
+export interface ShiftLateDetected extends BaseEvent {
+  event: "shift late_detected";
+  properties: {
+    entity: EntityRef;
+    data: { minutes_late: number; threshold: number };
+  };
+}
+
+export interface ShiftNoShowEscalated extends BaseEvent {
+  event: "shift no_show_escalated";
+  properties: {
+    entity: EntityRef;
+    data: { minutes_late: number };
   };
 }
 
@@ -439,6 +631,17 @@ export interface ReconciliationAdminAction extends BaseEvent {
   };
 }
 
+export interface ReconciliationLocked extends BaseEvent {
+  event: "reconciliation locked";
+  properties: {
+    entity: EntityRef;
+    data: {
+      reconciliation_id: string;
+      reconciliation_date: string;
+    };
+  };
+}
+
 // ─── Handbook ───────────────────────────────────
 export interface HandbookChapterSaved extends BaseEvent {
   event: "handbook chapter_saved";
@@ -575,6 +778,22 @@ export interface DayFactorsUpdated extends BaseEvent {
   };
 }
 
+export interface SeasonActivated extends BaseEvent {
+  event: "season activated";
+  properties: {
+    entity: EntityRef;
+    data: { status: "active" };
+  };
+}
+
+export interface SeasonArchived extends BaseEvent {
+  event: "season archived";
+  properties: {
+    entity: EntityRef;
+    data: { status: "archived" };
+  };
+}
+
 export interface HourFactorsUpdated extends BaseEvent {
   event: "hour_factors updated";
   properties: {
@@ -586,6 +805,13 @@ export interface OperatingHoursUpdated extends BaseEvent {
   event: "operating_hours updated";
   properties: {
     data: { location_id?: string };
+  };
+}
+
+export interface WorkspaceOperatingHoursUpdated extends BaseEvent {
+  event: "workspace_operating_hours updated";
+  properties: {
+    data: Record<string, never>;
   };
 }
 
@@ -617,6 +843,22 @@ export interface AbsenceDeleted extends BaseEvent {
   properties: {
     entity: EntityRef;
     data: { profile_id: string };
+  };
+}
+
+export interface AbsenceApproved extends BaseEvent {
+  event: "absence approved";
+  properties: {
+    entity: EntityRef;
+    data: { profile_id: string; approved_by: string; start_date: string; end_date: string };
+  };
+}
+
+export interface AbsenceRejected extends BaseEvent {
+  event: "absence rejected";
+  properties: {
+    entity: EntityRef;
+    data: { profile_id: string; rejected_by: string; reason?: string };
   };
 }
 
@@ -697,6 +939,93 @@ export interface TemplateLoaded extends BaseEvent {
   };
 }
 
+export interface TemplateApplied extends BaseEvent {
+  event: "template applied";
+  properties: {
+    entity: EntityRef;
+    data: { shift_count: number; week_start: string };
+  };
+}
+
+export interface ShiftsPublished extends BaseEvent {
+  event: "shifts published";
+  properties: {
+    entity: EntityRef;
+    data: { shift_count: number; week_start: string };
+  };
+}
+
+export interface WeekReset extends BaseEvent {
+  event: "week reset";
+  properties: {
+    entity: EntityRef;
+    data: { shift_count: number; week_start: string };
+  };
+}
+
+export interface TemplateShiftCreated extends BaseEvent {
+  event: "template_shift created";
+  properties: {
+    entity: EntityRef;
+    data: { role: string; start_time: string; end_time: string };
+  };
+}
+
+export interface ShiftAssigned extends BaseEvent {
+  event: "shift assigned";
+  properties: {
+    entity: EntityRef;
+    data: { employee_id: string };
+  };
+}
+
+export interface ShiftUnassigned extends BaseEvent {
+  event: "shift unassigned";
+  properties: {
+    entity: EntityRef;
+    data: { employee_id: string };
+  };
+}
+
+export interface ShiftTypeConfigCreated extends BaseEvent {
+  event: "shift_type_config created";
+  properties: {
+    entity: EntityRef;
+    data: {
+      department_id: string;
+      shift_type_id: string;
+      label: string;
+      start_time: string;
+      end_time: string;
+      slot_count: number;
+    };
+  };
+}
+
+export interface ShiftTypeConfigUpdated extends BaseEvent {
+  event: "shift_type_config updated";
+  properties: {
+    entity: EntityRef;
+    data: {
+      department_id: string;
+      shift_type_id: string;
+      changes: Record<string, unknown>;
+    };
+  };
+}
+
+export interface ShiftTypeConfigRemoved extends BaseEvent {
+  event: "shift_type_config removed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      department_id: string;
+      shift_type_id: string;
+      label: string;
+    };
+  };
+}
+
 export interface DayInfoCreated extends BaseEvent {
   event: "day_info created";
   properties: {
@@ -763,6 +1092,14 @@ export interface MessageSent extends BaseEvent {
   };
 }
 
+// ─── Financial Close Config Events ───────────────
+export interface FinancialCloseConfigUpdated extends BaseEvent {
+  event: "financial_close_config updated";
+  properties: {
+    data: Record<string, unknown>;
+  };
+}
+
 // ─── Payroll Settings Events ─────────────────────
 export interface PayrollSettingsUpdated extends BaseEvent {
   event: "payroll_settings updated";
@@ -770,6 +1107,16 @@ export interface PayrollSettingsUpdated extends BaseEvent {
     data: {
       period_type: string;
       shift_grouping: string;
+    };
+  };
+}
+
+// ─── Security Settings Events ────────────────────
+export interface ShiftLockPolicyUpdated extends BaseEvent {
+  event: "shift_lock_policy updated";
+  properties: {
+    data: {
+      lock_mode: "enforce" | "shadow" | "off";
     };
   };
 }
@@ -1079,6 +1426,11 @@ export interface OnboardingGuideUpdated extends BaseEvent {
   };
 }
 
+export interface SetupGuideCompleted extends BaseEvent {
+  event: "setup_guide completed";
+  properties: Record<string, never>;
+}
+
 // ─── Industry Package Events ────────────────────
 export interface IndustryPackageLoaded extends BaseEvent {
   event: "industry_package loaded";
@@ -1140,8 +1492,11 @@ export interface WizardStepCompleted extends BaseEvent {
   event: "wizard step_completed";
   properties: {
     data: {
+      wizard_id: string;
       step_id: string;
       step_index: number;
+      /** Time spent on the step before completing it */
+      duration_ms?: number;
     };
   };
 }
@@ -1150,7 +1505,147 @@ export interface WizardCompleted extends BaseEvent {
   event: "wizard completed";
   properties: {
     data: {
-      workspace_id: string;
+      wizard_id: string;
+      workspace_id: string | null;
+    };
+  };
+}
+
+export interface WizardStarted extends BaseEvent {
+  event: "wizard started";
+  properties: {
+    data: {
+      wizard_id: string;
+      theme: string;
+      total_steps: number;
+    };
+  };
+}
+
+export interface WizardStepEntered extends BaseEvent {
+  event: "wizard step_entered";
+  properties: {
+    data: {
+      wizard_id: string;
+      step_id: string;
+      step_index: number;
+      from_step?: string;
+    };
+  };
+}
+
+export interface WizardStepSkipped extends BaseEvent {
+  event: "wizard step_skipped";
+  properties: {
+    data: {
+      wizard_id: string;
+      step_id: string;
+      step_index: number;
+    };
+  };
+}
+
+export interface WizardStepBack extends BaseEvent {
+  event: "wizard step_back";
+  properties: {
+    data: {
+      wizard_id: string;
+      step_id: string;
+      to_step: string;
+    };
+  };
+}
+
+export interface WizardAbandoned extends BaseEvent {
+  event: "wizard abandoned";
+  properties: {
+    data: {
+      wizard_id: string;
+      last_step: string;
+      duration_ms: number;
+    };
+  };
+}
+
+export interface WizardValidationFailed extends BaseEvent {
+  event: "wizard validation_failed";
+  properties: {
+    data: {
+      wizard_id: string;
+      step_id: string;
+      errors: string[];
+    };
+  };
+}
+
+export interface WizardFactEdited extends BaseEvent {
+  event: "wizard fact_edited";
+  properties: {
+    data: {
+      wizard_id: string;
+      /** The label of the fact that was edited (e.g. "Bedrift", "Nettside") */
+      label: string;
+      value: string;
+    };
+  };
+}
+
+// ─── Flow Events ───────────────────────────────
+export interface FlowStarted extends BaseEvent {
+  event: "flow started";
+  properties: {
+    data: {
+      flow_id: string;
+      total_slides: number;
+    };
+  };
+}
+
+export interface FlowSlideViewed extends BaseEvent {
+  event: "flow slide_viewed";
+  properties: {
+    data: {
+      flow_id: string;
+      slide_index: number;
+      slide_type: string;
+      duration_ms?: number;
+    };
+  };
+}
+
+export interface FlowAnswerSubmitted extends BaseEvent {
+  event: "flow answer_submitted";
+  properties: {
+    data: {
+      flow_id: string;
+      slide_index: number;
+      answer_key: string;
+      answer_value: string | string[];
+    };
+  };
+}
+
+export interface FlowCompleted extends BaseEvent {
+  event: "flow completed";
+  properties: {
+    data: {
+      flow_id: string;
+      total_slides: number;
+      duration_ms: number;
+      action?: string;
+      answers: Record<string, string | string[]>;
+    };
+  };
+}
+
+export interface FlowSkipped extends BaseEvent {
+  event: "flow skipped";
+  properties: {
+    data: {
+      flow_id: string;
+      slide_index: number;
+      slide_type: string;
+      duration_ms: number;
     };
   };
 }
@@ -1401,6 +1896,11 @@ export interface WebsiteSpokespersonTaskOverdue extends BaseEvent {
   properties: { entity: EntityRef; data: { task_type: string; profile_id: string } };
 }
 
+export interface WebsiteSpokespersonRevoked extends BaseEvent {
+  event: "website spokesperson_revoked";
+  properties: { entity: EntityRef; data: { spokesperson_id: string } };
+}
+
 // ─── Channel Call Events ────────────────────────
 export interface ChannelCallStarted extends BaseEvent {
   event: "channel.call.started";
@@ -1478,6 +1978,164 @@ export interface ChannelCallPttDeactivated extends BaseEvent {
   entity: EntityRef;
 }
 
+export interface ChannelCallParticipantMuted extends BaseEvent {
+  event: "channel.call.participant_muted";
+  properties: {
+    channel_id: string;
+    target_identity: string;
+    muted: boolean;
+  };
+  entity: EntityRef;
+}
+
+// ─── Agent Events ───────────────────────────────
+export interface AgentSessionStarted extends BaseEvent {
+  event: "agent session_started";
+  properties: {
+    entity: EntityRef;
+    data: { channel: "mobile" | "web"; mode: "voice" | "text" };
+  };
+}
+
+export interface AgentSessionClosed extends BaseEvent {
+  event: "agent session_closed";
+  properties: {
+    entity: EntityRef;
+    data: { duration_seconds: number; tool_calls: number };
+  };
+}
+
+export interface AgentToolCalled extends BaseEvent {
+  event: "agent tool_called";
+  properties: {
+    entity: EntityRef;
+    data: { tool_name: string; capability: string; success: boolean };
+  };
+}
+
+export interface NotificationDeepLinkFollowed extends BaseEvent {
+  event: "notification deep_link_followed";
+  properties: {
+    data: { notification_type: string; target_route: string };
+  };
+}
+
+export interface HubActionTapped extends BaseEvent {
+  event: "hub action_tapped";
+  properties: {
+    data: { action_type: string; action_id: string; priority: number };
+  };
+}
+
+// ─── Cascade Task Surface Events ────────────────
+export interface TaskSurfaceViewed extends BaseEvent {
+  event: "task_surface viewed";
+  properties: {
+    entity: EntityRef;
+    data: { total_tasks: number; critical_count: number };
+  };
+}
+
+export interface TaskSurfaceClicked extends BaseEvent {
+  event: "task_surface clicked";
+  properties: {
+    entity: EntityRef;
+    data: { group: string; dimension: string; urgency: string };
+  };
+}
+
+export interface TaskSurfaceSnapshot extends BaseEvent {
+  event: "task_surface snapshot";
+  properties: {
+    entity: EntityRef;
+    data: {
+      total_tasks: number;
+      critical_count: number;
+      should_count: number;
+    };
+  };
+}
+
+// ─── Entity Drawer Events ───────────────────────
+export interface EntityDrawerOpened extends BaseEvent {
+  event: "entity_drawer opened";
+  properties: {
+    data: { entity_type: string; entity_id: string; source: string };
+  };
+}
+
+export interface EntityDrawerClosed extends BaseEvent {
+  event: "entity_drawer closed";
+  properties: {
+    data: { entity_type: string; entity_id: string; duration_ms: number };
+  };
+}
+
+export interface EntityDrawerPinned extends BaseEvent {
+  event: "entity_drawer pinned";
+  properties: {
+    data: { entity_type: string; entity_id: string };
+  };
+}
+
+export interface EntityDrawerTabSwitched extends BaseEvent {
+  event: "entity_drawer tab_switched";
+  properties: {
+    data: { entity_type: string; entity_id: string; from_tab: string; to_tab: string };
+  };
+}
+
+// ─── Telegram Events ────────────────────────────
+export interface TelegramSessionCreated extends BaseEvent {
+  event: "telegram session_created";
+  properties: { data: { session_id: string } };
+}
+
+export interface TelegramMessageReceived extends BaseEvent {
+  event: "telegram message_received";
+  properties: { data: { text: string } };
+}
+
+export interface TelegramMessageSent extends BaseEvent {
+  event: "telegram message_sent";
+  properties: { data: { text: string } };
+}
+
+export interface TelegramEscalationSent extends BaseEvent {
+  event: "telegram escalation_sent";
+  properties: { data: { title: string; severity: string } };
+}
+
+export interface TelegramEscalationResolved extends BaseEvent {
+  event: "telegram escalation_resolved";
+  properties: { data: { action_type: string } };
+}
+
+export interface TelegramPollSent extends BaseEvent {
+  event: "telegram poll_sent";
+  properties: { data: { question: string; option_count: number } };
+}
+
+export interface TelegramPollResolved extends BaseEvent {
+  event: "telegram poll_resolved";
+  properties: { data: { poll_id: string; selected_options: string[] } };
+}
+
+export interface TelegramBridgeOpened extends BaseEvent {
+  event: "telegram bridge_opened";
+  properties: { data: { channel_id: string } };
+}
+
+export interface TelegramBridgeClosed extends BaseEvent {
+  event: "telegram bridge_closed";
+  properties: { data: { channel_id: string; duration_ms: number } };
+}
+
+export interface TelegramBridgeMessageRelayed extends BaseEvent {
+  event: "telegram bridge_message_relayed";
+  properties: { data: { direction: "smartout_to_telegram" | "telegram_to_smartout" } };
+}
+
 // ─── The Single Truth Union ─────────────────────
 // Add every feature's events here. If it isn't here, it can't be emitted.
 export type SmartoutEvent =
@@ -1492,6 +2150,18 @@ export type SmartoutEvent =
   | ShiftDeleted
   | ShiftPublished
   | ShiftCompleted
+  | ShiftPunchedIn
+  | ShiftPunchedOut
+  | ShiftBreakStarted
+  | ShiftBreakEnded
+  | ShiftSupplementClaimed
+  | ShiftSupplementReviewed
+  | ShiftNoteAdded
+  | ShiftAdhocCreated
+  | ShiftAdhocApproved
+  | ShiftCallInitiated
+  | ShiftLateDetected
+  | ShiftNoShowEscalated
   | SessionOpened
   | SessionPendingSignoff
   | SessionClosed
@@ -1505,6 +2175,7 @@ export type SmartoutEvent =
   | ProtocolCompleted
   | ReconciliationSubmitted
   | ReconciliationAdminAction
+  | ReconciliationLocked
   | SignupCompleted
   | OnboardingStepCompleted
   | WorkspaceCreated
@@ -1523,15 +2194,32 @@ export type SmartoutEvent =
   | CommunicationFailed
   | WizardStepCompleted
   | WizardCompleted
+  | WizardStarted
+  | WizardStepEntered
+  | WizardStepSkipped
+  | WizardStepBack
+  | WizardAbandoned
+  | WizardValidationFailed
+  | WizardFactEdited
+  | FlowStarted
+  | FlowSlideViewed
+  | FlowAnswerSubmitted
+  | FlowCompleted
+  | FlowSkipped
   | SeasonCreated
+  | SeasonActivated
+  | SeasonArchived
   | SeasonBudgetUpdated
   | DayFactorsUpdated
   | HourFactorsUpdated
   | OperatingHoursUpdated
+  | WorkspaceOperatingHoursUpdated
   | KpiTargetUpdated
   | WorkspaceBudgetUpdated
   | AbsenceCreated
   | AbsenceDeleted
+  | AbsenceApproved
+  | AbsenceRejected
   | RosterCreated
   | RosterUpdated
   | RosterDeleted
@@ -1542,6 +2230,15 @@ export type SmartoutEvent =
   | TemplateUpdated
   | TemplateDeleted
   | TemplateLoaded
+  | TemplateApplied
+  | ShiftsPublished
+  | WeekReset
+  | TemplateShiftCreated
+  | ShiftAssigned
+  | ShiftUnassigned
+  | ShiftTypeConfigCreated
+  | ShiftTypeConfigUpdated
+  | ShiftTypeConfigRemoved
   | DayInfoCreated
   | DayInfoUpdated
   | DayInfoDeleted
@@ -1551,7 +2248,9 @@ export type SmartoutEvent =
   | LeaderPulseDismissed
   | ConversationCreated
   | MessageSent
+  | FinancialCloseConfigUpdated
   | PayrollSettingsUpdated
+  | ShiftLockPolicyUpdated
   | SalaryCodeCreated
   | SalaryCodeUpdated
   | SalaryCodeDeleted
@@ -1573,6 +2272,7 @@ export type SmartoutEvent =
   | WorkingTimeRulesUpdated
   | AuthorityConfigUpdated
   | OnboardingGuideUpdated
+  | SetupGuideCompleted
   | IndustryPackageLoaded
   | HolidayCalendarCreated
   | HolidayCalendarUpdated
@@ -1629,6 +2329,7 @@ export type SmartoutEvent =
   | WebsiteSpokespersonDeclined
   | WebsiteSpokespersonContentSubmitted
   | WebsiteSpokespersonTaskOverdue
+  | WebsiteSpokespersonRevoked
   | DeviationReported
   | DeviationUpdated
   | DeviationResolved
@@ -1642,7 +2343,37 @@ export type SmartoutEvent =
   | ChannelCallInviteMissed
   | ChannelCallGroupAnnounced
   | ChannelCallPttActivated
-  | ChannelCallPttDeactivated;
+  | ChannelCallPttDeactivated
+  | ChannelCallParticipantMuted
+  | AgentSessionStarted
+  | AgentSessionClosed
+  | AgentToolCalled
+  | NotificationDeepLinkFollowed
+  | HubActionTapped
+  | TaskSurfaceViewed
+  | TaskSurfaceClicked
+  | TaskSurfaceSnapshot
+  | EntityDrawerOpened
+  | EntityDrawerClosed
+  | EntityDrawerPinned
+  | EntityDrawerTabSwitched
+  | ProfessionCreated
+  | PositionCreated
+  | PositionAuthorityChanged
+  | LegalFunctionAssigned
+  | ProfileAccessGranted
+  | ProfileAccessRevoked
+  | OnboardingProfessionsConfirmed
+  | TelegramSessionCreated
+  | TelegramMessageReceived
+  | TelegramMessageSent
+  | TelegramEscalationSent
+  | TelegramEscalationResolved
+  | TelegramPollSent
+  | TelegramPollResolved
+  | TelegramBridgeOpened
+  | TelegramBridgeClosed
+  | TelegramBridgeMessageRelayed;
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -1683,6 +2414,55 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "shift completed": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "scheduling",
+  },
+
+  "shift punched_in": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  "shift punched_out": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  "shift break_started": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "shift break_ended": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "shift supplement_claimed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "shift supplement_reviewed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "shift note_added": {
+    destinations: ["logger", "activity_trail"],
+    category: "operations",
+  },
+  "shift adhoc_created": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  "shift adhoc_approved": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "shift call_initiated": {
+    destinations: ["posthog", "logger"],
+    category: "operations",
+  },
+  "shift late_detected": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  "shift no_show_escalated": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
   },
 
   "session opened": {
@@ -1738,6 +2518,10 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "reconciliation admin_action": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  "reconciliation locked": {
+    destinations: ["posthog", "logger", "activity_trail"],
     category: "operations",
   },
 
@@ -1812,12 +2596,59 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger", "engine_event"],
     category: "onboarding",
   },
+  "wizard fact_edited": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "onboarding",
+  },
   "wizard completed": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "onboarding",
   },
+  "wizard started": {
+    destinations: ["posthog", "logger"],
+    category: "onboarding",
+  },
+  "wizard step_entered": {
+    destinations: ["posthog", "logger"],
+    category: "onboarding",
+  },
+  "wizard step_skipped": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "onboarding",
+  },
+  "wizard step_back": {
+    destinations: ["posthog", "logger"],
+    category: "onboarding",
+  },
+  "wizard abandoned": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "onboarding",
+  },
+  "wizard validation_failed": {
+    destinations: ["posthog", "logger"],
+    category: "onboarding",
+  },
 
+  "flow started": { destinations: ["posthog", "logger"], category: "onboarding" },
+  "flow slide_viewed": { destinations: ["posthog"], category: "onboarding" },
+  "flow answer_submitted": {
+    destinations: ["posthog", "logger"],
+    category: "onboarding",
+  },
+  "flow completed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "onboarding",
+  },
+  "flow skipped": { destinations: ["posthog", "logger"], category: "onboarding" },
   "season created": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  "season activated": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  "season archived": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "operations",
   },
@@ -1837,6 +2668,10 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "operations",
   },
+  "workspace_operating_hours updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
   "kpi_target updated": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "operations",
@@ -1851,6 +2686,14 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "scheduling",
   },
   "absence deleted": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "absence approved": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "absence rejected": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "scheduling",
   },
@@ -1894,6 +2737,42 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "scheduling",
   },
+  "template applied": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "scheduling",
+  },
+  "shifts published": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "week reset": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "scheduling",
+  },
+  "template_shift created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "scheduling",
+  },
+  "shift assigned": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "scheduling",
+  },
+  "shift unassigned": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "scheduling",
+  },
+  "shift_type_config created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "scheduling",
+  },
+  "shift_type_config updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "scheduling",
+  },
+  "shift_type_config removed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "scheduling",
+  },
   "day_info created": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "scheduling",
@@ -1934,9 +2813,17 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "communication",
   },
 
+  "financial_close_config updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
   "payroll_settings updated": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "operations",
+  },
+  "shift_lock_policy updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "system",
   },
 
   "salary_code created": {
@@ -2028,6 +2915,11 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
 
   "onboarding_guide updated": {
     destinations: ["posthog", "logger"],
+    category: "onboarding",
+  },
+
+  "setup_guide completed": {
+    destinations: ["posthog", "logger", "activity_trail"],
     category: "onboarding",
   },
 
@@ -2198,6 +3090,10 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["activity_trail", "engine_event", "notifications"],
     category: "system",
   },
+  "website spokesperson_revoked": {
+    destinations: ["posthog", "activity_trail", "engine_event", "notifications"],
+    category: "system",
+  },
 
   // ─── HMS: Deviations ────────────────────────────
   "deviation reported": {
@@ -2257,5 +3153,133 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "channel.call.ptt_deactivated": {
     destinations: ["posthog"],
     category: "channels",
+  },
+  "channel.call.participant_muted": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+
+  // Agent events
+  "agent session_started": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "agent session_closed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "agent tool_called": {
+    destinations: ["logger", "activity_trail"],
+    category: "agent",
+  },
+
+  // Navigation events (mobile)
+  "notification deep_link_followed": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+  "hub action_tapped": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+
+  // Cascade Task Surface
+  "task_surface viewed": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+  "task_surface clicked": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "navigation",
+  },
+  "task_surface snapshot": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+  "entity_drawer opened": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "navigation",
+  },
+  "entity_drawer closed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "navigation",
+  },
+  "entity_drawer pinned": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "navigation",
+  },
+  "entity_drawer tab_switched": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "navigation",
+  },
+
+  "profession created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "org_structure",
+  },
+  "position created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "org_structure",
+  },
+  "position updated": {
+    destinations: ["logger", "activity_trail"],
+    category: "org_structure",
+  },
+  "legal_function assigned": {
+    destinations: ["logger", "activity_trail", "engine_event"],
+    category: "org_structure",
+  },
+  "profile granted": {
+    destinations: ["logger", "activity_trail"],
+    category: "org_structure",
+  },
+  "profile revoked": {
+    destinations: ["logger", "activity_trail"],
+    category: "org_structure",
+  },
+  "profession confirmed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "onboarding",
+  },
+  // ─── Telegram ─────────────────────────────────
+  "telegram session_created": {
+    destinations: ["logger", "activity_trail"],
+    category: "telegram",
+  },
+  "telegram message_received": {
+    destinations: ["logger", "activity_trail"],
+    category: "telegram",
+  },
+  "telegram message_sent": {
+    destinations: ["logger", "activity_trail"],
+    category: "telegram",
+  },
+  "telegram escalation_sent": {
+    destinations: ["logger", "activity_trail"],
+    category: "telegram",
+  },
+  "telegram escalation_resolved": {
+    destinations: ["logger", "activity_trail", "posthog"],
+    category: "telegram",
+  },
+  "telegram poll_sent": {
+    destinations: ["logger", "activity_trail"],
+    category: "telegram",
+  },
+  "telegram poll_resolved": {
+    destinations: ["logger", "activity_trail", "posthog"],
+    category: "telegram",
+  },
+  "telegram bridge_opened": {
+    destinations: ["logger", "activity_trail"],
+    category: "telegram",
+  },
+  "telegram bridge_closed": {
+    destinations: ["logger", "activity_trail"],
+    category: "telegram",
+  },
+  "telegram bridge_message_relayed": {
+    destinations: ["logger"],
+    category: "telegram",
   },
 };

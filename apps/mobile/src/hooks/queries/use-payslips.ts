@@ -32,7 +32,7 @@ export type PayslipDetailResult = {
 };
 
 /** Periods that represent settled pay — open/locked periods are not yet payslips */
-const SETTLED_STATUSES: Period["status"][] = ["closed" as Period["status"], "exported"];
+const SETTLED_STATUSES: Period["status"][] = ["approved", "exported"];
 
 /** How long before payslip list data is considered stale (5 minutes) */
 const STALE_TIME_MS = 5 * 60 * 1000;

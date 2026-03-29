@@ -88,7 +88,7 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
             : "general";
 
   // Determine authority for the matched capability
-  const authority = authorityConfig[intent.capability] ?? "suggest";
+  const authority = authorityConfig[intent.capability] ?? "read_only";
 
   // Step 3: Collect full context (parallel fetch)
   const ctx = await collectContext({

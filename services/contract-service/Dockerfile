@@ -36,6 +36,7 @@ COPY services/contract-service/src ./src
 
 # Build workspace deps in order, then contract-service
 RUN pnpm --filter @smartout/types build && \
+    pnpm --filter @smartout/utils build && \
     pnpm --filter @smartout/contract-service build
 
 # ── Stage 2: Production ────────────────────────────────────
@@ -54,7 +55,9 @@ RUN pnpm install --frozen-lockfile --filter @smartout/contract-service... --igno
 # Copy built output from all workspace deps
 COPY --from=builder /app/packages/types/dist ./packages/types/dist
 COPY --from=builder /app/packages/supabase/src ./packages/supabase/src
-COPY --from=builder /app/packages/utils/src ./packages/utils/src
+COPY --from=builder /app/packages/utils/dist ./packages/utils/dist
+# Patch utils main to point to compiled output for Node ESM runtime
+RUN sed -i 's|"main": "src/index.ts"|"main": "dist/index.js"|' packages/utils/package.json
 
 WORKDIR /app/services/contract-service
 COPY --from=builder /app/services/contract-service/dist ./dist

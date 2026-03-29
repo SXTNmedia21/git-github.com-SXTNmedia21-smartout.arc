@@ -22,18 +22,20 @@ export default function PricingPreviewBlock({
         className={`mx-auto ${getLayoutClasses(settings.layout)} text-center`}
       >
         {content.heading && (
-          <h2 className="mb-4 text-3xl font-bold tracking-tight text-white lg:text-4xl">
+          <h2 className="text-foreground mb-4 text-3xl font-bold tracking-tight lg:text-4xl">
             {content.heading}
           </h2>
         )}
 
         {content.subheading && (
-          <p className="mx-auto mb-8 max-w-2xl text-lg text-zinc-400">{content.subheading}</p>
+          <p className="text-muted-foreground mx-auto mb-8 max-w-2xl text-lg">
+            {content.subheading}
+          </p>
         )}
 
         <Link
           href={content.cta_href}
-          className="inline-flex items-center gap-2 rounded-full bg-white px-8 py-4 font-bold text-zinc-950 transition-all hover:bg-zinc-200"
+          className="bg-foreground text-background hover:bg-foreground/90 inline-flex items-center gap-2 rounded-full px-8 py-4 font-bold transition-all"
         >
           {content.cta_label}
           <ArrowRight className="h-4 w-4" />

@@ -1,16 +1,15 @@
 "use client";
 
 import { useState, useCallback, useEffect, useMemo } from "react";
-import {
-  Plus,
-  Shield,
-  ShieldCheck,
-  CheckCircle2,
-  Loader2,
-  FileText,
-  ChevronDown,
-} from "lucide-react";
+import { Plus, CheckCircle2, Loader2, FileText, ChevronDown, ScrollText } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import {
@@ -24,14 +23,11 @@ import type {
   GovernanceTemplate,
 } from "@/app/dashboard/governance/_hooks/use-governance-templates";
 import type { IndustryPackage } from "@/lib/industry/types";
-import { PolicyForm } from "@/app/dashboard/governance/_components/PolicyForm";
-import { HelpTip } from "@/components/dashboard/wizard-steps/HelpTip";
 
-// ─── TemplateCard ──────────────────────────────────────────
+// ─── TemplateCard (used inside drawer) ───────────────────
 
 function TemplateCard({
   template,
-  isDark,
   isCreated,
   isCreating,
   isMandatory,
@@ -40,7 +36,6 @@ function TemplateCard({
   onCreate,
 }: {
   template: GovernanceTemplate;
-  isDark: boolean;
   isCreated: boolean;
   isCreating: boolean;
   isMandatory: boolean;
@@ -55,15 +50,10 @@ function TemplateCard({
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
-      <div
-        className={`overflow-hidden rounded-xl border transition-colors ${
-          isDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-white"
-        }`}
-      >
+      <div className="border-border bg-card overflow-hidden rounded-xl border transition-colors">
         <CollapsibleTrigger asChild>
           <div className="flex cursor-pointer items-center justify-between px-4 py-3">
             <div className="flex min-w-0 flex-1 items-center gap-3">
-              {/* Toggle for recommended only */}
               {!isMandatory && onToggle && (
                 <Switch
                   checked={isChecked}
@@ -74,33 +64,17 @@ function TemplateCard({
               )}
 
               <div className="min-w-0 flex-1">
-                <p
-                  className={`truncate text-sm font-semibold ${
-                    isDark ? "text-zinc-200" : "text-zinc-800"
-                  }`}
-                >
-                  {template.name}
-                </p>
+                <p className="text-foreground truncate text-sm font-semibold">{template.name}</p>
                 {template.description && (
-                  <p className={`truncate text-xs ${isDark ? "text-zinc-500" : "text-zinc-500"}`}>
-                    {template.description}
-                  </p>
+                  <p className="text-muted-foreground truncate text-sm">{template.description}</p>
                 )}
                 <div className="mt-1 flex items-center gap-2">
-                  <span
-                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                      isDark ? "bg-zinc-800 text-zinc-400" : "bg-zinc-100 text-zinc-500"
-                    }`}
-                  >
+                  <span className="bg-muted text-muted-foreground inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium">
                     <FileText className="h-3 w-3" />
                     {procedureCount} prosedyre{procedureCount !== 1 ? "r" : ""}
                   </span>
                   {hasQuestions && (
-                    <span
-                      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                        isDark ? "bg-zinc-800 text-zinc-400" : "bg-zinc-100 text-zinc-500"
-                      }`}
-                    >
+                    <span className="bg-muted text-muted-foreground inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium">
                       1 test
                     </span>
                   )}
@@ -109,11 +83,10 @@ function TemplateCard({
             </div>
 
             <div className="ml-3 flex shrink-0 items-center gap-2">
-              {/* Action */}
               {isCreated ? (
-                <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                <CheckCircle2 className="text-success h-5 w-5" />
               ) : isCreating ? (
-                <Loader2 className="h-5 w-5 animate-spin text-orange-500" />
+                <Loader2 className="text-brand-orange h-5 w-5 animate-spin" />
               ) : (
                 <button
                   onClick={(e) => {
@@ -121,13 +94,13 @@ function TemplateCard({
                     onCreate();
                   }}
                   disabled={!isMandatory && !isChecked}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors ${
                     !isMandatory && !isChecked
                       ? "cursor-not-allowed opacity-40"
-                      : "bg-orange-500 text-white hover:bg-orange-600"
+                      : "bg-brand-orange hover:bg-brand-orange/90 text-white"
                   }`}
                 >
-                  Opprett
+                  Aktiver
                 </button>
               )}
               <ChevronDown className={cn("h-4 w-4 transition-transform", open && "rotate-180")} />
@@ -136,26 +109,20 @@ function TemplateCard({
         </CollapsibleTrigger>
 
         <CollapsibleContent>
-          <div
-            className={`space-y-2 border-t px-4 py-3 ${isDark ? "border-zinc-800" : "border-zinc-200"}`}
-          >
-            <p className={`text-xs leading-relaxed ${isDark ? "text-zinc-400" : "text-zinc-600"}`}>
+          <div className="border-border space-y-2 border-t px-4 py-3">
+            <p className="text-muted-foreground text-sm leading-relaxed">
               {template.longDescription}
             </p>
-            <p className={`text-[10px] font-medium ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+            <p className="text-muted-foreground text-xs font-medium">
               Inkluderer: {procedureCount} prosedyre{procedureCount !== 1 ? "r" : ""}, {stepCount}{" "}
               steg, {hasQuestions ? "1 kunnskapstest, " : ""}1 bekreftelse
             </p>
-            <p className={`text-[10px] ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
-              Alle ansatte i berorte avdelinger far dette som opplaering. De ma lese prosedyrene,
-              besta en kunnskapstest, og signere en bekreftelse.
+            <p className="text-muted-foreground text-xs">
+              Alle ansatte i ber&oslash;rte avdelinger f&aring;r dette som oppl&aelig;ring. De
+              m&aring; lese prosedyrene, best&aring; en kunnskapstest, og signere en bekreftelse.
             </p>
             {template.legalBasis && (
-              <p
-                className={`text-[10px] font-medium ${isDark ? "text-amber-400/70" : "text-amber-600/70"}`}
-              >
-                {"\u2696"} {template.legalBasis}
-              </p>
+              <p className="text-warning/70 text-xs font-medium">&#x2696; {template.legalBasis}</p>
             )}
           </div>
         </CollapsibleContent>
@@ -164,43 +131,148 @@ function TemplateCard({
   );
 }
 
-// ─── GovernanceSetupStep ───────────────────────────────────
+// ─── Governance Drawer ───────────────────────────────────
+
+function GovernanceDrawer({
+  open,
+  onOpenChange,
+  mandatory,
+  recommended,
+  unchecked,
+  createdNames,
+  creatingId,
+  onTemplateToggle,
+  onCreate,
+  onCreateAll,
+  uncreatedCount,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  mandatory: GovernanceTemplate[];
+  recommended: GovernanceTemplate[];
+  unchecked: Set<string>;
+  createdNames: Set<string>;
+  creatingId: string | null;
+  onTemplateToggle: (id: string) => void;
+  onCreate: (template: GovernanceTemplate) => void;
+  onCreateAll: () => void;
+  uncreatedCount: number;
+}) {
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="left" className="w-full overflow-y-auto sm:max-w-lg">
+        <SheetHeader>
+          <SheetTitle>Retningslinjer og policies</SheetTitle>
+          <SheetDescription>
+            Aktiver retningslinjene som gjelder for din virksomhet. Lovp&aring;lagte m&aring;
+            aktiveres.
+          </SheetDescription>
+        </SheetHeader>
+
+        <div className="mt-6 space-y-4">
+          {uncreatedCount > 0 && (
+            <button
+              onClick={onCreateAll}
+              disabled={creatingId !== null}
+              className={`flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
+                creatingId !== null
+                  ? "cursor-not-allowed opacity-50"
+                  : "bg-brand-orange hover:bg-brand-orange/90 text-white"
+              }`}
+            >
+              <Plus className="h-4 w-4" />
+              Aktiver alle ({uncreatedCount})
+            </button>
+          )}
+
+          <div className="space-y-2">
+            {[...mandatory, ...recommended].map((t) => {
+              const isMandatory = mandatory.includes(t);
+              return (
+                <TemplateCard
+                  key={t.id}
+                  template={t}
+                  isCreated={createdNames.has(t.name)}
+                  isCreating={creatingId === t.id}
+                  isMandatory={isMandatory}
+                  isChecked={isMandatory || !unchecked.has(t.id)}
+                  onToggle={isMandatory ? undefined : () => onTemplateToggle(t.id)}
+                  onCreate={() => onCreate(t)}
+                />
+              );
+            })}
+          </div>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+// ─── GovernanceSetupStep ─────────────────────────────────
 
 export function GovernanceSetupStep({
-  isDark,
   industryPackage,
   extractedPolicies,
 }: {
-  isDark: boolean;
   industryPackage?: IndustryPackage;
   extractedPolicies?: Array<{ name: string; content: string; source: string }>;
 }) {
   const industryDefaults = useMemo<Record<FilterKey, boolean>>(() => {
-    if (!industryPackage) return { food: false, alcohol: false, overnight: false, delivery: false };
+    if (!industryPackage)
+      return {
+        food: false,
+        alcohol: false,
+        overnight: false,
+        delivery: false,
+        nightwork: false,
+        minors: false,
+        foreignWorkers: false,
+        cashHandling: false,
+        tips: false,
+      };
     return industryPackage.filterDefaults as Record<FilterKey, boolean>;
   }, [industryPackage]);
   const { data: createdPolicies } = useCreatedPolicies();
   const createFromTemplate = useCreateFromTemplate();
 
-  // ── State ──
   const [filters, setFilters] = useState<Record<FilterKey, boolean>>(() => industryDefaults);
   const [unchecked, setUnchecked] = useState<Set<string>>(new Set());
   const [creatingId, setCreatingId] = useState<string | null>(null);
   const [hasUserEdited, setHasUserEdited] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
-  // Sync industry defaults when query resolves
   useEffect(() => {
     if (!hasUserEdited) setFilters(industryDefaults);
   }, [industryDefaults, hasUserEdited]);
 
-  // Auto-check templates that match extracted policies
   useEffect(() => {
     if (!extractedPolicies || extractedPolicies.length === 0) return;
-    // Already handled by filter defaults — extraction just confirms
-    // Future: could auto-create policies from extraction data
-  }, [extractedPolicies]);
 
-  // ── Derived data ──
+    const allTemplates = getVisibleTemplates(filters);
+    const allAvailable = [...allTemplates.mandatory, ...allTemplates.recommended];
+
+    const matchedIds = new Set<string>();
+    for (const extracted of extractedPolicies) {
+      const extractedLower = extracted.name.toLowerCase();
+      for (const template of allAvailable) {
+        const templateLower = template.name.toLowerCase();
+        if (templateLower.includes(extractedLower) || extractedLower.includes(templateLower)) {
+          matchedIds.add(template.id);
+        }
+      }
+    }
+
+    if (matchedIds.size > 0) {
+      setUnchecked((prev) => {
+        const next = new Set(prev);
+        for (const id of matchedIds) {
+          next.delete(id);
+        }
+        return next;
+      });
+    }
+  }, [extractedPolicies, filters]);
+
   const { mandatory, recommended } = useMemo(() => getVisibleTemplates(filters), [filters]);
 
   const selectedRecommended = useMemo(
@@ -216,7 +288,6 @@ export function GovernanceSetupStep({
     return names;
   }, [createdPolicies]);
 
-  // ── Handlers ──
   const handleFilterToggle = useCallback((key: FilterKey) => {
     setHasUserEdited(true);
     setFilters((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -269,162 +340,74 @@ export function GovernanceSetupStep({
     (t) => !createdNames.has(t.name),
   ).length;
 
-  // ── Render ──
+  const createdCount = [...mandatory, ...recommended].filter((t) =>
+    createdNames.has(t.name),
+  ).length;
+
+  const activeFilters = Object.values(filters).filter(Boolean).length;
+
   return (
     <div className="space-y-8">
-      {/* ── Section 1: Filter questions ── */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <h3 className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-            Hva gjelder for dere?
-          </h3>
-          <HelpTip text="Svar på disse spørsmålene så vi kan forslå riktige retningslinjer for din type virksomhet." />
-        </div>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+      {/* Drawer */}
+      <GovernanceDrawer
+        open={drawerOpen}
+        onOpenChange={setDrawerOpen}
+        mandatory={mandatory}
+        recommended={recommended}
+        unchecked={unchecked}
+        createdNames={createdNames}
+        creatingId={creatingId}
+        onTemplateToggle={handleTemplateToggle}
+        onCreate={handleCreate}
+        onCreateAll={handleCreateAll}
+        uncreatedCount={uncreatedCount}
+      />
+
+      {/* Filter questions */}
+      <div className="space-y-4">
+        <h3 className="text-muted-foreground text-sm font-bold">Hva gjelder for din virksomhet?</h3>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {FILTER_QUESTIONS.map((q) => (
             <label
               key={q.key}
-              className={`flex cursor-pointer items-center justify-between rounded-xl border px-4 py-3 transition-colors ${
-                filters[q.key]
-                  ? isDark
-                    ? "border-orange-500/40 bg-orange-500/5"
-                    : "border-orange-300 bg-orange-50/50"
-                  : isDark
-                    ? "border-zinc-800 bg-zinc-900/30"
-                    : "border-zinc-200 bg-zinc-50/50"
+              className={`flex cursor-pointer items-center justify-between rounded-xl border px-5 py-4 transition-colors ${
+                filters[q.key] ? "border-brand-orange bg-brand-orange/5" : "border-border bg-muted"
               }`}
             >
-              <span className={`text-sm font-medium ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-                {q.label}
-              </span>
+              <div>
+                <p
+                  className={`text-sm font-semibold ${filters[q.key] ? "text-foreground" : "text-muted-foreground"}`}
+                >
+                  {q.label}
+                </p>
+                <p className="text-muted-foreground text-xs">{q.description}</p>
+              </div>
               <Switch checked={filters[q.key]} onCheckedChange={() => handleFilterToggle(q.key)} />
             </label>
           ))}
         </div>
       </div>
 
-      {/* ── Section 2: Suggested templates ── */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <h3 className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-              Foreslåtte retningslinjer
-            </h3>
-            <HelpTip text="Basert på svarene dine forslår vi retningslinjer. Lovpålagte må opprettes, anbefalte kan slås av." />
-          </div>
-          {uncreatedCount > 0 && (
-            <button
-              onClick={handleCreateAll}
-              disabled={creatingId !== null}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
-                creatingId !== null
-                  ? "cursor-not-allowed opacity-50"
-                  : "bg-orange-500 text-white hover:bg-orange-600"
-              }`}
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Opprett alle ({uncreatedCount})
-            </button>
-          )}
-        </div>
-
-        {/* Mandatory group */}
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="h-4 w-4 text-red-500" />
-            <span
-              className={`text-xs font-bold tracking-wider uppercase ${
-                isDark ? "text-red-400/80" : "text-red-600/80"
-              }`}
-            >
-              Lovpålagt
-            </span>
-          </div>
-          <div className="space-y-2">
-            {mandatory.map((t) => (
-              <TemplateCard
-                key={t.id}
-                template={t}
-                isDark={isDark}
-                isCreated={createdNames.has(t.name)}
-                isCreating={creatingId === t.id}
-                isMandatory
-                isChecked
-                onCreate={() => handleCreate(t)}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Recommended group */}
-        {recommended.length > 0 && (
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Shield className="h-4 w-4 text-orange-500" />
-              <span
-                className={`text-xs font-bold tracking-wider uppercase ${
-                  isDark ? "text-orange-400/80" : "text-orange-600/80"
-                }`}
-              >
-                Anbefalt for din virksomhet
+      {/* Summary + open drawer */}
+      <button
+        type="button"
+        onClick={() => setDrawerOpen(true)}
+        className="border-border bg-card hover:bg-accent flex w-full items-center gap-3 rounded-xl border px-5 py-4 text-left transition-colors"
+      >
+        <ScrollText className="text-brand-orange h-5 w-5 shrink-0" />
+        <div className="min-w-0 flex-1">
+          <p className="text-foreground text-sm font-semibold">
+            {mandatory.length + recommended.length} retningslinjer
+            {createdCount > 0 && (
+              <span className="text-success ml-2 text-xs font-normal">
+                ({createdCount} aktivert)
               </span>
-            </div>
-            <div className="space-y-2">
-              {recommended.map((t) => (
-                <TemplateCard
-                  key={t.id}
-                  template={t}
-                  isDark={isDark}
-                  isCreated={createdNames.has(t.name)}
-                  isCreating={creatingId === t.id}
-                  isMandatory={false}
-                  isChecked={!unchecked.has(t.id)}
-                  onToggle={() => handleTemplateToggle(t.id)}
-                  onCreate={() => handleCreate(t)}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ── Section 3: Custom policies ── */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-            Egne retningslinjer
-          </h3>
-          <PolicyForm />
+            )}
+          </p>
+          <p className="text-muted-foreground text-sm">Trykk for &aring; se og aktivere</p>
         </div>
-
-        {(createdPolicies ?? []).length > 0 && (
-          <div className="space-y-1.5">
-            {(createdPolicies ?? []).map((p, idx) => {
-              const procCount = p.protocol?.procedure?.length ?? 0;
-              return (
-                <div
-                  key={p.policy_id ?? idx}
-                  className={`flex items-center gap-3 rounded-lg px-4 py-2.5 ${
-                    isDark ? "bg-zinc-900/40" : "bg-zinc-50"
-                  }`}
-                >
-                  <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
-                  <span
-                    className={`flex-1 truncate text-sm font-medium ${
-                      isDark ? "text-zinc-300" : "text-zinc-700"
-                    }`}
-                  >
-                    {p.name}
-                  </span>
-                  <span className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
-                    {procCount} prosedyre{procCount !== 1 ? "r" : ""}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+        <span className="text-muted-foreground text-sm font-medium">&rarr;</span>
+      </button>
     </div>
   );
 }

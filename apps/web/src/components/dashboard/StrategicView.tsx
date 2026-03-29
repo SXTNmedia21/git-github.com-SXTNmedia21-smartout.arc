@@ -19,17 +19,15 @@ import {
   useKpiTargets,
   useKpiCopy,
   useActiveSeason,
+  useAbsenceRate,
+  useStaffTurnover,
 } from "@/app/dashboard/_hooks";
 import type { KpiMetric } from "@/app/dashboard/_hooks";
 import { BudgetSettingsPanel } from "./BudgetSettingsPanel";
 import { DashboardCard } from "./DashboardCard";
 import { SeasonCard } from "./SeasonCard";
 
-interface StrategicViewProps {
-  isDark: boolean;
-}
-
-export function StrategicView({ isDark }: StrategicViewProps) {
+export function StrategicView() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showBudget, setShowBudget] = useState(false);
 
@@ -38,6 +36,8 @@ export function StrategicView({ isDark }: StrategicViewProps) {
   const { data: activeSeason } = useActiveSeason();
   const { data: pipeline } = useWorkforcePipeline();
   const { data: training } = useTrainingReadiness();
+  const { data: absenceData } = useAbsenceRate();
+  const { data: turnoverData } = useStaffTurnover();
 
   function handleTargetSave(metric: KpiMetric, value: number) {
     updateTarget.mutate({ metric, value });
@@ -48,9 +48,7 @@ export function StrategicView({ isDark }: StrategicViewProps) {
       {/* Header */}
       <div className="flex flex-shrink-0 flex-wrap items-center gap-3 pt-1">
         <div>
-          <h1
-            className={`text-base font-black tracking-tight ${isDark ? "text-zinc-100" : "text-zinc-900"}`}
-          >
+          <h1 className="text-foreground text-base font-black tracking-tight">
             Strategisk innsikt
           </h1>
         </div>
@@ -63,9 +61,7 @@ export function StrategicView({ isDark }: StrategicViewProps) {
           className={`flex items-center gap-1.5 rounded-lg border p-1.5 text-[10px] font-bold transition-colors ${
             showBudget
               ? "border-primary/50 bg-primary/10 text-primary"
-              : isDark
-                ? "border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-zinc-200"
-                : "border-zinc-200 bg-zinc-50 text-zinc-500 hover:text-zinc-700"
+              : "border-border bg-muted text-muted-foreground hover:text-foreground"
           }`}
         >
           <BarChart3 className="h-3.5 w-3.5" />
@@ -76,7 +72,7 @@ export function StrategicView({ isDark }: StrategicViewProps) {
 
         <button
           onClick={() => setIsSettingsOpen(true)}
-          className={`flex items-center gap-2 rounded-xl border p-2 transition-colors ${isDark ? "border-zinc-800 bg-zinc-900 text-zinc-300 hover:bg-zinc-800" : "border-zinc-200 bg-zinc-50 text-zinc-700 hover:bg-zinc-100"}`}
+          className="border-border bg-muted text-muted-foreground hover:bg-muted/80 flex items-center gap-2 rounded-xl border p-2 transition-colors"
         >
           <Settings className="h-4 w-4" />
           <span className="hidden text-xs font-bold md:inline">Konfigurer mål</span>
@@ -89,7 +85,6 @@ export function StrategicView({ isDark }: StrategicViewProps) {
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
           <KPICard
-            isDark={isDark}
             title="Opplæringsberedskap"
             value={training ? `${training.readinessPercent}%` : null}
             targetDisplay={`${targets.training_readiness}%`}
@@ -109,7 +104,6 @@ export function StrategicView({ isDark }: StrategicViewProps) {
           />
 
           <KPICard
-            isDark={isDark}
             title="Oppgavefullfoering"
             value={null}
             targetDisplay={`> ${targets.task_completion}%`}
@@ -123,7 +117,6 @@ export function StrategicView({ isDark }: StrategicViewProps) {
           />
 
           <KPICard
-            isDark={isDark}
             title="Tid til jobbklar"
             value={null}
             targetDisplay={`< ${targets.time_to_job_ready}d`}
@@ -136,20 +129,43 @@ export function StrategicView({ isDark }: StrategicViewProps) {
             onTargetSave={handleTargetSave}
           />
 
-          <EmptyKPICard
-            isDark={isDark}
+          <KPICard
             title="Varekostnad %"
+            value={null}
+            targetDisplay={`< ${targets.cost_of_sales}%`}
+            status={null}
             icon={<BarChart3 className="h-5 w-5" />}
+            explanation="Kobles til regnskap. Krever integrasjon med varesystem."
+            metric="cost_of_sales"
+            targetValue={targets.cost_of_sales}
+            unit="%"
+            onTargetSave={handleTargetSave}
           />
-          <EmptyKPICard
-            isDark={isDark}
+          <KPICard
             title="Personalomsetning"
+            value={turnoverData ? `${turnoverData.rate}%` : null}
+            targetDisplay={`< ${targets.turnover_90d}%`}
+            status={
+              turnoverData ? (turnoverData.rate > targets.turnover_90d ? "bad" : "good") : null
+            }
             icon={<Users className="h-5 w-5" />}
+            explanation={kpiCopy.turnover_90d}
+            metric="turnover_90d"
+            targetValue={targets.turnover_90d}
+            unit="%"
+            onTargetSave={handleTargetSave}
           />
-          <EmptyKPICard
-            isDark={isDark}
+          <KPICard
             title="Fravaersrate"
+            value={absenceData ? `${absenceData.rate}%` : null}
+            targetDisplay={`< ${targets.absence_rate}%`}
+            status={absenceData ? (absenceData.rate > targets.absence_rate ? "bad" : "good") : null}
             icon={<Target className="h-5 w-5" />}
+            explanation={kpiCopy.absence_rate}
+            metric="absence_rate"
+            targetValue={targets.absence_rate}
+            unit="%"
+            onTargetSave={handleTargetSave}
           />
         </div>
       )}
@@ -157,45 +173,35 @@ export function StrategicView({ isDark }: StrategicViewProps) {
       {/* Main Insights Row */}
       <div className="flex min-h-0 flex-col gap-4 lg:flex-row">
         {/* Workforce Pipeline — real data */}
-        <div
-          className={`relative flex min-h-0 flex-col overflow-hidden rounded-2xl border p-5 shadow-sm lg:w-1/2 ${isDark ? "border-zinc-800 bg-[#0c0c0e]" : "border-zinc-200 bg-white"}`}
-        >
-          <h2
-            className={`mb-3 text-base font-extrabold ${isDark ? "text-zinc-100" : "text-zinc-800"}`}
-          >
-            Bemanningspipeline
-          </h2>
+        <div className="border-border bg-background relative flex min-h-0 flex-col overflow-hidden rounded-2xl border p-5 shadow-sm lg:w-1/2">
+          <h2 className="text-foreground mb-3 text-base font-extrabold">Bemanningspipeline</h2>
 
           {pipeline ? (
             <div className="relative z-10 flex flex-1 flex-col justify-center space-y-4">
               <PipelineRow
-                isDark={isDark}
                 icon={<Users className="h-5 w-5" />}
                 title="Aktive ansatte"
                 value={pipeline.activeStaff}
                 subtitle="Ansatt nå"
               />
-              <div className={`h-px w-full ${isDark ? "bg-zinc-800" : "bg-zinc-100"}`} />
+              <div className="bg-border h-px w-full" />
               <PipelineRow
-                isDark={isDark}
-                icon={<ArrowUpRight className="h-5 w-5 text-emerald-500" />}
+                icon={<ArrowUpRight className="text-success h-5 w-5" />}
                 title="Nyansatte (30d)"
                 value={`+${pipeline.newHires30d}`}
                 subtitle="Onboardet"
                 highlight
               />
-              <div className={`h-px w-full ${isDark ? "bg-zinc-800" : "bg-zinc-100"}`} />
+              <div className="bg-border h-px w-full" />
               <PipelineRow
-                isDark={isDark}
-                icon={<ArrowDownRight className="h-5 w-5 text-red-500" />}
+                icon={<ArrowDownRight className="text-destructive h-5 w-5" />}
                 title="Sluttet (30d)"
                 value={`-${pipeline.departures30d}`}
                 subtitle="Avganger"
                 alert={pipeline.departures30d > 2}
               />
-              <div className={`h-px w-full ${isDark ? "bg-zinc-800" : "bg-zinc-100"}`} />
+              <div className="bg-border h-px w-full" />
               <PipelineRow
-                isDark={isDark}
                 icon={<Briefcase className="h-5 w-5" />}
                 title="Under opplaering"
                 value={pipeline.onboarding}
@@ -203,42 +209,33 @@ export function StrategicView({ isDark }: StrategicViewProps) {
               />
             </div>
           ) : (
-            <EmptyState isDark={isDark} message="Ingen ansatte registrert ennå" />
+            <EmptyState message="Ingen ansatte registrert ennå" />
           )}
         </div>
 
         {/* Training overview — real data */}
-        <div
-          className={`relative flex min-h-0 flex-col overflow-hidden rounded-2xl border p-5 shadow-sm lg:w-1/2 ${isDark ? "border-zinc-800 bg-[#0c0c0e]" : "border-zinc-200 bg-white"}`}
-        >
-          <h2
-            className={`mb-3 text-base font-extrabold ${isDark ? "text-zinc-100" : "text-zinc-800"}`}
-          >
-            Opplaeringsstatus
-          </h2>
+        <div className="border-border bg-background relative flex min-h-0 flex-col overflow-hidden rounded-2xl border p-5 shadow-sm lg:w-1/2">
+          <h2 className="text-foreground mb-3 text-base font-extrabold">Opplaeringsstatus</h2>
 
           {training && training.totalAssignments > 0 ? (
             <div className="relative z-10 flex flex-1 flex-col justify-center space-y-4">
               <PipelineRow
-                isDark={isDark}
-                icon={<CheckCircle2 className="h-5 w-5 text-emerald-500" />}
+                icon={<CheckCircle2 className="text-success h-5 w-5" />}
                 title="Fullfort"
                 value={training.completed}
                 subtitle={`av ${training.totalAssignments} tildelinger`}
                 highlight
               />
-              <div className={`h-px w-full ${isDark ? "bg-zinc-800" : "bg-zinc-100"}`} />
+              <div className="bg-border h-px w-full" />
               <PipelineRow
-                isDark={isDark}
-                icon={<Target className="h-5 w-5 text-orange-500" />}
+                icon={<Target className="text-warning h-5 w-5" />}
                 title="Under arbeid"
                 value={training.pending}
                 subtitle="Venter på fullføring"
               />
-              <div className={`h-px w-full ${isDark ? "bg-zinc-800" : "bg-zinc-100"}`} />
+              <div className="bg-border h-px w-full" />
               <PipelineRow
-                isDark={isDark}
-                icon={<ArrowDownRight className="h-5 w-5 text-red-500" />}
+                icon={<ArrowDownRight className="text-destructive h-5 w-5" />}
                 title="Utlopt"
                 value={training.expired}
                 subtitle="Overskredet frist"
@@ -246,7 +243,7 @@ export function StrategicView({ isDark }: StrategicViewProps) {
               />
             </div>
           ) : (
-            <EmptyState isDark={isDark} message="Ingen protokoller tildelt ennå" />
+            <EmptyState message="Ingen protokoller tildelt ennå" />
           )}
         </div>
       </div>
@@ -256,12 +253,10 @@ export function StrategicView({ isDark }: StrategicViewProps) {
 
       {/* Target Configuration Modal */}
       <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
-        <DialogContent
-          className={`${isDark ? "border-zinc-800 bg-[#0c0c0e] text-white" : "bg-white text-zinc-900"} max-w-2xl`}
-        >
+        <DialogContent className="border-border bg-background text-foreground max-w-2xl">
           <DialogHeader>
             <DialogTitle className="text-xl">Konfigurer arbeidsrom-KPIer</DialogTitle>
-            <DialogDescription className={`${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
+            <DialogDescription className="text-muted-foreground">
               Endre terskelgrenser som brukes i all rapporteringslogikk i SmartOut.
             </DialogDescription>
           </DialogHeader>
@@ -310,7 +305,6 @@ export function StrategicView({ isDark }: StrategicViewProps) {
               ).map((cfg) => (
                 <DialogTargetInput
                   key={cfg.metric}
-                  isDark={isDark}
                   label={`${cfg.label} (${cfg.unit})`}
                   benchmark={`Referanseverdi: ${cfg.benchmark}`}
                   value={targets[cfg.metric]}
@@ -327,23 +321,15 @@ export function StrategicView({ isDark }: StrategicViewProps) {
 
 // === Subcomponents ===
 
-function EmptyState({ isDark, message }: { isDark: boolean; message: string }) {
+function EmptyState({ message }: { message: string }) {
   return (
     <div className="flex flex-1 items-center justify-center py-8">
-      <p className={`text-sm ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>{message}</p>
+      <p className="text-muted-foreground text-sm">{message}</p>
     </div>
   );
 }
 
-function EmptyKPICard({
-  isDark,
-  title,
-  icon,
-}: {
-  isDark: boolean;
-  title: string;
-  icon: React.ReactNode;
-}) {
+function EmptyKPICard({ title, icon }: { title: string; icon: React.ReactNode }) {
   return (
     <DashboardCard
       label={title}
@@ -356,7 +342,6 @@ function EmptyKPICard({
 }
 
 type KPICardProps = {
-  isDark: boolean;
   title: string;
   value: string | null;
   targetDisplay: string;
@@ -370,7 +355,6 @@ type KPICardProps = {
 };
 
 function KPICard({
-  isDark,
   title,
   value,
   targetDisplay,
@@ -383,7 +367,7 @@ function KPICard({
   onTargetSave,
 }: KPICardProps) {
   if (value === null) {
-    return <EmptyKPICard isDark={isDark} title={title} icon={icon} />;
+    return <EmptyKPICard title={title} icon={icon} />;
   }
 
   return (
@@ -399,13 +383,11 @@ function KPICard({
 }
 
 function DialogTargetInput({
-  isDark,
   label,
   benchmark,
   value,
   onSave,
 }: {
-  isDark: boolean;
   label: string;
   benchmark: string;
   value: number;
@@ -423,9 +405,7 @@ function DialogTargetInput({
 
   return (
     <div className="flex flex-col gap-2">
-      <label className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-        {label}
-      </label>
+      <label className="text-secondary-foreground text-sm font-bold">{label}</label>
       <input
         type="number"
         value={local}
@@ -438,15 +418,14 @@ function DialogTargetInput({
             e.currentTarget.blur();
           }
         }}
-        className={`rounded-lg border px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:outline-none ${isDark ? "border-zinc-800 bg-zinc-900" : "border-zinc-200 bg-zinc-50"}`}
+        className="border-border bg-muted focus:ring-primary rounded-lg border px-3 py-2 focus:ring-2 focus:outline-none"
       />
-      <span className="text-[10px] text-zinc-500">{benchmark}</span>
+      <span className="text-muted-foreground text-[10px]">{benchmark}</span>
     </div>
   );
 }
 
 interface PipelineRowProps {
-  isDark: boolean;
   icon: React.ReactNode;
   title: string;
   value: React.ReactNode;
@@ -455,30 +434,26 @@ interface PipelineRowProps {
   alert?: boolean;
 }
 
-function PipelineRow({ isDark, icon, title, value, subtitle, highlight, alert }: PipelineRowProps) {
+function PipelineRow({ icon, title, value, subtitle, highlight, alert }: PipelineRowProps) {
   return (
     <div className="group flex items-center justify-between">
       <div className="flex items-center gap-3">
         <div
-          className={`rounded-xl border p-2.5 transition-colors ${alert ? (isDark ? "border-red-500/20 bg-red-500/10 text-red-500" : "border-red-200 bg-red-50 text-red-600") : highlight ? (isDark ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-500" : "border-emerald-200 bg-emerald-50 text-emerald-600") : isDark ? "border-zinc-800 bg-zinc-900 text-zinc-400 group-hover:bg-zinc-800" : "border-zinc-200 bg-zinc-50 text-zinc-500 group-hover:bg-zinc-100"}`}
+          className={`rounded-xl border p-2.5 transition-colors ${alert ? "border-destructive/20 bg-destructive/10 text-destructive" : highlight ? "border-success/20 bg-success/10 text-success" : "border-border bg-muted text-muted-foreground group-hover:bg-muted/80"}`}
         >
           {icon}
         </div>
         <div>
-          <h4
-            className={`text-sm font-bold transition-colors ${isDark ? "text-zinc-300 group-hover:text-white" : "text-zinc-700 group-hover:text-black"}`}
-          >
+          <h4 className="text-secondary-foreground group-hover:text-foreground text-sm font-bold transition-colors">
             {title}
           </h4>
-          <p
-            className={`mt-0.5 text-[10px] font-semibold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-          >
+          <p className="text-muted-foreground mt-0.5 text-[10px] font-semibold tracking-wider uppercase">
             {subtitle}
           </p>
         </div>
       </div>
       <div
-        className={`text-xl font-black ${alert ? (isDark ? "text-red-400" : "text-red-500") : highlight ? (isDark ? "text-emerald-400" : "text-emerald-500") : isDark ? "text-white" : "text-zinc-900"}`}
+        className={`text-xl font-black ${alert ? "text-destructive" : highlight ? "text-success" : "text-foreground"}`}
       >
         {value}
       </div>

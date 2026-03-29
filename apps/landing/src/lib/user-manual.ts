@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { cache } from "react";
 
 export type UserManualDoc = {
   slug: string;
@@ -8,6 +9,7 @@ export type UserManualDoc = {
   fileName: string;
   content: string;
   excerpt: string;
+  slugEn?: string;
 };
 
 export type UserManualNavItem = {
@@ -17,12 +19,14 @@ export type UserManualNavItem = {
   slug: string;
 };
 
+export type DocsLocale = "nb" | "en";
+
 const MANUAL_DIR_NAME = "User Manual";
 
-function resolveManualDirectory() {
+function resolveManualDirectory(locale: DocsLocale) {
   const candidates = [
-    path.join(process.cwd(), "docs", MANUAL_DIR_NAME),
-    path.join(process.cwd(), "..", "..", "docs", MANUAL_DIR_NAME),
+    path.join(process.cwd(), "docs", MANUAL_DIR_NAME, locale),
+    path.join(process.cwd(), "..", "..", "docs", MANUAL_DIR_NAME, locale),
   ];
 
   for (const candidate of candidates) {
@@ -30,7 +34,6 @@ function resolveManualDirectory() {
       return candidate;
     }
   }
-
   return null;
 }
 
@@ -61,6 +64,15 @@ function stripFrontmatter(markdown: string) {
   return markdown.slice(closing + 3);
 }
 
+function extractFrontmatterField(markdown: string, field: string): string | undefined {
+  if (!markdown.startsWith("---")) return undefined;
+  const closing = markdown.indexOf("---", 3);
+  if (closing === -1) return undefined;
+  const frontmatter = markdown.slice(3, closing);
+  const match = frontmatter.match(new RegExp(`^${field}:\\s*(.+)$`, "m"));
+  return match?.[1]?.trim().replace(/^["']|["']$/g, "");
+}
+
 function extractTitle(markdown: string, fallback: string) {
   const body = stripFrontmatter(markdown);
   const firstHeading = body.match(/^#\s+(.+)$/m)?.[1]?.trim();
@@ -77,8 +89,8 @@ function extractExcerpt(markdown: string) {
   return first.startsWith("> ") ? first.slice(2) : first;
 }
 
-export function getUserManualDocs(): UserManualDoc[] {
-  const manualDir = resolveManualDirectory();
+export const getUserManualDocs = cache((locale: DocsLocale = "nb"): UserManualDoc[] => {
+  const manualDir = resolveManualDirectory(locale);
   if (!manualDir) return [];
   const files = fs
     .readdirSync(manualDir)
@@ -89,10 +101,16 @@ export function getUserManualDocs(): UserManualDoc[] {
       const numberedMatch = fileName.match(/^(\d+)\-(.+)\.md$/i);
       const baseName = stripNumericPrefix(fileName).replace(/\.md$/i, "");
       const order = numberedMatch?.[1] ? Number.parseInt(numberedMatch[1], 10) : 1000 + index;
-      const slug = slugify(baseName);
       const fullPath = path.join(manualDir, fileName);
       const content = fs.readFileSync(fullPath, "utf8");
-      const fallbackTitle = toTitleCase(slug || "Dokument");
+      const fallbackTitle = toTitleCase(baseName || "Dokument");
+
+      // For en docs: prefer slug_en from frontmatter for URL-friendly English slugs
+      // For nb docs: derive slug from filename (Norwegian names)
+      const fmSlug = extractFrontmatterField(content, "slug");
+      const fmSlugEn = extractFrontmatterField(content, "slug_en");
+      const slug = locale === "en" && fmSlugEn ? fmSlugEn : (fmSlug ?? slugify(baseName));
+
       return {
         slug,
         title: extractTitle(content, fallbackTitle),
@@ -100,39 +118,37 @@ export function getUserManualDocs(): UserManualDoc[] {
         fileName,
         content,
         excerpt: extractExcerpt(content),
+        slugEn: fmSlugEn,
       } satisfies UserManualDoc;
     })
     .sort((a, b) => a.order - b.order);
 
-  // Deduplicate by slug — keep the first (lowest order) when multiple files
-  // produce the same slug (e.g. Norwegian 03-vaktplan.md + Swedish 02-vaktplan.md)
   const seen = new Set<string>();
-  const unique = docs.filter((doc) => {
+  return docs.filter((doc) => {
     if (seen.has(doc.slug)) return false;
     seen.add(doc.slug);
     return true;
   });
+});
 
-  return unique;
+export function getUserManualDocBySlug(slug: string, locale: DocsLocale = "nb") {
+  return getUserManualDocs(locale).find((doc) => doc.slug === slug) ?? null;
 }
 
-export function getUserManualDocBySlug(slug: string) {
-  return getUserManualDocs().find((doc) => doc.slug === slug) ?? null;
-}
-
-export function getUserManualNavigation(): UserManualNavItem[] {
-  return getUserManualDocs().map((doc) => ({
+export function getUserManualNavigation(locale: DocsLocale = "nb"): UserManualNavItem[] {
+  return getUserManualDocs(locale).map((doc) => ({
     title: doc.title,
-    href: `/docs/${doc.slug}`,
+    href: locale === "en" ? `/en/docs/${doc.slug}` : `/docs/${doc.slug}`,
     description: doc.excerpt,
     slug: doc.slug,
   }));
 }
 
 export function getUserManualIndexMarkdown() {
-  const manualDir = resolveManualDirectory();
+  const manualDir = resolveManualDirectory("nb");
   if (!manualDir) return "# User Manual\n\nDokumentation er ikke tilgjengelig i dette miljøet.";
-  const indexPath = path.join(manualDir, "INDEX.md");
+  const parentDir = path.dirname(manualDir);
+  const indexPath = path.join(parentDir, "INDEX.md");
   if (!fs.existsSync(indexPath)) {
     return "# User Manual\n\nIndex page is missing.";
   }
@@ -155,8 +171,8 @@ function scoreDocAgainstQuery(doc: UserManualDoc, query: string) {
   return score;
 }
 
-export function searchUserManual(query: string, limit = 4) {
-  return getUserManualDocs()
+export function searchUserManual(query: string, limit = 4, locale: DocsLocale = "nb") {
+  return getUserManualDocs(locale)
     .map((doc) => ({
       doc,
       score: scoreDocAgainstQuery(doc, query),

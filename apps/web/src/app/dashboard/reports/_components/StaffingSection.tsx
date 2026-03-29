@@ -19,7 +19,7 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from "recharts";
-import { CHART_COLORS, chartTheme } from "./report-data";
+import { CHART_COLORS, chartTheme } from "./chart-utils";
 import type { ReportInsightCard } from "./report-insight-types";
 import { useReportStaffing } from "../_hooks/use-report-staffing";
 

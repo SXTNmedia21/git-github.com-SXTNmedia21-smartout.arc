@@ -23,6 +23,7 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["posthog-node"],
   transpilePackages: [
     "@smartout/ai",
+    "@smartout/i18n",
     "@smartout/supabase",
     "@smartout/telemetry",
     "@smartout/types",

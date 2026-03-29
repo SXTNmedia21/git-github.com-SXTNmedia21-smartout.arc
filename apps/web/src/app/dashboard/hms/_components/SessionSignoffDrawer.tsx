@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { CheckCircle2, AlertTriangle, PenLine, Loader2 } from "lucide-react";
+import { useTranslation } from "@smartout/i18n";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,6 +18,7 @@ type Props = {
 };
 
 export function SessionSignoffDrawer({ session, open, onClose }: Props) {
+  const { t } = useTranslation("dashboard");
   const { data: tasks, isLoading } = useSessionTasks(session.sessionId);
   const signoff = useSignoffSession();
   const [notes, setNotes] = useState("");
@@ -45,7 +47,9 @@ export function SessionSignoffDrawer({ session, open, onClose }: Props) {
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
       <SheetContent className="w-[400px] sm:w-[500px]">
         <SheetHeader>
-          <SheetTitle>Signering — {session.departmentName}</SheetTitle>
+          <SheetTitle>
+            {t("hms.signoff.title")} — {session.departmentName}
+          </SheetTitle>
         </SheetHeader>
 
         <div className="mt-6 space-y-6">
@@ -57,26 +61,30 @@ export function SessionSignoffDrawer({ session, open, onClose }: Props) {
             <>
               {/* Compliance tasks checklist */}
               <div>
-                <h3 className="text-foreground mb-2 text-sm font-semibold">Pakrevde oppgaver</h3>
+                <h3 className="text-foreground mb-2 text-sm font-semibold">
+                  {t("hms.signoff.required_tasks")}
+                </h3>
                 {complianceTasks.length === 0 ? (
-                  <p className="text-muted-foreground text-xs">Ingen pakrevde oppgaver.</p>
+                  <p className="text-muted-foreground text-xs">
+                    {t("hms.signoff.no_required_tasks")}
+                  </p>
                 ) : (
                   <div className="space-y-1">
-                    {complianceTasks.map((t) => (
-                      <div key={t.id} className="flex items-center gap-2 rounded-md p-2">
-                        {t.status === "completed" ? (
-                          <CheckCircle2 className="h-4 w-4 shrink-0 text-green-500" />
+                    {complianceTasks.map((task) => (
+                      <div key={task.id} className="flex items-center gap-2 rounded-md p-2">
+                        {task.status === "completed" ? (
+                          <CheckCircle2 className="text-success h-4 w-4 shrink-0" />
                         ) : (
-                          <AlertTriangle className="h-4 w-4 shrink-0 text-yellow-500" />
+                          <AlertTriangle className="text-warning h-4 w-4 shrink-0" />
                         )}
                         <span
-                          className={`text-sm ${t.status === "completed" ? "text-muted-foreground" : "text-foreground font-medium"}`}
+                          className={`text-sm ${task.status === "completed" ? "text-muted-foreground" : "text-foreground font-medium"}`}
                         >
-                          {t.title}
+                          {task.title}
                         </span>
-                        {t.status !== "completed" && (
-                          <Badge className="ml-auto bg-yellow-500/15 text-[9px] text-yellow-600 hover:bg-yellow-500/15">
-                            Ufullstendig
+                        {task.status !== "completed" && (
+                          <Badge className="bg-warning/15 text-warning hover:bg-warning/15 ml-auto text-[9px]">
+                            {t("hms.signoff.incomplete")}
                           </Badge>
                         )}
                       </div>
@@ -87,28 +95,31 @@ export function SessionSignoffDrawer({ session, open, onClose }: Props) {
 
               {/* Sign-off type */}
               <div>
-                <h3 className="text-foreground mb-2 text-sm font-semibold">Signeringstype</h3>
+                <h3 className="text-foreground mb-2 text-sm font-semibold">
+                  {t("hms.signoff.signoff_type")}
+                </h3>
                 {hasWarnings ? (
                   <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-3">
                     <div className="flex items-center gap-2">
                       <AlertTriangle className="h-4 w-4 text-yellow-500" />
                       <span className="text-sm font-medium text-yellow-600">
-                        Signering med unntak
+                        {t("hms.signoff.with_exceptions")}
                       </span>
                     </div>
                     <p className="text-muted-foreground mt-1 text-xs">
-                      {incompleteCompliance.length} pakrevde oppgaver er ufullstendige. Du ma legge
-                      til en forklaring.
+                      {incompleteCompliance.length} {t("hms.signoff.incomplete_explanation")}
                     </p>
                   </div>
                 ) : (
                   <div className="rounded-lg border border-green-500/30 bg-green-500/5 p-3">
                     <div className="flex items-center gap-2">
                       <CheckCircle2 className="h-4 w-4 text-green-500" />
-                      <span className="text-sm font-medium text-green-600">Ren signering</span>
+                      <span className="text-sm font-medium text-green-600">
+                        {t("hms.signoff.clean_signoff")}
+                      </span>
                     </div>
                     <p className="text-muted-foreground mt-1 text-xs">
-                      Alle pakrevde oppgaver er fullfort.
+                      {t("hms.signoff.all_tasks_completed")}
                     </p>
                   </div>
                 )}
@@ -117,10 +128,14 @@ export function SessionSignoffDrawer({ session, open, onClose }: Props) {
               {/* Notes */}
               <div>
                 <h3 className="text-foreground mb-2 text-sm font-semibold">
-                  Notater {hasWarnings && <span className="text-red-500">*</span>}
+                  {t("hms.signoff.notes")} {hasWarnings && <span className="text-red-500">*</span>}
                 </h3>
                 <Textarea
-                  placeholder={hasWarnings ? "Forklar unntak..." : "Valgfrie notater..."}
+                  placeholder={
+                    hasWarnings
+                      ? t("hms.signoff.explain_exceptions")
+                      : t("hms.signoff.optional_notes")
+                  }
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   rows={3}
@@ -138,7 +153,9 @@ export function SessionSignoffDrawer({ session, open, onClose }: Props) {
                 ) : (
                   <PenLine className="mr-2 h-4 w-4" />
                 )}
-                {hasWarnings ? "Signer med unntak" : "Signer okt"}
+                {hasWarnings
+                  ? t("hms.signoff.sign_with_exceptions")
+                  : t("hms.signoff.sign_session")}
               </Button>
             </>
           )}

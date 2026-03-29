@@ -12,28 +12,12 @@ import {
   FileSearch,
   Loader2,
 } from "lucide-react";
+import { useTranslation } from "@smartout/i18n";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useGovernanceFiltered } from "../_hooks/use-governance-filtered";
 import { useDeviations } from "../_hooks/use-deviations";
-
-// TODO: move to i18n
-const STRINGS = {
-  statusTitle: "Status",
-  attentionTitle: "Krever oppmerksomhet",
-  actionsTitle: "Handlinger",
-  readiness: "Opplaeringsgrad",
-  openDeviations: "Apne avvik",
-  overdueItems: "Forfalt",
-  protocols: "Protokoller",
-  noAttention: "Ingen varsler akkurat na.",
-  assignTraining: "Tildel opplaering",
-  logControl: "Logg kontroll",
-  inspectionPack: "Inspeksjonspakke",
-  expired: "ansatte har forfalt opplaering",
-  lowCompletion: "fullforingsgrad",
-} as const;
 
 type KpiCardProps = {
   icon: typeof ShieldCheck;
@@ -67,6 +51,7 @@ function KpiCard({ icon: Icon, label, value, sublabel, variant = "default" }: Kp
 }
 
 export function OversiktDashboard() {
+  const { t } = useTranslation("dashboard");
   const { isDark } = useContext(DashboardContext);
   const { protocols, stats, isLoading } = useGovernanceFiltered("all");
   const { data: openDeviations } = useDeviations({ status: ["open", "acknowledged", "escalated"] });
@@ -89,11 +74,11 @@ export function OversiktDashboard() {
     <div className="space-y-6">
       {/* Block A: Status */}
       <div>
-        <h2 className="text-foreground mb-3 text-lg font-bold">{STRINGS.statusTitle}</h2>
+        <h2 className="text-foreground mb-3 text-lg font-bold">{t("hms.overview.status_title")}</h2>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <KpiCard
             icon={ShieldCheck}
-            label={STRINGS.readiness}
+            label={t("hms.overview.readiness")}
             value={`${stats.avgCompletion}%`}
             variant={
               stats.avgCompletion < 70
@@ -105,28 +90,30 @@ export function OversiktDashboard() {
           />
           <KpiCard
             icon={AlertTriangle}
-            label={STRINGS.openDeviations}
+            label={t("hms.overview.open_deviations")}
             value={openDeviationCount}
             variant={openDeviationCount > 0 ? "warning" : "default"}
           />
           <KpiCard
             icon={Clock}
-            label={STRINGS.overdueItems}
+            label={t("hms.overview.overdue_items")}
             value={stats.overdue}
             variant={stats.overdue > 0 ? "warning" : "default"}
           />
-          <KpiCard icon={Users} label={STRINGS.protocols} value={stats.total} />
+          <KpiCard icon={Users} label={t("hms.overview.protocols")} value={stats.total} />
         </div>
       </div>
 
       {/* Block B: Attention */}
       <div>
-        <h2 className="text-foreground mb-3 text-lg font-bold">{STRINGS.attentionTitle}</h2>
+        <h2 className="text-foreground mb-3 text-lg font-bold">
+          {t("hms.overview.attention_title")}
+        </h2>
         {overdueProtocols.length === 0 && lowCompletionProtocols.length === 0 ? (
           <div
             className={`rounded-xl border p-6 text-center ${isDark ? "border-zinc-800 bg-zinc-900/50" : "border-border bg-muted/30"}`}
           >
-            <p className="text-muted-foreground text-sm">{STRINGS.noAttention}</p>
+            <p className="text-muted-foreground text-sm">{t("hms.overview.no_attention")}</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -140,7 +127,7 @@ export function OversiktDashboard() {
                 <div className="min-w-0 flex-1">
                   <p className="text-foreground text-sm font-medium">{p.protocolName}</p>
                   <p className="text-muted-foreground text-xs">
-                    {p.expiredCount} {STRINGS.expired}
+                    {p.expiredCount} {t("hms.overview.expired")}
                   </p>
                 </div>
               </Link>
@@ -155,7 +142,7 @@ export function OversiktDashboard() {
                 <div className="min-w-0 flex-1">
                   <p className="text-foreground text-sm font-medium">{p.protocolName}</p>
                   <p className="text-muted-foreground text-xs">
-                    {p.completionPercent}% {STRINGS.lowCompletion}
+                    {p.completionPercent}% {t("hms.overview.low_completion")}
                   </p>
                 </div>
               </Link>
@@ -166,23 +153,25 @@ export function OversiktDashboard() {
 
       {/* Block C: Actions */}
       <div>
-        <h2 className="text-foreground mb-3 text-lg font-bold">{STRINGS.actionsTitle}</h2>
+        <h2 className="text-foreground mb-3 text-lg font-bold">
+          {t("hms.overview.actions_title")}
+        </h2>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" asChild>
             <Link href="/dashboard/hms/training">
               <GraduationCap className="mr-2 h-4 w-4" />
-              {STRINGS.assignTraining}
+              {t("hms.overview.assign_training")}
             </Link>
           </Button>
           <Button variant="outline" size="sm" asChild>
             <Link href="/dashboard/hms/drift">
               <ClipboardCheck className="mr-2 h-4 w-4" />
-              {STRINGS.logControl}
+              {t("hms.overview.log_control")}
             </Link>
           </Button>
           <Button variant="outline" size="sm" disabled>
             <FileSearch className="mr-2 h-4 w-4" />
-            {STRINGS.inspectionPack}
+            {t("hms.overview.inspection_pack")}
           </Button>
         </div>
       </div>

@@ -10,22 +10,20 @@
 
 import React from "react";
 import { View, Text } from "react-native";
-import { createStyles } from "@/theme";
+import { createStyles, useTheme, withOpacity } from "@/theme";
 import type { ShiftSupplement } from "@/lib/supplements";
 
 type SupplementBadgesProps = {
   supplements: ShiftSupplement[];
 };
 
-/**
- * Badge color map — background (15% opacity) and text color per supplement type.
- * Purple for evening, orange for weekend, red for public holiday.
- */
-const badgeColors = {
-  kveld: { bg: "rgba(139,92,246,0.15)", text: "#a78bfa" },
-  helg: { bg: "rgba(249,115,22,0.15)", text: "#fb923c" },
-  helligdag: { bg: "rgba(239,68,68,0.15)", text: "#f87171" },
-} as const;
+type SupplementType = "kveld" | "helg" | "helligdag";
+
+const BADGE_COLOR_KEYS: Record<SupplementType, keyof ReturnType<typeof useTheme>["colors"]> = {
+  kveld: "brandPurple",
+  helg: "brandOrange",
+  helligdag: "destructive",
+};
 
 /** Formats qualifying hours for badge display: "2t" or "1.5t" */
 function formatBadgeHours(hours: number): string {
@@ -40,16 +38,20 @@ function formatBadgeHours(hours: number): string {
 
 export function SupplementBadges({ supplements }: SupplementBadgesProps) {
   const styles = useStyles();
+  const { colors } = useTheme();
 
   if (supplements.length === 0) return null;
 
   return (
     <View style={styles.container}>
       {supplements.map((supplement) => {
-        const colors = badgeColors[supplement.type];
+        const textColor = colors[BADGE_COLOR_KEYS[supplement.type]];
         return (
-          <View key={supplement.type} style={[styles.badge, { backgroundColor: colors.bg }]}>
-            <Text style={[styles.label, { color: colors.text }]}>
+          <View
+            key={supplement.type}
+            style={[styles.badge, { backgroundColor: withOpacity(textColor, 0.15) }]}
+          >
+            <Text style={[styles.label, { color: textColor }]}>
               {supplement.label}
               {supplement.hours > 0 ? ` ${formatBadgeHours(supplement.hours)}` : ""}
             </Text>

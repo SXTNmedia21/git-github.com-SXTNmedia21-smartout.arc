@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Toaster } from "sonner";
+import { LocaleProvider } from "@smartout/i18n";
 import { PHProvider } from "./providers";
 import "./globals.css";
 
@@ -39,8 +40,10 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} ${instrumentSerif.variable} antialiased`}
       >
         <PHProvider>
-          {children}
-          <Toaster position="top-right" richColors />
+          <LocaleProvider locale="nb">
+            {children}
+            <Toaster position="top-right" richColors />
+          </LocaleProvider>
         </PHProvider>
         <Analytics />
         <SpeedInsights />

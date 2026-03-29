@@ -16,7 +16,7 @@ import {
   User,
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { CHART_COLORS, chartTheme } from "./report-data";
+import { CHART_COLORS, chartTheme } from "./chart-utils";
 import type { ReportInsightCard } from "./report-insight-types";
 import { useReportTraining } from "../_hooks/use-report-training";
 
@@ -196,7 +196,7 @@ export function TrainingSection({ isDark, onOpenInsight }: TrainingSectionProps)
         />
       </div>
 
-      {/* Protocol Compliance — replicates GuardianView pattern */}
+      {/* Protocol Compliance — replicates TodoGroupSection pattern */}
       <div
         onClick={() =>
           onOpenInsight({

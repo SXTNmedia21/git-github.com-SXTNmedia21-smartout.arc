@@ -11,6 +11,7 @@ import {
   Building2,
   CalendarDays,
 } from "lucide-react";
+import { useTranslation } from "@smartout/i18n";
 
 const TYPE_ICONS: Record<string, typeof Hash> = {
   department: Building2,
@@ -22,7 +23,7 @@ const TYPE_ICONS: Record<string, typeof Hash> = {
   skill: Lightbulb,
 };
 
-function formatTime(dateStr: string | null): string {
+function formatTime(dateStr: string | null, yesterday: string): string {
   if (!dateStr) return "";
   const date = new Date(dateStr);
   const now = new Date();
@@ -33,7 +34,7 @@ function formatTime(dateStr: string | null): string {
       minute: "2-digit",
     });
   }
-  if (diffDays === 1) return "I går";
+  if (diffDays === 1) return yesterday;
   if (diffDays < 7) {
     return date.toLocaleDateString("nb-NO", { weekday: "short" });
   }
@@ -48,6 +49,7 @@ type Props = {
 };
 
 export function ChannelItem({ channel, isActive, unreadCount, onClick }: Props) {
+  const { t } = useTranslation("komm");
   const Icon = TYPE_ICONS[channel.channel_type] ?? Hash;
 
   return (
@@ -74,10 +76,10 @@ export function ChannelItem({ channel, isActive, unreadCount, onClick }: Props) 
           <span
             className={cn("truncate text-sm", unreadCount > 0 ? "font-semibold" : "font-medium")}
           >
-            {channel.name ?? "Direktemelding"}
+            {channel.name ?? t("channel.direct_message")}
           </span>
           <span className="text-muted-foreground ml-1 shrink-0 text-[10px]">
-            {formatTime(channel.last_message_at)}
+            {formatTime(channel.last_message_at, t("channel.yesterday"))}
           </span>
         </div>
         <div className="flex items-center justify-between">
@@ -87,7 +89,7 @@ export function ChannelItem({ channel, isActive, unreadCount, onClick }: Props) 
                   0,
                   50,
                 )
-              : "Ingen meldinger ennå"}
+              : t("channel.no_messages")}
           </p>
           {unreadCount > 0 && (
             <span className="bg-primary text-primary-foreground ml-1 flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full px-1.5 text-[10px] font-bold">

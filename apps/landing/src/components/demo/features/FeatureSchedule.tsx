@@ -162,11 +162,11 @@ export function FeatureSchedule({ uiState, onInteraction }: DemoFeatureProps) {
       {/* Header bar */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-white">Vaktplan — Housekeeping</h2>
-          <p className="mt-0.5 text-sm text-zinc-500">Uke 10 — 3.–7. mars 2026</p>
+          <h2 className="text-foreground text-xl font-bold">Vaktplan — Housekeeping</h2>
+          <p className="text-muted-foreground mt-0.5 text-sm">Uke 10 — 3.–7. mars 2026</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="flex items-center gap-1.5 rounded-lg border border-white/[0.06] bg-[#0a0a0c] px-3 py-1.5 text-xs text-zinc-400">
+          <span className="border-border bg-background text-muted-foreground flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs">
             <Users className="h-3.5 w-3.5" />4 ansatte
           </span>
         </div>
@@ -181,9 +181,9 @@ export function FeatureSchedule({ uiState, onInteraction }: DemoFeatureProps) {
             return (
               <div key={day.day} className="flex flex-col gap-2">
                 {/* Day header */}
-                <div className="flex items-center justify-between rounded-xl border border-white/[0.06] bg-[#0a0a0c] px-3 py-2">
-                  <span className="text-sm font-semibold text-white">{day.day}</span>
-                  <span className="text-xs text-zinc-500">{day.date}</span>
+                <div className="border-border bg-background flex items-center justify-between rounded-xl border px-3 py-2">
+                  <span className="text-foreground text-sm font-semibold">{day.day}</span>
+                  <span className="text-muted-foreground text-xs">{day.date}</span>
                 </div>
 
                 {/* Shift cards */}
@@ -218,8 +218,8 @@ export function FeatureSchedule({ uiState, onInteraction }: DemoFeatureProps) {
                             )}
                           </div>
                           <div className="mt-1 flex items-center gap-1">
-                            <Clock className="h-3 w-3 text-zinc-500" />
-                            <span className="text-xs text-zinc-500">{shift.time}</span>
+                            <Clock className="text-muted-foreground h-3 w-3" />
+                            <span className="text-muted-foreground text-xs">{shift.time}</span>
                           </div>
                           {shift.status === "ai-suggested" && (
                             <span className="mt-1.5 inline-flex items-center gap-1 text-[10px] text-cyan-400/70">
@@ -296,13 +296,13 @@ function StatCard({
   const colors = {
     emerald: "border-emerald-500/20 text-emerald-300",
     cyan: "border-cyan-500/20 text-cyan-300",
-    orange: "border-orange-500/20 text-orange-300",
+    orange: "border-brand-orange/20 text-brand-orange",
   };
 
   return (
-    <div className={`rounded-xl border bg-[#0a0a0c] p-3 text-center ${colors[color]}`}>
+    <div className={`bg-background rounded-xl border p-3 text-center ${colors[color]}`}>
       <p className="text-lg font-bold">{value}</p>
-      <p className="text-xs text-zinc-500">{label}</p>
+      <p className="text-muted-foreground text-xs">{label}</p>
     </div>
   );
 }

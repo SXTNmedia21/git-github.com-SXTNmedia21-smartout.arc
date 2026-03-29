@@ -37,7 +37,7 @@ export function AutoFillField({ label, autoFilled = false, children }: AutoFillF
       <div className="flex items-center gap-1.5">
         <Label>{label}</Label>
         {autoFilled && (
-          <span className="flex items-center gap-0.5 text-[10px] text-orange-500">
+          <span className="text-brand-orange flex items-center gap-0.5 text-[10px]">
             <Sparkles className="h-2.5 w-2.5" />
             BRREG
           </span>
@@ -73,7 +73,7 @@ export function AutoFillInput({ autoFilled = false, className, ...props }: AutoF
         className={cn(
           "transition-all duration-300",
           showShimmer && "animate-autofill-shimmer",
-          autoFilled && "border-orange-300 dark:border-orange-700",
+          autoFilled && "border-brand-orange/40 dark:border-brand-orange/30",
           className,
         )}
         {...props}

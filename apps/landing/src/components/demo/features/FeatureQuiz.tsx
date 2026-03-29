@@ -89,16 +89,16 @@ export function FeatureQuiz({ uiState, onInteraction }: DemoFeatureProps) {
               <GraduationCap className="h-8 w-8 text-purple-400" />
             </div>
             <div className="text-center">
-              <h2 className="text-2xl font-bold text-white">Kunnskapsquiz</h2>
-              <p className="mt-2 max-w-sm text-sm text-zinc-400">
+              <h2 className="text-foreground text-2xl font-bold">Kunnskapsquiz</h2>
+              <p className="text-muted-foreground mt-2 max-w-sm text-sm">
                 Test kunnskapen din om mattrygghet og HMS. 3 spørsmål, ca. 2 minutter.
               </p>
             </div>
-            <div className="flex items-center gap-4 text-sm text-zinc-500">
+            <div className="text-muted-foreground flex items-center gap-4 text-sm">
               <span className="flex items-center gap-1.5">
                 <GraduationCap className="h-4 w-4" />3 spørsmål
               </span>
-              <span className="h-4 w-px bg-zinc-700" />
+              <span className="bg-muted h-4 w-px" />
               <span>Mattrygghet & HMS</span>
             </div>
           </m.div>
@@ -128,7 +128,7 @@ export function FeatureQuiz({ uiState, onInteraction }: DemoFeatureProps) {
                         ? "bg-purple-500"
                         : i === currentQuestion
                           ? "bg-purple-400"
-                          : "bg-zinc-700"
+                          : "bg-muted"
                     }`}
                   />
                 ))}
@@ -136,8 +136,8 @@ export function FeatureQuiz({ uiState, onInteraction }: DemoFeatureProps) {
             </div>
 
             {/* Question text */}
-            <div className="rounded-2xl border border-white/[0.06] bg-[#0a0a0c] p-6">
-              <p className="text-lg font-semibold text-white">{question.question}</p>
+            <div className="border-border bg-background rounded-2xl border p-6">
+              <p className="text-foreground text-lg font-semibold">{question.question}</p>
             </div>
 
             {/* Answer options */}
@@ -146,7 +146,7 @@ export function FeatureQuiz({ uiState, onInteraction }: DemoFeatureProps) {
                 const isSelected = selectedAnswer === i;
                 const isCorrectOption = i === question.correctIndex;
 
-                let optionStyle = "border-white/[0.06] bg-[#0a0a0c] hover:border-purple-500/30";
+                let optionStyle = "border-border bg-background hover:border-purple-500/30";
                 if (showFeedback && isSelected && isCorrect) {
                   optionStyle = "border-emerald-500/30 bg-emerald-500/10";
                 } else if (showFeedback && isSelected && !isCorrect) {
@@ -171,13 +171,13 @@ export function FeatureQuiz({ uiState, onInteraction }: DemoFeatureProps) {
                           ? "bg-emerald-500/20 text-emerald-300"
                           : showFeedback && isSelected
                             ? "bg-red-500/20 text-red-300"
-                            : "bg-white/[0.06] text-zinc-400"
+                            : "bg-foreground/[0.06] text-muted-foreground"
                       }`}
                     >
                       {String.fromCharCode(65 + i)}
                     </span>
                     <span
-                      className={`flex-1 text-sm ${showFeedback && isCorrectOption ? "text-emerald-200" : "text-zinc-200"}`}
+                      className={`flex-1 text-sm ${showFeedback && isCorrectOption ? "text-emerald-200" : "text-foreground"}`}
                     >
                       {option}
                     </span>
@@ -231,8 +231,8 @@ export function FeatureQuiz({ uiState, onInteraction }: DemoFeatureProps) {
             </m.div>
 
             <div className="text-center">
-              <h2 className="text-2xl font-bold text-white">Quiz fullført!</h2>
-              <p className="mt-2 text-sm text-zinc-400">
+              <h2 className="text-foreground text-2xl font-bold">Quiz fullført!</h2>
+              <p className="text-muted-foreground mt-2 text-sm">
                 Du fikk {score} av {QUESTIONS.length} riktige
               </p>
             </div>
@@ -248,7 +248,7 @@ export function FeatureQuiz({ uiState, onInteraction }: DemoFeatureProps) {
                 >
                   <Star
                     className={`h-8 w-8 ${
-                      i < score ? "fill-amber-400 text-amber-400" : "text-zinc-700"
+                      i < score ? "fill-amber-400 text-amber-400" : "text-muted-foreground/50"
                     }`}
                   />
                 </m.div>
@@ -257,7 +257,7 @@ export function FeatureQuiz({ uiState, onInteraction }: DemoFeatureProps) {
 
             {/* Score bar */}
             <div className="w-full max-w-xs">
-              <div className="h-2 overflow-hidden rounded-full bg-zinc-800">
+              <div className="bg-muted h-2 overflow-hidden rounded-full">
                 <m.div
                   className="h-full rounded-full bg-gradient-to-r from-purple-500 to-amber-500"
                   initial={{ width: "0%" }}
@@ -265,7 +265,7 @@ export function FeatureQuiz({ uiState, onInteraction }: DemoFeatureProps) {
                   transition={{ delay: 0.5, duration: 0.8 }}
                 />
               </div>
-              <p className="mt-1 text-center text-xs text-zinc-500">
+              <p className="text-muted-foreground mt-1 text-center text-xs">
                 {Math.round((score / QUESTIONS.length) * 100)}% riktig
               </p>
             </div>

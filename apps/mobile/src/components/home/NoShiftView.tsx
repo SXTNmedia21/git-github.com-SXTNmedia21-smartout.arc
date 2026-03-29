@@ -50,7 +50,7 @@ function formatTime(time: string): string {
   return time.slice(0, 5);
 }
 
-export function NoShiftView({ firstName, nextShift }: NoShiftViewProps) {
+export function NoShiftView({ firstName: _firstName, nextShift }: NoShiftViewProps) {
   const styles = useStyles();
   const router = useRouter();
   const summary = usePayrollSummary();
@@ -212,7 +212,7 @@ const useStyles = createStyles((theme) => ({
     gap: theme.spacing.element,
   },
   emptyIcon: {
-    color: theme.isDark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.12)",
+    color: theme.isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.12)",
   },
   emptyTitle: {
     ...theme.typography.headline,
@@ -220,7 +220,7 @@ const useStyles = createStyles((theme) => ({
   },
   emptySubtitle: {
     ...theme.typography.subheadline,
-    color: theme.isDark ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.25)",
+    color: theme.isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.25)",
     textAlign: "center",
     maxWidth: 260,
   },

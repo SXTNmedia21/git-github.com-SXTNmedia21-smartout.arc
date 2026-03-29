@@ -1,7 +1,8 @@
 // packages/design-tokens/src/tokens.ts
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// SINGLE SOURCE OF TRUTH — Change a value here,
-// every app (web, landing, mobile) updates automatically.
+// NORDIC SPLIT DESIGN SYSTEM — Single source of truth.
+// Elegant Nordic cleanness. Warm glowing tones.
+// White space. Spring motion. Impact.
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 // ─── Brand Colors ──────────────────────────────────────
@@ -9,6 +10,9 @@ export const brand = {
   orange: "oklch(0.65 0.22 40)",
   orangeLight: "oklch(0.75 0.18 40)",
   orangeDark: "oklch(0.55 0.22 40)",
+  purple: "oklch(0.55 0.25 300)", // Secondary accent for feature sections
+  purpleLight: "oklch(0.65 0.20 300)",
+  purpleDark: "oklch(0.45 0.25 300)",
 } as const;
 
 // ─── Semantic Colors ───────────────────────────────────
@@ -25,32 +29,32 @@ export const semantic = {
 
 // ─── Surface Colors (Light Mode) ──────────────────────
 export const light = {
-  background: "oklch(1 0 0)",
-  foreground: "oklch(0.145 0 0)",
-  card: "oklch(1 0 0)",
-  cardForeground: "oklch(0.145 0 0)",
-  popover: "oklch(1 0 0)",
-  popoverForeground: "oklch(0.145 0 0)",
-  primary: "oklch(0.205 0 0)",
+  background: "oklch(0.99 0.004 60)",
+  foreground: "oklch(0.145 0.01 50)",
+  card: "oklch(0.99 0.004 60)",
+  cardForeground: "oklch(0.145 0.01 50)",
+  popover: "oklch(0.99 0.004 60)",
+  popoverForeground: "oklch(0.145 0.01 50)",
+  primary: "oklch(0.205 0.01 50)",
   primaryForeground: "oklch(0.985 0 0)",
-  secondary: "oklch(0.97 0 0)",
-  secondaryForeground: "oklch(0.205 0 0)",
-  muted: "oklch(0.97 0 0)",
-  mutedForeground: "oklch(0.556 0 0)",
-  accent: "oklch(0.97 0 0)",
-  accentForeground: "oklch(0.205 0 0)",
+  secondary: "oklch(0.965 0.005 58)",
+  secondaryForeground: "oklch(0.205 0.01 50)",
+  muted: "oklch(0.965 0.005 58)",
+  mutedForeground: "oklch(0.52 0.01 52)",
+  accent: "oklch(0.965 0.005 58)",
+  accentForeground: "oklch(0.205 0.01 50)",
   destructive: "oklch(0.577 0.245 27.325)",
-  border: "oklch(0.922 0 0)",
-  input: "oklch(0.922 0 0)",
-  ring: "oklch(0.708 0 0)",
+  border: "oklch(0.91 0.006 55)",
+  input: "oklch(0.91 0.006 55)",
+  ring: "oklch(0.65 0.22 40)",
   // Sidebar
-  sidebar: "oklch(0.985 0 0)",
-  sidebarForeground: "oklch(0.145 0 0)",
-  sidebarPrimary: "oklch(0.205 0 0)",
+  sidebar: "oklch(0.975 0.006 57)",
+  sidebarForeground: "oklch(0.145 0.01 50)",
+  sidebarPrimary: "oklch(0.205 0.01 50)",
   sidebarPrimaryForeground: "oklch(0.985 0 0)",
-  sidebarAccent: "oklch(0.97 0 0)",
-  sidebarAccentForeground: "oklch(0.205 0 0)",
-  sidebarBorder: "oklch(0.922 0 0)",
+  sidebarAccent: "oklch(0.955 0.008 56)",
+  sidebarAccentForeground: "oklch(0.205 0.01 50)",
+  sidebarBorder: "oklch(0.905 0.007 54)",
   sidebarRing: "oklch(0.708 0 0)",
   // Charts
   chart1: "oklch(0.646 0.222 41.116)",
@@ -62,32 +66,32 @@ export const light = {
 
 // ─── Surface Colors (Dark Mode) ───────────────────────
 export const dark = {
-  background: "oklch(0.145 0 0)",
-  foreground: "oklch(0.985 0 0)",
-  card: "oklch(0.205 0 0)",
-  cardForeground: "oklch(0.985 0 0)",
-  popover: "oklch(0.205 0 0)",
-  popoverForeground: "oklch(0.985 0 0)",
+  background: "oklch(0.12 0.015 50)",
+  foreground: "oklch(0.95 0.005 55)",
+  card: "oklch(0.16 0.02 50)",
+  cardForeground: "oklch(0.95 0.005 55)",
+  popover: "oklch(0.16 0.02 50)",
+  popoverForeground: "oklch(0.95 0.005 55)",
   primary: "oklch(0.922 0 0)",
-  primaryForeground: "oklch(0.205 0 0)",
+  primaryForeground: "oklch(0.205 0.01 50)",
   secondary: "oklch(0.269 0 0)",
-  secondaryForeground: "oklch(0.985 0 0)",
+  secondaryForeground: "oklch(0.95 0.005 55)",
   muted: "oklch(0.269 0 0)",
-  mutedForeground: "oklch(0.708 0 0)",
+  mutedForeground: "oklch(0.6 0.01 52)",
   accent: "oklch(0.269 0 0)",
-  accentForeground: "oklch(0.985 0 0)",
+  accentForeground: "oklch(0.95 0.005 55)",
   destructive: "oklch(0.704 0.191 22.216)",
-  border: "oklch(1 0 0 / 10%)",
-  input: "oklch(1 0 0 / 15%)",
+  border: "oklch(1 0 0 / 8%)",
+  input: "oklch(1 0 0 / 10%)",
   ring: "oklch(0.556 0 0)",
   // Sidebar
-  sidebar: "oklch(0.205 0 0)",
-  sidebarForeground: "oklch(0.985 0 0)",
+  sidebar: "oklch(0.16 0.02 50)",
+  sidebarForeground: "oklch(0.95 0.005 55)",
   sidebarPrimary: "oklch(0.488 0.243 264.376)",
   sidebarPrimaryForeground: "oklch(0.985 0 0)",
   sidebarAccent: "oklch(0.269 0 0)",
-  sidebarAccentForeground: "oklch(0.985 0 0)",
-  sidebarBorder: "oklch(1 0 0 / 10%)",
+  sidebarAccentForeground: "oklch(0.95 0.005 55)",
+  sidebarBorder: "oklch(1 0 0 / 8%)",
   sidebarRing: "oklch(0.556 0 0)",
   // Charts
   chart1: "oklch(0.488 0.243 264.376)",
@@ -147,5 +151,54 @@ export const shadows = {
   glow: {
     orange: "0 0 15px -3px rgba(249, 115, 22, 0.3)",
     blue: "0 0 15px -3px rgba(59, 130, 246, 0.3)",
+  },
+} as const;
+
+// ─── Panel & Glow (Nordic Split dark surfaces) ──────
+export const panel = {
+  surface: "oklch(0.18 0.03 50)",
+  deep: "oklch(0.06 0.015 50)",
+  glowWarm: "oklch(0.45 0.18 40)",
+  glowDeep: "oklch(0.35 0.14 35)",
+} as const;
+
+// ─── Motion (spring physics) ─────────────────────────
+export const motion = {
+  spring: { stiffness: 35, damping: 22, mass: 2.2 },
+  springSnappy: { stiffness: 45, damping: 24, mass: 2 },
+  springGentle: { stiffness: 30, damping: 20, mass: 2.5 },
+  enterMs: 500,
+  exitMs: 250,
+  easing: "cubic-bezier(0.25, 0.1, 0.25, 1)",
+  easingExpo: "cubic-bezier(0.16, 1, 0.3, 1)",
+  /** Framer Motion array equivalents */
+  easingArray: [0.25, 0.1, 0.25, 1] as const,
+  easingExpoArray: [0.16, 1, 0.3, 1] as const,
+} as const;
+
+// ─── Typography ──────────────────────────────────────
+export const typography = {
+  heading: "'Instrument Serif', Georgia, serif",
+  body: "'Geist Sans', system-ui, sans-serif",
+  mono: "'Geist Mono', monospace",
+} as const;
+
+// -- Wizard Shell Theme Colors -----------------
+export const wizard = {
+  dark: {
+    bg: "oklch(0.12 0.02 50)",
+    sidebar: "oklch(0.08 0.01 50)",
+    text: "oklch(0.85 0 0)",
+    textMuted: "oklch(0.55 0 0)",
+    border: "oklch(0.2 0.01 50)",
+    stepPending: "oklch(0.35 0 0)",
+  },
+  warm: {
+    bg: "oklch(0.97 0.008 60)",
+    sidebar: "oklch(0.94 0.01 60)",
+    text: "oklch(0.2 0.02 50)",
+    textMuted: "oklch(0.5 0.02 50)",
+    border: "oklch(0.88 0.01 60)",
+    stepPending: "oklch(0.7 0.01 60)",
   },
 } as const;

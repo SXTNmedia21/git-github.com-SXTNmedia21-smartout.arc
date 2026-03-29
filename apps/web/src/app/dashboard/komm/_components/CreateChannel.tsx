@@ -21,6 +21,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Hash, MessageCircle, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@smartout/i18n";
 
 type Props = {
   profileId: string;
@@ -58,6 +59,7 @@ function useWorkspaceMembers(profileId: string) {
 }
 
 export function CreateChannel({ profileId, onClose, onCreated }: Props) {
+  const { t } = useTranslation("komm");
   const [channelType, setChannelType] = useState<ChannelType>("custom");
   const [name, setName] = useState("");
   const [filter, setFilter] = useState("");
@@ -100,16 +102,14 @@ export function CreateChannel({ profileId, onClose, onCreated }: Props) {
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Opprett kanal</DialogTitle>
-          <DialogDescription>
-            Opprett en gruppekanal eller start en direktemelding.
-          </DialogDescription>
+          <DialogTitle>{t("create.title")}</DialogTitle>
+          <DialogDescription>{t("create.description")}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           {/* Type selector */}
           <div className="space-y-2">
-            <Label className="text-xs">Type</Label>
+            <Label className="text-xs">{t("create.type_label")}</Label>
             <div className="flex gap-2">
               <button
                 onClick={() => {
@@ -125,8 +125,8 @@ export function CreateChannel({ profileId, onClose, onCreated }: Props) {
               >
                 <Hash className="h-4 w-4" />
                 <div className="text-left">
-                  <p className="text-sm font-medium">Kanal</p>
-                  <p className="text-muted-foreground text-xs">Gruppesamtale for teamet</p>
+                  <p className="text-sm font-medium">{t("create.channel_option")}</p>
+                  <p className="text-muted-foreground text-xs">{t("create.channel_sublabel")}</p>
                 </div>
               </button>
               <button
@@ -143,8 +143,8 @@ export function CreateChannel({ profileId, onClose, onCreated }: Props) {
               >
                 <MessageCircle className="h-4 w-4" />
                 <div className="text-left">
-                  <p className="text-sm font-medium">Direkte</p>
-                  <p className="text-muted-foreground text-xs">1-til-1 melding</p>
+                  <p className="text-sm font-medium">{t("create.direct_option")}</p>
+                  <p className="text-muted-foreground text-xs">{t("create.direct_sublabel")}</p>
                 </div>
               </button>
             </div>
@@ -154,13 +154,13 @@ export function CreateChannel({ profileId, onClose, onCreated }: Props) {
           {channelType === "custom" && (
             <div className="space-y-2">
               <Label htmlFor="channel-name" className="text-xs">
-                Navn
+                {t("create.name_label")}
               </Label>
               <Input
                 id="channel-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="f.eks. #kjøkkenet"
+                placeholder={t("create.name_placeholder")}
                 className="h-9"
                 autoFocus
               />
@@ -170,22 +170,22 @@ export function CreateChannel({ profileId, onClose, onCreated }: Props) {
           {/* Direct: people list */}
           {channelType === "direct" && (
             <div className="space-y-2">
-              <Label className="text-xs">Velg person</Label>
+              <Label className="text-xs">{t("create.select_person")}</Label>
               <Input
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
-                placeholder="Filtrer etter navn..."
+                placeholder={t("create.filter_placeholder")}
                 className="h-9"
                 autoFocus
               />
               <ScrollArea className="h-48 rounded-md border">
                 {membersLoading ? (
                   <div className="flex items-center justify-center p-4">
-                    <p className="text-muted-foreground text-xs">Laster...</p>
+                    <p className="text-muted-foreground text-xs">{t("create.loading")}</p>
                   </div>
                 ) : filteredMembers.length === 0 ? (
                   <div className="flex items-center justify-center p-4">
-                    <p className="text-muted-foreground text-xs">Ingen medarbeidere funnet</p>
+                    <p className="text-muted-foreground text-xs">{t("create.no_members_found")}</p>
                   </div>
                 ) : (
                   <div className="p-1">
@@ -210,7 +210,7 @@ export function CreateChannel({ profileId, onClose, onCreated }: Props) {
                           </Avatar>
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-medium">
-                              {member.display_name ?? "Ukjent"}
+                              {member.display_name ?? t("create.unknown")}
                             </p>
                             <p className="text-muted-foreground text-xs capitalize">
                               {member.role}
@@ -229,10 +229,10 @@ export function CreateChannel({ profileId, onClose, onCreated }: Props) {
 
         <DialogFooter>
           <Button variant="outline" size="sm" onClick={onClose}>
-            Avbryt
+            {t("create.cancel")}
           </Button>
           <Button size="sm" onClick={handleCreate} disabled={!canCreate}>
-            {createChannel.isPending ? "Oppretter..." : "Opprett"}
+            {createChannel.isPending ? t("create.creating") : t("create.submit")}
           </Button>
         </DialogFooter>
       </DialogContent>

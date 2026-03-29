@@ -7,7 +7,7 @@ import type { WorkspaceData } from "@/lib/workspace-context";
  * Shared constant to avoid divergence between queries.
  */
 const WORKSPACE_SELECT =
-  "workspace_id, company_id, name, slug, logo_url, currency, language, country, timezone, contract_status, onboarding_completed" as const;
+  "workspace_id, company_id, name, slug, logo_url, currency, language, country, timezone, contract_status, onboarding_completed, setup_guide_completed" as const;
 
 /**
  * Get the authenticated user for the current request.

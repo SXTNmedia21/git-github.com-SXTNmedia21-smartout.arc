@@ -43,7 +43,7 @@ export function useCallInvite() {
       const eventMap = {
         accept: "channel.call.invite_accepted",
         reject: "channel.call.invite_rejected",
-        cancel: "channel.call.invite_rejected",
+        cancel: "channel.call.invite_missed",
       } as const;
 
       void emit({

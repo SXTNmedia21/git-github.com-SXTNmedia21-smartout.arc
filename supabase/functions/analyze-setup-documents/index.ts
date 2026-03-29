@@ -1,4 +1,3 @@
-import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 
@@ -99,14 +98,14 @@ Only include categories where you found relevant data. Omit empty arrays/objects
 All text values should be in Norwegian.`;
 
 function getScraplingConfig() {
-  const url = Deno.env.get("SCRAPLING_SERVICE_URL");
+  let url = Deno.env.get("SCRAPLING_SERVICE_URL") || "http://host.docker.internal:8000";
   const token = Deno.env.get("SCRAPLING_AUTH_TOKEN");
 
-  if (!url) {
-    console.error("SCRAPLING_SERVICE_URL not set — cannot reach Scrapling service");
-  }
+  // Edge Functions run inside Docker — localhost from env means the host machine
+  url = url.replace("://localhost:", "://host.docker.internal:");
+  url = url.replace("://127.0.0.1:", "://host.docker.internal:");
 
-  return { url: url || "http://host.docker.internal:8000", token };
+  return { url, token };
 }
 
 async function extractViaBatch(
@@ -187,7 +186,7 @@ async function extractViaScrapling(
   }
 }
 
-Deno.serve(async (req: Request) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }

@@ -178,7 +178,7 @@ export function VoiceSessionOverlay() {
                       onClick={toggleMic}
                       className={`flex h-12 w-12 items-center justify-center rounded-full border transition-all ${
                         isMuted
-                          ? "border-red-500/30 bg-red-500/20 text-red-400"
+                          ? "border-destructive/30 bg-destructive/20 text-destructive"
                           : "border-white/10 bg-white/[0.05] text-white/60 hover:text-white/80"
                       }`}
                     >

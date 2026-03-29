@@ -11,6 +11,7 @@ const eslintConfig = defineConfig([
   // These are server-rendered public pages — Next.js link rules don't apply.
   globalIgnores([
     ".next/**",
+    ".next-e2e-web/**",
     "out/**",
     "build/**",
     "next-env.d.ts",

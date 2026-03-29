@@ -30,7 +30,7 @@ export default function ImageSectionBlock({ content, settings }: BlockProps<Imag
         className={`mx-auto ${getLayoutClasses(settings.layout)}`}
       >
         <figure className={`mx-auto ${maxWidthClass[content.max_width]}`}>
-          <div className="overflow-hidden rounded-2xl border border-white/10">
+          <div className="border-border overflow-hidden rounded-2xl border">
             <Image
               src={src}
               alt={content.image.alt || ""}
@@ -40,7 +40,7 @@ export default function ImageSectionBlock({ content, settings }: BlockProps<Imag
             />
           </div>
           {content.caption && (
-            <figcaption className="mt-4 text-center text-sm text-zinc-500">
+            <figcaption className="text-muted-foreground mt-4 text-center text-sm">
               {content.caption}
             </figcaption>
           )}

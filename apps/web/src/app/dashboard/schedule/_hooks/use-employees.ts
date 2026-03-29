@@ -22,6 +22,9 @@ export type ScheduleEmployee = {
   role: string;
   jobTitle: string;
   team: string;
+  departmentId: string;
+  departmentName: string;
+  locationName: string;
   avatarColor: string;
   initials: string;
 };
@@ -75,10 +78,12 @@ export function useEmployees() {
     queryFn: async () => {
       const supabase = createClient();
 
-      // 1. Fetch active/trainee profiles for this workspace
+      // 1. Fetch active/trainee profiles with department and location joins
       const { data: profiles, error: profileError } = await supabase
         .from("profile")
-        .select("profile_id, display_name, role, job_title, status")
+        .select(
+          "profile_id, display_name, role, job_title, status, department_id, location_id, department:department_id(name), location:location_id(name)",
+        )
         .eq("workspace_id", workspaceId)
         .in("status", ["active", "trainee"])
         .order("display_name");
@@ -115,6 +120,14 @@ export function useEmployees() {
         }
       }
 
+      // Helper to extract name from a PostgREST join result (object or null)
+      const extractName = (joined: unknown): string => {
+        if (joined && typeof joined === "object" && "name" in joined) {
+          return (joined as { name: string }).name;
+        }
+        return "";
+      };
+
       // 3. Map to ScheduleEmployee
       return profiles.map((p: ProfileRow): ScheduleEmployee => {
         const name = p.display_name || "Ukjent";
@@ -124,6 +137,9 @@ export function useEmployees() {
           role: p.role ?? "",
           jobTitle: p.job_title ?? "",
           team: teamByProfile.get(p.profile_id) ?? "",
+          departmentId: p.department_id ?? "",
+          departmentName: extractName(p.department),
+          locationName: extractName(p.location),
           avatarColor: getAvatarColor(p.profile_id),
           initials: getInitials(name),
         };

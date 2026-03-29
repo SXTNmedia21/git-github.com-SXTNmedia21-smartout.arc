@@ -44,6 +44,8 @@ export function ShiftCard({
   onClick,
   onTimeChange,
   isCompact,
+  confirmedAt,
+  hasConflict,
 }: {
   role: string;
   time: string;
@@ -58,6 +60,8 @@ export function ShiftCard({
   /** Called when start/end time is changed via resize handles. */
   onTimeChange?: (newStart: string, newEnd: string) => void;
   isCompact?: boolean;
+  confirmedAt?: string;
+  hasConflict?: boolean;
 }) {
   const { isDark } = useContext(DashboardContext);
   const defaultId = React.useId();
@@ -153,7 +157,8 @@ export function ShiftCard({
       {...listeners}
       {...attributes}
       onClick={handleClick}
-      className={`group cursor-pointer ${showHandles ? "relative" : ""}`}
+      className={`group cursor-pointer ${showHandles ? "relative" : ""} ${hasConflict ? "ring-destructive/60 rounded-lg ring-2" : ""}`}
+      title={hasConflict ? "Overlappende vakter for samme ansatt" : undefined}
     >
       {/* Left resize handle (start time) */}
       {showHandles && (
@@ -191,6 +196,7 @@ export function ShiftCard({
         indicator={indicator}
         zone={zone}
         isCompact={isCompact}
+        confirmedAt={confirmedAt}
       />
     </div>
   );
@@ -289,8 +295,8 @@ export const AbsenceCard = React.memo(function AbsenceCard({
       <div
         className={`relative flex h-7 w-full shrink-0 items-center rounded-md border px-2 transition-all ${
           isSick
-            ? "border-rose-500/40 bg-rose-500/15 shadow-[0_0_10px_rgba(244,63,94,0.1)]"
-            : "border-blue-500/15 bg-blue-500/[0.04]"
+            ? "border-rose-500/40 bg-rose-500/10 shadow-[0_0_10px_rgba(244,63,94,0.1)]"
+            : "border-blue-500/30 bg-blue-500/10"
         }`}
       >
         {isSick ? (
@@ -312,8 +318,8 @@ export const AbsenceCard = React.memo(function AbsenceCard({
     <div
       className={`relative flex h-[46px] w-full shrink-0 items-center rounded-lg border px-2.5 py-1.5 transition-all xl:h-[50px] ${
         isSick
-          ? "bg-stripes-rose border-rose-500/40 bg-rose-500/15 shadow-[0_0_10px_rgba(244,63,94,0.1)]"
-          : "bg-stripes-blue border-blue-500/15 bg-blue-500/[0.04]"
+          ? "bg-stripes-rose border-rose-500/40 bg-rose-500/10 shadow-[0_0_10px_rgba(244,63,94,0.1)]"
+          : "bg-stripes-blue border-blue-500/30 bg-blue-500/10"
       }`}
     >
       {isSick ? (

@@ -45,3 +45,30 @@ export { sendSms, sendSmsBatch } from "./sms-service";
 
 // Kill switch
 export { isOutboundEmailEnabled } from "./kill-switch";
+
+// Event config registry
+export { NOTIFICATION_EVENTS, getEventConfig, interpolateTemplate } from "./event-config";
+export type { NotificationEventConfig } from "./event-config";
+
+// Outbox helper
+export { insertOutboxNotification } from "./outbox";
+
+// Deep link routing
+export {
+  DEEP_LINK_MAP,
+  resolveDeepLink,
+  type NotificationType,
+  type DeepLinkResolver,
+} from "./deep-links";
+
+// Notification data hooks
+export {
+  useUnreadCount,
+  useNotifications,
+  useMarkAsRead,
+  useMarkAllAsRead,
+} from "./hooks/use-notifications";
+export {
+  useNotificationPreferences,
+  useUpdateNotificationPreferences,
+} from "./hooks/use-notification-preferences";

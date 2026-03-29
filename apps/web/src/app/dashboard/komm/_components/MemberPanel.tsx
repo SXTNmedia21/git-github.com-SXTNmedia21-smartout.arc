@@ -1,24 +1,34 @@
 "use client";
 
 import { useChannelMembers } from "../_hooks/use-channel-members";
+import { useTranslation } from "@smartout/i18n";
 import { Button } from "@/components/ui/button";
-import { X, Bot, Shield } from "lucide-react";
+import { X, Bot, Shield, MicOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Props = {
   channelId: string;
   profileId: string;
   onClose: () => void;
+  isCallActive?: boolean;
+  onMuteParticipant?: (profileId: string) => void;
 };
 
-export function MemberPanel({ channelId, profileId, onClose }: Props) {
+export function MemberPanel({
+  channelId,
+  profileId,
+  onClose,
+  isCallActive,
+  onMuteParticipant,
+}: Props) {
+  const { t } = useTranslation("komm");
   const { data: members, isLoading } = useChannelMembers(channelId);
 
   return (
     <div className="flex w-64 flex-shrink-0 flex-col border-l">
       {/* Header */}
       <div className="flex items-center justify-between border-b px-3 py-3">
-        <h3 className="text-sm font-semibold">Medlemmer</h3>
+        <h3 className="text-sm font-semibold">{t("member.header")}</h3>
         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}>
           <X className="h-4 w-4" />
         </Button>
@@ -71,11 +81,29 @@ export function MemberPanel({ channelId, profileId, onClose }: Props) {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">
-                      {profile.display_name ?? "Ukjent"}
-                      {isSelf && <span className="text-muted-foreground font-normal"> (deg)</span>}
+                      {profile.display_name ?? t("member.unknown")}
+                      {isSelf && (
+                        <span className="text-muted-foreground font-normal">
+                          {" "}
+                          {t("member.you_suffix")}
+                        </span>
+                      )}
                     </p>
                   </div>
                   {isAdmin && <Shield className="h-3.5 w-3.5 shrink-0 text-amber-500" />}
+                  {isCallActive && !isSelf && !isAi && onMuteParticipant && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 shrink-0"
+                      onClick={() => onMuteParticipant(member.profile_id)}
+                      aria-label={t("member.mute_aria", {
+                        name: profile.display_name ?? t("member.participant_fallback"),
+                      })}
+                    >
+                      <MicOff className="h-3 w-3" />
+                    </Button>
+                  )}
                 </div>
               );
             })}

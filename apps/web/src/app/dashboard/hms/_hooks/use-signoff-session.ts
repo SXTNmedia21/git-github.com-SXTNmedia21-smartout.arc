@@ -23,17 +23,29 @@ export function useSignoffSession() {
   return useMutation({
     mutationFn: async ({ sessionId, signoffNotes }: SignoffInput) => {
       const supabase = createClient();
-      const { error } = await supabase
+
+      // Step 1: Transition to pending_signoff (triggers engine event via DB trigger)
+      const { error: pendingError } = await supabase
+        .from("department_session")
+        .update({
+          status: "pending_signoff" as const,
+          signoff_notes: signoffNotes,
+        })
+        .eq("department_session_id", sessionId);
+
+      if (pendingError) throw pendingError;
+
+      // Step 2: Transition to closed (completes the lifecycle)
+      const { error: closeError } = await supabase
         .from("department_session")
         .update({
           status: "closed" as const,
           closed_at: new Date().toISOString(),
           closed_by: profileId,
-          signoff_notes: signoffNotes,
         })
         .eq("department_session_id", sessionId);
 
-      if (error) throw error;
+      if (closeError) throw closeError;
     },
     onSuccess: (_data, variables) => {
       void emit({
@@ -47,10 +59,10 @@ export function useSignoffSession() {
       queryClient.invalidateQueries({
         queryKey: ["hms", "department-sessions"],
       });
-      toast.success("Okt signert og lukket");
+      toast.success("Økt signert og lukket");
     },
     onError: (error: Error) => {
-      toast.error(`Kunne ikke signere okt: ${error.message}`);
+      toast.error(`Kunne ikke signere økt: ${error.message}`);
     },
   });
 }

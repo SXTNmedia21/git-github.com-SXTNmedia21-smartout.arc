@@ -21,6 +21,7 @@ import { ONBOARDING_SECTIONS, EMPTY_BUSINESS_DATA } from "../types";
 import { mergeBusinessData } from "../lib/data-merger";
 import type { PlacesData } from "../lib/data-merger";
 import { suggestSeason } from "../lib/season-suggestions";
+import { buildWorkspaceFinalizationRequest } from "../lib/finalization";
 import {
   getDepartmentsForIndustry,
   getProceduresForIndustry,
@@ -181,7 +182,13 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
             const brreg = intel.brreg as Record<string, unknown> | null;
             const places = intel.places as PlacesData | null;
             const joinIntake = intel.join_intake as {
-              businessNarrative?: { aboutUs?: string; ourConcept?: string };
+              businessNarrative?: { aboutUs?: string; ourHistory?: string; ourConcept?: string };
+              menu?: {
+                restaurantType?: string;
+                cuisineTypes?: string[];
+                priceCategory?: string;
+                menuDescription?: string;
+              };
             } | null;
 
             const merged = mergeBusinessData(scraped, brreg, places);
@@ -195,6 +202,34 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
                 joinIntake?.businessNarrative?.ourConcept ??
                 "";
             }
+
+            // Restore join intake fields that mergeBusinessData doesn't handle
+            if (joinIntake) {
+              const narrative = joinIntake.businessNarrative;
+              if (narrative?.ourHistory) merged.ourHistory = narrative.ourHistory;
+              if (narrative?.ourConcept) merged.ourConcept = narrative.ourConcept;
+
+              const menu = joinIntake.menu;
+              if (menu?.restaurantType) merged.restaurantType = menu.restaurantType;
+              if (menu?.cuisineTypes?.length) merged.cuisineTypes = menu.cuisineTypes;
+              if (menu?.priceCategory) merged.priceCategory = menu.priceCategory;
+              if (menu?.menuDescription) merged.menuDescription = menu.menuDescription;
+            }
+
+            // Restore scraped fields not covered by mergeBusinessData
+            const scrapedRaw = scraped as Record<string, unknown> | null;
+            if (scrapedRaw) {
+              const socialLinks = scrapedRaw.socialLinks as Record<string, string> | undefined;
+              if (socialLinks && Object.keys(socialLinks).length > 0)
+                merged.socialLinks = socialLinks;
+              if (scrapedRaw.reservationUrl)
+                merged.reservationUrl = scrapedRaw.reservationUrl as string;
+              if (scrapedRaw.menus)
+                merged.menuLinks = scrapedRaw.menus as Array<{ href: string; text: string }>;
+              if (scrapedRaw.logoUrl && !merged.logoUrl)
+                merged.logoUrl = scrapedRaw.logoUrl as string;
+            }
+
             setBusiness(merged);
             setScrapeStatus("done");
 
@@ -349,6 +384,7 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
           actor_id: userId,
           properties: {
             data: {
+              wizard_id: "onboarding",
               step_id: section,
               step_index: stepIndex,
             },
@@ -693,7 +729,12 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
     try {
       const selectedDepts = departments
         .filter((d) => d.selected)
-        .map((d) => ({ name: d.name, positions: d.positions }));
+        .map((d) => ({
+          name: d.name,
+          positions: d.positions
+            .filter((p) => p.selected)
+            .map((p) => ({ name: p.name, isLeader: p.isLeader })),
+        }));
 
       const selectedProcs = procedures.filter((p) => p.selected).map((p) => p.name);
 
@@ -725,53 +766,41 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
         seasonStartDate: season.startDate,
         seasonEndDate: season.endDate,
         contractId: contract?.contractId ?? null,
+        // Business narrative + menu data for company_details upsert
+        aboutUs: business.description,
+        ourHistory: business.ourHistory,
+        ourConcept: business.ourConcept,
+        restaurantType: business.restaurantType,
+        cuisineTypes: business.cuisineTypes,
+        priceCategory: business.priceCategory,
+        menuDescription: business.menuDescription,
+        socialLinks: business.socialLinks,
+        logoUrl: business.logoUrl,
       };
 
-      let workspaceId: string;
-      let slug: string | null = null;
+      const finalizationRequest = buildWorkspaceFinalizationRequest(
+        onboardingWorkspaceId,
+        workspacePayload,
+      );
 
-      if (onboardingWorkspaceId) {
-        // Finalize existing onboarding workspace — call RPC directly
-        // (SECURITY DEFINER bypasses RLS, no service role needed)
-        const { data: rpcResult, error: rpcError } = await supabase.rpc(
-          "finalize_onboarding_workspace",
-          {
-            p_workspace_id: onboardingWorkspaceId,
-            p_data: workspacePayload,
-          },
-        );
-
-        if (rpcError) throw new Error(`Failed to finalize workspace: ${rpcError.message}`);
-        workspaceId = rpcResult ?? onboardingWorkspaceId;
-
-        // Link contract to workspace if one was generated during onboarding
-        if (workspacePayload.contractId) {
-          await supabase
-            .from("contract")
-            .update({ workspace_id: workspaceId, updated_at: new Date().toISOString() })
-            .eq("contract_id", workspacePayload.contractId);
-
-          await supabase
-            .from("workspace")
-            .update({ contract_status: "pending_contract", updated_at: new Date().toISOString() })
-            .eq("workspace_id", workspaceId);
-        }
-
-        const { data: ws } = await supabase
-          .from("workspace")
-          .select("slug")
-          .eq("workspace_id", workspaceId)
-          .single();
-        slug = ws?.slug ?? null;
-      } else {
-        // Legacy: activate-workspace for old flow
-        const { data, error } = await supabase.functions.invoke("activate-workspace", {
-          body: { workspaceData: workspacePayload },
+      const { data: finalizationResult, error: finalizationError } =
+        await supabase.functions.invoke(finalizationRequest.functionName, {
+          body: finalizationRequest.body,
         });
 
-        if (error) throw new Error("Failed to activate workspace");
-        workspaceId = data?.workspaceId;
+      if (finalizationError) {
+        throw new Error(finalizationError.message || "Failed to finalize workspace");
+      }
 
+      const response = (finalizationResult ?? null) as {
+        workspaceId?: string;
+        slug?: string | null;
+      } | null;
+
+      const workspaceId = response?.workspaceId;
+      let slug = response?.slug ?? null;
+
+      if (workspaceId && !slug) {
         const { data: ws } = await supabase
           .from("workspace")
           .select("slug")
@@ -784,6 +813,21 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
 
       setActivatedWorkspaceId(workspaceId);
       setActivatedWorkspaceSlug(slug);
+
+      // Emit finalization telemetry
+      if (userId) {
+        emit({
+          event: "wizard completed",
+          workspace_id: workspaceId,
+          actor_id: userId,
+          properties: {
+            data: {
+              wizard_id: "onboarding",
+              workspace_id: workspaceId,
+            },
+          },
+        }).catch((e: unknown) => console.error("[onboarding] emit failed:", e));
+      }
 
       // Mark legacy session as completed if it exists
       if (sessionId) {

@@ -29,6 +29,7 @@ import { EditPositionDialog } from "../../_components/EditPositionDialog";
 import { MovePositionDialog } from "../../_components/MovePositionDialog";
 import { ICON_COMPONENTS } from "../../_components/constants";
 import type { DepartmentRow, PositionRow, ProfileRow, TeamRow } from "../../_components/types";
+import { DepartmentHoursTab } from "./_components/DepartmentHoursTab";
 
 export default function DepartmentDetailPage() {
   const params = useParams<{ id: string }>();
@@ -514,6 +515,20 @@ export default function DepartmentDetailPage() {
                   Department-scoped policies will be managed here in a future release.
                 </p>
               </div>
+            ),
+          },
+          {
+            value: "hours",
+            label: "Åpningstider",
+            content: (
+              <DepartmentHoursTab
+                departmentId={department.department_id}
+                profileId={
+                  profiles.find((p) => p.profile_id === department.manager_profile_id)
+                    ?.profile_id ?? ""
+                }
+                isDark={isDark}
+              />
             ),
           },
           {

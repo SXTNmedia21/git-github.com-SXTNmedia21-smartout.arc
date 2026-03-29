@@ -9,6 +9,7 @@ import {
   MapPin,
   PlayCircle,
   CheckCircle2,
+  ThumbsUp,
 } from "lucide-react";
 
 type OpenShiftCardViewProps = {
@@ -26,7 +27,7 @@ export const OpenShiftCardView = React.memo(function OpenShiftCardView({
 }: OpenShiftCardViewProps) {
   return (
     <div
-      className={`group cursor-grab rounded-xl border border-dashed border-amber-500/25 bg-amber-500/[0.03] p-3 shadow-sm transition-[opacity,transform,background-color,border-color] duration-200 ease-out will-change-transform hover:border-amber-500/40 hover:bg-amber-500/[0.06] active:cursor-grabbing ${isDragging ? "scale-[0.98] opacity-35" : "scale-100 opacity-100"}`}
+      className={`group cursor-grab rounded-xl border border-dashed border-amber-500/40 bg-amber-500/5 p-3 shadow-sm transition-[opacity,transform,background-color,border-color] duration-200 ease-out will-change-transform hover:border-amber-500/60 hover:bg-amber-500/10 active:cursor-grabbing ${isDragging ? "scale-[0.98] opacity-35" : "scale-100 opacity-100"}`}
     >
       <h4 className="text-foreground group-hover:text-foreground/70 mb-1 text-sm font-bold transition-colors">
         {title}
@@ -51,13 +52,16 @@ type ShiftCardViewProps = {
   indicator: string;
   zone?: string;
   isCompact?: boolean;
+  confirmedAt?: string;
 };
 
 const SHIFT_STATUS_STYLES: Record<ShiftStatus, string> = {
-  draft: "border-dashed border-orange-500/20 bg-orange-500/[0.03]",
-  published: "border-white/[0.06] bg-white/[0.015]",
-  active: "border-emerald-500/40 bg-emerald-500/8 shadow-[0_0_15px_rgba(16,185,129,0.1)]",
-  completed: "border-white/[0.03] bg-transparent opacity-50",
+  draft:
+    "border-dashed border-orange-500/30 bg-orange-500/5 dark:border-orange-500/20 dark:bg-orange-500/[0.03]",
+  published: "border-border bg-card shadow-sm hover:border-foreground/20",
+  active:
+    "border-emerald-500/40 bg-emerald-500/10 shadow-[0_0_15px_rgba(16,185,129,0.1)] dark:bg-emerald-500/5",
+  completed: "border-border/50 bg-muted/30 opacity-60 dark:bg-transparent",
 };
 
 const SHIFT_INDICATOR_STYLES: Record<ShiftIndicator, string> = {
@@ -91,11 +95,19 @@ function normalizeShiftIndicator(indicator: string): ShiftIndicator {
   return "orange";
 }
 
-function ShiftStatusIcon({ status }: { status: ShiftStatus }) {
+function ShiftStatusIcon({ status, confirmedAt }: { status: ShiftStatus; confirmedAt?: string }) {
   if (status === "draft") return <AlertCircle className="h-3.5 w-3.5 text-orange-400/60" />;
-  if (status === "published") return <Circle className="text-muted-foreground h-3.5 w-3.5" />;
-  if (status === "active") return <PlayCircle className="h-3.5 w-3.5 text-emerald-400/60" />;
-  return <CheckCircle2 className="text-muted-foreground h-3.5 w-3.5" />;
+  if (status === "completed") return <CheckCircle2 className="text-muted-foreground h-3.5 w-3.5" />;
+  if (status === "active") {
+    return confirmedAt ? (
+      <ThumbsUp className="h-3.5 w-3.5 text-emerald-400" />
+    ) : (
+      <PlayCircle className="h-3.5 w-3.5 text-emerald-400/60" />
+    );
+  }
+  // published: show confirmation status
+  if (confirmedAt) return <ThumbsUp className="h-3.5 w-3.5 text-emerald-400" />;
+  return <Clock className="text-muted-foreground h-3.5 w-3.5" />;
 }
 
 export const ShiftCardView = React.memo(function ShiftCardView({
@@ -107,9 +119,11 @@ export const ShiftCardView = React.memo(function ShiftCardView({
   indicator,
   zone,
   isCompact,
+  confirmedAt,
 }: ShiftCardViewProps) {
   const normalizedStatus = normalizeShiftStatus(status);
   const normalizedIndicator = normalizeShiftIndicator(indicator);
+  const isPublishedOrLater = normalizedStatus === "published" || normalizedStatus === "active";
 
   if (isCompact) {
     return (
@@ -122,9 +136,15 @@ export const ShiftCardView = React.memo(function ShiftCardView({
         <span className="text-foreground truncate pl-1 text-[11px] leading-tight font-semibold">
           {role}
         </span>
-        <span className="text-muted-foreground ml-auto shrink-0 text-[10px] font-medium">
-          {time}
-        </span>
+        <div className="ml-auto flex shrink-0 items-center gap-1">
+          {isPublishedOrLater && (
+            <div
+              className={`h-1.5 w-1.5 rounded-full ${confirmedAt ? "bg-emerald-400" : "bg-amber-400"}`}
+              title={confirmedAt ? "Bekreftet" : "Venter på bekreftelse"}
+            />
+          )}
+          <span className="text-muted-foreground text-[10px] font-medium">{time}</span>
+        </div>
       </div>
     );
   }
@@ -151,7 +171,7 @@ export const ShiftCardView = React.memo(function ShiftCardView({
         </div>
 
         <div className="relative flex h-5 w-5 shrink-0 items-center justify-center">
-          <ShiftStatusIcon status={normalizedStatus} />
+          <ShiftStatusIcon status={normalizedStatus} confirmedAt={confirmedAt} />
         </div>
       </div>
 

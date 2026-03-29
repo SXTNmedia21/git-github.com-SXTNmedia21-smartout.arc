@@ -14,6 +14,21 @@ export type ScrapedIntelligence = {
   phone?: string;
   googleRating?: number;
   menuItemCount?: number;
+  // Business narrative (from company_details):
+  aboutUs?: string;
+  ourHistory?: string;
+  ourConcept?: string;
+  restaurantType?: string;
+  cuisineTypes?: string[];
+  priceCategory?: string;
+  menuDescription?: string;
+  // External data:
+  socialLinks?: Record<string, string>;
+  logoUrl?: string;
+  googleMapsUrl?: string;
+  googlePriceLevel?: string;
+  // Source tracking:
+  fieldSources?: Record<string, string>;
 };
 
 // ─── Document Extraction (from Step 1) ───

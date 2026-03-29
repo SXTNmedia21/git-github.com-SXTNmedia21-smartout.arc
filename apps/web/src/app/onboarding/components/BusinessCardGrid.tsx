@@ -13,6 +13,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import type { BusinessData } from "../types";
+import { EASE_EXPO } from "../lib/motion";
 
 // UI Events:
 // - action: editField(cardId, fieldKey) — click field row to edit inline
@@ -102,8 +103,6 @@ const CARDS: CardDef[] = [
   },
 ];
 
-const EASE_OUT_EXPO = [0.16, 1, 0.3, 1] as const;
-
 const cardVariants = {
   hidden: { opacity: 0, y: 24, scale: 0.98 },
   visible: (i: number) => ({
@@ -112,7 +111,7 @@ const cardVariants = {
     scale: 1,
     transition: {
       duration: 0.7,
-      ease: EASE_OUT_EXPO as unknown as [number, number, number, number],
+      ease: EASE_EXPO,
       delay: i * 0.08,
     },
   }),
@@ -125,7 +124,7 @@ const valueVariants = {
     x: 0,
     transition: {
       duration: 0.35,
-      ease: EASE_OUT_EXPO as unknown as [number, number, number, number],
+      ease: EASE_EXPO,
     },
   },
 };
@@ -221,7 +220,9 @@ export function BusinessCardGrid({ business, onUpdate, isScraping }: BusinessCar
                         {/* Label */}
                         <span
                           className={`w-[110px] shrink-0 text-[11px] font-medium tracking-wide ${
-                            field.must && isEmpty ? "text-orange-400/60" : "text-white/35"
+                            field.must && isEmpty
+                              ? "text-[var(--brand-orange)]/60"
+                              : "text-white/35"
                           }`}
                         >
                           {field.label}
@@ -266,7 +267,7 @@ export function BusinessCardGrid({ business, onUpdate, isScraping }: BusinessCar
                           ) : isEmpty ? (
                             <span
                               className={`text-sm ${
-                                field.must ? "text-orange-400/50" : "text-white/20"
+                                field.must ? "text-[var(--brand-orange)]/50" : "text-white/20"
                               }`}
                             >
                               {field.must ? "Mangler" : "—"}

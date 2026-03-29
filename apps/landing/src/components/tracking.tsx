@@ -26,6 +26,7 @@ import { usePageTracking, useTrackCta, getCurrentVariant } from "../hooks/useTra
 import { useScrollTracking } from "../hooks/useScrollTracking";
 import { useClickTracking } from "../hooks/useClickTracking";
 import { useSessionLifecycle } from "../hooks/useSessionLifecycle";
+import { useConsent } from "./cookie-consent";
 
 /**
  * Invisible component that fires a page_view event once per session.
@@ -44,6 +45,18 @@ export function PageTracker() {
  * Renders nothing — zero layout impact.
  */
 export function FullTracker() {
+  const { categories, hasConsented } = useConsent();
+  const analyticsAllowed = hasConsented && categories.analytics;
+
+  // Hooks must be called unconditionally (React rules),
+  // but the underlying tracking hooks should check consent internally.
+  // For now, we conditionally render to prevent hook side-effects.
+  if (!analyticsAllowed) return null;
+
+  return <FullTrackerInner />;
+}
+
+function FullTrackerInner() {
   usePageTracking();
   useScrollTracking();
   useClickTracking();

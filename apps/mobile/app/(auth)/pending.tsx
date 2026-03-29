@@ -5,16 +5,18 @@
  * When accepted, redirects to workspace-select (which auto-routes to app).
  */
 import { useEffect, useCallback } from "react";
-import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
+import { useTheme, withOpacity } from "@/theme";
 
 export default function Pending() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const { colors } = useTheme();
 
   // Check if any invitation has been accepted (in case we missed the realtime event)
   const checkStatus = useCallback(async () => {
@@ -76,105 +78,89 @@ export default function Pending() {
 
   return (
     <View
-      style={[styles.container, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 24 }]}
+      style={{
+        flex: 1,
+        backgroundColor: colors.background,
+        padding: 24,
+        paddingTop: insets.top + 40,
+        paddingBottom: insets.bottom + 24,
+      }}
     >
-      <View style={styles.content}>
-        <View style={styles.iconCircle}>
-          <ActivityIndicator size="small" color="#F97316" />
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <View
+          style={{
+            width: 72,
+            height: 72,
+            borderRadius: 36,
+            backgroundColor: withOpacity(colors.brandOrange, 0.08),
+            alignItems: "center",
+            justifyContent: "center",
+            marginBottom: 24,
+          }}
+        >
+          <ActivityIndicator size="small" color={colors.brandOrange} />
         </View>
 
-        <Text style={styles.heading}>Forespørsel sendt</Text>
+        <Text
+          style={{ fontSize: 24, fontWeight: "700", color: colors.foreground, textAlign: "center" }}
+        >
+          Forespørsel sendt
+        </Text>
 
-        <Text style={styles.body}>
+        <Text
+          style={{
+            fontSize: 15,
+            color: colors.mutedForeground,
+            textAlign: "center",
+            marginTop: 12,
+            paddingHorizontal: 16,
+            lineHeight: 22,
+          }}
+        >
           Din forespørsel er sendt til arbeidsplassens administrator. Du far en melding nar den er
           godkjent.
         </Text>
 
-        <Text style={styles.hint}>
+        <Text
+          style={{
+            fontSize: 13,
+            color: colors.mutedForeground,
+            textAlign: "center",
+            marginTop: 16,
+            paddingHorizontal: 24,
+            lineHeight: 20,
+          }}
+        >
           Dette kan ta litt tid. Du kan lukke appen — vi varsler deg nar du har fatt tilgang.
         </Text>
       </View>
 
-      <View style={styles.footer}>
-        <TouchableOpacity style={styles.refreshButton} onPress={checkStatus}>
-          <Text style={styles.refreshButtonText}>Sjekk status</Text>
+      <View style={{ gap: 12 }}>
+        <TouchableOpacity
+          style={{
+            width: "100%",
+            height: 48,
+            backgroundColor: colors.muted,
+            borderRadius: 12,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+          onPress={checkStatus}
+        >
+          <Text style={{ color: colors.foreground, fontSize: 15, fontWeight: "600" }}>
+            Sjekk status
+          </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
-          <Text style={styles.signOutButtonText}>Logg ut</Text>
+        <TouchableOpacity
+          style={{ width: "100%", height: 48, alignItems: "center", justifyContent: "center" }}
+          onPress={handleSignOut}
+        >
+          <Text style={{ color: colors.destructive, fontSize: 15, fontWeight: "500" }}>
+            Logg ut
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-    padding: 24,
-  },
-  content: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  iconCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: "#FFF7ED",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 24,
-  },
-  heading: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#111827",
-    textAlign: "center",
-  },
-  body: {
-    fontSize: 15,
-    color: "#6B7280",
-    textAlign: "center",
-    marginTop: 12,
-    paddingHorizontal: 16,
-    lineHeight: 22,
-  },
-  hint: {
-    fontSize: 13,
-    color: "#9CA3AF",
-    textAlign: "center",
-    marginTop: 16,
-    paddingHorizontal: 24,
-    lineHeight: 20,
-  },
-  footer: {
-    gap: 12,
-  },
-  refreshButton: {
-    width: "100%",
-    height: 48,
-    backgroundColor: "#F3F4F6",
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  refreshButtonText: {
-    color: "#374151",
-    fontSize: 15,
-    fontWeight: "600",
-  },
-  signOutButton: {
-    width: "100%",
-    height: 48,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  signOutButtonText: {
-    color: "#EF4444",
-    fontSize: 15,
-    fontWeight: "500",
-  },
-});

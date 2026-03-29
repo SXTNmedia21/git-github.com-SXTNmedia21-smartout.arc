@@ -13,12 +13,12 @@ export function ConnectionBanner() {
   if (status !== "error") return null;
 
   return (
-    <div className="fixed top-0 right-0 left-0 z-50 border-b border-red-200 bg-red-50 px-4 py-3 text-center dark:border-red-900 dark:bg-red-950/50">
-      <div className="flex items-center justify-center gap-2 text-sm text-red-800 dark:text-red-200">
+    <div className="border-destructive/20 bg-destructive/10 fixed top-0 right-0 left-0 z-50 border-b px-4 py-3 text-center">
+      <div className="text-destructive flex items-center justify-center gap-2 text-sm">
         <AlertTriangle className="h-4 w-4 shrink-0" />
         <span>Kan ikke koble til tjenesten. Registrering er midlertidig utilgjengelig.</span>
       </div>
-      {error && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{error}</p>}
+      {error && <p className="text-destructive/80 mt-1 text-xs">{error}</p>}
     </div>
   );
 }

@@ -20,6 +20,7 @@ import { store } from "./routes/store.js";
 import { fetchRoute } from "./routes/fetch.js";
 import { advance } from "./routes/advance.js";
 import { ultravox } from "./routes/adapters/ultravox.js";
+import { telegram } from "./routes/adapters/telegram.js";
 import { agentChat } from "./routes/agent/chat.js";
 import { createWsRoute } from "./routes/ws.js";
 import { createGuardianRoute } from "./routes/guardian.js";
@@ -27,6 +28,7 @@ import { expireStaleSession } from "./core/session-manager.js";
 import { cleanExpiredMemories } from "./core/memory-manager.js";
 import { evaluateAllActiveSessions } from "./core/guardian-evaluator.js";
 import { evaluateCalendarTriggers } from "./core/calendar-guardian.js";
+import { relayToTelegram } from "./core/telegram-bridge.js";
 
 // Load external API keys from Vault before starting the server
 await loadSecrets();
@@ -40,6 +42,10 @@ const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
 app.use(logger());
 // Skip auth for WebSocket upgrade — WS auth is handled in the route handler itself
 app.use("/ws/*", async (_c, next) => next());
+// Skip auth for Telegram webhook — Telegram does not send our API keys;
+// it sends a shared secret in x-telegram-bot-api-secret-token instead,
+// which is verified inside the route handler itself.
+app.use("/adapters/telegram/*", async (_c, next) => next());
 app.use("*", authMiddleware);
 
 // Error handler
@@ -53,6 +59,7 @@ app.route("/", store);
 app.route("/", fetchRoute);
 app.route("/", advance);
 app.route("/", ultravox);
+app.route("/", telegram);
 app.route("/", agentChat);
 app.route("/", createGuardianRoute(upgradeWebSocket));
 
@@ -65,6 +72,60 @@ const server = serve({ fetch: app.fetch, port }, (info) => {
 
 // Inject Hono WebSocket handler for /ws/:sessionId
 injectWebSocket(server);
+
+// PG NOTIFY listener for Telegram chat bridge relay.
+// When a channel_message is inserted, the DB fires NOTIFY telegram_bridge with
+// a JSON payload. We parse it and relay the message to the admin's Telegram.
+// Using a raw pg client (not Supabase Realtime) for reliability — Realtime
+// requires a live websocket subscription which can silently disconnect.
+async function setupPgNotifyListener() {
+  try {
+    const dbUrl = process.env.DATABASE_URL;
+    if (!dbUrl) {
+      console.warn("[telegram] DATABASE_URL not set — bridge relay unavailable");
+      return;
+    }
+    const { Client } = await import("pg");
+    const client = new Client({ connectionString: dbUrl });
+    await client.connect();
+    await client.query("LISTEN telegram_bridge");
+    console.log("[telegram] PG NOTIFY listener active for chat bridge relay");
+
+    client.on("notification", async (msg: { channel: string; payload?: string }) => {
+      if (msg.channel !== "telegram_bridge" || !msg.payload) return;
+      try {
+        const payload = JSON.parse(msg.payload) as {
+          channel_id: string;
+          sender_id: string;
+          origin_type: string;
+          system_data: Record<string, unknown> | null;
+          content: string;
+        };
+        // Skip admin relay echo: messages written by relayToSmartout() have
+        // origin_type='webhook' and system_data.source='telegram_admin'
+        const isAdminRelay =
+          payload.origin_type === "webhook" && payload.system_data?.source === "telegram_admin";
+        await relayToTelegram(
+          payload.channel_id,
+          isAdminRelay ? null : payload.sender_id,
+          payload.content,
+        );
+      } catch (err) {
+        console.error("[telegram] Bridge relay error:", err);
+      }
+    });
+
+    // Reconnect automatically if the pg connection drops
+    client.on("error", (err: Error) => {
+      console.error("[telegram] PG NOTIFY connection error:", err);
+      setTimeout(setupPgNotifyListener, 5000);
+    });
+  } catch (err) {
+    console.warn("[telegram] PG NOTIFY listener setup failed (bridge relay unavailable):", err);
+  }
+}
+
+setupPgNotifyListener();
 
 // Guardian WebSocket is now registered as a Hono route (via createGuardianRoute)
 

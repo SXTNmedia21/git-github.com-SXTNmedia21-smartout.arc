@@ -611,13 +611,34 @@ async function executeStep(
     }
 
     case "send_notification": {
-      // TODO(notifications): notification_queue table does not exist yet.
-      // When Module 12 (Notifications) is built, replace this console.log
-      // with INSERT into notification_queue (template, recipient, workspace_id, payload).
-      console.log(
-        `[engine-dispatch] send_notification: template=${(step.action_payload as Record<string, unknown>).template}, ` +
-          `assignee=${state.assignee_id}, state=${state.id}`,
-      );
+      const { template, recipient_id, workspace_id, payload } = step.action_payload as {
+        template: string;
+        recipient_id?: string;
+        workspace_id?: string;
+        payload?: Record<string, unknown>;
+      };
+
+      const targetRecipient = recipient_id ?? state.assignee_id;
+      const targetWorkspace = workspace_id ?? state.workspace_id;
+
+      if (targetRecipient && targetWorkspace) {
+        await supabase.from("notification_outbox").insert({
+          workspace_id: targetWorkspace,
+          recipient_id: targetRecipient,
+          mode: "work",
+          priority: 0,
+          title: template,
+          body: "",
+          action_url: null,
+          metadata: {
+            event_key: `engine.${template}`,
+            state_id: state.id,
+            ...payload,
+          },
+          allowed_channels: ["push", "in_app"],
+        });
+      }
+
       await advanceToNextStep(supabase, state, step);
       break;
     }
@@ -726,10 +747,49 @@ async function executeStep(
       // Context comes from telemetry payload where dates/department_ids
       // are nested under ctx.data (from event.properties.data)
       const ctxData = (ctx.data as Record<string, unknown>) ?? {};
-      const dates = (ctxData.dates as string[]) ??
-        (ctx.dates as string[]) ?? [new Date().toISOString().split("T")[0]];
-      const deptIds =
-        (ctxData.department_ids as string[]) ?? (ctx.department_ids as string[]) ?? [];
+
+      // Season activation: resolve departments + planning window from season data
+      const seasonId = (ctxData.season_id as string) ?? (ctx.season_id as string) ?? null;
+      let dates = (ctxData.dates as string[]) ?? (ctx.dates as string[]) ?? [];
+      let deptIds = (ctxData.department_ids as string[]) ?? (ctx.department_ids as string[]) ?? [];
+
+      if (seasonId && deptIds.length === 0) {
+        // Season activation path: resolve all operational departments in workspace
+        const { data: allDepts } = await supabase
+          .from("department")
+          .select("department_id, department_type")
+          .eq("workspace_id", state.workspace_id)
+          .eq("is_active", true);
+        deptIds = (allDepts ?? [])
+          .filter(
+            (d: { department_type: string | null }) =>
+              !d.department_type ||
+              d.department_type === "operational" ||
+              d.department_type === "hybrid",
+          )
+          .map((d: { department_id: string }) => d.department_id);
+
+        // Resolve planning window: today through min(season.end_date, today + 7 days)
+        if (dates.length === 0) {
+          const today = new Date();
+          const seasonEnd = (ctxData.end_date as string) ?? (ctx.end_date as string) ?? null;
+          const windowEnd = new Date(today);
+          windowEnd.setDate(windowEnd.getDate() + 7);
+          const effectiveEnd =
+            seasonEnd && new Date(seasonEnd) < windowEnd ? new Date(seasonEnd) : windowEnd;
+          dates = [];
+          const cursor = new Date(today);
+          while (cursor <= effectiveEnd) {
+            dates.push(cursor.toISOString().split("T")[0]!);
+            cursor.setDate(cursor.getDate() + 1);
+          }
+        }
+      }
+
+      // Fallback: if still no dates, use today
+      if (dates.length === 0) {
+        dates = [new Date().toISOString().split("T")[0]!];
+      }
 
       // Filter: only operational/hybrid departments create sessions (not administrative)
       const { data: deptRows } = await supabase
@@ -794,7 +854,9 @@ async function executeStep(
         // Load payroll profile for tariff context
         const { data: payroll } = await supabase
           .from("employee_payroll_profile")
-          .select("tariff_override_id, tariff_category, seniority_start_date, has_fagbrev")
+          .select(
+            "tariff_override_id, tariff_category, seniority_start_date, has_fagbrev, employment_contract:employment_contract_id(hourly_rate)",
+          )
           .eq("profile_id", shift.profile_id)
           .order("valid_from", { ascending: false })
           .limit(1)
@@ -848,10 +910,16 @@ async function executeStep(
             supplements.push({ type: "helgetillegg", amount: rate.amount, unit: rate.unit });
         }
 
-        // Base rate: deferred — requires loading employment_contract.hourly_rate per employee.
-        // kr/t supplements (kveldstillegg, helgetillegg) are correct absolute amounts.
-        // % supplements (helligdagstillegg, overtime) will compute to 0 until baseRate is loaded.
-        const baseRate = 0;
+        // 3-step fallback: contract -> tariff base rate -> 0 with warning
+        const contractRate = (payroll?.employment_contract as { hourly_rate: number | null } | null)
+          ?.hourly_rate;
+        const tariffBaseRate = allRates.find((r) => r.rate_type === "riksavtalen")?.amount ?? null;
+        const baseRate = contractRate ?? tariffBaseRate ?? 0;
+        if (baseRate === 0) {
+          console.warn(
+            `[cascade_cost_snapshot] baseRate=0 for profile ${shift.profile_id} — no contract hourly_rate or tariff base rate found`,
+          );
+        }
         const supplementCost = supplements.reduce((sum, s) => {
           if (s.unit === "kr/t") return sum + s.amount * baseHours;
           if (s.unit === "percent") return sum + (baseRate * baseHours * s.amount) / 100;
@@ -1147,6 +1215,114 @@ async function executeStep(
           })
           .eq("assignment_id", assignmentId);
       }
+      await advanceToNextStep(supabase, state, step);
+      break;
+    }
+
+    case "ingest_workspace_knowledge": {
+      // Fire-and-forget call to ingest Edge Function — non-blocking for engine flow
+      const ingestUrl = Deno.env.get("SUPABASE_URL")!;
+      const ingestKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+      try {
+        const ingestRes = await fetch(`${ingestUrl}/functions/v1/ingest-workspace-knowledge`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${ingestKey}`,
+          },
+          body: JSON.stringify({
+            workspace_id: state.workspace_id,
+            force: (step.action_payload as Record<string, unknown>)?.force ?? false,
+          }),
+        });
+
+        const ingestResult = await ingestRes.json();
+        console.log(`[ingest_workspace_knowledge] workspace=${state.workspace_id}:`, ingestResult);
+      } catch (err) {
+        console.error(`[ingest_workspace_knowledge] Failed:`, err);
+        // Non-fatal — don't block engine flow if ingestion fails
+      }
+
+      await advanceToNextStep(supabase, state, step);
+      break;
+    }
+
+    case "cascade_reconciliation_close": {
+      const ctx = state.context as Record<string, unknown>;
+      const payload = (ctx.data as Record<string, unknown>) ?? {};
+      const reconciliationId = payload.reconciliation_id as string;
+      const departmentId = payload.department_id as string;
+      const reconDate = payload.reconciliation_date as string;
+
+      if (!reconciliationId || !departmentId || !reconDate) {
+        console.error("[cascade_reconciliation_close] missing context fields");
+        await advanceToNextStep(supabase, state, step);
+        break;
+      }
+
+      // Get shift IDs for this date + department
+      const { data: dayShifts } = await supabase
+        .from("schedule_shift")
+        .select("schedule_shift_id")
+        .eq("workspace_id", state.workspace_id)
+        .eq("shift_date", reconDate)
+        .eq("department_id", departmentId);
+
+      const shiftIds = (dayShifts ?? []).map((s) => s.schedule_shift_id);
+
+      // Fetch cost snapshots + planned shift hours
+      let totalLaborCost = 0;
+      let totalSnapshotHours = 0;
+      let totalPlannedHours = 0;
+
+      if (shiftIds.length > 0) {
+        const [{ data: costSnapshots }, { data: plannedShifts }] = await Promise.all([
+          supabase
+            .from("shift_cost_snapshot")
+            .select("total_cost, base_hours")
+            .eq("workspace_id", state.workspace_id)
+            .in("schedule_shift_id", shiftIds)
+            .eq("basis", "planned"),
+          supabase.from("schedule_shift").select("work_hours").in("schedule_shift_id", shiftIds),
+        ]);
+
+        totalLaborCost = (costSnapshots ?? []).reduce(
+          (sum, s) => sum + Number(s.total_cost ?? 0),
+          0,
+        );
+        totalSnapshotHours = (costSnapshots ?? []).reduce(
+          (sum, s) => sum + Number(s.base_hours ?? 0),
+          0,
+        );
+        totalPlannedHours = (plannedShifts ?? []).reduce(
+          (sum, s) => sum + Number(s.work_hours ?? 0),
+          0,
+        );
+      }
+
+      // Fetch revenue for KPI calculation
+      const { data: recon } = await supabase
+        .from("daily_reconciliation")
+        .select("revenue_total")
+        .eq("reconciliation_id", reconciliationId)
+        .single();
+
+      const revenueTotal = Number(recon?.revenue_total ?? 0);
+      const revenuePerHour = totalSnapshotHours > 0 ? revenueTotal / totalSnapshotHours : null;
+      const laborPercentage = revenueTotal > 0 ? (totalLaborCost / revenueTotal) * 100 : null;
+
+      await supabase
+        .from("daily_reconciliation")
+        .update({
+          total_labor_cost: totalLaborCost,
+          total_actual_hours: totalSnapshotHours,
+          total_planned_hours: totalPlannedHours,
+          revenue_per_worked_hour: revenuePerHour,
+          labor_percentage: laborPercentage,
+        })
+        .eq("reconciliation_id", reconciliationId);
+
       await advanceToNextStep(supabase, state, step);
       break;
     }

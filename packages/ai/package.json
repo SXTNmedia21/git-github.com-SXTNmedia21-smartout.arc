@@ -10,6 +10,10 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./industry": {
+      "types": "./dist/industry/index.d.ts",
+      "default": "./dist/industry/index.js"
+    },
     "./session-context": {
       "types": "./dist/session-context.d.ts",
       "default": "./dist/session-context.js"

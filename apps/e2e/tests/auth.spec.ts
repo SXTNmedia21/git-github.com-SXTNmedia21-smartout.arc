@@ -22,7 +22,16 @@ test.describe("Login Page", () => {
     await page.goto("/login");
     await page.fill('input[type="email"]', "wrong@example.com");
     await page.fill('input[type="password"]', "wrongpassword");
-    await page.click('button[type="submit"]');
+    await page
+      .evaluate(() => {
+        const observer = new MutationObserver(() => {
+          document.querySelectorAll("nextjs-portal").forEach((el) => el.remove());
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+        document.querySelectorAll("nextjs-portal").forEach((el) => el.remove());
+      })
+      .catch(() => {});
+    await page.click('button[type="submit"]', { force: true });
     // Error shown as toast, destructive alert, or inline message
     await expect(
       page

@@ -37,11 +37,11 @@ const ACCENT_STYLES: Record<
   { border: string; iconBg: string; iconText: string; ctaBg: string; ctaText: string }
 > = {
   orange: {
-    border: "border-orange-500/20 hover:border-orange-500/40",
-    iconBg: "bg-orange-500/10",
-    iconText: "text-orange-400",
-    ctaBg: "bg-orange-500/10 hover:bg-orange-500/20",
-    ctaText: "text-orange-300",
+    border: "border-brand-orange/20 hover:border-brand-orange/40",
+    iconBg: "bg-brand-orange/10",
+    iconText: "text-brand-orange",
+    ctaBg: "bg-brand-orange/10 hover:bg-brand-orange/20",
+    ctaText: "text-brand-orange",
   },
   cyan: {
     border: "border-cyan-500/20 hover:border-cyan-500/40",
@@ -82,7 +82,10 @@ const ACCENT_STYLES: Record<
 
 /** Persona badge labels and colors */
 const PERSONA_BADGE: Record<JourneyPersona, { label: string; className: string }> = {
-  ansatt: { label: "Ansatt", className: "border-orange-500/30 bg-orange-500/10 text-orange-300" },
+  ansatt: {
+    label: "Ansatt",
+    className: "border-brand-orange/30 bg-brand-orange/10 text-brand-orange",
+  },
   leder: { label: "Leder", className: "border-cyan-500/30 bg-cyan-500/10 text-cyan-300" },
   "ny-ansatt": { label: "Ny ansatt", className: "border-rose-500/30 bg-rose-500/10 text-rose-300" },
 };
@@ -135,7 +138,7 @@ export function JourneyCard({
     >
       <Link
         href={hasSteps ? `/demo/${id}` : "#"}
-        className={`group flex h-full flex-col rounded-2xl border bg-[#0a0a0c] p-5 transition-all ${accent.border} ${!hasSteps ? "pointer-events-none opacity-50" : ""}`}
+        className={`group bg-background flex h-full flex-col rounded-2xl border p-5 transition-all ${accent.border} ${!hasSteps ? "pointer-events-none opacity-50" : ""}`}
         aria-disabled={!hasSteps}
       >
         {/* Top row — icon + persona badge */}
@@ -151,12 +154,12 @@ export function JourneyCard({
         </div>
 
         {/* Title + subtitle */}
-        <h2 className="mt-4 text-base font-bold text-white">{title}</h2>
-        <p className="mt-1.5 flex-1 text-sm leading-relaxed text-zinc-400">{subtitle}</p>
+        <h2 className="text-foreground mt-4 text-base font-bold">{title}</h2>
+        <p className="text-muted-foreground mt-1.5 flex-1 text-sm leading-relaxed">{subtitle}</p>
 
         {/* Bottom — duration + CTA */}
         <div className="mt-4 flex items-center justify-between">
-          <span className="text-xs text-zinc-500">{duration}</span>
+          <span className="text-muted-foreground text-xs">{duration}</span>
           {hasSteps ? (
             <span
               className={`flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${accent.ctaBg} ${accent.ctaText}`}
@@ -165,7 +168,7 @@ export function JourneyCard({
               <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
             </span>
           ) : (
-            <span className="text-xs text-zinc-600">Kommer snart</span>
+            <span className="text-muted-foreground/70 text-xs">Kommer snart</span>
           )}
         </div>
       </Link>

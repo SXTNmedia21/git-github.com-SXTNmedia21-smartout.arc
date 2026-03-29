@@ -11,6 +11,7 @@ import {
   ChevronDown,
   Check,
   Rows3,
+  Building2,
 } from "lucide-react";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { SCHEDULE_LAYERS } from "./schedule-layers";
@@ -22,7 +23,7 @@ type PlannerCommandBarProps = {
   weekSpan?: 1 | 2;
   setWeekSpan?: (v: 1 | 2) => void;
   scheduleLayout?: string;
-  locationOptions?: string[];
+  departmentOptions?: string[];
 };
 
 export function PlannerCommandBar({
@@ -32,13 +33,13 @@ export function PlannerCommandBar({
   weekSpan,
   setWeekSpan,
   scheduleLayout,
-  locationOptions,
+  departmentOptions,
 }: PlannerCommandBarProps) {
   const {
     scheduleView,
     setScheduleView,
-    activeLocation,
-    setActiveLocation,
+    activeDepartment,
+    setActiveDepartment,
     scheduleCompactMode,
     setScheduleCompactMode,
   } = useContext(DashboardContext);
@@ -55,17 +56,17 @@ export function PlannerCommandBar({
         </h1>
         <div className="bg-border hidden h-3 w-px sm:block" />
 
-        {/* Location selector */}
+        {/* Department selector */}
         <LocationPopover
           isDark={isDark}
-          value={activeLocation}
-          onChange={setActiveLocation}
-          options={locationOptions}
+          value={activeDepartment}
+          onChange={setActiveDepartment}
+          options={departmentOptions}
         />
 
         <div className="bg-border hidden h-3 w-px sm:block" />
 
-        {/* Filter popovers: Ansatt, Jobb, Team, Lokasjon */}
+        {/* View mode: Ansatt, Jobb, Team, Lokasjon */}
         <div className="flex items-center gap-1">
           <ViewFilterButton
             isDark={isDark}
@@ -87,6 +88,13 @@ export function PlannerCommandBar({
             label="Team"
             isActive={scheduleView === "team"}
             onClick={() => setScheduleView("team")}
+          />
+          <ViewFilterButton
+            isDark={isDark}
+            icon={<MapPin className="h-3.5 w-3.5" />}
+            label="Lokasjon"
+            isActive={scheduleView === "lokasjon"}
+            onClick={() => setScheduleView("lokasjon")}
           />
         </div>
 
@@ -188,9 +196,9 @@ function ViewFilterButton({
 }
 
 // ---------------------------------------------------------------------------
-// LocationPopover — dropdown selector for active location
+// DepartmentPopover — dropdown selector for active department filter
 // ---------------------------------------------------------------------------
-function LocationPopover({
+export function LocationPopover({
   isDark: _isDark,
   value,
   onChange,
@@ -203,11 +211,11 @@ function LocationPopover({
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const locations = React.useMemo(
+  const departments = React.useMemo(
     () =>
       options && options.length > 0
-        ? ["Alle Lokasjoner", ...options.filter((option) => option !== "Alle Lokasjoner")]
-        : ["Alle Lokasjoner"],
+        ? ["Alle avdelinger", ...options.filter((o) => o !== "Alle avdelinger")]
+        : ["Alle avdelinger"],
     [options],
   );
 
@@ -227,28 +235,28 @@ function LocationPopover({
         onClick={() => setOpen(!open)}
         className="border-border bg-muted text-foreground hover:bg-muted/80 flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-bold transition-all"
       >
-        <MapPin className="h-3.5 w-3.5 text-orange-500" />
+        <Building2 className="h-3.5 w-3.5 text-orange-500" />
         {value}
         <ChevronDown className={`h-3 w-3 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
 
       {open && (
         <div className="animate-in fade-in slide-in-from-top-1 border-border bg-popover absolute top-full left-0 z-[9999] mt-1 w-52 rounded-xl border p-1 shadow-xl backdrop-blur-xl">
-          {locations.map((loc) => (
+          {departments.map((dept) => (
             <button
-              key={loc}
+              key={dept}
               onClick={() => {
-                onChange(loc);
+                onChange(dept);
                 setOpen(false);
               }}
               className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
-                value === loc
+                value === dept
                   ? "bg-orange-500/10 text-orange-400"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground"
               }`}
             >
-              {loc}
-              {value === loc && <Check className="h-3.5 w-3.5" />}
+              {dept}
+              {value === dept && <Check className="h-3.5 w-3.5" />}
             </button>
           ))}
         </div>

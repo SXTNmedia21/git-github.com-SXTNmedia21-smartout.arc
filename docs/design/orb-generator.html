@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nordic Split — Orb Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a0c; color: #e4e4e7; font-family: system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; display: flex; height: 100vh; overflow: hidden; }
+  body::before { content: ''; position: fixed; inset: 0; z-index: 9999; pointer-events: none; opacity: 0.02; mix-blend-mode: overlay; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E"); }
+
+  /* ── PREVIEW ── */
+  .preview { flex: 1; position: relative; overflow: hidden; cursor: crosshair; }
+  .preview-bg { position: absolute; inset: 0; transition: background 0.5s; }
+  .preview-content { position: relative; z-index: 10; padding: 40px; height: 100%; display: flex; flex-direction: column; justify-content: space-between; pointer-events: none; }
+  .preview-brand { font-size: 12px; font-weight: 700; letter-spacing: 2px; color: rgba(255,255,255,0.7); }
+  .preview-heading { font-family: 'Instrument Serif', Georgia, serif; font-size: 2.8rem; font-weight: 400; color: white; line-height: 1.08; }
+  .preview-heading em { font-style: italic; color: oklch(0.75 0.18 40); }
+  .preview-sub { font-size: 14px; color: rgba(255,255,255,0.4); margin-top: 12px; }
+  .preview-copy { font-size: 10px; color: rgba(255,255,255,0.15); }
+  #orb-container { position: absolute; inset: 0; pointer-events: none; }
+
+  /* ── CONTROLS ── */
+  .controls { width: 380px; background: oklch(0.10 0.01 50); border-left: 1px solid rgba(255,255,255,0.06); overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 4px; }
+  .ctrl-header { font-family: 'Instrument Serif', Georgia, serif; font-size: 24px; color: white; margin-bottom: 4px; }
+  .ctrl-sub { font-size: 11px; color: #52525b; margin-bottom: 16px; }
+
+  .ctrl-section { margin-bottom: 20px; }
+  .ctrl-section-title { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: #52525b; font-weight: 700; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+
+  .ctrl-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .ctrl-label { font-size: 11px; color: #71717a; width: 80px; flex-shrink: 0; }
+  .ctrl-value { font-size: 11px; font-family: monospace; color: oklch(0.75 0.18 40); width: 50px; text-align: right; flex-shrink: 0; }
+
+  input[type="range"] { flex: 1; -webkit-appearance: none; appearance: none; height: 4px; border-radius: 2px; background: oklch(0.20 0.01 50); outline: none; }
+  input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #f97316; cursor: pointer; box-shadow: 0 0 8px rgba(249,115,22,0.3); }
+
+  input[type="color"] { -webkit-appearance: none; border: none; width: 28px; height: 28px; border-radius: 8px; cursor: pointer; background: transparent; padding: 0; }
+  input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+  input[type="color"]::-webkit-color-swatch { border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; }
+
+  /* Layer tabs */
+  .layer-tabs { display: flex; gap: 4px; margin-bottom: 12px; flex-wrap: wrap; }
+  .layer-tab { padding: 5px 10px; border-radius: 8px; font-size: 11px; font-weight: 600; border: 1px solid rgba(255,255,255,0.08); background: transparent; color: #71717a; cursor: pointer; transition: all 0.2s; }
+  .layer-tab:hover { border-color: rgba(255,255,255,0.15); color: #a1a1aa; }
+  .layer-tab.active { background: #f97316; color: white; border-color: #f97316; }
+  .layer-tab .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 4px; }
+
+  .btn { padding: 8px 16px; border-radius: 8px; font-size: 11px; font-weight: 600; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); color: #a1a1aa; cursor: pointer; transition: all 0.2s; }
+  .btn:hover { background: rgba(255,255,255,0.08); color: white; }
+  .btn-brand { background: #f97316; color: white; border-color: #f97316; }
+  .btn-brand:hover { filter: brightness(1.1); }
+  .btn-danger { border-color: rgba(239,68,68,0.3); color: #ef4444; }
+  .btn-danger:hover { background: rgba(239,68,68,0.1); }
+  .btn-row { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+
+  .toggle { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; cursor: pointer; }
+  .toggle-track { width: 32px; height: 18px; border-radius: 9px; background: oklch(0.25 0.01 50); position: relative; transition: background 0.2s; }
+  .toggle-track.on { background: #f97316; }
+  .toggle-track::after { content: ''; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: white; transition: transform 0.2s; }
+  .toggle-track.on::after { transform: translateX(14px); }
+  .toggle-label { font-size: 11px; color: #71717a; }
+
+  .export-box { background: oklch(0.08 0.005 50); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 12px; font-family: monospace; font-size: 10px; color: oklch(0.75 0.18 40); line-height: 1.6; max-height: 200px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; }
+
+  .presets { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 12px; }
+  .preset { padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 600; border: 1px solid rgba(255,255,255,0.08); background: transparent; color: #71717a; cursor: pointer; transition: all 0.2s; }
+  .preset:hover { border-color: rgba(249,115,22,0.3); color: #f97316; }
+
+  /* Color dropdown */
+  .color-select-wrap { position: relative; margin-top: 6px; }
+  .color-select { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03); cursor: pointer; transition: all 0.2s; width: 100%; }
+  .color-select:hover { border-color: rgba(255,255,255,0.15); }
+  .color-select .cs-dot { width: 16px; height: 16px; border-radius: 5px; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.1); }
+  .color-select .cs-name { font-size: 11px; color: #a1a1aa; flex: 1; }
+  .color-select .cs-arrow { font-size: 10px; color: #52525b; transition: transform 0.2s; }
+  .color-select-wrap.open .cs-arrow { transform: rotate(180deg); }
+  .color-dropdown { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 200; background: oklch(0.12 0.01 50); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; box-shadow: 0 12px 40px rgba(0,0,0,0.5); max-height: 320px; overflow-y: auto; display: none; }
+  .color-select-wrap.open .color-dropdown { display: block; animation: auth-fade-up 0.15s ease-out; }
+  .cd-section { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: #3f3f46; font-weight: 700; padding: 8px 10px 4px; position: sticky; top: 0; background: oklch(0.12 0.01 50); }
+  .cd-item { display: flex; align-items: center; gap: 8px; padding: 6px 10px; cursor: pointer; transition: background 0.15s; }
+  .cd-item:hover { background: rgba(255,255,255,0.05); }
+  .cd-item .cs-dot { width: 14px; height: 14px; border-radius: 4px; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.08); }
+  .cd-item .cd-name { font-size: 11px; color: #a1a1aa; flex: 1; }
+  .cd-item .cd-val { font-size: 9px; font-family: monospace; color: #3f3f46; }
+  @keyframes auth-fade-up { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body>
+
+<!-- PREVIEW PANEL -->
+<div class="preview" id="preview" onmousemove="onMouse(event)" onmouseleave="mouseActive=false">
+  <div class="preview-bg" id="previewBg"></div>
+  <svg style="position:absolute;width:0;height:0"><defs>
+    <filter id="goo"><feGaussianBlur in="SourceGraphic" stdDeviation="14" result="b"/><feColorMatrix in="b" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7" result="g"/><feComposite in="SourceGraphic" in2="g" operator="atop"/></filter>
+  </defs></svg>
+  <div id="orb-container"></div>
+  <div class="preview-content">
+    <div class="preview-brand">SMARTOUT</div>
+    <div>
+      <div class="preview-heading">Teamet ditt,<br><em>klar</em> fra dag en.</div>
+      <div class="preview-sub">Alt du trenger for opplæring, drift og utvikling.</div>
+    </div>
+    <div class="preview-copy">&copy; 2026 Smartout AS</div>
+  </div>
+</div>
+
+<!-- CONTROLS -->
+<div class="controls">
+  <div class="ctrl-header">Orb Generator</div>
+  <div class="ctrl-sub">Design your orbs. Add layers. Export CSS.</div>
+
+  <!-- PRESETS -->
+  <div class="ctrl-section">
+    <div class="ctrl-section-title">Presets</div>
+    <div class="presets">
+      <button class="preset" onclick="loadPreset('styleguide')">Styleguide Original</button>
+      <button class="preset" onclick="loadPreset('ember')">Ember</button>
+      <button class="preset" onclick="loadPreset('minimal')">Minimal</button>
+      <button class="preset" onclick="loadPreset('lava')">Lava Lamp</button>
+      <button class="preset" onclick="loadPreset('aurora')">Aurora</button>
+    </div>
+  </div>
+
+  <!-- GLOBAL -->
+  <div class="ctrl-section">
+    <div class="ctrl-section-title">Panel</div>
+    <div class="ctrl-row"><span class="ctrl-label">Background</span><input type="color" id="panelBg" value="#1a1510" oninput="updatePanel()"><span class="ctrl-value" id="panelBgVal"></span></div>
+    <div class="color-select-wrap" id="bgSelectWrap">
+      <div class="color-select" onclick="toggleDropdown('bgSelectWrap')">
+        <div class="cs-dot" id="bgSelectDot" style="background:#1a1510"></div>
+        <span class="cs-name" id="bgSelectName">Panel</span>
+        <span class="cs-arrow">&#9662;</span>
+      </div>
+      <div class="color-dropdown" id="bgDropdown"></div>
+    </div>
+    <div class="toggle" onclick="toggleGoo()"><div class="toggle-track" id="gooToggle"></div><span class="toggle-label">Gooey merge (lava effect)</span></div>
+    <div class="toggle" onclick="togglePhysics()"><div class="toggle-track on" id="physToggle"></div><span class="toggle-label">Physics (bounce off walls)</span></div>
+  </div>
+
+  <!-- LAYER TABS -->
+  <div class="ctrl-section">
+    <div class="ctrl-section-title">Orb Layers</div>
+    <div class="layer-tabs" id="layerTabs"></div>
+    <div class="btn-row">
+      <button class="btn btn-brand" onclick="addLayer()">+ Add Orb</button>
+      <button class="btn btn-danger" onclick="removeLayer()">Remove</button>
+      <button class="btn" onclick="duplicateLayer()">Duplicate</button>
+    </div>
+  </div>
+
+  <!-- ACTIVE LAYER CONTROLS -->
+  <div id="layerControls">
+    <div class="ctrl-section">
+      <div class="ctrl-section-title">Size & Position</div>
+      <div class="ctrl-row"><span class="ctrl-label">Size</span><input type="range" id="s-size" min="20" max="400" oninput="updateOrb()"><span class="ctrl-value" id="v-size"></span></div>
+      <div class="ctrl-row"><span class="ctrl-label">Start X</span><input type="range" id="s-x" min="0" max="100" oninput="updateOrb()"><span class="ctrl-value" id="v-x"></span></div>
+      <div class="ctrl-row"><span class="ctrl-label">Start Y</span><input type="range" id="s-y" min="0" max="100" oninput="updateOrb()"><span class="ctrl-value" id="v-y"></span></div>
+    </div>
+    <div class="ctrl-section">
+      <div class="ctrl-section-title">Appearance</div>
+      <div class="ctrl-row"><span class="ctrl-label">Opacity</span><input type="range" id="s-opacity" min="0" max="100" oninput="updateOrb()"><span class="ctrl-value" id="v-opacity"></span></div>
+      <div class="ctrl-row"><span class="ctrl-label">Blur</span><input type="range" id="s-blur" min="0" max="200" oninput="updateOrb()"><span class="ctrl-value" id="v-blur"></span></div>
+      <div style="display:flex;gap:6px;align-items:center;margin-bottom:4px">
+        <span class="ctrl-label">Core</span><input type="color" id="s-color1" oninput="updateOrb()">
+        <span class="ctrl-label">Mid</span><input type="color" id="s-color2" oninput="updateOrb()">
+        <span class="ctrl-label">Edge</span><input type="color" id="s-color3" oninput="updateOrb()">
+      </div>
+      <div style="display:flex;gap:4px;margin-bottom:2px">
+        <div class="color-select-wrap" id="coreSelectWrap" style="flex:1">
+          <div class="color-select" onclick="toggleDropdown('coreSelectWrap')" style="padding:5px 8px">
+            <div class="cs-dot" id="coreSelectDot" style="background:#c45a1a"></div>
+            <span class="cs-name" id="coreSelectName" style="font-size:10px">Core</span>
+            <span class="cs-arrow">&#9662;</span>
+          </div>
+          <div class="color-dropdown" id="coreDropdown"></div>
+        </div>
+        <div class="color-select-wrap" id="midSelectWrap" style="flex:1">
+          <div class="color-select" onclick="toggleDropdown('midSelectWrap')" style="padding:5px 8px">
+            <div class="cs-dot" id="midSelectDot" style="background:#7a3810"></div>
+            <span class="cs-name" id="midSelectName" style="font-size:10px">Mid</span>
+            <span class="cs-arrow">&#9662;</span>
+          </div>
+          <div class="color-dropdown" id="midDropdown"></div>
+        </div>
+        <div class="color-select-wrap" id="edgeSelectWrap" style="flex:1">
+          <div class="color-select" onclick="toggleDropdown('edgeSelectWrap')" style="padding:5px 8px">
+            <div class="cs-dot" id="edgeSelectDot" style="background:#3d1c08"></div>
+            <span class="cs-name" id="edgeSelectName" style="font-size:10px">Edge</span>
+            <span class="cs-arrow">&#9662;</span>
+          </div>
+          <div class="color-dropdown" id="edgeDropdown"></div>
+        </div>
+      </div>
+      <div class="ctrl-row"><span class="ctrl-label">Gradient</span><input type="range" id="s-gradientSpread" min="20" max="100" oninput="updateOrb()"><span class="ctrl-value" id="v-gradientSpread"></span></div>
+    </div>
+    <div class="ctrl-section">
+      <div class="ctrl-section-title">Motion</div>
+      <div class="ctrl-row"><span class="ctrl-label">Speed</span><input type="range" id="s-speed" min="0" max="100" oninput="updateOrb()"><span class="ctrl-value" id="v-speed"></span></div>
+      <div class="ctrl-row"><span class="ctrl-label">Morph</span><input type="range" id="s-morph" min="0" max="40" oninput="updateOrb()"><span class="ctrl-value" id="v-morph"></span></div>
+      <div class="ctrl-row"><span class="ctrl-label">Pulse</span><input type="range" id="s-pulse" min="0" max="20" oninput="updateOrb()"><span class="ctrl-value" id="v-pulse"></span></div>
+      <div class="ctrl-row"><span class="ctrl-label">Mouse pull</span><input type="range" id="s-mouse" min="0" max="100" oninput="updateOrb()"><span class="ctrl-value" id="v-mouse"></span></div>
+    </div>
+  </div>
+
+  <!-- EXPORT -->
+  <div class="ctrl-section">
+    <div class="ctrl-section-title">Export</div>
+    <button class="btn" onclick="exportCSS()" style="margin-bottom:8px;width:100%">Copy CSS to Clipboard</button>
+    <div class="export-box" id="exportBox">Click "Copy CSS" to generate...</div>
+  </div>
+</div>
+
+<script>
+// ── State ──
+let layers = [];
+let activeLayer = 0;
+let useGoo = false;
+let usePhysics = true;
+let mouseX = 0, mouseY = 0, mouseActive = false;
+const preview = document.getElementById('preview');
+const container = document.getElementById('orb-container');
+
+function onMouse(e) {
+  const r = preview.getBoundingClientRect();
+  mouseX = e.clientX - r.left;
+  mouseY = e.clientY - r.top;
+  mouseActive = true;
+}
+
+// ── Layer class ──
+class OrbLayer {
+  constructor(cfg) {
+    this.size = cfg.size ?? 150;
+    this.startX = cfg.startX ?? 0.5;
+    this.startY = cfg.startY ?? 0.5;
+    this.opacity = cfg.opacity ?? 0.3;
+    this.blur = cfg.blur ?? 80;
+    this.color1 = cfg.color1 ?? '#c45a1a';
+    this.color2 = cfg.color2 ?? '#7a3810';
+    this.color3 = cfg.color3 ?? '#3d1c08';
+    this.gradientSpread = cfg.gradientSpread ?? 80;
+    this.speed = cfg.speed ?? 20;
+    this.morph = cfg.morph ?? 12;
+    this.pulse = cfg.pulse ?? 5;
+    this.mouse = cfg.mouse ?? 25;
+
+    // Runtime
+    this.x = this.startX * preview.offsetWidth;
+    this.y = this.startY * preview.offsetHeight;
+    this.vx = (Math.random() - 0.5) * this.speed * 0.02;
+    this.vy = (Math.random() - 0.5) * this.speed * 0.02;
+    this.morphPhase = Math.random() * Math.PI * 2;
+    this.pulsePhase = Math.random() * Math.PI * 2;
+
+    // DOM
+    this.el = document.createElement('div');
+    this.el.style.cssText = 'position:absolute;border-radius:50%;pointer-events:none;will-change:transform;';
+    container.appendChild(this.el);
+
+    this.glowEl = document.createElement('div');
+    this.glowEl.style.cssText = 'position:absolute;border-radius:50%;pointer-events:none;will-change:transform;';
+    container.appendChild(this.glowEl);
+
+    this.render();
+  }
+
+  render() {
+    const s = this.gradientSpread;
+    this.el.style.width = this.el.style.height = this.size + 'px';
+    this.el.style.background = `radial-gradient(circle at 40% 38%, ${this.color1} 0%, ${this.color2} ${s*0.4}%, ${this.color3} ${s*0.7}%, transparent ${s}%)`;
+    this.el.style.opacity = this.opacity;
+    this.el.style.filter = `blur(${this.blur}px)`;
+
+    this.glowEl.style.width = this.glowEl.style.height = (this.size * 2.5) + 'px';
+    this.glowEl.style.background = `radial-gradient(circle, ${this.color2}, transparent 55%)`;
+    this.glowEl.style.opacity = this.opacity * 0.2;
+    this.glowEl.style.filter = `blur(${this.blur * 2}px)`;
+  }
+
+  update() {
+    const w = preview.offsetWidth, h = preview.offsetHeight;
+    const spd = this.speed * 0.01;
+
+    this.morphPhase += 0.003 + this.morph * 0.0003;
+    this.pulsePhase += 0.004 + this.pulse * 0.0004;
+
+    const sx = 1 + Math.sin(this.morphPhase) * this.morph * 0.005;
+    const sy = 1 - Math.sin(this.morphPhase) * this.morph * 0.003 + Math.cos(this.morphPhase * 1.3) * this.morph * 0.002;
+    const pScale = 1 + Math.sin(this.pulsePhase) * this.pulse * 0.003;
+
+    if (mouseActive && this.mouse > 0) {
+      const dx = mouseX - this.x, dy = mouseY - this.y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist > 20) {
+        const f = this.mouse * 0.00001 / (dist * 0.05);
+        this.vx += dx * f;
+        this.vy += dy * f;
+      }
+    }
+
+    this.vx *= 0.9995;
+    this.vy *= 0.9995;
+    const maxV = spd * 2;
+    const v = Math.sqrt(this.vx*this.vx + this.vy*this.vy);
+    if (v > maxV) { this.vx *= maxV/v; this.vy *= maxV/v; }
+
+    if (usePhysics) {
+      this.x += this.vx;
+      this.y += this.vy;
+      const pad = this.size * 0.2;
+      if (this.x < -pad) { this.x = -pad; this.vx = Math.abs(this.vx) * 0.65; }
+      if (this.x > w + pad) { this.x = w + pad; this.vx = -Math.abs(this.vx) * 0.65; }
+      if (this.y < -pad) { this.y = -pad; this.vy = Math.abs(this.vy) * 0.65; }
+      if (this.y > h + pad) { this.y = h + pad; this.vy = -Math.abs(this.vy) * 0.65; }
+      this.vx += (Math.random() - 0.5) * spd * 0.15;
+      this.vy += (Math.random() - 0.5) * spd * 0.15;
+    } else {
+      this.x = this.startX * w + Math.sin(this.morphPhase * 0.3) * 15;
+      this.y = this.startY * h + Math.cos(this.morphPhase * 0.25) * 10;
+    }
+
+    const sz = this.size * pScale;
+    this.el.style.transform = `translate(${this.x - sz/2}px, ${this.y - sz/2}px) scaleX(${sx}) scaleY(${sy}) rotate(${this.morphPhase * 6}deg)`;
+    this.el.style.width = this.el.style.height = sz + 'px';
+
+    const gsz = sz * 2.5;
+    this.glowEl.style.transform = `translate(${this.x - gsz/2}px, ${this.y - gsz/2}px)`;
+    this.glowEl.style.width = this.glowEl.style.height = gsz + 'px';
+  }
+
+  destroy() {
+    this.el.remove();
+    this.glowEl.remove();
+  }
+}
+
+// ── Layer management ──
+function addLayer(cfg) {
+  const l = new OrbLayer(cfg || {});
+  layers.push(l);
+  activeLayer = layers.length - 1;
+  renderTabs();
+  syncControls();
+}
+
+function removeLayer() {
+  if (layers.length <= 1) return;
+  layers[activeLayer].destroy();
+  layers.splice(activeLayer, 1);
+  activeLayer = Math.min(activeLayer, layers.length - 1);
+  renderTabs();
+  syncControls();
+}
+
+function duplicateLayer() {
+  const src = layers[activeLayer];
+  addLayer({ size: src.size, startX: src.startX + 0.1, startY: src.startY + 0.1, opacity: src.opacity, blur: src.blur, color1: src.color1, color2: src.color2, color3: src.color3, gradientSpread: src.gradientSpread, speed: src.speed, morph: src.morph, pulse: src.pulse, mouse: src.mouse });
+}
+
+function renderTabs() {
+  const t = document.getElementById('layerTabs');
+  t.innerHTML = layers.map((l, i) => `<button class="layer-tab ${i===activeLayer?'active':''}" onclick="selectLayer(${i})"><span class="dot" style="background:${l.color1}"></span>${i+1}</button>`).join('');
+}
+
+function selectLayer(i) {
+  activeLayer = i;
+  renderTabs();
+  syncControls();
+}
+
+function syncControls() {
+  const l = layers[activeLayer];
+  if (!l) return;
+  s('size', l.size); s('x', l.startX * 100); s('y', l.startY * 100);
+  s('opacity', l.opacity * 100); s('blur', l.blur);
+  s('gradientSpread', l.gradientSpread);
+  s('speed', l.speed); s('morph', l.morph); s('pulse', l.pulse); s('mouse', l.mouse);
+  document.getElementById('s-color1').value = l.color1;
+  document.getElementById('s-color2').value = l.color2;
+  document.getElementById('s-color3').value = l.color3;
+}
+
+function s(name, val) {
+  document.getElementById('s-' + name).value = val;
+  const vEl = document.getElementById('v-' + name);
+  if (vEl) vEl.textContent = Math.round(val);
+}
+
+function updateOrb() {
+  const l = layers[activeLayer];
+  if (!l) return;
+  l.size = +document.getElementById('s-size').value;
+  l.startX = +document.getElementById('s-x').value / 100;
+  l.startY = +document.getElementById('s-y').value / 100;
+  l.opacity = +document.getElementById('s-opacity').value / 100;
+  l.blur = +document.getElementById('s-blur').value;
+  l.color1 = document.getElementById('s-color1').value;
+  l.color2 = document.getElementById('s-color2').value;
+  l.color3 = document.getElementById('s-color3').value;
+  l.gradientSpread = +document.getElementById('s-gradientSpread').value;
+  l.speed = +document.getElementById('s-speed').value;
+  l.morph = +document.getElementById('s-morph').value;
+  l.pulse = +document.getElementById('s-pulse').value;
+  l.mouse = +document.getElementById('s-mouse').value;
+  l.render();
+
+  // Update value displays
+  ['size','x','y','opacity','blur','gradientSpread','speed','morph','pulse','mouse'].forEach(n => {
+    const vEl = document.getElementById('v-' + n);
+    const sEl = document.getElementById('s-' + n);
+    if (vEl && sEl) vEl.textContent = Math.round(+sEl.value);
+  });
+  renderTabs();
+}
+
+function updatePanel() {
+  document.getElementById('previewBg').style.background = document.getElementById('panelBg').value;
+  document.getElementById('panelBgVal').textContent = document.getElementById('panelBg').value;
+}
+
+function toggleGoo() {
+  useGoo = !useGoo;
+  document.getElementById('gooToggle').classList.toggle('on', useGoo);
+  container.style.filter = useGoo ? 'url(#goo)' : 'none';
+}
+
+function togglePhysics() {
+  usePhysics = !usePhysics;
+  document.getElementById('physToggle').classList.toggle('on', usePhysics);
+}
+
+// ── Presets ──
+function loadPreset(name) {
+  layers.forEach(l => l.destroy());
+  layers = [];
+
+  const presets = {
+    'styleguide': [
+      { size: 250, startX: 0.3, startY: 0.25, opacity: 0.3, blur: 80, color1: '#b35c1e', color2: '#7a3810', color3: '#3d1c08', gradientSpread: 80, speed: 0, morph: 0, pulse: 0, mouse: 0 },
+      { size: 200, startX: 0.7, startY: 0.75, opacity: 0.25, blur: 70, color1: '#8a4020', color2: '#5c2810', color3: '#2e1408', gradientSpread: 80, speed: 0, morph: 0, pulse: 0, mouse: 0 },
+    ],
+    'ember': [
+      { size: 170, startX: 0.3, startY: 0.3, opacity: 0.4, blur: 8, color1: '#c45a1a', color2: '#8a3e12', color3: '#4a200a', gradientSpread: 82, speed: 40, morph: 14, pulse: 5, mouse: 35 },
+      { size: 120, startX: 0.6, startY: 0.6, opacity: 0.35, blur: 7, color1: '#b8541a', color2: '#7a3610', color3: '#3e1a08', gradientSpread: 80, speed: 50, morph: 16, pulse: 5, mouse: 30 },
+      { size: 80, startX: 0.5, startY: 0.2, opacity: 0.32, blur: 5, color1: '#cc6020', color2: '#904214', color3: '#4c220a', gradientSpread: 78, speed: 55, morph: 18, pulse: 5, mouse: 40 },
+      { size: 140, startX: 0.75, startY: 0.75, opacity: 0.3, blur: 10, color1: '#964218', color2: '#602a0e', color3: '#301506', gradientSpread: 82, speed: 35, morph: 12, pulse: 4, mouse: 25 },
+      { size: 50, startX: 0.4, startY: 0.5, opacity: 0.28, blur: 4, color1: '#d8682a', color2: '#9c4c18', color3: '#54280c', gradientSpread: 76, speed: 65, morph: 20, pulse: 6, mouse: 50 },
+    ],
+    'minimal': [
+      { size: 200, startX: 0.35, startY: 0.35, opacity: 0.2, blur: 100, color1: '#7a4a22', color2: '#4a2c12', color3: '#2a1808', gradientSpread: 70, speed: 10, morph: 6, pulse: 3, mouse: 15 },
+      { size: 160, startX: 0.7, startY: 0.65, opacity: 0.15, blur: 90, color1: '#6a3e1c', color2: '#3e240e', color3: '#221406', gradientSpread: 65, speed: 8, morph: 5, pulse: 2, mouse: 10 },
+    ],
+    'lava': [
+      { size: 170, startX: 0.3, startY: 0.3, opacity: 0.4, blur: 8, color1: '#c45a1a', color2: '#8a3e12', color3: '#4a200a', gradientSpread: 82, speed: 40, morph: 14, pulse: 5, mouse: 35 },
+      { size: 120, startX: 0.6, startY: 0.6, opacity: 0.35, blur: 7, color1: '#b8541a', color2: '#7a3610', color3: '#3e1a08', gradientSpread: 80, speed: 50, morph: 16, pulse: 5, mouse: 30 },
+      { size: 80, startX: 0.5, startY: 0.2, opacity: 0.32, blur: 5, color1: '#cc6020', color2: '#904214', color3: '#4c220a', gradientSpread: 78, speed: 55, morph: 18, pulse: 5, mouse: 40 },
+      { size: 140, startX: 0.75, startY: 0.75, opacity: 0.3, blur: 10, color1: '#964218', color2: '#602a0e', color3: '#301506', gradientSpread: 82, speed: 35, morph: 12, pulse: 4, mouse: 25 },
+      { size: 50, startX: 0.4, startY: 0.5, opacity: 0.28, blur: 4, color1: '#d8682a', color2: '#9c4c18', color3: '#54280c', gradientSpread: 76, speed: 65, morph: 20, pulse: 6, mouse: 50 },
+    ],
+    'aurora': [
+      { size: 220, startX: 0.25, startY: 0.3, opacity: 0.3, blur: 12, color1: '#7a3ea0', color2: '#4a2470', color3: '#2a1440', gradientSpread: 80, speed: 25, morph: 10, pulse: 4, mouse: 25 },
+      { size: 150, startX: 0.7, startY: 0.4, opacity: 0.35, blur: 8, color1: '#c45a1a', color2: '#8a3e12', color3: '#4a200a', gradientSpread: 78, speed: 35, morph: 14, pulse: 5, mouse: 30 },
+      { size: 100, startX: 0.5, startY: 0.7, opacity: 0.25, blur: 10, color1: '#6a2e8a', color2: '#401a5a', color3: '#200e30', gradientSpread: 75, speed: 30, morph: 12, pulse: 4, mouse: 25 },
+      { size: 60, startX: 0.6, startY: 0.25, opacity: 0.2, blur: 6, color1: '#d04060', color2: '#8a2840', color3: '#4a1420', gradientSpread: 76, speed: 45, morph: 16, pulse: 5, mouse: 40 },
+    ],
+  };
+
+  if (name === 'lava') { useGoo = true; container.style.filter = 'url(#goo)'; document.getElementById('gooToggle').classList.add('on'); }
+  else { useGoo = false; container.style.filter = 'none'; document.getElementById('gooToggle').classList.remove('on'); }
+
+  (presets[name] || presets['styleguide']).forEach(cfg => addLayer(cfg));
+  activeLayer = 0;
+  renderTabs();
+  syncControls();
+}
+
+// ── Export ──
+function exportCSS() {
+  let css = `/* Nordic Split Orbs — Generated ${new Date().toISOString().slice(0,10)} */\n\n`;
+  layers.forEach((l, i) => {
+    css += `.orb-${i+1} {\n`;
+    css += `  position: absolute;\n  border-radius: 50%;\n  pointer-events: none;\n`;
+    css += `  width: ${l.size}px;\n  height: ${l.size}px;\n`;
+    css += `  left: ${Math.round(l.startX*100)}%;\n  top: ${Math.round(l.startY*100)}%;\n  transform: translate(-50%, -50%);\n`;
+    css += `  background: radial-gradient(circle at 40% 38%, ${l.color1} 0%, ${l.color2} ${Math.round(l.gradientSpread*0.4)}%, ${l.color3} ${Math.round(l.gradientSpread*0.7)}%, transparent ${l.gradientSpread}%);\n`;
+    css += `  opacity: ${l.opacity};\n`;
+    css += `  filter: blur(${l.blur}px);\n`;
+    css += `}\n\n`;
+  });
+  document.getElementById('exportBox').textContent = css;
+  navigator.clipboard?.writeText(css);
+}
+
+// ── Animation loop ──
+function animate() {
+  layers.forEach(l => l.update());
+  requestAnimationFrame(animate);
+}
+
+// ── Nordic Split Color Palette ──
+const palette = {
+  'Surfaces': [
+    { name: 'Background', css: 'oklch(0.99 0.004 60)', hex: '#fdfcfa' },
+    { name: 'Background 2', css: 'oklch(0.965 0.005 58)', hex: '#f5f3f0' },
+    { name: 'Card', css: 'oklch(0.99 0.004 60)', hex: '#fdfcfa' },
+    { name: 'Panel', css: 'oklch(0.18 0.03 50)', hex: '#1a1510' },
+    { name: 'Panel Deep', css: 'oklch(0.06 0.015 50)', hex: '#0d0a06' },
+    { name: 'Border', css: 'oklch(0.91 0.006 55)', hex: '#e8e5e1' },
+  ],
+  'Dark Mode': [
+    { name: 'Dark BG', css: 'oklch(0.12 0.015 50)', hex: '#151210' },
+    { name: 'Dark BG 2', css: 'oklch(0.16 0.02 50)', hex: '#1e1a15' },
+    { name: 'Dark Card', css: 'oklch(0.16 0.02 50)', hex: '#1e1a15' },
+    { name: 'Dark Panel', css: 'oklch(0.1 0.025 48)', hex: '#120e0a' },
+    { name: 'Dark Deep', css: 'oklch(0.04 0.01 48)', hex: '#080604' },
+  ],
+  'Brand': [
+    { name: 'Brand', css: '#f97316', hex: '#f97316' },
+    { name: 'Brand Light', css: 'oklch(0.75 0.18 40)', hex: '#f0944a' },
+    { name: 'Brand OKL', css: 'oklch(0.65 0.22 40)', hex: '#d06a1a' },
+    { name: 'Brand Dark', css: 'oklch(0.55 0.22 40)', hex: '#a04e10' },
+  ],
+  'Glow': [
+    { name: 'Glow Warm', css: 'oklch(0.45 0.18 40)', hex: '#7a3e14' },
+    { name: 'Glow Deep', css: 'oklch(0.35 0.14 35)', hex: '#5c2a10' },
+  ],
+  'Semantic': [
+    { name: 'Success', css: '#22c55e', hex: '#22c55e' },
+    { name: 'Warning', css: '#f59e0b', hex: '#f59e0b' },
+    { name: 'Error', css: '#ef4444', hex: '#ef4444' },
+    { name: 'Info', css: '#3b82f6', hex: '#3b82f6' },
+    { name: 'Purple', css: '#a855f7', hex: '#a855f7' },
+    { name: 'Rose', css: '#f43f5e', hex: '#f43f5e' },
+    { name: 'Cyan', css: '#06b6d4', hex: '#06b6d4' },
+  ],
+  'Text': [
+    { name: 'Foreground', css: 'oklch(0.15 0.01 50)', hex: '#1c1814' },
+    { name: 'Muted', css: 'oklch(0.52 0.01 52)', hex: '#7a756e' },
+    { name: 'Dark FG', css: 'oklch(0.95 0.005 55)', hex: '#f0eeeb' },
+    { name: 'Dark Muted', css: 'oklch(0.6 0.01 52)', hex: '#908a82' },
+  ],
+  'Departments': [
+    { name: 'Kitchen', css: 'oklch(0.65 0.2 40)', hex: '#c45a1a' },
+    { name: 'Floor', css: 'oklch(0.65 0.15 180)', hex: '#1a9a88' },
+    { name: 'Bar', css: 'oklch(0.55 0.2 300)', hex: '#7e3abf' },
+    { name: 'Event', css: 'oklch(0.65 0.18 85)', hex: '#a88520' },
+    { name: 'Storage', css: 'oklch(0.55 0.1 200)', hex: '#3a7880' },
+  ],
+  'Status': [
+    { name: 'Trainee', css: 'oklch(0.6 0.15 250)', hex: '#3a72c0' },
+    { name: 'Active', css: 'oklch(0.65 0.2 145)', hex: '#2aa848' },
+    { name: 'Inactive', css: 'oklch(0.55 0 0)', hex: '#717171' },
+    { name: 'Offboarding', css: 'oklch(0.65 0.18 85)', hex: '#a88520' },
+  ],
+};
+
+// ── Dropdown logic ──
+function buildDropdown(dropdownId, onPick) {
+  const el = document.getElementById(dropdownId);
+  let html = '';
+  for (const [section, colors] of Object.entries(palette)) {
+    html += `<div class="cd-section">${section}</div>`;
+    colors.forEach(c => {
+      html += `<div class="cd-item" onclick="${onPick}('${c.hex}','${c.css}','${c.name}')">
+        <div class="cs-dot" style="background:${c.css}"></div>
+        <span class="cd-name">${c.name}</span>
+        <span class="cd-val">${c.hex}</span>
+      </div>`;
+    });
+  }
+  el.innerHTML = html;
+}
+
+function toggleDropdown(wrapId) {
+  const wrap = document.getElementById(wrapId);
+  const wasOpen = wrap.classList.contains('open');
+  // Close all
+  document.querySelectorAll('.color-select-wrap.open').forEach(w => w.classList.remove('open'));
+  if (!wasOpen) wrap.classList.add('open');
+}
+
+// Close on outside click
+document.addEventListener('click', e => {
+  if (!e.target.closest('.color-select-wrap')) {
+    document.querySelectorAll('.color-select-wrap.open').forEach(w => w.classList.remove('open'));
+  }
+});
+
+function pickBg(hex, css, name) {
+  document.getElementById('panelBg').value = hex;
+  document.getElementById('previewBg').style.background = css;
+  document.getElementById('panelBgVal').textContent = hex;
+  document.getElementById('bgSelectDot').style.background = css;
+  document.getElementById('bgSelectName').textContent = name;
+  document.getElementById('bgSelectWrap').classList.remove('open');
+}
+
+function pickCore(hex, css, name) {
+  const l = layers[activeLayer]; if (!l) return;
+  document.getElementById('s-color1').value = hex;
+  l.color1 = hex; l.render(); renderTabs();
+  document.getElementById('coreSelectDot').style.background = css;
+  document.getElementById('coreSelectName').textContent = name;
+  document.getElementById('coreSelectWrap').classList.remove('open');
+}
+
+function pickMid(hex, css, name) {
+  const l = layers[activeLayer]; if (!l) return;
+  document.getElementById('s-color2').value = hex;
+  l.color2 = hex; l.render(); renderTabs();
+  document.getElementById('midSelectDot').style.background = css;
+  document.getElementById('midSelectName').textContent = name;
+  document.getElementById('midSelectWrap').classList.remove('open');
+}
+
+function pickEdge(hex, css, name) {
+  const l = layers[activeLayer]; if (!l) return;
+  document.getElementById('s-color3').value = hex;
+  l.color3 = hex; l.render(); renderTabs();
+  document.getElementById('edgeSelectDot').style.background = css;
+  document.getElementById('edgeSelectName').textContent = name;
+  document.getElementById('edgeSelectWrap').classList.remove('open');
+}
+
+// ── Init ──
+updatePanel();
+loadPreset('styleguide');
+buildDropdown('bgDropdown', 'pickBg');
+buildDropdown('coreDropdown', 'pickCore');
+buildDropdown('midDropdown', 'pickMid');
+buildDropdown('edgeDropdown', 'pickEdge');
+animate();
+</script>
+</body>
+</html>

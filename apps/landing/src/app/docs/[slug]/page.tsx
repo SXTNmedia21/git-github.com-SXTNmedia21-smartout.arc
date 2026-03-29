@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
 import Link from "next/link";
-import { getUserManualDocBySlug, getUserManualDocs } from "@/lib/user-manual";
+import { getUserManualDocBySlug, getUserManualDocs, type DocsLocale } from "@/lib/user-manual";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { DocsBreadcrumb } from "../_components/docs-breadcrumb";
 import { MarkdownRenderer } from "../_components/markdown-renderer";
@@ -10,7 +11,7 @@ type DocsManualPageProps = {
 };
 
 export function generateStaticParams() {
-  return getUserManualDocs().map((doc) => ({ slug: doc.slug }));
+  return getUserManualDocs("nb").map((doc) => ({ slug: doc.slug }));
 }
 
 export async function generateMetadata({ params }: DocsManualPageProps) {
@@ -19,14 +20,22 @@ export async function generateMetadata({ params }: DocsManualPageProps) {
   if (!doc) {
     return { title: "Dokumentasjon" };
   }
+  const enSlug = doc.slugEn ?? slug;
   return {
     title: `${doc.title} – SmartOut Docs`,
     description: doc.excerpt,
+    alternates: {
+      canonical: `/docs/${slug}`,
+      languages: {
+        nb: `/docs/${slug}`,
+        en: `/en/docs/${enSlug}`,
+      },
+    },
   };
 }
 
-function getAdjacentDocs(slug: string) {
-  const docs = getUserManualDocs();
+function getAdjacentDocs(slug: string, locale: DocsLocale) {
+  const docs = getUserManualDocs(locale);
   const idx = docs.findIndex((d) => d.slug === slug);
   return {
     prev: idx > 0 ? docs[idx - 1] : null,
@@ -36,13 +45,18 @@ function getAdjacentDocs(slug: string) {
 
 export default async function DocsManualPage({ params }: DocsManualPageProps) {
   const { slug } = await params;
-  const doc = getUserManualDocBySlug(slug);
+  const headersList = await headers();
+  const locale = (headersList.get("x-locale") ?? "nb") as DocsLocale;
+  const doc = getUserManualDocBySlug(slug, locale);
 
   if (!doc) {
     notFound();
   }
 
-  const { prev, next } = getAdjacentDocs(slug);
+  const { prev, next } = getAdjacentDocs(slug, locale);
+  const docsPrefix = locale === "en" ? "/en/docs" : "/docs";
+  const prevLabel = locale === "en" ? "Previous" : "Forrige";
+  const nextLabel = locale === "en" ? "Next" : "Neste";
 
   return (
     <article>
@@ -56,12 +70,12 @@ export default async function DocsManualPage({ params }: DocsManualPageProps) {
         <div className="border-border/50 mt-16 flex items-stretch justify-between gap-4 border-t pt-8">
           {prev ? (
             <Link
-              href={`/docs/${prev.slug}`}
+              href={`${docsPrefix}/${prev.slug}`}
               className="group text-muted-foreground hover:text-foreground flex items-center gap-3 text-sm transition-colors"
             >
               <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
               <div>
-                <span className="block text-xs opacity-60">Forrige</span>
+                <span className="block text-xs opacity-60">{prevLabel}</span>
                 <span className="text-foreground/80 group-hover:text-foreground font-semibold transition-colors">
                   {prev.title}
                 </span>
@@ -72,11 +86,11 @@ export default async function DocsManualPage({ params }: DocsManualPageProps) {
           )}
           {next ? (
             <Link
-              href={`/docs/${next.slug}`}
+              href={`${docsPrefix}/${next.slug}`}
               className="group text-muted-foreground hover:text-foreground flex items-center gap-3 text-right text-sm transition-colors"
             >
               <div>
-                <span className="block text-xs opacity-60">Neste</span>
+                <span className="block text-xs opacity-60">{nextLabel}</span>
                 <span className="text-foreground/80 group-hover:text-foreground font-semibold transition-colors">
                   {next.title}
                 </span>

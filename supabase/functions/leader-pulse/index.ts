@@ -11,8 +11,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 
 type LeaderProfile = {
   profile_id: string;
-  first_name: string | null;
-  last_name: string | null;
+  display_name: string | null;
   role: string;
   workspace_id: string;
 };
@@ -74,7 +73,7 @@ Deno.serve(async (req) => {
       // ── 2. Get leader profiles ─────────────────────────
       const { data: leaders, error: leadersError } = await supabase
         .from("profile")
-        .select("profile_id, first_name, last_name, role, workspace_id")
+        .select("profile_id, display_name, role, workspace_id")
         .eq("workspace_id", ws.workspace_id)
         .eq("is_active", true)
         .in("role", ["manager", "admin", "owner"]);
@@ -166,8 +165,7 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        const leaderName =
-          [leader.first_name, leader.last_name].filter(Boolean).join(" ") || "Leader";
+        const leaderName = leader.display_name || "Leader";
 
         const context: LeaderContext = {
           leader_name: leaderName,

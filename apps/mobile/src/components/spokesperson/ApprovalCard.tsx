@@ -19,7 +19,7 @@ import {
 import * as Haptics from "expo-haptics";
 import { User, Eye, ListChecks, Clock, CheckCircle2 } from "lucide-react-native";
 import { Button } from "@/components/ui";
-import { createStyles } from "@/theme";
+import { createStyles, useTheme } from "@/theme";
 import { supabase } from "@/lib/supabase";
 
 // ─── Types ────────────────────────────────────────────────────────
@@ -82,6 +82,7 @@ const PUBLIC_VISIBILITY_ITEMS = [
 
 export function ApprovalCard({ data, onResponded }: ApprovalCardProps) {
   const styles = useStyles();
+  const { colors } = useTheme();
   const [showDeclineForm, setShowDeclineForm] = useState(false);
   const [declineReason, setDeclineReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -175,7 +176,7 @@ export function ApprovalCard({ data, onResponded }: ApprovalCardProps) {
         {/* Employee identity card */}
         <View style={styles.personCard}>
           <View style={styles.avatarCircle}>
-            <User size={32} color="#ffffff" strokeWidth={1.5} />
+            <User size={32} color={colors.primaryForeground} strokeWidth={1.5} />
           </View>
           <View style={styles.personInfo}>
             <Text style={styles.personName}>{data.employee_name}</Text>
@@ -185,9 +186,9 @@ export function ApprovalCard({ data, onResponded }: ApprovalCardProps) {
 
         {/* What becomes publicly visible */}
         <SectionCard
-          icon={<Eye size={16} color="#3b82f6" strokeWidth={2} />}
+          icon={<Eye size={16} color={colors.info} strokeWidth={2} />}
           title="Hva blir synlig offentlig"
-          color="#3b82f6"
+          color={colors.info}
         >
           {PUBLIC_VISIBILITY_ITEMS.map((item) => (
             <InfoRow key={item} label={item} />
@@ -197,9 +198,9 @@ export function ApprovalCard({ data, onResponded }: ApprovalCardProps) {
         {/* Recurring content tasks */}
         {enabledTasks.length > 0 && (
           <SectionCard
-            icon={<ListChecks size={16} color="#f59e0b" strokeWidth={2} />}
+            icon={<ListChecks size={16} color={colors.warning} strokeWidth={2} />}
             title="Dine oppgaver"
-            color="#f59e0b"
+            color={colors.warning}
           >
             {enabledTasks.map((task, i) => (
               <View key={i} style={styles.taskRow}>
@@ -217,7 +218,7 @@ export function ApprovalCard({ data, onResponded }: ApprovalCardProps) {
 
         {/* Response deadline note */}
         <View style={styles.deadlineNote}>
-          <Clock size={14} color="#737373" strokeWidth={2} />
+          <Clock size={14} color={colors.mutedForeground} strokeWidth={2} />
           <Text style={styles.deadlineText}>Svar innen 7 dager fra mottak</Text>
         </View>
 
@@ -228,7 +229,7 @@ export function ApprovalCard({ data, onResponded }: ApprovalCardProps) {
             <TextInput
               style={styles.declineInput}
               placeholder="Beskriv hvorfor du avslår..."
-              placeholderTextColor="#737373"
+              placeholderTextColor={colors.mutedForeground}
               value={declineReason}
               onChangeText={setDeclineReason}
               multiline
@@ -313,7 +314,7 @@ function InfoRow({ label }: { label: string }) {
   const styles = useSectionStyles();
   return (
     <View style={styles.infoRow}>
-      <CheckCircle2 size={13} color="#22c55e" strokeWidth={2} />
+      <CheckCircle2 size={13} color={styles.successColor.color} strokeWidth={2} />
       <Text style={styles.infoLabel}>{label}</Text>
     </View>
   );
@@ -352,6 +353,9 @@ const useSectionStyles = createStyles((theme) => ({
   infoLabel: {
     ...theme.typography.body,
     color: theme.colors.foreground,
+  },
+  successColor: {
+    color: theme.colors.success,
   },
 }));
 
@@ -491,6 +495,6 @@ const useStyles = createStyles((theme) => ({
   },
   acceptButton: {
     flex: 2,
-    backgroundColor: "#22c55e",
+    backgroundColor: theme.colors.success,
   },
 }));

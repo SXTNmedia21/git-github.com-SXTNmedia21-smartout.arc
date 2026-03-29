@@ -1,12 +1,7 @@
 // ============================================
 // shift-modal.tsx
-// 6-tab shift detail/create modal for the schedule module.
-// Opens when a shift is selected (edit mode) or when creating
-// a new shift (create mode). Tabs: Detaljer, Funksjoner,
-// Historie, Lønnsgrunnlag, Oppgaver, Innstillinger.
-// Connected to: schedule-context.tsx (state + dispatch)
-// Connected to: schedule-types.ts (Shift, ShiftHistoryEntry)
-// Connected to: schedule-data.ts (dummyEmployees)
+// Operational modal for shift creation/editing.
+// Redesigned for simplicity and speed.
 // ============================================
 "use client";
 
@@ -14,18 +9,20 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   Calendar,
-  CheckCircle2,
+  Check,
   Clock,
-  History,
-  ListChecks,
   Mail,
   MessageSquare,
-  Plus,
-  Settings,
   Smartphone,
   Trash2,
-  Wallet,
-  X,
+  MoreHorizontal,
+  Send,
+  ListChecks,
+  Settings,
+  User,
+  ChevronDown,
+  History,
+  ThumbsUp,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +35,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -56,19 +60,12 @@ import { useShifts, useCreateShift, useUpdateShift, useDeleteShift } from "../_h
 import { useWeekRange } from "../_hooks/use-week-range";
 import { useEmployees, type ScheduleEmployee } from "../_hooks/use-employees";
 import { useShiftRuleCheck } from "../_hooks/use-shift-rule-check";
+import { useAuditLog, type AuditLogEntry } from "../_hooks/use-audit-log";
 import { AVAILABLE_ZONES } from "./schedule-data";
 import type { DayCategory, ShiftStatus, Shift } from "./schedule-types";
 
 // ── Constants ───────────────────────────────────────────────
 
-/** Base hourly rate in NOK for pay calculation */
-const BASE_HOURLY_RATE = 250;
-/** Evening/night supplement multiplier (40% extra) */
-const EVENING_SUPPLEMENT = 0.4;
-/** Weekend supplement multiplier (100% extra) */
-const WEEKEND_SUPPLEMENT = 1.0;
-
-/** Day category options for the override select */
 const DAY_CATEGORY_OPTIONS: { value: DayCategory; label: string }[] = [
   { value: "morning", label: "Morgen" },
   { value: "midday", label: "Midt på dagen" },
@@ -78,7 +75,6 @@ const DAY_CATEGORY_OPTIONS: { value: DayCategory; label: string }[] = [
   { value: "weekend", label: "Helg" },
 ];
 
-/** Common shift time presets for quick-fill buttons */
 const SHIFT_PRESETS: {
   label: string;
   startTime: string;
@@ -92,30 +88,32 @@ const SHIFT_PRESETS: {
   { label: "Delt vakt", startTime: "10:00", endTime: "14:00", dayCategory: "midday" },
 ];
 
-/** Notification channel options */
 const NOTIFICATION_CHANNELS = [
   { id: "push", label: "Push", icon: Smartphone },
   { id: "email", label: "E-post", icon: Mail },
   { id: "sms", label: "SMS", icon: MessageSquare },
 ] as const;
 
-// ── Local task type for the Oppgaver tab ────────────────────
+const TIME_OPTIONS = Array.from({ length: 24 * 4 }).map((_, i) => {
+  const h = Math.floor(i / 4)
+    .toString()
+    .padStart(2, "0");
+  const m = ((i % 4) * 15).toString().padStart(2, "0");
+  return `${h}:${m}`;
+});
 
-type ShiftTask = {
-  id: string;
-  label: string;
-  status: "pending" | "completed";
-};
+// ── Helpers ─────────────────────────────────────────────────
 
-// ── Helper: infer day category from start time ──────────────
+function adjustTime(current: string, minutesDelta: number): string {
+  if (!current) return current;
+  const [h, m] = current.split(":").map(Number);
+  const total = (h ?? 0) * 60 + (m ?? 0) + minutesDelta;
+  const wrapped = ((total % 1440) + 1440) % 1440;
+  const newH = Math.floor(wrapped / 60);
+  const newM = wrapped % 60;
+  return `${newH.toString().padStart(2, "0")}:${newM.toString().padStart(2, "0")}`;
+}
 
-/**
- * Determines day category from a start time string.
- * Used for auto-calculation when user changes start time.
- *
- * @param startTime - "HH:MM" format
- * @returns The inferred DayCategory
- */
 function inferDayCategory(startTime: string): DayCategory {
   const hour = parseInt(startTime.split(":")[0] ?? "0", 10);
   if (hour < 6) return "night";
@@ -126,23 +124,6 @@ function inferDayCategory(startTime: string): DayCategory {
   return "night";
 }
 
-/**
- * Returns true when the selected day category should be treated as a special shift.
- * Special shifts are rendered with stronger contrast and visual emphasis.
- */
-function isSpecialShiftCategory(dayCategory: DayCategory): boolean {
-  return dayCategory === "night" || dayCategory === "weekend";
-}
-
-/**
- * Calculates work hours between two time strings, subtracting break minutes.
- * Handles overnight shifts where end time is before start time.
- *
- * @param startTime - "HH:MM" format
- * @param endTime - "HH:MM" format
- * @param breakMinutes - Break duration in minutes
- * @returns Work hours as a decimal number
- */
 function calculateWorkHours(startTime: string, endTime: string, breakMinutes: number): number {
   const [startH, startM] = startTime.split(":").map(Number);
   const [endH, endM] = endTime.split(":").map(Number);
@@ -150,7 +131,6 @@ function calculateWorkHours(startTime: string, endTime: string, breakMinutes: nu
   const startTotal = (startH ?? 0) * 60 + (startM ?? 0);
   let endTotal = (endH ?? 0) * 60 + (endM ?? 0);
 
-  // Handle overnight shifts
   if (endTotal <= startTotal) {
     endTotal += 24 * 60;
   }
@@ -159,11 +139,6 @@ function calculateWorkHours(startTime: string, endTime: string, breakMinutes: nu
   return Math.max(0, totalMinutes / 60);
 }
 
-// ── Status badge color mapping ──────────────────────────────
-
-/**
- * Returns a CSS class string for the shift status badge.
- */
 function getStatusBadgeVariant(
   status: ShiftStatus,
 ): "default" | "secondary" | "destructive" | "outline" {
@@ -182,9 +157,6 @@ function getStatusBadgeVariant(
   }
 }
 
-/**
- * Returns a Norwegian display label for the shift status.
- */
 function getStatusLabel(status: ShiftStatus): string {
   switch (status) {
     case "created":
@@ -204,7 +176,249 @@ function getStatusLabel(status: ShiftStatus): string {
   }
 }
 
-// ── Form state type ─────────────────────────────────────────
+// ── Status Timeline ─────────────────────────────────────────
+
+const STATUS_STEPS = [
+  { key: "created", label: "Opprettet" },
+  { key: "assigned", label: "Tildelt" },
+  { key: "published", label: "Publisert" },
+  { key: "confirmed", label: "Bekreftet" },
+  { key: "active", label: "Aktiv" },
+  { key: "completed", label: "Fullført" },
+] as const;
+
+/** Ordinal index for each status in the lifecycle */
+const STATUS_ORDER: Record<string, number> = {
+  created: 0,
+  assigned: 1,
+  published: 2,
+  confirmed: 3,
+  active: 4,
+  completed: 5,
+};
+
+function ShiftStatusTimeline({
+  shift,
+  auditEntries,
+}: {
+  shift: Shift;
+  auditEntries: AuditLogEntry[];
+}) {
+  const currentIndex = STATUS_ORDER[shift.status] ?? 0;
+  const isConfirmed = Boolean(shift.confirmedAt);
+
+  /** Try to find the timestamp when a status was reached via audit log */
+  function getStepDate(stepKey: string): string | undefined {
+    if (stepKey === "created") return shift.createdAt;
+    if (stepKey === "confirmed") return shift.confirmedAt;
+
+    // Find earliest audit entry where status changed to this value
+    const entry = [...auditEntries]
+      .reverse()
+      .find(
+        (e) =>
+          e.operation === "UPDATE" &&
+          e.changedFields?.includes("status") &&
+          (e.newData as Record<string, unknown> | null)?.status === stepKey,
+      );
+    return entry?.createdAt;
+  }
+
+  function formatStepDate(iso: string): string {
+    const d = new Date(iso);
+    return `${d.getDate()}.${(d.getMonth() + 1).toString().padStart(2, "0")}`;
+  }
+
+  return (
+    <div className="flex w-full items-start justify-between gap-1 px-4 py-2">
+      {STATUS_STEPS.map((step, i) => {
+        const stepIndex = STATUS_ORDER[step.key] ?? i;
+        const isPast = step.key === "confirmed" ? isConfirmed : stepIndex <= currentIndex;
+        const isCurrent =
+          step.key === "confirmed"
+            ? isConfirmed && shift.status === "published"
+            : stepIndex === currentIndex;
+        const dateStr = isPast ? getStepDate(step.key) : undefined;
+
+        return (
+          <div key={step.key} className="flex min-w-0 flex-1 flex-col items-center gap-1">
+            <div className="flex items-center gap-0.5">
+              {i > 0 && (
+                <div
+                  className={`h-px w-6 transition-colors sm:w-8 ${isPast ? "bg-emerald-500/30" : "border-border/40 border-t border-dashed"}`}
+                />
+              )}
+              <div
+                className={`flex h-6 w-6 items-center justify-center rounded-full border shadow-sm transition-all ${
+                  isCurrent
+                    ? "scale-110 border-emerald-400 bg-emerald-500 text-white shadow-[0_0_12px_rgba(16,185,129,0.3)]"
+                    : isPast
+                      ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-500"
+                      : "bg-muted/50 border-border/60 text-muted-foreground/50"
+                }`}
+              >
+                {isPast ? (
+                  step.key === "confirmed" ? (
+                    <ThumbsUp className="h-3 w-3" />
+                  ) : (
+                    <Check className="h-3 w-3" />
+                  )
+                ) : (
+                  <span className="text-[10px] font-bold">{i + 1}</span>
+                )}
+              </div>
+            </div>
+            <span
+              className={`mt-1 text-center text-[9px] leading-tight tracking-wide uppercase ${
+                isCurrent ? "text-foreground font-black" : "text-muted-foreground/50 font-bold"
+              }`}
+            >
+              {step.label}
+            </span>
+            {dateStr && (
+              <span className="text-muted-foreground/70 text-[8px] leading-none font-semibold">
+                {formatStepDate(dateStr)}
+              </span>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── History Timeline ────────────────────────────────────────
+
+function describeAuditEntry(entry: AuditLogEntry, employees: ScheduleEmployee[]): string {
+  const newData = entry.newData as Record<string, unknown> | null;
+  const oldData = entry.oldData as Record<string, unknown> | null;
+  const fields = entry.changedFields ?? [];
+
+  if (entry.operation === "INSERT") return "Opprettet";
+  if (entry.operation === "DELETE") return "Slettet";
+
+  // Status change is most significant
+  if (fields.includes("status") && newData?.status) {
+    return getStatusLabel(newData.status as ShiftStatus);
+  }
+
+  // Employee assignment
+  if (fields.includes("employee_id")) {
+    if (newData?.employee_id) {
+      const emp = employees.find((e) => e.id === newData.employee_id);
+      return `Tildelt til ${emp?.name ?? "ukjent"}`;
+    }
+    return "Fjernet tildeling";
+  }
+
+  // Confirmation
+  if (fields.includes("confirmed_at") && newData?.confirmed_at) {
+    const emp = newData.confirmed_by ? employees.find((e) => e.id === newData.confirmed_by) : null;
+    return `Bekreftet${emp ? ` av ${emp.name}` : ""}`;
+  }
+
+  // Time change
+  if (fields.includes("start_time") || fields.includes("end_time")) {
+    const oldStart = (oldData?.start_time as string)?.slice(0, 5) ?? "?";
+    const oldEnd = (oldData?.end_time as string)?.slice(0, 5) ?? "?";
+    const newStart = (newData?.start_time as string)?.slice(0, 5) ?? "?";
+    const newEnd = (newData?.end_time as string)?.slice(0, 5) ?? "?";
+    return `Tid endret: ${oldStart}-${oldEnd} \u2192 ${newStart}-${newEnd}`;
+  }
+
+  // Role change
+  if (fields.includes("role")) {
+    return `Rolle endret: ${oldData?.role ?? "?"} \u2192 ${newData?.role ?? "?"}`;
+  }
+
+  // Notes
+  if (fields.includes("notes")) return "Notat oppdatert";
+
+  // Fallback: list changed fields
+  return `Oppdatert: ${fields.join(", ")}`;
+}
+
+function ShiftHistoryTimeline({
+  entries,
+  employees,
+}: {
+  entries: AuditLogEntry[];
+  employees: ScheduleEmployee[];
+}) {
+  if (entries.length === 0) {
+    return (
+      <div className="bg-card/20 border-border/40 text-muted-foreground relative flex flex-col items-center justify-center overflow-hidden rounded-[20px] border border-dashed py-16 text-center backdrop-blur-sm">
+        <div className="bg-muted/30 mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border shadow-sm">
+          <History className="text-muted-foreground/50 h-8 w-8" />
+        </div>
+        <h4 className="text-foreground text-sm font-bold tracking-tight">
+          Ingen historikk tilgjengelig
+        </h4>
+        <p className="mt-2 max-w-[250px] text-xs leading-relaxed">
+          Denne vakten ble opprettet før utvidet logging var aktivert i systemet.
+        </p>
+      </div>
+    );
+  }
+
+  let lastDateStr = "";
+
+  return (
+    <div className="space-y-0">
+      {entries.map((entry) => {
+        const date = new Date(entry.createdAt);
+        const dateStr = date.toLocaleDateString("nb-NO", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        });
+        const timeStr = date.toLocaleTimeString("nb-NO", {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        const showDate = dateStr !== lastDateStr;
+        lastDateStr = dateStr;
+
+        const actor = entry.userId ? employees.find((e) => e.id === entry.userId) : null;
+
+        return (
+          <div key={entry.id} className="relative flex gap-3 pb-4">
+            {/* Timeline line */}
+            <div className="flex flex-col items-center">
+              <div className="border-border/60 bg-muted/50 mt-1 h-2.5 w-2.5 rounded-full border shadow-sm" />
+              <div className="bg-border/30 my-0.5 w-px flex-1" />
+            </div>
+
+            <div className="min-w-0 flex-1 pb-2">
+              <div className="flex items-baseline gap-2">
+                <span className="text-foreground text-xs font-bold tracking-tight">
+                  {describeAuditEntry(entry, employees)}
+                </span>
+              </div>
+              <div className="text-muted-foreground/80 mt-1 flex items-center gap-2 text-[10px] font-semibold">
+                <span>{timeStr}</span>
+                {showDate && (
+                  <>
+                    <span>&middot;</span>
+                    <span>{dateStr}</span>
+                  </>
+                )}
+                {actor && (
+                  <>
+                    <span>&middot;</span>
+                    <span>{actor.name}</span>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Form State ──────────────────────────────────────────────
 
 type ShiftFormState = {
   employeeId: string;
@@ -222,19 +436,6 @@ type ShiftFormState = {
 
 // ── Component ───────────────────────────────────────────────
 
-/**
- * Shift detail/create modal with 6 tabs.
- * Opens in edit mode when selectedShiftId is set,
- * or in create mode when createShiftContext is set.
- *
- * Tabs:
- * 1. Detaljer — Employee, role, time, status, publish controls
- * 2. Funksjoner — Placeholder for workspace-specific features
- * 3. Historie — Audit trail from computed.getHistoryForShift
- * 4. Lønnsgrunnlag — Pay breakdown with supplements
- * 5. Oppgaver — Local task checklist within the shift
- * 6. Innstillinger — Break duration, special conditions
- */
 export function ShiftModal() {
   const { selectedShiftId, createShiftContext, setSelectedShift, setCreateShiftContext } =
     useScheduleUI();
@@ -250,7 +451,12 @@ export function ShiftModal() {
   const updateShiftMutation = useUpdateShift(weekStart);
   const deleteShiftMutation = useDeleteShift(weekStart);
 
-  /** Unique job titles / roles and teams derived from real employee data */
+  const auditLogQuery = useAuditLog("schedule_shift", selectedShiftId ?? "");
+  const auditEntries = useMemo(
+    () => (auditLogQuery.data ?? []) as AuditLogEntry[],
+    [auditLogQuery.data],
+  );
+
   const availableRoles = useMemo(
     () => [...new Set(employees.map((e) => e.jobTitle || e.role).filter((v): v is string => !!v))],
     [employees],
@@ -260,12 +466,9 @@ export function ShiftModal() {
     [employees],
   );
 
-  // Determine mode: edit (existing shift) or create (new shift)
   const isOpen = selectedShiftId !== null || createShiftContext !== null;
   const isEditMode = selectedShiftId !== null;
   const existingShift = isEditMode ? shifts.find((s: Shift) => s.id === selectedShiftId) : null;
-
-  // ── Form state ──────────────────────────────────────────
 
   const [form, setForm] = useState<ShiftFormState>({
     employeeId: "",
@@ -281,15 +484,10 @@ export function ShiftModal() {
     specialConditions: "",
   });
 
-  // Local tasks for the Oppgaver tab (not persisted to day-level state)
-  const [shiftTasks, setShiftTasks] = useState<ShiftTask[]>([]);
-  const [newTaskLabel, setNewTaskLabel] = useState("");
-
-  // ── Initialize form when modal opens ────────────────────
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   useEffect(() => {
     if (existingShift) {
-      // Edit mode: pre-fill from existing shift
       const emp = employees.find((e) => e.id === existingShift.employeeId);
       setForm({
         employeeId: existingShift.employeeId ?? "",
@@ -301,11 +499,10 @@ export function ShiftModal() {
         zone: existingShift.zone ?? "",
         isPublished: existingShift.isPublished,
         notificationChannels: new Set(["push"]),
-        breaks: existingShift.breaks,
+        breaks: existingShift.breaks ?? 30,
         specialConditions: existingShift.notes ?? "",
       });
     } else if (createShiftContext) {
-      // Create mode: pre-fill from context, rest is empty
       const employee = createShiftContext.employeeId
         ? employees.find((e) => e.id === createShiftContext?.employeeId)
         : null;
@@ -324,11 +521,7 @@ export function ShiftModal() {
         specialConditions: "",
       });
     }
-    setShiftTasks((prev) => (prev.length === 0 ? prev : []));
-    setNewTaskLabel("");
   }, [existingShift, createShiftContext, employees]);
-
-  // ── Computed values ─────────────────────────────────────
 
   const workHours = useMemo(
     () => calculateWorkHours(form.startTime, form.endTime, form.breaks),
@@ -337,7 +530,6 @@ export function ShiftModal() {
 
   const dateId = isEditMode ? existingShift?.dateId : createShiftContext?.dateId;
 
-  // ── Cascade rule evaluation (instant feedback) ─────────
   const employeeShiftsForWeek = useMemo(
     () =>
       shifts
@@ -356,15 +548,11 @@ export function ShiftModal() {
     employeeShiftsForWeek,
   );
 
-  // ── Handlers ────────────────────────────────────────────
-
-  /** Closes the modal and resets both selectedShiftId and createShiftContext */
   const handleClose = useCallback(() => {
     setSelectedShift(null);
     setCreateShiftContext(null);
   }, [setSelectedShift, setCreateShiftContext]);
 
-  /** Updates a single form field */
   const updateField = useCallback(
     <K extends keyof ShiftFormState>(field: K, value: ShiftFormState[K]) => {
       setForm((prev) => ({ ...prev, [field]: value }));
@@ -372,13 +560,14 @@ export function ShiftModal() {
     [],
   );
 
-  /** Auto-fill role and team when employee changes */
   const handleEmployeeChange = useCallback(
     (employeeId: string) => {
-      const employee = employees.find((e) => e.id === employeeId);
+      // Treat the magic "none" string as clearing the employee selection (open shift)
+      const targetId = employeeId === "none" ? "" : employeeId;
+      const employee = employees.find((e) => e.id === targetId);
       setForm((prev) => ({
         ...prev,
-        employeeId,
+        employeeId: targetId,
         role: (employee?.jobTitle || employee?.role) ?? prev.role,
         team: employee?.team ?? prev.team,
       }));
@@ -386,7 +575,6 @@ export function ShiftModal() {
     [employees],
   );
 
-  /** Auto-calculate day category when start time changes */
   const handleStartTimeChange = useCallback((startTime: string) => {
     setForm((prev) => ({
       ...prev,
@@ -395,7 +583,6 @@ export function ShiftModal() {
     }));
   }, []);
 
-  /** Toggle a notification channel */
   const toggleChannel = useCallback((channelId: string) => {
     setForm((prev) => {
       const next = new Set(prev.notificationChannels);
@@ -408,62 +595,65 @@ export function ShiftModal() {
     });
   }, []);
 
-  /** Save shift (create or update) */
-  const handleSave = useCallback(() => {
-    const hours = calculateWorkHours(form.startTime, form.endTime, form.breaks);
-    const status: ShiftStatus =
-      form.employeeId && form.isPublished ? "published" : form.employeeId ? "assigned" : "created";
+  const handleSave = useCallback(
+    (forcePublish: boolean = false) => {
+      const hours = calculateWorkHours(form.startTime, form.endTime, form.breaks);
+      const isPublishedFinal = form.isPublished || forcePublish;
+      const status: ShiftStatus =
+        form.employeeId && isPublishedFinal
+          ? "published"
+          : form.employeeId
+            ? "assigned"
+            : "created";
 
-    if (isEditMode && existingShift) {
-      // Update existing shift
-      updateShiftMutation.mutate({
-        id: existingShift.id,
-        patch: {
+      if (isEditMode && existingShift) {
+        updateShiftMutation.mutate({
+          id: existingShift.id,
+          patch: {
+            employeeId: form.employeeId || null,
+            role: form.role,
+            startTime: form.startTime,
+            endTime: form.endTime,
+            workHours: hours,
+            dayCategory: form.dayCategory,
+            zone: form.zone || undefined,
+            status,
+            isPublished: isPublishedFinal,
+            breaks: form.breaks,
+            notes: form.specialConditions || undefined,
+          },
+        });
+      } else if (dateId) {
+        createShiftMutation.mutate({
+          id: crypto.randomUUID(),
           employeeId: form.employeeId || null,
+          dateId,
           role: form.role,
           startTime: form.startTime,
           endTime: form.endTime,
           workHours: hours,
+          status,
           dayCategory: form.dayCategory,
           zone: form.zone || undefined,
-          status,
-          isPublished: form.isPublished,
+          indicator: "blue",
+          isPublished: isPublishedFinal,
           breaks: form.breaks,
           notes: form.specialConditions || undefined,
-        },
-      });
-    } else if (dateId) {
-      // Create new shift
-      createShiftMutation.mutate({
-        id: crypto.randomUUID(),
-        employeeId: form.employeeId || null,
-        dateId,
-        role: form.role,
-        startTime: form.startTime,
-        endTime: form.endTime,
-        workHours: hours,
-        status,
-        dayCategory: form.dayCategory,
-        zone: form.zone || undefined,
-        indicator: "blue",
-        isPublished: form.isPublished,
-        breaks: form.breaks,
-        notes: form.specialConditions || undefined,
-      });
-    }
+        });
+      }
+      handleClose();
+    },
+    [
+      form,
+      isEditMode,
+      existingShift,
+      dateId,
+      createShiftMutation,
+      updateShiftMutation,
+      handleClose,
+    ],
+  );
 
-    handleClose();
-  }, [
-    form,
-    isEditMode,
-    existingShift,
-    dateId,
-    createShiftMutation,
-    updateShiftMutation,
-    handleClose,
-  ]);
-
-  /** Delete shift with confirmation */
   const handleDelete = useCallback(() => {
     if (!existingShift) return;
     const confirmed = window.confirm("Er du sikker på at du vil slette dette skiftet?");
@@ -473,343 +663,557 @@ export function ShiftModal() {
     }
   }, [existingShift, deleteShiftMutation, handleClose]);
 
-  /** Add a local task to the shift */
-  const handleAddTask = useCallback(() => {
-    if (!newTaskLabel.trim()) return;
-    setShiftTasks((prev) => [
-      ...prev,
-      {
-        id: `stask_${Date.now()}`,
-        label: newTaskLabel.trim(),
-        status: "pending",
-      },
-    ]);
-    setNewTaskLabel("");
-  }, [newTaskLabel]);
-
-  /** Toggle a local task's status */
-  const handleToggleTask = useCallback((taskId: string) => {
-    setShiftTasks((prev) =>
-      prev.map((t) =>
-        t.id === taskId
-          ? {
-              ...t,
-              status: t.status === "completed" ? "pending" : "completed",
-            }
-          : t,
-      ),
-    );
-  }, []);
-
-  /** Delete a local task */
-  const handleDeleteTask = useCallback((taskId: string) => {
-    setShiftTasks((prev) => prev.filter((t) => t.id !== taskId));
-  }, []);
-
-  // ── Pay calculation for Lønnsgrunnlag tab ───────────────
-
-  const payBreakdown = useMemo(() => {
-    const base = workHours * BASE_HOURLY_RATE;
-    const isEveningOrNight = form.dayCategory === "evening" || form.dayCategory === "night";
-    const isWeekend = form.dayCategory === "weekend";
-
-    const eveningSupplement = isEveningOrNight ? base * EVENING_SUPPLEMENT : 0;
-    const weekendSupplement = isWeekend ? base * WEEKEND_SUPPLEMENT : 0;
-    const total = base + eveningSupplement + weekendSupplement;
-
-    return { base, eveningSupplement, weekendSupplement, total };
-  }, [workHours, form.dayCategory]);
-
-  // ── History entries for Historie tab ────────────────────
-
-  const historyEntries = useMemo(() => {
-    // History is now handled by the database audit log.
-    // Placeholder: return empty array. The audit log hook
-    // can be wired in when the shift is persisted.
-    return [] as {
-      id: string;
-      eventType: string;
-      field?: string;
-      oldValue?: string;
-      newValue?: string;
-      actor: string;
-      timestamp: string;
-    }[];
-  }, []);
-
-  // ── Render ──────────────────────────────────────────────
-
   if (!isOpen) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="max-h-[85vh] max-w-2xl gap-0 overflow-y-auto p-0">
-        {/* Header with status accent */}
-        <div className="border-border relative overflow-hidden rounded-t-lg border-b px-6 pt-6 pb-4">
+      <DialogContent className="border-border/60 flex max-h-[90vh] max-w-lg flex-col gap-0 overflow-hidden p-0 shadow-2xl sm:rounded-[24px]">
+        {/* Sticky Header */}
+        <div className="border-border/40 bg-background/80 relative shrink-0 overflow-hidden border-b px-6 pt-6 pb-5 backdrop-blur-xl">
+          {/* Ambient Glow */}
           {isEditMode && existingShift && (
-            <div
-              className={`absolute top-0 left-0 h-1 w-full ${
-                existingShift.status === "published"
-                  ? "bg-emerald-500"
-                  : existingShift.status === "active"
-                    ? "bg-blue-500"
-                    : existingShift.status === "completed"
-                      ? "bg-zinc-500"
-                      : "bg-orange-500"
-              }`}
-            />
-          )}
-          <DialogHeader>
-            <div className="flex items-center gap-3">
+            <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
               <div
-                className={`flex h-10 w-10 items-center justify-center rounded-xl ${
-                  isEditMode
-                    ? "bg-orange-500/10 text-orange-500"
-                    : "bg-emerald-500/10 text-emerald-500"
+                className={`absolute -top-12 -left-12 h-40 w-40 rounded-full opacity-20 blur-[50px] ${
+                  existingShift.status === "published"
+                    ? "bg-emerald-500"
+                    : existingShift.status === "active"
+                      ? "bg-blue-500"
+                      : existingShift.status === "completed"
+                        ? "bg-zinc-500"
+                        : "bg-orange-500"
+                }`}
+              />
+            </div>
+          )}
+          <DialogHeader className="relative z-10">
+            <div className="flex items-center gap-4">
+              <div
+                className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] border shadow-sm backdrop-blur-md ${
+                  isEditMode && existingShift
+                    ? existingShift.status === "published"
+                      ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-500"
+                      : existingShift.status === "active"
+                        ? "border-blue-500/20 bg-blue-500/10 text-blue-500"
+                        : existingShift.status === "completed"
+                          ? "border-zinc-500/20 bg-zinc-500/10 text-zinc-500"
+                          : "border-orange-500/20 bg-orange-500/10 text-orange-500"
+                    : "border-emerald-500/20 bg-emerald-500/10 text-emerald-500"
                 }`}
               >
                 <Clock className="h-5 w-5" />
               </div>
-              <div>
-                <DialogTitle className="text-base">
+              <div className="flex-1">
+                <DialogTitle className="text-xl font-bold tracking-tight">
                   {isEditMode ? "Rediger skift" : "Nytt skift"}
                 </DialogTitle>
-                <DialogDescription className="text-xs">
-                  {isEditMode && existingShift
-                    ? `${dateId} · ${getStatusLabel(existingShift.status)}`
-                    : dateId
-                      ? `Opprett skift for ${dateId}`
-                      : "Opprett et nytt skift"}
+                <DialogDescription className="mt-1 text-xs font-medium">
+                  {isEditMode && existingShift ? (
+                    <span className="flex items-center gap-2">
+                      {dateId}
+                      <span className="text-muted-foreground/30">•</span>
+                      <span
+                        className={`flex items-center gap-1.5 ${
+                          existingShift.status === "published"
+                            ? "text-emerald-500"
+                            : existingShift.status === "active"
+                              ? "text-blue-500"
+                              : existingShift.status === "completed"
+                                ? "text-zinc-500"
+                                : existingShift.status === "assigned"
+                                  ? "text-orange-500"
+                                  : existingShift.status === "unpublished"
+                                    ? "text-red-500"
+                                    : "text-muted-foreground"
+                        }`}
+                      >
+                        <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                        {getStatusLabel(existingShift.status)}
+                      </span>
+                    </span>
+                  ) : dateId ? (
+                    `Opprett skift for ${dateId}`
+                  ) : (
+                    "Opprett et nytt skift"
+                  )}
                 </DialogDescription>
               </div>
-              {isEditMode && existingShift && (
-                <Badge variant={getStatusBadgeVariant(existingShift.status)} className="ml-auto">
-                  {getStatusLabel(existingShift.status)}
-                </Badge>
-              )}
+              <div className="flex items-center gap-2">
+                {isEditMode && existingShift && (
+                  <Badge variant={getStatusBadgeVariant(existingShift.status)} className="hidden">
+                    {getStatusLabel(existingShift.status)}
+                  </Badge>
+                )}
+                {isEditMode && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="hover:border-border/40 hover:bg-muted/50 h-9 w-9 rounded-xl border border-transparent transition-all"
+                      >
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                      align="end"
+                      className="border-border/60 w-48 rounded-xl shadow-xl"
+                    >
+                      <DropdownMenuItem
+                        onClick={() => {}}
+                        className="rounded-lg text-xs font-semibold"
+                      >
+                        <Send className="mr-2 h-3.5 w-3.5" />
+                        Send melding
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator className="bg-border/40" />
+                      <DropdownMenuItem
+                        onClick={handleDelete}
+                        className="rounded-lg text-xs font-bold text-red-600 focus:bg-red-500/10 focus:text-red-700"
+                      >
+                        <Trash2 className="mr-2 h-3.5 w-3.5" />
+                        Slett vakt
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
             </div>
           </DialogHeader>
         </div>
 
-        <div className="px-6 pt-4 pb-2">
-          <Tabs defaultValue="detaljer">
-            <TabsList
-              className={`mb-4 grid w-full ${isEditMode ? "grid-cols-6" : "grid-cols-4"} h-9`}
-            >
-              <TabsTrigger value="detaljer" className="gap-1.5 text-[11px]">
-                <Clock className="h-3 w-3" />
-                Detaljer
+        {/* Content with Tabs */}
+        <Tabs defaultValue="vakt" className="flex flex-1 flex-col overflow-hidden">
+          <div className="border-border/40 bg-muted/10 border-b px-6 pt-3 pb-1">
+            <TabsList className="bg-muted/50 grid h-9 w-full grid-cols-4 rounded-xl p-1">
+              <TabsTrigger
+                value="vakt"
+                className="rounded-lg text-[11px] font-semibold data-[state=active]:shadow-sm"
+              >
+                Vakt
               </TabsTrigger>
-              <TabsTrigger value="funksjoner" className="gap-1.5 text-[11px]">
-                <Settings className="h-3 w-3" />
-                Funksjoner
-              </TabsTrigger>
-              {isEditMode && (
-                <TabsTrigger value="historie" className="gap-1.5 text-[11px]">
-                  <History className="h-3 w-3" />
-                  Historie
-                </TabsTrigger>
-              )}
-              {isEditMode && (
-                <TabsTrigger value="lonn" className="gap-1.5 text-[11px]">
-                  <Wallet className="h-3 w-3" />
-                  Lønn
-                </TabsTrigger>
-              )}
-              <TabsTrigger value="oppgaver" className="gap-1.5 text-[11px]">
-                <ListChecks className="h-3 w-3" />
+              <TabsTrigger
+                value="oppgaver"
+                className="rounded-lg text-[11px] font-semibold data-[state=active]:shadow-sm"
+              >
                 Oppgaver
               </TabsTrigger>
-              <TabsTrigger value="innstillinger" className="gap-1.5 text-[11px]">
-                <Settings className="h-3 w-3" />
-                Innstillinger
+              <TabsTrigger
+                value="handlinger"
+                className="rounded-lg text-[11px] font-semibold data-[state=active]:shadow-sm"
+              >
+                Handlinger
+              </TabsTrigger>
+              <TabsTrigger
+                value="historikk"
+                className="rounded-lg text-[11px] font-semibold data-[state=active]:shadow-sm"
+              >
+                Historikk
               </TabsTrigger>
             </TabsList>
+          </div>
 
-            {/* ── Tab 1: Detaljer ─────────────────────────────── */}
-            <TabsContent value="detaljer" className="mt-4 space-y-3">
-              {/* Employee select */}
-              <div className="space-y-2">
-                <Label htmlFor="employee">Ansatt</Label>
-                <Select value={form.employeeId} onValueChange={handleEmployeeChange}>
-                  <SelectTrigger id="employee">
-                    <SelectValue placeholder="Velg ansatt (valgfritt)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {employees.map((emp) => (
-                      <SelectItem key={emp.id} value={emp.id}>
-                        {emp.name} — {emp.jobTitle || emp.role}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+          <div className="flex-1 overflow-y-auto px-6 py-5">
+            <TabsContent value="vakt" className="mt-0 space-y-6 pt-2 outline-none">
+              {/* Time & Duration Section (Moved to TOP) */}
+              <div className="bg-card/40 border-border/60 relative space-y-5 overflow-hidden rounded-[20px] border p-5 shadow-sm backdrop-blur-md">
+                {/* Subtle shine effect */}
+                <div className="pointer-events-none absolute inset-0 z-0 bg-gradient-to-br from-white/5 to-transparent opacity-50" />
 
-              {/* Role + Team row */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="role">Rolle</Label>
-                  <Select value={form.role} onValueChange={(v) => updateField("role", v)}>
-                    <SelectTrigger id="role">
-                      <SelectValue placeholder="Velg rolle" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableRoles.map((r) => (
-                        <SelectItem key={r} value={r}>
-                          {r}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="team">Team</Label>
-                  <Select value={form.team} onValueChange={(v) => updateField("team", v)}>
-                    <SelectTrigger id="team">
-                      <SelectValue placeholder="Velg team" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableTeams.map((t) => (
-                        <SelectItem key={t} value={t}>
-                          {t}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+                <div className="relative z-10 space-y-5">
+                  {!isEditMode && (
+                    <div className="space-y-2">
+                      <Label className="text-muted-foreground text-[10px] font-bold tracking-widest uppercase">
+                        Hurtigvalg
+                      </Label>
+                      <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                        {SHIFT_PRESETS.map((preset) => (
+                          <Button
+                            key={preset.label}
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="bg-background hover:bg-muted border-border/60 h-8 rounded-xl text-[11px] font-medium transition-all"
+                            onClick={() => {
+                              setForm((prev) => ({
+                                ...prev,
+                                startTime: preset.startTime,
+                                endTime: preset.endTime,
+                                dayCategory: preset.dayCategory,
+                              }));
+                            }}
+                          >
+                            {preset.label}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
-              {isSpecialShiftCategory(form.dayCategory) && (
-                <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2">
-                  <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">
-                    Spesialvakt aktiv: {form.dayCategory === "night" ? "Natt" : "Helg"}.
-                  </p>
-                  <p className="mt-0.5 text-[11px] text-amber-800/80 dark:text-amber-200/90">
-                    Ekstra kontrast og tydelig markering brukes for å gjøre skiftet lett synlig i
-                    dark mode.
-                  </p>
-                </div>
-              )}
-
-              {/* Date display (read-only) */}
-              {dateId && (
-                <div className="space-y-2">
-                  <Label>Dato</Label>
-                  <div className="border-border bg-muted text-muted-foreground flex items-center gap-2 rounded-md border px-3 py-2 text-sm">
-                    <Calendar className="h-4 w-4" />
-                    {dateId}
+                  <div className="grid grid-cols-12 gap-5">
+                    <div className="col-span-5 space-y-2">
+                      <Label
+                        htmlFor="startTime"
+                        className="text-muted-foreground text-[11px] font-semibold"
+                      >
+                        Starttid
+                      </Label>
+                      <div className="relative flex items-center">
+                        <Input
+                          id="startTime"
+                          type="time"
+                          value={form.startTime}
+                          className="bg-background/80 border-border/60 h-10 rounded-xl pr-8 font-medium [color-scheme:light] shadow-sm transition-all focus:ring-2 focus:ring-emerald-500/20 dark:[color-scheme:dark]"
+                          onChange={(e) => handleStartTimeChange(e.target.value)}
+                        />
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-muted-foreground hover:text-foreground absolute right-1 h-8 w-8 rounded-lg"
+                            >
+                              <ChevronDown className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-32 rounded-xl">
+                            <DropdownMenuItem
+                              onClick={() => handleStartTimeChange(adjustTime(form.startTime, -30))}
+                              className="rounded-lg text-xs"
+                            >
+                              -30 min
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleStartTimeChange(adjustTime(form.startTime, -15))}
+                              className="rounded-lg text-xs"
+                            >
+                              -15 min
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleStartTimeChange(adjustTime(form.startTime, 15))}
+                              className="rounded-lg text-xs"
+                            >
+                              +15 min
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleStartTimeChange(adjustTime(form.startTime, 30))}
+                              className="rounded-lg text-xs"
+                            >
+                              +30 min
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
+                    <div className="col-span-5 space-y-2">
+                      <Label
+                        htmlFor="endTime"
+                        className="text-muted-foreground text-[11px] font-semibold"
+                      >
+                        Sluttid
+                      </Label>
+                      <div className="relative flex items-center">
+                        <Input
+                          id="endTime"
+                          type="time"
+                          value={form.endTime}
+                          className="bg-background/80 border-border/60 h-10 rounded-xl pr-8 font-medium [color-scheme:light] shadow-sm transition-all focus:ring-2 focus:ring-emerald-500/20 dark:[color-scheme:dark]"
+                          onChange={(e) => updateField("endTime", e.target.value)}
+                        />
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-muted-foreground hover:text-foreground absolute right-1 h-8 w-8 rounded-lg"
+                            >
+                              <ChevronDown className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-32 rounded-xl">
+                            <DropdownMenuItem
+                              onClick={() => updateField("endTime", adjustTime(form.endTime, -30))}
+                              className="rounded-lg text-xs"
+                            >
+                              -30 min
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => updateField("endTime", adjustTime(form.endTime, -15))}
+                              className="rounded-lg text-xs"
+                            >
+                              -15 min
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => updateField("endTime", adjustTime(form.endTime, 15))}
+                              className="rounded-lg text-xs"
+                            >
+                              +15 min
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => updateField("endTime", adjustTime(form.endTime, 30))}
+                              className="rounded-lg text-xs"
+                            >
+                              +30 min
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
+                    <div className="col-span-2 space-y-2">
+                      <Label
+                        htmlFor="breaks"
+                        className="text-muted-foreground text-[11px] font-semibold"
+                        title="Pause i minutter"
+                      >
+                        Pause
+                      </Label>
+                      <Input
+                        id="breaks"
+                        type="number"
+                        min={0}
+                        step={5}
+                        value={form.breaks}
+                        className="bg-background/80 border-border/60 h-10 rounded-xl px-2 text-center font-medium shadow-sm transition-all focus:ring-2 focus:ring-emerald-500/20"
+                        onChange={(e) =>
+                          updateField("breaks", Math.max(0, parseInt(e.target.value) || 0))
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div className="text-muted-foreground bg-background/50 border-border/30 rounded-lg border px-3 py-2 text-center text-xs font-semibold backdrop-blur-sm">
+                    Totalt <span className="text-foreground">{workHours.toFixed(1)}t</span> lønnet
+                    arbeid
                   </div>
                 </div>
-              )}
-
-              {/* Shift time presets for quick-fill */}
-              <div className="space-y-1.5">
-                <Label className="text-muted-foreground text-xs">Hurtigvalg</Label>
-                <div className="flex flex-wrap gap-1.5">
-                  {SHIFT_PRESETS.map((preset) => (
-                    <Button
-                      key={preset.label}
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-7 text-[11px]"
-                      onClick={() => {
-                        setForm((prev) => ({
-                          ...prev,
-                          startTime: preset.startTime,
-                          endTime: preset.endTime,
-                          dayCategory: preset.dayCategory,
-                        }));
-                      }}
-                    >
-                      {preset.label}
-                    </Button>
-                  ))}
-                </div>
               </div>
 
-              {/* Start + End time row with inline work hours */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <Label htmlFor="startTime" className="text-xs">
-                    Starttid
-                  </Label>
-                  <Input
-                    id="startTime"
-                    type="time"
-                    value={form.startTime}
-                    onChange={(e) => handleStartTimeChange(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="endTime" className="text-xs">
-                    Sluttid
-                  </Label>
-                  <Input
-                    id="endTime"
-                    type="time"
-                    value={form.endTime}
-                    onChange={(e) => updateField("endTime", e.target.value)}
-                  />
-                </div>
-              </div>
-              <div className="text-muted-foreground -mt-1 text-xs">
-                {workHours.toFixed(1)}t arbeid (inkl. {form.breaks} min pause)
-              </div>
-
-              {/* Day category + Zone row */}
-              <div className="grid grid-cols-2 gap-4">
+              {/* Employee Section */}
+              <div className="space-y-5">
                 <div className="space-y-2">
-                  <Label htmlFor="dayCategory">Dagkategori</Label>
-                  <Select
-                    value={form.dayCategory}
-                    onValueChange={(v) => updateField("dayCategory", v as DayCategory)}
+                  <Label
+                    htmlFor="employee"
+                    className="text-muted-foreground text-[11px] font-semibold"
                   >
-                    <SelectTrigger id="dayCategory">
-                      <SelectValue />
+                    Ansatt
+                  </Label>
+                  <Select value={form.employeeId || "none"} onValueChange={handleEmployeeChange}>
+                    <SelectTrigger
+                      id="employee"
+                      className="bg-card/40 border-border/60 h-10 rounded-xl font-medium shadow-sm backdrop-blur-sm transition-all focus:ring-2 focus:ring-emerald-500/20"
+                    >
+                      <SelectValue placeholder="Åpen vakt (ingen valgt)" />
                     </SelectTrigger>
-                    <SelectContent>
-                      {DAY_CATEGORY_OPTIONS.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value}>
-                          {opt.label}
+                    <SelectContent className="rounded-xl">
+                      <SelectItem value="none" className="rounded-lg text-sm">
+                        Åpen vakt (ingen valgt)
+                      </SelectItem>
+                      {employees.map((emp) => (
+                        <SelectItem key={emp.id} value={emp.id} className="rounded-lg text-sm">
+                          {emp.name}{" "}
+                          <span className="text-muted-foreground ml-1 text-xs font-normal">
+                            — {emp.jobTitle || emp.role}
+                          </span>
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="zone">Sone</Label>
-                  <Select value={form.zone} onValueChange={(v) => updateField("zone", v)}>
-                    <SelectTrigger id="zone">
-                      <SelectValue placeholder="Velg sone" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {AVAILABLE_ZONES.map((z) => (
-                        <SelectItem key={z} value={z}>
-                          {z}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+
+                <div className="grid grid-cols-2 gap-5">
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="role"
+                      className="text-muted-foreground text-[11px] font-semibold"
+                    >
+                      Rolle
+                    </Label>
+                    <Select value={form.role} onValueChange={(v) => updateField("role", v)}>
+                      <SelectTrigger
+                        id="role"
+                        className="bg-card/40 border-border/60 h-10 rounded-xl font-medium shadow-sm backdrop-blur-sm transition-all focus:ring-2 focus:ring-emerald-500/20"
+                      >
+                        <SelectValue placeholder="Velg rolle" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl">
+                        {availableRoles.map((r) => (
+                          <SelectItem key={r} value={r} className="rounded-lg text-sm">
+                            {r}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="team"
+                      className="text-muted-foreground text-[11px] font-semibold"
+                    >
+                      Team
+                    </Label>
+                    <Select value={form.team} onValueChange={(v) => updateField("team", v)}>
+                      <SelectTrigger
+                        id="team"
+                        className="bg-card/40 border-border/60 h-10 rounded-xl font-medium shadow-sm backdrop-blur-sm transition-all focus:ring-2 focus:ring-emerald-500/20"
+                      >
+                        <SelectValue placeholder="Velg team" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl">
+                        {availableTeams.map((t) => (
+                          <SelectItem key={t} value={t} className="rounded-lg text-sm">
+                            {t}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
 
-              {/* Publish toggle + notification channels */}
-              <div className="border-border space-y-3 rounded-md border p-3">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="publish-toggle" className="cursor-pointer">
-                    Publiser skift
-                  </Label>
+              {!showAdvanced ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="bg-card/20 text-muted-foreground border-border/40 hover:bg-card/40 hover:text-foreground w-full rounded-xl border-dashed py-6 text-[11px] font-semibold tracking-wider transition-all"
+                  onClick={() => setShowAdvanced(true)}
+                >
+                  Vis flere valg (sone, notater, m.m.)
+                </Button>
+              ) : (
+                <div className="animate-in fade-in slide-in-from-top-2 border-border/40 bg-card/20 space-y-5 rounded-[20px] border p-5 backdrop-blur-sm duration-300">
+                  <div className="grid grid-cols-2 gap-5">
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="dayCategory"
+                        className="text-muted-foreground text-[11px] font-semibold"
+                      >
+                        Dagkategori
+                      </Label>
+                      <Select
+                        value={form.dayCategory}
+                        onValueChange={(v) => updateField("dayCategory", v as DayCategory)}
+                      >
+                        <SelectTrigger
+                          id="dayCategory"
+                          className="bg-background/60 border-border/60 h-10 rounded-xl font-medium shadow-sm backdrop-blur-sm focus:ring-2 focus:ring-emerald-500/20"
+                        >
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl">
+                          {DAY_CATEGORY_OPTIONS.map((opt) => (
+                            <SelectItem
+                              key={opt.value}
+                              value={opt.value}
+                              className="rounded-lg text-sm"
+                            >
+                              {opt.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="zone"
+                        className="text-muted-foreground text-[11px] font-semibold"
+                      >
+                        Sone
+                      </Label>
+                      <Select value={form.zone} onValueChange={(v) => updateField("zone", v)}>
+                        <SelectTrigger
+                          id="zone"
+                          className="bg-background/60 border-border/60 h-10 rounded-xl font-medium shadow-sm backdrop-blur-sm focus:ring-2 focus:ring-emerald-500/20"
+                        >
+                          <SelectValue placeholder="Velg sone" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl">
+                          {AVAILABLE_ZONES.map((z) => (
+                            <SelectItem key={z} value={z} className="rounded-lg text-sm">
+                              {z}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="specialConditions"
+                      className="text-muted-foreground text-[11px] font-semibold"
+                    >
+                      Notater for vakten
+                    </Label>
+                    <Textarea
+                      id="specialConditions"
+                      value={form.specialConditions}
+                      onChange={(e) => updateField("specialConditions", e.target.value)}
+                      placeholder="Eventuelle merknader eller spesialkrav (valgfritt)"
+                      rows={3}
+                      className="bg-background/60 border-border/60 resize-none rounded-xl text-sm font-medium shadow-sm backdrop-blur-sm focus-visible:ring-emerald-500/20"
+                    />
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground hover:bg-background/50 hover:text-foreground w-full rounded-xl text-xs font-semibold"
+                    onClick={() => setShowAdvanced(false)}
+                  >
+                    Skjul flere valg
+                  </Button>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="oppgaver" className="mt-0 pt-4 outline-none">
+              <div className="bg-card/20 border-border/40 text-muted-foreground relative flex flex-col items-center justify-center overflow-hidden rounded-[20px] border border-dashed py-16 text-center backdrop-blur-sm">
+                <div className="bg-muted/30 mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border shadow-sm">
+                  <ListChecks className="text-muted-foreground/50 h-8 w-8" />
+                </div>
+                <h4 className="text-foreground text-sm font-bold tracking-tight">
+                  Oppgaver og prosedyrer
+                </h4>
+                <p className="mt-2 max-w-[250px] text-xs leading-relaxed">
+                  Knytt faste rutiner eller engangsoppgaver til dette skiftet. Denne funksjonen er
+                  under utvikling.
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="bg-background/50 pointer-events-none mt-6 h-9 rounded-xl px-4 text-xs font-semibold opacity-50 shadow-sm backdrop-blur-sm"
+                >
+                  Legg til oppgave
+                </Button>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="handlinger" className="mt-0 space-y-6 pt-2 outline-none">
+              <div className="bg-card/40 border-border/60 relative space-y-4 overflow-hidden rounded-[20px] border p-5 shadow-sm backdrop-blur-md">
+                <div className="pointer-events-none absolute inset-0 z-0 bg-gradient-to-br from-white/5 to-transparent opacity-50" />
+
+                <div className="relative z-10 flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="publish-toggle" className="cursor-pointer text-sm font-bold">
+                      Publiser skift
+                    </Label>
+                    <p className="text-muted-foreground mt-0.5 text-xs font-medium">
+                      Gjør vakten synlig for den ansatte
+                    </p>
+                  </div>
                   <Switch
                     id="publish-toggle"
                     checked={form.isPublished}
                     onCheckedChange={(checked) => updateField("isPublished", checked)}
+                    className="data-[state=checked]:bg-emerald-500"
                   />
                 </div>
 
                 {form.isPublished && (
-                  <div className="space-y-2">
-                    <Label className="text-muted-foreground text-xs">Varslingskanaler</Label>
+                  <div className="border-border/60 animate-in fade-in slide-in-from-top-2 relative z-10 border-t pt-4 duration-300">
+                    <Label className="text-muted-foreground mb-3 block text-[10px] font-bold tracking-widest uppercase">
+                      Varsle ansatt via
+                    </Label>
                     <div className="flex gap-2">
                       {NOTIFICATION_CHANNELS.map((ch) => {
                         const Icon = ch.icon;
@@ -821,7 +1225,11 @@ export function ShiftModal() {
                             variant={isActive ? "default" : "outline"}
                             size="sm"
                             onClick={() => toggleChannel(ch.id)}
-                            className="gap-1.5"
+                            className={`h-9 gap-2 rounded-xl text-xs font-semibold transition-all ${
+                              isActive
+                                ? "bg-emerald-500 shadow-[0_2px_10px_rgba(16,185,129,0.2)] hover:bg-emerald-600"
+                                : "bg-background/50 border-border/60 hover:bg-muted"
+                            }`}
                           >
                             <Icon className="h-3.5 w-3.5" />
                             {ch.label}
@@ -832,263 +1240,125 @@ export function ShiftModal() {
                   </div>
                 )}
               </div>
-            </TabsContent>
 
-            {/* ── Tab 2: Funksjoner ───────────────────────────── */}
-            <TabsContent value="funksjoner" className="mt-4">
-              <div className="text-muted-foreground flex flex-col items-center justify-center py-12 text-center">
-                <Settings className="mb-3 h-10 w-10 opacity-30" />
-                <p className="text-sm">Tilleggsfunksjoner konfigureres per workspace</p>
+              <div className="space-y-3">
+                <Label className="text-muted-foreground text-[10px] font-bold tracking-widest uppercase">
+                  Flere handlinger
+                </Label>
+                <div className="flex flex-col gap-2.5">
+                  <Button
+                    variant="outline"
+                    className="bg-card/40 border-border/60 hover:bg-muted h-11 w-full justify-start gap-3 rounded-xl font-semibold backdrop-blur-sm transition-all active:scale-[0.98]"
+                    onClick={() => {}}
+                  >
+                    <Send className="h-4 w-4 text-emerald-500" />
+                    Send melding til ansatt
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="bg-card/40 border-border/60 hover:bg-muted h-11 w-full justify-start gap-3 rounded-xl font-semibold backdrop-blur-sm transition-all active:scale-[0.98]"
+                    onClick={() => {}}
+                  >
+                    <User className="h-4 w-4 text-blue-500" />
+                    Se ansattprofil
+                  </Button>
+                  {isEditMode && (
+                    <Button
+                      variant="outline"
+                      className="h-11 w-full justify-start gap-3 rounded-xl border-red-500/20 bg-red-500/5 font-bold text-red-600 backdrop-blur-sm transition-all hover:bg-red-500/10 hover:text-red-700 active:scale-[0.98]"
+                      onClick={handleDelete}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Slett vakt
+                    </Button>
+                  )}
+                </div>
               </div>
             </TabsContent>
 
-            {/* ── Tab 3: Historie ──────────────────────────────── */}
-            <TabsContent value="historie" className="mt-4">
-              {historyEntries.length === 0 ? (
-                <div className="text-muted-foreground flex flex-col items-center justify-center py-12 text-center">
-                  <History className="mb-3 h-10 w-10 opacity-30" />
-                  <p className="text-sm">Ingen historikk ennå</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {historyEntries.map((entry) => (
-                    <div
-                      key={entry.id}
-                      className="border-border flex items-start gap-3 rounded-md border p-3 text-sm"
-                    >
-                      <div className="mt-0.5 flex-shrink-0">
-                        <History className="text-muted-foreground h-4 w-4" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="text-xs">
-                            {entry.eventType}
-                          </Badge>
-                          {entry.field && (
-                            <span className="text-muted-foreground">{entry.field}</span>
-                          )}
-                        </div>
-                        {(entry.oldValue || entry.newValue) && (
-                          <div className="text-muted-foreground mt-1 text-xs">
-                            {entry.oldValue && (
-                              <span className="line-through">{entry.oldValue}</span>
-                            )}
-                            {entry.oldValue && entry.newValue && " → "}
-                            {entry.newValue && (
-                              <span className="text-foreground font-medium">{entry.newValue}</span>
-                            )}
-                          </div>
-                        )}
-                        <div className="text-muted-foreground mt-1 text-xs">
-                          {entry.actor} — {new Date(entry.timestamp).toLocaleString("nb-NO")}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+            <TabsContent value="historikk" className="mt-0 space-y-8 pt-2 outline-none">
+              {isEditMode && existingShift && (
+                <div className="border-border/60 bg-card/20 relative overflow-hidden rounded-[20px] border px-2 pt-3 pb-5 shadow-sm backdrop-blur-sm">
+                  <div className="pointer-events-none absolute inset-0 z-0 bg-gradient-to-br from-white/5 to-transparent opacity-50" />
+                  <div className="relative z-10">
+                    <ShiftStatusTimeline shift={existingShift} auditEntries={auditEntries} />
+                  </div>
                 </div>
               )}
-            </TabsContent>
-
-            {/* ── Tab 4: Lønnsgrunnlag ────────────────────────── */}
-            <TabsContent value="lonn" className="mt-4">
-              <div className="space-y-4">
-                <div className="border-border rounded-md border">
-                  <div className="border-border border-b px-4 py-3">
-                    <h4 className="text-sm font-medium">Beregnet lønn</h4>
-                  </div>
-                  <div className="space-y-3 p-4">
-                    {/* Base pay */}
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">
-                        Grunnlønn ({workHours.toFixed(1)}t x {BASE_HOURLY_RATE} NOK)
-                      </span>
-                      <span>{payBreakdown.base.toFixed(0)} NOK</span>
-                    </div>
-
-                    {/* Evening supplement */}
-                    {payBreakdown.eveningSupplement > 0 && (
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">
-                          Kveld/natt-tillegg (+{EVENING_SUPPLEMENT * 100}%)
-                        </span>
-                        <span>{payBreakdown.eveningSupplement.toFixed(0)} NOK</span>
-                      </div>
-                    )}
-
-                    {/* Weekend supplement */}
-                    {payBreakdown.weekendSupplement > 0 && (
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">
-                          Helgetillegg (+{WEEKEND_SUPPLEMENT * 100}%)
-                        </span>
-                        <span>{payBreakdown.weekendSupplement.toFixed(0)} NOK</span>
-                      </div>
-                    )}
-
-                    {/* Separator */}
-                    <div className="border-border border-t" />
-
-                    {/* Total */}
-                    <div className="flex items-center justify-between font-medium">
-                      <span>Totalt</span>
-                      <span>{payBreakdown.total.toFixed(0)} NOK</span>
-                    </div>
-                  </div>
-                </div>
-
-                <p className="text-muted-foreground text-xs">
-                  Estimat basert på standardsatser. Faktisk lønn beregnes av lønnssystem.
-                </p>
+              <div className="px-4">
+                <ShiftHistoryTimeline entries={auditEntries} employees={employees} />
               </div>
             </TabsContent>
+          </div>
+        </Tabs>
 
-            {/* ── Tab 5: Oppgaver ──────────────────────────────── */}
-            <TabsContent value="oppgaver" className="mt-4">
-              <div className="space-y-4">
-                {/* Add task input */}
-                <div className="flex gap-2">
-                  <Input
-                    value={newTaskLabel}
-                    onChange={(e) => setNewTaskLabel(e.target.value)}
-                    placeholder="Legg til oppgave..."
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleAddTask();
-                      }
-                    }}
-                  />
+        {/* Sticky Footer */}
+        <div className="bg-background/80 border-border/40 shrink-0 border-t px-6 py-5 backdrop-blur-xl">
+          <DialogFooter className="flex w-full items-center justify-between gap-3 sm:gap-0">
+            <div className="flex flex-1 items-center gap-2">
+              {ruleCheck.result && ruleCheck.result.outcome !== "allowed" && (
+                <div
+                  className={`flex items-center gap-2 rounded-xl px-3 py-1.5 text-[11px] font-bold shadow-sm ${
+                    ruleCheck.result.outcome === "blocked"
+                      ? "border border-red-500/20 bg-red-500/10 text-red-500"
+                      : ruleCheck.result.outcome === "review_required"
+                        ? "border border-orange-500/20 bg-orange-500/10 text-orange-500"
+                        : "border border-yellow-500/20 bg-yellow-500/10 text-yellow-500"
+                  }`}
+                >
+                  <AlertTriangle className="h-4 w-4 shrink-0" />
+                  <span className="hidden max-w-[140px] truncate sm:inline">
+                    {ruleCheck.result.worstHit?.reason ?? "Regelbrudd"}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center gap-3">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleClose}
+                className="text-muted-foreground hover:text-foreground h-10 rounded-xl px-4 text-xs font-bold transition-all active:scale-[0.98]"
+              >
+                Avbryt
+              </Button>
+              {isEditMode &&
+              existingShift?.status !== "created" &&
+              existingShift?.status !== "assigned" ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => handleSave(false)}
+                  className="h-10 rounded-xl bg-orange-500 px-5 text-xs font-bold text-white shadow-[0_2px_12px_rgba(249,115,22,0.25)] transition-all hover:bg-orange-600 hover:shadow-[0_4px_16px_rgba(249,115,22,0.3)] active:scale-[0.98]"
+                >
+                  Lagre endringer
+                </Button>
+              ) : (
+                <>
                   <Button
                     type="button"
                     variant="outline"
-                    size="icon"
-                    onClick={handleAddTask}
-                    disabled={!newTaskLabel.trim()}
+                    size="sm"
+                    onClick={() => handleSave(false)}
+                    className="bg-background/50 border-border/60 hover:bg-muted h-10 rounded-xl px-4 text-xs font-bold backdrop-blur-sm transition-all active:scale-[0.98]"
                   >
-                    <Plus className="h-4 w-4" />
+                    Lagre utkast
                   </Button>
-                </div>
-
-                {/* Task list */}
-                {shiftTasks.length === 0 ? (
-                  <div className="text-muted-foreground flex flex-col items-center justify-center py-8 text-center">
-                    <ListChecks className="mb-3 h-10 w-10 opacity-30" />
-                    <p className="text-sm">Ingen oppgaver lagt til</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {shiftTasks.map((task) => (
-                      <div
-                        key={task.id}
-                        className="border-border flex items-center gap-3 rounded-md border p-2.5"
-                      >
-                        <button
-                          type="button"
-                          onClick={() => handleToggleTask(task.id)}
-                          className="text-muted-foreground hover:text-foreground flex-shrink-0"
-                        >
-                          <CheckCircle2
-                            className={`h-5 w-5 ${
-                              task.status === "completed" ? "text-emerald-500" : ""
-                            }`}
-                          />
-                        </button>
-                        <span
-                          className={`flex-1 text-sm ${
-                            task.status === "completed" ? "text-muted-foreground line-through" : ""
-                          }`}
-                        >
-                          {task.label}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteTask(task.id)}
-                          className="text-muted-foreground hover:text-destructive flex-shrink-0"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </TabsContent>
-
-            {/* ── Tab 6: Innstillinger ────────────────────────── */}
-            <TabsContent value="innstillinger" className="mt-4 space-y-4">
-              {/* Break duration */}
-              <div className="space-y-2">
-                <Label htmlFor="breaks">Pausevarighet (minutter)</Label>
-                <Input
-                  id="breaks"
-                  type="number"
-                  min={0}
-                  max={120}
-                  value={form.breaks}
-                  onChange={(e) =>
-                    updateField("breaks", Math.max(0, parseInt(e.target.value) || 0))
-                  }
-                />
-                <p className="text-muted-foreground text-xs">
-                  Arbeidstimer justeres automatisk ({workHours.toFixed(1)}t etter pause)
-                </p>
-              </div>
-
-              {/* Special conditions */}
-              <div className="space-y-2">
-                <Label htmlFor="specialConditions">Spesielle betingelser</Label>
-                <Textarea
-                  id="specialConditions"
-                  value={form.specialConditions}
-                  onChange={(e) => updateField("specialConditions", e.target.value)}
-                  placeholder="Eventuelle merknader, spesialkrav, etc."
-                  rows={4}
-                />
-              </div>
-            </TabsContent>
-          </Tabs>
-        </div>
-
-        <DialogFooter className="border-border gap-2 border-t px-6 py-4 sm:gap-0">
-          {isEditMode && (
-            <Button
-              type="button"
-              variant="destructive"
-              size="sm"
-              onClick={handleDelete}
-              className="mr-auto gap-1.5"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-              Slett
-            </Button>
-          )}
-          {/* Cascade rule evaluation warning */}
-          {ruleCheck.result && ruleCheck.result.outcome !== "allowed" && (
-            <div
-              className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs ${
-                ruleCheck.result.outcome === "blocked"
-                  ? "bg-red-500/10 text-red-400"
-                  : ruleCheck.result.outcome === "review_required"
-                    ? "bg-orange-500/10 text-orange-400"
-                    : "bg-yellow-500/10 text-yellow-400"
-              }`}
-            >
-              <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-              <span>{ruleCheck.result.worstHit?.reason ?? "Regelbrudd oppdaget"}</span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => handleSave(true)}
+                    className="h-10 rounded-xl bg-emerald-500 px-5 text-xs font-bold text-white shadow-[0_2px_12px_rgba(16,185,129,0.25)] transition-all hover:bg-emerald-600 hover:shadow-[0_4px_16px_rgba(16,185,129,0.3)] active:scale-[0.98]"
+                  >
+                    Lagre og publiser
+                  </Button>
+                </>
+              )}
             </div>
-          )}
-          <Button type="button" variant="outline" size="sm" onClick={handleClose}>
-            Avbryt
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            onClick={handleSave}
-            className="bg-orange-600 text-white hover:bg-orange-700"
-          >
-            {isEditMode ? "Lagre endringer" : "Opprett skift"}
-          </Button>
-        </DialogFooter>
+          </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );

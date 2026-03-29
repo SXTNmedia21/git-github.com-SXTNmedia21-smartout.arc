@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Ren og Varm — Smartout Design System",
-  description: "Smartout Style Guide — 22 sektioner. Light & Dark. Web & Mobile.",
+  title: "Nordic Split — Smartout Design System",
+  description: "Smartout Design System — 25 sektioner. Light & Dark. Web & Mobile. Interaktiv.",
 };
 
 export default function DesignPage() {

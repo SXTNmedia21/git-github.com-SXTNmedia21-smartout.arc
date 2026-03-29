@@ -1,6 +1,5 @@
 import { test, expect } from "@playwright/test";
 import { loginAsAdmin } from "../helpers/auth";
-import { supabase } from "../helpers/seed";
 import { execSync } from "child_process";
 
 // ─── Constants ─────────────────────────────────────────────
@@ -23,6 +22,8 @@ function hideWorkspaceData() {
   sql(`UPDATE profile SET is_active = false WHERE workspace_id = '${WS_ID}' AND role != 'owner'`);
   sql(`UPDATE schedule_shift SET workspace_id = '${TEMP_WS_ID}' WHERE workspace_id = '${WS_ID}'`);
   sql(`UPDATE season SET status = 'draft' WHERE workspace_id = '${WS_ID}' AND status = 'active'`);
+  // Reset setup_guide_completed so DashboardShell triggers redirect to /dashboard/setup
+  sql(`UPDATE workspace SET setup_guide_completed = false WHERE workspace_id = '${WS_ID}'`);
 }
 
 function restoreWorkspaceData() {
@@ -30,6 +31,8 @@ function restoreWorkspaceData() {
   sql(`UPDATE profile SET is_active = true WHERE workspace_id = '${WS_ID}' AND is_active = false`);
   sql(`UPDATE schedule_shift SET workspace_id = '${WS_ID}' WHERE workspace_id = '${TEMP_WS_ID}'`);
   sql(`UPDATE season SET status = 'active' WHERE workspace_id = '${WS_ID}' AND status = 'draft'`);
+  // Mark setup as complete so DashboardShell skips the redirect
+  sql(`UPDATE workspace SET setup_guide_completed = true WHERE workspace_id = '${WS_ID}'`);
   sql(`DELETE FROM workspace WHERE workspace_id = '${TEMP_WS_ID}'`);
 }
 
@@ -38,47 +41,43 @@ function restoreWorkspaceData() {
 test.describe("signup-flow", () => {
   test.describe.configure({ mode: "serial" });
 
-  // ─── Test 1: New user → /onboarding → wizard starts ────
+  // ─── Test 1: Onboarding page now uses WizardShell ─────
+  // The old scroll-based onboarding with data-section attributes has been
+  // replaced by AnimatedWizardShell. The page now shows one step at a time
+  // (5-step confirmation flow) instead of all sections simultaneously.
 
-  test("onboarding wizard starts on /onboarding", async ({ page }) => {
+  test("onboarding wizard starts on /onboarding with WizardShell", async ({ page }) => {
     await page.goto("/onboarding");
 
-    // The hero section should be visible with the main heading
-    const hero = page.locator('[data-section="hero"]');
-    await expect(hero).toBeVisible({ timeout: 15_000 });
+    // WizardShell renders with data-walkai-id attribute
+    const wizardShell = page.locator('[data-walkai-id="onboarding-shell"]');
+    await expect(wizardShell).toBeVisible({ timeout: 15_000 });
 
-    // Unauthenticated hero: "Velkommen til Smartout"
-    await expect(page.locator('h1:has-text("Velkommen til")')).toBeVisible({ timeout: 10_000 });
-
-    // Navigation controller should show step 1 of 7 (contract excluded)
-    await expect(page.locator("text=/1\\/7/")).toBeVisible({ timeout: 5_000 });
+    // First step is "Bekreft bedriftsinformasjon" (confirm business)
+    // If user is unauthenticated the loadState returns empty, showing initial state
+    await expect(wizardShell).toBeAttached();
   });
 
-  // ─── Test 2: Wizard sections render without contract ────
+  // ─── Test 2: Wizard shows steps one at a time ──────────
+  // Old test checked for all data-section elements rendered simultaneously.
+  // WizardShell shows ONE step at a time — not a scrollable page.
 
-  test("wizard renders all visible sections (no contract)", async ({ page }) => {
+  test("onboarding wizard shows single step at a time (not all sections)", async ({ page }) => {
     await page.goto("/onboarding");
-    await expect(page.locator('[data-section="hero"]')).toBeVisible({ timeout: 15_000 });
 
-    // All 7 visible sections should exist in the DOM
-    const expectedSections = [
-      "hero",
-      "business",
-      "departments",
-      "locations",
-      "procedures",
-      "season",
-      "welcome",
-    ];
-    for (const section of expectedSections) {
-      await expect(page.locator(`[data-section="${section}"]`)).toBeAttached();
-    }
+    const wizardShell = page.locator('[data-walkai-id="onboarding-shell"]');
+    await expect(wizardShell).toBeVisible({ timeout: 15_000 });
 
-    // Contract section should NOT exist
-    await expect(page.locator('[data-section="contract"]')).not.toBeAttached();
+    // Should have exactly one visible step content area
+    const stepArea = page.locator('[data-walkai-type="wizard-step"]');
+    await expect(stepArea).toBeVisible();
+
+    // Navigation buttons should be present (WizardNavBar)
+    await expect(page.locator("button", { hasText: "Neste" })).toBeVisible();
   });
 
   // ─── Test 3: Dashboard → setup wizard shows (not StrategicView) ──
+  // This test uses the WorkspaceSetupWizard (NOT WizardShell) — unchanged.
 
   test("dashboard shows setup wizard instead of StrategicView", async ({ page }) => {
     test.setTimeout(45_000);
@@ -88,7 +87,10 @@ test.describe("signup-flow", () => {
 
     // Clear any skip flag
     await page.goto("http://localhost:3060");
-    await page.evaluate((wsId) => localStorage.removeItem(`smartout_setup_skipped_${wsId}`), WS_ID);
+    await page.evaluate((wsId) => {
+      localStorage.removeItem(`smartout_setup_skipped_${wsId}`);
+      sessionStorage.removeItem("setup_dismissed");
+    }, WS_ID);
 
     await loginAsAdmin(page, { skipOnboarding: false });
 

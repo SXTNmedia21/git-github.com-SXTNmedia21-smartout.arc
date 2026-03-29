@@ -1,9 +1,23 @@
 /**
  * Shifts tab stack layout.
- * Contains the shifts list and shift detail screens.
+ * Index: no header. Detail: native header with back button.
  */
 import { Stack } from "expo-router";
+import { useTheme } from "@/theme";
 
 export default function ShiftsLayout() {
-  return <Stack screenOptions={{ headerShown: false }} />;
+  const theme = useTheme();
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        headerStyle: { backgroundColor: theme.colors.background },
+        headerTintColor: theme.colors.foreground,
+        headerShadowVisible: false,
+      }}
+    >
+      <Stack.Screen name="index" options={{ headerShown: false }} />
+      <Stack.Screen name="[id]" options={{ headerShown: true, title: "Vaktdetaljer" }} />
+    </Stack>
+  );
 }

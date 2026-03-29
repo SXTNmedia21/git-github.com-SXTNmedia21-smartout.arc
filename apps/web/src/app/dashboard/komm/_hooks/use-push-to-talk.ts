@@ -24,9 +24,12 @@ export function usePushToTalk(
   const [pttState, dispatch] = useReducer(pttReducer, "idle" as PTTState);
   const debouncerRef = useRef(createPTTTelemetryDebouncer());
 
+  // H6: Track desired mic state to prevent race conditions on rapid press/release.
+  // Each toggle increments the counter; stale operations are discarded.
+  const micOpCounterRef = useRef(0);
+
   const connectPTT = useCallback(() => {
     dispatch("connect");
-    // The caller should call this after LiveKit room connects
     dispatch("connected");
   }, []);
 
@@ -36,7 +39,16 @@ export function usePushToTalk(
 
   const onPressStart = useCallback(async () => {
     dispatch("press");
-    await setMicEnabled(true);
+    const opId = ++micOpCounterRef.current;
+    try {
+      await setMicEnabled(true);
+    } catch {
+      // If mic enable failed, revert state only if this is still the latest op
+      if (micOpCounterRef.current === opId) {
+        dispatch("release");
+      }
+      return;
+    }
 
     if (debouncerRef.current() && channelId && profileId) {
       void emit({
@@ -51,7 +63,15 @@ export function usePushToTalk(
 
   const onPressEnd = useCallback(async () => {
     dispatch("release");
-    await setMicEnabled(false);
+    const opId = ++micOpCounterRef.current;
+    try {
+      await setMicEnabled(false);
+    } catch {
+      if (micOpCounterRef.current === opId) {
+        dispatch("press");
+      }
+      return;
+    }
 
     if (debouncerRef.current() && channelId && profileId) {
       void emit({
@@ -64,21 +84,30 @@ export function usePushToTalk(
     }
   }, [setMicEnabled, channelId, profileId, workspaceId]);
 
-  // Handle keyboard shortcut (Space bar for PTT)
+  // Keyboard shortcut (Space bar for PTT)
+  // Use refs for handlers to avoid re-registering listeners on state change (H6: prevents missed keyup)
+  const onPressStartRef = useRef(onPressStart);
+  const onPressEndRef = useRef(onPressEnd);
+  onPressStartRef.current = onPressStart;
+  onPressEndRef.current = onPressEnd;
+
+  const pttStateRef = useRef(pttState);
+  pttStateRef.current = pttState;
+
   useEffect(() => {
     if (pttState === "idle" || pttState === "connecting") return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code === "Space" && !e.repeat && pttState === "connected_muted") {
+      if (e.code === "Space" && !e.repeat && pttStateRef.current === "connected_muted") {
         e.preventDefault();
-        void onPressStart();
+        void onPressStartRef.current();
       }
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.code === "Space" && pttState === "talking") {
+      if (e.code === "Space" && pttStateRef.current === "talking") {
         e.preventDefault();
-        void onPressEnd();
+        void onPressEndRef.current();
       }
     };
 
@@ -88,7 +117,7 @@ export function usePushToTalk(
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [pttState, onPressStart, onPressEnd]);
+  }, [pttState === "idle" || pttState === "connecting"]); // Only re-register when entering/leaving PTT mode
 
   return { pttState, onPressStart, onPressEnd, connectPTT, disconnectPTT };
 }

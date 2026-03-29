@@ -84,12 +84,12 @@ export function FeatureOnboarding({ uiState, onInteraction }: DemoFeatureProps) 
               <UserPlus className="h-10 w-10 text-rose-400" />
             </m.div>
             <div className="text-center">
-              <h2 className="text-2xl font-bold text-white">Velkommen, Sara!</h2>
-              <p className="mt-2 max-w-sm text-sm text-zinc-400">
+              <h2 className="text-foreground text-2xl font-bold">Velkommen, Sara!</h2>
+              <p className="text-muted-foreground mt-2 max-w-sm text-sm">
                 Gratulerer med ny jobb hos Grand Hotel. La oss gjøre deg klar til din første vakt.
               </p>
             </div>
-            <div className="flex items-center gap-3 text-sm text-zinc-500">
+            <div className="text-muted-foreground flex items-center gap-3 text-sm">
               <span className="flex items-center gap-1.5 rounded-full border border-rose-500/20 bg-rose-500/5 px-3 py-1 text-xs text-rose-300">
                 Ny ansatt
               </span>
@@ -110,13 +110,15 @@ export function FeatureOnboarding({ uiState, onInteraction }: DemoFeatureProps) 
           >
             <div className="flex items-center gap-3">
               <FileCheck className="h-5 w-5 text-rose-400" />
-              <h2 className="text-xl font-bold text-white">Arbeidsreglement</h2>
+              <h2 className="text-foreground text-xl font-bold">Arbeidsreglement</h2>
             </div>
 
             {/* Terms document preview */}
-            <div className="flex-1 rounded-2xl border border-white/[0.06] bg-[#0a0a0c] p-5">
-              <h3 className="text-sm font-semibold text-white">Arbeidsreglement — Grand Hotel</h3>
-              <div className="mt-3 space-y-2 text-xs leading-relaxed text-zinc-400">
+            <div className="border-border bg-background flex-1 rounded-2xl border p-5">
+              <h3 className="text-foreground text-sm font-semibold">
+                Arbeidsreglement — Grand Hotel
+              </h3>
+              <div className="text-muted-foreground mt-3 space-y-2 text-xs leading-relaxed">
                 <p>
                   1. Alle ansatte skal møte i ren, godkjent uniform. Uniformen skal ikke brukes
                   utenfor arbeidsplassen.
@@ -126,7 +128,7 @@ export function FeatureOnboarding({ uiState, onInteraction }: DemoFeatureProps) 
                   arbeidsoppgaver.
                 </p>
                 <p>3. Fravær skal meldes til nærmeste leder minimum 2 timer før vakten starter.</p>
-                <p className="text-zinc-600">… (8 punkter til)</p>
+                <p className="text-muted-foreground/70">… (8 punkter til)</p>
               </div>
             </div>
 
@@ -136,7 +138,7 @@ export function FeatureOnboarding({ uiState, onInteraction }: DemoFeatureProps) 
               className={`flex items-center gap-3 rounded-xl border p-4 transition-all ${
                 termsAccepted
                   ? "border-emerald-500/30 bg-emerald-500/5"
-                  : "border-white/[0.06] bg-[#0a0a0c] hover:border-rose-500/30"
+                  : "border-border bg-background hover:border-rose-500/30"
               }`}
               animate={
                 !termsAccepted
@@ -153,12 +155,12 @@ export function FeatureOnboarding({ uiState, onInteraction }: DemoFeatureProps) 
             >
               <div
                 className={`flex h-6 w-6 items-center justify-center rounded-md ${
-                  termsAccepted ? "bg-emerald-500/20" : "border border-zinc-600 bg-transparent"
+                  termsAccepted ? "bg-emerald-500/20" : "border-border border bg-transparent"
                 }`}
               >
                 {termsAccepted && <CheckCircle2 className="h-4 w-4 text-emerald-400" />}
               </div>
-              <span className={`text-sm ${termsAccepted ? "text-emerald-300" : "text-zinc-300"}`}>
+              <span className={`text-sm ${termsAccepted ? "text-emerald-300" : "text-foreground"}`}>
                 Jeg har lest og godtar arbeidsreglementet
               </span>
             </m.button>
@@ -178,15 +180,15 @@ export function FeatureOnboarding({ uiState, onInteraction }: DemoFeatureProps) 
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <BookOpen className="h-5 w-5 text-rose-400" />
-                <h2 className="text-xl font-bold text-white">Opplæringsprotokoll</h2>
+                <h2 className="text-foreground text-xl font-bold">Opplæringsprotokoll</h2>
               </div>
-              <span className="text-xs text-zinc-500">
+              <span className="text-muted-foreground text-xs">
                 {completedItems} / {PROTOCOL_ITEMS.length}
               </span>
             </div>
 
             {/* Progress bar */}
-            <div className="h-1.5 overflow-hidden rounded-full bg-zinc-800">
+            <div className="bg-muted h-1.5 overflow-hidden rounded-full">
               <m.div
                 className="h-full rounded-full bg-rose-500"
                 animate={{
@@ -213,8 +215,8 @@ export function FeatureOnboarding({ uiState, onInteraction }: DemoFeatureProps) 
                       isDone
                         ? "border-emerald-500/20 bg-emerald-500/5"
                         : isCurrent
-                          ? "border-rose-500/20 bg-[#0a0a0c] hover:border-rose-500/40"
-                          : "border-white/[0.06] bg-[#0a0a0c] opacity-40"
+                          ? "bg-background border-rose-500/20 hover:border-rose-500/40"
+                          : "border-border bg-background opacity-40"
                     }`}
                     animate={
                       isCurrent
@@ -234,16 +236,16 @@ export function FeatureOnboarding({ uiState, onInteraction }: DemoFeatureProps) 
                         <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-400" />
                       ) : (
                         <Circle
-                          className={`h-5 w-5 shrink-0 ${isCurrent ? "text-rose-400" : "text-zinc-600"}`}
+                          className={`h-5 w-5 shrink-0 ${isCurrent ? "text-rose-400" : "text-muted-foreground/70"}`}
                         />
                       )}
                       <div>
                         <p
-                          className={`text-sm font-medium ${isDone ? "text-zinc-500 line-through" : "text-white"}`}
+                          className={`text-sm font-medium ${isDone ? "text-muted-foreground line-through" : "text-foreground"}`}
                         >
                           {item.title}
                         </p>
-                        <p className="mt-0.5 text-xs text-zinc-500">{item.description}</p>
+                        <p className="text-muted-foreground mt-0.5 text-xs">{item.description}</p>
                       </div>
                     </div>
                   </m.button>
@@ -277,7 +279,7 @@ export function FeatureOnboarding({ uiState, onInteraction }: DemoFeatureProps) 
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
-                className="text-3xl font-black text-white"
+                className="text-foreground text-3xl font-black"
               >
                 Klar til vakt!
               </m.h2>
@@ -285,7 +287,7 @@ export function FeatureOnboarding({ uiState, onInteraction }: DemoFeatureProps) 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.6 }}
-                className="mt-2 text-sm text-zinc-400"
+                className="text-muted-foreground mt-2 text-sm"
               >
                 Sara har fullført onboarding og er klar fra dag 1.
               </m.p>
@@ -321,7 +323,7 @@ export function FeatureOnboarding({ uiState, onInteraction }: DemoFeatureProps) 
               className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 px-8 py-4 text-center"
             >
               <p className="text-4xl font-black text-emerald-400">100%</p>
-              <p className="mt-1 text-xs text-zinc-500">Readiness Score</p>
+              <p className="text-muted-foreground mt-1 text-xs">Readiness Score</p>
             </m.div>
           </m.div>
         )}

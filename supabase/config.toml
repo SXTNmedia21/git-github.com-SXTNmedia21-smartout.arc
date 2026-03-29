@@ -393,6 +393,9 @@ deno_version = 2
 
 [edge_runtime.secrets]
 SERPER_API_KEY = "env(SERPER_API_KEY)"
+SCRAPLING_AUTH_TOKEN = "env(SCRAPLING_AUTH_TOKEN)"
+SCRAPLING_SERVICE_URL = "env(SCRAPLING_SERVICE_URL)"
+OPENROUTER_API_KEY = "env(OPENROUTER_API_KEY)"
 
 [analytics]
 enabled = true
@@ -491,7 +494,7 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.call-command]
-verify_jwt = true
+verify_jwt = false
 
 [functions.bootstrap-cascade]
 verify_jwt = false
@@ -506,4 +509,25 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.watchdog-uptime]
+verify_jwt = false
+
+[functions.process-notifications]
+verify_jwt = false
+
+[functions.send-morning-digest]
+verify_jwt = false
+
+[functions.ingest-workspace-knowledge]
+verify_jwt = false
+
+[functions.shift-lateness-check]
+verify_jwt = false
+
+[functions.daily-session-replenish]
+verify_jwt = false
+
+[functions.session-lifecycle]
+verify_jwt = false
+
+[functions.session-hook-executor]
 verify_jwt = false

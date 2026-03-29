@@ -11,6 +11,7 @@ import { z } from "zod";
 import { createClient } from "@smartout/supabase/server";
 import { createAdminClient } from "@smartout/supabase/admin";
 import { sendSmsBatch } from "@smartout/notifications";
+import { canSendScheduleMessage } from "./guards";
 
 const SendScheduleMessageSchema = z.object({
   workspaceId: z.string().uuid(),
@@ -75,16 +76,35 @@ export async function POST(request: NextRequest) {
   }
 
   const { workspaceId, message, channels, audience, selectedEmployeeIds } = parsed.data;
+  const unsupportedChannels = channels.filter((channel) => channel !== "sms");
+  if (unsupportedChannels.length > 0) {
+    return NextResponse.json(
+      {
+        error: "Unsupported channel selection: this endpoint currently supports sms only.",
+        unsupportedChannels,
+      },
+      { status: 400 },
+    );
+  }
 
   const { data: membership, error: membershipError } = await supabase
     .from("profile")
-    .select("profile_id")
+    .select("profile_id, role")
     .eq("workspace_id", workspaceId)
     .eq("user_id", user.id)
     .maybeSingle();
 
   if (membershipError || !membership) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  if (!canSendScheduleMessage(membership.role)) {
+    return NextResponse.json(
+      {
+        error:
+          "Forbidden: insufficient authority. Only manager, admin, or owner can send schedule messages.",
+      },
+      { status: 403 },
+    );
   }
 
   const admin = createAdminClient();

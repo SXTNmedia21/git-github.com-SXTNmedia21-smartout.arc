@@ -139,38 +139,39 @@ export default function VoiceAssistant({
   const isConnected = ["listening", "thinking", "speaking"].includes(status);
 
   return (
-    <div className="relative flex h-full flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950/80 shadow-2xl backdrop-blur-xl">
+    <div className="border-border bg-background/80 relative flex h-full flex-col overflow-hidden rounded-2xl border shadow-2xl backdrop-blur-xl">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-zinc-800/60 bg-zinc-900/50 p-4">
+      <div className="border-border/60 bg-muted flex items-center justify-between border-b p-4">
         <div className="flex items-center gap-3">
           <div className="relative">
             <div
-              className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors ${isConnected ? "bg-orange-500 text-white" : "bg-zinc-800 text-zinc-400"}`}
+              className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors ${isConnected ? "bg-brand-orange text-foreground" : "bg-muted text-muted-foreground"}`}
             >
               <Bot className="h-5 w-5" />
             </div>
             {isConnected && (
               <span className="absolute -right-0.5 -bottom-0.5 flex h-3 w-3">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-orange-400 opacity-75"></span>
-                <span className="relative inline-flex h-3 w-3 rounded-full border-2 border-zinc-950 bg-orange-500"></span>
+                <span className="bg-brand-orange absolute inline-flex h-full w-full animate-ping rounded-full opacity-75"></span>
+                <span className="border-background bg-brand-orange relative inline-flex h-3 w-3 rounded-full border-2"></span>
               </span>
             )}
           </div>
           <div>
-            <h3 className="text-sm font-bold text-white">{manifest.agentDisplayName}</h3>
-            <p className="flex items-center gap-1 text-xs text-zinc-400">
+            <h3 className="text-foreground text-sm font-bold">{manifest.agentDisplayName}</h3>
+            <p className="text-muted-foreground flex items-center gap-1 text-xs">
               {isConnected ? (
                 <>
-                  <span className="h-1.5 w-1.5 rounded-full bg-orange-500" /> Samtalen pågår
+                  <span className="bg-brand-orange h-1.5 w-1.5 rounded-full" /> Samtalen pågår
                 </>
               ) : status === UltravoxSessionStatus.CONNECTING ||
                 status === UltravoxSessionStatus.DISCONNECTING ? (
                 <>
-                  <Loader2 className="h-3 w-3 animate-spin text-orange-500" /> Kobler til...
+                  <Loader2 className="text-brand-orange h-3 w-3 animate-spin" /> Kobler til...
                 </>
               ) : (
                 <>
-                  <span className="h-1.5 w-1.5 rounded-full bg-zinc-600" /> {manifest.uiDescription}
+                  <span className="bg-muted-foreground/70 h-1.5 w-1.5 rounded-full" />{" "}
+                  {manifest.uiDescription}
                 </>
               )}
             </p>
@@ -180,7 +181,7 @@ export default function VoiceAssistant({
         {onClose && (
           <button
             onClick={handleClose}
-            className="rounded-lg p-2 text-zinc-400 transition hover:bg-zinc-800 hover:text-white"
+            className="text-muted-foreground hover:bg-muted hover:text-foreground rounded-lg p-2 transition"
           >
             <X className="h-5 w-5" />
           </button>
@@ -191,13 +192,13 @@ export default function VoiceAssistant({
       <div className="flex-1 space-y-4 overflow-y-auto p-4">
         {messages.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center px-4 text-center">
-            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-zinc-800 bg-zinc-900">
-              <Sparkles className="h-8 w-8 text-orange-500/50" />
+            <div className="border-border bg-background mb-4 flex h-16 w-16 items-center justify-center rounded-full border">
+              <Sparkles className="text-brand-orange/50 h-8 w-8" />
             </div>
-            <h4 className="mb-2 font-semibold text-zinc-200">
+            <h4 className="text-foreground mb-2 font-semibold">
               Hei, jeg er {manifest.agentDisplayName}!
             </h4>
-            <p className="max-w-xs text-sm text-zinc-400">{manifest.uiDescription}</p>
+            <p className="text-muted-foreground max-w-xs text-sm">{manifest.uiDescription}</p>
           </div>
         ) : (
           messages.map((msg, idx) => (
@@ -208,15 +209,15 @@ export default function VoiceAssistant({
               className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}
             >
               <div className="mb-1 flex items-center gap-2">
-                <span className="text-[10px] font-bold tracking-wider text-zinc-500 uppercase">
+                <span className="text-muted-foreground text-[10px] font-bold tracking-wider uppercase">
                   {msg.role === "user" ? "Du" : manifest.agentDisplayName}
                 </span>
                 {msg.role === "agent" && isConnected && idx === messages.length - 1 && (
-                  <Activity className="h-3 w-3 animate-pulse text-orange-500" />
+                  <Activity className="text-brand-orange h-3 w-3 animate-pulse" />
                 )}
               </div>
               <div
-                className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${msg.role === "user" ? "rounded-br-none bg-orange-500 text-white" : "rounded-bl-none border border-zinc-700/50 bg-zinc-800 text-zinc-200"}`}
+                className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${msg.role === "user" ? "bg-brand-orange text-foreground rounded-br-none" : "border-border/50 bg-muted text-foreground rounded-bl-none border"}`}
               >
                 {msg.text}
               </div>
@@ -226,11 +227,11 @@ export default function VoiceAssistant({
       </div>
 
       {/* Controls */}
-      <div className="flex flex-col items-center gap-3 border-t border-zinc-800 bg-zinc-900/50 p-4">
+      <div className="border-border bg-muted flex flex-col items-center gap-3 border-t p-4">
         {status === "idle" ? (
           <button
             onClick={startSession}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 py-3 font-bold text-white shadow-lg shadow-orange-500/20 transition-all hover:bg-orange-400"
+            className="bg-brand-orange text-foreground hover:bg-brand-orange-light flex w-full items-center justify-center gap-2 rounded-xl px-6 py-3 font-bold shadow-[0_0_15px_-3px_var(--brand-orange)] shadow-lg transition-all"
           >
             <Mic className="h-5 w-5" /> Start samtale
           </button>
@@ -238,7 +239,7 @@ export default function VoiceAssistant({
           <div className="flex w-full items-center justify-center gap-4">
             <button
               onClick={toggleMute}
-              className={`rounded-full p-4 transition-all ${isMuted ? "border border-red-500/20 bg-red-500/20 text-red-500 hover:bg-red-500/30" : "border border-zinc-700 bg-zinc-800 text-zinc-300 hover:bg-zinc-700"}`}
+              className={`rounded-full p-4 transition-all ${isMuted ? "border border-red-500/20 bg-red-500/20 text-red-500 hover:bg-red-500/30" : "border-border bg-muted text-foreground hover:bg-muted border"}`}
             >
               {isMuted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
             </button>
@@ -262,7 +263,7 @@ export default function VoiceAssistant({
                       delay: i * 0.1,
                       ease: "easeInOut",
                     }}
-                    className="w-1.5 rounded-full bg-orange-500"
+                    className="bg-brand-orange w-1.5 rounded-full"
                   />
                 ))}
               </div>
@@ -270,7 +271,7 @@ export default function VoiceAssistant({
 
             <button
               onClick={handleClose}
-              className="rounded-full border border-red-400 bg-red-500 p-4 text-white shadow-lg shadow-red-500/20 transition-all hover:bg-red-600"
+              className="text-foreground rounded-full border border-red-400 bg-red-500 p-4 shadow-lg shadow-red-500/20 transition-all hover:bg-red-600"
             >
               <X className="h-5 w-5" />
             </button>
