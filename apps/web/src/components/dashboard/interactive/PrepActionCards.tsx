@@ -5,7 +5,7 @@
 // a prioritised list. InlineTaskCreator is always pinned at the bottom.
 
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { CheckCircle } from "lucide-react";
 import { useTranslation } from "@smartout/i18n";
 import { toast } from "sonner";
@@ -70,16 +70,21 @@ function dayName(dateStr: string): string {
 
 type ActionCardRowProps = {
   card: ActionCard;
+  reducedMotion: boolean;
 };
 
 /** Single action card row — severity dot + text + ghost action button. */
-function ActionCardRow({ card }: ActionCardRowProps) {
+function ActionCardRow({ card, reducedMotion }: ActionCardRowProps) {
   return (
     <motion.div
-      layout
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0, transition: AMBIENT_SPRING }}
-      exit={{ opacity: 0, y: -8, transition: { duration: 0.15 } }}
+      layout={!reducedMotion}
+      initial={reducedMotion ? false : { opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0, transition: reducedMotion ? { duration: 0 } : AMBIENT_SPRING }}
+      exit={
+        reducedMotion
+          ? { opacity: 0, transition: { duration: 0 } }
+          : { opacity: 0, y: -8, transition: { duration: 0.15 } }
+      }
       className="bg-card border-border flex items-center justify-between rounded-xl border p-3"
     >
       {/* Left: severity dot + descriptive text */}
@@ -118,6 +123,7 @@ type Props = {
 export function PrepActionCards({ profileId }: Props) {
   const { t } = useTranslation("dashboard");
   const router = useRouter();
+  const prefersReduced = useReducedMotion() ?? false;
 
   const weekStart = getCurrentWeekStart();
   const coverage = useStaffingCoverage(weekStart);
@@ -172,36 +178,45 @@ export function PrepActionCards({ profileId }: Props) {
       severity: expiredTraining > 0 ? "critical" : "warning",
       text: `${trainingIssues} ${t("interactive.prep_training_expires", { date: refDate })}`,
       actionLabel: t("interactive.prep_remind"),
-      onAction: () =>
-        toast.info(t("interactive.prep_remind")),
+      onAction: () => toast.info(t("interactive.prep_remind")),
     });
   }
 
   // Sort: critical → warning → info
   cards.sort((a, b) => severityOrder(a.severity) - severityOrder(b.severity));
 
-  const isEmpty = cards.length === 0 && !coverage.isLoading && !actionItems.isLoading;
+  const isLoading = coverage.isLoading || actionItems.isLoading || trainingReadiness.isLoading;
+  const isEmpty = cards.length === 0 && !isLoading;
+
+  // ── Loading skeleton ────────────────────────────────────────────────────
+  if (isLoading) {
+    return (
+      <div className="space-y-2">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="bg-card border-border h-[52px] animate-pulse rounded-xl border" />
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-2">
       {/* Empty state */}
       {isEmpty && (
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1, transition: AMBIENT_SPRING }}
+          initial={prefersReduced ? false : { opacity: 0 }}
+          animate={{ opacity: 1, transition: prefersReduced ? { duration: 0 } : AMBIENT_SPRING }}
           className="flex flex-col items-center gap-2 py-6 text-center"
         >
           <CheckCircle className="text-success h-8 w-8" />
-          <p className="text-muted-foreground text-sm">
-            {t("interactive.all_clear_prep")}
-          </p>
+          <p className="text-muted-foreground text-sm">{t("interactive.all_clear_prep")}</p>
         </motion.div>
       )}
 
       {/* Action card list */}
       <AnimatePresence mode="popLayout">
         {cards.map((card) => (
-          <ActionCardRow key={card.id} card={card} />
+          <ActionCardRow key={card.id} card={card} reducedMotion={prefersReduced} />
         ))}
       </AnimatePresence>
 

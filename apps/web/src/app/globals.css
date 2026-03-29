@@ -297,7 +297,8 @@
 
 /* Glow pulse — 2s cycle for critical severity cards */
 @keyframes glow-pulse {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 0 0 0 var(--glow-brand, rgba(255, 107, 53, 0));
   }
   50% {
@@ -306,6 +307,12 @@
 }
 .animate-glow-pulse {
   animation: glow-pulse 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-glow-pulse {
+    animation: none;
+  }
 }
 
 /* Overlay scroll utility — scrollbar-gutter: stable prevents layout shift */

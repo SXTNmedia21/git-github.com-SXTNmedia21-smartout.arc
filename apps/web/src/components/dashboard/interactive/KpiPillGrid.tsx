@@ -6,7 +6,7 @@
 // based on the current dashboard mode. Each card expands on click to show detail.
 
 import { useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useTranslation } from "@smartout/i18n";
 import { useOperationsData } from "@/app/dashboard/operations/_hooks/use-operations-data";
 import { useTrainingReadiness } from "@/app/dashboard/_hooks/use-training-readiness";
@@ -62,33 +62,42 @@ function KpiCard({
   isExpanded,
   onToggle,
 }: KpiCardProps) {
+  const prefersReduced = useReducedMotion();
   return (
     <button
       type="button"
       onClick={onToggle}
-      className="bg-card border-border flex w-full flex-col gap-1 rounded-xl border p-3 text-left transition-colors hover:bg-card/80"
+      className="bg-card border-border hover:bg-card/80 flex w-full flex-col gap-1 rounded-xl border p-3 text-left transition-colors"
       style={{ minWidth: "120px", minHeight: "80px" }}
     >
       {/* Label */}
-      <span className="text-muted-foreground leading-none text-[11px]">{label}</span>
+      <span className="text-muted-foreground text-[11px] leading-none">{label}</span>
 
       {/* Value */}
       {isLoading ? (
         <div className="bg-muted mt-1 h-6 w-12 animate-pulse rounded" />
       ) : (
-        <span className={`text-lg font-bold tabular-nums leading-tight ${valueColor}`}>
+        <span className={`text-lg leading-tight font-bold tabular-nums ${valueColor}`}>
           {value}
         </span>
       )}
 
-      {/* Inline expand detail */}
+      {/* Inline expand detail — instant when reduced motion is preferred */}
       <AnimatePresence>
         {isExpanded && detail && (
           <motion.div
             key="detail"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1, transition: SNAPPY_SPRING }}
-            exit={{ height: 0, opacity: 0, transition: SNAPPY_SPRING }}
+            initial={prefersReduced ? false : { height: 0, opacity: 0 }}
+            animate={{
+              height: "auto",
+              opacity: 1,
+              transition: prefersReduced ? { duration: 0 } : SNAPPY_SPRING,
+            }}
+            exit={
+              prefersReduced
+                ? { opacity: 0, transition: { duration: 0 } }
+                : { height: 0, opacity: 0, transition: SNAPPY_SPRING }
+            }
             className="overflow-hidden"
           >
             <p className="text-muted-foreground mt-1 text-[11px] leading-relaxed">{detail}</p>
@@ -104,10 +113,7 @@ function GridSkeleton() {
   return (
     <div className="grid grid-cols-2 gap-2">
       {Array.from({ length: 4 }).map((_, i) => (
-        <div
-          key={i}
-          className="bg-card border-border h-20 animate-pulse rounded-xl border"
-        />
+        <div key={i} className="bg-card border-border h-20 animate-pulse rounded-xl border" />
       ))}
     </div>
   );
@@ -133,9 +139,7 @@ function OperativeKpiGrid({ isLoading: parentLoading }: { isLoading: boolean }) 
 
   // ── Derive values ─────────────────────────────────────────────────────
   const taskPct = ops?.taskCompletion.pct ?? 0;
-  const taskLabel = ops
-    ? `${ops.taskCompletion.done}/${ops.taskCompletion.total}`
-    : "—";
+  const taskLabel = ops ? `${ops.taskCompletion.done}/${ops.taskCompletion.total}` : "—";
 
   const deviations = ops?.openDeviations ?? 0;
   const deviationColor =
@@ -144,10 +148,15 @@ function OperativeKpiGrid({ isLoading: parentLoading }: { isLoading: boolean }) 
   const staffPresent = ops?.staffPresent.present ?? 0;
   const staffExpected = ops?.staffPresent.expected ?? 0;
   const staffColor =
-    staffPresent >= staffExpected ? "text-success" : staffPresent > 0 ? "text-warning" : "text-destructive";
+    staffPresent >= staffExpected
+      ? "text-success"
+      : staffPresent > 0
+        ? "text-warning"
+        : "text-destructive";
 
   // Session status: if any session is active, show "Aktiv" — else "Venter"
-  const sessionStatus = ops && staffPresent > 0 ? t("interactive.session_active") : t("interactive.session_waiting");
+  const sessionStatus =
+    ops && staffPresent > 0 ? t("interactive.session_active") : t("interactive.session_waiting");
   const sessionColor = staffPresent > 0 ? "text-success" : "text-muted-foreground";
 
   return (
@@ -156,7 +165,10 @@ function OperativeKpiGrid({ isLoading: parentLoading }: { isLoading: boolean }) 
       <KpiCard
         label={t("interactive.kpi_task_completion")}
         value={`${taskPct}%`}
-        detail={t("interactive.kpi_task_completion_detail", { done: ops?.taskCompletion.done ?? 0, total: ops?.taskCompletion.total ?? 0 })}
+        detail={t("interactive.kpi_task_completion_detail", {
+          done: ops?.taskCompletion.done ?? 0,
+          total: ops?.taskCompletion.total ?? 0,
+        })}
         isLoading={loading}
         isExpanded={expandedKey === "tasks"}
         onToggle={() => toggle("tasks")}

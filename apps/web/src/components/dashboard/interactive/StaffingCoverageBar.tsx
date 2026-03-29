@@ -5,7 +5,8 @@
 // Clicking a bar opens a popover with a plain-language summary of unassigned shifts.
 
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
+import { RefreshCw } from "lucide-react";
 import { useTranslation } from "@smartout/i18n";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { useStaffingCoverage, getCurrentWeekStart } from "@/app/dashboard/_hooks";
@@ -88,7 +89,30 @@ function BarPopover({
 export function StaffingCoverageBar() {
   const { t } = useTranslation("dashboard");
   const weekStart = getCurrentWeekStart();
-  const { data, isLoading } = useStaffingCoverage(weekStart);
+  const { data, isLoading, isError, refetch } = useStaffingCoverage(weekStart);
+  const prefersReduced = useReducedMotion();
+
+  // ── Error state ────────────────────────────────────────────────────────────
+  if (isError) {
+    return (
+      <div className="space-y-2">
+        <p className="text-muted-foreground text-xs font-medium">
+          {t("interactive.coverage_title")}
+        </p>
+        <div className="flex flex-col items-start gap-1">
+          <p className="text-muted-foreground text-xs">{t("interactive.coverage_error")}</p>
+          <button
+            type="button"
+            onClick={() => void refetch()}
+            className="text-primary flex items-center gap-1.5 text-xs"
+          >
+            <RefreshCw className="h-3 w-3" />
+            {t("interactive.feed_reconnect")}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const days = data ?? [];
   const hasData = days.some((d) => d.totalShifts > 0);
@@ -96,9 +120,7 @@ export function StaffingCoverageBar() {
   return (
     <div className="space-y-2">
       {/* Title */}
-      <p className="text-muted-foreground text-xs font-medium">
-        {t("interactive.coverage_title")}
-      </p>
+      <p className="text-muted-foreground text-xs font-medium">{t("interactive.coverage_title")}</p>
 
       {/* Bar row */}
       <div className="flex items-end gap-2">
@@ -129,11 +151,14 @@ export function StaffingCoverageBar() {
                   assignedShifts={day.assignedShifts}
                   fillPercent={day.fillPercent}
                 >
-                  {/* Animated bar */}
+                  {/* Animated bar — instant when reduced motion is preferred */}
                   <motion.div
                     className={`${BAR_WIDTH} rounded-sm ${color}`}
-                    initial={{ height: 0 }}
-                    animate={{ height: barHeight, transition: AMBIENT_SPRING }}
+                    initial={prefersReduced ? false : { height: 0 }}
+                    animate={{
+                      height: barHeight,
+                      transition: prefersReduced ? { duration: 0 } : AMBIENT_SPRING,
+                    }}
                     aria-hidden="true"
                   />
 
@@ -159,9 +184,7 @@ export function StaffingCoverageBar() {
 
       {/* No-data empty state */}
       {!isLoading && !hasData && (
-        <p className="text-muted-foreground text-xs">
-          {t("interactive.no_shift_data")}
-        </p>
+        <p className="text-muted-foreground text-xs">{t("interactive.no_shift_data")}</p>
       )}
     </div>
   );

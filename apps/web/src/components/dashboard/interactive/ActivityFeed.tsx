@@ -6,7 +6,7 @@
 // Auto-scrolls to the latest entry when new data arrives.
 
 import { useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { RefreshCw } from "lucide-react";
 import { useTranslation } from "@smartout/i18n";
 import {
@@ -97,16 +97,20 @@ function FilterPill({ label, active, onClick }: FilterPillProps) {
 function FeedEntry({
   entry,
   onPress,
+  reducedMotion,
 }: {
   entry: ActivityEntry;
   onPress: () => void;
+  reducedMotion: boolean;
 }) {
+  // Disable slide-in animation for users who prefer reduced motion
+  const motionProps = reducedMotion ? {} : ENTRY_ENTER;
   return (
     <motion.button
       type="button"
       onClick={onPress}
       className="hover:bg-muted/40 flex w-full items-start gap-2 rounded-md px-1 py-1.5 text-left transition-colors"
-      {...ENTRY_ENTER}
+      {...motionProps}
     >
       {/* Timestamp */}
       <span className="text-muted-foreground mt-0.5 w-10 shrink-0 font-mono text-[11px] tabular-nums">
@@ -142,6 +146,7 @@ export function ActivityFeed() {
   const { t } = useTranslation("dashboard");
   const drawer = useEntityDrawerOptional();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const prefersReduced = useReducedMotion() ?? false;
 
   const [timeRange, setTimeRange] = useState<TimeRange>("today");
 
@@ -227,6 +232,7 @@ export function ActivityFeed() {
               <FeedEntry
                 key={entry.id}
                 entry={entry}
+                reducedMotion={prefersReduced}
                 onPress={() => {
                   // Open entity drawer when entity info is available
                   if (drawer && entry.entityType && entry.entityLabel) {

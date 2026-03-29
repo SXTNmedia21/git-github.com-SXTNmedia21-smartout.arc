@@ -6,7 +6,7 @@
 // Clicking the totals button slides down a detailed shift card panel.
 
 import { useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useTranslation } from "@smartout/i18n";
 import { useLiveShifts } from "@/app/dashboard/_hooks/use-live-shifts";
 import { useEntityDrawerOptional } from "@/components/dashboard/entity-drawer/EntityDrawerContext";
@@ -93,7 +93,7 @@ function Avatar({ entry, onPress }: AvatarProps) {
 
       {/* Status dot — 10px absolute bottom-right of the visual circle */}
       <span
-        className={`absolute bottom-1 right-1 h-2.5 w-2.5 rounded-full ring-2 ring-background ${statusDotClass(entry.status)}`}
+        className={`ring-background absolute right-1 bottom-1 h-2.5 w-2.5 rounded-full ring-2 ${statusDotClass(entry.status)}`}
         aria-hidden="true"
       />
     </button>
@@ -140,17 +140,14 @@ export function OnDutyStrip() {
   const { data, isLoading } = useLiveShifts();
   const drawer = useEntityDrawerOptional();
   const [isExpanded, setIsExpanded] = useState(false);
+  const prefersReduced = useReducedMotion();
 
   // ── Loading skeleton ────────────────────────────────────────────────────
   if (isLoading) {
     return (
       <div className="flex items-center gap-1 px-1">
         {Array.from({ length: 8 }).map((_, i) => (
-          <div
-            key={i}
-            className="bg-muted h-9 w-9 animate-pulse rounded-full"
-            aria-hidden="true"
-          />
+          <div key={i} className="bg-muted h-9 w-9 animate-pulse rounded-full" aria-hidden="true" />
         ))}
       </div>
     );
@@ -160,11 +157,7 @@ export function OnDutyStrip() {
 
   // ── Empty state ─────────────────────────────────────────────────────────
   if (entries.length === 0) {
-    return (
-      <p className="text-muted-foreground px-1 text-sm">
-        {t("interactive.no_one_on_duty")}
-      </p>
-    );
+    return <p className="text-muted-foreground px-1 text-sm">{t("interactive.no_one_on_duty")}</p>;
   }
 
   const visibleEntries = entries.slice(0, MAX_VISIBLE_AVATARS);
@@ -221,14 +214,22 @@ export function OnDutyStrip() {
         </button>
       </div>
 
-      {/* Expand panel — full shift cards */}
+      {/* Expand panel — full shift cards. Instant expand when reduced motion. */}
       <AnimatePresence>
         {isExpanded && (
           <motion.div
             key="on-duty-panel"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1, transition: AMBIENT_SPRING }}
-            exit={{ height: 0, opacity: 0, transition: AMBIENT_SPRING }}
+            initial={prefersReduced ? false : { height: 0, opacity: 0 }}
+            animate={{
+              height: "auto",
+              opacity: 1,
+              transition: prefersReduced ? { duration: 0 } : AMBIENT_SPRING,
+            }}
+            exit={
+              prefersReduced
+                ? { opacity: 0, transition: { duration: 0 } }
+                : { height: 0, opacity: 0, transition: AMBIENT_SPRING }
+            }
             className="overflow-hidden"
           >
             <div className="space-y-2 pt-1">
