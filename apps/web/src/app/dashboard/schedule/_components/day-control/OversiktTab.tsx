@@ -80,7 +80,7 @@ export function OversiktTab({ dateId }: { dateId: string | null }) {
     queryFn: async () => {
       const { data } = await supabase
         .from("department_session")
-        .select("department_session_id, duty_leader_id, opened_by")
+        .select("department_session_id, opened_by")
         .eq("department_id", departmentId!)
         .eq("session_date", dateId!)
         .in("status", ["active", "upcoming"])
@@ -93,7 +93,7 @@ export function OversiktTab({ dateId }: { dateId: string | null }) {
 
   useEffect(() => {
     if (activeSession) {
-      setDutyLeaderId(activeSession.duty_leader_id ?? activeSession.opened_by);
+      setDutyLeaderId(activeSession.opened_by);
     }
   }, [activeSession]);
 
@@ -254,7 +254,7 @@ export function OversiktTab({ dateId }: { dateId: string | null }) {
                 if (activeSession) {
                   await supabase
                     .from("department_session")
-                    .update({ duty_leader_id: newId })
+                    .update({ opened_by: newId })
                     .eq("department_session_id", activeSession.department_session_id);
                 }
               }}
