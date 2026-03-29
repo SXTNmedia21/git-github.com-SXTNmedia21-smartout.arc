@@ -50,11 +50,30 @@ export async function updateSession(
 
   let user: User | null = null;
   try {
-    const { data } = await supabase.auth.getUser();
-    user = data.user;
+    const { data, error } = await supabase.auth.getUser();
+    if (error) {
+      // Auth failed (stale token, revoked session, rate-limited).
+      // Clear auth cookies to break retry loops — the browser will stop
+      // sending the dead refresh token on subsequent requests.
+      const authCookies = request.cookies.getAll().filter((c) => c.name.startsWith("sb-"));
+      if (authCookies.length > 0) {
+        supabaseResponse = NextResponse.next({ request });
+        for (const cookie of authCookies) {
+          supabaseResponse.cookies.set(cookie.name, "", {
+            maxAge: 0,
+            path: "/",
+            ...(cookieDomain ? { domain: cookieDomain } : {}),
+          });
+        }
+        console.warn(
+          `[middleware] auth.getUser error: ${error.message} — cleared ${authCookies.length} auth cookies`,
+        );
+      }
+    } else {
+      user = data.user;
+    }
   } catch (err) {
-    console.error("[middleware] auth.getUser failed:", err);
-    // Don't crash — continue with user = null (unauthenticated)
+    console.error("[middleware] auth.getUser threw:", err);
   }
 
   return { response: supabaseResponse, user };
