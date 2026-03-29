@@ -49,3 +49,50 @@ export function getAuthRateLimit(): Ratelimit | null {
   }
   return _authRateLimit;
 }
+
+let _otpRateLimit: Ratelimit | null | undefined;
+let _workspaceCreateRateLimit: Ratelimit | null | undefined;
+
+export function getOtpRateLimit(): Ratelimit | null {
+  if (_otpRateLimit === undefined) {
+    const redis = createRedis();
+    _otpRateLimit = redis
+      ? new Ratelimit({
+          redis,
+          limiter: Ratelimit.slidingWindow(3, "900 s"), // 3 per 15 min
+          analytics: true,
+          prefix: "smartout:otp",
+        })
+      : null;
+  }
+  return _otpRateLimit;
+}
+
+export function getWorkspaceCreateRateLimit(): Ratelimit | null {
+  if (_workspaceCreateRateLimit === undefined) {
+    const redis = createRedis();
+    _workspaceCreateRateLimit = redis
+      ? new Ratelimit({
+          redis,
+          limiter: Ratelimit.slidingWindow(3, "3600 s"), // 3 per hour
+          analytics: true,
+          prefix: "smartout:workspace-create",
+        })
+      : null;
+  }
+  return _workspaceCreateRateLimit;
+}
+
+/** Fail-closed wrapper for auth-critical rate limiting */
+export async function checkAuthRateLimit(
+  identifier: string,
+): Promise<{ allowed: boolean; remaining: number }> {
+  const limiter = getAuthRateLimit();
+  if (!limiter) {
+    // FAIL-CLOSED: if Redis is unavailable, block auth requests
+    console.error("[rate-limit] Redis unavailable — blocking auth request (fail-closed)");
+    return { allowed: false, remaining: 0 };
+  }
+  const result = await limiter.limit(identifier);
+  return { allowed: result.success, remaining: result.remaining };
+}
