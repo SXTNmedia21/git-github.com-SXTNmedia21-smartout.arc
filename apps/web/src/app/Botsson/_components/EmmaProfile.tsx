@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useWalkAi } from "./WalkAiProvider";
+import { useBotsson } from "./BotssonProvider";
 import { PERSONAS, RANKS } from "./persona-engine";
 import { VOICE_OPTIONS, LISA_PERSONALITIES } from "./types";
 import type { AgentPersona, AgentRank, PersonaRankBlend } from "./types";
@@ -29,7 +29,7 @@ export function EmmaProfile() {
     customPrompt,
     setCustomPrompt,
     personaPrompt,
-  } = useWalkAi();
+  } = useBotsson();
 
   const [activeTab, setActiveTab] = useState<Tab>("overview");
 

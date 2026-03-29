@@ -1,7 +1,7 @@
 "use client";
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-/*  WalkAi Dynamic Tool Registry              */
+/*  Botsson Dynamic Tool Registry              */
 /*                                            */
 /*  Pages register tools when they mount.     */
 /*  Emma's tool kit grows/shrinks as the      */

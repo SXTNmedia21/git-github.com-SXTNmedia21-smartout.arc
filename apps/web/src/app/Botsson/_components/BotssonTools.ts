@@ -1,5 +1,5 @@
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-/*  WalkAi Client Tools                      */
+/*  Botsson Client Tools                      */
 /*                                           */
 /*  Tools that Emma calls to morph the view, */
 /*  navigate pages, and schedule tasks.      */
@@ -15,7 +15,7 @@ import type {
 } from "@smartout/agent-sdk";
 import type { ContentViewType } from "./types";
 
-/* ━━━ View actions ref — set by WalkAiProvider ━━━ */
+/* ━━━ View actions ref — set by BotssonProvider ━━━ */
 
 export type ViewActions = {
   switchView: (type: ContentViewType, props?: Record<string, unknown>) => void;
@@ -513,7 +513,7 @@ function findTaskByTitle(tasks: ScheduledTask[], query: string): ScheduledTask |
 
 /* ━━━ Build toolkit — wired to a view actions ref ━━━ */
 
-export function buildWalkAiToolKit(
+export function buildBotssonToolKit(
   actionsRef: MutableRefObject<ViewActions | null>,
 ): ClientToolKit {
   const switchView = (type: ContentViewType, props?: Record<string, unknown>): string => {
@@ -715,7 +715,7 @@ export function buildWalkAiToolKit(
         createdAt: Date.now(),
       });
 
-      // DB persistence handled by scheduleTask in WalkAiProvider
+      // DB persistence handled by scheduleTask in BotssonProvider
 
       const timeStr = dueAt
         ? ` Frist: ${new Date(dueAt).toLocaleTimeString("no", { hour: "2-digit", minute: "2-digit" })}`

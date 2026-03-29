@@ -1,6 +1,6 @@
 // packages/ai/src/capabilities/schedule/tools.ts
 //
-// Server-side schedule query tools for the WalkAi agent.
+// Server-side schedule query tools for the Botsson agent.
 // These tools provide employee-centric and department-level schedule data.
 // All tools are read-only in v1.0 — no write operations.
 

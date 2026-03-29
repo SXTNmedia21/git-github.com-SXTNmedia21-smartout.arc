@@ -3,7 +3,7 @@
  *
  * Tabs: Hjem, Vakter, Chat, Meg
  * Center: AI FAB — elevated circular button.
- *   Tap → WalkAi voice session
+ *   Tap → Botsson voice session
  *   Long press → Botsson text chat
  *
  * Each tab screen manages its own header:
@@ -19,8 +19,7 @@ import { createStyles } from "@/theme";
 import { TabBar } from "@/components/navigation/TabBar";
 import { AIFab } from "@/components/navigation/AIFab";
 import { BotssonSheet } from "@/components/ai/BotssonSheet";
-import { WalkAiSheet } from "@/components/ai/WalkAiSheet";
-import { WalkAiProvider } from "@/providers/walkai-provider";
+import { BotssonProvider } from "@/providers/botsson-provider";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
 import { useUnreadCount } from "@/hooks/queries/use-notifications";
 import { strings } from "@/constants/strings";
@@ -34,10 +33,9 @@ export default function AppLayout() {
   const { data: unreadNotificationCount = 0 } = useUnreadCount(profile?.profile_id);
 
   const botssonSheetRef = useRef<GorhomBottomSheet>(null);
-  const walkAiSheetRef = useRef<GorhomBottomSheet>(null);
 
   const handleFabTap = useCallback(() => {
-    walkAiSheetRef.current?.expand();
+    botssonSheetRef.current?.expand();
   }, []);
 
   const handleFabLongPress = useCallback(() => {
@@ -46,10 +44,6 @@ export default function AppLayout() {
 
   const handleBotssonDismiss = useCallback(() => {
     botssonSheetRef.current?.close();
-  }, []);
-
-  const handleWalkAiDismiss = useCallback(() => {
-    walkAiSheetRef.current?.close();
   }, []);
 
   const renderTabBar = useCallback(
@@ -64,7 +58,7 @@ export default function AppLayout() {
   );
 
   return (
-    <WalkAiProvider>
+    <BotssonProvider>
       <View style={styles.container}>
         <Tabs
           screenOptions={{ headerShown: false }}
@@ -79,10 +73,9 @@ export default function AppLayout() {
           <Tabs.Screen name="(payroll)" options={{ href: null }} />
         </Tabs>
 
-        <WalkAiSheet ref={walkAiSheetRef} onDismiss={handleWalkAiDismiss} />
         <BotssonSheet ref={botssonSheetRef} onDismiss={handleBotssonDismiss} />
       </View>
-    </WalkAiProvider>
+    </BotssonProvider>
   );
 }
 

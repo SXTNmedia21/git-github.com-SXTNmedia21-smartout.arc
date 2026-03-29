@@ -10,7 +10,7 @@ const TEST_PASSWORD = "TestPass123!";
 
 async function waitForStepHeading(page: Page, pattern: RegExp, timeoutMs = 30_000) {
   const heading = page
-    .locator("main h2, [data-walkai-type='wizard-step'] h2")
+    .locator("main h2, [data-botsson-type='wizard-step'] h2")
     .filter({ hasText: pattern });
   await expect(heading.first()).toBeVisible({ timeout: timeoutMs });
 }

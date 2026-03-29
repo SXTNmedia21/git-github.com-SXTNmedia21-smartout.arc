@@ -5,7 +5,7 @@
  * Renders when a voice tool calls requestConfirmation(). The dialog resolves
  * the Promise with true (Godkjenn) or false (Avslå), gating the action.
  *
- * Not schedule-specific by design — can be lifted to walkAi/ later.
+ * Not schedule-specific by design — can be lifted to Botsson/ later.
  * Lives here because voice tools execute in the schedule bridge context.
  */
 

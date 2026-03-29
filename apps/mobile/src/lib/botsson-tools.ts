@@ -1,12 +1,12 @@
 /**
- * Mobile client tools for WalkAi agent.
+ * Mobile client tools for Botsson agent.
  *
  * These tools run client-side in the mobile app and allow the AI agent
  * to perform UI actions: navigate screens, open sheets, show toasts,
  * trigger punch flow, or call the team leader.
  *
  * Prefix: "mobile_" to avoid collision with web tools.
- * Registered via WalkAi provider session params.
+ * Registered via Botsson provider session params.
  */
 
 import { router } from "expo-router";

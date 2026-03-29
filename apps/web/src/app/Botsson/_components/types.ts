@@ -1,8 +1,8 @@
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-/*  WalkAi — Core Types                       */
+/*  Botsson — Core Types                       */
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
-export type WalkAiDensity = "orb" | "sticky" | "arena" | "immersive";
+export type BotssonDensity = "orb" | "sticky" | "arena" | "immersive";
 
 export type OrbStatus = "idle" | "listening" | "thinking" | "speaking" | "notification";
 
@@ -38,20 +38,20 @@ export type ContentStackItem = {
   props: Record<string, unknown>;
 };
 
-export type WalkAiPosition = {
+export type BotssonPosition = {
   x: number;
   y: number;
 };
 
-export type WalkAiSize = {
+export type BotssonSize = {
   width: number;
   height: number;
 };
 
-export type WalkAiState = {
-  density: WalkAiDensity;
-  position: WalkAiPosition;
-  arenaSize: WalkAiSize;
+export type BotssonState = {
+  density: BotssonDensity;
+  position: BotssonPosition;
+  arenaSize: BotssonSize;
   orbStatus: OrbStatus;
   contentStack: ContentStackItem[];
   isDragging: boolean;
@@ -185,7 +185,7 @@ export const DEFAULT_VOICE_TUNING: VoiceTuning = {
 
 /* ━━━ Notes ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
-export type WalkAiNote = {
+export type BotssonNote = {
   id: string;
   content: string;
   topic: string;

@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import "./walkai.css";
-import { WalkAiProvider } from "./WalkAiProvider";
-import { WalkAiShell } from "./WalkAiShell";
+import "./botsson.css";
+import { BotssonProvider } from "./BotssonProvider";
+import { BotssonShell } from "./BotssonShell";
 import { EmmaProfile } from "./EmmaProfile";
 import { PlaygroundControls } from "./PlaygroundControls";
 import { PlaygroundLog } from "./PlaygroundLog";
@@ -11,15 +11,15 @@ import { TelemetryLog } from "./TelemetryLog";
 
 type LogTab = "agent" | "telemetry";
 
-export function WalkAiPlayground() {
+export function BotssonPlayground() {
   const [activeLog, setActiveLog] = useState<LogTab | null>(null);
 
   return (
-    <WalkAiProvider>
+    <BotssonProvider>
       <div className="bg-background relative min-h-screen">
         <div className="mx-auto max-w-4xl px-6 py-12">
           <div className="mb-2 flex items-center justify-between">
-            <h1 className="text-foreground text-2xl font-semibold">WalkAi Playground</h1>
+            <h1 className="text-foreground text-2xl font-semibold">Botsson Playground</h1>
             <div className="flex items-center gap-2">
               <LogToggle
                 label="Agent Log"
@@ -50,9 +50,9 @@ export function WalkAiPlayground() {
           </div>
         </div>
 
-        <WalkAiShell />
+        <BotssonShell />
       </div>
-    </WalkAiProvider>
+    </BotssonProvider>
   );
 }
 

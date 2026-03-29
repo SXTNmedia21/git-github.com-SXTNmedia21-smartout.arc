@@ -10,7 +10,7 @@ import { test, expect, type Page } from "@playwright/test";
  *   Navigation is state-driven via "Neste"/"Tilbake" buttons in WizardNavBar.
  * - Sidebar (WizardSidebar) renders step labels from i18n (join.json).
  * - Brand panel no longer exists — replaced by WizardSidebar (lg+ only).
- * - Step content renders inside a <main> element with data-walkai-id attributes.
+ * - Step content renders inside a <main> element with data-botsson-id attributes.
  */
 
 /**
@@ -22,7 +22,7 @@ import { test, expect, type Page } from "@playwright/test";
  */
 async function clickNextNTimes(page: Page, n: number) {
   for (let i = 0; i < n; i++) {
-    const stepArea = page.locator('[data-walkai-type="wizard-step"]');
+    const stepArea = page.locator('[data-botsson-type="wizard-step"]');
     const stepNeste = stepArea.locator("button", { hasText: "Neste" });
 
     // If the step has its own Neste button, click it; otherwise fall back to WizardNavBar
@@ -51,7 +51,7 @@ test.describe("join-wizard", () => {
     await page.goto("/join");
 
     // WizardShell should render with join-shell data attribute
-    await expect(page.locator('[data-walkai-id="join-shell"]')).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('[data-botsson-id="join-shell"]')).toBeVisible({ timeout: 10_000 });
 
     // Step 1 heading (account step)
     await expect(page.getByRole("heading", { name: /Opprett din konto/ })).toBeVisible({
@@ -149,7 +149,7 @@ test.describe("join-wizard", () => {
     await expect(backButton).toBeVisible();
 
     // Next button — step has its own Neste inside the step area
-    const stepArea = page.locator('[data-walkai-type="wizard-step"]');
+    const stepArea = page.locator('[data-botsson-type="wizard-step"]');
     const nextButton = stepArea.locator("button", { hasText: "Neste" });
     await expect(nextButton).toBeVisible();
 
@@ -158,7 +158,7 @@ test.describe("join-wizard", () => {
 
     // Verify we're on step 2 by checking the step content changed
     // WizardShell does not update URL, so we check the DOM instead
-    await expect(page.locator('[data-walkai-id="join-business-step"]')).toBeVisible({
+    await expect(page.locator('[data-botsson-id="join-business-step"]')).toBeVisible({
       timeout: 5_000,
     });
   });
@@ -209,12 +209,12 @@ test.describe("join-wizard", () => {
     });
 
     // Click next (step 3 fields are optional/skippable) — use step's own button
-    const stepArea = page.locator('[data-walkai-type="wizard-step"]');
+    const stepArea = page.locator('[data-botsson-type="wizard-step"]');
     const nextButton = stepArea.locator("button", { hasText: "Neste" });
     await nextButton.click();
 
-    // Should advance to step 4 (hours) — verify via data-walkai-id
-    await expect(page.locator('[data-walkai-id="join-hours-step"]')).toBeVisible({
+    // Should advance to step 4 (hours) — verify via data-botsson-id
+    await expect(page.locator('[data-botsson-id="join-hours-step"]')).toBeVisible({
       timeout: 5_000,
     });
   });
@@ -236,12 +236,12 @@ test.describe("join-wizard", () => {
     const stepIds = ["account", "business", "about", "hours", "menu", "create_account", "team"];
 
     // Verify step 1 data attribute
-    await expect(page.locator(`[data-walkai-id="join-${stepIds[0]}-step"]`)).toBeVisible();
+    await expect(page.locator(`[data-botsson-id="join-${stepIds[0]}-step"]`)).toBeVisible();
 
     // Navigate forward through remaining steps using the helper
     for (let i = 1; i < stepIds.length; i++) {
       await clickNextNTimes(page, 1);
-      await expect(page.locator(`[data-walkai-id="join-${stepIds[i]}-step"]`)).toBeVisible({
+      await expect(page.locator(`[data-botsson-id="join-${stepIds[i]}-step"]`)).toBeVisible({
         timeout: 5_000,
       });
     }
@@ -263,7 +263,7 @@ test.describe("join-wizard", () => {
 
   test("sidebar progress labels match the actual join steps", async ({ page }) => {
     await page.goto("/join");
-    await expect(page.locator('[data-walkai-id="join-shell"]')).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('[data-botsson-id="join-shell"]')).toBeVisible({ timeout: 10_000 });
 
     // WizardSidebar renders labels from join.json i18n keys.
     // Labels: Konto, Bedrift, Om bedriften, Drift, Meny, Opprett konto, Team

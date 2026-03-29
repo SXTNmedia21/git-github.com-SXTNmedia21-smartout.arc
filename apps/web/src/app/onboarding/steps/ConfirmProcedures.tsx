@@ -13,7 +13,7 @@ import { useState } from "react";
 import { Plus, X, AlertTriangle, Sparkles } from "lucide-react";
 import type { WizardStepProps } from "@smartout/ui";
 import type { OnboardingConfirmState } from "../types-v2";
-import { useRegisterTools } from "@/app/walkAi/_components/tool-registry";
+import { useRegisterTools } from "@/app/Botsson/_components/tool-registry";
 import { useProceduresTools } from "./tools/procedures-tools";
 
 export function ConfirmProcedures({

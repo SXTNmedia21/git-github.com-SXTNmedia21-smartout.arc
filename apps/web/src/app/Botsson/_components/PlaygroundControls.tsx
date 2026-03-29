@@ -1,6 +1,6 @@
 "use client";
 
-import { useWalkAi } from "./WalkAiProvider";
+import { useBotsson } from "./BotssonProvider";
 import type { AgentPersona, AgentRank, OrbStatus, PersonaRankBlend } from "./types";
 import { LISA_PERSONALITIES, DEFAULT_VOICE_TUNING, VOICE_OPTIONS } from "./types";
 import { PERSONAS, RANKS } from "./persona-engine";
@@ -28,7 +28,7 @@ export function PlaygroundControls() {
     setIdentity,
     setVoiceTuning,
     activeView,
-  } = useWalkAi();
+  } = useBotsson();
 
   return (
     <div className="space-y-4">

@@ -3,9 +3,9 @@
  *
  * No background circle — just the logo floating cleanly.
  * Drag upward (20px threshold) reveals an AI menu with two options:
- *   - WalkAi voice session
+ *   - Botsson voice session
  *   - Botsson text chat
- * Tap without drag → WalkAi voice session (default action).
+ * Tap without drag → Botsson voice session (default action).
  */
 
 import React, { useCallback, useState } from "react";
@@ -140,7 +140,7 @@ export function AIFab({ onTap, onLongPress }: AIFabProps) {
             onPress={handleVoice}
             style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
             accessibilityRole="button"
-            accessibilityLabel="WalkAi stemmeassistent"
+            accessibilityLabel="Botsson stemmeassistent"
           >
             <View style={[styles.menuIcon, styles.menuIconVoice]}>
               <Mic size={18} color="#ffffff" strokeWidth={2} />

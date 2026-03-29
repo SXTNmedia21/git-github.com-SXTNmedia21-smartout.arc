@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useWalkAi } from "./WalkAiProvider";
+import { useBotsson } from "./BotssonProvider";
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-/*  WalkAi Sticky — The post-it note          */
+/*  Botsson Sticky — The post-it note          */
 /*                                             */
 /*  No header chrome. Voice bars in corner.   */
 /*  Shows compact content — speech, notes,    */
@@ -18,7 +18,7 @@ type DragHandleProps = {
   onPointerUp: (e: React.PointerEvent) => void;
 };
 
-export function WalkAiSticky({
+export function BotssonSticky({
   dragHandleProps,
   dockedSide = "right",
 }: {
@@ -26,7 +26,7 @@ export function WalkAiSticky({
   dockedSide?: "left" | "right";
 }) {
   const { expand, agent, notepadContent, activeView, tasks, unreadCount, clearUnread } =
-    useWalkAi();
+    useBotsson();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [hovered, setHovered] = useState(false);
 
@@ -45,7 +45,7 @@ export function WalkAiSticky({
 
   // Click to expand — but not on drag or controls
   const handleClick = (e: React.MouseEvent) => {
-    if (!(e.target as HTMLElement).closest("[data-walkai-no-expand]")) {
+    if (!(e.target as HTMLElement).closest("[data-botsson-no-expand]")) {
       expand();
     }
   };
@@ -70,7 +70,7 @@ export function WalkAiSticky({
           <div
             className="bg-brand-orange h-2.5 w-2.5 rounded-full"
             style={{
-              animation: "walkai-neon-blink 2.5s ease-in-out infinite",
+              animation: "botsson-neon-blink 2.5s ease-in-out infinite",
               color: "var(--brand-orange)",
             }}
           />
@@ -82,9 +82,9 @@ export function WalkAiSticky({
       {/* ━━━ Hover voice controls — face outward, bigger on hover ━━━ */}
       {hovered && (
         <div
-          className="absolute top-1/2 z-20 flex -translate-y-1/2 animate-[walkai-fade-in_120ms_ease-out_forwards] flex-col gap-2 opacity-0"
+          className="absolute top-1/2 z-20 flex -translate-y-1/2 animate-[botsson-fade-in_120ms_ease-out_forwards] flex-col gap-2 opacity-0"
           style={{ [controlsSide]: -20 }}
-          data-walkai-no-expand
+          data-botsson-no-expand
           onPointerDown={(e) => e.stopPropagation()}
         >
           {!agent.isConnected ? (
@@ -185,7 +185,7 @@ export function WalkAiSticky({
             {[0, 1, 2, 3, 4].map((i) => (
               <div
                 key={i}
-                className="bg-brand-orange w-[2px] animate-[walkai-bar_0.8s_ease-in-out_infinite] rounded-full"
+                className="bg-brand-orange w-[2px] animate-[botsson-bar_0.8s_ease-in-out_infinite] rounded-full"
                 style={{
                   height: 4 + Math.abs(2 - i) * 2,
                   animationDelay: `${i * 0.07}s`,

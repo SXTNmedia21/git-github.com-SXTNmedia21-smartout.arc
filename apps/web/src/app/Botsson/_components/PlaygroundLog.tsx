@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useWalkAi } from "./WalkAiProvider";
+import { useBotsson } from "./BotssonProvider";
 
 export function PlaygroundLog({ open }: { open: boolean }) {
-  const { agent, identity, voiceTuning, state } = useWalkAi();
+  const { agent, identity, voiceTuning, state } = useBotsson();
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom

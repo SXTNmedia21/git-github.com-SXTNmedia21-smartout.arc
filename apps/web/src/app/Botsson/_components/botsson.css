@@ -1,7 +1,7 @@
-/* WalkAi — Keyframe animations */
+/* Botsson — Keyframe animations */
 /* Interactions: ~280ms. Ambient: 3–6s. */
 
-@keyframes walkai-breathe {
+@keyframes botsson-breathe {
   0%,
   100% {
     transform: scale(1);
@@ -13,7 +13,7 @@
   }
 }
 
-@keyframes walkai-pulse {
+@keyframes botsson-pulse {
   0%,
   100% {
     opacity: 0.3;
@@ -25,7 +25,7 @@
   }
 }
 
-@keyframes walkai-bar {
+@keyframes botsson-bar {
   0%,
   100% {
     transform: scaleY(0.5);
@@ -35,7 +35,7 @@
   }
 }
 
-@keyframes walkai-fade-in {
+@keyframes botsson-fade-in {
   from {
     opacity: 0;
     transform: translateY(3px);
@@ -47,7 +47,7 @@
 }
 
 /* Neon blink — retracted sticky indicator */
-@keyframes walkai-neon-blink {
+@keyframes botsson-neon-blink {
   0%,
   100% {
     opacity: 0.25;
@@ -64,7 +64,7 @@
 /* ━━━ NOTIFICATION — The jaw-dropper ━━━ */
 
 /* Slow rotating conic gradient — the halo ring */
-@keyframes walkai-notify-rotate {
+@keyframes botsson-notify-rotate {
   from {
     transform: rotate(0deg);
   }
@@ -74,7 +74,7 @@
 }
 
 /* Expanding ripple rings that fade out */
-@keyframes walkai-notify-ripple {
+@keyframes botsson-notify-ripple {
   0% {
     transform: scale(0.8);
     opacity: 0.6;
@@ -86,7 +86,7 @@
 }
 
 /* Core orb intensifies — subtle scale throb */
-@keyframes walkai-notify-throb {
+@keyframes botsson-notify-throb {
   0%,
   100% {
     transform: scale(1);
@@ -103,7 +103,7 @@
 }
 
 /* Particle float — tiny dots drifting upward */
-@keyframes walkai-particle-float {
+@keyframes botsson-particle-float {
   0% {
     transform: translateY(0) scale(1);
     opacity: 0;
@@ -118,7 +118,7 @@
 }
 
 /* Shimmer sweep across the orb surface */
-@keyframes walkai-notify-shimmer {
+@keyframes botsson-notify-shimmer {
   0% {
     background-position: -100% 0;
   }
@@ -128,7 +128,7 @@
 }
 
 /* Ambient glow — gentle card breathing when Emma is active */
-@keyframes walkai-glow {
+@keyframes botsson-glow {
   0%,
   100% {
     box-shadow:
@@ -145,7 +145,7 @@
 /* ━━━ CHOREOGRAPHY — Staggered arena entrance ━━━ */
 
 /* Slide in from top — header */
-@keyframes walkai-slide-down {
+@keyframes botsson-slide-down {
   from {
     opacity: 0;
     transform: translateY(-12px);
@@ -157,7 +157,7 @@
 }
 
 /* Scale up from center — content area */
-@keyframes walkai-scale-up {
+@keyframes botsson-scale-up {
   from {
     opacity: 0;
     transform: scale(0.92);
@@ -169,7 +169,7 @@
 }
 
 /* Slide in from bottom — footer */
-@keyframes walkai-slide-up {
+@keyframes botsson-slide-up {
   from {
     opacity: 0;
     transform: translateY(10px);
@@ -181,7 +181,7 @@
 }
 
 /* Pop in — FAB and small elements */
-@keyframes walkai-pop-in {
+@keyframes botsson-pop-in {
   from {
     opacity: 0;
     transform: scale(0.5);
@@ -196,7 +196,7 @@
 }
 
 /* Task complete — satisfying check */
-@keyframes walkai-check {
+@keyframes botsson-check {
   0% {
     transform: scale(1);
   }
@@ -211,7 +211,7 @@
 /* ━━━ PREMIUM VOICE ORB — Multi-layered visualizer ━━━ */
 
 /* Outer ring rotation — slow, majestic */
-@keyframes walkai-orb-ring-slow {
+@keyframes botsson-orb-ring-slow {
   from {
     transform: rotate(0deg);
   }
@@ -221,7 +221,7 @@
 }
 
 /* Counter-rotation for inner rings */
-@keyframes walkai-orb-ring-reverse {
+@keyframes botsson-orb-ring-reverse {
   from {
     transform: rotate(0deg);
   }
@@ -231,7 +231,7 @@
 }
 
 /* Speaking pulse — energetic, rhythmic */
-@keyframes walkai-orb-speak-pulse {
+@keyframes botsson-orb-speak-pulse {
   0%,
   100% {
     transform: scale(1);
@@ -252,7 +252,7 @@
 }
 
 /* Waveform bar — organic, varied heights */
-@keyframes walkai-waveform-1 {
+@keyframes botsson-waveform-1 {
   0%,
   100% {
     height: 20%;
@@ -268,7 +268,7 @@
   }
 }
 
-@keyframes walkai-waveform-2 {
+@keyframes botsson-waveform-2 {
   0%,
   100% {
     height: 40%;
@@ -284,7 +284,7 @@
   }
 }
 
-@keyframes walkai-waveform-3 {
+@keyframes botsson-waveform-3 {
   0%,
   100% {
     height: 60%;
@@ -301,7 +301,7 @@
 }
 
 /* Particle burst — speaking particles */
-@keyframes walkai-orb-particle {
+@keyframes botsson-orb-particle {
   0% {
     transform: translate(0, 0) scale(1);
     opacity: 0;
@@ -316,7 +316,7 @@
 }
 
 /* Listening — gentle breathing glow */
-@keyframes walkai-orb-listen {
+@keyframes botsson-orb-listen {
   0%,
   100% {
     box-shadow:
@@ -331,7 +331,7 @@
 }
 
 /* Thinking — pulsing shimmer */
-@keyframes walkai-orb-think {
+@keyframes botsson-orb-think {
   0%,
   100% {
     opacity: 0.4;
@@ -344,7 +344,7 @@
 }
 
 /* Resize handle pulse — draws attention */
-@keyframes walkai-resize-hint {
+@keyframes botsson-resize-hint {
   0%,
   100% {
     opacity: 0.2;
@@ -357,7 +357,7 @@
 /* ━━━ AMBIENT IDLE — Glitter & skyfall particles ━━━ */
 
 /* Glitter — tiny sparkle that fades in/out */
-@keyframes walkai-glitter {
+@keyframes botsson-glitter {
   0% {
     opacity: 0;
     transform: scale(0) rotate(0deg);
@@ -381,7 +381,7 @@
 }
 
 /* Skyfall — gentle downward drift */
-@keyframes walkai-skyfall {
+@keyframes botsson-skyfall {
   0% {
     transform: translateY(-10%) translateX(0);
     opacity: 0;
@@ -399,7 +399,7 @@
 }
 
 /* Aurora shimmer — subtle color sweep across background */
-@keyframes walkai-aurora {
+@keyframes botsson-aurora {
   0%,
   100% {
     opacity: 0.03;

@@ -22,7 +22,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { HelpTip } from "@/components/dashboard/wizard-steps/HelpTip";
-import { useRegisterTools } from "@/app/walkAi/_components/tool-registry";
+import { useRegisterTools } from "@/app/Botsson/_components/tool-registry";
 import { usePayrollTools } from "./tools/payroll-tools";
 
 // ─── Add Supplement Dialog ──────────────────────────────

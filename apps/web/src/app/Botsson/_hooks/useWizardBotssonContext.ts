@@ -1,19 +1,19 @@
-// apps/web/src/app/walkAi/_hooks/useWizardWalkAiContext.ts
+// apps/web/src/app/Botsson/_hooks/useWizardBotssonContext.ts
 "use client";
 
 /**
- * Bridge between WizardShell (packages/ui) and WalkAi context system.
+ * Bridge between WizardShell (packages/ui) and Botsson context system.
  *
  * WizardShell fires onContextChange with navigation payload.
- * This hook translates that into a format WalkAi can inject
+ * This hook translates that into a format Botsson can inject
  * into Emma's context window via sendContext().
  *
  * Lives in apps/web (not packages/ui) to keep the shared
  * package agent-agnostic.
  *
- * IMPORTANT: This hook must be used INSIDE WalkAiProvider's React tree
+ * IMPORTANT: This hook must be used INSIDE BotssonProvider's React tree
  * so it can access the agent session for mid-session context injection.
- * The sendContext param should come from WalkAiProvider's useAgent() hook.
+ * The sendContext param should come from BotssonProvider's useAgent() hook.
  */
 
 import { useState, useCallback, useEffect, useRef } from "react";
@@ -24,9 +24,9 @@ export type WizardContext = WizardContextPayload | null;
 
 /**
  * Returns a callback to pass as WizardShell's onContextChange prop,
- * plus the latest wizard context for consumption by WalkAiProvider.
+ * plus the latest wizard context for consumption by BotssonProvider.
  */
-export function useWizardWalkAiContext(sendContext?: (text: string) => void) {
+export function useWizardBotssonContext(sendContext?: (text: string) => void) {
   const [wizardContext, setWizardContext] = useState<WizardContext>(null);
   const sendContextRef = useRef(sendContext);
   useEffect(() => {

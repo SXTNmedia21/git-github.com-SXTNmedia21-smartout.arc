@@ -3,14 +3,14 @@
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 /*  Emma Overlay                              */
 /*                                            */
-/*  Thin wrapper that drops WalkAi into the   */
+/*  Thin wrapper that drops Botsson into the   */
 /*  dashboard layout as a floating orb.       */
 /*  Loaded via dynamic import — zero SSR.     */
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
-import "./walkai.css";
-import { WalkAiProvider } from "./WalkAiProvider";
-import { WalkAiShell } from "./WalkAiShell";
+import "./botsson.css";
+import { BotssonProvider } from "./BotssonProvider";
+import { BotssonShell } from "./BotssonShell";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 
 export function EmmaOverlay() {
@@ -18,8 +18,8 @@ export function EmmaOverlay() {
   const workspaceId = ctx?.workspace.workspace_id ?? null;
 
   return (
-    <WalkAiProvider workspaceId={workspaceId}>
-      <WalkAiShell />
-    </WalkAiProvider>
+    <BotssonProvider workspaceId={workspaceId}>
+      <BotssonShell />
+    </BotssonProvider>
   );
 }

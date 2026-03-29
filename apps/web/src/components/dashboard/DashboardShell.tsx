@@ -30,7 +30,7 @@ const GlobalSearchPalette = dynamic(
 
 const EmmaOverlay = dynamic(
   () =>
-    import("@/app/walkAi/_components/EmmaOverlay").then((m) => ({
+    import("@/app/Botsson/_components/EmmaOverlay").then((m) => ({
       default: m.EmmaOverlay,
     })),
   { ssr: false },

@@ -1,14 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useWalkAi } from "./WalkAiProvider";
-import { WalkAiOrb } from "./WalkAiOrb";
-import { WalkAiSticky } from "./WalkAiSticky";
-import { WalkAiArena } from "./WalkAiArena";
+import { useBotsson } from "./BotssonProvider";
+import { BotssonOrb } from "./BotssonOrb";
+import { BotssonSticky } from "./BotssonSticky";
+import { BotssonArena } from "./BotssonArena";
 import { DENSITY_DIMENSIONS, TIMING, EASING, ARENA_MIN, ARENA_MAX, EDGE_GAP } from "./types";
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-/*  WalkAi Shell — One div that morphs        */
+/*  Botsson Shell — One div that morphs        */
 /*                                             */
 /*  Magnetic edges — attracted but not flush. */
 /*  Smooth retract. Resize grip. Rich glow.  */
@@ -60,7 +60,7 @@ function clampSize(w: number, h: number): { w: number; h: number } {
   };
 }
 
-export function WalkAiShell() {
+export function BotssonShell() {
   const {
     state,
     expand,
@@ -72,7 +72,7 @@ export function WalkAiShell() {
     setResizing,
     setArenaSize,
     unreadCount,
-  } = useWalkAi();
+  } = useBotsson();
   const shellRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
   const [stickySide, setStickySide] = useState<DockedSide>("right");
@@ -102,7 +102,7 @@ export function WalkAiShell() {
   /* ━━━ Initial position — restore or bottom-right ━━━ */
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("walkai-position");
+      const saved = localStorage.getItem("botsson-position");
       if (saved) {
         const pos = JSON.parse(saved) as { x: number; y: number };
         const orbSize = DENSITY_DIMENSIONS.orb;
@@ -260,7 +260,7 @@ export function WalkAiShell() {
 
       // Save position to localStorage for memory across sessions
       try {
-        localStorage.setItem("walkai-position", JSON.stringify(position));
+        localStorage.setItem("botsson-position", JSON.stringify(position));
       } catch {
         /* */
       }
@@ -530,7 +530,7 @@ export function WalkAiShell() {
                 : "var(--muted-foreground)",
               opacity: agent.isConnected ? 1 : 0.15,
               animation: agent.isConnected
-                ? "walkai-neon-blink 2.5s ease-in-out infinite"
+                ? "botsson-neon-blink 2.5s ease-in-out infinite"
                 : undefined,
               color: agent.isConnected ? "var(--brand-orange)" : "var(--muted-foreground)",
             }}
@@ -549,7 +549,7 @@ export function WalkAiShell() {
       {/* Orb */}
       {isOrb && (
         <div className="relative h-full w-full" {...dragHandleProps}>
-          <WalkAiOrb />
+          <BotssonOrb />
           {unreadCount > 0 && (
             <div
               className="bg-brand-orange absolute -top-1 -right-1 flex items-center justify-center rounded-full text-[8px] font-bold text-white shadow-sm"
@@ -570,7 +570,7 @@ export function WalkAiShell() {
             transition: `opacity ${retractMs}ms cubic-bezier(0.22, 1, 0.36, 1)`,
           }}
         >
-          <WalkAiSticky dragHandleProps={dragHandleProps} dockedSide={stickySide} />
+          <BotssonSticky dragHandleProps={dragHandleProps} dockedSide={stickySide} />
         </div>
       )}
 
@@ -578,13 +578,13 @@ export function WalkAiShell() {
       {(isArena || isImmersive) && (
         <div
           className="h-full w-full"
-          style={{ animation: `walkai-fade-in ${TIMING.contentEnter}ms ${EASING}` }}
+          style={{ animation: `botsson-fade-in ${TIMING.contentEnter}ms ${EASING}` }}
         >
-          <WalkAiArena dragHandleProps={dragHandleProps} />
+          <BotssonArena dragHandleProps={dragHandleProps} />
         </div>
       )}
 
-      {/* Resize is now handled inside WalkAiArena via ResizeHandles component */}
+      {/* Resize is now handled inside BotssonArena via ResizeHandles component */}
     </div>
   );
 }

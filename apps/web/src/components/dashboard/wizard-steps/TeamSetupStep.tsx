@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/select";
 import { Plus, Trash2, Upload, AlertCircle, Shield } from "lucide-react";
 import { HelpTip } from "@/components/dashboard/wizard-steps/HelpTip";
-import { useRegisterTools } from "@/app/walkAi/_components/tool-registry";
+import { useRegisterTools } from "@/app/Botsson/_components/tool-registry";
 import { useTeamTools } from "./tools/team-tools";
 import { CsvMappingDialog } from "@/components/dashboard/wizard-steps/csv-column-mapper";
 import { MAPPABLE_FIELDS } from "@/components/dashboard/wizard-steps/csv-synonyms";

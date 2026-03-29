@@ -3,14 +3,14 @@ export { WizardSidebar } from "./WizardSidebar";
 export { WizardTopBar } from "./WizardTopBar";
 export { WizardNavBar } from "./WizardNavBar";
 export { useWizardState } from "./useWizardState";
-export { useWizardWalkAi } from "./useWizardWalkAi";
+export { useWizardBotsson } from "./useWizardBotsson";
 export type {
   WizardDefinition,
   WizardStepDef,
   WizardStepProps,
   WizardThemeTokens,
   WizardState,
-  WalkAiHelper,
-  WalkAiDataAttributes,
+  BotssonHelper,
+  BotssonDataAttributes,
   WizardContextPayload,
 } from "./types";

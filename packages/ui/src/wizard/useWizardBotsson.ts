@@ -1,10 +1,10 @@
-// packages/ui/src/wizard/useWizardWalkAi.ts
+// packages/ui/src/wizard/useWizardBotsson.ts
 "use client";
 
 import { useMemo } from "react";
-import type { WalkAiHelper, WalkAiDataAttributes } from "./types";
+import type { BotssonHelper, BotssonDataAttributes } from "./types";
 
-export function useWizardWalkAi(wizardId: string, stepId: string): WalkAiHelper {
+export function useWizardBotsson(wizardId: string, stepId: string): BotssonHelper {
   return useMemo(
     () => ({
       id: (element: string) => `${wizardId}-${stepId}-${element}`,
@@ -13,14 +13,14 @@ export function useWizardWalkAi(wizardId: string, stepId: string): WalkAiHelper 
         element: string,
         intent: string,
         context?: Record<string, unknown>,
-      ): WalkAiDataAttributes => {
-        const attrs: WalkAiDataAttributes = {
-          "data-walkai-id": `${wizardId}-${stepId}-${element}`,
-          "data-walkai-intent": intent,
-          "data-walkai-type": inferType(element),
+      ): BotssonDataAttributes => {
+        const attrs: BotssonDataAttributes = {
+          "data-botsson-id": `${wizardId}-${stepId}-${element}`,
+          "data-botsson-intent": intent,
+          "data-botsson-type": inferType(element),
         };
         if (context) {
-          attrs["data-walkai-context"] = JSON.stringify(context);
+          attrs["data-botsson-context"] = JSON.stringify(context);
         }
         return attrs;
       },

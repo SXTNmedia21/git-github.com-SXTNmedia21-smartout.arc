@@ -23,15 +23,15 @@ import type {
   OrbStatus,
   PersonaRankBlend,
   VoiceTuning,
-  WalkAiDensity,
-  WalkAiNote,
-  WalkAiPosition,
-  WalkAiSize,
-  WalkAiState,
+  BotssonDensity,
+  BotssonNote,
+  BotssonPosition,
+  BotssonSize,
+  BotssonState,
 } from "./types";
 import { DENSITY_DIMENSIONS, DEFAULT_VOICE_TUNING, DEFAULT_VOICE_ID } from "./types";
 import { buildPersonaPrompt, identityLabel } from "./persona-engine";
-import { buildWalkAiToolKit, type ViewActions, type ScheduledTask } from "./walkai-tools";
+import { buildBotssonToolKit, type ViewActions, type ScheduledTask } from "./BotssonTools";
 import { SCHEDULE_TOOL_DEFINITIONS } from "@/app/dashboard/schedule/_hooks/schedule-tool-definitions";
 import { useEntityDrawerOptional } from "@/components/dashboard/entity-drawer/EntityDrawerContext";
 import { useEmmaTelemetry, buildTelemetrySummary, type TelemetryEntry } from "./emma-awareness";
@@ -41,9 +41,9 @@ import { useEmmaTriggeredTasks } from "./use-emma-tasks";
 /* ━━━ Actions ━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
 type Action =
-  | { type: "SET_DENSITY"; density: WalkAiDensity }
-  | { type: "SET_POSITION"; position: WalkAiPosition }
-  | { type: "SET_ARENA_SIZE"; size: WalkAiSize }
+  | { type: "SET_DENSITY"; density: BotssonDensity }
+  | { type: "SET_POSITION"; position: BotssonPosition }
+  | { type: "SET_ARENA_SIZE"; size: BotssonSize }
   | { type: "SET_DRAGGING"; isDragging: boolean }
   | { type: "SET_RESIZING"; isResizing: boolean }
   | { type: "SET_ORB_STATUS"; status: OrbStatus }
@@ -52,7 +52,7 @@ type Action =
   | { type: "CLEAR_CONTENT" }
   | { type: "SWITCH_VIEW"; item: ContentStackItem };
 
-function reducer(state: WalkAiState, action: Action): WalkAiState {
+function reducer(state: BotssonState, action: Action): BotssonState {
   switch (action.type) {
     case "SET_DENSITY":
       return { ...state, density: action.density };
@@ -99,8 +99,8 @@ function agentStatusToOrb(status: AgentStatus): OrbStatus {
 
 /* ━━━ Context shape ━━━━━━━━━━━━━━━━━━━━━━━ */
 
-type WalkAiContextValue = {
-  state: WalkAiState;
+type BotssonContextValue = {
+  state: BotssonState;
   identity: AgentIdentity;
   identityDisplay: string;
   voiceTuning: VoiceTuning;
@@ -114,20 +114,20 @@ type WalkAiContextValue = {
   pushView: (type: ContentViewType, props?: Record<string, unknown>) => void;
   popView: () => void;
   activeView: ContentViewType;
-  notes: WalkAiNote[];
+  notes: BotssonNote[];
   activeNoteId: string | null;
-  activeNote: WalkAiNote | null;
-  createNote: (topic: string, content: string, context?: string) => WalkAiNote;
+  activeNote: BotssonNote | null;
+  createNote: (topic: string, content: string, context?: string) => BotssonNote;
   updateNote: (noteId: string, content: string, topic?: string) => void;
   setActiveNote: (noteId: string | null) => void;
   /** @deprecated — use activeNote.content instead */
   notepadContent: string;
   /** @deprecated — use updateNote instead */
   setNotepadContent: (content: string) => void;
-  setPosition: (pos: WalkAiPosition) => void;
+  setPosition: (pos: BotssonPosition) => void;
   setDragging: (d: boolean) => void;
   setResizing: (r: boolean) => void;
-  setArenaSize: (size: WalkAiSize) => void;
+  setArenaSize: (size: BotssonSize) => void;
   setOrbStatus: (s: OrbStatus) => void;
   selectedVoice: string;
   setSelectedVoice: (voiceId: string) => void;
@@ -152,15 +152,15 @@ type WalkAiContextValue = {
   /** The computed persona prompt (read-only) */
   personaPrompt: string;
   /** Saved arena size before settings expansion */
-  preSettingsSize: WalkAiSize | null;
-  setPreSettingsSize: (size: WalkAiSize | null) => void;
+  preSettingsSize: BotssonSize | null;
+  setPreSettingsSize: (size: BotssonSize | null) => void;
 };
 
-const WalkAiContext = createContext<WalkAiContextValue | null>(null);
+const BotssonContext = createContext<BotssonContextValue | null>(null);
 
 /* ━━━ Provider ━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
-const INITIAL_STATE: WalkAiState = {
+const INITIAL_STATE: BotssonState = {
   density: "orb",
   position: { x: 24, y: 0 },
   arenaSize: { width: DENSITY_DIMENSIONS.arena.width, height: DENSITY_DIMENSIONS.arena.height },
@@ -171,7 +171,7 @@ const INITIAL_STATE: WalkAiState = {
 };
 
 /** User context passed to the agent so Emma knows who she's talking to */
-export type WalkAiUserContext = {
+export type BotssonUserContext = {
   name?: string;
   role?: string;
   workspace?: string;
@@ -181,7 +181,7 @@ export type WalkAiUserContext = {
   lastSession?: string;
 };
 
-export function WalkAiProvider({
+export function BotssonProvider({
   children,
   initialRank = "admin",
   initialPersona = "puls",
@@ -193,7 +193,7 @@ export function WalkAiProvider({
   initialRank?: AgentRank;
   initialPersona?: AgentPersona;
   initialBlend?: PersonaRankBlend;
-  userContext?: WalkAiUserContext;
+  userContext?: BotssonUserContext;
   workspaceId?: string | null;
 }) {
   const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
@@ -236,8 +236,8 @@ export function WalkAiProvider({
     if (typeof window === "undefined") return "";
     return localStorage.getItem("emma-custom-prompt") ?? "";
   });
-  const [preSettingsSize, setPreSettingsSize] = useState<WalkAiSize | null>(null);
-  const [notes, setNotes] = useState<WalkAiNote[]>([]);
+  const [preSettingsSize, setPreSettingsSize] = useState<BotssonSize | null>(null);
+  const [notes, setNotes] = useState<BotssonNote[]>([]);
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
   const { events: telemetryEvents, clearEvents: clearTelemetry } = useEmmaTelemetry();
   const [tasks, setTasks] = useState<ScheduledTask[]>([]);
@@ -402,7 +402,7 @@ export function WalkAiProvider({
               topic: n.topic,
               content: n.content,
               tags: n.tags ?? [],
-              screen: n.screen ?? "walkai",
+              screen: n.screen ?? "botsson",
               context: n.context ?? "",
               createdAt: new Date(n.created_at).getTime(),
               updatedAt: new Date(n.updated_at).getTime(),
@@ -471,13 +471,13 @@ export function WalkAiProvider({
         }
       }
 
-      const note: WalkAiNote = {
+      const note: BotssonNote = {
         id: `note-${Date.now()}`,
         content: cleanContent,
         topic,
         createdAt: Date.now(),
         updatedAt: Date.now(),
-        screen: "walkai",
+        screen: "botsson",
         context,
         tags: (content.match(/@\w+/g) ?? []).map((t) => t.slice(1)),
       };
@@ -496,7 +496,7 @@ export function WalkAiProvider({
             topic,
             content: cleanContent,
             tags: note.tags,
-            screen: "walkai",
+            screen: "botsson",
             context,
           }),
         })
@@ -608,16 +608,16 @@ export function WalkAiProvider({
 
   // Build toolkit in effect to avoid "cannot access refs during render".
   // Tool implementations read viewActionsRef.current lazily when invoked.
-  const [baseTools, setBaseTools] = useState<ReturnType<typeof buildWalkAiToolKit> | null>(null);
+  const [baseTools, setBaseTools] = useState<ReturnType<typeof buildBotssonToolKit> | null>(null);
   useEffect(() => {
-    setBaseTools(buildWalkAiToolKit(viewActionsRef));
+    setBaseTools(buildBotssonToolKit(viewActionsRef));
   }, []); // viewActionsRef is stable, only need to build once
 
   const registeredTools = useRegisteredTools();
 
   // Merge base tools + page-registered tools + schedule tool definitions (always included
   // so Ultravox knows about them at session start — implementations register dynamically)
-  const walkAiTools = useMemo(() => {
+  const botssonTools = useMemo(() => {
     const defs = [...(baseTools?.definitions ?? []), ...registeredTools.definitions];
     const impls = {
       ...(baseTools?.implementations ?? {}),
@@ -675,9 +675,9 @@ export function WalkAiProvider({
 
   /* ━━━ Voice agent — Emma via Ultravox ━━━ */
   const agent = useAgent({
-    missionId: "walkai-session",
+    missionId: "botsson-session",
     provider: "ultravox",
-    tools: walkAiTools,
+    tools: botssonTools,
     apiParams: {
       voice: selectedVoice,
       language: "no",
@@ -942,7 +942,7 @@ export function WalkAiProvider({
     };
   }, [switchView, activeView, workspaceId, state.density, tasks, entityDrawer]);
   const setPosition = useCallback(
-    (position: WalkAiPosition) => dispatch({ type: "SET_POSITION", position }),
+    (position: BotssonPosition) => dispatch({ type: "SET_POSITION", position }),
     [],
   );
   const setDragging = useCallback(
@@ -954,7 +954,7 @@ export function WalkAiProvider({
     [],
   );
   const setArenaSize = useCallback(
-    (size: WalkAiSize) => dispatch({ type: "SET_ARENA_SIZE", size }),
+    (size: BotssonSize) => dispatch({ type: "SET_ARENA_SIZE", size }),
     [],
   );
   const setOrbStatus = useCallback(
@@ -1056,11 +1056,11 @@ export function WalkAiProvider({
     ],
   );
 
-  return <WalkAiContext.Provider value={value}>{children}</WalkAiContext.Provider>;
+  return <BotssonContext.Provider value={value}>{children}</BotssonContext.Provider>;
 }
 
-export function useWalkAi() {
-  const ctx = useContext(WalkAiContext);
-  if (!ctx) throw new Error("useWalkAi must be used within <WalkAiProvider>");
+export function useBotsson() {
+  const ctx = useContext(BotssonContext);
+  if (!ctx) throw new Error("useBotsson must be used within <BotssonProvider>");
   return ctx;
 }

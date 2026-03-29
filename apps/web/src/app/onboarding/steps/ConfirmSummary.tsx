@@ -14,7 +14,7 @@ import { Building2, Layers, MapPin, ClipboardCheck, Loader2, CheckCircle } from 
 import { Button } from "@/components/ui/button";
 import type { WizardStepProps } from "@smartout/ui";
 import type { OnboardingConfirmState } from "../types-v2";
-import { useRegisterTools } from "@/app/walkAi/_components/tool-registry";
+import { useRegisterTools } from "@/app/Botsson/_components/tool-registry";
 import { useSummaryTools } from "./tools/summary-tools";
 
 export function ConfirmSummary({

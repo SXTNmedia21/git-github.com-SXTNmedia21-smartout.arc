@@ -20,7 +20,7 @@ import type { Json } from "@smartout/supabase";
 import { emit } from "@smartout/telemetry";
 import { useWorkspace } from "@/lib/workspace-context";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import { useRegisterTools } from "@/app/walkAi/_components/tool-registry";
+import { useRegisterTools } from "@/app/Botsson/_components/tool-registry";
 import { useHandbookTools } from "./tools/handbook-tools";
 import { CHAPTERS } from "@/app/dashboard/_components/document-mode/chapters";
 import type { ChapterKey } from "@/app/dashboard/_components/document-mode/chapters";

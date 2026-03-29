@@ -1,12 +1,12 @@
 "use client";
 
 import { EntityDrawerProvider } from "@/components/dashboard/entity-drawer/EntityDrawerContext";
-import { WalkAiPlayground } from "./_components/WalkAiPlayground";
+import { BotssonPlayground } from "./_components/BotssonPlayground";
 
-export default function WalkAiPage() {
+export default function BotssonPage() {
   return (
     <EntityDrawerProvider>
-      <WalkAiPlayground />
+      <BotssonPlayground />
     </EntityDrawerProvider>
   );
 }

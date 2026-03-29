@@ -2,7 +2,7 @@
 
 // use-emma-tasks.ts
 // Checks for triggered tasks on mount (page load / login).
-// Returns pending missions so the WalkAi provider can feed them to Emma.
+// Returns pending missions so the Botsson provider can feed them to Emma.
 
 import { useCallback, useEffect, useState } from "react";
 

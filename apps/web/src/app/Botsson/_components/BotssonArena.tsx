@@ -1,15 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
-import { useWalkAi } from "./WalkAiProvider";
+import { useBotsson } from "./BotssonProvider";
 import { EASING } from "./types";
 import { PERSONAS } from "./persona-engine";
 import { EmmaProfile } from "./EmmaProfile";
 import type { ContentViewType } from "./types";
-import type { ScheduledTask } from "./walkai-tools";
+import type { ScheduledTask } from "./BotssonTools";
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-/*  WalkAi Arena — Premium floating card      */
+/*  Botsson Arena — Premium floating card      */
 /*                                             */
 /*  Profile header with Emma + dropdown menu. */
 /*  Tools bloom FAB (bottom-left).            */
@@ -50,7 +50,7 @@ const VIEW_TITLES: Record<ContentViewType, string> = {
 /* ━━━ Emma Menu — SOLID card, big touch targets ━━━ */
 
 function EmmaMenuOverlay({ onClose }: { onClose: () => void }) {
-  const { switchView } = useWalkAi();
+  const { switchView } = useBotsson();
 
   const items = [
     {
@@ -102,7 +102,7 @@ function EmmaMenuOverlay({ onClose }: { onClose: () => void }) {
       {/* Menu card — sits below header */}
       <div
         className="border-border bg-card absolute top-[52px] right-3 left-3 z-50 rounded-2xl border p-2.5 shadow-[0_8px_40px_-8px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.04)]"
-        style={{ animation: `walkai-fade-in 120ms ${EASING}` }}
+        style={{ animation: `botsson-fade-in 120ms ${EASING}` }}
         onPointerDown={(e) => e.stopPropagation()}
       >
         <div className="border-border/30 mb-1.5 border-b px-3 pt-1 pb-2">
@@ -160,7 +160,7 @@ function ArenaHeader({
   menuOpen: boolean;
   setMenuOpen: (v: boolean) => void;
 }) {
-  const { collapse, agent, identity, activeView } = useWalkAi();
+  const { collapse, agent, identity, activeView } = useBotsson();
   const personaName = PERSONAS[identity.persona].name;
 
   const statusText = agent.isConnected
@@ -181,7 +181,7 @@ function ArenaHeader({
 
   return (
     <div
-      className="border-border/30 flex animate-[walkai-slide-down_250ms_ease-out_forwards] cursor-grab items-center gap-3 border-b px-4 py-3 opacity-0 active:cursor-grabbing"
+      className="border-border/30 flex animate-[botsson-slide-down_250ms_ease-out_forwards] cursor-grab items-center gap-3 border-b px-4 py-3 opacity-0 active:cursor-grabbing"
       {...dragHandleProps}
     >
       {/* Avatar — click to open Emma menu */}
@@ -219,7 +219,7 @@ function ArenaHeader({
               {[0, 1, 2].map((i) => (
                 <div
                   key={i}
-                  className="bg-brand-orange/60 w-[2px] animate-[walkai-bar_0.8s_ease-in-out_infinite] rounded-full"
+                  className="bg-brand-orange/60 w-[2px] animate-[botsson-bar_0.8s_ease-in-out_infinite] rounded-full"
                   style={{ height: 4 + i * 2, animationDelay: `${i * 0.1}s` }}
                 />
               ))}
@@ -348,7 +348,7 @@ const TOOLS: ToolDef[] = [
 const BLOOM_SPACING = 44;
 
 function ToolsFab() {
-  const { switchView, activeView } = useWalkAi();
+  const { switchView, activeView } = useBotsson();
   const [open, setOpen] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout>>(null);
 
@@ -365,7 +365,7 @@ function ToolsFab() {
       className="absolute bottom-3 left-3 z-20"
       onMouseEnter={handleEnter}
       onMouseLeave={handleLeave}
-      data-walkai-no-drag
+      data-botsson-no-drag
     >
       {TOOLS.map((tool, i) => (
         <button
@@ -398,7 +398,7 @@ function ToolsFab() {
       <button
         onClick={() => setOpen((v) => !v)}
         className={[
-          "relative flex h-10 w-10 animate-[walkai-pop-in_300ms_ease-out_180ms_forwards] items-center justify-center rounded-xl opacity-0 transition-all duration-200",
+          "relative flex h-10 w-10 animate-[botsson-pop-in_300ms_ease-out_180ms_forwards] items-center justify-center rounded-xl opacity-0 transition-all duration-200",
           open
             ? "bg-accent text-foreground rotate-45 shadow-md"
             : "text-muted-foreground/0 hover:text-muted-foreground/50",
@@ -479,7 +479,7 @@ const CONTEXT_ITEMS: ContextDef[] = [
 ];
 
 function ContextFab() {
-  const { switchView, activeView } = useWalkAi();
+  const { switchView, activeView } = useBotsson();
   const [open, setOpen] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout>>(null);
 
@@ -496,7 +496,7 @@ function ContextFab() {
       className="absolute right-3 bottom-3 z-20"
       onMouseEnter={handleEnter}
       onMouseLeave={handleLeave}
-      data-walkai-no-drag
+      data-botsson-no-drag
     >
       {CONTEXT_ITEMS.map((item, i) => (
         <button
@@ -529,7 +529,7 @@ function ContextFab() {
       <button
         onClick={() => setOpen((v) => !v)}
         className={[
-          "relative flex h-10 w-10 animate-[walkai-pop-in_300ms_ease-out_180ms_forwards] items-center justify-center rounded-xl opacity-0 transition-all duration-200",
+          "relative flex h-10 w-10 animate-[botsson-pop-in_300ms_ease-out_180ms_forwards] items-center justify-center rounded-xl opacity-0 transition-all duration-200",
           open
             ? "bg-accent text-foreground rotate-45 shadow-md"
             : "text-muted-foreground/0 hover:text-muted-foreground/50",
@@ -547,7 +547,7 @@ function ContextFab() {
 /* ━━━ Voice controls footer ━━━ */
 
 function VoiceControls() {
-  const { agent, state } = useWalkAi();
+  const { agent, state } = useBotsson();
   const isCompact = state.arenaSize.width < 400;
 
   // Mute = end session (dvala). No inactivity prompts, no "er du fortsatt der?"
@@ -557,7 +557,7 @@ function VoiceControls() {
 
   return (
     <div
-      className="border-border/30 animate-[walkai-slide-up_220ms_ease-out_120ms_forwards] border-t px-3 py-3 opacity-0"
+      className="border-border/30 animate-[botsson-slide-up_220ms_ease-out_120ms_forwards] border-t px-3 py-3 opacity-0"
       onPointerDown={(e) => e.stopPropagation()}
     >
       <div className="flex items-center justify-center gap-3">
@@ -608,7 +608,7 @@ function VoiceControls() {
                 {[0, 1, 2, 3].map((i) => (
                   <div
                     key={i}
-                    className="bg-brand-orange/50 w-[3px] animate-[walkai-bar_0.8s_ease-in-out_infinite] rounded-full"
+                    className="bg-brand-orange/50 w-[3px] animate-[botsson-bar_0.8s_ease-in-out_infinite] rounded-full"
                     style={{ height: 6 + i * 2.5, animationDelay: `${i * 0.08}s` }}
                   />
                 ))}
@@ -679,7 +679,7 @@ function useParticles(count: number, isSpeaking: boolean) {
 }
 
 function VisualizerView() {
-  const { agent, state } = useWalkAi();
+  const { agent, state } = useBotsson();
   const isCompact = state.arenaSize.height < 400;
   const isSpeaking = agent.isSpeaking;
   const isListening = agent.isConnected && agent.status === "listening";
@@ -699,7 +699,7 @@ function VisualizerView() {
   return (
     <div
       className="relative flex h-full flex-col items-center justify-center overflow-hidden"
-      data-walkai-content
+      data-botsson-content
     >
       {/* Ambient idle layer — glitter & skyfall */}
       {isIdle && (
@@ -710,7 +710,7 @@ function VisualizerView() {
             style={{
               background:
                 "linear-gradient(135deg, rgba(255, 140, 50, 0.04) 0%, transparent 40%, rgba(255, 140, 50, 0.02) 70%, transparent 100%)",
-              animation: "walkai-aurora 20s ease-in-out infinite",
+              animation: "botsson-aurora 20s ease-in-out infinite",
             }}
           />
           {/* Particles */}
@@ -730,8 +730,8 @@ function VisualizerView() {
                 "--drift": `${p.drift}px`,
                 animation:
                   p.kind === "glitter"
-                    ? `walkai-glitter ${p.duration}s ease-in-out infinite`
-                    : `walkai-skyfall ${p.duration}s linear infinite`,
+                    ? `botsson-glitter ${p.duration}s ease-in-out infinite`
+                    : `botsson-skyfall ${p.duration}s linear infinite`,
                 animationDelay: `${p.delay}s`,
                 opacity: p.opacity,
               }}
@@ -764,7 +764,7 @@ function VisualizerView() {
                 : "none",
             border: isConnected ? "1px solid rgba(255, 140, 50, 0.08)" : "1px solid var(--border)",
             opacity: isConnected ? 1 : 0.3,
-            animation: isConnected ? "walkai-orb-ring-slow 8s linear infinite" : undefined,
+            animation: isConnected ? "botsson-orb-ring-slow 8s linear infinite" : undefined,
             transition: "opacity 300ms, border-color 300ms",
           }}
           aria-hidden
@@ -785,8 +785,8 @@ function VisualizerView() {
             opacity: isConnected ? 1 : 0.2,
             animation: isConnected
               ? isSpeaking
-                ? "walkai-orb-ring-reverse 5s linear infinite, walkai-orb-speak-pulse 1.2s ease-in-out infinite"
-                : "walkai-orb-ring-reverse 12s linear infinite"
+                ? "botsson-orb-ring-reverse 5s linear infinite, botsson-orb-speak-pulse 1.2s ease-in-out infinite"
+                : "botsson-orb-ring-reverse 12s linear infinite"
               : undefined,
             transition: "opacity 300ms, border-color 300ms",
           }}
@@ -808,7 +808,7 @@ function VisualizerView() {
                   : "none",
             border: isConnected ? "1px solid rgba(255, 140, 50, 0.15)" : "1px solid var(--border)",
             opacity: isConnected ? 1 : 0.15,
-            animation: isListening ? "walkai-orb-listen 3s ease-in-out infinite" : undefined,
+            animation: isListening ? "botsson-orb-listen 3s ease-in-out infinite" : undefined,
             transition: "all 300ms",
           }}
           aria-hidden
@@ -843,7 +843,7 @@ function VisualizerView() {
                   style={{
                     width: isCompact ? 2 : 3,
                     height: isCompact ? 16 : 24,
-                    animation: `walkai-waveform-${(i % 3) + 1} ${0.6 + i * 0.08}s ease-in-out infinite`,
+                    animation: `botsson-waveform-${(i % 3) + 1} ${0.6 + i * 0.08}s ease-in-out infinite`,
                     animationDelay: `${i * 0.05}s`,
                   }}
                 />
@@ -851,7 +851,7 @@ function VisualizerView() {
             </div>
           ) : isThinking ? (
             <div
-              className="bg-brand-orange/40 animate-[walkai-pulse_1.5s_ease-in-out_infinite] rounded-full"
+              className="bg-brand-orange/40 animate-[botsson-pulse_1.5s_ease-in-out_infinite] rounded-full"
               style={{ width: isCompact ? 8 : 12, height: isCompact ? 8 : 12 }}
             />
           ) : isConnected ? (
@@ -884,7 +884,7 @@ function VisualizerView() {
                 // @ts-expect-error -- CSS custom properties for particle animation
                 "--tx": `${p.tx}px`,
                 "--ty": `${p.ty}px`,
-                animation: `walkai-orb-particle ${p.duration}s ease-out infinite`,
+                animation: `botsson-orb-particle ${p.duration}s ease-out infinite`,
                 animationDelay: `${p.delay}s`,
               }}
               aria-hidden
@@ -899,7 +899,7 @@ function VisualizerView() {
               width: innerSize + 8,
               height: innerSize + 8,
               border: "1px dashed rgba(255, 140, 50, 0.2)",
-              animation: "walkai-orb-think 3s ease-in-out infinite",
+              animation: "botsson-orb-think 3s ease-in-out infinite",
             }}
             aria-hidden
           />
@@ -928,7 +928,7 @@ function VisualizerView() {
 
 function ChatView() {
   return (
-    <div className="flex h-full flex-col" data-walkai-content>
+    <div className="flex h-full flex-col" data-botsson-content>
       {/* Section title */}
       <div className="border-border/20 flex items-center justify-between border-b px-4 pt-3 pb-2">
         <div>
@@ -942,7 +942,7 @@ function ChatView() {
 }
 
 function TranscriptPane() {
-  const { agent } = useWalkAi();
+  const { agent } = useBotsson();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -1027,7 +1027,7 @@ function TranscriptPane() {
           </div>
           <div className="bg-card/50 border-border/20 text-foreground/50 max-w-[78%] rounded-2xl rounded-bl-md border px-3.5 py-2.5 text-[13px] leading-relaxed">
             {agent.currentText}
-            <span className="bg-brand-orange/40 ml-1 inline-block h-3.5 w-1.5 animate-[walkai-pulse_1s_ease-in-out_infinite] rounded-sm" />
+            <span className="bg-brand-orange/40 ml-1 inline-block h-3.5 w-1.5 animate-[botsson-pulse_1s_ease-in-out_infinite] rounded-sm" />
           </div>
         </div>
       )}
@@ -1038,7 +1038,7 @@ function TranscriptPane() {
 /* ━━━ View: Notepad — multi-note with sidebar, always writable ━━━ */
 
 function NotepadView() {
-  const { notes, activeNote, activeNoteId, setActiveNote, updateNote, createNote } = useWalkAi();
+  const { notes, activeNote, activeNoteId, setActiveNote, updateNote, createNote } = useBotsson();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isEditing, setIsEditing] = useState(true);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -1074,7 +1074,7 @@ function NotepadView() {
     return (
       <div
         className="flex h-full flex-col items-center justify-center gap-4 px-6"
-        data-walkai-content
+        data-botsson-content
       >
         {/* Section title */}
         <div className="absolute top-3 left-4">
@@ -1082,7 +1082,7 @@ function NotepadView() {
             Notater
           </h3>
         </div>
-        <div className="flex animate-[walkai-fade-in_300ms_ease-out_forwards] flex-col items-center gap-2 opacity-0">
+        <div className="flex animate-[botsson-fade-in_300ms_ease-out_forwards] flex-col items-center gap-2 opacity-0">
           <svg
             width="32"
             height="32"
@@ -1111,7 +1111,7 @@ function NotepadView() {
             createNote("Notat", "");
             setIsEditing(true);
           }}
-          className="bg-brand-orange/10 text-brand-orange hover:bg-brand-orange/15 flex animate-[walkai-fade-in_300ms_ease-out_100ms_forwards] items-center gap-2 rounded-xl px-5 py-3 text-sm font-medium opacity-0 transition-colors"
+          className="bg-brand-orange/10 text-brand-orange hover:bg-brand-orange/15 flex animate-[botsson-fade-in_300ms_ease-out_100ms_forwards] items-center gap-2 rounded-xl px-5 py-3 text-sm font-medium opacity-0 transition-colors"
         >
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
             <path
@@ -1128,7 +1128,7 @@ function NotepadView() {
   }
 
   return (
-    <div className="flex h-full" data-walkai-content>
+    <div className="flex h-full" data-botsson-content>
       {/* Section title */}
       <div className="absolute top-1 left-4 z-10">
         <h3 className="text-muted-foreground/30 text-[10px] font-semibold tracking-wider uppercase">
@@ -1614,7 +1614,7 @@ function CalculatorView() {
   };
 
   return (
-    <div className="relative flex h-full flex-col px-4 py-3" data-walkai-content>
+    <div className="relative flex h-full flex-col px-4 py-3" data-botsson-content>
       {/* Section title */}
       <div className="mb-2">
         <h3 className="text-muted-foreground/40 text-xs font-semibold tracking-wider uppercase">
@@ -1623,7 +1623,7 @@ function CalculatorView() {
       </div>
 
       {/* Display */}
-      <div className="bg-accent/20 mb-3 animate-[walkai-fade-in_200ms_ease-out_forwards] rounded-xl px-4 py-3 opacity-0">
+      <div className="bg-accent/20 mb-3 animate-[botsson-fade-in_200ms_ease-out_forwards] rounded-xl px-4 py-3 opacity-0">
         {expression && (
           <p className="text-muted-foreground/40 mb-0.5 truncate text-right font-mono text-[11px]">
             {expression}
@@ -1635,7 +1635,7 @@ function CalculatorView() {
       </div>
 
       {/* Button grid */}
-      <div className="grid max-h-[280px] flex-1 animate-[walkai-fade-in_250ms_ease-out_80ms_forwards] grid-cols-4 gap-1.5 opacity-0">
+      <div className="grid max-h-[280px] flex-1 animate-[botsson-fade-in_250ms_ease-out_80ms_forwards] grid-cols-4 gap-1.5 opacity-0">
         {buttons.map((btn) => (
           <button
             key={btn.label}
@@ -1653,13 +1653,13 @@ function CalculatorView() {
   );
 }
 
-/* ━━━ View: Settings — Emma's profile (same as WalkAi page) ━━━ */
+/* ━━━ View: Settings — Emma's profile (same as Botsson page) ━━━ */
 
 function SettingsView() {
-  const { switchView } = useWalkAi();
+  const { switchView } = useBotsson();
 
   return (
-    <div className="flex h-full flex-col" data-walkai-content>
+    <div className="flex h-full flex-col" data-botsson-content>
       {/* Fixed header with close button */}
       <div className="border-border/20 flex items-center justify-between border-b px-5 pt-3 pb-2">
         <div>
@@ -1695,7 +1695,7 @@ function SettingsView() {
 /* ━━━ View: Tasks & Reminders — with manual task creation ━━━ */
 
 function TasksView() {
-  const { tasks, completeTask, scheduleTask, updateTask, reorderTask } = useWalkAi();
+  const { tasks, completeTask, scheduleTask, updateTask, reorderTask } = useBotsson();
   const [newTitle, setNewTitle] = useState("");
   const [showInput, setShowInput] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -1808,7 +1808,7 @@ function TasksView() {
   );
 
   return (
-    <div className="flex h-full flex-col" data-walkai-content>
+    <div className="flex h-full flex-col" data-botsson-content>
       {/* Section header */}
       <div className="flex items-center justify-between px-4 pt-3 pb-2">
         <div>
@@ -1837,7 +1837,7 @@ function TasksView() {
 
       <div className="flex-1 space-y-1 overflow-y-auto px-4 pb-3">
         {pending.length === 0 && done.length === 0 && !showInput ? (
-          <div className="flex h-full animate-[walkai-fade-in_300ms_ease-out_forwards] flex-col items-center justify-center gap-4 opacity-0">
+          <div className="flex h-full animate-[botsson-fade-in_300ms_ease-out_forwards] flex-col items-center justify-center gap-4 opacity-0">
             <div className="relative">
               <div className="bg-brand-orange/5 absolute inset-0 rounded-full blur-xl" />
               <div className="bg-accent/30 border-border/20 relative flex h-14 w-14 items-center justify-center rounded-2xl border">
@@ -1902,7 +1902,7 @@ function TasksView() {
           <>
             {/* Add task input area */}
             {showInput && (
-              <div className="border-brand-orange/20 bg-brand-orange/5 mb-3 animate-[walkai-fade-in_150ms_ease-out_forwards] rounded-xl border p-3.5 opacity-0">
+              <div className="border-brand-orange/20 bg-brand-orange/5 mb-3 animate-[botsson-fade-in_150ms_ease-out_forwards] rounded-xl border p-3.5 opacity-0">
                 <input
                   ref={inputRef}
                   value={newTitle}
@@ -1950,7 +1950,7 @@ function TasksView() {
                     onDragEnd={handleDragEnd}
                     className={[
                       "group border-border/20 bg-card/50 hover:border-brand-orange/20 hover:bg-brand-orange/[0.03]",
-                      "relative flex w-full animate-[walkai-fade-in_200ms_ease-out_forwards] items-start gap-3",
+                      "relative flex w-full animate-[botsson-fade-in_200ms_ease-out_forwards] items-start gap-3",
                       "overflow-hidden rounded-xl border px-3.5 py-3 text-left opacity-0 transition-all duration-150",
                       dragId === task.id && "opacity-40",
                       dragOverId === task.id &&
@@ -2100,7 +2100,7 @@ function FormView() {
   return (
     <div
       className="text-muted-foreground/20 flex h-full items-center justify-center text-xs"
-      data-walkai-content
+      data-botsson-content
     >
       Skjema
     </div>
@@ -2110,7 +2110,7 @@ function VideoView() {
   return (
     <div
       className="text-muted-foreground/20 flex h-full items-center justify-center text-xs"
-      data-walkai-content
+      data-botsson-content
     >
       Video
     </div>
@@ -2120,7 +2120,7 @@ function LogView() {
   return (
     <div
       className="text-muted-foreground/20 flex h-full items-center justify-center text-xs"
-      data-walkai-content
+      data-botsson-content
     >
       Logg
     </div>
@@ -2130,7 +2130,7 @@ function MemoryView() {
   return (
     <div
       className="text-muted-foreground/20 flex h-full items-center justify-center text-xs"
-      data-walkai-content
+      data-botsson-content
     >
       Minne
     </div>
@@ -2140,7 +2140,7 @@ function HistoryView() {
   return (
     <div
       className="text-muted-foreground/20 flex h-full items-center justify-center text-xs"
-      data-walkai-content
+      data-botsson-content
     >
       Historikk
     </div>
@@ -2166,7 +2166,7 @@ const VIEW_COMPONENTS: Record<ContentViewType, React.ComponentType> = {
 /* ━━━ Resize handles — visible grip indicators ━━━ */
 
 function ResizeHandles() {
-  const { setArenaSize, setResizing, state } = useWalkAi();
+  const { setArenaSize, setResizing, state } = useBotsson();
   const resizeState = useRef({ startX: 0, startY: 0, startW: 0, startH: 0, edge: "" });
 
   const handleResizeStart = useCallback(
@@ -2277,9 +2277,9 @@ function ResizeHandles() {
 
 /* ━━━ Arena ━━━ */
 
-export function WalkAiArena({ dragHandleProps }: { dragHandleProps?: DragHandleProps }) {
+export function BotssonArena({ dragHandleProps }: { dragHandleProps?: DragHandleProps }) {
   const { activeView, state, setArenaSize, setPosition, preSettingsSize, setPreSettingsSize } =
-    useWalkAi();
+    useBotsson();
   const ViewComponent = VIEW_COMPONENTS[activeView];
   const isArena = state.density === "arena";
   const _isSettings = activeView === "settings";
@@ -2318,7 +2318,7 @@ export function WalkAiArena({ dragHandleProps }: { dragHandleProps?: DragHandleP
         menuOpen={menuOpen}
         setMenuOpen={setMenuOpen}
       />
-      <div className="relative z-0 min-h-0 flex-1 animate-[walkai-scale-up_280ms_ease-out_60ms_forwards] opacity-0">
+      <div className="relative z-0 min-h-0 flex-1 animate-[botsson-scale-up_280ms_ease-out_60ms_forwards] opacity-0">
         <ViewComponent />
       </div>
       <VoiceControls />

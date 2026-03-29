@@ -6,7 +6,7 @@ export const MissionIdSchema = z.enum([
   "mr-botsson",
   "haccp-inspector",
   "shift-assistant",
-  "walkai-session",
+  "botsson-session",
 ]);
 export type MissionId = z.infer<typeof MissionIdSchema>;
 
