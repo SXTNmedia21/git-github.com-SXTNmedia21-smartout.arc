@@ -33,7 +33,10 @@ export type EventCategory =
   | "navigation"
   | "channels"
   | "agent"
-  | "telegram";
+  | "telegram"
+  | "wizard"
+  | "security"
+  | "enrichment";
 
 // ─── Entity Reference (for robust UI audit trails) ─
 export interface EntityRef {
@@ -166,12 +169,20 @@ export type ActionVerb =
   | "no_show_escalated"
   | "confirmed"
   | "granted"
-  | "revoked";
+  | "revoked"
+  | "entered"
+  | "abandoned"
+  | "missed"
+  | "corrected"
+  | "rate_limited"
+  | "lockout_triggered"
+  | "sandbox_blocked";
 
 // ─── Auth Module Events ─────────────────────────
 export interface AuthSignedUp extends BaseEvent {
   event: "auth signed_up";
-  properties: { method: "email" | "google" | "invite_link" };
+  // silent: true when the user is already authenticated (e.g., via invite link) and no explicit sign-up action occurred
+  properties: { method: "email" | "google" | "invite_link"; silent?: boolean };
 }
 
 export interface AuthSignedIn extends BaseEvent {
@@ -182,6 +193,26 @@ export interface AuthSignedIn extends BaseEvent {
 export interface AuthSignedOut extends BaseEvent {
   event: "auth signed_out";
   properties: Record<string, never>;
+}
+
+export interface AuthOtpSent extends BaseEvent {
+  event: "auth otp_sent";
+  properties: { data: { context: "workspace_entry" | "login" } };
+}
+
+export interface AuthOtpVerified extends BaseEvent {
+  event: "auth otp_verified";
+  properties: { data: { attempts: number; duration_ms: number } };
+}
+
+export interface AuthOtpFailed extends BaseEvent {
+  event: "auth otp_failed";
+  properties: { data: { reason: "expired" | "wrong_code" | "max_attempts" } };
+}
+
+export interface AuthLoggedIn extends BaseEvent {
+  event: "auth logged_in";
+  properties: { data: { method: "password" | "otp" | "google" } };
 }
 
 // ─── Navigation / UI Rules ──────────────────────
@@ -2159,6 +2190,50 @@ export interface TelegramBridgeMessageRelayed extends BaseEvent {
   properties: { data: { direction: "smartout_to_telegram" | "telegram_to_smartout" } };
 }
 
+// ─── Security Events ────────────────────────────
+export interface SecurityRateLimited extends BaseEvent {
+  event: "security rate_limited";
+  properties: { data: { endpoint: string; ip_hash: string; identifier: string; count: number } };
+}
+
+export interface SecurityLockoutTriggered extends BaseEvent {
+  event: "security lockout_triggered";
+  properties: { data: { method: string; attempts: number } };
+}
+
+export interface SecuritySandboxBlocked extends BaseEvent {
+  event: "security sandbox_blocked";
+  properties: { data: { action: string; workspace_id: string } };
+}
+
+export interface WorkspaceAbandoned extends BaseEvent {
+  event: "workspace abandoned";
+  properties: { data: { workspace_id: string; created_at: string; last_step: string } };
+}
+
+// ─── Enrichment Events ──────────────────────────
+export interface EnrichmentRequested extends BaseEvent {
+  event: "enrichment requested";
+  properties: { data: { source: "brreg" | "scraping"; org_number: string } };
+}
+
+export interface EnrichmentHit extends BaseEvent {
+  event: "enrichment hit";
+  properties: {
+    data: { source: "brreg" | "scraping"; fields_populated: number; fields_total: number };
+  };
+}
+
+export interface EnrichmentMissed extends BaseEvent {
+  event: "enrichment missed";
+  properties: { data: { source: "brreg" | "scraping"; reason: string } };
+}
+
+export interface EnrichmentCorrected extends BaseEvent {
+  event: "enrichment corrected";
+  properties: { data: { field_name: string; was_auto: boolean } };
+}
+
 // ─── The Single Truth Union ─────────────────────
 // Add every feature's events here. If it isn't here, it can't be emitted.
 export type SmartoutEvent =
@@ -2399,7 +2474,19 @@ export type SmartoutEvent =
   | TelegramBridgeMessageRelayed
   | SessionTaskCreated
   | SessionTaskAssigned
-  | CommunicationBroadcastSent;
+  | CommunicationBroadcastSent
+  | AuthOtpSent
+  | AuthOtpVerified
+  | AuthOtpFailed
+  | AuthLoggedIn
+  | SecurityRateLimited
+  | SecurityLockoutTriggered
+  | SecuritySandboxBlocked
+  | WorkspaceAbandoned
+  | EnrichmentRequested
+  | EnrichmentHit
+  | EnrichmentMissed
+  | EnrichmentCorrected;
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -3320,4 +3407,25 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["activity_trail", "posthog"],
     category: "communication",
   },
+  // ─── Auth OTP ─────────────────────────────────
+  "auth otp_sent": { destinations: ["posthog", "logger"], category: "auth" },
+  "auth otp_verified": { destinations: ["posthog", "logger"], category: "auth" },
+  "auth otp_failed": { destinations: ["posthog", "logger"], category: "auth" },
+  "auth logged_in": { destinations: ["posthog", "logger"], category: "auth" },
+  // ─── Security ─────────────────────────────────
+  "security rate_limited": { destinations: ["logger", "activity_trail"], category: "security" },
+  "security lockout_triggered": {
+    destinations: ["logger", "activity_trail"],
+    category: "security",
+  },
+  "security sandbox_blocked": { destinations: ["logger", "activity_trail"], category: "security" },
+  "workspace abandoned": {
+    destinations: ["logger", "activity_trail", "engine_event"],
+    category: "security",
+  },
+  // ─── Enrichment ────────────────────────────────
+  "enrichment requested": { destinations: ["posthog", "logger"], category: "enrichment" },
+  "enrichment hit": { destinations: ["posthog", "logger"], category: "enrichment" },
+  "enrichment missed": { destinations: ["posthog", "logger"], category: "enrichment" },
+  "enrichment corrected": { destinations: ["posthog", "logger"], category: "enrichment" },
 };

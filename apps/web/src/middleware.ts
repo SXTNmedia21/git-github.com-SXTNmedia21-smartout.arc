@@ -18,6 +18,17 @@ const PUBLIC_ROUTES = new Set([
   "/api/auth/callback",
 ]);
 
+// Routes blocked for sandbox workspaces — features that require a verified/active workspace.
+// Integrations, API key management, team invitations, data export, and the onboarding agent
+// are gated until the workspace is promoted out of sandbox status.
+const SANDBOX_BLOCKED_ROUTES = new Set([
+  "/dashboard/settings/integrations",
+  "/dashboard/settings/api-keys",
+  "/dashboard/team/invite",
+  "/dashboard/export",
+  "/api/onboarding-agent",
+]);
+
 function isPublicRoute(pathname: string): boolean {
   if (PUBLIC_ROUTES.has(pathname)) return true;
   for (const route of PUBLIC_ROUTES) {
@@ -33,6 +44,9 @@ type GodmodeCacheEntry = {
 
 const GODMODE_CACHE_TTL_MS = 30_000;
 const godmodeCache = new Map<string, GodmodeCacheEntry>();
+
+const SANDBOX_CACHE = new Map<string, { result: boolean; timestamp: number }>();
+const SANDBOX_CACHE_TTL_MS = 30_000;
 const SHOWCASE_COOKIE = "smartout_showcase";
 const SHOWCASE_COOKIE_AGE_SECONDS = 4 * 60 * 60;
 
@@ -76,6 +90,28 @@ async function getCachedGodmodeStatus(
   const isGodmode = Boolean(data?.is_godmode);
   godmodeCache.set(userId, { isGodmode, expiresAt: now + GODMODE_CACHE_TTL_MS });
   return isGodmode;
+}
+
+/**
+ * Returns whether the given workspace slug is in sandbox status.
+ * Cached for 30 seconds to avoid a DB hit on every request.
+ * Sandbox workspaces have restricted access to production-tier features
+ * (integrations, API keys, invitations, export) until they are verified.
+ */
+async function checkWorkspaceSandbox(
+  adminClient: { from: (table: string) => ReturnType<ReturnType<typeof createClient>["from"]> },
+  slug: string,
+): Promise<boolean> {
+  const cached = SANDBOX_CACHE.get(slug);
+  if (cached && Date.now() - cached.timestamp < SANDBOX_CACHE_TTL_MS) {
+    return cached.result;
+  }
+
+  const { data } = await adminClient.from("workspace").select("status").eq("slug", slug).single();
+
+  const isSandbox = data?.status === "sandbox";
+  SANDBOX_CACHE.set(slug, { result: isSandbox, timestamp: Date.now() });
+  return isSandbox;
 }
 
 /**
@@ -229,6 +265,29 @@ export async function middleware(request: NextRequest): Promise<Response> {
     // Set workspace slug header for downstream consumption
     response.headers.set("x-workspace-slug", slug);
 
+    // Sandbox enforcement — block restricted routes for unverified workspaces.
+    // Runs before the root redirect so a sandboxed workspace hitting /dashboard/settings/api-keys
+    // is bounced back to /dashboard rather than allowed through.
+    if (sessionUser && pathname.startsWith("/dashboard")) {
+      const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      if (serviceRoleKey) {
+        const adminClient = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, serviceRoleKey);
+        const isSandbox = await checkWorkspaceSandbox(adminClient, slug);
+
+        if (isSandbox) {
+          const isBlocked = [...SANDBOX_BLOCKED_ROUTES].some((route) => pathname.startsWith(route));
+
+          if (isBlocked) {
+            const redir = NextResponse.redirect(new URL("/dashboard", request.url));
+            copySessionCookies(response, redir);
+            redir.headers.set("x-workspace-slug", slug);
+            applyShowcaseMode(request, redir);
+            return redir;
+          }
+        }
+      }
+    }
+
     // Root of workspace subdomain → redirect to dashboard
     if (request.nextUrl.pathname === "/") {
       const redir = NextResponse.redirect(new URL("/dashboard", request.url));
@@ -304,6 +363,11 @@ async function handleLegacyRouting(request: NextRequest): Promise<Response> {
 
   // Single admin client
   const adminClient = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, serviceRoleKey);
+
+  // NOTE: Sandbox route enforcement is intentionally skipped in legacy (local dev) routing.
+  // In local dev there is no subdomain slug available in middleware, so sandbox enforcement
+  // is handled at the layout level via the VerificationGate component instead.
+
   // Platform-admin protection
   if (needsAdminGate) {
     const isGodmode = await getCachedGodmodeStatus(adminClient, sessionUser.id);

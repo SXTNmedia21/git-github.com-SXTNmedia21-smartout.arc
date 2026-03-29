@@ -10,6 +10,9 @@ export const step1Schema = z.object({
   city: z.string().min(2, "Påkrevd"),
   /** websiteUrl lives on Step4 UI but is stored on account state for intelligence pipeline */
   websiteUrl: z.string().optional(),
+  // NOTE: password fields are NOT part of persisted state validation —
+  // they live as local component state and are validated inline.
+  // The schema only covers what gets written to wizard state (account substate).
 });
 
 export const step2Schema = z.object({

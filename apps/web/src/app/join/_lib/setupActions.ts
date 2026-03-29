@@ -182,6 +182,11 @@ export async function completeSignup(data: SignupSetupData, accessToken?: string
       phone: data.step4.phone,
       email: user.email,
       intelligence_data: mergedIntelligence as Json,
+      // New workspaces always start in sandbox until email is verified.
+      // The sandbox cleanup cron (Edge Function) removes workspaces that
+      // miss the 48-hour deadline without completing verification.
+      status: "sandbox" as const,
+      verification_deadline: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
     })
     .eq("workspace_id", workspace.workspace_id);
 
