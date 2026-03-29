@@ -6,7 +6,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { createClient } from "@smartout/supabase/client";
-import { cn } from "@smartout/ui/lib/utils";
+import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "@smartout/i18n";
 import { emit } from "@smartout/telemetry";

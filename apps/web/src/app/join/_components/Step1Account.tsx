@@ -95,7 +95,8 @@ export function Step1Account({ state, updateState, attempted, t }: WizardStepPro
       // "User already registered" covers exact-match conflicts.
       const isExistingUser =
         signUpError.message.toLowerCase().includes("already registered") ||
-        (signUpData?.user && signUpData.user.identities?.length === 0);
+        (signUpData as { user?: { identities?: unknown[] } | null })?.user?.identities?.length ===
+          0;
 
       if (isExistingUser) {
         const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({

@@ -6,7 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@smartout/supabase/client";
-import { cn } from "@smartout/ui/lib/utils";
+import { cn } from "@/lib/utils";
 import { OtpVerificationForm } from "@/components/auth/OtpVerificationForm";
 
 /* ─────────────────────────────────────────────────────
