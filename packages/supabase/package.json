@@ -39,7 +39,7 @@
     }
   },
   "scripts": {
-    "build": "npx tsc",
+    "build": "echo 'exports raw .ts — compiled by consuming app'",
     "lint": "eslint src/",
     "typecheck": "npx tsc --noEmit",
     "clean": "rimraf dist .turbo"
