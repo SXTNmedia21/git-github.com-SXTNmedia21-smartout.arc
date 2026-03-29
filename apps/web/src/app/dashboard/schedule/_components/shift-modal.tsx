@@ -863,7 +863,7 @@ export function ShiftModal() {
                           id="startTime"
                           type="time"
                           value={form.startTime}
-                          className="bg-background/80 border-border/60 h-10 rounded-xl pr-8 font-medium [color-scheme:light] shadow-sm transition-all focus:ring-2 focus:ring-emerald-500/20 dark:[color-scheme:dark]"
+                          className="bg-background/80 border-border/60 h-10 rounded-xl pr-8 font-medium shadow-sm transition-all focus:ring-2 focus:ring-emerald-500/20"
                           onChange={(e) => handleStartTimeChange(e.target.value)}
                         />
                         <DropdownMenu>
@@ -917,7 +917,7 @@ export function ShiftModal() {
                           id="endTime"
                           type="time"
                           value={form.endTime}
-                          className="bg-background/80 border-border/60 h-10 rounded-xl pr-8 font-medium [color-scheme:light] shadow-sm transition-all focus:ring-2 focus:ring-emerald-500/20 dark:[color-scheme:dark]"
+                          className="bg-background/80 border-border/60 h-10 rounded-xl pr-8 font-medium shadow-sm transition-all focus:ring-2 focus:ring-emerald-500/20"
                           onChange={(e) => updateField("endTime", e.target.value)}
                         />
                         <DropdownMenu>

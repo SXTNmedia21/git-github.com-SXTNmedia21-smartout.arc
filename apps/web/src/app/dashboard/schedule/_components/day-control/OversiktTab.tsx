@@ -51,30 +51,6 @@ export function OversiktTab({ dateId }: { dateId: string | null }) {
   const [dutyManagers, setDutyManagers] = useState("");
   const [dutyLeaderId, setDutyLeaderId] = useState<string | null>(null);
 
-  // Load active session's duty leader
-  const { data: activeSession } = useQuery({
-    queryKey: ["active-session-duty", departmentId, dateId],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("department_session")
-        .select("department_session_id, duty_leader_id, opened_by")
-        .eq("department_id", departmentId!)
-        .eq("session_date", dateId!)
-        .in("status", ["active", "upcoming"])
-        .limit(1)
-        .maybeSingle();
-      return data;
-    },
-    enabled: !!departmentId && !!dateId,
-  });
-
-  // Sync duty leader from DB
-  useEffect(() => {
-    if (activeSession) {
-      setDutyLeaderId(activeSession.duty_leader_id ?? activeSession.opened_by);
-    }
-  }, [activeSession]);
-
   // Hours override popover
   const [showOverridePopover, setShowOverridePopover] = useState(false);
 
@@ -97,6 +73,29 @@ export function OversiktTab({ dateId }: { dateId: string | null }) {
     enabled: !!wsId,
   });
   const departmentId = departments?.[0]?.department_id;
+
+  // Load active session's duty leader
+  const { data: activeSession } = useQuery({
+    queryKey: ["active-session-duty", departmentId, dateId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("department_session")
+        .select("department_session_id, duty_leader_id, opened_by")
+        .eq("department_id", departmentId!)
+        .eq("session_date", dateId!)
+        .in("status", ["active", "upcoming"])
+        .limit(1)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!departmentId && !!dateId,
+  });
+
+  useEffect(() => {
+    if (activeSession) {
+      setDutyLeaderId(activeSession.duty_leader_id ?? activeSession.opened_by);
+    }
+  }, [activeSession]);
 
   const plannedHours = usePlannedHours(departmentId, dateId);
 
