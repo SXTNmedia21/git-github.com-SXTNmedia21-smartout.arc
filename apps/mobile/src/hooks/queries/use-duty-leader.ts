@@ -26,7 +26,7 @@ export function useDutyLeader(departmentId: string | null, workspaceId: string |
       // Find active session for this department
       const { data: session } = await supabase
         .from("department_session")
-        .select("opened_by")
+        .select("duty_leader_id, opened_by")
         .eq("department_id", departmentId)
         .eq("workspace_id", workspaceId)
         .eq("status", "active")
@@ -36,7 +36,7 @@ export function useDutyLeader(departmentId: string | null, workspaceId: string |
 
       if (!session) return null;
 
-      const leaderId = session.opened_by;
+      const leaderId = session.duty_leader_id ?? session.opened_by;
       if (!leaderId) return null;
 
       // Get leader profile + phone from user_identity
