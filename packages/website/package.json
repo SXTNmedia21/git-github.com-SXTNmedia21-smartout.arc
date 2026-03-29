@@ -11,7 +11,7 @@
     "./validation": "./src/validation/snapshot.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "typecheck": "npx tsc --noEmit",
     "clean": "rimraf dist .turbo"
   },
   "dependencies": {
