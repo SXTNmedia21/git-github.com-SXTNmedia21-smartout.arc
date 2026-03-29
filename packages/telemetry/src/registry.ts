@@ -516,6 +516,29 @@ export interface SessionTaskCompleted extends BaseEvent {
   };
 }
 
+export interface SessionTaskCreated extends BaseEvent {
+  event: "session_task.created";
+  properties: {
+    entity: EntityRef;
+    metadata: { source: string };
+  };
+}
+
+export interface SessionTaskAssigned extends BaseEvent {
+  event: "session_task.assigned";
+  properties: {
+    entity: EntityRef;
+    metadata: { source: string; assigned_to: string };
+  };
+}
+
+export interface CommunicationBroadcastSent extends BaseEvent {
+  event: "communication.broadcast_sent";
+  properties: {
+    metadata: { source: string; recipient_count: number; channel_id: string };
+  };
+}
+
 // ─── HMS: Deviations ────────────────────────────
 export interface DeviationReported extends BaseEvent {
   event: "deviation reported";
@@ -2373,7 +2396,10 @@ export type SmartoutEvent =
   | TelegramPollResolved
   | TelegramBridgeOpened
   | TelegramBridgeClosed
-  | TelegramBridgeMessageRelayed;
+  | TelegramBridgeMessageRelayed
+  | SessionTaskCreated
+  | SessionTaskAssigned
+  | CommunicationBroadcastSent;
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -3281,5 +3307,17 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "telegram bridge_message_relayed": {
     destinations: ["logger"],
     category: "telegram",
+  },
+  "session_task.created": {
+    destinations: ["activity_trail", "engine_event", "posthog"],
+    category: "operations",
+  },
+  "session_task.assigned": {
+    destinations: ["activity_trail", "engine_event", "posthog"],
+    category: "operations",
+  },
+  "communication.broadcast_sent": {
+    destinations: ["activity_trail", "posthog"],
+    category: "communication",
   },
 };
