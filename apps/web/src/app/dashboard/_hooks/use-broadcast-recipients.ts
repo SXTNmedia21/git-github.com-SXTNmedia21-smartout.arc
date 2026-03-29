@@ -47,7 +47,8 @@ export function useBroadcastRecipients(group: RecipientGroup) {
 
         return (data ?? []).map((r) => ({
           profile_id: r.profile_id,
-          display_name: (r.profile as { display_name: string | null } | null)?.display_name ?? null,
+          display_name:
+            (r.profile as unknown as { display_name: string | null } | null)?.display_name ?? null,
         }));
       }
 
@@ -55,7 +56,7 @@ export function useBroadcastRecipients(group: RecipientGroup) {
         // Scheduled for today but not yet clocked in
         const { data, error } = await supabase
           .from("schedule_shift")
-          .select("employee_id, profile:profile!inner(display_name)")
+          .select("employee_id, profile:employee_id(display_name)")
           .eq("shift_date", today)
           .eq("status", "published")
           .not("employee_id", "is", null)
@@ -79,24 +80,26 @@ export function useBroadcastRecipients(group: RecipientGroup) {
           .map((r) => ({
             profile_id: r.employee_id as string,
             display_name:
-              (r.profile as { display_name: string | null } | null)?.display_name ?? null,
+              (r.profile as unknown as { display_name: string | null } | null)?.display_name ??
+              null,
           }));
       }
 
       // yesterday group — anyone who clocked out yesterday
-      const { data, error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
         .schema("timesheet")
         .from("time_entry")
-        .select("profile_id, profile:profile!inner(display_name)")
+        .select("profile_id")
         .gte("punch_out", `${yesterday}T00:00:00`)
         .lt("punch_out", `${today}T00:00:00`)
         .limit(50);
 
       if (error) throw error;
 
-      return (data ?? []).map((r) => ({
+      return ((data ?? []) as Array<{ profile_id: string }>).map((r) => ({
         profile_id: r.profile_id,
-        display_name: (r.profile as { display_name: string | null } | null)?.display_name ?? null,
+        display_name: null as string | null,
       }));
     },
   });

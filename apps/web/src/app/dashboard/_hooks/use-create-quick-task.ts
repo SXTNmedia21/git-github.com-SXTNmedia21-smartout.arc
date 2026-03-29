@@ -35,9 +35,9 @@ export function useCreateQuickTask() {
           title: input.title,
           assigned_to: input.assigned_to ?? null,
           due_at: input.due_date ?? null,
-          task_status: "pending",
+          status: "pending",
         })
-        .select("session_task_id")
+        .select("id")
         .single();
 
       if (error) throw error;
@@ -51,7 +51,7 @@ export function useCreateQuickTask() {
         properties: {
           entity: {
             entity_type: "session_task",
-            entity_id: data.session_task_id,
+            entity_id: data.id,
             entity_label: input.title,
           },
           metadata: { source: "dashboard_inline" },
