@@ -19,7 +19,7 @@ import { DevAutoFill } from "./DevAutoFill";
 
 type AccountMode = "checking" | "signup" | "signin";
 
-export function Step6CreateAccount({ state, next, t }: WizardStepProps<JoinState>) {
+export function Step6CreateAccount({ state, updateState, next, t }: WizardStepProps<JoinState>) {
   const email = state.account.email ?? "";
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
