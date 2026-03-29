@@ -19,7 +19,7 @@ import { DevAutoFill } from "./DevAutoFill";
 
 type AccountMode = "checking" | "signup" | "signin";
 
-export function Step6CreateAccount({ state, next, t }: WizardStepProps<JoinState>) {
+export function Step6CreateAccount({ state, updateState, next, t }: WizardStepProps<JoinState>) {
   const email = state.account.email ?? "";
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -113,22 +113,12 @@ export function Step6CreateAccount({ state, next, t }: WizardStepProps<JoinState
         }
       }
 
-      // Wait for auth session to be fully established in cookies
-      // before calling the server action (which reads cookies).
-      const { data: session } = await supabase.auth.getSession();
-      if (!session?.session) {
-        // Session not ready yet — poll briefly
-        await new Promise<void>((resolve) => {
-          let attempts = 0;
-          const poll = setInterval(async () => {
-            attempts++;
-            const { data } = await supabase.auth.getSession();
-            if (data?.session || attempts > 10) {
-              clearInterval(poll);
-              resolve();
-            }
-          }, 200);
-        });
+      // Store access token in wizard state — cookies may not be available
+      // to the server action in the same request cycle after signup.
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (token) {
+        updateState({ _accessToken: token } as Partial<JoinState>);
       }
 
       await next();

@@ -99,7 +99,8 @@ async function onComplete(state: JoinState): Promise<void> {
     intelligence: state.intelligence,
   };
 
-  const result = await completeSignup(setupData);
+  const accessToken = (state as Record<string, unknown>)._accessToken as string | undefined;
+  const result = await completeSignup(setupData, accessToken);
 
   // Clear localStorage after successful signup
   try {

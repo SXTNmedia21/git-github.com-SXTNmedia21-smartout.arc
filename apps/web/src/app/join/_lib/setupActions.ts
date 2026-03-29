@@ -96,14 +96,24 @@ async function findExistingWorkspace(
  *
  * @returns The workspace shell identity used for the `/onboarding` handoff
  */
-export async function completeSignup(data: SignupSetupData) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
-
+export async function completeSignup(data: SignupSetupData, accessToken?: string) {
   const admin = createAdminClient();
+
+  // Try cookie-based auth first, fall back to token passed from client.
+  // Why: after signUp(), cookies may not be available to the server action
+  // in the same request cycle — the browser hasn't sent them yet.
+  let user: { id: string; email?: string } | null = null;
+
+  const supabase = await createClient();
+  const { data: cookieAuth } = await supabase.auth.getUser();
+  user = cookieAuth?.user ?? null;
+
+  if (!user && accessToken) {
+    const { data: tokenAuth } = await admin.auth.getUser(accessToken);
+    user = tokenAuth?.user ?? null;
+  }
+
+  if (!user) throw new Error("Not authenticated");
 
   // ── Check for existing onboarding workspace to reuse ──────────
   // If the user already has a workspace in onboarding state, reuse it.
