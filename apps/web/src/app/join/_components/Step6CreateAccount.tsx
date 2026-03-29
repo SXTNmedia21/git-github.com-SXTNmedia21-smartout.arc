@@ -223,7 +223,7 @@ export function Step6CreateAccount({ state, updateState, next, t }: WizardStepPr
               onClick={async () => {
                 const supabase = createClient();
                 const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-                  redirectTo: `${window.location.origin}/auth/reset-password`,
+                  redirectTo: `${window.location.origin}/reset-password`,
                 });
                 if (resetError) {
                   setError(resetError.message);

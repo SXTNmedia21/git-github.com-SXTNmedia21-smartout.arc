@@ -7,7 +7,16 @@ import { extractSubdomain } from "@/lib/subdomain";
 // Routes that never require authentication — skip updateSession() entirely
 // to avoid triggering token refresh (and 429 storms) on unauthenticated hits.
 // /login is the auth entrypoint; /api/* health routes must be reachable without sessions.
-const PUBLIC_ROUTES = new Set(["/login", "/api/smoke", "/api/health", "/api/auth/callback"]);
+const PUBLIC_ROUTES = new Set([
+  "/login",
+  "/signup",
+  "/join",
+  "/join-complete",
+  "/reset-password",
+  "/api/smoke",
+  "/api/health",
+  "/api/auth/callback",
+]);
 
 function isPublicRoute(pathname: string): boolean {
   if (PUBLIC_ROUTES.has(pathname)) return true;
