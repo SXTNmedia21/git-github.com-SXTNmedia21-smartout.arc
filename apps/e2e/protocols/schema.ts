@@ -16,8 +16,8 @@ import { z } from "zod";
 const DbRecordGateSchema = z.object({
   type: z.literal("db_record"),
   table: z.string(),
-  where: z.record(z.string(), z.unknown()),
-  expect: z.record(z.string(), z.unknown()),
+  where: z.record(z.unknown()),
+  expect: z.record(z.unknown()),
   timeout_ms: z.number().default(10_000),
   retry_interval_ms: z.number().default(500),
 });
@@ -144,7 +144,15 @@ export const ProtocolDefinitionSchema = z.object({
   auth_profile: AuthProfileEnum,
   entry_url: z.string(),
   preconditions: z.object({
-    db_state: z.array(z.record(z.string(), z.unknown())),
+    db_state: z
+      .array(
+        z.object({
+          table: z.string(),
+          where: z.record(z.unknown()),
+          expect: z.record(z.unknown()),
+        }),
+      )
+      .default([]),
   }),
   steps: z.array(StepSchema),
   success_gate: GateSchema,

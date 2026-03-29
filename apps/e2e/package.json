@@ -9,12 +9,12 @@
     "test:e2e:telemetry-smoke": "bash ./scripts/playwright-with-libs.sh pnpm exec node ./scripts/telemetry-smoke.mjs"
   },
   "dependencies": {
-    "@supabase/supabase-js": "2.49.4",
-    "zod": "^4.3.6"
+    "@supabase/supabase-js": "2.49.4"
   },
   "devDependencies": {
     "@playwright/test": "^1.42.0",
     "@types/node": "^20.0.0",
-    "dotenv": "^16.4.5"
+    "dotenv": "^16.4.5",
+    "zod": "^3.22.0"
   }
 }
