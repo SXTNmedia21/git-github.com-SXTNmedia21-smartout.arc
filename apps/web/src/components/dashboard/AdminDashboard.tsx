@@ -21,6 +21,12 @@ const ReconciliationView = dynamic(() =>
 const ActivityView = dynamic(() =>
   import("./ActivityView").then((m) => ({ default: m.ActivityView })),
 );
+const InteractiveDashboard = dynamic(() =>
+  import("./interactive").then((m) => ({ default: m.InteractiveDashboard })),
+);
+
+const useInteractiveDashboard =
+  process.env.NEXT_PUBLIC_INTERACTIVE_DASHBOARD === "true";
 
 interface AdminDashboardProps {
   isDark: boolean;
@@ -39,10 +45,14 @@ export default function AdminDashboard({ isDark }: AdminDashboardProps) {
       <div className="flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden">
         {adminView === "todo" ? (
           <TodoTaskView />
-        ) : adminView === "tactical" ? (
-          <HospitalityOperationsCockpit />
-        ) : adminView === "strategic" ? (
-          <StrategicView />
+        ) : adminView === "tactical" || adminView === "strategic" ? (
+          useInteractiveDashboard ? (
+            <InteractiveDashboard />
+          ) : adminView === "tactical" ? (
+            <HospitalityOperationsCockpit />
+          ) : (
+            <StrategicView />
+          )
         ) : adminView === "reconciliation" ? (
           <ReconciliationView isDark={isDark} />
         ) : adminView === "activity" ? (

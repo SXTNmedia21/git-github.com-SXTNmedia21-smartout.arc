@@ -1,5 +1,6 @@
 // Barrel export for interactive dashboard components
 
+export { InteractiveDashboard } from "./InteractiveDashboard";
 export { AssignPopover } from "./AssignPopover";
 export { ActivityFeed } from "./ActivityFeed";
 export { DashboardMetricStrip } from "./DashboardMetricStrip";
