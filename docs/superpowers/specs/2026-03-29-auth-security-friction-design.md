@@ -1,6 +1,6 @@
 ---
 title: Auth, Security & Friction — Silent Auth + Deferred OTP + Data Perimeter
-status: draft
+status: council-approved
 updated: 2026-03-29
 created: 2026-03-29
 module: auth
@@ -92,7 +92,17 @@ Auth i steg 1 eliminerer to problemer:
 
 ### Google OAuth-unntak
 
-Google-autentiserte brukere har allerede verifisert e-post via Google. Skipper OTP-overlay, setter `email_verified = true` direkte.
+Google-autentiserte brukere har allerede verifisert e-post via Google. Skipper OTP-overlay — `email_confirmed_at` settes automatisk av Supabase Auth for OAuth-brukere.
+
+### Eksisterende bruker i Step 1
+
+Når en bruker som allerede har Supabase-konto skriver inn sin e-post i steg 1, vil `signUp()` feile stille (Supabase returnerer en "fake user" uten session ved `double_confirm_changes = true`). Flyten:
+
+1. `signUp()` returnerer uten error, men uten session
+2. Detektér: sjekk om `data.session` er null OG `data.user?.identities?.length === 0`
+3. Switch til `signInWithPassword()` — bruker har allerede konto, trenger bare å logge inn
+4. Hvis passordet er feil → vis "Denne e-posten er allerede registrert. Logg inn med ditt eksisterende passord."
+5. Alternativt → tilby OTP-login ("Send kode til denne e-posten")
 
 ---
 
@@ -206,31 +216,77 @@ Alt låst opp        emit('workspace.abandoned')
 - Bruke API-nøkler
 - Sende e-post via SendGrid
 
-### Database-endringer
+### Database-endringer (council-oppdatert)
+
+**Email-verifisering:** Bruk `auth.users.email_confirmed_at` (Supabase-native). IKKE legg `email_verified` på workspace — det er en bruker-egenskap, ikke workspace. `verifyOtp()` setter `email_confirmed_at` automatisk. Sjekk via helper-funksjon i middleware.
+
+**Workspace status:** Legg til ny `workspace_status` enum + kolonne. IKKE overbelast `contract_status`.
 
 ```sql
-ALTER TABLE workspace ADD COLUMN email_verified boolean DEFAULT false;
+-- Ny enum for workspace-livssyklus
+CREATE TYPE workspace_status AS ENUM ('sandbox', 'active', 'suspended', 'archived');
+
+-- Ny kolonne + deadline for sandbox-utløp
+ALTER TABLE workspace ADD COLUMN status workspace_status DEFAULT 'sandbox';
 ALTER TABLE workspace ADD COLUMN verification_deadline timestamptz;
+
+-- Helper-funksjon for email-verifisering (leser auth.users)
+CREATE OR REPLACE FUNCTION is_email_verified(user_uuid uuid)
+RETURNS boolean AS $$
+  SELECT email_confirmed_at IS NOT NULL
+  FROM auth.users
+  WHERE id = user_uuid;
+$$ LANGUAGE sql SECURITY DEFINER STABLE;
 ```
 
-Sjekk om workspace allerede har en status-enum som kan utvides med 'provisioning' og 'pending'. Hvis ikke, bruk de eksisterende statusene og legg til `email_verified` som gate.
+**FK cascade fixes:** Engine-tabeller mangler `ON DELETE CASCADE` på workspace FK. Cleanup-cron vil feile uten dette.
 
-### Enforcement — to nivåer
+```sql
+-- Fiks FK cascade for engine-tabeller
+ALTER TABLE engine_sessions DROP CONSTRAINT IF EXISTS engine_sessions_workspace_id_fkey,
+  ADD CONSTRAINT engine_sessions_workspace_id_fkey
+  FOREIGN KEY (workspace_id) REFERENCES workspace(workspace_id) ON DELETE CASCADE;
 
-| Nivå       | Hvor     | Hva                                                                                                |
-| ---------- | -------- | -------------------------------------------------------------------------------------------------- |
-| RLS        | Database | Policies på `invitation`, `platform_api_key`, integrasjonstabeller sjekker `email_verified = true` |
-| Middleware | App      | Blokkerer ruter til invitasjoner, integrasjoner, eksport for uverifiserte                          |
+-- Samme for engine_memory, engine_authority_config, engine_inbox, engine_missions
+```
 
-### Auto-cleanup
+### Enforcement — tre nivåer (council-oppdatert)
+
+| Nivå       | Hvor     | Hva                                                                                                          |
+| ---------- | -------- | ------------------------------------------------------------------------------------------------------------ |
+| RLS        | Database | Policies på `invitation`, `platform_api_key` sjekker `is_email_verified(auth.uid())`                         |
+| Middleware | App      | Blokkerer ruter til invitasjoner, integrasjoner, eksport, **og AI/agent-endepunkter** for sandbox-workspaces |
+| Helper     | DB func  | `is_email_verified(uuid)` leser `auth.users.email_confirmed_at` — single source of truth                     |
+
+**Viktig:** Stage Engine bruker `supabaseAdmin` (service role) som bypasser RLS. Sandbox-enforcement for AI-sessions MÅ skje i middleware, ikke RLS.
+
+### Auto-cleanup (council-oppdatert)
 
 ```
-Edge Function (cron, hver time):
-→ Finn workspaces: verification_deadline < now() AND email_verified = false
-→ Kaskade-slett: workspace + relatert data + bruker
-→ emit('workspace.abandoned', { workspace_id, created_at, last_step })
+Edge Function (cron, hver time, trigget av n8n på DigitalOcean):
+→ Finn workspaces: verification_deadline < now() AND status = 'sandbox'
+→ Verifiser at brukerens email_confirmed_at IS NULL
+→ Kaskade-slett i korrekt rekkefølge:
+   1. engine_inbox (FK til sessions)
+   2. engine_sessions (FK til workspace, mangler CASCADE)
+   3. engine_memory (FK til profile + workspace)
+   4. engine_authority_config (FK til workspace + user_identity)
+   5. engine_missions (FK til workspace, nullable)
+   6. Cascade-tabeller: department_operating_hours, department_hours_override,
+      planning_cycle, season_budget, day_factor, hour_factor, workspace_budget,
+      daily_reconciliation, workspace_kpi_target, shift_cost_snapshot,
+      change_proposal, framework_rule (workspace-scoped), tariff_rate_table (workspace-scoped)
+   7. Governance: policy, protocol, procedure, routine, etc.
+   8. Core: schedule_shift, schedule_absence, team, department, location, position
+   9. profile
+   10. company_member, company (hvis ingen andre workspaces)
+   11. workspace
+   12. user_identity + auth.users (via admin.auth.admin.deleteUser())
+→ emit('workspace abandoned', { workspace_id, created_at, last_step })
 → Autentisert med WATCHDOG_CRON_SECRET
 ```
+
+**Alternativ:** Legg til `ON DELETE CASCADE` på alle workspace FK-er via migration. Enklere, men høyere blast radius ved feilaktig sletting i prod. Beslutning: bruk eksplisitt rekkefølge for sandbox-cleanup, legg til CASCADE kun på engine-tabellene (nyere, lavere risiko).
 
 ### Feil e-post-håndtering
 
@@ -287,33 +343,35 @@ VERCEL ←→ SUPABASE CLOUD
 | OTP-verifisering       | Tid + antall forsøk              | ❌            | Friksjonsmåling        |
 | Login-metode           | Passord vs OTP vs Google         | ❌            | Hvilken metode vinner  |
 
-### Telemetri-events å legge til
+### Telemetri-events å legge til (council-oppdatert: entity-verb format)
+
+Alle events MÅ registreres i `packages/telemetry/src/registry.ts` med TypeScript interface, SmartoutEvent union entry, og EVENT_ROUTING. Nye EventCategory-er: `"wizard"`, `"security"`, `"enrichment"`.
 
 ```typescript
-// Wizard funnel (anonymisert)
-emit("wizard.step_entered", { wizard_id, step_id, step_index });
-emit("wizard.step_completed", { wizard_id, step_id, duration_ms });
-emit("wizard.abandoned", { wizard_id, last_step_id, total_duration_ms });
-emit("wizard.completed", { wizard_id, total_duration_ms, steps_count });
+// Wizard funnel (anonymisert) → destination: posthog, logger
+emit("wizard step_entered", { wizard_id, step_id, step_index });
+emit("wizard step_completed", { wizard_id, step_id, duration_ms });
+emit("wizard abandoned", { wizard_id, last_step_id, total_duration_ms });
+emit("wizard completed", { wizard_id, total_duration_ms, steps_count });
 
-// Enrichment kvalitet
-emit("enrichment.requested", { source: "brreg" | "scraping", org_number });
-emit("enrichment.hit", { source, fields_populated, fields_total });
-emit("enrichment.miss", { source, reason });
-emit("enrichment.corrected", { field_name, was_auto: boolean });
+// Enrichment kvalitet → destination: posthog, logger
+emit("enrichment requested", { source: "brreg" | "scraping", org_number });
+emit("enrichment hit", { source, fields_populated, fields_total });
+emit("enrichment missed", { source, reason });
+emit("enrichment corrected", { field_name, was_auto: boolean });
 
-// Auth friksjon
-emit("auth.signup_silent", { method: "password" });
-emit("auth.otp_sent", { context: "workspace_entry" | "login" });
-emit("auth.otp_verified", { attempts, duration_ms });
-emit("auth.otp_failed", { reason: "expired" | "wrong_code" | "max_attempts" });
-emit("auth.login", { method: "password" | "otp" | "google" });
+// Auth friksjon → destination: posthog, logger (gjenbruk eksisterende "auth signed_up" med silent: true)
+emit("auth signed_up", { method: "password", silent: true }); // gjenbruk eksisterende event
+emit("auth otp_sent", { context: "workspace_entry" | "login" });
+emit("auth otp_verified", { attempts, duration_ms });
+emit("auth otp_failed", { reason: "expired" | "wrong_code" | "max_attempts" });
+emit("auth logged_in", { method: "password" | "otp" | "google" });
 
-// Sikkerhet
-emit("security.rate_limit_hit", { endpoint, ip_hash, identifier, count });
-emit("security.lockout_triggered", { method, attempts });
-emit("security.sandbox_blocked", { action, workspace_id });
-emit("workspace.abandoned", { workspace_id, created_at, last_step });
+// Sikkerhet → destination: logger, activity_trail (IKKE posthog)
+emit("security rate_limited", { endpoint, ip_hash, identifier, count });
+emit("security lockout_triggered", { method, attempts });
+emit("security sandbox_blocked", { action, workspace_id });
+emit("workspace abandoned", { workspace_id, created_at, last_step });
 ```
 
 ### Dataprinsipp
@@ -423,6 +481,56 @@ Turnstile er **invisible** — brukeren ser aldri CAPTCHA.
 
 ---
 
+## 7. Operasjonell sikkerhet
+
+### Tre lag av kontroll
+
+| Lag          | Hva                | Hvordan                                        |
+| ------------ | ------------------ | ---------------------------------------------- |
+| Automatisk   | Maskinen ser       | Telemetri → PostHog dashboards → alerts        |
+| Rutinemessig | Agenten sjekker    | Ukentlig sikkerhetspuls, pre-deploy sjekkliste |
+| Bevisbar     | Vi kan dokumentere | Audit trail for alle sikkerhetshendelser       |
+
+### Automatisk overvåkning
+
+| Signal                       | Alert-trigger                                    |
+| ---------------------------- | ------------------------------------------------ |
+| `workspace abandoned`        | Aldri (normalt) — alert kun ved cron-feil        |
+| Sandbox konverteringsrate    | < 50% over 24h                                   |
+| `security rate_limited`      | > 20 treff per 5 min fra samme IP                |
+| `security lockout_triggered` | Enhver lockout                                   |
+| `auth otp_failed`            | > 3 feil per bruker per time                     |
+| Supabase 429                 | Enhver forekomst                                 |
+| Cleanup-cron feil            | Enhver feil (FK violation = datalekkasje-risiko) |
+
+### Rutinemessig audit (ukentlig)
+
+1. **Sandbox-status:** Aktive sandboxes, tid til verifisering, abandon-rate
+2. **Auth-helse:** Login-metode fordeling, rate limit treff, lockouts, OTP-feil
+3. **Datasøm-sjekk:** localStorage-artefakter, log-volum
+4. **Perimeter-verifisering:** RLS intakt, sandbox-restriksjoner virker (automatiserte tester)
+
+### Bevisbar kontroll
+
+Hver gang en sandbox-bruker prøver noe de ikke kan (invitasjon, integrasjon, eksport), logges det via `security sandbox_blocked`. Det er beviset på at kontrollen virker.
+
+### Eskaleringsmatrise
+
+| Hendelse                                 | Alvorlighet | Handling                                |
+| ---------------------------------------- | ----------- | --------------------------------------- |
+| Enkelt rate limit hit                    | Normal      | Logg, ingen aksjon                      |
+| Gjentatt lockout, samme konto            | Observer    | Sjekk om brukeren glemte passord        |
+| Burst sandbox-opprettelse fra én IP      | Undersøk    | Mulig spam — vurder IP-blokkering       |
+| Cleanup-cron feiler                      | Kritisk     | Orphaned data-risiko — fiks umiddelbart |
+| Supabase 429 (abuse attempt)             | Kritisk     | Token storm — sjekk cookie-cleanup      |
+| Tenant data tilgjengelig for feil bruker | Katastrofe  | Alt stopper. Fiks. Varsle Pontus.       |
+
+### Protokoll-dokumentasjon
+
+Ny fil: `docs/protocols/AUTH_SECURITY.md` — levende operasjonell dokumentasjon. Oppdateres ved hver auth-endring.
+
+---
+
 ## Filer som påvirkes
 
 ### Endres
@@ -443,13 +551,15 @@ Turnstile er **invisible** — brukeren ser aldri CAPTCHA.
 
 ### Nye filer
 
-| Fil                                                             | Formål                                          |
-| --------------------------------------------------------------- | ----------------------------------------------- |
-| `apps/web/src/components/auth/OtpVerificationForm.tsx`          | Delt OTP-komponent (login + workspace-entry)    |
-| `apps/web/src/components/auth/OtpOverlay.tsx`                   | Workspace-entry OTP overlay                     |
-| `apps/web/src/app/dashboard/_components/VerificationGate.tsx`   | Sjekker email_verified, viser overlay           |
-| `supabase/migrations/YYYYMMDDHHMMSS_workspace_verification.sql` | email_verified + verification_deadline kolonner |
-| `supabase/functions/cleanup-unverified-workspaces/index.ts`     | Cron: slett uverifiserte etter 48h              |
+| Fil                                                                   | Formål                                                         |
+| --------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `apps/web/src/components/auth/OtpVerificationForm.tsx`                | Delt OTP-komponent (login + workspace-entry)                   |
+| `apps/web/src/components/auth/OtpOverlay.tsx`                         | Workspace-entry OTP overlay                                    |
+| `apps/web/src/app/dashboard/_components/VerificationGate.tsx`         | Sjekker email_confirmed_at, viser overlay                      |
+| `supabase/migrations/YYYYMMDDHHMMSS_workspace_status_and_sandbox.sql` | workspace_status enum + kolonne + verification_deadline        |
+| `supabase/migrations/YYYYMMDDHHMMSS_engine_fk_cascade.sql`            | ON DELETE CASCADE for engine-tabeller                          |
+| `supabase/functions/cleanup-sandbox-workspaces/index.ts`              | Cron: slett sandbox-workspaces etter 48h (komplett FK-dekking) |
+| `docs/protocols/AUTH_SECURITY.md`                                     | Levende operasjonell sikkerhetsdokumentasjon                   |
 
 ### Berørt men ikke endret
 
@@ -464,9 +574,26 @@ Turnstile er **invisible** — brukeren ser aldri CAPTCHA.
 ## Utenfor scope
 
 - Google OAuth i Join-wizard (egen spec, referert som "Part B" i SESSION.md)
+- Cloudflare Turnstile bot-beskyttelse (egen PR — krever env vars, CSP headers)
 - Passord-kompleksitetskrav utover lengde 8 (vurderes senere)
 - IP-basert anomali-deteksjon utover rate limiting (fase 3)
 - Session-revokering (admin logger ut brukere) (fase 3)
 - Godmode audit logging (egen oppgave)
 - GDPR data retention policies per datatype (policy, ikke kode)
 - Mobile app auth-endringer (bruker allerede SecureStore + autoRefresh)
+- "Husk meg" / langvarig refresh token (vurderes separat)
+
+## Council-beslutninger (2026-03-29)
+
+| Beslutning                                                  | Begrunnelse                                        | Agent       |
+| ----------------------------------------------------------- | -------------------------------------------------- | ----------- |
+| `email_confirmed_at` fra auth.users, ikke workspace-kolonne | Email-verifisering er en bruker-egenskap           | Steward     |
+| `workspace_status` enum (ny kolonne)                        | `contract_status` er allerede overbelastet         | Steward     |
+| ON DELETE CASCADE kun på engine-tabeller                    | Nyere tabeller, lavere risiko                      | Agent Coord |
+| Entity-verb telemetri-format                                | Registry standard, ikke dot-notation               | Supervisor  |
+| Gjenbruk `auth signed_up` med `silent: true`                | Unngå duplikat-events                              | Supervisor  |
+| Sandbox-gate i middleware, ikke engine                      | Stage Engine er workspace-ubevisst by design       | Agent Coord |
+| Turnstile som egen PR                                       | Uavhengig scope, reduserer risiko                  | Supervisor  |
+| `double_confirm_changes` håndtering                         | Config-endring eller wrapper for email-korrigering | Supervisor  |
+| AI/agent-ruter i middleware blocklist                       | service_role bypasser RLS                          | Agent Coord |
+| OTP-input som packages/ui komponent                         | Gjenbruk across login + overlay                    | Frontend    |
