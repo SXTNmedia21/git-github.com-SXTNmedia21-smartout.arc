@@ -62,28 +62,31 @@ export function AgentProposalsProvider({
 
   const addProposal = useCallback(
     async (proposal: ShiftProposal) => {
-      // Auto-approve: create the shift immediately instead of waiting for manual approval
+      // Auto-approve single creates (up to 4 pending) — no ghost card needed
       if (proposal.type === "create") {
-        await createShift({
-          id: crypto.randomUUID(),
-          employeeId: proposal.employeeId,
-          dateId: proposal.dateId,
-          role: proposal.role,
-          startTime: proposal.startTime,
-          endTime: proposal.endTime,
-          workHours: proposal.workHours,
-          status: "created",
-          dayCategory: proposal.dayCategory,
-          indicator: proposal.indicator,
-          isPublished: false,
-          breaks: proposal.breaks,
-        });
-        return;
+        const pendingCreates = proposals.filter((p) => p.type === "create").length;
+        if (pendingCreates < 4) {
+          await createShift({
+            id: crypto.randomUUID(),
+            employeeId: proposal.employeeId,
+            dateId: proposal.dateId,
+            role: proposal.role,
+            startTime: proposal.startTime,
+            endTime: proposal.endTime,
+            workHours: proposal.workHours,
+            status: "created",
+            dayCategory: proposal.dayCategory,
+            indicator: proposal.indicator,
+            isPublished: false,
+            breaks: proposal.breaks,
+          });
+          return;
+        }
       }
-      // Non-create proposals still go through the approval flow
+      // 5+ creates, removes, deploys → queue as ghost for batch approval
       setProposals((prev) => [...prev, proposal]);
     },
-    [createShift],
+    [createShift, proposals],
   );
 
   const removeProposal = useCallback((id: string) => {
