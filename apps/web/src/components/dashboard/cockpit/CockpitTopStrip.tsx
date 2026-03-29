@@ -1,17 +1,15 @@
 "use client";
 
-// ============================================
-// CockpitTopStrip.tsx
-// Shows the V1 cockpit summary strip with
-// high-signal status counters and recency.
-// Exists to keep first-screen situational
-// awareness visible without deep scanning.
-// ============================================
+/**
+ * CockpitTopStrip — Summary counters for the tactical cockpit.
+ * Each metric is clickable and scrolls to the relevant section.
+ */
 
 import { AlertTriangle, Clock3, ShieldAlert, Users } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getSeverityToneStyles, type CockpitSeverityTone } from "./severity-styles";
+import { useTranslation } from "@smartout/i18n";
 
 type CockpitTopStripProps = {
   isLoading: boolean;
@@ -22,35 +20,22 @@ type CockpitTopStripProps = {
   lastUpdatedAt: string | null;
 };
 
-/**
- * Formats the last update timestamp for concise cockpit display.
- *
- * Why: Operators need fast recency context without parsing full ISO timestamps.
- *
- * @param occurredAt - Most recent event timestamp in ISO format.
- * @returns Human-readable local time, or fallback text if timestamp is absent.
- */
-function formatLastUpdated(occurredAt: string | null): string {
-  if (!occurredAt) {
-    return "No recent updates";
-  }
-
+function formatLastUpdated(
+  occurredAt: string | null,
+  t: (key: string, params?: Record<string, string | number>) => string,
+): string {
+  if (!occurredAt) return t("cockpit.no_updates");
   const parsed = new Date(occurredAt);
-  if (Number.isNaN(parsed.getTime())) {
-    return "Update time unavailable";
-  }
-
-  return `Updated ${parsed.toLocaleTimeString("nb-NO", { hour: "2-digit", minute: "2-digit" })}`;
+  if (Number.isNaN(parsed.getTime())) return "—";
+  const time = parsed.toLocaleTimeString("nb-NO", { hour: "2-digit", minute: "2-digit" });
+  return t("cockpit.updated_at", { time });
 }
 
-/**
- * Renders the cockpit top strip with four action-oriented signal counters.
- *
- * Why: V1 keeps cognitive load low by surfacing only immediately useful metrics.
- *
- * @param props - Aggregated first-screen counters and loading state.
- * @returns Top-strip card containing compact operations signals.
- */
+function scrollToSection(testId: string) {
+  const el = document.querySelector(`[data-testid="${testId}"]`);
+  el?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 export function CockpitTopStrip({
   isLoading,
   onDutyCount,
@@ -59,34 +44,39 @@ export function CockpitTopStrip({
   eventCount,
   lastUpdatedAt,
 }: CockpitTopStripProps) {
+  const { t } = useTranslation("dashboard");
   const metrics = [
     {
       id: "on-duty",
-      label: "On duty",
+      label: t("cockpit.on_duty"),
       value: onDutyCount,
       icon: Users,
       tone: "neutral" as CockpitSeverityTone,
+      scrollTo: "cockpit-on-duty-progress",
     },
     {
       id: "critical",
-      label: "Critical now",
+      label: t("cockpit.critical"),
       value: criticalCount,
       icon: ShieldAlert,
       tone: "critical" as CockpitSeverityTone,
+      scrollTo: "cockpit-risk-queues",
     },
     {
       id: "warning",
-      label: "Watch list",
+      label: t("cockpit.monitoring"),
       value: warningCount,
       icon: AlertTriangle,
       tone: "warning" as CockpitSeverityTone,
+      scrollTo: "cockpit-risk-queues",
     },
     {
       id: "activity",
-      label: "Feed events",
+      label: t("cockpit.events"),
       value: eventCount,
       icon: Clock3,
       tone: "info" as CockpitSeverityTone,
+      scrollTo: "cockpit-activity-feed",
     },
   ] as const;
 
@@ -95,21 +85,21 @@ export function CockpitTopStrip({
       <CardContent className="space-y-4 p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="space-y-0.5">
-            <p className="text-foreground text-sm font-semibold">Hospitality operations cockpit</p>
-            <p className="text-muted-foreground text-xs">
-              First-screen action view for active service pressure.
-            </p>
+            <p className="text-foreground text-sm font-semibold">{t("cockpit.title")}</p>
+            <p className="text-muted-foreground text-xs">{t("cockpit.subtitle")}</p>
           </div>
           <Badge variant="outline" className="text-muted-foreground border-border">
-            {formatLastUpdated(lastUpdatedAt)}
+            {formatLastUpdated(lastUpdatedAt, t)}
           </Badge>
         </div>
 
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           {metrics.map((metric) => (
-            <div
+            <button
+              type="button"
               key={metric.id}
-              className="bg-muted/40 border-border/60 flex items-center gap-3 rounded-lg border px-3 py-2.5"
+              onClick={() => scrollToSection(metric.scrollTo)}
+              className="bg-muted/40 border-border/60 hover:bg-muted/70 flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors"
             >
               <metric.icon
                 className={`h-4 w-4 shrink-0 ${getSeverityToneStyles(metric.tone).icon}`}
@@ -124,7 +114,7 @@ export function CockpitTopStrip({
                   {metric.label}
                 </p>
               </div>
-            </div>
+            </button>
           ))}
         </div>
       </CardContent>

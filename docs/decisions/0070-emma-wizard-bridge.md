@@ -47,11 +47,11 @@ Chosen option: **"Step-level tool registration via `useRegisterTools`"**, becaus
 
 ## Additional Decisions
 
-| # | Decision | Rationale |
-|---|----------|-----------|
-| 1 | `useEntityDrawer` made optional via `useEntityDrawerOptional()` | WalkAiProvider must work outside DashboardShell where no EntityDrawer context exists |
-| 2 | Client-side wizard tools have no C4 authority gating — by design | User is authenticated and editing their own data; API-calling tools rely on endpoint auth |
-| 3 | `agent tool_called` telemetry event (capability: `"wizard"`) tracks all Emma tool invocations | Provides observability without coupling tool logic to telemetry internals |
+| #   | Decision                                                                                      | Rationale                                                                                 |
+| --- | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| 1   | `useEntityDrawer` made optional via `useEntityDrawerOptional()`                               | WalkAiProvider must work outside DashboardShell where no EntityDrawer context exists      |
+| 2   | Client-side wizard tools have no C4 authority gating — by design                              | User is authenticated and editing their own data; API-calling tools rely on endpoint auth |
+| 3   | `agent tool_called` telemetry event (capability: `"wizard"`) tracks all Emma tool invocations | Provides observability without coupling tool logic to telemetry internals                 |
 
 ## Supersedes
 

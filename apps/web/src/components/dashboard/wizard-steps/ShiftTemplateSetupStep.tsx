@@ -187,7 +187,6 @@ export function ShiftTemplateSetupStep({
     }
   }, [entries, workspace.workspace.workspace_id, profileId, queryClient]);
 
-
   // Adapter that matches the tool hook signature (dept name + template fields)
   const handleAddTemplateEntry = useCallback(
     (departmentName: string, name: string, startTime: string, endTime: string) => {

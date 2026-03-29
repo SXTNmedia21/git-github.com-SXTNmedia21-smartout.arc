@@ -45,8 +45,8 @@ type QuickActionItem = {
 
 const QUICK_ACTIONS: QuickActionItem[] = [
   { key: "tasks", label: "Oppgaver", icon: CheckSquare, route: "/(app)/(home)/haccp" },
-  { key: "training", label: "Opplaering", icon: GraduationCap, route: "/(app)/(komm)" },
-  { key: "deviation", label: "Avvik", icon: AlertTriangle, route: "/(app)/(home)/deviation" },
+  { key: "training", label: "Opplæring", icon: GraduationCap, route: "/(app)/(home)/training" },
+  { key: "hms", label: "HMS", icon: AlertTriangle, route: "/(app)/(home)/hms" },
   { key: "punch", label: "Stempling", icon: Clock, route: "/(app)/(home)/punch-clock" },
 ];
 
@@ -109,7 +109,7 @@ export function HomeHeader({
   avatarUrl,
   profileId,
   onMenuPress,
-  onNotificationPress,
+  _onNotificationPress,
 }: HomeHeaderProps) {
   const styles = useStyles();
   const greeting = useMemo(() => getTimeGreeting(), []);

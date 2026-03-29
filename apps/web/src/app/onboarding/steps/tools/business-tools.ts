@@ -10,7 +10,11 @@
  */
 
 import { useMemo } from "react";
-import type { ClientToolDefinition, ClientToolImplementation, ClientToolKit } from "@smartout/agent-sdk";
+import type {
+  ClientToolDefinition,
+  ClientToolImplementation,
+  ClientToolKit,
+} from "@smartout/agent-sdk";
 import { useSyncRef, useWizardToolKit } from "@/lib/wizard-tools/shared";
 import type { OnboardingConfirmState } from "../../types-v2";
 import type { BusinessData } from "../../types";
@@ -139,16 +143,32 @@ export function useBusinessTools(
       search_company: async (params) => {
         const p = params as Record<string, string>;
         const name = p.name?.trim();
-        if (!name) return JSON.stringify({ found: false, count: 0, candidates: [], error: "name is required" });
+        if (!name)
+          return JSON.stringify({
+            found: false,
+            count: 0,
+            candidates: [],
+            error: "name is required",
+          });
 
         try {
           const qs = new URLSearchParams({ name });
           if (p.city) qs.set("city", p.city);
           const res = await fetch(`/api/brreg/search?${qs.toString()}`);
-          if (!res.ok) return JSON.stringify({ found: false, count: 0, candidates: [], error: `HTTP ${res.status}` });
-          const data = await res.json() as { candidates?: unknown[] };
+          if (!res.ok)
+            return JSON.stringify({
+              found: false,
+              count: 0,
+              candidates: [],
+              error: `HTTP ${res.status}`,
+            });
+          const data = (await res.json()) as { candidates?: unknown[] };
           const candidates = data.candidates ?? [];
-          return JSON.stringify({ found: candidates.length > 0, count: candidates.length, candidates });
+          return JSON.stringify({
+            found: candidates.length > 0,
+            count: candidates.length,
+            candidates,
+          });
         } catch {
           return JSON.stringify({ found: false, count: 0, candidates: [], error: "Search failed" });
         }
@@ -162,12 +182,14 @@ export function useBusinessTools(
         try {
           const res = await fetch(`/api/brreg/identify?orgNumber=${encodeURIComponent(orgNumber)}`);
           if (!res.ok) return JSON.stringify({ success: false, error: `HTTP ${res.status}` });
-          const data = await res.json() as Record<string, unknown>;
+          const data = (await res.json()) as Record<string, unknown>;
 
           // Merge returned business data into state if present
           if (data.business) {
             const current = stateRef.current.business;
-            updateRef.current({ business: { ...current, ...(data.business as Partial<BusinessData>) } });
+            updateRef.current({
+              business: { ...current, ...(data.business as Partial<BusinessData>) },
+            });
           }
           if (data.workspaceId) {
             updateRef.current({ workspaceId: data.workspaceId as string });
@@ -187,12 +209,13 @@ export function useBusinessTools(
         try {
           const res = await fetch(`/api/scrape?url=${encodeURIComponent(url)}`);
           if (!res.ok) return JSON.stringify({ success: false, error: `HTTP ${res.status}` });
-          const data = await res.json() as { scrapedData?: Record<string, unknown> };
+          const data = (await res.json()) as { scrapedData?: Record<string, unknown> };
 
           // Merge scraped data into business state if available
           if (data.scrapedData) {
             const current = stateRef.current.business;
-            const { email, phone, website, description, openingHours } = data.scrapedData as Partial<BusinessData>;
+            const { email, phone, website, description, openingHours } =
+              data.scrapedData as Partial<BusinessData>;
             const merge: Partial<BusinessData> = {};
             if (email && !current.email) merge.email = email;
             if (phone && !current.phone) merge.phone = phone;
@@ -212,7 +235,16 @@ export function useBusinessTools(
 
       get_business_status: () => {
         const b = stateRef.current.business;
-        const filled = [b.name, b.orgNumber, b.website, b.email, b.phone, b.address, b.city, b.industry].filter(Boolean).length;
+        const filled = [
+          b.name,
+          b.orgNumber,
+          b.website,
+          b.email,
+          b.phone,
+          b.address,
+          b.city,
+          b.industry,
+        ].filter(Boolean).length;
         return `Business: "${b.name || "(not set)"}" | Org: ${b.orgNumber || "unknown"} | Website: ${b.website || "none"} | City: ${b.city || "unknown"} | Industry: ${b.industry || "unknown"} | Fields filled: ${filled}/8`;
       },
     }),

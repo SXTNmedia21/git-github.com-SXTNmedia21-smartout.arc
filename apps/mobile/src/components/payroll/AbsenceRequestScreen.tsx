@@ -1,25 +1,23 @@
 /**
- * AbsenceRequestScreen — Balance-first absence request form with live projection.
+ * AbsenceRequestScreen — Nordic Split absence request with balance-first design.
  *
- * Layout (Planday-inspired):
- * 1. Top: Horizontal balance cards (Ferie, Egenmelding, Omsorgsdager)
- * 2. Middle: Request form with type picker, date range, live projection, comment
- * 3. Bottom: "Mine soknader" history list with cancel support
+ * Layout:
+ * 1. Hero title: "Registrer fravaer" serif italic 5xl
+ * 2. Balance cards: 3-col square grid (Ferie, Egenmelding, Omsorgsdager)
+ * 3. Request form card: type picker pills, 2-col date range, live projection, gradient CTA
+ * 4. History section: "Mine soknader" with status badges
  *
- * The projection recalculates on every type/date change using the pure
- * projectAbsenceBalance() function — no network round-trip needed.
+ * Data from useAbsenceBalance(), useAbsenceTypes(), useMyAbsenceRequests().
  */
 
 import React, { useState, useMemo, useCallback } from "react";
 import { View, Text, ScrollView, Pressable, ActivityIndicator, Alert } from "react-native";
+import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
+import { Calendar, Clock, Heart, Palmtree, Send } from "lucide-react-native";
 
 import { createStyles, useTheme, withOpacity } from "@/theme";
-import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { SectionHeader } from "@/components/common/SectionHeader";
-import { StatusBadge } from "@/components/common/StatusBadge";
 import { strings } from "@/constants/strings";
 import { useAbsenceBalance } from "@/hooks/queries/use-absence-balance";
 import { useAbsenceTypes } from "@/hooks/queries/use-absence-types";
@@ -30,13 +28,6 @@ import { useCancelAbsence } from "@/hooks/mutations/use-cancel-absence";
 import { projectAbsenceBalance } from "@/lib/absence-projection";
 import type { ProjectionResult } from "@/lib/absence-projection";
 
-// UI Events:
-// - action: requestAbsence() (submit button)
-// - action: cancelAbsence(id) (cancel button on pending request)
-// - action: selectAbsenceType(type) (type picker row press)
-// - action: pickStartDate / pickEndDate (date field press)
-// - color-regime: balance-health-based (green > 20%, amber < 20%, red = 0)
-
 const CATEGORY_COLOR_KEYS: Record<
   string,
   { colorKey: keyof ReturnType<typeof useTheme>["colors"]; label: string }
@@ -46,26 +37,27 @@ const CATEGORY_COLOR_KEYS: Record<
   care_of_child: { colorKey: "brandPurple", label: strings.payroll.careDays },
 };
 
-/** Maps schedule_absence.status to StatusBadge variant + label */
+/** Maps schedule_absence.status to badge variant + label */
 function getStatusDisplay(status: string): {
   variant: "warning" | "success" | "destructive" | "muted";
   label: string;
+  color: string;
 } {
   switch (status) {
     case "pending":
-      return { variant: "warning", label: strings.payroll.pending };
+      return { variant: "warning", label: "Venter", color: "#c18200" };
     case "approved":
-      return { variant: "success", label: strings.payroll.approved };
+      return { variant: "success", label: "Godkjent", color: "#11ad32" };
     case "rejected":
-      return { variant: "destructive", label: strings.payroll.rejected };
+      return { variant: "destructive", label: "Avvist", color: "#e7000b" };
     case "cancelled":
-      return { variant: "muted", label: strings.payroll.cancelled };
+      return { variant: "muted", label: "Kansellert", color: "#7a756e" };
     default:
-      return { variant: "muted", label: status };
+      return { variant: "muted", label: status, color: "#7a756e" };
   }
 }
 
-/** Format ISO date as "DD. mon" for compact display in request rows */
+/** Format ISO date as "DD. mon" for compact display */
 function formatDateShort(isoDate: string): string {
   const date = new Date(isoDate);
   const dd = date.getDate();
@@ -86,6 +78,20 @@ function formatDateShort(isoDate: string): string {
   return `${dd}. ${months[date.getMonth()]}`;
 }
 
+/** Balance card icon by category */
+function getCategoryIcon(category: string) {
+  switch (category) {
+    case "vacation":
+      return Palmtree;
+    case "sick_self":
+      return Clock;
+    case "care_of_child":
+      return Heart;
+    default:
+      return Calendar;
+  }
+}
+
 export function AbsenceRequestScreen() {
   const styles = useStyles();
   const theme = useTheme();
@@ -97,7 +103,7 @@ export function AbsenceRequestScreen() {
 
   const absenceTypesQuery = useAbsenceTypes();
 
-  // Form state
+  /* Form state */
   const [selectedTypeId, setSelectedTypeId] = useState<string | null>(null);
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
@@ -108,13 +114,11 @@ export function AbsenceRequestScreen() {
   const quotas = balanceData?.quotas ?? [];
   const requests = requestsData?.requests ?? [];
 
-  /** Currently selected absence type object */
   const selectedType = useMemo(
     () => absenceTypes.find((t) => t.id === selectedTypeId) ?? null,
     [absenceTypes, selectedTypeId],
   );
 
-  /** Map absence_type_id → display name */
   const typeNameMap = useMemo(() => {
     const map = new Map<string, string>();
     for (const t of absenceTypes) {
@@ -123,10 +127,6 @@ export function AbsenceRequestScreen() {
     return map;
   }, [absenceTypes]);
 
-  /** Count current-year instances of the selected type from existing requests.
-   *
-   * schedule_absence.absence_type is a free-text name string (not a UUID FK),
-   * so we match against the type's name field, not its id. */
   const currentYearInstances = useMemo(() => {
     if (!selectedType) return 0;
     const currentYear = new Date().getFullYear().toString();
@@ -138,7 +138,6 @@ export function AbsenceRequestScreen() {
     ).length;
   }, [selectedType, requests]);
 
-  /** Find the quota for the currently selected type */
   const currentQuota = useMemo(
     () => quotas.find((q) => q.absence_type_id === selectedTypeId) ?? null,
     [quotas, selectedTypeId],
@@ -172,28 +171,23 @@ export function AbsenceRequestScreen() {
   const canSubmit =
     !!selectedType && !!startDate && !!endDate && (projection?.isAllowed ?? false) && !submitting;
 
-  /** Submit absence request */
   const handleSubmit = useCallback(async () => {
     if (!selectedType || !startDate || !endDate || !projection?.isAllowed) return;
     setSubmitting(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
       await requestAbsence({
-        // absence_type is a free-text name on the DB row, not a UUID
         absenceType: selectedType.name,
-        // shift_date is required by the schema — use startDate as the anchor date
         shiftDate: startDate,
         startDate,
         endDate,
         comment: comment.trim() || undefined,
       });
-      // Reset form only after a successful submit — not on error
       setSelectedTypeId(null);
       setStartDate("");
       setEndDate("");
       setComment("");
     } catch (error) {
-      // Surface the error to the user — do NOT reset the form so they can retry
       const message = error instanceof Error ? error.message : strings.payroll.requestFailed;
       Alert.alert(strings.payroll.requestFailedTitle, message);
     } finally {
@@ -201,7 +195,6 @@ export function AbsenceRequestScreen() {
     }
   }, [selectedType, startDate, endDate, comment, projection, requestAbsence]);
 
-  /** Cancel a pending absence request */
   const handleCancel = useCallback(
     async (id: string) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -210,11 +203,9 @@ export function AbsenceRequestScreen() {
     [cancelAbsence],
   );
 
-  /** Validate and set a date string (YYYY-MM-DD format) */
   const handleStartDateInput = useCallback(
     (text: string) => {
       setStartDate(text);
-      // Auto-set end date if not set or if end < start
       if (text.length === 10 && (!endDate || text > endDate)) {
         setEndDate(text);
       }
@@ -222,7 +213,6 @@ export function AbsenceRequestScreen() {
     [endDate],
   );
 
-  // Loading state
   if (balanceLoading || requestsLoading || absenceTypesQuery.isLoading) {
     return (
       <View style={styles.loadingContainer}>
@@ -237,63 +227,79 @@ export function AbsenceRequestScreen() {
       style={styles.container}
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
     >
-      {/* Top: Balance cards — horizontal scroll */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.balanceCardsRow}
-        style={styles.balanceCardsScroll}
+      {/* ── Hero Title ── */}
+      <Animated.View entering={FadeIn.delay(50).duration(500)} style={styles.hero}>
+        <Text style={styles.heroTitle}>Registrer</Text>
+        <Text style={styles.heroTitleItalic}>fravaer</Text>
+      </Animated.View>
+
+      {/* ── Balance Cards — 3-col square grid ── */}
+      <Animated.View
+        entering={FadeInDown.delay(100).duration(400).springify()}
+        style={styles.balanceGrid}
       >
         {quotas.map((quota) => {
-          const typeName = typeNameMap.get(quota.absence_type_id) ?? strings.payroll.unknownType;
+          const absType = absenceTypes.find((t) => t.id === quota.absence_type_id);
+          const category = absType?.category ?? "vacation";
+          const accentKey = CATEGORY_COLOR_KEYS[category]?.colorKey;
+          const accent = accentKey ? theme.colors[accentKey] : theme.colors.mutedForeground;
+          const Icon = getCategoryIcon(category);
           const remaining = quota.remaining_days ?? 0;
           const entitled = quota.entitled_days;
-          const absType = absenceTypes.find((t) => t.id === quota.absence_type_id);
-          const accentKey = absType ? CATEGORY_COLOR_KEYS[absType.category]?.colorKey : undefined;
-          const accent = accentKey ? theme.colors[accentKey] : theme.colors.mutedForeground;
+          const typeName = typeNameMap.get(quota.absence_type_id) ?? "Fravaer";
+
+          /* Short label for the card */
+          const shortLabel =
+            category === "vacation"
+              ? "Ferie"
+              : category === "sick_self"
+                ? "Egenm."
+                : category === "care_of_child"
+                  ? "Omsorg"
+                  : typeName;
 
           return (
             <View key={quota.id} style={styles.balanceCard}>
               <View style={[styles.balanceCardAccent, { backgroundColor: accent }]} />
-              <Card style={styles.balanceCardInner}>
-                <Text style={styles.balanceCardLabel} numberOfLines={1}>
-                  {typeName}
+              <View style={styles.balanceCardBody}>
+                <Icon size={18} color={accent} strokeWidth={1.5} />
+                <Text style={styles.balanceCardLabel}>{shortLabel}</Text>
+                <Text style={styles.balanceCardValue}>{remaining}</Text>
+                <Text style={styles.balanceCardUnit}>
+                  {category === "sick_self" ? `/ ${entitled}` : "dager"}
                 </Text>
-                <Text style={styles.balanceCardValue}>
-                  {remaining}
-                  <Text style={styles.balanceCardTotal}> / {entitled}</Text>
-                </Text>
-                <Text style={styles.balanceCardUnit}>{strings.payroll.daysRemaining}</Text>
-              </Card>
+              </View>
             </View>
           );
         })}
-      </ScrollView>
+      </Animated.View>
 
-      {/* Middle: Request form */}
-      <Card style={styles.formCard}>
-        <SectionHeader title={strings.payroll.requestAbsence} />
-
-        {/* Type picker — inline scrollable list */}
-        <Text style={styles.fieldLabel}>{strings.payroll.absenceType}</Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.typePickerRow}
-        >
+      {/* ── Request Form Card ── */}
+      <Animated.View
+        entering={FadeInDown.delay(200).duration(400).springify()}
+        style={styles.formCard}
+      >
+        {/* Type picker pills */}
+        <Text style={styles.fieldLabel}>Type fravaer</Text>
+        <View style={styles.typePickerRow}>
           {absenceTypes.map((type) => {
             const isSelected = type.id === selectedTypeId;
             const accentColorKey = CATEGORY_COLOR_KEYS[type.category]?.colorKey;
             const accent = accentColorKey
               ? theme.colors[accentColorKey]
               : theme.colors.mutedForeground;
+
             return (
               <Pressable
                 key={type.id}
                 style={[
                   styles.typePill,
-                  isSelected && { backgroundColor: withOpacity(accent, 0.15), borderColor: accent },
+                  isSelected && {
+                    backgroundColor: withOpacity(accent, 0.15),
+                    borderColor: accent,
+                  },
                 ]}
                 onPress={() => {
                   Haptics.selectionAsync();
@@ -302,69 +308,72 @@ export function AbsenceRequestScreen() {
                 accessibilityRole="radio"
                 accessibilityState={{ selected: isSelected }}
               >
-                <View style={[styles.typePillDot, { backgroundColor: accent }]} />
                 <Text
-                  style={[styles.typePillText, isSelected && { color: theme.colors.foreground }]}
+                  style={[
+                    styles.typePillText,
+                    isSelected && { color: theme.colors.foreground, fontWeight: "600" },
+                  ]}
                 >
                   {type.name_no ?? type.name}
                 </Text>
               </Pressable>
             );
           })}
-        </ScrollView>
+        </View>
 
-        {/* Date range fields — simple text inputs with YYYY-MM-DD format for MVP */}
-        <Text style={styles.fieldLabel}>{strings.payroll.period}</Text>
+        {/* Date range — 2-col grid with calendar icons */}
+        <Text style={styles.fieldLabel}>Periode</Text>
         <View style={styles.dateRow}>
           <View style={styles.dateFieldWrapper}>
-            <Input
-              placeholder="YYYY-MM-DD"
-              value={startDate}
-              onChangeText={handleStartDateInput}
-              keyboardType="numbers-and-punctuation"
-              maxLength={10}
-              style={styles.dateInput}
-            />
-            <Text style={styles.dateHint}>{strings.payroll.fromDate}</Text>
+            <View style={styles.dateInputWrapper}>
+              <Calendar size={16} color={theme.colors.mutedForeground} strokeWidth={1.5} />
+              <Input
+                placeholder="YYYY-MM-DD"
+                value={startDate}
+                onChangeText={handleStartDateInput}
+                keyboardType="numbers-and-punctuation"
+                maxLength={10}
+                style={styles.dateInput}
+              />
+            </View>
+            <Text style={styles.dateHint}>Fra dato</Text>
           </View>
 
-          <Text style={styles.dateSeparator}>–</Text>
-
           <View style={styles.dateFieldWrapper}>
-            <Input
-              placeholder="YYYY-MM-DD"
-              value={endDate}
-              onChangeText={setEndDate}
-              keyboardType="numbers-and-punctuation"
-              maxLength={10}
-              style={styles.dateInput}
-            />
-            <Text style={styles.dateHint}>{strings.payroll.toDate}</Text>
+            <View style={styles.dateInputWrapper}>
+              <Calendar size={16} color={theme.colors.mutedForeground} strokeWidth={1.5} />
+              <Input
+                placeholder="YYYY-MM-DD"
+                value={endDate}
+                onChangeText={setEndDate}
+                keyboardType="numbers-and-punctuation"
+                maxLength={10}
+                style={styles.dateInput}
+              />
+            </View>
+            <Text style={styles.dateHint}>Til dato</Text>
           </View>
         </View>
 
-        {/* Live balance projection */}
-        {projection && (
-          <View
-            style={[
-              styles.projectionBanner,
-              projection.isAllowed ? styles.projectionAllowed : styles.projectionBlocked,
-            ]}
-          >
-            {projection.isAllowed ? (
-              <Text style={styles.projectionTextAllowed}>
-                {projection.requestedDays} {strings.payroll.workdays} ·{" "}
-                {strings.payroll.balanceAfter}: {projection.balanceAfter} dager
-              </Text>
-            ) : (
-              <Text style={styles.projectionTextBlocked}>
-                {projection.warnings[0] ?? strings.payroll.insufficientBalance}
-              </Text>
-            )}
-            {/* Show additional warnings below the primary message */}
+        {/* Live balance projection — green tinted card */}
+        {projection && projection.isAllowed && (
+          <View style={styles.projectionCard}>
+            <Text style={styles.projectionTitle}>{projection.requestedDays} virkedager valgt</Text>
+            <Text style={styles.projectionSubtitle}>
+              Saldo etter: {projection.balanceAfter} dager
+            </Text>
+          </View>
+        )}
+
+        {/* Blocked projection — red warning */}
+        {projection && !projection.isAllowed && (
+          <View style={styles.projectionBlocked}>
+            <Text style={styles.projectionBlockedText}>
+              {projection.warnings[0] ?? strings.payroll.insufficientBalance}
+            </Text>
             {projection.warnings.length > 1 &&
               projection.warnings.slice(1).map((warning, idx) => (
-                <Text key={idx} style={styles.projectionWarning}>
+                <Text key={idx} style={styles.projectionWarningText}>
                   {warning}
                 </Text>
               ))}
@@ -382,59 +391,79 @@ export function AbsenceRequestScreen() {
           textAlignVertical="top"
         />
 
-        {/* Submit button */}
-        <Button
-          title={strings.payroll.sendRequest}
-          variant="primary"
-          size="lg"
+        {/* Send CTA — gradient pill */}
+        <Pressable
           onPress={handleSubmit}
-          loading={submitting}
           disabled={!canSubmit}
-          fullWidth
-        />
-      </Card>
+          style={({ pressed }) => [
+            styles.submitButton,
+            !canSubmit && styles.submitButtonDisabled,
+            pressed && canSubmit && styles.submitButtonPressed,
+          ]}
+        >
+          {submitting ? (
+            <ActivityIndicator size="small" color="#ffffff" />
+          ) : (
+            <>
+              <Send size={18} color="#ffffff" strokeWidth={2} />
+              <Text style={styles.submitButtonText}>Send soknad</Text>
+            </>
+          )}
+        </Pressable>
+      </Animated.View>
 
-      {/* Bottom: Request history */}
+      {/* ── History: Mine soknader ── */}
       {requests.length > 0 && (
-        <View style={styles.historySection}>
-          <SectionHeader title={strings.payroll.myRequests} />
-          <Card>
-            {requests.map((request, index) => {
-              const statusDisplay = getStatusDisplay(request.status);
-              const typeName = typeNameMap.get(request.absence_type) ?? request.absence_type;
-              const isPending = request.status === "pending";
+        <Animated.View
+          entering={FadeInDown.delay(350).duration(400).springify()}
+          style={styles.historySection}
+        >
+          <Text style={styles.sectionTitle}>Mine soknader</Text>
 
-              return (
-                <View key={request.schedule_absence_id}>
-                  {index > 0 && <View style={styles.divider} />}
-                  <View style={styles.requestRow}>
-                    <View style={styles.requestLeft}>
-                      <Text style={styles.requestType}>{typeName}</Text>
-                      <Text style={styles.requestDates}>
-                        {formatDateShort(request.start_date)}
-                        {request.start_date !== request.end_date &&
-                          ` – ${formatDateShort(request.end_date)}`}
+          {requests.map((request, _index) => {
+            const statusDisplay = getStatusDisplay(request.status);
+            const typeName = typeNameMap.get(request.absence_type) ?? request.absence_type;
+            const isPending = request.status === "pending";
+
+            return (
+              <View key={request.schedule_absence_id} style={styles.historyCard}>
+                <View style={styles.historyRow}>
+                  <View style={styles.historyLeft}>
+                    <Text style={styles.historyType}>{typeName}</Text>
+                    <Text style={styles.historyDates}>
+                      {formatDateShort(request.start_date)}
+                      {request.start_date !== request.end_date &&
+                        ` - ${formatDateShort(request.end_date)}`}
+                    </Text>
+                  </View>
+                  <View style={styles.historyRight}>
+                    <View
+                      style={[
+                        styles.statusBadge,
+                        { backgroundColor: withOpacity(statusDisplay.color, 0.12) },
+                      ]}
+                    >
+                      <View style={[styles.statusDot, { backgroundColor: statusDisplay.color }]} />
+                      <Text style={[styles.statusBadgeText, { color: statusDisplay.color }]}>
+                        {statusDisplay.label}
                       </Text>
                     </View>
-                    <View style={styles.requestRight}>
-                      <StatusBadge label={statusDisplay.label} variant={statusDisplay.variant} />
-                      {isPending && (
-                        <Pressable
-                          onPress={() => handleCancel(request.schedule_absence_id)}
-                          hitSlop={8}
-                          accessibilityRole="button"
-                          accessibilityLabel={strings.payroll.cancelRequest}
-                        >
-                          <Text style={styles.cancelText}>{strings.payroll.cancelRequest}</Text>
-                        </Pressable>
-                      )}
-                    </View>
+                    {isPending && (
+                      <Pressable
+                        onPress={() => handleCancel(request.schedule_absence_id)}
+                        hitSlop={8}
+                        accessibilityRole="button"
+                        accessibilityLabel={strings.payroll.cancelRequest}
+                      >
+                        <Text style={styles.cancelText}>Avbryt</Text>
+                      </Pressable>
+                    )}
                   </View>
                 </View>
-              );
-            })}
-          </Card>
-        </View>
+              </View>
+            );
+          })}
+        </Animated.View>
       )}
     </ScrollView>
   );
@@ -446,9 +475,9 @@ const useStyles = createStyles((theme) => ({
     backgroundColor: theme.colors.background,
   },
   content: {
-    paddingHorizontal: theme.spacing.card,
-    paddingTop: theme.spacing.section,
-    paddingBottom: theme.spacing.xl,
+    paddingHorizontal: theme.spacing.section,
+    paddingTop: theme.spacing.md,
+    paddingBottom: 120,
   },
   loadingContainer: {
     flex: 1,
@@ -461,83 +490,92 @@ const useStyles = createStyles((theme) => ({
     color: theme.colors.mutedForeground,
   },
 
-  /* Balance cards — horizontal scroll row */
-  balanceCardsScroll: {
-    marginBottom: theme.spacing.section,
-    marginHorizontal: -theme.spacing.card,
+  /* ── Hero ── */
+  hero: {
+    paddingTop: theme.spacing.page,
+    paddingBottom: theme.spacing.section,
   },
-  balanceCardsRow: {
-    paddingHorizontal: theme.spacing.card,
+  heroTitle: {
+    fontSize: 38,
+    lineHeight: 42,
+    fontWeight: "300" as const,
+    color: theme.colors.foreground,
+    letterSpacing: -1,
+  },
+  heroTitleItalic: {
+    fontSize: 38,
+    lineHeight: 42,
+    fontWeight: "300" as const,
+    fontStyle: "italic" as const,
+    color: theme.colors.foreground,
+    letterSpacing: -1,
+  },
+
+  /* ── Balance Grid — 3-col squares ── */
+  balanceGrid: {
+    flexDirection: "row" as const,
     gap: theme.spacing.element,
+    marginBottom: theme.spacing.section,
   },
   balanceCard: {
-    width: 140,
+    flex: 1,
+    aspectRatio: 1,
+    borderRadius: theme.radius.lg,
     overflow: "hidden" as const,
-    borderRadius: 14,
+    backgroundColor: theme.isDark ? theme.colors.card : theme.colors.secondary,
   },
   balanceCardAccent: {
     height: 3,
-    borderTopLeftRadius: 14,
-    borderTopRightRadius: 14,
   },
-  balanceCardInner: {
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 0,
-    paddingTop: theme.spacing.element,
+  balanceCardBody: {
+    flex: 1,
+    padding: theme.spacing.element,
+    justifyContent: "space-between" as const,
   },
   balanceCardLabel: {
     ...theme.typography.caption,
-    color: theme.colors.mutedForeground,
     fontWeight: theme.fontWeights.medium,
-    marginBottom: theme.spacing.xs,
+    color: theme.colors.mutedForeground,
   },
   balanceCardValue: {
-    ...theme.typography.title,
+    fontSize: 28,
+    lineHeight: 32,
+    fontWeight: "700" as const,
     color: theme.colors.foreground,
   },
-  balanceCardTotal: {
-    ...theme.typography.body,
-    color: theme.colors.mutedForeground,
-    fontWeight: theme.fontWeights.regular,
-  },
   balanceCardUnit: {
-    ...theme.typography.caption,
+    ...theme.typography.micro,
     color: theme.colors.mutedForeground,
-    marginTop: theme.spacing.xs,
   },
 
-  /* Request form */
+  /* ── Form Card ── */
   formCard: {
-    marginBottom: theme.spacing.section,
+    backgroundColor: theme.isDark ? theme.colors.card : theme.colors.secondary,
+    borderRadius: theme.radius.xl,
+    padding: theme.spacing.card,
     gap: theme.spacing.element,
+    marginBottom: theme.spacing.section,
   },
   fieldLabel: {
     ...theme.typography.subheadline,
-    fontWeight: theme.fontWeights.medium,
+    fontWeight: theme.fontWeights.semibold,
     color: theme.colors.foreground,
-    marginTop: theme.spacing.tight,
+    marginTop: theme.spacing.xs,
   },
 
   /* Type picker pills */
   typePickerRow: {
+    flexDirection: "row" as const,
+    flexWrap: "wrap" as const,
     gap: theme.spacing.tight,
-    paddingVertical: theme.spacing.xs,
   },
   typePill: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    gap: theme.spacing.xs,
-    paddingHorizontal: theme.spacing.element,
+    paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.tight,
     borderRadius: theme.radius.full,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.secondary,
-  },
-  typePillDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    borderColor: theme.isDark ? "rgba(255,255,255,0.08)" : theme.colors.border,
+    backgroundColor: "transparent",
   },
   typePillText: {
     ...theme.typography.subheadline,
@@ -545,92 +583,154 @@ const useStyles = createStyles((theme) => ({
     color: theme.colors.mutedForeground,
   },
 
-  /* Date range fields */
+  /* Date range — 2-col */
   dateRow: {
     flexDirection: "row" as const,
-    alignItems: "center" as const,
-    gap: theme.spacing.tight,
+    gap: theme.spacing.element,
   },
   dateFieldWrapper: {
     flex: 1,
     gap: theme.spacing.xs,
   },
+  dateInputWrapper: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: theme.spacing.tight,
+    backgroundColor: theme.isDark ? "rgba(255,255,255,0.04)" : theme.colors.background,
+    borderRadius: theme.radius.md,
+    paddingHorizontal: theme.spacing.element,
+    borderWidth: 1,
+    borderColor: theme.isDark ? "rgba(255,255,255,0.06)" : theme.colors.border,
+  },
   dateInput: {
-    // No extra style needed — Input component handles it
+    flex: 1,
+    borderWidth: 0,
+    backgroundColor: "transparent",
+    paddingHorizontal: 0,
   },
   dateHint: {
     ...theme.typography.caption,
     color: theme.colors.mutedForeground,
-  },
-  dateSeparator: {
-    ...theme.typography.body,
-    color: theme.colors.mutedForeground,
-    marginTop: -theme.spacing.md,
+    marginLeft: theme.spacing.xs,
   },
 
-  /* Projection banner */
-  projectionBanner: {
+  /* Projection — green tinted card */
+  projectionCard: {
+    backgroundColor: withOpacity(theme.colors.success, 0.08),
+    borderWidth: 1,
+    borderColor: withOpacity(theme.colors.success, 0.15),
     borderRadius: theme.radius.md,
     paddingHorizontal: theme.spacing.element,
-    paddingVertical: theme.spacing.tight,
+    paddingVertical: theme.spacing.element,
+    gap: 2,
   },
-  projectionAllowed: {
-    backgroundColor: withOpacity(theme.colors.success, 0.1),
-    borderWidth: 1,
-    borderColor: withOpacity(theme.colors.success, 0.2),
-  },
-  projectionBlocked: {
-    backgroundColor: withOpacity(theme.colors.destructive, 0.1),
-    borderWidth: 1,
-    borderColor: withOpacity(theme.colors.destructive, 0.2),
-  },
-  projectionTextAllowed: {
+  projectionTitle: {
     ...theme.typography.subheadline,
-    fontWeight: theme.fontWeights.medium,
+    fontWeight: theme.fontWeights.semibold,
     color: theme.colors.success,
   },
-  projectionTextBlocked: {
+  projectionSubtitle: {
+    ...theme.typography.caption,
+    color: theme.colors.success,
+  },
+  projectionBlocked: {
+    backgroundColor: withOpacity(theme.colors.destructive, 0.08),
+    borderWidth: 1,
+    borderColor: withOpacity(theme.colors.destructive, 0.15),
+    borderRadius: theme.radius.md,
+    paddingHorizontal: theme.spacing.element,
+    paddingVertical: theme.spacing.element,
+    gap: 4,
+  },
+  projectionBlockedText: {
     ...theme.typography.subheadline,
     fontWeight: theme.fontWeights.medium,
     color: theme.colors.destructive,
   },
-  projectionWarning: {
+  projectionWarningText: {
     ...theme.typography.caption,
     color: theme.colors.warning,
-    marginTop: theme.spacing.xs,
   },
 
-  /* Request history */
-  historySection: {
+  /* Submit CTA — gradient pill */
+  submitButton: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
     gap: theme.spacing.tight,
+    height: 52,
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.colors.brandOrange,
+    marginTop: theme.spacing.tight,
+    ...theme.shadows.lg,
   },
-  divider: {
-    height: 1,
-    backgroundColor: theme.colors.border,
+  submitButtonDisabled: {
+    opacity: 0.4,
   },
-  requestRow: {
+  submitButtonPressed: {
+    transform: [{ scale: 0.97 }],
+    opacity: 0.9,
+  },
+  submitButtonText: {
+    ...theme.typography.bodyBold,
+    color: "#ffffff",
+  },
+
+  /* ── History Section ── */
+  historySection: {
+    gap: theme.spacing.element,
+  },
+  sectionTitle: {
+    ...theme.typography.title,
+    color: theme.colors.foreground,
+  },
+  historyCard: {
+    backgroundColor: theme.isDark ? theme.colors.card : theme.colors.secondary,
+    borderRadius: theme.radius.lg,
+    paddingHorizontal: theme.spacing.card,
+    paddingVertical: theme.spacing.element,
+  },
+  historyRow: {
     flexDirection: "row" as const,
     justifyContent: "space-between" as const,
     alignItems: "center" as const,
-    paddingVertical: theme.spacing.element,
   },
-  requestLeft: {
+  historyLeft: {
     flex: 1,
     marginRight: theme.spacing.element,
   },
-  requestType: {
+  historyType: {
     ...theme.typography.subheadline,
-    fontWeight: theme.fontWeights.medium,
+    fontWeight: theme.fontWeights.semibold,
     color: theme.colors.foreground,
   },
-  requestDates: {
+  historyDates: {
     ...theme.typography.caption,
     color: theme.colors.mutedForeground,
     marginTop: 2,
   },
-  requestRight: {
+  historyRight: {
     alignItems: "flex-end" as const,
     gap: theme.spacing.xs,
+  },
+  statusBadge: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: theme.radius.full,
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  statusBadgeText: {
+    ...theme.typography.micro,
+    fontWeight: theme.fontWeights.semibold,
+    textTransform: "uppercase" as const,
+    letterSpacing: 0.5,
   },
   cancelText: {
     ...theme.typography.caption,

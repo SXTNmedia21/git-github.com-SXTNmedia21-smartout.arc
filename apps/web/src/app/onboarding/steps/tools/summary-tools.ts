@@ -9,7 +9,11 @@
  */
 
 import { useMemo } from "react";
-import type { ClientToolDefinition, ClientToolImplementation, ClientToolKit } from "@smartout/agent-sdk";
+import type {
+  ClientToolDefinition,
+  ClientToolImplementation,
+  ClientToolKit,
+} from "@smartout/agent-sdk";
 import { useSyncRef, useWizardToolKit } from "@/lib/wizard-tools/shared";
 import type { OnboardingConfirmState } from "../../types-v2";
 

@@ -6,12 +6,14 @@
  *   Tap → WalkAi voice session
  *   Long press → Botsson text chat
  *
- * Uses a custom TabBar component that renders the FAB in the center slot.
+ * Each tab screen manages its own header:
+ * - Home: burger menu (→ settings) + bell
+ * - Other tabs: back arrow + title + contextual actions
  */
 
 import React, { useCallback, useRef } from "react";
 import { View } from "react-native";
-import { Tabs } from "expo-router";
+import { Tabs, useRouter } from "expo-router";
 import type GorhomBottomSheet from "@gorhom/bottom-sheet";
 import { createStyles } from "@/theme";
 import { TabBar } from "@/components/navigation/TabBar";
@@ -26,20 +28,18 @@ import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 
 export default function AppLayout() {
   const styles = useStyles();
+  const router = useRouter();
 
-  // Profile + unread count for the notification dot on the Meg tab
   const { data: profile } = useMyProfile();
   const { data: unreadNotificationCount = 0 } = useUnreadCount(profile?.profile_id);
 
   const botssonSheetRef = useRef<GorhomBottomSheet>(null);
   const walkAiSheetRef = useRef<GorhomBottomSheet>(null);
 
-  // FAB tap → open WalkAi voice session
   const handleFabTap = useCallback(() => {
     walkAiSheetRef.current?.expand();
   }, []);
 
-  // FAB long press → open Botsson text chat
   const handleFabLongPress = useCallback(() => {
     botssonSheetRef.current?.expand();
   }, []);
@@ -66,18 +66,20 @@ export default function AppLayout() {
   return (
     <WalkAiProvider>
       <View style={styles.container}>
-        <Tabs screenOptions={{ headerShown: false }} tabBar={renderTabBar}>
-          <Tabs.Screen name="(home)" options={{ title: strings.tabs.home }} />
-          <Tabs.Screen name="(shifts)" options={{ title: strings.tabs.shifts }} />
+        <Tabs
+          screenOptions={{ headerShown: false }}
+          initialRouteName="(home)"
+          tabBar={renderTabBar}
+        >
+          <Tabs.Screen name="(home)" options={{ href: null }} />
+          <Tabs.Screen name="digest" options={{ title: "Digest" }} />
+          <Tabs.Screen name="(shifts)" options={{ title: "Kalender" }} />
           <Tabs.Screen name="(chat)" options={{ title: strings.tabs.chat }} />
-          <Tabs.Screen name="(komm)" options={{ title: "Komm", href: null }} />
-          <Tabs.Screen name="(me)" options={{ title: strings.tabs.me }} />
+          <Tabs.Screen name="(me)" options={{ title: "Min side" }} />
+          <Tabs.Screen name="(payroll)" options={{ href: null }} />
         </Tabs>
 
-        {/* WalkAi voice sheet — opened on FAB tap */}
         <WalkAiSheet ref={walkAiSheetRef} onDismiss={handleWalkAiDismiss} />
-
-        {/* Botsson text chat sheet — opened on FAB long press */}
         <BotssonSheet ref={botssonSheetRef} onDismiss={handleBotssonDismiss} />
       </View>
     </WalkAiProvider>

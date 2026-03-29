@@ -1,7 +1,11 @@
 "use client";
 
 import { useMemo } from "react";
-import type { ClientToolDefinition, ClientToolImplementation, ClientToolKit } from "@smartout/agent-sdk";
+import type {
+  ClientToolDefinition,
+  ClientToolImplementation,
+  ClientToolKit,
+} from "@smartout/agent-sdk";
 import { useSyncRef } from "@/lib/wizard-tools/shared";
 
 type TemplateEntry = {
@@ -99,9 +103,7 @@ export function useShiftTemplateTools(
         }
 
         const depts = departmentsRef.current;
-        const dept = depts.find(
-          (d) => d.name.toLowerCase() === deptInput.toLowerCase(),
-        );
+        const dept = depts.find((d) => d.name.toLowerCase() === deptInput.toLowerCase());
         if (!dept) {
           return (
             `Department "${deptInput}" not found. Available: ` +
@@ -127,10 +129,7 @@ export function useShiftTemplateTools(
         });
 
         const pendingCount = pending.filter((e) => e.name.trim()).length;
-        return (
-          `Departments: ${savedByDept.join(", ")}. ` +
-          `Pending (unsaved): ${pendingCount}.`
-        );
+        return `Departments: ${savedByDept.join(", ")}. ` + `Pending (unsaved): ${pendingCount}.`;
       },
     }),
     [],

@@ -11,6 +11,17 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 
+/** Attachment on a channel message */
+export type MessageAttachment = {
+  id: string;
+  url: string;
+  file_type: string;
+  mime_type: string | null;
+  filename: string;
+  size_bytes: number;
+  duration_seconds: number | null;
+};
+
 /** Message with sender profile info from the get_channel_messages RPC */
 export type MessageWithSender = {
   /** message_id from channel_message */
@@ -27,7 +38,7 @@ export type MessageWithSender = {
   /** Replied-to message sender name (from RPC join) */
   reply_to_sender_name: string | null;
   reactions: unknown;
-  attachments: unknown;
+  attachments: MessageAttachment[];
   is_pinned: boolean;
   message_type: string;
   origin_type: string;
@@ -108,7 +119,7 @@ async function fetchMessages({
     reply_to_content: msg.reply_to_content ?? null,
     reply_to_sender_name: msg.reply_to_sender_name ?? null,
     reactions: msg.reactions ?? [],
-    attachments: msg.attachments ?? [],
+    attachments: (msg.attachments ?? []) as MessageAttachment[],
     is_pinned: msg.is_pinned ?? false,
     message_type: msg.message_type,
     origin_type: msg.origin_type,

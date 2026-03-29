@@ -82,7 +82,7 @@ export default function ConversationScreen() {
   });
 
   const handleStartCall = useCallback(async () => {
-    console.log(
+    console.warn(
       "[CallStart] conversationId:",
       conversationId,
       "workspaceId:",
@@ -299,7 +299,10 @@ export default function ConversationScreen() {
   }, [conversationId, profileId, queryClient]);
 
   const handleSend = useCallback(
-    async (content: string) => {
+    async (
+      content: string,
+      attachments?: { uri: string; type: "image" | "video"; fileName?: string }[],
+    ) => {
       if (!profileId || !conversationId || !workspaceId) return;
       await sendMessage({
         channelId: conversationId,
@@ -309,6 +312,7 @@ export default function ConversationScreen() {
         senderAvatarUrl: profileAvatarUrl,
         replyToId: replyTo?.id ?? null,
         workspaceId,
+        attachments,
       });
       setReplyTo(null);
     },

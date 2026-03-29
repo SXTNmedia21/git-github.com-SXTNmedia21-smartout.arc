@@ -930,7 +930,10 @@ export function WalkAiProvider({
       getDensity: () => densityRef.current,
       navigateTo: (path: string) => routerRef.current.push(path),
       openEntityDrawer: (entityType: string, entityId: string) => {
-        entityDrawer?.openDrawer(entityType as Parameters<typeof entityDrawer.openDrawer>[0], entityId);
+        entityDrawer?.openDrawer(
+          entityType as Parameters<typeof entityDrawer.openDrawer>[0],
+          entityId,
+        );
       },
       completeTask: (taskId: string) => completeTaskRef.current(taskId),
       updateTask: (taskId: string, updates) => updateTaskRef.current(taskId, updates),

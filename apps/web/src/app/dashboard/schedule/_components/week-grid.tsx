@@ -8,27 +8,29 @@
  * Columns are derived from department_shift_type_config — no template dependency.
  */
 
-import { useState, useContext, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useContext, useMemo, useCallback } from "react";
 import { toast } from "sonner";
 
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspace } from "@/lib/workspace-context";
 import {
   useWeekGridData,
-  useFillFromTemplate,
   usePublishWeek,
   useResetWeek,
+  useCreateGridShift,
 } from "@smartout/schedule";
+import type { GridColumn, MalEmployeeAssignment } from "@smartout/schedule";
 
 import { MalCommandBar } from "./week-grid-command-bar";
 import { WeekGridContextBar } from "./week-grid-context-bar";
 import { MalGridHeader } from "./week-grid-header";
 import { MalGridRow } from "./week-grid-row";
 import { WeekGridEmptyState } from "./week-grid-empty-state";
-import { CreateTemplateDialog } from "./create-template-dialog";
+import { LoadTemplateSheet } from "./load-template-sheet";
+import { SaveTemplateDialog } from "./save-template-dialog";
 import { useAgentProposals } from "./agent-proposals-context";
 import type { ShiftProposalCreate } from "./schedule-types";
+import type { ScheduleEmployee } from "../_hooks/use-employees";
 
 // ISO week number calculation — avoids a date-fns dependency at the grid level
 function getISOWeek(date: Date): number {
@@ -48,12 +50,11 @@ type MalGridProps = {
 export function MalGrid({ departmentName, weekStart, departmentOptions }: MalGridProps) {
   const [weekOffset, setWeekOffset] = useState(0);
   const [showTasks, setShowTasks] = useState(false);
-  const [createTemplateOpen, setCreateTemplateOpen] = useState(false);
+  const [loadTemplateOpen, setLoadTemplateOpen] = useState(false);
+  const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
 
   const { workspace } = useWorkspace();
-  const { isDark, activeDepartment, setActiveDepartment, profileId } = useContext(DashboardContext);
-
-  const router = useRouter();
+  const { isDark, setActiveDepartment, profileId } = useContext(DashboardContext);
 
   // Offset the base weekStart by the navigation offset to get the displayed week
   const currentWeekStart = useMemo(() => {
@@ -71,9 +72,9 @@ export function MalGrid({ departmentName, weekStart, departmentOptions }: MalGri
     showTasks,
   });
 
-  const fillMutation = useFillFromTemplate();
   const publishMutation = usePublishWeek();
   const resetMutation = useResetWeek();
+  const createShiftMutation = useCreateGridShift();
 
   const { proposals, approveProposal, rejectProposal, approveAllProposals, clearAllProposals } =
     useAgentProposals();
@@ -98,6 +99,45 @@ export function MalGrid({ departmentName, weekStart, departmentOptions }: MalGri
     return map;
   }, [gridProposals]);
 
+  // ── Handlers ────────────────────────────────────────────────
+
+  /** Create a shift on-the-fly when an employee is picked from the popover */
+  const handleAssignEmployee = useCallback(
+    (dateId: string, column: GridColumn, employee: ScheduleEmployee) => {
+      // Use the column's department — correct when viewing "Alle avdelinger"
+      const shiftDeptId = column.departmentId || departmentId;
+      if (!shiftDeptId) return;
+
+      createShiftMutation.mutate(
+        {
+          workspaceId: workspace.workspace_id,
+          departmentId: shiftDeptId,
+          shiftDate: dateId,
+          shiftTypeId: column.shiftTypeId,
+          employeeId: employee.id,
+          role: column.shiftTypeName,
+          startTime: column.startTime,
+          endTime: column.endTime,
+          workHours: column.workHours,
+          breakMinutes: column.breakMinutes,
+          weekStart: currentWeekStart,
+          actorId: profileId ?? "",
+        },
+        {
+          onSuccess: () => toast.success(`${employee.name} tilordnet`),
+          onError: () => toast.error("Kunne ikke tilordne ansatt"),
+        },
+      );
+    },
+    [departmentId, workspace.workspace_id, currentWeekStart, profileId, createShiftMutation],
+  );
+
+  /** Click an existing employee tag — for now show toast with info */
+  const handleEmployeeClick = useCallback((assignment: MalEmployeeAssignment) => {
+    // TODO: open shift detail sheet for editing time, swap, message, remove
+    toast.info(`${assignment.employeeName} — ${assignment.status}`);
+  }, []);
+
   return (
     <div className="flex h-full flex-col">
       <MalCommandBar
@@ -120,6 +160,8 @@ export function MalGrid({ departmentName, weekStart, departmentOptions }: MalGri
             hoursPerDay: data ? Math.round(data.stats.totalHours / 7) : 0,
             costPerDay: data ? Math.round(data.stats.estimatedCost / 7) : 0,
           }}
+          onImportTemplate={() => setLoadTemplateOpen(true)}
+          onSaveAsTemplate={() => setSaveTemplateOpen(true)}
         />
       )}
 
@@ -140,7 +182,8 @@ export function MalGrid({ departmentName, weekStart, departmentOptions }: MalGri
       {/* Empty state — no shift type configs for this department */}
       {!isLoading && !error && (!data || data.columns.length === 0) && (
         <WeekGridEmptyState
-          onCreateShiftType={() => router.push("/dashboard/settings#shift-types")}
+          onCreateShiftType={() => toast.info("Legg til vakttyper under innstillinger")}
+          onImportTemplate={() => setLoadTemplateOpen(true)}
         />
       )}
 
@@ -163,6 +206,8 @@ export function MalGrid({ departmentName, weekStart, departmentOptions }: MalGri
                   columns={data.columns}
                   cells={data.cells}
                   showTasks={showTasks}
+                  onEmployeeClick={handleEmployeeClick}
+                  onAssignEmployee={handleAssignEmployee}
                   proposalsByCell={proposalsByCell}
                   onApproveProposal={approveProposal}
                   onRejectProposal={rejectProposal}
@@ -247,6 +292,7 @@ export function MalGrid({ departmentName, weekStart, departmentOptions }: MalGri
             {/* Secondary: Shift type + Turnus */}
             <button
               type="button"
+              onClick={() => toast.info("Legg til vakttyper under innstillinger")}
               className="border-border bg-card text-foreground hover:bg-muted rounded-[10px] border px-3.5 py-1.5 text-xs font-bold transition-all"
             >
               Legg til vakttype
@@ -263,6 +309,7 @@ export function MalGrid({ departmentName, weekStart, departmentOptions }: MalGri
             {/* Tertiary: Import from template */}
             <button
               type="button"
+              onClick={() => setLoadTemplateOpen(true)}
               className="text-muted-foreground hover:text-foreground rounded-[10px] px-3 py-1.5 text-xs font-bold transition-all"
             >
               Last inn fra mal
@@ -279,7 +326,6 @@ export function MalGrid({ departmentName, weekStart, departmentOptions }: MalGri
                   {
                     workspaceId: workspace.workspace_id,
                     weekStart: currentWeekStart,
-                    // templateId kept for mutation compat — will be removed when mutations are updated
                     templateId: "",
                     departmentId,
                     actorId: profileId ?? "",
@@ -323,7 +369,21 @@ export function MalGrid({ departmentName, weekStart, departmentOptions }: MalGri
           </div>
         </>
       )}
-      <CreateTemplateDialog open={createTemplateOpen} onOpenChange={setCreateTemplateOpen} />
+
+      {/* Load template sheet */}
+      <LoadTemplateSheet
+        dateId={currentWeekStart}
+        existingShiftCount={data?.stats.filledSlots ?? 0}
+        open={loadTemplateOpen}
+        onOpenChange={setLoadTemplateOpen}
+      />
+
+      {/* Save as template dialog */}
+      <SaveTemplateDialog
+        dayShifts={[]}
+        open={saveTemplateOpen}
+        onOpenChange={setSaveTemplateOpen}
+      />
     </div>
   );
 }

@@ -15,7 +15,13 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import type { WizardDefinition, WizardStepDef, WizardStepProps, WizardThemeTokens, WizardContextPayload } from "./types";
+import type {
+  WizardDefinition,
+  WizardStepDef,
+  WizardStepProps,
+  WizardThemeTokens,
+  WizardContextPayload,
+} from "./types";
 import { useWizardState } from "./useWizardState";
 import { useWizardWalkAi } from "./useWizardWalkAi";
 import { WizardTopBar } from "./WizardTopBar";
@@ -155,7 +161,16 @@ export function WizardShell<TState extends Record<string, unknown>>({
         theme: definition.theme,
       });
     }
-  }, [currentStep, currentStepIndex, onStepChange, onContextChange, definition.id, totalSteps, completedKey, definition.theme]);
+  }, [
+    currentStep,
+    currentStepIndex,
+    onStepChange,
+    onContextChange,
+    definition.id,
+    totalSteps,
+    completedKey,
+    definition.theme,
+  ]);
 
   /* Show a centered spinner while loadState is resolving */
   if (loading) {

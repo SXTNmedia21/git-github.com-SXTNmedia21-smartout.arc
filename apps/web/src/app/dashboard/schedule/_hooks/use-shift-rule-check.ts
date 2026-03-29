@@ -55,7 +55,7 @@ function useFrameworkRulesData() {
         .select("framework_id")
         .eq("workspace_id", workspaceId)
         .eq("is_active", true)
-        .single();
+        .maybeSingle();
 
       if (!binding)
         return { rules: [] as FrameworkRuleRow[], overrides: [] as WorkspaceRuleOverrideRow[] };

@@ -334,7 +334,6 @@ export const EmploymentSetupStep = forwardRef<
     [saveMutation.mutateAsync, queryClient, workspace.workspace.workspace_id],
   );
 
-
   // Build summary view for Emma — just type/label/enabled
   const formSummary = useMemo(
     () => forms.map((f) => ({ type: f.type, label: f.label, enabled: f.enabled })),

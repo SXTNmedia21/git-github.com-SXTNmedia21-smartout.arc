@@ -1,7 +1,11 @@
 "use client";
 
 import { useMemo } from "react";
-import type { ClientToolDefinition, ClientToolImplementation, ClientToolKit } from "@smartout/agent-sdk";
+import type {
+  ClientToolDefinition,
+  ClientToolImplementation,
+  ClientToolKit,
+} from "@smartout/agent-sdk";
 import { useSyncRef } from "@/lib/wizard-tools/shared";
 
 type EmploymentFormSummary = {
@@ -45,8 +49,7 @@ export function useEmploymentTools(
       {
         temporaryTool: {
           modelToolName: "get_employment_status",
-          description:
-            "Get current employment types: which are enabled and which are available.",
+          description: "Get current employment types: which are enabled and which are available.",
           dynamicParameters: [],
           client: {},
         },

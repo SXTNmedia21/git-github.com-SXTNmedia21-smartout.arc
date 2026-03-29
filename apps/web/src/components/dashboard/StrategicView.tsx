@@ -23,6 +23,8 @@ import {
   useStaffTurnover,
 } from "@/app/dashboard/_hooks";
 import type { KpiMetric } from "@/app/dashboard/_hooks";
+import { useTaskCompletion } from "@/app/dashboard/_hooks/use-task-completion";
+import { useTimeToJobReady } from "@/app/dashboard/_hooks/use-time-to-job-ready";
 import { BudgetSettingsPanel } from "./BudgetSettingsPanel";
 import { DashboardCard } from "./DashboardCard";
 import { SeasonCard } from "./SeasonCard";
@@ -38,6 +40,8 @@ export function StrategicView() {
   const { data: training } = useTrainingReadiness();
   const { data: absenceData } = useAbsenceRate();
   const { data: turnoverData } = useStaffTurnover();
+  const { data: taskCompletionData } = useTaskCompletion();
+  const { data: timeToJobReadyData } = useTimeToJobReady();
 
   function handleTargetSave(metric: KpiMetric, value: number) {
     updateTarget.mutate({ metric, value });
@@ -105,9 +109,15 @@ export function StrategicView() {
 
           <KPICard
             title="Oppgavefullfoering"
-            value={null}
+            value={taskCompletionData ? `${taskCompletionData.rate}%` : null}
             targetDisplay={`> ${targets.task_completion}%`}
-            status={null}
+            status={
+              taskCompletionData
+                ? taskCompletionData.rate < targets.task_completion
+                  ? "bad"
+                  : "good"
+                : null
+            }
             icon={<CheckCircle2 className="h-5 w-5" />}
             explanation={kpiCopy.task_completion}
             metric="task_completion"
@@ -118,9 +128,19 @@ export function StrategicView() {
 
           <KPICard
             title="Tid til jobbklar"
-            value={null}
+            value={
+              timeToJobReadyData && timeToJobReadyData.sampleSize > 0
+                ? `${timeToJobReadyData.averageDays}d`
+                : null
+            }
             targetDisplay={`< ${targets.time_to_job_ready}d`}
-            status={null}
+            status={
+              timeToJobReadyData && timeToJobReadyData.sampleSize > 0
+                ? timeToJobReadyData.averageDays > targets.time_to_job_ready
+                  ? "bad"
+                  : "good"
+                : null
+            }
             icon={<Target className="h-5 w-5" />}
             explanation={kpiCopy.time_to_job_ready}
             metric="time_to_job_ready"
@@ -361,10 +381,10 @@ function KPICard({
   status,
   icon,
   explanation,
-  metric,
-  targetValue,
-  unit,
-  onTargetSave,
+  metric: _metric,
+  targetValue: _targetValue,
+  unit: _unit,
+  onTargetSave: _onTargetSave,
 }: KPICardProps) {
   if (value === null) {
     return <EmptyKPICard title={title} icon={icon} />;

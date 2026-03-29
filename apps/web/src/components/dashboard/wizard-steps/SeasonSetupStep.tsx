@@ -152,8 +152,12 @@ export function SeasonSetupStep({
   }, [existingSeason, name, startDate, endDate, workspace.workspace_id, profileId, queryClient]);
 
   const seasonTools = useSeasonTools(
-    name, startDate, endDate,
-    setName, setStartDate, setEndDate,
+    name,
+    startDate,
+    endDate,
+    setName,
+    setStartDate,
+    setEndDate,
     handleSave,
   );
   useRegisterTools("wizard-setup-season", seasonTools);

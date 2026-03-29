@@ -19,6 +19,7 @@ import {
   useNotificationPreferences,
   useUpdateNotificationPreferences,
 } from "@smartout/notifications/client";
+import { useTranslation } from "@smartout/i18n";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -131,6 +132,7 @@ function PreferenceSkeleton() {
 export function NotificationPreferences({ userId }: { userId: string | undefined }) {
   const { data: preferences, isLoading } = useNotificationPreferences(userId);
   const updatePreferences = useUpdateNotificationPreferences(userId);
+  const { t } = useTranslation("notifications");
 
   // Merge saved preferences with defaults — handles the null (first-time) case.
   const prefs: Preferences = preferences
@@ -149,7 +151,6 @@ export function NotificationPreferences({ userId }: { userId: string | undefined
     : DEFAULTS;
 
   function toggle(field: keyof Preferences, value: boolean) {
-    // Request browser notification permission when enabling browser_enabled.
     if (field === "browser_enabled" && value && typeof window !== "undefined") {
       void Notification.requestPermission();
     }
@@ -168,39 +169,37 @@ export function NotificationPreferences({ userId }: { userId: string | undefined
 
   return (
     <div className="space-y-8 pb-8">
-      {/* ------------------------------------------------------------------ */}
-      {/* Section 1: Channels                                                 */}
-      {/* ------------------------------------------------------------------ */}
+      {/* Section 1: Channels */}
       <section>
         <SectionHeading
-          title="Kanaler"
-          description="Velg hvilke kanaler du vil motta varsler på."
+          title={t("prefs.channels.title")}
+          description={t("prefs.channels.description")}
         />
         <div className="divide-border divide-y">
           <PreferenceRow
-            label="Push-varsler"
-            description="Varsler til mobilen via Expo."
+            label={t("prefs.channels.push.label")}
+            description={t("prefs.channels.push.description")}
             checked={prefs.push_enabled}
             onCheckedChange={(v) => toggle("push_enabled", v)}
             disabled={isMutating}
           />
           <PreferenceRow
-            label="E-post"
-            description="Transaksjonsbaserte varsler på e-post."
+            label={t("prefs.channels.email.label")}
+            description={t("prefs.channels.email.description")}
             checked={prefs.email_enabled}
             onCheckedChange={(v) => toggle("email_enabled", v)}
             disabled={isMutating}
           />
           <PreferenceRow
-            label="SMS"
-            description="Kun kritiske varsler. Merk: SMS medfører kostnad."
+            label={t("prefs.channels.sms.label")}
+            description={t("prefs.channels.sms.description")}
             checked={prefs.sms_enabled}
             onCheckedChange={(v) => toggle("sms_enabled", v)}
             disabled={isMutating}
           />
           <PreferenceRow
-            label="Browser-varsler"
-            description="Push-varsler i nettleseren på denne enheten."
+            label={t("prefs.channels.browser.label")}
+            description={t("prefs.channels.browser.description")}
             checked={prefs.browser_enabled}
             onCheckedChange={(v) => toggle("browser_enabled", v)}
             disabled={isMutating}
@@ -208,29 +207,30 @@ export function NotificationPreferences({ userId }: { userId: string | undefined
         </div>
       </section>
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Section 2: Categories                                               */}
-      {/* ------------------------------------------------------------------ */}
+      {/* Section 2: Categories */}
       <section>
-        <SectionHeading title="Kategorier" description="Velg hvilke typer varsler du vil motta." />
+        <SectionHeading
+          title={t("prefs.categories.title")}
+          description={t("prefs.categories.description")}
+        />
         <div className="divide-border divide-y">
           <PreferenceRow
-            label="Arbeid"
-            description="Vakter, oppgaver, avvik og godkjenninger."
+            label={t("prefs.categories.work.label")}
+            description={t("prefs.categories.work.description")}
             checked={prefs.work_enabled}
             onCheckedChange={(v) => toggle("work_enabled", v)}
             disabled={isMutating}
           />
           <PreferenceRow
-            label="Opplæring"
-            description="Protokoller, tester og frister."
+            label={t("prefs.categories.training.label")}
+            description={t("prefs.categories.training.description")}
             checked={prefs.training_enabled}
             onCheckedChange={(v) => toggle("training_enabled", v)}
             disabled={isMutating}
           />
           <PreferenceRow
-            label="Fellesskap"
-            description="Chat, meldinger og kunngjøringer."
+            label={t("prefs.categories.community.label")}
+            description={t("prefs.categories.community.description")}
             checked={prefs.community_enabled}
             onCheckedChange={(v) => toggle("community_enabled", v)}
             disabled={isMutating}
@@ -238,18 +238,16 @@ export function NotificationPreferences({ userId }: { userId: string | undefined
         </div>
       </section>
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Section 3: Quiet hours                                              */}
-      {/* ------------------------------------------------------------------ */}
+      {/* Section 3: Quiet hours */}
       <section>
         <SectionHeading
-          title="Stilletid"
-          description="I stilletiden holdes varsler tilbake til stilletiden er over."
+          title={t("prefs.quietHours.title")}
+          description={t("prefs.quietHours.description")}
         />
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="space-y-1.5">
             <label htmlFor="quiet-start" className="text-foreground text-sm font-medium">
-              Starter
+              {t("prefs.quietHours.start")}
             </label>
             <input
               id="quiet-start"
@@ -262,7 +260,7 @@ export function NotificationPreferences({ userId }: { userId: string | undefined
           </div>
           <div className="space-y-1.5">
             <label htmlFor="quiet-end" className="text-foreground text-sm font-medium">
-              Slutter
+              {t("prefs.quietHours.end")}
             </label>
             <input
               id="quiet-end"
@@ -275,7 +273,7 @@ export function NotificationPreferences({ userId }: { userId: string | undefined
           </div>
           <div className="space-y-1.5">
             <label htmlFor="quiet-tz" className="text-foreground text-sm font-medium">
-              Tidssone
+              {t("prefs.quietHours.timezone")}
             </label>
             <select
               id="quiet-tz"
@@ -292,9 +290,7 @@ export function NotificationPreferences({ userId }: { userId: string | undefined
             </select>
           </div>
         </div>
-        <p className="text-muted-foreground mt-3 text-xs">
-          Kritiske varsler (avvik o.l.) leveres alltid, uavhengig av stilletid.
-        </p>
+        <p className="text-muted-foreground mt-3 text-xs">{t("prefs.quietHours.criticalInfo")}</p>
       </section>
     </div>
   );

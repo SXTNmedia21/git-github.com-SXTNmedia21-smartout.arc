@@ -48,7 +48,7 @@ export function OversiktTab({ dateId }: { dateId: string | null }) {
   // Budget edit state
   const [isEditingBudget, setIsEditingBudget] = useState(false);
   const [budget, setBudget] = useState(15000);
-  const [dutyManagers, setDutyManagers] = useState("");
+  const [_dutyManagers, _setDutyManagers] = useState("");
   const [dutyLeaderId, setDutyLeaderId] = useState<string | null>(null);
 
   // Hours override popover
@@ -80,7 +80,7 @@ export function OversiktTab({ dateId }: { dateId: string | null }) {
     queryFn: async () => {
       const { data } = await supabase
         .from("department_session")
-        .select("department_session_id, duty_leader_id, opened_by")
+        .select("department_session_id, opened_by")
         .eq("department_id", departmentId!)
         .eq("session_date", dateId!)
         .in("status", ["active", "upcoming"])
@@ -93,7 +93,7 @@ export function OversiktTab({ dateId }: { dateId: string | null }) {
 
   useEffect(() => {
     if (activeSession) {
-      setDutyLeaderId(activeSession.duty_leader_id ?? activeSession.opened_by);
+      setDutyLeaderId(activeSession.opened_by);
     }
   }, [activeSession]);
 
@@ -103,14 +103,14 @@ export function OversiktTab({ dateId }: { dateId: string | null }) {
   const managerShifts = dayShifts.filter(
     (s) => s.role.toLowerCase().includes("manager") || s.indicator === "purple",
   );
-  const managerNames = managerShifts
+  const _managerNames = managerShifts
     .map((s) => {
       const emp = s.employeeId ? employees.find((e) => e.id === s.employeeId) : null;
       return emp?.name;
     })
     .filter(Boolean);
 
-  const shiftDateByDays = useCallback(
+  const _shiftDateByDays = useCallback(
     (sourceShiftId: string, offsetDays: number) => {
       const shift = dayShifts.find((item) => item.id === sourceShiftId);
       if (!shift || !shift.employeeId) return;
@@ -124,7 +124,7 @@ export function OversiktTab({ dateId }: { dateId: string | null }) {
     [dayShifts, moveShiftMutation],
   );
 
-  const adjustShiftTime = useCallback(
+  const _adjustShiftTime = useCallback(
     (sourceShiftId: string, edge: "start" | "end", deltaMinutes: number) => {
       const shift = dayShifts.find((item) => item.id === sourceShiftId);
       if (!shift) return;
@@ -251,12 +251,8 @@ export function OversiktTab({ dateId }: { dateId: string | null }) {
               onChange={async (e) => {
                 const newId = e.target.value || null;
                 setDutyLeaderId(newId);
-                if (activeSession) {
-                  await supabase
-                    .from("department_session")
-                    .update({ duty_leader_id: newId })
-                    .eq("department_session_id", activeSession.department_session_id);
-                }
+                // TODO: duty_leader_id column does not exist on department_session yet
+                // When added, persist the selection here
               }}
               className="border-input bg-background text-foreground ml-1 rounded border px-1.5 py-0.5 text-[11px]"
             >

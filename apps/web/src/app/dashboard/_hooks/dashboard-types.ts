@@ -76,6 +76,7 @@ export type DepartmentShiftDetail = {
   employeeName: string | null;
   employeeId: string | null;
   role: string;
+  positionName: string | null;
   startTime: string;
   endTime: string;
   workHours: number;

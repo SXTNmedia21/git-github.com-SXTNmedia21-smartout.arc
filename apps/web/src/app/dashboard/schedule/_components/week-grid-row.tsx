@@ -12,6 +12,7 @@ import { gridCellKey } from "@smartout/schedule";
 import type { GridCell, GridColumn, MalEmployeeAssignment, MalTask } from "@smartout/schedule";
 import { MalShiftCell } from "./week-grid-cell";
 import type { ShiftProposalCreate } from "./schedule-types";
+import type { ScheduleEmployee } from "../_hooks/use-employees";
 
 type DayInfo = {
   index: number;
@@ -28,7 +29,8 @@ type MalGridRowProps = {
   showTasks: boolean;
   onEmployeeClick?: (assignment: MalEmployeeAssignment) => void;
   onTaskClick?: (task: MalTask) => void;
-  onAssignClick?: (dateId: string, configId: string) => void;
+  /** Called when an employee is picked from a cell's picker */
+  onAssignEmployee?: (dateId: string, column: GridColumn, employee: ScheduleEmployee) => void;
   proposalsByCell?: Map<string, ShiftProposalCreate[]>;
   onApproveProposal?: (id: string) => Promise<void>;
   onRejectProposal?: (id: string) => void;
@@ -53,7 +55,7 @@ export function MalGridRow({
   showTasks,
   onEmployeeClick,
   onTaskClick,
-  onAssignClick,
+  onAssignEmployee,
   proposalsByCell,
   onApproveProposal,
   onRejectProposal,
@@ -86,10 +88,11 @@ export function MalGridRow({
           <MalShiftCell
             key={col.configId}
             cell={cell}
+            column={col}
             showTasks={showTasks}
             onEmployeeClick={onEmployeeClick}
             onTaskClick={onTaskClick}
-            onAssignClick={onAssignClick}
+            onAssignEmployee={onAssignEmployee}
             ghostProposals={proposalsByCell?.get(gridCellKey(day.dateId, col.configId))}
             onApproveProposal={onApproveProposal}
             onRejectProposal={onRejectProposal}

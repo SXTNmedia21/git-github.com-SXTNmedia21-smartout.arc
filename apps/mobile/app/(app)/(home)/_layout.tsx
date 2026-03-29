@@ -1,32 +1,28 @@
 /**
  * Home tab stack layout.
- * Index: no header (manages its own SafeAreaView + HomeHeader).
- * Sub-screens: native header with back button.
+ * All screens manage their own headers (ActionHeader or custom).
  */
 import { Stack } from "expo-router";
-import { useTheme } from "@/theme";
 
 export default function HomeLayout() {
-  const theme = useTheme();
   return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-        headerStyle: { backgroundColor: theme.colors.background },
-        headerTintColor: theme.colors.foreground,
-        headerShadowVisible: false,
-      }}
-    >
-      <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen name="punch-clock" options={{ headerShown: true, title: "Stempling" }} />
-      <Stack.Screen name="deviation" options={{ headerShown: true, title: "Rapporter avvik" }} />
-      <Stack.Screen name="haccp" options={{ headerShown: true, title: "HACCP-kontroll" }} />
-      <Stack.Screen name="edit-profile" options={{ headerShown: true, title: "Rediger profil" }} />
-      <Stack.Screen
-        name="spokesperson-approval"
-        options={{ headerShown: true, title: "Godkjenning" }}
-      />
-      <Stack.Screen name="team" options={{ headerShown: true, title: "Team" }} />
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="index" />
+      <Stack.Screen name="punch-clock" />
+      <Stack.Screen name="deviation" />
+      <Stack.Screen name="haccp" />
+      <Stack.Screen name="edit-profile" />
+      <Stack.Screen name="spokesperson-approval" />
+      <Stack.Screen name="team" />
+      <Stack.Screen name="training" />
+      <Stack.Screen name="course-detail" />
+      <Stack.Screen name="hms" />
+      <Stack.Screen name="safety-round" />
+      <Stack.Screen name="temp-deviation" />
+      <Stack.Screen name="flow-player" />
+      <Stack.Screen name="shift-hub" />
+      <Stack.Screen name="operations" />
+      <Stack.Screen name="settings" />
     </Stack>
   );
 }

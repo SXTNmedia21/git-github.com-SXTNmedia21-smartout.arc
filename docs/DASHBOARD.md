@@ -62,6 +62,7 @@ tags: [dashboard, worktrees, tracking]
 
 | Date       | Feature                      | Branch                                                             | Merged To   |
 | ---------- | ---------------------------- | ------------------------------------------------------------------ | ----------- |
+| 2026-03-29 | interactive-dashboard        | `feat/interactive-dashboard`                                       | development |
 | 2026-03-28 | telegram-walkai-adapter      | `feat/telegram-walkai-adapter`                                     | development |
 | 2026-03-29 | telemetry-botsson-reactive   | `feat/telemetry-botsson-reactive`                                  | development |
 | 2026-03-28 | profession-system            | `feat/profession-system`                                           | development |

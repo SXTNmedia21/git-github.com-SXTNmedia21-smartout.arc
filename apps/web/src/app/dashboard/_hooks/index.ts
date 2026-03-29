@@ -43,3 +43,7 @@ export { useAbsenceRate } from "./use-absence-rate";
 export { useStaffTurnover } from "./use-staff-turnover";
 export { useFinancialCloseConfig } from "./use-financial-close-config";
 export type { FinancialCloseConfig } from "./use-financial-close-config";
+export { useTaskCompletion } from "./use-task-completion";
+export type { TaskCompletionData } from "./use-task-completion";
+export { useTimeToJobReady } from "./use-time-to-job-ready";
+export type { TimeToJobReadyData } from "./use-time-to-job-ready";

@@ -17,7 +17,8 @@ export default function ShiftsLayout() {
       }}
     >
       <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen name="[id]" options={{ headerShown: true, title: "Vaktdetaljer" }} />
+      <Stack.Screen name="[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="roster" options={{ headerShown: false }} />
     </Stack>
   );
 }

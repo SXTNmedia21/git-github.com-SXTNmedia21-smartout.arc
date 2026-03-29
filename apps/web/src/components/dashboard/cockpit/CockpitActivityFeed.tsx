@@ -16,6 +16,7 @@ import { getSeverityToneStyles } from "./severity-styles";
 type CockpitActivityFeedProps = {
   feed: CockpitEventEnvelope[];
   isLoading: boolean;
+  onEventPress?: (event: CockpitEventEnvelope) => void;
 };
 
 /**
@@ -42,7 +43,7 @@ function formatTime(occurredAt: string): string {
  * @param props - Feed entries and loading indicator from first-screen read model.
  * @returns Compact newest-first event feed card.
  */
-export function CockpitActivityFeed({ feed, isLoading }: CockpitActivityFeedProps) {
+export function CockpitActivityFeed({ feed, isLoading, onEventPress }: CockpitActivityFeedProps) {
   return (
     <section data-testid="cockpit-activity-feed">
       <Card className="border-border shadow-none">
@@ -56,9 +57,11 @@ export function CockpitActivityFeed({ feed, isLoading }: CockpitActivityFeedProp
             <p className="text-muted-foreground text-sm">No activity has been logged today.</p>
           ) : (
             feed.slice(0, 8).map((event) => (
-              <div
+              <button
+                type="button"
                 key={event.id}
-                className="border-border bg-muted/20 flex items-start justify-between gap-3 rounded-lg border px-3 py-2.5"
+                onClick={onEventPress ? () => onEventPress(event) : undefined}
+                className="border-border bg-muted/20 hover:bg-muted/40 flex w-full cursor-pointer items-start justify-between gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors"
               >
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">{event.summary}</p>
@@ -74,7 +77,7 @@ export function CockpitActivityFeed({ feed, isLoading }: CockpitActivityFeedProp
                     {event.severity}
                   </Badge>
                 </div>
-              </div>
+              </button>
             ))
           )}
         </CardContent>

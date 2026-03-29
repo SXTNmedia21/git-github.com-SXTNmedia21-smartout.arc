@@ -1,39 +1,49 @@
 "use client";
 
 /**
- * MalShiftCell — A single grid cell in the Mal-modus schedule grid.
- * Renders assigned employees, ghost proposal tags, empty slot placeholders,
- * and optional task tags for a given (date x template shift) intersection.
+ * MalShiftCell — A single grid cell in the schedule grid.
+ * Renders assigned employees, ghost proposal tags, empty slot placeholders
+ * with inline employee picker, and optional task tags for a given
+ * (date x config) intersection.
  */
 
-import type { GridCell, MalEmployeeAssignment, MalTask } from "@smartout/schedule";
+import { useState } from "react";
+import type { GridCell, GridColumn, MalEmployeeAssignment, MalTask } from "@smartout/schedule";
 import type { ShiftProposalCreate } from "./schedule-types";
+import type { ScheduleEmployee } from "../_hooks/use-employees";
 import { MalEmployeeTag } from "./shift-employee-tag";
 import { MalGhostTag } from "./shift-ghost-tag";
 import { MalTaskTag } from "./shift-task-tag";
+import { GridEmployeePicker } from "./grid-employee-picker";
 
 type MalShiftCellProps = {
   cell: GridCell;
+  column: GridColumn;
   showTasks: boolean;
   /** Ghost proposals for this cell, filtered by parent */
   ghostProposals?: ShiftProposalCreate[];
   onEmployeeClick?: (assignment: MalEmployeeAssignment) => void;
   onTaskClick?: (task: MalTask) => void;
-  onAssignClick?: (dateId: string, configId: string) => void;
+  /** Called when an employee is picked from the "+ Tilordne" popover */
+  onAssignEmployee?: (dateId: string, column: GridColumn, employee: ScheduleEmployee) => void;
   onApproveProposal?: (id: string) => void;
   onRejectProposal?: (id: string) => void;
 };
 
 export function MalShiftCell({
   cell,
+  column,
   showTasks,
   ghostProposals,
   onEmployeeClick,
   onTaskClick,
-  onAssignClick,
+  onAssignEmployee,
   onApproveProposal,
   onRejectProposal,
 }: MalShiftCellProps) {
+  // Track which empty slot (by index) has its picker open
+  const [openPickerIndex, setOpenPickerIndex] = useState<number | null>(null);
+
   // Adjust empty slots: subtract ghost proposals that will become real shifts
   const ghostCount = ghostProposals?.length ?? 0;
   const adjustedEmptySlots = Math.max(0, cell.emptySlots - ghostCount);
@@ -59,16 +69,25 @@ export function MalShiftCell({
         />
       ))}
 
-      {/* 3. Empty slot placeholders — adjusted for ghost proposals */}
+      {/* 3. Empty slot placeholders — each with its own employee picker */}
       {Array.from({ length: adjustedEmptySlots }).map((_, i) => (
-        <button
+        <GridEmployeePicker
           key={`${cell.dateId}-${cell.configId}-empty-${i}`}
-          type="button"
-          onClick={() => onAssignClick?.(cell.dateId, cell.configId)}
-          className="border-border text-muted-foreground inline-flex cursor-pointer items-center rounded-lg border border-dashed px-2 py-[3px] text-[9px] opacity-30 transition-all duration-[250ms] group-hover:opacity-100 hover:border-orange-500 hover:text-orange-500"
+          departmentId={column.departmentId}
+          open={openPickerIndex === i}
+          onOpenChange={(open) => setOpenPickerIndex(open ? i : null)}
+          onSelect={(employee) => {
+            onAssignEmployee?.(cell.dateId, column, employee);
+            setOpenPickerIndex(null);
+          }}
         >
-          + Tilordne
-        </button>
+          <button
+            type="button"
+            className="border-border text-muted-foreground inline-flex cursor-pointer items-center rounded-lg border border-dashed px-2 py-[3px] text-[9px] opacity-30 transition-all duration-[250ms] group-hover:opacity-100 hover:border-orange-500 hover:text-orange-500"
+          >
+            + Tilordne
+          </button>
+        </GridEmployeePicker>
       ))}
 
       {/* 4. Task tags — shown only when the task layer is toggled on */}

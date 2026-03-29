@@ -1,7 +1,11 @@
 "use client";
 
 import { useMemo } from "react";
-import type { ClientToolDefinition, ClientToolImplementation, ClientToolKit } from "@smartout/agent-sdk";
+import type {
+  ClientToolDefinition,
+  ClientToolImplementation,
+  ClientToolKit,
+} from "@smartout/agent-sdk";
 import { useSyncRef } from "@/lib/wizard-tools/shared";
 import type { DocumentExtractionResult } from "../wizard-state";
 
@@ -25,7 +29,8 @@ export function useDocumentDropTools(
       {
         temporaryTool: {
           modelToolName: "get_extraction_status",
-          description: "Get what was extracted from uploaded documents: file count, analysis state, and found data.",
+          description:
+            "Get what was extracted from uploaded documents: file count, analysis state, and found data.",
           dynamicParameters: [],
           client: {},
         },
@@ -48,10 +53,12 @@ export function useDocumentDropTools(
         const parts: string[] = [`${count} document(s) uploaded.`];
         if (result.policies?.length) parts.push(`${result.policies.length} policies found.`);
         if (result.employees?.length) parts.push(`${result.employees.length} employees found.`);
-        if (result.shiftPatterns?.length) parts.push(`${result.shiftPatterns.length} shift patterns found.`);
+        if (result.shiftPatterns?.length)
+          parts.push(`${result.shiftPatterns.length} shift patterns found.`);
         if (result.payroll) parts.push("Payroll/tariff info found.");
         if (result.employmentTerms) parts.push("Employment terms found.");
-        if (result.handbookSections?.length) parts.push(`${result.handbookSections.length} handbook sections found.`);
+        if (result.handbookSections?.length)
+          parts.push(`${result.handbookSections.length} handbook sections found.`);
 
         return parts.join(" ");
       },

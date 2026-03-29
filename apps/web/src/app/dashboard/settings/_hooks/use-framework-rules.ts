@@ -78,7 +78,7 @@ export function useFrameworkRules() {
         .select("framework_id")
         .eq("workspace_id", wsId!)
         .eq("is_active", true)
-        .single();
+        .maybeSingle();
 
       if (bindingError || !binding) return [];
 

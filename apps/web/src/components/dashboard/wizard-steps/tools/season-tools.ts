@@ -1,7 +1,11 @@
 "use client";
 
 import { useMemo } from "react";
-import type { ClientToolDefinition, ClientToolImplementation, ClientToolKit } from "@smartout/agent-sdk";
+import type {
+  ClientToolDefinition,
+  ClientToolImplementation,
+  ClientToolKit,
+} from "@smartout/agent-sdk";
 import { useSyncRef } from "@/lib/wizard-tools/shared";
 
 /**
@@ -47,7 +51,8 @@ export function useSeasonTools(
       {
         temporaryTool: {
           modelToolName: "set_season_dates",
-          description: "Set the season start and end dates. Format: YYYY-MM-DD. End must be after start.",
+          description:
+            "Set the season start and end dates. Format: YYYY-MM-DD. End must be after start.",
           dynamicParameters: [
             {
               name: "startDate",
@@ -118,7 +123,8 @@ export function useSeasonTools(
         const s = startRef.current;
         const e = endRef.current;
         if (!n && !s && !e) return "No season configured yet.";
-        const days = s && e ? Math.round((new Date(e).getTime() - new Date(s).getTime()) / 86400000) : 0;
+        const days =
+          s && e ? Math.round((new Date(e).getTime() - new Date(s).getTime()) / 86400000) : 0;
         return `Season: "${n || "(unnamed)"}". Period: ${s || "not set"} to ${e || "not set"} (${days} days).`;
       },
     }),

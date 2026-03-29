@@ -308,3 +308,159 @@ export function useAssignEmployee() {
     },
   });
 }
+
+// ══════════════════════════════════════════════════════════════
+// Mutation: Create shift on-the-fly (build-first flow)
+// ══════════════════════════════════════════════════════════════
+
+type CreateGridShiftParams = {
+  workspaceId: string;
+  departmentId: string;
+  shiftDate: string;
+  shiftTypeId: string;
+  employeeId: string;
+  role: string;
+  startTime: string;
+  endTime: string;
+  workHours: number;
+  breakMinutes: number;
+  weekStart: string;
+  actorId: string;
+};
+
+/**
+ * Creates a new schedule_shift directly in the grid — the "build first" flow.
+ * Inserts a shift with the employee already assigned (status = "assigned").
+ */
+export function useCreateGridShift() {
+  const queryClient = useQueryClient();
+  const supabase = createClient();
+
+  return useMutation({
+    mutationFn: async (params: CreateGridShiftParams) => {
+      const dayOfWeek = new Date(params.shiftDate + "T00:00:00").getDay();
+      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+      const startHour = Number.parseInt(params.startTime.split(":")[0] ?? "8", 10);
+
+      // Derive day_category from start time and weekend status
+      let dayCategory: "morning" | "midday" | "afternoon" | "evening" | "night" | "weekend";
+      if (isWeekend) {
+        dayCategory = "weekend";
+      } else if (startHour < 6) {
+        dayCategory = "night";
+      } else if (startHour < 11) {
+        dayCategory = "morning";
+      } else if (startHour < 14) {
+        dayCategory = "midday";
+      } else if (startHour < 17) {
+        dayCategory = "afternoon";
+      } else {
+        dayCategory = "evening";
+      }
+
+      const { data, error } = await supabase
+        .from("schedule_shift")
+        .insert({
+          workspace_id: params.workspaceId,
+          department_id: params.departmentId,
+          shift_date: params.shiftDate,
+          shift_type_id: params.shiftTypeId,
+          employee_id: params.employeeId,
+          role: params.role,
+          start_time: params.startTime,
+          end_time: params.endTime,
+          work_hours: params.workHours,
+          breaks: params.breakMinutes,
+          day_category: dayCategory,
+          status: "assigned",
+        })
+        .select("schedule_shift_id")
+        .single();
+
+      if (error) throw error;
+      return { shiftId: data.schedule_shift_id };
+    },
+
+    onSuccess: ({ shiftId }, params) => {
+      void emit({
+        event: "shift assigned",
+        workspace_id: params.workspaceId,
+        actor_id: params.actorId,
+        properties: {
+          entity: { entity_type: "shift", entity_id: shiftId },
+          data: { employee_id: params.employeeId },
+        },
+      });
+
+      // Invalidate all week-shift queries for this workspace + week — the departmentIds
+      // segment varies ("Alle avdelinger" = joined IDs, single dept = single ID), so we
+      // use a prefix match on the first 3 segments of the key.
+      void queryClient.invalidateQueries({
+        predicate: (query) => {
+          const key = query.queryKey as string[];
+          return (
+            key[0] === "schedule" &&
+            key[1] === "grid-week-shifts" &&
+            key[2] === params.workspaceId &&
+            key[3] === params.weekStart
+          );
+        },
+      });
+    },
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// Mutation: Remove a shift from the grid
+// ══════════════════════════════════════════════════════════════
+
+type RemoveGridShiftParams = {
+  shiftId: string;
+  workspaceId: string;
+  weekStart: string;
+  departmentId: string;
+  actorId: string;
+};
+
+/**
+ * Deletes a schedule_shift row. Used when the user removes an employee from a slot.
+ */
+export function useRemoveGridShift() {
+  const queryClient = useQueryClient();
+  const supabase = createClient();
+
+  return useMutation({
+    mutationFn: async ({ shiftId }: RemoveGridShiftParams) => {
+      const { error } = await supabase
+        .from("schedule_shift")
+        .delete()
+        .eq("schedule_shift_id", shiftId);
+
+      if (error) throw error;
+    },
+
+    onSuccess: (_data, params) => {
+      void emit({
+        event: "shift unassigned",
+        workspace_id: params.workspaceId,
+        actor_id: params.actorId,
+        properties: {
+          entity: { entity_type: "shift", entity_id: params.shiftId },
+          data: { employee_id: "" },
+        },
+      });
+
+      void queryClient.invalidateQueries({
+        predicate: (query) => {
+          const key = query.queryKey as string[];
+          return (
+            key[0] === "schedule" &&
+            key[1] === "grid-week-shifts" &&
+            key[2] === params.workspaceId &&
+            key[3] === params.weekStart
+          );
+        },
+      });
+    },
+  });
+}

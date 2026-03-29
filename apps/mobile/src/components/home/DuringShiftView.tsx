@@ -1,24 +1,29 @@
 /**
- * DuringShiftView — Home screen content when the employee is clocked in.
+ * DuringShiftView — "På vakt" home content when clocked in.
  *
- * Shows: timer since punch-in, full-width punch-out button, task feed sorted by
- * priority, deviation report button, chat shortcut, and ring leder button.
- * Everything critical is in the thumb zone (lower half of screen).
+ * Nordic Split layout:
+ * 1. "På vakt" hero with live timer
+ * 2. Live earnings card
+ * 3. Real-time update (glassmorphism notification)
+ * 4. Task list with priority glow borders
+ * 5. Quick actions 2x2 grid
  */
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { View, Text, ScrollView, Pressable, Linking } from "react-native";
+import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
-import { createStyles, withOpacity } from "@/theme";
-import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
-import { SectionHeader } from "@/components/common/SectionHeader";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { strings } from "@/constants/strings";
-import { formatTime } from "@/components/shift/ShiftCard";
-import { PayrollHomeCard } from "@/components/payroll/PayrollHomeCard";
-import { usePayrollSummary } from "@/hooks/queries/use-payroll-summary";
+import {
+  Banknote,
+  UtensilsCrossed,
+  Phone,
+  MessageCircle,
+  AlertTriangle,
+  Coffee,
+  ChevronRight,
+} from "lucide-react-native";
+import { createStyles, useTheme, withOpacity } from "@/theme";
 import type { Database } from "@smartout/supabase/database.types";
 import type { TimeEntry } from "@/types/time-entry";
 
@@ -31,253 +36,373 @@ type DuringShiftViewProps = {
   tasks?: SessionTask[];
   onPunchOut?: () => void;
   punchingOut?: boolean;
-  /** Leader's phone number for the "Ring leder" button */
   leaderPhone?: string | null;
 };
 
-/** Formats elapsed time from punch-in to now as "Xt Ymin" */
-function formatElapsedTime(punchIn: string): string {
-  const start = new Date(punchIn).getTime();
-  const now = Date.now();
-  const diffMs = Math.max(0, now - start);
-  const totalMinutes = Math.floor(diffMs / 60_000);
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-
-  if (hours === 0) return `${minutes}min`;
-  return `${hours}t ${minutes}min`;
+function formatTimer(punchIn: string): string {
+  const diff = Math.max(0, Date.now() - new Date(punchIn).getTime());
+  const s = Math.floor(diff / 1000);
+  const h = Math.floor(s / 3600)
+    .toString()
+    .padStart(2, "0");
+  const m = Math.floor((s % 3600) / 60)
+    .toString()
+    .padStart(2, "0");
+  const sec = (s % 60).toString().padStart(2, "0");
+  return `${h}:${m}:${sec}`;
 }
 
-/** Priority sort: compliance first, then overdue, then pending */
 function sortTasksByPriority(tasks: SessionTask[]): SessionTask[] {
   return [...tasks].sort((a, b) => {
-    // Compliance-required tasks come first
-    if (a.is_compliance_required !== b.is_compliance_required) {
+    if (a.is_compliance_required !== b.is_compliance_required)
       return a.is_compliance_required ? -1 : 1;
-    }
-    // Then sort by status: overdue > pending > in_progress > rest
-    const statusOrder: Record<string, number> = {
-      overdue: 0,
-      pending: 1,
-      available: 2,
-      in_progress: 3,
-    };
-    const aOrder = statusOrder[a.status] ?? 99;
-    const bOrder = statusOrder[b.status] ?? 99;
-    return aOrder - bOrder;
+    const order: Record<string, number> = { overdue: 0, pending: 1, available: 2, in_progress: 3 };
+    return (order[a.status] ?? 99) - (order[b.status] ?? 99);
   });
 }
 
 export function DuringShiftView({
-  shift,
+  _shift,
   timeEntry,
   tasks = [],
-  onPunchOut,
-  punchingOut = false,
+  _onPunchOut,
+  _punchingOut = false,
   leaderPhone,
 }: DuringShiftViewProps) {
   const styles = useStyles();
+  const theme = useTheme();
   const router = useRouter();
-  const summary = usePayrollSummary();
 
-  // Live timer — recalculates every minute
-  const [elapsed, setElapsed] = useState(() => formatElapsedTime(timeEntry.punch_in));
+  const [timer, setTimer] = useState(() => formatTimer(timeEntry.punch_in));
+  const timerRef = useRef<ReturnType<typeof setInterval>>(undefined);
+
   useEffect(() => {
-    const interval = setInterval(() => {
-      setElapsed(formatElapsedTime(timeEntry.punch_in));
-    }, 60_000);
-    return () => clearInterval(interval);
+    timerRef.current = setInterval(() => setTimer(formatTimer(timeEntry.punch_in)), 1000);
+    return () => clearInterval(timerRef.current);
   }, [timeEntry.punch_in]);
 
   const activeTasks = tasks.filter((t) => t.status !== "completed" && t.status !== "skipped");
   const sortedTasks = sortTasksByPriority(activeTasks);
 
-  const handleCallLeader = useCallback(() => {
-    if (!leaderPhone) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    Linking.openURL(`tel:${leaderPhone}`);
-  }, [leaderPhone]);
-
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Shift header with timer */}
-      <View style={styles.header}>
-        <Text style={styles.headerText}>
-          {strings.home.onShift} ·{" "}
-          {shift ? `${formatTime(shift.start_time)}–${formatTime(shift.end_time)}` : ""}
-        </Text>
-        <Text style={styles.timer}>{elapsed}</Text>
-      </View>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+    >
+      {/* Hero */}
+      <Animated.View entering={FadeIn.delay(50).duration(400)} style={styles.hero}>
+        <View style={styles.heroRow}>
+          <Text style={styles.heroTitle}>På vakt</Text>
+          <View style={styles.timerCol}>
+            <Text style={styles.timerLabel}>LIVE SHIFT TIME</Text>
+            <Text style={styles.timerValue}>{timer}</Text>
+          </View>
+        </View>
+        <View style={styles.heroLine} />
+      </Animated.View>
 
-      {/* Primary action: Punch out — full width, prominent */}
-      <Button
-        title={strings.shift.punchOut}
-        variant="destructive"
-        size="lg"
-        fullWidth
-        onPress={() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-          onPunchOut?.();
-        }}
-        loading={punchingOut}
-        style={styles.punchOutButton}
-      />
+      {/* Live earnings */}
+      <Animated.View
+        entering={FadeInDown.delay(100).duration(400).springify()}
+        style={styles.earningsCard}
+      >
+        <View style={styles.earningsLeft}>
+          <Banknote size={20} color={theme.colors.brandOrange} strokeWidth={1.5} />
+          <Text style={styles.earningsLabel}>Live earnings</Text>
+        </View>
+        <Text style={styles.earningsValue}>~ kr 1,240 earned so far</Text>
+      </Animated.View>
 
-      {/* Task feed */}
-      <View style={styles.tasksSection}>
-        <SectionHeader title={`${strings.tasks.title} (${activeTasks.length})`} />
-        {sortedTasks.length > 0 ? (
-          sortedTasks.map((task) => (
-            <Card key={task.id} style={styles.taskCard}>
-              <View style={styles.taskRow}>
-                <View
-                  style={[
-                    styles.taskIndicator,
-                    task.is_compliance_required && styles.taskIndicatorCompliance,
-                    task.status === "overdue" && styles.taskIndicatorOverdue,
+      {/* Real-time notification */}
+      <Animated.View
+        entering={FadeInDown.delay(200).duration(400).springify()}
+        style={styles.liveCard}
+      >
+        <View style={styles.livePulse}>
+          <View style={styles.livePulseInner} />
+        </View>
+        <View style={styles.liveContent}>
+          <Text style={styles.liveLabel}>NÅ SKJER DET</Text>
+          <View style={styles.liveRow}>
+            <UtensilsCrossed size={28} color={theme.colors.brandOrange} strokeWidth={1.3} />
+            <Text style={styles.liveText}>
+              VIP Dinner arriving in <Text style={styles.liveAccent}>15 min</Text>
+            </Text>
+          </View>
+        </View>
+      </Animated.View>
+
+      {/* Tasks */}
+      {sortedTasks.length > 0 && (
+        <View style={styles.taskSection}>
+          <View style={styles.taskHeader}>
+            <Text style={styles.sectionTitle}>Dine oppgaver ({activeTasks.length})</Text>
+            <View style={styles.priorityTag}>
+              <Text style={styles.priorityTagText}>Priority View</Text>
+            </View>
+          </View>
+          {sortedTasks.map((task, i) => {
+            const isCritical = task.is_compliance_required || task.status === "overdue";
+            const isNormal = task.status === "pending" || task.status === "in_progress";
+            return (
+              <Animated.View
+                key={task.id}
+                entering={FadeInDown.delay(300 + i * 60)
+                  .duration(400)
+                  .springify()}
+              >
+                <Pressable
+                  onPress={() => Haptics.selectionAsync()}
+                  style={({ pressed }) => [
+                    styles.taskRow,
+                    isCritical && styles.taskRowCritical,
+                    isNormal && !isCritical && styles.taskRowNormal,
+                    pressed && styles.taskRowPressed,
                   ]}
-                />
-                <View style={styles.taskContent}>
-                  <Text style={styles.taskTitle} numberOfLines={1}>
-                    {task.title}
-                  </Text>
-                  {task.description && (
-                    <Text style={styles.taskDescription} numberOfLines={1}>
-                      {task.description}
+                >
+                  <View
+                    style={[
+                      styles.taskBar,
+                      {
+                        backgroundColor: isCritical
+                          ? theme.colors.destructive
+                          : isNormal
+                            ? theme.colors.brandOrange
+                            : theme.colors.mutedForeground,
+                      },
+                      !isCritical && !isNormal && { opacity: 0.4 },
+                    ]}
+                  />
+                  <View style={styles.taskContent}>
+                    <Text style={styles.taskTitle}>{task.title}</Text>
+                    <Text style={[styles.taskMeta, isCritical && styles.taskMetaCritical]}>
+                      {isCritical
+                        ? "CRITICAL · PAST DUE"
+                        : isNormal
+                          ? "NORMAL · IN PROGRESS"
+                          : "ROUTINE · UP NEXT"}
                     </Text>
-                  )}
-                </View>
-              </View>
-            </Card>
-          ))
-        ) : (
-          <EmptyState
-            title={strings.tasks.noTasks}
-            subtitle="Ingen oppgaver akkurat na. Nye oppgaver dukker opp her nar de tildeles."
-          />
-        )}
-      </View>
-
-      {/* Live earnings counter — informational, below punch out and task feed */}
-      <View style={styles.payrollCard}>
-        <PayrollHomeCard
-          phase="during_shift"
-          shift={shift}
-          timeEntry={timeEntry}
-          summary={summary.data ?? null}
-        />
-      </View>
-
-      {/* Quick action bar — thumb zone */}
-      <View style={styles.actionBar}>
-        <Button
-          title={strings.tasks.reportDeviation}
-          variant="secondary"
-          size="md"
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            // Deviation reporting handled by Phase 9
-          }}
-        />
-        <Button
-          title={strings.tabs.chat}
-          variant="secondary"
-          size="md"
-          onPress={() => {
-            Haptics.selectionAsync();
-            router.push("/(app)/(chat)");
-          }}
-        />
-      </View>
-
-      {/* Call leader button */}
-      {leaderPhone && (
-        <Pressable style={styles.callLeader} onPress={handleCallLeader} accessibilityRole="button">
-          <Text style={styles.callLeaderText}>{strings.me.callLeader}</Text>
-        </Pressable>
+                  </View>
+                  <ChevronRight
+                    size={18}
+                    color={withOpacity(theme.colors.mutedForeground, 0.3)}
+                    strokeWidth={1.5}
+                  />
+                </Pressable>
+              </Animated.View>
+            );
+          })}
+        </View>
       )}
+
+      {/* Quick Actions */}
+      <Animated.View
+        entering={FadeInDown.delay(500).duration(400).springify()}
+        style={styles.actionsSection}
+      >
+        <Text style={styles.sectionTitle}>Raske handlinger</Text>
+        <View style={styles.actionsGrid}>
+          <Pressable
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              if (leaderPhone) Linking.openURL(`tel:${leaderPhone}`);
+            }}
+            style={({ pressed }) => [
+              styles.actionCard,
+              styles.actionCardPrimary,
+              pressed && styles.actionPressed,
+            ]}
+          >
+            <Phone size={24} color="#ffffff" strokeWidth={1.5} />
+            <Text style={styles.actionLabelPrimary}>Ring leder</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => {
+              Haptics.selectionAsync();
+              router.push("/(app)/(chat)");
+            }}
+            style={({ pressed }) => [styles.actionCard, pressed && styles.actionPressed]}
+          >
+            <MessageCircle size={24} color={theme.colors.brandOrange} strokeWidth={1.5} />
+            <Text style={styles.actionLabel}>Åpne chat</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => {
+              Haptics.selectionAsync();
+              router.push("/(app)/(home)/deviation");
+            }}
+            style={({ pressed }) => [styles.actionCard, pressed && styles.actionPressed]}
+          >
+            <AlertTriangle size={24} color={theme.colors.destructive} strokeWidth={1.5} />
+            <Text style={styles.actionLabel}>Rapporter avvik</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => Haptics.selectionAsync()}
+            style={({ pressed }) => [
+              styles.actionCard,
+              styles.actionCardMuted,
+              pressed && styles.actionPressed,
+            ]}
+          >
+            <Coffee size={24} color={theme.colors.mutedForeground} strokeWidth={1.5} />
+            <Text style={styles.actionLabelMuted}>Ta pause</Text>
+          </Pressable>
+        </View>
+      </Animated.View>
     </ScrollView>
   );
 }
 
 const useStyles = createStyles((theme) => ({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
   content: {
-    paddingHorizontal: theme.spacing.card,
-    paddingTop: theme.spacing.section,
-    paddingBottom: theme.spacing.xl,
+    paddingHorizontal: theme.spacing.section,
+    paddingTop: theme.spacing.element,
+    paddingBottom: theme.spacing.xl + 40,
   },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: theme.spacing.element,
+
+  hero: { gap: 8, marginBottom: theme.spacing.page },
+  heroRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" },
+  heroTitle: { fontSize: 40, fontWeight: "300", letterSpacing: -1, color: theme.colors.foreground },
+  timerCol: { alignItems: "flex-end" },
+  timerLabel: {
+    fontSize: 10,
+    fontWeight: "500",
+    letterSpacing: 1,
+    color: withOpacity(theme.colors.mutedForeground, 0.4),
   },
-  headerText: {
-    ...theme.typography.headline,
-    color: theme.colors.foreground,
-  },
-  timer: {
-    ...theme.typography.headline,
+  timerValue: {
+    fontSize: 24,
+    fontWeight: "700",
+    letterSpacing: -1,
     color: theme.colors.brandOrange,
-    fontWeight: theme.fontWeights.bold,
   },
-  punchOutButton: {
+  heroLine: { width: 48, height: 2, borderRadius: 1, backgroundColor: theme.colors.brandOrange },
+
+  earningsCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: theme.isDark ? withOpacity(theme.colors.card, 0.5) : theme.colors.secondary,
+    borderRadius: theme.radius.xl,
+    padding: theme.spacing.section,
+    borderWidth: 1,
+    borderColor: withOpacity(theme.colors.border, 0.05),
     marginBottom: theme.spacing.section,
   },
-  tasksSection: {
-    marginBottom: theme.spacing.section,
+  earningsLeft: { flexDirection: "row", alignItems: "center", gap: theme.spacing.element },
+  earningsLabel: {
+    ...theme.typography.subheadline,
+    fontWeight: "500",
+    color: theme.colors.mutedForeground,
   },
-  taskCard: {
-    marginBottom: theme.spacing.tight,
+  earningsValue: {
+    ...theme.typography.body,
+    fontWeight: "600",
+    color: theme.colors.foreground,
+    letterSpacing: -0.3,
   },
+
+  liveCard: {
+    backgroundColor: theme.isDark
+      ? withOpacity(theme.colors.card, 0.4)
+      : withOpacity(theme.colors.muted, 0.4),
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.page,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
+    marginBottom: theme.spacing.page,
+    position: "relative",
+    overflow: "hidden",
+  },
+  livePulse: { position: "absolute", top: 16, right: 16 },
+  livePulseInner: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: theme.colors.brandOrange,
+  },
+  liveContent: { gap: theme.spacing.md },
+  liveLabel: {
+    fontSize: 10,
+    fontWeight: "500",
+    letterSpacing: 2,
+    color: withOpacity(theme.colors.mutedForeground, 0.6),
+  },
+  liveRow: { flexDirection: "row", alignItems: "flex-start", gap: theme.spacing.md },
+  liveText: { ...theme.typography.title, color: theme.colors.foreground, flex: 1, lineHeight: 30 },
+  liveAccent: { fontStyle: "italic", color: theme.colors.brandOrange },
+
+  taskSection: { marginBottom: theme.spacing.page, gap: theme.spacing.element },
+  taskHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  sectionTitle: { ...theme.typography.title, color: theme.colors.foreground, paddingHorizontal: 4 },
+  priorityTag: {
+    backgroundColor: withOpacity(theme.colors.muted, 0.5),
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: theme.radius.sm,
+  },
+  priorityTagText: {
+    fontSize: 10,
+    fontWeight: "500",
+    letterSpacing: 0.5,
+    color: theme.colors.mutedForeground,
+  },
+
   taskRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: theme.spacing.element,
+    padding: theme.spacing.card,
+    backgroundColor: theme.isDark ? withOpacity(theme.colors.card, 0.4) : theme.colors.background,
+    borderRadius: theme.radius.lg,
+    marginBottom: theme.spacing.element,
+    borderWidth: 1,
+    borderColor: withOpacity(theme.colors.border, 0.1),
   },
-  taskIndicator: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: theme.colors.muted,
+  taskRowCritical: { borderColor: withOpacity(theme.colors.destructive, 0.15) },
+  taskRowNormal: { borderColor: withOpacity(theme.colors.brandOrange, 0.15) },
+  taskRowPressed: { opacity: 0.85 },
+  taskBar: { width: 3, height: 32, borderRadius: 2, marginRight: theme.spacing.md },
+  taskContent: { flex: 1, gap: 2 },
+  taskTitle: { ...theme.typography.body, fontWeight: "500", color: theme.colors.foreground },
+  taskMeta: {
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 1,
+    color: theme.colors.mutedForeground,
+    textTransform: "uppercase",
   },
-  taskIndicatorCompliance: {
-    backgroundColor: theme.colors.destructive,
+  taskMetaCritical: { color: theme.colors.destructive },
+
+  actionsSection: { gap: theme.spacing.md },
+  actionsGrid: { flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.element },
+  actionCard: {
+    width: "48%",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    padding: theme.spacing.section,
+    backgroundColor: theme.isDark ? withOpacity(theme.colors.card, 0.4) : theme.colors.background,
+    borderRadius: theme.radius.lg,
+    borderWidth: 1,
+    borderColor: withOpacity(theme.colors.border, 0.1),
+    ...theme.shadows.sm,
   },
-  taskIndicatorOverdue: {
-    backgroundColor: theme.colors.warning,
+  actionCardPrimary: { backgroundColor: theme.colors.brandOrange, borderColor: "transparent" },
+  actionCardMuted: {
+    backgroundColor: theme.isDark ? withOpacity(theme.colors.muted, 0.3) : theme.colors.muted,
   },
-  taskContent: {
-    flex: 1,
-  },
-  taskTitle: {
-    ...theme.typography.body,
+  actionPressed: { transform: [{ scale: 0.95 }] },
+  actionLabel: {
+    ...theme.typography.subheadline,
+    fontWeight: "500",
     color: theme.colors.foreground,
   },
-  taskDescription: {
-    ...theme.typography.caption,
+  actionLabelPrimary: { ...theme.typography.subheadline, fontWeight: "500", color: "#ffffff" },
+  actionLabelMuted: {
+    ...theme.typography.subheadline,
+    fontWeight: "500",
     color: theme.colors.mutedForeground,
-  },
-  /* Payroll card spacing — sits below task feed, above action bar */
-  payrollCard: {
-    marginBottom: theme.spacing.section,
-  },
-
-  actionBar: {
-    flexDirection: "row",
-    gap: theme.spacing.element,
-    marginBottom: theme.spacing.section,
-  },
-  callLeader: {
-    alignItems: "center",
-    paddingVertical: theme.spacing.element,
-  },
-  callLeaderText: {
-    ...theme.typography.body,
-    fontWeight: theme.fontWeights.medium,
-    color: theme.colors.brandOrange,
   },
 }));

@@ -614,10 +614,7 @@ export function HandbookSetupStep({ wizardState }: { wizardState?: SetupWizardSt
 
   const completedCount = savedMap.size;
 
-  const savedChaptersArray = useMemo(
-    () => Array.from(savedMap.values()),
-    [savedMap],
-  );
+  const savedChaptersArray = useMemo(() => Array.from(savedMap.values()), [savedMap]);
 
   const handbookTools = useHandbookTools(savedChaptersArray, CHAPTERS.length);
   useRegisterTools("wizard-setup-handbook", handbookTools);

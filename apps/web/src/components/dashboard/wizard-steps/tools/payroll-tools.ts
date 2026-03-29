@@ -1,7 +1,11 @@
 "use client";
 
 import { useMemo } from "react";
-import type { ClientToolDefinition, ClientToolImplementation, ClientToolKit } from "@smartout/agent-sdk";
+import type {
+  ClientToolDefinition,
+  ClientToolImplementation,
+  ClientToolKit,
+} from "@smartout/agent-sdk";
 import { useSyncRef } from "@/lib/wizard-tools/shared";
 import type { TariffSupplement } from "@smartout/types";
 
@@ -45,7 +49,8 @@ export function usePayrollTools(
       {
         temporaryTool: {
           modelToolName: "add_supplement",
-          description: "Add a wage supplement. Rate is numeric. Unit is 'kr/t' (hourly) or '%' (percentage).",
+          description:
+            "Add a wage supplement. Rate is numeric. Unit is 'kr/t' (hourly) or '%' (percentage).",
           dynamicParameters: [
             {
               name: "name",
@@ -72,7 +77,8 @@ export function usePayrollTools(
       {
         temporaryTool: {
           modelToolName: "get_payroll_status",
-          description: "Get current payroll setup: selected tariff, available tariffs, and active supplements.",
+          description:
+            "Get current payroll setup: selected tariff, available tariffs, and active supplements.",
           dynamicParameters: [],
           client: {},
         },
@@ -105,7 +111,8 @@ export function usePayrollTools(
         const unit = (p.unit as string)?.trim() as "kr/t" | "%";
 
         if (!name) return "Error: name is required.";
-        if (!["kr/t", "%"].includes(unit)) return `Error: unit must be 'kr/t' or '%', got "${unit}".`;
+        if (!["kr/t", "%"].includes(unit))
+          return `Error: unit must be 'kr/t' or '%', got "${unit}".`;
 
         const supplement: TariffSupplement = {
           id: crypto.randomUUID(),

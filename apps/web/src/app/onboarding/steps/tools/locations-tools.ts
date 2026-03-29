@@ -9,7 +9,11 @@
  */
 
 import { useMemo } from "react";
-import type { ClientToolDefinition, ClientToolImplementation, ClientToolKit } from "@smartout/agent-sdk";
+import type {
+  ClientToolDefinition,
+  ClientToolImplementation,
+  ClientToolKit,
+} from "@smartout/agent-sdk";
 import { useSyncRef, useWizardToolKit } from "@/lib/wizard-tools/shared";
 import type { OnboardingConfirmState } from "../../types-v2";
 import type { LocationData } from "../../types";
@@ -101,7 +105,9 @@ export function useLocationsTools(
         const newLocs: LocationData[] = incoming.map((loc, i) => ({
           id: `loc-${Date.now()}-${current.length + i}`,
           name: loc.name.trim(),
-          type: (VALID_TYPES.indexOf(loc.type as LocationData["type"]) !== -1 ? loc.type : "other") as LocationData["type"],
+          type: (VALID_TYPES.indexOf(loc.type as LocationData["type"]) !== -1
+            ? loc.type
+            : "other") as LocationData["type"],
           zones: [],
         }));
 
@@ -126,9 +132,7 @@ export function useLocationsTools(
         }
 
         const locations = stateRef.current.locations;
-        const target = locations.find(
-          (l) => l.name.toLowerCase() === locationName.toLowerCase(),
-        );
+        const target = locations.find((l) => l.name.toLowerCase() === locationName.toLowerCase());
         if (!target) {
           return `Error: no location named "${locationName}". Use get_locations_status to see available locations.`;
         }
@@ -140,9 +144,7 @@ export function useLocationsTools(
 
         updateRef.current({
           locations: locations.map((loc) =>
-            loc.id === target.id
-              ? { ...loc, zones: [...loc.zones, ...newZones] }
-              : loc,
+            loc.id === target.id ? { ...loc, zones: [...loc.zones, ...newZones] } : loc,
           ),
         });
         return `Added ${newZones.length} zone(s) to "${target.name}": ${newZones.map((z) => z.name).join(", ")}.`;
@@ -152,7 +154,10 @@ export function useLocationsTools(
         const locs = stateRef.current.locations;
         if (locs.length === 0) return "No locations configured yet.";
         const lines = locs.map((loc) => {
-          const zoneNames = loc.zones.length > 0 ? ` | Zones: ${loc.zones.map((z) => z.name).join(", ")}` : " | No zones";
+          const zoneNames =
+            loc.zones.length > 0
+              ? ` | Zones: ${loc.zones.map((z) => z.name).join(", ")}`
+              : " | No zones";
           return `• ${loc.name} (${loc.type})${zoneNames}`;
         });
         const totalZones = locs.reduce((sum, l) => sum + l.zones.length, 0);

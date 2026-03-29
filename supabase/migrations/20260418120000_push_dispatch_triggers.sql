@@ -242,12 +242,12 @@ BEGIN
 
   -- Notify all managers and admins in the workspace
   FOR v_manager IN
-    SELECT id AS profile_id
+    SELECT profile_id
     FROM public.profile
     WHERE workspace_id = NEW.workspace_id
       AND role IN ('manager', 'admin', 'owner')
       AND is_active = TRUE
-      AND id != COALESCE(NEW.reported_by, '00000000-0000-0000-0000-000000000000'::UUID)
+      AND profile_id != COALESCE(NEW.reported_by, '00000000-0000-0000-0000-000000000000'::UUID)
   LOOP
     PERFORM dispatch_push_notification(
       'deviation_reported',

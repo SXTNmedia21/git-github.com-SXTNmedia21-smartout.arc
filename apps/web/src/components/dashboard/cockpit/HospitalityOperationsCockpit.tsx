@@ -8,8 +8,11 @@
 // first operations awareness on tactical view.
 // ============================================
 
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import type { CockpitEventEnvelope } from "@smartout/types";
 import { useCockpitFirstScreen } from "@/app/dashboard/_hooks/use-cockpit-first-screen";
+import { useEntityDrawer } from "@/components/dashboard/entity-drawer/EntityDrawerContext";
 import { CockpitActionRail } from "./CockpitActionRail";
 import { CockpitActivityFeed } from "./CockpitActivityFeed";
 import { CockpitOnDutyProgress } from "./CockpitOnDutyProgress";
@@ -54,6 +57,51 @@ export function HospitalityOperationsCockpit() {
     feedLimit: 24,
     feedFilters: { category: "all", timeRange: "today" },
   });
+  const { openDrawer } = useEntityDrawer();
+  const router = useRouter();
+
+  const handleStaffingPress = useCallback(
+    (_riskId: string) => router.push("/dashboard/schedule"),
+    [router],
+  );
+
+  const handleOperationalPress = useCallback(
+    (_riskId: string) => {
+      /* Operational risk IDs are department-based — open operations page for now.
+         When individual deviation/task IDs are available, open the entity drawer instead. */
+      router.push("/dashboard/operations");
+    },
+    [router],
+  );
+
+  const handleEventPress = useCallback(
+    (event: CockpitEventEnvelope) => {
+      const ref = event.entityRef;
+      if (!ref) return;
+
+      const drawerTypes = new Set([
+        "shift",
+        "department_session",
+        "cascade_task",
+        "profile",
+        "department",
+        "team",
+      ]);
+      if (drawerTypes.has(ref.type)) {
+        openDrawer(
+          ref.type as
+            | "shift"
+            | "department_session"
+            | "cascade_task"
+            | "profile"
+            | "department"
+            | "team",
+          ref.id,
+        );
+      }
+    },
+    [openDrawer],
+  );
 
   const summary = useMemo(
     () =>
@@ -83,9 +131,15 @@ export function HospitalityOperationsCockpit() {
             staffingQueue={model.staffingQueue}
             operationalQueue={model.operationalQueue}
             isLoading={model.isLoading}
+            onStaffingPress={handleStaffingPress}
+            onOperationalPress={handleOperationalPress}
           />
           <CockpitOnDutyProgress entries={model.onDutyEntries} isLoading={model.isLoading} />
-          <CockpitActivityFeed feed={model.feed} isLoading={model.isLoading} />
+          <CockpitActivityFeed
+            feed={model.feed}
+            isLoading={model.isLoading}
+            onEventPress={handleEventPress}
+          />
         </div>
 
         <div className="xl:col-span-1">

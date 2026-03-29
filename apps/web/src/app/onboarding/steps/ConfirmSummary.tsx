@@ -17,7 +17,14 @@ import type { OnboardingConfirmState } from "../types-v2";
 import { useRegisterTools } from "@/app/walkAi/_components/tool-registry";
 import { useSummaryTools } from "./tools/summary-tools";
 
-export function ConfirmSummary({ state, updateState, next, back, goTo, t }: WizardStepProps<OnboardingConfirmState>) {
+export function ConfirmSummary({
+  state,
+  updateState,
+  next,
+  back,
+  goTo,
+  t,
+}: WizardStepProps<OnboardingConfirmState>) {
   const tools = useSummaryTools(state, updateState, next, back);
   useRegisterTools("wizard-onboarding-summary", tools);
 

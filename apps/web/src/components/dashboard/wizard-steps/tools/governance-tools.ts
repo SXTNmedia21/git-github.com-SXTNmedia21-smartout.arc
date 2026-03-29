@@ -1,7 +1,11 @@
 "use client";
 
 import { useMemo } from "react";
-import type { ClientToolDefinition, ClientToolImplementation, ClientToolKit } from "@smartout/agent-sdk";
+import type {
+  ClientToolDefinition,
+  ClientToolImplementation,
+  ClientToolKit,
+} from "@smartout/agent-sdk";
 import { useSyncRef } from "@/lib/wizard-tools/shared";
 import type { FilterKey } from "@/app/dashboard/governance/_hooks/use-governance-templates";
 
@@ -54,7 +58,8 @@ export function useGovernanceTools(
       {
         temporaryTool: {
           modelToolName: "get_governance_status",
-          description: "Get current governance status: active filters and how many policies are activated.",
+          description:
+            "Get current governance status: active filters and how many policies are activated.",
           dynamicParameters: [],
           client: {},
         },
@@ -71,8 +76,15 @@ export function useGovernanceTools(
         const value = p.value as boolean;
 
         const validKeys: FilterKey[] = [
-          "food", "alcohol", "overnight", "delivery", "nightwork",
-          "minors", "foreignWorkers", "cashHandling", "tips",
+          "food",
+          "alcohol",
+          "overnight",
+          "delivery",
+          "nightwork",
+          "minors",
+          "foreignWorkers",
+          "cashHandling",
+          "tips",
         ];
         if (!validKeys.includes(key)) {
           return `Error: unknown filter key "${key}". Valid keys: ${validKeys.join(", ")}.`;
