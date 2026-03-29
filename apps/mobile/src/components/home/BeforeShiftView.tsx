@@ -81,12 +81,7 @@ function hoursUntilShift(shift: ScheduleShift): string {
   return `Live om ${mins}m`;
 }
 
-export function BeforeShiftView({
-  shift,
-  colleagues = [],
-  dayInfo,
-  _tasks = [],
-}: BeforeShiftViewProps) {
+export function BeforeShiftView({ shift, colleagues = [], dayInfo }: BeforeShiftViewProps) {
   const styles = useStyles();
   const theme = useTheme();
   const router = useRouter();

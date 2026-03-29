@@ -61,14 +61,7 @@ function sortTasksByPriority(tasks: SessionTask[]): SessionTask[] {
   });
 }
 
-export function DuringShiftView({
-  _shift,
-  timeEntry,
-  tasks = [],
-  _onPunchOut,
-  _punchingOut = false,
-  leaderPhone,
-}: DuringShiftViewProps) {
+export function DuringShiftView({ timeEntry, tasks = [], leaderPhone }: DuringShiftViewProps) {
   const styles = useStyles();
   const theme = useTheme();
   const router = useRouter();

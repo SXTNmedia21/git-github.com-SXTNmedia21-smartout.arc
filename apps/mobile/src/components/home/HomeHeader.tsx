@@ -104,13 +104,7 @@ function QuickActionButton({ action, index }: { action: QuickActionItem; index: 
   );
 }
 
-export function HomeHeader({
-  displayName,
-  avatarUrl,
-  profileId,
-  onMenuPress,
-  _onNotificationPress,
-}: HomeHeaderProps) {
+export function HomeHeader({ displayName, avatarUrl, profileId, onMenuPress }: HomeHeaderProps) {
   const styles = useStyles();
   const greeting = useMemo(() => getTimeGreeting(), []);
   const firstName = displayName.split(" ")[0];
