@@ -1048,6 +1048,9 @@ importers:
       '@smartout/types':
         specifier: workspace:*
         version: link:../types
+      '@supabase/supabase-js':
+        specifier: 2.49.4
+        version: 2.49.4
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
@@ -1061,9 +1064,6 @@ importers:
       '@smartout/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
-      '@supabase/supabase-js':
-        specifier: 2.49.4
-        version: 2.49.4
       typescript:
         specifier: ^5.9.0
         version: 5.9.3

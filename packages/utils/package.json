@@ -12,13 +12,13 @@
   },
   "dependencies": {
     "@smartout/types": "workspace:*",
+    "@supabase/supabase-js": "2.49.4",
     "date-fns": "^4.1.0",
     "zod": "^3.25.0"
   },
   "devDependencies": {
     "@smartout/eslint-config": "workspace:^",
     "@smartout/typescript-config": "workspace:*",
-    "@supabase/supabase-js": "2.49.4",
     "typescript": "^5.9.0"
   }
 }
