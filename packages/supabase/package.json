@@ -39,9 +39,9 @@
     }
   },
   "scripts": {
-    "build": "tsc",
+    "build": "npx tsc",
     "lint": "eslint src/",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "npx tsc --noEmit",
     "clean": "rimraf dist .turbo"
   },
   "dependencies": {

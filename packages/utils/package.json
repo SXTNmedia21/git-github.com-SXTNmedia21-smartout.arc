@@ -4,10 +4,10 @@
   "main": "src/index.ts",
   "types": "src/index.ts",
   "scripts": {
-    "build": "tsc && node ../../scripts/fix-esm-imports.mjs",
-    "dev": "tsc --watch",
+    "build": "npx tsc && node ../../scripts/fix-esm-imports.mjs",
+    "dev": "npx tsc --watch",
     "lint": "eslint src/",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "npx tsc --noEmit",
     "clean": "rimraf dist .turbo"
   },
   "dependencies": {

@@ -132,9 +132,9 @@
     }
   },
   "scripts": {
-    "build": "tsc && node ../../scripts/fix-esm-imports.mjs",
+    "build": "npx tsc && node ../../scripts/fix-esm-imports.mjs",
     "lint": "eslint src/",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "npx tsc --noEmit",
     "clean": "rimraf dist .turbo tsconfig.tsbuildinfo"
   },
   "dependencies": {
