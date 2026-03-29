@@ -60,9 +60,34 @@ export function AgentProposalsProvider({
   const [proposals, setProposals] = useState<ShiftProposal[]>([]);
   const [pendingConfirmation, setPendingConfirmation] = useState<ConfirmationRequest | null>(null);
 
-  const addProposal = useCallback((proposal: ShiftProposal) => {
-    setProposals((prev) => [...prev, proposal]);
-  }, []);
+  const addProposal = useCallback(
+    async (proposal: ShiftProposal) => {
+      // Auto-approve single creates (up to 4 pending) — no ghost card needed
+      if (proposal.type === "create") {
+        const pendingCreates = proposals.filter((p) => p.type === "create").length;
+        if (pendingCreates < 4) {
+          await createShift({
+            id: crypto.randomUUID(),
+            employeeId: proposal.employeeId,
+            dateId: proposal.dateId,
+            role: proposal.role,
+            startTime: proposal.startTime,
+            endTime: proposal.endTime,
+            workHours: proposal.workHours,
+            status: "created",
+            dayCategory: proposal.dayCategory,
+            indicator: proposal.indicator,
+            isPublished: false,
+            breaks: proposal.breaks,
+          });
+          return;
+        }
+      }
+      // 5+ creates, removes, deploys → queue as ghost for batch approval
+      setProposals((prev) => [...prev, proposal]);
+    },
+    [createShift, proposals],
+  );
 
   const removeProposal = useCallback((id: string) => {
     setProposals((prev) => prev.filter((proposal) => proposal.id !== id));

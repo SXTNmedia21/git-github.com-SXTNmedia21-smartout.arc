@@ -1,13 +1,13 @@
 ---
 title: Decision Log
 status: in_progress
-updated: 2026-03-28
-created: 2026-03-28
-module: onboarding
+updated: 2026-03-29
+created: 2026-03-29
+module: dashboard
 tags: [decisions]
 ---
 
-# Decision Log — profession-system
+# Decision Log — interactive-dashboard
 
 | #   | Date       | Decision                                                                                      | Status   |
 | --- | ---------- | --------------------------------------------------------------------------------------------- | -------- |
