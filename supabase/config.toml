@@ -531,3 +531,6 @@ verify_jwt = false
 
 [functions.session-hook-executor]
 verify_jwt = false
+
+[functions.cleanup-sandbox-workspaces]
+verify_jwt = false
