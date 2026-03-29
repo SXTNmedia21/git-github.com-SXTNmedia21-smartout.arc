@@ -60,9 +60,31 @@ export function AgentProposalsProvider({
   const [proposals, setProposals] = useState<ShiftProposal[]>([]);
   const [pendingConfirmation, setPendingConfirmation] = useState<ConfirmationRequest | null>(null);
 
-  const addProposal = useCallback((proposal: ShiftProposal) => {
-    setProposals((prev) => [...prev, proposal]);
-  }, []);
+  const addProposal = useCallback(
+    async (proposal: ShiftProposal) => {
+      // Auto-approve: create the shift immediately instead of waiting for manual approval
+      if (proposal.type === "create") {
+        await createShift({
+          id: crypto.randomUUID(),
+          employeeId: proposal.employeeId,
+          dateId: proposal.dateId,
+          role: proposal.role,
+          startTime: proposal.startTime,
+          endTime: proposal.endTime,
+          workHours: proposal.workHours,
+          status: "created",
+          dayCategory: proposal.dayCategory,
+          indicator: proposal.indicator,
+          isPublished: false,
+          breaks: proposal.breaks,
+        });
+        return;
+      }
+      // Non-create proposals still go through the approval flow
+      setProposals((prev) => [...prev, proposal]);
+    },
+    [createShift],
+  );
 
   const removeProposal = useCallback((id: string) => {
     setProposals((prev) => prev.filter((proposal) => proposal.id !== id));
