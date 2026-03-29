@@ -3,12 +3,13 @@
 /**
  * Join wizard definition — config object for WizardShell.
  *
- * 6-step join flow: Account → Business → Identity → Hours → Menu → Password.
- * Password step handles auth signup. onComplete runs completeSignup server action
- * and redirects to /onboarding.
+ * 6-step join flow: Account → Business → Identity → Hours → Menu → Summary.
+ * Auth (signUp/signInWithPassword) happens silently in step 1 after email+password entry.
+ * Step 6 is a read-only review so the user can verify before workspace provisioning.
+ * onComplete runs completeSignup server action and redirects to /onboarding.
  */
 
-import { Building2, Clock, FileText, KeyRound, Mail, UtensilsCrossed } from "lucide-react";
+import { Building2, CheckCircle, Clock, FileText, Mail, UtensilsCrossed } from "lucide-react";
 import type { WizardDefinition } from "@smartout/ui";
 import type { JoinState } from "./types";
 import { defaultJoinState, JOIN_STORAGE_KEY } from "./types";
@@ -17,7 +18,7 @@ import { Step2Business } from "./_components/Step2Business";
 import { Step3About } from "./_components/Step3About";
 import { Step4Hours } from "./_components/Step4Hours";
 import { Step5Menu } from "./_components/Step5Menu";
-import { Step6CreateAccount } from "./_components/Step6CreateAccount";
+import { Step6Summary } from "./_components/Step6Summary";
 import { step1Schema, step2Schema, step3Schema, step4Schema, step5Schema } from "./_lib/validation";
 import { completeSignup } from "./_lib/setupActions";
 import { buildPostSignupRedirectPath } from "./_lib/onboarding-shell";
@@ -148,9 +149,9 @@ export const joinWizard: WizardDefinition<JoinState> = {
         heading: "Del menyen\ndin.",
         sub: "Valgfritt — men det gir smartere opplæring.",
       },
-      create_account: {
+      summary: {
         heading: "Nesten\nferdig.",
-        sub: "Opprett kontoen din for å fullføre.",
+        sub: "Sjekk at alt stemmer — så setter vi i gang.",
       },
     },
   },
@@ -203,11 +204,11 @@ export const joinWizard: WizardDefinition<JoinState> = {
       skippable: true,
     },
     {
-      id: "create_account",
-      labelKey: "steps.create_account",
-      icon: KeyRound,
-      component: Step6CreateAccount,
-      hideNavBar: true,
+      id: "summary",
+      labelKey: "steps.summary",
+      icon: CheckCircle,
+      component: Step6Summary,
+      // No hideNavBar — the standard "Fullfør" nav button triggers onComplete
     },
   ],
 };

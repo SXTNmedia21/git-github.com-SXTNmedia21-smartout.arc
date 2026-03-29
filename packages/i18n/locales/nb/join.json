@@ -9,7 +9,8 @@
     "about": "Identitet",
     "hours": "Drift",
     "menu": "Meny",
-    "create_account": "Passord"
+    "create_account": "Passord",
+    "summary": "Oppsummering"
   },
   "step1": {
     "heading": "Opprett din konto",
@@ -25,7 +26,18 @@
     "firstName": "Fornavn",
     "firstName_placeholder": "Ola",
     "lastName": "Etternavn",
-    "lastName_placeholder": "Nordmann"
+    "lastName_placeholder": "Nordmann",
+    "password": "Passord",
+    "confirmPassword": "Bekreft passord",
+    "passwordMinLength": "Minimum 8 tegn",
+    "passwordMismatch": "Passordene stemmer ikke",
+    "emailAlreadyRegistered": "Denne e-posten er allerede registrert. Sjekk passordet ditt."
+  },
+  "step6": {
+    "summary": {
+      "title": "Alt ser bra ut",
+      "subtitle": "Sjekk at informasjonen stemmer før vi setter opp arbeidsplassen din."
+    }
   },
   "step2": {
     "heading": "Bedriftsinformasjon",
