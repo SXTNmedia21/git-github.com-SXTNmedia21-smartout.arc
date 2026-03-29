@@ -3282,4 +3282,16 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["logger"],
     category: "telegram",
   },
+  "session_task.created": {
+    destinations: ["activity_trail", "engine_event", "posthog"],
+    category: "operations",
+  },
+  "session_task.assigned": {
+    destinations: ["activity_trail", "engine_event", "posthog"],
+    category: "operations",
+  },
+  "communication.broadcast_sent": {
+    destinations: ["activity_trail", "posthog"],
+    category: "communication",
+  },
 };
