@@ -34,7 +34,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ run
       const interval = setInterval(() => {
         // Send every line that arrived since the last tick
         while (cursor < run.lines.length) {
-          const line = run.lines[cursor];
+          const line = run.lines[cursor] ?? "";
           cursor++;
 
           // Forward valid JSON as-is; wrap plain strings so clients always
