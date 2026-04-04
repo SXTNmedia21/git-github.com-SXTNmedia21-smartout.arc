@@ -11,6 +11,7 @@
 import { useContext } from "react";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { ShiftClockView } from "./ShiftClockView";
+import { FEATURE_FLAGS } from "@/lib/feature-flags";
 
 /**
  * LeaderOverview placeholder — will be implemented in Task 11.
@@ -30,6 +31,11 @@ function LeaderOverviewPlaceholder() {
 
 export default function ShiftClockPage() {
   const { isAdminMode } = useContext(DashboardContext);
+
+  // Show employee view for admins when the leader overview flag is off
+  if (isAdminMode && !FEATURE_FLAGS.SHIFT_CLOCK_LEADER) {
+    return <ShiftClockView />;
+  }
 
   if (isAdminMode) {
     return <LeaderOverviewPlaceholder />;

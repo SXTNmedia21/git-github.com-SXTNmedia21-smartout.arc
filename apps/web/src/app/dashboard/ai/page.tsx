@@ -1,5 +1,6 @@
 import { Bot, Settings, MessageSquare } from "lucide-react";
 import Link from "next/link";
+import { FEATURE_FLAGS } from "@/lib/feature-flags";
 
 export default function AiPage() {
   return (
@@ -32,15 +33,17 @@ export default function AiPage() {
           </div>
         </Link>
 
-        <div className="flex flex-col gap-3 rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/20 p-6">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-zinc-800">
-            <MessageSquare className="h-6 w-6 text-zinc-500" />
+        {FEATURE_FLAGS.AI_CHAT && (
+          <div className="flex flex-col gap-3 rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/20 p-6">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-zinc-800">
+              <MessageSquare className="h-6 w-6 text-zinc-500" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-zinc-400">Chat</h2>
+              <p className="mt-1 text-sm text-zinc-600">Snakk med Mr. Botsson — kommer snart</p>
+            </div>
           </div>
-          <div>
-            <h2 className="font-semibold text-zinc-400">Chat</h2>
-            <p className="mt-1 text-sm text-zinc-600">Snakk med Mr. Botsson — kommer snart</p>
-          </div>
-        </div>
+        )}
       </div>
     </>
   );
