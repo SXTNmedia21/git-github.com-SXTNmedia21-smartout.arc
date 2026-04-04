@@ -25,8 +25,7 @@ export default function PeoplePage() {
     if (!workspaceData?.workspace_id) return;
     const supabase = createClient();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result = await fetchWorkspacePeople(supabase as any, workspaceData.workspace_id);
+    const result = await fetchWorkspacePeople(supabase, workspaceData.workspace_id);
 
     // Determine current user's role
     const currentProfile = profileId

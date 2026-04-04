@@ -121,7 +121,7 @@ export function useLiveShifts() {
       const result: LiveShiftEntry[] = [];
 
       for (const shift of shifts) {
-        const profile = shift.profile as unknown as { display_name: string } | null;
+        const profile = shift.profile as unknown as { display_name: string } | null; // SAFETY: Supabase join returns union type; runtime shape matches the cast
         const name = profile?.display_name ?? "Ikke tildelt";
         const entry = entryMap.get(shift.schedule_shift_id);
 

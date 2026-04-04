@@ -189,9 +189,8 @@ export async function POST(req: NextRequest) {
     console.warn("Could not parse AI response as JSON:", textContent.slice(0, 200));
   }
 
-  // 4. Persist extraction log (table not yet in generated types — cast to bypass)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (admin as any).from("document_extraction_log").insert({
+  // 4. Persist extraction log
+  await admin.from("document_extraction_log").insert({
     workspace_id: workspaceId,
     storage_paths: storagePaths,
     raw_ai_response: { text: textContent, model: "anthropic/claude-sonnet-4" },

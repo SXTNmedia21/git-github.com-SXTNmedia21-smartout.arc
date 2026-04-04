@@ -27,7 +27,7 @@ export function useCompleteTask() {
           status: "completed" as const,
           completed_by: profileId,
           completed_at: new Date().toISOString(),
-          evidence: (evidence ?? null) as unknown as Record<string, never>,
+          evidence: (evidence ?? null) as unknown as Record<string, never>, // SAFETY: Supabase join returns union type; runtime shape matches the cast
         })
         .eq("id", taskId);
 

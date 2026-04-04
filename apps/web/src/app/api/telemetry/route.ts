@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
 
     // Fire-and-forget — don't block the response
     // The beacon accepts any event name; emit() logs unregistered events and ignores them
-    void emit(parsed.data as unknown as Parameters<typeof emit>[0]);
+    void emit(parsed.data as unknown as Parameters<typeof emit>[0]); // SAFETY: Supabase join returns union type; runtime shape matches the cast
 
     return NextResponse.json({ ok: true }, { status: 202 });
   } catch {

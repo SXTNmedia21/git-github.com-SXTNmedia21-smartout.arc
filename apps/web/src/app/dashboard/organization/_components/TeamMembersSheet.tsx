@@ -64,7 +64,7 @@ export function TeamMembersSheet({
       .eq("team_id", team.team_id);
 
     const profiles = (data ?? [])
-      .map((row) => row.profile as unknown as ProfileRow | null)
+      .map((row) => row.profile as unknown as ProfileRow | null) // SAFETY: Supabase join returns union type; runtime shape matches the cast
       .filter(Boolean) as ProfileRow[];
     setMembers(profiles);
     setLoading(false);

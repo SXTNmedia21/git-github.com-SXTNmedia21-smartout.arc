@@ -8,7 +8,7 @@ import type { ProfileStatus } from "@smartout/utils";
 
 /** Typed helper to get a server client with proper Database generics. */
 async function getClient(): Promise<SupabaseClient<Database>> {
-  return (await createClient()) as unknown as SupabaseClient<Database>;
+  return createClient();
 }
 
 export async function updateProfileRole(

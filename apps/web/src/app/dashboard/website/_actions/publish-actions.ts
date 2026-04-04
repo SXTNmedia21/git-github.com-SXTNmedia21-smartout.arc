@@ -497,20 +497,15 @@ async function buildSnapshot(
       .is("deleted_at", null),
   ]);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const site = websiteResult.data as any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const pages = (pagesResult.data ?? []) as any[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sections = (sectionsResult.data ?? []) as any[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const menus = (menusResult.data ?? []) as any[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const categories = (categoriesResult.data ?? []) as any[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const items = (itemsResult.data ?? []) as any[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const assets = (assetsResult.data ?? []) as any[];
+  // SAFETY: All queries are against the websites schema which returns untyped results.
+  // Shapes are known from the .select() calls above and match the PublishSnapshot types below.
+  const site = websiteResult.data as Record<string, unknown>;
+  const pages = (pagesResult.data ?? []) as Record<string, unknown>[];
+  const sections = (sectionsResult.data ?? []) as Record<string, unknown>[];
+  const menus = (menusResult.data ?? []) as Record<string, unknown>[];
+  const categories = (categoriesResult.data ?? []) as Record<string, unknown>[];
+  const items = (itemsResult.data ?? []) as Record<string, unknown>[];
+  const assets = (assetsResult.data ?? []) as Record<string, unknown>[];
 
   // Group sections by page
   const sectionsByPage = new Map<string, typeof sections>();

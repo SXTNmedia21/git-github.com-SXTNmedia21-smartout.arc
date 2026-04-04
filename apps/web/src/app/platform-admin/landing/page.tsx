@@ -371,12 +371,12 @@ export default async function LandingActivityPage() {
       </div>
 
       <LandingTabs
-        events={(events as unknown as LandingEventRow[]) ?? []}
+        events={(events as unknown as LandingEventRow[]) ?? []} // SAFETY: Supabase join returns union type; runtime shape matches the cast
         visitsToday={visitsToday ?? 0}
         voiceSessionsToday={voiceSessionsToday ?? 0}
         ctaClicksToday={ctaClicksToday ?? 0}
         uniqueSessions7d={uniqueSessions7d}
-        sessions={(sessions as unknown as SessionRow[]) ?? []}
+        sessions={(sessions as unknown as SessionRow[]) ?? []} // SAFETY: Supabase join returns union type; runtime shape matches the cast
         uniqueVisitorsToday={uniqueVisitorsToday}
         returningVisitors7d={returningVisitors7d}
         avgDurationToday={avgDurationToday}

@@ -112,9 +112,7 @@ export function useRoster(profileId: string | null) {
       if (!profileId) return null;
       const supabase = createClient();
 
-      // employee_roster not yet in generated types — cast to bypass
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("employee_roster")
         .select("*")
         .eq("workspace_id", workspace.workspace_id)
@@ -154,9 +152,7 @@ export function useUpsertRoster() {
   return useMutation({
     mutationFn: async (input: UpsertRosterInput) => {
       const supabase = createClient();
-      // employee_roster not yet in generated types — cast to bypass
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const rosterTable = (supabase as any).from("employee_roster");
+      const rosterTable = supabase.from("employee_roster");
 
       if (input.id) {
         // Update existing roster
@@ -175,8 +171,7 @@ export function useUpsertRoster() {
       }
 
       // Deactivate any existing active rosters for this employee
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase as any)
+      await supabase
         .from("employee_roster")
         .update({ is_active: false })
         .eq("workspace_id", workspace.workspace_id)

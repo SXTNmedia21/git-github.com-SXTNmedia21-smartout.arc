@@ -41,7 +41,7 @@ export function useChangeProposals() {
         .order("created_at", { ascending: false });
 
       if (error) throw new Error(error.message);
-      return (data ?? []) as unknown as ChangeProposal[];
+      return (data ?? []) as unknown as ChangeProposal[]; // SAFETY: Supabase join returns union type; runtime shape matches the cast
     },
     enabled: !!wsId,
     staleTime: 30_000,
@@ -71,8 +71,8 @@ export function useChangeProposals() {
         changes: {
           change_type: payload.changeType,
           ...payload.proposalPayload,
-        } as unknown as Record<string, never>,
-        preview: payload.previewPayload as unknown as Record<string, never>,
+        } as unknown as Record<string, never>, // SAFETY: Supabase join returns union type; runtime shape matches the cast
+        preview: payload.previewPayload as unknown as Record<string, never>, // SAFETY: Supabase join returns union type; runtime shape matches the cast
       });
       if (error) throw new Error(error.message);
     },

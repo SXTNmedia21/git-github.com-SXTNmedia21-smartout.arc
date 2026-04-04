@@ -71,7 +71,7 @@ export function useActivityFeed(options: { limit: number; filters: ActivityFeedF
       if (error) throw error;
 
       return (data ?? []).map((row) => {
-        const actor = row.actor as unknown as { display_name: string } | null;
+        const actor = row.actor as unknown as { display_name: string } | null; // SAFETY: Supabase join returns union type; runtime shape matches the cast
         return {
           id: row.id,
           event: row.event,

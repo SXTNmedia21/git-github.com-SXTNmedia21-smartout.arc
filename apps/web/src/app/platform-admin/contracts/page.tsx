@@ -39,7 +39,7 @@ const getContractsData = unstable_cache(
       .order("created_at", { ascending: false })
       .limit(100);
 
-    const contracts = (rawContracts ?? []) as unknown as ContractQueryRow[];
+    const contracts = (rawContracts ?? []) as unknown as ContractQueryRow[]; // SAFETY: Supabase join returns union type; runtime shape matches the cast
 
     return contracts.map((c) => ({
       ...c,

@@ -54,8 +54,8 @@ export async function POST(request: NextRequest, { params }: Props) {
   if (!journey) return NextResponse.json({ error: "Journey not found" }, { status: 404 });
 
   // Cast to match expected types — database rows match the Zod schema shapes
-  const journeyData = journey as unknown as import("@smartout/types").Journey;
-  const stepsData = (steps ?? []) as unknown as import("@smartout/types").JourneyStep[];
+  const journeyData = journey as unknown as import("@smartout/types").Journey; // SAFETY: Supabase join returns union type; runtime shape matches the cast
+  const stepsData = (steps ?? []) as unknown as import("@smartout/types").JourneyStep[]; // SAFETY: Supabase join returns union type; runtime shape matches the cast
 
   let content: string;
   switch (body.type) {

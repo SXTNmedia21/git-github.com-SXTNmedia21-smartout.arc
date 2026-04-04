@@ -39,7 +39,7 @@ export function useDepartmentSessions(date: string) {
       if (error) throw error;
 
       return (data ?? []).map((s) => {
-        const dept = s.department as unknown as { name: string } | null;
+        const dept = s.department as unknown as { name: string } | null; // SAFETY: Supabase join returns union type; runtime shape matches the cast
         return {
           sessionId: s.department_session_id,
           departmentId: s.department_id,

@@ -48,7 +48,7 @@ export function UserMenu({ isDark }: { isDark: boolean }) {
         .eq("user_id", authUser.id)
         .single();
 
-      const identity = data as unknown as IdentityRow | null;
+      const identity = data as unknown as IdentityRow | null; // SAFETY: Supabase join returns union type; runtime shape matches the cast
 
       const name =
         identity?.first_name && identity?.last_name

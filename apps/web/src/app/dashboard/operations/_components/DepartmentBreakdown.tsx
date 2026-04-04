@@ -54,7 +54,7 @@ export function DepartmentBreakdown({ workspaceId }: DepartmentBreakdownProps) {
           deptMap.set(shift.department_id, {
             departmentId: shift.department_id,
             departmentName:
-              (shift.department as unknown as { name: string } | null)?.name ?? shift.department_id,
+              (shift.department as unknown as { name: string } | null)?.name ?? shift.department_id, // SAFETY: Supabase join returns union type; runtime shape matches the cast
             staffPresent: 0,
             staffExpected: 0,
             capacityPct: 0,

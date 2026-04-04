@@ -251,7 +251,7 @@ export function useShiftClock() {
           .single();
         if (shift?.department_id) {
           // SAFETY: Supabase join returns a union type; runtime shape matches { display_name: string }
-          const profile = shift.profile as unknown as { display_name: string } | null;
+          const profile = shift.profile as unknown as { display_name: string } | null; // SAFETY: Supabase join returns union type; runtime shape matches the cast
           void notifyDepartmentManagers(supabase, {
             workspaceId: workspace.workspace_id,
             departmentId: shift.department_id,
@@ -350,7 +350,7 @@ export function useShiftClock() {
           .single();
         if (shift?.department_id) {
           // SAFETY: Supabase join returns a union type; runtime shape matches { display_name: string }
-          const profile = shift.profile as unknown as { display_name: string } | null;
+          const profile = shift.profile as unknown as { display_name: string } | null; // SAFETY: Supabase join returns union type; runtime shape matches the cast
           void notifyDepartmentManagers(supabase, {
             workspaceId: workspace.workspace_id,
             departmentId: shift.department_id,

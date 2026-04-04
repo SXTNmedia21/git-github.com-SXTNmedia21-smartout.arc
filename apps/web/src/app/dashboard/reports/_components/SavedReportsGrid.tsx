@@ -55,8 +55,7 @@ export function SavedReportsGrid({
   const fetchReports = useCallback(async () => {
     setIsLoading(true);
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const supabase = createClient() as any;
+      const supabase = createClient();
       const { data, error } = await supabase
         .from("custom_report")
         .select("report_id, name, description, config, is_pinned, created_at, updated_at")
@@ -87,8 +86,7 @@ export function SavedReportsGrid({
    */
   const handleDelete = useCallback(
     async (reportId: string) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const supabase = createClient() as any;
+      const supabase = createClient();
       const { error } = await supabase
         .from("custom_report")
         .delete()

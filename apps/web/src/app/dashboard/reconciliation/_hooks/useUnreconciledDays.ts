@@ -41,7 +41,7 @@ export function useUnreconciledDays(workspaceId: string | undefined) {
         reconciliationId: row.reconciliation_id,
         date: row.reconciliation_date,
         departmentId: row.department_id,
-        departmentName: (row.department as unknown as { name: string } | null)?.name ?? "",
+        departmentName: (row.department as unknown as { name: string } | null)?.name ?? "", // SAFETY: Supabase join returns union type; runtime shape matches the cast
       }));
     },
     enabled: !!workspaceId,

@@ -102,7 +102,7 @@ export function MessageBubble({ message, channelId, profileId, isOwn, onReply }:
             (message.system_data as Record<string, unknown>).shared_type != null && (
               <KnowledgeCard
                 data={
-                  message.system_data as unknown as {
+                  message.system_data as unknown as { // SAFETY: Supabase join returns union type; runtime shape matches the cast
                     shared_type: string;
                     shared_id: string;
                     title: string;

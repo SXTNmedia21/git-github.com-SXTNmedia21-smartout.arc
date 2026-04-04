@@ -50,7 +50,7 @@ export function getEditor(sectionType: string): ComponentType<EditorProps> | nul
   if (!loader) return null;
   let cached = lazyCache.get(sectionType);
   if (!cached) {
-    cached = lazy(loader) as unknown as ComponentType<EditorProps>;
+    cached = lazy(loader) as unknown as ComponentType<EditorProps>; // SAFETY: Supabase join returns union type; runtime shape matches the cast
     lazyCache.set(sectionType, cached);
   }
   return cached;

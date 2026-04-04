@@ -35,7 +35,7 @@ export function useTaskCompletion() {
 
       if (error) throw error;
 
-      const tasks = (data ?? []) as unknown as { task_status: string }[];
+      const tasks = (data ?? []) as unknown as { task_status: string }[]; // SAFETY: Supabase join returns union type; runtime shape matches the cast
       const total = tasks.length;
       const completed = tasks.filter((t) => t.task_status === "completed").length;
 
