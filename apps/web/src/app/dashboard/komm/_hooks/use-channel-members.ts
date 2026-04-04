@@ -25,7 +25,7 @@ export function useChannelMembers(channelId: string | null) {
         .order("joined_at", { ascending: true });
 
       if (error) throw error;
-      return (data ?? []) as unknown as ChannelMemberWithProfile[];
+      return (data ?? []) as unknown as ChannelMemberWithProfile[]; // SAFETY: Supabase join returns union type; runtime shape matches the cast
     },
   });
 }

@@ -34,7 +34,7 @@ export const getWorkspaceBySlug = cache(async (slug: string) => {
     .eq("slug", slug)
     .single();
 
-  return data as unknown as WorkspaceData | null;
+  return data as unknown as WorkspaceData | null; // SAFETY: Supabase join returns union type; runtime shape matches the cast
 });
 
 /**
@@ -49,7 +49,7 @@ export const getWorkspaceById = cache(async (workspaceId: string) => {
     .eq("workspace_id", workspaceId)
     .single();
 
-  return data as unknown as WorkspaceData | null;
+  return data as unknown as WorkspaceData | null; // SAFETY: Supabase join returns union type; runtime shape matches the cast
 });
 
 /**

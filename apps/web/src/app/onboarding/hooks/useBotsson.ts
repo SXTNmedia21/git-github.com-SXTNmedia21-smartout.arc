@@ -551,6 +551,7 @@ export function useBotsson(actions?: BotssonActions): BotssonState {
       session.addEventListener("data_message", ((e: Event) => {
         if (sessionRef.current !== session) return;
         const evt = e as CustomEvent & { message?: Record<string, unknown> };
+        // SAFETY: Ultravox SDK CustomEvent shape varies — detail is the fallback for older SDK versions
         const msg = evt.message ?? (evt as unknown as { detail?: Record<string, unknown> }).detail;
         if (!msg) return;
 

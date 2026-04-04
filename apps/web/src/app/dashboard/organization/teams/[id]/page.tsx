@@ -111,7 +111,7 @@ export default function TeamDetailPage() {
       .eq("team_id", params.id);
 
     const profiles = (data ?? [])
-      .map((row) => row.profile as unknown as ProfileRow | null)
+      .map((row) => row.profile as unknown as ProfileRow | null) // SAFETY: Supabase join returns union type; runtime shape matches the cast
       .filter(Boolean) as ProfileRow[];
     setMembers(profiles);
     setMembersLoading(false);

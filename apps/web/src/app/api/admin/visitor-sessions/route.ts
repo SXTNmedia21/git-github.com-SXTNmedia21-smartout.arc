@@ -12,10 +12,6 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@smartout/supabase/admin";
 import { getSuperAdminId } from "@/lib/platform-admin";
 
-// TODO: Remove UntypedClient cast after regenerating database.types.ts
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type UntypedClient = ReturnType<typeof createAdminClient> & { from: (table: string) => any };
-
 export async function GET(request: NextRequest) {
   const adminId = await getSuperAdminId();
   if (!adminId) {
@@ -27,7 +23,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Missing visitor_id parameter" }, { status: 400 });
   }
 
-  const admin = createAdminClient() as unknown as UntypedClient;
+  const admin = createAdminClient();
   const { data: sessions, error } = await admin
     .from("landing_session")
     .select(

@@ -78,7 +78,7 @@ export default async function WorkspaceDetailPage({ params }: { params: Promise<
     .list(id, { limit: 100, sortBy: { column: "created_at", order: "desc" } });
 
   const profileRows = (profiles ?? []).map((p) => {
-    const ui = p.user_identity as unknown as { email: string; last_login_at: string | null };
+    const ui = p.user_identity as unknown as { email: string; last_login_at: string | null }; // SAFETY: Supabase join returns union type; runtime shape matches the cast
     return {
       profileId: p.profile_id,
       userId: p.user_id,

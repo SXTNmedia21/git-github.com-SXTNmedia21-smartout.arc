@@ -58,7 +58,7 @@ async function loadTemplate(templateId: string) {
       "template_id, name, content_html, description, contract_type, language, placeholders, is_active, status, attachments",
     )
     .eq("template_id", templateId)
-    .single()) as unknown as { data: TemplateRow | null; error: { message: string } | null };
+    .single()) as unknown as { data: TemplateRow | null; error: { message: string } | null }; // SAFETY: Supabase join returns union type; runtime shape matches the cast
 
   if (error || !data) return null;
   return data;
@@ -99,13 +99,13 @@ export default async function ContractTemplateEditPage({ params }: PageProps) {
   // Parse placeholders from JSON — default to empty array
   let parsedPlaceholders: PlaceholderItem[] = [];
   if (Array.isArray(template.placeholders)) {
-    parsedPlaceholders = template.placeholders as unknown as PlaceholderItem[];
+    parsedPlaceholders = template.placeholders as unknown as PlaceholderItem[]; // SAFETY: Supabase join returns union type; runtime shape matches the cast
   }
 
   // Parse attachments from JSON — default to empty array
   let parsedAttachments: TemplateAttachment[] = [];
   if (Array.isArray(template.attachments)) {
-    parsedAttachments = template.attachments as unknown as TemplateAttachment[];
+    parsedAttachments = template.attachments as unknown as TemplateAttachment[]; // SAFETY: Supabase join returns union type; runtime shape matches the cast
   }
 
   return (

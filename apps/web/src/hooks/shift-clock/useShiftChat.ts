@@ -118,7 +118,7 @@ async function fetchMessages(
     .order("created_at", { ascending: true });
 
   if (error) throw error;
-  return (data ?? []) as unknown as ChatMessage[];
+  return (data ?? []) as unknown as ChatMessage[]; // SAFETY: Supabase join returns union type; runtime shape matches the cast
 }
 
 // ── Hook ──────────────────────────────────────────────────────

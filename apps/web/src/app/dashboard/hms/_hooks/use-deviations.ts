@@ -43,9 +43,9 @@ export function useDeviations(options: UseDeviationsOptions = {}) {
       if (error) throw error;
 
       return (data ?? []).map((d) => {
-        const dept = d.department as unknown as { name: string } | null;
-        const reporter = d.reporter as unknown as { display_name: string } | null;
-        const resolver = d.resolver as unknown as { display_name: string } | null;
+        const dept = d.department as unknown as { name: string } | null; // SAFETY: Supabase join returns union type; runtime shape matches the cast
+        const reporter = d.reporter as unknown as { display_name: string } | null; // SAFETY: Supabase join returns union type; runtime shape matches the cast
+        const resolver = d.resolver as unknown as { display_name: string } | null; // SAFETY: Supabase join returns union type; runtime shape matches the cast
         return {
           deviationId: d.deviation_id,
           workspaceId: d.workspace_id,

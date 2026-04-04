@@ -150,28 +150,27 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
         .limit(10);
 
       if (wsData) {
+        // SAFETY: Supabase join returns a union type; runtime shape matches the selected columns
+        type JoinedWorkspace = {
+          workspace_id: string;
+          onboarding_completed: boolean;
+          intelligence_data: Record<string, unknown> | null;
+          name: string;
+        };
+
         const onboardingProfiles = wsData.filter((p) => {
-          const ws = p.workspace as unknown as {
-            onboarding_completed: boolean;
-            workspace_id: string;
-          } | null;
+          const ws = p.workspace as unknown as JoinedWorkspace | null;
           return ws?.onboarding_completed === false;
         });
 
         const onboardingProfile =
           onboardingProfiles.find((p) => {
-            const ws = p.workspace as unknown as {
-              workspace_id: string;
-            } | null;
+            const ws = p.workspace as unknown as JoinedWorkspace | null;
             return ws?.workspace_id === requestedWorkspaceId;
           }) ?? onboardingProfiles[0];
 
         if (onboardingProfile) {
-          const ws = onboardingProfile.workspace as unknown as {
-            workspace_id: string;
-            intelligence_data: Record<string, unknown> | null;
-            name: string;
-          };
+          const ws = onboardingProfile.workspace as unknown as JoinedWorkspace;
 
           setOnboardingWorkspaceId(ws.workspace_id);
 
@@ -329,7 +328,7 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
                 phone: business.phone,
                 description: business.description,
               },
-            } as unknown as Json,
+            } as unknown as Json, // SAFETY: business_snapshot shape is a valid JSON object
           })
           .eq("workspace_id", onboardingWorkspaceId);
       } else {
@@ -344,7 +343,7 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
             email: business.email,
             phone: business.phone,
             summary: business.description,
-          } as unknown as Json,
+          } as unknown as Json, // SAFETY: scraped_data shape is a valid JSON object
           updated_at: now,
         };
 

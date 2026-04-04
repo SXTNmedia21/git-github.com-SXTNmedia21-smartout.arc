@@ -24,11 +24,6 @@ type HandbookRow = {
   updated_at: string;
 };
 
-/**
- * handbook_chapter is not yet in database.types.ts (migration pending).
- * We use raw rpc-style queries via `.from()` with a type assertion until
- * types are regenerated after migration.
- */
 export function useHandbookContent(chapterKey: ChapterKey) {
   const { workspaceData } = useContext(DashboardContext);
   const workspaceId = workspaceData?.workspace_id ?? "";
@@ -37,13 +32,12 @@ export function useHandbookContent(chapterKey: ChapterKey) {
     queryKey: handbookKeys.chapter(workspaceId, chapterKey),
     queryFn: async (): Promise<HandbookRow | null> => {
       const supabase = createClient();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- table not yet in generated types
-      const { data, error } = (await (supabase as any)
+      const { data, error } = await supabase
         .from("handbook_chapter")
         .select("*")
         .eq("workspace_id", workspaceId)
         .eq("chapter_key", chapterKey)
-        .maybeSingle()) as { data: HandbookRow | null; error: Error | null };
+        .maybeSingle() as { data: HandbookRow | null; error: Error | null };
 
       if (error) throw error;
       return data;
@@ -69,8 +63,7 @@ export function useHandbookSave() {
       title: string;
     }) => {
       const supabase = createClient();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- table not yet in generated types
-      const { error } = await (supabase as any).from("handbook_chapter").upsert(
+      const { error } = await supabase.from("handbook_chapter").upsert(
         {
           workspace_id: workspaceId,
           chapter_key: chapterKey,

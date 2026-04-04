@@ -99,7 +99,7 @@ export function useAssignedProtocols(profileId: string | null) {
 
       // Filter to current workspace protocols
       const wsAssignments = assignments.filter((a) => {
-        const proto = a.protocol as unknown as { workspace_id: string } | null;
+        const proto = a.protocol as unknown as { workspace_id: string } | null; // SAFETY: Supabase join returns union type; runtime shape matches the cast
         return proto?.workspace_id === workspaceId;
       });
 
@@ -202,7 +202,7 @@ export function useAssignedProtocols(profileId: string | null) {
 
       // 8. Build result
       return wsAssignments.map((assignment) => {
-        const proto = assignment.protocol as unknown as {
+        const proto = assignment.protocol as unknown as { // SAFETY: Supabase join returns union type; runtime shape matches the cast
           name: string;
           description: string | null;
         };

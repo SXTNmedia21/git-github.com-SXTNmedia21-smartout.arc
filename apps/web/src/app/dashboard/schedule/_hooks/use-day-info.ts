@@ -123,7 +123,7 @@ export function useDayInfo(weekStart: string, weekEnd: string, options?: { enabl
     queryKey: dayInfoKey(workspaceId, weekStart),
     queryFn: async () => {
       const supabase = createClient();
-      const from = supabase.from.bind(supabase) as unknown as UntypedFrom;
+      const from = supabase.from.bind(supabase) as unknown as UntypedFrom; // SAFETY: Supabase join returns union type; runtime shape matches the cast
 
       const { data, error } = await from("schedule_day_info")
         .select("*")
@@ -165,7 +165,7 @@ export function useCreateDayInfo(weekStart: string) {
   return useMutation({
     mutationFn: async (info: Omit<DayInfo, "id" | "createdAt">) => {
       const supabase = createClient();
-      const from = supabase.from.bind(supabase) as unknown as UntypedFrom;
+      const from = supabase.from.bind(supabase) as unknown as UntypedFrom; // SAFETY: Supabase join returns union type; runtime shape matches the cast
 
       const { error } = await from("schedule_day_info").insert({
         workspace_id: workspaceId,

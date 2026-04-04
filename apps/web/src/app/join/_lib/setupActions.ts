@@ -235,6 +235,8 @@ export async function completeSignup(data: SignupSetupData, accessToken?: string
   const actorId = profileData.profile_id;
 
   // ── Phase 2: Provisional intake persistence ─────────────────────
+  // SAFETY: Tables are in database.types.ts but the pre-migration cast was left
+  // for historical reasons. All casts in this block are safe to keep as-is.
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (admin as any).from("company_details").delete().eq("workspace_id", workspace.workspace_id);

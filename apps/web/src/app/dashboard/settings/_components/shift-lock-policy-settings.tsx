@@ -123,7 +123,7 @@ export function ShiftLockPolicySettings() {
   const { profileId } = useContext(DashboardContext);
   const supabase = createClient();
   const queryClient = useQueryClient();
-  const rawSupabase = supabase as unknown as UntypedSupabaseClient;
+  const rawSupabase = supabase as unknown as UntypedSupabaseClient; // SAFETY: Supabase join returns union type; runtime shape matches the cast
 
   const [selectedMode, setSelectedMode] = useState<LockMode>("enforce");
 

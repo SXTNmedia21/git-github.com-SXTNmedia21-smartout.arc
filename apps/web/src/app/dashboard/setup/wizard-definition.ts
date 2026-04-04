@@ -67,7 +67,7 @@ async function loadState(): Promise<Partial<SetupState>> {
 
   if (!profile?.workspace_id) return {};
 
-  const ws = profile.workspace as unknown as {
+  const ws = profile.workspace as unknown as { // SAFETY: Supabase join returns union type; runtime shape matches the cast
     name: string;
     company_id: string | null;
   };

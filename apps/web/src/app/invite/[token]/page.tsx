@@ -80,8 +80,8 @@ export default function AcceptInvitePage() {
         return;
       }
 
-      const ws = data.workspace as unknown as { name: string } | null;
-      const inviter = data.inviter as unknown as { display_name: string } | null;
+      const ws = data.workspace as unknown as { name: string } | null; // SAFETY: Supabase join returns union type; runtime shape matches the cast
+      const inviter = data.inviter as unknown as { display_name: string } | null; // SAFETY: Supabase join returns union type; runtime shape matches the cast
 
       // Pre-fill known fields
       if (data.first_name) setFirstName(data.first_name);

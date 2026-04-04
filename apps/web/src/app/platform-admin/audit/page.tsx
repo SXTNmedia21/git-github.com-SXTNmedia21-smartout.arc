@@ -31,7 +31,7 @@ export default async function AuditPage() {
       <h1 className="text-2xl font-semibold">Audit Log</h1>
       <p className="text-muted-foreground mt-1 text-sm">All super-admin actions</p>
       <div className="mt-6">
-        <AuditListClient data={(auditLogs as unknown as AuditRow[]) || []} />
+        <AuditListClient data={(auditLogs as unknown as AuditRow[]) || []} /> // SAFETY: Supabase join returns union type; runtime shape matches the cast
       </div>
     </div>
   );

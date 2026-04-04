@@ -50,8 +50,7 @@ export async function getCompanyHours(workspaceId: string): Promise<DayHours[]> 
   const dayNames = ["Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lordag", "Sondag"];
 
   return dayNames.map((day, i) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const row = (data as any[])?.find((r) => r.day_of_week === i);
+    const row = (data as { day_of_week: number; open_time: string | null; close_time: string | null; is_closed: boolean }[] | null)?.find((r) => r.day_of_week === i);
     return {
       day,
       open: row?.open_time ?? "",
@@ -150,8 +149,7 @@ export async function getMenusForWorkspace(workspaceId: string): Promise<MenuFor
   const admin = getAdminClient();
 
   // Single join query — avoids N+1 round-trips for categories and items.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: menus, error } = await (admin as any)
+  const { data: menus, error } = await admin
     .schema("websites")
     .from("website_menu")
     .select(
@@ -182,23 +180,23 @@ export async function getMenusForWorkspace(workspaceId: string): Promise<MenuFor
   // No menus configured yet — return empty rather than throwing
   if (error || !menus) return [];
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (menus as any[]).map((menu) => ({
+  // SAFETY: websites schema returns untyped results — shapes match MenuForBridge
+  type RawMenu = Record<string, unknown>;
+  type RawCategory = Record<string, unknown>;
+  type RawItem = Record<string, unknown>;
+
+  return (menus as RawMenu[]).map((menu) => ({
     id: menu.website_menu_id as string,
     name: menu.name as string,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    categories: ((menu.website_menu_category as any[]) ?? [])
-      .sort((a, b) => a.sort_order - b.sort_order)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .map((cat: any) => ({
+    categories: ((menu.website_menu_category as RawCategory[]) ?? [])
+      .sort((a, b) => (a.sort_order as number) - (b.sort_order as number))
+      .map((cat) => ({
         id: cat.website_menu_category_id as string,
         name: cat.name as string,
         sort_order: cat.sort_order as number,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        items: ((cat.website_menu_item as any[]) ?? [])
-          .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .map((item: any) => ({
+        items: ((cat.website_menu_item as RawItem[]) ?? [])
+          .sort((a, b) => ((a.sort_order as number) ?? 0) - ((b.sort_order as number) ?? 0))
+          .map((item) => ({
             id: item.website_menu_item_id as string,
             name: item.name as string,
             description: (item.description as string) ?? "",

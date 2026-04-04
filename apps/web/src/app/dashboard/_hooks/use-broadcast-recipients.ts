@@ -48,7 +48,7 @@ export function useBroadcastRecipients(group: RecipientGroup) {
         return (data ?? []).map((r) => ({
           profile_id: r.profile_id,
           display_name:
-            (r.profile as unknown as { display_name: string | null } | null)?.display_name ?? null,
+            (r.profile as unknown as { display_name: string | null } | null)?.display_name ?? null, // SAFETY: Supabase join returns union type; runtime shape matches the cast
         }));
       }
 
@@ -80,15 +80,14 @@ export function useBroadcastRecipients(group: RecipientGroup) {
           .map((r) => ({
             profile_id: r.employee_id as string,
             display_name:
-              (r.profile as unknown as { display_name: string | null } | null)?.display_name ??
+              (r.profile as unknown as { display_name: string | null } | null)?.display_name ?? // SAFETY: Supabase join returns union type; runtime shape matches the cast
               null,
           }));
       }
 
       // yesterday group — anyone who clocked out yesterday
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
-        .schema("timesheet")
+      const { data, error } = await supabase
+        .schema("timesheet" as "public") // SAFETY: timesheet is a valid Postgres schema not represented as "public" in Supabase client types
         .from("time_entry")
         .select("profile_id")
         .gte("punch_out", `${yesterday}T00:00:00`)

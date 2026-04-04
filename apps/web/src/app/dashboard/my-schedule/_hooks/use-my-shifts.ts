@@ -61,7 +61,7 @@ export function useMyScheduleShifts(profileId: string | null, weekStart: string,
         role: s.role,
         status: s.status,
         workHours: s.work_hours,
-        departmentName: (s.department as unknown as { name: string } | null)?.name ?? null,
+        departmentName: (s.department as unknown as { name: string } | null)?.name ?? null, // SAFETY: Supabase join returns union type; runtime shape matches the cast
       }));
     },
   });

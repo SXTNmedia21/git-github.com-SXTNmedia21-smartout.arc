@@ -33,7 +33,7 @@ async function requireAdminForWebsite(websiteId: string) {
 
   const { data: website, error } = await admin
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .schema("websites" as any)
+    .schema("websites" as "public") // SAFETY: websites is a valid Postgres schema not represented as "public" in Supabase client types
     .from("website")
     .select("workspace_id")
     .eq("website_id", websiteId)
@@ -108,7 +108,7 @@ export async function uploadWebsiteAsset(
     // Register asset in websites schema for snapshot inclusion at publish time
     const { data: asset, error: dbError } = await admin
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .schema("websites" as any)
+      .schema("websites" as "public") // SAFETY: websites is a valid Postgres schema not represented as "public" in Supabase client types
       .from("website_asset")
       .insert({
         website_id: websiteId,
