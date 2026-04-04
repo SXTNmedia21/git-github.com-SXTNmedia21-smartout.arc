@@ -43,9 +43,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid secret" }, { status: 401 });
   }
 
-  // Bust the cache — second arg is the cache profile to expire.
-  // "max" expires the longest-lived entries (unstable_cache default).
-  revalidateTag("landing", "max");
+  // Bust the cache — invalidates all unstable_cache entries tagged 'landing'.
+  revalidateTag("landing");
 
   return NextResponse.json({ revalidated: true });
 }
