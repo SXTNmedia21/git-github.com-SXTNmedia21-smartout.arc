@@ -28,11 +28,6 @@ import { z } from "zod";
 import { createAdminClient } from "@smartout/supabase/admin";
 import type { Json } from "@smartout/supabase";
 
-// TODO: Remove UntypedClient cast after regenerating database.types.ts
-// (landing_visitor + landing_session tables are not yet in the generated types)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type UntypedClient = ReturnType<typeof createAdminClient> & { from: (table: string) => any };
-
 /**
  * Validates the request body for a landing event.
  * All fields except event_type are optional.
@@ -90,7 +85,7 @@ function detectDeviceType(ua: string | null): string {
  * Subsequent events: UPDATE last_seen only (preserve first_* fields).
  */
 async function upsertVisitor(
-  admin: UntypedClient,
+  admin: ReturnType<typeof createAdminClient>,
   visitor_id: string,
   referrer: string | null,
   variant: string | null,
@@ -122,7 +117,7 @@ async function upsertVisitor(
  * Existing session: UPDATE counters incrementally based on event type.
  */
 async function upsertSession(
-  admin: UntypedClient,
+  admin: ReturnType<typeof createAdminClient>,
   session_id: string,
   visitor_id: string,
   event_type: string,
@@ -226,8 +221,7 @@ export async function POST(request: NextRequest) {
   const user_agent = request.headers.get("user-agent");
 
   try {
-    // TODO: Remove cast after regenerating database.types.ts
-    const admin = createAdminClient() as unknown as UntypedClient;
+    const admin = createAdminClient();
 
     // --- 1. Visitor upsert FIRST (must exist before event FK) ---
     if (visitor_id) {

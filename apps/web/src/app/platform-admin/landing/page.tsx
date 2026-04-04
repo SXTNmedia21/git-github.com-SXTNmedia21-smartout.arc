@@ -19,11 +19,6 @@ import { unstable_cache } from "next/cache";
 import { LandingTabs } from "./_components/landing-tabs";
 import type { LandingEventRow } from "./_components/landing-columns";
 
-// TODO: Remove UntypedClient cast after regenerating database.types.ts
-// (landing_visitor + landing_session tables are not yet in the generated types)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type UntypedClient = ReturnType<typeof createAdminClient> & { from: (table: string) => any };
-
 // ── Exported types ────────────────────────────────────────────
 
 /** Shape of a landing session row with joined visitor + user_identity data. */
@@ -103,8 +98,7 @@ function sevenDaysAgoUtcStart(): string {
 // ── Cached data loader ────────────────────────────────────────
 const getLandingData = unstable_cache(
   async () => {
-    // TODO: Remove cast after regenerating database.types.ts
-    const admin = createAdminClient() as unknown as UntypedClient;
+    const admin = createAdminClient();
     const today = todayUtcStart();
     const sevenDaysAgo = sevenDaysAgoUtcStart();
 

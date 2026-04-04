@@ -63,24 +63,15 @@ export function parseTheme(raw: unknown): VariantTheme {
   return variantThemeSchema.parse(raw ?? {});
 }
 
-// ──── Untyped query helper ─────────────────────────────────
-
-// The admin client is typed with the Database generic. The landing_variant
-// and landing_block tables are not yet in database.types.ts (migration
-// exists, types not regenerated). We cast to `any` for `.from()` calls
-// on these tables only. Remove this workaround after type regeneration.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type UntypedClient = { from: (table: string) => any };
-
 // ──── Core fetch (uncached) ────────────────────────────────
 
 async function fetchVariantWithBlocks(
   slug?: string,
   previewId?: string,
 ): Promise<VariantWithBlocks | null> {
-  let admin: UntypedClient;
+  let admin: ReturnType<typeof createAdminClient>;
   try {
-    admin = createAdminClient() as unknown as UntypedClient;
+    admin = createAdminClient();
   } catch {
     console.warn("[get-variant] Admin client unavailable — cannot fetch variant");
     return null;
