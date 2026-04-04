@@ -1,3 +1,4 @@
+import { createClient } from "@smartout/supabase/server";
 import type { BootstrapInput, BootstrapResponse, WorkspaceRole } from "./bootstrap-contract";
 
 // ---------------------------------------------------------------------------
@@ -66,30 +67,48 @@ const DEFAULT_SUGGESTIONS = ["Search policies", "Find a protocol"];
 /**
  * Builds the deterministic bootstrap context on the server side.
  *
- * This function is called once per page load (server component or API route)
- * and returns everything the client needs to render the initial UI state
- * without extra round-trips.
+ * Called once per page load (API route) and returns everything the client
+ * needs to render the initial UI state without extra round-trips.
  */
 export async function buildBootstrapContext(input: BootstrapInput): Promise<BootstrapResponse> {
   const { workspaceId, profileId, pageId } = input;
 
-  // TODO: Fetch actual role from DB via profile + company_member lookup
-  // For now default to "employee" — the safest (least-privileged) role
-  const role: WorkspaceRole = "employee";
+  const supabase = await createClient();
 
+  // Fetch actual role from profile table — falls back to "employee" if not found
+  const { data: profileRow } = await supabase
+    .from("profile")
+    .select("role")
+    .eq("profile_id", profileId)
+    .eq("workspace_id", workspaceId)
+    .maybeSingle();
+
+  const role: WorkspaceRole = (profileRow?.role as WorkspaceRole) ?? "employee";
   const permissions = [...ROLE_PERMISSIONS[role]];
 
-  // TODO: Query protocol_assignment + policy tables to compute real readiness
-  const readinessScore = 0;
+  // Query protocol_assignment to compute readiness score.
+  // All assignments for this profile — count completed vs total.
+  const { data: assignments } = await supabase
+    .from("protocol_assignment")
+    .select("status")
+    .eq("profile_id", profileId);
 
-  // TODO: Query protocol_assignment for overdue / completion status
+  const totalAssignments = assignments?.length ?? 0;
+  const completedAssignments =
+    assignments?.filter((a: { status: string }) => a.status === "completed").length ?? 0;
+  const expiredAssignments =
+    assignments?.filter((a: { status: string }) => a.status === "expired").length ?? 0;
+
+  const readinessScore =
+    totalAssignments === 0 ? 0 : Math.round((completedAssignments / totalAssignments) * 100);
+
   const verificationFlags = {
-    all_policies_learned: false,
-    all_protocols_completed: false,
-    has_overdue_assignments: false,
+    all_policies_learned: false, // policy learning tracking not yet implemented
+    all_protocols_completed: totalAssignments > 0 && completedAssignments === totalAssignments,
+    has_overdue_assignments: expiredAssignments > 0,
   };
 
-  // TODO: Query a user_search_history table or similar for recent searches
+  // No user search history table exists yet — return empty array
   const recentSearches: string[] = [];
 
   const suggestedQueries = PAGE_SUGGESTIONS[pageId] ?? DEFAULT_SUGGESTIONS;

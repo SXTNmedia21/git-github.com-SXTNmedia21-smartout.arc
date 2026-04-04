@@ -136,7 +136,6 @@ export async function sendProtocolReminder(
     (assignment?.protocol as { name: string } | null)?.name ?? "Unknown protocol";
 
   // Log reminder to activity_trail
-  // TODO: dispatch actual email/push notification via Edge Function when available
   const { error } = await supabase.from("activity_trail").insert({
     workspace_id: workspaceId,
     actor_id: profileId,
@@ -149,6 +148,19 @@ export async function sendProtocolReminder(
   });
 
   if (error) throw new Error(error.message);
+
+  // Dispatch notification via Edge Function — fire-and-forget, non-blocking
+  await supabase.functions.invoke("process-notifications", {
+    body: {
+      event: "training.reminder_sent",
+      workspace_id: workspaceId,
+      payload: {
+        profile_id: profileId,
+        assignment_id: assignmentId,
+        protocol_name: protocolName,
+      },
+    },
+  });
 }
 
 export async function addToTeam(profileId: string, teamId: string) {

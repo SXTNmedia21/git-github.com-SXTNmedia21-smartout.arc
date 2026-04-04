@@ -17,6 +17,7 @@ import { useTranslation } from "@smartout/i18n";
 import { DashboardContext } from "../DashboardShell";
 import { useDashboardMode } from "@/app/dashboard/_hooks/use-dashboard-mode";
 import { useCockpitFirstScreen } from "@/app/dashboard/_hooks/use-cockpit-first-screen";
+import { useDashboardMetrics } from "@/app/dashboard/_hooks/useDashboardMetrics";
 import { DashboardMetricStrip } from "./DashboardMetricStrip";
 import { TaskSwiper } from "./TaskSwiper";
 import { PrepActionCards } from "./PrepActionCards";
@@ -93,11 +94,12 @@ export function InteractiveDashboard() {
     0,
   );
 
-  // Preparatory counters — derived from staffing queue and feed
+  // Preparatory counters — wired from real DB queries
   const gaps7d = model.staffingQueue.reduce((sum, r) => sum + (r.uncoveredShifts ?? 0), 0);
-  const unsignedContracts = 0; // TODO: wire from action items hook when available
-  const expiringTraining = 0; // TODO: wire from training readiness hook
-  const budgetVariance = "0%"; // TODO: wire from budget hook
+  const { data: metrics } = useDashboardMetrics();
+  const unsignedContracts = metrics?.unsignedContracts ?? 0;
+  const expiringTraining = metrics?.expiringTraining ?? 0;
+  const budgetVariance = metrics?.budgetVariance ?? "—";
 
   // lastUpdatedAt — most recent feed entry timestamp
   const lastUpdatedAt = useMemo(() => {
