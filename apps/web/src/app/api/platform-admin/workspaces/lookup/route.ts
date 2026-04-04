@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requireGodmode } from "@/lib/platform-admin";
 
 const BRREG_BASE = "https://data.brreg.no/enhetsregisteret/api";
-const SCRAPLING_URL = process.env.SCRAPLING_SERVICE_URL || "http://localhost:8000";
+const SCRAPLING_URL = process.env.SCRAPLING_SERVICE_URL ?? "";
 
 // ---------------------------------------------------------------------------
 // GET /api/platform-admin/workspaces/lookup?orgNumber=123456789

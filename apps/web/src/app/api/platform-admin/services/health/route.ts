@@ -77,14 +77,14 @@ async function getHealthCheckEntries(): Promise<HealthCheckEntry[]> {
       {
         name: "supabase",
         slug: "supabase",
-        url: env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321",
+        url: env.NEXT_PUBLIC_SUPABASE_URL ?? "",
         healthPath: "/rest/v1/",
         headers: { apikey: env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "" },
       },
       {
         name: "stage-engine",
         slug: "stage-engine",
-        url: env.STAGE_ENGINE_URL ?? "http://localhost:5010",
+        url: process.env.STAGE_ENGINE_URL ?? "",
         healthPath: "/health",
       },
     );
