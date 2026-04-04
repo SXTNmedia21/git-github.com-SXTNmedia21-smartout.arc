@@ -7,6 +7,7 @@ import { useContext } from "react";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import type { ChapterKey } from "./chapters";
 import type { JSONContent } from "@tiptap/core";
+import type { Json } from "@smartout/supabase";
 
 const handbookKeys = {
   all: (wsId: string) => ["handbook", wsId] as const,
@@ -32,12 +33,12 @@ export function useHandbookContent(chapterKey: ChapterKey) {
     queryKey: handbookKeys.chapter(workspaceId, chapterKey),
     queryFn: async (): Promise<HandbookRow | null> => {
       const supabase = createClient();
-      const { data, error } = await supabase
+      const { data, error } = (await supabase
         .from("handbook_chapter")
         .select("*")
         .eq("workspace_id", workspaceId)
         .eq("chapter_key", chapterKey)
-        .maybeSingle() as { data: HandbookRow | null; error: Error | null };
+        .maybeSingle()) as { data: HandbookRow | null; error: Error | null };
 
       if (error) throw error;
       return data;
@@ -68,7 +69,8 @@ export function useHandbookSave() {
           workspace_id: workspaceId,
           chapter_key: chapterKey,
           title,
-          content: content as Record<string, unknown>,
+          // SAFETY: JSONContent satisfies Json at runtime; double-cast bridges the type gap
+          content: content as unknown as Json,
         },
         { onConflict: "workspace_id,chapter_key" },
       );

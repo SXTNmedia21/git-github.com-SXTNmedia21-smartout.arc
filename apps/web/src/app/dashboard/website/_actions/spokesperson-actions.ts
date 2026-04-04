@@ -13,6 +13,7 @@
 import { createClient as createServerClient } from "@smartout/supabase/server";
 import { createClient } from "@supabase/supabase-js";
 import { emit } from "@smartout/telemetry";
+import type { SmartoutEvent } from "@smartout/telemetry";
 import type { ContentTask } from "@smartout/website";
 
 // ─── Types ──────────────────────────────────────────────────────
@@ -242,7 +243,8 @@ export async function getSpokespersonForSection(
   const { count: memberCount } = await userClient
     .from("profile")
     .select("*", { count: "exact", head: true })
-    .eq("workspace_id", row.workspace_id)
+    // SAFETY: workspace_id is always present on spokesperson rows; non-null assertion is safe here
+    .eq("workspace_id", row.workspace_id!)
     .eq("user_id", user.id);
 
   if (!memberCount) throw new Error("Access denied — not a workspace member");
@@ -283,7 +285,8 @@ export async function respondToSpokesperson(
     const newStatus = approve ? "approved" : "declined";
 
     const { data: updated, error } = await userClient
-      .schema("websites" as "public") // SAFETY: websites is a valid Postgres schema not represented as "public" in Supabase client types
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- SAFETY: websites is a valid Postgres schema not represented in Supabase generated types
+      .schema("websites" as any)
       .from("website_spokesperson")
       .update({
         status: newStatus,
@@ -315,7 +318,9 @@ export async function respondToSpokesperson(
         data: approve ? { profile_id } : { profile_id, reason: declineReason },
       },
     };
-    await emit(emitPayload);
+    // SAFETY: event literal is one of the two registered spokesperson events; cast resolves TS
+    // union narrowing failure when event is computed from a ternary
+    await emit(emitPayload as SmartoutEvent);
 
     return { success: true };
   } catch (err) {

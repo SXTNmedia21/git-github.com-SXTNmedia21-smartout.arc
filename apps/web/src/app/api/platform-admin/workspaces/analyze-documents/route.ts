@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createAdminClient } from "@smartout/supabase/admin";
+import type { Json } from "@smartout/supabase";
 import { getSuperAdminId, logPlatformAction } from "@/lib/platform-admin";
 
 const Schema = z.object({
@@ -193,8 +194,9 @@ export async function POST(req: NextRequest) {
   await admin.from("document_extraction_log").insert({
     workspace_id: workspaceId,
     storage_paths: storagePaths,
-    raw_ai_response: { text: textContent, model: "anthropic/claude-sonnet-4" },
-    processed_result: result,
+    // SAFETY: Runtime shape is valid JSON; double-cast bridges Record<string,unknown> → Json
+    raw_ai_response: { text: textContent, model: "anthropic/claude-sonnet-4" } as unknown as Json,
+    processed_result: result as unknown as Json,
     model: "anthropic/claude-sonnet-4",
   });
 

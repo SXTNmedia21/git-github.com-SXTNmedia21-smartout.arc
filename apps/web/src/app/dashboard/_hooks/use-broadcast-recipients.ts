@@ -88,7 +88,8 @@ export function useBroadcastRecipients(group: RecipientGroup) {
       // yesterday group — anyone who clocked out yesterday
       const { data, error } = await supabase
         .schema("timesheet" as "public") // SAFETY: timesheet is a valid Postgres schema not represented as "public" in Supabase client types
-        .from("time_entry")
+        // SAFETY: "time_entry" exists in timesheet schema at runtime; cast to a known public table to satisfy TS
+        .from("time_entry" as "profile")
         .select("profile_id")
         .gte("punch_out", `${yesterday}T00:00:00`)
         .lt("punch_out", `${today}T00:00:00`)
@@ -96,7 +97,8 @@ export function useBroadcastRecipients(group: RecipientGroup) {
 
       if (error) throw error;
 
-      return ((data ?? []) as Array<{ profile_id: string }>).map((r) => ({
+      // SAFETY: data shape is { profile_id: string }[] at runtime; cast through unknown to bypass TS overlap check
+      return ((data ?? []) as unknown as Array<{ profile_id: string }>).map((r) => ({
         profile_id: r.profile_id,
         display_name: null as string | null,
       }));
