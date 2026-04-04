@@ -78,9 +78,26 @@ export default { impactAsync, notificationAsync, selectionAsync };
 **Strategy:** `.web.tsx` sibling for the existing wrapper at
 `src/components/ui/BottomSheet.tsx`.
 
+**Audit command:**
+```bash
+grep -r "from ['\"]@gorhom/bottom-sheet['\"]" --include="*.ts" --include="*.tsx" apps/mobile/src/
+```
+
+**Decision threshold:**
+- If ALL consumer components import via `src/components/ui/BottomSheet` → only
+  the wrapper needs a `.web.tsx` sibling (30 min)
+- If files import directly from `@gorhom/bottom-sheet` → refactor to central
+  wrapper first, then add `.web.tsx` (1-2 hours depending on count)
+
 **Implementation:** CSS `translate` + backdrop overlay. Same props interface as
 the native version. No gesture physics needed — simple slide-up drawer with
 backdrop click to dismiss.
+
+**BottomSheetModalProvider:** `app/_layout.tsx` wraps the entire app in
+`BottomSheetModalProvider` from `@gorhom/bottom-sheet`. This WILL crash on web.
+Create a `src/components/ui/BottomSheetModalProvider.web.tsx` that renders a
+plain React context provider (or just passes children through). Then replace the
+direct `@gorhom/bottom-sheet` import in `_layout.tsx` with the local wrapper.
 
 **Files using bottom sheet:**
 - `src/components/ui/BottomSheet.tsx` (base wrapper — gets `.web.tsx` sibling)
@@ -91,14 +108,10 @@ backdrop click to dismiss.
 - `src/components/chat/NewConversationSheet.tsx`
 - `src/components/home/NotificationSheet.tsx`
 - `src/components/home/SettingsSheet.tsx`
-- `app/_layout.tsx` (BottomSheetModalProvider)
+- `app/_layout.tsx` (BottomSheetModalProvider — needs explicit web fallback)
 - `app/(app)/_layout.tsx`
 - `app/(app)/(home)/shift-hub.tsx`
 - `app/(app)/(chat)/index.tsx`
-
-If all consumer components import via `src/components/ui/BottomSheet`, only the
-wrapper needs a `.web.tsx` sibling. If some import `@gorhom/bottom-sheet`
-directly, refactor those first.
 
 #### 3. expo-sqlite (1 file) — SKIP ON WEB
 
@@ -142,6 +155,38 @@ handles video/PTT; web version handles everything else.
 ```
 
 Icons sourced from existing `apps/mobile/assets/` app icon, resized.
+
+### Manifest linking
+
+Expo Web does NOT automatically link the manifest. The `<link rel="manifest">`
+tag must be added via a custom `app/+html.tsx` file (Expo Router's HTML template
+override). This is the exact file to create:
+
+```typescript
+// apps/mobile/app/+html.tsx
+import { ScrollViewStyleReset } from "expo-router/html";
+
+export default function Root({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="no">
+      <head>
+        <meta charSet="utf-8" />
+        <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#000000" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <link rel="apple-touch-icon" href="/icon-192.png" />
+        <ScrollViewStyleReset />
+      </head>
+      <body>{children}</body>
+    </html>
+  );
+}
+```
+
+This file is only used for web builds — native ignores it.
 
 ### Service worker
 
@@ -204,11 +249,31 @@ SPA fallback is critical — Expo Router handles all client-side routing.
 
 **Goal:** Confirm Expo SDK 55 + Router 55 can produce a working web build.
 
+**Pre-step — SPA output mode:** Expo Router 55 defaults to static rendering for
+web export. Dynamic routes with `[id]` segments (which this app has extensively)
+will 404 after deploy unless output mode is set to SPA. Before running the
+build, add to `app.json`:
+
+```json
+{
+  "expo": {
+    "web": {
+      "output": "single",
+      "bundler": "metro"
+    }
+  }
+}
+```
+
+This ensures all routes are handled client-side. Without this, every `[id]`
+route returns 404 in production — a classic Expo Router web trap.
+
 **Steps:**
-1. Run `cd apps/mobile && npx expo export --platform web`
-2. If build succeeds: serve `dist/` locally, open in Chrome and iOS Safari
-3. Test in iOS Safari standalone mode: "Add to Home Screen" → open → verify shell loads
-4. Test auth persistence: log in via Safari standalone → close app → reopen → verify session survives
+1. Add `web.output: "single"` to `app.json` (see above)
+2. Run `cd apps/mobile && npx expo export --platform web`
+3. If build succeeds: serve `dist/` locally, open in Chrome and iOS Safari
+4. Test in iOS Safari standalone mode: "Add to Home Screen" → open → verify shell loads
+5. Test auth persistence: log in via Safari standalone → close app → reopen → verify session survives
 
 **Exit criteria — build succeeds:**
 → Proceed to Phase 1.
