@@ -2,9 +2,9 @@
 
 /**
  * Server actions for website CRUD operations.
- * Uses service-role client for all writes to the websites schema, which is not
- // eslint-disable-next-line @typescript-eslint/no-explicit-any
- * in database.types.ts — all schema queries use .schema("websites" as any).
+ * Uses service-role client for all writes to the websites schema.
+ * The Supabase client's .schema() only accepts "public" in its type signature,
+ * so all websites schema queries use .schema("websites" as "public") with a SAFETY comment.
  */
 
 import { updateTag } from "next/cache";
@@ -57,7 +57,7 @@ async function requireAdminForWebsite(websiteId: string) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: website, error } = await admin
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .schema("websites" as any)
+    .schema("websites" as "public") // SAFETY: websites is a valid Postgres schema not represented as "public" in Supabase client types
     .from("website")
     .select("workspace_id")
     .eq("website_id", websiteId)
@@ -109,7 +109,7 @@ export async function getWebsiteForWorkspace(workspaceId: string): Promise<Websi
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await admin
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .schema("websites" as any)
+    .schema("websites" as "public") // SAFETY: websites is a valid Postgres schema not represented as "public" in Supabase client types
     .from("website")
     .select(
       "website_id, name, site_slug, tagline, template_key, template_version, theme, visibility, booking_provider, booking_url, social_links, contact_email, contact_phone, contact_address, created_at, updated_at",
@@ -151,7 +151,7 @@ export async function createWebsiteFromTemplate(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: website, error: websiteError } = await admin
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .schema("websites" as any)
+    .schema("websites" as "public") // SAFETY: websites is a valid Postgres schema not represented as "public" in Supabase client types
     .from("website")
     .insert({
       workspace_id: input.workspaceId,
@@ -181,7 +181,7 @@ export async function createWebsiteFromTemplate(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: page, error: pageError } = await admin
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .schema("websites" as any)
+      .schema("websites" as "public") // SAFETY: websites is a valid Postgres schema not represented as "public" in Supabase client types
       .from("website_page")
       .insert({
         website_id: websiteId,
@@ -207,7 +207,7 @@ export async function createWebsiteFromTemplate(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await admin
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .schema("websites" as any)
+        .schema("websites" as "public") // SAFETY: websites is a valid Postgres schema not represented as "public" in Supabase client types
         .from("website_section")
         .insert({
           website_page_id: pageId,
@@ -225,7 +225,7 @@ export async function createWebsiteFromTemplate(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await admin
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .schema("websites" as any)
+    .schema("websites" as "public") // SAFETY: websites is a valid Postgres schema not represented as "public" in Supabase client types
     .from("website_domain")
     .insert({
       website_id: websiteId,
@@ -239,7 +239,7 @@ export async function createWebsiteFromTemplate(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await admin
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .schema("websites" as any)
+    .schema("websites" as "public") // SAFETY: websites is a valid Postgres schema not represented as "public" in Supabase client types
     .from("website_draft_revision")
     .insert({
       website_id: websiteId,
@@ -301,7 +301,7 @@ export async function updateWebsite(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = await admin
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .schema("websites" as any)
+      .schema("websites" as "public") // SAFETY: websites is a valid Postgres schema not represented as "public" in Supabase client types
       .from("website")
       .update(patch)
       .eq("website_id", websiteId);

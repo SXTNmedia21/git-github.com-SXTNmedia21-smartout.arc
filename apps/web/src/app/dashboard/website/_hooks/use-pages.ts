@@ -32,9 +32,8 @@ export function usePages(websiteId: string | null) {
   const query = useQuery({
     queryKey: websiteKeys.pages(websiteId ?? "none"),
     queryFn: async (): Promise<PageRow[]> => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
-        .schema("websites")
+      const { data, error } = await supabase
+        .schema("websites" as "public") // SAFETY: websites is a valid Postgres schema not represented as "public" in Supabase client types
         .from("website_page")
         .select("website_page_id, title, slug, page_type, sort_order, is_visible")
         .eq("website_id", websiteId!)
