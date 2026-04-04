@@ -40,13 +40,13 @@ export function CloseOutFlow() {
   const supabase = createClient();
   const { data: departments } = useQuery({
     queryKey: ["departments", workspaceId],
-    queryFn: async () => {
+    queryFn: async (): Promise<Array<{ department_id: string; name: string }>> => {
       const { data } = await supabase
         .from("department")
         .select("department_id, name")
         .eq("workspace_id", workspaceId)
         .order("name");
-      return data ?? [];
+      return (data ?? []) as Array<{ department_id: string; name: string }>;
     },
     enabled: !!workspaceId,
   });
@@ -130,7 +130,7 @@ export function CloseOutFlow() {
             id="close-dept-select"
             value={departmentId ?? ""}
             onChange={(e) => setDepartmentId(e.target.value || null)}
-            className="border-input bg-background text-foreground rounded-md border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            className="border-input bg-background text-foreground focus:ring-ring rounded-md border px-3 py-1.5 text-sm focus:ring-2 focus:outline-none"
           >
             <option value="">Velg avdeling...</option>
             {departments.map((dept) => (

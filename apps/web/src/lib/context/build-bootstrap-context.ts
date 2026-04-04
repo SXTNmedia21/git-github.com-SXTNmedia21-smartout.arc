@@ -94,8 +94,10 @@ export async function buildBootstrapContext(input: BootstrapInput): Promise<Boot
     .eq("profile_id", profileId);
 
   const totalAssignments = assignments?.length ?? 0;
-  const completedAssignments = assignments?.filter((a) => a.status === "completed").length ?? 0;
-  const expiredAssignments = assignments?.filter((a) => a.status === "expired").length ?? 0;
+  const completedAssignments =
+    assignments?.filter((a: { status: string }) => a.status === "completed").length ?? 0;
+  const expiredAssignments =
+    assignments?.filter((a: { status: string }) => a.status === "expired").length ?? 0;
 
   const readinessScore =
     totalAssignments === 0 ? 0 : Math.round((completedAssignments / totalAssignments) * 100);
