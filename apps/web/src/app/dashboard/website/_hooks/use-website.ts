@@ -31,7 +31,7 @@ export function useWebsite() {
     queryKey: websiteKeys.website(wsId ?? "none"),
     queryFn: async (): Promise<WebsiteRow | null> => {
       const { data, error } = await supabase
-        .schema("websites" as "public") // SAFETY: websites is a valid Postgres schema not represented as "public" in Supabase client types
+        .schema("websites" as any) // eslint-disable-line @typescript-eslint/no-explicit-any -- SAFETY: websites is a valid Postgres schema not in Supabase generated types
         .from("website")
         .select(
           "website_id, name, site_slug, tagline, template_key, template_version, theme, visibility, booking_provider, booking_url, social_links, contact_email, contact_phone, contact_address, created_at, updated_at",

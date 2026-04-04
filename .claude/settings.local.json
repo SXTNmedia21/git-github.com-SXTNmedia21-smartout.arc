@@ -9,10 +9,12 @@
       "Bash(done)"
     ]
   },
+  "enabledMcpjsonServers": ["playwright"],
   "mcpServers": {
     "playwright": {
       "command": "npx",
       "args": ["@playwright/mcp@latest"]
     }
-  }
+  },
+  "enableAllProjectMcpServers": true
 }

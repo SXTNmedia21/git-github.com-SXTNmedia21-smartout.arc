@@ -57,7 +57,7 @@ Expected: 0 errors. Some previously-cast code may now show new errors from the r
 - [ ] **Step 6: Count remaining `as any` casts**
 
 Run: `grep -rn "as any" apps/web/src/ --include="*.ts" --include="*.tsx" | wc -l`
-Document the count. Compare against the pre-regeneration count of 218.
+Document the count. Compare against the pre-regeneration baseline: 81 `as any` + 130 `as unknown as` = 211 total.
 
 - [ ] **Step 7: Commit**
 
@@ -280,7 +280,6 @@ EOF
 - Modify: `apps/web/src/app/api/platform-admin/workspaces/lookup/route.ts`
 - Modify: `apps/web/src/app/api/platform-admin/workspaces/analyze-documents/route.ts`
 - Modify: `apps/web/src/app/platform-admin/guardian/_hooks/useGuardianSocket.ts`
-- Modify: `apps/web/src/app/dashboard/website/_components/TemplatePreview.tsx`
 - Modify: `apps/web/src/app/api/scrape/public/route.ts`
 - Modify: `supabase/functions/config.toml`
 - Modify: `supabase/functions/cleanup-api-keys/index.ts`
@@ -451,9 +450,16 @@ EOF
 
 #### 3b: Add missing edge functions to config.toml
 
-- [ ] **Step 9: Add 9 function entries**
+- [ ] **Step 9: Add 6 missing function entries**
 
-Append to `supabase/functions/config.toml` before the last empty line:
+Verify which functions are missing first:
+
+```bash
+diff <(ls -d supabase/functions/*/ | grep -v _shared | sed 's|.*/\(.*\)/|\1|' | sort) \
+     <(grep '^\[functions\.' supabase/functions/config.toml | sed 's/\[functions\.\(.*\)\]/\1/' | sort)
+```
+
+Then append the missing entries to `supabase/functions/config.toml`:
 
 ```toml
 [functions.analyze-workspace]
@@ -465,16 +471,7 @@ verify_jwt = true
 [functions.extract-workspace-data]
 verify_jwt = false
 
-[functions.guardian-actions]
-verify_jwt = true
-
-[functions.identify-company]
-verify_jwt = false
-
 [functions.scrape-raw-data]
-verify_jwt = false
-
-[functions.scrape-website]
 verify_jwt = false
 
 [functions.search-brreg]
@@ -484,19 +481,19 @@ verify_jwt = false
 verify_jwt = true
 ```
 
-Note: `verify_jwt` settings above are best guesses based on function names. Review each function's `index.ts` to confirm whether it handles its own auth (set `false`) or relies on JWT (set `true`). Functions that are called from other functions or via API keys should be `false`.
+> **Note:** `guardian-actions`, `identify-company`, and `scrape-website` are already in config.toml — the original audit overcounted. The `verify_jwt` settings above are best guesses. Review each function's `index.ts` to confirm whether it handles its own auth (set `false`) or relies on JWT (set `true`).
 
 - [ ] **Step 10: Commit**
 
 ```bash
 git add supabase/functions/config.toml
 git commit -m "$(cat <<'EOF'
-fix(infra): add 9 missing edge functions to config.toml
+fix(infra): add 6 missing edge functions to config.toml
 
 Functions existed as directories but were not registered for
 deployment: analyze-workspace, apply-change-proposal,
-extract-workspace-data, guardian-actions, identify-company,
-scrape-raw-data, scrape-website, search-brreg, shift-clock-compliance.
+extract-workspace-data, scrape-raw-data, search-brreg,
+shift-clock-compliance.
 
 Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
 EOF
@@ -559,33 +556,13 @@ EOF
 )"
 ```
 
-#### 3d: Fix conditional hooks in TemplatePreview
+#### ~~3d: Fix conditional hooks in TemplatePreview~~ — REMOVED
 
-- [ ] **Step 14: Read the full component**
+> **Review note:** Verification shows hooks in TemplatePreview are called at the top level of the component — no React rules violation exists. Skipping this fix.
 
-Read `apps/web/src/app/dashboard/website/_components/TemplatePreview.tsx` to understand the conditional structure. The hooks (`useCallback` at lines 46, 50 and `useEffect` at line 54) are called inside a conditional block. Extract the hook-using logic into a separate component that is always rendered (or rendered conditionally as a whole component).
+#### 3d: Fix scrape route returning 200 on error
 
-The fix: move the hooks to the top level of the component (before any early returns) OR extract a `TemplatePreviewContent` child component that contains the hooks and is rendered conditionally.
-
-- [ ] **Step 15: Commit**
-
-```bash
-git add apps/web/src/app/dashboard/website/_components/TemplatePreview.tsx
-git commit -m "$(cat <<'EOF'
-fix(web): move hooks before conditional in TemplatePreview
-
-Extract conditional logic into a child component to avoid violating
-React's rules of hooks. Fixes runtime crash risk from conditional
-useCallback/useEffect calls.
-
-Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
-EOF
-)"
-```
-
-#### 3e: Fix scrape route returning 200 on error
-
-- [ ] **Step 16: Change error status code**
+- [ ] **Step 14: Change error status code**
 
 In `apps/web/src/app/api/scrape/public/route.ts`, replace the error responses:
 
@@ -603,7 +580,7 @@ return NextResponse.json({ status: "failed" }, { status: 200 });
 return NextResponse.json({ status: "failed" }, { status: 500 });
 ```
 
-- [ ] **Step 17: Commit**
+- [ ] **Step 15: Commit**
 
 ```bash
 git add apps/web/src/app/api/scrape/public/route.ts
@@ -624,7 +601,7 @@ EOF
 
 **Files:** ~80+ files across `apps/web/src/`
 
-> This task is large. The agent should work through the categories in order and commit after each category.
+> **Agent guidance:** This task is inherently exploratory — 211 casts (81 `as any` + 130 `as unknown as`) each requiring case-by-case judgment. The categories below are ordered by priority but the exact files and fixes cannot be fully prescribed. Work through each category, commit after each, and document what you couldn't resolve. If a cast requires more than 5 minutes of investigation, add a `// SAFETY: <reason>` comment and move on. The goal is < 10 uncommented casts remaining, not perfection.
 
 #### 4a: Remove casts resolved by type regeneration
 
@@ -636,9 +613,16 @@ Search for all files with `UntypedClient` or `TODO.*Remove.*cast`:
 grep -rn "UntypedClient\|TODO.*Remove.*cast\|TODO.*Remove.*UntypedClient" apps/web/src/ --include="*.ts" --include="*.tsx" -l
 ```
 
-For each file: remove the `UntypedClient` type definition, remove the `as unknown as UntypedClient` cast, and use the Supabase client directly. The regenerated `database.types.ts` should now include these tables.
+Current UntypedClient files (6 total):
 
-Also check `apps/landing/src/` for the same pattern.
+- `apps/web/src/app/platform-admin/landing/page.tsx`
+- `apps/web/src/app/api/admin/visitor-sessions/route.ts`
+- `apps/web/src/app/api/admin/tag-visitor/route.ts`
+- `apps/landing/src/lib/get-variant.ts`
+- `apps/landing/src/app/api/track/route.ts`
+- `apps/landing/src/app/api/waitlist/route.ts`
+
+For each file: remove the `UntypedClient` type definition, remove the `as unknown as UntypedClient` cast, and use the Supabase client directly. The regenerated `database.types.ts` should now include these tables.
 
 - [ ] **Step 2: Run typecheck**
 
@@ -702,7 +686,7 @@ git commit -m "$(cat <<'EOF'
 fix(types): add typed websites schema client, remove as any casts
 
 Created websitesClient helper for the websites PostgreSQL schema.
-Replaced ~40 instances of .schema("websites" as any) with typed access.
+Replaced ~69 instances of .schema("websites" as any) with typed access.
 
 Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
 EOF
@@ -763,7 +747,7 @@ Apply the same pattern for breaks and supplements.
 git commit -m "$(cat <<'EOF'
 fix(types): add Zod schemas for shift clock GPS, breaks, supplements
 
-Replaced ~30 as unknown as casts with runtime Zod validation at the
+Replaced as unknown as casts in shift clock hooks with runtime Zod validation at the
 database boundary. Typed: GpsCoordinate, BreakEntry, SupplementEntry.
 
 Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
@@ -773,9 +757,9 @@ EOF
 
 #### 4d: Type onboarding scraped data
 
-- [ ] **Step 10: Define ScrapedCompanyData type**
+- [ ] **Step 10: Add ScrapedCompanyData Zod schema to existing types file**
 
-Create `apps/web/src/app/onboarding/types.ts`:
+`apps/web/src/app/onboarding/types.ts` already exists. Add the Zod schema to it (don't overwrite existing types):
 
 ```typescript
 import { z } from "zod";
@@ -805,7 +789,7 @@ In `apps/web/src/app/onboarding/hooks/useBotsson.ts` and `useOnboardingState.ts`
 git commit -m "$(cat <<'EOF'
 fix(types): add Zod schema for scraped company data in onboarding
 
-Replaced ~20 as unknown as casts with runtime validation.
+Replaced as unknown as casts in onboarding hooks with runtime validation.
 
 Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
 EOF
@@ -929,7 +913,24 @@ EOF
 
 #### 5b: Wire dashboard metrics
 
-- [ ] **Step 3: Create useDashboardMetrics hook**
+- [ ] **Step 3: Verify table columns and enum values exist**
+
+Before writing the hook, confirm the schema supports the queries:
+
+```bash
+# Verify employment_contract has a status column with 'signed' value
+grep -A 20 "employment_contract:" packages/supabase/src/database.types.ts | head -30
+
+# Verify protocol_assignment has status, due_date columns
+grep -A 20 "protocol_assignment:" packages/supabase/src/database.types.ts | head -30
+
+# Verify workspace_budget has target_revenue, actual_revenue columns
+grep -A 20 "workspace_budget:" packages/supabase/src/database.types.ts | head -30
+```
+
+If any column is missing, adjust the query in the hook below or remove that metric (show "—" instead of a number).
+
+- [ ] **Step 4: Create useDashboardMetrics hook**
 
 Create `apps/web/src/app/dashboard/_hooks/useDashboardMetrics.ts`:
 
@@ -986,7 +987,7 @@ export function useDashboardMetrics() {
 }
 ```
 
-- [ ] **Step 4: Wire into InteractiveDashboard**
+- [ ] **Step 5: Wire into InteractiveDashboard**
 
 In `apps/web/src/components/dashboard/interactive/InteractiveDashboard.tsx`, replace lines 98-100:
 
@@ -1005,7 +1006,7 @@ const budgetVariance = metrics?.budgetVariance ?? "0%";
 
 Add the import at the top of the file.
 
-- [ ] **Step 5: Run typecheck + commit**
+- [ ] **Step 6: Run typecheck + commit**
 
 ```bash
 git commit -m "$(cat <<'EOF'
@@ -1022,7 +1023,7 @@ EOF
 
 #### 5c: Replace onboarding assistant mock data
 
-- [ ] **Step 6: Replace mock data with empty state**
+- [ ] **Step 7: Replace mock data with empty state**
 
 In `apps/web/src/app/dashboard/onboarding-assistant/_components/assistant-ui.tsx`:
 
@@ -1030,11 +1031,13 @@ In `apps/web/src/app/dashboard/onboarding-assistant/_components/assistant-ui.tsx
 2. Replace the component's initial state to show an empty state:
 
 ```tsx
+// Note: existing imports include CheckCircle2, Circle, Mic, MicOff, Send, Volume2
+// from lucide-react — use Mic as the icon (no Bot import available)
 export default function AssistantUI() {
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-16">
       <div className="flex h-16 w-16 items-center justify-center rounded-full bg-indigo-500/10">
-        <Bot className="h-8 w-8 text-indigo-400" />
+        <Mic className="h-8 w-8 text-indigo-400" />
       </div>
       <h2 className="text-xl font-bold">Onboarding-assistenten</h2>
       <p className="text-muted-foreground max-w-md text-center">
@@ -1045,9 +1048,9 @@ export default function AssistantUI() {
 }
 ```
 
-Note: If the component has more functionality beyond the mock data display, preserve it. Only remove the hardcoded mock constants and the UI that renders them.
+Note: The component currently imports `CheckCircle2, Circle, Mic, MicOff, Send, Volume2` from lucide-react — do NOT add a new `Bot` import. If the component has more functionality beyond the mock data display, preserve it. Only remove the hardcoded mock constants (`STAGES`, `INITIAL_TRANSCRIPT`, `INITIAL_EXTRACTED_DATA` at lines 7-88) and the UI that renders them.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
 git commit -m "$(cat <<'EOF'
@@ -1063,7 +1066,7 @@ EOF
 
 #### 5d: Replace shift click toast with detail sheet
 
-- [ ] **Step 8: Create ShiftDetailSheet**
+- [ ] **Step 9: Create ShiftDetailSheet**
 
 In `apps/web/src/app/dashboard/schedule/_components/week-grid.tsx`, replace the toast handler:
 
@@ -1107,7 +1110,7 @@ Add a Sheet component at the bottom of the JSX (using shadcn Sheet):
 </Sheet>
 ```
 
-- [ ] **Step 9: Commit**
+- [ ] **Step 10: Commit**
 
 ```bash
 git commit -m "$(cat <<'EOF'
@@ -1124,17 +1127,27 @@ EOF
 
 #### 5e: Fix remaining stubs (duty leader, season, notifications, bootstrap)
 
-- [ ] **Step 10: Fix duty leader persistence**
+- [ ] **Step 11: Wire duty leader persistence**
 
-In `OversiktTab.tsx`, check if `duty_leader_id` exists on `department_session`:
+The `duty_leader_id` column EXISTS on `department_session` (confirmed in `database.types.ts` line 4880, FK to `profile.profile_id`). The TODO comment on OversiktTab.tsx line 254 saying it doesn't exist is **stale and wrong**.
 
-```bash
-grep "duty_leader_id" packages/supabase/src/database.types.ts
+In `OversiktTab.tsx`, wire the select's `onChange` to persist via Supabase mutation:
+
+```typescript
+// Remove the stale TODO comment on line 254
+// Wire onChange to update department_session:
+const handleDutyLeaderChange = async (leaderId: string) => {
+  setDutyLeaderId(leaderId);
+  await supabase
+    .from("department_session")
+    .update({ duty_leader_id: leaderId })
+    .eq("session_id", sessionId);
+};
 ```
 
-If it exists, wire the `onChange` to a mutation. If not, add a comment: `// duty_leader_id column pending migration — selection is UI-only for now` and remove the misleading TODO.
+Replace the current `onChange` with `handleDutyLeaderChange`. Ensure the supabase client is imported.
 
-- [ ] **Step 11: Fix season overview slice**
+- [ ] **Step 12: Fix season overview slice**
 
 In `SeasonOverviewTab.tsx`, replace `.slice(0, 7)`:
 
@@ -1148,7 +1161,16 @@ In `SeasonOverviewTab.tsx`, replace `.slice(0, 7)`:
 
 Update `peakDayHourTargets` to use the full array (it already selects the peak from whatever array it receives).
 
-- [ ] **Step 12: Wire protocol reminders to notification EF**
+- [ ] **Step 13: Verify process-notifications EF accepts this payload**
+
+```bash
+# Check the edge function exists and inspect its expected payload shape
+grep -A 30 "Deno.serve" supabase/functions/process-notifications/index.ts | head -40
+```
+
+Confirm the EF accepts `{ event, workspace_id, payload }`. If the shape differs, adjust the invocation below to match.
+
+- [ ] **Step 14: Wire protocol reminders to notification EF**
 
 In `people-actions.ts`, add the edge function call after the activity_trail insert:
 
@@ -1167,9 +1189,26 @@ await supabase.functions.invoke("process-notifications", {
 });
 ```
 
-- [ ] **Step 13: Fix bootstrap context TODOs**
+- [ ] **Step 15: Verify company_member.role column and WorkspaceRole type**
 
-In `build-bootstrap-context.ts`, replace the 4 TODO blocks:
+```bash
+# Verify role column exists
+grep -A 10 "company_member:" packages/supabase/src/database.types.ts | grep "role"
+
+# Verify WorkspaceRole type
+grep -rn "WorkspaceRole" apps/web/src/ --include="*.ts" -l | head -5
+```
+
+If `WorkspaceRole` doesn't exist, use `string` with a comment noting the type gap.
+
+- [ ] **Step 16: Fix bootstrap context TODOs**
+
+In `build-bootstrap-context.ts`, the file currently has NO supabase client import — it only handles business logic. You need to either:
+
+- (a) Add a supabase client parameter to the function signature: `buildBootstrapContext(input: BootstrapInput, supabase: SupabaseClient)`, or
+- (b) Import `createClient` from `@/lib/supabase/server` at the top of the file
+
+Option (a) is preferred (dependency injection). Then replace the 4 TODO blocks:
 
 ```typescript
 // Replace role TODO:
@@ -1208,16 +1247,16 @@ const verificationFlags = {
 const recentSearches: string[] = [];
 ```
 
-- [ ] **Step 14: Run typecheck + commit**
+- [ ] **Step 17: Run typecheck + commit**
 
 ```bash
 git commit -m "$(cat <<'EOF'
 fix(dashboard): wire real data for duty leader, season, reminders, context
 
+- Duty leader: wired to persist via department_session.duty_leader_id
 - Season overview shows full season targets (removed 7-day slice)
 - Protocol reminders invoke process-notifications edge function
 - Bootstrap context queries real role and readiness from DB
-- Duty leader: documented pending migration status
 
 Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
 EOF
@@ -1315,7 +1354,7 @@ import { FEATURE_FLAGS } from "@/lib/feature-flags";
 
 - [ ] **Step 5: Remove nav links for flagged-off features**
 
-In `apps/web/src/components/dashboard/DashboardShell.tsx`, wrap the my-cv NavItem (around line 1498) with a flag check:
+In `apps/web/src/components/dashboard/DashboardShell.tsx`, find the my-cv NavItem by searching for `href="/dashboard/my-cv"` and wrap it with a flag check:
 
 ```typescript
 {FEATURE_FLAGS.MY_CV && (
@@ -1380,6 +1419,7 @@ EOF
 - Create: `apps/landing/src/app/error.tsx`
 - Create: `apps/landing/src/app/loading.tsx`
 - Create: `apps/landing/src/app/demo/error.tsx`
+- Create: `apps/landing/src/app/docs/[slug]/error.tsx`
 - Create: `apps/landing/sentry.client.config.ts`
 - Create: `apps/landing/sentry.server.config.ts`
 - Modify: `apps/landing/next.config.ts`
@@ -1588,17 +1628,48 @@ export default function DemoError({
 }
 ```
 
-- [ ] **Step 12: Commit**
+- [ ] **Step 12: Create docs error boundary**
+
+Create `apps/landing/src/app/docs/[slug]/error.tsx`:
+
+```tsx
+"use client";
+
+export default function DocsError({
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
+  return (
+    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 px-6 text-center">
+      <h2 className="text-2xl font-bold">Kunne ikke laste dokumentet</h2>
+      <p className="text-muted-foreground max-w-md">
+        Noe gikk galt ved lasting av denne siden. Prøv å laste på nytt.
+      </p>
+      <button
+        onClick={reset}
+        className="bg-primary text-primary-foreground rounded-full px-6 py-2 font-semibold"
+      >
+        Prøv igjen
+      </button>
+    </div>
+  );
+}
+```
+
+- [ ] **Step 13: Commit**
 
 ```bash
 git add apps/landing/src/app/error.tsx \
   apps/landing/src/app/loading.tsx \
-  apps/landing/src/app/demo/error.tsx
+  apps/landing/src/app/demo/error.tsx \
+  apps/landing/src/app/docs/\[slug\]/error.tsx
 git commit -m "$(cat <<'EOF'
 feat(landing): add error boundaries and loading states
 
 Root error boundary with Sentry integration, root loading spinner,
-and demo-specific error boundary for voice session failures.
+demo-specific error boundary, and docs page error boundary.
 
 Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
 EOF
@@ -1607,13 +1678,13 @@ EOF
 
 #### 7f: Add Sentry to landing
 
-- [ ] **Step 13: Install Sentry**
+- [ ] **Step 14: Install Sentry**
 
 ```bash
 cd apps/landing && pnpm add @sentry/nextjs
 ```
 
-- [ ] **Step 14: Create Sentry config files**
+- [ ] **Step 15: Create Sentry config files**
 
 Create `apps/landing/sentry.client.config.ts`:
 
@@ -1643,7 +1714,7 @@ Sentry.init({
 });
 ```
 
-- [ ] **Step 15: Wrap next.config.ts with Sentry**
+- [ ] **Step 16: Wrap next.config.ts with Sentry**
 
 In `apps/landing/next.config.ts`, add Sentry wrapper:
 
@@ -1659,18 +1730,30 @@ export default withSentryConfig(nextConfig, {
 });
 ```
 
-- [ ] **Step 16: Build test**
+- [ ] **Step 17: Add DEMO_WORKSPACE_ID to .env.template**
+
+`SENTRY_AUTH_TOKEN` already exists in `.env.template` — no action needed for Sentry.
+
+However, `DEMO_WORKSPACE_ID` (used by engine-start route, fixed in Task 7b) is NOT in `.env.template`. Add it:
+
+```
+# Landing demo workspace
+DEMO_WORKSPACE_ID="op://smartout_ai/Landing/demo_workspace_id"
+```
+
+- [ ] **Step 18: Build test**
 
 Run: `pnpm --filter landing build`
 Expected: Build succeeds with all routes.
 
-- [ ] **Step 17: Commit**
+- [ ] **Step 19: Commit**
 
 ```bash
 git add apps/landing/sentry.client.config.ts \
   apps/landing/sentry.server.config.ts \
   apps/landing/next.config.ts \
-  apps/landing/package.json
+  apps/landing/package.json \
+  .env.template
 git commit -m "$(cat <<'EOF'
 feat(landing): add Sentry error tracking
 
@@ -1698,16 +1781,21 @@ git checkout -b fix/production-hardening
 
 - [ ] **Step 2: Merge in order**
 
+Merge each agent's branch. If using `superpowers:subagent-driven-development` with `isolation: "worktree"`, the branch names will be auto-generated — check `git branch --list 'worktree-*'` or use the branch names returned by each agent.
+
 ```bash
-git merge wt-prod-a1-security --no-edit
-git merge wt-prod-a2-infra --no-edit
-git merge wt-prod-b1-stubs --no-edit
-git merge wt-prod-b2-flags --no-edit
-git merge wt-prod-c1-landing --no-edit
-git merge wt-prod-a3-types --no-edit   # Last — highest conflict risk
+# Replace these with the actual branch names from each agent's output
+git merge <a1-security-branch> --no-edit
+git merge <a2-infra-branch> --no-edit
+git merge <b1-stubs-branch> --no-edit
+git merge <b2-flags-branch> --no-edit
+git merge <c1-landing-branch> --no-edit
+git merge <a3-types-branch> --no-edit   # Last — highest conflict risk
 ```
 
 Resolve any conflicts. A3 goes last because it touches the most files.
+
+> **Expected conflict:** `.env.template` is modified by agents A1, A2, and B2 in parallel. All three append to the end of the file. When merging, accept all additions — they are disjoint env var groups (platform company details, service URLs, feature flags). Combine them in order: platform vars, service URLs, feature flags.
 
 - [ ] **Step 3: Build check**
 

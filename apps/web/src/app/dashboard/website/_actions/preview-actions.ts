@@ -32,7 +32,7 @@ async function requireAdminForWebsite(websiteId: string) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: website, error } = await admin
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .schema("websites" as "public") // SAFETY: websites is a valid Postgres schema not represented as "public" in Supabase client types
+    .schema("websites" as any) // SAFETY: websites is a valid Postgres schema not in Supabase generated types
     .from("website")
     .select("workspace_id, site_slug")
     .eq("website_id", websiteId)
@@ -73,7 +73,7 @@ export async function createPreviewToken(websiteId: string): Promise<CreatePrevi
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { count } = await admin
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .schema("websites" as "public") // SAFETY: websites is a valid Postgres schema not represented as "public" in Supabase client types
+      .schema("websites" as any) // SAFETY: websites is a valid Postgres schema not in Supabase generated types
       .from("website_preview_token")
       .select("*", { count: "exact", head: true })
       .eq("website_id", websiteId)
@@ -91,7 +91,7 @@ export async function createPreviewToken(websiteId: string): Promise<CreatePrevi
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: tokenRow, error: insertError } = await admin
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .schema("websites" as "public") // SAFETY: websites is a valid Postgres schema not represented as "public" in Supabase client types
+      .schema("websites" as any) // SAFETY: websites is a valid Postgres schema not in Supabase generated types
       .from("website_preview_token")
       .insert({
         website_id: websiteId,

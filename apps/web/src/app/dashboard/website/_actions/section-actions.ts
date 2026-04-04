@@ -40,7 +40,7 @@ async function requireAdminForWebsite(websiteId: string) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: website, error } = await admin
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .schema("websites" as "public") // SAFETY: websites is a valid Postgres schema not represented as "public" in Supabase client types
+    .schema("websites" as any) // SAFETY: websites is a valid Postgres schema not in Supabase generated types
     .from("website")
     .select("workspace_id")
     .eq("website_id", websiteId)
@@ -94,7 +94,7 @@ export async function createSection(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { count } = await admin
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .schema("websites" as "public") // SAFETY: websites is a valid Postgres schema not represented as "public" in Supabase client types
+    .schema("websites" as any) // SAFETY: websites is a valid Postgres schema not in Supabase generated types
     .from("website_section")
     .select("*", { count: "exact", head: true })
     .eq("website_page_id", pageId)
@@ -109,7 +109,7 @@ export async function createSection(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { count: typeCount } = await admin
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .schema("websites" as "public") // SAFETY: websites is a valid Postgres schema not represented as "public" in Supabase client types
+      .schema("websites" as any) // SAFETY: websites is a valid Postgres schema not in Supabase generated types
       .from("website_section")
       .select("*", { count: "exact", head: true })
       .eq("website_page_id", pageId)
@@ -124,7 +124,7 @@ export async function createSection(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await admin
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .schema("websites" as "public") // SAFETY: websites is a valid Postgres schema not represented as "public" in Supabase client types
+    .schema("websites" as any) // SAFETY: websites is a valid Postgres schema not in Supabase generated types
     .from("website_section")
     .insert({
       website_page_id: pageId,
@@ -169,7 +169,7 @@ export async function deleteSection(websiteId: string, sectionId: string): Promi
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = await admin
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .schema("websites" as "public") // SAFETY: websites is a valid Postgres schema not represented as "public" in Supabase client types
+      .schema("websites" as any) // SAFETY: websites is a valid Postgres schema not in Supabase generated types
       .from("website_section")
       .update({ deleted_at: new Date().toISOString() })
       .eq("website_section_id", sectionId);
@@ -210,7 +210,7 @@ export async function updateSectionContent(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: section } = await admin
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .schema("websites" as "public") // SAFETY: websites is a valid Postgres schema not represented as "public" in Supabase client types
+      .schema("websites" as any) // SAFETY: websites is a valid Postgres schema not in Supabase generated types
       .from("website_section")
       .select("section_type")
       .eq("website_section_id", sectionId)
@@ -232,7 +232,7 @@ export async function updateSectionContent(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = await admin
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .schema("websites" as "public") // SAFETY: websites is a valid Postgres schema not represented as "public" in Supabase client types
+      .schema("websites" as any) // SAFETY: websites is a valid Postgres schema not in Supabase generated types
       .from("website_section")
       .update({ content, updated_at: new Date().toISOString() })
       .eq("website_section_id", sectionId);
@@ -244,7 +244,7 @@ export async function updateSectionContent(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await admin
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .schema("websites" as "public") // SAFETY: websites is a valid Postgres schema not represented as "public" in Supabase client types
+        .schema("websites" as any) // SAFETY: websites is a valid Postgres schema not in Supabase generated types
         .from("website_draft_revision")
         .insert({
           website_id: websiteId,
@@ -289,7 +289,7 @@ export async function reorderSections(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         admin
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .schema("websites" as "public") // SAFETY: websites is a valid Postgres schema not represented as "public" in Supabase client types
+          .schema("websites" as any) // SAFETY: websites is a valid Postgres schema not in Supabase generated types
           .from("website_section")
           .update({ sort_order: index })
           .eq("website_section_id", sectionId)
@@ -335,7 +335,7 @@ export async function updateSectionSettings(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = await admin
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .schema("websites" as "public") // SAFETY: websites is a valid Postgres schema not represented as "public" in Supabase client types
+      .schema("websites" as any) // SAFETY: websites is a valid Postgres schema not in Supabase generated types
       .from("website_section")
       .update({ settings: result.data, updated_at: new Date().toISOString() })
       .eq("website_section_id", sectionId);
