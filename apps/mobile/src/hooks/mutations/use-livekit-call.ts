@@ -12,7 +12,7 @@ import type { CallSession } from "@smartout/walkie-talkie";
 const AudioSession =
   Platform.OS !== "web"
     ? require("@livekit/react-native").AudioSession
-    : { startAudioSession: () => {}, stopAudioSession: () => {} };
+    : { startAudioSession: async () => {}, stopAudioSession: async () => {} };
 
 type UseLiveKitCallParams = {
   token: string | null;
