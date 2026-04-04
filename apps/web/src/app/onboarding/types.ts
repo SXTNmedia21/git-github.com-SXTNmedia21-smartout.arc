@@ -4,6 +4,25 @@
  * Replaces the old 15-step wizard types.
  */
 
+import { z } from "zod";
+
+// ── Scraped company data — returned by the scraping service and stored as
+// JSONB in intelligence_data. Use .passthrough() so unexpected fields don't
+// cause parsing to fail when the scraper adds new fields.
+export const ScrapedCompanyDataSchema = z
+  .object({
+    name: z.string().optional(),
+    org_number: z.string().optional(),
+    address: z.string().optional(),
+    industry: z.string().optional(),
+    nace_codes: z.array(z.string()).optional(),
+    employee_count: z.number().optional(),
+    website_url: z.string().optional(),
+    description: z.string().optional(),
+  })
+  .passthrough();
+export type ScrapedCompanyData = z.infer<typeof ScrapedCompanyDataSchema>;
+
 export const ONBOARDING_SECTIONS = [
   "hero",
   "business",
