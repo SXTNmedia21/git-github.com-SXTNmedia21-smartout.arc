@@ -77,7 +77,7 @@ export function SeasonOverviewTab({
       startDate: seasonStartDate,
       endDate: seasonEndDate,
       dayFactors: dayFactors.map((df) => ({ weekday: df.weekday, factor: df.factor })),
-    }).slice(0, 7); // First week as sample
+    });
   }, [budget, seasonStartDate, seasonEndDate, dayFactors]);
 
   // Calculate hour targets for peak day (highest day target)
