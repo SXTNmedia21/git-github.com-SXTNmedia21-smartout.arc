@@ -552,3 +552,12 @@ verify_jwt = false
 
 [functions.shift-clock-compliance]
 verify_jwt = true
+
+[functions.guardian-actions]
+verify_jwt = true
+
+[functions.identify-company]
+verify_jwt = false
+
+[functions.scrape-website]
+verify_jwt = false
