@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 import path from "path";
 import { readFileSync, existsSync } from "node:fs";
+import { withSentryConfig } from "@sentry/nextjs";
 
 // Load root .env.local — Next.js only reads from its own directory,
 // so in a monorepo we must load the root env file manually.
@@ -85,4 +86,8 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  silent: true,
+  org: "smartout",
+  project: "landing",
+});

@@ -117,23 +117,15 @@ export default function BlogPage() {
               color: "from-cyan-500 to-blue-500",
               ready: false,
             },
-          ].map((story, i) => {
-            const CardWrapper = story.ready ? Link : "div";
+          ]
+            .filter((s) => s.ready !== false)
+            .map((story, i) => {
             return (
-              <CardWrapper
+              <Link
                 key={i}
                 href={`/blog/${story.slug}`}
-                className={`group border-border/50 bg-card/40 relative flex flex-col overflow-hidden rounded-[2rem] border p-8 shadow-xl backdrop-blur-xl transition-all duration-500 ${
-                  story.ready
-                    ? "hover:border-border cursor-pointer hover:-translate-y-1"
-                    : "cursor-default opacity-80"
-                }`}
+                className="group border-border/50 bg-card/40 hover:border-border relative flex flex-col overflow-hidden rounded-[2rem] border p-8 shadow-xl backdrop-blur-xl transition-all duration-500 hover:-translate-y-1 cursor-pointer"
               >
-                {!story.ready && (
-                  <span className="border-border bg-foreground/5 text-muted-foreground absolute top-6 right-6 z-10 rounded-full border px-3 py-1 text-[10px] font-bold tracking-widest uppercase">
-                    Kommer snart
-                  </span>
-                )}
                 <div className="via-foreground/20 absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
                 <div
                   className={`absolute -inset-1 bg-gradient-to-b ${story.color} opacity-0 blur-2xl transition-opacity duration-500 group-hover:opacity-10`}
@@ -157,7 +149,7 @@ export default function BlogPage() {
                     </div>
                   </div>
                 </div>
-              </CardWrapper>
+              </Link>
             );
           })}
         </m.div>

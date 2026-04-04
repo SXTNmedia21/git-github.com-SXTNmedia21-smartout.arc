@@ -37,6 +37,10 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  if (!process.env.DEMO_WORKSPACE_ID) {
+    return NextResponse.json({ error: "Demo unavailable" }, { status: 503 });
+  }
+
   try {
     const body = await request.json().catch(() => ({}));
     const missionId = body.mission_id || "landing-demo";
@@ -49,7 +53,7 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({
         mission_id: missionId,
-        workspace_id: "b0000000-0000-0000-0000-000000000000",
+        workspace_id: process.env.DEMO_WORKSPACE_ID ?? "",
         language: "no",
       }),
     });
