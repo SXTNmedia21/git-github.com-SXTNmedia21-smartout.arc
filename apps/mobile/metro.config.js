@@ -32,6 +32,9 @@ const webAliases = {
   "expo-haptics": path.resolve(projectRoot, "src/platform/haptics.web.ts"),
   "@gorhom/bottom-sheet": path.resolve(projectRoot, "src/platform/bottom-sheet.web.tsx"),
   "expo-sqlite": path.resolve(projectRoot, "src/platform/sqlite.web.ts"),
+  "expo-image-picker": path.resolve(projectRoot, "src/platform/image-picker.web.ts"),
+  "react-native-mmkv": path.resolve(projectRoot, "src/platform/mmkv.web.ts"),
+  "@smartout/walkie-talkie": path.resolve(projectRoot, "src/platform/walkie-talkie.web.ts"),
 };
 
 config.resolver.resolveRequest = (context, moduleName, platform) => {
