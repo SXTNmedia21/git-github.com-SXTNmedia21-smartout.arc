@@ -4,13 +4,23 @@ import { env } from "@/env";
 
 const TIMEOUT_MS = 10_000;
 
+// In production, missing service URLs are a hard error rather than silently falling
+// back to localhost (which would always fail and mask misconfiguration).
+function requireInProd(name: string, fallback: string): string {
+  const val = process.env[name];
+  if (!val && process.env.NODE_ENV === "production") {
+    throw new Error(`Missing required env var: ${name}`);
+  }
+  return val ?? fallback;
+}
+
 const SERVICE_URLS: Record<string, string | undefined> = {
-  "stage-engine": env.STAGE_ENGINE_URL ?? "http://localhost:5010",
-  "shift-mcp": env.SHIFT_MCP_URL ?? "http://localhost:5011",
-  "contract-service": env.CONTRACT_SERVICE_URL ?? "http://localhost:5012",
-  scrapling: env.SCRAPLING_SERVICE_URL ?? "http://localhost:8000",
+  "stage-engine": requireInProd("STAGE_ENGINE_URL", "http://localhost:5010"),
+  "shift-mcp": requireInProd("SHIFT_MCP_URL", "http://localhost:5011"),
+  "contract-service": requireInProd("CONTRACT_SERVICE_URL", "http://localhost:5012"),
+  scrapling: requireInProd("SCRAPLING_SERVICE_URL", "http://localhost:8000"),
   supabase: env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321",
-  caddy: "http://localhost:80",
+  caddy: requireInProd("CADDY_URL", "http://localhost:80"),
 };
 
 export type TestResult = {

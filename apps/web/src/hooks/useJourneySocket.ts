@@ -25,7 +25,7 @@ type UseJourneySocketReturn = {
 export function useJourneySocket({
   sessionId,
   token,
-  stageEngineUrl = "ws://localhost:5010",
+  stageEngineUrl = process.env.NEXT_PUBLIC_STAGE_ENGINE_WS_URL ?? "ws://localhost:5010",
   onCommand,
 }: UseJourneySocketOptions): UseJourneySocketReturn {
   const wsRef = useRef<WebSocket | null>(null);

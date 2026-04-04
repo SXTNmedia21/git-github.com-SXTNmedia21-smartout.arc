@@ -28,7 +28,10 @@ export async function POST(_request: NextRequest, { params }: RouteContext) {
     return NextResponse.json({ error: "Only Docker services can be restarted" }, { status: 400 });
   }
 
-  const dockerHost = process.env.DOCKER_HOST ?? "http://localhost:2375";
+  const dockerHost = process.env.DOCKER_HOST;
+  if (!dockerHost) {
+    return NextResponse.json({ error: "DOCKER_HOST not configured" }, { status: 503 });
+  }
 
   try {
     // Find container by name

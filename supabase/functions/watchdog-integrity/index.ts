@@ -19,6 +19,7 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
+  try {
   const checks: IntegrityCheck[] = [];
 
   // Run all checks concurrently
@@ -136,4 +137,11 @@ Deno.serve(async (req) => {
     status: hasErrors || hasFailures ? 503 : 200,
     headers: { "Content-Type": "application/json" },
   });
+  } catch (err) {
+    console.error("[watchdog-integrity] Unhandled error:", err);
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
 });

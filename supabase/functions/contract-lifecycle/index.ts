@@ -13,6 +13,7 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
+  try {
   const now = new Date().toISOString();
   const results: Record<string, number> = {};
 
@@ -95,4 +96,11 @@ Deno.serve(async (req) => {
     }),
     { headers: { "Content-Type": "application/json" } },
   );
+  } catch (err) {
+    console.error("[contract-lifecycle] Unhandled error:", err);
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
 });

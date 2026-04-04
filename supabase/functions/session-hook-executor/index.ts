@@ -47,6 +47,7 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
+  try {
   const now = new Date();
   const today = now.toISOString().split("T")[0]!;
 
@@ -222,4 +223,11 @@ Deno.serve(async (req) => {
     }),
     { headers: { ...corsHeaders, "Content-Type": "application/json" } },
   );
+  } catch (err) {
+    console.error("[session-hook-executor] Unhandled error:", err);
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 });

@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
   }
 
   // 2. Extract text via Scrapling
-  const scraplingUrl = process.env.SCRAPLING_SERVICE_URL || "http://localhost:8000";
+  const scraplingUrl = process.env.SCRAPLING_SERVICE_URL ?? "";
   type ScraplingResult = {
     filename: string;
     text: string | null;
