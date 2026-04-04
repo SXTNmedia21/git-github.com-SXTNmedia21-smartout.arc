@@ -12,19 +12,27 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
-  const checks: Record<string, unknown> = {};
+  try {
+    const checks: Record<string, unknown> = {};
 
-  const { error } = await supabase.from("company").select("company_id").limit(1);
-  checks.database = { status: error ? "fail" : "pass" };
+    const { error } = await supabase.from("company").select("company_id").limit(1);
+    checks.database = { status: error ? "fail" : "pass" };
 
-  checks.runtime = { status: "pass", deno_version: Deno.version.deno };
+    checks.runtime = { status: "pass", deno_version: Deno.version.deno };
 
-  return new Response(
-    JSON.stringify({
-      status: error ? "degraded" : "healthy",
-      timestamp: new Date().toISOString(),
-      checks,
-    }),
-    { headers: { "Content-Type": "application/json" } },
-  );
+    return new Response(
+      JSON.stringify({
+        status: error ? "degraded" : "healthy",
+        timestamp: new Date().toISOString(),
+        checks,
+      }),
+      { headers: { "Content-Type": "application/json" } },
+    );
+  } catch (err) {
+    console.error("[health-check] Unhandled error:", err);
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
 });

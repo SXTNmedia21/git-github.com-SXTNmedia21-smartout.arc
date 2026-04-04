@@ -33,6 +33,7 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
+  try {
   // Find all workspaces with active seasons
   const { data: activeSeasons, error: seasonError } = await supabase
     .from("season")
@@ -153,4 +154,11 @@ Deno.serve(async (req) => {
     }),
     { headers: { ...corsHeaders, "Content-Type": "application/json" } },
   );
+  } catch (err) {
+    console.error("[daily-session-replenish] Unhandled error:", err);
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 });
