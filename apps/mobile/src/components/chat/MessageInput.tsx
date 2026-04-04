@@ -19,10 +19,14 @@ import {
   ScrollView,
   Image,
   Keyboard,
+  Platform,
   type ViewStyle,
 } from "react-native";
 import * as Haptics from "expo-haptics";
-import * as ImagePicker from "expo-image-picker";
+
+// expo-image-picker has native camera/media dependencies — lazy load on native only
+const ImagePicker: typeof import("expo-image-picker") | null =
+  Platform.OS !== "web" ? require("expo-image-picker") : null;
 import {
   Plus,
   Smile,
@@ -91,6 +95,7 @@ export function MessageInput({ onSend, replyTo, onCancelReply, style }: MessageI
   }, [onCancelReply]);
 
   const handleCamera = useCallback(async () => {
+    if (!ImagePicker) return; // camera unavailable on web
     Haptics.selectionAsync();
     setPanel("none");
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
@@ -115,6 +120,7 @@ export function MessageInput({ onSend, replyTo, onCancelReply, style }: MessageI
   }, []);
 
   const handlePickImages = useCallback(async () => {
+    if (!ImagePicker) return; // media library unavailable on web
     Haptics.selectionAsync();
     setPanel("none");
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -137,6 +143,7 @@ export function MessageInput({ onSend, replyTo, onCancelReply, style }: MessageI
   }, []);
 
   const handlePickVideo = useCallback(async () => {
+    if (!ImagePicker) return; // media library unavailable on web
     Haptics.selectionAsync();
     setPanel("none");
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
