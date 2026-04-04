@@ -118,10 +118,10 @@ export async function POST(request: NextRequest) {
 
     const { buildAutofillMap, resolvePlaceholders } = await import("@smartout/utils");
     const autofillMap = buildAutofillMap(wsData, company, {
-      companyName: "Smartout AS",
-      orgNumber: "929 620 291",
-      contactEmail: "pontus@smartout.io",
-      contactName: "Pontus S. Lindroth",
+      companyName: process.env.PLATFORM_COMPANY_NAME ?? "",
+      orgNumber: process.env.PLATFORM_ORG_NUMBER ?? "",
+      contactEmail: process.env.PLATFORM_CONTACT_EMAIL ?? "",
+      contactName: process.env.PLATFORM_CONTACT_NAME ?? "",
     });
 
     const result = resolvePlaceholders(resolvedHtml, placeholders, autofillMap, {
