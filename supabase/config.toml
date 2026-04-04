@@ -534,3 +534,21 @@ verify_jwt = false
 
 [functions.cleanup-sandbox-workspaces]
 verify_jwt = false
+
+[functions.analyze-workspace]
+verify_jwt = false
+
+[functions.apply-change-proposal]
+verify_jwt = true
+
+[functions.extract-workspace-data]
+verify_jwt = false
+
+[functions.scrape-raw-data]
+verify_jwt = false
+
+[functions.search-brreg]
+verify_jwt = false
+
+[functions.shift-clock-compliance]
+verify_jwt = true
