@@ -88,12 +88,12 @@ export async function POST(request: Request) {
     clearTimeout(timeout);
 
     if (!upstream.ok) {
-      return NextResponse.json({ status: "failed" }, { status: 200 });
+      return NextResponse.json({ status: "failed" }, { status: 502 });
     }
 
     const result: unknown = await upstream.json();
     return NextResponse.json({ status: "success", data: result }, { status: 200 });
   } catch {
-    return NextResponse.json({ status: "failed" }, { status: 200 });
+    return NextResponse.json({ status: "failed" }, { status: 500 });
   }
 }
