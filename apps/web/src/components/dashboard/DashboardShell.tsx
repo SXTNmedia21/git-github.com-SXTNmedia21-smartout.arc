@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { AnimatePresence } from "framer-motion";
 import type { MissionId } from "@smartout/ai/missions";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
+import { FEATURE_FLAGS } from "@/lib/feature-flags";
 import { createClient } from "@smartout/supabase/client";
 import { useCascadeTaskCount } from "@/app/dashboard/_hooks/use-cascade-task-count";
 import { EntityDrawerProvider } from "./entity-drawer/EntityDrawerContext";
@@ -1494,14 +1495,16 @@ export function DashboardShell({
                             active={isActive("/dashboard/my-training")}
                             isCollapsed={isSidebarCollapsed}
                           />
-                          <NavItem
-                            href="/dashboard/my-cv"
-                            icon={FileText}
-                            label="Min profil"
-                            isDark={isDark}
-                            active={isActive("/dashboard/my-cv")}
-                            isCollapsed={isSidebarCollapsed}
-                          />
+                          {FEATURE_FLAGS.MY_CV && (
+                            <NavItem
+                              href="/dashboard/my-cv"
+                              icon={FileText}
+                              label="Min profil"
+                              isDark={isDark}
+                              active={isActive("/dashboard/my-cv")}
+                              isCollapsed={isSidebarCollapsed}
+                            />
+                          )}
                           <NavItem
                             href="/dashboard/my-salary"
                             icon={Banknote}
@@ -1533,15 +1536,17 @@ export function DashboardShell({
                             active={isActive("/dashboard/komm")}
                             isCollapsed={isSidebarCollapsed}
                           />
-                          <NavItem
-                            href="/dashboard/ai"
-                            icon={Bot}
-                            label="Mr. Botsson"
-                            isDark={isDark}
-                            ai
-                            active={isActive("/dashboard/ai")}
-                            isCollapsed={isSidebarCollapsed}
-                          />
+                          {FEATURE_FLAGS.AI_CHAT && (
+                            <NavItem
+                              href="/dashboard/ai"
+                              icon={Bot}
+                              label="Mr. Botsson"
+                              isDark={isDark}
+                              ai
+                              active={isActive("/dashboard/ai")}
+                              isCollapsed={isSidebarCollapsed}
+                            />
+                          )}
                           <NavItem
                             href="/dashboard/onboarding-assistant"
                             icon={Bot}
