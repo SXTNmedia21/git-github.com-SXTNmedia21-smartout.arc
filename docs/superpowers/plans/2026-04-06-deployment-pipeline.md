@@ -234,6 +234,7 @@ SERVICES=(
   "Shift MCP|http://localhost:5011/health"
   "Contract Service|http://localhost:5012/health"
   "Scrapling|http://localhost:8000/health"
+  # n8n intentionally excluded — not deployed to production droplet
 )
 
 check_all() {
@@ -336,8 +337,9 @@ set -euo pipefail
 
 DRY_RUN=false
 REMOTE=false
-DROPLET_HOST="root@164.92.176.42"
-DROPLET_ENV_PATH="/root/dev/smartout.ai/infra/.env"
+# TODO: Move to SSH config alias or env var for portability
+DROPLET_HOST="${DROPLET_HOST:-root@164.92.176.42}"
+DROPLET_ENV_PATH="${DROPLET_ENV_PATH:-/root/dev/smartout.ai/infra/.env}"
 
 for arg in "$@"; do
   case $arg in
@@ -484,8 +486,10 @@ VALUES ('b0000000-0000-0000-0000-000000000000', 'a0000000-0000-0000-0000-0000000
 ON CONFLICT (workspace_id) DO NOTHING;
 
 -- 3. Location
+-- NOTE: Verify location_type enum values against database.types.ts before running.
+-- Common values: 'headquarters', 'branch', 'warehouse'. Adjust if 'main' is not valid.
 INSERT INTO public.location (location_id, workspace_id, name, slug, location_type)
-VALUES ('c0000000-0000-0000-0000-000000000000', 'b0000000-0000-0000-0000-000000000000', 'Preview Location', 'preview-loc', 'main')
+VALUES ('c0000000-0000-0000-0000-000000000000', 'b0000000-0000-0000-0000-000000000000', 'Preview Location', 'preview-loc', 'headquarters')
 ON CONFLICT (location_id) DO NOTHING;
 
 -- 4. Department
@@ -494,6 +498,8 @@ VALUES ('d0000000-0000-0000-0000-000000000000', 'b0000000-0000-0000-0000-0000000
 ON CONFLICT (department_id) DO NOTHING;
 
 -- 5. Admin user (test only — email @preview.local)
+-- IMPORTANT: auth.users INSERT triggers handle_new_user() which creates user_identity.
+-- But we also need company_member + profile for workspace access and RLS.
 INSERT INTO auth.users (
   id, instance_id, aud, role, email, encrypted_password, email_confirmed_at,
   raw_user_meta_data, raw_app_meta_data, created_at, updated_at,
@@ -508,6 +514,16 @@ INSERT INTO auth.users (
   '{"provider": "email", "providers": ["email"]}',
   now(), now(), '', '', '', '', '', '', '', '', ''
 ) ON CONFLICT (id) DO NOTHING;
+
+-- 5b. Company member (links user to company with owner role)
+INSERT INTO public.company_member (user_id, company_id, role)
+VALUES ('e0000000-0000-0000-0000-000000000000', 'a0000000-0000-0000-0000-000000000000', 'owner')
+ON CONFLICT (user_id, company_id) DO NOTHING;
+
+-- 5c. Profile (workspace-scoped, required for RLS)
+INSERT INTO public.profile (profile_id, workspace_id, user_id, display_name, role, profile_status)
+VALUES ('f0000000-0000-0000-0000-000000000000', 'b0000000-0000-0000-0000-000000000000', 'e0000000-0000-0000-0000-000000000000', 'Preview Admin', 'owner', 'active')
+ON CONFLICT (profile_id) DO NOTHING;
 
 -- 6. Default engine_authority_config (read_only baseline)
 INSERT INTO public.engine_authority_config (workspace_id, capability, authority_level)
@@ -790,6 +806,20 @@ Check Vercel Dashboard → smartout-web → Deployments. A new preview deploymen
 - Create: `docs/decisions/NNNN-preview-environment-architecture.md`
 - Modify: `docs/decisions/0000-decision-log.md`
 
+- [ ] **Step 0: Restore master decision log (PREREQUISITE)**
+
+The file `docs/decisions/0000-decision-log.md` has been overwritten by the auth-security-friction feature's local decision log. It contains only 10 entries from 2026-03-29, not the master index of 54+ ADRs.
+
+Restore it from git history:
+
+```bash
+git log --all --oneline -- docs/decisions/0000-decision-log.md | head -5
+# Find the last commit that had the full master log
+git show <commit>:docs/decisions/0000-decision-log.md > docs/decisions/0000-decision-log.md
+```
+
+Verify it contains entries for ADR-0001 through ADR-0055+.
+
 - [ ] **Step 1: Determine next ADR number**
 
 ```bash
@@ -855,7 +885,7 @@ Rationale:
 
 - [ ] **Step 2: Harden SECURITY.md — Add preview environment section**
 
-Open `docs/protocols/SECURITY.md`. Add a new section after the existing deployment checklist (around line 450):
+Open `docs/protocols/SECURITY.md`. IMPORTANT: existing §16 is "Infrastructure" and §17 is "Document Relationships". Renumber those to §17 and §18, then insert the new section as §16:
 
 ```markdown
 ## §16 Preview Environment Security
@@ -1012,6 +1042,8 @@ Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 ---
 
 ## Execution Order
+
+**Branch strategy for parallel tasks:** All tasks (1-5, 11) commit directly to `development`. They touch completely different files so there are no merge conflicts. If using subagent-driven-development, each agent works on `development` and commits its own files. Do NOT create feature branches for these tasks — they are small, independent, and all target the same integration branch.
 
 Tasks 1-5 and 11 can run in parallel (no dependencies between them).
 Task 6 depends on preview branch existing (after Task 9 Step 5).
