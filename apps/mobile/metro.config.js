@@ -14,8 +14,8 @@ const monorepoRoot = path.resolve(projectRoot, "../..");
 
 const config = getDefaultConfig(projectRoot);
 
-// Watch the entire monorepo so shared packages resolve
-config.watchFolders = [monorepoRoot];
+// Watch the entire monorepo so shared packages resolve (keep Expo defaults)
+config.watchFolders = [...(config.watchFolders || []), monorepoRoot];
 
 // Resolve node_modules from both project and monorepo root (hoisted deps)
 config.resolver.nodeModulesPaths = [
@@ -37,12 +37,38 @@ const webAliases = {
   "@smartout/walkie-talkie": path.resolve(projectRoot, "src/platform/walkie-talkie.web.ts"),
 };
 
+// Stub Node.js built-ins that server-only packages (ws, posthog-node) import.
+// React Native provides its own WebSocket/fetch — these are never called at
+// runtime, but Metro still resolves them during bundling.
+const emptyModule = require.resolve("./src/lib/empty-module.js");
+
+const nodeBuiltins = [
+  "assert", "buffer", "child_process", "cluster", "crypto", "dgram", "dns",
+  "events", "fs", "http", "http2", "https", "net", "os", "path", "perf_hooks",
+  "querystring", "readline", "stream", "string_decoder", "tls", "tty", "url",
+  "util", "v8", "vm", "worker_threads", "zlib",
+];
+
+const extraNodeModules = { stream: require.resolve("readable-stream") };
+for (const mod of nodeBuiltins) {
+  if (mod !== "stream") extraNodeModules[mod] = emptyModule;
+}
+config.resolver.extraNodeModules = extraNodeModules;
+
+// Combined resolve: web aliases + node: protocol stubs + default fallback
 config.resolver.resolveRequest = (context, moduleName, platform) => {
+  // Web platform: redirect native-only packages to web fallbacks
   if (platform === "web" && moduleName in webAliases) {
     return {
       type: "sourceFile",
       filePath: webAliases[moduleName],
     };
+  }
+  // Handle "node:" protocol imports (e.g. "node:fs" from posthog-node)
+  if (moduleName.startsWith("node:")) {
+    const stripped = moduleName.slice(5);
+    const stub = extraNodeModules[stripped] || emptyModule;
+    return { type: "sourceFile", filePath: stub };
   }
   // Fall back to default resolution
   return context.resolveRequest(context, moduleName, platform);
