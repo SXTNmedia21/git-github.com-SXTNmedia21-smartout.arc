@@ -47,6 +47,7 @@ Tracks all System Council sessions — multi-agent review meetings where specs, 
 | 2026-03-29 | Reconciliation "Stilling" Data Fix    | bug          | APPROVE WITH CHANGES     | steward, supervisor, frontend-designer                    | None                                                                              | `schedule_shift.role` (D6) != `position.name` (D2) — different dimensions, not interchangeable. Added `positionName` as new field, kept `role` unchanged. Employee name was null due to missing profile join. ~15 hardcoded Norwegian strings + `#6366f1` fallback flagged as polish-pass debt.                                        |
 | 2026-04-06 | Code Review: mobile-prod + prod-gaps  | code review  | APPROVE WITH CHANGES     | steward, supervisor, agent-coordinator, frontend-designer | Pending: Migration Safety ADR                                                     | DROP TABLE CASCADE in migrations = silent data destruction. supabaseAdmin:unknown forces unsafe casts across all agent tools. sendMessage only mutation tool without emit(). indigo-500 is cold-spectrum (hue ~240) in warm-only OKLCH system. Agent tools bypass RLS by design — every query MUST include manual .eq(workspace_id).   |
 | 2026-04-06 | Full Plan Portfolio Review (11 plans) | plan         | MIXED (see below)        | steward, supervisor, agent-coordinator, frontend-designer | None                                                                              | See details below                                                                                                                                                                                                                                                                                                                      |
+| 2026-04-06 | Journey Inference as Agent Harness    | architecture | APPROVE WITH CHANGES     | steward, supervisor, agent-coordinator, frontend-designer | Pending: Mobile Telemetry Offline Emit ADR, Journey Progress via Domain Process Engine ADR | 5 breaks verified: 12/12 mobile hooks 0 emit(), no runtime journey tracking, two journey systems, Guardian AI-only, rescue unwired. Rescue≠Re-engagement (two-tier model). Journey DB tables are dev-tracking artifacts (never repurpose). All orchestration via engine_process. |
 
 ### 2026-04-06 — Full Plan Portfolio Review
 
@@ -77,3 +78,127 @@ Tracks all System Council sessions — multi-agent review meetings where specs, 
 3. **Directory renames break plans silently.** The `walkAi` → `Botsson` rename invalidated an entire plan without any automated detection.
 4. **Droplet path discrepancy** (`/opt/smartout/` in plan vs `~/dev/smartout.ai/` in reality) would have caused all SSH commands to fail. Memory files caught this.
 5. **CLAUDE.md safety rails must stay always-loaded.** Multiple agents independently flagged that moving "Critical Traps" and "What NOT To Do" to on-demand skills creates a blind spot when skills aren't triggered.
+
+## 2026-04-07 — Mobile Employee Login + Shifts E2E
+**Type:** feature
+**Verdict:** APPROVE WITH CHANGES
+**Agents consulted:** system-steward, supervisor
+**Key decision:** Workspace store (Zustand + MMKV) for multi-workspace profile selection — follows existing use-theme-store pattern.
+**ADR created:** none (follows existing patterns)
+**Learning created:** none
+
+**What was reviewed:**
+- 2 journey documents (JOURNEY-mobile-employee-login.md, JOURNEY-mobile-shifts-overview.md)
+- 3 code fixes: password reset handler, signup link wiring, workspace store for profile selection
+- 6 files changed across auth flow + data hooks
+
+**Critical finding (both agents independently):** workspace-select.tsx was reverted by linter during review — orchestrator fixed atomically with full Write.
+
+**Follow-ups identified:**
+1. Add `workspace_id` filter to shift query (defense-in-depth)
+2. Add `emit()` for workspace selection (telemetry convention)
+3. Fix push token registration for multi-workspace
+4. Add stale-profile guard in hooks
+5. i18n for hardcoded Norwegian strings (pre-existing debt)
+
+## 2026-04-07 — Mobile Auth+Shift Bug Triage (15 bugs)
+**Type:** bug
+**Verdict:** APPROVE WITH CHANGES (fix 2, log 10, drop 3)
+**Agents consulted:** system-steward, supervisor
+**Key decision:** B1 (cache key mismatch) is OUR bug — fixed. B2 (.single() crash) pre-existing but trivial — fixed. B3-B12 pre-existing — logged. B4, B5, B13, B15 are false positives.
+**ADR created:** none (B3 code-flow needs future ADR)
+**Learning created:** none
+
+**Bugs fixed this session:**
+- B1: `[id].tsx:161` optimistic update cache key → `["my-shifts", selectedProfileId]`
+- B2: `use-my-profile.ts:64` → `.maybeSingle()` + null handling
+
+**Pre-existing bugs logged (10):**
+- B3 (CRITICAL): Code entry flow never creates profile — dead end
+- B6 (HIGH): Google OAuth callback not handled on native
+- B7 (LOW): Realtime dead on pending (polling compensates)
+- B8 (MEDIUM): No rejection feedback on pending
+- B9 (MEDIUM): Push token for wrong workspace
+- B10 (LOW): Google OAuth loading state resets instantly
+- B11 (MEDIUM): Search flow silent fail on null company_id
+- B12 (LOW): Wrong invite_type for search flow
+- B14 (LOW): DEV_SHIFTS masks errors in dev mode
+
+**False positives dropped (3):**
+- B4: FK guarantees workspace exists for active profiles
+- B5: PostgreSQL silently ignores PK in SET clause
+- B13: Zustand function selectors are referentially stable
+- B15: 5-min stale time is standard TanStack behavior
+
+**Architectural findings:**
+- Code-join path (B3) is an unfinished feature — needs design decision (code = authorization vs invitation)
+- OAuth on native (B6) was never tested — no callback route exists
+
+## 2026-04-06 — Journey Harness PoC Instruction Review
+**Type:** spec
+**Verdict:** APPROVE WITH CHANGES (5 amendments required, all incorporated)
+**Agents consulted:** system-steward, supervisor, system-agent-coordinator
+**Key decision:** PoC scoped to web-only for v1 (mobile is Phase 2). Process uses `wait_for_event` step advancement, NOT second trigger. Stuck detection via dedicated Edge Function on pg_cron, not Stage Engine Guardian.
+**ADR created:** none (learning logged instead)
+**Learning created:** "Journey processes require entity-scoped payload + wait_for_event step advancement"
+
+**What was reviewed:**
+- `docs/superpowers/specs/2026-04-06-journey-harness-poc-instruction.md`
+- The PoC plan to prove the Journey Harness chain end-to-end for Journey 03 (Sjekke vakter)
+
+**Convergent findings (3 agents independently identified):**
+1. Mobile `emit()` path is broken for engine_event delivery (web-only)
+2. Event name format (registry space form vs trigger dot form) was unspecified
+3. Entity payload (`entity_type` + `entity_id`) not specified for engine_state creation
+4. Step advancement mechanism (wait_for_event vs second trigger) was unspecified
+5. Stuck detection runtime (pg_cron vs Edge Function) was vague
+
+**Two agents flagged:**
+- ActionVerb/SmartoutEvent type expansion needed in registry.ts
+- `shift roster_viewed` was misplaced (manager screen, employee journey)
+- engine-dispatch resume-waiting logic must be verified before coding
+
+**5 Amendments incorporated into the spec:**
+- C1: Web-only scope for v1 (mobile Phase 2)
+- C2: Entity payload contract (`entity_type: "profile"`, `entity_id: <profile_id>`)
+- C3: Step advancement via `wait_for_event`, not second trigger
+- C4: Event name format (space form in registry, dot form in trigger/step)
+- C5: Stuck detection via dedicated Edge Function on pg_cron
+
+**Prerequisite verification added:** Build agent must verify engine-dispatch resume-waiting logic, dispatch_push_notification existence, pg_cron availability, and engine_event provider auth path BEFORE writing any code.
+
+**Biggest risk avoided:** Without amendments, PoC would create duplicate `engine_state` rows per profile and a journey that never advances past step 1 — "running" but proving nothing.
+
+## 2026-04-06 — Journey Harness PoC Re-Review (Verification of Amendments)
+**Type:** spec (re-review)
+**Verdict:** APPROVE WITH CHANGES (2 NEW critical bugs found, both fixed)
+**Agents consulted:** system-steward, supervisor, system-agent-coordinator
+**Key decision:** Amendment verification round caught 2 critical bugs that first review missed: G1 (wrong payload key `event_type` vs `event`) and G2 (client-side dev mode short-circuit). Both fixed in spec before dispatch. Added C6 constraint requiring server-side emit origin.
+**ADR created:** none
+**Learning created:** "Verification rounds find what first reviews miss — agent-coord traces actual code, others trace specs"
+
+**What was reviewed:**
+- The amended spec from the first council session
+- Verification that all 5 amendments (C1-C5) actually solved the original gaps
+
+**Convergent findings (Steward + Supervisor):**
+- Both said "PASS WITH MINOR CONDITIONS" — same minor tilføyelser flagged
+- Agreed on: employee-facing route check, pg_net check, EVENT-SEQUENCE.md update, COUNT query for DoD #8
+
+**CRITICAL bugs found ONLY by agent-coord (not by Steward or Supervisor):**
+
+**G1: Wrong payload key in C3** — Spec said `action_payload: { event_type: 'shift.list_viewed' }` but `engine-dispatch/index.ts:411` reads `action_payload.event` (without `_type`). Verified against existing seeds (`seed_daily_close_process.sql:71` uses `"event"`). If build agent followed the spec literally, step 1 would enter `waiting` forever — silent PoC failure.
+
+**G2: Client-side dev mode short-circuit** — `engine-event.ts:74` returns immediately when `NODE_ENV === "development"` for client-side emits. Since PoC runs in Supabase Local with Next.js dev server, every `emit()` from a `"use client"` component (drawer, onClick, useEffect) would silently no-op. The entire telemetry chain would die in local PoC environment without anyone noticing.
+
+**Fixes incorporated:**
+- C3 updated: `action_payload: { event: '...' }` (correct key) with line 411 quoted as evidence
+- New C6 added: Emit MUST originate server-side (Server Component / Server Action / Route Handler), with anti-pattern + correct pattern code examples
+- Section 2 process design corrected
+- Prerequisite Check expanded from 4 items to 8 items (route check, schema check, index check, extension check, etc.)
+- DoD expanded from 8 to 10 items (COUNT query, EVENT-SEQUENCE.md update, emit call site documentation)
+- Registry expansion now requires all 4 destinations (posthog, logger, activity_trail, engine_event)
+
+**Council process learning:** The verification round caught what the original review missed. Agent-coord traced actual code line-by-line (engine-dispatch.ts:411, engine-event.ts:74) while Steward/Supervisor evaluated the spec at concept level. Both perspectives were necessary — concept review approves the architecture, code-tracing review catches the implementation bugs. Always run a verification round after spec amendments.
+
+**Biggest risk avoided (this round):** Build agent would have followed spec literally and shipped a PoC where (a) no step ever advances because of payload key mismatch, OR (b) entire chain silently no-ops in local dev. Both bugs would only surface during testing — wasting hours of build time.

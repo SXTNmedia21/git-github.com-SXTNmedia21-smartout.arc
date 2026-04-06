@@ -15,7 +15,7 @@ tags: [dashboard, worktrees, tracking]
 
 | #     | Branch                                | Module         | Status      | Progress                          | Blockers | Health |
 | ----- | ------------------------------------- | -------------- | ----------- | --------------------------------- | -------- | ------ |
-| wt-1  | `feat/wizardshell-walkai-integration` | wizard         | done        | 22 commits, merged to development | —        | clean  |
+| wt-1  | `feat/employee-contract-management` | contracts      | in_progress | just started                      | —        | clean  |
 | wt-2  | `feat/mobile-group-call`              | communications | in_progress | just started                      | —        | clean  |
 | wt-3  | `feat/dashboard-filters`              | dashboard      | paused      | just started                      | —        | clean  |
 | wt-4  | `feat/training-agent-pipeline`        | training       | in_progress | just started — WS-2 Module Zero   | —        | clean  |
@@ -36,7 +36,7 @@ tags: [dashboard, worktrees, tracking]
 
 | #     | Available                                                          |
 | ----- | ------------------------------------------------------------------ |
-| wt-1  | no — `feat/wizardshell-walkai-integration` (done, cleanup pending) |
+| wt-1  | no — `feat/employee-contract-management`                          |
 | wt-2  | no — `feat/mobile-group-call`                                      |
 | wt-4  | no — `feat/training-agent-pipeline`                                |
 | wt-3  | no — `feat/dashboard-filters`                                      |
@@ -56,6 +56,7 @@ tags: [dashboard, worktrees, tracking]
 
 | Worktree | Feature                 | Journey File                                       | Status  |
 | -------- | ----------------------- | -------------------------------------------------- | ------- |
+| wt-1     | employee-contract-management | `docs/journeys/JOURNEY-employee-contract-management.md` | missing |
 | wt-1     | profession-system       | `docs/journeys/JOURNEY-profession-system.md`       | done    |
 | wt-4     | training-agent-pipeline | `docs/journeys/JOURNEY-training-agent-pipeline.md` | missing |
 | wt-3     | dashboard-filters       | `docs/journeys/JOURNEY-dashboard-filters.md`       | missing |
@@ -146,6 +147,8 @@ tags: [dashboard, worktrees, tracking]
 
 ## Session History
 
+| 2026-04-06 | development | session ended | session ended |
+| 2026-04-06 | employee-contract-management | started | wt-1, module: contracts. DocuSeal e-signing + Botsson capability. 3 council rounds. |
 | 2026-04-06 | development | session ended | session ended |
 | 2026-04-06 | deployment-pipeline | closed | 11/11 tasks done. PR #128 merged (dev->main). preview branch created. ADR-0071. wt-10 freed. |
 | 2026-04-06 | tooling-optimization | started | wt-9, module: developer-experience. Skills/MCP/plugin optimization. |
