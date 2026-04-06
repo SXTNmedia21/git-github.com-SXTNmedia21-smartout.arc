@@ -1,6 +1,10 @@
 -- Storage RLS policies for setup-documents bucket
 -- Allows authenticated users to upload/read/delete files scoped to their workspace
 
+DROP POLICY IF EXISTS "workspace_upload_setup_docs" ON storage.objects;
+DROP POLICY IF EXISTS "workspace_read_setup_docs" ON storage.objects;
+DROP POLICY IF EXISTS "workspace_delete_setup_docs" ON storage.objects;
+
 CREATE POLICY "workspace_upload_setup_docs"
 ON storage.objects FOR INSERT TO authenticated
 WITH CHECK (
