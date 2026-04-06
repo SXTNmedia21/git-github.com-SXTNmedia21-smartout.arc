@@ -29,7 +29,11 @@ import { CallSheet } from "@/features/channels/components/CallSheet";
 import { useLiveKitCall } from "@/hooks/mutations/use-livekit-call";
 import { useMessages, type MessageWithSender } from "@/hooks/queries/use-messages";
 import { useSendMessage } from "@/hooks/mutations/use-send-message";
-import { startCall, getLiveKitToken } from "@smartout/walkie-talkie";
+// walkie-talkie has native (LiveKit) dependencies — lazy load on native only
+const { startCall, getLiveKitToken } =
+  Platform.OS !== "web"
+    ? require("@smartout/walkie-talkie")
+    : { startCall: () => {}, getLiveKitToken: async () => null };
 import type { CallSession } from "@smartout/walkie-talkie";
 import type { Database } from "@smartout/supabase/database.types";
 

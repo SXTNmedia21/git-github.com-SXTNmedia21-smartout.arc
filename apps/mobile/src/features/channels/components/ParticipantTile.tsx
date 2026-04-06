@@ -18,7 +18,11 @@ import { strings } from "@/constants/strings";
 const VideoView =
   Platform.OS !== "web"
     ? require("@livekit/react-native").VideoView
-    : ({ style }: { style?: unknown }) => <View style={style as never} />;
+    : ({ style }: { style?: object }) => (
+        <View style={[{ backgroundColor: "#1a1a1a", alignItems: "center", justifyContent: "center" }, style]}>
+          <Text style={{ color: "#666", fontSize: 14 }}>Video ikke tilgjengelig</Text>
+        </View>
+      );
 
 type Props = {
   participant: ParticipantTrackInfo;
