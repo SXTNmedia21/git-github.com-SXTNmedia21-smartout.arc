@@ -68,8 +68,5 @@ export function pttReducer(state: PTTState, _action: unknown): PTTState {
 }
 
 export function createPTTTelemetryDebouncer() {
-  return {
-    track: () => {},
-    flush: () => {},
-  };
+  return () => {};
 }
