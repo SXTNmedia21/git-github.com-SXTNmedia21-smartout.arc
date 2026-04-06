@@ -51,11 +51,22 @@ tags: [decisions]
 
 | #   | Date | Decision | Status |
 | --- | ---- | -------- | ------ |
+
 # Decision Log — deployment-pipeline
 
-| # | Date | Decision | Status |
-|---|------|----------|--------|
-| 1 | 2026-04-06 | 3-branch flow (development → preview → main) with asymmetric Docker (no preview tier). ADR-0071. | accepted |
-| 2 | 2026-04-06 | Supabase Branch DBs require idempotent migrations (IF NOT EXISTS). 85 bare indexes wrapped. | accepted |
-| 3 | 2026-04-06 | 1Password vault separation: smartout_ai (dev/preview), smartout_ai_prod (production). Supersedes ADR-0055. | accepted |
-| 4 | 2026-04-06 | Merge commit strategy for large PRs (preserve history for bisect/blame). | accepted |
+| #    | Date       | Decision                                                                                                   | Status   |
+| ---- | ---------- | ---------------------------------------------------------------------------------------------------------- | -------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | 2026-04-06 | 3-branch flow (development → preview → main) with asymmetric Docker (no preview tier). ADR-0071.           | accepted |
+| 2    | 2026-04-06 | Supabase Branch DBs require idempotent migrations (IF NOT EXISTS). 85 bare indexes wrapped.                | accepted |
+| 3    | 2026-04-06 | 1Password vault separation: smartout_ai (dev/preview), smartout_ai_prod (production). Supersedes ADR-0055. | accepted |
+| 4    | 2026-04-06 | Merge commit strategy for large PRs (preserve history for bisect/blame).                                   | accepted |
+| #    | Date       | Decision                                                                                                   | Status   | Module       | Notes                                                                                                                                                       |
+| ---- | ---------- | --------------------------------------------------------------                                             | -------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0059 | 2026-03-28 | Platform Admin Pipeline Separation                                                                         | accepted | stage-engine | routeAdminMessage() separate from workspace-scoped routeAgentMessage()                                                                                      |
+| 0069 | 2026-03-28 | Session Execution Ownership: EF + Engine Side-Effects                                                      | accepted | hms          | Edge Functions own execution, Engine owns side-effects (notifications, escalation). Hybrid model.                                                           |
+| 0070 | 2026-03-28 | Emma-Wizard Bridge: tool-based agent control over wizard flows                                             | accepted | onboarding   | Step-level useRegisterTools, ref-based implementations, callback context push, WalkAiProvider outside DashboardShell. Supersedes ADR-0049 for wizard tools. |
+| 0071 | 2026-03-29 | Protocol Verification Engine Architecture                                                                  | accepted | testing      | Mission target=DB (engine_missions), JSONB storage, read-only journey_step, TS definitions, extends ADR-0031/0038. Council-reviewed.                        |
+| #    | Date       | Decision                                                                                                   | Status   | Module       | Notes                                                                                                                                                       |
+| ---- | ---------- | -----------------------------------------------------                                                      | -------- | ------------ | -------------------------------------------------------------------------------------------------                                                           |
+| 0059 | 2026-03-28 | Platform Admin Pipeline Separation                                                                         | accepted | stage-engine | routeAdminMessage() separate from workspace-scoped routeAgentMessage()                                                                                      |
+| 0069 | 2026-03-28 | Session Execution Ownership: EF + Engine Side-Effects                                                      | accepted | hms          | Edge Functions own execution, Engine owns side-effects (notifications, escalation). Hybrid model.                                                           |
