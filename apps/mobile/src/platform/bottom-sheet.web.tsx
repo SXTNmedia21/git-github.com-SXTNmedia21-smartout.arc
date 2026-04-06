@@ -163,7 +163,7 @@ export const BottomSheetFlatList = forwardRef(function BottomSheetFlatList(
     <ScrollView ref={ref} {...(rest as ViewProps)}>
       {data?.map((item: unknown, index: number) => (
         <View key={keyExtractor?.(item, index) ?? index}>
-          {renderItem({ item, index, separators: {} })}
+          {renderItem?.({ item, index, separators: {} })}
         </View>
       ))}
     </ScrollView>
