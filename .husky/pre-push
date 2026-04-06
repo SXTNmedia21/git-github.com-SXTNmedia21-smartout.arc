@@ -1,6 +1,7 @@
 # ============================================================
-# PRE-PUSH HOOK — Type Safety Enforcement
-# Mirrors: .github/workflows/ci.yml → typecheck job
+# PRE-PUSH HOOK — Lint + Type Safety Gate
+# Fast local gates only. E2E runs in CI, not here.
 # ============================================================
 
+pnpm lint
 pnpm typecheck

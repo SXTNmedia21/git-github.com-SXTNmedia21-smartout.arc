@@ -7,9 +7,9 @@
 
 export interface SQLiteDatabase {
   execAsync(sql: string): Promise<void>;
-  getAllAsync<T = any>(sql: string, params?: any[]): Promise<T[]>;
-  getFirstAsync<T = any>(sql: string, params?: any[]): Promise<T | null>;
-  runAsync(sql: string, params?: any[]): Promise<{ lastInsertRowId: number; changes: number }>;
+  getAllAsync<T = unknown>(sql: string, params?: unknown[]): Promise<T[]>;
+  getFirstAsync<T = unknown>(sql: string, params?: unknown[]): Promise<T | null>;
+  runAsync(sql: string, params?: unknown[]): Promise<{ lastInsertRowId: number; changes: number }>;
 }
 
 const noOpDb: SQLiteDatabase = {
