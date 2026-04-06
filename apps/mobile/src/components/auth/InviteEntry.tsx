@@ -3,7 +3,7 @@
  * Used when the user arrives via a deep link (Path 1) or manually enters a token.
  * On confirmation, navigates to the verify screen with workspace context.
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -38,11 +38,13 @@ export function InviteEntry({ initialToken, onBack }: InviteEntryProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Auto-validate if we got a token from a deep link
-  const shouldAutoValidate = !!initialToken && !workspace && !isLoading && !error;
-  if (shouldAutoValidate) {
-    void validateToken(initialToken);
-  }
+  // Auto-validate deep link token once on mount
+  useEffect(() => {
+    if (initialToken) {
+      void validateToken(initialToken);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialToken]);
 
   async function validateToken(tokenValue: string) {
     const trimmed = tokenValue.trim();
