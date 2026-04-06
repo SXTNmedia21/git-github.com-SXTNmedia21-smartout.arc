@@ -70,9 +70,9 @@ const STATUS_CONFIG: Record<
   }
 > = {
   draft: { label: "Utkast", variant: "secondary" },
-  sent: { label: "Sendt", variant: "default" },
-  viewed: { label: "Åpnet", variant: "outline", className: "border-blue-500 text-blue-600" },
-  signed: { label: "Signert", variant: "outline", className: "border-green-500 text-green-600" },
+  sent: { label: "Sendt", variant: "outline", className: "border-primary/40 text-primary" },
+  viewed: { label: "Åpnet", variant: "outline", className: "border-primary/60 text-primary" },
+  signed: { label: "Signert", variant: "default" },
   expired: { label: "Utløpt", variant: "destructive" },
   cancelled: { label: "Avbrutt", variant: "secondary", className: "line-through opacity-60" },
 };
@@ -289,10 +289,10 @@ export function ContractsDataTable({ workspaceId }: { workspaceId: string }) {
                   <TableCell>
                     <StatusBadge status={contract.status} />
                   </TableCell>
-                  <TableCell className="text-muted-foreground text-sm">
+                  <TableCell className="text-muted-foreground font-mono text-sm">
                     {formatDate(contract.sent_at ?? contract.created_at)}
                   </TableCell>
-                  <TableCell className="text-muted-foreground text-sm">
+                  <TableCell className="text-muted-foreground font-mono text-sm">
                     {formatDate(contract.signed_at)}
                   </TableCell>
                   <TableCell

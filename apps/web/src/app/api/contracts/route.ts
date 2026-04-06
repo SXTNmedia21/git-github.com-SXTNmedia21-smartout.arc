@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@smartout/supabase/server";
 import { createAdminClient } from "@smartout/supabase/admin";
 import { buildEmployeePlaceholderMap } from "@smartout/utils";
+import { emit } from "@smartout/telemetry";
 import { z } from "zod";
 
 const createSchema = z.object({
@@ -133,6 +134,16 @@ export async function POST(request: NextRequest) {
     .eq("workspace_id", workspace_id)
     .order("created_at", { ascending: false })
     .limit(1);
+
+  void emit({
+    event: "contract created",
+    workspace_id,
+    actor_id: user.id,
+    properties: {
+      entity: { entity_type: "contract" as const, entity_id: contract.contract_id },
+      data: { template_id, recipient_email: recipientEmail, contract_type: "employee" },
+    },
+  });
 
   return NextResponse.json(contract, { status: 201 });
 }

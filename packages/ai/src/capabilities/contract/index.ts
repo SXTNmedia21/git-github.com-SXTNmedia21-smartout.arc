@@ -18,18 +18,15 @@ const readOnlyTools = [
   checkContractStatus,
 ] as unknown as ReadonlyArray<SmartoutTool<AgentToolContext>>;
 
-// createEmployeeContract is suggest-level: Botsson proposes, admin confirms
-const suggestTools = [createEmployeeContract] as unknown as ReadonlyArray<
+// Both create and send are suggest-level: Botsson proposes, admin confirms before execution.
+// Sending is irreversible, so requiring confirmation is especially important here.
+const suggestTools = [createEmployeeContract, sendEmployeeContract] as unknown as ReadonlyArray<
   SmartoutTool<AgentToolContext>
 >;
 
-// sendEmployeeContract is autonomous/irreversible — included in allTools but treated
-// with highest caution by the authority layer (only reached after role guard passes)
-const allTools = [
-  ...readOnlyTools,
-  ...suggestTools,
-  sendEmployeeContract as unknown as SmartoutTool<AgentToolContext>,
-] as unknown as ReadonlyArray<SmartoutTool<AgentToolContext>>;
+const allTools = [...readOnlyTools, ...suggestTools] as unknown as ReadonlyArray<
+  SmartoutTool<AgentToolContext>
+>;
 
 export const contractCapability: CapabilityDefinition = {
   name: "contract",

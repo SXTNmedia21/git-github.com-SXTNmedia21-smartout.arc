@@ -180,12 +180,13 @@ export async function POST(request: NextRequest) {
       .eq("contract_id", contract.contract_id)
       .eq("status", "scheduled");
 
-    // For employee contracts, also update employment_contract status
+    // For employee contracts, also update employment_contract status.
+    // "terminated" is the closest valid enum value for declined/cancelled contracts.
     if (contract.contract_type === "employee") {
       await admin
         .from("employment_contract")
         .update({
-          status: "declined" as never,
+          status: "terminated" as Database["public"]["Enums"]["contract_status"],
           updated_at: new Date().toISOString(),
         } as Record<string, unknown>)
         .eq("signing_contract_id", contract.contract_id);

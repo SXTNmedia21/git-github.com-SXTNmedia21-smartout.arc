@@ -21,7 +21,7 @@ export const listEmployeeTemplates = defineTool({
     // Templates are either workspace-specific or platform-level (null workspace_id)
     const { data, error } = await supabase
       .from("contract_template")
-      .select("id, name, description, created_at")
+      .select("template_id, name, description, created_at")
       .eq("contract_type", "employee")
       .eq("is_active", true)
       .or(`workspace_id.eq.${ctx.workspaceId},workspace_id.is.null`)
@@ -48,7 +48,7 @@ export const listEmployeeContracts = defineTool({
     let query = supabase
       .from("contract")
       .select(
-        "id, status, created_at, sent_at, signed_at, profile:profile_id(display_name), template:contract_template_id(name)",
+        "contract_id, status, created_at, sent_at, signed_at, recipient_name, template:template_id(name)",
       )
       .eq("workspace_id", ctx.workspaceId)
       .eq("contract_type", "employee")
@@ -76,9 +76,9 @@ export const checkContractStatus = defineTool({
     const { data, error } = await supabase
       .from("contract")
       .select(
-        "id, status, created_at, sent_at, signed_at, expires_at, profile:profile_id(display_name), template:contract_template_id(name)",
+        "contract_id, status, created_at, sent_at, signed_at, expires_at, recipient_name, template:template_id(name)",
       )
-      .eq("id", params.contract_id)
+      .eq("contract_id", params.contract_id)
       .eq("workspace_id", ctx.workspaceId)
       .single();
 
@@ -136,28 +136,45 @@ export const createEmployeeContract = defineTool({
       ctx.workspaceId,
     );
 
-    const response = await fetch(`${serviceUrl}/contracts`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${serviceKey}`,
-      },
-      body: JSON.stringify({
-        workspace_id: ctx.workspaceId,
-        template_id: params.template_id,
-        profile_id: params.profile_id,
-        placeholders,
-        created_by: ctx.profileId,
-      }),
-    });
+    const createController = new AbortController();
+    const createTimeout = setTimeout(() => createController.abort(), 10000);
 
-    if (!response.ok) {
-      const text = await response.text();
-      return `Contract service error (${response.status}): ${text}`;
+    try {
+      const response = await fetch(`${serviceUrl}/contracts`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Service-Key": serviceKey,
+        },
+        body: JSON.stringify({
+          workspace_id: ctx.workspaceId,
+          template_id: params.template_id,
+          profile_id: params.profile_id,
+          placeholders,
+          created_by: ctx.profileId,
+        }),
+        signal: createController.signal,
+      });
+      clearTimeout(createTimeout);
+
+      if (!response.ok) {
+        const text = await response.text();
+        return `Contract service error (${response.status}): ${text}`;
+      }
+
+      const result = (await response.json()) as { contract_id: string; status: string };
+      return JSON.stringify({
+        created: true,
+        contract_id: result.contract_id,
+        status: result.status,
+      });
+    } catch (err) {
+      clearTimeout(createTimeout);
+      if (err instanceof Error && err.name === "AbortError") {
+        return "Contract service timed out after 10 seconds.";
+      }
+      throw err;
     }
-
-    const result = (await response.json()) as { id: string; status: string };
-    return JSON.stringify({ created: true, contract_id: result.id, status: result.status });
   },
 });
 
@@ -175,16 +192,22 @@ export const sendEmployeeContract = defineTool({
       return "Access denied: sending contracts requires admin or owner role.";
     }
 
-    // Verify the contract is in draft state before sending — this action is irreversible
+    // Verify the contract is in draft state and is an employee contract before sending — this action is irreversible
     const { data: contract, error: lookupError } = await ctx.supabaseAdmin
       .from("contract")
-      .select("id, status")
-      .eq("id", params.contract_id)
+      .select("contract_id, status, contract_type")
+      .eq("contract_id", params.contract_id)
       .eq("workspace_id", ctx.workspaceId)
       .single();
 
     if (lookupError) return `Error looking up contract: ${lookupError.message}`;
     if (!contract) return "Contract not found in this workspace.";
+
+    // Guard: this tool only handles employee contracts
+    if (contract.contract_type !== "employee") {
+      return "This tool can only send employee contracts.";
+    }
+
     if (contract.status !== "draft") {
       return `Cannot send contract — current status is '${contract.status}'. Only draft contracts can be sent.`;
     }
@@ -196,20 +219,33 @@ export const sendEmployeeContract = defineTool({
       return "Contract service is not configured (missing CONTRACT_SERVICE_URL or CONTRACT_SERVICE_KEY).";
     }
 
-    const response = await fetch(`${serviceUrl}/contracts/${params.contract_id}/send`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${serviceKey}`,
-      },
-      body: JSON.stringify({ sent_by: ctx.profileId }),
-    });
+    const sendController = new AbortController();
+    const sendTimeout = setTimeout(() => sendController.abort(), 10000);
 
-    if (!response.ok) {
-      const text = await response.text();
-      return `Contract service error (${response.status}): ${text}`;
+    try {
+      const response = await fetch(`${serviceUrl}/contracts/${params.contract_id}/send`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Service-Key": serviceKey,
+        },
+        body: JSON.stringify({ sent_by: ctx.profileId }),
+        signal: sendController.signal,
+      });
+      clearTimeout(sendTimeout);
+
+      if (!response.ok) {
+        const text = await response.text();
+        return `Contract service error (${response.status}): ${text}`;
+      }
+
+      return JSON.stringify({ sent: true, contract_id: params.contract_id });
+    } catch (err) {
+      clearTimeout(sendTimeout);
+      if (err instanceof Error && err.name === "AbortError") {
+        return "Contract service timed out after 10 seconds.";
+      }
+      throw err;
     }
-
-    return JSON.stringify({ sent: true, contract_id: params.contract_id });
   },
 });

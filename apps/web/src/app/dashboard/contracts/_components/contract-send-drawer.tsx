@@ -582,7 +582,7 @@ function PreviewStep({ template, fields, isSending, onBack, onSend }: PreviewSte
         </div>
       </div>
 
-      <div className="rounded-lg border border-yellow-500/20 bg-yellow-500/5 px-4 py-3 text-xs text-yellow-700 dark:text-yellow-400">
+      <div className="bg-muted/60 text-muted-foreground rounded-lg border px-4 py-3 text-xs">
         Kontrakten sendes til den ansattes e-post for elektronisk signering. Du mottar en kopi etter
         signering.
       </div>
