@@ -14,13 +14,13 @@ import React, {
 } from "react";
 import {
   View,
-  Text,
   TextInput,
   ScrollView,
   Pressable,
   StyleSheet,
   type ViewProps,
   type TextInputProps,
+  type DimensionValue,
 } from "react-native";
 
 /* ---------- Types ---------- */
@@ -86,16 +86,13 @@ const BottomSheet = forwardRef<BottomSheetRef, BottomSheetProps>(function Bottom
 
   const height = snapPoints?.[0]
     ? typeof snapPoints[0] === "string"
-      ? snapPoints[0]
-      : `${snapPoints[0]}px`
-    : "50%";
+      ? (snapPoints[0] as DimensionValue)
+      : snapPoints[0]
+    : ("50%" as DimensionValue);
 
   return (
     <View style={webStyles.overlay}>
-      <Pressable
-        style={webStyles.backdrop}
-        onPress={enablePanDownToClose ? close : undefined}
-      />
+      <Pressable style={webStyles.backdrop} onPress={enablePanDownToClose ? close : undefined} />
       <View style={[webStyles.sheet, { height }, style]} {...rest}>
         <View style={webStyles.handleContainer}>
           <View style={webStyles.handle} />
@@ -121,13 +118,7 @@ export function BottomSheetBackdrop({
   opacity = 0.4,
 }: BottomSheetBackdropProps & { children?: ReactNode }) {
   return (
-    <View
-      style={[
-        webStyles.backdrop,
-        { backgroundColor: `rgba(0,0,0,${opacity})` },
-        style,
-      ]}
-    />
+    <View style={[webStyles.backdrop, { backgroundColor: `rgba(0,0,0,${opacity})` }, style]} />
   );
 }
 
@@ -151,20 +142,26 @@ export function BottomSheetView({ children, style, ...rest }: ViewProps & { chil
 
 /* ---------- BottomSheetScrollView ---------- */
 
-export function BottomSheetScrollView({
-  children,
-  ...rest
-}: { children: ReactNode } & ViewProps) {
+export function BottomSheetScrollView({ children, ...rest }: { children: ReactNode } & ViewProps) {
   return <ScrollView {...rest}>{children}</ScrollView>;
 }
 
 /* ---------- BottomSheetFlatList (stub) ---------- */
 
-export const BottomSheetFlatList = forwardRef(function BottomSheetFlatList(props: any, ref: any) {
-  const { data, renderItem, keyExtractor, ...rest } = props;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const BottomSheetFlatList = forwardRef(function BottomSheetFlatList(
+  props: Record<string, unknown>,
+  ref: React.Ref<ScrollView>,
+) {
+  const { data, renderItem, keyExtractor, ...rest } = props as {
+    data?: unknown[];
+    renderItem?: (info: { item: unknown; index: number; separators: object }) => ReactNode;
+    keyExtractor?: (item: unknown, index: number) => string;
+    [key: string]: unknown;
+  };
   return (
-    <ScrollView ref={ref} {...rest}>
-      {data?.map((item: any, index: number) => (
+    <ScrollView ref={ref} {...(rest as ViewProps)}>
+      {data?.map((item: unknown, index: number) => (
         <View key={keyExtractor?.(item, index) ?? index}>
           {renderItem({ item, index, separators: {} })}
         </View>

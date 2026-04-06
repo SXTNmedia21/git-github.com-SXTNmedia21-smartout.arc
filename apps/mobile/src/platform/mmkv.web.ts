@@ -32,7 +32,7 @@ export class MMKV {
 
   getBoolean(key: string): boolean | undefined {
     const val = this.getString(key);
-    return val !== undefined ? val === "true" || val === true : undefined;
+    return val !== undefined ? val === "true" : undefined;
   }
 
   delete(key: string): void {
