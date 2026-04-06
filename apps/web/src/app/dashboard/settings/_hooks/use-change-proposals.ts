@@ -99,12 +99,12 @@ export function useChangeProposals() {
     },
     onSuccess: (_data, proposalId) => {
       void emit({
-        event: "change_proposal.approved",
+        event: "button clicked",
         workspace_id: wsId ?? null,
         actor_id: profileId ?? "",
         properties: {
-          entity: { entity_type: "change_proposal", entity_id: proposalId },
-          metadata: { source: "settings" },
+          trackingId: "change-proposal-approved",
+          context: proposalId,
         },
       });
       queryClient.invalidateQueries({ queryKey: proposalKeys(wsId!) });
@@ -123,12 +123,12 @@ export function useChangeProposals() {
     },
     onSuccess: (_data, proposalId) => {
       void emit({
-        event: "change_proposal.rejected",
+        event: "button clicked",
         workspace_id: wsId ?? null,
         actor_id: profileId ?? "",
         properties: {
-          entity: { entity_type: "change_proposal", entity_id: proposalId },
-          metadata: { source: "settings" },
+          trackingId: "change-proposal-rejected",
+          context: proposalId,
         },
       });
       queryClient.invalidateQueries({ queryKey: proposalKeys(wsId!) });

@@ -340,10 +340,13 @@ export function useUpdateHolidayEntry() {
     },
     onSuccess: (_data, { id, calendarId }) => {
       void emit({
-        event: "holiday_entry updated",
+        event: "button clicked",
         workspace_id: wsId ?? null,
         actor_id: profileId ?? "",
-        properties: { data: { entry_id: id, calendar_id: calendarId } },
+        properties: {
+          trackingId: "holiday-entry-updated",
+          context: id,
+        },
       });
       void queryClient.invalidateQueries({ queryKey: entriesKey(calendarId) });
       toast.success("Helligdag oppdatert");

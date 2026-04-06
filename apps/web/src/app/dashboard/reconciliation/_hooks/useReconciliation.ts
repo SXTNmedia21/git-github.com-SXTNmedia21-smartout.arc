@@ -257,12 +257,12 @@ export function useApproveShiftHours() {
     },
     onSuccess: (_data, input) => {
       void emit({
-        event: "shift_approval.approved",
+        event: "button clicked",
         workspace_id: workspace.workspace_id,
         actor_id: input.profileId,
         properties: {
-          entity: { entity_type: "shift_approval", entity_id: input.approvalId },
-          metadata: { source: "reconciliation", approved_hours: input.approvedHours },
+          trackingId: "reconciliation-shift-approved",
+          context: input.approvalId,
         },
       });
       queryClient.invalidateQueries({ queryKey: ["reconciliation-detail"] });
@@ -305,12 +305,12 @@ export function useResolveDeviation() {
     },
     onSuccess: (_data, input) => {
       void emit({
-        event: "deviation.resolved",
+        event: "deviation resolved",
         workspace_id: workspace.workspace_id,
         actor_id: input.profileId,
         properties: {
           entity: { entity_type: "deviation", entity_id: input.deviationId },
-          metadata: { source: "reconciliation" },
+          data: { resolution_notes: input.notes },
         },
       });
       queryClient.invalidateQueries({ queryKey: ["reconciliation-detail"] });
