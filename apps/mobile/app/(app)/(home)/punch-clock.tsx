@@ -9,7 +9,7 @@
  * Layout matches the Driftsleder mockup with bento action cards.
  */
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { View, Text, ScrollView, Pressable, Linking } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Stack, useRouter } from "expo-router";
@@ -156,17 +156,22 @@ export default function PunchClockScreen() {
 
   const isDuring = phase === "during_shift" && activeTimeEntry;
 
-  // Live timer
-  const [timer, setTimer] = useState(isDuring ? formatTimer(activeTimeEntry.punch_in) : "00:00:00");
-  const timerRef = useRef<ReturnType<typeof setInterval>>(undefined);
+  // Live timer — depends on punch_in directly, not isDuring (Zustand lags TanStack Query)
+  const [timer, setTimer] = useState("00:00:00");
 
   useEffect(() => {
-    if (!isDuring) return;
-    timerRef.current = setInterval(() => {
+    if (!activeTimeEntry?.punch_in) {
+      setTimer("00:00:00");
+      return;
+    }
+
+    setTimer(formatTimer(activeTimeEntry.punch_in));
+    const interval = setInterval(() => {
       setTimer(formatTimer(activeTimeEntry.punch_in));
     }, 1000);
-    return () => clearInterval(timerRef.current);
-  }, [isDuring, activeTimeEntry?.punch_in]);
+
+    return () => clearInterval(interval);
+  }, [activeTimeEntry?.punch_in]);
 
   const activeTasks = (tasks ?? []).filter((t) => t.status !== "skipped");
 
@@ -231,7 +236,7 @@ export default function PunchClockScreen() {
     calc();
     const iv = setInterval(calc, 1000);
     return () => clearInterval(iv);
-  }, [isDuring, activeShift]);
+  }, [isDuring, activeShift, nextShift]);
 
   // ── Before Shift State — big fingerprint button ──
   if (!isDuring) {
