@@ -8,10 +8,24 @@
  * Text mode connects to Stage Engine via useAgentChat.
  */
 
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { useShiftPhase } from "@/hooks/stores/use-shift-phase";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
 import { useMyTasks } from "@/hooks/queries/use-my-tasks";
+/** Minimal voice session interface — matches UltravoxVoiceSession from @smartout/agent-sdk */
+type VoiceSession = {
+  muteMic(): void;
+  unmuteMic(): void;
+  leave(): void;
+};
 
 export type BotssonStatus = "idle" | "connecting" | "active" | "error";
 export type BotssonMode = "voice" | "text";
@@ -28,10 +42,17 @@ type BotssonSessionContext = {
 type BotssonContextValue = {
   status: BotssonStatus;
   mode: BotssonMode | null;
+  /** Whether the microphone is currently muted in the active voice session */
+  isMuted: boolean;
   sessionContext: BotssonSessionContext;
   startVoiceSession: () => Promise<void>;
   startTextSession: () => void;
   endSession: () => void;
+  /**
+   * Mute or unmute the microphone in the active Ultravox session.
+   * No-op if there is no active voice session.
+   */
+  setMicrophoneMuted: (muted: boolean) => void;
   /** Error message if status is "error" */
   error: string | null;
 };
@@ -46,6 +67,10 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
   const [status, setStatus] = useState<BotssonStatus>("idle");
   const [mode, setMode] = useState<BotssonMode | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isMuted, setIsMuted] = useState(false);
+
+  // Holds the active Ultravox session so we can control mic state directly
+  const voiceSessionRef = useRef<VoiceSession | null>(null);
 
   const { phase } = useShiftPhase();
   const { data: profile } = useMyProfile();
@@ -63,13 +88,27 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
     [phase, tasks],
   );
 
+  const setMicrophoneMuted = useCallback((muted: boolean) => {
+    const session = voiceSessionRef.current;
+    if (!session) return;
+
+    if (muted) {
+      session.muteMic();
+    } else {
+      session.unmuteMic();
+    }
+    setIsMuted(muted);
+  }, []);
+
   const startVoiceSession = useCallback(async () => {
     try {
       setError(null);
+      setIsMuted(false);
       setStatus("connecting");
       setMode("voice");
       // Voice session initialization will be wired in T12 (BotssonSheet)
       // when Ultravox WebRTC is integrated. For now, set to active.
+      // voiceSessionRef.current will be populated when Ultravox join is called.
       setStatus("active");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Connection failed");
@@ -84,22 +123,37 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
   }, []);
 
   const endSession = useCallback(() => {
+    voiceSessionRef.current?.leave();
+    voiceSessionRef.current = null;
     setStatus("idle");
     setMode(null);
     setError(null);
+    setIsMuted(false);
   }, []);
 
   const value = useMemo<BotssonContextValue>(
     () => ({
       status,
       mode,
+      isMuted,
       sessionContext,
       startVoiceSession,
       startTextSession,
       endSession,
+      setMicrophoneMuted,
       error,
     }),
-    [status, mode, sessionContext, startVoiceSession, startTextSession, endSession, error],
+    [
+      status,
+      mode,
+      isMuted,
+      sessionContext,
+      startVoiceSession,
+      startTextSession,
+      endSession,
+      setMicrophoneMuted,
+      error,
+    ],
   );
 
   return <BotssonContext.Provider value={value}>{children}</BotssonContext.Provider>;

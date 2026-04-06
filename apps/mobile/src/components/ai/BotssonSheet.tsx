@@ -48,12 +48,11 @@ export const BotssonSheet = React.forwardRef<GorhomBottomSheet, BotssonSheetProp
   function BotssonSheet({ onDismiss }, ref) {
     const styles = useStyles();
     const theme = useTheme();
-    const { status, startVoiceSession, endSession } = useBotsson();
+    const { status, isMuted, startVoiceSession, endSession, setMicrophoneMuted } = useBotsson();
     const scrollRef = useRef<ScrollView>(null);
 
     // Transcript is local state for now — Ultravox WebRTC integration will populate it
     const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
-    const [isMuted, setIsMuted] = useState(false);
 
     const snapPoints = useMemo(() => ["75%"], []);
 
@@ -126,10 +125,10 @@ export const BotssonSheet = React.forwardRef<GorhomBottomSheet, BotssonSheetProp
         // Start a fresh voice session
         await startVoiceSession();
       } else if (status === "active") {
-        // Toggle mute while session is running
-        setIsMuted((prev) => !prev);
+        // Toggle mute — calls muteMic()/unmuteMic() on the real Ultravox session
+        setMicrophoneMuted(!isMuted);
       }
-    }, [status, startVoiceSession]);
+    }, [status, isMuted, startVoiceSession, setMicrophoneMuted]);
 
     const handleClose = useCallback(() => {
       endSession();
