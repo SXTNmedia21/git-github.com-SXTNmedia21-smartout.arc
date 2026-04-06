@@ -42,6 +42,7 @@ updated: 2026-03-30
 created: 2026-03-29
 module: auth
 module: cross-cutting
+module: infra
 tags: [decisions]
 
 ---
@@ -50,3 +51,11 @@ tags: [decisions]
 
 | #   | Date | Decision | Status |
 | --- | ---- | -------- | ------ |
+# Decision Log — deployment-pipeline
+
+| # | Date | Decision | Status |
+|---|------|----------|--------|
+| 1 | 2026-04-06 | 3-branch flow (development → preview → main) with asymmetric Docker (no preview tier). ADR-0071. | accepted |
+| 2 | 2026-04-06 | Supabase Branch DBs require idempotent migrations (IF NOT EXISTS). 85 bare indexes wrapped. | accepted |
+| 3 | 2026-04-06 | 1Password vault separation: smartout_ai (dev/preview), smartout_ai_prod (production). Supersedes ADR-0055. | accepted |
+| 4 | 2026-04-06 | Merge commit strategy for large PRs (preserve history for bisect/blame). | accepted |

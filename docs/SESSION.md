@@ -9,45 +9,62 @@ tags: [session, continuity]
 
 ## Last Session
 
-| Field   | Value                     |
-| ------- | ------------------------- |
-| Date    | 2026-04-07                |
-| Branch  | `feat/invitation-rls-fix` |
-| Feature | invitation-rls-fix        |
-| Status  | in_progress               |
+| Field   | Value            |
+| ------- | ---------------- |
+| Date    | 2026-04-06          |
+| Branch  | `feat/deployment-pipeline`   |
+| Feature | deployment-pipeline  |
+| Status  | in_progress        |
 
 ### What was done
 
-- Full plan portfolio review: 33 plans audited against codebase
-- Moved 21 completed plans to `docs/superpowers/plans/completed/` (73 total)
-- Ran System Council on all 11 remaining plans (3 batches, 11 parallel agents)
-- Verified 2 unmerged branches — both BLOCKED (telemetry: breaks workspace_setup engine_process, telegram: duplicate migration + stale registry)
-- Deep security audit on invitation-flow-core-fixes: USING(true) policy confirmed 100% vulnerable
-- Started `feat/invitation-rls-fix` in wt-11
+**Deployment pipeline feature — 11 tasks, 8 completed, 3 remaining:**
+
+#### Phase 1: Parallel tasks (all done)
+- Task 1: 85 bare indexes wrapped with IF NOT EXISTS guards (migration idempotency)
+- Task 2: NEXT_PUBLIC_LIVEKIT_URL added to Vercel sync manifest
+- Task 3: deploy.sh + health-check.sh rewritten (branch pin, health polling)
+- Task 4: sync-env-to-droplet.sh created (1Password → DigitalOcean)
+- Task 5: seed-preview.sql for Supabase Branch DBs
+- Task 11: Security + ENV protocols hardened, 2 old deploy docs deleted, ADR-0055 superseded
+
+#### Phase 2: Supabase branching go/no-go (done)
+- Task 8: 8 iterations to fix all legacy migration issues:
+  - 4 channel-related migrations reordered (March 28 → April 22)
+  - 4 duplicate content migrations deleted
+  - 3 profession system duplicates removed
+  - tariff_rate_table ALTER extracted to correct position
+  - Idempotent indexes moved to end of chain
+  - Duplicate timestamp 20260428100000 resolved
+- Final result: ALL migrations, seeding, Edge Functions on Branch DB
+
+#### Phase 3: Big merge (done)
+- PR #125: feat/deployment-pipeline → development (merged)
+- PR #129: feat/tooling-optimization → development (closed, merged manually)
+- PR #127: feat/invitation-rls-fix → development (closed, merged manually)
+- PR #128: development → main (MERGED at 09:26 UTC, 1,352 commits)
+- PR #123: stale wizardshell PR closed (was already merged to development)
 
 ### Where we stopped
 
-- wt-11 created, ready for implementation
-- Plan: `docs/superpowers/plans/2026-03-27-invitation-flow-core-fixes.md`
-- Council conditions: add emit() calls, replace hardcoded colors with tokens, i18n keys, Nordic Split login gate pattern
+3 tasks remaining from the deployment pipeline plan:
+
+- **Task 9 Step 5:** Create `preview` branch from main — ready to run: `git push origin origin/main:refs/heads/preview`
+- **Task 6:** Update Vercel sync gitBranch from 'development' to 'preview' (depends on preview branch)
+- **Task 10:** Write ADR for preview environment architecture
+- **Task 7:** Update ~/.claude/CLAUDE.md with preview branch rules (manual)
+
+Uncommitted files on feat/deployment-pipeline (local docs only):
+- docs/decisions/0000-decision-log.md (feature-local)
+- docs/plans/PLAN-deployment-pipeline.md (feature-local)
 
 ### Known blockers / errors
 
-- telemetry-botsson-reactive: DO NOT MERGE — workspace_setup engine_process depends on wizard events in engine_event
-- telegram-walkai-adapter: DO NOT MERGE — duplicate migration + 19 missing telemetry events
-- swipe-task-review: REJECTED — all walkAi paths wrong (renamed to Botsson)
-- infra-prod-alignment: Droplet path wrong (`/opt/smartout/` → `~/dev/smartout.ai/`)
+- Supabase config health check shows ⚠️ on Branch DBs (REST service slow startup) — cosmetic, doesn't block migrations or functionality
+- `claude-review` CI check always CANCELLED — not blocking
 
 ### Pending decisions
 
-- [ ] Fix telemetry branch: keep engine_event routing or migrate engine_process?
-- [ ] Fix telegram branch: rebase on development
-- [ ] Rewrite swipe-task-review with Botsson paths
-- contract-service Dockerfile still broken (separate PR, not in this plan)
-- All worktrees wt-1 through wt-9 occupied (5 are stale/merget)
-
-### Pending decisions
-
-- [ ] 1Password Service Account setup (manual, 1Password Admin Console)
-- [ ] Verify Supabase Branch DB supports vault/pgsodium (Task 8)
-- [ ] Choose execution approach: subagent-driven or inline
+- [ ] Create preview branch from main
+- [ ] When to close feat/deployment-pipeline worktree (after remaining tasks)
+- [ ] PWA for web app — user asked about it, not yet implemented (separate feature)

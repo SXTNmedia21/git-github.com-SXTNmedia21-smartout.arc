@@ -1,7 +1,7 @@
 ---
 title: Development Dashboard
 status: in_progress
-updated: 2026-04-07
+updated: 2026-04-06
 created: 2026-03-02
 module: meta
 tags: [dashboard, worktrees, tracking]
@@ -145,12 +145,11 @@ tags: [dashboard, worktrees, tracking]
 
 ## Session History
 
-| 2026-04-06 | deployment-pipeline | started | wt-10, module: infra. 3-branch architecture, env sync, security hardening. |
+| 2026-04-06 | deployment-pipeline | session ended | wt-10, module: infra. 8/11 tasks done. PR #128 merged (dev→main). 3 tasks remaining. |
 | 2026-04-06 | tooling-optimization | started | wt-9, module: developer-experience. Skills/MCP/plugin optimization. |
 | 2026-03-31 | development | session ended | session ended |
 | 2026-03-30 | protocol-verification-engine | session ended | session ended |
 | 2026-03-29 | protocol-verification-engine | session ended | session ended |
-| 2026-03-29 | development | session ended | session ended |
 | 2026-03-29 | development | session ended | session ended |
 | 2026-03-28 | development | session ended | session ended |
 | 2026-03-28 | development | session ended | session ended |

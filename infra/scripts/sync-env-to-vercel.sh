@@ -121,7 +121,7 @@ print(json.dumps({
     'value': '''$value''',
     'target': $target_json,
     'type': '$type_val',
-    'gitBranch': 'development' if '$env_target' == 'preview' else None
+    'gitBranch': 'preview' if '$env_target' == 'preview' else None
 }))
 " 2>/dev/null)
 
@@ -136,7 +136,7 @@ obj = {
     'type': '$type_val',
 }
 if '$env_target' == 'preview':
-    obj['gitBranch'] = 'development'
+    obj['gitBranch'] = 'preview'
 print(json.dumps(obj))
 " <<< "$value")
 
