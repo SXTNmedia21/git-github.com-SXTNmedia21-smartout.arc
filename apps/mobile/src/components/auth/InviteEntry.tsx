@@ -43,7 +43,6 @@ export function InviteEntry({ initialToken, onBack }: InviteEntryProps) {
     if (initialToken) {
       void validateToken(initialToken);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialToken]);
 
   async function validateToken(tokenValue: string) {
