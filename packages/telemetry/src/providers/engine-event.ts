@@ -49,6 +49,18 @@ function buildPayload(event: SmartoutEvent) {
 }
 
 /**
+ * Check whether the browser has Supabase auth cookies.
+ * If no auth token cookie exists, the user isn't authenticated and
+ * engine-dispatch will 401 — skip the request entirely to avoid
+ * wasted auth calls and console errors.
+ */
+function hasAuthCookie(): boolean {
+  if (typeof document === "undefined") return false;
+  // Supabase SSR stores the session in cookies prefixed with sb-<ref>-auth-token
+  return document.cookie.split(";").some((c) => c.trim().includes("-auth-token"));
+}
+
+/**
  * Dispatches a telemetry event to the engine-dispatch Edge Function.
  * Server-side: calls Edge Function directly via service role.
  * Client-side: relays through /api/engine-dispatch route.
@@ -58,22 +70,21 @@ export async function sendToEngine(event: SmartoutEvent): Promise<void> {
 
   if (typeof window !== "undefined") {
     // Client-side: relay through Next.js API route
-    // TODO: Enable once engine-dispatch Edge Function is deployed locally
+    // Skip in development — engine-dispatch Edge Function may not be running
     if (process.env.NODE_ENV === "development") return;
+    // Skip when unauthenticated — prevents 401 storms and wasted Supabase auth calls
+    if (!hasAuthCookie()) return;
     try {
       const res = await fetch("/api/engine-dispatch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      if (!res.ok && process.env.NODE_ENV === "production") {
+      if (!res.ok) {
         console.error(`[telemetry.engine_event] Relay failed: ${res.status}`);
       }
     } catch {
-      // Silently swallow in dev — engine-dispatch may not be running
-      if (process.env.NODE_ENV === "production") {
-        console.error("[telemetry.engine_event] Relay error");
-      }
+      console.error("[telemetry.engine_event] Relay error");
     }
     return;
   }

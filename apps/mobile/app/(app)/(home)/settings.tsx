@@ -13,7 +13,7 @@
  */
 
 import React, { useCallback, useState } from "react";
-import { View, Text, Pressable, Alert, ScrollView } from "react-native";
+import { View, Text, Pressable, Alert, ScrollView, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Animated, { FadeIn } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
@@ -37,6 +37,7 @@ import {
   LogOut,
   BadgeCheck,
   ExternalLink,
+  Trash2,
 } from "lucide-react-native";
 import { createStyles, useTheme, withOpacity } from "@/theme";
 import { Avatar } from "@/components/common/Avatar";
@@ -89,6 +90,7 @@ export default function SettingsScreen() {
   const { data: profile, isLoading } = useMyProfile();
   const { theme: themeMode, setTheme } = useThemeStore();
   const [loggingOut, setLoggingOut] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [notificationsOn, setNotificationsOn] = useState(true);
   const [calShifts, setCalShifts] = useState(true);
   const [calTasks, setCalTasks] = useState(false);
@@ -99,36 +101,119 @@ export default function SettingsScreen() {
   const role = profile?.role ?? "employee";
   const jobTitle = profile?.job_title ?? role;
   const isDarkOn = themeMode === "dark";
+  const isLightOn = themeMode === "light";
+
+  const performLogout = useCallback(async () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    try {
+      cacheClearAll();
+      try {
+        const db = await getDb();
+        await db.runAsync("DELETE FROM pending_writes");
+      } catch {}
+      await supabase.auth.signOut({ scope: "local" });
+    } catch {
+      await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+    } finally {
+      setLoggingOut(false);
+      router.replace("/(auth)/welcome");
+    }
+  }, [loggingOut, router]);
 
   const handleLogout = useCallback(() => {
+    // RN Alert can be flaky on web. Use native confirm there.
+    if (Platform.OS === "web") {
+      const shouldLogout =
+        typeof window !== "undefined" ? window.confirm(strings.me.logoutConfirm) : true;
+      if (shouldLogout) {
+        void performLogout();
+      }
+      return;
+    }
+
     Alert.alert(strings.me.logout, strings.me.logoutConfirm, [
       { text: strings.common.cancel, style: "cancel" },
       {
         text: strings.me.logout,
         style: "destructive",
-        onPress: async () => {
-          setLoggingOut(true);
-          try {
-            cacheClearAll();
-            try {
-              const db = await getDb();
-              await db.runAsync("DELETE FROM pending_writes");
-            } catch {}
-            await supabase.auth.signOut();
-          } catch {
-            await supabase.auth.signOut().catch(() => {});
-          } finally {
-            setLoggingOut(false);
-          }
+        onPress: () => {
+          void performLogout();
         },
       },
     ]);
+  }, [performLogout]);
+
+  const executeAccountDeletion = useCallback(async () => {
+    setDeleting(true);
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) {
+        Alert.alert(strings.common.error, strings.me.deleteAccountError);
+        return;
+      }
+      const res = await fetch(
+        `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/delete-account`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+      if (!res.ok) {
+        Alert.alert(strings.common.error, strings.me.deleteAccountError);
+        return;
+      }
+      cacheClearAll();
+      try {
+        const db = await getDb();
+        await db.runAsync("DELETE FROM pending_writes");
+      } catch {}
+      await supabase.auth.signOut();
+    } catch {
+      Alert.alert(strings.common.error, strings.me.deleteAccountError);
+    } finally {
+      setDeleting(false);
+    }
   }, []);
 
-  const handleDarkToggle = useCallback(() => {
-    Haptics.selectionAsync();
-    setTheme(isDarkOn ? "light" : "dark");
-  }, [isDarkOn, setTheme]);
+  const handleDeleteAccount = useCallback(() => {
+    // First confirmation: explain consequences
+    Alert.alert(strings.me.deleteAccount, strings.me.deleteAccountWarning, [
+      { text: strings.common.cancel, style: "cancel" },
+      {
+        text: strings.me.deleteAccount,
+        style: "destructive",
+        onPress: () => {
+          // Second confirmation: are you really sure?
+          Alert.alert(
+            strings.me.deleteAccountConfirmTitle,
+            "Er du helt sikker? Denne handlingen kan ikke angres.",
+            [
+              { text: strings.common.cancel, style: "cancel" },
+              {
+                text: "Ja, slett kontoen min",
+                style: "destructive",
+                onPress: executeAccountDeletion,
+              },
+            ],
+          );
+        },
+      },
+    ]);
+  }, [executeAccountDeletion]);
+
+  const handleThemeSelect = useCallback(
+    (nextTheme: "light" | "dark") => {
+      Haptics.selectionAsync();
+      setTheme(nextTheme);
+    },
+    [setTheme],
+  );
 
   return (
     <SafeAreaView style={s.container} edges={["top"]}>
@@ -306,18 +391,24 @@ export default function SettingsScreen() {
           <View style={s.row}>
             <View style={s.rowLeft}>
               <Moon size={20} color={theme.colors.brandOrange} strokeWidth={1.5} />
-              <Text style={s.rowLabel}>Mørkt Modus</Text>
+              <Text style={s.rowLabel}>Tema</Text>
             </View>
-            <View style={[s.toggleTrack, s.toggleTrackLg, isDarkOn && s.toggleTrackActive]}>
-              <Pressable onPress={handleDarkToggle}>
-                <View
-                  style={[
-                    s.toggleThumb,
-                    s.toggleThumbLg,
-                    isDarkOn && s.toggleThumbActive,
-                    isDarkOn && s.toggleThumbLgActive,
-                  ]}
-                />
+            <View style={s.themeSegmented}>
+              <Pressable
+                onPress={() => handleThemeSelect("light")}
+                style={[s.themeOption, isLightOn && s.themeOptionActive]}
+                accessibilityRole="button"
+                accessibilityLabel="Lyst tema"
+              >
+                <Text style={[s.themeOptionText, isLightOn && s.themeOptionTextActive]}>Lys</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => handleThemeSelect("dark")}
+                style={[s.themeOption, isDarkOn && s.themeOptionActive]}
+                accessibilityRole="button"
+                accessibilityLabel="Morkt tema"
+              >
+                <Text style={[s.themeOptionText, isDarkOn && s.themeOptionTextActive]}>Mørk</Text>
               </Pressable>
             </View>
           </View>
@@ -362,6 +453,21 @@ export default function SettingsScreen() {
         >
           <LogOut size={20} color={theme.colors.destructive} strokeWidth={1.8} />
           <Text style={s.logoutText}>Logg ut</Text>
+        </Pressable>
+
+        {/* Delete Account */}
+        <Pressable
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+            handleDeleteAccount();
+          }}
+          disabled={deleting}
+          style={({ pressed }) => [s.deleteBtn, pressed && s.deleteBtnPressed]}
+        >
+          <Trash2 size={18} color={theme.colors.mutedForeground} strokeWidth={1.5} />
+          <Text style={s.deleteText}>
+            {deleting ? strings.common.loading : strings.me.deleteAccount}
+          </Text>
         </Pressable>
 
         <Text style={s.versionText}>SMARTOUT V2.4.12 • STUDIO NOMAD</Text>
@@ -568,6 +674,33 @@ const useStyles = createStyles((theme) => ({
   toggleThumbLgActive: {
     alignSelf: "flex-end" as const,
   },
+  themeSegmented: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    backgroundColor: theme.isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
+    borderRadius: theme.radius.full,
+    padding: 3,
+    gap: 4,
+  },
+  themeOption: {
+    minWidth: 56,
+    height: 28,
+    borderRadius: theme.radius.full,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    paddingHorizontal: 10,
+  },
+  themeOptionActive: {
+    backgroundColor: theme.colors.brandOrange,
+  },
+  themeOptionText: {
+    fontSize: 12,
+    fontWeight: "600" as const,
+    color: theme.colors.mutedForeground,
+  },
+  themeOptionTextActive: {
+    color: "#ffffff",
+  },
 
   /* Logout */
   logoutBtn: {
@@ -587,6 +720,23 @@ const useStyles = createStyles((theme) => ({
     transform: [{ scale: 0.97 }],
   },
   logoutText: { fontSize: 16, fontWeight: "700" as const, color: theme.colors.destructive },
+
+  /* Delete account — intentionally subdued, not prominent */
+  deleteBtn: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    gap: 8,
+    height: 48,
+    marginTop: theme.spacing.page,
+    marginBottom: theme.spacing.element,
+  },
+  deleteBtnPressed: { opacity: 0.5 },
+  deleteText: {
+    fontSize: 13,
+    fontWeight: "500" as const,
+    color: theme.colors.mutedForeground,
+  },
 
   versionText: {
     fontSize: 10,

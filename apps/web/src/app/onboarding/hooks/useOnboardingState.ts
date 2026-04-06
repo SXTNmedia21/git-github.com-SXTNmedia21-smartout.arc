@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@smartout/supabase/client";
 import { emit } from "@smartout/telemetry";
+import { invokeEdgeFunction } from "@/lib/supabase-edge-invoke";
 import type { Json } from "@smartout/supabase";
 import type {
   OnboardingState,
@@ -419,7 +420,14 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
       setScrapeSource(source as "url" | "org" | "both" | "name");
 
       try {
-        const { data, error } = await supabase.functions.invoke("gather-workspace-intelligence", {
+        const { data, error } = await invokeEdgeFunction<{
+          scrapedData:
+            | (Record<string, unknown> & { locations?: { name: string; type?: string }[] })
+            | null;
+          brregData: Record<string, unknown> | null;
+          placesData: unknown;
+          workspaceId?: string;
+        }>(supabase, "gather-workspace-intelligence", {
           body: {
             url: url || undefined,
             orgNumber: orgNumber || undefined,
@@ -428,7 +436,8 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
           },
         });
 
-        if (error) throw new Error("Scraping failed");
+        if (error) throw error;
+        if (!data) throw new Error("No data returned from intelligence pipeline");
 
         const { scrapedData, brregData, placesData, workspaceId } = data;
 
@@ -568,11 +577,13 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
   const searchCompany = useCallback(
     async (name: string, city?: string): Promise<BrregCandidate[]> => {
       try {
-        const { data, error } = await supabase.functions.invoke("search-brreg", {
-          body: { name, city: city || undefined },
-        });
+        const { data, error } = await invokeEdgeFunction<{ candidates: BrregCandidate[] }>(
+          supabase,
+          "search-brreg",
+          { body: { name, city: city || undefined } },
+        );
 
-        if (error) throw new Error("Search failed");
+        if (error) throw error;
 
         const candidates: BrregCandidate[] = data?.candidates || [];
         setBrregCandidates(candidates);
@@ -591,11 +602,16 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
         setScrapeStatus("scraping");
         setScrapeSource("org");
 
-        const { data, error } = await supabase.functions.invoke("identify-company", {
+        const { data, error } = await invokeEdgeFunction<{
+          company: Record<string, unknown> | null;
+          places: unknown;
+          workspaceId?: string;
+        }>(supabase, "identify-company", {
           body: { orgNumber },
         });
 
-        if (error) throw new Error("Identification failed");
+        if (error) throw error;
+        if (!data) throw new Error("No data returned from company identification");
 
         const { company, places, workspaceId } = data;
 
@@ -616,7 +632,11 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
         const suggestedProcs = getProceduresForIndustry(nace);
         setProcedures(suggestedProcs);
 
-        return { company, places, workspaceId };
+        return {
+          company: company ?? ({} as Record<string, unknown>),
+          places,
+          workspaceId: workspaceId ?? null,
+        };
       } catch {
         setScrapeStatus("error");
         return null;
@@ -629,13 +649,15 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
   const scrapeWebsite = useCallback(
     async (url: string) => {
       try {
-        const { data, error } = await supabase.functions.invoke("scrape-website", {
+        const { data, error } = await invokeEdgeFunction<{
+          scrapedData: Record<string, unknown> | null;
+        }>(supabase, "scrape-website", {
           body: { url },
         });
 
-        if (error) throw new Error("Scrape failed");
+        if (error) throw error;
 
-        const scrapedData = data?.scrapedData as Record<string, unknown> | null;
+        const scrapedData = data?.scrapedData ?? null;
 
         if (scrapedData) {
           // Merge scraped data into existing business state
@@ -783,19 +805,16 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
         workspacePayload,
       );
 
-      const { data: finalizationResult, error: finalizationError } =
-        await supabase.functions.invoke(finalizationRequest.functionName, {
-          body: finalizationRequest.body,
-        });
-
-      if (finalizationError) {
-        throw new Error(finalizationError.message || "Failed to finalize workspace");
-      }
-
-      const response = (finalizationResult ?? null) as {
+      const { data: finalizationResult, error: finalizationError } = await invokeEdgeFunction<{
         workspaceId?: string;
         slug?: string | null;
-      } | null;
+      }>(supabase, finalizationRequest.functionName, { body: finalizationRequest.body });
+
+      if (finalizationError) {
+        throw finalizationError;
+      }
+
+      const response = finalizationResult;
 
       const workspaceId = response?.workspaceId;
       let slug = response?.slug ?? null;

@@ -16,7 +16,7 @@
 import React, { useCallback } from "react";
 import { View, Text, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { ArrowLeft, CheckCheck } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import { createStyles } from "@/theme";
@@ -80,6 +80,7 @@ export function NotificationScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
+      <Stack.Screen options={{ headerShown: false }} />
       {/* Header */}
       <View style={styles.header}>
         <Pressable

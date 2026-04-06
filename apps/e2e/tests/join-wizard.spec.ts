@@ -47,7 +47,7 @@ test.describe("join-wizard", () => {
 
   // ─── Test 1: Join page loads with Step 1 ────────────────
 
-  test("join page loads with step 1 visible", async ({ page }) => {
+  test("join page loads with step 1 visible @smoke", async ({ page }) => {
     await page.goto("/join");
 
     // WizardShell should render with join-shell data attribute
@@ -266,18 +266,19 @@ test.describe("join-wizard", () => {
     await expect(page.locator('[data-botsson-id="join-shell"]')).toBeVisible({ timeout: 10_000 });
 
     // WizardSidebar renders labels from join.json i18n keys.
-    // Labels: Konto, Bedrift, Om bedriften, Drift, Meny, Opprett konto, Team
+    // Current labels: Konto, Bedrift, Identitet, Drift, Meny, Oppsummering
     // Sidebar is only visible on lg+ screens, so check the nav element.
     const sidebar = page.locator('nav[aria-label="Wizard progress"]');
 
-    // These labels should exist in the sidebar
-    await expect(sidebar.getByText("Konto")).toBeVisible();
-    await expect(sidebar.getByText("Bedrift")).toBeVisible();
-    await expect(sidebar.getByText("Om bedriften")).toBeVisible();
-    await expect(sidebar.getByText("Opprett konto")).toBeVisible();
-    await expect(sidebar.getByText("Team")).toBeVisible();
+    // These labels should exist in the sidebar (exact match to avoid "Bedrift"/"Drift" collision)
+    await expect(sidebar.getByText("Konto", { exact: true })).toBeVisible();
+    await expect(sidebar.getByText("Bedrift", { exact: true })).toBeVisible();
+    await expect(sidebar.getByText("Identitet", { exact: true })).toBeVisible();
+    await expect(sidebar.getByText("Drift", { exact: true })).toBeVisible();
+    await expect(sidebar.getByText("Meny", { exact: true })).toBeVisible();
+    await expect(sidebar.getByText("Oppsummering", { exact: true })).toBeVisible();
 
     // Legacy labels that no longer exist
-    await expect(sidebar.getByText("Identitet")).not.toBeVisible();
+    await expect(sidebar.getByText("Om bedriften", { exact: true })).not.toBeVisible();
   });
 });
