@@ -202,7 +202,8 @@ export function useAssignedProtocols(profileId: string | null) {
 
       // 8. Build result
       return wsAssignments.map((assignment) => {
-        const proto = assignment.protocol as unknown as { // SAFETY: Supabase join returns union type; runtime shape matches the cast
+        const proto = assignment.protocol as unknown as {
+          // SAFETY: Supabase join returns union type; runtime shape matches the cast
           name: string;
           description: string | null;
         };

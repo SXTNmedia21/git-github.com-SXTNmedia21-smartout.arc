@@ -938,11 +938,12 @@ export function WorkspaceDetailClient({
                         variant="ghost"
                         size="sm"
                         className="h-7 text-xs"
-                        onClick={() =>
-                          openCompose({
-                            type: "user_ids",
-                            userIds: [p.userId],
-                          } as unknown as AudienceFilter) // SAFETY: Supabase join returns union type; runtime shape matches the cast
+                        onClick={
+                          () =>
+                            openCompose({
+                              type: "user_ids",
+                              userIds: [p.userId],
+                            } as unknown as AudienceFilter) // SAFETY: Supabase join returns union type; runtime shape matches the cast
                         }
                       >
                         <Send className="mr-1 h-3 w-3" /> Email

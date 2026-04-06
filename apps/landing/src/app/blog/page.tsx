@@ -120,38 +120,38 @@ export default function BlogPage() {
           ]
             .filter((s) => s.ready !== false)
             .map((story, i) => {
-            return (
-              <Link
-                key={i}
-                href={`/blog/${story.slug}`}
-                className="group border-border/50 bg-card/40 hover:border-border relative flex flex-col overflow-hidden rounded-[2rem] border p-8 shadow-xl backdrop-blur-xl transition-all duration-500 hover:-translate-y-1 cursor-pointer"
-              >
-                <div className="via-foreground/20 absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
-                <div
-                  className={`absolute -inset-1 bg-gradient-to-b ${story.color} opacity-0 blur-2xl transition-opacity duration-500 group-hover:opacity-10`}
-                ></div>
+              return (
+                <Link
+                  key={i}
+                  href={`/blog/${story.slug}`}
+                  className="group border-border/50 bg-card/40 hover:border-border relative flex cursor-pointer flex-col overflow-hidden rounded-[2rem] border p-8 shadow-xl backdrop-blur-xl transition-all duration-500 hover:-translate-y-1"
+                >
+                  <div className="via-foreground/20 absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+                  <div
+                    className={`absolute -inset-1 bg-gradient-to-b ${story.color} opacity-0 blur-2xl transition-opacity duration-500 group-hover:opacity-10`}
+                  ></div>
 
-                <div className="relative z-10 flex flex-1 flex-col">
-                  <Quote className="text-foreground/20 group-hover:text-foreground/40 mb-6 h-8 w-8 transition-colors" />
-                  <h3 className="text-foreground mb-6 flex-1 text-xl leading-relaxed font-bold transition-all">
-                    &ldquo;{story.title}&rdquo;
-                  </h3>
+                  <div className="relative z-10 flex flex-1 flex-col">
+                    <Quote className="text-foreground/20 group-hover:text-foreground/40 mb-6 h-8 w-8 transition-colors" />
+                    <h3 className="text-foreground mb-6 flex-1 text-xl leading-relaxed font-bold transition-all">
+                      &ldquo;{story.title}&rdquo;
+                    </h3>
 
-                  <div className="flex items-center gap-4">
-                    <div
-                      className={`h-10 w-10 rounded-full bg-gradient-to-tr ${story.color} p-[2px]`}
-                    >
-                      <div className="border-background bg-card h-full w-full rounded-full border-2"></div>
-                    </div>
-                    <div>
-                      <p className="text-foreground text-sm font-bold">{story.author}</p>
-                      <p className="text-muted-foreground text-xs font-semibold">{story.role}</p>
+                    <div className="flex items-center gap-4">
+                      <div
+                        className={`h-10 w-10 rounded-full bg-gradient-to-tr ${story.color} p-[2px]`}
+                      >
+                        <div className="border-background bg-card h-full w-full rounded-full border-2"></div>
+                      </div>
+                      <div>
+                        <p className="text-foreground text-sm font-bold">{story.author}</p>
+                        <p className="text-muted-foreground text-xs font-semibold">{story.role}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </Link>
-            );
-          })}
+                </Link>
+              );
+            })}
         </m.div>
       </main>
 

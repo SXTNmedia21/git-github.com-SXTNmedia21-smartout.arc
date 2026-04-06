@@ -50,7 +50,16 @@ export async function getCompanyHours(workspaceId: string): Promise<DayHours[]> 
   const dayNames = ["Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lordag", "Sondag"];
 
   return dayNames.map((day, i) => {
-    const row = (data as { day_of_week: number; open_time: string | null; close_time: string | null; is_closed: boolean }[] | null)?.find((r) => r.day_of_week === i);
+    const row = (
+      data as
+        | {
+            day_of_week: number;
+            open_time: string | null;
+            close_time: string | null;
+            is_closed: boolean;
+          }[]
+        | null
+    )?.find((r) => r.day_of_week === i);
     return {
       day,
       open: row?.open_time ?? "",

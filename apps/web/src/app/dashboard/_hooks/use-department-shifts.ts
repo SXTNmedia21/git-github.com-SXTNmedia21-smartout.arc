@@ -67,11 +67,13 @@ export function useDepartmentShifts(date: string) {
       >();
 
       for (const shift of data ?? []) {
-        const profile = shift.profile as unknown as { // SAFETY: Supabase join returns union type; runtime shape matches the cast
+        const profile = shift.profile as unknown as {
+          // SAFETY: Supabase join returns union type; runtime shape matches the cast
           display_name: string;
         } | null;
 
-        const position = shift.position as unknown as { // SAFETY: Supabase join returns union type; runtime shape matches the cast
+        const position = shift.position as unknown as {
+          // SAFETY: Supabase join returns union type; runtime shape matches the cast
           position_id: string;
           name: string;
           department: { department_id: string; name: string; color: string | null } | null;

@@ -46,7 +46,8 @@ export function useProtocolAssignees(protocolId: string | null) {
         };
       };
 
-      return ((data ?? []) as unknown as AssignmentRow[]).map((row) => { // SAFETY: Supabase join returns union type; runtime shape matches the cast
+      return ((data ?? []) as unknown as AssignmentRow[]).map((row) => {
+        // SAFETY: Supabase join returns union type; runtime shape matches the cast
         const profile = row.profile;
 
         return {
