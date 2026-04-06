@@ -4,7 +4,7 @@ id: PROTO_SECURITY
 status: canonical
 layer: protocol
 created: 2026-02-28
-updated: 2026-03-01
+updated: 2026-04-06
 depends_on:
   - SECRET_API_INFRA
   - ADMIN_KEY_MGMT
@@ -84,6 +84,32 @@ Prefix breakdown:
 Never invent new prefixes. Use the established format.
 
 > Full architecture: `docs/architecture/SMARTOUT_SECRET_API_INFRASTRUCTURE.md`
+
+### Vault Naming (Supersedes ADR-0055)
+
+| Vault              | Environment           | Purpose                                 |
+| ------------------ | --------------------- | --------------------------------------- |
+| `smartout_ai`      | Development / Preview | Local dev, Vercel preview, Docker local |
+| `smartout_ai_prod` | Production            | Vercel production, DigitalOcean droplet |
+
+ADR-0055 defined `smartout_dev` / `smartout_prod` — these names were never used. All code, scripts, and 1Password items use `smartout_ai` / `smartout_ai_prod`.
+
+### 1Password Service Account (CI/CD)
+
+For automated pipelines (env sync, future GitHub Actions), use a 1Password Service Account instead of interactive `op signin`.
+
+| Context                 | Method                                              |
+| ----------------------- | --------------------------------------------------- |
+| Local development       | `op run --env-file=.env.template` (interactive CLI) |
+| Vercel env sync         | Service account token (`OP_SERVICE_ACCOUNT_TOKEN`)  |
+| DigitalOcean env sync   | Service account token via `sync-env-to-droplet.sh`  |
+| GitHub Actions (future) | Service account token in GitHub Secrets             |
+
+**Rules:**
+
+- Service account has READ-ONLY access to both vaults
+- Token stored in GitHub Secrets, never in code or docs
+- Local dev continues using interactive `op run` (no change)
 
 ---
 
@@ -195,6 +221,13 @@ BEFORE writing any migration that touches auth or key management:
 5. EXPLAIN ANALYZE on key_hash lookup — must use index, no seq scan
 6. Check docs/reference/DATABASE.md for existing enums before creating new ones
 ```
+
+### Migration Idempotency (Supabase Branching)
+
+All `CREATE INDEX` and `CREATE TABLE` statements MUST use `IF NOT EXISTS`. Supabase Branch DBs replay all migrations from scratch — non-idempotent statements cause branch creation failures.
+
+**Rule:** Never write `CREATE INDEX idx_name ON table(col)` without `IF NOT EXISTS`.
+**Enforcement:** Phase 0 of deployment pipeline wrapped all 85 existing bare indexes.
 
 ---
 
@@ -461,7 +494,36 @@ ALWAYS:
 
 ---
 
-## 16. Infrastructure
+## 16. Preview Environment Security
+
+### Branch Database Isolation
+
+Preview deployments use Supabase Branch DBs — isolated copies of the production schema.
+
+**Rules:**
+
+- Branch DBs are ephemeral — created on PR, destroyed on merge
+- Branch DBs contain NO production data (schema only + seed-preview.sql)
+- Branch DB credentials are injected by Supabase-Vercel integration (never manual)
+- Edge Functions in preview still point to production Supabase — branch isolation is Vercel-side only
+
+### Docker Service Asymmetry (Accepted)
+
+Docker services (Stage Engine, Shift MCP, Contract Service, Scrapling) have no preview tier. Preview Vercel apps hit production Docker services.
+
+**Mitigations:**
+
+- Services are stateless request handlers — they use their own Supabase credentials (production)
+- No cross-contamination: preview app uses Branch DB credentials, Docker services use production credentials
+- Agent features must be tested locally before preview deployment
+
+### Vault in Branch DBs
+
+Supabase Vault (`pgsodium`) availability in Branch DBs is verified during pipeline setup (Phase 2.0 go/no-go). If unavailable, `secrets.ts` falls back to environment variables.
+
+---
+
+## 17. Infrastructure
 
 | Component             | Protection                                              |
 | --------------------- | ------------------------------------------------------- |
@@ -473,7 +535,7 @@ ALWAYS:
 
 ---
 
-## 17. Document Relationships
+## 18. Document Relationships
 
 ```
 CLAUDE.md

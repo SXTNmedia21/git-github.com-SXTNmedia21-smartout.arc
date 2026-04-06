@@ -129,9 +129,11 @@ High-level rules that MUST be followed. No exceptions.
 
 | id                  | File                       | Scope                          |
 | ------------------- | -------------------------- | ------------------------------ |
-| PROTO_SECURITY      | protocols/SECURITY.md      | Secrets, auth, RLS, API keys   |
-| PROTO_DOCUMENTATION | protocols/DOCUMENTATION.md | Source of truth, doc standards |
-| PROTO_KNOWLEDGE     | protocols/KNOWLEDGE.md     | ADRs, learnings, templates     |
+| PROTO_SECURITY      | protocols/SECURITY.md      | Secrets, auth, RLS, API keys                         |
+| PROTO_DOCUMENTATION | protocols/DOCUMENTATION.md | Source of truth, doc standards                       |
+| PROTO_KNOWLEDGE     | protocols/KNOWLEDGE.md     | ADRs, learnings, templates                           |
+| PROTO_ENV           | protocols/ENV_PROTOCOL.md  | Environment variables, vault, op run                 |
+| PROTO_AUTH          | protocols/AUTH_SECURITY.md | Auth flows, OTP, rate limiting, sandbox              |
 
 ### Templates
 
