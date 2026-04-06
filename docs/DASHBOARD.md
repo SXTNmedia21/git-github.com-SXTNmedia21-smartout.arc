@@ -13,18 +13,18 @@ tags: [dashboard, worktrees, tracking]
 
 ## Active Worktrees
 
-| #     | Branch                                | Module               | Status      | Progress                          | Blockers | Health |
-| ----- | ------------------------------------- | -------------------- | ----------- | --------------------------------- | -------- | ------ |
-| wt-1  | `feat/wizardshell-walkai-integration` | wizard               | done        | 22 commits, merged to development | —        | clean  |
-| wt-2  | `feat/mobile-group-call`              | communications       | in_progress | just started                      | —        | clean  |
-| wt-3  | `feat/dashboard-filters`              | dashboard            | paused      | just started                      | —        | clean  |
-| wt-4  | `feat/training-agent-pipeline`        | training             | in_progress | just started — WS-2 Module Zero   | —        | clean  |
-| wt-5  | —                                     | —                    | free        | —                                 | —        | —      |
-| wt-7  | `feat/dynamic-landing-engine`         | landing              | paused      | just started                      | —        | clean  |
-| wt-8  | —                                     | —                    | free        | —                                 | —        | —      |
-| wt-9  | `feat/tooling-optimization`           | developer-experience | in_progress | just started                      | —        | clean  |
-| wt-10 | `feat/deployment-pipeline`            | infra                | in_progress | just started                      | —        | clean  |
-| wt-11 | `feat/invitation-rls-fix`             | onboarding           | in_progress | just started                      | —        | clean  |
+| #     | Branch                                | Module         | Status      | Progress                          | Blockers | Health |
+| ----- | ------------------------------------- | -------------- | ----------- | --------------------------------- | -------- | ------ |
+| wt-1  | `feat/wizardshell-walkai-integration` | wizard         | done        | 22 commits, merged to development | —        | clean  |
+| wt-2  | `feat/mobile-group-call`              | communications | in_progress | just started                      | —        | clean  |
+| wt-3  | `feat/dashboard-filters`              | dashboard      | paused      | just started                      | —        | clean  |
+| wt-4  | `feat/training-agent-pipeline`        | training       | in_progress | just started — WS-2 Module Zero   | —        | clean  |
+| wt-5  | —                                     | —              | free        | —                                 | —        | —      |
+| wt-7  | `feat/dynamic-landing-engine`         | landing        | paused      | just started                      | —        | clean  |
+| wt-8  | —                                     | —              | free        | —                                 | —        | —      |
+| wt-9  | —                                     | —              | free        | —                                 | —        | —      |
+| wt-10 | `feat/deployment-pipeline`            | infra          | in_progress | just started                      | —        | clean  |
+| wt-11 | —                                     | —              | free        | —                                 | —        | —      |
 
 ## Parked Branches (no worktree)
 
@@ -44,9 +44,9 @@ tags: [dashboard, worktrees, tracking]
 | wt-6  | yes                                                                |
 | wt-7  | no — `feat/dynamic-landing-engine`                                 |
 | wt-8  | yes                                                                |
-| wt-9  | no — `feat/tooling-optimization`                                   |
+| wt-9  | yes                                                                |
 | wt-10 | no — `feat/deployment-pipeline`                                    |
-| wt-11 | no — `feat/invitation-rls-fix`                                     |
+| wt-11 | yes                                                                |
 | wt-12 | yes                                                                |
 | wt-13 | yes                                                                |
 | wt-15 | yes                                                                |
@@ -62,14 +62,16 @@ tags: [dashboard, worktrees, tracking]
 | wt-7     | dynamic-landing-engine  | `docs/journeys/JOURNEY-dynamic-landing-engine.md`  | missing |
 | wt-2     | mobile-group-call       | `docs/journeys/JOURNEY-mobile-group-call.md`       | missing |
 | wt-8     | council-review-fixes    | `docs/journeys/JOURNEY-council-review-fixes.md`    | done    |
-| wt-9     | tooling-optimization    | `docs/journeys/JOURNEY-tooling-optimization.md`    | missing |
+| wt-9     | tooling-optimization    | `docs/journeys/JOURNEY-tooling-optimization.md`    | done    |
 | wt-10    | deployment-pipeline     | `docs/journeys/JOURNEY-deployment-pipeline.md`     | missing |
-| wt-11    | invitation-rls-fix      | `docs/journeys/JOURNEY-invitation-rls-fix.md`      | missing |
+| wt-11    | invitation-rls-fix      | `docs/journeys/JOURNEY-invitation-rls-fix.md`      | done    |
 
 ## Recent Closures
 
 | Date       | Feature                      | Branch                                                             | Merged To   |
 | ---------- | ---------------------------- | ------------------------------------------------------------------ | ----------- |
+| 2026-04-07 | tooling-optimization         | `feat/tooling-optimization`                                        | development |
+| 2026-04-07 | invitation-rls-fix           | `feat/invitation-rls-fix`                                          | development |
 | 2026-04-06 | council-review-fixes         | `feat/council-review-fixes`                                        | development |
 | 2026-03-29 | interactive-dashboard        | `feat/interactive-dashboard`                                       | development |
 | 2026-03-28 | telegram-walkai-adapter      | `feat/telegram-walkai-adapter`                                     | development |
