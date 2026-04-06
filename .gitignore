@@ -33,9 +33,6 @@ desktop.ini
 .vscode/launch.json
 .vscode/*.code-workspace
 .cursor/
-!.cursor/
-!.cursor/agents/
-!.cursor/agents/*.md
 
 # Local dev artifacts
 .local/
@@ -51,8 +48,13 @@ artifacts/
 !.claude/settings.local.json
 !.claude/skills/
 !.claude/agent-memory/
+!.claude/agents/
+!.claude/commands/
+!.claude/learnings/
+!.claude/workflow-state.yaml
+!.claude/decisions.yaml
+!.claude/metadata-updater.sh
 
-.vercel
 .env*.local
 supabase/.env
 supabase/functions/.env
@@ -60,6 +62,14 @@ client_secret_*.json
 .superpowers/
 
 # E2E build artifacts
+apps/e2e/playwright-report/
 apps/landing/.next-e2e-landing/
 apps/web/.next-e2e-web/
 supabase/.env.local
+
+# Generated files (regenerate with: npx supabase gen types typescript)
+packages/supabase/src/database.types.ts
+
+# Archived/showcase assets (moved out of git)
+docs/archive/
+docs/showcase/
