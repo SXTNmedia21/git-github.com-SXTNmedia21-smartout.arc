@@ -35,6 +35,7 @@ export const intentSchema = z.object({
     "payroll",
     "ui",
     "guardian",
+    "contract",
     "general",
   ] as const),
   confidence: z.number().min(0).max(1),
@@ -67,6 +68,7 @@ Capabilities:
 - payroll: Salary, overtime, deductions, pay period
 - ui: Screen navigation, form filling, UI element highlighting, panel display, toast notifications
 - guardian: Workspace health monitoring, readiness alerts, maturity signals, system status
+- contract: Creating, sending, tracking, and managing employment contracts and agreements for employees in the workspace
 - general: Greetings, small talk, unclear intent, meta-questions
 
 The user writes in Norwegian or English. Classify based on intent, not language.
