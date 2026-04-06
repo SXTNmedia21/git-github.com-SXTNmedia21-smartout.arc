@@ -60,17 +60,9 @@ CREATE INDEX IF NOT EXISTS idx_landing_config_status
 CREATE INDEX IF NOT EXISTS idx_landing_config_version
   ON public.landing_config_version (config_id, version DESC);
 
-CREATE INDEX IF NOT EXISTS idx_platform_contract_company
-  ON public.platform_contract_instance (company_id);
-
-CREATE INDEX IF NOT EXISTS idx_platform_contract_workspace
-  ON public.platform_contract_instance (workspace_id);
-
-CREATE INDEX IF NOT EXISTS idx_platform_contract_status
-  ON public.platform_contract_instance (status);
-
-CREATE INDEX IF NOT EXISTS idx_platform_contract_template
-  ON public.platform_contract_instance (template_id);
+-- idx_platform_contract_* indexes SKIPPED — table was renamed from
+-- platform_contract_instance to contract in 20260228140000. Indexes
+-- carried over with the rename and already exist.
 
 -- ─── 20260310150000_workspace_note.sql ───────────────────────────────────────
 
