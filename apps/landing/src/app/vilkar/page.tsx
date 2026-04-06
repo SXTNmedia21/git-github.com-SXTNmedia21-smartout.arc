@@ -26,106 +26,131 @@ export default function VilkarPage() {
         </Link>
 
         <h1 className="text-foreground mb-3 text-4xl font-black tracking-tight">Brukervilkår</h1>
-        <p className="text-muted-foreground mb-12 text-sm">Sist oppdatert: 28. februar 2026</p>
+        <p className="text-muted-foreground mb-12 text-sm">Sist oppdatert: 29. mars 2026</p>
 
         <div className="text-muted-foreground space-y-10 text-[15px] leading-relaxed">
           <section>
-            <h2 className="text-foreground mb-3 text-lg font-bold">1. Aksept av vilkår</h2>
+            <h2 className="text-foreground mb-3 text-lg font-bold">1. Om tjenesten</h2>
             <p>
-              Ved å opprette en konto eller bruke SmartOut-plattformen aksepterer du disse
-              brukervilkårene. Hvis du bruker tjenesten på vegne av en bedrift, bekrefter du at du
-              har fullmakt til å binde bedriften til vilkårene.
+              SmartOut er en digital plattform for ansattklargjøring i skiftbaserte virksomheter.
+              Tjenesten hjelper arbeidsgivere med onboarding, opplæring, daglig støtte og
+              kontinuerlig kompetanseutvikling av ansatte. SmartOut leveres av SmartOut AS (org.nr.
+              under registrering).
             </p>
           </section>
 
           <section>
-            <h2 className="text-foreground mb-3 text-lg font-bold">2. Tjenestebeskrivelse</h2>
-            <p>
-              SmartOut er en skybasert plattform for workforce management, rettet mot den norske
-              serveringsbransjen. Tjenesten inkluderer vaktplanlegging, timeføring, opplæring,
-              internkontroll og kommunikasjon.
+            <h2 className="text-foreground mb-3 text-lg font-bold">2. Bruk av tjenesten</h2>
+            <p>Ved å bruke SmartOut aksepterer du disse vilkårene. For å bruke tjenesten må du:</p>
+            <ul className="mt-2 list-inside list-disc space-y-2">
+              <li>Være invitert av en arbeidsgiver som har en aktiv SmartOut-konto.</li>
+              <li>Være minst 18 år gammel, eller ha samtykke fra foresatte.</li>
+              <li>Oppgi korrekt informasjon ved registrering og holde denne oppdatert.</li>
+            </ul>
+            <p className="mt-2">
+              Hvis du bruker tjenesten på vegne av en bedrift, bekrefter du at du har fullmakt til å
+              binde bedriften til disse vilkårene.
             </p>
           </section>
 
           <section>
-            <h2 className="text-foreground mb-3 text-lg font-bold">3. Brukerkonto</h2>
+            <h2 className="text-foreground mb-3 text-lg font-bold">3. Brukerkontoer</h2>
             <ul className="list-inside list-disc space-y-2">
-              <li>Du er ansvarlig for å holde påloggingsinformasjon konfidensiell.</li>
-              <li>Du må varsle oss umiddelbart ved uautorisert tilgang.</li>
+              <li>Du er ansvarlig for å holde påloggingsinformasjonen din konfidensiell.</li>
+              <li>Du skal ikke dele tilgang til kontoen din med andre.</li>
+              <li>Du må varsle oss umiddelbart ved mistanke om uautorisert tilgang.</li>
               <li>Én bruker per konto — deling av kontoer er ikke tillatt.</li>
             </ul>
           </section>
 
           <section>
-            <h2 className="text-foreground mb-3 text-lg font-bold">4. Akseptabel bruk</h2>
+            <h2 className="text-foreground mb-3 text-lg font-bold">4. Innhold og data</h2>
+            <p>
+              Du eier alt innhold du legger inn i SmartOut. Ved å bruke tjenesten gir du SmartOut en
+              begrenset lisens til å behandle innholdet ditt utelukkende for å levere og forbedre
+              tjenesten. Ved oppsigelse kan du be om eksport av dine data innen 30 dager.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-foreground mb-3 text-lg font-bold">5. Akseptabel bruk</h2>
             <p>Du forplikter deg til å ikke:</p>
             <ul className="mt-2 list-inside list-disc space-y-2">
-              <li>Bruke tjenesten til ulovlige formål.</li>
-              <li>Forsøke å omgå sikkerhetsmekanismer.</li>
-              <li>Distribuere skadelig programvare gjennom plattformen.</li>
+              <li>Bruke tjenesten til ulovlige eller skadelige formål.</li>
+              <li>
+                Forsøke å få uautorisert tilgang til systemer, data eller andre brukerkontoer.
+              </li>
+              <li>Distribuere skadelig programvare eller forsøke å omgå sikkerhetsmekanismer.</li>
               <li>Laste opp innhold som krenker tredjeparts rettigheter.</li>
+              <li>Bruke tjenesten på en måte som kan skade eller overbelaste plattformen.</li>
             </ul>
           </section>
 
           <section>
-            <h2 className="text-foreground mb-3 text-lg font-bold">5. Betaling og abonnement</h2>
-            <ul className="list-inside list-disc space-y-2">
-              <li>Priser er oppgitt eks. mva. med mindre annet er spesifisert.</li>
-              <li>Abonnement faktureres månedlig eller årlig, avhengig av valgt plan.</li>
-              <li>Prisendringer varsles minimum 30 dager i forveien.</li>
-              <li>Refusjon gis ikke for delvis brukte perioder ved kansellering.</li>
-            </ul>
-          </section>
-
-          <section>
-            <h2 className="text-foreground mb-3 text-lg font-bold">6. Data og eierskap</h2>
+            <h2 className="text-foreground mb-3 text-lg font-bold">6. Personvern</h2>
             <p>
-              Du eier all data du legger inn i SmartOut. Vi har en begrenset lisens til å prosessere
-              data utelukkende for å levere tjenesten. Ved oppsigelse kan du eksportere dataene dine
-              innen 30 dager.
+              Behandling av personopplysninger er beskrevet i vår{" "}
+              <Link
+                href="/personvern"
+                className="text-brand-orange underline underline-offset-4 transition-colors hover:opacity-80"
+              >
+                personvernerklæring
+              </Link>
+              . Personvernerklæringen er en del av disse vilkårene. Ved å bruke SmartOut aksepterer
+              du også behandlingen som er beskrevet der.
             </p>
           </section>
 
           <section>
-            <h2 className="text-foreground mb-3 text-lg font-bold">7. Tilgjengelighet og SLA</h2>
+            <h2 className="text-foreground mb-3 text-lg font-bold">7. Tilgjengelighet</h2>
             <p>
-              Vi tilstreber 99,9% oppetid, men garanterer ikke uavbrutt tilgang. Planlagt
-              vedlikehold varsles minimum 24 timer i forveien. Vi er ikke ansvarlige for tap som
-              følge av nedetid.
+              Tjenesten leveres &laquo;som den er&raquo; (&ldquo;as is&rdquo;). Vi tilstreber høy
+              oppetid og stabilitet, men gir ingen garanti for uavbrutt tilgang. Planlagt
+              vedlikehold varsles på forhånd når det er mulig. SmartOut er ikke ansvarlig for tap
+              som følge av midlertidig utilgjengelighet.
             </p>
           </section>
 
           <section>
-            <h2 className="text-foreground mb-3 text-lg font-bold">8. Ansvarsbegrensning</h2>
+            <h2 className="text-foreground mb-3 text-lg font-bold">8. Endringer i vilkårene</h2>
             <p>
-              SmartOut er ikke ansvarlig for indirekte tap, følgeskader eller tapt fortjeneste. Vårt
-              samlede ansvar er begrenset til beløpet du har betalt for tjenesten de siste 12
-              månedene.
+              Vi kan oppdatere disse vilkårene ved behov. Ved vesentlige endringer varsler vi
+              brukere via e-post eller melding i tjenesten minimum 30 dager før endringene trer i
+              kraft. Fortsatt bruk av tjenesten etter at endringene er varslet, utgjør aksept av de
+              nye vilkårene.
             </p>
           </section>
 
           <section>
             <h2 className="text-foreground mb-3 text-lg font-bold">9. Oppsigelse</h2>
             <ul className="list-inside list-disc space-y-2">
-              <li>Du kan si opp abonnementet når som helst fra kontoinnstillingene.</li>
-              <li>Vi kan suspendere kontoer ved brudd på vilkårene, med 14 dagers varsel.</li>
-              <li>Ved oppsigelse beholdes data i 30 dager for eksport.</li>
+              <li>Du kan når som helst be om å få kontoen din slettet.</li>
+              <li>Din arbeidsgiver kan fjerne din tilgang til arbeidsplassens SmartOut-konto.</li>
+              <li>
+                SmartOut kan suspendere eller avslutte kontoer ved brudd på vilkårene, med rimelig
+                varsel.
+              </li>
+              <li>Ved oppsigelse beholdes data i 30 dager for eventuell eksport.</li>
             </ul>
           </section>
 
           <section>
-            <h2 className="text-foreground mb-3 text-lg font-bold">10. Endringer i vilkårene</h2>
+            <h2 className="text-foreground mb-3 text-lg font-bold">10. Ansvarsbegrensning</h2>
             <p>
-              Vi kan oppdatere disse vilkårene. Vesentlige endringer varsles via e-post minimum 30
-              dager før de trer i kraft. Fortsatt bruk etter endring utgjør aksept.
+              SmartOut er ikke ansvarlig for indirekte tap, følgeskader, tapt fortjeneste eller tap
+              av data. Vårt samlede erstatningsansvar er begrenset til beløpet du eller din
+              arbeidsgiver har betalt for tjenesten de siste 12 månedene. Denne begrensningen
+              gjelder ikke ved grov uaktsomhet eller forsett.
             </p>
           </section>
 
           <section>
-            <h2 className="text-foreground mb-3 text-lg font-bold">11. Lovvalg og tvisteløsning</h2>
+            <h2 className="text-foreground mb-3 text-lg font-bold">
+              11. Gjeldende lov og verneting
+            </h2>
             <p>
               Disse vilkårene er underlagt norsk lov. Tvister forsøkes løst i minnelighet. Dersom
-              dette ikke lykkes, avgjøres tvisten av Oslo tingrett.
+              dette ikke lykkes, avgjøres tvisten av Oslo tingrett som verneting.
             </p>
           </section>
 
@@ -134,10 +159,10 @@ export default function VilkarPage() {
             <p>
               Spørsmål om vilkårene kan rettes til{" "}
               <a
-                href="mailto:support@smartout.no"
+                href="mailto:support@smartout.ai"
                 className="text-brand-orange underline underline-offset-4 transition-colors hover:opacity-80"
               >
-                support@smartout.no
+                support@smartout.ai
               </a>
               .
             </p>

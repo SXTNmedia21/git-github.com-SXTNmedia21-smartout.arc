@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS emma_note (
   topic text NOT NULL DEFAULT 'Notat',
   content text NOT NULL DEFAULT '',
   tags text[] NOT NULL DEFAULT '{}',
-  screen text NOT NULL DEFAULT 'walkai',
+  screen text NOT NULL DEFAULT 'Botsson',
   context text NOT NULL DEFAULT '',
   status text NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'archived', 'converted')),
   -- For task migration: if this note was converted to a task

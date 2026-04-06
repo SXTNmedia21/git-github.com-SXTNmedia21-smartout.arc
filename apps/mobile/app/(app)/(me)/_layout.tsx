@@ -18,7 +18,7 @@ export default function MeLayout() {
       }}
     >
       <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen name="notifications" options={{ headerShown: true, title: "Varsler" }} />
+      <Stack.Screen name="notifications" options={{ headerShown: false, title: "Varsler" }} />
     </Stack>
   );
 }

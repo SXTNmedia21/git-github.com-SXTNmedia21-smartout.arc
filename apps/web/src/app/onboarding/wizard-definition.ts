@@ -11,6 +11,7 @@
 import { Layers, MapPin, ClipboardCheck, CheckCircle, Users, Crown, Briefcase } from "lucide-react";
 import type { WizardDefinition } from "@smartout/ui";
 import { createClient } from "@smartout/supabase/client";
+import { invokeEdgeFunction } from "@/lib/supabase-edge-invoke";
 import type { OnboardingConfirmState } from "./types-v2";
 import { defaultOnboardingConfirmState } from "./types-v2";
 import type { LocationData } from "./types";
@@ -288,12 +289,12 @@ async function onComplete(state: OnboardingConfirmState): Promise<void> {
     workspacePayload,
   );
 
-  const { error } = await supabase.functions.invoke(finalizationRequest.functionName, {
+  const { error } = await invokeEdgeFunction(supabase, finalizationRequest.functionName, {
     body: finalizationRequest.body,
   });
 
   if (error) {
-    throw new Error(error.message || "Failed to finalize workspace");
+    throw error;
   }
 
   redirectToDashboard(state.workspaceSlug, "/dashboard/setup");

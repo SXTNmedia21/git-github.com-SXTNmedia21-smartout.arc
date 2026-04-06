@@ -15,7 +15,6 @@ import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import {
-  Banknote,
   UtensilsCrossed,
   Phone,
   MessageCircle,
@@ -95,16 +94,22 @@ export function DuringShiftView({ timeEntry, tasks = [], leaderPhone }: DuringSh
         <View style={styles.heroLine} />
       </Animated.View>
 
-      {/* Live earnings */}
+      {/* Punch-out button */}
       <Animated.View
         entering={FadeInDown.delay(100).duration(400).springify()}
-        style={styles.earningsCard}
+        style={styles.punchOutZone}
       >
-        <View style={styles.earningsLeft}>
-          <Banknote size={20} color={theme.colors.brandOrange} strokeWidth={1.5} />
-          <Text style={styles.earningsLabel}>Live earnings</Text>
-        </View>
-        <Text style={styles.earningsValue}>~ kr 1,240 earned so far</Text>
+        <Pressable
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+            router.push("/(app)/(home)/punch-clock");
+          }}
+          style={({ pressed }) => [styles.punchOutButton, pressed && styles.punchOutButtonPressed]}
+          accessibilityRole="button"
+          accessibilityLabel="Stemple ut"
+        >
+          <Text style={styles.punchOutButtonLabel}>STEMPLE UT</Text>
+        </Pressable>
       </Animated.View>
 
       {/* Real-time notification */}
@@ -131,9 +136,15 @@ export function DuringShiftView({ timeEntry, tasks = [], leaderPhone }: DuringSh
         <View style={styles.taskSection}>
           <View style={styles.taskHeader}>
             <Text style={styles.sectionTitle}>Dine oppgaver ({activeTasks.length})</Text>
-            <View style={styles.priorityTag}>
-              <Text style={styles.priorityTagText}>Priority View</Text>
-            </View>
+            <Pressable
+              onPress={() => {
+                Haptics.selectionAsync();
+                router.push("/(app)/(home)/operations");
+              }}
+              style={({ pressed }) => [styles.priorityTag, pressed && styles.priorityTagPressed]}
+            >
+              <Text style={styles.priorityTagText}>Månedsmeny</Text>
+            </Pressable>
           </View>
           {sortedTasks.map((task, i) => {
             const isCritical = task.is_compliance_required || task.status === "overdue";
@@ -146,7 +157,10 @@ export function DuringShiftView({ timeEntry, tasks = [], leaderPhone }: DuringSh
                   .springify()}
               >
                 <Pressable
-                  onPress={() => Haptics.selectionAsync()}
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    router.push("/(app)/(home)/operations");
+                  }}
                   style={({ pressed }) => [
                     styles.taskRow,
                     isCritical && styles.taskRowCritical,
@@ -273,28 +287,30 @@ const useStyles = createStyles((theme) => ({
   },
   heroLine: { width: 48, height: 2, borderRadius: 1, backgroundColor: theme.colors.brandOrange },
 
-  earningsCard: {
-    flexDirection: "row",
+  punchOutZone: {
     alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: theme.isDark ? withOpacity(theme.colors.card, 0.5) : theme.colors.secondary,
-    borderRadius: theme.radius.xl,
-    padding: theme.spacing.section,
-    borderWidth: 1,
-    borderColor: withOpacity(theme.colors.border, 0.05),
+    justifyContent: "center",
     marginBottom: theme.spacing.section,
+    minHeight: 96,
   },
-  earningsLeft: { flexDirection: "row", alignItems: "center", gap: theme.spacing.element },
-  earningsLabel: {
-    ...theme.typography.subheadline,
-    fontWeight: "500",
-    color: theme.colors.mutedForeground,
+  punchOutButton: {
+    minWidth: 168,
+    height: 56,
+    borderRadius: 28,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: theme.colors.brandOrange,
+    ...theme.shadows.lg,
   },
-  earningsValue: {
-    ...theme.typography.body,
-    fontWeight: "600",
-    color: theme.colors.foreground,
-    letterSpacing: -0.3,
+  punchOutButtonPressed: {
+    transform: [{ scale: 0.97 }],
+    opacity: 0.9,
+  },
+  punchOutButtonLabel: {
+    fontSize: 13,
+    fontWeight: "700",
+    letterSpacing: 0.8,
+    color: "#ffffff",
   },
 
   liveCard: {
@@ -336,6 +352,9 @@ const useStyles = createStyles((theme) => ({
     paddingVertical: 4,
     borderRadius: theme.radius.sm,
   },
+  priorityTagPressed: {
+    opacity: 0.8,
+  },
   priorityTagText: {
     fontSize: 10,
     fontWeight: "500",
@@ -369,9 +388,15 @@ const useStyles = createStyles((theme) => ({
   taskMetaCritical: { color: theme.colors.destructive },
 
   actionsSection: { gap: theme.spacing.md },
-  actionsGrid: { flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.element },
+  actionsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    rowGap: theme.spacing.element,
+  },
   actionCard: {
-    width: "48%",
+    width: "48.5%",
+    minHeight: 104,
     alignItems: "center",
     justifyContent: "center",
     gap: 8,

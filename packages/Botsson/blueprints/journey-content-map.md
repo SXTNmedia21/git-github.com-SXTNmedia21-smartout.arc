@@ -1,15 +1,15 @@
 ---
-title: "Journey & Content Map — WalkAi Reference"
+title: "Journey & Content Map — Botsson Reference"
 status: draft
 updated: 2026-03-10
 created: 2026-03-10
-module: walkAi
+module: Botsson
 tags: [blueprint, journey, content, missions, roadmap]
 ---
 
-# Journey & Content Map — WalkAi Reference
+# Journey & Content Map — Botsson Reference
 
-This document maps every content layer that WalkAi must understand, ingest, and operationalize. It covers skills, journey packages, mission definitions, engine architecture, voice tooling, and knowledge systems as they exist in the Smartout codebase.
+This document maps every content layer that Botsson must understand, ingest, and operationalize. It covers skills, journey packages, mission definitions, engine architecture, voice tooling, and knowledge systems as they exist in the Smartout codebase.
 
 ---
 
@@ -17,7 +17,7 @@ This document maps every content layer that WalkAi must understand, ingest, and 
 
 Source: `.claude/skills/`
 
-These skills define the structured workflows for creating, training, and scoring AI-driven journeys. WalkAi inherits their patterns.
+These skills define the structured workflows for creating, training, and scoring AI-driven journeys. Botsson inherits their patterns.
 
 ### 1.1 roadmap.md — Journey Package Foundation
 
@@ -273,7 +273,7 @@ Composition: `System intelligence (global) + Industry intelligence (specializati
 
 ## Layer 5: Architectural Decisions
 
-Key ADRs that define WalkAi's operational context.
+Key ADRs that define Botsson's operational context.
 
 | ADR                  | Title                                | Decision                                                                                                                                                                                                                                                                                   |
 | -------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -474,9 +474,9 @@ WebSocket at `/guardian/ws` (ADR-0049). Capabilities:
 
 ---
 
-## Layer 9: WalkAi Content Sources & Capabilities
+## Layer 9: Botsson Content Sources & Capabilities
 
-### 9.1 What WalkAi Ingests
+### 9.1 What Botsson Ingests
 
 | Source               | Path                                                   | Content Type                                                            |
 | -------------------- | ------------------------------------------------------ | ----------------------------------------------------------------------- |
@@ -495,7 +495,7 @@ WebSocket at `/guardian/ws` (ADR-0049). Capabilities:
 | Stage engine         | `services/stage-engine/`                               | Session management, prompt builder, Guardian, WebSocket                 |
 | Runtime definition   | `docs/architecture/AI_RUNTIME_SYSTEM_DEFINITION_V1.md` | Canonical AI runtime spec (ADR-0051)                                    |
 
-### 9.2 What WalkAi Enables
+### 9.2 What Botsson Enables
 
 | Capability                | Description                                                                       |
 | ------------------------- | --------------------------------------------------------------------------------- |

@@ -19,7 +19,7 @@ function StatusGlyph({ status }: { status: OrbStatus }) {
           {[0, 1, 2, 3, 4].map((i) => (
             <div
               key={i}
-              className="bg-background/80 w-[2px] animate-[Botsson-bar_0.8s_ease-in-out_infinite] rounded-full"
+              className="bg-background/80 w-[2px] animate-[botsson-bar_0.8s_ease-in-out_infinite] rounded-full"
               style={{
                 height: 5 + Math.abs(2 - i) * 2.5,
                 animationDelay: `${i * 0.07}s`,
@@ -30,7 +30,7 @@ function StatusGlyph({ status }: { status: OrbStatus }) {
       );
     case "thinking":
       return (
-        <div className="bg-background/50 h-2 w-2 animate-[Botsson-pulse_1.5s_ease-in-out_infinite] rounded-full" />
+        <div className="bg-background/50 h-2 w-2 animate-[botsson-pulse_1.5s_ease-in-out_infinite] rounded-full" />
       );
     case "listening":
       return (
@@ -61,7 +61,7 @@ function NotificationOrb() {
           key={`ripple-${i}`}
           className="border-brand-orange/30 absolute inset-0 rounded-full border"
           style={{
-            animation: "Botsson-notify-ripple 2.4s ease-out infinite",
+            animation: "botsson-notify-ripple 2.4s ease-out infinite",
             animationDelay: `${i * 0.8}s`,
           }}
           aria-hidden
@@ -76,7 +76,7 @@ function NotificationOrb() {
           background:
             "conic-gradient(from 0deg, transparent 0%, var(--brand-orange) 25%, transparent 50%, color-mix(in srgb, var(--brand-orange) 50%, transparent) 75%, transparent 100%)",
           opacity: 0.4,
-          animation: "Botsson-notify-rotate 3s linear infinite",
+          animation: "botsson-notify-rotate 3s linear infinite",
           maskImage: "radial-gradient(circle, transparent 55%, black 60%, black 100%)",
           WebkitMaskImage: "radial-gradient(circle, transparent 55%, black 60%, black 100%)",
         }}
@@ -86,7 +86,7 @@ function NotificationOrb() {
       {/* Dark core — uses foreground color (dark in light mode, dark in dark mode) */}
       <div
         className="absolute inset-1 rounded-full bg-gradient-to-br from-neutral-900 via-neutral-950 to-black dark:from-neutral-800 dark:via-neutral-900 dark:to-neutral-950"
-        style={{ animation: "Botsson-notify-throb 2s ease-in-out infinite" }}
+        style={{ animation: "botsson-notify-throb 2s ease-in-out infinite" }}
       />
 
       {/* Surface shimmer */}
@@ -96,7 +96,7 @@ function NotificationOrb() {
           background:
             "linear-gradient(110deg, transparent 30%, color-mix(in srgb, var(--brand-orange) 8%, transparent) 45%, rgba(255,255,255,0.04) 50%, transparent 70%)",
           backgroundSize: "200% 100%",
-          animation: "Botsson-notify-shimmer 3s ease-in-out infinite",
+          animation: "botsson-notify-shimmer 3s ease-in-out infinite",
         }}
         aria-hidden
       />
@@ -140,7 +140,7 @@ function NotificationOrb() {
               height: 3,
               left: `calc(50% + ${offsetX}px)`,
               top: `calc(50% + ${offsetY}px)`,
-              animation: "Botsson-particle-float 2s ease-out infinite",
+              animation: "botsson-particle-float 2s ease-out infinite",
               animationDelay: `${p.delay}s`,
             }}
             aria-hidden
@@ -162,7 +162,7 @@ export function BotssonOrb() {
       ) : (
         <>
           <div
-            className="border-background/20 absolute inset-0.5 animate-[Botsson-breathe_3s_ease-in-out_infinite] rounded-full border"
+            className="border-background/20 absolute inset-0.5 animate-[botsson-breathe_3s_ease-in-out_infinite] rounded-full border"
             aria-hidden
           />
           <StatusGlyph status={state.orbStatus} />

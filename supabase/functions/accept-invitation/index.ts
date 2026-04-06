@@ -306,7 +306,7 @@ Deno.serve(async (req: Request) => {
         profile_code: generateProfileCode(),
         display_name: `${first_name} ${last_name}`,
         role: invitation.role,
-        status: "trainee",
+        status: "active",
         department_id: departmentIds.length > 0 ? departmentIds[0] : null,
         departments: departmentIds,
       })
@@ -389,19 +389,8 @@ Deno.serve(async (req: Request) => {
         seeded_from_template_id: templateId,
         seeded_at: templateId ? new Date().toISOString() : null,
       });
-
-      // 5c. Promote profile to active (payroll profile created = operational employee)
-      await adminClient
-        .from("profile")
-        .update({ status: "active" })
-        .eq("profile_id", profile.profile_id);
-    } else {
-      // Guest invite: set active directly, no contract/payroll
-      await adminClient
-        .from("profile")
-        .update({ status: "active" })
-        .eq("profile_id", profile.profile_id);
     }
+    // Guest path: no contract/payroll needed, profile already created as active
 
     // ── 6. Mark invitation as accepted ──
     await adminClient
@@ -410,8 +399,8 @@ Deno.serve(async (req: Request) => {
       .eq("invitation_id", invitation.invitation_id);
 
     // ── 7. Emit invitation_accepted telemetry ──
-    // Registry: "invitation accepted" → [posthog, logger, activity_trail, engine_event]
-    // Edge Functions insert directly into DB destinations (activity_trail + engine_event).
+    // activity_trail uses human-readable "invitation accepted" (registry convention).
+    // engine_event uses dot-separated "invitation.accepted" (engine_trigger convention).
     // PostHog and logger are handled client-side by the @smartout/telemetry package.
     const eventData = {
       profile_id: profile.profile_id,
@@ -435,7 +424,7 @@ Deno.serve(async (req: Request) => {
         source: "edge-function",
       }),
       adminClient.from("engine_event").insert({
-        event_type: "invitation accepted",
+        event_type: "invitation.accepted",
         workspace_id: invitation.workspace_id,
         payload: eventData,
       }),

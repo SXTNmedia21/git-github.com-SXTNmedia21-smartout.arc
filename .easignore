@@ -1,0 +1,47 @@
+# Apps we don't need for mobile build
+apps/web
+apps/landing
+apps/e2e
+
+# Packages mobile doesn't use
+packages/agent-sdk
+packages/ai
+packages/Botsson
+packages/docs-pipeline
+packages/hms
+packages/i18n
+packages/schedule
+packages/ui
+packages/website
+
+# Services
+services
+
+# Infrastructure
+infra
+
+# Docs
+docs
+
+# Supabase (migrations, functions, seed) — must use /supabase to avoid matching packages/supabase
+/supabase
+
+# Native prebuild output (managed workflow — EAS runs prebuild itself)
+apps/mobile/android
+apps/mobile/ios
+
+# Build artifacts
+.turbo
+**/dist
+**/.next
+**/.expo
+
+# Dev tooling
+.claude
+.cursor
+
+# Test files
+**/__tests__
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts

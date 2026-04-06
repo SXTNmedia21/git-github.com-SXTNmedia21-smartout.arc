@@ -212,6 +212,25 @@ export default function OperationsScreen() {
           return true;
         });
 
+  const handleFeedPress = (item: FeedItem) => {
+    Haptics.selectionAsync();
+    if (item.type === "task" || item.type === "overdue") {
+      router.push("/(app)/(home)/haccp");
+      return;
+    }
+    if (item.type === "shift" || item.type === "team") {
+      router.push("/(app)/(shifts)");
+      return;
+    }
+    if (item.type === "booking") {
+      router.push("/(app)/(home)/operations");
+      return;
+    }
+    if (item.type === "note") {
+      router.push("/(app)/(home)/haccp");
+    }
+  };
+
   return (
     <SafeAreaView style={s.container} edges={["top"]}>
       {/* Header */}
@@ -303,6 +322,7 @@ export default function OperationsScreen() {
           return (
             <Pressable
               key={item.id}
+              onPress={() => handleFeedPress(item)}
               style={({ pressed }) => [
                 s.feedCard,
                 isOverdue && s.feedCardOverdue,

@@ -1,8 +1,9 @@
 ---
 title: "ADR-0055: Two-Vault Environment Isolation"
-status: accepted
+status: superseded
+superseded_by: "Deployment Pipeline Spec (2026-04-06) — vault naming decision"
 created: 2026-03-19
-updated: 2026-03-19
+updated: 2026-04-06
 module: infrastructure
 tags: [security, 1password, environments, secrets]
 ---

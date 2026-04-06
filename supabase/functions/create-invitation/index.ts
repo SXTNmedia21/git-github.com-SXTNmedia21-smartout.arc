@@ -64,6 +64,7 @@ async function handleBatchInvites(
     workspace_id: string;
     company_id: string;
     invites: Record<string, unknown>[];
+    skip_dispatch?: boolean;
   },
 ) {
   const { workspace_id, company_id, invites } = body;
@@ -99,10 +100,31 @@ async function handleBatchInvites(
     throw new Error("Failed to create invitations in the database");
   }
 
+  // Dispatch emails unless skip_dispatch is set (CSV import skips dispatch)
+  let dispatched = 0;
+  let dispatchFailed = 0;
+
+  if (!body.skip_dispatch) {
+    const siteUrl = Deno.env.get("SITE_URL") || "https://app.smartout.ai";
+    const dispatchResults = await Promise.allSettled(
+      insertedInvites
+        .filter((inv: { email: string | null }) => inv.email)
+        .map((inv: { email: string; token: string }) => {
+          const inviteUrl = `${siteUrl}/invite/${inv.token}`;
+          return sendEmailInvite(inv.email, inviteUrl, body.workspace_id);
+        }),
+    );
+
+    dispatched = dispatchResults.filter((r) => r.status === "fulfilled").length;
+    dispatchFailed = dispatchResults.filter((r) => r.status === "rejected").length;
+  }
+
   return new Response(
     JSON.stringify({
       success: true,
       count: insertedInvites.length,
+      dispatched,
+      failed: dispatchFailed,
       invitations: insertedInvites,
     }),
     {

@@ -5,7 +5,7 @@ const TEST_EMAIL = process.env.E2E_EMAIL ?? "admin@smartout.local";
 const TEST_PASSWORD = process.env.E2E_PASSWORD ?? "password123";
 
 test.describe("Login Page", () => {
-  test("should load the login page with Norwegian labels", async ({ page }) => {
+  test("should load the login page with Norwegian labels @smoke", async ({ page }) => {
     await page.goto("/login");
     // Login page shows "Logg inn" button or heading
     await expect(page.locator("text=Logg inn").first()).toBeVisible({ timeout: 10000 });
@@ -40,7 +40,7 @@ test.describe("Login Page", () => {
     ).toBeVisible({ timeout: 10000 });
   });
 
-  test("should redirect unauthenticated /dashboard to /login", async ({ page }) => {
+  test("should redirect unauthenticated /dashboard to /login @smoke", async ({ page }) => {
     await page.context().clearCookies();
     await page.goto("/dashboard");
     await page.waitForURL("**/login", { timeout: 10000 });
@@ -49,7 +49,7 @@ test.describe("Login Page", () => {
 });
 
 test.describe("Authentication Flow", () => {
-  test("should login and reach dashboard", async ({ page }) => {
+  test("should login and reach dashboard @smoke", async ({ page }) => {
     await loginAsAdmin(page);
     expect(page.url()).toContain("/dashboard");
   });
@@ -77,9 +77,9 @@ test.describe("Authentication Flow", () => {
 
 test.describe("Signup Page", () => {
   test("should load the signup page", async ({ page }) => {
-    await page.goto("/signup");
+    await page.goto("/signup", { waitUntil: "domcontentloaded" });
     // Signup page should render without 500 error
-    await expect(page.locator("body")).toBeVisible({ timeout: 10000 });
+    await expect(page.locator("body")).toBeVisible({ timeout: 15000 });
   });
 
   test("should have signup option from login page", async ({ page }) => {

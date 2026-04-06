@@ -12,7 +12,11 @@
  */
 
 import { useState, useCallback } from "react";
-import * as Location from "expo-location";
+import { Platform } from "react-native";
+
+// expo-location uses native location APIs unavailable in browsers.
+// On web (beta) we skip GPS validation entirely — guards return "allowed".
+const Location = Platform.OS !== "web" ? require("expo-location") : null;
 
 import { calculateGPSDistance } from "@smartout/shift-clock";
 import type { GPSSnapshot, GPSConfig } from "@smartout/shift-clock";
@@ -39,22 +43,25 @@ export type GPSGuardResult = {
 };
 
 /** High-accuracy position options with a 10-second timeout */
-const LOCATION_OPTIONS: Location.LocationOptions = {
-  accuracy: Location.Accuracy.High,
-  timeInterval: 0,
-  distanceInterval: 0,
-  mayShowUserSettingsDialog: true,
-};
+const LOCATION_OPTIONS = Location
+  ? {
+      accuracy: Location.Accuracy.High,
+      timeInterval: 0,
+      distanceInterval: 0,
+      mayShowUserSettingsDialog: true,
+    }
+  : null;
 
 const POSITION_TIMEOUT_MS = 10_000;
 
 /**
  * Resolves the expo-location PermissionStatus to our simplified tri-state.
  * "undetermined" means the user has not yet been asked.
+ * Only called on native — Location is guaranteed non-null here.
  */
-function mapPermissionStatus(status: Location.PermissionStatus): GPSPermissionStatus {
-  if (status === Location.PermissionStatus.GRANTED) return "granted";
-  if (status === Location.PermissionStatus.DENIED) return "denied";
+function mapPermissionStatus(status: string): GPSPermissionStatus {
+  if (status === Location!.PermissionStatus.GRANTED) return "granted";
+  if (status === Location!.PermissionStatus.DENIED) return "denied";
   return "undetermined";
 }
 
@@ -78,6 +85,10 @@ export function useGPSGuard(): GPSGuardResult {
    * position fetch times out / fails.
    */
   const getPosition = useCallback(async (): Promise<GPSSnapshot | null> => {
+    // Web beta: GPS validation is skipped — callers receive null and should
+    // treat it as "location not required" rather than "location denied".
+    if (Platform.OS === "web") return null;
+
     setIsLoading(true);
     setError(null);
 

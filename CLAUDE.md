@@ -50,7 +50,7 @@ smartout_v3/
 ├── packages/          → agent-sdk, ai (+ adapters/, agents/, capabilities/, context/, engine/, generators/,
 │                        journey/, missions/, prompts/, router/, schemas/, tools/), design-tokens, docs-pipeline,
 │                        eslint-config, i18n, notifications, supabase, telemetry, types, typescript-config,
-│                        ui, utils, walkAi, walkieTalkie
+│                        ui, utils, Botsson, walkieTalkie
 ├── services/          → contract-service (Fastify, 5012), interview-mcp (anchor), scrapling (Python, 8000),
 │                        shift-mcp (Hono, 5011), stage-engine (Hono, 5010)
 ├── infra/             → Unified Docker Compose + Caddy reverse proxy (ADR-0039)
@@ -102,7 +102,7 @@ Never skip this discussion. Undecided schema placement leads to 169-table `publi
 - `profile` has `display_name` only — NOT `first_name`/`last_name`. Identity data (first_name, last_name, email) lives on `user_identity`. Use `display_name` or join: `profile!inner(user_identity(first_name, last_name))`.
 - `engine_memory` — Persistent agent memories with pgvector embeddings. RLS: workspace isolation.
 - `engine_authority_config` — Per-workspace, per-capability authority levels. UNIQUE(workspace_id, capability).
-- Authority defaults should remain aligned across agent routers. Current fallback baseline is `read_only` for both Stage Engine and walkAi mission runner.
+- Authority defaults should remain aligned across agent routers. Current fallback baseline is `read_only` for both Stage Engine and Botsson mission runner.
 - `engine_sessions.mode` — 'mission' (structured stages) or 'agent' (free-form conversation). Agent sessions have NULL mission_id.
 - Completion tracking: `knowledge_test_attempt`, `confirmation_signature`, `procedure_step_completion` — all FK to `protocol_assignment_id` + `profile_id`.
 - Session infrastructure: `session_hook` (hook_type enum), `session_task` (task_status enum), `session_note` (note_type enum). All FK to `department_session`.
@@ -542,7 +542,7 @@ When spawning a worker, always include in the task description:
 | ---------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
 | 2026-03-21 | 10.0.0  | Cascade Core Foundation: I1+6D+4C+K1a/K1b as organizing principle. Source of Truth updated, 7 cascade DB traps, Data Model reorganized by dimension, Domain Concepts + Industry Engine Layer merged into Cascade Core Model section, 7 cascade rules in What NOT To Do | Claude |
 | 2026-03-17 | 9.5.0   | Domain audit: Trainee Mode status-only clarification, Veikart/Reise/Protokoll conceptual-only, Event Engine journey registry clarification, action_type handlers documented, telemetry registry reference added, emit() coverage fix (33 mutations)                    | Claude |
-| 2026-03-17 | 9.4.0   | Audit fix: ports (3060, 5010-5012, 8000), counts (72 enums, 31 EFs, 54 ADRs, 23 modules), onboarding rewrite, added packages (agent-sdk, walkAi, walkieTalkie), organization scope, packages/ai subdirs, integration clarifications                                    | Pontus |
+| 2026-03-17 | 9.4.0   | Audit fix: ports (3060, 5010-5012, 8000), counts (72 enums, 31 EFs, 54 ADRs, 23 modules), onboarding rewrite, added packages (agent-sdk, Botsson, walkieTalkie), organization scope, packages/ai subdirs, integration clarifications                                   | Pontus |
 | 2026-03-17 | 9.3.0   | Code Readability section added to Code Conventions: self-documenting first, comment WHY not WHAT, priority order for naming/comments                                                                                                                                   | Pontus |
 | 2026-03-17 | 9.2.0   | Added commitlint rules to Code Conventions (header/body max 100 chars, types, scope kebab-case)                                                                                                                                                                        | Claude |
 | 2026-03-09 | 9.1.0   | ENV protocol: op run as standard, .env.template as single source of truth, removed .env.local references, added ENV_PROTOCOL.md to protocols table                                                                                                                     | Pontus |

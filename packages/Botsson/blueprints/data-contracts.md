@@ -1,15 +1,15 @@
 ---
-title: "WalkAi Data Contracts"
+title: "Botsson Data Contracts"
 status: draft
 updated: 2026-03-10
 created: 2026-03-10
-module: walkAi
+module: Botsson
 tags: [blueprint, database, types, contracts, schema]
 ---
 
-# WalkAi Data Contracts
+# Botsson Data Contracts
 
-Reference document for all database tables, TypeScript types, enums, RLS patterns, relationships, and constraints that WalkAi depends on.
+Reference document for all database tables, TypeScript types, enums, RLS patterns, relationships, and constraints that Botsson depends on.
 
 > Source of truth: code + migrations. If this doc contradicts code, CODE wins.
 

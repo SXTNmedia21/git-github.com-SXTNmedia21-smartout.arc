@@ -4,11 +4,11 @@
     "subtitle": "Taktisk f\u00f8rsteskjerm for aktiv drift.",
     "no_updates": "Ingen oppdateringer",
     "updated_at": "Oppdatert {time}",
-    "on_duty": "On duty",
+    "on_duty": "På jobb",
     "critical": "Kritisk n\u00e5",
     "monitoring": "Overv\u00e5kning",
     "events": "Hendelser",
-    "on_duty_title": "On-duty progress",
+    "on_duty_title": "Fremdrift på jobb",
     "status_clocked_in": "Innstemplet",
     "status_on_break": "Pause",
     "status_waiting": "Venter",
@@ -56,11 +56,14 @@
     "config_description": "Endre terskelgrenser som brukes i all rapporteringslogikk i SmartOut.",
     "benchmark_prefix": "Referanseverdi: {benchmark}",
     "benchmark_days": "< 7 dager",
-    "target_prefix": "m\u00e5l {target}",
-    "not_available": "Kobles til n\u00e5r data er tilgjengelig"
+    "target_prefix": "mål {target}",
+    "not_available": "Kobles til når data er tilgjengelig"
   },
   "activityDemoWarning": "Aktivitetsdata vises som demo. Kobles til ekte data snart.",
   "activity": {
+    "title": "Aktivitet",
+    "empty": "Ingen aktivitet registrert i dag ennå.",
+    "log_title": "Aktivitetslogg — i dag",
     "coming_soon_title": "Varmekart er under utvikling",
     "coming_soon_description": "Aktivitetsvarmekart, filtre og statistikk er under utvikling. Aktivitetsloggen nedenfor viser sanntidsdata."
   },

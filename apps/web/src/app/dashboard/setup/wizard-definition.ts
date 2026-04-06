@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import type { WizardDefinition } from "@smartout/ui";
 import { createClient } from "@smartout/supabase/client";
+import { invokeEdgeFunction } from "@/lib/supabase-edge-invoke";
 import type { ScrapedIntelligence } from "@/components/dashboard/wizard-steps/wizard-state";
 import type { SetupState } from "./types";
 import { defaultSetupState } from "./types";
@@ -290,7 +291,7 @@ async function onComplete(state: SetupState): Promise<void> {
   }
 
   // 3. Trigger K1b knowledge ingestion (non-blocking)
-  void supabase.functions.invoke("ingest-workspace-knowledge", {
+  void invokeEdgeFunction(supabase, "ingest-workspace-knowledge", {
     body: { workspace_id: state.workspaceId, force: true },
   });
 

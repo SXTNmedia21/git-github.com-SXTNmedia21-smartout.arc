@@ -2,19 +2,19 @@
 title: "Floating Panel Patterns & Architecture"
 status: draft
 updated: 2026-03-10
-module: walkAi
+module: Botsson
 tags: [blueprint, floating, drag, resize, panel]
 ---
 
 # Floating Panel Patterns & Architecture
 
-Reference for building the WalkAi floating multi-purpose panel.
+Reference for building the Botsson floating multi-purpose panel.
 
 ---
 
 ## 1. Panel Modes
 
-WalkAi must support these visual modes, all in the same component:
+Botsson must support these visual modes, all in the same component:
 
 | Mode           | Size                    | Position                     | Use Case                                 |
 | -------------- | ----------------------- | ---------------------------- | ---------------------------------------- |
@@ -143,7 +143,7 @@ const modeVariants = {
 ## 6. Z-Index Strategy
 
 ```typescript
-export const WALKAI_LAYERS = {
+export const Botsson_LAYERS = {
   backdrop: 55, // Semi-transparent overlay (docked/fullscreen)
   panel: 65, // Main floating panel
   dragPreview: 80, // Panel preview during drag
@@ -178,7 +178,7 @@ export const WALKAI_LAYERS = {
 ## 9. State Management
 
 ```typescript
-type WalkAiPanelState = {
+type BotssonPanelState = {
   mode: "minimized" | "compact" | "expanded" | "docked" | "fullscreen";
   activeTab: "chat" | "voice" | "notes" | "tasks" | "video";
   position: { x: number; y: number };
@@ -194,21 +194,21 @@ type WalkAiPanelState = {
 ## 10. Component Architecture
 
 ```
-<WalkAiPortal>                    <- createPortal to document.body
-  <WalkAiBackdrop />              <- Only in docked/fullscreen mode
+<BotssonPortal>                    <- createPortal to document.body
+  <BotssonBackdrop />              <- Only in docked/fullscreen mode
   <motion.div layout>             <- Main container with mode variants
-    <WalkAiDragHandle />          <- Top bar, visible in compact/expanded
-    <WalkAiHeader />              <- Title, tabs, mode controls (min/max/close)
-    <WalkAiContent>               <- Tab content area
+    <BotssonDragHandle />          <- Top bar, visible in compact/expanded
+    <BotssonHeader />              <- Title, tabs, mode controls (min/max/close)
+    <BotssonContent>               <- Tab content area
       <ChatView />                <- Message bubbles, input
       <VoiceView />               <- Visualizer, mic, subtitles
       <NotesView />               <- Rich text editor
       <TasksView />               <- Checklist from stages
       <VideoView />               <- Video player
-    </WalkAiContent>
-    <WalkAiResizeHandles />       <- 8 edge/corner handles (compact/expanded only)
+    </BotssonContent>
+    <BotssonResizeHandles />       <- 8 edge/corner handles (compact/expanded only)
   </motion.div>
-</WalkAiPortal>
+</BotssonPortal>
 ```
 
 ---
@@ -230,7 +230,7 @@ May need:
 
 ## 12. Existing Code to Extract
 
-Priority order for building WalkAi panel:
+Priority order for building Botsson panel:
 
 1. **BotssonAvatar** -- Minimized mode template (drag, visualizer, status)
 2. **VoiceAssistant (web)** -- Chat view template (bubbles, transcript, controls)

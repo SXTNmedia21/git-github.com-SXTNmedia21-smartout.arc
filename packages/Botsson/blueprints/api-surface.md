@@ -1,21 +1,21 @@
 ---
-title: "WalkAi Blueprint — API Surface"
+title: "Botsson Blueprint — API Surface"
 status: draft
 updated: 2026-03-10
 created: 2026-03-10
-module: walkAi
-tags: [blueprint, api, stage-engine, mcp, walkAi]
+module: Botsson
+tags: [blueprint, api, stage-engine, mcp, Botsson]
 ---
 
-# WalkAi Blueprint — API Surface
+# Botsson Blueprint — API Surface
 
-Complete inventory of every API endpoint, WebSocket connection, and MCP tool that WalkAi interacts with. Organized by service.
+Complete inventory of every API endpoint, WebSocket connection, and MCP tool that Botsson interacts with. Organized by service.
 
 ---
 
 ## 1. Stage Engine API (`services/stage-engine/`, port 3000)
 
-The Stage Engine is WalkAi's primary runtime — it manages sessions, stages, data collection, and agent conversations.
+The Stage Engine is Botsson's primary runtime — it manages sessions, stages, data collection, and agent conversations.
 
 ### 1.1 Authentication
 
@@ -46,11 +46,11 @@ type AuthContext = {
 
 Health check. No auth required.
 
-| Field           | Value                                                                    |
-| --------------- | ------------------------------------------------------------------------ |
-| Auth            | None                                                                     |
-| Response        | `{ status: "ok", service: "stage-engine", version: "0.1.0", timestamp }` |
-| WalkAi consumer | Monitoring / connectivity check                                          |
+| Field            | Value                                                                    |
+| ---------------- | ------------------------------------------------------------------------ |
+| Auth             | None                                                                     |
+| Response         | `{ status: "ok", service: "stage-engine", version: "0.1.0", timestamp }` |
+| Botsson consumer | Monitoring / connectivity check                                          |
 
 ---
 
@@ -58,13 +58,13 @@ Health check. No auth required.
 
 Create a new mission-mode session (structured stages).
 
-| Field           | Value                                                            |
-| --------------- | ---------------------------------------------------------------- |
-| Auth            | API key or JWT                                                   |
-| Request body    | See schema below                                                 |
-| Response        | `{ session_id, status, current_stage, progress, system_prompt }` |
-| Error 404       | Mission not found or inactive                                    |
-| WalkAi consumer | **SessionManager** — starts a structured journey                 |
+| Field            | Value                                                            |
+| ---------------- | ---------------------------------------------------------------- |
+| Auth             | API key or JWT                                                   |
+| Request body     | See schema below                                                 |
+| Response         | `{ session_id, status, current_stage, progress, system_prompt }` |
+| Error 404        | Mission not found or inactive                                    |
+| Botsson consumer | **SessionManager** — starts a structured journey                 |
 
 **Request schema:**
 
@@ -104,13 +104,13 @@ Create a new mission-mode session (structured stages).
 
 Get session status and current state.
 
-| Field           | Value                                    |
-| --------------- | ---------------------------------------- |
-| Auth            | API key or JWT (workspace-scoped)        |
-| Response        | Session details                          |
-| Error 404       | Session not found                        |
-| Error 403       | Workspace mismatch                       |
-| WalkAi consumer | **SessionManager** — polls session state |
+| Field            | Value                                    |
+| ---------------- | ---------------------------------------- |
+| Auth             | API key or JWT (workspace-scoped)        |
+| Response         | Session details                          |
+| Error 404        | Session not found                        |
+| Error 403        | Workspace mismatch                       |
+| Botsson consumer | **SessionManager** — polls session state |
 
 **Response shape:**
 
@@ -135,12 +135,12 @@ Get session status and current state.
 
 Abandon an active session.
 
-| Field           | Value                                       |
-| --------------- | ------------------------------------------- |
-| Auth            | API key or JWT                              |
-| Response        | `{ session_id, status: "abandoned" }`       |
-| Error 409       | Session already completed/abandoned         |
-| WalkAi consumer | **SessionManager** — user exits mid-journey |
+| Field            | Value                                       |
+| ---------------- | ------------------------------------------- |
+| Auth             | API key or JWT                              |
+| Response         | `{ session_id, status: "abandoned" }`       |
+| Error 409        | Session already completed/abandoned         |
+| Botsson consumer | **SessionManager** — user exits mid-journey |
 
 **Webhook fired:** `session.abandoned` to `callback_url` with `collected_data`.
 
@@ -152,10 +152,10 @@ Abandon an active session.
 
 Advance session to the next stage.
 
-| Field           | Value                                                   |
-| --------------- | ------------------------------------------------------- |
-| Auth            | API key or JWT                                          |
-| WalkAi consumer | **StageController** — progresses through journey stages |
+| Field            | Value                                                   |
+| ---------------- | ------------------------------------------------------- |
+| Auth             | API key or JWT                                          |
+| Botsson consumer | **StageController** — progresses through journey stages |
 
 **Request schema:**
 
@@ -191,10 +191,10 @@ Advance session to the next stage.
 
 Agent stores collected data to the engine inbox.
 
-| Field           | Value                                                          |
-| --------------- | -------------------------------------------------------------- |
-| Auth            | API key or JWT                                                 |
-| WalkAi consumer | **DataCollector** — persists data gathered during conversation |
+| Field            | Value                                                          |
+| ---------------- | -------------------------------------------------------------- |
+| Auth             | API key or JWT                                                 |
+| Botsson consumer | **DataCollector** — persists data gathered during conversation |
 
 **Request schema:**
 
@@ -227,10 +227,10 @@ Agent stores collected data to the engine inbox.
 
 Agent requests context or previously stored data.
 
-| Field           | Value                                                    |
-| --------------- | -------------------------------------------------------- |
-| Auth            | API key or JWT                                           |
-| WalkAi consumer | **ContextProvider** — retrieves data for agent reasoning |
+| Field            | Value                                                    |
+| ---------------- | -------------------------------------------------------- |
+| Auth             | API key or JWT                                           |
+| Botsson consumer | **ContextProvider** — retrieves data for agent reasoning |
 
 **Request schema:**
 
@@ -263,10 +263,10 @@ Agent requests context or previously stored data.
 
 Main endpoint for agent-mode conversations (non-mission, free-form).
 
-| Field           | Value                                                        |
-| --------------- | ------------------------------------------------------------ |
-| Auth            | API key or JWT                                               |
-| WalkAi consumer | **AgentRouter** — free-form conversation with intent routing |
+| Field            | Value                                                        |
+| ---------------- | ------------------------------------------------------------ |
+| Auth             | API key or JWT                                               |
+| Botsson consumer | **AgentRouter** — free-form conversation with intent routing |
 
 **Request schema:**
 
@@ -307,10 +307,10 @@ All Ultravox endpoints wrap core Stage Engine operations for voice call integrat
 
 Creates an Ultravox WebRTC voice call with Stage Engine tools pre-configured.
 
-| Field           | Value                                       |
-| --------------- | ------------------------------------------- |
-| Auth            | API key or JWT                              |
-| WalkAi consumer | **VoiceManager** — initiates voice sessions |
+| Field            | Value                                       |
+| ---------------- | ------------------------------------------- |
+| Auth             | API key or JWT                              |
+| Botsson consumer | **VoiceManager** — initiates voice sessions |
 
 **Request schema:**
 
@@ -346,12 +346,12 @@ Creates an Ultravox WebRTC voice call with Stage Engine tools pre-configured.
 
 Ultravox tool wrapper for data storage. Returns plain text (Ultravox tool result format).
 
-| Field           | Value                                                    |
-| --------------- | -------------------------------------------------------- |
-| Auth            | API key or JWT                                           |
-| Request         | `{ entity_type: string, data: Record<string, unknown> }` |
-| Response        | Plain text: `"Stored {entity_type} successfully..."`     |
-| WalkAi consumer | **VoiceDataCollector** — voice agent stores data         |
+| Field            | Value                                                    |
+| ---------------- | -------------------------------------------------------- |
+| Auth             | API key or JWT                                           |
+| Request          | `{ entity_type: string, data: Record<string, unknown> }` |
+| Response         | Plain text: `"Stored {entity_type} successfully..."`     |
+| Botsson consumer | **VoiceDataCollector** — voice agent stores data         |
 
 ---
 
@@ -359,12 +359,12 @@ Ultravox tool wrapper for data storage. Returns plain text (Ultravox tool result
 
 Ultravox tool wrapper for data retrieval. Returns JSON as plain text.
 
-| Field           | Value                         |
-| --------------- | ----------------------------- | ------- | ------- | ------------ |
-| Auth            | API key or JWT                |
-| Request         | `{ query_type: "context"      | "inbox" | "stage" | "history" }` |
-| Response        | Plain text (JSON stringified) |
-| WalkAi consumer | **VoiceContextProvider**      |
+| Field            | Value                         |
+| ---------------- | ----------------------------- | ------- | ------- | ------------ |
+| Auth             | API key or JWT                |
+| Request          | `{ query_type: "context"      | "inbox" | "stage" | "history" }` |
+| Response         | Plain text (JSON stringified) |
+| Botsson consumer | **VoiceContextProvider**      |
 
 ---
 
@@ -372,11 +372,11 @@ Ultravox tool wrapper for data retrieval. Returns JSON as plain text.
 
 Advances to next stage. Returns Ultravox new-stage response with `X-Ultravox-Response-Type: new-stage` header for seamless voice transitions.
 
-| Field           | Value                                                          |
-| --------------- | -------------------------------------------------------------- |
-| Auth            | API key or JWT                                                 |
-| Request         | `{ result?: Record<string, unknown>, next_stage_id?: string }` |
-| WalkAi consumer | **VoiceStageController**                                       |
+| Field            | Value                                                          |
+| ---------------- | -------------------------------------------------------------- |
+| Auth             | API key or JWT                                                 |
+| Request          | `{ result?: Record<string, unknown>, next_stage_id?: string }` |
+| Botsson consumer | **VoiceStageController**                                       |
 
 **Response (not complete):**
 
@@ -402,11 +402,11 @@ Advances to next stage. Returns Ultravox new-stage response with `X-Ultravox-Res
 
 Bidirectional real-time communication between agent and frontend UI.
 
-| Field           | Value                                                          |
-| --------------- | -------------------------------------------------------------- |
-| URL             | `ws://<host>:3000/ws/:sessionId?token=<jwt>`                   |
-| Auth            | JWT as `?token=` query param, validated on connect             |
-| WalkAi consumer | **RealtimeBridge** — live UI commands and user action tracking |
+| Field            | Value                                                          |
+| ---------------- | -------------------------------------------------------------- |
+| URL              | `ws://<host>:3000/ws/:sessionId?token=<jwt>`                   |
+| Auth             | JWT as `?token=` query param, validated on connect             |
+| Botsson consumer | **RealtimeBridge** — live UI commands and user action tracking |
 
 **Connection lifecycle:**
 
@@ -479,11 +479,11 @@ Three message types, discriminated by `type` field:
 
 Dashboard monitoring and control of active agent sessions.
 
-| Field           | Value                                                              |
-| --------------- | ------------------------------------------------------------------ |
-| URL             | `ws://<host>:3000/guardian/ws?token=<jwt>`                         |
-| Auth            | JWT as `?token=` query param. Must be **admin** or **owner** role. |
-| WalkAi consumer | **GuardianDashboard** — real-time session monitoring               |
+| Field            | Value                                                              |
+| ---------------- | ------------------------------------------------------------------ |
+| URL              | `ws://<host>:3000/guardian/ws?token=<jwt>`                         |
+| Auth             | JWT as `?token=` query param. Must be **admin** or **owner** role. |
+| Botsson consumer | **GuardianDashboard** — real-time session monitoring               |
 
 **Close codes:**
 | Code | Meaning |
@@ -548,9 +548,9 @@ Dashboard monitoring and control of active agent sessions.
 
 Hosted at `https://intervju-mcp.vercel.app`. Optional session tracking service.
 
-| Field           | Value                                                      |
-| --------------- | ---------------------------------------------------------- |
-| WalkAi consumer | **VoiceSessionTracker** — logs voice conversation sessions |
+| Field            | Value                                                      |
+| ---------------- | ---------------------------------------------------------- |
+| Botsson consumer | **VoiceSessionTracker** — logs voice conversation sessions |
 
 ### 3.1 Endpoints
 
@@ -598,10 +598,10 @@ All Edge Functions are invoked via `POST https://<supabase-url>/functions/v1/<fu
 
 Universal workflow engine dispatcher. Receives events, matches triggers, creates engine_state instances, and executes steps.
 
-| Field           | Value                                               |
-| --------------- | --------------------------------------------------- |
-| Auth            | Service role key (JWT)                              |
-| WalkAi consumer | **WorkflowEngine** — drives all automated workflows |
+| Field            | Value                                               |
+| ---------------- | --------------------------------------------------- |
+| Auth             | Service role key (JWT)                              |
+| Botsson consumer | **WorkflowEngine** — drives all automated workflows |
 
 **Request:**
 
@@ -639,10 +639,10 @@ Universal workflow engine dispatcher. Receives events, matches triggers, creates
 
 Multi-phase intelligence pipeline: scrapes website, queries Brreg, Google Places, web search, and provisions workspace.
 
-| Field           | Value                                                                            |
-| --------------- | -------------------------------------------------------------------------------- |
-| Auth            | JWT (optional — unauthenticated callers get data without workspace provisioning) |
-| WalkAi consumer | **OnboardingIntelligence** — automated company discovery                         |
+| Field            | Value                                                                            |
+| ---------------- | -------------------------------------------------------------------------------- |
+| Auth             | JWT (optional — unauthenticated callers get data without workspace provisioning) |
+| Botsson consumer | **OnboardingIntelligence** — automated company discovery                         |
 
 **Request:**
 
@@ -696,10 +696,10 @@ Multi-phase intelligence pipeline: scrapes website, queries Brreg, Google Places
 
 Downloads uploaded documents, extracts text/images via Scrapling, then analyzes with Claude for structured workplace data.
 
-| Field           | Value                                                                            |
-| --------------- | -------------------------------------------------------------------------------- |
-| Auth            | JWT (Authorization header required)                                              |
-| WalkAi consumer | **DocumentAnalyzer** — extracts policies, employees, shift patterns from uploads |
+| Field            | Value                                                                            |
+| ---------------- | -------------------------------------------------------------------------------- |
+| Auth             | JWT (Authorization header required)                                              |
+| Botsson consumer | **DocumentAnalyzer** — extracts policies, employees, shift patterns from uploads |
 
 **Request:**
 
@@ -738,10 +738,10 @@ Downloads uploaded documents, extracts text/images via Scrapling, then analyzes 
 
 AI analysis of scraped + web search data to suggest workspace configuration. Currently uses mock data (Claude integration placeholder).
 
-| Field           | Value                                                          |
-| --------------- | -------------------------------------------------------------- |
-| Auth            | JWT (user context)                                             |
-| WalkAi consumer | **WorkspaceConfigurator** — suggests departments, teams, zones |
+| Field            | Value                                                          |
+| ---------------- | -------------------------------------------------------------- |
+| Auth             | JWT (user context)                                             |
+| Botsson consumer | **WorkspaceConfigurator** — suggests departments, teams, zones |
 
 **Request:**
 
@@ -776,10 +776,10 @@ AI analysis of scraped + web search data to suggest workspace configuration. Cur
 
 Searches the web for company information using Serper API (Google search + news).
 
-| Field           | Value                                                                   |
-| --------------- | ----------------------------------------------------------------------- |
-| Auth            | Service role key (called internally by `gather-workspace-intelligence`) |
-| WalkAi consumer | **WebSearchProvider** — company reputation and contact data             |
+| Field            | Value                                                                   |
+| ---------------- | ----------------------------------------------------------------------- |
+| Auth             | Service role key (called internally by `gather-workspace-intelligence`) |
+| Botsson consumer | **WebSearchProvider** — company reputation and contact data             |
 
 **Request:**
 
@@ -813,10 +813,10 @@ Searches the web for company information using Serper API (Google search + news)
 
 Scrapes a URL via Scrapling and provisions a workspace with extracted data.
 
-| Field           | Value                                       |
-| --------------- | ------------------------------------------- |
-| Auth            | JWT (user must be authenticated)            |
-| WalkAi consumer | **QuickSetup** — one-URL workspace creation |
+| Field            | Value                                       |
+| ---------------- | ------------------------------------------- |
+| Auth             | JWT (user must be authenticated)            |
+| Botsson consumer | **QuickSetup** — one-URL workspace creation |
 
 **Request:**
 
@@ -843,10 +843,10 @@ Scrapes a URL via Scrapling and provisions a workspace with extracted data.
 
 Cron function (every 3 days). Generates contextual coaching questions for leaders using Claude Haiku.
 
-| Field           | Value                                                      |
-| --------------- | ---------------------------------------------------------- |
-| Auth            | `WATCHDOG_CRON_SECRET` bearer token                        |
-| WalkAi consumer | **ProactiveCoach** — generates leader reflection questions |
+| Field            | Value                                                      |
+| ---------------- | ---------------------------------------------------------- |
+| Auth             | `WATCHDOG_CRON_SECRET` bearer token                        |
+| Botsson consumer | **ProactiveCoach** — generates leader reflection questions |
 
 **Response:**
 
@@ -867,10 +867,10 @@ Cron function (every 3 days). Generates contextual coaching questions for leader
 
 Admin REST API for managing Guardian signals (acknowledge, resolve, dismiss).
 
-| Field           | Value                                             |
-| --------------- | ------------------------------------------------- |
-| Auth            | JWT (must be admin/owner in signal's workspace)   |
-| WalkAi consumer | **GuardianManager** — signal lifecycle management |
+| Field            | Value                                             |
+| ---------------- | ------------------------------------------------- |
+| Auth             | JWT (must be admin/owner in signal's workspace)   |
+| Botsson consumer | **GuardianManager** — signal lifecycle management |
 
 **Request:**
 

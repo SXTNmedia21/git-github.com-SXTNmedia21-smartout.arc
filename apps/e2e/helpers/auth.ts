@@ -24,7 +24,8 @@ async function dismissDevOverlay(page: Page): Promise<void> {
  */
 async function skipOnboardingIfPresent(page: Page): Promise<void> {
   const skipBtn = page.getByRole("button", { name: "Hopp over og gå til dashboard" });
-  const setupHeading = page.getByText("Oppsett av arbeidsrom").first();
+  // Detect setup wizard by either the skip button or being on /dashboard/setup
+  const isOnSetup = () => page.url().includes("/dashboard/setup");
 
   for (let attempt = 0; attempt < 8; attempt += 1) {
     const skipVisible = await skipBtn.isVisible({ timeout: 1000 }).catch(() => false);
@@ -36,18 +37,14 @@ async function skipOnboardingIfPresent(page: Page): Promise<void> {
       continue;
     }
 
-    const setupVisible = await setupHeading.isVisible({ timeout: 500 }).catch(() => false);
-    if (!setupVisible) {
+    if (!isOnSetup()) {
       return;
     }
 
     await page.waitForTimeout(1000);
   }
 
-  if (
-    (await skipBtn.isVisible({ timeout: 500 }).catch(() => false)) ||
-    (await setupHeading.isVisible({ timeout: 500 }).catch(() => false))
-  ) {
+  if ((await skipBtn.isVisible({ timeout: 500 }).catch(() => false)) || isOnSetup()) {
     throw new Error(`E2E login remained on onboarding flow: ${page.url()}`);
   }
 }

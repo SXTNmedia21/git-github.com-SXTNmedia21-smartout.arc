@@ -1,7 +1,7 @@
 ---
 title: Session Log
 status: in_progress
-updated: 2026-03-29
+updated: 2026-04-06
 created: 2026-03-02
 module: meta
 tags: [session, continuity]
@@ -9,72 +9,45 @@ tags: [session, continuity]
 
 ## Last Session
 
-| Field   | Value         |
-| ------- | ------------- |
-| Date    | 2026-03-29    |
-| Branch  | `development` |
-| Feature | development   |
-| Status  | in_progress   |
+| Field   | Value                     |
+| ------- | ------------------------- |
+| Date    | 2026-04-07                |
+| Branch  | `feat/invitation-rls-fix` |
+| Feature | invitation-rls-fix        |
+| Status  | in_progress               |
 
 ### What was done
 
-**Massive session — two major features + extensive bug fixing:**
-
-#### 1. WizardShell + WalkAi Integration (COMPLETE)
-
-- Spec + 2x council + plan + council + subagent-driven implementation + merge
-- 22 commits, 70 files, +1997/-6477 lines (netto -4480)
-- ADR-0070: Emma-Wizard Bridge pattern
-- 14 tool builder files (9 setup + 5 onboarding)
-- Deleted legacy Botsson (1076 lines) + scroll-based onboarding (30 files)
-- useEntityDrawer made optional — WalkAiProvider works outside DashboardShell
-- Branch: feat/wizardshell-walkai-integration (wt-1, merged)
-
-#### 2. Mobile Group Call — Expanded UI + Video (COMPLETE)
-
-- Spec + council + plan + council + subagent implementation + merge
-- 5 new components: CallSheet, ParticipantGrid, ParticipantTile, CallControls, useCallTracks
-- LiveKit wired into chat [id].tsx — phone button starts group call
-- Old (komm) route deleted, VideoCallOverlay mock replaced with real LiveKit
-- Native module lazy-import for Expo web compat
-- Chat schema already migrated (chat\_\* → channel)
-
-#### 3. Duty Leader / Ring Sjefen
-
-- Added duty_leader_id to department_session (migration)
-- useDutyLeader hook on mobile reads active session → leader phone
-- DuringShiftView Ring leder button now calls on-duty leader
-- Dashboard OversiktTab wired: Duty Manager dropdown writes to DB
-
-#### 4. Schedule Fixes
-
-- Shift modal time inputs: type=time → type=text for 24h format (Chrome Windows)
-- Rullerende button hidden (not implemented)
-- Individual shifts in weekly view (was summary, now shows each shift)
-- Absence filter no longer hides all shifts
-
-#### 5. Edge Function Fixes
-
-- call-command + livekit-token: is_active → status filter
-- Detailed error messages in call-command for debugging
-- LiveKit env vars in supabase/.env.local
+- Full plan portfolio review: 33 plans audited against codebase
+- Moved 21 completed plans to `docs/superpowers/plans/completed/` (73 total)
+- Ran System Council on all 11 remaining plans (3 batches, 11 parallel agents)
+- Verified 2 unmerged branches — both BLOCKED (telemetry: breaks workspace_setup engine_process, telegram: duplicate migration + stale registry)
+- Deep security audit on invitation-flow-core-fixes: USING(true) policy confirmed 100% vulnerable
+- Started `feat/invitation-rls-fix` in wt-11
 
 ### Where we stopped
 
-- 138 uncommitted files on development (from other branches, not this session)
-- wt-1 still has wizardshell branch (can be cleaned up)
-- wt-2 still has mobile-group-call branch (can be cleaned up)
+- wt-11 created, ready for implementation
+- Plan: `docs/superpowers/plans/2026-03-27-invitation-flow-core-fixes.md`
+- Council conditions: add emit() calls, replace hardcoded colors with tokens, i18n keys, Nordic Split login gate pattern
 
 ### Known blockers / errors
 
-- LiveKit video only works on native (iOS/Android), not Expo web preview (by design)
-- useLiveKitCall.connect() doesn't auto-enable camera for video_policy=default_on (follow-up)
-- Hardcoded hex colors in mobile call components (logged as debt)
-- No emit() in mobile call components (parent hooks handle telemetry)
+- telemetry-botsson-reactive: DO NOT MERGE — workspace_setup engine_process depends on wizard events in engine_event
+- telegram-walkai-adapter: DO NOT MERGE — duplicate migration + 19 missing telemetry events
+- swipe-task-review: REJECTED — all walkAi paths wrong (renamed to Botsson)
+- infra-prod-alignment: Droplet path wrong (`/opt/smartout/` → `~/dev/smartout.ai/`)
 
 ### Pending decisions
 
-- [ ] Clean up wt-1 and wt-2 worktrees
-- [ ] Test LiveKit calls on real device (native) vs web preview
-- [ ] Add GroupCallBanner to mobile channel list (incoming call notification)
-- [ ] Implement reduced motion check in call components (accessibility)
+- [ ] Fix telemetry branch: keep engine_event routing or migrate engine_process?
+- [ ] Fix telegram branch: rebase on development
+- [ ] Rewrite swipe-task-review with Botsson paths
+- contract-service Dockerfile still broken (separate PR, not in this plan)
+- All worktrees wt-1 through wt-9 occupied (5 are stale/merget)
+
+### Pending decisions
+
+- [ ] 1Password Service Account setup (manual, 1Password Admin Console)
+- [ ] Verify Supabase Branch DB supports vault/pgsodium (Task 8)
+- [ ] Choose execution approach: subagent-driven or inline

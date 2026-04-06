@@ -14,6 +14,22 @@
     "playwright": {
       "command": "npx",
       "args": ["@playwright/mcp@latest"]
+    },
+    "n8n": {
+      "command": "npx",
+      "args": ["@n8n/mcp-server"],
+      "env": {
+        "N8N_HOST": "${N8N_HOST}",
+        "N8N_BASIC_AUTH_USER": "${N8N_BASIC_AUTH_USER}",
+        "N8N_BASIC_AUTH_PASSWORD": "${N8N_BASIC_AUTH_PASSWORD}"
+      }
+    },
+    "sentry": {
+      "command": "npx",
+      "args": ["@sentry/mcp-server"],
+      "env": {
+        "SENTRY_AUTH_TOKEN": "${SENTRY_AUTH_TOKEN}"
+      }
     }
   },
   "enableAllProjectMcpServers": true

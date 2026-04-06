@@ -228,7 +228,10 @@ test.describe("Invitation Accept Page", () => {
   test("should show error for invalid token", async ({ page }) => {
     await page.goto("/invite/00000000-0000-0000-0000-000000000000");
     await expect(
-      page.locator("text=Invitation not found").or(page.locator("text=not found")),
+      page
+        .locator("text=Invitasjonen ble ikke funnet")
+        .or(page.locator("text=Invitation not found"))
+        .or(page.locator("text=ikke funnet")),
     ).toBeVisible({ timeout: 10000 });
   });
 

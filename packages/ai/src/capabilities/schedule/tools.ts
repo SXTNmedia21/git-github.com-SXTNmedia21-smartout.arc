@@ -7,7 +7,6 @@
 import { z } from "zod";
 import { defineTool } from "../../types.js";
 import type { AgentToolContext } from "../types.js";
-import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
  * Get the current employee's upcoming shifts for the next N days.
@@ -28,7 +27,7 @@ export const getMyShifts = defineTool({
       .describe("Number of days to look ahead (default: 7)"),
   }),
   execute: async (params, ctx: AgentToolContext) => {
-    const supabase = ctx.supabaseAdmin as SupabaseClient;
+    const supabase = ctx.supabaseAdmin;
     const now = new Date().toISOString();
     const until = new Date(Date.now() + params.days * 86400000).toISOString();
 
@@ -61,7 +60,7 @@ export const getShiftColleagues = defineTool({
     shift_id: z.string().uuid().describe("The shift ID to check colleagues for"),
   }),
   execute: async (params, ctx: AgentToolContext) => {
-    const supabase = ctx.supabaseAdmin as SupabaseClient;
+    const supabase = ctx.supabaseAdmin;
 
     // First get the target shift's time and department
     const { data: shift, error: shiftError } = await supabase
@@ -105,7 +104,7 @@ export const getTodaySchedule = defineTool({
       .describe("Department ID. If omitted, uses the employee's primary department."),
   }),
   execute: async (params, ctx: AgentToolContext) => {
-    const supabase = ctx.supabaseAdmin as SupabaseClient;
+    const supabase = ctx.supabaseAdmin;
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
     const todayEnd = new Date();
@@ -151,7 +150,7 @@ export const getShiftDetail = defineTool({
     shift_id: z.string().uuid().describe("The shift ID to get details for"),
   }),
   execute: async (params, ctx: AgentToolContext) => {
-    const supabase = ctx.supabaseAdmin as SupabaseClient;
+    const supabase = ctx.supabaseAdmin;
 
     const { data, error } = await supabase
       .from("schedule_shift")
