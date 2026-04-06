@@ -134,7 +134,9 @@ export default function HaccpScreen() {
           temperature: unit.temperature,
           unit: unit.name,
           is_within_range: isWithinRange,
-          corrective_action: isWithinRange ? null : `Temperaturavvik: ${(unit.temperature - unit.threshold).toFixed(1)}°C over grense`,
+          corrective_action: isWithinRange
+            ? null
+            : `Temperaturavvik: ${(unit.temperature - unit.threshold).toFixed(1)}°C over grense`,
           session_id: null,
           profile_id: profile.profile_id,
           workspace_id: profile.workspace_id,
