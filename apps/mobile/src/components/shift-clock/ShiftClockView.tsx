@@ -54,18 +54,19 @@ export function ShiftClockView() {
 
   // Derive break state from the server-side breaks array so it survives app backgrounding.
   // A break is active when the most recent break entry has a start but no end.
-  const isOnBreak =
-    currentTimeEntry?.breaks?.some(
-      (b: { start: string; end: string | null }) => b.start && !b.end,
-    ) ?? false;
+  const breaksArray = Array.isArray(currentTimeEntry?.breaks)
+    ? (currentTimeEntry.breaks as Array<{ start: string; end: string | null }>)
+    : [];
+  const isOnBreak = breaksArray.some((b) => b.start && !b.end);
 
   // Load supplements for the active shift — empty strings disable the queries gracefully
   const shiftId = activeShift?.schedule_shift_id ?? "";
   const workspaceId = profile?.workspace_id ?? "";
-  const { options: supplementOptions, claims: supplementClaims, claimSupplement } = useSupplements(
-    shiftId,
-    workspaceId,
-  );
+  const {
+    options: supplementOptions,
+    claims: supplementClaims,
+    claimSupplement,
+  } = useSupplements(shiftId, workspaceId);
 
   // Local view phase — drives which child renders
   const [viewPhase, setViewPhase] = useState<ShiftClockPhase>("idle");
@@ -167,7 +168,7 @@ export function ShiftClockView() {
         <ShiftClockSummary
           punchInTime={currentTimeEntry?.punch_in ?? new Date().toISOString()}
           punchOutTime={capturedPunchOut ?? new Date().toISOString()}
-          breaks={currentTimeEntry?.breaks ?? []}
+          breaks={breaksArray}
           claimedSupplements={supplementClaims.map((c) => ({
             id: c.manual_supplement_id,
             description: c.comment ?? "",
