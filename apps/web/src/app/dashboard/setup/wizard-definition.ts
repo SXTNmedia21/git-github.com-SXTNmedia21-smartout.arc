@@ -157,14 +157,14 @@ async function loadState(): Promise<Partial<SetupState>> {
       .eq("workspace_id", workspaceId)
       .eq("is_active", true),
     supabase
-      .from("schedule_shift")
+      .from("schedule_template")
       .select("*", { count: "exact", head: true })
       .eq("workspace_id", workspaceId),
     supabase
       .from("season")
       .select("*", { count: "exact", head: true })
       .eq("workspace_id", workspaceId)
-      .eq("status", "active"),
+      .in("status", ["draft", "active"]),
   ]);
 
   const moduleComplete: Record<string, boolean> = {
