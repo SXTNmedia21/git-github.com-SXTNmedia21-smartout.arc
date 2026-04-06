@@ -14285,6 +14285,7 @@ export type Database = {
           visibility_scope: Database["public"]["Enums"]["channel_message_visibility"]
         }[]
       }
+      get_invitation_by_token: { Args: { p_token: string }; Returns: Json }
       get_my_channels: {
         Args: { p_workspace_id: string }
         Returns: {

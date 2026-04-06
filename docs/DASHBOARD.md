@@ -1,7 +1,7 @@
 ---
 title: Development Dashboard
 status: in_progress
-updated: 2026-03-29
+updated: 2026-04-07
 created: 2026-03-02
 module: meta
 tags: [dashboard, worktrees, tracking]
@@ -13,14 +13,18 @@ tags: [dashboard, worktrees, tracking]
 
 ## Active Worktrees
 
-| #    | Branch                                | Module         | Status      | Progress                          | Blockers | Health |
-| ---- | ------------------------------------- | -------------- | ----------- | --------------------------------- | -------- | ------ |
-| wt-1 | `feat/wizardshell-walkai-integration` | wizard         | done        | 22 commits, merged to development | —        | clean  |
-| wt-2 | `feat/mobile-group-call`              | communications | in_progress | just started                      | —        | clean  |
-| wt-3 | `feat/dashboard-filters`              | dashboard      | in_progress | just started                      | —        | clean  |
-| wt-4 | `feat/training-agent-pipeline`        | training       | in_progress | just started — WS-2 Module Zero   | —        | clean  |
-| wt-5 | —                                     | —              | free        | —                                 | —        | —      |
-| wt-7 | `feat/dynamic-landing-engine`         | landing        | paused      | just started                      | —        | clean  |
+| #     | Branch                                | Module         | Status      | Progress                          | Blockers | Health |
+| ----- | ------------------------------------- | -------------- | ----------- | --------------------------------- | -------- | ------ |
+| wt-1  | `feat/wizardshell-walkai-integration` | wizard         | done        | 22 commits, merged to development | —        | clean  |
+| wt-2  | `feat/mobile-group-call`              | communications | in_progress | just started                      | —        | clean  |
+| wt-3  | `feat/dashboard-filters`              | dashboard      | paused      | just started                      | —        | clean  |
+| wt-4  | `feat/training-agent-pipeline`        | training       | in_progress | just started — WS-2 Module Zero   | —        | clean  |
+| wt-5  | —                                     | —              | free        | —                                 | —        | —      |
+| wt-7  | `feat/dynamic-landing-engine`         | landing        | paused      | just started                      | —        | clean  |
+| wt-8  | —                                     | —              | free        | —                                 | —        | —      |
+| wt-9  | —                                     | —              | free        | —                                 | —        | —      |
+| wt-10 | `feat/deployment-pipeline`            | infra          | in_progress | just started                      | —        | clean  |
+| wt-11 | —                                     | —              | free        | —                                 | —        | —      |
 
 ## Parked Branches (no worktree)
 
@@ -41,7 +45,7 @@ tags: [dashboard, worktrees, tracking]
 | wt-7  | no — `feat/dynamic-landing-engine`                                 |
 | wt-8  | yes                                                                |
 | wt-9  | yes                                                                |
-| wt-10 | yes                                                                |
+| wt-10 | no — `feat/deployment-pipeline`                                    |
 | wt-11 | yes                                                                |
 | wt-12 | yes                                                                |
 | wt-13 | yes                                                                |
@@ -57,11 +61,18 @@ tags: [dashboard, worktrees, tracking]
 | wt-3     | dashboard-filters       | `docs/journeys/JOURNEY-dashboard-filters.md`       | missing |
 | wt-7     | dynamic-landing-engine  | `docs/journeys/JOURNEY-dynamic-landing-engine.md`  | missing |
 | wt-2     | mobile-group-call       | `docs/journeys/JOURNEY-mobile-group-call.md`       | missing |
+| wt-8     | council-review-fixes    | `docs/journeys/JOURNEY-council-review-fixes.md`    | done    |
+| wt-9     | tooling-optimization    | `docs/journeys/JOURNEY-tooling-optimization.md`    | done    |
+| wt-10    | deployment-pipeline     | `docs/journeys/JOURNEY-deployment-pipeline.md`     | missing |
+| wt-11    | invitation-rls-fix      | `docs/journeys/JOURNEY-invitation-rls-fix.md`      | done    |
 
 ## Recent Closures
 
 | Date       | Feature                      | Branch                                                             | Merged To   |
 | ---------- | ---------------------------- | ------------------------------------------------------------------ | ----------- |
+| 2026-04-07 | tooling-optimization         | `feat/tooling-optimization`                                        | development |
+| 2026-04-07 | invitation-rls-fix           | `feat/invitation-rls-fix`                                          | development |
+| 2026-04-06 | council-review-fixes         | `feat/council-review-fixes`                                        | development |
 | 2026-03-29 | interactive-dashboard        | `feat/interactive-dashboard`                                       | development |
 | 2026-03-28 | telegram-walkai-adapter      | `feat/telegram-walkai-adapter`                                     | development |
 | 2026-03-29 | telemetry-botsson-reactive   | `feat/telemetry-botsson-reactive`                                  | development |
@@ -134,6 +145,12 @@ tags: [dashboard, worktrees, tracking]
 
 ## Session History
 
+| 2026-04-06 | deployment-pipeline | started | wt-10, module: infra. 3-branch architecture, env sync, security hardening. |
+| 2026-04-06 | tooling-optimization | started | wt-9, module: developer-experience. Skills/MCP/plugin optimization. |
+| 2026-03-31 | development | session ended | session ended |
+| 2026-03-30 | protocol-verification-engine | session ended | session ended |
+| 2026-03-29 | protocol-verification-engine | session ended | session ended |
+| 2026-03-29 | development | session ended | session ended |
 | 2026-03-29 | development | session ended | session ended |
 | 2026-03-28 | development | session ended | session ended |
 | 2026-03-28 | development | session ended | session ended |

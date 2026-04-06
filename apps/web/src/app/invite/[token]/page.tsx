@@ -23,12 +23,28 @@ type InviteData = {
   workspaceName: string;
   role: string;
   inviterName: string | null;
+  emailAccountExists: boolean;
 };
 
 type InviteState =
   | { status: "loading" }
   | { status: "valid"; data: InviteData }
   | { status: "invalid"; message: string };
+
+/** Shape returned by the get_invitation_by_token RPC */
+type InviteRpcResult = {
+  invitation_id?: string;
+  email?: string | null;
+  phone?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  role?: string;
+  status: string;
+  expires_at?: string;
+  workspace_name?: string | null;
+  inviter_name?: string | null;
+  email_account_exists?: boolean;
+};
 
 export default function AcceptInvitePage() {
   const params = useParams();
@@ -49,56 +65,51 @@ export default function AcceptInvitePage() {
   // Fetch invitation details by token
   useEffect(() => {
     async function fetchInvite() {
-      const { data, error: fetchError } = await supabase
-        .from("invitation")
-        .select(
-          `email, phone, first_name, last_name, role, status, expires_at,
-           workspace:workspace_id(name),
-           inviter:invited_by(display_name)`,
-        )
-        .eq("token", token)
-        .single();
+      const { data, error: rpcError } = await supabase.rpc("get_invitation_by_token", {
+        p_token: token,
+      });
 
-      if (fetchError || !data) {
+      if (rpcError || !data) {
         setInviteState({ status: "invalid", message: "Invitasjonen ble ikke funnet" });
         return;
       }
 
-      if (data.status !== "pending") {
+      const inv = data as unknown as InviteRpcResult;
+
+      // Non-pending invitations return only { status }
+      if (inv.status !== "pending") {
         setInviteState({
           status: "invalid",
           message:
-            data.status === "accepted"
+            inv.status === "accepted"
               ? "Denne invitasjonen er allerede brukt"
               : "Denne invitasjonen er ikke lenger gyldig",
         });
         return;
       }
 
-      if (new Date(data.expires_at) < new Date()) {
+      if (new Date(inv.expires_at!) < new Date()) {
         setInviteState({ status: "invalid", message: "Denne invitasjonen har utløpt" });
         return;
       }
 
-      const ws = data.workspace as unknown as { name: string } | null;
-      const inviter = data.inviter as unknown as { display_name: string } | null;
-
       // Pre-fill known fields
-      if (data.first_name) setFirstName(data.first_name);
-      if (data.last_name) setLastName(data.last_name);
-      if (data.email) setEmail(data.email);
-      if (data.phone) setPhone(data.phone);
+      if (inv.first_name) setFirstName(inv.first_name);
+      if (inv.last_name) setLastName(inv.last_name);
+      if (inv.email) setEmail(inv.email);
+      if (inv.phone) setPhone(inv.phone);
 
       setInviteState({
         status: "valid",
         data: {
-          email: data.email,
-          phone: data.phone,
-          firstName: data.first_name,
-          lastName: data.last_name,
-          workspaceName: ws?.name ?? "en arbeidsplass",
-          role: data.role,
-          inviterName: inviter?.display_name ?? null,
+          email: inv.email ?? null,
+          phone: inv.phone ?? null,
+          firstName: inv.first_name ?? null,
+          lastName: inv.last_name ?? null,
+          workspaceName: inv.workspace_name ?? "en arbeidsplass",
+          role: inv.role ?? "employee",
+          inviterName: inv.inviter_name ?? null,
+          emailAccountExists: inv.email_account_exists ?? false,
         },
       });
     }
@@ -120,67 +131,109 @@ export default function AcceptInvitePage() {
       return;
     }
 
-    if (!phone.trim()) {
-      setError("Telefonnummer er påkrevd");
-      return;
-    }
+    const isExisting = inviteState.status === "valid" && inviteState.data.emailAccountExists;
 
-    if (password !== confirmPassword) {
-      setError("Passordene er ikke like");
-      return;
-    }
+    if (isExisting) {
+      // Existing user: sign in with password
+      if (!password) {
+        setError("Passord er påkrevd");
+        return;
+      }
 
-    if (password.length < 8) {
-      setError("Passordet må være minst 8 tegn");
-      return;
-    }
+      setIsSubmitting(true);
 
-    setIsSubmitting(true);
-
-    const { data, error: fnError } = await supabase.functions.invoke("accept-invitation", {
-      body: {
-        token,
-        first_name: firstName,
-        last_name: lastName,
+      const { error: signInError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
-        phone: phone.trim(),
         password,
-      },
-    });
+      });
 
-    if (fnError || !data?.success) {
-      setError(data?.error ?? fnError?.message ?? "Kunne ikke godta invitasjonen");
-      setIsSubmitting(false);
-      return;
-    }
+      if (signInError) {
+        setError("Feil passord. Prøv igjen.");
+        setIsSubmitting(false);
+        return;
+      }
 
-    // If "already a member", the user was already authenticated — just redirect
-    if (data?.message === "Already a member of this workspace") {
+      // Now call accept-invitation with the auth session
+      const { data, error: fnError } = await supabase.functions.invoke("accept-invitation", {
+        body: {
+          token,
+          first_name: firstName,
+          last_name: lastName,
+          email: email.trim(),
+          phone: phone.trim() || undefined,
+        },
+      });
+
+      if (fnError || !data?.success) {
+        setError(data?.error ?? fnError?.message ?? "Kunne ikke godta invitasjonen");
+        setIsSubmitting(false);
+        return;
+      }
+
       router.push("/dashboard");
       router.refresh();
-      return;
+    } else {
+      // New user: create account + accept
+      if (!phone.trim()) {
+        setError("Telefonnummer er påkrevd");
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        setError("Passordene er ikke like");
+        return;
+      }
+
+      if (password.length < 8) {
+        setError("Passordet må være minst 8 tegn");
+        return;
+      }
+
+      setIsSubmitting(true);
+
+      const { data, error: fnError } = await supabase.functions.invoke("accept-invitation", {
+        body: {
+          token,
+          first_name: firstName,
+          last_name: lastName,
+          email: email.trim(),
+          phone: phone.trim(),
+          password,
+        },
+      });
+
+      if (fnError || !data?.success) {
+        setError(data?.error ?? fnError?.message ?? "Kunne ikke godta invitasjonen");
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (data?.message === "Already a member of this workspace") {
+        router.push("/dashboard");
+        router.refresh();
+        return;
+      }
+
+      // Sign in with newly created credentials
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+
+      if (signInError) {
+        setError("Konto opprettet, men innlogging feilet. Gå til innloggingssiden.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      const wsName = inviteState.status === "valid" ? inviteState.data.workspaceName : "";
+      const welcomeParams = new URLSearchParams({
+        workspace: wsName,
+        name: firstName,
+      });
+      router.push(`/welcome?${welcomeParams.toString()}`);
+      router.refresh();
     }
-
-    // Sign the user in with the newly created credentials
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    });
-
-    if (signInError) {
-      setError("Konto opprettet, men innlogging feilet. Gå til innloggingssiden.");
-      setIsSubmitting(false);
-      return;
-    }
-
-    // Redirect to dashboard after successful sign-in
-    const wsName = inviteState.status === "valid" ? inviteState.data.workspaceName : "";
-    const welcomeParams = new URLSearchParams({
-      workspace: wsName,
-      name: firstName,
-    });
-    router.push(`/welcome?${welcomeParams.toString()}`);
-    router.refresh();
   }
 
   // --- Loading state ---
@@ -242,96 +295,163 @@ export default function AcceptInvitePage() {
         {/* Form */}
         <div className="rounded-2xl border border-[oklch(0.91_0.006_55)] bg-white p-8 shadow-lg">
           <form className="space-y-5" onSubmit={handleSubmit}>
-            {/* Name — pre-filled but always editable so the invitee confirms */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold tracking-wider text-[oklch(0.52_0.01_52)] uppercase">
-                  Fornavn
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  className={inputClass}
-                  placeholder="Kari"
-                />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold tracking-wider text-[oklch(0.52_0.01_52)] uppercase">
-                  Etternavn
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  className={inputClass}
-                  placeholder="Nordmann"
-                />
-              </div>
-            </div>
+            {invite.emailAccountExists ? (
+              <>
+                {/* Existing user: sign-in flow */}
+                <div className="rounded-xl bg-[oklch(0.97_0.006_55)] px-4 py-3">
+                  <p className="text-sm text-[oklch(0.42_0.01_52)]">
+                    Du har allerede en Smartout-konto. Logg inn for å godta invitasjonen.
+                  </p>
+                </div>
 
-            {/* Email — required, editable if not pre-set */}
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold tracking-wider text-[oklch(0.52_0.01_52)] uppercase">
-                E-post
-              </label>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className={inputClass}
-                placeholder="kari@example.com"
-              />
-            </div>
+                {/* Name fields — editable so invitee can confirm */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold tracking-wider text-[oklch(0.52_0.01_52)] uppercase">
+                      Fornavn
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold tracking-wider text-[oklch(0.52_0.01_52)] uppercase">
+                      Etternavn
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      className={inputClass}
+                    />
+                  </div>
+                </div>
 
-            {/* Phone */}
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold tracking-wider text-[oklch(0.52_0.01_52)] uppercase">
-                Telefon
-              </label>
-              <input
-                type="tel"
-                required
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className={inputClass}
-                placeholder="+47 900 00 000"
-              />
-            </div>
+                {/* Email — read-only for existing users */}
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold tracking-wider text-[oklch(0.52_0.01_52)] uppercase">
+                    E-post
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    readOnly
+                    className={`${inputClass} cursor-not-allowed bg-[oklch(0.97_0.006_55)]`}
+                  />
+                </div>
 
-            {/* Password */}
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold tracking-wider text-[oklch(0.52_0.01_52)] uppercase">
-                Opprett passord
-              </label>
-              <input
-                type="password"
-                required
-                minLength={8}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className={inputClass}
-                placeholder="Minst 8 tegn"
-              />
-            </div>
+                {/* Password for sign-in */}
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold tracking-wider text-[oklch(0.52_0.01_52)] uppercase">
+                    Passord
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className={inputClass}
+                    placeholder="Ditt eksisterende passord"
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                {/* New user: create account flow */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold tracking-wider text-[oklch(0.52_0.01_52)] uppercase">
+                      Fornavn
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      className={inputClass}
+                      placeholder="Kari"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold tracking-wider text-[oklch(0.52_0.01_52)] uppercase">
+                      Etternavn
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      className={inputClass}
+                      placeholder="Nordmann"
+                    />
+                  </div>
+                </div>
 
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold tracking-wider text-[oklch(0.52_0.01_52)] uppercase">
-                Bekreft passord
-              </label>
-              <input
-                type="password"
-                required
-                minLength={8}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className={inputClass}
-                placeholder="Gjenta passord"
-              />
-            </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold tracking-wider text-[oklch(0.52_0.01_52)] uppercase">
+                    E-post
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className={inputClass}
+                    placeholder="kari@example.com"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold tracking-wider text-[oklch(0.52_0.01_52)] uppercase">
+                    Telefon
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className={inputClass}
+                    placeholder="+47 900 00 000"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold tracking-wider text-[oklch(0.52_0.01_52)] uppercase">
+                    Opprett passord
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    minLength={8}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className={inputClass}
+                    placeholder="Minst 8 tegn"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold tracking-wider text-[oklch(0.52_0.01_52)] uppercase">
+                    Bekreft passord
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    minLength={8}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className={inputClass}
+                    placeholder="Gjenta passord"
+                  />
+                </div>
+              </>
+            )}
 
             {error && (
               <div className="flex items-center gap-2 rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-600">
@@ -351,7 +471,7 @@ export default function AcceptInvitePage() {
                 ) : (
                   <>
                     <CheckCircle2 className="h-5 w-5" />
-                    Godta invitasjon
+                    {invite.emailAccountExists ? "Logg inn og godta" : "Godta invitasjon"}
                   </>
                 )}
               </button>

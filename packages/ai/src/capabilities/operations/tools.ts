@@ -2,7 +2,6 @@
 import { z } from "zod";
 import { defineTool } from "../../types.js";
 import type { AgentToolContext } from "../types.js";
-import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const getMyTasks = defineTool({
   name: "get_my_tasks",
@@ -16,7 +15,7 @@ export const getMyTasks = defineTool({
       .describe("Filter by task status"),
   }),
   execute: async (params, ctx: AgentToolContext) => {
-    const supabase = ctx.supabaseAdmin as SupabaseClient;
+    const supabase = ctx.supabaseAdmin;
 
     const { data, error } = await supabase
       .from("session_task")
@@ -45,7 +44,7 @@ export const getSessionInfo = defineTool({
       .describe("Department ID. If omitted, uses the employee's department."),
   }),
   execute: async (params, ctx: AgentToolContext) => {
-    const supabase = ctx.supabaseAdmin as SupabaseClient;
+    const supabase = ctx.supabaseAdmin;
 
     let deptId = params.department_id;
     if (!deptId) {
@@ -90,7 +89,7 @@ export const getDepartmentStatus = defineTool({
       .describe("Department ID. If omitted, uses the employee's department."),
   }),
   execute: async (params, ctx: AgentToolContext) => {
-    const supabase = ctx.supabaseAdmin as SupabaseClient;
+    const supabase = ctx.supabaseAdmin;
 
     let deptId = params.department_id;
     if (!deptId) {
@@ -171,7 +170,7 @@ export const createDeviation = defineTool({
       .describe("Department ID. If omitted, uses the employee's department."),
   }),
   execute: async (params, ctx: AgentToolContext) => {
-    const supabase = ctx.supabaseAdmin as SupabaseClient;
+    const supabase = ctx.supabaseAdmin;
 
     let deptId = params.department_id;
     if (!deptId) {
@@ -224,7 +223,7 @@ export const completeTask = defineTool({
     task_id: z.string().uuid().describe("The task ID to mark as completed"),
   }),
   execute: async (params, ctx: AgentToolContext) => {
-    const supabase = ctx.supabaseAdmin as SupabaseClient;
+    const supabase = ctx.supabaseAdmin;
 
     const { data, error } = await supabase
       .from("session_task")

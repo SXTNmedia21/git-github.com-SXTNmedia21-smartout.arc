@@ -4,7 +4,7 @@ id: PROTO_ENV
 status: canonical
 layer: protocol
 created: 2026-03-09
-updated: 2026-03-09
+updated: 2026-04-06
 depends_on:
   - PROTO_SECURITY
 ---
@@ -143,3 +143,27 @@ No extra setup needed. Just `op run`.
 2. Next `op run` picks up the new value automatically
 3. No files to change, no commits needed
 4. Follow rotation schedule in `docs/protocols/SECURITY.md` §9
+
+---
+
+## Service Account for CI/CD
+
+Local development uses interactive `op run`. Automated pipelines use a 1Password Service Account.
+
+```bash
+# Local (interactive)
+op run --env-file=.env.template -- pnpm run dev
+
+# CI/CD (service account)
+OP_SERVICE_ACCOUNT_TOKEN=<token> op run --env-file=.env.template -- <command>
+```
+
+The service account has read-only access to `smartout_ai` and `smartout_ai_prod` vaults.
+
+---
+
+## Preview Environment Variables
+
+Preview deployments (Vercel) receive Supabase Branch DB credentials automatically via the Supabase-Vercel integration. No manual env var configuration needed for preview.
+
+Non-Supabase env vars for preview are synced by `infra/scripts/sync-env-to-vercel.sh` with `gitBranch: 'preview'`.
