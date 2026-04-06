@@ -1,6 +1,18 @@
 import { Pool } from "https://deno.land/x/postgres@v0.17.0/mod.ts";
 
-const pool = new Pool(Deno.env.get("DATABASE_URL") ?? Deno.env.get("SUPABASE_DB_URL")!, 3, true);
+// Lazy pool initialization — avoids cold-start crash if env vars not yet
+// available at module load time. ADR-0028 mandates deno-postgres for
+// transaction-scoped RLS via SET LOCAL + set_config (PostgREST cannot do this).
+let _pool: Pool | null = null;
+function getPool(): Pool {
+  if (_pool) return _pool;
+  const url = Deno.env.get("DATABASE_URL") ?? Deno.env.get("SUPABASE_DB_URL");
+  if (!url) {
+    throw new Error("DATABASE_URL or SUPABASE_DB_URL must be set");
+  }
+  _pool = new Pool(url, 3, true);
+  return _pool;
+}
 
 export interface ApiKeyContext {
   keyId: string;
@@ -13,7 +25,7 @@ export interface ApiKeyContext {
 
 export async function validateApiKey(plaintextKey: string): Promise<ApiKeyContext | null> {
   const keyHash = await sha256(plaintextKey);
-  const conn = await pool.connect();
+  const conn = await getPool().connect();
 
   try {
     const result = await conn.queryObject<{
@@ -57,7 +69,7 @@ export async function executeWithWorkspaceContext<T>(
   query: string,
   params: unknown[],
 ): Promise<T[]> {
-  const conn = await pool.connect();
+  const conn = await getPool().connect();
   try {
     await conn.queryArray("BEGIN");
     await conn.queryArray("SET LOCAL ROLE authenticated");
@@ -76,7 +88,7 @@ export async function executeWithWorkspaceContext<T>(
 }
 
 export async function logUsage(keyId: string, endpoint: string, statusCode: number): Promise<void> {
-  const conn = await pool.connect();
+  const conn = await getPool().connect();
   try {
     // Hourly bucket: truncate to hour
     await conn.queryObject(
