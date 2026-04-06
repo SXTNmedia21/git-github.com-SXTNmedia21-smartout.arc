@@ -77,3 +77,29 @@ Tracks all System Council sessions — multi-agent review meetings where specs, 
 3. **Directory renames break plans silently.** The `walkAi` → `Botsson` rename invalidated an entire plan without any automated detection.
 4. **Droplet path discrepancy** (`/opt/smartout/` in plan vs `~/dev/smartout.ai/` in reality) would have caused all SSH commands to fail. Memory files caught this.
 5. **CLAUDE.md safety rails must stay always-loaded.** Multiple agents independently flagged that moving "Critical Traps" and "What NOT To Do" to on-demand skills creates a blind spot when skills aren't triggered.
+
+---
+
+## 2026-04-06 — Employee Contract Management Post-Implementation Review
+
+**Type:** feature (post-implementation)
+**Verdict:** APPROVE WITH CHANGES — 6 must-fix, 4 should-fix
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator, frontend-designer, narrator
+**Key decision:** Architecture sound (D2 Resource placement, contract_type branching, cascade integrity preserved). Implementation had 6 runtime-breaking bugs requiring fix before merge.
+**ADRs created:** 5 entries in feature decision log (table reuse, status propagation, suggestTools placement, X-Service-Key auth, fetch timeouts)
+
+### What broke
+1. Botsson tools referenced 4 nonexistent columns (`id` vs `contract_id`, `profile_id` doesn't exist, `contract_template_id` vs `template_id`)
+2. Webhook wrote `"declined"` to enum that lacks that value → PostgreSQL constraint violation
+3. POST /api/contracts created without `emit()` → telemetry gap
+4. Auth header used `Authorization: Bearer` instead of `X-Service-Key` convention
+5. `sendEmployeeContract` autonomous instead of suggest-confirm flow
+6. Hardcoded Tailwind colors (blue-500, green-500, yellow-500) throughout UI
+
+### Learnings captured
+1. **Always verify Botsson tool schemas against `database.types.ts`** — 3 agents independently caught the same column mismatches. Plans written from memory drift from reality fast.
+2. **Service-to-service auth is `X-Service-Key`, not Bearer** — second time this pattern has been confused.
+3. **Irreversible AI actions belong in `suggestTools`** — `confirm`/`autonomous` authority levels expose tools without enforced UI confirmation. The suggest tier is the only one that gates on user confirmation.
+
+### Verdict held
+All fixes applied in single commit (`2fbdbdf7`). Typecheck 27/27 passing. Architecture untouched — only implementation accuracy fixes.
