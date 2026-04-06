@@ -178,7 +178,7 @@ export function useSendMessage() {
             sender_id: senderProfileId,
             client_message_id: clientMessageId,
             reply_to_id: replyToId ?? null,
-            message_type: attachments.length > 0 ? "image" : "text",
+            message_type: attachments.length > 0 ? "media" : "text",
           })
           .select("id")
           .single();
