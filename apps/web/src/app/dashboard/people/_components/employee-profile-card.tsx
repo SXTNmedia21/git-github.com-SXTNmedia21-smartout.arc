@@ -138,7 +138,8 @@ export function EmployeeProfileCard({
       const { error } = await supabase
         .from("profile")
         .update(updates)
-        .eq("profile_id", employee.profileId);
+        .eq("profile_id", employee.profileId)
+        .eq("workspace_id", workspaceData!.workspace_id);
       if (error) {
         toast.error(error.message);
       } else {
@@ -215,8 +216,9 @@ export function EmployeeProfileCard({
     const supabase = createClient();
     const { error } = await supabase
       .from("profile")
-      .update({ status: "inactive", is_active: false })
-      .eq("profile_id", employee.profileId);
+      .update({ status: "offboarding", is_active: false })
+      .eq("profile_id", employee.profileId)
+      .eq("workspace_id", workspaceData!.workspace_id);
 
     if (error) {
       toast.error("Kunne ikke deaktivere konto");
