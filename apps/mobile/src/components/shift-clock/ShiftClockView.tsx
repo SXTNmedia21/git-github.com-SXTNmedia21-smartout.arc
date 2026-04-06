@@ -23,6 +23,7 @@ import { createStyles } from "@/theme";
 import { useShiftPhase } from "@/hooks/stores/use-shift-phase";
 import { useActiveTimeEntry } from "@/hooks/queries/use-active-time-entry";
 import { usePunch } from "@/hooks/mutations/use-punch";
+import { useSupplements } from "@/hooks/shift-clock/useSupplements";
 import { strings } from "@/constants/strings";
 
 import { TaskFeed } from "@/components/task/TaskFeed";
@@ -51,11 +52,26 @@ export function ShiftClockView() {
   const isClockedIn = currentTimeEntry?.status === "clocked_in";
   const shiftForPunch = activeShift ?? nextShift;
 
+  // Derive break state from the server-side breaks array so it survives app backgrounding.
+  // A break is active when the most recent break entry has a start but no end.
+  const isOnBreak =
+    currentTimeEntry?.breaks?.some(
+      (b: { start: string; end: string | null }) => b.start && !b.end,
+    ) ?? false;
+
+  // Load supplements for the active shift — empty strings disable the queries gracefully
+  const shiftId = activeShift?.schedule_shift_id ?? "";
+  const workspaceId = profile?.workspace_id ?? "";
+  const { options: supplementOptions, claims: supplementClaims, claimSupplement } = useSupplements(
+    shiftId,
+    workspaceId,
+  );
+
   // Local view phase — drives which child renders
   const [viewPhase, setViewPhase] = useState<ShiftClockPhase>("idle");
-  const [isOnBreak, setIsOnBreak] = useState(false);
-  const [_breakStartTime, setBreakStartTime] = useState<string | null>(null);
   const [showSupplements, setShowSupplements] = useState(false);
+  // Captured at the moment of punch-out so the summary timestamp doesn't drift on re-renders
+  const [capturedPunchOut, setCapturedPunchOut] = useState<string | null>(null);
 
   // Sync view phase with shift phase store
   useEffect(() => {
@@ -82,20 +98,21 @@ export function ShiftClockView() {
   const handlePunchOut = useCallback(async () => {
     if (!currentTimeEntry) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    // Capture the punch-out timestamp before the async call so the summary
+    // shows the actual moment the employee tapped the button, not a later re-render time.
+    setCapturedPunchOut(new Date().toISOString());
     await punchOut(currentTimeEntry.time_entry_id);
     setViewPhase("summary");
   }, [currentTimeEntry, punchOut]);
 
   /* ---- Break handlers ---- */
+  // isOnBreak is now derived from server state, so these handlers only trigger
+  // the mutation. The useEffect above will update viewPhase when the query refreshes.
   const handleStartBreak = useCallback(() => {
-    setIsOnBreak(true);
-    setBreakStartTime(new Date().toISOString());
     setViewPhase("on_break");
   }, []);
 
   const handleEndBreak = useCallback(() => {
-    setIsOnBreak(false);
-    setBreakStartTime(null);
     setViewPhase("clocked_in");
   }, []);
 
@@ -149,9 +166,14 @@ export function ShiftClockView() {
       <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
         <ShiftClockSummary
           punchInTime={currentTimeEntry?.punch_in ?? new Date().toISOString()}
-          punchOutTime={new Date().toISOString()}
-          breaks={[]}
-          claimedSupplements={[]}
+          punchOutTime={capturedPunchOut ?? new Date().toISOString()}
+          breaks={currentTimeEntry?.breaks ?? []}
+          claimedSupplements={supplementClaims.map((c) => ({
+            id: c.manual_supplement_id,
+            description: c.comment ?? "",
+            amount: 0,
+            status: c._isPending ? "pending" : "confirmed",
+          }))}
           onDismiss={handleDismissSummary}
         />
       </SafeAreaView>
@@ -237,13 +259,29 @@ export function ShiftClockView() {
         </Pressable>
       </Animated.View>
 
-      {/* Supplement bottom sheet */}
+      {/* Supplement bottom sheet — maps ManualSupplementOption → SupplementOption shape */}
       <SupplementSheet
         isOpen={showSupplements}
         onClose={() => setShowSupplements(false)}
-        availableSupplements={[]}
-        claimedSupplementRuleIds={new Set()}
-        onClaim={async () => {}}
+        availableSupplements={supplementOptions.map((opt) => ({
+          id: opt.supplement_rule_id,
+          name: opt.name,
+          description: opt.description ?? "",
+          amount: opt.amount,
+          rateType: opt.rate_type,
+          salaryCode: opt.salary_code,
+          commentRequired: opt.comment_required,
+        }))}
+        claimedSupplementRuleIds={new Set(supplementClaims.map((c) => c.supplement_rule_id))}
+        onClaim={async (supplementRuleId, comment) => {
+          if (!profile?.profile_id) return;
+          await claimSupplement({
+            supplementRuleId,
+            profileId: profile.profile_id,
+            workspaceId,
+            comment,
+          });
+        }}
       />
     </SafeAreaView>
   );
