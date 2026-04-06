@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useContext } from "react";
 import {
   Calendar,
   Clock,
@@ -28,6 +28,7 @@ import {
   useRejectReconciliation,
 } from "@/app/dashboard/reconciliation/_hooks/useReconciliation";
 import { useWorkspace } from "@/lib/workspace-context";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useEntityDrawer } from "@/components/dashboard/entity-drawer/EntityDrawerContext";
 import type {
   DepartmentShiftGroup,
@@ -82,6 +83,7 @@ function formatTime(time: string): string {
 
 export function ReconciliationView({ isDark: _isDark }: { isDark: boolean }) {
   const { workspace } = useWorkspace();
+  const { profileId } = useContext(DashboardContext);
 
   // Default to yesterday — the morning routine starts here
   const [dateOffset, setDateOffset] = useState(-1);
@@ -143,6 +145,7 @@ export function ReconciliationView({ isDark: _isDark }: { isDark: boolean }) {
             const reconciliationId = await ensureReconciliation.mutateAsync(dept.departmentId);
             await rejectReconciliation.mutateAsync({
               reconciliationId,
+              profileId: profileId ?? "",
               reason: `Vakt ${shiftId} bestridt av leder`,
             });
           } catch {

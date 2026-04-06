@@ -58,7 +58,7 @@ export function useChangeProposals() {
         .from("profile")
         .select("profile_id")
         .eq("workspace_id", wsId!)
-        .eq("user_id", profileId ?? "")
+        .eq("profile_id", profileId ?? "")
         .single();
 
       const { error } = await supabase.from("change_proposal").insert({
@@ -97,7 +97,16 @@ export function useChangeProposals() {
         .eq("change_proposal_id", proposalId);
       if (error) throw new Error(error.message);
     },
-    onSuccess: () => {
+    onSuccess: (_data, proposalId) => {
+      void emit({
+        event: "change_proposal.approved",
+        workspace_id: wsId ?? null,
+        actor_id: profileId ?? "",
+        properties: {
+          entity: { entity_type: "change_proposal", entity_id: proposalId },
+          metadata: { source: "settings" },
+        },
+      });
       queryClient.invalidateQueries({ queryKey: proposalKeys(wsId!) });
       toast.success("Forslag godkjent");
     },
@@ -112,7 +121,16 @@ export function useChangeProposals() {
         .eq("change_proposal_id", proposalId);
       if (error) throw new Error(error.message);
     },
-    onSuccess: () => {
+    onSuccess: (_data, proposalId) => {
+      void emit({
+        event: "change_proposal.rejected",
+        workspace_id: wsId ?? null,
+        actor_id: profileId ?? "",
+        properties: {
+          entity: { entity_type: "change_proposal", entity_id: proposalId },
+          metadata: { source: "settings" },
+        },
+      });
       queryClient.invalidateQueries({ queryKey: proposalKeys(wsId!) });
       toast.success("Forslag avvist");
     },

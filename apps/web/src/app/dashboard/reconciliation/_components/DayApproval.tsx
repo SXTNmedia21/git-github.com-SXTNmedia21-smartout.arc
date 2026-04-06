@@ -152,6 +152,7 @@ export function DayApproval({ reconciliationId }: DayApprovalProps) {
     if (!rejectReason.trim()) return;
     await rejectMutation.mutateAsync({
       reconciliationId,
+      profileId,
       reason: rejectReason,
     });
     setShowRejectForm(false);
