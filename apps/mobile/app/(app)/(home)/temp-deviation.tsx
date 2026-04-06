@@ -10,7 +10,7 @@
  */
 
 import React, { useState } from "react";
-import { View, Text, ScrollView, Pressable } from "react-native";
+import { View, Text, ScrollView, Pressable, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
@@ -153,7 +153,15 @@ export default function TempDeviationScreen() {
           style={styles.ctaSection}
         >
           <Pressable
-            onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              // TODO(compliance): Wire to useReportDeviation mutation — this button
+              // must persist the corrective action to the deviation record.
+              Alert.alert(
+                "Ikke implementert",
+                "Bekreftelse av tiltak er ikke koblet til databasen ennå. Kontakt leder.",
+              );
+            }}
             style={({ pressed }) => [styles.ctaButton, pressed && styles.ctaPressed]}
           >
             <BadgeCheck size={20} color="#ffffff" strokeWidth={2} />

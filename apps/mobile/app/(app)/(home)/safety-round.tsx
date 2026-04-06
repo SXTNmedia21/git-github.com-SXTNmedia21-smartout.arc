@@ -11,7 +11,7 @@
  */
 
 import React, { useState } from "react";
-import { View, Text, ScrollView, Pressable } from "react-native";
+import { View, Text, ScrollView, Pressable, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import Animated, { FadeInDown } from "react-native-reanimated";
@@ -205,7 +205,15 @@ export default function SafetyRoundScreen() {
         style={styles.fabWrap}
       >
         <Pressable
-          onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            // TODO(compliance): Wire to a safety_round_log mutation — this button
+            // must persist all answers + the completion event.
+            Alert.alert(
+              "Ikke implementert",
+              "Fullføring av vernerunde er ikke koblet til databasen ennå. Kontakt leder.",
+            );
+          }}
           style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
         >
           <CheckCheck size={28} color="#ffffff" strokeWidth={2} />
