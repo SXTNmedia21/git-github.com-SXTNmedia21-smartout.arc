@@ -37,17 +37,17 @@ functional enough for beta, not pixel-perfect.
 
 ### Already handled (no work needed)
 
-| Module | Files | Status |
-|--------|-------|--------|
-| `expo-secure-store` | 1 | localStorage fallback in `src/lib/supabase.ts` |
-| `expo-notifications` | 1 | Comprehensive `Platform.OS` guards in `src/lib/push.ts` |
+| Module               | Files | Status                                                  |
+| -------------------- | ----- | ------------------------------------------------------- |
+| `expo-secure-store`  | 1     | localStorage fallback in `src/lib/supabase.ts`          |
+| `expo-notifications` | 1     | Comprehensive `Platform.OS` guards in `src/lib/push.ts` |
 
 ### Auto-works on web (test, don't rewrite)
 
-| Module | Files | Notes |
-|--------|-------|-------|
-| `react-native-reanimated` | 49 | Provides own web implementation via Expo |
-| `react-native-gesture-handler` | 2 | GestureHandlerRootView is no-op on web |
+| Module                         | Files | Notes                                    |
+| ------------------------------ | ----- | ---------------------------------------- |
+| `react-native-reanimated`      | 49    | Provides own web implementation via Expo |
+| `react-native-gesture-handler` | 2     | GestureHandlerRootView is no-op on web   |
 
 ### Needs fallbacks (the actual work)
 
@@ -56,15 +56,18 @@ functional enough for beta, not pixel-perfect.
 **Strategy:** Metro `.web.ts` resolution. No import rewrites.
 
 **Audit command:**
+
 ```bash
 grep -r "from ['\"]expo-haptics['\"]" --include="*.ts" --include="*.tsx" apps/mobile/src/
 ```
 
 **Decision threshold:**
+
 - If ALL 89 files already import via `src/lib/haptics` → create `haptics.web.ts` no-op sibling (10 min)
 - If files import directly from `expo-haptics` → refactor to central wrapper first, then add `.web.ts` (1-2 hours depending on count)
 
 **Implementation:**
+
 ```typescript
 // src/lib/haptics.web.ts — no-op for all methods
 export const impactAsync = () => {};
@@ -79,11 +82,13 @@ export default { impactAsync, notificationAsync, selectionAsync };
 `src/components/ui/BottomSheet.tsx`.
 
 **Audit command:**
+
 ```bash
 grep -r "from ['\"]@gorhom/bottom-sheet['\"]" --include="*.ts" --include="*.tsx" apps/mobile/src/
 ```
 
 **Decision threshold:**
+
 - If ALL consumer components import via `src/components/ui/BottomSheet` → only
   the wrapper needs a `.web.tsx` sibling (30 min)
 - If files import directly from `@gorhom/bottom-sheet` → refactor to central
@@ -100,6 +105,7 @@ plain React context provider (or just passes children through). Then replace the
 direct `@gorhom/bottom-sheet` import in `_layout.tsx` with the local wrapper.
 
 **Files using bottom sheet:**
+
 - `src/components/ui/BottomSheet.tsx` (base wrapper — gets `.web.tsx` sibling)
 - `src/components/shift-clock/SupplementSheet.tsx`
 - `src/components/task/TaskModal.tsx`
@@ -127,6 +133,7 @@ is overengineering for a temporary channel.
 components instead of attempting WebRTC in browser.
 
 **Files:**
+
 - `app/_layout.tsx` — already guarded (`Platform.OS !== "web"`)
 - `src/hooks/mutations/use-livekit-call.ts` — already partially guarded, complete it
 - `src/features/channels/components/ParticipantTile.tsx` — replace VideoView with placeholder
@@ -199,12 +206,12 @@ The web build needs Supabase credentials exposed as `EXPO_PUBLIC_*` variables.
 
 **Required in Vercel project settings for `mobile.smartout.ai`:**
 
-| Variable | Source | Notes |
-|----------|--------|-------|
-| `EXPO_PUBLIC_SUPABASE_URL` | Supabase project URL | Same as native |
-| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key | Same as native |
-| `EXPO_PUBLIC_LIVEKIT_URL` | LiveKit server URL | For future use if video enabled |
-| `EXPO_PUBLIC_POSTHOG_KEY` | PostHog EU project key | Telemetry |
+| Variable                        | Source                 | Notes                           |
+| ------------------------------- | ---------------------- | ------------------------------- |
+| `EXPO_PUBLIC_SUPABASE_URL`      | Supabase project URL   | Same as native                  |
+| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key      | Same as native                  |
+| `EXPO_PUBLIC_LIVEKIT_URL`       | LiveKit server URL     | For future use if video enabled |
+| `EXPO_PUBLIC_POSTHOG_KEY`       | PostHog EU project key | Telemetry                       |
 
 **Important:** These are public/anon keys only. No service role keys in the web
 build. Verify that `apps/mobile` env usage matches these variable names — if the
@@ -220,6 +227,7 @@ app currently uses different names, align them.
 - **Domain:** `mobile.smartout.ai`
 
 **Vercel config (`apps/mobile/vercel.json`):**
+
 ```json
 {
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
@@ -235,6 +243,7 @@ app currently uses different names, align them.
 SPA fallback is critical — Expo Router handles all client-side routing.
 
 **Turbo task:** Add `build:web` script to `apps/mobile/package.json`:
+
 ```json
 {
   "scripts": {
@@ -269,6 +278,7 @@ This ensures all routes are handled client-side. Without this, every `[id]`
 route returns 404 in production — a classic Expo Router web trap.
 
 **Steps:**
+
 1. Add `web.output: "single"` to `app.json` (see above)
 2. Run `cd apps/mobile && npx expo export --platform web`
 3. If build succeeds: serve `dist/` locally, open in Chrome and iOS Safari
@@ -295,6 +305,7 @@ before proceeding — this affects the entire approach.
 ### Phase 1 — Fix Native Module Crashes
 
 **Order (by impact):**
+
 1. **expo-haptics** — blocks the most files (89). Audit direct imports first.
 2. **@gorhom/bottom-sheet** — blocks 12 UI components
 3. **expo-sqlite** — one file, quick fix

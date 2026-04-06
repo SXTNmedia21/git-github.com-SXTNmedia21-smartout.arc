@@ -16,34 +16,35 @@
 
 ### New files
 
-| File | Responsibility |
-|------|---------------|
-| `apps/mobile/src/platform/haptics.web.ts` | No-op replacements for all `expo-haptics` exports |
+| File                                            | Responsibility                                                     |
+| ----------------------------------------------- | ------------------------------------------------------------------ |
+| `apps/mobile/src/platform/haptics.web.ts`       | No-op replacements for all `expo-haptics` exports                  |
 | `apps/mobile/src/platform/bottom-sheet.web.tsx` | Web-compatible replacements for all `@gorhom/bottom-sheet` exports |
-| `apps/mobile/src/platform/sqlite.web.ts` | Stub for `expo-sqlite` that returns a no-op DB |
-| `apps/mobile/app/+html.tsx` | Custom HTML template for web builds (manifest link, PWA meta tags) |
-| `apps/mobile/public/manifest.json` | PWA manifest (app name, icons, standalone mode) |
-| `apps/mobile/public/icon-192.png` | PWA icon 192x192 |
-| `apps/mobile/public/icon-512.png` | PWA icon 512x512 |
-| `apps/mobile/vercel.json` | SPA rewrite rules + cache headers |
+| `apps/mobile/src/platform/sqlite.web.ts`        | Stub for `expo-sqlite` that returns a no-op DB                     |
+| `apps/mobile/app/+html.tsx`                     | Custom HTML template for web builds (manifest link, PWA meta tags) |
+| `apps/mobile/public/manifest.json`              | PWA manifest (app name, icons, standalone mode)                    |
+| `apps/mobile/public/icon-192.png`               | PWA icon 192x192                                                   |
+| `apps/mobile/public/icon-512.png`               | PWA icon 512x512                                                   |
+| `apps/mobile/vercel.json`                       | SPA rewrite rules + cache headers                                  |
 
 ### Modified files
 
-| File | Change |
-|------|--------|
-| `apps/mobile/app.json` | Add `web.output: "single"` + `web.bundler: "metro"` |
-| `apps/mobile/metro.config.js` | Add web platform resolver aliases for native-only packages |
-| `apps/mobile/package.json` | Add `build:web` script |
-| `apps/mobile/src/lib/sync/db.ts` | Add `Platform.OS === "web"` early return |
-| `apps/mobile/src/hooks/mutations/use-livekit-call.ts` | Complete web guards |
-| `apps/mobile/src/features/channels/components/ParticipantTile.tsx` | Complete VideoView web fallback |
-| `apps/mobile/src/features/channels/components/CallSheet.tsx` | Add web placeholder for call UI |
+| File                                                               | Change                                                     |
+| ------------------------------------------------------------------ | ---------------------------------------------------------- |
+| `apps/mobile/app.json`                                             | Add `web.output: "single"` + `web.bundler: "metro"`        |
+| `apps/mobile/metro.config.js`                                      | Add web platform resolver aliases for native-only packages |
+| `apps/mobile/package.json`                                         | Add `build:web` script                                     |
+| `apps/mobile/src/lib/sync/db.ts`                                   | Add `Platform.OS === "web"` early return                   |
+| `apps/mobile/src/hooks/mutations/use-livekit-call.ts`              | Complete web guards                                        |
+| `apps/mobile/src/features/channels/components/ParticipantTile.tsx` | Complete VideoView web fallback                            |
+| `apps/mobile/src/features/channels/components/CallSheet.tsx`       | Add web placeholder for call UI                            |
 
 ---
 
 ## Task 1: Configure Web Build Target
 
 **Files:**
+
 - Modify: `apps/mobile/app.json`
 - Modify: `apps/mobile/package.json`
 
@@ -108,6 +109,7 @@ Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 ## Task 2: Add Metro Resolver Aliases for Web Platform
 
 **Files:**
+
 - Modify: `apps/mobile/metro.config.js`
 
 This is the key architectural piece. Instead of refactoring 89+ import statements,
@@ -194,6 +196,7 @@ Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 ## Task 3: Create Haptics Web Fallback
 
 **Files:**
+
 - Create: `apps/mobile/src/platform/haptics.web.ts`
 
 This module replaces `expo-haptics` on web. Every export from expo-haptics that
@@ -266,6 +269,7 @@ Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 ## Task 4: Create Bottom Sheet Web Fallback
 
 **Files:**
+
 - Create: `apps/mobile/src/platform/bottom-sheet.web.tsx`
 
 This is the most complex fallback. The 12 files that import from `@gorhom/bottom-sheet`
@@ -388,10 +392,7 @@ const BottomSheet = forwardRef<BottomSheetRef, BottomSheetProps>(function Bottom
 
   return (
     <View style={webStyles.overlay}>
-      <Pressable
-        style={webStyles.backdrop}
-        onPress={enablePanDownToClose ? close : undefined}
-      />
+      <Pressable style={webStyles.backdrop} onPress={enablePanDownToClose ? close : undefined} />
       <View style={[webStyles.sheet, { height }, style]} {...rest}>
         {/* Handle indicator */}
         <View style={webStyles.handleContainer}>
@@ -419,13 +420,7 @@ export function BottomSheetBackdrop({
   opacity = 0.4,
 }: BottomSheetBackdropProps & { children?: ReactNode }) {
   return (
-    <View
-      style={[
-        webStyles.backdrop,
-        { backgroundColor: `rgba(0,0,0,${opacity})` },
-        style,
-      ]}
-    />
+    <View style={[webStyles.backdrop, { backgroundColor: `rgba(0,0,0,${opacity})` }, style]} />
   );
 }
 
@@ -449,10 +444,7 @@ export function BottomSheetView({ children, style, ...rest }: ViewProps & { chil
 
 /* ---------- BottomSheetScrollView ---------- */
 
-export function BottomSheetScrollView({
-  children,
-  ...rest
-}: { children: ReactNode } & ViewProps) {
+export function BottomSheetScrollView({ children, ...rest }: { children: ReactNode } & ViewProps) {
   return <ScrollView {...rest}>{children}</ScrollView>;
 }
 
@@ -532,6 +524,7 @@ Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 ## Task 5: Create SQLite Web Fallback
 
 **Files:**
+
 - Create: `apps/mobile/src/platform/sqlite.web.ts`
 
 Instead of modifying `src/lib/sync/db.ts` directly, the Metro resolver alias
@@ -597,6 +590,7 @@ Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 ## Task 6: Complete LiveKit Web Guards
 
 **Files:**
+
 - Modify: `apps/mobile/src/hooks/mutations/use-livekit-call.ts`
 - Modify: `apps/mobile/src/features/channels/components/ParticipantTile.tsx`
 - Modify: `apps/mobile/src/features/channels/components/CallSheet.tsx`
@@ -615,6 +609,7 @@ cat apps/mobile/src/features/channels/components/CallSheet.tsx
 ```
 
 Review each file and identify:
+
 1. Which imports reference `@livekit/react-native` (not `livekit-client`)
 2. Which code paths use `AudioSession` or `VideoView`
 3. What the existing `Platform.OS !== "web"` guards look like
@@ -628,9 +623,10 @@ LiveKit calls are wrapped:
 // At the top of the file, replace the AudioSession import block:
 import { Platform } from "react-native";
 
-const AudioSession = Platform.OS !== "web"
-  ? require("@livekit/react-native").AudioSession
-  : { startAudioSession: async () => {}, stopAudioSession: async () => {} };
+const AudioSession =
+  Platform.OS !== "web"
+    ? require("@livekit/react-native").AudioSession
+    : { startAudioSession: async () => {}, stopAudioSession: async () => {} };
 ```
 
 Find any unguarded `AudioSession.startAudioSession()` or
@@ -645,13 +641,19 @@ a meaningful placeholder:
 import { Platform, View, Text } from "react-native";
 
 // Replace the VideoView import/usage:
-const VideoView = Platform.OS !== "web"
-  ? require("@livekit/react-native").VideoView
-  : ({ style }: { style?: object }) => (
-      <View style={[{ backgroundColor: "#1a1a1a", alignItems: "center", justifyContent: "center" }, style]}>
-        <Text style={{ color: "#666", fontSize: 14 }}>Video ikke tilgjengelig</Text>
-      </View>
-    );
+const VideoView =
+  Platform.OS !== "web"
+    ? require("@livekit/react-native").VideoView
+    : ({ style }: { style?: object }) => (
+        <View
+          style={[
+            { backgroundColor: "#1a1a1a", alignItems: "center", justifyContent: "center" },
+            style,
+          ]}
+        >
+          <Text style={{ color: "#666", fontSize: 14 }}>Video ikke tilgjengelig</Text>
+        </View>
+      );
 ```
 
 - [ ] **Step 4: Add web placeholder to CallSheet.tsx**
@@ -707,6 +709,7 @@ cd /home/sxtnl/dev/web-wrapper/apps/mobile && npx expo export --platform web
 Expected: Build succeeds and outputs to `dist/`.
 
 If it fails:
+
 - **"Cannot resolve module X"** where X is a native module → this means the Metro
   resolver didn't catch it. Add the module to `webAliases` in metro.config.js
   and create a stub in `src/platform/`. Rebuild.
@@ -720,6 +723,7 @@ cd /home/sxtnl/dev/web-wrapper/apps/mobile && npx serve dist/
 ```
 
 Open `http://localhost:3000` in Chrome. Check:
+
 1. Does the app shell render? (auth screen should appear)
 2. Open DevTools console — are there any red errors?
 3. Does navigation work? (try clicking around)
@@ -727,6 +731,7 @@ Open `http://localhost:3000` in Chrome. Check:
 - [ ] **Step 3: Test in iOS Safari (if available)**
 
 Open the same URL on an iPhone in Safari. Check:
+
 1. Does the page load?
 2. Tap "Share" → "Add to Home Screen" → open from home screen
 3. Does it launch in standalone mode (no Safari chrome)?
@@ -746,6 +751,7 @@ additional fixes before Task 8. If everything works, proceed.
 ## Task 8: PWA Assets and HTML Template
 
 **Files:**
+
 - Create: `apps/mobile/app/+html.tsx`
 - Create: `apps/mobile/public/manifest.json`
 - Create: `apps/mobile/public/icon-192.png`
@@ -827,6 +833,7 @@ Create `apps/mobile/public/manifest.json`:
 The app icon is at `apps/mobile/assets/icon.png`. Resize it to 192x192 and 512x512.
 
 If ImageMagick is available:
+
 ```bash
 cd /home/sxtnl/dev/web-wrapper/apps/mobile
 convert assets/icon.png -resize 192x192 public/icon-192.png
@@ -834,6 +841,7 @@ convert assets/icon.png -resize 512x512 public/icon-512.png
 ```
 
 If not, use `npx sharp-cli`:
+
 ```bash
 cd /home/sxtnl/dev/web-wrapper/apps/mobile
 npx sharp-cli -i assets/icon.png -o public/icon-192.png resize 192 192
@@ -862,6 +870,7 @@ Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 ## Task 9: Deployment Configuration
 
 **Files:**
+
 - Create: `apps/mobile/vercel.json`
 
 - [ ] **Step 1: Create vercel.json**
@@ -870,21 +879,15 @@ Create `apps/mobile/vercel.json`:
 
 ```json
 {
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
-  ],
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
   "headers": [
     {
       "source": "/assets/(.*)",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
-      ]
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
     },
     {
       "source": "/manifest.json",
-      "headers": [
-        { "key": "Content-Type", "value": "application/manifest+json" }
-      ]
+      "headers": [{ "key": "Content-Type", "value": "application/manifest+json" }]
     }
   ]
 }
@@ -934,14 +937,15 @@ call the script directly via the build command: `cd apps/mobile && pnpm build:we
 The Vercel project for `mobile.smartout.ai` needs these env vars configured
 in the Vercel dashboard (Settings → Environment Variables):
 
-| Variable | Value | Notes |
-|----------|-------|-------|
-| `EXPO_PUBLIC_SUPABASE_URL` | `https://<project-ref>.supabase.co` | Same as native app |
-| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | `eyJ...` | Public anon key, safe for client |
-| `EXPO_PUBLIC_LIVEKIT_URL` | `wss://...` | Not used on web yet, but prevents undefined errors |
-| `EXPO_PUBLIC_POSTHOG_KEY` | `phc_...` | PostHog EU project key |
+| Variable                        | Value                               | Notes                                              |
+| ------------------------------- | ----------------------------------- | -------------------------------------------------- |
+| `EXPO_PUBLIC_SUPABASE_URL`      | `https://<project-ref>.supabase.co` | Same as native app                                 |
+| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | `eyJ...`                            | Public anon key, safe for client                   |
+| `EXPO_PUBLIC_LIVEKIT_URL`       | `wss://...`                         | Not used on web yet, but prevents undefined errors |
+| `EXPO_PUBLIC_POSTHOG_KEY`       | `phc_...`                           | PostHog EU project key                             |
 
 Verify these variable names match what `apps/mobile` actually uses by checking:
+
 ```bash
 grep -r "EXPO_PUBLIC_" --include="*.ts" --include="*.tsx" apps/mobile/src/ | grep -oP "EXPO_PUBLIC_\w+" | sort -u
 ```
@@ -984,6 +988,7 @@ Test each flow in Chrome DevTools mobile mode (iPhone SE viewport):
 
 If an iPhone is available, open the served URL and repeat the core flow test.
 Pay special attention to:
+
 - Standalone mode persistence (Add to Home Screen → close → reopen)
 - Keyboard behavior in input fields
 - Safe area / notch handling
