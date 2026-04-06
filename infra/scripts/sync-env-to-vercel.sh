@@ -147,8 +147,8 @@ print(json.dumps(obj))
 
 MANIFEST=$(cat <<'EOF'
 # ── smartout-web — Preview ───────────────────────────────────
-smartout-web|preview|NEXT_PUBLIC_SUPABASE_URL|op://smartout_ai/Supabase/url|false
-smartout-web|preview|NEXT_PUBLIC_SUPABASE_ANON_KEY|op://smartout_ai/Supabase/anon_key|false
+smartout-web|preview|NEXT_PUBLIC_SUPABASE_URL|op://smartout_ai/Supabase Preview Branch/url|false
+smartout-web|preview|NEXT_PUBLIC_SUPABASE_ANON_KEY|op://smartout_ai/Supabase Preview Branch/anon_key|false
 smartout-web|preview|NEXT_PUBLIC_POSTHOG_KEY|op://smartout_ai/PostHog/api_key|false
 smartout-web|preview|NEXT_PUBLIC_POSTHOG_HOST|op://smartout_ai/PostHog/host|false
 smartout-web|preview|NEXT_PUBLIC_SENTRY_DSN|op://smartout_ai/Sentry/dsn|false
@@ -157,8 +157,8 @@ smartout-web|preview|NEXT_PUBLIC_LANDING_URL|op://smartout_ai/SmartOut/landing_u
 smartout-web|preview|NEXT_PUBLIC_REVALIDATION_SECRET|op://smartout_ai/SmartOut/revalidation_secret|false
 smartout-web|preview|NEXT_PUBLIC_STAGE_ENGINE_URL|op://smartout_ai/Stage-Engine/url|false
 smartout-web|preview|NEXT_PUBLIC_LIVEKIT_URL|op://smartout_ai/livekit/wss-url|false
-smartout-web|preview|SUPABASE_SERVICE_ROLE_KEY|op://smartout_ai/Supabase/service_role_key|true
-smartout-web|preview|DATABASE_URL|op://smartout_ai/PostgreSQL/connection_string|true
+smartout-web|preview|SUPABASE_SERVICE_ROLE_KEY|op://smartout_ai/Supabase Preview Branch/service_role_key|true
+smartout-web|preview|DATABASE_URL|op://smartout_ai/PostgreSQL preview/connection_string|true
 smartout-web|preview|JWT_SECRET|op://smartout_ai/SmartOut/jwt_secret|true
 smartout-web|preview|SESSION_SECRET|op://smartout_ai/SmartOut/session_secret|true
 smartout-web|preview|STRIPE_SECRET_KEY|op://smartout_ai/Stripe/secret_key|true
@@ -225,8 +225,8 @@ smartout-web|production|LIVEKIT_WEBHOOK_SECRET|op://smartout_ai_prod/livekit/web
 smartout-web|production|GITHUB_ERROR_TOKEN|op://smartout_ai_prod/GitHub/error_reporter_token|true
 # GITHUB_ERROR_REPO is a static value, not a secret — set directly in Vercel dashboard
 # ── smartout-landing — Preview ───────────────────────────────
-smartout-landing|preview|NEXT_PUBLIC_SUPABASE_URL|op://smartout_ai/Supabase/url|false
-smartout-landing|preview|NEXT_PUBLIC_SUPABASE_ANON_KEY|op://smartout_ai/Supabase/anon_key|false
+smartout-landing|preview|NEXT_PUBLIC_SUPABASE_URL|op://smartout_ai/Supabase Preview Branch/url|false
+smartout-landing|preview|NEXT_PUBLIC_SUPABASE_ANON_KEY|op://smartout_ai/Supabase Preview Branch/anon_key|false
 smartout-landing|preview|NEXT_PUBLIC_POSTHOG_KEY|op://smartout_ai/PostHog/api_key|false
 smartout-landing|preview|NEXT_PUBLIC_POSTHOG_HOST|op://smartout_ai/PostHog/host|false
 smartout-landing|preview|NEXT_PUBLIC_WEB_APP_URL|op://smartout_ai/SmartOut/web_app_url|false
