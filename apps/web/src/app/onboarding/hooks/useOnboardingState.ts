@@ -71,7 +71,8 @@ export interface OnboardingActions {
 }
 
 export function useOnboardingState(): OnboardingState & OnboardingActions {
-  const supabase = createClient();
+  const supabaseRef = useRef(createClient());
+  const supabase = supabaseRef.current;
   const searchParams = useSearchParams();
   const requestedWorkspaceId = searchParams.get("ws") ?? searchParams.get("workspaceId");
 
