@@ -2,11 +2,26 @@
 # Without /, gitignore syntax matches at ANY depth (e.g., docs/ would
 # also remove apps/landing/src/app/docs/ — breaking the build).
 
+# Mobile app — built via EAS, not Vercel (116MB saved)
+/apps/mobile/
+
+# E2E tests — not part of Vercel build
+/apps/e2e/
+
 # Python services — deployed separately (DigitalOcean)
 /services/
 
+# Supabase — migrations/functions deployed via Supabase CLI
+/supabase/
+
+# Infrastructure — Docker/Caddy, not Vercel
+/infra/
+
 # Documentation — not deployed
 /docs/
+
+# Botsson blueprints — design docs, not code
+/packages/Botsson/
 
 # CI scripts and artifacts — not deployed
 /artifacts/
