@@ -107,7 +107,10 @@ export type EntityType =
   | "entity_drawer"
   | "financial_close_config"
   | "profession"
-  | "legal_function";
+  | "legal_function"
+  | "change_proposal"
+  | "shift_approval"
+  | "holiday_entry";
 
 export type ActionVerb =
   | "created"
@@ -869,6 +872,24 @@ export interface WorkspaceOperatingHoursUpdated extends BaseEvent {
   };
 }
 
+export interface ChangeProposalApproved extends BaseEvent {
+  event: "change_proposal approved";
+  properties: {
+    data: {
+      proposal_id: string;
+    };
+  };
+}
+
+export interface ChangeProposalRejected extends BaseEvent {
+  event: "change_proposal rejected";
+  properties: {
+    data: {
+      proposal_id: string;
+    };
+  };
+}
+
 export interface KpiTargetUpdated extends BaseEvent {
   event: "kpi_target updated";
   properties: {
@@ -1405,6 +1426,15 @@ export interface HolidayCalendarDeleted extends BaseEvent {
 
 export interface HolidayEntryCreated extends BaseEvent {
   event: "holiday_entry created";
+  properties: {
+    data: {
+      calendar_id: string;
+    };
+  };
+}
+
+export interface HolidayEntryUpdated extends BaseEvent {
+  event: "holiday_entry updated";
   properties: {
     data: {
       calendar_id: string;
@@ -2578,7 +2608,10 @@ export type SmartoutEvent =
   | HolidayCalendarUpdated
   | HolidayCalendarDeleted
   | HolidayEntryCreated
+  | HolidayEntryUpdated
   | HolidayEntryDeleted
+  | ChangeProposalApproved
+  | ChangeProposalRejected
   | HolidaysImported
   | MealRuleCreated
   | MealRuleUpdated
@@ -3285,8 +3318,20 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "operations",
   },
+  "holiday_entry updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
   "holiday_entry deleted": {
     destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "change_proposal approved": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  "change_proposal rejected": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "operations",
   },
   "holidays imported": {

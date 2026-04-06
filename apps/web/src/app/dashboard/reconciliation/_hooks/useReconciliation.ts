@@ -257,12 +257,11 @@ export function useApproveShiftHours() {
     },
     onSuccess: (_data, input) => {
       void emit({
-        event: "button clicked",
+        event: "reconciliation admin_action",
         workspace_id: workspace.workspace_id,
         actor_id: input.profileId,
         properties: {
-          trackingId: "reconciliation-shift-approved",
-          context: input.approvalId,
+          data: { reconciliation_id: input.approvalId, action: "approved" },
         },
       });
       queryClient.invalidateQueries({ queryKey: ["reconciliation-detail"] });

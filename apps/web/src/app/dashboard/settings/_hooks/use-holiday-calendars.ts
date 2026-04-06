@@ -340,12 +340,11 @@ export function useUpdateHolidayEntry() {
     },
     onSuccess: (_data, { id, calendarId }) => {
       void emit({
-        event: "button clicked",
+        event: "holiday_entry updated",
         workspace_id: wsId ?? null,
         actor_id: profileId ?? "",
         properties: {
-          trackingId: "holiday-entry-updated",
-          context: id,
+          data: { calendar_id: calendarId },
         },
       });
       void queryClient.invalidateQueries({ queryKey: entriesKey(calendarId) });
