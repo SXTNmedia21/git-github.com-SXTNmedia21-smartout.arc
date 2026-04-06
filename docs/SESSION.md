@@ -32,10 +32,13 @@ tags: [session, continuity]
 - Feature ready for closure
 - Run: `~/.claude/scripts/close-feature.sh 10`
 
-### Known blockers / errors
+- **Task 9 Step 5:** Create `preview` branch from main — ready to run: `git push origin origin/main:refs/heads/preview`
+- **Task 6:** Update Vercel sync gitBranch from 'development' to 'preview' (depends on preview branch)
+- **Task 10:** Write ADR for preview environment architecture
+- **Task 7:** Update ~/.claude/CLAUDE.md with preview branch rules (manual)
 
 - None (all gates passed)
 
-### Pending decisions
+### Known blockers / errors
 
 - None
