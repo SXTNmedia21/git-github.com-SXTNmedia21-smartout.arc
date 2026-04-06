@@ -306,7 +306,7 @@ Deno.serve(async (req: Request) => {
         profile_code: generateProfileCode(),
         display_name: `${first_name} ${last_name}`,
         role: invitation.role,
-        status: "trainee",
+        status: "active",
         department_id: departmentIds.length > 0 ? departmentIds[0] : null,
         departments: departmentIds,
       })
@@ -390,18 +390,8 @@ Deno.serve(async (req: Request) => {
         seeded_at: templateId ? new Date().toISOString() : null,
       });
 
-      // 5c. Promote profile to active (payroll profile created = operational employee)
-      await adminClient
-        .from("profile")
-        .update({ status: "active" })
-        .eq("profile_id", profile.profile_id);
-    } else {
-      // Guest invite: set active directly, no contract/payroll
-      await adminClient
-        .from("profile")
-        .update({ status: "active" })
-        .eq("profile_id", profile.profile_id);
     }
+    // Guest path: no contract/payroll needed, profile already created as active
 
     // ── 6. Mark invitation as accepted ──
     await adminClient
