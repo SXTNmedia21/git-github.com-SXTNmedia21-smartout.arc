@@ -1,19 +1,19 @@
 ---
-title: "WalkAi — Package Index"
+title: "Botsson — Package Index"
 status: draft
 updated: 2026-03-10
 created: 2026-03-10
-module: walkAi
-tags: [index, walkAi]
+module: Botsson
+tags: [index, Botsson]
 ---
 
-# WalkAi — Package Index
+# Botsson — Package Index
 
 > Communication portal between human and AI agent.
 
 ## Vision
 
-- [concepts/VISION.md](./concepts/VISION.md) — Philosophy, architecture principles, what WalkAi is and isn't
+- [concepts/VISION.md](./concepts/VISION.md) — Philosophy, architecture principles, what Botsson is and isn't
 
 ## Blueprints (Research & Reference)
 
@@ -35,7 +35,7 @@ tags: [index, walkAi]
 ## Directory Structure
 
 ```
-packages/walkAi/
+packages/Botsson/
 ├── INDEX.md                          # This file
 ├── concepts/
 │   └── VISION.md                     # Philosophy & architecture principles
@@ -50,7 +50,7 @@ packages/walkAi/
 │   ├── existing-components.md        # Reusable components inventory
 │   ├── api-surface.md                # Stage Engine + MCP + Edge Function APIs
 │   └── database-spread.md            # Table spread across systems
-├── components/                       # (future) WalkAi shell components
+├── components/                       # (future) Botsson shell components
 ├── docs/                             # (future) Implementation docs
 └── inspiration/                      # (future) Design references
 ```
@@ -66,12 +66,12 @@ packages/walkAi/
 | **Roadmap**         | Business intent — what and why, before how                 |
 | **Guardian**        | Session watchdog — nudges, auto-advance, timing            |
 | **Environment Map** | Live UI state — what's visible, interactive, fillable      |
-| **WalkAi Shell**    | The portal component — self-contained, channel-agnostic    |
+| **Botsson Shell**   | The portal component — self-contained, channel-agnostic    |
 
 ## Integration Points
 
 ```
-Journey + Mission + Environment → WalkAi Shell → Stage Engine Backend
+Journey + Mission + Environment → Botsson Shell → Stage Engine Backend
                                       ↕
                                  User Experience
 ```

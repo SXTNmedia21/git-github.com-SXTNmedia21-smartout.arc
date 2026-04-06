@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@smartout/supabase/client";
+import { invokeEdgeFunction } from "@/lib/supabase-edge-invoke";
 import { emit } from "@smartout/telemetry";
 import {
   Sheet,
@@ -317,7 +318,7 @@ export function DocumentDropStep({
       setIsAnalyzing(true);
 
       try {
-        const { data, error } = await supabase.functions.invoke("analyze-setup-documents", {
+        const { data, error } = await invokeEdgeFunction(supabase, "analyze-setup-documents", {
           body: {
             workspace_id: workspace.workspace_id,
             storage_paths: uploadedPaths,

@@ -1,12 +1,17 @@
 {
   "expo": {
     "name": "Smartout",
-    "slug": "smartout-mobile",
+    "slug": "smartout",
     "version": "0.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "scheme": "smartout",
+    "web": {
+      "output": "single",
+      "bundler": "metro",
+      "favicon": "./assets/icon.png"
+    },
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -45,7 +50,24 @@
       "expo-secure-store",
       "expo-notifications",
       "expo-sqlite",
-      "@livekit/react-native-expo-plugin"
-    ]
+      "@livekit/react-native-expo-plugin",
+      [
+        "expo-updates",
+        {
+          "url": "https://u.expo.dev/422ee8f4-135b-42cd-b7f0-535a8ecb0d13"
+        }
+      ]
+    ],
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/422ee8f4-135b-42cd-b7f0-535a8ecb0d13"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "422ee8f4-135b-42cd-b7f0-535a8ecb0d13"
+      }
+    }
   }
 }

@@ -12,7 +12,7 @@ import type { CallSession } from "@smartout/walkie-talkie";
 const AudioSession =
   Platform.OS !== "web"
     ? require("@livekit/react-native").AudioSession
-    : { startAudioSession: () => {}, stopAudioSession: () => {} };
+    : { startAudioSession: async () => {}, stopAudioSession: async () => {} };
 
 type UseLiveKitCallParams = {
   token: string | null;
@@ -38,6 +38,21 @@ export function useLiveKitCall({
   callSession,
   onDisconnected,
 }: UseLiveKitCallParams): LiveKitCallState {
+  // Calls are disabled on web — return a safe no-op stub so web bundles don't
+  // need to negotiate WebRTC/AudioSession availability at runtime.
+  if (Platform.OS === "web") {
+    return {
+      room: null,
+      isConnected: false,
+      isMicEnabled: false,
+      activeSpeakers: [],
+      participantCount: 0,
+      connect: async () => {},
+      disconnect: async () => {},
+      toggleMic: async () => {},
+    };
+  }
+
   const [room] = useState(() => new Room());
   const [isConnected, setIsConnected] = useState(false);
   const [isMicEnabled, setIsMicEnabled] = useState(false);

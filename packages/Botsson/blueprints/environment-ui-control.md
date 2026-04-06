@@ -1,15 +1,15 @@
 ---
-title: "Blueprint — Environment & UI Control for WalkAi"
+title: "Blueprint — Environment & UI Control for Botsson"
 status: draft
 updated: 2026-03-10
 created: 2026-03-10
-module: walkAi
+module: Botsson
 tags: [blueprint, environment, ui-control, tools]
 ---
 
-# Blueprint — Environment & UI Control for WalkAi
+# Blueprint — Environment & UI Control for Botsson
 
-How WalkAi agents perceive, query, and manipulate the user interface. Covers the current Smartout patterns, their gaps, and the unified architecture WalkAi needs.
+How Botsson agents perceive, query, and manipulate the user interface. Covers the current Smartout patterns, their gaps, and the unified architecture Botsson needs.
 
 ---
 
@@ -93,7 +93,7 @@ The `actionsRef` pattern ensures tool handlers always reference the latest React
 
 ---
 
-## 2. Gaps WalkAi Must Fill
+## 2. Gaps Botsson Must Fill
 
 ### 2.1 Environment Awareness
 
@@ -117,7 +117,7 @@ The `actionsRef` pattern ensures tool handlers always reference the latest React
 
 **Gap:** No step-by-step guidance system. The agent can highlight an element and navigate to a section, but cannot create a guided walkthrough (step 1, step 2, step 3 with progress tracking). `advanceToNextSection` is onboarding-specific.
 
-**Impact:** Training scenarios (WalkAi's core use case) need guided flows where the agent walks the employee through a multi-step procedure.
+**Impact:** Training scenarios (Botsson's core use case) need guided flows where the agent walks the employee through a multi-step procedure.
 
 ### 2.5 Form Discovery
 
@@ -149,17 +149,17 @@ The `actionsRef` pattern ensures tool handlers always reference the latest React
 │  - Calls tools by name                              │
 │  - Receives structured JSON responses               │
 ├─────────────────────────────────────────────────────┤
-│  Tool Handlers (walkAi/src/tools/)                  │
+│  Tool Handlers (Botsson/src/tools/)                  │
 │  - Framework-agnostic tool definitions              │
 │  - Zod schemas for input validation                 │
 │  - Adapters for Ultravox / AG-UI / CopilotKit       │
 ├─────────────────────────────────────────────────────┤
-│  UI Bridge (walkAi/src/bridge/)                     │
+│  UI Bridge (Botsson/src/bridge/)                     │
 │  - Request/response protocol (not fire-and-forget)  │
 │  - Serializes UI queries and commands               │
 │  - Handles ack/timeout/error                        │
 ├─────────────────────────────────────────────────────┤
-│  Environment Map (walkAi/src/environment/)          │
+│  Environment Map (Botsson/src/environment/)          │
 │  - useEnvironmentMap hook                           │
 │  - Semantic element registry                        │
 │  - State snapshot provider                          │
@@ -173,14 +173,14 @@ The agent never touches the DOM. It calls tool handlers. Tool handlers send requ
 
 Components opt in to agent visibility by adding data attributes:
 
-| Attribute             | Purpose                                 | Example                                                           |
-| --------------------- | --------------------------------------- | ----------------------------------------------------------------- |
-| `data-walkai-id`      | Unique stable identifier                | `"company-name-input"`                                            |
-| `data-walkai-intent`  | What this element does (human-readable) | `"Enter the company name"`                                        |
-| `data-walkai-type`    | Element category                        | `"input"`, `"button"`, `"section"`, `"form"`, `"panel"`, `"list"` |
-| `data-walkai-context` | Serialized context JSON                 | `'{"required":true,"fieldType":"text","maxLength":100}'`          |
+| Attribute              | Purpose                                 | Example                                                           |
+| ---------------------- | --------------------------------------- | ----------------------------------------------------------------- |
+| `data-Botsson-id`      | Unique stable identifier                | `"company-name-input"`                                            |
+| `data-Botsson-intent`  | What this element does (human-readable) | `"Enter the company name"`                                        |
+| `data-Botsson-type`    | Element category                        | `"input"`, `"button"`, `"section"`, `"form"`, `"panel"`, `"list"` |
+| `data-Botsson-context` | Serialized context JSON                 | `'{"required":true,"fieldType":"text","maxLength":100}'`          |
 
-**Naming convention:** `data-walkai-id` values use kebab-case: `{page}-{component}-{element}`. Examples:
+**Naming convention:** `data-Botsson-id` values use kebab-case: `{page}-{component}-{element}`. Examples:
 
 - `onboarding-business-name-input`
 - `dashboard-schedule-add-shift-button`
@@ -201,12 +201,12 @@ Components opt in to agent visibility by adding data attributes:
 
 #### Interaction (4 tools)
 
-| Tool           | Description                                                  | Returns                                    |
-| -------------- | ------------------------------------------------------------ | ------------------------------------------ |
-| `clickElement` | Click a button, link, or interactive element by walkai-id    | `{ success, resultingState? }`             |
-| `fillField`    | Set a form field value by walkai-id                          | `{ success, previousValue, newValue }`     |
-| `selectOption` | Select from dropdown/radio/checkbox by walkai-id + value     | `{ success, selectedValue }`               |
-| `navigate`     | Navigate to a page route or scroll to a section by walkai-id | `{ success, currentRoute, activeSection }` |
+| Tool           | Description                                                   | Returns                                    |
+| -------------- | ------------------------------------------------------------- | ------------------------------------------ |
+| `clickElement` | Click a button, link, or interactive element by Botsson-id    | `{ success, resultingState? }`             |
+| `fillField`    | Set a form field value by Botsson-id                          | `{ success, previousValue, newValue }`     |
+| `selectOption` | Select from dropdown/radio/checkbox by Botsson-id + value     | `{ success, selectedValue }`               |
+| `navigate`     | Navigate to a page route or scroll to a section by Botsson-id | `{ success, currentRoute, activeSection }` |
 
 #### Visual Guidance (5 tools)
 
@@ -222,14 +222,14 @@ Components opt in to agent visibility by adding data attributes:
 
 | Tool             | Description                                                                   | Returns                             |
 | ---------------- | ----------------------------------------------------------------------------- | ----------------------------------- |
-| `waitForElement` | Block until an element with walkai-id appears or becomes visible (timeout)    | `{ found, timedOut, element? }`     |
+| `waitForElement` | Block until an element with Botsson-id appears or becomes visible (timeout)   | `{ found, timedOut, element? }`     |
 | `waitForValue`   | Block until a field reaches a specific value or matches a pattern             | `{ matched, currentValue }`         |
 | `onUserAction`   | Register a one-shot listener for click/input/navigation on a specific element | `{ actionType, elementId, value? }` |
 
 ### 3.4 Environment Map Hook
 
 ```typescript
-// walkAi/src/environment/useEnvironmentMap.ts
+// Botsson/src/environment/useEnvironmentMap.ts
 
 type EnvironmentSnapshot = {
   route: string;
@@ -242,12 +242,12 @@ type EnvironmentSnapshot = {
 };
 
 type SemanticElement = {
-  id: string; // data-walkai-id
-  intent: string; // data-walkai-intent
-  type: string; // data-walkai-type
+  id: string; // data-Botsson-id
+  intent: string; // data-Botsson-intent
+  type: string; // data-Botsson-type
   visible: boolean; // IntersectionObserver
   interactable: boolean; // not disabled, not aria-hidden
-  context: Record<string, unknown>; // parsed data-walkai-context
+  context: Record<string, unknown>; // parsed data-Botsson-context
   rect: { top: number; left: number; width: number; height: number };
 };
 
@@ -275,7 +275,7 @@ type AvailableAction = {
 
 **How it works:**
 
-1. On mount, `useEnvironmentMap` scans the DOM for all `[data-walkai-id]` elements
+1. On mount, `useEnvironmentMap` scans the DOM for all `[data-Botsson-id]` elements
 2. An `IntersectionObserver` tracks visibility of each tagged element
 3. A `MutationObserver` watches for added/removed tagged elements (dynamic renders)
 4. Form state is read from tagged `<form>` elements using `FormData` + validation API
@@ -296,7 +296,7 @@ type AvailableAction = {
 ### 4.1 Factory Pattern
 
 ```typescript
-// walkAi/src/tools/createUIHandlers.ts
+// Botsson/src/tools/createUIHandlers.ts
 
 type UIBridge = {
   getSnapshot: () => EnvironmentSnapshot;
@@ -355,7 +355,7 @@ function createUIHandlers(bridge: UIBridge) {
       name: "clickElement",
       description: "Click a button, link, or interactive element.",
       schema: z.object({
-        elementId: z.string().describe("The data-walkai-id of the element to click"),
+        elementId: z.string().describe("The data-Botsson-id of the element to click"),
       }),
       execute: async ({ elementId }) => {
         const result = await bridge.executeCommand({
@@ -370,7 +370,7 @@ function createUIHandlers(bridge: UIBridge) {
       name: "fillField",
       description: "Set the value of a form field.",
       schema: z.object({
-        elementId: z.string().describe("The data-walkai-id of the input field"),
+        elementId: z.string().describe("The data-Botsson-id of the input field"),
         value: z.string().describe("The value to set"),
       }),
       execute: async ({ elementId, value }) => {
@@ -389,7 +389,7 @@ function createUIHandlers(bridge: UIBridge) {
       schema: z.object({
         target: z
           .string()
-          .describe("Route path (e.g. '/dashboard/schedule') or walkai-id of a section"),
+          .describe("Route path (e.g. '/dashboard/schedule') or Botsson-id of a section"),
       }),
       execute: async ({ target }) => {
         const result = await bridge.executeCommand({
@@ -462,7 +462,7 @@ type UICommandResult = {
 
 ### 5.1 Ultravox Voice Integration
 
-WalkAi tools are registered as Ultravox `temporaryTool` definitions, same as the current onboarding pattern. The difference: tool handlers call through the UI Bridge instead of directly manipulating React state.
+Botsson tools are registered as Ultravox `temporaryTool` definitions, same as the current onboarding pattern. The difference: tool handlers call through the UI Bridge instead of directly manipulating React state.
 
 ```
 Ultravox agent calls tool
@@ -493,11 +493,11 @@ Same tool definitions, same Environment Map, different transport.
 
 ### 5.3 Playwright E2E Alignment
 
-`data-walkai-id` attributes double as Playwright selectors:
+`data-Botsson-id` attributes double as Playwright selectors:
 
 ```typescript
 // E2E test
-await page.locator('[data-walkai-id="onboarding-business-name-input"]').fill("Sjøbris");
+await page.locator('[data-Botsson-id="onboarding-business-name-input"]').fill("Sjøbris");
 
 // Agent tool call
 fillField({ elementId: "onboarding-business-name-input", value: "Sjøbris" });
@@ -510,7 +510,7 @@ Same identifiers, same semantics. When an agent walkthrough works, the equivalen
 ## 6. Proposed File Structure
 
 ```
-packages/walkAi/src/
+packages/Botsson/src/
 ├── environment/
 │   ├── useEnvironmentMap.ts       # Core hook: IntersectionObserver + MutationObserver + snapshot
 │   ├── types.ts                   # EnvironmentSnapshot, SemanticElement, FormSnapshot
@@ -547,7 +547,7 @@ packages/walkAi/src/
 
 ## 7. Current vs Proposed
 
-| Dimension                 | Current (Smartout)                                           | Proposed (WalkAi)                                                  |
+| Dimension                 | Current (Smartout)                                           | Proposed (Botsson)                                                 |
 | ------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------ |
 | **Environment awareness** | `getOnboardingState` — hardcoded to one page                 | `getEnvironment` — generic, works on any tagged page               |
 | **Element discovery**     | None. Agent must know IDs in advance                         | `findElements` — query by type, intent, id pattern                 |
@@ -559,10 +559,10 @@ packages/walkAi/src/
 | **Guided flows**          | `advanceToNextSection` (onboarding-specific)                 | `startGuide` / `advanceGuide` / `dismissGuide` (generic)           |
 | **Form introspection**    | None                                                         | `getFormSchema` — fields, types, required, values, validation      |
 | **Wait/listen**           | None                                                         | `waitForElement`, `waitForValue`, `onUserAction`                   |
-| **Element tagging**       | `data-section` (onboarding only)                             | `data-walkai-id/intent/type/context` (all pages)                   |
+| **Element tagging**       | `data-section` (onboarding only)                             | `data-Botsson-id/intent/type/context` (all pages)                  |
 | **Transport**             | Broadcast (fire-and-forget) or direct function call          | Bridge with request/response correlation                           |
 | **Multi-channel**         | Ultravox (voice) and capability system (server) are separate | Single tool definition set, adapters per channel                   |
-| **E2E alignment**         | `data-section` for scroll tracking only                      | `data-walkai-id` used by both agent and Playwright                 |
+| **E2E alignment**         | `data-section` for scroll tracking only                      | `data-Botsson-id` used by both agent and Playwright                |
 | **Tool count**            | 5 (UI capability) + 13 (onboarding client tools)             | 16 unified tools covering all scenarios                            |
 | **Authority gating**      | None on UI capability                                        | Per-tool authority levels inherited from capability system         |
 

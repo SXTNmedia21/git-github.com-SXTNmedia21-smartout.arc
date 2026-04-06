@@ -39,3 +39,7 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+.vercel
+
+# Service account credentials — NEVER commit
+google-service-account.json

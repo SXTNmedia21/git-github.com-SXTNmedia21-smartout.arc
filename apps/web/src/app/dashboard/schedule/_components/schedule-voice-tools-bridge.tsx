@@ -59,8 +59,7 @@ export function ScheduleVoiceToolsBridge({
   deleteShift,
   publishShifts,
 }: ScheduleVoiceToolsBridgeProps) {
-  const { addProposal, pendingConfirmation, resolveConfirmation, requestConfirmation } =
-    useAgentProposals();
+  const { addProposal, pendingConfirmation, resolveConfirmation } = useAgentProposals();
 
   const voiceTools = useScheduleVoiceTools({
     weekStart,
@@ -85,7 +84,6 @@ export function ScheduleVoiceToolsBridge({
     },
     // Ghost mode — all create/update go through proposals
     addProposal,
-    requestConfirmation,
   });
 
   // Register into Botsson tool registry — Emma gets schedule tools when on this page

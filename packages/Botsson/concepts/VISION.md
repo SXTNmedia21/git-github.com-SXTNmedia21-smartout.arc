@@ -1,25 +1,25 @@
 ---
-title: "WalkAi — Vision & Philosophy"
+title: "Botsson — Vision & Philosophy"
 status: draft
 updated: 2026-03-10
 created: 2026-03-10
-module: walkAi
+module: Botsson
 tags: [vision, philosophy, architecture, agent]
 ---
 
-# WalkAi — Vision & Philosophy
+# Botsson — Vision & Philosophy
 
 ## One Sentence
 
-WalkAi is the communication portal between human and AI agent — a self-contained shell where the agent lives free, awake, and focused on the user while the Stage Engine silently handles structure.
+Botsson is the communication portal between human and AI agent — a self-contained shell where the agent lives free, awake, and focused on the user while the Stage Engine silently handles structure.
 
 ## The Split
 
-| Layer            | Responsibility                                                        | User Visibility                          |
-| ---------------- | --------------------------------------------------------------------- | ---------------------------------------- |
-| **Agent**        | Listen, understand, guide, inspire, react                             | 100% — this IS the experience            |
-| **Stage Engine** | Structure, rules, stages, validation, tools, data                     | 0% — silent machinery behind the curtain |
-| **WalkAi Shell** | The portal — renders conversation, environment tools, visual guidance | The window into the agent's world        |
+| Layer             | Responsibility                                                        | User Visibility                          |
+| ----------------- | --------------------------------------------------------------------- | ---------------------------------------- |
+| **Agent**         | Listen, understand, guide, inspire, react                             | 100% — this IS the experience            |
+| **Stage Engine**  | Structure, rules, stages, validation, tools, data                     | 0% — silent machinery behind the curtain |
+| **Botsson Shell** | The portal — renders conversation, environment tools, visual guidance | The window into the agent's world        |
 
 The agent never says "we're on step 3". The agent **lives in the conversation**. The Stage Engine quietly ensures the right things happen in the right order.
 
@@ -61,11 +61,11 @@ The agent observes and responds to signals:
 
 The agent has personality. It uses humor when appropriate. It celebrates milestones. It remembers things the user said earlier. It connects dots.
 
-## What WalkAi Receives
+## What Botsson Receives
 
 ### Journey Context
 
-A Journey defines the pre-planned experience the user should go through. WalkAi receives:
+A Journey defines the pre-planned experience the user should go through. Botsson receives:
 
 ```typescript
 type JourneyContext = {
@@ -121,10 +121,10 @@ The agent can:
 
 ### 1. Self-Contained Shell
 
-WalkAi is a complete, portable shell. It imports context but owns the experience:
+Botsson is a complete, portable shell. It imports context but owns the experience:
 
 ```
-<WalkAiShell
+<BotssonShell
   journey={journeyContext}
   mission={missionContext}
   environment={environmentContext}
@@ -143,12 +143,12 @@ Same shell, different channels:
 
 ### 3. Stage Engine as Backend
 
-WalkAi never manages its own state. All state flows through the Stage Engine:
+Botsson never manages its own state. All state flows through the Stage Engine:
 
 ```
 User speaks → Agent processes → Tool calls →
   Stage Engine stores/validates/advances →
-    WalkAi renders updated state
+    Botsson renders updated state
 ```
 
 ### 4. Tools Are the Agent's Hands
@@ -172,7 +172,7 @@ The Guardian monitors from behind:
 
 The user never sees Guardian. The agent receives whispers as invisible instructions.
 
-## What WalkAi Is NOT
+## What Botsson Is NOT
 
 - **Not a chatbot widget** — it's a full-screen experience portal
 - **Not a form wizard** — the agent guides, not the UI
@@ -185,12 +185,12 @@ The user never sees Guardian. The agent receives whispers as invisible instructi
 1. A user should feel like they're talking to a colleague, not filling out a form
 2. The agent should handle unexpected input gracefully
 3. The Stage Engine should never be visible to the user
-4. WalkAi should work with zero code changes when a new mission is created
+4. Botsson should work with zero code changes when a new mission is created
 5. The shell should be portable — same component, different contexts
 
 ## Naming
 
-**WalkAi** — a play on "walkie-talkie" (two-way communication) and "walk" (guided journey). The AI walks with you.
+**Botsson** — a play on "walkie-talkie" (two-way communication) and "walk" (guided journey). The AI walks with you.
 
 ---
 

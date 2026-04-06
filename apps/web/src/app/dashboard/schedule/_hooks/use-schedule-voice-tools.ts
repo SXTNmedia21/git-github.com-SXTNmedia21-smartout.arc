@@ -43,6 +43,8 @@ type ScheduleVoiceToolsInput = {
 // Tool definitions imported from @smartout/ai — single source of truth.
 // Cast to mutable array for ClientTools compatibility.
 const TOOL_DEFINITIONS: ClientToolDefinition[] = [...SCHEDULE_TOOL_DEFINITIONS];
+const AVG_BOOKING_REVENUE_PER_GUEST = 525;
+const LABOR_BUDGET_TARGET_RATIO = 0.33;
 
 // -- Day name resolution --------------------------------------------------
 
@@ -314,6 +316,89 @@ export function useScheduleVoiceTools(input: ScheduleVoiceToolsInput): ClientToo
       return JSON.stringify({
         weekSummary: summary,
         days: daySummaries,
+      });
+    };
+
+    const getWeekOperationsSummary: ClientToolImplementation = () => {
+      const d = dataRef.current;
+      const statusSummary = d.computed.getStatusSummary();
+
+      const weekDayStats = d.days.map((day) => d.computed.getDayStats(day.id));
+      const totalShiftCount = weekDayStats.reduce((sum, stats) => sum + stats.shiftCount, 0);
+      const totalDraftCount = weekDayStats.reduce((sum, stats) => sum + stats.draftCount, 0);
+      const totalPublishedCount = weekDayStats.reduce(
+        (sum, stats) => sum + stats.publishedCount,
+        0,
+      );
+      const totalLaborCost = weekDayStats.reduce((sum, stats) => sum + stats.estimatedCost, 0);
+      const totalAbsenceCount = weekDayStats.reduce((sum, stats) => sum + stats.absenceCount, 0);
+
+      const totalBookingCount = d.days.reduce(
+        (sum, day) => sum + d.computed.getBookingsForDay(day.id).length,
+        0,
+      );
+      const totalBookedGuests = d.days.reduce(
+        (sum, day) =>
+          sum +
+          d.computed
+            .getBookingsForDay(day.id)
+            .reduce((guestSum, booking) => guestSum + booking.guestCount, 0),
+        0,
+      );
+
+      const estimatedRevenue = totalBookedGuests * AVG_BOOKING_REVENUE_PER_GUEST;
+      const laborBudgetCap = Math.round(estimatedRevenue * LABOR_BUDGET_TARGET_RATIO);
+      const budgetDelta = laborBudgetCap - totalLaborCost;
+
+      const bookedShiftCount = d.shifts.filter((shift) => shift.employeeId !== null).length;
+      const emptyShiftCount = Math.max(0, d.shifts.length - bookedShiftCount);
+      const fillRate =
+        d.shifts.length > 0 ? Number(((bookedShiftCount / d.shifts.length) * 100).toFixed(1)) : 0;
+
+      const sickAbsenceCount = d.absences.filter((absence) => absence.type === "sick_leave").length;
+      const vacationAbsenceCount = d.absences.filter(
+        (absence) => absence.type === "vacation",
+      ).length;
+
+      return JSON.stringify({
+        weekRange: {
+          start: d.weekStart,
+          end: d.weekEnd,
+          displayedDays: d.days.length,
+        },
+        shifts: {
+          total: totalShiftCount,
+          filled: bookedShiftCount,
+          empty: emptyShiftCount,
+          openShiftQueue: statusSummary.openShiftQueue,
+          fillRatePercent: fillRate,
+          draft: totalDraftCount,
+          published: totalPublishedCount,
+        },
+        labor: {
+          estimatedCost: Math.round(totalLaborCost),
+        },
+        bookings: {
+          total: totalBookingCount,
+          guestCount: totalBookedGuests,
+          estimatedRevenue,
+        },
+        budget: {
+          laborBudgetCap,
+          laborCost: Math.round(totalLaborCost),
+          delta: Math.round(budgetDelta),
+          status: budgetDelta >= 0 ? "within_budget" : "over_budget",
+        },
+        absences: {
+          total: totalAbsenceCount,
+          sickLeave: sickAbsenceCount,
+          vacation: vacationAbsenceCount,
+        },
+        riskSignals: {
+          coverage: statusSummary.coverageRisks,
+          overtime: statusSummary.overtimeRisks,
+          compliance: statusSummary.complianceRisks,
+        },
       });
     };
 
@@ -893,6 +978,7 @@ export function useScheduleVoiceTools(input: ScheduleVoiceToolsInput): ClientToo
       getShiftsForDay,
       getEmployeeSchedule,
       getCoverage,
+      getWeekOperationsSummary,
       createShift: createShiftTool,
       updateShift: updateShiftTool,
       deleteShift: deleteShiftTool,

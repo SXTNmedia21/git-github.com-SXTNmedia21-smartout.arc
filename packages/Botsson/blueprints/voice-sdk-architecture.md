@@ -3,13 +3,13 @@ title: "Voice SDK & Agent Architecture Blueprint"
 status: draft
 updated: 2026-03-10
 created: 2026-03-10
-module: walkAi
+module: Botsson
 tags: [blueprint, voice, sdk, architecture]
 ---
 
 # Voice SDK & Agent Architecture Blueprint
 
-Reference document for building WalkAi. Extracted from the Smartout agent-sdk, stage-engine, and frontend integration layer.
+Reference document for building Botsson. Extracted from the Smartout agent-sdk, stage-engine, and frontend integration layer.
 
 ---
 
@@ -855,4 +855,4 @@ The original onboarding hook that `useAgent` replaces. Contains inline tool defi
 - Hard-coded to `mission_id: "onboarding-interview"`, voice `"Mark"`, `first_speaker: "agent"`
 - Uses `toast` for error display
 
-These 4 extra tools should be migrated to the SDK's `createOnboardingTools` when WalkAi fully replaces `useBotsson`.
+These 4 extra tools should be migrated to the SDK's `createOnboardingTools` when Botsson fully replaces `useBotsson`.

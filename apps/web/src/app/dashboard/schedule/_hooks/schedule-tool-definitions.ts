@@ -76,6 +76,16 @@ const getCoverage = {
   },
 };
 
+const getWeekOperationsSummary = {
+  temporaryTool: {
+    modelToolName: "getWeekOperationsSummary",
+    description:
+      "Get an operational summary for the currently displayed week: shifts, payroll/labor cost, bookings, budget signal, open/filled shifts, and absence breakdown (sick leave/vacation). Use this when the manager asks for a quick week health check.",
+    dynamicParameters: [],
+    client: {},
+  },
+};
+
 // -- Write tools --------------------------------------------------------------
 
 const createShift = {
@@ -456,6 +466,7 @@ export const SCHEDULE_TOOL_DEFINITIONS: ClientToolDefinition[] = [
   getShiftsForDay,
   getEmployeeSchedule,
   getCoverage,
+  getWeekOperationsSummary,
   createShift,
   updateShift,
   deleteShift,

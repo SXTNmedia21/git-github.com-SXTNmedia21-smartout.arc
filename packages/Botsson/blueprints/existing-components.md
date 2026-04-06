@@ -2,13 +2,13 @@
 title: "Existing Components Inventory"
 status: draft
 updated: 2026-03-10
-module: walkAi
+module: Botsson
 tags: [blueprint, components, reuse]
 ---
 
 # Existing Components Inventory
 
-Comprehensive reference of ALL existing components that WalkAi can reuse or adapt. Verified against source code on the `feat/agent-chat` branch.
+Comprehensive reference of ALL existing components that Botsson can reuse or adapt. Verified against source code on the `feat/agent-chat` branch.
 
 ---
 
@@ -236,7 +236,7 @@ Shared animation pattern:
 
 ## 6. UI Primitives (shadcn/Radix)
 
-| Component       | Behavior                                                      | Key for WalkAi                                  |
+| Component       | Behavior                                                      | Key for Botsson                                 |
 | --------------- | ------------------------------------------------------------- | ----------------------------------------------- |
 | **Sheet**       | Side panel slide-in (top/bottom/left/right), Portal rendering | Used by AgentCard, ReportsChatPanel             |
 | **Dialog**      | Centered modal with zoom+fade, Portal                         | Confirmation dialogs, create flows              |
@@ -294,13 +294,13 @@ Current z-index usage across codebase:
 | Notification area            | z-[90]   | (reserved)          |
 | Command palette              | z-[9999] | (reserved)          |
 
-**Proposed WalkAi layers:**
+**Proposed Botsson layers:**
 
-| Layer             | Z-Index | Purpose                                       |
-| ----------------- | ------- | --------------------------------------------- |
-| walkaiBackdrop    | 55      | Semi-transparent overlay behind WalkAi panels |
-| walkaiPanel       | 65      | Main WalkAi panel (above modals, below MCP)   |
-| walkaiDragPreview | 80      | Drag preview elements during reposition       |
+| Layer              | Z-Index | Purpose                                        |
+| ------------------ | ------- | ---------------------------------------------- |
+| BotssonBackdrop    | 55      | Semi-transparent overlay behind Botsson panels |
+| BotssonPanel       | 65      | Main Botsson panel (above modals, below MCP)   |
+| BotssonDragPreview | 80      | Drag preview elements during reposition        |
 
 ---
 

@@ -56,8 +56,8 @@
     "config_description": "Endre terskelgrenser som brukes i all rapporteringslogikk i SmartOut.",
     "benchmark_prefix": "Referanseverdi: {benchmark}",
     "benchmark_days": "< 7 dager",
-    "target_prefix": "m\u00e5l {target}",
-    "not_available": "Kobles til n\u00e5r data er tilgjengelig"
+    "target_prefix": "mål {target}",
+    "not_available": "Kobles til når data er tilgjengelig"
   },
   "activityDemoWarning": "Aktivitetsdata vises som demo. Kobles til ekte data snart.",
   "activity": {

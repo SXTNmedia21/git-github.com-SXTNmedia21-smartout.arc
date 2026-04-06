@@ -1,0 +1,8 @@
+# Credentials — NEVER commit
+credentials/
+*.json
+!package.json
+
+# Generated builds
+*.aab
+*.apk
