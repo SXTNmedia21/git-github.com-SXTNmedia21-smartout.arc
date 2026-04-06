@@ -1,42 +1,41 @@
 # Anchor all patterns with / to match ROOT directories only.
 # Without /, gitignore syntax matches at ANY depth (e.g., docs/ would
 # also remove apps/landing/src/app/docs/ — breaking the build).
+#
+# This file applies to ALL Vercel projects linked to this repo:
+# - smartout-web (apps/web)
+# - smartout-landing (apps/landing)
+# - smartout-pwa (apps/mobile) — uses Root Directory override in Vercel
 
-# Mobile app — NOT ignored: PWA project uses root directory = apps/mobile
-# /apps/mobile/
-
-# E2E tests — not part of Vercel build
+# ── Apps not needed by web/landing builds ──
+# NOTE: /apps/mobile/ is NOT ignored — smartout-pwa project needs it.
+# Use Ignored Build Step in Vercel dashboard per project instead.
 /apps/e2e/
 
-# Python services — deployed separately (DigitalOcean)
+# ── Backend services — deployed separately (DigitalOcean) ──
 /services/
 
-# Supabase — migrations/functions deployed via Supabase CLI
+# ── Supabase — deployed via Supabase CLI ──
 /supabase/
 
-# Infrastructure — Docker/Caddy, not Vercel
+# ── Infrastructure — Docker/Caddy, not Vercel ──
 /infra/
 
-# Documentation — not deployed
+# ── Documentation — not deployed ──
 /docs/
 
-# Botsson blueprints — design docs, not code
+# ── Non-build packages — design docs, not runtime code ──
 /packages/Botsson/
+/packages/docs-pipeline/
 
-# CI scripts and artifacts — not deployed
+# ── CI scripts and artifacts ──
 /artifacts/
 # NOTE: /scripts/ is NOT ignored — fix-esm-imports.mjs is needed by @smartout/types build
 
-# Claude Code config
+# ── Dev tooling — not deployed ──
 /.claude/
-
-# GitHub Actions — not deployed
 /.github/
-
-# Python AI agents — deployed separately
-/agents/
-
-# Build artifacts and caches
+/.cursor/
 /.turbo/
 /.local/
-/.cursor/
+/agents/

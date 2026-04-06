@@ -6,3 +6,15 @@ build
 coverage
 pnpm-lock.yaml
 packages/supabase/src/database.types.ts
+
+# Documentation — formatted on commit (lint-staged), not in CI
+docs/
+.claude/
+agents/
+
+# Supabase Edge Functions — different formatting context
+supabase/functions/
+supabase/templates/
+
+# Infra scripts
+infra/
