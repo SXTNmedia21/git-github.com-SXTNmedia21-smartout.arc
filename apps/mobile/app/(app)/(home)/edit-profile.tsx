@@ -227,6 +227,9 @@ export default function EditProfileScreen() {
         style={styles.fieldSection}
       >
         <Text style={styles.fieldLabel}>Avdeling</Text>
+        {/* TODO: profile has department_id but no department name — needs a join to the
+            department table (department.name) to show the actual department name here.
+            Showing job_title as a placeholder until that join is added. */}
         <View style={styles.readOnlyField}>
           <Text style={styles.readOnlyText}>{profile?.job_title ?? "—"}</Text>
         </View>

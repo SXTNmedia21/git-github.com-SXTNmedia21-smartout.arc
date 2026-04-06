@@ -63,15 +63,8 @@ export default function AbsenceRequestScreen() {
   const [endDate, setEndDate] = useState("");
 
   const handleSubmit = useCallback(() => {
-    if (!startDate || !endDate) {
-      Alert.alert("Mangler dato", "Velg fra- og til-dato.");
-      return;
-    }
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    Alert.alert("Sendt", "Fraværssøknaden er registrert.");
-    setStartDate("");
-    setEndDate("");
-  }, [startDate, endDate]);
+    Alert.alert("Ikke tilgjengelig", "Denne funksjonen er under utvikling.");
+  }, []);
 
   return (
     <ScrollView
@@ -80,6 +73,30 @@ export default function AbsenceRequestScreen() {
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
     >
+      {/* Demo Banner */}
+      <View
+        style={{
+          backgroundColor: "#fef3cd",
+          paddingVertical: 8,
+          paddingHorizontal: 16,
+          borderRadius: 8,
+          marginHorizontal: 16,
+          marginTop: 8,
+          marginBottom: 8,
+        }}
+      >
+        <Text
+          style={{
+            color: "#856404",
+            fontSize: 13,
+            fontWeight: "600",
+            textAlign: "center",
+          }}
+        >
+          Demo — denne siden er under utvikling
+        </Text>
+      </View>
+
       {/* Balance Cards — 3-col */}
       <View style={styles.balanceRow}>
         <View style={styles.balanceCard}>

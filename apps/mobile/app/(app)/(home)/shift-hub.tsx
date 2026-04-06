@@ -11,7 +11,7 @@
  */
 
 import React, { useMemo, useRef } from "react";
-import { View, Text, Pressable, ScrollView } from "react-native";
+import { View, Text, Pressable, ScrollView, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { useRouter } from "expo-router";
@@ -95,6 +95,14 @@ export default function HomeScreen() {
             tasks={tasks ?? []}
           />
         )}
+        {phase === "before_shift" && !nextShift && (
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24 }}>
+            <ActivityIndicator size="large" color={theme.colors.foreground} />
+            <Text style={{ marginTop: 12, color: theme.colors.mutedForeground, fontSize: 14 }}>
+              Laster vaktdata...
+            </Text>
+          </View>
+        )}
         {phase === "during_shift" && activeTimeEntry && (
           <DuringShiftView
             shift={activeShift}
@@ -102,6 +110,14 @@ export default function HomeScreen() {
             tasks={tasks ?? []}
             leaderPhone={dutyLeader?.phone}
           />
+        )}
+        {phase === "during_shift" && !activeTimeEntry && (
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24 }}>
+            <ActivityIndicator size="large" color={theme.colors.foreground} />
+            <Text style={{ marginTop: 12, color: theme.colors.mutedForeground, fontSize: 14 }}>
+              Kobler til vaktdata...
+            </Text>
+          </View>
         )}
         {phase === "after_shift" && activeTimeEntry && (
           <AfterShiftView shift={activeShift} timeEntry={activeTimeEntry} />

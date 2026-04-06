@@ -80,7 +80,7 @@ export default function DeviationScreen() {
     void reportDeviation({
       title: description.trim().slice(0, 80),
       description: description.trim(),
-      severity: severity === "critical" ? "high" : severity,
+      severity,
       domain:
         category === "hygiene"
           ? "procedure"

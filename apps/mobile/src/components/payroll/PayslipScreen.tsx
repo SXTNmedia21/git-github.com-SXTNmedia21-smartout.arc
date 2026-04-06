@@ -191,14 +191,6 @@ export function PayslipScreen() {
             <Text style={styles.specAmount}>{formatNOK(basePay)}</Text>
           </View>
 
-          <View style={styles.divider} />
-
-          {/* Grunnlonn */}
-          <View style={styles.specRow}>
-            <Text style={styles.specLabel}>Grunnlonn</Text>
-            <Text style={styles.specAmount}>{formatNOK(basePay)}</Text>
-          </View>
-
           {/* Supplement lines with badges */}
           {supplementLines.map((line, i) => {
             const badge = getSupplementBadge(line.description);

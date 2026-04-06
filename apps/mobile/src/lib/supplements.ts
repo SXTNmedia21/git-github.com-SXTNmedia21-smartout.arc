@@ -56,6 +56,12 @@ export type ShiftSupplement = {
   type: "kveld" | "helg" | "helligdag";
   label: string;
   hours: number;
+  /** The raw rate from the matching supplement rule */
+  rate: number;
+  /** Whether the rate is a fixed kr/hour amount or a percentage of base pay */
+  rateType: "fixed_per_hour" | "percentage";
+  /** Pre-computed amount for fixed_per_hour rules. Undefined for percentage rules
+   * because the base hourly rate (needed for the calculation) is not available here. */
   estimatedAmount?: number;
 };
 
@@ -299,9 +305,13 @@ export function calculateSupplements(input: SupplementInput): ShiftSupplement[] 
       type,
       label: rule?.name ?? type,
       hours,
+      rate: rule?.rate ?? 0,
+      rateType: rule?.rateType ?? "fixed_per_hour",
     };
 
-    // Compute estimated amount for fixed-per-hour rates
+    // Compute estimated amount for fixed-per-hour rates only.
+    // Percentage rules require the base hourly rate (not available here) —
+    // the caller must handle the percentage calculation using supplement.rate.
     if (rule && rule.rateType === "fixed_per_hour") {
       supplement.estimatedAmount = hours * rule.rate;
     }

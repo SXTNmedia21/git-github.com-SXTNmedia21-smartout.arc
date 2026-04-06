@@ -4,6 +4,7 @@
  */
 
 import { create } from "zustand";
+import { storage } from "@/lib/cache/mmkv";
 
 export type ThemePreference = "light" | "dark" | "system";
 
@@ -12,30 +13,25 @@ type ThemeState = {
   setTheme: (theme: ThemePreference) => void;
 };
 
-// Try to use MMKV, fallback to memory if not available
 const CACHE_KEY = "cache:theme-preference";
 
 function loadInitialTheme(): ThemePreference {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { mmkvStorage } = require("@/lib/cache/persister");
-    const cached = mmkvStorage?.getString(CACHE_KEY);
+    const cached = storage.getString(CACHE_KEY);
     if (cached === "light" || cached === "dark" || cached === "system") {
       return cached;
     }
   } catch {
-    // Ignore
+    // MMKV not available (e.g. web platform)
   }
   return "system";
 }
 
 function persistTheme(theme: ThemePreference) {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { mmkvStorage } = require("@/lib/cache/persister");
-    mmkvStorage?.set(CACHE_KEY, theme);
+    storage.set(CACHE_KEY, theme);
   } catch {
-    // Ignore
+    // MMKV not available (e.g. web platform)
   }
 }
 
