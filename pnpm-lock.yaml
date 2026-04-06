@@ -729,6 +729,9 @@ importers:
       '@smartout/types':
         specifier: workspace:*
         version: link:../types
+      '@smartout/utils':
+        specifier: workspace:*
+        version: link:../utils
       '@supabase/supabase-js':
         specifier: 2.49.4
         version: 2.49.4

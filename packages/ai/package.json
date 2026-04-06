@@ -142,6 +142,7 @@
     "@openrouter/ai-sdk-provider": "^2.2.3",
     "@smartout/supabase": "workspace:*",
     "@smartout/types": "workspace:*",
+    "@smartout/utils": "workspace:*",
     "@supabase/supabase-js": "2.49.4",
     "ai": "^6.0.103",
     "zod": "^3.25.76"
