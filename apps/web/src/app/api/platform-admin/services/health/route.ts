@@ -35,8 +35,8 @@ async function getHealthCheckEntries(): Promise<HealthCheckEntry[]> {
   const admin = createAdminClient();
   // TODO: Remove cast once service_config migration is applied and types regenerated
   const { data: services } = await (
-    admin as unknown as { from: (t: string) => ReturnType<typeof admin.from> } // SAFETY: Supabase join returns union type; runtime shape matches the cast
-  )
+    admin as unknown as { from: (t: string) => ReturnType<typeof admin.from> }
+  ) // SAFETY: Supabase join returns union type; runtime shape matches the cast
     .from("service_config")
     .select("name, slug, host_url, health_endpoint, type, status")
     .in("type", ["docker", "edge-function"])

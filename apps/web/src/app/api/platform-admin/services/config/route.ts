@@ -57,7 +57,8 @@ export async function POST(request: NextRequest) {
 
   const d = body.data;
 
-  const { data, error } = await auth.admin.from("service_config")
+  const { data, error } = await auth.admin
+    .from("service_config")
     .insert({
       name: d.name,
       slug: d.slug,
