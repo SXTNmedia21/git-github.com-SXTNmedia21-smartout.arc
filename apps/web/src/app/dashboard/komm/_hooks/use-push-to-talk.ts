@@ -117,7 +117,7 @@ export function usePushToTalk(
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [pttState === "idle" || pttState === "connecting"]); // Only re-register when entering/leaving PTT mode
+  }, [pttState]); // Re-run on every state change so listeners are registered/torn down correctly
 
   return { pttState, onPressStart, onPressEnd, connectPTT, disconnectPTT };
 }
