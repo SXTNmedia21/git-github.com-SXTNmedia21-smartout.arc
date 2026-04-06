@@ -138,9 +138,12 @@ export default function Verify() {
       },
     });
 
+    // Reset loading state regardless of outcome — the OAuth call opens an
+    // external browser, so we never get a "success" callback here to reset it.
+    setGoogleLoading(false);
+
     if (oauthError) {
       setError("Noe gikk galt med Google-innlogging.");
-      setGoogleLoading(false);
     }
   }
 
@@ -166,34 +169,6 @@ export default function Verify() {
     }
 
     setOtpSent(true);
-  }
-
-  async function _verifyOtp() {
-    if (otp.length !== OTP_LENGTH) {
-      setError("Koden ma vaere 6 siffer");
-      return;
-    }
-
-    const normalized = normalizePhone(phone);
-    if (!normalized) return;
-
-    setIsLoading(true);
-    setError(null);
-
-    const { error: verifyError } = await supabase.auth.verifyOtp({
-      phone: normalized,
-      token: otp,
-      type: "sms",
-    });
-
-    setIsLoading(false);
-
-    if (verifyError) {
-      setError("Feil kode. Sjekk SMS-en og prov igjen.");
-      return;
-    }
-
-    await handlePostAuth();
   }
 
   // --- Email magic link flow ---
@@ -247,14 +222,22 @@ export default function Verify() {
     }
 
     if (flow === "search" && workspaceId) {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const [
+        {
+          data: { user },
+        },
+        { data: workspace },
+      ] = await Promise.all([
+        supabase.auth.getUser(),
+        supabase.from("workspace").select("company_id").eq("workspace_id", workspaceId).single(),
+      ]);
 
-      if (user) {
+      // company_id is a required FK on invitation — it must come from the
+      // workspace record, not the workspaceId itself (they are different entities).
+      if (user && workspace?.company_id) {
         await supabase.from("invitation").insert({
           workspace_id: workspaceId,
-          company_id: workspaceId,
+          company_id: workspace.company_id,
           direction: "inbound",
           status: "pending",
           invite_type: "link",
