@@ -1,10 +1,8 @@
 // packages/ai/src/capabilities/communication/tools.ts
 // Migrated from legacy chat_* tables to Komm channel_* tables (2026-03-28)
-// TODO: Consider consolidating with packages/ai/src/tools/channels.ts
 import { z } from "zod";
 import { defineTool } from "../../types.js";
 import type { AgentToolContext } from "../types.js";
-import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const getConversations = defineTool({
   name: "get_conversations",
@@ -19,7 +17,7 @@ export const getConversations = defineTool({
       .describe("Maximum number of channels to return"),
   }),
   execute: async (params, ctx: AgentToolContext) => {
-    const supabase = ctx.supabaseAdmin as SupabaseClient;
+    const supabase = ctx.supabaseAdmin;
 
     // Get channel IDs where this profile is a member
     const { data: memberData, error: memberError } = await supabase
@@ -65,7 +63,7 @@ export const getUnreadCount = defineTool({
   description: "Get the total number of unread messages across all channels",
   schema: z.object({}),
   execute: async (_params, ctx: AgentToolContext) => {
-    const supabase = ctx.supabaseAdmin as SupabaseClient;
+    const supabase = ctx.supabaseAdmin;
 
     const { data, error } = await supabase
       .from("channel_member")
@@ -92,7 +90,7 @@ export const sendMessage = defineTool({
     content: z.string().min(1).max(2000).describe("The message text to send"),
   }),
   execute: async (params, ctx: AgentToolContext) => {
-    const supabase = ctx.supabaseAdmin as SupabaseClient;
+    const supabase = ctx.supabaseAdmin;
 
     // Verify the user is a member of this channel
     const { data: member, error: memberError } = await supabase
@@ -121,6 +119,18 @@ export const sendMessage = defineTool({
     if (error) {
       return `Error sending message: ${error.message}`;
     }
+
+    // Emit engine event for audit trail (ADR-0069 — agent tools must emit)
+    await supabase.from("engine_event").insert({
+      workspace_id: ctx.workspaceId,
+      event_type: "channel_message.sent",
+      payload: {
+        channel_id: params.channel_id,
+        message_id: data.id,
+        source: "agent",
+        actor_id: ctx.profileId,
+      },
+    });
 
     return JSON.stringify({ sent: true, message: data });
   },

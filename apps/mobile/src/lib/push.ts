@@ -116,7 +116,7 @@ export async function registerPushToken(profileId: string): Promise<void> {
       if (error) {
         console.error("Failed to update push token:", error.message);
       } else {
-        console.log("Push token updated for profile", profileId);
+        console.log("Push token updated successfully");
       }
     }
   } catch (error) {

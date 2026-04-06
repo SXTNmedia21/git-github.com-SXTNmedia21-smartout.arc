@@ -61,6 +61,9 @@
   },
   "activityDemoWarning": "Activity data shown as demo. Real data coming soon.",
   "activity": {
+    "title": "Activity",
+    "empty": "No activity recorded today yet.",
+    "log_title": "Activity log — today",
     "coming_soon_title": "Heatmap is under development",
     "coming_soon_description": "Activity heatmap, filters, and statistics are under development. The activity log below shows real-time data."
   },

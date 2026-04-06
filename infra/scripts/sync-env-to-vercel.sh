@@ -168,6 +168,7 @@ smartout-web|preview|NEXT_PUBLIC_ROOT_DOMAIN|op://smartout_ai/SmartOut/root_doma
 smartout-web|preview|NEXT_PUBLIC_LANDING_URL|op://smartout_ai/SmartOut/landing_url|false
 smartout-web|preview|NEXT_PUBLIC_REVALIDATION_SECRET|op://smartout_ai/SmartOut/revalidation_secret|false
 smartout-web|preview|NEXT_PUBLIC_STAGE_ENGINE_URL|op://smartout_ai/Stage-Engine/url|false
+smartout-web|preview|NEXT_PUBLIC_LIVEKIT_URL|op://smartout_ai/livekit/wss-url|false
 smartout-web|preview|SUPABASE_SERVICE_ROLE_KEY|op://smartout_ai/Supabase/service_role_key|true
 smartout-web|preview|DATABASE_URL|op://smartout_ai/PostgreSQL/connection_string|true
 smartout-web|preview|JWT_SECRET|op://smartout_ai/SmartOut/jwt_secret|true
@@ -201,6 +202,7 @@ smartout-web|production|NEXT_PUBLIC_ROOT_DOMAIN|op://smartout_ai_prod/SmartOut/r
 smartout-web|production|NEXT_PUBLIC_LANDING_URL|op://smartout_ai_prod/SmartOut/landing_url|false
 smartout-web|production|NEXT_PUBLIC_REVALIDATION_SECRET|op://smartout_ai_prod/SmartOut/revalidation_secret|false
 smartout-web|production|NEXT_PUBLIC_STAGE_ENGINE_URL|op://smartout_ai_prod/Stage-Engine/url|false
+smartout-web|production|NEXT_PUBLIC_LIVEKIT_URL|op://smartout_ai_prod/livekit/wss-url|false
 smartout-web|production|SUPABASE_SERVICE_ROLE_KEY|op://smartout_ai_prod/Supabase/service_role_key|true
 smartout-web|production|DATABASE_URL|op://smartout_ai_prod/PostgreSQL/connection_string|true
 smartout-web|production|JWT_SECRET|op://smartout_ai_prod/SmartOut/jwt_secret|true
