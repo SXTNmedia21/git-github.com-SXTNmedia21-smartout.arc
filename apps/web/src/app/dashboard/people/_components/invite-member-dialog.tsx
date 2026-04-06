@@ -367,6 +367,7 @@ export function InviteMemberDialog({
             workspace_id: workspaceData.workspace_id,
             company_id: workspaceData.company_id,
             invites: inviteRecords,
+            skip_dispatch: mode === "csv",
           },
         });
       }
@@ -402,7 +403,18 @@ export function InviteMemberDialog({
         }
       }
 
-      toast.success(rows.length === 1 ? "Invitasjon sendt" : `${rows.length} invitasjoner sendt`);
+      if (mode === "csv") {
+        toast.success(`${rows.length} invitasjoner importert`);
+      } else {
+        const data = response.data as { dispatched?: number; failed?: number; count?: number } | null;
+        const dispatched = data?.dispatched ?? 0;
+        const failed = data?.failed ?? 0;
+        if (failed > 0) {
+          toast.warning(`${dispatched} invitasjoner sendt, ${failed} feilet`);
+        } else {
+          toast.success(dispatched === 1 ? "Invitasjon sendt" : `${dispatched} invitasjoner sendt`);
+        }
+      }
       onRefresh();
       onClose();
     } catch (error: unknown) {
