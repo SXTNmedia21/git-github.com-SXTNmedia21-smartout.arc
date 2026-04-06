@@ -1,6 +1,19 @@
-import twilio from '/home/sxtnl/dev/smartout.ai/node_modules/twilio/lib/index.js';
+/**
+ * Quick Twilio number check — lists all phone numbers on the account.
+ * Requires TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN in env.
+ * Run: op run --env-file=.env.template -- node .twilio-check.mjs
+ */
+import twilio from 'twilio';
 
-const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+const sid = process.env.TWILIO_ACCOUNT_SID;
+const token = process.env.TWILIO_AUTH_TOKEN;
+
+if (!sid || !token) {
+  console.error('Missing TWILIO_ACCOUNT_SID or TWILIO_AUTH_TOKEN');
+  process.exit(1);
+}
+
+const client = twilio(sid, token);
 
 const numbers = await client.incomingPhoneNumbers.list();
 console.log('Dine Twilio-numre:\n');

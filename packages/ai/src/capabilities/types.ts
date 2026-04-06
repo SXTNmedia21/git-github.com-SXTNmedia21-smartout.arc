@@ -1,4 +1,5 @@
 // packages/ai/src/capabilities/types.ts
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { SmartoutTool } from "../types.js";
 
 export type CapabilityName =
@@ -20,7 +21,7 @@ export type AgentToolContext = {
   profileId: string;
   userId?: string;
   sessionId: string;
-  supabaseAdmin: unknown;
+  supabaseAdmin: SupabaseClient;
 };
 
 export type CapabilityDefinition = {
