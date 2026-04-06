@@ -77,6 +77,8 @@ smartout_v3/
 - **shadcn/ui** — new-york style, `apps/web/components.json`
 - **Fonts:** Instrument Serif (headings, `font-heading`), Geist Sans (body), Geist Mono (data)
 - **Icons:** Lucide React only. No emojis in UI.
+- **Subdomain routing:** `{slug}.smartout.ai` → middleware sets `x-workspace-slug`
+- Dashboard: Server layout + Client DashboardShell (ADR-0021)
 
 > All routes: `docs/reference/ROUTES.md`
 
@@ -166,6 +168,10 @@ Goal: a non-developer should be able to read the codebase and follow the logic.
 ## Cascade Core Model
 
 **Cascade model:** See `smartout-cascade-developer` skill (auto-triggered on cascade/scheduling work). Spec: `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`. Canonical model: **I1 + 6D + 4C + K1a/K1b**. "Confident != Authorized" — C1 determines belief, C4 determines permission.
+
+**Event Engine:** Universal workflow runtime. `engine_process` (blueprint) → `engine_state` (live instance) → `engine_state_step` (per-step tracking). Action type handlers: `wait_for_event`, `assign_task`, `send_notification`, `update_entity`, `create_deviation`, `validate_settlement`, `lock_checkout`, `schedule_control`, `start_process`, `upsert_session`. Dispatch: `supabase/functions/engine-dispatch/index.ts`.
+
+**Telemetry:** Every mutation emits. `emit()` from `@smartout/telemetry`. Registry: `packages/telemetry/src/registry.ts` (single source of truth for events and routing destinations).
 
 ---
 
