@@ -73,7 +73,7 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
   const voiceSessionRef = useRef<VoiceSession | null>(null);
 
   const { phase } = useShiftPhase();
-  const { data: profile } = useMyProfile();
+  const { data: _profile } = useMyProfile();
   const { data: tasks } = useMyTasks();
 
   // Build mobile context for AI agent — passed as session params
