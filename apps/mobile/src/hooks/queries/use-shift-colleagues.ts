@@ -24,14 +24,36 @@ export type Colleague = {
 
 const STALE_TIME_MS = 5 * 60 * 1000;
 
+/** Resolves the current user's workspace ID — required before querying shifts */
+async function resolveWorkspaceId(): Promise<string> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const { data: profile, error } = await supabase
+    .from("profile")
+    .select("workspace_id")
+    .eq("user_id", user.id)
+    .limit(1)
+    .single();
+
+  if (error) throw error;
+  return profile.workspace_id;
+}
+
 async function fetchShiftColleagues(
   shiftDate: string,
   currentProfileId: string,
 ): Promise<Colleague[]> {
+  // Resolve workspace to prevent cross-tenant queries
+  const workspaceId = await resolveWorkspaceId();
+
   // Get all shifts on the same date (published only)
   const { data: shifts, error: shiftsError } = await supabase
     .from("schedule_shift")
     .select("employee_id, role, start_time, end_time")
+    .eq("workspace_id", workspaceId)
     .eq("shift_date", shiftDate)
     .eq("is_published", true)
     .not("employee_id", "is", null);

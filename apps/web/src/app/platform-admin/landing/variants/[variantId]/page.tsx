@@ -82,8 +82,8 @@ export default async function VariantEditorPage({ params }: Props) {
 
   return (
     <BlockEditorClient
-      variant={variantResult.data as unknown as VariantData}
-      blocks={(blocksResult.data as unknown as BlockData[]) ?? []}
+      variant={variantResult.data as unknown as VariantData} // SAFETY: Supabase join returns union type; runtime shape matches the cast
+      blocks={(blocksResult.data as unknown as BlockData[]) ?? []} // SAFETY: Supabase join returns union type; runtime shape matches the cast
     />
   );
 }

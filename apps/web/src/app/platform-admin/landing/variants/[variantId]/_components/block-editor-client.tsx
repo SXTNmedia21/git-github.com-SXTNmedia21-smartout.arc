@@ -210,7 +210,7 @@ export function BlockEditorClient({
       return;
     }
 
-    setVariant(data as unknown as VariantData);
+    setVariant(data as unknown as VariantData); // SAFETY: Supabase join returns union type; runtime shape matches the cast
     setSaveStatus("saved");
   }, [supabase]);
 
@@ -314,7 +314,7 @@ export function BlockEditorClient({
         return;
       }
 
-      setBlocks((prev) => [...prev, data as unknown as BlockData]);
+      setBlocks((prev) => [...prev, data as unknown as BlockData]); // SAFETY: Supabase join returns union type; runtime shape matches the cast
       setAddDialogOpen(false);
       toast.success(`Added ${blockType.replace(/_/g, " ")} block`);
     },
@@ -432,7 +432,7 @@ export function BlockEditorClient({
       toast.success("Variant created");
       setSaveStatus("saved");
       // Navigate to the edit page for the new variant
-      router.push(`/platform-admin/landing/variants/${(data as unknown as VariantData).id}`);
+      router.push(`/platform-admin/landing/variants/${(data as unknown as VariantData).id}`); // SAFETY: Supabase join returns union type; runtime shape matches the cast
     } else {
       // Update existing variant
       const { data, error } = await supabase
@@ -449,7 +449,7 @@ export function BlockEditorClient({
         return;
       }
 
-      setVariant(data as unknown as VariantData);
+      setVariant(data as unknown as VariantData); // SAFETY: Supabase join returns union type; runtime shape matches the cast
       setSaveStatus("saved");
       toast.success("Variant saved");
     }
@@ -520,7 +520,7 @@ export function BlockEditorClient({
       return;
     }
 
-    setVariant(data as unknown as VariantData);
+    setVariant(data as unknown as VariantData); // SAFETY: Supabase join returns union type; runtime shape matches the cast
     setVariantForm((prev) => ({ ...prev, status: "published" }));
     setSaveStatus("saved");
 
@@ -551,7 +551,7 @@ export function BlockEditorClient({
       return;
     }
 
-    setVariant(data as unknown as VariantData);
+    setVariant(data as unknown as VariantData); // SAFETY: Supabase join returns union type; runtime shape matches the cast
     setVariantForm((prev) => ({ ...prev, status: "draft" }));
     setSaveStatus("saved");
 

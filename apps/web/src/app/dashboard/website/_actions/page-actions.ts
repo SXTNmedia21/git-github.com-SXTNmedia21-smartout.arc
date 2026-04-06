@@ -32,7 +32,7 @@ async function requireAdminForWebsite(websiteId: string) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: website, error } = await admin
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .schema("websites" as any)
+    .schema("websites" as any) // SAFETY: websites is a valid Postgres schema not in Supabase generated types
     .from("website")
     .select("workspace_id")
     .eq("website_id", websiteId)
@@ -84,7 +84,7 @@ export async function createPage(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { count } = await admin
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .schema("websites" as any)
+    .schema("websites" as any) // SAFETY: websites is a valid Postgres schema not in Supabase generated types
     .from("website_page")
     .select("*", { count: "exact", head: true })
     .eq("website_id", websiteId)
@@ -97,7 +97,7 @@ export async function createPage(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await admin
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .schema("websites" as any)
+    .schema("websites" as any) // SAFETY: websites is a valid Postgres schema not in Supabase generated types
     .from("website_page")
     .insert({
       website_id: websiteId,
@@ -142,7 +142,7 @@ export async function deletePage(websiteId: string, pageId: string): Promise<Act
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: page } = await admin
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .schema("websites" as any)
+      .schema("websites" as any) // SAFETY: websites is a valid Postgres schema not in Supabase generated types
       .from("website_page")
       .select("page_type")
       .eq("website_page_id", pageId)
@@ -157,7 +157,7 @@ export async function deletePage(websiteId: string, pageId: string): Promise<Act
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = await admin
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .schema("websites" as any)
+      .schema("websites" as any) // SAFETY: websites is a valid Postgres schema not in Supabase generated types
       .from("website_page")
       .update({ deleted_at: new Date().toISOString() })
       .eq("website_page_id", pageId);
@@ -196,7 +196,7 @@ export async function reorderPages(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         admin
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .schema("websites" as any)
+          .schema("websites" as any) // SAFETY: websites is a valid Postgres schema not in Supabase generated types
           .from("website_page")
           .update({ sort_order: index })
           .eq("website_page_id", pageId)
@@ -236,7 +236,7 @@ export async function togglePageVisibility(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = await admin
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .schema("websites" as any)
+      .schema("websites" as any) // SAFETY: websites is a valid Postgres schema not in Supabase generated types
       .from("website_page")
       .update({ is_visible: isVisible })
       .eq("website_page_id", pageId)

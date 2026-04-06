@@ -179,7 +179,7 @@ export async function duplicateLandingVariant(variantId: string): Promise<Varian
       return { ok: false, error: sourceError?.message ?? "Variant not found." };
     }
 
-    const sourceVariant = source as unknown as LandingVariantRecord;
+    const sourceVariant = source as unknown as LandingVariantRecord; // SAFETY: Supabase join returns union type; runtime shape matches the cast
     const duplicateSlug = await buildUniqueDuplicateSlug(sourceVariant.slug);
 
     const { data: blockRows, error: blockError } = await admin
@@ -213,8 +213,8 @@ export async function duplicateLandingVariant(variantId: string): Promise<Varian
       return { ok: false, error: insertVariantError?.message ?? "Failed to duplicate variant." };
     }
 
-    const duplicatedVariant = insertedVariant as unknown as VariantListRow & { id: string };
-    const sourceBlocks = (blockRows as unknown as LandingBlockRecord[] | null) ?? [];
+    const duplicatedVariant = insertedVariant as unknown as VariantListRow & { id: string }; // SAFETY: Supabase join returns union type; runtime shape matches the cast
+    const sourceBlocks = (blockRows as unknown as LandingBlockRecord[] | null) ?? []; // SAFETY: Supabase join returns union type; runtime shape matches the cast
 
     if (sourceBlocks.length > 0) {
       const { error: insertBlocksError } = await admin.from("landing_block").insert(

@@ -12,10 +12,6 @@ const SyncEnvSchema = z.object({
 
 type RouteContext = { params: Promise<{ slug: string }> };
 
-// TODO: Remove once service_config migration is applied and types regenerated
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const svcTable = (client: any) => client.from("service_config") as any;
-
 /** POST /api/platform-admin/services/config/[slug]/sync-env — Sync env vars to Vercel */
 export async function POST(request: NextRequest, { params }: RouteContext) {
   const auth = await requireGodmode();
@@ -30,7 +26,8 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     return NextResponse.json({ error: "VERCEL_API_TOKEN not configured" }, { status: 503 });
   }
 
-  const { data: service } = await svcTable(auth.admin)
+  const { data: service } = await auth.admin
+    .from("service_config")
     .select("service_id, name, vercel_project_id")
     .eq("slug", slug)
     .single();

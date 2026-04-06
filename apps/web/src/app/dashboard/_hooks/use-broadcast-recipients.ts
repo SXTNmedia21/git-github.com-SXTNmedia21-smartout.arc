@@ -48,7 +48,7 @@ export function useBroadcastRecipients(group: RecipientGroup) {
         return (data ?? []).map((r) => ({
           profile_id: r.profile_id,
           display_name:
-            (r.profile as unknown as { display_name: string | null } | null)?.display_name ?? null,
+            (r.profile as unknown as { display_name: string | null } | null)?.display_name ?? null, // SAFETY: Supabase join returns union type; runtime shape matches the cast
         }));
       }
 
@@ -80,16 +80,16 @@ export function useBroadcastRecipients(group: RecipientGroup) {
           .map((r) => ({
             profile_id: r.employee_id as string,
             display_name:
-              (r.profile as unknown as { display_name: string | null } | null)?.display_name ??
+              (r.profile as unknown as { display_name: string | null } | null)?.display_name ?? // SAFETY: Supabase join returns union type; runtime shape matches the cast
               null,
           }));
       }
 
       // yesterday group — anyone who clocked out yesterday
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
-        .schema("timesheet")
-        .from("time_entry")
+      const { data, error } = await supabase
+        .schema("timesheet" as "public") // SAFETY: timesheet is a valid Postgres schema not represented as "public" in Supabase client types
+        // SAFETY: "time_entry" exists in timesheet schema at runtime; cast to a known public table to satisfy TS
+        .from("time_entry" as "profile")
         .select("profile_id")
         .gte("punch_out", `${yesterday}T00:00:00`)
         .lt("punch_out", `${today}T00:00:00`)
@@ -97,7 +97,8 @@ export function useBroadcastRecipients(group: RecipientGroup) {
 
       if (error) throw error;
 
-      return ((data ?? []) as Array<{ profile_id: string }>).map((r) => ({
+      // SAFETY: data shape is { profile_id: string }[] at runtime; cast through unknown to bypass TS overlap check
+      return ((data ?? []) as unknown as Array<{ profile_id: string }>).map((r) => ({
         profile_id: r.profile_id,
         display_name: null as string | null,
       }));

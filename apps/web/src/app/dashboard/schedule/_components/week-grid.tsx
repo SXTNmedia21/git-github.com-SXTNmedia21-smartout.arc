@@ -10,6 +10,8 @@
 
 import { useState, useContext, useMemo, useCallback } from "react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspace } from "@/lib/workspace-context";
@@ -52,6 +54,7 @@ export function MalGrid({ departmentName, weekStart, departmentOptions }: MalGri
   const [showTasks, setShowTasks] = useState(false);
   const [loadTemplateOpen, setLoadTemplateOpen] = useState(false);
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
+  const [selectedAssignment, setSelectedAssignment] = useState<MalEmployeeAssignment | null>(null);
 
   const { workspace } = useWorkspace();
   const { isDark, setActiveDepartment, profileId } = useContext(DashboardContext);
@@ -132,10 +135,9 @@ export function MalGrid({ departmentName, weekStart, departmentOptions }: MalGri
     [departmentId, workspace.workspace_id, currentWeekStart, profileId, createShiftMutation],
   );
 
-  /** Click an existing employee tag — for now show toast with info */
+  /** Click an existing employee tag — opens a detail sheet with shift info */
   const handleEmployeeClick = useCallback((assignment: MalEmployeeAssignment) => {
-    // TODO: open shift detail sheet for editing time, swap, message, remove
-    toast.info(`${assignment.employeeName} — ${assignment.status}`);
+    setSelectedAssignment(assignment);
   }, []);
 
   return (
@@ -384,6 +386,28 @@ export function MalGrid({ departmentName, weekStart, departmentOptions }: MalGri
         open={saveTemplateOpen}
         onOpenChange={setSaveTemplateOpen}
       />
+
+      {/* Shift detail sheet — opens when clicking an employee assignment tag */}
+      <Sheet open={!!selectedAssignment} onOpenChange={() => setSelectedAssignment(null)}>
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle>{selectedAssignment?.employeeName}</SheetTitle>
+          </SheetHeader>
+          <div className="space-y-4 py-4">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Status</span>
+              <span>{selectedAssignment?.status}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Stilling</span>
+              <span>—</span>
+            </div>
+            <Button variant="outline" disabled className="w-full" title="Redigering kommer snart">
+              Rediger vakt
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

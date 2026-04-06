@@ -1,7 +1,7 @@
 ---
 title: Development Dashboard
 status: in_progress
-updated: 2026-04-07
+updated: 2026-04-06
 created: 2026-03-02
 module: meta
 tags: [dashboard, worktrees, tracking]
@@ -15,7 +15,7 @@ tags: [dashboard, worktrees, tracking]
 
 | #     | Branch                                | Module         | Status      | Progress                          | Blockers | Health |
 | ----- | ------------------------------------- | -------------- | ----------- | --------------------------------- | -------- | ------ |
-| wt-1  | `feat/wizardshell-walkai-integration` | wizard         | done        | 22 commits, merged to development | —        | clean  |
+| wt-1  | `feat/employee-contract-management` | contracts      | in_progress | just started                      | —        | clean  |
 | wt-2  | `feat/mobile-group-call`              | communications | in_progress | just started                      | —        | clean  |
 | wt-3  | `feat/dashboard-filters`              | dashboard      | paused      | just started                      | —        | clean  |
 | wt-4  | `feat/training-agent-pipeline`        | training       | in_progress | just started — WS-2 Module Zero   | —        | clean  |
@@ -23,7 +23,7 @@ tags: [dashboard, worktrees, tracking]
 | wt-7  | `feat/dynamic-landing-engine`         | landing        | paused      | just started                      | —        | clean  |
 | wt-8  | —                                     | —              | free        | —                                 | —        | —      |
 | wt-9  | —                                     | —              | free        | —                                 | —        | —      |
-| wt-10 | `feat/deployment-pipeline`            | infra          | in_progress | just started                      | —        | clean  |
+| wt-10 | —                                     | —              | free        | —                                 | —        | —      |
 | wt-11 | —                                     | —              | free        | —                                 | —        | —      |
 
 ## Parked Branches (no worktree)
@@ -36,7 +36,7 @@ tags: [dashboard, worktrees, tracking]
 
 | #     | Available                                                          |
 | ----- | ------------------------------------------------------------------ |
-| wt-1  | no — `feat/wizardshell-walkai-integration` (done, cleanup pending) |
+| wt-1  | no — `feat/employee-contract-management`                          |
 | wt-2  | no — `feat/mobile-group-call`                                      |
 | wt-4  | no — `feat/training-agent-pipeline`                                |
 | wt-3  | no — `feat/dashboard-filters`                                      |
@@ -45,7 +45,7 @@ tags: [dashboard, worktrees, tracking]
 | wt-7  | no — `feat/dynamic-landing-engine`                                 |
 | wt-8  | yes                                                                |
 | wt-9  | yes                                                                |
-| wt-10 | no — `feat/deployment-pipeline`                                    |
+| wt-10 | yes                                                                |
 | wt-11 | yes                                                                |
 | wt-12 | yes                                                                |
 | wt-13 | yes                                                                |
@@ -56,6 +56,7 @@ tags: [dashboard, worktrees, tracking]
 
 | Worktree | Feature                 | Journey File                                       | Status  |
 | -------- | ----------------------- | -------------------------------------------------- | ------- |
+| wt-1     | employee-contract-management | `docs/journeys/JOURNEY-employee-contract-management.md` | missing |
 | wt-1     | profession-system       | `docs/journeys/JOURNEY-profession-system.md`       | done    |
 | wt-4     | training-agent-pipeline | `docs/journeys/JOURNEY-training-agent-pipeline.md` | missing |
 | wt-3     | dashboard-filters       | `docs/journeys/JOURNEY-dashboard-filters.md`       | missing |
@@ -63,13 +64,14 @@ tags: [dashboard, worktrees, tracking]
 | wt-2     | mobile-group-call       | `docs/journeys/JOURNEY-mobile-group-call.md`       | missing |
 | wt-8     | council-review-fixes    | `docs/journeys/JOURNEY-council-review-fixes.md`    | done    |
 | wt-9     | tooling-optimization    | `docs/journeys/JOURNEY-tooling-optimization.md`    | done    |
-| wt-10    | deployment-pipeline     | `docs/journeys/JOURNEY-deployment-pipeline.md`     | missing |
+| wt-10    | deployment-pipeline     | `docs/journeys/JOURNEY-deployment-pipeline.md`     | done    |
 | wt-11    | invitation-rls-fix      | `docs/journeys/JOURNEY-invitation-rls-fix.md`      | done    |
 
 ## Recent Closures
 
 | Date       | Feature                      | Branch                                                             | Merged To   |
 | ---------- | ---------------------------- | ------------------------------------------------------------------ | ----------- |
+| 2026-04-06 | deployment-pipeline          | `feat/deployment-pipeline`                                         | development |
 | 2026-04-07 | tooling-optimization         | `feat/tooling-optimization`                                        | development |
 | 2026-04-07 | invitation-rls-fix           | `feat/invitation-rls-fix`                                          | development |
 | 2026-04-06 | council-review-fixes         | `feat/council-review-fixes`                                        | development |
@@ -145,12 +147,15 @@ tags: [dashboard, worktrees, tracking]
 
 ## Session History
 
-| 2026-04-06 | deployment-pipeline | started | wt-10, module: infra. 3-branch architecture, env sync, security hardening. |
+| 2026-04-06 | development | session ended | PoC instruction council-verified, plan written, wt-2 sync needed |
+| 2026-04-06 | development | session ended | session ended |
+| 2026-04-06 | employee-contract-management | started | wt-1, module: contracts. DocuSeal e-signing + Botsson capability. 3 council rounds. |
+| 2026-04-06 | development | session ended | session ended |
+| 2026-04-06 | deployment-pipeline | closed | 11/11 tasks done. PR #128 merged (dev->main). preview branch created. ADR-0071. wt-10 freed. |
 | 2026-04-06 | tooling-optimization | started | wt-9, module: developer-experience. Skills/MCP/plugin optimization. |
 | 2026-03-31 | development | session ended | session ended |
 | 2026-03-30 | protocol-verification-engine | session ended | session ended |
 | 2026-03-29 | protocol-verification-engine | session ended | session ended |
-| 2026-03-29 | development | session ended | session ended |
 | 2026-03-29 | development | session ended | session ended |
 | 2026-03-28 | development | session ended | session ended |
 | 2026-03-28 | development | session ended | session ended |

@@ -51,10 +51,7 @@ export function useLeaderPulse() {
     queryFn: async (): Promise<LeaderPulse[]> => {
       const supabase = createClient();
 
-      // TODO: Remove cast once leader_pulse migration is applied and types regenerated
-      const { data, error } = await (
-        supabase as unknown as { from: (t: string) => ReturnType<typeof supabase.from> }
-      )
+      const { data, error } = await supabase
         .from("leader_pulse")
         .select(
           "id, workspace_id, profile_id, question, context, status, delivered_via, delivered_at, answered_at, answer, created_at",
@@ -73,10 +70,7 @@ export function useLeaderPulse() {
     mutationFn: async ({ pulseId, answer }: { pulseId: string; answer: string }) => {
       const supabase = createClient();
 
-      // TODO: Remove cast once leader_pulse migration is applied and types regenerated
-      const { error } = await (
-        supabase as unknown as { from: (t: string) => ReturnType<typeof supabase.from> }
-      )
+      const { error } = await supabase
         .from("leader_pulse")
         .update({
           status: "answered",
@@ -103,10 +97,7 @@ export function useLeaderPulse() {
     mutationFn: async ({ pulseId }: { pulseId: string }) => {
       const supabase = createClient();
 
-      // TODO: Remove cast once leader_pulse migration is applied and types regenerated
-      const { error } = await (
-        supabase as unknown as { from: (t: string) => ReturnType<typeof supabase.from> }
-      )
+      const { error } = await supabase
         .from("leader_pulse")
         .update({ status: "expired" })
         .eq("id", pulseId);

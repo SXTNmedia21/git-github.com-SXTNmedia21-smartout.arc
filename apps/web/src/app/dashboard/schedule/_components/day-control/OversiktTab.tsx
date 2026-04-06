@@ -249,10 +249,15 @@ export function OversiktTab({ dateId }: { dateId: string | null }) {
             <select
               value={dutyLeaderId ?? ""}
               onChange={async (e) => {
-                const newId = e.target.value || null;
-                setDutyLeaderId(newId);
-                // TODO: duty_leader_id column does not exist on department_session yet
-                // When added, persist the selection here
+                const leaderId = e.target.value || null;
+                setDutyLeaderId(leaderId);
+                // Persist duty leader selection to department_session
+                if (activeSession?.department_session_id) {
+                  await supabase
+                    .from("department_session")
+                    .update({ duty_leader_id: leaderId })
+                    .eq("department_session_id", activeSession.department_session_id);
+                }
               }}
               className="border-input bg-background text-foreground ml-1 rounded border px-1.5 py-0.5 text-[11px]"
             >

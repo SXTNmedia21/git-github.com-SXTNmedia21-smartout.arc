@@ -11,18 +11,19 @@ SET search_path TO public, extensions;
 --               apps/landing/src/lib/variant-voice-config.ts
 -- ============================================
 
+
+-- ============================================
+-- Seeds 7 landing variants. Each variant in its own DO block
+-- to keep transactions small enough for Supabase Branch DB
+-- migration replay (avoids SQLSTATE 57P01 admin shutdown).
+-- ============================================
+
+-- VARIANT: default
 DO $$
 DECLARE
   v_id uuid;
   b_order int;
 BEGIN
-
-  -- ══════════════════════════════════════════════
-  -- VARIANT B — Standard (Ingrid) — DEFAULT
-  -- Persona: Daglig leder, orange accent
-  -- Source: apps/landing/src/app/page.tsx
-  -- ══════════════════════════════════════════════
-
   IF NOT EXISTS (SELECT 1 FROM public.landing_variant WHERE slug = 'default') THEN
 
   INSERT INTO public.landing_variant (slug, name, status, is_default, theme, meta_title, meta_description, voice_config, sort_order)
@@ -75,14 +76,15 @@ BEGIN
     '{}'::jsonb);
   b_order := b_order + 1;
 
-  END IF; -- default
+  END IF;
+END $$;
 
-  -- ══════════════════════════════════════════════
-  -- VARIANT E — Action (Lars Erik)
-  -- Persona: Kjøkkensjef, orange-action accent
-  -- Source: apps/landing/src/components/landing/VariantELanding.tsx
-  -- ══════════════════════════════════════════════
-
+-- VARIANT: action
+DO $$
+DECLARE
+  v_id uuid;
+  b_order int;
+BEGIN
   IF NOT EXISTS (SELECT 1 FROM public.landing_variant WHERE slug = 'action') THEN
 
   INSERT INTO public.landing_variant (slug, name, status, is_default, theme, meta_title, meta_description, voice_config, sort_order)
@@ -128,14 +130,15 @@ BEGIN
     '{}'::jsonb);
   b_order := b_order + 1;
 
-  END IF; -- action
+  END IF;
+END $$;
 
-  -- ══════════════════════════════════════════════
-  -- VARIANT T — Enterprise (Thomas)
-  -- Persona: Senior HR-direktør, slate accent
-  -- Source: apps/landing/src/components/landing/VariantTLanding.tsx
-  -- ══════════════════════════════════════════════
-
+-- VARIANT: enterprise
+DO $$
+DECLARE
+  v_id uuid;
+  b_order int;
+BEGIN
   IF NOT EXISTS (SELECT 1 FROM public.landing_variant WHERE slug = 'enterprise') THEN
 
   INSERT INTO public.landing_variant (slug, name, status, is_default, theme, meta_title, meta_description, voice_config, sort_order)
@@ -188,14 +191,15 @@ BEGIN
     '{}'::jsonb);
   b_order := b_order + 1;
 
-  END IF; -- enterprise
+  END IF;
+END $$;
 
-  -- ══════════════════════════════════════════════
-  -- VARIANT K — Konsulent (Katrine)
-  -- Persona: Bransjerådgiver, emerald accent
-  -- Source: apps/landing/src/components/landing/VariantKLanding.tsx
-  -- ══════════════════════════════════════════════
-
+-- VARIANT: consultant
+DO $$
+DECLARE
+  v_id uuid;
+  b_order int;
+BEGIN
   IF NOT EXISTS (SELECT 1 FROM public.landing_variant WHERE slug = 'consultant') THEN
 
   INSERT INTO public.landing_variant (slug, name, status, is_default, theme, meta_title, meta_description, voice_config, sort_order)
@@ -248,14 +252,15 @@ BEGIN
     '{}'::jsonb);
   b_order := b_order + 1;
 
-  END IF; -- consultant
+  END IF;
+END $$;
 
-  -- ══════════════════════════════════════════════
-  -- VARIANT A — Inkluderende (Ahmad)
-  -- Persona: Hotellsjef, amber accent
-  -- Source: apps/landing/src/components/landing/VariantALanding.tsx
-  -- ══════════════════════════════════════════════
-
+-- VARIANT: inclusive
+DO $$
+DECLARE
+  v_id uuid;
+  b_order int;
+BEGIN
   IF NOT EXISTS (SELECT 1 FROM public.landing_variant WHERE slug = 'inclusive') THEN
 
   INSERT INTO public.landing_variant (slug, name, status, is_default, theme, meta_title, meta_description, voice_config, sort_order)
@@ -308,14 +313,15 @@ BEGIN
     '{}'::jsonb);
   b_order := b_order + 1;
 
-  END IF; -- inclusive
+  END IF;
+END $$;
 
-  -- ══════════════════════════════════════════════
-  -- VARIANT F — Tilgjengelig (Fatima)
-  -- Persona: Renholdsarbeider, yellow accent
-  -- Source: apps/landing/src/components/landing/VariantFLanding.tsx
-  -- ══════════════════════════════════════════════
-
+-- VARIANT: accessibility
+DO $$
+DECLARE
+  v_id uuid;
+  b_order int;
+BEGIN
   IF NOT EXISTS (SELECT 1 FROM public.landing_variant WHERE slug = 'accessibility') THEN
 
   INSERT INTO public.landing_variant (slug, name, status, is_default, theme, meta_title, meta_description, voice_config, sort_order)
@@ -361,14 +367,15 @@ BEGIN
     '{}'::jsonb);
   b_order := b_order + 1;
 
-  END IF; -- accessibility
+  END IF;
+END $$;
 
-  -- ══════════════════════════════════════════════
-  -- VARIANT S — Eleganse (Signe)
-  -- Persona: Sommelier, rose accent
-  -- Source: apps/landing/src/components/landing/VariantSLanding.tsx
-  -- ══════════════════════════════════════════════
-
+-- VARIANT: elegance
+DO $$
+DECLARE
+  v_id uuid;
+  b_order int;
+BEGIN
   IF NOT EXISTS (SELECT 1 FROM public.landing_variant WHERE slug = 'elegance') THEN
 
   INSERT INTO public.landing_variant (slug, name, status, is_default, theme, meta_title, meta_description, voice_config, sort_order)
@@ -421,6 +428,6 @@ BEGIN
     '{}'::jsonb);
   b_order := b_order + 1;
 
-  END IF; -- elegance
-
+  END IF;
 END $$;
+

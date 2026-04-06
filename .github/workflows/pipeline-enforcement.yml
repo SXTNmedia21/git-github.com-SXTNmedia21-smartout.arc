@@ -1,0 +1,66 @@
+name: Pipeline Enforcement
+
+# Blocks PRs that violate the 3-branch deployment pipeline:
+#   development → preview → main
+#
+# Allowed PR combinations:
+#   * → development      (any feature branch)
+#   development → preview
+#   preview → main
+#   hotfix/* → main      (with cherry-pick back to development)
+#
+# Anything else fails this check.
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+    branches: [main, preview]
+
+jobs:
+  enforce-pipeline:
+    name: Enforce branch flow
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate PR base/head combination
+        run: |
+          BASE="${{ github.event.pull_request.base.ref }}"
+          HEAD="${{ github.event.pull_request.head.ref }}"
+
+          echo "PR: $HEAD → $BASE"
+
+          ALLOWED=false
+
+          # main can ONLY receive from preview or hotfix/*
+          if [ "$BASE" = "main" ]; then
+            if [ "$HEAD" = "preview" ]; then
+              ALLOWED=true
+            elif [[ "$HEAD" == hotfix/* ]]; then
+              ALLOWED=true
+              echo "::warning::Hotfix detected — remember to cherry-pick back to development"
+            fi
+          fi
+
+          # preview can ONLY receive from development
+          if [ "$BASE" = "preview" ]; then
+            if [ "$HEAD" = "development" ]; then
+              ALLOWED=true
+            fi
+          fi
+
+          if [ "$ALLOWED" = "false" ]; then
+            echo "::error::❌ PIPELINE VIOLATION: $HEAD → $BASE is not allowed."
+            echo ""
+            echo "The Smartout deployment pipeline is:"
+            echo "  development → preview → main"
+            echo ""
+            echo "Allowed PR combinations:"
+            echo "  * → development      (any feature branch)"
+            echo "  development → preview"
+            echo "  preview → main"
+            echo "  hotfix/* → main      (cherry-pick back to development)"
+            echo ""
+            echo "See ADR-0071 and CLAUDE.md."
+            exit 1
+          fi
+
+          echo "✅ Pipeline flow valid: $HEAD → $BASE"

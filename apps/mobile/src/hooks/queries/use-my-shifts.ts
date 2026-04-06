@@ -6,6 +6,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { useWorkspaceStore } from "@/hooks/stores/use-workspace-store";
 import type { Database } from "@smartout/supabase/database.types";
 
 type ScheduleShift = Database["public"]["Tables"]["schedule_shift"]["Row"];
@@ -46,22 +47,27 @@ function persistToCache(data: ScheduleShift[]): void {
   }
 }
 
-async function fetchMyShifts(): Promise<ScheduleShift[]> {
-  // Get current user to find their profile
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
+async function fetchMyShifts(selectedProfileId: string | null): Promise<ScheduleShift[]> {
+  let profileId = selectedProfileId;
 
-  // Get profile_id → employee_id on schedule_shift
-  const { data: profiles, error: profileError } = await supabase
-    .from("profile")
-    .select("profile_id")
-    .eq("user_id", user.id)
-    .limit(1)
-    .single();
+  // If no selected profile, resolve from auth user (fallback for single-workspace)
+  if (!profileId) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new Error("Not authenticated");
 
-  if (profileError) throw profileError;
+    const { data: profile, error: profileError } = await supabase
+      .from("profile")
+      .select("profile_id")
+      .eq("user_id", user.id)
+      .eq("is_active", true)
+      .limit(1)
+      .single();
+
+    if (profileError) throw profileError;
+    profileId = profile.profile_id;
+  }
 
   const today = new Date().toISOString().split("T")[0];
   const sevenDaysFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
@@ -71,7 +77,7 @@ async function fetchMyShifts(): Promise<ScheduleShift[]> {
   const { data, error } = await supabase
     .from("schedule_shift")
     .select("*")
-    .eq("employee_id", profiles.profile_id)
+    .eq("employee_id", profileId)
     .gte("shift_date", today)
     .lte("shift_date", sevenDaysFromNow)
     .order("shift_date", { ascending: true })
@@ -87,12 +93,15 @@ async function fetchMyShifts(): Promise<ScheduleShift[]> {
 
 /**
  * Hook: returns the current employee's shifts for the next 7 days.
+ * Uses the selected profile from workspace-select for multi-workspace support.
  * Data is cached in MMKV for offline placeholder support.
  */
 export function useMyShifts() {
+  const selectedProfileId = useWorkspaceStore((s) => s.selectedProfileId);
+
   const query = useQuery<ScheduleShift[]>({
-    queryKey: ["my-shifts"],
-    queryFn: fetchMyShifts,
+    queryKey: ["my-shifts", selectedProfileId],
+    queryFn: () => fetchMyShifts(selectedProfileId),
     staleTime: STALE_TIME_MS,
     placeholderData: getPlaceholderData,
     retry: 1,

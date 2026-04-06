@@ -8,7 +8,7 @@
  */
 
 import React from "react";
-import { View, Text, ScrollView, Pressable } from "react-native";
+import { View, Text, ScrollView, Pressable, Alert } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { LogOut, PlusCircle, Clock, CalendarX } from "lucide-react-native";
@@ -76,6 +76,30 @@ export default function TimebankScreen() {
     <View style={styles.container}>
       <ActionHeader title="Timebank" />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Demo Banner */}
+        <View
+          style={{
+            backgroundColor: "#fef3cd",
+            paddingVertical: 8,
+            paddingHorizontal: 16,
+            borderRadius: 8,
+            marginHorizontal: 16,
+            marginTop: 8,
+            marginBottom: 8,
+          }}
+        >
+          <Text
+            style={{
+              color: "#856404",
+              fontSize: 13,
+              fontWeight: "600",
+              textAlign: "center",
+            }}
+          >
+            Demo — denne siden er under utvikling
+          </Text>
+        </View>
+
         {/* Hero Card — deep blue */}
         <Animated.View entering={FadeIn.delay(50).duration(400)} style={styles.heroCard}>
           <View style={styles.heroTop}>

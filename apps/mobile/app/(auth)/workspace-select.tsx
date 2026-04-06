@@ -10,6 +10,7 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
+import { useWorkspaceStore } from "@/hooks/stores/use-workspace-store";
 import { useTheme, withOpacity } from "@/theme";
 
 type ProfileWithWorkspace = {
@@ -28,6 +29,7 @@ export default function WorkspaceSelect() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { colors } = useTheme();
+  const setSelectedProfile = useWorkspaceStore((s) => s.setSelectedProfile);
 
   const [profiles, setProfiles] = useState<ProfileWithWorkspace[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -63,22 +65,21 @@ export default function WorkspaceSelect() {
     }
 
     if (profileList.length === 1) {
-      // Single workspace — go straight in
+      // Single workspace — store the profile and go straight in
+      setSelectedProfile(profileList[0].profile_id);
       router.replace("/(app)");
       return;
     }
 
     setProfiles(profileList);
-  }, [user, router]);
+  }, [user, router, setSelectedProfile]);
 
   useEffect(() => {
     void fetchProfiles();
   }, [fetchProfiles]);
 
-  function handleSelectWorkspace(_profile: ProfileWithWorkspace) {
-    // In a multi-workspace scenario, we'd store the selected profile/workspace
-    // in a Zustand store or MMKV. For now, navigate to app — the app will use
-    // the first active profile's workspace context.
+  function handleSelectWorkspace(profile: ProfileWithWorkspace) {
+    setSelectedProfile(profile.profile_id);
     router.replace("/(app)");
   }
 

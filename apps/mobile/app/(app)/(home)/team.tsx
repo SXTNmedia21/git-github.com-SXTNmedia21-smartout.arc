@@ -99,7 +99,7 @@ export default function TeamListScreen() {
   const handlePress = useCallback(
     (profileId: string) => {
       Haptics.selectionAsync();
-      router.push(`/team/${profileId}`);
+      router.push(`/(app)/(home)/team/${profileId}`);
     },
     [router],
   );

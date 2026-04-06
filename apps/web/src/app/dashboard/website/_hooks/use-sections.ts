@@ -33,9 +33,8 @@ export function useSections(websiteId: string | null, pageId: string | null) {
   const query = useQuery({
     queryKey: websiteKeys.sections(pageId ?? "none"),
     queryFn: async (): Promise<SectionRow[]> => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
-        .schema("websites")
+      const { data, error } = await supabase
+        .schema("websites" as any) // eslint-disable-line @typescript-eslint/no-explicit-any -- SAFETY: websites is a valid Postgres schema not in Supabase generated types
         .from("website_section")
         .select(
           "website_section_id, website_page_id, section_type, content, settings, is_visible, sort_order",

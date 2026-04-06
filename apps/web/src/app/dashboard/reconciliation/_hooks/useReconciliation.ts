@@ -169,9 +169,11 @@ export function useRejectReconciliation() {
   return useMutation({
     mutationFn: async ({
       reconciliationId,
+      profileId,
       reason,
     }: {
       reconciliationId: string;
+      profileId: string;
       reason: string;
     }) => {
       const { data, error } = await supabase
@@ -202,11 +204,11 @@ export function useRejectReconciliation() {
 
       return data;
     },
-    onSuccess: (_data, { reconciliationId }) => {
+    onSuccess: (_data, { reconciliationId, profileId }) => {
       void emit({
         event: "reconciliation admin_action",
         workspace_id: workspace.workspace_id,
-        actor_id: "",
+        actor_id: profileId,
         properties: {
           data: { reconciliation_id: reconciliationId, action: "rejected" },
         },
@@ -220,6 +222,7 @@ export function useRejectReconciliation() {
 // ── Approve shift hours ──────────────────────────────────────
 
 export function useApproveShiftHours() {
+  const { workspace } = useWorkspace();
   const supabase = createClient();
   const queryClient = useQueryClient();
 
@@ -252,7 +255,15 @@ export function useApproveShiftHours() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (_data, input) => {
+      void emit({
+        event: "reconciliation admin_action",
+        workspace_id: workspace.workspace_id,
+        actor_id: input.profileId,
+        properties: {
+          data: { reconciliation_id: input.approvalId, action: "approved" },
+        },
+      });
       queryClient.invalidateQueries({ queryKey: ["reconciliation-detail"] });
     },
   });
@@ -261,6 +272,7 @@ export function useApproveShiftHours() {
 // ── Resolve deviation ────────────────────────────────────────
 
 export function useResolveDeviation() {
+  const { workspace } = useWorkspace();
   const supabase = createClient();
   const queryClient = useQueryClient();
 
@@ -290,7 +302,16 @@ export function useResolveDeviation() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (_data, input) => {
+      void emit({
+        event: "deviation resolved",
+        workspace_id: workspace.workspace_id,
+        actor_id: input.profileId,
+        properties: {
+          entity: { entity_type: "deviation", entity_id: input.deviationId },
+          data: { resolution_notes: input.notes },
+        },
+      });
       queryClient.invalidateQueries({ queryKey: ["reconciliation-detail"] });
     },
   });

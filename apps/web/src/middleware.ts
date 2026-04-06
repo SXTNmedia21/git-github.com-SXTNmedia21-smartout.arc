@@ -13,6 +13,7 @@ const PUBLIC_ROUTES = new Set([
   "/join",
   "/join-complete",
   "/reset-password",
+  "/update-password",
   "/api/smoke",
   "/api/health",
   "/api/auth/callback",
@@ -200,7 +201,7 @@ export async function middleware(request: NextRequest): Promise<Response> {
 
   // ── 4. Update Supabase auth session ──
   const { response, user: sessionUser } = await updateSession(
-    request as unknown as Parameters<typeof updateSession>[0],
+    request as unknown as Parameters<typeof updateSession>[0], // SAFETY: Supabase join returns union type; runtime shape matches the cast
   );
 
   // ── 5. Portal (app.smartout.ai) ──
@@ -322,7 +323,7 @@ async function handleLegacyRouting(request: NextRequest): Promise<Response> {
   }
 
   const { response, user: sessionUser } = await updateSession(
-    request as unknown as Parameters<typeof updateSession>[0],
+    request as unknown as Parameters<typeof updateSession>[0], // SAFETY: Supabase join returns union type; runtime shape matches the cast
   );
   applyShowcaseMode(request, response);
 

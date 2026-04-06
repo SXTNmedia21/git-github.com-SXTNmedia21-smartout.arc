@@ -94,16 +94,8 @@ export default function SupplementsScreen() {
   const [comment, setComment] = useState("");
 
   const handleSubmit = useCallback(() => {
-    if (!amount || !comment) {
-      Alert.alert("Mangler felt", "Fyll inn beløp og kommentar.");
-      return;
-    }
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    Alert.alert("Sendt", "Tillegget er registrert.");
-    setAmount("");
-    setDate("");
-    setComment("");
-  }, [amount, comment]);
+    Alert.alert("Ikke tilgjengelig", "Denne funksjonen er under utvikling.");
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -111,6 +103,30 @@ export default function SupplementsScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Subtitle */}
         <Text style={styles.heroSubtitle}>Registrer og spor tillegg og utlegg.</Text>
+
+        {/* Demo Banner */}
+        <View
+          style={{
+            backgroundColor: "#fef3cd",
+            paddingVertical: 8,
+            paddingHorizontal: 16,
+            borderRadius: 8,
+            marginHorizontal: 16,
+            marginTop: 8,
+            marginBottom: 8,
+          }}
+        >
+          <Text
+            style={{
+              color: "#856404",
+              fontSize: 13,
+              fontWeight: "600",
+              textAlign: "center",
+            }}
+          >
+            Demo — denne siden er under utvikling
+          </Text>
+        </View>
 
         {/* Stats Bento */}
         <View style={styles.statsRow}>

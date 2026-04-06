@@ -1,38 +1,48 @@
 #!/usr/bin/env bash
 set -euo pipefail
 # ============================================
-# sync-env-to-vercel.sh — Manifest-driven 1Password → Vercel env sync
+# sync-env-to-vercel.sh — 1Password → Vercel env sync
 #
-# Uses Vercel REST API (not CLI) for speed. Each var is one curl call
-# instead of spawning a full Node.js process. 84 vars in ~60 seconds.
+# NUKE-AND-REPLACE: deletes ALL env vars from each project, then re-adds
+# from 1Password. This ensures no stale/duplicate entries survive.
+#
+# ALL Vercel vars read from smartout_ai_prod (production URLs).
+# ONLY preview Supabase reads from smartout_ai (Branch DB).
+# smartout_ai has LOCALHOST URLs — NEVER use for non-Supabase Vercel vars.
 #
 # Usage:
 #   ./infra/scripts/sync-env-to-vercel.sh              # sync all
-#   ./infra/scripts/sync-env-to-vercel.sh --dry-run     # preview only
-#
-# Prerequisites:
-#   - eval "$(op signin)"
-#   - vercel login (for token in ~/.local/share/com.vercel.cli/auth.json)
-#
-# Connected to: .env.template (op:// references)
+#   ./infra/scripts/sync-env-to-vercel.sh --dry-run     # preview what would be set
+#   ./infra/scripts/sync-env-to-vercel.sh --project smartout-web
 # ============================================
 
 DRY_RUN=false
-[[ "${1:-}" == "--dry-run" ]] && DRY_RUN=true
+PROJECT_FILTER=""
+
+for arg in "$@"; do
+  case $arg in
+    --dry-run) DRY_RUN=true ;;
+    --project) PROJECT_FILTER="__NEXT__" ;;
+    *)
+      if [[ "$PROJECT_FILTER" == "__NEXT__" ]]; then
+        PROJECT_FILTER="$arg"
+      fi
+      ;;
+  esac
+done
+[[ "$PROJECT_FILTER" == "__NEXT__" ]] && { echo "ERROR: --project requires a value" >&2; exit 1; }
 
 ROOT_DIR="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 cd "$ROOT_DIR"
 
 # ── Auth ─────────────────────────────────────────────────────
 
-# 1Password
 if ! op whoami >/dev/null 2>&1; then
   echo "ERROR: 1Password not signed in. Run: eval \"\$(op signin)\"" >&2
   exit 1
 fi
 echo "1Password: $(op whoami 2>/dev/null | grep Email | awk '{print $2}')"
 
-# Vercel token from CLI auth file
 VERCEL_TOKEN=""
 for auth_path in \
   "$HOME/.local/share/com.vercel.cli/auth.json" \
@@ -51,11 +61,11 @@ fi
 echo "Vercel:    authenticated"
 
 # ── Project IDs ──────────────────────────────────────────────
-# Fetch project IDs from Vercel API (needed for REST calls)
+
+TEAM_ID="team_bbtw5JnNxRkKlecAKQB7qqzG"
 
 get_project_id() {
-  local project_name="$1"
-  curl -sf "https://api.vercel.com/v9/projects/$project_name" \
+  curl -sf "https://api.vercel.com/v9/projects/$1?teamId=$TEAM_ID" \
     -H "Authorization: Bearer $VERCEL_TOKEN" \
     | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])" 2>/dev/null
 }
@@ -69,234 +79,213 @@ echo "  smartout-landing: $LANDING_PROJECT_ID"
 
 # ── Vercel API helpers ───────────────────────────────────────
 
-# Remove env var by name across all environments
-remove_env_var() {
+nuke_project_env() {
   local project_id="$1"
-  local key_name="$2"
-
-  # List existing env vars, find ID by name
   local env_ids
-  env_ids=$(curl -sf "https://api.vercel.com/v9/projects/$project_id/env" \
+  env_ids=$(curl -sf "https://api.vercel.com/v9/projects/$project_id/env?teamId=$TEAM_ID&limit=100" \
     -H "Authorization: Bearer $VERCEL_TOKEN" \
     | python3 -c "
 import sys, json
-data = json.load(sys.stdin)
-for env in data.get('envs', []):
-    if env['key'] == '$key_name':
-        print(env['id'])
+[print(e['id']) for e in json.load(sys.stdin).get('envs', [])]
 " 2>/dev/null)
 
+  local count=0
   for env_id in $env_ids; do
-    curl -sf -X DELETE "https://api.vercel.com/v9/projects/$project_id/env/$env_id" \
+    curl -sf -X DELETE "https://api.vercel.com/v9/projects/$project_id/env/$env_id?teamId=$TEAM_ID" \
       -H "Authorization: Bearer $VERCEL_TOKEN" >/dev/null 2>&1 || true
+    count=$((count + 1))
   done
+  echo "  Deleted $count entries"
 }
 
-# Add env var with value
 add_env_var() {
   local project_id="$1"
   local key_name="$2"
   local value="$3"
-  local env_target="$4"  # production, preview, development
+  local env_target="$4"
   local is_sensitive="$5"
 
   local target_json
-  if [[ "$env_target" == "preview" ]]; then
-    target_json='["preview"]'
-  elif [[ "$env_target" == "production" ]]; then
-    target_json='["production"]'
-  else
-    target_json='["development"]'
-  fi
+  case "$env_target" in
+    shared)     target_json='["preview", "production"]' ;;
+    preview)    target_json='["preview"]' ;;
+    production) target_json='["production"]' ;;
+  esac
 
   local type_val="encrypted"
   [[ "$is_sensitive" == "false" ]] && type_val="plain"
 
-  # Use python to safely JSON-encode the value (handles special chars)
   local payload
-  payload=$(python3 -c "
-import json
-print(json.dumps({
-    'key': '$key_name',
-    'value': '''$value''',
-    'target': $target_json,
-    'type': '$type_val',
-    'gitBranch': 'development' if '$env_target' == 'preview' else None
-}))
-" 2>/dev/null)
-
-  # Fallback: use python to build payload safely with actual value piped in
   payload=$(python3 -c "
 import json, sys
 value = sys.stdin.read().strip()
-obj = {
+print(json.dumps({
     'key': '$key_name',
     'value': value,
     'target': $target_json,
     'type': '$type_val',
-}
-if '$env_target' == 'preview':
-    obj['gitBranch'] = 'development'
-print(json.dumps(obj))
+}))
 " <<< "$value")
 
   local http_code
   http_code=$(curl -sf -o /dev/null -w "%{http_code}" \
-    -X POST "https://api.vercel.com/v10/projects/$project_id/env" \
+    -X POST "https://api.vercel.com/v10/projects/$project_id/env?teamId=$TEAM_ID" \
     -H "Authorization: Bearer $VERCEL_TOKEN" \
     -H "Content-Type: application/json" \
     -d "$payload" 2>/dev/null) || http_code="000"
 
-  if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
-    return 0
-  else
-    return 1
-  fi
+  [[ "$http_code" == "200" || "$http_code" == "201" ]]
 }
 
 # ── Manifest ─────────────────────────────────────────────────
-# Format: project_name|environment|key_name|op_reference|is_sensitive
+# Verified against apps/web/src/env.ts and apps/landing/src/env.ts
+#
+# VAULT RULE:
+#   smartout_ai_prod = ALL Vercel vars (production URLs, prod keys)
+#   smartout_ai      = ONLY preview Supabase Branch DB
+#
+# target: shared = preview+production | preview = Branch DB only | production = prod DB only
 
 MANIFEST=$(cat <<'EOF'
-# ── smartout-web — Preview ───────────────────────────────────
-smartout-web|preview|NEXT_PUBLIC_SUPABASE_URL|op://smartout_ai/Supabase/url|false
-smartout-web|preview|NEXT_PUBLIC_SUPABASE_ANON_KEY|op://smartout_ai/Supabase/anon_key|false
-smartout-web|preview|NEXT_PUBLIC_POSTHOG_KEY|op://smartout_ai/PostHog/api_key|false
-smartout-web|preview|NEXT_PUBLIC_POSTHOG_HOST|op://smartout_ai/PostHog/host|false
-smartout-web|preview|NEXT_PUBLIC_SENTRY_DSN|op://smartout_ai/Sentry/dsn|false
-smartout-web|preview|NEXT_PUBLIC_ROOT_DOMAIN|op://smartout_ai/SmartOut/root_domain|false
-smartout-web|preview|NEXT_PUBLIC_LANDING_URL|op://smartout_ai/SmartOut/landing_url|false
-smartout-web|preview|NEXT_PUBLIC_REVALIDATION_SECRET|op://smartout_ai/SmartOut/revalidation_secret|false
-smartout-web|preview|NEXT_PUBLIC_STAGE_ENGINE_URL|op://smartout_ai/Stage-Engine/url|false
-smartout-web|preview|NEXT_PUBLIC_LIVEKIT_URL|op://smartout_ai/livekit/wss-url|false
-smartout-web|preview|SUPABASE_SERVICE_ROLE_KEY|op://smartout_ai/Supabase/service_role_key|true
-smartout-web|preview|DATABASE_URL|op://smartout_ai/PostgreSQL/connection_string|true
-smartout-web|preview|JWT_SECRET|op://smartout_ai/SmartOut/jwt_secret|true
-smartout-web|preview|SESSION_SECRET|op://smartout_ai/SmartOut/session_secret|true
-smartout-web|preview|STRIPE_SECRET_KEY|op://smartout_ai/Stripe/secret_key|true
-smartout-web|preview|STRIPE_WEBHOOK_SECRET|op://smartout_ai/Stripe/webhook_secret|true
-smartout-web|preview|SENDGRID_API_KEY|op://smartout_ai/SendGrid/api_key|true
-smartout-web|preview|TWILIO_ACCOUNT_SID|op://smartout_ai/Twilio/account_sid|true
-smartout-web|preview|TWILIO_AUTH_TOKEN|op://smartout_ai/Twilio/auth_token|true
-smartout-web|preview|OPENROUTER_API_KEY|op://smartout_ai/OpenRouter/api_key|true
-smartout-web|preview|ULTRAVOX_API_KEY|op://smartout_ai/Ultravox/api_key|true
-smartout-web|preview|SENTRY_DSN|op://smartout_ai/Sentry/dsn|true
-smartout-web|preview|DOCUSEAL_WEBHOOK_SECRET|op://smartout_ai/DocuSeal/webhook_secret|true
-smartout-web|preview|UPSTASH_REDIS_REST_URL|op://smartout_ai/Upstash/rest_url|true
-smartout-web|preview|UPSTASH_REDIS_REST_TOKEN|op://smartout_ai/Upstash/rest_token|true
-smartout-web|preview|CONTRACT_SERVICE_URL|op://smartout_ai/Contract-Service/url|true
-smartout-web|preview|CONTRACT_SERVICE_KEY|op://smartout_ai/Contract-Service/api_key|true
-smartout-web|preview|SCRAPLING_SERVICE_URL|op://smartout_ai/Scrapling/url|true
-smartout-web|preview|SCRAPLING_AUTH_TOKEN|op://smartout_ai/Scrapling/SCRAPLING_AUTH_TOKEN|true
-smartout-web|preview|SERPER_API_KEY|op://smartout_ai/Serper/api_key|true
-smartout-web|preview|STAGE_ENGINE_URL|op://smartout_ai/Stage-Engine/url|true
-smartout-web|preview|STAGE_ENGINE_API_KEY|op://smartout_ai/Stage-Engine/api_key|true
-smartout-web|preview|SHIFT_MCP_URL|op://smartout_ai/Shift-MCP/url|true
-# ── smartout-web — Production ────────────────────────────────
+# ══════════════════════════════════════════════════════════════
+# smartout-web (apps/web/src/env.ts: 28 server + 10 client)
+# ══════════════════════════════════════════════════════════════
+# ── Shared (preview + production, from prod vault) ───────────
+smartout-web|shared|NEXT_PUBLIC_POSTHOG_KEY|op://smartout_ai_prod/PostHog/api_key|false
+smartout-web|shared|NEXT_PUBLIC_POSTHOG_HOST|op://smartout_ai_prod/PostHog/host|false
+smartout-web|shared|NEXT_PUBLIC_SENTRY_DSN|op://smartout_ai_prod/Sentry/dsn|false
+smartout-web|shared|NEXT_PUBLIC_ROOT_DOMAIN|op://smartout_ai_prod/SmartOut/root_domain|false
+smartout-web|shared|NEXT_PUBLIC_LANDING_URL|op://smartout_ai_prod/SmartOut/landing_url|false
+smartout-web|shared|NEXT_PUBLIC_REVALIDATION_SECRET|op://smartout_ai_prod/SmartOut/revalidation_secret|false
+smartout-web|shared|NEXT_PUBLIC_STAGE_ENGINE_URL|op://smartout_ai_prod/Stage-Engine/url|false
+smartout-web|shared|NEXT_PUBLIC_LIVEKIT_URL|op://smartout_ai_prod/livekit/wss-url|false
+smartout-web|shared|STRIPE_SECRET_KEY|op://smartout_ai_prod/Stripe/secret_key|true
+smartout-web|shared|STRIPE_WEBHOOK_SECRET|op://smartout_ai_prod/Stripe/webhook_secret|true
+smartout-web|shared|SENDGRID_API_KEY|op://smartout_ai_prod/SendGrid/api_key|true
+smartout-web|shared|TWILIO_ACCOUNT_SID|op://smartout_ai_prod/Twilio/account_sid|true
+smartout-web|shared|TWILIO_AUTH_TOKEN|op://smartout_ai_prod/Twilio/auth_token|true
+smartout-web|shared|JWT_SECRET|op://smartout_ai_prod/SmartOut/jwt_secret|true
+smartout-web|shared|SESSION_SECRET|op://smartout_ai_prod/SmartOut/session_secret|true
+smartout-web|shared|OPENROUTER_API_KEY|op://smartout_ai_prod/OpenRouter/api_key|true
+smartout-web|shared|ULTRAVOX_API_KEY|op://smartout_ai_prod/Ultravox/api_key|true
+smartout-web|shared|SENTRY_DSN|op://smartout_ai_prod/Sentry/dsn|true
+smartout-web|shared|GITHUB_ERROR_TOKEN|op://smartout_ai_prod/GitHub/error_reporter_token|true
+smartout-web|shared|DOCUSEAL_WEBHOOK_SECRET|op://smartout_ai_prod/DocuSeal/webhook_secret|true
+smartout-web|shared|UPSTASH_REDIS_REST_URL|op://smartout_ai_prod/Upstash/rest_url|true
+smartout-web|shared|UPSTASH_REDIS_REST_TOKEN|op://smartout_ai_prod/Upstash/rest_token|true
+smartout-web|shared|CONTRACT_SERVICE_URL|op://smartout_ai_prod/Contract-Service/url|true
+smartout-web|shared|CONTRACT_SERVICE_KEY|op://smartout_ai_prod/Contract-Service/api_key|true
+smartout-web|shared|SCRAPLING_SERVICE_URL|op://smartout_ai_prod/Scrapling/url|true
+smartout-web|shared|SCRAPLING_AUTH_TOKEN|op://smartout_ai_prod/Scrapling/SCRAPLING_AUTH_TOKEN|true
+smartout-web|shared|SERPER_API_KEY|op://smartout_ai_prod/Serper/api_key|true
+smartout-web|shared|STAGE_ENGINE_URL|op://smartout_ai_prod/Stage-Engine/url|true
+smartout-web|shared|STAGE_ENGINE_API_KEY|op://smartout_ai_prod/Stage-Engine/api_key|true
+smartout-web|shared|SHIFT_MCP_URL|op://smartout_ai_prod/Shift-MCP/url|true
+smartout-web|shared|LIVEKIT_API_KEY|op://smartout_ai_prod/livekit/api-key|true
+smartout-web|shared|LIVEKIT_API_SECRET|op://smartout_ai_prod/livekit/api-secret|true
+smartout-web|shared|LIVEKIT_WEBHOOK_SECRET|op://smartout_ai_prod/livekit/webhook-secret|true
+# ── Supabase — preview (Branch DB from dev vault) ────────────
+smartout-web|preview|NEXT_PUBLIC_SUPABASE_URL|op://smartout_ai/Supabase Preview Branch/url|false
+smartout-web|preview|NEXT_PUBLIC_SUPABASE_ANON_KEY|op://smartout_ai/Supabase Preview Branch/anon_key|false
+smartout-web|preview|SUPABASE_SERVICE_ROLE_KEY|op://smartout_ai/Supabase Preview Branch/service_role_key|true
+smartout-web|preview|DATABASE_URL|op://smartout_ai/PostgreSQL preview/connection_string|true
+# ── Supabase — production (from prod vault) ──────────────────
 smartout-web|production|NEXT_PUBLIC_SUPABASE_URL|op://smartout_ai_prod/Supabase/url|false
 smartout-web|production|NEXT_PUBLIC_SUPABASE_ANON_KEY|op://smartout_ai_prod/Supabase/anon_key|false
-smartout-web|production|NEXT_PUBLIC_POSTHOG_KEY|op://smartout_ai_prod/PostHog/api_key|false
-smartout-web|production|NEXT_PUBLIC_POSTHOG_HOST|op://smartout_ai_prod/PostHog/host|false
-smartout-web|production|NEXT_PUBLIC_SENTRY_DSN|op://smartout_ai_prod/Sentry/dsn|false
-smartout-web|production|NEXT_PUBLIC_ROOT_DOMAIN|op://smartout_ai_prod/SmartOut/root_domain|false
-smartout-web|production|NEXT_PUBLIC_LANDING_URL|op://smartout_ai_prod/SmartOut/landing_url|false
-smartout-web|production|NEXT_PUBLIC_REVALIDATION_SECRET|op://smartout_ai_prod/SmartOut/revalidation_secret|false
-smartout-web|production|NEXT_PUBLIC_STAGE_ENGINE_URL|op://smartout_ai_prod/Stage-Engine/url|false
-smartout-web|production|NEXT_PUBLIC_LIVEKIT_URL|op://smartout_ai_prod/livekit/wss-url|false
 smartout-web|production|SUPABASE_SERVICE_ROLE_KEY|op://smartout_ai_prod/Supabase/service_role_key|true
 smartout-web|production|DATABASE_URL|op://smartout_ai_prod/PostgreSQL/connection_string|true
-smartout-web|production|JWT_SECRET|op://smartout_ai_prod/SmartOut/jwt_secret|true
-smartout-web|production|SESSION_SECRET|op://smartout_ai_prod/SmartOut/session_secret|true
-smartout-web|production|STRIPE_SECRET_KEY|op://smartout_ai_prod/Stripe/secret_key|true
-smartout-web|production|STRIPE_WEBHOOK_SECRET|op://smartout_ai_prod/Stripe/webhook_secret|true
-smartout-web|production|SENDGRID_API_KEY|op://smartout_ai_prod/SendGrid/api_key|true
-smartout-web|production|TWILIO_ACCOUNT_SID|op://smartout_ai_prod/Twilio/account_sid|true
-smartout-web|production|TWILIO_AUTH_TOKEN|op://smartout_ai_prod/Twilio/auth_token|true
-smartout-web|production|OPENROUTER_API_KEY|op://smartout_ai_prod/OpenRouter/api_key|true
-smartout-web|production|ULTRAVOX_API_KEY|op://smartout_ai_prod/Ultravox/api_key|true
-smartout-web|production|SENTRY_DSN|op://smartout_ai_prod/Sentry/dsn|true
-smartout-web|production|DOCUSEAL_WEBHOOK_SECRET|op://smartout_ai_prod/DocuSeal/webhook_secret|true
-smartout-web|production|UPSTASH_REDIS_REST_URL|op://smartout_ai_prod/Upstash/rest_url|true
-smartout-web|production|UPSTASH_REDIS_REST_TOKEN|op://smartout_ai_prod/Upstash/rest_token|true
-smartout-web|production|CONTRACT_SERVICE_URL|op://smartout_ai_prod/Contract-Service/url|true
-smartout-web|production|CONTRACT_SERVICE_KEY|op://smartout_ai_prod/Contract-Service/api_key|true
-smartout-web|production|SCRAPLING_SERVICE_URL|op://smartout_ai_prod/Scrapling/url|true
-smartout-web|production|SCRAPLING_AUTH_TOKEN|op://smartout_ai_prod/Scrapling/SCRAPLING_AUTH_TOKEN|true
-smartout-web|production|SERPER_API_KEY|op://smartout_ai_prod/Serper/api_key|true
-smartout-web|production|STAGE_ENGINE_URL|op://smartout_ai_prod/Stage-Engine/url|true
-smartout-web|production|STAGE_ENGINE_API_KEY|op://smartout_ai_prod/Stage-Engine/api_key|true
-smartout-web|production|SHIFT_MCP_URL|op://smartout_ai_prod/Shift-MCP/url|true
-# ── smartout-landing — Preview ───────────────────────────────
-smartout-landing|preview|NEXT_PUBLIC_SUPABASE_URL|op://smartout_ai/Supabase/url|false
-smartout-landing|preview|NEXT_PUBLIC_SUPABASE_ANON_KEY|op://smartout_ai/Supabase/anon_key|false
-smartout-landing|preview|NEXT_PUBLIC_POSTHOG_KEY|op://smartout_ai/PostHog/api_key|false
-smartout-landing|preview|NEXT_PUBLIC_POSTHOG_HOST|op://smartout_ai/PostHog/host|false
-smartout-landing|preview|NEXT_PUBLIC_WEB_APP_URL|op://smartout_ai/SmartOut/web_app_url|false
-smartout-landing|preview|REVALIDATION_SECRET|op://smartout_ai/SmartOut/revalidation_secret|true
-smartout-landing|preview|STAGE_ENGINE_URL|op://smartout_ai/Stage-Engine/url|true
-smartout-landing|preview|STAGE_ENGINE_API_KEY|op://smartout_ai/Stage-Engine/api_key|true
-smartout-landing|preview|ULTRAVOX_API_KEY|op://smartout_ai/Ultravox/api_key|true
-smartout-landing|preview|ULTRAVOX_AGENT_ID|op://smartout_ai/Ultravox/agent_id|true
-# ── smartout-landing — Production ────────────────────────────
+# ══════════════════════════════════════════════════════════════
+# smartout-landing (apps/landing/src/env.ts: 14 server + 6 client)
+# ══════════════════════════════════════════════════════════════
+# ── Shared (preview + production, from prod vault) ───────────
+smartout-landing|shared|NEXT_PUBLIC_POSTHOG_KEY|op://smartout_ai_prod/PostHog/api_key|false
+smartout-landing|shared|NEXT_PUBLIC_POSTHOG_HOST|op://smartout_ai_prod/PostHog/host|false
+smartout-landing|shared|NEXT_PUBLIC_WEB_APP_URL|op://smartout_ai_prod/SmartOut/web_app_url|false
+smartout-landing|shared|STRIPE_SECRET_KEY|op://smartout_ai_prod/Stripe/secret_key|true
+smartout-landing|shared|STRIPE_WEBHOOK_SECRET|op://smartout_ai_prod/Stripe/webhook_secret|true
+smartout-landing|shared|SENDGRID_API_KEY|op://smartout_ai_prod/SendGrid/api_key|true
+smartout-landing|shared|TWILIO_ACCOUNT_SID|op://smartout_ai_prod/Twilio/account_sid|true
+smartout-landing|shared|TWILIO_AUTH_TOKEN|op://smartout_ai_prod/Twilio/auth_token|true
+smartout-landing|shared|JWT_SECRET|op://smartout_ai_prod/SmartOut/jwt_secret|true
+smartout-landing|shared|SESSION_SECRET|op://smartout_ai_prod/SmartOut/session_secret|true
+smartout-landing|shared|ULTRAVOX_API_KEY|op://smartout_ai_prod/Ultravox/api_key|true
+smartout-landing|shared|STAGE_ENGINE_URL|op://smartout_ai_prod/Stage-Engine/url|true
+smartout-landing|shared|STAGE_ENGINE_API_KEY|op://smartout_ai_prod/Stage-Engine/api_key|true
+smartout-landing|shared|INTERVJU_MCP_WEBHOOK_SECRET|op://smartout_ai_prod/Intervju-MCP/webhook_secret|true
+smartout-landing|shared|REVALIDATION_SECRET|op://smartout_ai_prod/SmartOut/revalidation_secret|true
+# ── Supabase — preview (Branch DB from dev vault) ────────────
+smartout-landing|preview|NEXT_PUBLIC_SUPABASE_URL|op://smartout_ai/Supabase Preview Branch/url|false
+smartout-landing|preview|NEXT_PUBLIC_SUPABASE_ANON_KEY|op://smartout_ai/Supabase Preview Branch/anon_key|false
+smartout-landing|preview|SUPABASE_SERVICE_ROLE_KEY|op://smartout_ai/Supabase Preview Branch/service_role_key|true
+smartout-landing|preview|DATABASE_URL|op://smartout_ai/PostgreSQL preview/connection_string|true
+# ── Supabase — production (from prod vault) ──────────────────
 smartout-landing|production|NEXT_PUBLIC_SUPABASE_URL|op://smartout_ai_prod/Supabase/url|false
 smartout-landing|production|NEXT_PUBLIC_SUPABASE_ANON_KEY|op://smartout_ai_prod/Supabase/anon_key|false
-smartout-landing|production|NEXT_PUBLIC_POSTHOG_KEY|op://smartout_ai_prod/PostHog/api_key|false
-smartout-landing|production|NEXT_PUBLIC_POSTHOG_HOST|op://smartout_ai_prod/PostHog/host|false
-smartout-landing|production|NEXT_PUBLIC_WEB_APP_URL|op://smartout_ai_prod/SmartOut/web_app_url|false
-smartout-landing|production|REVALIDATION_SECRET|op://smartout_ai_prod/SmartOut/revalidation_secret|true
-smartout-landing|production|STAGE_ENGINE_URL|op://smartout_ai_prod/Stage-Engine/url|true
-smartout-landing|production|STAGE_ENGINE_API_KEY|op://smartout_ai_prod/Stage-Engine/api_key|true
-smartout-landing|production|ULTRAVOX_API_KEY|op://smartout_ai_prod/Ultravox/api_key|true
-smartout-landing|production|ULTRAVOX_AGENT_ID|op://smartout_ai_prod/Ultravox/agent_id|true
+smartout-landing|production|SUPABASE_SERVICE_ROLE_KEY|op://smartout_ai_prod/Supabase/service_role_key|true
+smartout-landing|production|DATABASE_URL|op://smartout_ai_prod/PostgreSQL/connection_string|true
 EOF
 )
 
 # ── Resolve project names to IDs ─────────────────────────────
 
 resolve_project_id() {
-  local name="$1"
-  case "$name" in
+  case "$1" in
     smartout-web) echo "$WEB_PROJECT_ID" ;;
     smartout-landing) echo "$LANDING_PROJECT_ID" ;;
     *) echo "" ;;
   esac
 }
 
-# ── Main sync loop ───────────────────────────────────────────
+# ── Filter manifest ──────────────────────────────────────────
+
+FILTERED_MANIFEST=$(echo "$MANIFEST" | grep -v '^#' | grep -v '^$')
+if [[ -n "$PROJECT_FILTER" ]]; then
+  FILTERED_MANIFEST=$(echo "$FILTERED_MANIFEST" | grep "^${PROJECT_FILTER}|" || true)
+  echo ""
+  echo "Filtered to: $PROJECT_FILTER"
+fi
+
+# ── Determine which projects to nuke ─────────────────────────
+
+declare -A PROJECTS_TO_NUKE
+while IFS='|' read -r project_name rest <&3; do
+  [[ -z "$project_name" ]] && continue
+  PROJECTS_TO_NUKE[$project_name]=1
+done 3<<< "$FILTERED_MANIFEST"
+
+# ── Main sync ────────────────────────────────────────────────
 
 echo ""
 [[ "$DRY_RUN" == "true" ]] && echo "*** DRY RUN ***" && echo ""
 
+# Step 1: Nuke all env vars from affected projects
+echo "=== Nuking old env vars ==="
+for project_name in "${!PROJECTS_TO_NUKE[@]}"; do
+  pid=$(resolve_project_id "$project_name")
+  if [[ -n "$pid" ]]; then
+    echo "  $project_name:"
+    if [[ "$DRY_RUN" == "false" ]]; then
+      nuke_project_env "$pid"
+    else
+      echo "  (dry run — would delete all)"
+    fi
+  fi
+done
+
+# Step 2: Add all vars fresh from 1Password
+echo ""
+echo "=== Setting from 1Password ==="
 TOTAL=0
 OK=0
 FAIL=0
 
-# First pass: collect unique keys per project and remove them
-echo "=== Removing old values ==="
-declare -A REMOVED
-while IFS='|' read -r project_name env_name key_name op_ref is_sensitive <&3; do
-  [[ -z "$project_name" ]] && continue
-  local_key="${project_name}:${key_name}"
-  if [[ -z "${REMOVED[$local_key]:-}" ]]; then
-    pid=$(resolve_project_id "$project_name")
-    if [[ "$DRY_RUN" == "false" && -n "$pid" ]]; then
-      remove_env_var "$pid" "$key_name"
-    fi
-    echo "  RM  $project_name → $key_name"
-    REMOVED[$local_key]=1
-  fi
-done 3<<< "$(echo "$MANIFEST" | grep -v '^#' | grep -v '^$')"
-
-# Second pass: add all vars with fresh values
-echo ""
-echo "=== Adding from 1Password ==="
 while IFS='|' read -r project_name env_name key_name op_ref is_sensitive <&3; do
   [[ -z "$project_name" ]] && continue
   TOTAL=$((TOTAL + 1))
 
   pid=$(resolve_project_id "$project_name")
   if [[ -z "$pid" ]]; then
-    echo "  FAIL [$env_name] $key_name — unknown project $project_name"
+    echo "  FAIL [$env_name] $key_name — unknown project"
     FAIL=$((FAIL + 1))
     continue
   fi
@@ -308,7 +297,6 @@ while IFS='|' read -r project_name env_name key_name op_ref is_sensitive <&3; do
     continue
   fi
 
-  # Read from 1Password
   value=$(op read "$op_ref" 2>/dev/null) || {
     echo "  FAIL [$env_name] $key_name — op read failed"
     FAIL=$((FAIL + 1))
@@ -322,9 +310,7 @@ while IFS='|' read -r project_name env_name key_name op_ref is_sensitive <&3; do
     echo "  FAIL [$env_name] $key_name — API error"
     FAIL=$((FAIL + 1))
   fi
-done 3<<< "$(echo "$MANIFEST" | grep -v '^#' | grep -v '^$')"
-
-# ── Summary ──────────────────────────────────────────────────
+done 3<<< "$FILTERED_MANIFEST"
 
 echo ""
 echo "=== Done ==="

@@ -13,10 +13,6 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createAdminClient } from "@smartout/supabase/admin";
 
-// TODO: Remove UntypedClient cast after database types are regenerated
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type UntypedClient = ReturnType<typeof createAdminClient> & { from: (table: string) => any };
-
 const WaitlistSchema = z.object({
   campaignKey: z.string().min(1).max(100),
   fullName: z.string().trim().min(2).max(120),
@@ -79,7 +75,7 @@ export async function POST(request: NextRequest) {
     hostHeader?.split(":")[0]?.toLowerCase() ?? request.nextUrl.hostname.toLowerCase();
 
   try {
-    const admin = createAdminClient() as unknown as UntypedClient;
+    const admin = createAdminClient();
 
     const { error } = await admin.from("landing_waitlist_submission").insert({
       campaign_key: parsed.data.campaignKey,

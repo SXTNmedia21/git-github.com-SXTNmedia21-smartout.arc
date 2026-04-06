@@ -602,6 +602,7 @@ export default function LoginPage() {
                             E-post
                           </label>
                           <input
+                            data-testid="login-email"
                             id="email"
                             name="email"
                             type="email"
@@ -629,6 +630,7 @@ export default function LoginPage() {
                             </Link>
                           </div>
                           <input
+                            data-testid="login-password"
                             id="password"
                             name="password"
                             type="password"
@@ -642,6 +644,7 @@ export default function LoginPage() {
                         </div>
                         <div className="pt-2">
                           <button
+                            data-testid="login-submit"
                             type="submit"
                             disabled={loading}
                             className="w-full rounded-xl bg-[oklch(0.65_0.22_40)] px-4 py-3 text-[0.875rem] font-semibold text-white shadow-[0_2px_12px_oklch(0.65_0.22_40/0.25)] transition-all duration-200 hover:shadow-[0_4px_20px_oklch(0.65_0.22_40/0.35)] hover:brightness-110 active:scale-[0.98] disabled:opacity-50"

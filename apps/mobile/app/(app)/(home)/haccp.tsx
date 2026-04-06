@@ -18,6 +18,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createStyles, useTheme, withOpacity } from "@/theme";
 import { supabase } from "@/lib/supabase";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
+import { useLogHaccp } from "@/hooks/mutations/use-log-haccp";
 
 type UnitStatus = "pending" | "ok" | "avvik" | "resolved";
 
@@ -101,6 +102,7 @@ export default function HaccpScreen() {
   const { data: profile } = useMyProfile();
   const { data: fetchedUnits = [] } = useHaccpUnits(profile?.workspace_id);
   const UNITS = fetchedUnits.length > 0 ? fetchedUnits : DEMO_UNITS;
+  const { logHaccp } = useLogHaccp();
   const [checkedCount, setCheckedCount] = useState(0);
   const [resolved, setResolved] = useState(false);
 
@@ -122,8 +124,26 @@ export default function HaccpScreen() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       setCheckedCount((c) => c + 1);
 
+      // Persist the temperature reading to the offline sync queue.
+      // HACCP logging is a Mattilsynet legal requirement — must never be skipped.
+      const unit = UNITS[index]!;
+      const isWithinRange = unit.temperature <= unit.threshold;
+      if (profile?.profile_id && profile?.workspace_id) {
+        void logHaccp({
+          ccp_reference: unit.id,
+          temperature: unit.temperature,
+          unit: unit.name,
+          is_within_range: isWithinRange,
+          corrective_action: isWithinRange
+            ? null
+            : `Temperaturavvik: ${(unit.temperature - unit.threshold).toFixed(1)}°C over grense`,
+          session_id: null,
+          profile_id: profile.profile_id,
+          workspace_id: profile.workspace_id,
+        });
+      }
+
       // Auto-resolve after all checked and avvik found
-      const _unit = UNITS[index]!;
       const isLast = index === UNITS.length - 1;
       if (isLast) {
         setTimeout(() => {
@@ -132,7 +152,7 @@ export default function HaccpScreen() {
         }, 1200);
       }
     },
-    [checkedCount],
+    [checkedCount, UNITS, profile, logHaccp],
   );
 
   const hasAvvik = checkedCount >= 2; // Unit 2 is over threshold

@@ -69,6 +69,7 @@ async function loadState(): Promise<Partial<SetupState>> {
   if (!profile?.workspace_id) return {};
 
   const ws = profile.workspace as unknown as {
+    // SAFETY: Supabase join returns union type; runtime shape matches the cast
     name: string;
     company_id: string | null;
   };
@@ -156,14 +157,14 @@ async function loadState(): Promise<Partial<SetupState>> {
       .eq("workspace_id", workspaceId)
       .eq("is_active", true),
     supabase
-      .from("schedule_shift")
+      .from("schedule_template")
       .select("*", { count: "exact", head: true })
       .eq("workspace_id", workspaceId),
     supabase
       .from("season")
       .select("*", { count: "exact", head: true })
       .eq("workspace_id", workspaceId)
-      .eq("status", "active"),
+      .in("status", ["draft", "active"]),
   ]);
 
   const moduleComplete: Record<string, boolean> = {

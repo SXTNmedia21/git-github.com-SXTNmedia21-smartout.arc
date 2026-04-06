@@ -269,7 +269,7 @@ export function useCreateProcedure() {
       // Create procedure
       const { data: proc, error: procError } = await supabase
         .from("procedure")
-        .insert(procedureData)
+        .insert({ ...procedureData, workspace_id: workspace.workspace_id })
         .select()
         .single();
 
@@ -329,6 +329,7 @@ export function useCreateKnowledgeTest() {
         .insert({
           ...input,
           questions: input.questions as unknown as Json,
+          workspace_id: workspace.workspace_id,
         })
         .select()
         .single();
@@ -371,7 +372,11 @@ export function useCreateConfirmation() {
   return useMutation({
     mutationFn: async (input: ConfirmationInput) => {
       const supabase = createClient();
-      const { data, error } = await supabase.from("confirmation").insert(input).select().single();
+      const { data, error } = await supabase
+        .from("confirmation")
+        .insert({ ...input, workspace_id: workspace.workspace_id })
+        .select()
+        .single();
 
       if (error) throw error;
       return data;

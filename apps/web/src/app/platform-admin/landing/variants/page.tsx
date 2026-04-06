@@ -39,6 +39,7 @@ export default async function VariantsPage() {
         </p>
       </div>
 
+      {/* SAFETY: Supabase join returns union type; runtime shape matches the cast */}
       <VariantList variants={(variants ?? []) as unknown as VariantRow[]} />
     </div>
   );

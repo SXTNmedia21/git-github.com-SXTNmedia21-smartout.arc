@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createAdminClient } from "@smartout/supabase/admin";
+import type { Json } from "@smartout/supabase";
 import { getSuperAdminId, logPlatformAction } from "@/lib/platform-admin";
 
 const Schema = z.object({
@@ -56,7 +57,7 @@ export async function POST(req: NextRequest) {
   }
 
   // 2. Extract text via Scrapling
-  const scraplingUrl = process.env.SCRAPLING_SERVICE_URL || "http://localhost:8000";
+  const scraplingUrl = process.env.SCRAPLING_SERVICE_URL ?? "";
   type ScraplingResult = {
     filename: string;
     text: string | null;
@@ -189,13 +190,13 @@ export async function POST(req: NextRequest) {
     console.warn("Could not parse AI response as JSON:", textContent.slice(0, 200));
   }
 
-  // 4. Persist extraction log (table not yet in generated types — cast to bypass)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (admin as any).from("document_extraction_log").insert({
+  // 4. Persist extraction log
+  await admin.from("document_extraction_log").insert({
     workspace_id: workspaceId,
     storage_paths: storagePaths,
-    raw_ai_response: { text: textContent, model: "anthropic/claude-sonnet-4" },
-    processed_result: result,
+    // SAFETY: Runtime shape is valid JSON; double-cast bridges Record<string,unknown> → Json
+    raw_ai_response: { text: textContent, model: "anthropic/claude-sonnet-4" } as unknown as Json,
+    processed_result: result as unknown as Json,
     model: "anthropic/claude-sonnet-4",
   });
 

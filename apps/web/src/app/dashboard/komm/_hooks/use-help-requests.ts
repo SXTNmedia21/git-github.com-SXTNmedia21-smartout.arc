@@ -26,9 +26,7 @@ export function useHelpRequests() {
     staleTime: 30_000,
     queryFn: async (): Promise<HelpRequest[]> => {
       const supabase = createClient();
-      // help_request table added in 20260422300600 — not yet in generated types
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("help_request")
         .select("id, title, description, status, resolved_by, resolved_at, created_at")
         .eq("workspace_id", workspaceId)
@@ -48,9 +46,7 @@ export function useCreateHelpRequest(profileId: string) {
   return useMutation({
     mutationFn: async ({ title, description }: { title: string; description?: string }) => {
       const supabase = createClient();
-      // help_request table added in 20260422300600 — not yet in generated types
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("help_request")
         .insert({
           workspace_id: workspaceId,

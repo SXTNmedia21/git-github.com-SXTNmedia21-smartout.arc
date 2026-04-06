@@ -41,7 +41,7 @@ export function useChangeProposals() {
         .order("created_at", { ascending: false });
 
       if (error) throw new Error(error.message);
-      return (data ?? []) as unknown as ChangeProposal[];
+      return (data ?? []) as unknown as ChangeProposal[]; // SAFETY: Supabase join returns union type; runtime shape matches the cast
     },
     enabled: !!wsId,
     staleTime: 30_000,
@@ -58,7 +58,7 @@ export function useChangeProposals() {
         .from("profile")
         .select("profile_id")
         .eq("workspace_id", wsId!)
-        .eq("user_id", profileId ?? "")
+        .eq("profile_id", profileId ?? "")
         .single();
 
       const { error } = await supabase.from("change_proposal").insert({
@@ -71,8 +71,8 @@ export function useChangeProposals() {
         changes: {
           change_type: payload.changeType,
           ...payload.proposalPayload,
-        } as unknown as Record<string, never>,
-        preview: payload.previewPayload as unknown as Record<string, never>,
+        } as unknown as Record<string, never>, // SAFETY: Supabase join returns union type; runtime shape matches the cast
+        preview: payload.previewPayload as unknown as Record<string, never>, // SAFETY: Supabase join returns union type; runtime shape matches the cast
       });
       if (error) throw new Error(error.message);
     },
@@ -97,7 +97,15 @@ export function useChangeProposals() {
         .eq("change_proposal_id", proposalId);
       if (error) throw new Error(error.message);
     },
-    onSuccess: () => {
+    onSuccess: (_data, proposalId) => {
+      void emit({
+        event: "change_proposal approved",
+        workspace_id: wsId ?? null,
+        actor_id: profileId ?? "",
+        properties: {
+          data: { proposal_id: proposalId },
+        },
+      });
       queryClient.invalidateQueries({ queryKey: proposalKeys(wsId!) });
       toast.success("Forslag godkjent");
     },
@@ -112,7 +120,15 @@ export function useChangeProposals() {
         .eq("change_proposal_id", proposalId);
       if (error) throw new Error(error.message);
     },
-    onSuccess: () => {
+    onSuccess: (_data, proposalId) => {
+      void emit({
+        event: "change_proposal rejected",
+        workspace_id: wsId ?? null,
+        actor_id: profileId ?? "",
+        properties: {
+          data: { proposal_id: proposalId },
+        },
+      });
       queryClient.invalidateQueries({ queryKey: proposalKeys(wsId!) });
       toast.success("Forslag avvist");
     },

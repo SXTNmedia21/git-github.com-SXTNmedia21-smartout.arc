@@ -13,6 +13,7 @@
 import { createClient as createServerClient } from "@smartout/supabase/server";
 import { createClient } from "@supabase/supabase-js";
 import { emit } from "@smartout/telemetry";
+import type { SmartoutEvent } from "@smartout/telemetry";
 import type { ContentTask } from "@smartout/website";
 
 // ─── Types ──────────────────────────────────────────────────────
@@ -65,8 +66,7 @@ async function requireAdminForWebsite(websiteId: string) {
 
   const admin = getAdminClient();
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: website, error } = await (admin as any)
+  const { data: website, error } = await admin
     .schema("websites")
     .from("website")
     .select("workspace_id")
@@ -107,8 +107,7 @@ export async function assignSpokesperson(
   try {
     const { user, admin, workspaceId } = await requireAdminForWebsite(websiteId);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (admin as any).schema("websites").from("website_spokesperson").upsert(
+    const { error } = await admin.schema("websites").from("website_spokesperson").upsert(
       {
         website_id: websiteId,
         website_section_id: sectionId,
@@ -156,8 +155,7 @@ export async function revokeSpokesperson(
   try {
     const { user, admin, workspaceId } = await requireAdminForWebsite(websiteId);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (admin as any)
+    const { error } = await admin
       .schema("websites")
       .from("website_spokesperson")
       .update({ status: "revoked" })
@@ -204,8 +202,7 @@ export async function getSpokespersonForSection(
   // Admin client needed for cross-schema join (websites schema → public.profile)
   const admin = getAdminClient();
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (admin as any)
+  const { data, error } = await admin
     .schema("websites")
     .from("website_spokesperson")
     .select(
@@ -237,8 +234,8 @@ export async function getSpokespersonForSection(
   if (error) throw new Error(error.message);
   if (!data) return null;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const row = data as any;
+  // SAFETY: websites schema returns untyped results — row shape matches SpokespersonRow
+  const row = data as Record<string, string>;
 
   // Verify caller is a member of this workspace (workspace_id from the record).
   // Employees get here via a push notification link — they are workspace members.
@@ -246,7 +243,8 @@ export async function getSpokespersonForSection(
   const { count: memberCount } = await userClient
     .from("profile")
     .select("*", { count: "exact", head: true })
-    .eq("workspace_id", row.workspace_id)
+    // SAFETY: workspace_id is always present on spokesperson rows; non-null assertion is safe here
+    .eq("workspace_id", row.workspace_id!)
     .eq("user_id", user.id);
 
   if (!memberCount) throw new Error("Access denied — not a workspace member");
@@ -286,9 +284,9 @@ export async function respondToSpokesperson(
 
     const newStatus = approve ? "approved" : "declined";
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: updated, error } = await (userClient as any)
-      .schema("websites")
+    const { data: updated, error } = await userClient
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- SAFETY: websites is a valid Postgres schema not represented in Supabase generated types
+      .schema("websites" as any)
       .from("website_spokesperson")
       .update({
         status: newStatus,
@@ -302,12 +300,16 @@ export async function respondToSpokesperson(
     if (error) return { success: false, error: error.message };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { workspace_id, profile_id, website_id } = updated as any;
+    // SAFETY: websites schema returns untyped results — shape is known from the .select() above
+    const { workspace_id, profile_id, website_id } = updated as {
+      workspace_id: string;
+      profile_id: string;
+      website_id: string;
+    };
 
     const event = approve ? "website spokesperson_approved" : "website spokesperson_declined";
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const emitPayload: any = {
+    const emitPayload = {
       event,
       workspace_id,
       actor_id: user.id,
@@ -316,7 +318,9 @@ export async function respondToSpokesperson(
         data: approve ? { profile_id } : { profile_id, reason: declineReason },
       },
     };
-    await emit(emitPayload);
+    // SAFETY: event literal is one of the two registered spokesperson events; cast resolves TS
+    // union narrowing failure when event is computed from a ternary
+    await emit(emitPayload as SmartoutEvent);
 
     return { success: true };
   } catch (err) {

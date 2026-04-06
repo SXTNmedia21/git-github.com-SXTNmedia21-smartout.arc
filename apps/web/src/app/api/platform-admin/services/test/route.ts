@@ -4,14 +4,18 @@ import { env } from "@/env";
 
 const TIMEOUT_MS = 10_000;
 
-const SERVICE_URLS: Record<string, string | undefined> = {
-  "stage-engine": env.STAGE_ENGINE_URL ?? "http://localhost:5010",
-  "shift-mcp": env.SHIFT_MCP_URL ?? "http://localhost:5011",
-  "contract-service": env.CONTRACT_SERVICE_URL ?? "http://localhost:5012",
-  scrapling: env.SCRAPLING_SERVICE_URL ?? "http://localhost:8000",
-  supabase: env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321",
-  caddy: "http://localhost:80",
-};
+// Resolve service URLs at runtime (not module init) to avoid build-time errors
+// when env vars aren't set during Next.js static analysis.
+function getServiceUrls(): Record<string, string | undefined> {
+  return {
+    "stage-engine": process.env.STAGE_ENGINE_URL ?? "http://localhost:5010",
+    "shift-mcp": process.env.SHIFT_MCP_URL ?? "http://localhost:5011",
+    "contract-service": process.env.CONTRACT_SERVICE_URL ?? "http://localhost:5012",
+    scrapling: process.env.SCRAPLING_SERVICE_URL ?? "http://localhost:8000",
+    supabase: env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321",
+    caddy: process.env.CADDY_URL ?? "http://localhost:80",
+  };
+}
 
 export type TestResult = {
   status: number;
@@ -42,7 +46,7 @@ export async function POST(req: NextRequest) {
     headers?: Record<string, string>;
   };
 
-  const baseUrl = SERVICE_URLS[serviceKey];
+  const baseUrl = getServiceUrls()[serviceKey];
   if (!baseUrl) {
     return NextResponse.json({ error: `Unknown service: ${serviceKey}` }, { status: 400 });
   }

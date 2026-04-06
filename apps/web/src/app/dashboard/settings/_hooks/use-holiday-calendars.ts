@@ -310,6 +310,7 @@ export function useCreateHolidayEntry() {
 export function useUpdateHolidayEntry() {
   const ctx = useWorkspaceOptional();
   const wsId = ctx?.workspace.workspace_id;
+  const { profileId } = useContext(DashboardContext);
   const supabase = createClient();
   const queryClient = useQueryClient();
 
@@ -337,7 +338,15 @@ export function useUpdateHolidayEntry() {
       if (error) throw new Error(error.message);
       return { calendarId };
     },
-    onSuccess: (_data, { calendarId }) => {
+    onSuccess: (_data, { id, calendarId }) => {
+      void emit({
+        event: "holiday_entry updated",
+        workspace_id: wsId ?? null,
+        actor_id: profileId ?? "",
+        properties: {
+          data: { calendar_id: calendarId },
+        },
+      });
       void queryClient.invalidateQueries({ queryKey: entriesKey(calendarId) });
       toast.success("Helligdag oppdatert");
     },

@@ -145,7 +145,6 @@ export function useScrapedData() {
       cleanup();
       setScrapeStatus("scraping");
       setScrapedData(null);
-      setBrregData(null);
       setBrregCandidates([]);
 
       try {

@@ -96,7 +96,7 @@ async function onComplete(state: JoinState): Promise<void> {
       priceCategory: state.menu.priceCategory,
       menuDescription: state.menu.menuDescription,
     },
-    step6: {},
+    step6: state.createAccount ?? {},
     intelligence: state.intelligence,
   };
 

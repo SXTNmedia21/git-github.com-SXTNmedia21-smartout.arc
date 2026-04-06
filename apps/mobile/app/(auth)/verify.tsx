@@ -16,6 +16,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Alert,
   StyleSheet,
 } from "react-native";
 import { useLocalSearchParams, useRouter, useNavigation } from "expo-router";
@@ -76,6 +77,38 @@ export default function Verify() {
   // Shared state
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // --- Password reset ---
+
+  async function handleForgotPassword() {
+    const trimmed = loginEmail.trim().toLowerCase();
+    if (!trimmed || !trimmed.includes("@")) {
+      Alert.alert(
+        "Skriv inn e-post først",
+        "Fyll inn e-postadressen din over, så sender vi en lenke for å tilbakestille passordet.",
+      );
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(trimmed, {
+      redirectTo: "smartout://auth/callback",
+    });
+
+    setIsLoading(false);
+
+    if (resetError) {
+      setError("Kunne ikke sende tilbakestillingslenke. Prøv igjen.");
+      return;
+    }
+
+    Alert.alert(
+      "Sjekk e-posten din",
+      `Vi har sendt en lenke til ${trimmed} for å tilbakestille passordet ditt.`,
+    );
+  }
 
   // --- Email + password login (matches web) ---
 
@@ -138,9 +171,12 @@ export default function Verify() {
       },
     });
 
+    // Reset loading state regardless of outcome — the OAuth call opens an
+    // external browser, so we never get a "success" callback here to reset it.
+    setGoogleLoading(false);
+
     if (oauthError) {
       setError("Noe gikk galt med Google-innlogging.");
-      setGoogleLoading(false);
     }
   }
 
@@ -166,34 +202,6 @@ export default function Verify() {
     }
 
     setOtpSent(true);
-  }
-
-  async function _verifyOtp() {
-    if (otp.length !== OTP_LENGTH) {
-      setError("Koden ma vaere 6 siffer");
-      return;
-    }
-
-    const normalized = normalizePhone(phone);
-    if (!normalized) return;
-
-    setIsLoading(true);
-    setError(null);
-
-    const { error: verifyError } = await supabase.auth.verifyOtp({
-      phone: normalized,
-      token: otp,
-      type: "sms",
-    });
-
-    setIsLoading(false);
-
-    if (verifyError) {
-      setError("Feil kode. Sjekk SMS-en og prov igjen.");
-      return;
-    }
-
-    await handlePostAuth();
   }
 
   // --- Email magic link flow ---
@@ -247,14 +255,22 @@ export default function Verify() {
     }
 
     if (flow === "search" && workspaceId) {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const [
+        {
+          data: { user },
+        },
+        { data: workspace },
+      ] = await Promise.all([
+        supabase.auth.getUser(),
+        supabase.from("workspace").select("company_id").eq("workspace_id", workspaceId).single(),
+      ]);
 
-      if (user) {
+      // company_id is a required FK on invitation — it must come from the
+      // workspace record, not the workspaceId itself (they are different entities).
+      if (user && workspace?.company_id) {
         await supabase.from("invitation").insert({
           workspace_id: workspaceId,
-          company_id: workspaceId,
+          company_id: workspace.company_id,
           direction: "inbound",
           status: "pending",
           invite_type: "link",
@@ -379,7 +395,7 @@ export default function Verify() {
           {/* Password */}
           <View style={s.passwordHeader}>
             <Text style={s.label}>Passord</Text>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={handleForgotPassword}>
               <Text style={s.forgotLink}>Glemt passord?</Text>
             </TouchableOpacity>
           </View>
@@ -410,10 +426,12 @@ export default function Verify() {
             )}
           </TouchableOpacity>
 
-          {/* Sign up link */}
-          <Text style={s.footerText}>
-            Har du ikke konto? <Text style={s.footerLink}>Opprett konto</Text>
-          </Text>
+          {/* Sign up link — routes to Welcome where user picks invite/code/search path */}
+          <TouchableOpacity onPress={() => router.replace("/(auth)/welcome")}>
+            <Text style={s.footerText}>
+              Har du ikke konto? <Text style={s.footerLink}>Opprett konto</Text>
+            </Text>
+          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
     );

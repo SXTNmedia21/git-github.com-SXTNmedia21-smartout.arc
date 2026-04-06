@@ -4,12 +4,6 @@ import { invalidateServiceConfig } from "@smartout/supabase/service-config";
 
 type RouteContext = { params: Promise<{ slug: string }> };
 
-// TODO: Remove once service_config migration is applied and types regenerated
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const svcTable = (client: any) => client.from("service_config") as any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const svcLogTable = (client: any) => client.from("service_config_log") as any;
-
 /** POST /api/platform-admin/services/config/[slug]/restart — Restart a Docker service */
 export async function POST(_request: NextRequest, { params }: RouteContext) {
   const auth = await requireGodmode();
@@ -17,7 +11,8 @@ export async function POST(_request: NextRequest, { params }: RouteContext) {
 
   const { slug } = await params;
 
-  const { data: service } = await svcTable(auth.admin)
+  const { data: service } = await auth.admin
+    .from("service_config")
     .select("service_id, type, docker_service_name")
     .eq("slug", slug)
     .single();
@@ -28,7 +23,10 @@ export async function POST(_request: NextRequest, { params }: RouteContext) {
     return NextResponse.json({ error: "Only Docker services can be restarted" }, { status: 400 });
   }
 
-  const dockerHost = process.env.DOCKER_HOST ?? "http://localhost:2375";
+  const dockerHost = process.env.DOCKER_HOST;
+  if (!dockerHost) {
+    return NextResponse.json({ error: "DOCKER_HOST not configured" }, { status: 503 });
+  }
 
   try {
     // Find container by name
@@ -60,7 +58,7 @@ export async function POST(_request: NextRequest, { params }: RouteContext) {
     }
 
     // Log the restart
-    await svcLogTable(auth.admin).insert({
+    await auth.admin.from("service_config_log").insert({
       service_id: service.service_id,
       changed_by: auth.adminId,
       change_type: "restart" as const,

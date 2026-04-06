@@ -161,7 +161,7 @@ export default function ProfileDetailPage() {
     ]);
 
     if (profileRes.data) {
-      const p = profileRes.data as unknown as ProfileRow;
+      const p = profileRes.data as unknown as ProfileRow; // SAFETY: Supabase join returns union type; runtime shape matches the cast
       setProfile(p);
       setEditRole(p.role.toLowerCase());
       setEditDeptId(p.department_id ?? "");
@@ -237,7 +237,7 @@ export default function ProfileDetailPage() {
         shift_id: row.schedule_shift_id,
       }),
     );
-    setShifts((mappedShifts as unknown as ShiftEntry[]) ?? []);
+    setShifts((mappedShifts as unknown as ShiftEntry[]) ?? []); // SAFETY: Supabase join returns union type; runtime shape matches the cast
   }, [id]);
 
   const fetchFullActivity = useCallback(

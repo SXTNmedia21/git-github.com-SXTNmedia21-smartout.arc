@@ -9,6 +9,7 @@
       "Bash(done)"
     ]
   },
+  "enabledMcpjsonServers": ["playwright"],
   "mcpServers": {
     "playwright": {
       "command": "npx",
@@ -30,5 +31,6 @@
         "SENTRY_AUTH_TOKEN": "${SENTRY_AUTH_TOKEN}"
       }
     }
-  }
+  },
+  "enableAllProjectMcpServers": true
 }

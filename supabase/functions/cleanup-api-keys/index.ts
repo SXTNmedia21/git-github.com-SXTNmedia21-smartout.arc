@@ -12,15 +12,23 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
-  const { data, error } = await supabase.rpc("cleanup_expired_api_keys");
+  try {
+    const { data, error } = await supabase.rpc("cleanup_expired_api_keys");
 
-  return new Response(
-    JSON.stringify({
-      status: error ? "error" : "ok",
-      revoked_count: data ?? 0,
-      timestamp: new Date().toISOString(),
-      error: error?.message,
-    }),
-    { headers: { "Content-Type": "application/json" } },
-  );
+    return new Response(
+      JSON.stringify({
+        status: error ? "error" : "ok",
+        revoked_count: data ?? 0,
+        timestamp: new Date().toISOString(),
+        error: error?.message,
+      }),
+      { headers: { "Content-Type": "application/json" } },
+    );
+  } catch (err) {
+    console.error("[cleanup-api-keys] Unhandled error:", err);
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
 });

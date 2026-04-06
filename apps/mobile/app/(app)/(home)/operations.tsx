@@ -11,7 +11,7 @@
  */
 
 import React, { useMemo, useState } from "react";
-import { View, Text, Pressable, ScrollView } from "react-native";
+import { View, Text, Pressable, ScrollView, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -250,6 +250,30 @@ export default function OperationsScreen() {
       </View>
 
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+        {/* Demo Banner */}
+        <View
+          style={{
+            backgroundColor: "#fef3cd",
+            paddingVertical: 8,
+            paddingHorizontal: 16,
+            borderRadius: 8,
+            marginHorizontal: 16,
+            marginTop: 8,
+            marginBottom: 8,
+          }}
+        >
+          <Text
+            style={{
+              color: "#856404",
+              fontSize: 13,
+              fontWeight: "600",
+              textAlign: "center",
+            }}
+          >
+            Demo — denne siden er under utvikling
+          </Text>
+        </View>
+
         {/* Month + toggle */}
         <View style={s.monthRow}>
           <Text style={s.monthLabel}>{monthLabel}</Text>

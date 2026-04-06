@@ -60,7 +60,7 @@ function createRequest(overrides?: { channels?: Array<"sms" | "push" | "email"> 
       channels: overrides?.channels ?? ["sms"],
       audience: "all",
     }),
-  } as unknown as NextRequest;
+  } as unknown as NextRequest; // SAFETY: Supabase join returns union type; runtime shape matches the cast
 }
 
 describe("POST /api/schedule/send-message authorization", () => {

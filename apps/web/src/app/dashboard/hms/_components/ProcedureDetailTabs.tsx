@@ -61,6 +61,7 @@ export function ProcedureDetailTabs({ procedureId }: { procedureId: string }) {
   }
 
   const protocol = meta.protocol as unknown as {
+    // SAFETY: Supabase join returns union type; runtime shape matches the cast
     name: string;
     protocol_id: string;
     policy: { name: string; policy_type: string } | null;

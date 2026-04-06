@@ -13,11 +13,6 @@ import { z } from "zod";
 import { createAdminClient } from "@smartout/supabase/admin";
 import { getSuperAdminId } from "@/lib/platform-admin";
 
-// TODO: Remove UntypedClient cast after regenerating database.types.ts
-// (landing_visitor table is not yet in the generated types)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type UntypedClient = ReturnType<typeof createAdminClient> & { from: (table: string) => any };
-
 const TagVisitorSchema = z.object({
   visitor_id: z.string().uuid(),
   label: z.string().min(1).max(200),
@@ -45,8 +40,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  // TODO: Remove cast after regenerating database.types.ts
-  const admin = createAdminClient() as unknown as UntypedClient;
+  const admin = createAdminClient();
   const { error } = await admin
     .from("landing_visitor")
     .update({

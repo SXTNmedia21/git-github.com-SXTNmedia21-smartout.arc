@@ -51,7 +51,7 @@ MANIFEST=(
   "OPENROUTER_API_KEY|op://smartout_ai_prod/OpenRouter/api_key"
   "SCRAPLING_AUTH_TOKEN|op://smartout_ai_prod/Scrapling/auth_token"
   "SERPER_API_KEY|op://smartout_ai_prod/Serper/api_key"
-  "CONTRACT_SERVICE_KEY|op://smartout_ai_prod/SmartOut/contract_service_key"
+  "CONTRACT_SERVICE_KEY|op://smartout_ai_prod/Contract-Service/api_key"
   "DOCUSEAL_API_KEY|op://smartout_ai_prod/DocuSeal/api_key"
   "DOCUSEAL_WEBHOOK_SECRET|op://smartout_ai_prod/DocuSeal/webhook_secret"
   "N8N_ENCRYPTION_KEY|op://smartout_ai_prod/n8n/encryption_key"

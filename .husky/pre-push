@@ -1,7 +1,48 @@
 # ============================================================
-# PRE-PUSH HOOK — Lint + Type Safety Gate
-# Fast local gates only. E2E runs in CI, not here.
+# PRE-PUSH HOOK — Deployment Pipeline Enforcement + Quality Gates
+# Blocks direct push to protected branches.
+# Pipeline: development → preview → main
 # ============================================================
 
+protected_branch=""
+while read local_ref local_sha remote_ref remote_sha; do
+  case "$remote_ref" in
+    refs/heads/main)
+      # NEVER allow direct push to main
+      protected_branch="main"
+      ;;
+    refs/heads/preview)
+      # Allow fast-forward from development only
+      # Fetch latest first to compare against current development
+      git fetch origin development --quiet 2>/dev/null || true
+      if git merge-base --is-ancestor "$local_sha" origin/development 2>/dev/null; then
+        # This commit is on development — fast-forward is allowed
+        :
+      else
+        protected_branch="preview"
+      fi
+      ;;
+  esac
+done
+
+if [ -n "$protected_branch" ]; then
+  echo ""
+  echo "❌ DIRECT PUSH BLOCKED: $protected_branch"
+  echo ""
+  echo "The Smartout deployment pipeline is:"
+  echo "  development → preview → main"
+  echo ""
+  echo "  • Push to development, open a PR to preview"
+  echo "  • Fast-forward preview from development (this script allows it)"
+  echo "  • Open a PR preview → main"
+  echo ""
+  echo "Hotfix? Use a hotfix/* branch and open PR to main."
+  echo "See ADR-0071 and CLAUDE.md."
+  echo ""
+  echo "If you absolutely must bypass: --no-verify (NOT recommended)."
+  exit 1
+fi
+
+# Standard quality gates
 pnpm lint
 pnpm typecheck

@@ -13,86 +13,94 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
-  const now = new Date().toISOString();
-  const results: Record<string, number> = {};
+  try {
+    const now = new Date().toISOString();
+    const results: Record<string, number> = {};
 
-  // 1. Trial expirations -> suspended
-  const { data: expiredTrials } = await supabase
-    .from("workspace")
-    .select("workspace_id")
-    .eq("contract_status", "pending_contract")
-    .lt("trial_ends_at", now)
-    .is("override_access", false);
-
-  if (expiredTrials?.length) {
-    await supabase
+    // 1. Trial expirations -> suspended
+    const { data: expiredTrials } = await supabase
       .from("workspace")
-      .update({
-        contract_status: "suspended",
-        suspended_at: now,
-        grace_period_ends: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
-        updated_at: now,
-      })
-      .in(
-        "workspace_id",
-        expiredTrials.map((w: { workspace_id: string }) => w.workspace_id),
-      );
-    results.trials_expired = expiredTrials.length;
-  }
+      .select("workspace_id")
+      .eq("contract_status", "pending_contract")
+      .lt("trial_ends_at", now)
+      .is("override_access", false);
 
-  // 2. Grace period expirations -> deactivated
-  const { data: expiredGrace } = await supabase
-    .from("workspace")
-    .select("workspace_id")
-    .eq("contract_status", "suspended")
-    .lt("grace_period_ends", now)
-    .is("override_access", false);
+    if (expiredTrials?.length) {
+      await supabase
+        .from("workspace")
+        .update({
+          contract_status: "suspended",
+          suspended_at: now,
+          grace_period_ends: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+          updated_at: now,
+        })
+        .in(
+          "workspace_id",
+          expiredTrials.map((w: { workspace_id: string }) => w.workspace_id),
+        );
+      results.trials_expired = expiredTrials.length;
+    }
 
-  if (expiredGrace?.length) {
-    await supabase
+    // 2. Grace period expirations -> deactivated
+    const { data: expiredGrace } = await supabase
       .from("workspace")
-      .update({
-        contract_status: "deactivated",
-        deactivated_at: now,
-        updated_at: now,
-      })
-      .in(
-        "workspace_id",
-        expiredGrace.map((w: { workspace_id: string }) => w.workspace_id),
-      );
-    results.grace_expired = expiredGrace.length;
-  }
+      .select("workspace_id")
+      .eq("contract_status", "suspended")
+      .lt("grace_period_ends", now)
+      .is("override_access", false);
 
-  // 3. Contract signing deadline expirations
-  const { data: expiredContracts } = await supabase
-    .from("contract")
-    .select("contract_id")
-    .in("status", ["sent", "viewed"])
-    .lt("expires_at", now);
+    if (expiredGrace?.length) {
+      await supabase
+        .from("workspace")
+        .update({
+          contract_status: "deactivated",
+          deactivated_at: now,
+          updated_at: now,
+        })
+        .in(
+          "workspace_id",
+          expiredGrace.map((w: { workspace_id: string }) => w.workspace_id),
+        );
+      results.grace_expired = expiredGrace.length;
+    }
 
-  if (expiredContracts?.length) {
-    const ids = expiredContracts.map((c: { contract_id: string }) => c.contract_id);
-    await supabase
+    // 3. Contract signing deadline expirations
+    const { data: expiredContracts } = await supabase
       .from("contract")
-      .update({ status: "expired", updated_at: now })
-      .in("contract_id", ids);
+      .select("contract_id")
+      .in("status", ["sent", "viewed"])
+      .lt("expires_at", now);
 
-    // Cancel their reminders
-    await supabase
-      .from("contract_reminder")
-      .update({ status: "skipped", skip_reason: "contract_expired" })
-      .in("contract_id", ids)
-      .eq("status", "scheduled");
+    if (expiredContracts?.length) {
+      const ids = expiredContracts.map((c: { contract_id: string }) => c.contract_id);
+      await supabase
+        .from("contract")
+        .update({ status: "expired", updated_at: now })
+        .in("contract_id", ids);
 
-    results.contracts_expired = expiredContracts.length;
+      // Cancel their reminders
+      await supabase
+        .from("contract_reminder")
+        .update({ status: "skipped", skip_reason: "contract_expired" })
+        .in("contract_id", ids)
+        .eq("status", "scheduled");
+
+      results.contracts_expired = expiredContracts.length;
+    }
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        processed_at: now,
+        results,
+      }),
+      { headers: { "Content-Type": "application/json" } },
+    );
+  } catch (err) {
+    console.error("[contract-lifecycle] Unhandled error:", err);
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
-
-  return new Response(
-    JSON.stringify({
-      success: true,
-      processed_at: now,
-      results,
-    }),
-    { headers: { "Content-Type": "application/json" } },
-  );
 });

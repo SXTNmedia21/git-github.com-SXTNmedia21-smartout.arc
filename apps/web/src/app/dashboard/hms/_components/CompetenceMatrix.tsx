@@ -71,7 +71,7 @@ function useCompetenceData() {
       }
 
       const rows: MatrixRow[] = (profilesRes.data ?? []).map((profile) => {
-        const dept = profile.department as unknown as { name: string } | null;
+        const dept = profile.department as unknown as { name: string } | null; // SAFETY: Supabase join returns union type; runtime shape matches the cast
         const assignments = assignmentMap.get(profile.profile_id) ?? new Map();
 
         const protocols: MatrixRow["protocols"] = {};

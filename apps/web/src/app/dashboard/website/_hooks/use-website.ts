@@ -30,10 +30,8 @@ export function useWebsite() {
   const query = useQuery({
     queryKey: websiteKeys.website(wsId ?? "none"),
     queryFn: async (): Promise<WebsiteRow | null> => {
-      // websites schema is not in database.types.ts — cast required
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
-        .schema("websites")
+      const { data, error } = await supabase
+        .schema("websites" as any) // eslint-disable-line @typescript-eslint/no-explicit-any -- SAFETY: websites is a valid Postgres schema not in Supabase generated types
         .from("website")
         .select(
           "website_id, name, site_slug, tagline, template_key, template_version, theme, visibility, booking_provider, booking_url, social_links, contact_email, contact_phone, contact_address, created_at, updated_at",

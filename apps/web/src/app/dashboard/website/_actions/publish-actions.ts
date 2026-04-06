@@ -497,20 +497,15 @@ async function buildSnapshot(
       .is("deleted_at", null),
   ]);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const site = websiteResult.data as any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const pages = (pagesResult.data ?? []) as any[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sections = (sectionsResult.data ?? []) as any[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const menus = (menusResult.data ?? []) as any[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const categories = (categoriesResult.data ?? []) as any[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const items = (itemsResult.data ?? []) as any[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const assets = (assetsResult.data ?? []) as any[];
+  // SAFETY: All queries are against the websites schema which returns untyped results.
+  // Shapes are known from the .select() calls above and match the PublishSnapshot types below.
+  const site = websiteResult.data as Record<string, unknown>;
+  const pages = (pagesResult.data ?? []) as Record<string, unknown>[];
+  const sections = (sectionsResult.data ?? []) as Record<string, unknown>[];
+  const menus = (menusResult.data ?? []) as Record<string, unknown>[];
+  const categories = (categoriesResult.data ?? []) as Record<string, unknown>[];
+  const items = (itemsResult.data ?? []) as Record<string, unknown>[];
+  const assets = (assetsResult.data ?? []) as Record<string, unknown>[];
 
   // Group sections by page
   const sectionsByPage = new Map<string, typeof sections>();
@@ -546,7 +541,8 @@ async function buildSnapshot(
   const snapshotPages: Record<string, SnapshotPage> = {};
 
   for (const page of pages) {
-    const pageSections = sectionsByPage.get(page.website_page_id) ?? [];
+    // SAFETY: website_page_id is always a string in practice; page comes from untyped websites schema query
+    const pageSections = sectionsByPage.get(page.website_page_id as string) ?? [];
 
     const mappedSections: SnapshotSection[] = pageSections.map((s: Record<string, unknown>) => ({
       id: s.website_section_id as string,

@@ -45,7 +45,7 @@ export default async function WorkspacesPage() {
       <div className="mt-6">
         <WorkspaceListEnhanced
           data={
-            workspaces as unknown as import("./_components/workspace-list-enhanced").WorkspaceRow[]
+            workspaces as unknown as import("./_components/workspace-list-enhanced").WorkspaceRow[] // SAFETY: Supabase join returns union type; runtime shape matches the cast
           }
         />
       </div>

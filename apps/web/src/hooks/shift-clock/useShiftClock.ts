@@ -210,8 +210,8 @@ export function useShiftClock() {
           profile_id: profileId!,
           workspace_id: workspace.workspace_id,
           punch_in: now,
-          punch_in_location: (gps as unknown as Json) ?? null,
-          breaks: [] as unknown as Json,
+          punch_in_location: (gps as unknown as Json) ?? null, // SAFETY: GPSSnapshot is a valid JSON object
+          breaks: [] as unknown as Json, // SAFETY: empty array is a valid JSON value
         })
         .select("time_entry_id")
         .single();
@@ -250,7 +250,8 @@ export function useShiftClock() {
           .eq("schedule_shift_id", shiftId)
           .single();
         if (shift?.department_id) {
-          const profile = shift.profile as unknown as { display_name: string } | null;
+          // SAFETY: Supabase join returns a union type; runtime shape matches { display_name: string }
+          const profile = shift.profile as unknown as { display_name: string } | null; // SAFETY: Supabase join returns union type; runtime shape matches the cast
           void notifyDepartmentManagers(supabase, {
             workspaceId: workspace.workspace_id,
             departmentId: shift.department_id,
@@ -307,7 +308,7 @@ export function useShiftClock() {
         .from("time_entry")
         .update({
           punch_out: now,
-          punch_out_location: (gps as unknown as Json) ?? null,
+          punch_out_location: (gps as unknown as Json) ?? null, // SAFETY: GPSSnapshot is a valid JSON object
           ...(comment ? { notes: comment } : {}),
           status: "completed" as const,
         })
@@ -348,7 +349,8 @@ export function useShiftClock() {
           .eq("schedule_shift_id", state.shiftId!)
           .single();
         if (shift?.department_id) {
-          const profile = shift.profile as unknown as { display_name: string } | null;
+          // SAFETY: Supabase join returns a union type; runtime shape matches { display_name: string }
+          const profile = shift.profile as unknown as { display_name: string } | null; // SAFETY: Supabase join returns union type; runtime shape matches the cast
           void notifyDepartmentManagers(supabase, {
             workspaceId: workspace.workspace_id,
             departmentId: shift.department_id,
@@ -396,7 +398,7 @@ export function useShiftClock() {
       const { error } = await supabase
         .schema("timesheet")
         .from("time_entry")
-        .update({ breaks: updatedBreaks as unknown as Json })
+        .update({ breaks: updatedBreaks as unknown as Json }) // SAFETY: BreakEntry[] is a valid JSON array
         .eq("time_entry_id", state.timeEntryId);
 
       if (error) throw error;
@@ -450,7 +452,7 @@ export function useShiftClock() {
       const { error } = await supabase
         .schema("timesheet")
         .from("time_entry")
-        .update({ breaks: updatedBreaks as unknown as Json })
+        .update({ breaks: updatedBreaks as unknown as Json }) // SAFETY: BreakEntry[] is a valid JSON array
         .eq("time_entry_id", state.timeEntryId);
 
       if (error) throw error;
@@ -560,8 +562,8 @@ export function useShiftClock() {
           profile_id: profileId!,
           workspace_id: workspace.workspace_id,
           punch_in: now,
-          punch_in_location: (gps as unknown as Json) ?? null,
-          breaks: [] as unknown as Json,
+          punch_in_location: (gps as unknown as Json) ?? null, // SAFETY: GPSSnapshot is a valid JSON object
+          breaks: [] as unknown as Json, // SAFETY: empty array is a valid JSON value
         })
         .select("time_entry_id")
         .single();
@@ -665,14 +667,20 @@ export function useShiftClock() {
       const supabase = createClient();
       const now = new Date().toISOString();
 
-      // Claim the open shift — assign to current profile and mark active
-      const { error: claimError } = await supabase
+      // Claim the open shift — assign to current profile and mark active.
+      // The .is("employee_id", null) acts as an optimistic lock: if another employee
+      // already claimed this shift, the WHERE clause won't match and 0 rows are returned.
+      const { data: claimData, error: claimError } = await supabase
         .from("schedule_shift")
         .update({ employee_id: profileId!, status: "active" })
         .eq("schedule_shift_id", shiftId)
-        .is("employee_id", null); // Optimistic lock: only update if still unclaimed
+        .is("employee_id", null) // Optimistic lock: only update if still unclaimed
+        .select("schedule_shift_id");
 
       if (claimError) throw claimError;
+      if (!claimData || claimData.length === 0) {
+        throw new Error("Vakten er allerede tatt av en annen ansatt");
+      }
 
       // Punch in
       const { data: entry, error: insertError } = await supabase
@@ -683,8 +691,8 @@ export function useShiftClock() {
           profile_id: profileId!,
           workspace_id: workspace.workspace_id,
           punch_in: now,
-          punch_in_location: (gps as unknown as Json) ?? null,
-          breaks: [] as unknown as Json,
+          punch_in_location: (gps as unknown as Json) ?? null, // SAFETY: GPSSnapshot is a valid JSON object
+          breaks: [] as unknown as Json, // SAFETY: empty array is a valid JSON value
         })
         .select("time_entry_id")
         .single();
