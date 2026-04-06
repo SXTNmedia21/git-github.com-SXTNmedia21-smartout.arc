@@ -389,7 +389,6 @@ Deno.serve(async (req: Request) => {
         seeded_from_template_id: templateId,
         seeded_at: templateId ? new Date().toISOString() : null,
       });
-
     }
     // Guest path: no contract/payroll needed, profile already created as active
 
@@ -400,8 +399,8 @@ Deno.serve(async (req: Request) => {
       .eq("invitation_id", invitation.invitation_id);
 
     // ── 7. Emit invitation_accepted telemetry ──
-    // Registry: "invitation accepted" → [posthog, logger, activity_trail, engine_event]
-    // Edge Functions insert directly into DB destinations (activity_trail + engine_event).
+    // activity_trail uses human-readable "invitation accepted" (registry convention).
+    // engine_event uses dot-separated "invitation.accepted" (engine_trigger convention).
     // PostHog and logger are handled client-side by the @smartout/telemetry package.
     const eventData = {
       profile_id: profile.profile_id,
@@ -425,7 +424,7 @@ Deno.serve(async (req: Request) => {
         source: "edge-function",
       }),
       adminClient.from("engine_event").insert({
-        event_type: "invitation accepted",
+        event_type: "invitation.accepted",
         workspace_id: invitation.workspace_id,
         payload: eventData,
       }),
