@@ -31,6 +31,21 @@ type InviteState =
   | { status: "valid"; data: InviteData }
   | { status: "invalid"; message: string };
 
+/** Shape returned by the get_invitation_by_token RPC */
+type InviteRpcResult = {
+  invitation_id?: string;
+  email?: string | null;
+  phone?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  role?: string;
+  status: string;
+  expires_at?: string;
+  workspace_name?: string | null;
+  inviter_name?: string | null;
+  email_account_exists?: boolean;
+};
+
 export default function AcceptInvitePage() {
   const params = useParams();
   const router = useRouter();
@@ -59,40 +74,42 @@ export default function AcceptInvitePage() {
         return;
       }
 
+      const inv = data as unknown as InviteRpcResult;
+
       // Non-pending invitations return only { status }
-      if (data.status !== "pending") {
+      if (inv.status !== "pending") {
         setInviteState({
           status: "invalid",
           message:
-            data.status === "accepted"
+            inv.status === "accepted"
               ? "Denne invitasjonen er allerede brukt"
               : "Denne invitasjonen er ikke lenger gyldig",
         });
         return;
       }
 
-      if (new Date(data.expires_at) < new Date()) {
+      if (new Date(inv.expires_at!) < new Date()) {
         setInviteState({ status: "invalid", message: "Denne invitasjonen har utløpt" });
         return;
       }
 
       // Pre-fill known fields
-      if (data.first_name) setFirstName(data.first_name);
-      if (data.last_name) setLastName(data.last_name);
-      if (data.email) setEmail(data.email);
-      if (data.phone) setPhone(data.phone);
+      if (inv.first_name) setFirstName(inv.first_name);
+      if (inv.last_name) setLastName(inv.last_name);
+      if (inv.email) setEmail(inv.email);
+      if (inv.phone) setPhone(inv.phone);
 
       setInviteState({
         status: "valid",
         data: {
-          email: data.email,
-          phone: data.phone,
-          firstName: data.first_name,
-          lastName: data.last_name,
-          workspaceName: data.workspace_name ?? "en arbeidsplass",
-          role: data.role,
-          inviterName: data.inviter_name ?? null,
-          emailAccountExists: data.email_account_exists ?? false,
+          email: inv.email ?? null,
+          phone: inv.phone ?? null,
+          firstName: inv.first_name ?? null,
+          lastName: inv.last_name ?? null,
+          workspaceName: inv.workspace_name ?? "en arbeidsplass",
+          role: inv.role ?? "employee",
+          inviterName: inv.inviter_name ?? null,
+          emailAccountExists: inv.email_account_exists ?? false,
         },
       });
     }
