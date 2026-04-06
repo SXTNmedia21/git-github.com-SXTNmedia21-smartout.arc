@@ -68,19 +68,7 @@ export function CallSheet({
   const theme = useTheme();
   const sheetRef = useRef<GorhomBottomSheet>(null);
 
-  // Calls require native WebRTC — not supported in the web/PWA beta
-  if (Platform.OS === "web") {
-    return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24 }}>
-        <Text style={{ fontSize: 16, color: "#666", textAlign: "center" }}>
-          Samtaler er ikke tilgjengelig i nettleseren.{"\n"}
-          Bruk Smartout-appen for video og walkie-talkie.
-        </Text>
-      </View>
-    );
-  }
-
-  // Track data comes from the LiveKit room
+  // Track data comes from the LiveKit room — returns empty state when room is null (web)
   const { participants, activeSpeakerIdentity, hasAnyVideo } = useCallTracks(room);
 
   // --- Elapsed call duration (MM:SS) ---
@@ -106,6 +94,19 @@ export function CallSheet({
   const handleClose = useCallback(() => {
     onClose();
   }, [onClose]);
+
+  // Calls require native WebRTC — not supported in the web/PWA beta.
+  // All hooks above have already run unconditionally (Rules of Hooks compliant).
+  if (Platform.OS === "web") {
+    return (
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24 }}>
+        <Text style={{ fontSize: 16, color: "#666", textAlign: "center" }}>
+          Samtaler er ikke tilgjengelig i nettleseren.{"\n"}
+          Bruk Smartout-appen for video og walkie-talkie.
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <BottomSheet ref={sheetRef} index={0} snapPoints={SNAP_POINTS} onClose={handleClose}>

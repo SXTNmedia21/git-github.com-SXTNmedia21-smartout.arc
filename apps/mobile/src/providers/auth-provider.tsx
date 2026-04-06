@@ -114,7 +114,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Signed in but still in auth group — workspace-select handles the routing
       // (auto-redirects to app if 1 profile, pending if 0, shows list if >1)
       const isInPostAuthFlow =
-        segments[1] === "workspace-select" || segments[1] === "pending" || segments[1] === "verify";
+        segments[1] === "workspace-select" ||
+        segments[1] === "pending" ||
+        segments[1] === "verify" ||
+        segments[1] === "invite";
       if (!isInPostAuthFlow) {
         router.replace("/(auth)/workspace-select");
       }

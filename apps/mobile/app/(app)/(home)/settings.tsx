@@ -248,7 +248,7 @@ export default function SettingsScreen() {
             <Text style={s.profileName}>{isLoading ? "..." : displayName || "—"}</Text>
             <Text style={s.profileRole}>{jobTitle}</Text>
             <View style={s.idBadge}>
-              <Text style={s.idText}>ID: SM-88294</Text>
+              <Text style={s.idText}>ID: {profile?.profile_code ?? "—"}</Text>
             </View>
           </View>
         </Animated.View>
@@ -300,7 +300,10 @@ export default function SettingsScreen() {
               </View>
               <View>
                 <Text style={s.rowSub}>Aktiv Workspace</Text>
-                <Text style={s.rowLabelBold}>Studio Nomad</Text>
+                {/* TODO: join workspace table to get workspace.name — profile only has workspace_id */}
+                <Text style={s.rowLabelBold}>
+                  {isLoading ? "..." : (profile?.workspace_id?.slice(0, 8) ?? "—")}
+                </Text>
               </View>
             </View>
             <Pressable style={s.switchBtn} onPress={() => Haptics.selectionAsync()}>
@@ -470,7 +473,10 @@ export default function SettingsScreen() {
           </Text>
         </Pressable>
 
-        <Text style={s.versionText}>SMARTOUT V2.4.12 • STUDIO NOMAD</Text>
+        {/* TODO: replace workspace_id slice with workspace.name once workspace join is added */}
+        <Text style={s.versionText}>
+          SMARTOUT V2.4.12 • {profile?.workspace_id?.slice(0, 8).toUpperCase() ?? "—"}
+        </Text>
       </ScrollView>
     </SafeAreaView>
   );
