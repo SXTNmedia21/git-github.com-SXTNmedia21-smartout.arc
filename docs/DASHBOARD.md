@@ -23,7 +23,7 @@ tags: [dashboard, worktrees, tracking]
 | wt-7  | `feat/dynamic-landing-engine`         | landing        | paused      | just started                      | —        | clean  |
 | wt-8  | —                                     | —              | free        | —                                 | —        | —      |
 | wt-9  | —                                     | —              | free        | —                                 | —        | —      |
-| wt-10 | `feat/deployment-pipeline`            | infra          | in_progress | just started                      | —        | clean  |
+| wt-10 | —                                     | —              | free        | —                                 | —        | —      |
 | wt-11 | —                                     | —              | free        | —                                 | —        | —      |
 
 ## Parked Branches (no worktree)
@@ -45,7 +45,7 @@ tags: [dashboard, worktrees, tracking]
 | wt-7  | no — `feat/dynamic-landing-engine`                                 |
 | wt-8  | yes                                                                |
 | wt-9  | yes                                                                |
-| wt-10 | no — `feat/deployment-pipeline`                                    |
+| wt-10 | yes                                                                |
 | wt-11 | yes                                                                |
 | wt-12 | yes                                                                |
 | wt-13 | yes                                                                |
@@ -63,13 +63,14 @@ tags: [dashboard, worktrees, tracking]
 | wt-2     | mobile-group-call       | `docs/journeys/JOURNEY-mobile-group-call.md`       | missing |
 | wt-8     | council-review-fixes    | `docs/journeys/JOURNEY-council-review-fixes.md`    | done    |
 | wt-9     | tooling-optimization    | `docs/journeys/JOURNEY-tooling-optimization.md`    | done    |
-| wt-10    | deployment-pipeline     | `docs/journeys/JOURNEY-deployment-pipeline.md`     | missing |
+| wt-10    | deployment-pipeline     | `docs/journeys/JOURNEY-deployment-pipeline.md`     | done    |
 | wt-11    | invitation-rls-fix      | `docs/journeys/JOURNEY-invitation-rls-fix.md`      | done    |
 
 ## Recent Closures
 
 | Date       | Feature                      | Branch                                                             | Merged To   |
 | ---------- | ---------------------------- | ------------------------------------------------------------------ | ----------- |
+| 2026-04-06 | deployment-pipeline          | `feat/deployment-pipeline`                                         | development |
 | 2026-04-07 | tooling-optimization         | `feat/tooling-optimization`                                        | development |
 | 2026-04-07 | invitation-rls-fix           | `feat/invitation-rls-fix`                                          | development |
 | 2026-04-06 | council-review-fixes         | `feat/council-review-fixes`                                        | development |
@@ -145,7 +146,7 @@ tags: [dashboard, worktrees, tracking]
 
 ## Session History
 
-| 2026-04-06 | deployment-pipeline | session ended | wt-10, module: infra. 8/11 tasks done. PR #128 merged (dev→main). 3 tasks remaining. |
+| 2026-04-06 | deployment-pipeline | closed | 11/11 tasks done. PR #128 merged (dev->main). preview branch created. ADR-0071. wt-10 freed. |
 | 2026-04-06 | tooling-optimization | started | wt-9, module: developer-experience. Skills/MCP/plugin optimization. |
 | 2026-03-31 | development | session ended | session ended |
 | 2026-03-30 | protocol-verification-engine | session ended | session ended |
