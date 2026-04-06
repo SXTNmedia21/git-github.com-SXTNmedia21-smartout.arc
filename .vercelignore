@@ -2,8 +2,8 @@
 # Without /, gitignore syntax matches at ANY depth (e.g., docs/ would
 # also remove apps/landing/src/app/docs/ — breaking the build).
 
-# Mobile app — built via EAS, not Vercel (116MB saved)
-/apps/mobile/
+# Mobile app — NOT ignored: PWA project uses root directory = apps/mobile
+# /apps/mobile/
 
 # E2E tests — not part of Vercel build
 /apps/e2e/
