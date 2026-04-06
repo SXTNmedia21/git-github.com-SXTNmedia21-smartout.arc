@@ -3,8 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "op run --env-file=.env.template -- turbo run build",
-    "build:ci": "turbo run build",
+    "build": "command -v op >/dev/null 2>&1 && op run --env-file=.env.template -- turbo run build || turbo run build",
     "dev": "op run --env-file=.env.template -- turbo run dev",
     "dev:local": "turbo run dev",
     "lint": "turbo run lint",
