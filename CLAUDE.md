@@ -62,91 +62,21 @@ smartout_v3/
 
 ---
 
-## Database — Architecture Rules
+## Database
 
-### Schema separation (mandatory brainstorm topic)
-
-Every new feature that touches the database MUST include a schema placement decision during brainstorming/design. Questions to resolve:
-
-1. **Which PostgreSQL schema?** — Does this belong in `public` (default), or a dedicated schema (`payroll`, `websites`, `timesheet`, or a new one)?
-2. **Schema boundary criteria:** A dedicated schema is warranted when the domain has 5+ tables, distinct RLS patterns, or clear ownership boundary. Document the decision in the spec.
-3. **Existing schemas:** `public` (169 tables — core + HMS + cascade), `payroll` (23), `websites` (13), `timesheet` (1). New domains with clear boundaries should get their own schema.
-
-Never skip this discussion. Undecided schema placement leads to 169-table `public` schemas.
-
-### Supabase environments
-
-- **Development:** Always Supabase Local (`npx supabase start`). All migrations run against local DB via `docker exec`.
-- **Production:** Supabase Cloud. Migrations applied via Supabase CLI or dashboard.
-- Never develop against production. Never skip local testing before pushing migrations.
-
----
-
-## Database — Critical Traps
-
-- Table is `user_identity`, NOT `user`. No `public.user` table exists.
-- Subscription data on `company` table. No `stripe_subscription` table.
-- `contract_status` enum already taken by `employment_contract`. Don't reuse.
-- 72 enums — check `database.types.ts` before creating new ones.
-- `database.types.ts` is auto-generated. Never edit manually.
-- After migration: `npx supabase gen types typescript --local > packages/supabase/src/database.types.ts`
-- RLS on EVERY workspace-scoped table. Platform-admin tables use service role only.
-- `handle_new_user()` trigger creates `user_identity` on auth.users INSERT.
-- `is_godmode` on `user_identity` gates all platform-admin access. (Renamed from `is_super_admin`)
-- API key tables: `platform_api_key` (SHA-256 hashes), `platform_api_key_usage` (hourly buckets), `platform_external_secret` (Vault metadata). See ADR-0028.
-- Enums: `api_key_version_status` (current/previous/revoked), `api_key_type` (workspace/service).
-- Vault wrappers: `get_secret()`, `upsert_secret()`, `delete_vault_secret()` — SECURITY DEFINER, service_role only.
-- Schedule table: `schedule_shift` (not `shift`). Enums: `shift_status`, `day_category`. See ADR-0036.
-- Season planning tables: `season_budget` (1:1 with season), `day_factor` (weekday weights), `hour_factor` (hour weights). Enum: `budget_status` (draft/active/locked). DIFFERENT from `workspace_budget` (operational per-date targets).
-- Workspace semantic table: `workspace_doc_chunk` (workspace-scoped pgvector). RPC `match_workspace_docs()` must always run with workspace context.
-- `profile` has `display_name` only — NOT `first_name`/`last_name`. Identity data (first_name, last_name, email) lives on `user_identity`. Use `display_name` or join: `profile!inner(user_identity(first_name, last_name))`.
-- `engine_memory` — Persistent agent memories with pgvector embeddings. RLS: workspace isolation.
-- `engine_authority_config` — Per-workspace, per-capability authority levels. UNIQUE(workspace_id, capability).
-- Authority defaults should remain aligned across agent routers. Current fallback baseline is `read_only` for both Stage Engine and walkAi mission runner.
-- `engine_sessions.mode` — 'mission' (structured stages) or 'agent' (free-form conversation). Agent sessions have NULL mission_id.
-- Completion tracking: `knowledge_test_attempt`, `confirmation_signature`, `procedure_step_completion` — all FK to `protocol_assignment_id` + `profile_id`.
-- Session infrastructure: `session_hook` (hook_type enum), `session_task` (task_status enum), `session_note` (note_type enum). All FK to `department_session`.
-- `engine_state_step` — per-step tracking on engine_state instances. RLS cascades via subquery on engine_state.
-- Season table has `status` enum (draft/active/archived) — NOT `is_active` boolean.
-- Timestamp triggers should use `set_updated_at()` (not `moddatetime`) for migration compatibility.
-- Triple operating hours: `company_opening_hours` (wizard intake, keep), `operating_hours` (legacy — MUST migrate away), `department_operating_hours` (cascade runtime truth). Never read/write `operating_hours` in new code.
-- `packages/ai/src/industry/packages/hospitality.ts` contains corrected fallback tariff values (kveldstillegg 15.65, helgetillegg 29.74, helligdagstillegg 100%). Runtime truth remains `tariff_rate_table` (+ framework tables) via DB-first loading.
-- Cascade framework tables: `regulatory_framework`, `framework_rule`, `framework_trigger`, `tariff_rate_table`, `public_holiday`. Check seed status before assuming data exists.
-- `change_proposal_status` enum — do NOT confuse with `contract_status`.
-- Cascade tables use `btree_gist` extension for exclusion constraints.
-- `tariff_rate_table.workspace_id` is nullable — platform-level rates have NULL workspace_id.
-- Cascade provenance: every cascade record carries `source_type` + `source_id`.
-
-> Full schema, tables, enums, RLS patterns: `docs/reference/DATABASE.md`
-
-## Database Migrations
-
-ALDRI kjør ALTER TABLE direkte. ALLTID lag migrasjonsfil i `supabase/migrations/` først.
-
-Workflow:
-
-1. Lag SQL-fil: `supabase/migrations/YYYYMMDDHHMMSS_beskrivelse.sql`
-2. Kjør via docker exec: `docker exec -i $(docker ps -q -f name=supabase_db) psql -U postgres < supabase/migrations/<fil>.sql`
-
-Ingen unntak.
+**Database rules:** See `smartout-database-guide` skill (auto-triggered on any DB work). Reference: `docs/reference/DATABASE.md`.
+**Supabase environments:** Development = Supabase Local (`npx supabase start`). Production = Supabase Cloud. Never develop against production.
 
 ---
 
 ## UI & Styling
 
-- **Design System: "Nordic Split"** — `docs/design/ren-og-varm-styleguide.html` is the canonical visual reference. BEFORE building any UI component, read this file for colors, typography, animations, and patterns. Live at `design.smartout.ai`. Orb generator: `docs/design/orb-generator.html`.
+- **Design System: "Nordic Split"** — See `smartout-nordic-split` skill for all design rules.
 - **Tailwind v4** — CSS-based config in `globals.css`. NO `tailwind.config.ts`.
 - Root `package.json` has Tailwind v3 — that's for Remotion only.
-- Use CSS variable classes: `bg-background`, `text-foreground`, `border-border`
-- NEVER hardcoded values: `bg-zinc-950`, `text-zinc-100`
-- **shadcn/ui** — new-york style, lucide icons, `apps/web/components.json`
-- Add components: `cd apps/web && npx shadcn@latest add <component>`
-- Dashboard: Server layout + Client DashboardShell (ADR-0021)
-- Subdomain routing: `{slug}.smartout.ai` → middleware sets `x-workspace-slug`
-- **Design tokens:** `packages/design-tokens/src/tokens.ts` (source of truth) → `tokens.css` (web) → `native.ts` (mobile)
+- **shadcn/ui** — new-york style, `apps/web/components.json`
 - **Fonts:** Instrument Serif (headings, `font-heading`), Geist Sans (body), Geist Mono (data)
-- **Motion:** Spring physics (stiffness 30-45, damping 20-24, mass 2-2.5). Never abrupt. Min 250ms exit, 500ms entrance.
-- **Icons:** Lucide React only. No emojis in UI. No other icon libraries.
+- **Icons:** Lucide React only. No emojis in UI.
 
 > All routes: `docs/reference/ROUTES.md`
 
@@ -215,7 +145,6 @@ Goal: a non-developer should be able to read the codebase and follow the logic.
 **Identity (pre-workspace):** user_identity → company → company_member → workspace → profile
 
 **Cascade Dimensions (workspace-scoped):**
-
 - **D1 Envelope:** department (permanent), location, department_operating_hours, department_hours_override, planning_cycle
 - **D2 Resource:** profile, employment_contract, employee_payroll_profile, schedule_absence, team (can be seasonal)
 - **D3 Rules:** regulatory_framework, framework_rule, framework_trigger, tariff_rate_table, public_holiday
@@ -227,79 +156,16 @@ Goal: a non-developer should be able to read the codebase and follow the logic.
 - **C4 Governance:** engine_authority_config, change_proposal
 - **K1a Industry:** regulatory_framework (platform-level), tariff_rate_table (NULL workspace_id), public_holiday
 - **K1b Workspace:** workspace_doc_chunk, engine_memory
-
 **Governance (content layer):** policy → protocol → {procedure, routine, runbook, control_list, knowledge_test, confirmation}
 
 **Key rules:** All tables have `workspace_id` (except identity layer + platform-admin + K1a platform-level). Profile has no season connection. Position is per-shift, not per-person.
-
-**Roles:** employee → manager → admin → owner
-**Statuses:** trainee → active → inactive → offboarding
-**Leader:** Team attribute (`team.leader_profile_id`), NOT a role.
+**Roles:** employee → manager → admin → owner | **Statuses:** trainee → active → inactive → offboarding | **Leader:** Team attribute (`team.leader_profile_id`), NOT a role.
 
 ---
 
 ## Cascade Core Model
 
-> Canonical model: **I1 + 6D + 4C + K1a/K1b**. Full spec: `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`
-
-**Implementation status:**
-
-- Phase A (schema): done — 7 migrations, 17 tables, 16 enums
-- Phase B (pure functions): partial — 4/6 done in `apps/web/src/lib/cascade/`
-- Phase C (bootstrap): in progress — framework seed + bootstrap service
-- Phase D (adapters): not started — Tripletex, external integrations
-
-### Execution Dimensions
-
-| #   | Name                  | Core Question                                     | Type                                |
-| --- | --------------------- | ------------------------------------------------- | ----------------------------------- |
-| D1  | Operational Envelope  | When/where/with what capacity?                    | Structural                          |
-| D2  | Resource Availability | Who is available now and within planning horizon? | Volatile                            |
-| D3  | Rules & Constraints   | What is allowed/required/forbidden?               | Stable                              |
-| D4  | Demand Signal         | How much activity to prepare for?                 | Predictive                          |
-| D5  | Service Concept       | What kind of operation are we?                    | Strategic (parameterizes D1-D4, D6) |
-| D6  | Production & Product  | What to produce, what is the state?               | Live (temporal debt)                |
-
-### Control Planes
-
-| #   | Name                        | Core Question                    | Loop                            |
-| --- | --------------------------- | -------------------------------- | ------------------------------- |
-| C1  | Observability & Calibration | What happened vs plan?           | Plan → actual → correction      |
-| C2  | Context & Interaction       | What's relevant, how to explain? | State → inference → response    |
-| C3  | Commercial & Outcome        | What value, what cost?           | Value → attribution → pricing   |
-| C4  | Policy & Governance         | What is system ALLOWED to do?    | Capability → permission → audit |
-
-**"Confident != Authorized"** — C1 determines belief, C4 determines permission. Always separate.
-
-### Knowledge Substrate
-
-| Tier          | Owner                       | Contents                                                                      |
-| ------------- | --------------------------- | ----------------------------------------------------------------------------- |
-| K1a Industry  | Platform (per vertical)     | Tariff baselines, policy templates, role capabilities, hospitality primitives |
-| K1b Workspace | Workspace (tenant-isolated) | Semantic memory (pgvector), learned factors, local overrides                  |
-
-### I1 Industry Intelligence Bootstrap
-
-Pre-runtime layer. Loads vertical defaults, applies SQL templates, seeds all dimensions.
-
-- Canonical path: `docs/engines/industri-inteligence/hospitalety/`
-- Central documentation for: event-layer specialization, AI council and personas, default policy baselines, template families (structure/pipeline/journey), testing profiles, relevance mapping, company handbook template, role capability profiles, environment baseline, niche specialization
-- Code (canonical): `packages/ai/src/industry/` (packages/hospitality.ts, loader.ts, index.ts). `apps/web/src/lib/industry/` is web-side adapter/hook surface.
-- Templates: `supabase/templates/restaurant/` (13 SQL + \_apply.sql)
-- Admin portal NEVER creates empty workspaces — always from I1 bootstrap.
-- When implementing or modifying event-layer, onboarding, readiness, or journey/testing behavior, consult this engine package before making changes.
-
-### Domain Concepts (mapped to dimensions)
-
-- **Department Session** (D6) — Daily container per dept. Lifecycle: upcoming → active → pending_signoff → closed | missed
-- **Session Hooks** (D6) — Time triggers firing procedures/routines at pre_open, open, scheduled, pre_close, close
-- **Readiness** (D2/D6) — Employee "ready" when all assigned Protocols completed. Score = % completed.
-- **Trainee Mode** (D2) — Status flag on profile (`profile_status = 'trainee'`). Timestamps: `trainee_started`, `trainee_completed`. Sandbox write restrictions and 48h escalation are planned but NOT yet implemented.
-- **Season** (D4/D5) — Time period wrapping operations, gamification, and revenue planning. Own leaderboard and point rules.
-- **Season Budget** (D4) — Strategic revenue target per season. 1:1 with season. Contains total target, labor %, avg hourly wage, base price per guest. Day/hour factors distribute targets across weekdays and hours. Calculation engine: `apps/web/src/lib/season-calculations.ts` (pure functions, no DB deps). UI: `/dashboard/season` with 4 tabs (overview, budget, day-factors, hour-factors).
-- **Event Engine** — Universal workflow runtime. `engine_process` (blueprint) → `engine_state` (live instance) → `engine_state_step` (per-step tracking). Cascade pipeline is a PRODUCER of events; Event Engine is the CONSUMER. New workflow = new engine_process + action_type handlers. Never create separate workflow state tables. Note: `journey` / `journey_step` / `journey_event` tables are a **metadata registry** (ADR-0031, 68 journey definitions from Bubble migration) — not workflow state tracking. Action type handlers: `wait_for_event`, `assign_task`, `send_notification` (writes to `notification_outbox`), `update_entity`, `create_deviation`, `validate_settlement`, `lock_checkout`, `schedule_control` (reserved), `start_process`, `upsert_session`. Dispatch: `supabase/functions/engine-dispatch/index.ts`.
-- **Veikart → Reise → Protokoll** — Conceptual mapping (not yet implemented as routes/views). Veikart = engine_process (blueprint). Reise = engine_state (employee experience). Protokoll = engine_state (leader oversight). Norwegian terms are design vocabulary, not code constructs.
-- **Telemetry Registry** — Orthogonal to cascade. All valid events and their routing destinations defined in `packages/telemetry/src/registry.ts`. This is the single source of truth for what can be emitted and where it goes.
+**Cascade model:** See `smartout-cascade-developer` skill (auto-triggered on cascade/scheduling work). Spec: `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`. Canonical model: **I1 + 6D + 4C + K1a/K1b**. "Confident != Authorized" — C1 determines belief, C4 determines permission.
 
 ---
 
@@ -313,111 +179,25 @@ Full lists: `docs/INDEX.md`
 
 ---
 
-## Security — Always Enforced
+## Security
 
-Three laws. No exceptions.
+**Security rules:** See `secrets-protocol` skill (auto-triggered on secrets/auth work).
 
-1. **Never plaintext secrets** in code, config, logs, or DB columns. Vault for external secrets, SHA-256 hash for issued keys.
-2. **Never bypass RLS** for convenience. API key auth uses `set_config` + `SET LOCAL ROLE authenticated`. Service role is for Vault access and platform-admin only.
-3. **Never commit secrets** to Git. Not in code, comments, migrations, or seed files.
+Three laws — no exceptions:
+1. **Never plaintext secrets** in code, config, logs, or DB columns.
+2. **Never bypass RLS** for convenience.
+3. **Never commit secrets** to Git.
 
-### API Key System
+**Environment Variables:** Validated with `@t3-oss/env-nextjs` + Zod in `apps/web/src/env.ts`. All secrets via 1Password CLI. Run with: `op run --env-file=.env.template -- pnpm run dev`.
 
-| Tier   | What                                    | Storage                            | Key prefix                      |
-| ------ | --------------------------------------- | ---------------------------------- | ------------------------------- |
-| Tier 1 | Workspace API keys                      | SHA-256 hash in `platform_api_key` | `smo_sk_live_` / `smo_sk_test_` |
-| Tier 2 | External secrets (Stripe, Twilio, etc.) | Supabase Vault (pgsodium)          | Provider-specific               |
-| Tier 3 | Service-to-service keys                 | SHA-256 hash in `platform_api_key` | `smo_svc_live_`                 |
+> Full details: `docs/protocols/SECURITY.md` | `docs/protocols/ENV_PROTOCOL.md` | `docs/reference/ENV_VARS.md`
 
-- Raw key shown **once** at creation. Only hash stored. Never invent new prefixes.
-- Dual-auth Edge Functions: use `_shared/auth-middleware.ts` — never roll your own.
-- Edge Functions with API keys need `verify_jwt = false` in `config.toml`.
-- Vault access: `get_secret()`, `upsert_secret()`, `delete_secret()` — all `SECURITY DEFINER`, `service_role` only.
-- Workspace isolation via `current_setting('app.workspace_id', true)::uuid` in RLS. Always transaction-local (`set_config(..., true)` + `BEGIN`/`COMMIT`).
+## API Gateway & Edge Functions
 
-### Environment Variables
-
-- Validated with `@t3-oss/env-nextjs` + Zod in `apps/web/src/env.ts`
-- All secrets managed via 1Password CLI. Never `.env.local`, never hardcoded.
-- Run with: `op run --env-file=.env.template -- pnpm run dev`
-- `.env.template` is the single source of truth for all variables.
-- Use `op://` references for secrets, plain values for non-secrets.
-- Service role key: server-side and Edge Functions only, never in client code.
-
-> Env lifecycle protocol: `docs/protocols/ENV_PROTOCOL.md`
-> Full variable list: `docs/reference/ENV_VARS.md`
-> Full security protocol: `docs/protocols/SECURITY.md`
-
-### API Gateway — Mandatory Checklists
-
-These are not guidelines. They are rules. Violations break the API contract.
-
-**The gateway pattern:** External consumers get one API key. That key is validated by Supabase Edge Functions. Services sit behind the gate — they don't hold or validate consumer keys. Supabase is the gate.
-
-#### When creating a NEW workspace-scoped table
-
-Every workspace-scoped table needs BOTH auth paths. No exceptions.
-
-1. `ALTER TABLE ... ENABLE ROW LEVEL SECURITY;`
-2. JWT policy: `USING (workspace_id IN (SELECT get_workspace_ids_for_user(auth.uid())))`
-3. API key policy: `CREATE POLICY "api_key_read_{table}" ... USING (workspace_id = get_api_workspace_id())`
-4. If write access needed via API: add `api_key_write_{table}` policy too
-5. If publicly exposed: add handler in `workspace-api/handlers/`, register route, add to API registry
-
-Skip steps 3-5 only if the table is internal-only (platform-admin, audit logs).
-
-#### When creating a NEW Edge Function
-
-| Pattern   | When                                    | `verify_jwt`     | Auth                                                 |
-| --------- | --------------------------------------- | ---------------- | ---------------------------------------------------- |
-| JWT-only  | User-facing (onboarding, workspace ops) | `true` (default) | `supabase.auth.getUser()`                            |
-| Dual-auth | Public API, data endpoints              | `false`          | `resolveAuth(req)` from `_shared/auth-middleware.ts` |
-| Cron-only | Scheduled tasks (cleanup, watchdog)     | `false`          | `WATCHDOG_CRON_SECRET` bearer token                  |
-
-- NEVER roll your own auth. Use `_shared/auth-middleware.ts` for dual-auth.
-- Every `verify_jwt = false` function MUST be in `supabase/functions/config.toml`.
-- Every data endpoint MUST call `requireScope()` before querying.
-
-#### Canonical Scope List (source of truth)
-
-| Scope               | Tables                                                                       | Status  |
-| ------------------- | ---------------------------------------------------------------------------- | ------- |
-| `profiles:read`     | profile, department, location, team, position                                | Active  |
-| `organization:read` | workspace, department, location, team                                        | Active  |
-| `schedules:read`    | schedule_shift, schedule_absence                                             | Active  |
-| `schedules:write`   | schedule_shift                                                               | Active  |
-| `operations:read`   | department_session, deviation                                                | Active  |
-| `operations:write`  | department_session (future)                                                  | Planned |
-| `reports:read`      | daily_reconciliation, shift_approval, workspace_kpi_target, workspace_budget | Active  |
-| `guardian:read`     | guardian_signal, guardian_log                                                | Active  |
-| `events:read`       | engine_event                                                                 | Active  |
-| `suppliers:read`    | supplier, supplier_order                                                     | Active  |
-| `waste:read`        | waste_log                                                                    | Active  |
-| `equipment:read`    | asset, asset_maintenance, asset_downtime                                     | Active  |
-| `training:read`     | protocol, protocol_assignment                                                | Active  |
-| `contracts:read`    | employment_contract                                                          | Active  |
-| `haccp:read`        | haccp_log (future)                                                           | Planned |
-| `haccp:write`       | haccp_log (future)                                                           | Planned |
-
-To add a new scope: (1) add to this table, (2) add handler in `workspace-api/handlers/`, (3) register route in `workspace-api/index.ts`, (4) add to API registry, (5) update preset bundles in `SMARTOUT_SECRET_API_INFRASTRUCTURE.md` §2.4.
-
-#### Service Authentication
-
-ALL microservices (contract-service, scrapling, future services):
-
-- MUST use managed service keys (`smo_svc_live_*`) in `platform_api_key`
-- MUST validate via `validate-api-key` Edge Function or direct DB lookup
-- MUST NOT use hardcoded env var keys (legacy pattern, being migrated)
-- Internal services don't hold consumer keys — the web app/Edge Function is the gateway
-
-#### Environment Enforcement
-
-- `smo_sk_test_*` → blocked in production, allowed in local/staging
-- `smo_sk_live_*` → works in all environments
-- Environment is key metadata, enforced at the gateway
-- No separate databases per environment (single Supabase project per env)
+**Edge Function rules:** See `smartout-edge-function-guide` skill (auto-triggered on Edge Function work).
 
 ---
+
 
 ## Protocols
 
@@ -540,6 +320,7 @@ When spawning a worker, always include in the task description:
 
 | Date       | Version | Change                                                                                                                                                                                                                                                                 | Author |
 | ---------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| 2026-04-06 | 11.0.0  | Skills authority model: moved DB, Cascade, API Gateway, Security, UI content to authoritative skills. CLAUDE.md slimmed from 566 to ~300 lines. | Claude |
 | 2026-03-21 | 10.0.0  | Cascade Core Foundation: I1+6D+4C+K1a/K1b as organizing principle. Source of Truth updated, 7 cascade DB traps, Data Model reorganized by dimension, Domain Concepts + Industry Engine Layer merged into Cascade Core Model section, 7 cascade rules in What NOT To Do | Claude |
 | 2026-03-17 | 9.5.0   | Domain audit: Trainee Mode status-only clarification, Veikart/Reise/Protokoll conceptual-only, Event Engine journey registry clarification, action_type handlers documented, telemetry registry reference added, emit() coverage fix (33 mutations)                    | Claude |
 | 2026-03-17 | 9.4.0   | Audit fix: ports (3060, 5010-5012, 8000), counts (72 enums, 31 EFs, 54 ADRs, 23 modules), onboarding rewrite, added packages (agent-sdk, walkAi, walkieTalkie), organization scope, packages/ai subdirs, integration clarifications                                    | Pontus |
