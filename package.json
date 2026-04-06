@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "build": "op run --env-file=.env.template -- turbo run build",
+    "build:ci": "turbo run build",
     "dev": "op run --env-file=.env.template -- turbo run dev",
     "dev:local": "turbo run dev",
     "lint": "turbo run lint",
