@@ -28,13 +28,26 @@ export default function ResetPasswordPage() {
   const [mode, setMode] = useState<Mode>("request");
   const router = useRouter();
 
-  // Detect if we arrived via a reset link (hash contains access_token)
+  // Detect recovery via both hash AND Supabase auth state change.
+  // The hash check handles immediate loads; onAuthStateChange catches
+  // cases where Supabase SDK consumes the hash before our effect runs.
   useEffect(() => {
     if (typeof window === "undefined") return;
     const hash = window.location.hash;
     if (hash.includes("access_token") || hash.includes("type=recovery")) {
       setMode("update");
     }
+
+    const supabase = createClient();
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        setMode("update");
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const handleRequestReset = async (e: React.FormEvent) => {

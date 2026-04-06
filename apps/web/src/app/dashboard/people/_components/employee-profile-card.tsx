@@ -198,7 +198,7 @@ export function EmployeeProfileCard({
     setSaving(true);
     const supabase = createClient();
     const { error } = await supabase.auth.resetPasswordForEmail(employee.email, {
-      redirectTo: `${window.location.origin}/dashboard`,
+      redirectTo: `${window.location.origin}/reset-password`,
     });
 
     if (error) {
