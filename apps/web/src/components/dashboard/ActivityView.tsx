@@ -14,7 +14,7 @@ export function ActivityView() {
       <div className="flex flex-shrink-0 flex-col justify-between gap-4 pt-2 md:flex-row md:items-center">
         <div>
           <h1 className="text-foreground flex items-center gap-3 text-2xl font-black tracking-tight">
-            <div className="rounded-xl bg-primary/10 text-primary p-2">
+            <div className="bg-primary/10 text-primary rounded-xl p-2">
               <Activity className="h-5 w-5" />
             </div>
             {t("activity.title")}
@@ -61,11 +61,7 @@ function ActivityDetailPanel() {
   }
 
   if (!feed?.length) {
-    return (
-      <p className="text-muted-foreground py-4 text-center text-sm">
-        {t("activity.empty")}
-      </p>
-    );
+    return <p className="text-muted-foreground py-4 text-center text-sm">{t("activity.empty")}</p>;
   }
 
   return (
@@ -86,7 +82,7 @@ function ActivityDetailPanel() {
             className="border-border flex items-center gap-3 rounded-lg border p-2"
           >
             <span className="text-muted-foreground w-12 font-mono text-xs">{time}</span>
-            {isWarning && <div className="h-2 w-2 shrink-0 rounded-full bg-destructive" />}
+            {isWarning && <div className="bg-destructive h-2 w-2 shrink-0 rounded-full" />}
             <span className="text-foreground flex-1 truncate text-sm">
               <span className="font-semibold">{entry.actorName}</span>
               <span className="text-muted-foreground"> — {entry.description}</span>

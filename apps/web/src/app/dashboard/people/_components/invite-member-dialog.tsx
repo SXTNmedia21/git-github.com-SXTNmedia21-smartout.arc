@@ -406,7 +406,11 @@ export function InviteMemberDialog({
       if (mode === "csv") {
         toast.success(`${rows.length} invitasjoner importert`);
       } else {
-        const data = response.data as { dispatched?: number; failed?: number; count?: number } | null;
+        const data = response.data as {
+          dispatched?: number;
+          failed?: number;
+          count?: number;
+        } | null;
         const dispatched = data?.dispatched ?? 0;
         const failed = data?.failed ?? 0;
         if (failed > 0) {
