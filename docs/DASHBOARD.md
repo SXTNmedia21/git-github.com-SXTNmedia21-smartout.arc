@@ -1,7 +1,7 @@
 ---
 title: Development Dashboard
 status: in_progress
-updated: 2026-04-06
+updated: 2026-04-07
 created: 2026-03-02
 module: meta
 tags: [dashboard, worktrees, tracking]
@@ -24,6 +24,7 @@ tags: [dashboard, worktrees, tracking]
 | wt-8  | —                                     | —                    | free        | —                                 | —        | —      |
 | wt-9  | `feat/tooling-optimization`           | developer-experience | in_progress | just started                      | —        | clean  |
 | wt-10 | `feat/deployment-pipeline`            | infra                | in_progress | just started                      | —        | clean  |
+| wt-11 | `feat/invitation-rls-fix`             | onboarding           | in_progress | just started                      | —        | clean  |
 
 ## Parked Branches (no worktree)
 
@@ -45,7 +46,7 @@ tags: [dashboard, worktrees, tracking]
 | wt-8  | yes                                                                |
 | wt-9  | no — `feat/tooling-optimization`                                   |
 | wt-10 | no — `feat/deployment-pipeline`                                    |
-| wt-11 | yes                                                                |
+| wt-11 | no — `feat/invitation-rls-fix`                                     |
 | wt-12 | yes                                                                |
 | wt-13 | yes                                                                |
 | wt-15 | yes                                                                |
@@ -63,6 +64,7 @@ tags: [dashboard, worktrees, tracking]
 | wt-8     | council-review-fixes    | `docs/journeys/JOURNEY-council-review-fixes.md`    | done    |
 | wt-9     | tooling-optimization    | `docs/journeys/JOURNEY-tooling-optimization.md`    | missing |
 | wt-10    | deployment-pipeline     | `docs/journeys/JOURNEY-deployment-pipeline.md`     | missing |
+| wt-11    | invitation-rls-fix      | `docs/journeys/JOURNEY-invitation-rls-fix.md`      | missing |
 
 ## Recent Closures
 
