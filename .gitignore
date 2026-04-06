@@ -67,8 +67,6 @@ apps/landing/.next-e2e-landing/
 apps/web/.next-e2e-web/
 supabase/.env.local
 
-# Generated files (regenerate with: npx supabase gen types typescript)
-packages/supabase/src/database.types.ts
 
 # Archived/showcase assets (moved out of git)
 docs/archive/
