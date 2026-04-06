@@ -112,20 +112,8 @@ add_env_var() {
   local type_val="encrypted"
   [[ "$is_sensitive" == "false" ]] && type_val="plain"
 
-  # Use python to safely JSON-encode the value (handles special chars)
+  # Build JSON payload safely by piping value via stdin (avoids shell injection)
   local payload
-  payload=$(python3 -c "
-import json
-print(json.dumps({
-    'key': '$key_name',
-    'value': '''$value''',
-    'target': $target_json,
-    'type': '$type_val',
-    'gitBranch': 'preview' if '$env_target' == 'preview' else None
-}))
-" 2>/dev/null)
-
-  # Fallback: use python to build payload safely with actual value piped in
   payload=$(python3 -c "
 import json, sys
 value = sys.stdin.read().strip()
@@ -192,6 +180,11 @@ smartout-web|preview|SERPER_API_KEY|op://smartout_ai/Serper/api_key|true
 smartout-web|preview|STAGE_ENGINE_URL|op://smartout_ai/Stage-Engine/url|true
 smartout-web|preview|STAGE_ENGINE_API_KEY|op://smartout_ai/Stage-Engine/api_key|true
 smartout-web|preview|SHIFT_MCP_URL|op://smartout_ai/Shift-MCP/url|true
+smartout-web|preview|LIVEKIT_API_KEY|op://smartout_ai/livekit/api-key|true
+smartout-web|preview|LIVEKIT_API_SECRET|op://smartout_ai/livekit/api-secret|true
+smartout-web|preview|LIVEKIT_WEBHOOK_SECRET|op://smartout_ai/livekit/webhook-secret|true
+smartout-web|preview|GITHUB_ERROR_TOKEN|op://smartout_ai/GitHub/error_reporter_token|true
+# GITHUB_ERROR_REPO is a static value, not a secret — set directly in Vercel dashboard
 # ── smartout-web — Production ────────────────────────────────
 smartout-web|production|NEXT_PUBLIC_SUPABASE_URL|op://smartout_ai_prod/Supabase/url|false
 smartout-web|production|NEXT_PUBLIC_SUPABASE_ANON_KEY|op://smartout_ai_prod/Supabase/anon_key|false
@@ -226,6 +219,11 @@ smartout-web|production|SERPER_API_KEY|op://smartout_ai_prod/Serper/api_key|true
 smartout-web|production|STAGE_ENGINE_URL|op://smartout_ai_prod/Stage-Engine/url|true
 smartout-web|production|STAGE_ENGINE_API_KEY|op://smartout_ai_prod/Stage-Engine/api_key|true
 smartout-web|production|SHIFT_MCP_URL|op://smartout_ai_prod/Shift-MCP/url|true
+smartout-web|production|LIVEKIT_API_KEY|op://smartout_ai_prod/livekit/api-key|true
+smartout-web|production|LIVEKIT_API_SECRET|op://smartout_ai_prod/livekit/api-secret|true
+smartout-web|production|LIVEKIT_WEBHOOK_SECRET|op://smartout_ai_prod/livekit/webhook-secret|true
+smartout-web|production|GITHUB_ERROR_TOKEN|op://smartout_ai_prod/GitHub/error_reporter_token|true
+# GITHUB_ERROR_REPO is a static value, not a secret — set directly in Vercel dashboard
 # ── smartout-landing — Preview ───────────────────────────────
 smartout-landing|preview|NEXT_PUBLIC_SUPABASE_URL|op://smartout_ai/Supabase/url|false
 smartout-landing|preview|NEXT_PUBLIC_SUPABASE_ANON_KEY|op://smartout_ai/Supabase/anon_key|false
