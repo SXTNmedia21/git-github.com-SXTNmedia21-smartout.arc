@@ -8,6 +8,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { useWorkspaceStore } from "@/hooks/stores/use-workspace-store";
 import type { Database } from "@smartout/supabase/database.types";
 
 type Profile = Database["public"]["Tables"]["profile"]["Row"];
@@ -36,7 +37,21 @@ function persistToCache(data: Profile): void {
   }
 }
 
-async function fetchMyProfile(): Promise<Profile> {
+async function fetchMyProfile(selectedProfileId: string | null): Promise<Profile> {
+  // If we have a selected profile (from workspace-select), fetch that specific one
+  if (selectedProfileId) {
+    const { data, error } = await supabase
+      .from("profile")
+      .select("*")
+      .eq("profile_id", selectedProfileId)
+      .single();
+
+    if (error) throw error;
+    persistToCache(data);
+    return data;
+  }
+
+  // Fallback: fetch first active profile for the user
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -46,10 +61,12 @@ async function fetchMyProfile(): Promise<Profile> {
     .from("profile")
     .select("*")
     .eq("user_id", user.id)
+    .eq("is_active", true)
     .limit(1)
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
+  if (!data) throw new Error("No active profile found. Your account may have been deactivated.");
 
   persistToCache(data);
   return data;
@@ -57,12 +74,15 @@ async function fetchMyProfile(): Promise<Profile> {
 
 /**
  * Hook: returns the current user's profile.
- * Used for greeting, profile_id resolution, and avatar display.
+ * Uses the selected profile from workspace-select (persisted in MMKV).
+ * Falls back to first active profile if no selection stored.
  */
 export function useMyProfile() {
+  const selectedProfileId = useWorkspaceStore((s) => s.selectedProfileId);
+
   return useQuery<Profile>({
-    queryKey: ["my-profile"],
-    queryFn: fetchMyProfile,
+    queryKey: ["my-profile", selectedProfileId],
+    queryFn: () => fetchMyProfile(selectedProfileId),
     staleTime: STALE_TIME_MS,
     placeholderData: getPlaceholderData,
   });

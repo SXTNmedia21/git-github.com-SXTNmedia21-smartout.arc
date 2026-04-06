@@ -8,6 +8,7 @@ import { useRouter, useSegments } from "expo-router";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { registerPushToken, setupNotificationListeners } from "@/lib/push";
+import { useWorkspaceStore } from "@/hooks/stores/use-workspace-store";
 
 type AuthContextValue = {
   session: Session | null;
@@ -89,6 +90,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Reset flag on sign-out so next sign-in re-registers
       if (event === "SIGNED_OUT") {
         pushRegistered.current = false;
+        useWorkspaceStore.getState().clearSelectedProfile();
       }
     });
 

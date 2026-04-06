@@ -32,6 +32,7 @@ import { Avatar } from "@/components/common/Avatar";
 import { useMyShifts } from "@/hooks/queries/use-my-shifts";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
 import { useShiftColleagues } from "@/hooks/queries/use-shift-colleagues";
+import { useWorkspaceStore } from "@/hooks/stores/use-workspace-store";
 import { enqueue } from "@/lib/sync/queue";
 import type { Database } from "@smartout/supabase/database.types";
 
@@ -135,6 +136,7 @@ export default function ShiftDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: shifts } = useMyShifts();
   const { data: profile } = useMyProfile();
+  const selectedProfileId = useWorkspaceStore((s) => s.selectedProfileId);
   const [activeTab, setActiveTab] = useState<TabKey>("details");
   const [confirming, setConfirming] = useState(false);
 
@@ -158,7 +160,7 @@ export default function ShiftDetailScreen() {
           confirmed_at: new Date().toISOString(),
           confirmed_by: profile.profile_id,
         });
-        queryClient.setQueryData<ScheduleShift[]>(["my-shifts"], (old) =>
+        queryClient.setQueryData<ScheduleShift[]>(["my-shifts", selectedProfileId], (old) =>
           old?.map((s) =>
             s.schedule_shift_id === shiftId
               ? { ...s, confirmed_at: new Date().toISOString(), confirmed_by: profile.profile_id }
@@ -170,7 +172,7 @@ export default function ShiftDetailScreen() {
         setConfirming(false);
       }
     },
-    [profile, queryClient],
+    [profile, queryClient, selectedProfileId],
   );
 
   if (!shift) {

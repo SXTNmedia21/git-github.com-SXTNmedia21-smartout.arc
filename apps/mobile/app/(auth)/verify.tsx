@@ -16,6 +16,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Alert,
   StyleSheet,
 } from "react-native";
 import { useLocalSearchParams, useRouter, useNavigation } from "expo-router";
@@ -76,6 +77,38 @@ export default function Verify() {
   // Shared state
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // --- Password reset ---
+
+  async function handleForgotPassword() {
+    const trimmed = loginEmail.trim().toLowerCase();
+    if (!trimmed || !trimmed.includes("@")) {
+      Alert.alert(
+        "Skriv inn e-post først",
+        "Fyll inn e-postadressen din over, så sender vi en lenke for å tilbakestille passordet.",
+      );
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(trimmed, {
+      redirectTo: "smartout://auth/callback",
+    });
+
+    setIsLoading(false);
+
+    if (resetError) {
+      setError("Kunne ikke sende tilbakestillingslenke. Prøv igjen.");
+      return;
+    }
+
+    Alert.alert(
+      "Sjekk e-posten din",
+      `Vi har sendt en lenke til ${trimmed} for å tilbakestille passordet ditt.`,
+    );
+  }
 
   // --- Email + password login (matches web) ---
 
@@ -362,7 +395,7 @@ export default function Verify() {
           {/* Password */}
           <View style={s.passwordHeader}>
             <Text style={s.label}>Passord</Text>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={handleForgotPassword}>
               <Text style={s.forgotLink}>Glemt passord?</Text>
             </TouchableOpacity>
           </View>
@@ -393,10 +426,12 @@ export default function Verify() {
             )}
           </TouchableOpacity>
 
-          {/* Sign up link */}
-          <Text style={s.footerText}>
-            Har du ikke konto? <Text style={s.footerLink}>Opprett konto</Text>
-          </Text>
+          {/* Sign up link — routes to Welcome where user picks invite/code/search path */}
+          <TouchableOpacity onPress={() => router.replace("/(auth)/welcome")}>
+            <Text style={s.footerText}>
+              Har du ikke konto? <Text style={s.footerLink}>Opprett konto</Text>
+            </Text>
+          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
     );
