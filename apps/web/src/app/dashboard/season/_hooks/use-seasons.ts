@@ -135,11 +135,14 @@ export function useSeasons() {
       if (!budget.total_target_revenue || budget.total_target_revenue <= 0)
         throw new Error("Budsjett mangler omsetningsmål");
 
-      // Validate: day factors must exist (keyed on season_budget_id)
+      // Validate: day factors must exist (keyed on season_budget_id).
+      // workspace_id guard ensures we never see factors from another tenant's budget
+      // if season_budget_id were ever reused across workspaces.
       const { count: dayFactorCount } = await supabase
         .from("day_factor")
         .select("*", { count: "exact", head: true })
-        .eq("season_budget_id", budget.season_budget_id);
+        .eq("season_budget_id", budget.season_budget_id)
+        .eq("workspace_id", wsId!);
 
       if (!dayFactorCount || dayFactorCount === 0) throw new Error("Sesong mangler dagfaktorer");
 
@@ -151,12 +154,16 @@ export function useSeasons() {
 
       if (!hourFactorCount || hourFactorCount === 0) throw new Error("Sesong mangler timefaktorer");
 
-      // Deactivate any currently active season in this workspace
-      await supabase
+      // Deactivate any currently active season in this workspace.
+      // We check the error explicitly so a failed deactivation doesn't leave two
+      // seasons active at the same time (partial success window).
+      const { error: deactivateError } = await supabase
         .from("season")
         .update({ status: "archived" })
         .eq("workspace_id", wsId!)
         .eq("status", "active");
+
+      if (deactivateError) throw deactivateError;
 
       // Activate this season
       const { data, error } = await supabase

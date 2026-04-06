@@ -667,14 +667,20 @@ export function useShiftClock() {
       const supabase = createClient();
       const now = new Date().toISOString();
 
-      // Claim the open shift — assign to current profile and mark active
-      const { error: claimError } = await supabase
+      // Claim the open shift — assign to current profile and mark active.
+      // The .is("employee_id", null) acts as an optimistic lock: if another employee
+      // already claimed this shift, the WHERE clause won't match and 0 rows are returned.
+      const { data: claimData, error: claimError } = await supabase
         .from("schedule_shift")
         .update({ employee_id: profileId!, status: "active" })
         .eq("schedule_shift_id", shiftId)
-        .is("employee_id", null); // Optimistic lock: only update if still unclaimed
+        .is("employee_id", null) // Optimistic lock: only update if still unclaimed
+        .select("schedule_shift_id");
 
       if (claimError) throw claimError;
+      if (!claimData || claimData.length === 0) {
+        throw new Error("Vakten er allerede tatt av en annen ansatt");
+      }
 
       // Punch in
       const { data: entry, error: insertError } = await supabase

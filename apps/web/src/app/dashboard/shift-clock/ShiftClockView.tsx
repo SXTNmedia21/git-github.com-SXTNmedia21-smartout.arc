@@ -109,7 +109,6 @@ export function ShiftClockView() {
       const now = new Date();
       const windowMs = punchWindow * 60_000;
       for (const shift of data) {
-        const endParts = shift.end_time.split(":");
         const endDate = new Date(today + "T" + shift.end_time);
         // Handle overnight shifts (end_time < start_time means next day)
         if (shift.end_time < shift.start_time) endDate.setDate(endDate.getDate() + 1);
@@ -255,9 +254,12 @@ export function ShiftClockView() {
               </p>
               <ul className="space-y-2">
                 {openShifts.map((shift) => {
-                  // Format HH:MM from ISO timestamps
-                  const fmt = (iso: string) =>
-                    new Date(iso).toLocaleTimeString("no", {
+                  // start_time / end_time are bare PostgreSQL time strings ("HH:MM:SS").
+                  // new Date("HH:MM:SS") produces Invalid Date — prepend today's date to
+                  // get a valid local datetime before formatting.
+                  const today = new Date().toISOString().slice(0, 10);
+                  const fmt = (time: string) =>
+                    new Date(`${today}T${time}`).toLocaleTimeString("no", {
                       hour: "2-digit",
                       minute: "2-digit",
                     });
