@@ -7,7 +7,8 @@
 import type { SmartoutEvent } from "../registry";
 
 export function sendToPostHogClient(event: SmartoutEvent): void {
-  if (typeof window === "undefined") return;
+  // Use globalThis key-lookup so this file compiles under ES2022 lib (no DOM required).
+  if ((globalThis as Record<string, unknown>)["window"] === undefined) return;
 
   void import("posthog-js")
     .then(({ default: posthog }) => {

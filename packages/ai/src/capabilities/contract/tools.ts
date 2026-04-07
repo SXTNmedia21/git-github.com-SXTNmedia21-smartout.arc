@@ -5,6 +5,7 @@
 // are checked against the actor's workspace role before proceeding.
 import { z } from "zod";
 import { buildEmployeePlaceholderMap } from "@smartout/utils";
+import { emit } from "@smartout/telemetry";
 import { defineTool } from "../../types.js";
 import type { AgentToolContext } from "../types.js";
 
@@ -129,12 +130,24 @@ export const createEmployeeContract = defineTool({
       return "Contract service is not configured (missing CONTRACT_SERVICE_URL or CONTRACT_SERVICE_KEY).";
     }
 
-    // Build placeholder map from the employee's profile + employment data
-    const placeholders = await buildEmployeePlaceholderMap(
-      ctx.supabaseAdmin,
-      params.profile_id,
-      ctx.workspaceId,
-    );
+    // Build placeholder map and fetch the recipient email in parallel —
+    // both are needed before the contract service call.
+    const [placeholders, profileResult] = await Promise.all([
+      buildEmployeePlaceholderMap(ctx.supabaseAdmin, params.profile_id, ctx.workspaceId),
+      ctx.supabaseAdmin
+        .from("profile")
+        .select("user_identity:user_id(email)")
+        .eq("profile_id", params.profile_id)
+        .single(),
+    ]);
+
+    // Supabase FK joins may return as array — normalise to a plain object.
+    const userIdentityRaw = profileResult.data?.user_identity;
+    const userIdentity = (Array.isArray(userIdentityRaw) ? userIdentityRaw[0] : userIdentityRaw) as
+      | { email: string }
+      | null
+      | undefined;
+    const recipientEmail = userIdentity?.email ?? "";
 
     const createController = new AbortController();
     const createTimeout = setTimeout(() => createController.abort(), 10000);
@@ -164,20 +177,20 @@ export const createEmployeeContract = defineTool({
 
       const result = (await response.json()) as { contract_id: string; status: string };
 
-      // Emit audit trail directly — @smartout/telemetry is browser+server hybrid and cannot
-      // be imported here (DOM globals break library.json tsconfig). We write to activity_trail
-      // via supabaseAdmin, which is exactly what the telemetry activity-trail provider does.
-      void ctx.supabaseAdmin.from("activity_trail").insert({
+      // Fire through the central emit() so all four destinations are covered:
+      // activity_trail, PostHog, logger, and engine_event (where routed).
+      void emit({
+        event: "contract created",
         workspace_id: ctx.workspaceId,
         actor_id: ctx.profileId,
-        event: "contract created",
-        action_verb: "created",
-        category: "contracts",
-        entity_type: "contract",
-        entity_id: result.contract_id,
-        data: { template_id: params.template_id, profile_id: params.profile_id },
-        changes: {},
-        source: "botsson",
+        properties: {
+          entity: { entity_type: "contract" as const, entity_id: result.contract_id },
+          data: {
+            template_id: params.template_id,
+            recipient_email: recipientEmail,
+            contract_type: "employee",
+          },
+        },
       });
 
       return JSON.stringify({

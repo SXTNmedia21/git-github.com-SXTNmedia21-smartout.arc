@@ -20,11 +20,15 @@ export async function emit(event: SmartoutEvent): Promise<void> {
   // Fire requests asynchronously as an array of promises
   const promises: Promise<void | unknown>[] = [];
 
-  const isServer = typeof window === "undefined";
+  // Use a globalThis key-lookup instead of `typeof window` so this file compiles
+  // under ES2022 lib (no DOM required — avoids TS2304 "Cannot find name 'window'").
+  const _g = globalThis as Record<string, unknown>;
+  const isServer = _g["window"] === undefined;
 
-  // 0. Client-side event bus — lets any in-app listener (e.g. Botsson) tap into telemetry
+  // 0. Client-side event bus — lets any in-app listener (e.g. Botsson) tap into telemetry.
   if (!isServer) {
-    window.dispatchEvent(new CustomEvent("smartout:telemetry", { detail: event }));
+    const win = _g["window"] as { dispatchEvent: (e: Event) => void };
+    win.dispatchEvent(new CustomEvent("smartout:telemetry", { detail: event }));
   }
 
   // 1. Analytics

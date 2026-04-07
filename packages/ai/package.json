@@ -141,6 +141,7 @@
     "@ai-sdk/mcp": "^1.0.8",
     "@openrouter/ai-sdk-provider": "^2.2.3",
     "@smartout/supabase": "workspace:*",
+    "@smartout/telemetry": "workspace:*",
     "@smartout/types": "workspace:*",
     "@smartout/utils": "workspace:*",
     "@supabase/supabase-js": "2.49.4",
