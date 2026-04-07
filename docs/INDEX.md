@@ -8,18 +8,28 @@ last-reconciled: 2026-04-07
 
 Master navigation map for all documentation. An agent reads this to find any document.
 
+## Start Here
+
+- **[docs/ORIENTATION.md](ORIENTATION.md)** — Boot-sequence cheat sheet, "where does X live" lookup, trust hierarchy, safety nets. The North Star document for any agent or human starting a session. Added per ADR-0075.
+
 ## Source of Truth Hierarchy
 
 1. **Code + database schema** -- implementation always wins
 2. **CLAUDE.md** -- conventions, rules, verified facts
+   2.5. **docs/ORIENTATION.md** -- boot-time reading order and "where does X live"
    2.5. **Cascade Core Foundation spec** -- canonical cascade architecture (`superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`)
    2.5. **docs/STATE.md** -- current system state, gaps, weekly plan
-3. **docs/reference/** -- detailed lookup during coding
-4. **docs/engines/** -- industry engine packaging and event-layer specialization
-5. **docs/modules/** -- business logic per module
-6. **docs/architecture/** -- system design decisions
-7. **docs/cross-cutting/** -- concerns spanning modules
-8. **docs/archive/** -- historical, never loaded actively
+3. **docs/DASHBOARD.md** -- live git state (active worktrees, free slots, pending journeys)
+4. **~/dev/second-brain-v2/ops/activity-log.md** -- append-only session/event audit trail
+5. **claude-mem (MCP)** -- cross-session narrative memory
+6. **docs/reference/** -- detailed lookup during coding
+7. **docs/engines/** -- industry engine packaging and event-layer specialization
+8. **docs/modules/** -- business logic per module
+9. **docs/architecture/** -- system design decisions
+10. **docs/cross-cutting/** -- concerns spanning modules
+11. **docs/archive/** -- historical, never loaded actively
+
+> `docs/SESSION.md` is **deleted** per ADR-0075. Narrative role migrated to activity-log + claude-mem.
 
 ## All Documents
 

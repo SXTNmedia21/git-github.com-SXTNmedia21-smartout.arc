@@ -16,7 +16,7 @@ tags: [state, audit, gaps, architecture, cascade]
 > Last full audit: 2026-03-27. Last light touch-up: 2026-04-07.
 > Canonical spec: `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`
 
-> **Trust hierarchy:** Active Work + ADR/Learning deltas + Recently Merged below are current as of 2026-04-07. Architecture sections (Cascade dimensions, 10 gaps, build order) were last verified 2026-03-27 — structure is still valid but specific counts and "% built" may have drifted. For worktree truth see `docs/DASHBOARD.md`. For session continuity see `docs/SESSION.md`.
+> **Trust hierarchy:** Active Work + ADR/Learning deltas + Recently Merged below are current as of 2026-04-07. Architecture sections (Cascade dimensions, 10 gaps, build order) were last verified 2026-03-27 — structure is still valid but specific counts and "% built" may have drifted. For worktree truth see `docs/DASHBOARD.md`. For session narrative see `~/dev/second-brain-v2/ops/activity-log.md` (per ADR-0075). See also `docs/ORIENTATION.md` for the boot-sequence cheat sheet.
 
 ---
 
@@ -67,7 +67,7 @@ None (all branches merged or cleaned 2026-04-07).
 | 2026-03-27 | `feat/mobile-wiring-fixes`           | 7 orphaned mobile features connected             |
 | 2026-03-27 | `feat/website-factory-b2`            | Security fixes — auth, RLS, N+1, telemetry       |
 
-Also shipped since last audit (not in DASHBOARD Recent Closures table): `feat/agent-harness` (wt-3, Phase 1-5 done, **paused awaiting /close-feature**, ADR-0073).
+Also shipped since last audit (see `activity-log.md` for full closure events): `feat/agent-harness` (wt-3, Phase 1-5 done, **paused awaiting /close-feature**, ADR-0073).
 
 ### Free Worktree Slots
 
