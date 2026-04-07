@@ -102,3 +102,30 @@ Logged in `council_meta.md` and `docs/council/COUNCIL-LOG.md`.
 6. Build agent must complete Task 0 prerequisites BEFORE writing any code
 </content>
 </invoke>
+---
+
+## 2026-04-06 — wt-2 Reconciled (v2 Plan)
+
+**Decision:** Option 1 — overwrote wt-2 plan with council-verified v2.
+
+**What happened:**
+- Partner agent and main session worked in parallel on the same PoC.
+- Partner ran 3 council rounds (spec → amendment → verification), caught G1+G2+C6.
+- Main session ran a 4th council round on the plan itself (4 reviewers parallel).
+- The 4th round found 9 critical issues — most overlapping with partner's earlier finds, plus a few extras (signal_type NOT NULL, dispatch_push_notification signature drift, scope-violating middleman edge function, wrong stuck-step query).
+- Main session wrote a unified v2 plan (1385 lines) incorporating ALL fixes from all 4 council rounds.
+- v2 written to `wt-2/docs/superpowers/plans/2026-04-06-journey-harness-poc.md`, replacing v1.
+
+**What v2 has that v1 didn't:**
+- Task 0 with 10 prerequisite checks (10 verbatim quotes required in HANDOFF)
+- Tasks 3 & 4 fully rewritten as Server Component / Server Action (C6)
+- Task 5 with NULL condition documented + same-request advancement explained
+- Task 7 querying `current_step = 2` not 1, with `signal_type = 'journey_stuck'`
+- Task 9 deletes the middleman edge function — direct PG function call from trigger
+- Task 9 hardcodes correct 6-param signature (p_event, p_profile_id, p_workspace_id, p_title, p_body, p_data)
+- Task 10 Step 7 tests the WEB half via dev server + count diff
+- Task 10 fixed workspace `id` → `workspace_id`, profile with all NOT NULL columns
+- Task 11 HANDOFF template extended with Emit Call Sites + Decisions Made sections
+- DoD expanded from 12 to 15 items
+
+**Status:** v2 ready for execution. Build agent in wt-2 should run Task 0 first and STOP if any prerequisite check fails.

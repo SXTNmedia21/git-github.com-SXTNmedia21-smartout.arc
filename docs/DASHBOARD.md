@@ -1,7 +1,7 @@
 ---
 title: Development Dashboard
 status: in_progress
-updated: 2026-04-06
+updated: 2026-04-07
 created: 2026-03-02
 module: meta
 tags: [dashboard, worktrees, tracking]
@@ -16,8 +16,8 @@ tags: [dashboard, worktrees, tracking]
 | #     | Branch                                | Module         | Status      | Progress                          | Blockers | Health |
 | ----- | ------------------------------------- | -------------- | ----------- | --------------------------------- | -------- | ------ |
 | wt-1  | `feat/employee-contract-management` | contracts      | in_progress | just started                      | —        | clean  |
-| wt-2  | `feat/mobile-group-call`              | communications | in_progress | just started                      | —        | clean  |
-| wt-3  | `feat/dashboard-filters`              | dashboard      | paused      | just started                      | —        | clean  |
+| wt-2  | `feat/journey-harness-poc`            | ai-agent       | in_progress | plan v2 ready, awaiting Task 0   | —        | clean  |
+| wt-3  | `feat/agent-harness`                  | ai-agent       | in_progress | just started                     | —        | clean  |
 | wt-4  | `feat/training-agent-pipeline`        | training       | in_progress | just started — WS-2 Module Zero   | —        | clean  |
 | wt-5  | —                                     | —              | free        | —                                 | —        | —      |
 | wt-7  | `feat/dynamic-landing-engine`         | landing        | paused      | just started                      | —        | clean  |
