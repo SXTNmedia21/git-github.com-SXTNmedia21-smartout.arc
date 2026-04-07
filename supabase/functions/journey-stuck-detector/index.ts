@@ -1,9 +1,15 @@
 /**
  * journey-stuck-detector — Cron-triggered Journey Harness rescue trigger.
  *
- * Runs hourly. Finds engine_state rows for journey_03_check_shifts that have
- * been stuck on step 1 (waiting for shift.detail_viewed) for more than 24
- * hours, and writes a guardian_signal with domain='journey_health' for each.
+ * Runs hourly. Finds engine_state rows for journey_03_check_shifts that are
+ * waiting on step 2 (shift.detail_viewed) for more than 24 hours — i.e. the
+ * user opened the shifts list but never tapped through to a specific shift —
+ * and writes a guardian_signal with domain='journey_health' for each.
+ *
+ * Note on current_step semantics: engine-dispatch advances current_step to
+ * point at the NEXT step to execute. After shift.list_viewed fires, the state
+ * is created and immediately advanced to current_step=2 (waiting for the
+ * step 2 event). current_step=1 is never a resting state under the real flow.
  * The guardian_signal_journey_health_push trigger then fires a push
  * notification to deliver the rescue prompt.
  *
@@ -69,7 +75,7 @@ Deno.serve(async (req) => {
     .from("engine_state")
     .select("id, entity_id, entity_type, workspace_id, current_step, updated_at")
     .eq("process_id", PROCESS_ID)
-    .eq("current_step", 1)
+    .eq("current_step", 2)
     .eq("status", "waiting")
     .lt("updated_at", cutoff);
 
