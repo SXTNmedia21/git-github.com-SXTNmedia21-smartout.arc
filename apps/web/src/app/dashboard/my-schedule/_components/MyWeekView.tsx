@@ -9,10 +9,11 @@
  * - color-regime: today highlight (orange border), past days (muted)
  */
 
-import { useContext, useState, useMemo } from "react";
+import { useContext, useEffect, useState, useMemo } from "react";
 import { Calendar, ChevronLeft, ChevronRight, Clock, MapPin, Loader2 } from "lucide-react";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useMyScheduleShifts, type MyScheduleShift } from "../_hooks/use-my-shifts";
+import { markShiftListViewed, markShiftDetailViewed } from "../actions";
 
 function getWeekRange(offset: number) {
   const now = new Date();
@@ -78,6 +79,14 @@ export function MyWeekView() {
   const days = useMemo(() => getDaysInWeek(weekStart), [weekStart]);
 
   const { data: shifts, isLoading } = useMyScheduleShifts(profileId, weekStart, weekEnd);
+
+  // Journey 03 (Sjekke vakter) — emit shift list_viewed via Server Action
+  // whenever the visible week changes. Goes through a Server Action because
+  // client-side emit() short-circuits in development (engine-event.ts:78).
+  // Fire-and-forget — telemetry must never break the UI.
+  useEffect(() => {
+    void markShiftListViewed(weekStart);
+  }, [weekStart]);
 
   const today = useMemo(() => {
     const now = new Date();
@@ -243,7 +252,22 @@ export function MyWeekView() {
                         {dayShifts.map((shift) => (
                           <div
                             key={shift.id}
-                            className={`flex items-center justify-between rounded-lg border px-3 py-2 ${
+                            // Journey 03 — emit shift detail_viewed when the
+                            // employee taps a shift. This advances the in-flight
+                            // engine_state from waiting (step 2) to complete.
+                            // Server Action; fire-and-forget.
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => {
+                              void markShiftDetailViewed(shift.id);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                void markShiftDetailViewed(shift.id);
+                              }
+                            }}
+                            className={`flex cursor-pointer items-center justify-between rounded-lg border px-3 py-2 ${
                               isDark
                                 ? "border-zinc-800 bg-zinc-900/50"
                                 : "border-zinc-100 bg-zinc-50"
