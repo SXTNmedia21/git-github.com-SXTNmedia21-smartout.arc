@@ -735,3 +735,19 @@ website-related domains.
 | **Overall**              |             | **~55%** |                                                                            |
 
 **Single most important next step:** Add end-to-end verification for shift publish -> engine dispatch -> upsert_session -> hooks/tasks, then build change proposal lifecycle (C4).
+
+---
+
+## 9. Known Environment Quirks
+
+Things that work on Pontus's machine but require manual setup or workarounds on a fresh clone.
+
+### vercel-plugin/ai-sdk validator false-positive on `generateObject`
+
+The Claude Code `vercel-plugin/ai-sdk` PostToolUse validator falsely claims `generateObject was removed in AI SDK v6` and blocks Edit/Write on any file mentioning the function. Verified empirically wrong (function exists at `node_modules/.pnpm/ai@6.0.103/dist/index.d.ts:5158`, exported at line 6383, `NoObjectGeneratedError` class also present). Vercel's own `common-errors.md:73` says "deprecated", not removed.
+
+**Workaround**: run `node scripts/patch-vercel-plugin-ai-sdk.mjs` to idempotently downgrade the rule severity (`error` → `recommended`) and correct the message text in all affected plugin cache files. The rule lives in 10 files across 4 plugin installations, including the `generated/skill-manifest.json` files which are what the validator actually loads at runtime.
+
+**When to re-run**: after any Claude Code plugin auto-update (cache files get rewritten), or if the validator suddenly starts producing the false-positive error.
+
+**Long-term fix**: file an upstream PR against `vercel/vercel-plugin` to land the correction once and for all. Tracked in `docs/decisions/0073-ai-eval-harness.md` (hook addendum).

@@ -815,3 +815,101 @@ because vitest runs the suites in parallel within the single fork.
 - `RUN_EVALS=1 OPENROUTER_API_KEY=... pnpm --filter @smartout/ai eval`
   → 4 suites, 8 tests pass, 4 reports written
 - `pnpm turbo typecheck --filter=@smartout/ai` → 0 errors
+
+## Addendum — 2026-04-07 (Phase 5 council audit execution)
+
+The Phase 5 council (steward + supervisor + system-agent-coordinator,
+parallel review) identified three correctness issues that isolation-based
+evals did not surface. All resolved this session.
+
+### 1. Model-string audit across 5 sibling agent files
+
+Agent-coordinator grep found 7 remaining `anthropic/claude-sonnet-4`
+references after Phase 1-5. Of those:
+
+- **5 in-scope** (`packages/ai/src/agents/*.ts`) — same package, same
+  branch, must audit
+- **2 out-of-scope** (`services/stage-engine/src/core/{agent,admin}-router.ts`)
+  — different package, different deploy boundary, **P0 follow-up** for
+  a separate session
+
+Per-file audit of the 5 in-scope sites:
+
+| File | Line | AI SDK function | Verdict | Action |
+|---|---|---|---|---|
+| `contract.ts` | 52 | `generateText({tools})` | Safe on sonnet-4 per Phase 4 finding | Bumped to 4.6 + NOTE block |
+| `docs.ts` | 39 | `generateText({tools})` | Safe | Bumped to 4.6 + NOTE block |
+| `journey.ts` | 91 | `generateText({tools})` | Safe | Bumped to 4.6 + NOTE block |
+| `reports.ts` | 83 | `generateText({tools})` | Safe | Bumped to 4.6 + NOTE block |
+| `schedule.ts` | 91 | `generateText({tools})` | Safe | Bumped to 4.6 + NOTE block |
+
+**Decision**: bump all 5 even though technically safe, for consistency
+with `intent-classifier.ts` and `onboarding.ts` and for model freshness.
+NOTE block documents the bump is for freshness, not bug-fix.
+
+### 2. Four unregistered classifier labels — intentional fall-through
+
+The classifier enum emits `knowledge`, `training`, `memory`, `payroll`
+labels with no registered capability. When the classifier picks one,
+`selectTools` returns `[]` and the agent runs `generateText` with zero
+tools. Three options considered (remove from enum / register placeholders
+/ document intentional fall-through). **Decision**: document intentional
+fall-through in `packages/ai/src/router/tool-selector.ts` near line 39:
+
+- `knowledge` → policy/FAQ lookup, answered from system prompt context
+- `training` → readiness/protocol questions, answered narratively
+- `memory` → "do you remember..." conversational recall
+- `payroll` → salary questions, deliberately tool-less for now
+
+### 3. `runOnboardingAgent` runtime smoke test
+
+Phase 4.5 fixed `extractOnboardingIntelligence` (generateObject path)
+but left sibling `runOnboardingAgent` (generateText({tools}) path)
+unverified. Smoke test against real OpenRouter with stubbed Supabase
+and a Norwegian greeting. **Result: PASS.** Model returned a clean
+greeting, attempted 2 tool calls (save_transcription — failed on stub
+shape as expected), runtime pipeline works end-to-end on sonnet-4.6.
+
+### 4. 8-commit divergence from development (supervisor finding)
+
+Supervisor identified the branch was 8+ commits behind development.
+Merged `origin/development`, auto-merge succeeded for 4 files. Two
+conflicts on `docs/SESSION.md` and `docs/DASHBOARD.md` resolved by
+taking dev's canonical version. Also: ADR number collision with dev's
+`0072-vercel-multi-service-rejected.md`, renumbered this ADR to **0073**,
+updated 6 in-repo references.
+
+### 5. Hook validator fix — committable script + upstream PR draft
+
+Three deliverables:
+
+1. **`scripts/patch-vercel-plugin-ai-sdk.mjs`** — committable, idempotent
+   re-application script. Walks `~/.claude/plugins/cache/`, finds 10
+   affected file types, applies severity + message correction.
+2. **`docs/upstream-prs/vercel-plugin-ai-sdk-generateObject-fix.md`** —
+   upstream PR draft ready for filing.
+3. **`docs/STATE.md` section 9** — Known environment quirks entry.
+
+### Phase 5 verification
+
+- `pnpm turbo typecheck --filter=@smartout/ai` → 0 errors
+- `cd packages/ai && pnpm test` → 28/28 unit pass
+- `cd packages/ai && pnpm eval` (no RUN_EVALS) → 4 suites, 8 tests skipped
+- `runOnboardingAgent` smoke test → PASS
+- `node scripts/patch-vercel-plugin-ai-sdk.mjs` → idempotent
+
+### Phase 5 deltas
+
+| File | Change |
+|---|---|
+| `packages/ai/src/agents/contract.ts` | sonnet-4 → 4.6 + audit NOTE |
+| `packages/ai/src/agents/docs.ts` | sonnet-4 → 4.6 + audit NOTE |
+| `packages/ai/src/agents/journey.ts` | sonnet-4 → 4.6 + audit NOTE |
+| `packages/ai/src/agents/reports.ts` | sonnet-4 → 4.6 + audit NOTE |
+| `packages/ai/src/agents/schedule.ts` | sonnet-4 → 4.6 + audit NOTE |
+| `packages/ai/src/router/tool-selector.ts` | NOTE block documenting 4 labels |
+| `scripts/patch-vercel-plugin-ai-sdk.mjs` | **NEW** — hook patch script |
+| `docs/STATE.md` | **NEW section 9** — Known environment quirks |
+| `docs/upstream-prs/vercel-plugin-ai-sdk-generateObject-fix.md` | **NEW** |
+| `docs/HANDOFF-agent-harness.md` | **NEW** — closure doc |
+| `docs/journeys/JOURNEY-agent-harness.md` | **NEW** — developer journey |
