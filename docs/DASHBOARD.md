@@ -1,7 +1,7 @@
 ---
 title: Development Dashboard
 status: in_progress
-updated: 2026-04-06
+updated: 2026-04-07
 created: 2026-03-02
 module: meta
 tags: [dashboard, worktrees, tracking]
@@ -13,49 +13,36 @@ tags: [dashboard, worktrees, tracking]
 
 ## Active Worktrees
 
-| #     | Branch                                | Module         | Status      | Progress                          | Blockers | Health |
-| ----- | ------------------------------------- | -------------- | ----------- | --------------------------------- | -------- | ------ |
-| wt-1  | `feat/wizardshell-walkai-integration` | wizard         | done        | 22 commits, merged to development | —        | clean  |
-| wt-2  | `feat/mobile-group-call`              | communications | in_progress | just started                      | —        | clean  |
-| wt-3  | `feat/dashboard-filters`              | dashboard      | paused      | just started                      | —        | clean  |
-| wt-4  | `feat/training-agent-pipeline`        | training       | in_progress | just started — WS-2 Module Zero   | —        | clean  |
-| wt-5  | —                                     | —              | free        | —                                 | —        | —      |
-| wt-7  | `feat/dynamic-landing-engine`         | landing        | paused      | just started                      | —        | clean  |
-| wt-8  | —                                     | —              | free        | —                                 | —        | —      |
-| wt-9  | —                                     | —              | free        | —                                 | —        | —      |
-| wt-10 | —                                     | —              | free        | —                                 | —        | —      |
-| wt-11 | —                                     | —              | free        | —                                 | —        | —      |
+| #     | Branch | Module | Status | Progress | Blockers | Health |
+| ----- | ------ | ------ | ------ | -------- | -------- | ------ |
+| wt-1  | —      | —      | free   | —        | —        | —      |
+| wt-2  | —      | —      | free   | —        | —        | —      |
+| wt-3  | —      | —      | free   | —        | —        | —      |
+| wt-4  | —      | —      | free   | —        | —        | —      |
+| wt-5  | —      | —      | free   | —        | —        | —      |
+| wt-7  | —      | —      | free   | —        | —        | —      |
+| wt-8  | —      | —      | free   | —        | —        | —      |
+| wt-9  | —      | —      | free   | —        | —        | —      |
+| wt-10 | —      | —      | free   | —        | —        | —      |
+| wt-11 | —      | —      | free   | —        | —        | —      |
 
 ## Parked Branches (no worktree)
 
-| Branch            | Status | Notes                                                              |
-| ----------------- | ------ | ------------------------------------------------------------------ |
-| `feat/onboarding` | parked | FlowPlayer + alkohol flow. framer-motion devDep missing in ui pkg. |
+| Branch | Status | Notes |
+| ------ | ------ | ----- |
+| —      | —      | All branches merged or deleted (2026-04-07 cleanup) |
 
 ## Free Slots
 
-| #     | Available                                                          |
-| ----- | ------------------------------------------------------------------ |
-| wt-1  | no — `feat/wizardshell-walkai-integration` (done, cleanup pending) |
-| wt-2  | no — `feat/mobile-group-call`                                      |
-| wt-4  | no — `feat/training-agent-pipeline`                                |
-| wt-3  | no — `feat/dashboard-filters`                                      |
-| wt-5  | yes                                                                |
-| wt-6  | yes                                                                |
-| wt-7  | no — `feat/dynamic-landing-engine`                                 |
-| wt-8  | yes                                                                |
-| wt-9  | yes                                                                |
-| wt-10 | yes                                                                |
-| wt-11 | yes                                                                |
-| wt-12 | yes                                                                |
-| wt-13 | yes                                                                |
-| wt-15 | yes                                                                |
-| wt-20 | yes                                                                |
+| # | Available |
+| --- | --- |
+| wt-1 through wt-11 | all free |
 
 ## Pending Journeys
 
 | Worktree | Feature                 | Journey File                                       | Status  |
 | -------- | ----------------------- | -------------------------------------------------- | ------- |
+| wt-1     | employee-contract-management | `docs/journeys/JOURNEY-employee-contract-management.md` | done |
 | wt-1     | profession-system       | `docs/journeys/JOURNEY-profession-system.md`       | done    |
 | wt-4     | training-agent-pipeline | `docs/journeys/JOURNEY-training-agent-pipeline.md` | missing |
 | wt-3     | dashboard-filters       | `docs/journeys/JOURNEY-dashboard-filters.md`       | missing |
@@ -70,6 +57,7 @@ tags: [dashboard, worktrees, tracking]
 
 | Date       | Feature                      | Branch                                                             | Merged To   |
 | ---------- | ---------------------------- | ------------------------------------------------------------------ | ----------- |
+| 2026-04-07 | employee-contract-management | `feat/employee-contract-management`                                | development |
 | 2026-04-06 | deployment-pipeline          | `feat/deployment-pipeline`                                         | development |
 | 2026-04-07 | tooling-optimization         | `feat/tooling-optimization`                                        | development |
 | 2026-04-07 | invitation-rls-fix           | `feat/invitation-rls-fix`                                          | development |

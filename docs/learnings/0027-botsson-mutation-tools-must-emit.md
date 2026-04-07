@@ -1,6 +1,6 @@
 ---
 title: Every Botsson mutation tool must call emit() — capability layer is part of telemetry coverage
-id: LEARNING_0024
+id: LEARNING_0027
 status: canonical
 layer: learning
 created: 2026-04-07
@@ -9,7 +9,7 @@ module: contracts
 tags: [botsson, telemetry, ai, capabilities]
 ---
 
-# Learning-0024: Every Botsson mutation tool must call emit() — capability layer is part of telemetry coverage
+# Learning-0027: Every Botsson mutation tool must call emit() — capability layer is part of telemetry coverage
 
 ## Context
 

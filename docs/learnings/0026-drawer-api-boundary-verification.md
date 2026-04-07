@@ -1,6 +1,6 @@
 ---
 title: Drawer→API boundary requires end-to-end shape verification
-id: LEARNING_0023
+id: LEARNING_0026
 status: canonical
 layer: learning
 created: 2026-04-07
@@ -9,7 +9,7 @@ module: contracts
 tags: [api, zod, ui, code-review]
 ---
 
-# Learning-0023: Drawer→API boundary requires end-to-end shape verification
+# Learning-0026: Drawer→API boundary requires end-to-end shape verification
 
 ## Context
 
