@@ -561,3 +561,6 @@ verify_jwt = false
 
 [functions.scrape-website]
 verify_jwt = false
+
+[functions.journey-stuck-detector]
+verify_jwt = false

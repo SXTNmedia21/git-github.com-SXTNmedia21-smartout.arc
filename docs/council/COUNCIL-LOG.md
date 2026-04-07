@@ -29,8 +29,8 @@ Tracks all System Council sessions — multi-agent review meetings where specs, 
 | 2026-03-28 | Dynamic Landing Engine Spec           | spec         | APPROVE WITH CHANGES     | steward, supervisor, agent-coordinator, frontend-designer | Pending: ADR-0057 (supersedes ADR-0046), ADR-0058 (conditional GSAP)              | ADR-0046 block-builder silently superseded without declaration. Landing engine must be I1 consumer, not standalone data source. 300ms crossfade violates motion.md (500ms min entrance). GSAP/Framer transform boundary must be explicit. 7 landing tables in DB undocumented in DATABASE.md.                                          |
 | 2026-03-28 | Drift Insights Branch Review          | feature      | APPROVE WITH CHANGES     | steward, supervisor, frontend-designer                    | None                                                                              | i18n interpolation convention mismatch (`{x}` vs `{{x}}`) fails silently — no runtime error. Shared index files (decision log, learning log) must never be overwritten in feature branches. Hardcoded colors bypass OKLCH warm hue-shifting in dark mode.                                                                              |
 | 2026-03-28 | Entity Drawer Post-Implementation     | feature      | APPROVE WITH CHANGES     | steward, supervisor, agent-coordinator, frontend-designer | None                                                                              | 4 blockers fixed: actor_id audit trail, hardcoded strings, pin/localStorage drift, dead ref. 31 hardcoded colors flagged for follow-up. WCAG AA contrast gap on inactive tabs. Missing focus trap in sheet mode. EntityDrawerProvider isolation pattern should get ADR.                                                                |
-| 2026-03-29 | Protocol Verification Engine          | architecture | APPROVE WITH CHANGES     | steward, supervisor, agent-coordinator, frontend-designer | ADR-0071                                                                          | Two mission systems (AgentMission/Ultravox vs engine_missions/Stage Engine) — generator must target DB schema. JSONB on existing table beats new table. Spring animations need 1500ms settle. protocol.json rejected as dual source of truth — TypeScript definitions instead.                                                         |
-| 2026-03-29 | PVE Operations + Dashboard + Agent    | architecture | APPROVE WITH CONDITIONS  | steward, supervisor, agent-coordinator, frontend-designer | None (extends ADR-0071)                                                           | Agent split: protocol-writer (observer) never touches apps/web/. Dashboard: local-only dev tool, dark theme, no Nordic Split. Manual: task-oriented not role-oriented. Testid fixes delegated via reports, not agent self-modification.                                                                                                |
+| 2026-03-29 | Protocol Verification Engine          | architecture | APPROVE WITH CHANGES     | steward, supervisor, agent-coordinator, frontend-designer | ADR-0074 (was ADR-0071, renumbered 2026-04-07)                                    | Two mission systems (AgentMission/Ultravox vs engine_missions/Stage Engine) — generator must target DB schema. JSONB on existing table beats new table. Spring animations need 1500ms settle. protocol.json rejected as dual source of truth — TypeScript definitions instead.                                                         |
+| 2026-03-29 | PVE Operations + Dashboard + Agent    | architecture | APPROVE WITH CONDITIONS  | steward, supervisor, agent-coordinator, frontend-designer | None (extends ADR-0074, was ADR-0071)                                             | Agent split: protocol-writer (observer) never touches apps/web/. Dashboard: local-only dev tool, dark theme, no Nordic Split. Manual: task-oriented not role-oriented. Testid fixes delegated via reports, not agent self-modification.                                                                                                |
 | 2026-03-28 | Entity Drawer Phase 2 Design          | feature      | APPROVE WITH CHANGES     | steward, supervisor, agent-coordinator, frontend-designer | ADR-0068: Entity Drawer Surface Pattern                                           | Shift P1 > profile P2 > session P3 > team P4. Read-only only. Declarative registry. Agent bridge via WalkAi client tool. Fix debt (colors, focus trap, touch targets) IN Phase 2. day_session renamed to department_session. Drawer != schedule drawers (lightweight vs deep).                                                         |
 | 2026-03-28 | Entity Drawer Phase 2 Plan Review     | plan         | APPROVE WITH CHANGES     | steward, supervisor, agent-coordinator, frontend-designer | None                                                                              | 3 blockers found: employment_contract wrong columns (contract_type→employment_category, is_active→status), CascadeTaskTab/DepartmentDetailTab props not renamed to entityId, agent bridge dead (CustomEvent→WalkAi client tool fix). All resolved during implementation.                                                               |
 | 2026-03-28 | Telegram WalkAi Adapter               | spec         | APPROVE WITH CHANGES     | steward, supervisor, agent-coordinator                    | Pending: ADR-0059 (platform-admin pipeline separation)                            | Nullable DB column != nullable pipeline — TypeScript types form independent enforcement chain. Admin pipeline must be separate from employee pipeline (different authority, intent, tools). PG NOTIFY > Realtime for server-side relay. callback_data 64-byte limit requires lookup table.                                             |
@@ -48,6 +48,8 @@ Tracks all System Council sessions — multi-agent review meetings where specs, 
 | 2026-04-06 | Code Review: mobile-prod + prod-gaps  | code review  | APPROVE WITH CHANGES     | steward, supervisor, agent-coordinator, frontend-designer | Pending: Migration Safety ADR                                                     | DROP TABLE CASCADE in migrations = silent data destruction. supabaseAdmin:unknown forces unsafe casts across all agent tools. sendMessage only mutation tool without emit(). indigo-500 is cold-spectrum (hue ~240) in warm-only OKLCH system. Agent tools bypass RLS by design — every query MUST include manual .eq(workspace_id).   |
 | 2026-04-06 | Full Plan Portfolio Review (11 plans) | plan         | MIXED (see below)        | steward, supervisor, agent-coordinator, frontend-designer | None                                                                              | See details below                                                                                                                                                                                                                                                                                                                      |
 | 2026-04-06 | Journey Inference as Agent Harness    | architecture | APPROVE WITH CHANGES     | steward, supervisor, agent-coordinator, frontend-designer | Pending: Mobile Telemetry Offline Emit ADR, Journey Progress via Domain Process Engine ADR | 5 breaks verified: 12/12 mobile hooks 0 emit(), no runtime journey tracking, two journey systems, Guardian AI-only, rescue unwired. Rescue≠Re-engagement (two-tier model). Journey DB tables are dev-tracking artifacts (never repurpose). All orchestration via engine_process. |
+| 2026-04-07 | ADR-0075 Implementation Review (post-migration) | architecture | APPROVE WITH CHANGES → FIXED | steward, supervisor, agent-coordinator, frontend-designer | ADR-0075 already written + accepted; 7 follow-up fixes applied same session | Decision log file was corrupt (concatenated frontmatters from merged feature branches) — rebuilt from scratch. `/status` did NOT regenerate DASHBOARD from `git worktree list` — command doc rewritten to enforce regeneration contract. Race in end-session.sh (DASHBOARD sed before activity-log write) reordered. close-feature.sh silent failure `2>/dev/null || true` replaced with explicit warning pattern. narrator.md line 135 missed in sweep — fixed. INDEX vs ORIENTATION trust-hierarchy conflict resolved (STATE.md demoted to layer 7). ORIENTATION MEMORY.md ambiguity clarified. All 7 fixes committed 5fe73c8b and pushed. Biggest lesson: sweep grep regex must match bare words, not just file extensions. |
+| 2026-04-07 | Three-issue retrospective: build-agent gap, parallel sessions, ADR-0075 v1.1 | architecture | APPROVE WITH CHANGES | steward (chair), supervisor, system-agent-coordinator, narrator | ADR-0075 → v1.1 amendment in place; ADR-0076 (build-agent verification evidence contract) and ADR-0078 (dev-time agent infrastructure parity) to write. ADR-0077 reserved/skipped. | Three-issue council. (1) Build agent on journey-harness-poc paraphrased DoD #5 — fix `ee2d2bb0` corrected detector off-by-one (`current_step=1` → `=2`). Process lesson: headless build agents must dump raw curl/SQL, not paraphrased prose. (2) Parallel Claude sessions both worked on ADR-0075; cb7c7c60 was committed directly to development in violation of ADR-0075's own resolved Open Q3. *"ADR-0075 was violated by the commit that shipped ADR-0075"* — preserved as canonical learning. Fix: husky Hook #7 (branch guard with MERGE_HEAD allowance), implemented via worktree (eat the dogfood). (3) ADR-0075 retroactive: ORIENTATION.md was self-described "North Star" but not in either CLAUDE.md Boot Sequence; promoted to step 0 + self-listed as tier 0 in own trust hierarchy + Hook #8 grep enforces ADR-0075 reference. Agent Coordinator's deeper insight: *"world-class agent architecture for runtime agents, zero infrastructure for the agents that build the codebase. The asymmetry is the bug."* ADR-0078 (dev_session sibling table, sealed envelope subagent prompts, dev.* telemetry family) reserved for next sprint. |
 
 ### 2026-04-06 — Full Plan Portfolio Review
 
@@ -202,3 +204,128 @@ Tracks all System Council sessions — multi-agent review meetings where specs, 
 **Council process learning:** The verification round caught what the original review missed. Agent-coord traced actual code line-by-line (engine-dispatch.ts:411, engine-event.ts:74) while Steward/Supervisor evaluated the spec at concept level. Both perspectives were necessary — concept review approves the architecture, code-tracing review catches the implementation bugs. Always run a verification round after spec amendments.
 
 **Biggest risk avoided (this round):** Build agent would have followed spec literally and shipped a PoC where (a) no step ever advances because of payload key mismatch, OR (b) entire chain silently no-ops in local dev. Both bugs would only surface during testing — wasting hours of build time.
+
+---
+
+## 2026-04-07 — Untracked vercel.json: migrate droplet services to Vercel?
+
+**Type:** architecture
+**Verdict:** REJECT (DELETE the file)
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator
+**Frontend-designer:** skipped (not a UI question)
+**ADR created:** ADR-0072
+**Learning created:** 0025-stage-engine-websocket-vercel-blocker
+
+**Subject:** An untracked `vercel.json` appeared at repo root on 2026-04-06 with an undocumented `experimentalServices` field naming web + 4 backend services. No ADR, no plan, no driver, no provenance. Question: delete, integrate, or hybrid?
+
+**Verdict:** Unanimous DELETE (3/3).
+
+**Key findings (each agent caught something the others missed):**
+
+**System Steward (chair):**
+- File violates Source of Truth Hierarchy — `experimentalServices` is undocumented, cannot be canonical for service topology.
+- Bypasses ADR-0040 without supersession ADR.
+- ADR-0071 (preview env asymmetry "services have no preview tier") would need re-derivation — vault structure, env sync manifest, the asymmetry rationale.
+- scrapling network isolation regression: currently internal-only, the proposed routePrefix would make it publicly addressable.
+- n8n persistent volume cannot move to Fluid Compute → Option B impossible by construction.
+- Timing: cost of "no" today is zero, cost of "yes" is unbounded. We just shipped first preview→main release.
+
+**Supervisor:**
+- Scope creep: file bypassed `/start-feature`, decision log, SESSION.md, council. Every quality gate.
+- DocuSeal HMAC verification depends on raw request body — Fluid Compute body parsing under `experimentalServices` is unverified. Production billing-adjacent code at risk.
+- `interview-mcp` exists in `services/` but is missing from the proposed file → spec already incomplete.
+- Adding Vercel Functions creates a THIRD compute fabric (Supabase Edge + droplet + Vercel) — fragmentation.
+- `experimentalServices` not in any documented Vercel config surface (only `functions`, `crons`, `bunVersion`, `routes`, or `vercel.ts` + `@vercel/config`).
+
+**System Agent Coordinator (CRITICAL — caught structural blockers others missed):**
+- **WebSocket routes in stage-engine** — `/ws/:sessionId` and `/guardian/ws` are persistent connections used by onboarding UI and admin dashboard. Vercel Functions DO NOT support arbitrary WebSocket upgrades. **Hard blocker.**
+- **In-process guardian-bus** — `services/stage-engine/src/core/guardian-bus.ts` distributes events via in-process EventEmitter. Multiple Fluid Compute warm instances would silently drop cross-instance events. Externalization to Upstash Redis pub/sub or Vercel Queues required.
+- **Background loops** — `CLEANUP_INTERVAL_MINUTES=5` and Calendar Guardian tick need conversion to Vercel Cron.
+- shift-mcp is the only clean candidate but cold-start variance (800ms-2.5s vs droplet's always-warm 300-500ms) breaks agent tool latency budget for voice flows.
+- Voice (Ultravox) clarification: voice runs browser↔Ultravox directly. Stage Engine receives only short-lived server-side tool callbacks. NOT a sustained-connection issue. Good news for any future migration.
+
+**Key decision:** Option A (DELETE). Option B impossible by construction (n8n, scrapling). Option C premature (latency cost, no driver, requires WS refactor first).
+
+**Doc references checked:** The 3 older docs that mention `vercel.json` actually reference `apps/mobile/vercel.json` (legitimate Expo PWA SPA rewrite config), NOT the root file. No doc audit needed. Clean delete.
+
+**Council process note:** Full council was the right call here. Each agent contributed unique findings — Steward caught the ontology + ADR conflicts, Supervisor caught the scope-creep + DocuSeal webhook risk, Agent-Coord caught the structural WebSocket blocker that nobody else would have known about. None of these would have been found by reading docs alone.
+
+---
+
+## 2026-04-06 — Employee Contract Management Post-Implementation Review
+
+**Type:** feature (post-implementation)
+**Verdict:** APPROVE WITH CHANGES — 6 must-fix, 4 should-fix
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator, frontend-designer, narrator
+**Key decision:** Architecture sound (D2 Resource placement, contract_type branching, cascade integrity preserved). Implementation had 6 runtime-breaking bugs requiring fix before merge.
+**ADRs created:** 5 entries in feature decision log (table reuse, status propagation, suggestTools placement, X-Service-Key auth, fetch timeouts)
+
+### What broke
+1. Botsson tools referenced 4 nonexistent columns (`id` vs `contract_id`, `profile_id` doesn't exist, `contract_template_id` vs `template_id`)
+2. Webhook wrote `"declined"` to enum that lacks that value → PostgreSQL constraint violation
+3. POST /api/contracts created without `emit()` → telemetry gap
+4. Auth header used `Authorization: Bearer` instead of `X-Service-Key` convention
+5. `sendEmployeeContract` autonomous instead of suggest-confirm flow
+6. Hardcoded Tailwind colors (blue-500, green-500, yellow-500) throughout UI
+
+### Learnings captured
+1. **Always verify Botsson tool schemas against `database.types.ts`** — 3 agents independently caught the same column mismatches. Plans written from memory drift from reality fast.
+2. **Service-to-service auth is `X-Service-Key`, not Bearer** — second time this pattern has been confused.
+3. **Irreversible AI actions belong in `suggestTools`** — `confirm`/`autonomous` authority levels expose tools without enforced UI confirmation. The suggest tier is the only one that gates on user confirmation.
+
+### Verdict held
+All fixes applied in single commit (`2fbdbdf7`). Typecheck 27/27 passing. Architecture untouched — only implementation accuracy fixes.
+
+---
+
+## 2026-04-06 — Employee Contract Management R2 Re-Review
+
+**Type:** feature (re-review after R1 fixes)
+**Verdict:** REJECT — 3 new blockers found by tracing end-to-end flow
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator, frontend-designer, narrator
+
+### What R2 found that R1 missed
+R1 reviewed each side of the feature in isolation. R2 traced the integration and found 3 new blocking bugs:
+
+1. **B1 RUNTIME BUG (Supervisor):** Drawer sent `{field_values}` but route Zod schema expects `{overrides}`. Drawer read `id` from response but route returned `{contract_id}`. The send-contract user flow was broken on first use. Pure typecheck couldn't catch this — local type annotations on `await response.json()` are unchecked claims.
+
+2. **B2/NEW-3 INVARIANT (Steward):** Botsson `createEmployeeContract` had no `emit()` call. Silent mutation path through agent layer — bypassed activity_trail, PostHog, and engine_event. Violation of "no mutation without emit".
+
+3. **B3/NEW-4 SECURITY (Steward):** POST /api/contracts had no role check. Any authenticated workspace member (including employees) could create contracts for any profile. Privilege escalation vector.
+
+### Fix path
+- B1: Drawer body shape aligned to Zod schema, response destructure fixed (commit `51b7b49c`)
+- B2: First attempt wrote directly to activity_trail (incomplete). Second attempt refactored `@smartout/telemetry` package to use `globalThis["window"]` instead of `typeof window`, allowing import from server-only `@smartout/ai` (commit `d92a597e`)
+- B3: Added admin/owner role check in route handler with user-scoped client (commit `51b7b49c`)
+- Regression tests + 2 learnings filed (commit `3ce3ec71`)
+
+### Process learning
+End-to-end review IS different from per-file review. For features with drawer→API→DB flows, the reviewer must trace every payload field both directions. Captured as Learning 0023.
+
+---
+
+## 2026-04-07 — Employee Contract Management R3 Verification
+
+**Type:** feature (third review)
+**Verdict:** APPROVE WITH CHANGES — 0 new blockers, 2 closure-blockers tracked
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator, frontend-designer
+
+### Gate status
+- **Merge to development:** GREEN — all R2 blockers verified fixed by 4 independent reviewers
+- **Feature closure:** YELLOW — 2 items tracked
+
+### Closure-blockers (must address before `/close-feature`)
+1. **NEW-5 — `as never` cast on webhook line 225.** Gated on type regen. Local Supabase has migration drift from parallel worktree work; type regen requires resolving drift first. Tracked as closure-blocker, not merge-blocker.
+2. **PII (personnummer) handling decision.** Personnummer flows through placeholder map to DocuSeal. Needs Pontus decision + ADR. Three options on table: encrypt at rest, defer to DocuSeal entirely, or split into separate restricted-access table.
+
+### Backlog (track, don't block)
+- Rename Test 1 in contracts-api.spec.ts to reflect Zod silent-strip (Supervisor)
+- Document or widen route response shape for `recipient_name` (Supervisor)
+- Extract `requireWorkspaceAdmin()` helper if a 4th caller appears (Steward)
+- Audit codebase for other `as never` casts after type regen (Steward)
+
+### Process observation: Convergence pattern
+R1: 6 blockers → R2: 3 new blockers (in fixes) → R3: 0 new blockers. This is healthy convergence: find → fix → verify → ship. Council depth (3 rounds) was right for this surface area. Simpler features should converge in 2 rounds; cascade-touching features may need 4+. **Council depth scales with cross-cutting surface area.**
+
+### Verdict held
+4 reviewers converged on ship. Steward: "From the agent architecture perspective: this is the right fix in the right place. No follow-up needed." Supervisor: "Ship it, log items as follow-ups." Frontend: grep verified zero hardcoded palette colors.

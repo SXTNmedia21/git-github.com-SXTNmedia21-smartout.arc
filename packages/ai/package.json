@@ -135,13 +135,18 @@
     "build": "npx tsc && node ../../scripts/fix-esm-imports.mjs",
     "lint": "eslint src/",
     "typecheck": "npx tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "eval": "vitest run --config vitest.eval.config.ts",
     "clean": "rimraf dist .turbo tsconfig.tsbuildinfo"
   },
   "dependencies": {
     "@ai-sdk/mcp": "^1.0.8",
     "@openrouter/ai-sdk-provider": "^2.2.3",
     "@smartout/supabase": "workspace:*",
+    "@smartout/telemetry": "workspace:*",
     "@smartout/types": "workspace:*",
+    "@smartout/utils": "workspace:*",
     "@supabase/supabase-js": "2.49.4",
     "ai": "^6.0.103",
     "zod": "^3.25.76"
@@ -149,6 +154,7 @@
   "devDependencies": {
     "@smartout/eslint-config": "workspace:^",
     "@smartout/typescript-config": "workspace:*",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.0.18"
   }
 }

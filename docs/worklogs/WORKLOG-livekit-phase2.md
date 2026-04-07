@@ -22,7 +22,7 @@ tags: [livekit, voice, push-to-talk, calls]
 - [x] Task 4: Web Hooks + API Routes — 8 hooks (use-livekit-call, use-call-state, use-call-history, use-start-call, use-call-invite, use-call-signaling, use-push-to-talk, use-call-realtime), 5 API routes
 - [x] Task 5: Web Components + Integration — CallBar, PTTButton, IncomingCallOverlay, GroupCallBanner, CallHistory, ActiveSpeakerIndicator
 - [x] Task 6: Mobile Hooks + Components — 3 hooks (use-livekit-call, use-call-signaling, use-push-to-talk), 5 components (CallBar, PTTButton, IncomingCallScreen, GroupCallBanner, CallHistoryList)
-- [x] Task 7: Polish — ADR-0058, ADR-0059, reference docs, worklog, decision/learning logs
+- [x] Task 7: Polish — ADR-0058, ADR-0054 (was ADR-0059, renumbered 2026-04-07), reference docs, worklog, decision/learning logs
 
 ## Remaining
 
@@ -40,7 +40,7 @@ tags: [livekit, voice, push-to-talk, calls]
 | Date       | Decision                                        | Reason                                           |
 | ---------- | ----------------------------------------------- | ------------------------------------------------ |
 | 2026-03-22 | ADR-0058: LiveKit as WebRTC provider            | Deno SDK, RN support, AI agents, EU, open source |
-| 2026-03-22 | ADR-0059: Edge Functions own call orchestration | Mobile parity, singular truth, webhook stability |
+| 2026-03-22 | ADR-0054: Edge Functions own call orchestration (was ADR-0059) | Mobile parity, singular truth, webhook stability |
 | 2026-03-22 | Signaling via Supabase Realtime Broadcast       | No custom WebSocket server, workspace-scoped     |
 | 2026-03-22 | Shared data layer in packages/walkieTalkie      | Web + mobile identical mutations                 |
 | 2026-03-22 | Room name format: {workspaceId}:{channelId}     | Parseable by webhooks for DB reconciliation      |

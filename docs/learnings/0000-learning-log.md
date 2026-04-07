@@ -1,7 +1,7 @@
 ---
 title: Learning Log
 status: in_progress
-updated: 2026-03-28
+updated: 2026-04-07
 created: 2026-03-26
 module: schedule
 tags: [learnings]
@@ -19,6 +19,7 @@ tags: [learnings]
 | 6   | 2026-03-28 | Live ops feed must normalize mixed human/agent/system events before first-screen rendering                              | Prevented noisy timeline and authority confusion in cockpit V1                       |
 | 7   | 2026-03-28 | Temporal shift lock must be DB-canonical across web/voice/MCP channels                                                  | Prevented bypass risk from service-role and side-channel writes                      |
 | 8   | 2026-03-28 | Absence approval flow is a missing prerequisite — status field exists but no transition logic, no UI, no hooks          | Any absence-triggered workflow (smart-cover, payroll, guardian) will fail without it |
+| 25  | 2026-04-07 | Stage Engine WebSockets (`/ws/:sessionId`, `/guardian/ws`) + in-process guardian-bus are structural Vercel Fluid Compute blockers | Future Vercel migration of stage-engine requires WS→SSE refactor + guardian-bus externalization first. shift-mcp is the only clean-migration candidate. See learning 0025. |
 
 module: dashboard
 tags: [learnings]
@@ -29,3 +30,17 @@ tags: [learnings]
 
 | #   | Date | Learning | Impact |
 | --- | ---- | -------- | ------ |
+
+---
+
+module: contracts
+tags: [learnings]
+
+---
+
+# Learning Log — employee-contract-management
+
+| #   | Date       | Learning                                                                                                                                                                                  | Impact                                                                                                                                      |
+| --- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | 2026-04-07 | Drawer→API boundary requires end-to-end shape verification — Zod silently strips unknown keys, typecheck doesn't catch it ([0026](0026-drawer-api-boundary-verification.md))             | Adds API-level regression test pattern + code review checklist for drawer→route flows                                                       |
+| 2   | 2026-04-07 | Every Botsson mutation tool must call emit() — capability layer is part of telemetry coverage ([0027](0027-botsson-mutation-tools-must-emit.md))                                          | Refactored telemetry to be importable from server-only packages; added Botsson emit pattern to review checklist                             |

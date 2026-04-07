@@ -60,7 +60,7 @@ tags: [guardian, capability, stage-engine, websocket, dashboard]
 
 ### Closure Prep
 
-- [x] ADR-0049: Guardian WebSocket architecture decision
+- [x] ADR-0052: Guardian WebSocket architecture decision (was ADR-0049, renumbered 2026-04-07)
 - [x] API key RLS + JWT UPDATE policies on guardian_signal (20260314200000)
 - [x] Learning log entries (2 learnings: WS auth, event dedup)
 - [x] Fixed stage engine default URL to port 5022
@@ -97,4 +97,4 @@ tags: [guardian, capability, stage-engine, websocket, dashboard]
 | 2026-03-14 | —     | All 8 implementation tasks complete (11 commits)                            |
 | 2026-03-14 | —     | Code review: 3 critical + 5 important issues found                          |
 | 2026-03-14 | —     | All review fixes applied and committed                                      |
-| 2026-03-14 | —     | ADR-0049, learning logs, guardian_signal RLS policies, port fix committed   |
+| 2026-03-14 | —     | ADR-0049 (now ADR-0052), learning logs, guardian_signal RLS policies, port fix committed   |

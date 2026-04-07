@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
   // Find contract by DocuSeal submission ID
   const { data: contract, error: findError } = await admin
     .from("contract")
-    .select("contract_id, status, workspace_id")
+    .select("contract_id, status, workspace_id, contract_type")
     .eq("docuseal_submission_id", String(data.submission_id))
     .single();
 
@@ -179,6 +179,18 @@ export async function POST(request: NextRequest) {
       .update({ status: "skipped", skip_reason: "contract_declined" })
       .eq("contract_id", contract.contract_id)
       .eq("status", "scheduled");
+
+    // For employee contracts, also update employment_contract status.
+    // "terminated" is the closest valid enum value for declined/cancelled contracts.
+    if (contract.contract_type === "employee") {
+      await admin
+        .from("employment_contract")
+        .update({
+          status: "terminated" as Database["public"]["Enums"]["contract_status"],
+          updated_at: new Date().toISOString(),
+        } as Record<string, unknown>)
+        .eq("signing_contract_id", contract.contract_id);
+    }
   }
 
   // On signing: fetch audit log + documents from DocuSeal via contract-service
@@ -196,23 +208,37 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // On signing: cancel pending reminders + update workspace contract status
+  // On signing: cancel pending reminders + branch on contract_type
   if (newStatus === "signed" && contract.workspace_id) {
-    await Promise.all([
-      admin
-        .from("contract_reminder")
-        .update({ status: "skipped", skip_reason: "contract_signed" })
-        .eq("contract_id", contract.contract_id)
-        .eq("status", "scheduled"),
-      admin
+    // Cancel reminders for all contract types
+    await admin
+      .from("contract_reminder")
+      .update({ status: "skipped", skip_reason: "contract_signed" })
+      .eq("contract_id", contract.contract_id)
+      .eq("status", "scheduled");
+
+    if (contract.contract_type === "employee") {
+      // Sync signing status to employment_contract
+      await admin
+        .from("employment_contract")
+        .update({
+          status: "signed" as never,
+          document_url: updates.signed_pdf_url ?? null,
+          signed_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        } as Record<string, unknown>)
+        .eq("signing_contract_id", contract.contract_id);
+    } else {
+      // SaaS contracts: update workspace contract status (existing behavior)
+      await admin
         .from("workspace")
         .update({
           contract_status: "active",
           active_contract_id: contract.contract_id,
           updated_at: new Date().toISOString(),
         })
-        .eq("workspace_id", contract.workspace_id),
-    ]);
+        .eq("workspace_id", contract.workspace_id);
+    }
   }
 
   // Emit telemetry

@@ -1,11 +1,11 @@
 ---
 title: "Build Order (Detailed Implementation Plan)"
 id: PLAN_BUILD_ORDER
-version: "3.0"
-status: canonical
+version: "3.1"
+status: stale
 layer: plan
 created: 2026-02-24
-updated: 2026-03-17
+updated: 2026-04-07
 author: pontus
 supersedes: []
 superseded_by: null
@@ -21,17 +21,21 @@ changelog:
     change: "Added YAML frontmatter"
   - date: 2026-03-01
     change: "Status audit — marked Wave 1 progress (Org Structure done, Onboarding partial, Settings stub)"
-  - date: 2026-04-11
-    change: "Major audit — marked all built features across Waves 0-6, added cross-cutting systems, updated percentages"
+  - date: 2026-03-11
+    change: "Major audit — marked all built features across Waves 0-6, added cross-cutting systems, updated percentages (typo-corrected from 2026-04-11)"
   - date: 2026-03-17
     change: "Full codebase audit — updated counts (130 migrations, 72 enums, 31 Edge Functions, 51 ADRs, 147 tables), updated worktree status, verified all wave percentages against code"
+  - date: 2026-04-07
+    change: "Flagged stale — wave percentages and counts not re-audited since 2026-03-17. Counts are now ~75 ADRs, more migrations. Use STATE.md/DASHBOARD.md for current state, this doc for waves narrative only."
 ---
 
 # Smartout — Build Order (Detailed Implementation Plan)
 
 > Step-by-step implementation tasks for each wave.
 > This is the execution companion to [`project-roadmap.md`](roadmaps/project-roadmap.md).
-> Last updated: 2026-03-17
+> Last full audit: 2026-03-17 — counts and percentages below are from that snapshot.
+>
+> ⚠️ **STALE — flagged 2026-04-07.** Wave structure and dependency order are still valid. Counts (ADRs, migrations, enums) and "% built" percentages are stale. For current state see `STATE.md` + `DASHBOARD.md`.
 
 ---
 

@@ -1,9 +1,10 @@
 ---
 title: "STATE — System State of Truth"
-status: canonical
-updated: 2026-03-28
+status: in_progress
+updated: 2026-04-07
 created: 2026-03-08
-last-verified: 2026-03-28
+last-verified: 2026-04-07 (light touch-up only)
+last-full-audit: 2026-03-27
 module: all
 tags: [state, audit, gaps, architecture, cascade]
 ---
@@ -12,48 +13,110 @@ tags: [state, audit, gaps, architecture, cascade]
 
 > Single source of truth for what exists, what's missing, and what to build next.
 > Organized by the Cascade Core canonical model: **I1 + 6D + 4C + K1a/K1b**.
-> Updated weekly. Last audit: 2026-03-27.
+> Last full audit: 2026-03-27. Last light touch-up: 2026-04-07.
 > Canonical spec: `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`
+
+> **Trust hierarchy:** Active Work + ADR/Learning deltas + Recently Merged below are current as of 2026-04-07. Architecture sections (Cascade dimensions, 10 gaps, build order) were last verified 2026-03-27 — structure is still valid but specific counts and "% built" may have drifted. For worktree truth see `docs/DASHBOARD.md`. For session narrative see `~/dev/second-brain-v2/ops/activity-log.md` (per ADR-0075). See also `docs/ORIENTATION.md` for the boot-sequence cheat sheet.
 
 ---
 
-## Active Work (2026-03-28)
+## Active Work (2026-04-07 — quick reconciliation, not full audit)
 
-2 worktrees active (parked). 12 stale remote branches deleted 2026-03-28. DB reset + payroll schema fix applied.
+Authoritative source: `docs/DASHBOARD.md`. This section is a snapshot only.
 
 ### Active Worktrees
 
-| WT   | Branch                    | Status | Notes                                                                   |
-| ---- | ------------------------- | ------ | ----------------------------------------------------------------------- |
-| wt-3 | `feat/emma-arena-views`   | parked | Rebased on dev. Spec + settings persistence. Implementation not started |
-| wt-5 | `feat/sjohuset-simulator` | parked | Rebased, 10 commits. PR #72 (diverged). Parked                          |
+| WT   | Branch                       | Status      | Notes                                                |
+| ---- | ---------------------------- | ----------- | ---------------------------------------------------- |
+| wt-1 | `feat/journey-harness-poc`   | in_progress | Council-verified plan, 11 tasks, ADR-0071 inheritance |
+| wt-3 | `feat/agent-harness`         | paused      | Phase 1-5 done, ADR-0073, ready for `/close-feature` |
+
+All other worktrees free. See DASHBOARD for full slot map.
 
 ### Parked Branches (no worktree)
 
-| Branch            | Status | Notes                                                                                                 |
-| ----------------- | ------ | ----------------------------------------------------------------------------------------------------- |
-| `feat/onboarding` | parked | FlowPlayer + alkohol flow. Rebased on dev, typefix committed. framer-motion devDep missing in ui pkg. |
+None (all branches merged or cleaned 2026-04-07).
 
-### Recently Merged (since 2026-03-26)
+### Recently Merged (since 2026-03-26, authoritative: DASHBOARD.md)
 
-| Branch                              | What                                       |
-| ----------------------------------- | ------------------------------------------ |
-| `feat/komm-migration`               | Communication system consolidation         |
-| `fix/comms-council-fixes`           | Council review feedback on comms           |
-| `feat/landing-token-migration`      | Landing page token migration               |
-| `feat/setup-wizard-shell-migration` | Unified wizard shell (ADR-0060/0061)       |
-| `feat/entity-drawer`                | Entity detail drawer                       |
-| `feat/notification-fixes`           | Notification system fixes                  |
-| `feat/setup-guide-navigation`       | Setup guide routing                        |
-| `feat/setup-flow-redesign`          | Join/setup flow redesign                   |
-| `feat/onboarding-cleanup`           | Onboarding wizard cleanup                  |
-| `feat/nordic-split-design-sync`     | Dark mode tokens + section comments        |
-| `feat/mobile-wiring-fixes`          | 7 orphaned mobile features connected       |
-| `feat/website-factory-b2`           | Security fixes — auth, RLS, N+1, telemetry |
+| Date       | Branch                               | What                                             |
+| ---------- | ------------------------------------ | ------------------------------------------------ |
+| 2026-04-07 | `feat/employee-contract-management`  | Employee contract CRUD + invitation SECURITY DEFINER RPC |
+| 2026-04-07 | `feat/tooling-optimization`          | Skills authority model, CLAUDE.md slim           |
+| 2026-04-07 | `feat/invitation-rls-fix`            | Invitation RLS hardening                         |
+| 2026-04-06 | `feat/deployment-pipeline`           | 3-branch flow, ADR-0071 preview-env              |
+| 2026-04-06 | `feat/council-review-fixes`          | 6 blocking issues from council review            |
+| 2026-03-29 | `feat/interactive-dashboard`         | Dashboard interactivity phase                    |
+| 2026-03-29 | `feat/telemetry-botsson-reactive`    | Botsson reactive telemetry                       |
+| 2026-03-28 | `feat/telegram-walkai-adapter`       | Telegram admin bridge (ADR-0059)                 |
+| 2026-03-28 | `feat/profession-system`             | Profession system                                |
+| 2026-03-28 | `feat/sjohuset-simulator`            | Sjøhuset simulator                               |
+| 2026-03-28 | `feat/season-operations-loop`        | Season ops loop                                  |
+| 2026-03-28 | `feat/financial-esp-ux`              | Financial ESP UX                                 |
+| 2026-03-28 | `feat/gamification-foundation`       | Gamification foundation                          |
+| 2026-03-28 | `feat/komm-migration`                | Communication system consolidation               |
+| 2026-03-28 | `fix/comms-council-fixes`            | Council review feedback on comms                 |
+| 2026-03-28 | `feat/landing-token-migration`       | Landing page token migration                     |
+| 2026-03-28 | `feat/setup-wizard-shell-migration`  | Unified wizard shell (ADR-0060/0061)             |
+| 2026-03-27 | `feat/entity-drawer`                 | Entity detail drawer                             |
+| 2026-03-27 | `feat/notification-fixes`            | Notification system fixes                        |
+| 2026-03-27 | `feat/setup-guide-navigation`        | Setup guide routing                              |
+| 2026-03-27 | `feat/setup-flow-redesign`           | Join/setup flow redesign                         |
+| 2026-03-27 | `feat/onboarding-cleanup`            | Onboarding wizard cleanup                        |
+| 2026-03-27 | `feat/nordic-split-design-sync`      | Dark mode tokens + section comments              |
+| 2026-03-27 | `feat/mobile-wiring-fixes`           | 7 orphaned mobile features connected             |
+| 2026-03-27 | `feat/website-factory-b2`            | Security fixes — auth, RLS, N+1, telemetry       |
+
+Also shipped since last audit (see `activity-log.md` for full closure events): `feat/agent-harness` (wt-3, Phase 1-5 done, **paused awaiting /close-feature**, ADR-0073).
 
 ### Free Worktree Slots
 
-wt-1, wt-2, wt-4, wt-6, wt-7, wt-8, wt-9, wt-10, wt-11, wt-12, wt-13, wt-15, wt-20
+wt-2, wt-4, wt-5, wt-6, wt-7, wt-8, wt-9, wt-10, wt-11, wt-12, wt-13, wt-15, wt-20 (wt-1 and wt-3 occupied)
+
+---
+
+## ADR / Learning Changes Since Last Full Audit (2026-03-27 → 2026-04-07)
+
+### New ADRs (9 accepted/proposed)
+
+| ADR  | Title                                     | Status   | Why it matters |
+| ---- | ----------------------------------------- | -------- | -------------- |
+| 0066 | Temporal Shift Lock Architecture          | accepted | DB-canonical lock across web/voice/MCP channels |
+| 0067 | Smart Cover via Event Engine              | accepted | Shift cover workflow via engine_process |
+| 0068 | Simulation Schema and Service             | proposed | Cascade simulator for live demo + CI |
+| 0069 | Session Execution Ownership (EF + Engine) | accepted | EF owns execution, Engine owns side-effects |
+| 0070 | Emma-Wizard Bridge                        | accepted | Tool-based agent control over wizard flows, supersedes parts of ADR-0049 |
+| 0071 | Preview Environment Architecture          | accepted | 3-branch flow (development → preview → main), asymmetric Docker |
+| 0072 | Vercel Multi-Service Migration — Rejected | accepted | Council 3/3: undocumented experimentalServices, WebSockets blocker |
+| 0073 | AI Eval Harness                           | accepted | Two-layer test surface (unit mocked + evals gated on RUN_EVALS=1) |
+| 0074 | Protocol Verification Engine              | accepted | Mission target=DB, JSONB storage, extends ADR-0031/0038 |
+
+### ADR Number Collisions Resolved 2026-04-07
+
+Six total collisions discovered during docs audit, resolved via renumbering into 0052/0053/0054 gaps:
+
+| Was | Became | Reason kept original slot                       |
+| --- | ------ | ------------------------------------------------ |
+| 0049 guardian-websocket        | **0052** | agent-sdk kept 0049 (ADR-0070 supersedes-link)    |
+| 0058 simulation-schema         | **0053** | livekit kept 0058 (registered first, WORKLOG refs) |
+| 0059 edge-functions-own-call   | **0054** | platform-admin kept 0059 (HANDOFF + council refs) |
+| 0071 protocol-verification     | **0074** | preview-environment kept 0071 (7+ live refs: CI, husky, ADR-0072) |
+
+### Learning Log — New + Renumbered (since 2026-03-27)
+
+New learnings 0018–0027 (10 entries): runtime doc truth sync, live ops feed hygiene, shift-lock multi-channel enforcement, absence approval prerequisite, disabled toggle semantics, journey DB tables = dev tracking, rescue != re-engagement, stage engine WebSocket Vercel blocker, drawer API boundary verification, Botsson mutation tools must emit.
+
+Learning collisions resolved:
+- 0001 websocket-jwt-auth → **0015** (turbopack kept 0001)
+- 0002 guardian-event-dedup → **0028** (middleware-cookie kept 0002)
+
+### Final Counts (verified 2026-04-07)
+
+- **ADRs:** 75 total, 0001–0074, no gaps, no collisions
+- **Learnings:** 29 total, 0001–0028, no gaps, no collisions
+- **Journeys:** 91 total (was 31 in stale INDEX)
+- **docs/ root:** 5 files (was 22 before cleanup)
+- **docs/handoffs/:** 34 files (consolidated from root + subdir)
 
 ---
 
@@ -735,3 +798,19 @@ website-related domains.
 | **Overall**              |             | **~55%** |                                                                            |
 
 **Single most important next step:** Add end-to-end verification for shift publish -> engine dispatch -> upsert_session -> hooks/tasks, then build change proposal lifecycle (C4).
+
+---
+
+## 9. Known Environment Quirks
+
+Things that work on Pontus's machine but require manual setup or workarounds on a fresh clone.
+
+### vercel-plugin/ai-sdk validator false-positive on `generateObject`
+
+The Claude Code `vercel-plugin/ai-sdk` PostToolUse validator falsely claims `generateObject was removed in AI SDK v6` and blocks Edit/Write on any file mentioning the function. Verified empirically wrong (function exists at `node_modules/.pnpm/ai@6.0.103/dist/index.d.ts:5158`, exported at line 6383, `NoObjectGeneratedError` class also present). Vercel's own `common-errors.md:73` says "deprecated", not removed.
+
+**Workaround**: run `node scripts/patch-vercel-plugin-ai-sdk.mjs` to idempotently downgrade the rule severity (`error` → `recommended`) and correct the message text in all affected plugin cache files. The rule lives in 10 files across 4 plugin installations, including the `generated/skill-manifest.json` files which are what the validator actually loads at runtime.
+
+**When to re-run**: after any Claude Code plugin auto-update (cache files get rewritten), or if the validator suddenly starts producing the false-positive error.
+
+**Long-term fix**: file an upstream PR against `vercel/vercel-plugin` to land the correction once and for all. Tracked in `docs/decisions/0073-ai-eval-harness.md` (hook addendum).
