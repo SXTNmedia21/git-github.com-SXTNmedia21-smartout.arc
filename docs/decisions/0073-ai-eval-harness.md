@@ -1,5 +1,5 @@
 ---
-title: "ADR-0072 — Eval harness for packages/ai"
+title: "ADR-0073 — Eval harness for packages/ai"
 status: accepted
 updated: 2026-04-06
 created: 2026-04-06
@@ -7,7 +7,7 @@ module: ai-agent
 tags: [adr, ai, testing, eval]
 ---
 
-# ADR-0072 — Eval harness for `packages/ai`
+# ADR-0073 — Eval harness for `packages/ai`
 
 ## Context
 

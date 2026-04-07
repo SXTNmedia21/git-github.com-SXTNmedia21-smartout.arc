@@ -12,7 +12,7 @@ import { z } from "zod";
  * as the intent-classifier bug. The describes are preserved as JSDoc on
  * each field below; they document the same intent without breaking the
  * wire format. The system prompt in `agents/onboarding.ts` already
- * instructs the model what each field means. See ADR-0072 addendum.
+ * instructs the model what each field means. See ADR-0073 addendum.
  *
  * Field guide (formerly Zod describes):
  *   company_name        — The name of the business

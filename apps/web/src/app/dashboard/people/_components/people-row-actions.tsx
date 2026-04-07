@@ -11,6 +11,7 @@ import {
   UserX,
   XCircle,
   RefreshCw,
+  FileSignature,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -40,6 +41,7 @@ type PeopleRowActionsProps = {
   onDepartmentChange: (profileId: string, departmentId: string) => void;
   onConfirmAction: (action: ConfirmAction) => void;
   onResendInvite: (invitationId: string, email: string) => void;
+  onSendContract?: (profileId: string) => void;
 };
 
 const ROLE_HIERARCHY: Record<ProfileRole, ProfileRole[]> = {
@@ -59,6 +61,7 @@ export function PeopleRowActions({
   onDepartmentChange,
   onConfirmAction,
   onResendInvite,
+  onSendContract,
 }: PeopleRowActionsProps) {
   const isAdmin = currentUserRole === "owner" || currentUserRole === "admin";
   const isInvited = employee.status === "invited";
@@ -179,6 +182,17 @@ export function PeopleRowActions({
                   ))}
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
+            )}
+
+            {/* Send contract */}
+            {employee.profileId && onSendContract && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => onSendContract(employee.profileId!)}>
+                  <FileSignature className="mr-2 h-4 w-4" />
+                  Send kontrakt
+                </DropdownMenuItem>
+              </>
             )}
 
             <DropdownMenuSeparator />

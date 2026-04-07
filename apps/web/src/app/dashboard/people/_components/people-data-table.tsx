@@ -23,6 +23,7 @@ import { InviteMemberDialog } from "./invite-member-dialog";
 import { PeopleRowActions } from "./people-row-actions";
 import type { ConfirmAction } from "./people-row-actions";
 import { ConfirmationDialog } from "@/components/platform-admin/confirmation-dialog";
+import { ContractSendDrawer } from "../../contracts/_components/contract-send-drawer";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -86,6 +87,7 @@ export function PeopleDataTable({
   const isTransitioning = useRef(false);
 
   const workspaceId = workspaceData?.workspace_id ?? "";
+  const [contractProfileId, setContractProfileId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [advancedFilters, setAdvancedFilters] = useState({
     statuses: [] as string[],
@@ -834,6 +836,7 @@ export function PeopleDataTable({
                       onDepartmentChange={handleDepartmentChange}
                       onConfirmAction={handleConfirmAction}
                       onResendInvite={handleResendInvite}
+                      onSendContract={setContractProfileId}
                     />
                   </td>
                 </tr>
@@ -869,6 +872,20 @@ export function PeopleDataTable({
         confirmLabel={confirmDialog.confirmLabel}
         onConfirm={confirmDialog.onConfirm}
         variant={confirmDialog.variant}
+      />
+
+      {/* Contract send drawer — opened from row action menu */}
+      <ContractSendDrawer
+        profileId={contractProfileId ?? ""}
+        workspaceId={workspaceData?.workspace_id ?? ""}
+        open={!!contractProfileId}
+        onOpenChange={(open) => {
+          if (!open) setContractProfileId(null);
+        }}
+        onSuccess={() => {
+          setContractProfileId(null);
+          onRefresh();
+        }}
       />
     </div>
   );

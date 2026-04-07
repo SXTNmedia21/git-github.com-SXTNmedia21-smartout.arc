@@ -43,7 +43,7 @@ function getModel() {
   // unparseable structured output via OpenRouter and was discovered broken
   // in production by the eval harness (intent-classifier had the same bug).
   // Both onboarding code paths (tool-calling agent and intelligence
-  // extraction) share this getModel() so the fix lands once. See ADR-0072
+  // extraction) share this getModel() so the fix lands once. See ADR-0073
   // addendum.
   return openrouter("anthropic/claude-sonnet-4.6");
 }

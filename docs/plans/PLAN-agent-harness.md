@@ -65,7 +65,7 @@ packages/ai/
 - [x] Task 5 — Eval runner implemented as a gated Vitest spec (`intent-classifier.eval.ts`) — simpler than a separate CLI and reuses the test infrastructure
 - [x] Task 6 — `scoring.ts` with `scoreFixture`, `buildReport`, `renderReportMarkdown` (per-capability accuracy + hedged outcome category)
 - [x] Task 7 — `pnpm --filter @smartout/ai eval` wired + dual-gated (`RUN_EVALS=1` + `OPENROUTER_API_KEY`)
-- [x] Task 8 — ADR-0072 written and registered in decision log
+- [x] Task 8 — ADR-0073 written and registered in decision log
 - [ ] Task 9 — Update `docs/STATE.md` and `MODULE_AGENT_SDK.md` references (deferred to closure)
 - [ ] Task 10 — User journey doc: "Developer adds fixture when shipping new capability" (deferred to closure)
 
@@ -75,7 +75,7 @@ Extensions to Phase 1 harness. Additive only, no production code changes.
 
 - [x] P2-Task 1 — Mocked classifier unit tests (`src/router/__tests__/intent-classifier.test.ts`, 7 tests: happy path, missing key, env/options precedence, prompt assembly, error propagation). Fills the Task 2 gap from Phase 1.
 - [x] P2-Task 2 — `reports/latest-<suite>.md` stable pointer alongside timestamped history files.
-- [x] P2-Task 3 — ADR-0072 addendum documenting Phase 2 scope and deliberately-deferred cost tracking.
+- [x] P2-Task 3 — ADR-0073 addendum documenting Phase 2 scope and deliberately-deferred cost tracking.
 - [~] P2-Task 4 — Cost/usage tracking (`inputTokens`, `outputTokens`): **deferred**, requires refactoring `classifyIntent` return type which violates additive-only. Notes in ADR addendum.
 - [~] P2-Task 5 — Tool-selector evals: **still deferred** until intent-classifier baseline is run against real model.
 
@@ -90,7 +90,7 @@ The harness was pointed at OpenRouter for the first time. It immediately found t
 - [x] P2.1-Task 5 — Fix #3: remove `.min(0).max(1)` from `confidence`. Anthropic tool-input format rejects number range constraints.
 - [x] P2.1-Task 6 — Bump `vitest.eval.config.ts` `testTimeout` 60s → 300s (sonnet-4.6 averages ~5s/call, 11 fixtures need ~55s sequential).
 - [x] P2.1-Task 7 — Re-run eval. Result: **strict 90.9% (10/11), 0 errors, 52.6s total**.
-- [x] P2.1-Task 8 — ADR-0072 addendum documenting all three bugs, the fix, the baseline, and the knock-on finding for `agents/onboarding.ts` (same model string, almost certainly also broken).
+- [x] P2.1-Task 8 — ADR-0073 addendum documenting all three bugs, the fix, the baseline, and the knock-on finding for `agents/onboarding.ts` (same model string, almost certainly also broken).
 - [ ] P2.1-Task 9 — **FOLLOW-UP**: verify and fix `packages/ai/src/agents/onboarding.ts:42` (same `anthropic/claude-sonnet-4` model string, same generateObject pattern, almost certainly broken in prod). Outside agent-harness scope; needs its own change.
 - [ ] P2.1-Task 10 — **FOLLOW-UP**: relabel `training-protocol-lookup` fixture or sharpen training/knowledge prompt distinction. The single fail is a fair model call, not a regression.
 
@@ -117,7 +117,7 @@ The original ADR called for "tool-selector evals". On reading the code I correct
 - [x] P3-Task 5 — Run all unit tests: **28/28 pass** (7 scoring + 7 classifier + 14 tool-selector).
 - [x] P3-Task 6 — `pnpm turbo typecheck --filter=@smartout/ai`: 0 errors.
 - [x] P3-Task 7 — Fix broken `vercel-plugin/ai-sdk` PostToolUse validator that falsely claimed `generateObject` was removed in AI SDK v6. Verified by grep against installed `ai@6.0.103/dist/index.d.ts` (line 5158 + 6383 + `NoObjectGeneratedError` class). Patched `overlay.yaml` and `SKILL.md` in plugin cache: severity `error → recommended`, message corrected to "deprecated, still exported in 6.0.103". ⚠️ Plugin cache edits will revert on plugin update — long-term needs upstream PR or fork.
-- [x] P3-Task 8 — ADR-0072 Phase 3 + Hook addendums.
+- [x] P3-Task 8 — ADR-0073 Phase 3 + Hook addendums.
 
 ### Phase 3 deltas
 
@@ -150,7 +150,7 @@ Extends the eval pattern from router (intent classification) to capability layer
 - [x] P4-Task 5 — Verify unit-test isolation: `pnpm test` does NOT include the new eval file.
 - [x] P4-Task 6 — Run baseline. **Schedule: strict 83.3% (5/6), lenient 100% (6/6), 0 errors, 36.5s.** Intent-classifier rerun in same execution: 90.9% (stable, identical to Phase 2.1 baseline).
 - [x] P4-Task 7 — Diagnose the single partial: `schedule-when-work-next-week` returned `days: 14` instead of expected `days: 7` for "Når jobber jeg neste uke?". **The model's interpretation is defensible** ("neste uke" can mean a 14-day window). Fixture mislabeling, not model bug.
-- [x] P4-Task 8 — ADR-0072 Phase 4 addendum.
+- [x] P4-Task 8 — ADR-0073 Phase 4 addendum.
 - [ ] P4-Task 9 — **FOLLOW-UP**: relabel `schedule-when-work-next-week` fixture to `args: { days: 14 }`, OR drop the args constraint, OR split into two fixtures.
 - [ ] P4-Task 10 — **FOLLOW-UP**: extend tool-call evals to next capability (operations, training, or guardian).
 
@@ -200,7 +200,7 @@ User pivoted mid-Phase-5 to fix the `agents/onboarding.ts` knock-on bug from Pha
 - [x] P4.5-Task 6 — Build `@smartout/ai` (53 ESM imports fixed by post-build script).
 - [x] P4.5-Task 7 — Smoke test: `extractOnboardingIntelligence` against real OpenRouter with a 4-message Norwegian conversation about "Solsiden Bistro". **Result: clean extraction, all mentioned fields populated, all unmentioned fields nullable. Exit 0.**
 - [x] P4.5-Task 8 — Verify Phase 1-4 regression: `pnpm test` → 28/28 still pass. No regression.
-- [x] P4.5-Task 9 — ADR-0072 Phase 4.5 addendum (onboarding fix + 10-file hook re-fix detail).
+- [x] P4.5-Task 9 — ADR-0073 Phase 4.5 addendum (onboarding fix + 10-file hook re-fix detail).
 - [ ] P4.5-Task 10 — **FOLLOW-UP**: Build a proper `onboarding.eval.ts` suite to permanently regression-test `extractOnboardingIntelligence` like the smoke test did once. Right now the function is verified by manual smoke test, not by an automated suite.
 
 ### Phase 4.5 deltas
