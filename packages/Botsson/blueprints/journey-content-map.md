@@ -275,14 +275,14 @@ Composition: `System intelligence (global) + Industry intelligence (specializati
 
 Key ADRs that define Botsson's operational context.
 
-| ADR                  | Title                                | Decision                                                                                                                                                                                                                                                                                   |
-| -------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| ADR-0042             | Agent Architecture                   | Extend Stage Engine with Agent Mode. Composable capability layers replace rigid engine model. Intent classifier with confidence escape hatch. Persistent memory (`engine_memory` + pgvector). Per-workspace authority (`engine_authority_config`). Vercel AI SDK over Anthropic Agent SDK. |
-| ADR-0049 (agent-sdk) | Agent SDK Package                    | Extract `@smartout/agent-sdk` from duplicated `useBotsson`. Single `useAgent(config)` hook. VoiceProvider interface (Ultravox + LiveKit). ClientTool registry with definition+implementation bundled. `buildToolKit()` converts to provider format.                                        |
-| ADR-0049 (guardian)  | Guardian WebSocket Architecture      | Direct WebSocket from stage engine at `/guardian/ws`. Zero-latency event delivery. Bidirectional: subscribe, change_stage, whisper. Events both broadcast AND persisted to `guardian_log`. All emission through `emitGuardianEvent()` in `guardian-bus.ts`.                                |
-| ADR-0051             | Unified AI Runtime System Definition | Single canonical runtime spec: `AI_RUNTIME_SYSTEM_DEFINITION_V1.md`. Mission mode, agent mode, guardian, guard-rails share one coherent model. All runtime contracts (contract envelope, context envelope, event envelope) centralized.                                                    |
-| ADR-0041             | Onboarding Wizard Step Architecture  | Step components with context hook. 15 step components + 4 drawers. `useOnboardingWizard` centralizes progressive save, auth tracking, finalization. `STEP_COMPONENTS` map in page.tsx.                                                                                                     |
-| ADR-0038             | Journey Agent & Output Generators    | AI-assisted journey definition wizard. 4 output generators (E2E Test, Doc, Linear, Botsson). 3 agent tools (lookup_journeys, check_duplicates, save_draft). 6 wizard phases: discovery -> classification -> steps -> testing -> documentation -> review.                                   |
+| ADR      | Title                                | Decision                                                                                                                                                                                                                                                                                             |
+| -------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ADR-0042 | Agent Architecture                   | Extend Stage Engine with Agent Mode. Composable capability layers replace rigid engine model. Intent classifier with confidence escape hatch. Persistent memory (`engine_memory` + pgvector). Per-workspace authority (`engine_authority_config`). Vercel AI SDK over Anthropic Agent SDK.           |
+| ADR-0049 | Agent SDK Package                    | Extract `@smartout/agent-sdk` from duplicated `useBotsson`. Single `useAgent(config)` hook. VoiceProvider interface (Ultravox + LiveKit). ClientTool registry with definition+implementation bundled. `buildToolKit()` converts to provider format.                                                  |
+| ADR-0052 | Guardian WebSocket Architecture      | Direct WebSocket from stage engine at `/guardian/ws`. Zero-latency event delivery. Bidirectional: subscribe, change_stage, whisper. Events both broadcast AND persisted to `guardian_log`. All emission through `emitGuardianEvent()` in `guardian-bus.ts`. (Renumbered from ADR-0049 on 2026-04-07) |
+| ADR-0051 | Unified AI Runtime System Definition | Single canonical runtime spec: `AI_RUNTIME_SYSTEM_DEFINITION_V1.md`. Mission mode, agent mode, guardian, guard-rails share one coherent model. All runtime contracts (contract envelope, context envelope, event envelope) centralized.                                                              |
+| ADR-0041 | Onboarding Wizard Step Architecture  | Step components with context hook. 15 step components + 4 drawers. `useOnboardingWizard` centralizes progressive save, auth tracking, finalization. `STEP_COMPONENTS` map in page.tsx.                                                                                                               |
+| ADR-0038 | Journey Agent & Output Generators    | AI-assisted journey definition wizard. 4 output generators (E2E Test, Doc, Linear, Botsson). 3 agent tools (lookup_journeys, check_duplicates, save_draft). 6 wizard phases: discovery -> classification -> steps -> testing -> documentation -> review.                                             |
 
 ---
 
@@ -465,7 +465,7 @@ createSession() -> "session.started" event
 
 ### 8.4 Admin Dashboard (Guardian Monitor)
 
-WebSocket at `/guardian/ws` (ADR-0049). Capabilities:
+WebSocket at `/guardian/ws` (ADR-0052). Capabilities:
 
 - **Watch** — all events in real-time
 - **Subscribe** — filter to specific session

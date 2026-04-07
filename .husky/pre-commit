@@ -134,3 +134,105 @@ if echo "$STAGED_DIFF" | grep -qE '^[+].*SUPABASE_SERVICE_ROLE_KEY=ey'; then
   echo ""
   exit 1
 fi
+
+# ============================================================
+# KNOWLEDGE SYSTEM HOOKS (ADR-0075 enforcement)
+# ============================================================
+
+# 3. ADR number collision check
+# Prevents the 2026-04-07 incident where parallel branches created
+# multiple ADRs with the same number (0049, 0058, 0059, 0071).
+ADR_DUPES=$(ls docs/decisions/ 2>/dev/null | grep -E '^[0-9]{4}-' | grep -v '^0000-' | awk -F- '{print $1}' | sort | uniq -d)
+if [ -n "$ADR_DUPES" ]; then
+  echo ""
+  echo "ERROR: Duplicate ADR numbers detected in docs/decisions/"
+  echo "  Colliding numbers:"
+  echo "$ADR_DUPES" | sed 's/^/    /'
+  echo "  Violation: ADR-0075 — each ADR number must be unique"
+  echo "  Resolve by renumbering the weaker-referenced ADR to the next gap."
+  echo ""
+  exit 1
+fi
+
+# 4. Learning number collision check (same rationale)
+LEARNING_DUPES=$(ls docs/learnings/ 2>/dev/null | grep -E '^[0-9]{4}-' | grep -v '^0000-' | awk -F- '{print $1}' | sort | uniq -d)
+if [ -n "$LEARNING_DUPES" ]; then
+  echo ""
+  echo "ERROR: Duplicate learning numbers detected in docs/learnings/"
+  echo "  Colliding numbers:"
+  echo "$LEARNING_DUPES" | sed 's/^/    /'
+  echo "  Violation: ADR-0075 — each learning number must be unique"
+  echo ""
+  exit 1
+fi
+
+# 5. SESSION.md resurrection check
+# Per ADR-0075, SESSION.md is deleted. Prevent it from being re-added.
+if git diff --cached --name-status | grep -qE '^A\s+docs/SESSION\.md$'; then
+  echo ""
+  echo "ERROR: docs/SESSION.md is deprecated and must not be re-added"
+  echo "  Per ADR-0075, session narrative lives in:"
+  echo "    - ~/dev/second-brain-v2/ops/activity-log.md (audit)"
+  echo "    - claude-mem via MCP (cross-session memory)"
+  echo "    - ~/.claude/projects/<repo>/memory/ (in-flight context)"
+  echo "  If you really need this, revisit the ADR first."
+  echo ""
+  exit 1
+fi
+
+# 6. DASHBOARD.md structure check
+# Per ADR-0075, DASHBOARD.md is pure git state — no history sections.
+if git diff --cached --name-only | grep -q '^docs/DASHBOARD\.md$'; then
+  if grep -qE '^## (Session History|Recent Closures)$' docs/DASHBOARD.md; then
+    echo ""
+    echo "ERROR: docs/DASHBOARD.md contains forbidden history sections"
+    echo "  Found: ## Session History or ## Recent Closures"
+    echo "  Violation: ADR-0075 — DASHBOARD.md is pure git state only"
+    echo "  History belongs in ~/dev/second-brain-v2/ops/activity-log.md"
+    echo ""
+    exit 1
+  fi
+fi
+
+# 7. Branch guard — protect development/preview/main from direct commits
+# Per ADR-0075 v1.1 council retrospective 2026-04-07: ADR-0075 was violated
+# by the commit that shipped ADR-0075 (cb7c7c60 was committed directly to
+# development in violation of ADR-0075's own resolved Open Q3). Cultural
+# rules in CLAUDE.md did not prevent this. This hook makes it mechanical.
+#
+# Allows merge commits (which is how feature branches integrate to development).
+# Blocks direct non-merge commits to development/preview/main.
+current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "")
+if [ "$current_branch" = "development" ] || [ "$current_branch" = "preview" ] || [ "$current_branch" = "main" ]; then
+  # Allow merge commits — MERGE_HEAD exists during a merge in progress
+  if [ ! -f .git/MERGE_HEAD ]; then
+    echo ""
+    echo "ERROR: Direct commits to '$current_branch' are forbidden."
+    echo "  Per CLAUDE.md worktree discipline + ADR-0075 v1.1."
+    echo ""
+    echo "  Workflow:"
+    echo "    1. Create a worktree:  ~/.claude/scripts/new-feature.sh <name> <wt-N> <module>"
+    echo "    2. Work in the worktree on feat/<name>"
+    echo "    3. Close via:          ~/.claude/scripts/close-feature.sh <wt-N>"
+    echo ""
+    echo "  Why this exists: ADR-0075 was violated by the commit that shipped"
+    echo "  ADR-0075. Cultural rules failed; mechanical guards do not."
+    echo ""
+    exit 1
+  fi
+fi
+
+# 8. ORIENTATION.md must reference ADR-0075
+# Prevents accidental drift if someone edits ORIENTATION.md and removes the
+# anchor to its source-of-authority ADR. Per Steward R3.3 in council retrospective.
+if git diff --cached --name-only | grep -q '^docs/ORIENTATION\.md$'; then
+  if ! grep -q '0075' docs/ORIENTATION.md; then
+    echo ""
+    echo "ERROR: docs/ORIENTATION.md must reference ADR-0075"
+    echo "  ORIENTATION.md derives its authority from ADR-0075."
+    echo "  Removing the reference creates an unanchored 'North Star'."
+    echo "  Re-add the link to docs/decisions/0075-knowledge-system-consolidation.md"
+    echo ""
+    exit 1
+  fi
+fi

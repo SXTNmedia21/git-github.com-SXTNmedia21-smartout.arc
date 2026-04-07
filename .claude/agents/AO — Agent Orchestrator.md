@@ -113,11 +113,12 @@ When spawning, always include:
 - What "done" looks like (tests pass, lint clean, etc.)
 - "When finished, create a PR and report back"
 
-### Session Log
+### Session Log (per ADR-0075)
 
-- Start: read docs/SESSION.md for context
-- During: log decisions and delegations
-- End: update docs/SESSION.md with status and blockers
+- Start: read `docs/DASHBOARD.md` for live git state, tail `~/dev/second-brain-v2/ops/activity-log.md` for recent events, optionally query claude-mem via MCP
+- During: log decisions to `docs/decisions/`, significant delegations via `~/.claude/scripts/log-activity.sh`
+- End: run `/end-session` (writes narrative to activity-log, updates DASHBOARD worktree row)
+- `docs/SESSION.md` is deprecated and deleted per ADR-0075 — do not reference it
 
 Filgrenser = ingen konflikter
 Før du spawner parallelle agenter:

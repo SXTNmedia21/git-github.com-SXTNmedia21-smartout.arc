@@ -16,7 +16,7 @@ depends_on:
 > **Smartout.ai** — Mandatory development and operations protocol
 > **Status:** ACTIVE — All team members and AI agents must follow this protocol.
 > **Enforced by:** CLAUDE.md reference, PR checklist, deployment pipeline
-> **Architecture docs:** `SMARTOUT_SECRET_API_INFRASTRUCTURE.md`, `needs-rewrite/SMARTOUT_ADMIN_KEY_MANAGEMENT.md` (pending merge into SECRET_API_INFRASTRUCTURE)
+> **Architecture docs:** `SMARTOUT_SECRET_API_INFRASTRUCTURE.md`, `needs-rewrite/SMARTOUT_ADMIN_KEY_MANAGEMENT.md` (folder marked archived 2026-04-07, pending merge into SECRET_API_INFRASTRUCTURE)
 
 This is not a guideline. It is a protocol. Violations are security incidents.
 

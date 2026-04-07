@@ -55,9 +55,12 @@ function buildPayload(event: SmartoutEvent) {
  * wasted auth calls and console errors.
  */
 function hasAuthCookie(): boolean {
-  if (typeof document === "undefined") return false;
-  // Supabase SSR stores the session in cookies prefixed with sb-<ref>-auth-token
-  return document.cookie.split(";").some((c) => c.trim().includes("-auth-token"));
+  // Use globalThis key-lookup instead of `typeof document` so this file compiles
+  // under ES2022 lib (no DOM required — avoids TS2584 "Cannot find name 'document'").
+  const _g = globalThis as Record<string, unknown>;
+  if (_g["document"] === undefined) return false;
+  const doc = _g["document"] as { cookie: string };
+  return doc.cookie.split(";").some((c) => c.trim().includes("-auth-token"));
 }
 
 /**
@@ -68,7 +71,8 @@ function hasAuthCookie(): boolean {
 export async function sendToEngine(event: SmartoutEvent): Promise<void> {
   const body = buildPayload(event);
 
-  if (typeof window !== "undefined") {
+  const _g = globalThis as Record<string, unknown>;
+  if (_g["window"] !== undefined) {
     // Client-side: relay through Next.js API route
     // Skip in development — engine-dispatch Edge Function may not be running
     if (process.env.NODE_ENV === "development") return;
