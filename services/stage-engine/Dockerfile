@@ -17,6 +17,8 @@ COPY services/stage-engine/package.json ./services/stage-engine/
 COPY packages/ai/package.json ./packages/ai/
 COPY packages/supabase/package.json ./packages/supabase/
 COPY packages/types/package.json ./packages/types/
+COPY packages/utils/package.json ./packages/utils/
+COPY packages/telemetry/package.json ./packages/telemetry/
 COPY packages/typescript-config/package.json ./packages/typescript-config/
 RUN pnpm install --frozen-lockfile --filter @smartout/stage-engine... --ignore-scripts
 
@@ -26,6 +28,8 @@ COPY scripts/ ./scripts/
 # Copy workspace package sources (needed for tsc)
 COPY packages/typescript-config/ ./packages/typescript-config/
 COPY packages/types/ ./packages/types/
+COPY packages/utils/ ./packages/utils/
+COPY packages/telemetry/ ./packages/telemetry/
 COPY packages/supabase/ ./packages/supabase/
 COPY packages/ai/ ./packages/ai/
 COPY services/stage-engine/tsconfig.json ./services/stage-engine/
@@ -46,6 +50,8 @@ COPY services/stage-engine/package.json ./services/stage-engine/
 COPY packages/ai/package.json ./packages/ai/
 COPY packages/supabase/package.json ./packages/supabase/
 COPY packages/types/package.json ./packages/types/
+COPY packages/utils/package.json ./packages/utils/
+COPY packages/telemetry/package.json ./packages/telemetry/
 COPY packages/typescript-config/package.json ./packages/typescript-config/
 RUN pnpm install --frozen-lockfile --filter @smartout/stage-engine... --ignore-scripts --prod
 
@@ -53,6 +59,8 @@ RUN pnpm install --frozen-lockfile --filter @smartout/stage-engine... --ignore-s
 COPY --from=builder /app/packages/types/dist ./packages/types/dist
 COPY --from=builder /app/packages/ai/dist ./packages/ai/dist
 COPY --from=builder /app/packages/supabase/src ./packages/supabase/src
+COPY --from=builder /app/packages/utils/src ./packages/utils/src
+COPY --from=builder /app/packages/telemetry/src ./packages/telemetry/src
 COPY --from=builder /app/services/stage-engine/dist ./services/stage-engine/dist
 
 WORKDIR /app/services/stage-engine
