@@ -284,3 +284,90 @@ After verification, the test rows (1 engine_state, 1 guardian_signal, 2 engine_e
 | `1bc51230` | docs(handoff): journey 03 PoC end-to-end verified                              |
 
 (plus a final HANDOFF tracking commit after this section is added)
+
+---
+
+## Post-verification correction (2026-04-07, commit `ee2d2bb0`)
+
+During an independent fresh verification run against Supabase Local (not the
+original build-agent session), DoD #5 was found to be **not reproducible as
+written**. Documenting honestly what happened:
+
+### The original claim
+
+The initial HANDOFF stated that after bypassing `set_engine_state_updated_at`
+and setting `updated_at = NOW() - 25h`, `journey-stuck-detector` returned
+`{checked:1, signals_created:1}`. This was listed as "verified" in DoD #5.
+
+### What the fresh verification found
+
+Dispatching `shift.list_viewed` against the running Supabase Local produced
+`engine_state` with `current_step=2, status=waiting` — the state is created
+AND advanced past step 1 in the same engine-dispatch call. `current_step=1`
+is **never** a resting state under the real flow.
+
+But `journey-stuck-detector/index.ts:72` queried `.eq("current_step", 1)`.
+Running the detector against a real-flow-produced state (current_step=2)
+returned `{checked:0, signals_created:0}`. Zero matches.
+
+The only way to reproduce the original `{checked:1, signals_created:1}` result
+was to manually `UPDATE engine_state SET current_step=1 ...` — an undocumented
+step that does not reflect how the real rescue path would be triggered.
+
+### Root cause
+
+Off-by-one in the detector's mental model. Step 1 waits for `shift.list_viewed`
+(so `current_step=1` means "user hasn't opened the page yet"). The rescue
+scenario the PoC targets — "user opened shifts list but never tapped a detail"
+— is `current_step=2, status=waiting`, not `current_step=1`. The file-header
+comment even contradicted itself: `"stuck on step 1 (waiting for
+shift.detail_viewed)"` — internally wrong because step 1 waits for
+`list_viewed`, not `detail_viewed`.
+
+### The fix (commit `ee2d2bb0`)
+
+One-line change to `supabase/functions/journey-stuck-detector/index.ts:72`:
+
+```diff
+- .eq("current_step", 1)
++ .eq("current_step", 2)
+```
+
+Plus a rewrite of the file-header comment to explain engine-dispatch semantics
+correctly: "engine-dispatch advances current_step to point at the NEXT step to
+execute. After shift.list_viewed fires, the state is created and immediately
+advanced to current_step=2 (waiting for the step 2 event). current_step=1 is
+never a resting state under the real flow."
+
+### Fresh end-to-end verification after the fix
+
+All commands run independently, cleanly reproducible:
+
+| Step         | Command                                                                                             | Result                                                                                        |
+| ------------ | --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Baseline     | `SELECT COUNT(*) FROM engine_state WHERE entity_id=<test> AND process_id='journey_03_check_shifts'` | 0                                                                                             |
+| Dispatch 1   | curl POST engine-dispatch `shift.list_viewed`                                                       | `{triggers_matched:1, action:"started", state_id:bde6981b..., waiting_resumed:1}`             |
+| State shape  | SELECT on engine_state                                                                              | `current_step=2, status=waiting`                                                              |
+| Age 25h      | `DISABLE TRIGGER; UPDATE updated_at=NOW()-25h; ENABLE TRIGGER`                                      | `updated_at=2026-04-06 16:43:22` (stuck)                                                      |
+| Detector     | curl POST journey-stuck-detector                                                                    | **`{checked:1, signals_created:1}`**                                                          |
+| Signal row   | SELECT on guardian_signal                                                                           | `b2e69cf6..., domain=journey_health, signal_type=journey_stalled, status=active`              |
+| Idempotency  | Re-run detector                                                                                     | `{checked:1, signals_created:0}` (24h window held)                                            |
+| Push trigger | Manual INSERT in ROLLBACK tx                                                                        | `NOTICE: push-dispatch: missing config, skipping (event=journey_rescue, profile=c1373ed4...)` |
+| Cleanup      | DELETE residue                                                                                      | 0 rows remaining                                                                              |
+
+All traces are independent of the original build session — this is fresh
+evidence from a different operator against the same running Supabase Local.
+
+### DoD #5 — actual status
+
+**Now passes**, but only after `ee2d2bb0`. The original HANDOFF overstated the
+situation. This addendum corrects the record.
+
+### Process lesson
+
+Runtime verification by headless build agents must include raw curl output and
+raw SELECT rows in the HANDOFF, not paraphrased summaries. If the build agent
+had dumped the `current_step` value from the aged state next to the detector
+response, the off-by-one would have been obvious immediately. The
+verification-before-completion skill was invoked mid-session precisely to
+close this gap — evidence before claims, always.
