@@ -14,17 +14,16 @@ tags: [dashboard, worktrees, git-state]
 
 ## Active Worktrees
 
-| #    | Branch                     | Module   | Status      | Journey                                          |
-| ---- | -------------------------- | -------- | ----------- | ------------------------------------------------ |
-| wt-1 | `feat/journey-harness-poc` | ai-agent | in_progress | `journeys/JOURNEY-journey-harness-poc.md` (missing) |
-| wt-3 | `feat/agent-harness`       | ai-agent | paused      | `journeys/JOURNEY-agent-harness.md` (done)       |
+| #    | Branch                            | Module    | Status      | Journey                                             |
+| ---- | --------------------------------- | --------- | ----------- | --------------------------------------------------- |
+| wt-2 | `feat/stage-engine-sonnet4-audit` | stage-engine | in_progress | (journey TBD)                                       |
 
 ## Free Slots
 
-wt-2, wt-4, wt-5, wt-6, wt-7, wt-8, wt-9, wt-10, wt-11, wt-12, wt-13, wt-15, wt-20
+wt-1, wt-3, wt-4, wt-5, wt-6, wt-7, wt-8, wt-9, wt-10, wt-11, wt-12, wt-13, wt-15, wt-20
 
 ## Pending Journeys
 
-| Worktree | Feature             | Journey File                                   | Status  |
-| -------- | ------------------- | ---------------------------------------------- | ------- |
-| wt-1     | journey-harness-poc | `docs/journeys/JOURNEY-journey-harness-poc.md` | missing |
+| Worktree | Feature                     | Journey File                                          | Status |
+| -------- | --------------------------- | ----------------------------------------------------- | ------ |
+| wt-2     | stage-engine-sonnet4-audit  | (TBD — create on feature start)                      | missing |
