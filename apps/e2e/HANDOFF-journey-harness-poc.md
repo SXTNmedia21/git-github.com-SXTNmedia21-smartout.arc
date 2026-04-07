@@ -24,7 +24,7 @@ tags: [journey, harness, poc, handoff]
 - [x] Task 7 — pg_cron schedule + push trigger
 - [x] Task 8 — Update EVENT-SEQUENCE.md
 - [x] Task 9 — End-to-end test
-- [ ] Task 10 — Finalize / push
+- [x] Task 10 — Finalize / push
 
 ## Prerequisite Findings (Task 0)
 
@@ -258,3 +258,29 @@ After verification, the test rows (1 engine_state, 1 guardian_signal, 2 engine_e
 3. **Migration drift** — `npx supabase migration up` cannot be used in this worktree because the local DB has migration `20260428100500` recorded but not present in the worktree files. Migration was applied directly via `docker exec ... psql` instead. Pre-existing condition unrelated to this PoC; needs `supabase migration repair` follow-up.
 4. **Manual UI test deferred** — As a headless build agent, Task 9 was verified by directly invoking `engine-dispatch` with payloads that exactly mirror what the Server Action's `emit()` builds (matching `engine-event.ts:38-49 buildPayload`). The chain proof is identical. A human running `pnpm dev` and clicking through `/dashboard/my-schedule` is recommended as an additional smoke test before production rollout.
 5. **`shift_id` in `shift detail_viewed` payload is not validated** — The Server Action accepts any string. For production, consider `z.string().uuid()` validation at the action boundary.
+
+---
+
+## Final status (Task 10)
+
+- **Typecheck:** `pnpm turbo typecheck` — 27/27 successful, 0 errors
+- **Lint:** `pnpm lint` — 15/15 successful, 0 errors (449 pre-existing warnings, none in PoC files)
+- **Branch:** `feat/journey-harness-poc` pushed to `origin`
+- **PR creation URL:** https://github.com/SXTNmedia21/smartout.ai/pull/new/feat/journey-harness-poc
+
+### Commits on this branch (in order)
+
+| SHA        | Subject                                                                        |
+| ---------- | ------------------------------------------------------------------------------ |
+| `3eb82228` | docs(handoff): journey harness poc prerequisite findings                       |
+| `4dbb6452` | feat(telemetry): register shift list_viewed and shift detail_viewed events     |
+| `8ef07fe2` | feat(guardian): add journey_health domain to signals enum                      |
+| `e9f955ae` | feat(engine): seed journey 03 process with wait_for_event steps                |
+| `28ad963f` | feat(my-schedule): add server actions for journey harness telemetry            |
+| `18443334` | feat(my-schedule): wire journey harness server actions into MyWeekView         |
+| `11348504` | feat(functions): add journey-stuck-detector edge function                      |
+| `3c6b6ae3` | feat(engine): pg_cron schedule + push trigger for journey health signals       |
+| `f6e40a99` | docs(journey-03): update EVENT-SEQUENCE to use shift list_viewed/detail_viewed |
+| `1bc51230` | docs(handoff): journey 03 PoC end-to-end verified                              |
+
+(plus a final HANDOFF tracking commit after this section is added)
