@@ -39,7 +39,13 @@ function getModel() {
     );
   }
   const openrouter = createOpenRouter({ apiKey });
-  return openrouter("anthropic/claude-sonnet-4");
+  // Was `anthropic/claude-sonnet-4` until 2026-04-07. That model returns
+  // unparseable structured output via OpenRouter and was discovered broken
+  // in production by the eval harness (intent-classifier had the same bug).
+  // Both onboarding code paths (tool-calling agent and intelligence
+  // extraction) share this getModel() so the fix lands once. See ADR-0072
+  // addendum.
+  return openrouter("anthropic/claude-sonnet-4.6");
 }
 
 export type AgentInput = {
