@@ -1,15 +1,17 @@
 ---
 title: "Guardian Real-Time WebSocket Architecture"
-id: ADR_0049
+id: ADR_0052
 status: accepted
 layer: decision
 created: 2026-03-14
-updated: 2026-03-14
+updated: 2026-04-07
 module: ai
 tags: [guardian, websocket, stage-engine, real-time]
 ---
 
-# ADR-0049: Guardian Real-Time WebSocket Architecture
+# ADR-0052: Guardian Real-Time WebSocket Architecture
+
+> Renumbered from ADR-0049 → ADR-0052 on 2026-04-07. Original 0049 number collided with `0049-agent-sdk-package.md`, which had stronger references (ADR-0070 supersedes-relationship). Agent SDK kept the 0049 slot.
 
 ## Context and Problem Statement
 

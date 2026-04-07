@@ -1,13 +1,15 @@
 ---
-title: "ADR-0071: Protocol Verification Engine Architecture"
+title: "ADR-0074: Protocol Verification Engine Architecture"
 status: accepted
-updated: 2026-03-29
+updated: 2026-04-07
 created: 2026-03-29
 module: testing
 tags: [adr, protocol, verification, mission, journey, e2e]
 ---
 
-# ADR-0071: Protocol Verification Engine Architecture
+# ADR-0074: Protocol Verification Engine Architecture
+
+> Renumbered from ADR-0071 → ADR-0074 on 2026-04-07. Original 0071 number collided with the later-registered Preview Environment Architecture, which had operational dependencies (CI, husky hooks, ADR-0072) and was kept as 0071.
 
 ## Context
 

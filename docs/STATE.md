@@ -1,7 +1,7 @@
 ---
 title: "STATE — System State of Truth"
-status: canonical
-updated: 2026-03-28
+status: stale
+updated: 2026-04-07
 created: 2026-03-08
 last-verified: 2026-03-28
 module: all
@@ -12,27 +12,29 @@ tags: [state, audit, gaps, architecture, cascade]
 
 > Single source of truth for what exists, what's missing, and what to build next.
 > Organized by the Cascade Core canonical model: **I1 + 6D + 4C + K1a/K1b**.
-> Updated weekly. Last audit: 2026-03-27.
+> Updated weekly. Last full audit: 2026-03-27.
 > Canonical spec: `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`
+
+> ⚠️ **STALE — flagged 2026-04-07.** Sections below the "Active Work" header have NOT been re-audited since 2026-03-28. Architecture/gaps content may still be valid; "Active Work" was wrong and is corrected below. Full re-audit pending. For current worktree state see `docs/DASHBOARD.md`. For session continuity see `docs/SESSION.md`.
 
 ---
 
-## Active Work (2026-03-28)
+## Active Work (2026-04-07 — quick reconciliation, not full audit)
 
-2 worktrees active (parked). 12 stale remote branches deleted 2026-03-28. DB reset + payroll schema fix applied.
+Authoritative source: `docs/DASHBOARD.md`. This section is a snapshot only.
 
 ### Active Worktrees
 
-| WT   | Branch                    | Status | Notes                                                                   |
-| ---- | ------------------------- | ------ | ----------------------------------------------------------------------- |
-| wt-3 | `feat/emma-arena-views`   | parked | Rebased on dev. Spec + settings persistence. Implementation not started |
-| wt-5 | `feat/sjohuset-simulator` | parked | Rebased, 10 commits. PR #72 (diverged). Parked                          |
+| WT   | Branch                       | Status      | Notes                                                |
+| ---- | ---------------------------- | ----------- | ---------------------------------------------------- |
+| wt-1 | `feat/journey-harness-poc`   | in_progress | Council-verified plan, 11 tasks, ADR-0071 inheritance |
+| wt-3 | `feat/agent-harness`         | paused      | Phase 1-5 done, ADR-0073, ready for `/close-feature` |
+
+All other worktrees free. See DASHBOARD for full slot map.
 
 ### Parked Branches (no worktree)
 
-| Branch            | Status | Notes                                                                                                 |
-| ----------------- | ------ | ----------------------------------------------------------------------------------------------------- |
-| `feat/onboarding` | parked | FlowPlayer + alkohol flow. Rebased on dev, typefix committed. framer-motion devDep missing in ui pkg. |
+None (all branches merged or cleaned 2026-04-07).
 
 ### Recently Merged (since 2026-03-26)
 

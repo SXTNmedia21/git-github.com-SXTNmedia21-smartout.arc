@@ -61,7 +61,7 @@ tags: [skills, journey-package, mission]
 | 2026-03-06 | —     | Fixed G1 (system_prompt), G2 (SQL columns), G3 (agent-added stages), G4-G12                                                                        |
 | 2026-03-06 | —     | Commit 3: all 12 gap fixes (fe77b9c)                                                                                                               |
 | 2026-03-06 | —     | Re-test: all fixes pass. N1 (emotion_hint), N3 (reorder trap) fixed                                                                                |
-| 2026-03-06 | —     | Guardian deep-dive: read guardian-evaluator, guardian-bus, guardian route, types, ADR-0049, design docs                                            |
+| 2026-03-06 | —     | Guardian deep-dive: read guardian-evaluator, guardian-bus, guardian route, types, ADR-0052 (was ADR-0049), design docs                              |
 | 2026-03-06 | —     | Added Guardian Integration section: event flow, wiring checklist, interventions, event types reference                                             |
 | 2026-03-06 | —     | Updated seed SQL: journey_id on engine_missions, journey_step_id emphasis on engine_stages                                                         |
 | 2026-03-06 | —     | Added 4 Guardian-specific common mistakes                                                                                                          |

@@ -1,13 +1,15 @@
 ---
 title: "Simulation schema and simulator microservice"
-id: ADR_0058
+id: ADR_0053
 status: proposed
 layer: decision
 created: 2026-03-23
-updated: 2026-03-23
+updated: 2026-04-07
 ---
 
-# ADR-0058: Dedicated simulation schema and simulator microservice for cascade system testing
+# ADR-0053: Dedicated simulation schema and simulator microservice for cascade system testing
+
+> Renumbered from ADR-0058 → ADR-0053 on 2026-04-07. Original 0058 number collided with `0058-livekit-as-webrtc-provider.md`, which was registered first and had operational references in WORKLOG. LiveKit kept the 0058 slot.
 
 ## Context and Problem Statement
 

@@ -1,13 +1,15 @@
 ---
 title: "Edge Functions Own Call Orchestration"
-id: ADR_0059
+id: ADR_0054
 status: accepted
 layer: decision
 created: 2026-03-22
-updated: 2026-03-22
+updated: 2026-04-07
 ---
 
-# ADR-0059: Edge Functions Own Call Orchestration
+# ADR-0054: Edge Functions Own Call Orchestration
+
+> Renumbered from ADR-0059 → ADR-0054 on 2026-04-07. Original 0059 number collided with `0059-platform-admin-pipeline.md`, which had stronger references (HANDOFF, council, decision-log registry). Platform admin pipeline kept the 0059 slot.
 
 ## Context and Problem Statement
 

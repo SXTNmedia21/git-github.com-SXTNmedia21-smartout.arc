@@ -1,14 +1,16 @@
 ---
 title: "Avoid Duplicate Guardian Events Across Lifecycle Layers"
-id: LEARNING_0002
+id: LEARNING_0028
 status: canonical
 layer: learning
 created: 2026-03-14
-updated: 2026-03-14
+updated: 2026-04-07
 tags: [guardian, stage-engine, events, dedup]
 ---
 
-# Learning-0002: Avoid Duplicate Guardian Events Across Lifecycle Layers
+# Learning-0028: Avoid Duplicate Guardian Events Across Lifecycle Layers
+
+> Renumbered from Learning-0002 → Learning-0028 on 2026-04-07. Original 0002 number collided with `0002-middleware-cookie-preservation.md` (older). Middleware learning kept the 0002 slot.
 
 ## Context
 

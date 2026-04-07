@@ -1,6 +1,7 @@
 ---
 title: "Smartout Documentation Index"
-updated: 2026-03-22
+updated: 2026-04-07
+last-reconciled: 2026-04-07
 ---
 
 # Smartout Documentation Index
@@ -76,12 +77,12 @@ Master navigation map for all documentation. An agent reads this to find any doc
 | id                 | File                                                       | Status                                                   |
 | ------------------ | ---------------------------------------------------------- | -------------------------------------------------------- |
 | CORE_ARCH_V2       | architecture/SMARTOUT_CORE_ARCHITECTURE_v2.md              | canonical                                                |
-| UI_ARCH            | needs-rewrite/SMARTOUT_UI_ARCHITECTURE.md                  | pending rewrite                                          |
+| UI_ARCH            | needs-rewrite/SMARTOUT_UI_ARCHITECTURE.md                  | folder marked archived 2026-04-07, pending rewrite       |
 | PROD_ARCH          | architecture/SMARTOUT_PRODUCTION_ARCHITECTURE.md           | canonical                                                |
 | FOUND_ARCH         | archive/SMARTOUT_FOUNDATION_ARCHITECTURE.md                | archived (merged into CORE_ARCH_V2)                      |
 | FOUND_DATA_MODEL   | archive/SMARTOUT_FOUNDATION_DATA_MODEL.md                  | archived (merged into CORE_ARCH_V2)                      |
 | FOUND_PRODUCT_ID   | architecture/SMARTOUT_FOUNDATION_PRODUCT_IDENTITY.md       | canonical                                                |
-| IMPL_GUIDE         | needs-rewrite/SMARTOUT_IMPLEMENTATION_GUIDE.md             | pending rewrite                                          |
+| IMPL_GUIDE         | needs-rewrite/SMARTOUT_IMPLEMENTATION_GUIDE.md             | folder marked archived 2026-04-07, pending rewrite       |
 | PACKAGES_ARCH      | architecture/SMARTOUT_PACKAGES_ARCHITECTURE.md             | canonical                                                |
 | CONTRACT_ARCH      | architecture/SMARTOUT_CONTRACT_SYSTEM.md                   | canonical                                                |
 | TELEMETRY_ARCH     | architecture/SMARTOUT_TELEMETRY_ARCHITECTURE.md            | canonical                                                |
@@ -150,7 +151,7 @@ Reusable document templates in `docs/templates/`.
 
 ### Decisions (ADRs)
 
-See `docs/decisions/0000-decision-log.md` -- 55 ADRs.
+See `docs/decisions/0000-decision-log.md` -- 74 ADRs (0001–0074, no gaps, no collisions as of 2026-04-07).
 
 | id       | File                                                     | Subject                                      |
 | -------- | -------------------------------------------------------- | -------------------------------------------- |
@@ -203,10 +204,37 @@ See `docs/decisions/0000-decision-log.md` -- 55 ADRs.
 | ADR_0047 | decisions/0047-schedule-db-persistence.md                | Schedule DB persistence with TanStack Query  |
 | ADR_0048 | decisions/0048-daily-close-engine.md                     | DailyCloseEngine state machine               |
 | ADR_0049 | decisions/0049-agent-sdk-package.md                      | Agent SDK package — @smartout/agent-sdk      |
+| ADR_0050 | decisions/0050-port-standardization-and-vault-secrets.md | Port standardization + vault secrets         |
+| ADR_0051 | decisions/0051-unified-ai-runtime-system-definition.md   | Unified AI runtime system definition         |
+| ADR_0052 | decisions/0052-guardian-websocket-architecture.md        | Guardian WebSocket architecture (renumbered from 0049) |
+| ADR_0053 | decisions/0053-simulation-schema-and-simulator-service.md | Simulation schema + simulator service (renumbered from 0058) |
+| ADR_0054 | decisions/0054-edge-functions-own-call-orchestration.md  | Edge Functions own call orchestration (renumbered from 0059) |
+| ADR_0055 | decisions/0055-two-vault-environment-isolation.md        | Two-vault environment isolation              |
+| ADR_0056 | decisions/0056-cascade-core-foundation-schema.md         | Cascade Core Foundation schema               |
+| ADR_0057 | decisions/0057-payroll-schema-separation.md              | Payroll schema separation                    |
+| ADR_0058 | decisions/0058-livekit-as-webrtc-provider.md             | LiveKit as WebRTC provider                   |
+| ADR_0059 | decisions/0059-platform-admin-pipeline.md                | Platform admin pipeline                      |
+| ADR_0060 | decisions/0060-unified-wizard-shell.md                   | Unified wizard shell                         |
+| ADR_0061 | decisions/0061-walkai-semantic-tagging.md                | WalkAi semantic tagging                      |
+| ADR_0062 | decisions/0062-industry-intelligence-consolidation.md    | Industry intelligence consolidation          |
+| ADR_0063 | decisions/0063-communication-system-consolidation.md     | Communication system consolidation           |
+| ADR_0064 | decisions/0064-dynamic-landing-engine.md                 | Dynamic landing engine                       |
+| ADR_0065 | decisions/0065-hospitality-operations-cockpit-v1-contract.md | Hospitality ops cockpit v1 contract      |
+| ADR_0066 | decisions/0066-temporal-shift-lock-architecture.md       | Temporal shift lock architecture             |
+| ADR_0067 | decisions/0067-smart-cover-via-event-engine.md           | Smart cover via Event Engine                 |
+| ADR_0068 | decisions/0068-simulation-schema-and-service.md          | Simulation schema + service                  |
+| ADR_0069 | decisions/0069-session-execution-ownership.md            | Session execution ownership (EF + Engine)    |
+| ADR_0070 | decisions/0070-emma-wizard-bridge.md                     | Emma-Wizard bridge tool architecture         |
+| ADR_0071 | decisions/0071-preview-environment-architecture.md       | Preview environment architecture (3-branch flow) |
+| ADR_0072 | decisions/0072-vercel-multi-service-rejected.md          | Vercel multi-service migration — rejected    |
+| ADR_0073 | decisions/0073-ai-eval-harness.md                        | AI eval harness for packages/ai (two-layer)  |
+| ADR_0074 | decisions/0074-protocol-verification-engine.md           | Protocol Verification Engine (renumbered from 0071) |
+
+> All ADR collisions resolved 2026-04-07: guardian-ws → 0052, simulation-schema → 0053, edge-functions-own-call → 0054. No gaps in 0001–0074.
 
 ### Learnings
 
-See `docs/learnings/0000-learning-log.md` -- 16 learning records.
+See `docs/learnings/0000-learning-log.md` -- 28 learning records (0001–0028, no gaps, no collisions as of 2026-04-07).
 
 | id         | File                                                       | Subject                          |
 | ---------- | ---------------------------------------------------------- | -------------------------------- |
@@ -224,8 +252,22 @@ See `docs/learnings/0000-learning-log.md` -- 16 learning records.
 | LEARN_0012 | learnings/0012-mcp-sdk-package-structure.md                | MCP SDK package structure        |
 | LEARN_0013 | learnings/0013-ultravox-http-tool-parameters.md            | Ultravox HTTP tool parameters    |
 | LEARN_0014 | learnings/0014-supabase-gen-types-stdout-noise.md          | Supabase gen types stdout noise  |
+| LEARN_0015 | learnings/0015-websocket-jwt-auth-browser.md               | WebSocket JWT auth (browser) — renumbered from 0001 |
 | LEARN_0016 | learnings/0016-season-type-enum-mismatch.md                | Season type enum mismatch        |
 | LEARN_0017 | learnings/0017-progressive-save-pattern.md                 | Progressive save pattern         |
+| LEARN_0018 | learnings/0018-runtime-doc-truth-sync.md                   | Runtime doc truth sync           |
+| LEARN_0019 | learnings/0019-live-ops-feed-hygiene.md                    | Live ops feed hygiene            |
+| LEARN_0020 | learnings/0020-shift-lock-multi-channel-enforcement.md     | Shift-lock multi-channel enforcement |
+| LEARN_0021 | learnings/0021-absence-approval-prerequisite.md            | Absence approval prerequisite    |
+| LEARN_0022 | learnings/0022-disabled-toggle-semantics-and-action-cta-clarity.md | Disabled toggle semantics + CTA clarity |
+| LEARN_0023 | learnings/0023-journey-db-tables-are-dev-tracking.md       | Journey DB tables = dev tracking |
+| LEARN_0024 | learnings/0024-rescue-is-not-reengagement.md               | Rescue is not re-engagement      |
+| LEARN_0025 | learnings/0025-stage-engine-websocket-vercel-blocker.md    | Stage engine WebSocket Vercel blocker |
+| LEARN_0026 | learnings/0026-drawer-api-boundary-verification.md         | Drawer API boundary verification |
+| LEARN_0027 | learnings/0027-botsson-mutation-tools-must-emit.md         | Botsson mutation tools must emit |
+| LEARN_0028 | learnings/0028-guardian-event-dedup.md                     | Guardian event dedup — renumbered from 0002 |
+
+> All learning collisions resolved 2026-04-07: websocket-jwt → 0015, guardian-event-dedup → 0028. No gaps in 0001–0028.
 
 ### Plans
 
@@ -253,7 +295,7 @@ Active plans in `docs/plans/`. Completed plans in `docs/plans/completed/`.
 
 ### User Journeys
 
-31 journey documents in `docs/journeys/`.
+91 journey documents in `docs/journeys/` (2026-04-07 count). Sample below — see folder for full list.
 
 | File                                            | Module        | Description                           |
 | ----------------------------------------------- | ------------- | ------------------------------------- |

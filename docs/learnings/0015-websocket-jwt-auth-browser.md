@@ -1,14 +1,16 @@
 ---
 title: "Browser WebSocket API Cannot Send Custom Headers"
-id: LEARNING_0001
+id: LEARNING_0015
 status: canonical
 layer: learning
 created: 2026-03-14
-updated: 2026-03-14
+updated: 2026-04-07
 tags: [websocket, auth, browser, jwt]
 ---
 
-# Learning-0001: Browser WebSocket API Cannot Send Custom Headers
+# Learning-0015: Browser WebSocket API Cannot Send Custom Headers
+
+> Renumbered from Learning-0001 → Learning-0015 on 2026-04-07. Original 0001 number collided with `0001-turbopack-x-forwarded-host.md` (older). Turbopack learning kept the 0001 slot.
 
 ## Context
 
