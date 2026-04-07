@@ -10,7 +10,7 @@ export const getSignals = defineTool({
     "Get active guardian signals (health alerts) for the workspace. Can filter by domain, severity, or status.",
   schema: z.object({
     domain: z
-      .enum(["readiness", "workspace_maturity", "agent_behavior"])
+      .enum(["readiness", "workspace_maturity", "agent_behavior", "journey_health"])
       .optional()
       .describe("Filter by signal domain"),
     severity: z

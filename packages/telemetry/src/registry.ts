@@ -128,6 +128,8 @@ export type ActionVerb =
   | "rejected"
   | "escalated"
   | "viewed"
+  | "list_viewed"
+  | "detail_viewed"
   | "exported"
   | "invited"
   | "accepted"
@@ -348,6 +350,32 @@ export interface ShiftDeleted extends BaseEvent {
       start_time: string;
       end_time: string;
     };
+  };
+}
+
+// ─── Journey 03 (Sjekke vakter) — PoC events ────
+// These events use a FLAT properties shape (entity_type/entity_id at the top
+// level) — NOT the nested EntityRef pattern used by ShiftCreated/Updated/Deleted.
+// This is intentional and required by the Event Engine: engine-dispatch reads
+// `payload.entity_id` directly from the top of the payload to enforce the
+// engine_state unique-active dedupe (one journey instance per profile+process).
+// engine-event.ts builds payload as `{ ...event.properties }`, so the entity
+// keys MUST be flat in `properties`. See spec C2 + Task 0 finding 0.9.
+export interface ShiftListViewed extends BaseEvent {
+  event: "shift list_viewed";
+  properties: {
+    entity_type: "profile";
+    entity_id: string;
+    week_start?: string;
+  };
+}
+
+export interface ShiftDetailViewed extends BaseEvent {
+  event: "shift detail_viewed";
+  properties: {
+    entity_type: "profile";
+    entity_id: string;
+    shift_id: string;
   };
 }
 
@@ -2465,6 +2493,8 @@ export type SmartoutEvent =
   | ShiftCreated
   | ShiftUpdated
   | ShiftDeleted
+  | ShiftListViewed
+  | ShiftDetailViewed
   | ShiftPublished
   | ShiftCompleted
   | ShiftPunchedIn
@@ -2760,6 +2790,18 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "scheduling",
   },
   "shift completed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+
+  // Journey 03 (Sjekke vakter) — PoC events. All four destinations required:
+  // engine_event drives the journey state machine; the others maintain analytics
+  // and audit trail parity with peer scheduling events (per spec section 1).
+  "shift list_viewed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "shift detail_viewed": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "scheduling",
   },
