@@ -50,7 +50,7 @@ type ContractSendDrawerProps = {
 };
 
 type ContractTemplate = {
-  id: string;
+  template_id: string;
   name: string;
   description?: string;
   placeholders: PlaceholderField[];
@@ -117,8 +117,8 @@ export function ContractSendDrawer({
         body: JSON.stringify({
           workspace_id: workspaceId,
           profile_id: profileId,
-          template_id: selectedTemplate.id,
-          field_values: resolvedFields().reduce<Record<string, string>>((acc, f) => {
+          template_id: selectedTemplate.template_id,
+          overrides: resolvedFields().reduce<Record<string, string>>((acc, f) => {
             acc[f.key] = f.value;
             return acc;
           }, {}),
@@ -130,10 +130,11 @@ export function ContractSendDrawer({
         throw new Error((err as { message?: string }).message ?? "Kunne ikke opprette kontrakt");
       }
 
-      const { id: contractId, employee_name: employeeName } = (await createRes.json()) as {
-        id: string;
-        employee_name?: string;
-      };
+      const { contract_id: contractId, recipient_name: employeeName } =
+        (await createRes.json()) as {
+          contract_id: string;
+          recipient_name?: string;
+        };
 
       // Step 2: trigger send (DocuSeal envelope)
       const sendRes = await fetch(`/api/contracts/${contractId}/send`, { method: "POST" });
@@ -358,9 +359,9 @@ function TemplateStep({ workspaceId, selected, onSelect, onNext }: TemplateStepP
             <div className="grid grid-cols-1 gap-3">
               {templates.map((t) => (
                 <TemplateCard
-                  key={t.id}
+                  key={t.template_id}
                   template={t}
-                  isSelected={selected?.id === t.id}
+                  isSelected={selected?.template_id === t.template_id}
                   onSelect={onSelect}
                 />
               ))}
@@ -369,9 +370,9 @@ function TemplateStep({ workspaceId, selected, onSelect, onNext }: TemplateStepP
             <div className="space-y-1.5">
               {templates.map((t) => (
                 <TemplateRadioRow
-                  key={t.id}
+                  key={t.template_id}
                   template={t}
-                  isSelected={selected?.id === t.id}
+                  isSelected={selected?.template_id === t.template_id}
                   onSelect={onSelect}
                 />
               ))}

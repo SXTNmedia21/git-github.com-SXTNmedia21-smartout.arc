@@ -163,6 +163,23 @@ export const createEmployeeContract = defineTool({
       }
 
       const result = (await response.json()) as { contract_id: string; status: string };
+
+      // Emit audit trail directly — @smartout/telemetry is browser+server hybrid and cannot
+      // be imported here (DOM globals break library.json tsconfig). We write to activity_trail
+      // via supabaseAdmin, which is exactly what the telemetry activity-trail provider does.
+      void ctx.supabaseAdmin.from("activity_trail").insert({
+        workspace_id: ctx.workspaceId,
+        actor_id: ctx.profileId,
+        event: "contract created",
+        action_verb: "created",
+        category: "contracts",
+        entity_type: "contract",
+        entity_id: result.contract_id,
+        data: { template_id: params.template_id, profile_id: params.profile_id },
+        changes: {},
+        source: "botsson",
+      });
+
       return JSON.stringify({
         created: true,
         contract_id: result.contract_id,

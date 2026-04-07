@@ -67,6 +67,22 @@ export async function POST(request: NextRequest) {
 
   const { template_id, profile_id, workspace_id, overrides } = parsed.data;
 
+  // Verify caller has admin or owner role in this workspace — employees must not create contracts.
+  // Uses the user-scoped client so RLS applies (no bypass via service role).
+  const { data: callerProfile } = await supabase
+    .from("profile")
+    .select("role")
+    .eq("user_id", user.id)
+    .eq("workspace_id", workspace_id)
+    .single();
+
+  if (!callerProfile || (callerProfile.role !== "admin" && callerProfile.role !== "owner")) {
+    return NextResponse.json(
+      { error: "Forbidden: only admins and owners can create contracts" },
+      { status: 403 },
+    );
+  }
+
   // Build the placeholder map using the user's JWT so RLS applies correctly.
   const placeholderMap = await buildEmployeePlaceholderMap(supabase, profile_id, workspace_id);
   const resolvedValues = { ...placeholderMap, ...overrides };
