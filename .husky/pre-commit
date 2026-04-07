@@ -134,3 +134,62 @@ if echo "$STAGED_DIFF" | grep -qE '^[+].*SUPABASE_SERVICE_ROLE_KEY=ey'; then
   echo ""
   exit 1
 fi
+
+# ============================================================
+# KNOWLEDGE SYSTEM HOOKS (ADR-0075 enforcement)
+# ============================================================
+
+# 3. ADR number collision check
+# Prevents the 2026-04-07 incident where parallel branches created
+# multiple ADRs with the same number (0049, 0058, 0059, 0071).
+ADR_DUPES=$(ls docs/decisions/ 2>/dev/null | grep -E '^[0-9]{4}-' | grep -v '^0000-' | awk -F- '{print $1}' | sort | uniq -d)
+if [ -n "$ADR_DUPES" ]; then
+  echo ""
+  echo "ERROR: Duplicate ADR numbers detected in docs/decisions/"
+  echo "  Colliding numbers:"
+  echo "$ADR_DUPES" | sed 's/^/    /'
+  echo "  Violation: ADR-0075 — each ADR number must be unique"
+  echo "  Resolve by renumbering the weaker-referenced ADR to the next gap."
+  echo ""
+  exit 1
+fi
+
+# 4. Learning number collision check (same rationale)
+LEARNING_DUPES=$(ls docs/learnings/ 2>/dev/null | grep -E '^[0-9]{4}-' | grep -v '^0000-' | awk -F- '{print $1}' | sort | uniq -d)
+if [ -n "$LEARNING_DUPES" ]; then
+  echo ""
+  echo "ERROR: Duplicate learning numbers detected in docs/learnings/"
+  echo "  Colliding numbers:"
+  echo "$LEARNING_DUPES" | sed 's/^/    /'
+  echo "  Violation: ADR-0075 — each learning number must be unique"
+  echo ""
+  exit 1
+fi
+
+# 5. SESSION.md resurrection check
+# Per ADR-0075, SESSION.md is deleted. Prevent it from being re-added.
+if git diff --cached --name-status | grep -qE '^A\s+docs/SESSION\.md$'; then
+  echo ""
+  echo "ERROR: docs/SESSION.md is deprecated and must not be re-added"
+  echo "  Per ADR-0075, session narrative lives in:"
+  echo "    - ~/dev/second-brain-v2/ops/activity-log.md (audit)"
+  echo "    - claude-mem via MCP (cross-session memory)"
+  echo "    - ~/.claude/projects/<repo>/memory/ (in-flight context)"
+  echo "  If you really need this, revisit the ADR first."
+  echo ""
+  exit 1
+fi
+
+# 6. DASHBOARD.md structure check
+# Per ADR-0075, DASHBOARD.md is pure git state — no history sections.
+if git diff --cached --name-only | grep -q '^docs/DASHBOARD\.md$'; then
+  if grep -qE '^## (Session History|Recent Closures)$' docs/DASHBOARD.md; then
+    echo ""
+    echo "ERROR: docs/DASHBOARD.md contains forbidden history sections"
+    echo "  Found: ## Session History or ## Recent Closures"
+    echo "  Violation: ADR-0075 — DASHBOARD.md is pure git state only"
+    echo "  History belongs in ~/dev/second-brain-v2/ops/activity-log.md"
+    echo ""
+    exit 1
+  fi
+fi
