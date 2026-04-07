@@ -88,7 +88,12 @@ function getModel() {
     throw new Error("OPENROUTER_API_KEY is not set.");
   }
   const openrouter = createOpenRouter({ apiKey });
-  return openrouter("anthropic/claude-sonnet-4");
+  // Bumped from anthropic/claude-sonnet-4 → 4.6 on 2026-04-07 as part of
+  // the Phase 5 council audit. Uses generateText({tools}), which per
+  // ADR-0073's Phase 4 empirical finding is NOT affected by the
+  // structured-output bug that broke intent-classifier.ts. Bump is for
+  // model freshness + consistency, not bug-fix. See ADR-0073 audit addendum.
+  return openrouter("anthropic/claude-sonnet-4.6");
 }
 
 export type JourneyAgentInput = {

@@ -22,8 +22,17 @@ function getOpenRouter(apiKey?: string) {
   return _openrouter;
 }
 
+// NOTE (2026-04-07): This schema was simplified after eval-harness found
+// production was broken. OpenRouter's structured-output bridge to Anthropic
+// rejects two Zod constructs:
+//   - field `.describe()` calls          → "Provider returned error"
+//   - `.min()/.max()` on numbers         → "Provider returned error"
+// Both produce JSON-schema constraints that Anthropic's tool-input format
+// does not accept. The system prompt and `intentSchemaConstraints` below
+// document the same intent without breaking the wire format.
+// See ADR-0073 addendum.
 export const intentSchema = z.object({
-  intent: z.string().describe("Specific intent, e.g. 'schedule:query', 'training:status'"),
+  intent: z.string(),
   capability: z.enum([
     "knowledge",
     "schedule",
@@ -38,8 +47,11 @@ export const intentSchema = z.object({
     "contract",
     "general",
   ] as const),
-  confidence: z.number().min(0).max(1),
-  reasoning: z.string().describe("Brief explanation of why this classification was chosen"),
+  // Confidence in [0, 1]. Range constraint omitted from the schema; the
+  // model is instructed in the system prompt to stay within bounds and
+  // returned values are clamped at the call site if needed.
+  confidence: z.number(),
+  reasoning: z.string(),
 });
 
 export type IntentResult = z.infer<typeof intentSchema>;
@@ -52,7 +64,11 @@ export async function classifyIntent(
   const registered = getRegisteredCapabilities();
 
   const { object } = await generateObject({
-    model: getOpenRouter(options?.apiKey)("anthropic/claude-sonnet-4"),
+    // Was `anthropic/claude-sonnet-4` until 2026-04-07. That model returns
+    // unparseable structured output via OpenRouter ("could not parse the
+    // response"). Verified by eval-harness repro: sonnet-4 fails on every
+    // schema; sonnet-4.6 succeeds. See ADR-0073 addendum.
+    model: getOpenRouter(options?.apiKey)("anthropic/claude-sonnet-4.6"),
     schema: intentSchema,
     system: `You are an intent classifier for a Norwegian employee assistant called Mr. Botsson.
 Classify the user's message into one of these capabilities: ${registered.join(", ")}, general.
