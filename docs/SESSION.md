@@ -1,7 +1,7 @@
 ---
 title: Session Log
 status: in_progress
-updated: 2026-04-06
+updated: 2026-04-07
 created: 2026-03-02
 module: meta
 tags: [session, continuity]
@@ -11,121 +11,55 @@ tags: [session, continuity]
 
 | Field   | Value            |
 | ------- | ---------------- |
-| Date    | 2026-04-06       |
-| Branch  | `development`    |
-| Feature | journey-harness-poc planning |
-| Status  | plan complete, awaiting wt-2 reconciliation |
+| Date    | 2026-04-07          |
+| Branch  | `development`   |
+| Feature | development  |
+| Status  | paused        |
 
 ### What was done
 
-**Mobile auth + shifts E2E + Journey Harness PoC planning (3 council sessions):**
+**First preview→main release shipped (PR #141).** Pontus mergede preview to main while we worked. Verified end-to-end:
+- 248/248 migrations synced on prod + preview Supabase
+- 47 Edge Functions deployed (lazy-init Pool fix verified — validate-api-key + workspace-api respond 401, not crash)
+- 5/5 droplet services healthy on correct subdomains (engine, schedule-mcp, contract, scrape, n8n)
+- Pipeline enforcement (pre-push hook + GitHub Action) validated on PR #141 — 6s pass
 
-1. **Wrote 2 user journeys** for mobile employee experience:
-   - `JOURNEY-mobile-employee-login.md` (9 journeys: all 4 auth paths, OTP, magic link, password reset)
-   - `JOURNEY-mobile-shifts-overview.md` (6 journeys: list, detail, confirm, punch, notifications, offline)
-   - Cross-verified 23/23 claims against actual code (0 mismatches)
+**Tested wrong hostnames first** (`shift.smartout.ai`, `stage.smartout.ai`) — actual subdomains per Caddyfile are `schedule-mcp.smartout.ai` and `engine.smartout.ai`. No routing bug.
 
-2. **Fixed 3 dead-end UX bugs in verify.tsx:**
-   - "Glemt passord?" — added `handleForgotPassword()` with `supabase.auth.resetPasswordForEmail()`
-   - "Opprett konto" — wrapped in `TouchableOpacity` routing to Welcome
-   - Multi-workspace selection — created `use-workspace-store.ts` (Zustand + MMKV), wired into useMyProfile/useMyShifts/auth-provider
+**Council session: ADR-0072 — Vercel multi-service migration REJECTED (3/3 unanimous).**
+An untracked `vercel.json` with undocumented `experimentalServices` field appeared at repo root. Council reviewed and unanimously rejected. Key blockers discovered:
+- **Stage Engine WebSockets** (`/ws/:sessionId`, `/guardian/ws`) — Vercel Functions don't support arbitrary WS upgrades. Hard structural blocker.
+- In-process guardian-bus EventEmitter — would silently drop events across Fluid Compute warm instances
+- n8n persistent volume + scrapling network isolation block any "full migration"
+- DocuSeal HMAC verification depends on raw body — Fluid Compute parsing under experimental field unverified
+- `experimentalServices` not in Vercel public docs
 
-3. **Bug hunt found 15 bugs:**
-   - 2 fixed (B1: cache key mismatch from our change, B2: `.single()` crash)
-   - 10 logged as pre-existing (B3, B6-B12, B14)
-   - 3 false positives dropped (B4, B5, B13, B15)
+**Council process win:** system-agent-coordinator did code-tracing in `services/stage-engine/src/routes/ws.ts` and found the WebSocket blocker that nobody else (Steward, Supervisor) would have caught from concept review alone. **Lesson: architecture councils touching code need at least one code-tracing reviewer.**
 
-4. **Discovered Journey Inference system** — audited reality vs documentation. Guardian evaluator at `services/stage-engine/src/core/guardian-evaluator.ts` actually works for AI sessions, but the 12 store-listing journeys are disconnected from runtime. 5 broken layers identified.
-
-5. **Brainstormed Inference Agent Harness** — three-layer system (Plugin + Botsson Arena + Guardian) to bridge user actions to rescue prompts. Decided to PoC with Journey 03 first.
-
-6. **Wrote PoC instruction spec** at `docs/superpowers/specs/2026-04-06-journey-harness-poc-instruction.md` (committed as `e7cbce68`).
-
-7. **Council session 1 (PoC instruction)** — 3 agents converged on 5 gaps independently. Spec amended with Critical Constraints C1-C5.
-
-8. **Council session 2 (PoC re-review)** — Verification round caught 2 NEW critical bugs that first round missed:
-   - **G1**: Wrong payload key (`event_type` vs `event` at engine-dispatch.ts:411) — silent step-stuck
-   - **G2**: Client-side dev mode short-circuit at engine-event.ts:74 — kills telemetry in local dev
-   - Only agent-coord found these by tracing actual code line-by-line
-   - Spec amended with C6 (server-side emit) + 8-item Prerequisite Check
-
-9. **Wrote 770-line implementation plan** at `docs/superpowers/plans/2026-04-06-journey-harness-poc.md`:
-   - 11 tasks (Task 0 prerequisites + 10 implementation tasks)
-   - Bite-sized steps with complete code
-   - Failure modes table
-   - Spec coverage map
-   - Self-reviewed: no placeholders, type consistency verified, all C1-C6 mapped to tasks
+Recent commits:
+- `ddda2ffa` docs(adr): ADR-0072 reject Vercel multi-service migration
+- `547594ff` docs(session): wt-2 reconciled to v2 plan + dashboard sync
+- `d72d22e7` fix(migrations): split landing_variants seed into 7 DO blocks
+- `dcc45006` ci(pipeline): enforce 3-branch deployment flow at git + GitHub level
+- `ccf0ca28` docs(session): journey harness poc planning + 3 council rounds
 
 ### Where we stopped
 
-- Plan complete and saved (untracked in development branch)
-- **wt-2 conflict discovered**: worktree exists for `feat/journey-harness-poc` but is **6 commits behind development** AND contains an OLDER parallel plan written before our council rounds
-- 3 reconciliation options presented to user, awaiting decision
+- 0 uncommitted changes on `development`
+- All 6 deployment tasks completed (CI triggers, ff preview, verify Supabase, branch protection equivalent, first release, post-release cleanup)
+- Council Phase 7+8 done — ADR-0072 + Learning 0025 + COUNCIL-LOG entry committed
 
 ### Known blockers / errors
 
-- **wt-2 conflict** — older plan in wt-2 lacks G1/G2 fixes. If used as-is, build agent will hit silent failure modes the council just spent hours catching
-- 6 commits in development missing from wt-2: `40addc9e`, `e7cbce68`, `093f1f5d`, `9400c94d`, `f9380a45`, `3535f4ec`
-- The PoC spec (committed as `e7cbce68`) is NOT in wt-2 yet
-- 1 uncommitted file on development: `docs/superpowers/plans/2026-04-06-journey-harness-poc.md` (the council-verified plan)
+- **Vercel CLI auth** — `.vercel/project.json` points to `team_bbtw5JnNxRkKlecAKQB7qqzG` but Pontus's CLI account `sxtnmedia21` only sees `sxtnmedia21s-projects`. Not blocking (MCP works for Supabase, deploys via Git push). Run `vercel login` with Pontus's smartout-team account when local `vercel logs` is needed.
+- **GitHub branch protection** requires Pro for private repos — using equivalent: pre-push hook + `pipeline-enforcement.yml` GitHub Action. Verified working on PR #141.
 
 ### Pending decisions
 
-- [ ] **Reconcile wt-2** (3 options):
-  - Option 1 (recommended): Sync wt-2 with development, overwrite older plan with council-verified version
-  - Option 2: Merge the two plans (preserves parallel agent's insight)
-  - Option 3: Reset wt-2 entirely
-- [ ] After reconciliation: dispatch build agent to execute the 11-task plan
-- [ ] Decide execution model: Subagent-Driven (recommended) or Inline Execution
+- None active. All session decisions resolved.
 
-### Council Sessions This Session
+### Next session
 
-| # | Topic | Agents | Verdict |
-|---|-------|--------|---------|
-| 1 | Mobile Auth+Shift Bug Triage (15 bugs) | steward, supervisor | APPROVE WITH CHANGES (2 fixed, 10 logged, 3 dropped) |
-| 2 | Journey Harness PoC Instruction | steward, supervisor, agent-coord | APPROVE WITH CHANGES (5 amendments) |
-| 3 | Journey Harness PoC Re-Review (verification) | steward, supervisor, agent-coord | APPROVE WITH CHANGES (2 critical bugs caught by agent-coord only) |
-
-### Key Learning
-
-> **Verification rounds find what first reviews miss.** Steward and Supervisor reviewed the spec at concept level and approved with "minor conditions". Agent-coord traced actual code line-by-line and found two silent killers (G1 + G2). Always run a verification round after spec amendments, and that round MUST include agent-coord.
-
-Logged in `council_meta.md` and `docs/council/COUNCIL-LOG.md`.
-
-### Next session starts here
-
-1. Read this SESSION.md
-2. Decide wt-2 reconciliation option
-3. Sync wt-2 with development (recommended path)
-4. Move council-verified plan into wt-2 (overwriting parallel agent's older version)
-5. Dispatch build agent in wt-2 with the 11-task plan
-6. Build agent must complete Task 0 prerequisites BEFORE writing any code
-</content>
-</invoke>
----
-
-## 2026-04-06 — wt-2 Reconciled (v2 Plan)
-
-**Decision:** Option 1 — overwrote wt-2 plan with council-verified v2.
-
-**What happened:**
-- Partner agent and main session worked in parallel on the same PoC.
-- Partner ran 3 council rounds (spec → amendment → verification), caught G1+G2+C6.
-- Main session ran a 4th council round on the plan itself (4 reviewers parallel).
-- The 4th round found 9 critical issues — most overlapping with partner's earlier finds, plus a few extras (signal_type NOT NULL, dispatch_push_notification signature drift, scope-violating middleman edge function, wrong stuck-step query).
-- Main session wrote a unified v2 plan (1385 lines) incorporating ALL fixes from all 4 council rounds.
-- v2 written to `wt-2/docs/superpowers/plans/2026-04-06-journey-harness-poc.md`, replacing v1.
-
-**What v2 has that v1 didn't:**
-- Task 0 with 10 prerequisite checks (10 verbatim quotes required in HANDOFF)
-- Tasks 3 & 4 fully rewritten as Server Component / Server Action (C6)
-- Task 5 with NULL condition documented + same-request advancement explained
-- Task 7 querying `current_step = 2` not 1, with `signal_type = 'journey_stuck'`
-- Task 9 deletes the middleman edge function — direct PG function call from trigger
-- Task 9 hardcodes correct 6-param signature (p_event, p_profile_id, p_workspace_id, p_title, p_body, p_data)
-- Task 10 Step 7 tests the WEB half via dev server + count diff
-- Task 10 fixed workspace `id` → `workspace_id`, profile with all NOT NULL columns
-- Task 11 HANDOFF template extended with Emit Call Sites + Decisions Made sections
-- DoD expanded from 12 to 15 items
-
-**Status:** v2 ready for execution. Build agent in wt-2 should run Task 0 first and STOP if any prerequisite check fails.
+Pick up any of:
+- Continue feature work in active worktrees: wt-1 (employee-contract-management), wt-2 (journey-harness-poc — Task 0 prerequisite checks), wt-3 (agent-harness), wt-4 (training-agent-pipeline)
+- Or start something new with `/start-feature`
