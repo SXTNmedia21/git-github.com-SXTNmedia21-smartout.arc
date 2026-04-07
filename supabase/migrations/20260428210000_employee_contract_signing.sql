@@ -57,6 +57,12 @@ CREATE POLICY "employee_read_own_contracts"
   );
 
 -- 3. Seed standard employee contract templates
+-- contract_template inherited a legacy NOT NULL `template_type` column from the
+-- pre-rename `platform_contract_template` table. The new wider `contract_type`
+-- supersedes it, so loosen the constraint before seeding employee templates.
+ALTER TABLE public.contract_template
+  ALTER COLUMN template_type DROP NOT NULL;
+
 INSERT INTO contract_template (
   template_id, name, description, contract_type, language,
   content_html, placeholders, is_system, is_active, workspace_id
