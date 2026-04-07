@@ -19,6 +19,7 @@ tags: [learnings]
 | 6   | 2026-03-28 | Live ops feed must normalize mixed human/agent/system events before first-screen rendering                              | Prevented noisy timeline and authority confusion in cockpit V1                       |
 | 7   | 2026-03-28 | Temporal shift lock must be DB-canonical across web/voice/MCP channels                                                  | Prevented bypass risk from service-role and side-channel writes                      |
 | 8   | 2026-03-28 | Absence approval flow is a missing prerequisite — status field exists but no transition logic, no UI, no hooks          | Any absence-triggered workflow (smart-cover, payroll, guardian) will fail without it |
+| 25  | 2026-04-07 | Stage Engine WebSockets (`/ws/:sessionId`, `/guardian/ws`) + in-process guardian-bus are structural Vercel Fluid Compute blockers | Future Vercel migration of stage-engine requires WS→SSE refactor + guardian-bus externalization first. shift-mcp is the only clean-migration candidate. See learning 0025. |
 
 module: dashboard
 tags: [learnings]

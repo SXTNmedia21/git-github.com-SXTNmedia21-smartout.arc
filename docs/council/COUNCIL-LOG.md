@@ -202,3 +202,48 @@ Tracks all System Council sessions — multi-agent review meetings where specs, 
 **Council process learning:** The verification round caught what the original review missed. Agent-coord traced actual code line-by-line (engine-dispatch.ts:411, engine-event.ts:74) while Steward/Supervisor evaluated the spec at concept level. Both perspectives were necessary — concept review approves the architecture, code-tracing review catches the implementation bugs. Always run a verification round after spec amendments.
 
 **Biggest risk avoided (this round):** Build agent would have followed spec literally and shipped a PoC where (a) no step ever advances because of payload key mismatch, OR (b) entire chain silently no-ops in local dev. Both bugs would only surface during testing — wasting hours of build time.
+
+---
+
+## 2026-04-07 — Untracked vercel.json: migrate droplet services to Vercel?
+
+**Type:** architecture
+**Verdict:** REJECT (DELETE the file)
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator
+**Frontend-designer:** skipped (not a UI question)
+**ADR created:** ADR-0072
+**Learning created:** 0025-stage-engine-websocket-vercel-blocker
+
+**Subject:** An untracked `vercel.json` appeared at repo root on 2026-04-06 with an undocumented `experimentalServices` field naming web + 4 backend services. No ADR, no plan, no driver, no provenance. Question: delete, integrate, or hybrid?
+
+**Verdict:** Unanimous DELETE (3/3).
+
+**Key findings (each agent caught something the others missed):**
+
+**System Steward (chair):**
+- File violates Source of Truth Hierarchy — `experimentalServices` is undocumented, cannot be canonical for service topology.
+- Bypasses ADR-0040 without supersession ADR.
+- ADR-0071 (preview env asymmetry "services have no preview tier") would need re-derivation — vault structure, env sync manifest, the asymmetry rationale.
+- scrapling network isolation regression: currently internal-only, the proposed routePrefix would make it publicly addressable.
+- n8n persistent volume cannot move to Fluid Compute → Option B impossible by construction.
+- Timing: cost of "no" today is zero, cost of "yes" is unbounded. We just shipped first preview→main release.
+
+**Supervisor:**
+- Scope creep: file bypassed `/start-feature`, decision log, SESSION.md, council. Every quality gate.
+- DocuSeal HMAC verification depends on raw request body — Fluid Compute body parsing under `experimentalServices` is unverified. Production billing-adjacent code at risk.
+- `interview-mcp` exists in `services/` but is missing from the proposed file → spec already incomplete.
+- Adding Vercel Functions creates a THIRD compute fabric (Supabase Edge + droplet + Vercel) — fragmentation.
+- `experimentalServices` not in any documented Vercel config surface (only `functions`, `crons`, `bunVersion`, `routes`, or `vercel.ts` + `@vercel/config`).
+
+**System Agent Coordinator (CRITICAL — caught structural blockers others missed):**
+- **WebSocket routes in stage-engine** — `/ws/:sessionId` and `/guardian/ws` are persistent connections used by onboarding UI and admin dashboard. Vercel Functions DO NOT support arbitrary WebSocket upgrades. **Hard blocker.**
+- **In-process guardian-bus** — `services/stage-engine/src/core/guardian-bus.ts` distributes events via in-process EventEmitter. Multiple Fluid Compute warm instances would silently drop cross-instance events. Externalization to Upstash Redis pub/sub or Vercel Queues required.
+- **Background loops** — `CLEANUP_INTERVAL_MINUTES=5` and Calendar Guardian tick need conversion to Vercel Cron.
+- shift-mcp is the only clean candidate but cold-start variance (800ms-2.5s vs droplet's always-warm 300-500ms) breaks agent tool latency budget for voice flows.
+- Voice (Ultravox) clarification: voice runs browser↔Ultravox directly. Stage Engine receives only short-lived server-side tool callbacks. NOT a sustained-connection issue. Good news for any future migration.
+
+**Key decision:** Option A (DELETE). Option B impossible by construction (n8n, scrapling). Option C premature (latency cost, no driver, requires WS refactor first).
+
+**Doc references checked:** The 3 older docs that mention `vercel.json` actually reference `apps/mobile/vercel.json` (legitimate Expo PWA SPA rewrite config), NOT the root file. No doc audit needed. Clean delete.
+
+**Council process note:** Full council was the right call here. Each agent contributed unique findings — Steward caught the ontology + ADR conflicts, Supervisor caught the scope-creep + DocuSeal webhook risk, Agent-Coord caught the structural WebSocket blocker that nobody else would have known about. None of these would have been found by reading docs alone.
