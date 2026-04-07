@@ -247,3 +247,83 @@ Tracks all System Council sessions — multi-agent review meetings where specs, 
 **Doc references checked:** The 3 older docs that mention `vercel.json` actually reference `apps/mobile/vercel.json` (legitimate Expo PWA SPA rewrite config), NOT the root file. No doc audit needed. Clean delete.
 
 **Council process note:** Full council was the right call here. Each agent contributed unique findings — Steward caught the ontology + ADR conflicts, Supervisor caught the scope-creep + DocuSeal webhook risk, Agent-Coord caught the structural WebSocket blocker that nobody else would have known about. None of these would have been found by reading docs alone.
+
+---
+
+## 2026-04-06 — Employee Contract Management Post-Implementation Review
+
+**Type:** feature (post-implementation)
+**Verdict:** APPROVE WITH CHANGES — 6 must-fix, 4 should-fix
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator, frontend-designer, narrator
+**Key decision:** Architecture sound (D2 Resource placement, contract_type branching, cascade integrity preserved). Implementation had 6 runtime-breaking bugs requiring fix before merge.
+**ADRs created:** 5 entries in feature decision log (table reuse, status propagation, suggestTools placement, X-Service-Key auth, fetch timeouts)
+
+### What broke
+1. Botsson tools referenced 4 nonexistent columns (`id` vs `contract_id`, `profile_id` doesn't exist, `contract_template_id` vs `template_id`)
+2. Webhook wrote `"declined"` to enum that lacks that value → PostgreSQL constraint violation
+3. POST /api/contracts created without `emit()` → telemetry gap
+4. Auth header used `Authorization: Bearer` instead of `X-Service-Key` convention
+5. `sendEmployeeContract` autonomous instead of suggest-confirm flow
+6. Hardcoded Tailwind colors (blue-500, green-500, yellow-500) throughout UI
+
+### Learnings captured
+1. **Always verify Botsson tool schemas against `database.types.ts`** — 3 agents independently caught the same column mismatches. Plans written from memory drift from reality fast.
+2. **Service-to-service auth is `X-Service-Key`, not Bearer** — second time this pattern has been confused.
+3. **Irreversible AI actions belong in `suggestTools`** — `confirm`/`autonomous` authority levels expose tools without enforced UI confirmation. The suggest tier is the only one that gates on user confirmation.
+
+### Verdict held
+All fixes applied in single commit (`2fbdbdf7`). Typecheck 27/27 passing. Architecture untouched — only implementation accuracy fixes.
+
+---
+
+## 2026-04-06 — Employee Contract Management R2 Re-Review
+
+**Type:** feature (re-review after R1 fixes)
+**Verdict:** REJECT — 3 new blockers found by tracing end-to-end flow
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator, frontend-designer, narrator
+
+### What R2 found that R1 missed
+R1 reviewed each side of the feature in isolation. R2 traced the integration and found 3 new blocking bugs:
+
+1. **B1 RUNTIME BUG (Supervisor):** Drawer sent `{field_values}` but route Zod schema expects `{overrides}`. Drawer read `id` from response but route returned `{contract_id}`. The send-contract user flow was broken on first use. Pure typecheck couldn't catch this — local type annotations on `await response.json()` are unchecked claims.
+
+2. **B2/NEW-3 INVARIANT (Steward):** Botsson `createEmployeeContract` had no `emit()` call. Silent mutation path through agent layer — bypassed activity_trail, PostHog, and engine_event. Violation of "no mutation without emit".
+
+3. **B3/NEW-4 SECURITY (Steward):** POST /api/contracts had no role check. Any authenticated workspace member (including employees) could create contracts for any profile. Privilege escalation vector.
+
+### Fix path
+- B1: Drawer body shape aligned to Zod schema, response destructure fixed (commit `51b7b49c`)
+- B2: First attempt wrote directly to activity_trail (incomplete). Second attempt refactored `@smartout/telemetry` package to use `globalThis["window"]` instead of `typeof window`, allowing import from server-only `@smartout/ai` (commit `d92a597e`)
+- B3: Added admin/owner role check in route handler with user-scoped client (commit `51b7b49c`)
+- Regression tests + 2 learnings filed (commit `3ce3ec71`)
+
+### Process learning
+End-to-end review IS different from per-file review. For features with drawer→API→DB flows, the reviewer must trace every payload field both directions. Captured as Learning 0023.
+
+---
+
+## 2026-04-07 — Employee Contract Management R3 Verification
+
+**Type:** feature (third review)
+**Verdict:** APPROVE WITH CHANGES — 0 new blockers, 2 closure-blockers tracked
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator, frontend-designer
+
+### Gate status
+- **Merge to development:** GREEN — all R2 blockers verified fixed by 4 independent reviewers
+- **Feature closure:** YELLOW — 2 items tracked
+
+### Closure-blockers (must address before `/close-feature`)
+1. **NEW-5 — `as never` cast on webhook line 225.** Gated on type regen. Local Supabase has migration drift from parallel worktree work; type regen requires resolving drift first. Tracked as closure-blocker, not merge-blocker.
+2. **PII (personnummer) handling decision.** Personnummer flows through placeholder map to DocuSeal. Needs Pontus decision + ADR. Three options on table: encrypt at rest, defer to DocuSeal entirely, or split into separate restricted-access table.
+
+### Backlog (track, don't block)
+- Rename Test 1 in contracts-api.spec.ts to reflect Zod silent-strip (Supervisor)
+- Document or widen route response shape for `recipient_name` (Supervisor)
+- Extract `requireWorkspaceAdmin()` helper if a 4th caller appears (Steward)
+- Audit codebase for other `as never` casts after type regen (Steward)
+
+### Process observation: Convergence pattern
+R1: 6 blockers → R2: 3 new blockers (in fixes) → R3: 0 new blockers. This is healthy convergence: find → fix → verify → ship. Council depth (3 rounds) was right for this surface area. Simpler features should converge in 2 rounds; cascade-touching features may need 4+. **Council depth scales with cross-cutting surface area.**
+
+### Verdict held
+4 reviewers converged on ship. Steward: "From the agent architecture perspective: this is the right fix in the right place. No follow-up needed." Supervisor: "Ship it, log items as follow-ups." Frontend: grep verified zero hardcoded palette colors.

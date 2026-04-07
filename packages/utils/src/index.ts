@@ -4,4 +4,5 @@ export * from "./validation";
 export * from "./permissions";
 export * from "./readiness";
 export * from "./contract-placeholders";
+export { buildEmployeePlaceholderMap } from "./employee-contract-placeholders";
 export * from "./people";
