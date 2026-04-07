@@ -1,7 +1,7 @@
 ---
 title: Learning Log
 status: in_progress
-updated: 2026-03-28
+updated: 2026-04-07
 created: 2026-03-26
 module: schedule
 tags: [learnings]
@@ -29,3 +29,17 @@ tags: [learnings]
 
 | #   | Date | Learning | Impact |
 | --- | ---- | -------- | ------ |
+
+---
+
+module: contracts
+tags: [learnings]
+
+---
+
+# Learning Log — employee-contract-management
+
+| #   | Date       | Learning                                                                                                                                                                                  | Impact                                                                                                                                      |
+| --- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | 2026-04-07 | Drawer→API boundary requires end-to-end shape verification — Zod silently strips unknown keys, typecheck doesn't catch it ([0023](0023-drawer-api-boundary-verification.md))             | Adds API-level regression test pattern + code review checklist for drawer→route flows                                                       |
+| 2   | 2026-04-07 | Every Botsson mutation tool must call emit() — capability layer is part of telemetry coverage ([0024](0024-botsson-mutation-tools-must-emit.md))                                          | Refactored telemetry to be importable from server-only packages; added Botsson emit pattern to review checklist                             |
