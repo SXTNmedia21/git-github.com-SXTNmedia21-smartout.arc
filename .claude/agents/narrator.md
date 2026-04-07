@@ -132,7 +132,7 @@ Nästa: [en mening om vad som kommer]"
 
 ### Distributionsordning
 
-1. Läs källor (DASHBOARD, SESSION, git log)
+1. Läs källor (DASHBOARD, activity-log, git log, claude-mem)
 2. Generera berättelsen (visa för användaren)
 3. Skriv till Second Brain via Bash
 4. Skicka till Telegram via `heartbeat-notify.sh telegram "..."`

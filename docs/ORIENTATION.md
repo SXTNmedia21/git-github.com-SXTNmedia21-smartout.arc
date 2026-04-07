@@ -33,8 +33,8 @@ If step 4 (MCP) is unavailable: steps 2+3 are sufficient. Do not block on MCP.
 | What journey files are pending | `docs/DASHBOARD.md` § Pending Journeys |
 | What happened yesterday / last week | `~/dev/second-brain-v2/ops/activity-log.md` (append-only, grep it) |
 | What decisions were made and why | `docs/decisions/0000-decision-log.md` + individual `docs/decisions/NNNN-*.md` files |
-| Narrative "what was done" from past sessions | claude-mem via MCP (`mcp__plugin_claude-mem_mcp-search__search`) |
-| In-flight context ("where we stopped") | `~/.claude/projects/<repo>/memory/MEMORY.md` |
+| Narrative "what was done" from past sessions | claude-mem via MCP (`mcp__plugin_claude-mem_mcp-search__search`) or tail of `activity-log.md` |
+| Persistent cross-session user/feedback facts | `~/.claude/projects/<repo>/memory/MEMORY.md` (auto-memory — NOT a session scratchpad, see anti-patterns) |
 | Current system state (architecture, gaps) | `docs/STATE.md` (trust hierarchy at top of file — top sections are live, cascade sections may lag) |
 | Database tables, routes, packages | `docs/reference/` |
 | Module business logic | `docs/modules/` |

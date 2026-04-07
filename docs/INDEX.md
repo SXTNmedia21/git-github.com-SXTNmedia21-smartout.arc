@@ -18,16 +18,19 @@ Master navigation map for all documentation. An agent reads this to find any doc
 2. **CLAUDE.md** -- conventions, rules, verified facts
    2.5. **docs/ORIENTATION.md** -- boot-time reading order and "where does X live"
    2.5. **Cascade Core Foundation spec** -- canonical cascade architecture (`superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`)
-   2.5. **docs/STATE.md** -- current system state, gaps, weekly plan
-3. **docs/DASHBOARD.md** -- live git state (active worktrees, free slots, pending journeys)
-4. **~/dev/second-brain-v2/ops/activity-log.md** -- append-only session/event audit trail
-5. **claude-mem (MCP)** -- cross-session narrative memory
-6. **docs/reference/** -- detailed lookup during coding
-7. **docs/engines/** -- industry engine packaging and event-layer specialization
-8. **docs/modules/** -- business logic per module
-9. **docs/architecture/** -- system design decisions
-10. **docs/cross-cutting/** -- concerns spanning modules
-11. **docs/archive/** -- historical, never loaded actively
+3. **docs/decisions/** -- accepted ADRs (code-review reviewed, in git blame)
+4. **docs/DASHBOARD.md** -- live git state (active worktrees, free slots, pending journeys)
+5. **~/dev/second-brain-v2/ops/activity-log.md** -- append-only session/event audit trail
+6. **claude-mem (MCP)** -- cross-session narrative memory
+7. **docs/STATE.md** -- current system state, gaps (human-maintained snapshot, may drift — see trust banner at top of file)
+8. **docs/reference/** -- detailed lookup during coding
+9. **docs/engines/** -- industry engine packaging and event-layer specialization
+10. **docs/modules/** -- business logic per module
+11. **docs/architecture/** -- system design decisions
+12. **docs/cross-cutting/** -- concerns spanning modules
+13. **docs/archive/** -- historical, never loaded actively
+
+> Reconciled 2026-04-07 with ORIENTATION.md's trust hierarchy. STATE.md moved from layer 2.5 to layer 7 because it self-flags as drift-prone; DASHBOARD is closer to "now" truth.
 
 > `docs/SESSION.md` is **deleted** per ADR-0075. Narrative role migrated to activity-log + claude-mem.
 

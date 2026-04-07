@@ -1,90 +1,108 @@
 ---
 title: Decision Log
-status: in_progress
+status: canonical
 updated: 2026-04-07
-created: 2026-04-06
+created: 2026-02-27
 module: meta
-tags: [decisions]
+tags: [decisions, adr, index]
 ---
 
 # Decision Log
 
-| # | Date | Decision | Status |
-|---|------|----------|--------|
-| ADR-0075 | 2026-04-07 | Consolidate knowledge system: slim DASHBOARD.md to pure git state, delete SESSION.md, migrate session history + narrative to activity-log + claude-mem. Decision log stays in repo. Slash commands rewrite contracts. See `0075-knowledge-system-consolidation.md`. | accepted |
-| ADR-0073 | 2026-04-06 | Two-layer eval harness for `packages/ai`: unit tests (mocked, every CI) + gated evals (real LLM, `RUN_EVALS=1`, nightly). Vitest with separate config per layer. Fixture format is TS+Zod. See `0073-ai-eval-harness.md`. | accepted |
-module: contracts
-tags: [decisions]
----
+> Index of all accepted ADRs. Rebuilt 2026-04-07 after discovering the file had accumulated
+> concatenated per-feature tables from multiple merged branches (each feature branch wrote
+> its own `0000-decision-log.md` during work, and merges concatenated the frontmatters mid-file).
+>
+> **Source of truth:** individual `NNNN-*.md` files in this directory. This index is a
+> regenerated view — if it disagrees with a file, the file wins.
+>
+> **Per-feature decision tables** (previously embedded here) have been removed. They live in
+> `docs/handoffs/HANDOFF-<feature>.md` and in `activity-log.md` (per ADR-0075).
+>
+> Ordered newest first.
 
-# Decision Log — employee-contract-management
+| ADR | Date | Title | Status |
+|-----|------|-------|--------|
+| [ADR-0075](0075-knowledge-system-consolidation.md) | 2026-04-07 | Knowledge System Consolidation — slim DASHBOARD, delete SESSION.md, migrate narrative to activity-log + claude-mem | accepted |
+| [ADR-0074](0074-protocol-verification-engine.md) | 2026-03-29 | Protocol Verification Engine Architecture (renumbered from 0071 on 2026-04-07) | accepted |
+| [ADR-0073](0073-ai-eval-harness.md) | 2026-04-06 | AI Eval Harness for `packages/ai` — two-layer test surface (unit mocked + evals gated) | accepted |
+| [ADR-0072](0072-vercel-multi-service-rejected.md) | 2026-04-07 | Vercel multi-service migration — rejected pending platform investigation | accepted |
+| [ADR-0071](0071-preview-environment-architecture.md) | 2026-04-06 | Preview Environment Architecture — 3-branch flow (dev → preview → main) | accepted |
+| [ADR-0070](0070-emma-wizard-bridge.md) | 2026-03-28 | Emma-Wizard Bridge — tool-based agent control over wizard flows (supersedes parts of ADR-0049) | accepted |
+| [ADR-0069](0069-session-execution-ownership.md) | 2026-03-28 | Session Execution Ownership — Edge Functions own execution, Engine owns side-effects | accepted |
+| [ADR-0068](0068-simulation-schema-and-service.md) | 2026-03-28 | Simulation Schema and Dedicated Service | accepted |
+| [ADR-0067](0067-smart-cover-via-event-engine.md) | 2026-03-28 | Smart Cover via Event Engine | accepted |
+| [ADR-0066](0066-temporal-shift-lock-architecture.md) | 2026-03-28 | Temporal shift lock architecture | accepted |
+| [ADR-0065](0065-hospitality-operations-cockpit-v1-contract.md) | 2026-03-28 | Hospitality Operations Cockpit v1 Read/Action Contract | accepted |
+| [ADR-0064](0064-dynamic-landing-engine.md) | 2026-03-28 | Dynamic Landing Engine | accepted |
+| [ADR-0063](0063-communication-system-consolidation.md) | 2026-03-28 | Communication System Consolidation | accepted |
+| [ADR-0062](0062-industry-intelligence-consolidation.md) | 2026-03-28 | Industry Intelligence Consolidation | accepted |
+| [ADR-0061](0061-walkai-semantic-tagging.md) | 2026-03-28 | WalkAi Semantic Tagging Convention | accepted |
+| [ADR-0060](0060-unified-wizard-shell.md) | 2026-03-28 | Unified Wizard Shell in packages/ui | accepted |
+| [ADR-0059](0059-platform-admin-pipeline.md) | 2026-03-28 | Platform Admin Pipeline Separation — routeAdminMessage() vs routeAgentMessage() | accepted |
+| [ADR-0058](0058-livekit-as-webrtc-provider.md) | 2026-03-22 | LiveKit as WebRTC Provider | accepted |
+| [ADR-0057](0057-payroll-schema-separation.md) | 2026-03-28 | Payroll Schema Separation | accepted |
+| [ADR-0056](0056-cascade-core-foundation-schema.md) | 2026-03-21 | Cascade Core Foundation Schema (I1+6D+4C+K1a/K1b) | done |
+| [ADR-0055](0055-two-vault-environment-isolation.md) | 2026-03-17 | Two-Vault Environment Isolation (superseded by ADR-0071) | superseded |
+| [ADR-0054](0054-edge-functions-own-call-orchestration.md) | 2026-03-22 | Edge Functions Own Call Orchestration (renumbered from 0059 on 2026-04-07) | accepted |
+| [ADR-0053](0053-simulation-schema-and-simulator-service.md) | 2026-03-23 | Dedicated simulation schema and simulator microservice for cascade system testing (renumbered from 0058 on 2026-04-07) | proposed |
+| [ADR-0052](0052-guardian-websocket-architecture.md) | 2026-03-14 | Guardian Real-Time WebSocket Architecture (renumbered from 0049 on 2026-04-07) | accepted |
+| [ADR-0051](0051-unified-ai-runtime-system-definition.md) | 2026-03-14 | Unified AI Runtime System Definition v1 | accepted |
+| [ADR-0050](0050-port-standardization-and-vault-secrets.md) | 2026-03-14 | Port Standardization & Vault Secrets Strategy | accepted |
+| [ADR-0049](0049-agent-sdk-package.md) | 2026-03-06 | Agent SDK Package — `@smartout/agent-sdk` | accepted |
+| [ADR-0048](0048-daily-close-engine.md) | 2026-03-06 | DailyCloseEngine Architecture | accepted |
+| [ADR-0047](0047-schedule-db-persistence.md) | 2026-03-06 | Schedule DB Persistence with TanStack Query | accepted |
+| [ADR-0046](0046-block-based-landing-page-builder.md) | 2026-03-01 | Block-based Landing Page Builder (superseded by ADR-0064) | superseded |
+| [ADR-0045](0045-sendgrid-transactional-email.md) | 2026-03-01 | SendGrid for Transactional Email Over Resend | accepted |
+| [ADR-0044](0044-invitation-table-naming.md) | 2026-03-01 | Invitation Table Named `invitation` Not `workspace_invite` | accepted |
+| [ADR-0043](0043-emergency-contact-on-user-identity.md) | 2026-03-01 | Emergency Contact Fields on user_identity Table | accepted |
+| [ADR-0042](0042-agent-architecture.md) | 2026-03-02 | Agent Architecture — Stage Engine Agent Mode | accepted |
+| [ADR-0041](0041-onboarding-wizard-step-architecture.md) | 2026-03-01 | Onboarding Wizard Step Architecture | accepted |
+| [ADR-0040](0040-infrastructure-in-monorepo.md) | 2026-03-01 | Infrastructure stays in monorepo | accepted |
+| [ADR-0039](0039-infra-consolidation.md) | 2026-03-01 | Infrastructure Consolidation | accepted |
+| [ADR-0038](0038-journey-agent-output-generators.md) | 2026-03-01 | Journey Agent & Output Generators | accepted |
+| [ADR-0037](0037-landing-event-tracking.md) | 2026-03-01 | Landing Page Event Tracking | accepted |
+| [ADR-0036](0036-shift-mcp-server.md) | 2026-03-01 | Shift MCP Server | accepted |
+| [ADR-0035](0035-docker-network-infra.md) | 2026-03-01 | Docker Network Infrastructure (superseded by ADR-0039) | superseded |
+| [ADR-0034](0034-documentation-enforcement-pipeline.md) | 2026-03-01 | Documentation Enforcement Pipeline | accepted |
+| [ADR-0033](0033-documentation-rag-pgvector.md) | 2026-03-01 | Documentation RAG with pgvector | accepted |
+| [ADR-0032](0032-schedule-local-state-architecture.md) | 2026-03-01 | Schedule Page Local State Architecture | accepted |
+| [ADR-0031](0031-journey-portal-system.md) | 2026-03-01 | Journey Portal System | accepted |
+| [ADR-0030](0030-documentation-in-landing-app.md) | 2026-02-28 | Documentation System in Landing App (Nextra Removal) | accepted |
+| [ADR-0029](0029-workspace-api-gateway.md) | 2026-02-28 | Workspace API Gateway | accepted |
+| [ADR-0028](0028-api-key-management-system.md) | 2026-02-28 | API Key Management System | accepted |
+| [ADR-0027](0027-pricing-terms-table.md) | 2026-02-28 | Pricing Terms Table for Workspace Commercial Model | accepted |
+| [ADR-0026](0026-template-editor-redesign-attachments.md) | 2026-02-28 | Template Editor Redesign with PDF Attachments | accepted |
+| [ADR-0025](0025-documentation-restructuring.md) | 2026-02-28 | Documentation Restructuring — Layered System with YAML Frontmatter | accepted |
+| [ADR-0024](0024-contract-system-architecture.md) | 2026-02-28 | Contract System Architecture | accepted |
+| [ADR-0023](0023-global-scrollbar-standard.md) | 2026-02-28 | Global Scrollbar Standard via Design Tokens | accepted |
+| [ADR-0022](0022-notification-service-architecture.md) | 2026-02-28 | Email/Notification Service Architecture | accepted |
+| [ADR-0021](0021-subdomain-workspace-routing.md) | 2026-02-28 | Subdomain-Based Workspace Routing | accepted |
+| [ADR-0020](0020-vercel-hosting-strategy.md) | 2026-02-28 | Vercel Hosting with Dual-Project Split | accepted |
+| [ADR-0019](0019-performance-build-governance.md) | 2026-02-27 | Performance and Build Governance System | accepted |
+| [ADR-0018](0018-tanstack-table-recharts-platform-admin.md) | 2026-02-27 | TanStack Table and Recharts for Platform Admin | accepted |
+| [ADR-0017](0017-enterprise-infrastructure.md) | 2026-02-27 | Enterprise Infrastructure — Shared Configs, Design System, Monitoring | accepted |
+| [ADR-0016](0016-services-directory.md) | 2026-02-27 | Services Directory for Backend Microservices | accepted |
+| [ADR-0015](0015-bubble-rebuild-strategy.md) | 2026-02-27 | Bubble.io Rebuild Strategy | accepted |
+| [ADR-0014](0014-posthog-eu-proxy.md) | 2026-02-27 | PostHog EU Instance with Reverse Proxy | accepted |
+| [ADR-0013](0013-database-types-generation.md) | 2026-02-27 | Auto-Generated Database Types Workflow | accepted |
+| [ADR-0012](0012-subscription-on-company.md) | 2026-02-27 | Subscription Data on Company Table (No Separate Table) | accepted |
+| [ADR-0011](0011-user-identity-table-naming.md) | 2026-02-27 | User Table Named `user_identity` (Not `user`) | accepted |
+| [ADR-0010](0010-ai-sdk-openrouter.md) | 2026-02-27 | AI SDK with OpenRouter Provider | accepted |
+| [ADR-0009](0009-tailwind-v4-css-config.md) | 2026-02-27 | Tailwind CSS v4 with CSS-Based Configuration | accepted |
+| [ADR-0008](0008-dashboard-scroll-behavior.md) | 2026-02-27 | Dashboard Scroll Behavior & Dynamic Layout | accepted |
+| [ADR-0007](0007-dashboard-architecture.md) | 2026-02-27 | Dashboard App Layout & Navigation State | accepted |
+| [ADR-0006](0006-secrets-and-environment.md) | 2026-02-27 | Environment Variables, Secrets & Module Boundaries | accepted |
+| [ADR-0005](0005-testing-infrastructure.md) | 2026-02-27 | Testing Infrastructure — Four-Layer Strategy | accepted |
+| [ADR-0004](0004-unified-telemetry-engine.md) | 2026-02-27 | Unified Telemetry & Audit Trail Engine | accepted |
+| [ADR-0003](0003-shadcn-integration.md) | 2026-02-27 | UI Framework and Local Styling Strategy | accepted |
+| [ADR-0002](0002-state-vs-hooks.md) | 2026-02-27 | State-Driven vs Hook-Driven Logic Boundaries | accepted |
+| [ADR-0001](0001-use-turborepo-pnpm.md) | 2026-02-27 | Adopt Turborepo & pnpm Workspaces | accepted |
 
-| #   | Date       | Decision                                                                                                                                                                                                                     | Status   |
-| --- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| 1   | 2026-04-06 | Replace USING(true) anon SELECT on invitation with SECURITY DEFINER RPC `get_invitation_by_token()`. Token (UUID, 122-bit) acts as authorization. Non-pending returns status only (no PII).                                  | accepted |
-| 2   | 2026-04-06 | Set profile status to `active` directly on invite acceptance. Trainee mode deferred to engine_process — profile status on insert is not the right mechanism.                                                                 | accepted |
-| 3   | 2026-04-06 | engine_event uses dot-separated event types (`invitation.accepted`) matching engine_trigger convention. activity_trail uses space-separated (`invitation accepted`) matching telemetry registry. Dual naming is intentional. | accepted |
+## Integrity
 
-created: 2026-03-29
-module: governance
-tags: [decisions]
-
----
-
-# Decision Log
-
-| #   | Date       | Decision                                                                                                                                                                             | Status   |
-| --- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- |
-| 1   | 2026-03-29 | Silent signUp in wizard step 1, not step 6 — reduces friction, auth invisible to user                                                                                                | accepted |
-| 2   | 2026-03-29 | workspace_status enum (sandbox/active/suspended/archived) on workspace table                                                                                                         | accepted |
-| 3   | 2026-03-29 | email_confirmed_at on auth.users as verification source of truth — not a custom column                                                                                               | accepted |
-| 4   | 2026-03-29 | Sandbox 48h deadline — workspaces auto-deleted if not verified within 48 hours                                                                                                       | accepted |
-| 5   | 2026-03-29 | Fail-closed auth rate limiting — if Redis unavailable, block auth requests (not fail-open)                                                                                           | accepted |
-| 6   | 2026-03-29 | Three-layer rate limiting: Supabase config + Upstash Redis + telemetry anomaly detection                                                                                             | accepted |
-| 7   | 2026-03-29 | OTP as login method alongside password + Google — never reveals email existence on OTP send                                                                                          | accepted |
-| 8   | 2026-03-29 | Engine FK CASCADE on workspace_id — enables sandbox cleanup without FK violations                                                                                                    | accepted |
-| 9   | 2026-03-29 | Middleware sandbox cache (30s TTL) — same pattern as godmode cache, minimizes DB lookups                                                                                             | accepted |
-| 10  | 2026-03-29 | Step 6 becomes summary/review — no auth logic, just data confirmation before provisioning                                                                                            | accepted |
-| 11  | 2026-04-06 | Authority skills model — domain knowledge in repo-local skills, CLAUDE.md slimmed to pointers. Always-loaded context reduced ~260 lines. Skills load on-demand via keyword triggers. | accepted |
-
-status: done
-updated: 2026-03-30
-created: 2026-03-29
-module: auth
-module: cross-cutting
-module: infra
-tags: [decisions]
-
----
-
-# Decision Log — council-review-fixes
-
-| #   | Date | Decision | Status |
-| --- | ---- | -------- | ------ |
-
-# Decision Log — deployment-pipeline
-
-| #    | Date       | Decision                                                                                                   | Status   |
-| ---- | ---------- | ---------------------------------------------------------------------------------------------------------- | -------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1    | 2026-04-06 | 3-branch flow (development → preview → main) with asymmetric Docker (no preview tier). ADR-0071.           | accepted |
-| 2    | 2026-04-06 | Supabase Branch DBs require idempotent migrations (IF NOT EXISTS). 85 bare indexes wrapped.                | accepted |
-| 3    | 2026-04-06 | 1Password vault separation: smartout_ai (dev/preview), smartout_ai_prod (production). Supersedes ADR-0055. | accepted |
-| 4    | 2026-04-06 | Merge commit strategy for large PRs (preserve history for bisect/blame).                                   | accepted |
-| #    | Date       | Decision                                                                                                   | Status   | Module       | Notes                                                                                                                                                       |
-| ---- | ---------- | --------------------------------------------------------------                                             | -------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0059 | 2026-03-28 | Platform Admin Pipeline Separation                                                                         | accepted | stage-engine | routeAdminMessage() separate from workspace-scoped routeAgentMessage()                                                                                      |
-| 0069 | 2026-03-28 | Session Execution Ownership: EF + Engine Side-Effects                                                      | accepted | hms          | Edge Functions own execution, Engine owns side-effects (notifications, escalation). Hybrid model.                                                           |
-| 0070 | 2026-03-28 | Emma-Wizard Bridge: tool-based agent control over wizard flows                                             | accepted | onboarding   | Step-level useRegisterTools, ref-based implementations, callback context push, WalkAiProvider outside DashboardShell. Supersedes ADR-0049 for wizard tools. |
-| 0074 | 2026-03-29 | Protocol Verification Engine Architecture                                                                  | accepted | testing      | Mission target=DB (engine_missions), JSONB storage, read-only journey_step, TS definitions, extends ADR-0031/0038. Council-reviewed. Renumbered from 0071 → 0074 on 2026-04-07 (collision with preview-environment ADR).                        |
-| 0072 | 2026-04-07 | Vercel multi-service migration — rejected pending platform investigation                                   | accepted | infrastructure | Untracked vercel.json with undocumented experimentalServices deleted. WebSockets in stage-engine, n8n volume, scrapling isolation block migration. Council 3/3 unanimous. |
-| #    | Date       | Decision                                                                                                   | Status   | Module       | Notes                                                                                                                                                       |
-| ---- | ---------- | -----------------------------------------------------                                                      | -------- | ------------ | -------------------------------------------------------------------------------------------------                                                           |
-| 0059 | 2026-03-28 | Platform Admin Pipeline Separation                                                                         | accepted | stage-engine | routeAdminMessage() separate from workspace-scoped routeAgentMessage()                                                                                      |
-| 0069 | 2026-03-28 | Session Execution Ownership: EF + Engine Side-Effects                                                      | accepted | hms          | Edge Functions own execution, Engine owns side-effects (notifications, escalation). Hybrid model.                                                           |
-| # | Date | Decision | Status |
-|---|------|----------|--------|
-| 1 | 2026-04-06 | Reuse `contract` table for employee contracts via `contract_type='employee'` branching, link to `employment_contract` via new `signing_contract_id` FK | accepted |
-| 2 | 2026-04-06 | DocuSeal webhook owns `contract.status`; `employment_contract.status` is propagated from webhook (declined → terminated since enum has no declined value) | accepted |
-| 3 | 2026-04-06 | Botsson `sendEmployeeContract` placed in `suggestTools` (not autonomous) — irreversible legal actions require user confirmation | accepted |
-| 4 | 2026-04-06 | Service-to-service auth uses `X-Service-Key` header (NOT `Authorization: Bearer`) — applies to all Botsson tool → contract service calls | accepted |
-| 5 | 2026-04-06 | Botsson tool fetch calls require AbortController with 10s timeout — prevents agent hangs on slow/down services | accepted |
+- **74 ADRs** (0001-0075, ADR-0000 is this index)
+- **0 number collisions** (verified 2026-04-07 by pre-commit hook + manual audit)
+- **0 number gaps** (0052/0053/0054 previously gaps, now occupied by renumbered collision resolvers)
+- **Renumbered 2026-04-07:** 0049 guardian-ws → 0052, 0058 simulation → 0053, 0059 edge-functions → 0054, 0071 protocol-verification → 0074 (see ADR-0075 context)
+- **Superseded:** 0035 (→0039), 0046 (→0064), 0055 (→0071)
