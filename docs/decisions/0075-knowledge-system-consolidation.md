@@ -1,7 +1,7 @@
 ---
 title: "Knowledge System Consolidation — DASHBOARD/SESSION vs Second Brain + claude-mem"
 id: ADR_0075
-status: proposed
+status: accepted
 layer: decision
 created: 2026-04-07
 updated: 2026-04-07
@@ -148,11 +148,16 @@ Total: ~1.5 hours. Should fit in a single focused session.
   - When writing about "what happened this session," Claude writes to activity-log via the script, not by editing SESSION.md.
   - CLAUDE.md boot-sequence paragraph must be updated in the same PR that deletes SESSION.md to avoid instructing agents to read a file that doesn't exist.
 
-## Open Questions
+## Open Questions — Resolved 2026-04-07
 
-1. **Should `/end-session` still write a human-readable markdown summary somewhere?** Today SESSION.md serves as a scratch pad for "the story of the day." Options: (a) write to activity-log as a single long-form entry, (b) write to a new `docs/last-session.md` that's git-ignored and auto-regenerated, (c) skip entirely and rely on claude-mem digest. Preference: (a), but worth discussing.
-2. **Is activity-log.md the right sink for "feature closed" events, or should those also appear in a repo-local closures log?** Counter-argument for repo-local: closures are tied to specific commits in smartout.ai, and grep-ability matters. Counter-counter-argument: git log already provides this.
-3. **Should we migrate in a feature branch or on development directly?** Slash commands are repo tooling, not product code. Development is defensible but a short-lived `feat/knowledge-consolidation` branch gives us a rollback point.
+1. **Should `/end-session` still write a human-readable markdown summary somewhere?**
+   **Resolved: Option (a) — write a single long-form entry to activity-log.md.** No parallel file. The long-form entry serves as "the story of the day" and is chronologically ordered with other events, so `tail -n 200 activity-log.md` at session start gives both narrative and audit in one read.
+
+2. **Is activity-log.md the right sink for "feature closed" events, or should those also appear in a repo-local closures log?**
+   **Resolved: activity-log only. No repo-local closures log.** Rationale: `git log --merges` on the development branch provides the closure audit for smartout.ai specifically, and activity-log provides the cross-project view. Duplicating to a repo-local `docs/closures.md` would recreate the exact drift problem this ADR is solving.
+
+3. **Should we migrate in a feature branch or on development directly?**
+   **Resolved: Feature branch `feat/knowledge-consolidation` in a fresh worktree.** Rationale: (a) CLAUDE.md enforces worktree discipline for all feature work regardless of whether it's product or tooling, (b) slash command rewrites have real risk of temporarily breaking daily workflow, a feature branch gives a rollback point, (c) the migration commit(s) will be easier to review as a coherent unit. Note: some pieces live outside the smartout.ai repo (`~/.claude/commands/*`, `~/.claude/scripts/new-feature.sh`) and cannot be worktree-isolated — those edits will be made live but staged last in the sequence so the repo-side changes are already committed and reversible.
 
 ---
 
