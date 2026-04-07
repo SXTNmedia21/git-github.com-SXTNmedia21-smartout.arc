@@ -6,18 +6,29 @@
       "Bash(for f:*)",
       "Bash(do echo:*)",
       "Read(//home/sxtnl/dev/smartout.ai/**)",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(~/.claude/scripts/heartbeat-notify.sh file:*)",
+      "Bash(~/.claude/scripts/log-activity.sh session:*)",
+      "Bash(bash ~/.claude/scripts/heartbeat-session-start.sh)",
+      "Bash(bash ~/.claude/scripts/claude-mem-worker-ensure.sh)"
     ]
   },
-  "enabledMcpjsonServers": ["playwright"],
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "playwright"
+  ],
   "mcpServers": {
     "playwright": {
       "command": "npx",
-      "args": ["@playwright/mcp@latest"]
+      "args": [
+        "@playwright/mcp@latest"
+      ]
     },
     "n8n": {
       "command": "npx",
-      "args": ["@n8n/mcp-server"],
+      "args": [
+        "@n8n/mcp-server"
+      ],
       "env": {
         "N8N_HOST": "${N8N_HOST}",
         "N8N_BASIC_AUTH_USER": "${N8N_BASIC_AUTH_USER}",
@@ -26,11 +37,12 @@
     },
     "sentry": {
       "command": "npx",
-      "args": ["@sentry/mcp-server"],
+      "args": [
+        "@sentry/mcp-server"
+      ],
       "env": {
         "SENTRY_AUTH_TOKEN": "${SENTRY_AUTH_TOKEN}"
       }
     }
-  },
-  "enableAllProjectMcpServers": true
+  }
 }
