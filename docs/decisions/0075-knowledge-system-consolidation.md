@@ -2,12 +2,28 @@
 title: "Knowledge System Consolidation — DASHBOARD/SESSION vs Second Brain + claude-mem"
 id: ADR_0075
 status: accepted
+version: 1.1
 layer: decision
 created: 2026-04-07
 updated: 2026-04-07
 ---
 
 # ADR-0075: Knowledge System Consolidation
+
+> **v1.1 Amendment (2026-04-07)** — Council retrospective the same day flagged that ADR-0075 was violated by the commit that shipped ADR-0075 (`cb7c7c60` was committed directly to development in violation of this ADR's own resolved Open Q3). The husky hooks added by ADR-0075 enforced filesystem invariants but not branch discipline. v1.1 adds:
+>
+> 1. **Husky Hook #7 (branch guard)** — mechanically blocks direct non-merge commits to `development`/`preview`/`main`. Two parallel Claude sessions can no longer overwrite each other on `development`. See `.husky/pre-commit` lines 197+.
+> 2. **Husky Hook #8 (ORIENTATION anchor)** — `docs/ORIENTATION.md` must reference ADR-0075. Prevents accidental drift removing the source-of-authority link.
+> 3. **ORIENTATION.md promoted to Boot Sequence step 0** in both `~/.claude/CLAUDE.md` and project `CLAUDE.md`. Previously self-described as "North Star" but not actually read at session start. Now load-bearing.
+> 4. **ORIENTATION.md self-listed as tier 0** in its own trust hierarchy ("derived from ADR-0075"). Closes the self-reference gap where the file's authority was implicit.
+>
+> Council also identified two follow-up ADRs to write later:
+> - **ADR-0076** — Build-agent verification evidence contract (raw output mandatory in HANDOFF DoD sections, `docs/templates/handoff.md` template, close-feature.sh grep gate)
+> - **ADR-0078** — Dev-time agent infrastructure parity (`dev_session` table, sealed envelope subagent prompts, `dev.*` telemetry family). ADR-0077 number reserved/skipped.
+>
+> Council session log entry: `docs/council/COUNCIL-LOG.md` 2026-04-07 entry "Three-issue retrospective: build-agent gap, parallel sessions, ADR-0075 v1.1".
+
+## Context and Problem Statement
 
 ## Context and Problem Statement
 

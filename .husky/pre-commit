@@ -193,3 +193,46 @@ if git diff --cached --name-only | grep -q '^docs/DASHBOARD\.md$'; then
     exit 1
   fi
 fi
+
+# 7. Branch guard — protect development/preview/main from direct commits
+# Per ADR-0075 v1.1 council retrospective 2026-04-07: ADR-0075 was violated
+# by the commit that shipped ADR-0075 (cb7c7c60 was committed directly to
+# development in violation of ADR-0075's own resolved Open Q3). Cultural
+# rules in CLAUDE.md did not prevent this. This hook makes it mechanical.
+#
+# Allows merge commits (which is how feature branches integrate to development).
+# Blocks direct non-merge commits to development/preview/main.
+current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "")
+if [ "$current_branch" = "development" ] || [ "$current_branch" = "preview" ] || [ "$current_branch" = "main" ]; then
+  # Allow merge commits — MERGE_HEAD exists during a merge in progress
+  if [ ! -f .git/MERGE_HEAD ]; then
+    echo ""
+    echo "ERROR: Direct commits to '$current_branch' are forbidden."
+    echo "  Per CLAUDE.md worktree discipline + ADR-0075 v1.1."
+    echo ""
+    echo "  Workflow:"
+    echo "    1. Create a worktree:  ~/.claude/scripts/new-feature.sh <name> <wt-N> <module>"
+    echo "    2. Work in the worktree on feat/<name>"
+    echo "    3. Close via:          ~/.claude/scripts/close-feature.sh <wt-N>"
+    echo ""
+    echo "  Why this exists: ADR-0075 was violated by the commit that shipped"
+    echo "  ADR-0075. Cultural rules failed; mechanical guards do not."
+    echo ""
+    exit 1
+  fi
+fi
+
+# 8. ORIENTATION.md must reference ADR-0075
+# Prevents accidental drift if someone edits ORIENTATION.md and removes the
+# anchor to its source-of-authority ADR. Per Steward R3.3 in council retrospective.
+if git diff --cached --name-only | grep -q '^docs/ORIENTATION\.md$'; then
+  if ! grep -q '0075' docs/ORIENTATION.md; then
+    echo ""
+    echo "ERROR: docs/ORIENTATION.md must reference ADR-0075"
+    echo "  ORIENTATION.md derives its authority from ADR-0075."
+    echo "  Removing the reference creates an unanchored 'North Star'."
+    echo "  Re-add the link to docs/decisions/0075-knowledge-system-consolidation.md"
+    echo ""
+    exit 1
+  fi
+fi
