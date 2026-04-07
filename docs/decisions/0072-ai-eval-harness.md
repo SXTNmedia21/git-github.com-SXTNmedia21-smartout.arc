@@ -664,3 +664,154 @@ PR is the durable fix.
   build succeeds
 - Smoke test → real OpenRouter call, schema parsed, sensible extraction
 - All Phase 1-4 unit tests still pass: 28/28 (no regression)
+
+## Addendum — 2026-04-07 (Phase 5: Operations capability + onboarding regression)
+
+Two parallel deliverables that both extend the eval pattern to new
+surfaces.
+
+### A) Operations capability eval
+
+Mirrors the Phase 4 schedule pattern. Operations is a more interesting
+target than schedule because it has WRITE tools (`create_deviation`,
+`complete_task`). Question being answered: will the model call a
+mutating tool when explicitly asked, or will it hedge?
+
+**6 fixtures, all unambiguous:**
+
+| ID | Tool | Tags |
+|---|---|---|
+| ops-pending-tasks-default | get_my_tasks (status=pending, default) | english, read |
+| ops-overdue-tasks-explicit | get_my_tasks (status=overdue) | english, read |
+| ops-pending-tasks-norwegian | get_my_tasks (norwegian) | norwegian, read |
+| ops-department-status-explicit-metrics | get_department_status | english, metrics |
+| ops-complete-task-by-id | **complete_task** (write) | english, write, uuid |
+| ops-create-deviation-with-severity | **create_deviation** (write) | english, write |
+
+**Baseline: 100% strict (6/6 pass), 0 partial, 0 fail, 0 error, 13.4s.**
+
+The model called the write tools every single time it was asked. UUID
+extraction continues to work flawlessly. Severity inference on the
+deviation fixture worked too — the user said "critical food safety
+issue", the model picked an appropriate severity. Args weren't asserted
+for `create_deviation` because title strings vary too much across runs.
+
+### B) Onboarding regression eval (Phase 4.5 follow-up)
+
+Phase 4.5 fixed `extractOnboardingIntelligence` empirically with a
+one-off smoke test. This phase makes the regression check permanent.
+
+Required a NEW scoring style. The first two scoring layers handled:
+- **intent-classifier scoring**: capability + confidence (binary correct
+  + threshold)
+- **tool-call scoring**: tool name + partial args (right tool / right args)
+
+Onboarding extraction needs **field-level extraction scoring**: did the
+model recover the right info from the right utterances? Strict
+string-match would be too brittle ("Solsiden Bistro" vs "Solsiden
+bistro" — capitalization wobble is real). Solution: discriminated-union
+field assertions.
+
+```ts
+expected: {
+  company_name: { kind: "present" },           // non-null primitive
+  general_manager: { kind: "present" },
+  departments: { kind: "present" },            // non-empty array
+  hr_manager: { kind: "absent" },              // null OR empty array
+  // Reserve { kind: "equals", value: ... } for verbatim cases only.
+}
+```
+
+Outcome buckets:
+- `pass` — every assertion in the fixture matched
+- `partial` — some assertions matched, some failed
+- `fail` — zero assertions matched
+- `error` — extraction call threw
+
+**5 fixtures:**
+
+| ID | Asserts on | Tag |
+|---|---|---|
+| onboarding-bistro-basics | name + leader + departments + locations + 6 absent | basics |
+| onboarding-haccp-asset-mention | assets_with_haccp + 2 absent | single-topic |
+| onboarding-leadership-roles | 3 leadership roles distinct + 1 absent | role-disambig |
+| onboarding-empty-conversation | all 5 fields absent | negative |
+| onboarding-departments-multi-location | locations + departments + 2 absent | multi-loc |
+
+**Baseline: 80% strict (4/5), 100% lenient (4 pass + 1 partial), 0 errors, 40.8s.**
+
+Per-field hit rate:
+
+| Field | Asserted | Passed | Rate |
+|---|---|---|---|
+| company_name | 5 | 5 | 100% |
+| general_manager | 4 | 4 | 100% |
+| departments | 4 | 3 | **75%** ⚠ |
+| locations | 3 | 3 | 100% |
+| hr_manager | 2 | 2 | 100% |
+| fire_safety_manager | 2 | 2 | 100% |
+| assets_with_haccp | 3 | 3 | 100% |
+| (others) | 1 each | 1 | 100% |
+
+The single drop: fixture `onboarding-departments-multi-location`. The
+user message was *"Vi har tre lokasjoner: Karl Johan, Aker Brygge, og
+Grünerløkka. På hver har vi kjøkken, bar, og servering."* The model
+extracted locations correctly but returned `departments: []`. Real
+model behavior, not a fixture mistake. Logged as follow-up: rephrase
+into two turns, sharpen extraction prompt for nested entities, or
+accept as a known limitation.
+
+### Phase 5 architecture summary
+
+```
+src/agents/
+└── __evals__/                                 (NEW — agent-level)
+    ├── fixtures/
+    │   ├── _schema.ts                          (extraction fixtures, discriminated assertions)
+    │   └── onboarding-seed.ts
+    ├── extraction-scoring.ts                   (third scorer style)
+    ├── reports/.gitignore
+    └── onboarding.eval.ts
+
+src/capabilities/
+├── __evals__/                                  (Phase 4)
+│   ├── fixtures/_schema.ts
+│   └── tool-call-scoring.ts
+├── schedule/__evals__/                          (Phase 4)
+└── operations/__evals__/                        (NEW Phase 5)
+    ├── fixtures/operations-seed.ts
+    ├── reports/.gitignore
+    └── operations.eval.ts
+```
+
+The codebase now has **three distinct eval scoring styles**, each
+matched to its measurement surface:
+
+| Surface | Scorer | Outcome buckets |
+|---|---|---|
+| Intent classification | `router/__evals__/scoring.ts` | pass / hedged / fail / error |
+| Tool selection | `capabilities/__evals__/tool-call-scoring.ts` | pass / partial / fail / error |
+| Field extraction | `agents/__evals__/extraction-scoring.ts` | pass / partial / fail / error |
+
+### Combined eval profile
+
+| Suite | Strict | Lenient | Wall time |
+|---|---|---|---|
+| intent-classifier-seed (11 fix) | 90.9% | 90.9% | 55s |
+| schedule-tool-calls-seed (6 fix) | 83.3% | 100% | 13.6s |
+| operations-tool-calls-seed (6 fix) | **100%** | 100% | 13.4s |
+| onboarding-extraction-seed (5 fix) | 80% | 100% | 40.8s |
+| **TOTAL** (28 LLM calls, 8 tests) | — | — | **56s** |
+
+Note total wall time (56s) is less than the sum of per-suite times
+because vitest runs the suites in parallel within the single fork.
+
+### Verification
+
+- `pnpm --filter @smartout/ai test` → 28/28 unit pass (no regression
+  from new eval files)
+- `pnpm --filter @smartout/ai eval` (no `RUN_EVALS`) → 4 suites, 8 tests
+  cleanly skipped
+- `RUN_EVALS=1 OPENROUTER_API_KEY=... pnpm --filter @smartout/ai eval`
+  → 4 suites, 8 tests pass, 4 reports written
+- `pnpm turbo typecheck --filter=@smartout/ai` → 0 errors

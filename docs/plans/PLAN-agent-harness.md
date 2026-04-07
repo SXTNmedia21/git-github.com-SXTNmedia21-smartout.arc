@@ -211,6 +211,97 @@ User pivoted mid-Phase-5 to fix the `agents/onboarding.ts` knock-on bug from Pha
 | `packages/ai/src/agents/onboarding.ts` | Bumped model `claude-sonnet-4 → claude-sonnet-4.6` in `getModel()` |
 | `~/.claude/plugins/cache/**/{overlay.yaml,SKILL.md,skill-manifest.json}` | 10 files patched: severity error→recommended, message corrected. All 4 plugin installations covered (3 orphans + active) |
 
+## Phase 5 — 2026-04-07 — Operations capability eval + onboarding regression suite
+
+Two parallel deliverables:
+
+**A) Operations capability eval** — extends Phase 4 pattern to a second capability. Operations is more interesting than schedule because it includes WRITE tools (`create_deviation`, `complete_task`).
+
+**B) Onboarding extraction eval** — converts the Phase 4.5 manual smoke test into a permanent gated regression suite. Required a new third scoring style (field-level extraction assertions, distinct from intent classification and tool-call selection).
+
+- [x] P5-Task 1 — Read `operations/tools.ts` (5 tools, 2 writes) and design 6 unambiguous fixtures covering all read tools + both writes.
+- [x] P5-Task 2 — Write `operations/__evals__/fixtures/operations-seed.ts` and `operations.eval.ts` (mirror schedule pattern, swap capability).
+- [x] P5-Task 3 — Build new extraction-eval infrastructure for onboarding: `agents/__evals__/fixtures/_schema.ts` (with discriminated-union assertion type: `present` / `absent` / `equals`) and `agents/__evals__/extraction-scoring.ts` (per-field hit rate, partial outcome).
+- [x] P5-Task 4 — Write 5 onboarding fixtures covering: basic name+leader+departments, HACCP-only conversation, three-leadership-roles, empty greeting (negative test), multi-location structure.
+- [x] P5-Task 5 — Write `agents/__evals__/onboarding.eval.ts` calling `extractOnboardingIntelligence` directly with mock conversations.
+- [x] P5-Task 6 — Verify unit-test isolation: 3 new eval files added, `pnpm test` still 28/28, `pnpm eval` (no RUN_EVALS) shows 4 suites cleanly skipped.
+- [x] P5-Task 7 — Run all 4 eval suites in one execution. **Operations: 100% (6/6, 0 partial). Onboarding: 80% strict / 100% lenient (4 pass, 1 partial). Schedule and intent-classifier: stable at previous baselines (83.3% and 90.9%).** Total wall time 56s.
+- [x] P5-Task 8 — Diagnose onboarding partial: `onboarding-departments-multi-location` extracted locations correctly but missed departments embedded in the same sentence ("Karl Johan, Aker Brygge, og Grünerløkka. På hver har vi kjøkken, bar, og servering" → departments came back empty). Real model behavior, not fixture mislabeling. Logged as follow-up.
+- [ ] P5-Task 9 — **FOLLOW-UP**: Fix the multi-location departments extraction. Options: split fixture into two turns, sharpen extraction prompt to specifically look for nested entities, or accept as a known limitation.
+- [ ] P5-Task 10 — **FOLLOW-UP**: Extend tool-call evals to remaining capabilities (guardian, profile, communication, ui).
+
+### Phase 5 deltas
+
+| File | Change |
+|---|---|
+| `packages/ai/src/capabilities/operations/__evals__/fixtures/operations-seed.ts` | **NEW** — 6 fixtures, 2 writes + 4 reads |
+| `packages/ai/src/capabilities/operations/__evals__/operations.eval.ts` | **NEW** — gated suite |
+| `packages/ai/src/capabilities/operations/__evals__/reports/.gitignore` | **NEW** |
+| `packages/ai/src/agents/__evals__/fixtures/_schema.ts` | **NEW** — extraction fixture format with discriminated assertions |
+| `packages/ai/src/agents/__evals__/fixtures/onboarding-seed.ts` | **NEW** — 5 onboarding fixtures |
+| `packages/ai/src/agents/__evals__/extraction-scoring.ts` | **NEW** — third scorer style (field-level extraction) |
+| `packages/ai/src/agents/__evals__/onboarding.eval.ts` | **NEW** — gated suite |
+| `packages/ai/src/agents/__evals__/reports/.gitignore` | **NEW** |
+
+### Operations baseline (recorded 2026-04-07)
+
+| Metric | Value |
+|---|---|
+| Suite | operations-tool-calls-seed (6 fixtures, 2 writes) |
+| Model | `anthropic/claude-sonnet-4.6` via OpenRouter |
+| Strict accuracy | **100% (6/6)** |
+| Lenient accuracy | 100% |
+| Errors | 0 |
+| Wall time | 13.4s sequential |
+
+The model called `complete_task` and `create_deviation` correctly when explicitly asked to do so by the user, including extracting the UUID verbatim and inferring severity from the user's framing ("critical food safety issue").
+
+### Onboarding baseline (recorded 2026-04-07)
+
+| Metric | Value |
+|---|---|
+| Suite | onboarding-extraction-seed (5 fixtures, 26 field assertions) |
+| Function | `extractOnboardingIntelligence` |
+| Strict accuracy | **80% (4/5)** |
+| Lenient accuracy | 100% |
+| Errors | 0 |
+| Wall time | 40.8s sequential |
+
+Per-field hit rate (across all fixtures that asserted on each field):
+
+| Field | Asserted | Passed | Rate |
+|---|---|---|---|
+| company_name | 5 | 5 | 100.0% |
+| general_manager | 4 | 4 | 100.0% |
+| departments | 4 | 3 | **75.0%** ⚠ |
+| locations | 3 | 3 | 100.0% |
+| hr_manager | 2 | 2 | 100.0% |
+| fire_safety_manager | 2 | 2 | 100.0% |
+| current_season | 1 | 1 | 100.0% |
+| teams | 1 | 1 | 100.0% |
+| zones | 1 | 1 | 100.0% |
+| assets_with_haccp | 3 | 3 | 100.0% |
+
+The single drop is `departments` at 75% — see the multi-location fixture above. Every other field is 100% across all fixtures that assert on it.
+
+### Test totals after Phase 5
+
+| Suite | Tests | Status |
+|---|---|---|
+| `scoring.test.ts` | 7 | ✅ unit |
+| `intent-classifier.test.ts` | 7 | ✅ unit (mocked LLM) |
+| `tool-selector.test.ts` | 14 | ✅ unit (mocked registry) |
+| `intent-classifier.eval.ts` | 2 | ✅ eval (gated, real LLM) — **90.9% strict** |
+| `schedule.eval.ts` | 2 | ✅ eval (gated, real LLM) — **83.3% strict / 100% lenient** |
+| `operations.eval.ts` | 2 | ✅ eval (gated, real LLM) — **100% strict** |
+| `onboarding.eval.ts` | 2 | ✅ eval (gated, real LLM) — **80% strict / 100% lenient** |
+| **Total unit** | **28** | **28/28** |
+| **Total eval** | **8** | **8/8 with API key, 8/8 skipped without** |
+
+### Combined wall time
+
+All 4 eval suites running sequentially: **56 seconds total** for 28 LLM calls (11 intent + 6 schedule + 6 operations + 5 onboarding).
+
 ## Acceptance Criteria
 
 - [ ] `pnpm --filter @smartout/ai test` passes (unit tests, no API key required)
