@@ -2,6 +2,7 @@
 title: Development Dashboard
 status: in_progress
 updated: 2026-04-07
+last_reconciled: 2026-04-07 (journey-harness-poc started in wt-1)
 created: 2026-03-02
 module: meta
 tags: [dashboard, worktrees, tracking]
@@ -15,12 +16,12 @@ tags: [dashboard, worktrees, tracking]
 
 | #     | Branch                                | Module         | Status      | Progress                          | Blockers | Health |
 | ----- | ------------------------------------- | -------------- | ----------- | --------------------------------- | -------- | ------ |
-| wt-1  | —                                     | —              | free        | —                                 | —        | —      |
-| wt-2  | `feat/journey-harness-poc`            | ai-agent       | in_progress | plan v2 ready, awaiting Task 0   | —        | clean  |
-| wt-3  | `feat/agent-harness`                  | ai-agent       | in_progress | just started                     | —        | clean  |
-| wt-4  | `feat/training-agent-pipeline`        | training       | in_progress | just started — WS-2 Module Zero   | —        | clean  |
+| wt-1  | `feat/journey-harness-poc`            | ai-agent       | in_progress | just started, plan ready (11 tasks) | —        | clean  |
+| wt-2  | —                                     | —              | free        | —                                 | —        | —      |
+| wt-3  | `feat/agent-harness`                  | ai-agent       | paused      | Phase 1-5 done, ready to close   | —        | clean  |
+| wt-4  | —                                     | —              | free        | —                                 | —        | —      |
 | wt-5  | —                                     | —              | free        | —                                 | —        | —      |
-| wt-7  | `feat/dynamic-landing-engine`         | landing        | paused      | just started                      | —        | clean  |
+| wt-7  | —                                     | —              | free        | —                                 | —        | —      |
 | wt-8  | —                                     | —              | free        | —                                 | —        | —      |
 | wt-9  | —                                     | —              | free        | —                                 | —        | —      |
 | wt-10 | —                                     | —              | free        | —                                 | —        | —      |
@@ -36,13 +37,13 @@ tags: [dashboard, worktrees, tracking]
 
 | #     | Available                                                          |
 | ----- | ------------------------------------------------------------------ |
-| wt-1  | yes                                                                |
-| wt-2  | no — `feat/journey-harness-poc`                                    |
+| wt-1  | no — `feat/journey-harness-poc`                                    |
+| wt-2  | yes                                                                |
 | wt-3  | no — `feat/agent-harness`                                          |
-| wt-4  | no — `feat/training-agent-pipeline`                                |
+| wt-4  | yes                                                                |
 | wt-5  | yes                                                                |
 | wt-6  | yes                                                                |
-| wt-7  | no — `feat/dynamic-landing-engine`                                 |
+| wt-7  | yes                                                                |
 | wt-8  | yes                                                                |
 | wt-9  | yes                                                                |
 | wt-10 | yes                                                                |
@@ -58,14 +59,12 @@ tags: [dashboard, worktrees, tracking]
 | -------- | ----------------------- | -------------------------------------------------- | ------- |
 | wt-1     | employee-contract-management | `docs/journeys/JOURNEY-employee-contract-management.md` | done    |
 | wt-1     | profession-system       | `docs/journeys/JOURNEY-profession-system.md`       | done    |
-| wt-4     | training-agent-pipeline | `docs/journeys/JOURNEY-training-agent-pipeline.md` | missing |
 | wt-3     | dashboard-filters       | `docs/journeys/JOURNEY-dashboard-filters.md`       | missing |
-| wt-7     | dynamic-landing-engine  | `docs/journeys/JOURNEY-dynamic-landing-engine.md`  | missing |
-| wt-2     | mobile-group-call       | `docs/journeys/JOURNEY-mobile-group-call.md`       | missing |
 | wt-8     | council-review-fixes    | `docs/journeys/JOURNEY-council-review-fixes.md`    | done    |
 | wt-9     | tooling-optimization    | `docs/journeys/JOURNEY-tooling-optimization.md`    | done    |
 | wt-10    | deployment-pipeline     | `docs/journeys/JOURNEY-deployment-pipeline.md`     | done    |
 | wt-11    | invitation-rls-fix      | `docs/journeys/JOURNEY-invitation-rls-fix.md`      | done    |
+| wt-1     | journey-harness-poc     | `docs/journeys/JOURNEY-journey-harness-poc.md`     | missing |
 
 ## Recent Closures
 
@@ -148,6 +147,11 @@ tags: [dashboard, worktrees, tracking]
 
 ## Session History
 
+| 2026-04-07 | development | session ended | session ended |
+| 2026-04-07 | journey-harness-poc | started | wt-1, module: ai-agent. Existing spec + council-verified plan (11 tasks) from 2026-04-06 inherited from development. |
+| 2026-04-07 | development | session ended | session ended |
+| 2026-04-07 | development | session ended | session ended |
+| 2026-04-07 | development | session ended | session ended |
 | 2026-04-07 | development | session ended | session ended |
 | 2026-04-06 | development | session ended | PoC instruction council-verified, plan written, wt-2 sync needed |
 | 2026-04-06 | development | session ended | session ended |
