@@ -45,6 +45,7 @@ If step 4 (MCP) is unavailable: steps 2+3 are sufficient. Do not block on MCP.
 
 When sources disagree, trust in this order:
 
+0. **This file (`docs/ORIENTATION.md`)** — derived from [ADR-0075](decisions/0075-knowledge-system-consolidation.md). The orientation cheat sheet authority is the ADR; if they disagree, the ADR wins and this file is patched.
 1. **Code + database schema + migrations** — the only 100%-er. It runs or it doesn't.
 2. **`CLAUDE.md`** (repo-level + global) — conventions and rules
 3. **`docs/decisions/`** — accepted ADRs (code-review reviewed, in git blame)

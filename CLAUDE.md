@@ -14,15 +14,17 @@ Rebuild from Bubble.io. Live Stripe billing + DocuSign contracts. Modern stack, 
 
 ## Source of Truth
 
+0. **`docs/ORIENTATION.md`** → North Star cheat sheet (read this FIRST at session start) — derived from ADR-0075
 1. **Code + database schema** → always wins
 2. **This file** → conventions, rules, critical traps
    2.5. **Cascade Core Foundation spec** → canonical cascade architecture (`docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`)
    2.5. **docs/STATE.md** → current system state, gaps, weekly plan (updated weekly)
-3. **docs/reference/** → DATABASE, ROUTES, PACKAGES, ENV_VARS
-4. **docs/engines/** → Event Motor domain packaging (industry, niche, role capability, environment, handbook)
-5. **docs/modules/** → business logic (23 module docs)
-6. **docs/architecture/** → system design decisions
-7. **docs/cross-cutting/** → GDPR, billing, security, i18n
+3. **docs/decisions/** → accepted ADRs (code-review reviewed, in git blame)
+4. **docs/reference/** → DATABASE, ROUTES, PACKAGES, ENV_VARS
+5. **docs/engines/** → Event Motor domain packaging (industry, niche, role capability, environment, handbook)
+6. **docs/modules/** → business logic (23 module docs)
+7. **docs/architecture/** → system design decisions
+8. **docs/cross-cutting/** → GDPR, billing, security, i18n
 
 > Master map: `docs/INDEX.md` | All docs have YAML frontmatter.
 
