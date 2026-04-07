@@ -295,11 +295,12 @@ When started via `ao start`, you are the ORCHESTRATOR. Your role is to plan, coo
 - You review workers' output and coordinate merges
 - If you catch yourself starting to implement — STOP and spawn a worker instead
 
-### Session Lifecycle
+### Session Lifecycle (per ADR-0075)
 
-- At session start: read docs/SESSION.md for context from last session
-- During work: log decisions and delegations to docs/SESSION.md
-- At session end: update docs/SESSION.md with what was done, where we stopped, and known blockers
+- At session start: read `docs/DASHBOARD.md` for live git state, tail `~/dev/second-brain-v2/ops/activity-log.md` for recent narrative, query claude-mem via MCP if available
+- During work: log decisions to `docs/decisions/`, log delegations and significant events via `~/.claude/scripts/log-activity.sh`
+- At session end: run `/end-session` — writes narrative to activity-log + claude-mem digest, updates DASHBOARD worktree row status
+- SESSION.md is deprecated and removed per ADR-0075
 
 ### Worker Instructions
 
