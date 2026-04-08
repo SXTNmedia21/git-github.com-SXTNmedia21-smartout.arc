@@ -1,7 +1,7 @@
 ---
 title: Development Dashboard
 status: live
-updated: 2026-04-07
+updated: 2026-04-08
 module: meta
 tags: [dashboard, worktrees, git-state]
 ---
