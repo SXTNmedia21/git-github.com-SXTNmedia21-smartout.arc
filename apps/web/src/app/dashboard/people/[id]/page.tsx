@@ -639,8 +639,28 @@ export default function ProfileDetailPage() {
               </p>
             </div>
           </div>
-          <button className="bg-foreground text-background rounded-lg px-3 py-1.5 text-xs font-bold transition-all hover:opacity-90">
-            Create
+          <button
+            onClick={() => {
+              if (!profile) return;
+              // Delegate to Botsson via the global open event. BotssonProvider listens,
+              // expands the overlay, switches to admin-chat, and primes Botsson with
+              // this employee's context so it can immediately offer to create a contract.
+              window.dispatchEvent(
+                new CustomEvent("botsson:open", {
+                  detail: {
+                    view: "admin-chat",
+                    primeContext: {
+                      kind: "create_contract",
+                      profileId: profile.profile_id,
+                      profileName: profile.display_name,
+                    },
+                  },
+                }),
+              );
+            }}
+            className="bg-foreground text-background rounded-lg px-3 py-1.5 text-xs font-bold transition-all hover:opacity-90"
+          >
+            Lag med Botsson
           </button>
         </div>
       </div>

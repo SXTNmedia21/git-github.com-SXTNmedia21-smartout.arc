@@ -62,6 +62,14 @@
       "types": "./dist/agents/contract.d.ts",
       "default": "./dist/agents/contract.js"
     },
+    "./agents/botsson": {
+      "types": "./dist/agents/botsson.d.ts",
+      "default": "./dist/agents/botsson.js"
+    },
+    "./primitives/input-request": {
+      "types": "./dist/primitives/input-request/index.d.ts",
+      "default": "./dist/primitives/input-request/index.js"
+    },
     "./tools/report": {
       "types": "./dist/tools/report/index.d.ts",
       "default": "./dist/tools/report/index.js"

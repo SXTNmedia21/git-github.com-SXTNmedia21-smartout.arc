@@ -21,6 +21,7 @@ export type AgentIdentity = {
 
 export type ContentViewType =
   | "chat"
+  | "admin-chat"
   | "form"
   | "video"
   | "visualizer"
@@ -31,6 +32,18 @@ export type ContentViewType =
   | "log"
   | "memory"
   | "history";
+
+/**
+ * Admin chat prime context — passed in via custom 'botsson:open' event from
+ * elsewhere in the dashboard so Botsson knows the entry point. Mirrors the
+ * BotssonChatPrimeContext type in BotssonChat.tsx (kept loose here to avoid
+ * circular dependencies between types and components).
+ */
+export type AdminChatPrimeContext = {
+  kind: "create_contract" | "view_employee" | "general";
+  profileId?: string;
+  profileName?: string;
+};
 
 export type ContentStackItem = {
   id: string;

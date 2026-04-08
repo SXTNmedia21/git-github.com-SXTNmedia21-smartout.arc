@@ -9,6 +9,15 @@ export * from "./components/skeleton";
 export * from "./components/separator";
 export { StatusBadge } from "./components/status-badge";
 export { ContractTimeline } from "./components/contract-timeline";
+export {
+  BotssonInputRequest,
+  type BotssonInputRequestProps,
+  type BIRDescriptor,
+  type BIRField,
+  type BIRFieldType,
+  type BIRSensitivity,
+  type BIRValidation,
+} from "./components/botsson-input-request";
 export { cn } from "./lib/utils";
 export * from "./wizard";
 export * from "./flow-player";

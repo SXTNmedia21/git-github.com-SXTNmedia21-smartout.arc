@@ -5,8 +5,10 @@ import { useBotsson } from "./BotssonProvider";
 import { EASING } from "./types";
 import { PERSONAS } from "./persona-engine";
 import { EmmaProfile } from "./EmmaProfile";
+import { BotssonChat } from "./BotssonChat";
 import type { ContentViewType } from "./types";
 import type { ScheduledTask } from "./BotssonTools";
+import { useWorkspaceOptional } from "@/lib/workspace-context";
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 /*  Botsson Arena — Premium floating card      */
@@ -36,6 +38,7 @@ type DragHandleProps = {
 const VIEW_TITLES: Record<ContentViewType, string> = {
   visualizer: "Stemme",
   chat: "Samtale",
+  "admin-chat": "Botsson",
   notepad: "Notater",
   calculator: "Kalkulator",
   settings: "Innstillinger",
@@ -2147,11 +2150,53 @@ function HistoryView() {
   );
 }
 
+/* ━━━ View: Admin Chat — typed-input chat with Botsson capability tools ━━━ */
+//
+// Wrapper view that mounts BotssonChat inside the arena. Reads workspace_id from
+// useWorkspace() and primeContext (if any) from the active content stack item's props.
+// Triggered by the 'botsson:open' event listener in BotssonProvider, which sets the
+// admin-chat view + forwards primeContext from the dispatching button.
+
+function AdminChatView() {
+  const { activeView: _av } = useBotsson(); // re-render trigger on view changes
+  const workspaceCtx = useWorkspaceOptional();
+  const workspaceId = workspaceCtx?.workspace.workspace_id ?? null;
+
+  // Read primeContext from the top of the content stack — set by the event handler.
+  const { state } = useBotsson();
+  const topItem = state.contentStack[state.contentStack.length - 1];
+  const primeContext = (topItem?.props.primeContext ?? undefined) as
+    | {
+        kind: "create_contract" | "view_employee" | "general";
+        profileId?: string;
+        profileName?: string;
+      }
+    | undefined;
+
+  if (!workspaceId) {
+    return (
+      <div
+        className="text-muted-foreground flex h-full items-center justify-center text-sm"
+        data-botsson-content
+      >
+        Ingen aktiv arbeidsplass — chat er bare tilgjengelig i en workspace-kontekst.
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-full flex-col" data-botsson-content>
+      <BotssonChat workspaceId={workspaceId} primeContext={primeContext} />
+    </div>
+  );
+}
+
 /* ━━━ View registry ━━━ */
 
 const VIEW_COMPONENTS: Record<ContentViewType, React.ComponentType> = {
   visualizer: VisualizerView,
   chat: ChatView,
+  "admin-chat": AdminChatView,
   notepad: NotepadView,
   calculator: CalculatorView,
   settings: SettingsView,
