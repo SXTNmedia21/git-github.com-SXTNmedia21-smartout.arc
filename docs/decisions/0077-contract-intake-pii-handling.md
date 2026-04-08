@@ -1,7 +1,7 @@
 ---
 title: Contract Intake — PII Handling and Storage
 id: ADR_0077
-status: proposed
+status: accepted
 layer: decision
 created: 2026-04-08
 updated: 2026-04-08
