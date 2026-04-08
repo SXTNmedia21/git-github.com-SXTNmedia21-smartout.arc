@@ -194,29 +194,30 @@ if git diff --cached --name-only | grep -q '^docs/DASHBOARD\.md$'; then
   fi
 fi
 
-# 7. Branch guard — protect development/preview/main from direct commits
-# Per ADR-0075 v1.1 council retrospective 2026-04-07: ADR-0075 was violated
-# by the commit that shipped ADR-0075 (cb7c7c60 was committed directly to
-# development in violation of ADR-0075's own resolved Open Q3). Cultural
-# rules in CLAUDE.md did not prevent this. This hook makes it mechanical.
+# 7. Branch guard — protect preview/main from direct commits
+# Policy (Pontus, 2026-04-08): development is the working integration branch
+# and accepts direct commits + direct push. The protected boundary starts at
+# preview. preview accepts only fast-forward from development (enforced in
+# pre-push). main accepts only PRs from preview (GitHub branch protection).
 #
-# Allows merge commits (which is how feature branches integrate to development).
-# Blocks direct non-merge commits to development/preview/main.
+# Rationale: ADR-0075 v1.1 originally blocked development too, requiring all
+# work through worktrees. Worktree discipline proved too heavy for small chore
+# commits and bot-friendly hotfixes. The mechanical guard now sits where the
+# real risk is — preview/main, which feed staging and prod.
+#
+# Allows merge commits (MERGE_HEAD present) on preview/main (e.g. FF merges).
 current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "")
-if [ "$current_branch" = "development" ] || [ "$current_branch" = "preview" ] || [ "$current_branch" = "main" ]; then
-  # Allow merge commits — MERGE_HEAD exists during a merge in progress
+if [ "$current_branch" = "preview" ] || [ "$current_branch" = "main" ]; then
   if [ ! -f .git/MERGE_HEAD ]; then
     echo ""
     echo "ERROR: Direct commits to '$current_branch' are forbidden."
-    echo "  Per CLAUDE.md worktree discipline + ADR-0075 v1.1."
     echo ""
-    echo "  Workflow:"
-    echo "    1. Create a worktree:  ~/.claude/scripts/new-feature.sh <name> <wt-N> <module>"
-    echo "    2. Work in the worktree on feat/<name>"
-    echo "    3. Close via:          ~/.claude/scripts/close-feature.sh <wt-N>"
+    echo "  Pipeline: development → preview → main"
+    echo "    • development: direct commits and direct push allowed"
+    echo "    • preview:     fast-forward from development only"
+    echo "    • main:        pull request from preview only"
     echo ""
-    echo "  Why this exists: ADR-0075 was violated by the commit that shipped"
-    echo "  ADR-0075. Cultural rules failed; mechanical guards do not."
+    echo "  Hotfixes: branch from main into hotfix/*, open PR back to main."
     echo ""
     exit 1
   fi
