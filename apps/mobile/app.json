@@ -20,7 +20,10 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "ai.smartout.mobile",
-      "associatedDomains": ["applinks:app.smartout.ai"]
+      "associatedDomains": ["applinks:app.smartout.ai"],
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "ai.smartout.mobile",
