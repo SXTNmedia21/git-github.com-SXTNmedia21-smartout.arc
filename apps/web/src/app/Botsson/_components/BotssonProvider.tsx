@@ -870,6 +870,39 @@ export function BotssonProvider({
   }, []);
   const popView = useCallback(() => dispatch({ type: "POP_CONTENT" }), []);
 
+  /**
+   * Listen for `botsson:open` window events dispatched from elsewhere in the dashboard
+   * (e.g. the "Lag kontrakt med Botsson" button on /dashboard/contracts). The event
+   * carries an optional view type and prime context that we forward as the next view's
+   * props. The admin-chat view reads `props.primeContext` on mount.
+   *
+   * Wired here in BotssonProvider rather than at the page level so any consumer of the
+   * dashboard surface can fire the event without knowing about Botsson internals.
+   */
+  useEffect(() => {
+    function handleBotssonOpen(e: Event) {
+      const customEvent = e as CustomEvent<{
+        view?: ContentViewType;
+        primeContext?: Record<string, unknown>;
+      }>;
+      const view = customEvent.detail?.view ?? "admin-chat";
+      const primeContext = customEvent.detail?.primeContext;
+
+      // Bring Botsson out of orb mode so the view is visible.
+      dispatch({ type: "SET_DENSITY", density: "immersive" });
+
+      // Switch the active view, forwarding primeContext as props.
+      const props: Record<string, unknown> = primeContext ? { primeContext } : {};
+      dispatch({
+        type: "SWITCH_VIEW",
+        item: { id: `${view}-${Date.now()}`, type: view, props },
+      });
+    }
+
+    window.addEventListener("botsson:open", handleBotssonOpen);
+    return () => window.removeEventListener("botsson:open", handleBotssonOpen);
+  }, []);
+
   // activeView is derived above (before useAgent) — kept here for reference
 
   /* ━━━ Keep view actions ref in sync for tool implementations ━━━ */
