@@ -23,6 +23,9 @@ tags: [decisions, adr, index]
 
 | ADR | Date | Title | Status |
 |-----|------|-------|--------|
+| [ADR-0082](0082-contract-drafts-are-not-versions.md) | 2026-04-08 | Contract Drafts Are Not Versions — versioning starts at send, idempotency on send endpoint | accepted |
+| [ADR-0081](0081-admin-pii-bypass-security-definer-rpc.md) | 2026-04-08 | Admin PII Bypass via SECURITY DEFINER RPC — dashboard-only, never via agent, with employee notification | accepted |
+| [ADR-0080](0080-compliance-drift-signal-read-only.md) | 2026-04-08 | Compliance Drift Signal — read-only materialized view, not a cascade derivation | accepted |
 | [ADR-0079](0079-adr-0024-amendment-employment-vs-platform-contracts.md) | 2026-04-08 | ADR-0024 Amendment — employment_contract vs contract system separation | accepted |
 | [ADR-0078](0078-engine-process-channel-restriction.md) | 2026-04-08 | Engine Process Channel Restriction — allowed_channels + defence in depth for PII | accepted |
 | [ADR-0077](0077-contract-intake-pii-handling.md) | 2026-04-08 | Contract Intake PII Handling — personnummer/bank encryption, no-echo, engine_memory sensitivity | proposed |
