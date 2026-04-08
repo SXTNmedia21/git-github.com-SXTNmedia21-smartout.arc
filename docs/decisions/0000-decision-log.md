@@ -1,7 +1,7 @@
 ---
 title: Decision Log
 status: canonical
-updated: 2026-04-07
+updated: 2026-04-08
 created: 2026-02-27
 module: meta
 tags: [decisions, adr, index]
@@ -23,6 +23,10 @@ tags: [decisions, adr, index]
 
 | ADR | Date | Title | Status |
 |-----|------|-------|--------|
+| [ADR-0079](0079-adr-0024-amendment-employment-vs-platform-contracts.md) | 2026-04-08 | ADR-0024 Amendment — employment_contract vs contract system separation | accepted |
+| [ADR-0078](0078-engine-process-channel-restriction.md) | 2026-04-08 | Engine Process Channel Restriction — allowed_channels + defence in depth for PII | accepted |
+| [ADR-0077](0077-contract-intake-pii-handling.md) | 2026-04-08 | Contract Intake PII Handling — personnummer/bank encryption, no-echo, engine_memory sensitivity | proposed |
+| [ADR-0076](0076-contract-composition-as-cascade-derivation.md) | 2026-04-08 | Contract Composition as Cascade Derivation — compliance via change_proposal, overrides as JSONB provenance | accepted |
 | [ADR-0075](0075-knowledge-system-consolidation.md) | 2026-04-07 | Knowledge System Consolidation — slim DASHBOARD, delete SESSION.md, migrate narrative to activity-log + claude-mem | accepted |
 | [ADR-0074](0074-protocol-verification-engine.md) | 2026-03-29 | Protocol Verification Engine Architecture (renumbered from 0071 on 2026-04-07) | accepted |
 | [ADR-0073](0073-ai-eval-harness.md) | 2026-04-06 | AI Eval Harness for `packages/ai` — two-layer test surface (unit mocked + evals gated) | accepted |
