@@ -1,4 +1,15 @@
+---
+title: "Production Readiness Hardening — Implementation Plan"
+status: draft
+updated: 2026-04-08
+created: 2026-04-04
+module: production, security
+tags: [plan, hardening, security, stub-data, production]
+---
+
 # Production Readiness Hardening — Implementation Plan
+
+> **Status 2026-04-08:** Draft. Plan committed (`164f0dd5`) with 27 issues + 4-phase parallel approach. Not executed. Audit whether items still relevant before replanning.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 

@@ -1,4 +1,15 @@
+---
+title: "SwipeTaskReview Implementation Plan"
+status: draft
+updated: 2026-04-08
+created: 2026-03-28
+module: hms, walkai
+tags: [plan, walkai, hms, swipe, tools]
+---
+
 # SwipeTaskReview Implementation Plan
+
+> **Status 2026-04-08:** Draft. Not shipped. References WalkAI tool registry — architecture since evolved into Botsson. Revisit scope before implementing.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 

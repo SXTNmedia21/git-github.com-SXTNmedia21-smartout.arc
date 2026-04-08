@@ -1,7 +1,8 @@
 ---
 title: Infrastructure Production Alignment
 status: in_progress
-updated: 2026-03-26
+updated: 2026-04-08
+progress: "8/35 tasks complete (23%) — stalled since 2026-03-26"
 created: 2026-03-18
 module: infra
 tags: [infra, production, alignment]
