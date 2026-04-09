@@ -81,6 +81,9 @@ export function ContractSendDrawer({
   const [selectedTemplate, setSelectedTemplate] = useState<ContractTemplate | null>(null);
   // User overrides for placeholder fields — key → value
   const [overrides, setOverrides] = useState<Record<string, string>>({});
+  // Pre-resolved values from profile/contract/workspace
+  const [resolvedMap, setResolvedMap] = useState<Record<string, string>>({});
+  const [isResolving, setIsResolving] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -90,17 +93,41 @@ export function ContractSendDrawer({
       setStep("template");
       setSelectedTemplate(null);
       setOverrides({});
+      setResolvedMap({});
       setShowConfirm(false);
     }
     onOpenChange(next);
   }
 
-  // Merge template defaults with user overrides to get the final field values
+  // Fetch resolved placeholder values from profile/contract/workspace,
+  // then transition to the review step with pre-filled data.
+  async function goToReview() {
+    setIsResolving(true);
+    try {
+      const res = await fetch("/api/contracts/resolve-placeholders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profile_id: profileId, workspace_id: workspaceId }),
+      });
+      if (res.ok) {
+        const map = (await res.json()) as Record<string, string>;
+        setResolvedMap(map);
+      }
+    } catch {
+      // Non-blocking — fields will show as empty and admin can fill manually
+    } finally {
+      setIsResolving(false);
+      setStep("review");
+    }
+  }
+
+  // Merge template placeholders with resolved values and user overrides
   function resolvedFields(): PlaceholderField[] {
     if (!selectedTemplate) return [];
     return selectedTemplate.placeholders.map((f) => ({
       ...f,
-      value: overrides[f.key] ?? f.value,
+      value: overrides[f.key] ?? resolvedMap[f.key] ?? f.value,
+      editable: true,
     }));
   }
 
@@ -182,7 +209,7 @@ export function ContractSendDrawer({
                     setSelectedTemplate(t);
                     setOverrides({});
                   }}
-                  onNext={() => setStep("review")}
+                  onNext={goToReview}
                 />
               )}
 
