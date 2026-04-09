@@ -10,14 +10,11 @@
 
 import { useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import type { CockpitEventEnvelope } from "@smartout/types";
 import { useCockpitFirstScreen } from "@/app/dashboard/_hooks/use-cockpit-first-screen";
-import { useEntityDrawer } from "@/components/dashboard/entity-drawer/EntityDrawerContext";
+// useEntityDrawer removed — activity feed panel removed from cockpit
 import { CockpitActionRail } from "./CockpitActionRail";
-import { CockpitActivityFeed } from "./CockpitActivityFeed";
 import { CockpitOnDutyProgress } from "./CockpitOnDutyProgress";
 import { CockpitRiskQueues } from "./CockpitRiskQueues";
-import { CockpitTopStrip } from "./CockpitTopStrip";
 import { CockpitPrepStrip } from "./CockpitPrepStrip";
 
 /**
@@ -58,7 +55,6 @@ export function HospitalityOperationsCockpit() {
     feedLimit: 24,
     feedFilters: { category: "all", timeRange: "today" },
   });
-  const { openDrawer } = useEntityDrawer();
   const router = useRouter();
 
   const handleStaffingPress = useCallback(
@@ -75,35 +71,6 @@ export function HospitalityOperationsCockpit() {
     [router],
   );
 
-  const handleEventPress = useCallback(
-    (event: CockpitEventEnvelope) => {
-      const ref = event.entityRef;
-      if (!ref) return;
-
-      const drawerTypes = new Set([
-        "shift",
-        "department_session",
-        "cascade_task",
-        "profile",
-        "department",
-        "team",
-      ]);
-      if (drawerTypes.has(ref.type)) {
-        openDrawer(
-          ref.type as
-            | "shift"
-            | "department_session"
-            | "cascade_task"
-            | "profile"
-            | "department"
-            | "team",
-          ref.id,
-        );
-      }
-    },
-    [openDrawer],
-  );
-
   const summary = useMemo(
     () =>
       buildTopStripSummary({
@@ -118,31 +85,21 @@ export function HospitalityOperationsCockpit() {
   return (
     <div
       data-testid="hospitality-operations-cockpit"
-      className="dashboard-enter flex min-h-[calc(100vh-180px)] flex-col gap-3 overflow-hidden"
+      className="dashboard-enter grid h-[calc(100vh-140px)] grid-cols-1 gap-3 overflow-hidden xl:grid-cols-3"
     >
-      {/* ── TOP STRIP — compact status bar ── */}
-      <CockpitTopStrip
-        isLoading={model.isLoading}
-        onDutyCount={summary.onDutyCount}
-        criticalCount={summary.criticalCount}
-        warningCount={summary.warningCount}
-        eventCount={summary.eventCount}
-        lastUpdatedAt={model.feed[0]?.occurredAt ?? null}
-      />
-
-      {/* ── 2x2 GRID — fills remaining height ── */}
-      <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-2 gap-3 xl:grid-cols-3">
-        {/* ── TOP LEFT: Bemanning + Risiko ── */}
-        <section className="border-border/30 bg-card/30 flex flex-col overflow-hidden rounded-2xl border backdrop-blur-sm xl:col-span-2">
+      {/* ── LEFT: Drift + Forberedelse stacked ── */}
+      <div className="flex min-h-0 flex-col gap-3 xl:col-span-2">
+        {/* Drift — bemanning + risiko */}
+        <section className="border-border/30 bg-card/30 flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border backdrop-blur-sm">
           <div className="border-border/20 flex items-center justify-between border-b px-4 pt-3 pb-2">
             <h2 className="text-muted-foreground/60 text-[10px] font-bold tracking-[0.15em] uppercase">
-              Drift — bemanning
+              Drift
             </h2>
             <span className="text-muted-foreground/40 text-[10px] tabular-nums">
-              {summary.onDutyCount} pa jobb
+              {summary.onDutyCount} pa jobb · {summary.criticalCount + summary.warningCount} varsler
             </span>
           </div>
-          <div className="flex-1 space-y-3 overflow-y-auto p-4">
+          <div className="flex-1 space-y-2 overflow-y-auto p-3">
             <CockpitRiskQueues
               staffingQueue={model.staffingQueue}
               operationalQueue={model.operationalQueue}
@@ -154,54 +111,35 @@ export function HospitalityOperationsCockpit() {
           </div>
         </section>
 
-        {/* ── TOP RIGHT: Krever handling ── */}
+        {/* Forberedelse — 7-dags horisont */}
         <section className="border-border/30 bg-card/30 flex flex-col overflow-hidden rounded-2xl border backdrop-blur-sm">
-          <div className="border-border/20 flex items-center justify-between border-b px-4 pt-3 pb-2">
-            <h2 className="text-muted-foreground/60 text-[10px] font-bold tracking-[0.15em] uppercase">
-              Krever handling
-            </h2>
-          </div>
-          <div className="flex-1 overflow-y-auto p-4">
-            <CockpitActionRail
-              staffingQueue={model.staffingQueue}
-              operationalQueue={model.operationalQueue}
-              onDutyEntries={model.onDutyEntries}
-              isLoading={model.isLoading}
-            />
-          </div>
-        </section>
-
-        {/* ── BOTTOM LEFT: Forberedelse 7 dager ── */}
-        <section className="border-border/30 bg-card/30 flex flex-col overflow-hidden rounded-2xl border backdrop-blur-sm xl:col-span-2">
           <div className="border-border/20 flex items-center justify-between border-b px-4 pt-3 pb-2">
             <h2 className="text-muted-foreground/60 text-[10px] font-bold tracking-[0.15em] uppercase">
               Forberedelse
             </h2>
           </div>
-          <div className="flex-1 overflow-y-auto p-4">
+          <div className="p-3">
             <CockpitPrepStrip />
           </div>
         </section>
-
-        {/* ── BOTTOM RIGHT: Hendelser ── */}
-        <section className="border-border/30 bg-card/30 flex flex-col overflow-hidden rounded-2xl border backdrop-blur-sm">
-          <div className="border-border/20 flex items-center justify-between border-b px-4 pt-3 pb-2">
-            <h2 className="text-muted-foreground/60 text-[10px] font-bold tracking-[0.15em] uppercase">
-              Hendelser
-            </h2>
-            <span className="text-muted-foreground/40 text-[10px] tabular-nums">
-              {summary.eventCount} i dag
-            </span>
-          </div>
-          <div className="flex-1 overflow-y-auto p-4">
-            <CockpitActivityFeed
-              feed={model.feed}
-              isLoading={model.isLoading}
-              onEventPress={handleEventPress}
-            />
-          </div>
-        </section>
       </div>
+
+      {/* ── RIGHT: Krever handling (full height) ── */}
+      <section className="border-border/30 bg-card/30 flex min-h-0 flex-col overflow-hidden rounded-2xl border backdrop-blur-sm">
+        <div className="border-border/20 flex items-center justify-between border-b px-4 pt-3 pb-2">
+          <h2 className="text-muted-foreground/60 text-[10px] font-bold tracking-[0.15em] uppercase">
+            Krever handling
+          </h2>
+        </div>
+        <div className="flex-1 overflow-y-auto p-3">
+          <CockpitActionRail
+            staffingQueue={model.staffingQueue}
+            operationalQueue={model.operationalQueue}
+            onDutyEntries={model.onDutyEntries}
+            isLoading={model.isLoading}
+          />
+        </div>
+      </section>
     </div>
   );
 }
