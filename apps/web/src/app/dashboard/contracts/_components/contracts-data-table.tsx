@@ -26,6 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -153,6 +154,10 @@ export function ContractsDataTable({ workspaceId }: { workspaceId: string }) {
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [loading, setLoading] = useState(true);
+  const [detailId, setDetailId] = useState<string | null>(null);
+
+  /** The contract currently shown in the detail sheet */
+  const detailContract = detailId ? contracts.find((c) => c.contract_id === detailId) : null;
 
   const pageSize = 20;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -191,8 +196,7 @@ export function ContractsDataTable({ workspaceId }: { workspaceId: string }) {
   }
 
   function handleViewDetails(contractId: string) {
-    // TODO: open contract detail panel/drawer (Task 12)
-    console.log("View contract:", contractId);
+    setDetailId(contractId);
   }
 
   async function handleResend(contractId: string) {
@@ -359,6 +363,85 @@ export function ContractsDataTable({ workspaceId }: { workspaceId: string }) {
           </div>
         </div>
       )}
+
+      {/* Contract detail sheet */}
+      <Sheet open={!!detailContract} onOpenChange={(open) => !open && setDetailId(null)}>
+        <SheetContent className="sm:max-w-md">
+          <SheetHeader>
+            <SheetTitle>Kontraktdetaljer</SheetTitle>
+          </SheetHeader>
+
+          {detailContract && (
+            <div className="mt-6 space-y-6">
+              {/* Recipient info */}
+              <div className="space-y-1">
+                <p className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
+                  Mottaker
+                </p>
+                <p className="text-sm font-medium">{detailContract.recipient_name || "—"}</p>
+                <p className="text-muted-foreground text-sm">{detailContract.recipient_email}</p>
+              </div>
+
+              {/* Status */}
+              <div className="space-y-1">
+                <p className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
+                  Status
+                </p>
+                <StatusBadge status={detailContract.status} />
+              </div>
+
+              {/* Dates */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <p className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
+                    Opprettet
+                  </p>
+                  <p className="font-mono text-sm">{formatDate(detailContract.created_at)}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
+                    Sendt
+                  </p>
+                  <p className="font-mono text-sm">{formatDate(detailContract.sent_at)}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
+                    Signert
+                  </p>
+                  <p className="font-mono text-sm">{formatDate(detailContract.signed_at)}</p>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-2 border-t pt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={
+                    detailContract.status === "signed" || detailContract.status === "cancelled"
+                  }
+                  onClick={() => void handleResend(detailContract.contract_id)}
+                >
+                  Send på nytt
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  disabled={
+                    detailContract.status === "signed" || detailContract.status === "cancelled"
+                  }
+                  onClick={() => {
+                    void handleCancel(detailContract.contract_id);
+                    setDetailId(null);
+                  }}
+                >
+                  Avbryt kontrakt
+                </Button>
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
