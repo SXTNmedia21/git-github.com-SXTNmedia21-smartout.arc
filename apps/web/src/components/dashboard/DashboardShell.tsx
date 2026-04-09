@@ -1941,15 +1941,15 @@ export function DashboardShell({
                         </>
                       )}
 
-                      {/* Tactical/Strategic Switcher — hidden: single static dashboard (council decision 2026-04-09) */}
-                      {false && !isDocumentMode && isDashboardPage && isAdminMode && (
+                      {/* Dashboard view switcher: Cockpit / Avstemming / Aktivitet */}
+                      {!isDocumentMode && isDashboardPage && isAdminMode && (
                         <div
                           className={`hidden rounded-xl border p-1 shadow-sm md:flex ${isDark ? "border-zinc-800 bg-[#0a0a0c]" : "border-zinc-200 bg-zinc-100"} mr-2`}
                         >
                           <button
                             onClick={() => setAdminView("tactical")}
                             className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
-                              adminView === "tactical"
+                              adminView === "tactical" || adminView === "strategic"
                                 ? isDark
                                   ? "bg-zinc-800 text-white shadow-sm"
                                   : "bg-white text-zinc-900 shadow-sm"
@@ -1958,21 +1958,7 @@ export function DashboardShell({
                                   : "text-zinc-500 hover:bg-zinc-200/50 hover:text-zinc-700"
                             }`}
                           >
-                            Taktisk
-                          </button>
-                          <button
-                            onClick={() => setAdminView("strategic")}
-                            className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
-                              adminView === "strategic"
-                                ? isDark
-                                  ? "bg-zinc-800 text-white shadow-sm"
-                                  : "bg-white text-zinc-900 shadow-sm"
-                                : isDark
-                                  ? "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200"
-                                  : "text-zinc-500 hover:bg-zinc-200/50 hover:text-zinc-700"
-                            }`}
-                          >
-                            Strategisk
+                            Cockpit
                           </button>
                           <button
                             onClick={() => setAdminView("reconciliation")}
