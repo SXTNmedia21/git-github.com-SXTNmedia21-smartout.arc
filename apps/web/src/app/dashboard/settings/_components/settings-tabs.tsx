@@ -68,6 +68,9 @@ const GeneralSettings = lazy(() =>
 const TeamsSettings = lazy(() =>
   import("./teams-settings").then((m) => ({ default: m.TeamsSettings })),
 );
+const KpiTargetsSettings = lazy(() =>
+  import("./kpi-targets-settings").then((m) => ({ default: m.KpiTargetsSettings })),
+);
 const FinancialCloseSettings = lazy(() =>
   import("./financial-close-settings").then((m) => ({ default: m.FinancialCloseSettings })),
 );
@@ -251,6 +254,12 @@ function TabContent({ tabId, userId }: { tabId: TabId; userId: string | undefine
       return (
         <Suspense fallback={<SettingsLoadingSkeleton />}>
           <TeamsSettings />
+        </Suspense>
+      );
+    case "kpis":
+      return (
+        <Suspense fallback={<SettingsLoadingSkeleton />}>
+          <KpiTargetsSettings />
         </Suspense>
       );
     default: {
