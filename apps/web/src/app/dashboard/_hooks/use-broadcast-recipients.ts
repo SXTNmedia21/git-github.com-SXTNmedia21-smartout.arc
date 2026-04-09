@@ -35,21 +35,26 @@ export function useBroadcastRecipients(group: RecipientGroup) {
       const supabase = createClient();
 
       if (group === "on_duty") {
-        // Employees currently clocked in — open punch with no punch_out
-        const { data, error } = await supabase
+        // Employees currently clocked in — open punch with no punch_out.
+        // Two-step query: cross-schema FK joins (timesheet→public) fail in PostgREST.
+        const { data: entries, error: entryError } = await supabase
           .schema("timesheet")
           .from("time_entry")
-          .select("profile_id, profile:profile!inner(display_name)")
+          .select("profile_id")
           .is("punch_out", null)
           .limit(50);
 
-        if (error) throw error;
+        if (entryError) throw entryError;
+        const profileIds = (entries ?? []).map((e) => e.profile_id).filter(Boolean);
+        if (profileIds.length === 0) return [];
 
-        return (data ?? []).map((r) => ({
-          profile_id: r.profile_id,
-          display_name:
-            (r.profile as unknown as { display_name: string | null } | null)?.display_name ?? null, // SAFETY: Supabase join returns union type; runtime shape matches the cast
-        }));
+        const { data: profiles } = await supabase
+          .from("profile")
+          .select("profile_id, display_name")
+          .in("profile_id", profileIds);
+
+        const nameMap = new Map((profiles ?? []).map((p) => [p.profile_id, p.display_name]));
+        return profileIds.map((id) => ({ profile_id: id, display_name: nameMap.get(id) ?? null }));
       }
 
       if (group === "incoming") {
