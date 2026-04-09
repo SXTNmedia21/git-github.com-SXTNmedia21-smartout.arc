@@ -9,6 +9,7 @@ import { useCallback, useState } from "react";
 import { randomUUID } from "expo-crypto";
 
 import { enqueue } from "@/lib/sync/queue";
+import { emit } from "@smartout/telemetry";
 
 export type HandoffPayload = {
   department_session_id: string;
@@ -38,6 +39,16 @@ export function useSubmitHandoff(): UseSubmitHandoffReturn {
         workspace_id: payload.workspace_id,
         content: payload.content,
         note_type: "handoff",
+      });
+
+      void emit({
+        event: "handoff submitted",
+        workspace_id: payload.workspace_id,
+        actor_id: payload.created_by,
+        properties: {
+          entity: { entity_type: "department_session", entity_id: payload.department_session_id },
+          data: { session_id: payload.department_session_id },
+        },
       });
 
       return rowId;

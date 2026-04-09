@@ -14,6 +14,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 import { enqueue } from "@/lib/sync/queue";
 import { supabase } from "@/lib/supabase";
+import { emit } from "@smartout/telemetry";
 import type { Database } from "@smartout/supabase/database.types";
 import type { AbsenceRequestsResult } from "@/hooks/queries/use-my-absence-requests";
 
@@ -117,6 +118,20 @@ export function useRequestAbsence() {
       // Invalidate balance — it will update once the request is approved,
       // but a proactive refetch avoids stale data if the server responds fast
       void queryClient.invalidateQueries({ queryKey: ["absence-balance"] });
+
+      void emit({
+        event: "absence requested",
+        workspace_id: workspaceId,
+        actor_id: profileId,
+        properties: {
+          entity: { entity_type: "absence", entity_id: absenceId },
+          data: {
+            absence_type: input.absenceType,
+            start_date: input.startDate,
+            end_date: input.endDate,
+          },
+        },
+      });
     },
     [queryClient],
   );

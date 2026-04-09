@@ -14,6 +14,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 import { enqueue } from "@/lib/sync/queue";
 import { supabase } from "@/lib/supabase";
+import { emit } from "@smartout/telemetry";
 import type { TimeEntry } from "@/types/time-entry";
 
 /**
@@ -91,6 +92,23 @@ export function usePunch() {
         created_at: now,
         updated_at: now,
       } satisfies TimeEntry);
+
+      void emit({
+        event: "shift punched_in",
+        workspace_id: workspaceId,
+        actor_id: profileId,
+        properties: {
+          entity: { entity_type: "shift", entity_id: shiftId },
+          data: {
+            shift_id: shiftId,
+            time_entry_id: timeEntryId,
+            punch_time: now,
+            is_adhoc: false,
+            gps_verified: false,
+            gps_distance_meters: null,
+          },
+        },
+      });
     },
     [queryClient],
   );
@@ -116,6 +134,23 @@ export function usePunch() {
 
       // Optimistically clear the active time entry — employee is no longer clocked in
       queryClient.setQueryData<TimeEntry | null>(["active-time-entry"], null);
+
+      void emit({
+        event: "shift punched_out",
+        workspace_id: null,
+        actor_id: "",
+        properties: {
+          entity: { entity_type: "shift", entity_id: timeEntryId },
+          data: {
+            shift_id: "",
+            time_entry_id: timeEntryId,
+            punch_time: now,
+            work_minutes: 0,
+            break_minutes: 0,
+            gps_verified: false,
+          },
+        },
+      });
     },
     [queryClient],
   );

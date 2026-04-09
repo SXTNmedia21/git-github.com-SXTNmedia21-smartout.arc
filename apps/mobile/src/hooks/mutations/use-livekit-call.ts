@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Platform } from "react-native";
 import { Room, RoomEvent, type Participant } from "livekit-client";
 import type { CallSession } from "@smartout/walkie-talkie";
+import { emit } from "@smartout/telemetry";
 
 // AudioSession uses native WebRTC modules — only available on iOS/Android, crashes on web
 const AudioSession =
@@ -115,14 +116,44 @@ export function useLiveKitCall({
 
     setIsConnected(true);
     setParticipantCount(room.remoteParticipants.size + 1);
-  }, [token, serverUrl, callSession?.audioPolicy, room]);
+
+    if (callSession) {
+      void emit({
+        event: "channel.call.started",
+        workspace_id: callSession.workspaceId,
+        actor_id: callSession.startedBy ?? "",
+        properties: {
+          channel_id: callSession.channelId,
+          call_type: callSession.callType,
+          call_session_id: callSession.id,
+        },
+        entity: { entity_type: "channel", entity_id: callSession.channelId },
+      });
+    }
+  }, [token, serverUrl, callSession, room]);
 
   const disconnect = useCallback(async () => {
     if (!room) return;
     await room.disconnect();
     setIsConnected(false);
     setIsMicEnabled(false);
-  }, [room]);
+
+    if (callSession) {
+      void emit({
+        event: "channel.call.ended",
+        workspace_id: callSession.workspaceId,
+        actor_id: callSession.startedBy ?? "",
+        properties: {
+          channel_id: callSession.channelId,
+          call_type: callSession.callType,
+          call_session_id: callSession.id,
+          duration_seconds: 0,
+          max_participants: 0,
+        },
+        entity: { entity_type: "channel", entity_id: callSession.channelId },
+      });
+    }
+  }, [room, callSession]);
 
   const toggleMic = useCallback(async () => {
     if (!room?.localParticipant) return;

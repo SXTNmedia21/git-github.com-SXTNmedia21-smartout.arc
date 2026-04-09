@@ -5,6 +5,7 @@
 import { useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { emit } from "@smartout/telemetry";
 import type { ChannelMessageWithSender } from "@/hooks/queries/use-channel-messages";
 
 type SendParams = {
@@ -82,6 +83,15 @@ export function useSendChannelMessage() {
         queryClient.invalidateQueries({ queryKey: ["channels", "messages", channelId] });
         throw error;
       }
+
+      void emit({
+        event: "chat channel_message_sent",
+        workspace_id: workspaceId,
+        actor_id: senderProfileId,
+        properties: {
+          data: { channel_id: channelId },
+        },
+      });
 
       // Refresh to get server-confirmed data
       queryClient.invalidateQueries({ queryKey: ["channels", "messages", channelId] });

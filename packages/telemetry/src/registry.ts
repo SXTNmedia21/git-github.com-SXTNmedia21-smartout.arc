@@ -180,6 +180,7 @@ export type ActionVerb =
   | "abandoned"
   | "missed"
   | "corrected"
+  | "logged"
   | "rate_limited"
   | "lockout_triggered"
   | "sandbox_blocked";
@@ -1033,6 +1034,65 @@ export interface AbsenceRejected extends BaseEvent {
   properties: {
     entity: EntityRef;
     data: { profile_id: string; rejected_by: string; reason?: string };
+  };
+}
+
+export interface AbsenceRequested extends BaseEvent {
+  event: "absence requested";
+  properties: {
+    entity: EntityRef;
+    data: { absence_type: string; start_date: string; end_date: string };
+  };
+}
+
+export interface AbsenceCancelled extends BaseEvent {
+  event: "absence cancelled";
+  properties: {
+    entity: EntityRef;
+    data: { absence_id: string };
+  };
+}
+
+// ─── Scheduling: Hours Confirmation ─────────────────
+export interface ShiftHoursConfirmed extends BaseEvent {
+  event: "shift hours_confirmed";
+  properties: {
+    entity: EntityRef;
+    data: { shift_id: string; status: "approved" | "disputed" };
+  };
+}
+
+// ─── HACCP: Temperature Logging ─────────────────────
+export interface HaccpLogged extends BaseEvent {
+  event: "haccp logged";
+  properties: {
+    entity: EntityRef;
+    data: { task_type: string; logged_at: string };
+  };
+}
+
+// ─── Operations: Handoff ────────────────────────────
+export interface HandoffSubmitted extends BaseEvent {
+  event: "handoff submitted";
+  properties: {
+    entity: EntityRef;
+    data: { session_id: string };
+  };
+}
+
+// ─── Chat: Direct Messages ──────────────────────────
+export interface ChatMessageSent extends BaseEvent {
+  event: "chat message_sent";
+  properties: {
+    data: { channel_id: string; has_attachments: boolean };
+  };
+}
+
+// ─── Chat: Channel Messages ─────────────────────────
+export interface ChatChannelMessageSent extends BaseEvent {
+  event: "chat channel_message_sent";
+  properties: {
+    data: { channel_id: string };
   };
 }
 
@@ -2848,6 +2908,13 @@ export type SmartoutEvent =
   | AbsenceDeleted
   | AbsenceApproved
   | AbsenceRejected
+  | AbsenceRequested
+  | AbsenceCancelled
+  | ShiftHoursConfirmed
+  | HaccpLogged
+  | HandoffSubmitted
+  | ChatMessageSent
+  | ChatChannelMessageSent
   | RosterCreated
   | RosterUpdated
   | RosterDeleted
@@ -3458,6 +3525,37 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "scheduling",
   },
+  "absence requested": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "absence cancelled": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+
+  // ─── Mobile Mutation Events ─────────────────────────
+  "shift hours_confirmed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  "haccp logged": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "haccp",
+  },
+  "handoff submitted": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  "chat message_sent": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "communication",
+  },
+  "chat channel_message_sent": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+
   "roster created": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "scheduling",

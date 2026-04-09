@@ -13,6 +13,7 @@ import { useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { randomUUID } from "expo-crypto";
 import { supabase } from "@/lib/supabase";
+import { emit } from "@smartout/telemetry";
 import type { MessageWithSender, MessageAttachment } from "@/hooks/queries/use-messages";
 
 type Attachment = {
@@ -207,6 +208,15 @@ export function useSendMessage() {
             console.warn("Failed to insert attachment rows:", attError);
           }
         }
+
+        void emit({
+          event: "chat message_sent",
+          workspace_id: workspaceId,
+          actor_id: senderProfileId,
+          properties: {
+            data: { channel_id: channelId, has_attachments: attachments.length > 0 },
+          },
+        });
 
         return clientMessageId;
       } catch (error) {
