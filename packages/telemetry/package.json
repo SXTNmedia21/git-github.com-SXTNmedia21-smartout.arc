@@ -6,6 +6,7 @@
   "exports": {
     ".": {
       "types": "./src/index.ts",
+      "react-native": "./src/index.native.ts",
       "react-server": "./src/index.ts",
       "default": "./src/index.client.ts"
     },
