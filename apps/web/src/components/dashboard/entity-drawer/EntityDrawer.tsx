@@ -23,6 +23,8 @@ import { useEntityDrawer, type EntityType } from "./EntityDrawerContext";
 import { entityRegistry, getEntityHref } from "./entity-config";
 import { DrawerSkeleton } from "./shared/DrawerSkeleton";
 import { motion as motionTokens } from "@smartout/design-tokens";
+import { useCascadeTasks } from "@/app/dashboard/_hooks/use-cascade-tasks";
+import { resolveKey, interpolateParams } from "@/app/dashboard/_components/todo/translate-todo";
 
 const panelSpring = {
   type: "spring" as const,
@@ -122,7 +124,7 @@ export function EntityDrawer() {
       });
     }
     closeDrawer();
-  }, [closeDrawer, entityType, entityId, wsId]);
+  }, [closeDrawer, entityType, entityId, wsId, profileId]);
 
   const handlePin = useCallback(() => {
     if (isPinned) {
@@ -138,7 +140,7 @@ export function EntityDrawer() {
         });
       }
     }
-  }, [isPinned, pinDrawer, unpinDrawer, entityType, entityId, wsId]);
+  }, [isPinned, pinDrawer, unpinDrawer, entityType, entityId, wsId, profileId]);
 
   const handleTabSwitch = useCallback(
     (tab: string) => {
@@ -155,7 +157,7 @@ export function EntityDrawer() {
         });
       }
     },
-    [setActiveTab, activeTab, entityType, entityId, wsId],
+    [setActiveTab, activeTab, entityType, entityId, wsId, profileId],
   );
 
   const handleOpenFullPage = useCallback(() => {
@@ -177,9 +179,27 @@ export function EntityDrawer() {
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [isOpen, isPinned, handleClose]);
 
+  // Resolve human-readable title for cascade tasks (instead of raw id like "framework.no_binding")
+  const cascadeTasks = useCascadeTasks();
+  const resolveEntityTitle = useCallback(
+    (type: EntityType, id: string): string | null => {
+      if (type === "cascade_task" && cascadeTasks.data) {
+        const task = cascadeTasks.data.groups
+          .flatMap((g) => g.tasks)
+          .find((t) => String(t.id) === String(id));
+        if (task) {
+          return interpolateParams(t(resolveKey(task.title_key)), task.title_params);
+        }
+      }
+      return null;
+    },
+    [cascadeTasks.data, t],
+  );
+
   if (!isOpen || !entityType || !entityId) return null;
 
   const config = entityRegistry[entityType];
+  const entityTitle = resolveEntityTitle(entityType, entityId);
   const EntityIcon = config.icon;
   const tabs = config.tabs.map((tab) => ({
     ...tab,
@@ -227,7 +247,9 @@ export function EntityDrawer() {
           <EntityIcon className="h-4 w-4" />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="text-foreground truncate text-sm font-bold">{entityId}</div>
+          <div className="text-foreground truncate text-sm font-bold">
+            {entityTitle ?? entityId}
+          </div>
           <div className="text-muted-foreground text-[10px] font-semibold tracking-wider uppercase">
             {t(config.labelKey)}
           </div>
@@ -352,7 +374,7 @@ export function EntityDrawer() {
           transition={shouldReduceMotion ? { duration: 0.15 } : { ...panelSpring }}
           className="border-border fixed top-0 right-0 bottom-0 z-[30] w-[380px] max-w-[90vw] rounded-l-2xl border-l shadow-[0_8px_40px_-12px_rgba(0,0,0,0.5)]"
           style={{
-            background: "oklch(0.18 0.03 50)",
+            background: "color-mix(in oklch, var(--card) 95%, transparent)",
             backdropFilter: "blur(20px)",
           }}
         >
@@ -369,7 +391,7 @@ export function EntityDrawer() {
       transition={shouldReduceMotion ? { duration: 0 } : panelSpring}
       className="border-border h-full w-[380px] shrink-0 rounded-2xl border shadow-[0_8px_40px_-12px_rgba(0,0,0,0.5)]"
       style={{
-        background: "oklch(0.18 0.03 50)",
+        background: "color-mix(in oklch, var(--card) 95%, transparent)",
         backdropFilter: "blur(20px)",
       }}
     >

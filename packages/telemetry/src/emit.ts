@@ -1,12 +1,14 @@
 import type { SmartoutEvent } from "./registry";
 import { EVENT_ROUTING } from "./registry";
-import { sendToPostHogClient } from "./providers/posthog-client";
 
-// ─── Shared Telemetry Event Router ──────────────────────────────
+// ─── Server Telemetry Event Router ──────────────────────────────
 //
-// Server-only providers (posthog-node, activity-trail, engine-event)
-// are loaded via dynamic import so they are tree-shaken from the
-// client bundle. The isServer guard prevents client-side execution.
+// This file only runs in react-server context (RSC, API routes,
+// Server Actions). Client components get emit.client.ts via
+// conditional exports in package.json (see ADR-0084).
+//
+// All providers are loaded via dynamic import for tree-shaking.
+
 export async function emit(event: SmartoutEvent): Promise<void> {
   const routing = EVENT_ROUTING[event.event];
 
@@ -17,67 +19,30 @@ export async function emit(event: SmartoutEvent): Promise<void> {
     return;
   }
 
-  // Fire requests asynchronously as an array of promises
   const promises: Promise<void | unknown>[] = [];
 
-  // Use a globalThis key-lookup instead of `typeof window` so this file compiles
-  // under ES2022 lib (no DOM required — avoids TS2304 "Cannot find name 'window'").
-  const _g = globalThis as Record<string, unknown>;
-  const isServer = _g["window"] === undefined;
-
-  // 0. Client-side event bus — lets any in-app listener (e.g. Botsson) tap into telemetry.
-  if (!isServer) {
-    const win = _g["window"] as { dispatchEvent: (e: Event) => void };
-    win.dispatchEvent(new CustomEvent("smartout:telemetry", { detail: event }));
-  }
-
-  // 1. Analytics
+  // 1. Analytics (server-side PostHog via posthog-node)
   if (routing.destinations.includes("posthog")) {
-    if (isServer) {
-      const { sendToPostHogServer } = await import("./providers/posthog");
-      promises.push(sendToPostHogServer(event));
-    } else {
-      sendToPostHogClient(event);
-    }
+    const { sendToPostHogServer } = await import("./providers/posthog");
+    promises.push(sendToPostHogServer(event));
   }
 
   // 2. Logging
   if (routing.destinations.includes("logger")) {
-    if (isServer) {
-      const { logToStdout } = await import("./providers/logger");
-      logToStdout(event, routing);
-    } else {
-      // eslint-disable-next-line no-console
-      console.info(`[local.logger] Client side invocation of Log event:`, event);
-    }
+    const { logToStdout } = await import("./providers/logger");
+    logToStdout(event, routing);
   }
 
-  // 3. Activity Trail (server-side only)
-  if (routing.destinations.includes("activity_trail") && isServer) {
+  // 3. Activity Trail (audit DB table)
+  if (routing.destinations.includes("activity_trail")) {
     const { writeActivityTrail } = await import("./providers/activity-trail");
     promises.push(writeActivityTrail(event, routing));
   }
 
-  // 4. Engine Event
+  // 4. Engine Event (workflow triggers via engine-dispatch)
   if (routing.destinations.includes("engine_event")) {
     const { sendToEngine } = await import("./providers/engine-event");
     promises.push(sendToEngine(event));
-  }
-
-  // 5. Notifications (client-side only — server uses engine-dispatch)
-  if (routing.destinations.includes("notifications")) {
-    if (!isServer) {
-      fetch("/api/notifications/outbox", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          event_key: event.event,
-          metadata: event.properties,
-        }),
-      }).catch(() => {
-        // Silent fail — notification delivery is best-effort from telemetry
-      });
-    }
   }
 
   // Let errors fly through silently. Analytics pipelines shouldn't crash standard operations.

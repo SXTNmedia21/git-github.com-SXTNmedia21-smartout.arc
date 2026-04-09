@@ -23,6 +23,7 @@ tags: [decisions, adr, index]
 
 | ADR | Date | Title | Status |
 |-----|------|-------|--------|
+| [ADR-0084](0084-telemetry-conditional-exports.md) | 2026-04-09 | Telemetry package conditional exports — react-server/default split to isolate posthog-node from client bundle, /api/telemetry proxy for server-only destinations | accepted |
 | [ADR-0083](0083-strike-mcp-registration.md) | 2026-04-08 | Strike MCP Registered as Dev-Only Data Source — repo-level .mcp.json with .env.local token, 1Password deferred as debt | accepted |
 | [ADR-0082](0082-contract-drafts-are-not-versions.md) | 2026-04-08 | Contract Drafts Are Not Versions — versioning starts at send, idempotency on send endpoint | accepted |
 | [ADR-0081](0081-admin-pii-bypass-security-definer-rpc.md) | 2026-04-08 | Admin PII Bypass via SECURITY DEFINER RPC — dashboard-only, never via agent, with employee notification | accepted |

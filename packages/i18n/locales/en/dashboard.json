@@ -533,6 +533,59 @@
     "kpi_absence": "Absence",
     "kpi_turnover": "Turnover",
     "kpi_fill_rate": "Coverage 7d",
-    "coverage_title": "Staffing next 7 days"
+    "coverage_title": "Staffing next 7 days",
+    "coverage_error": "Could not load staffing data",
+
+    "card_shift_gap_title": "Staffing gap",
+    "card_shift_gap_subtitle": "{count, plural, one {# shift uncovered} other {# shifts uncovered}}",
+    "card_deviation_title": "Deviation",
+    "card_deviation_subtitle": "{count, plural, one {# blocking deviation} other {# blocking deviations}}",
+    "card_overdue_title": "Overdue task",
+    "card_overdue_subtitle": "{count, plural, one {# task overdue} other {# tasks overdue}}",
+    "card_upcoming_title": "Upcoming task",
+    "card_upcoming_subtitle": "{count, plural, one {# task soon} other {# tasks soon}}",
+    "card_late_title": "Late arrival",
+    "card_late_subtitle": "{name} is {minutes} min late",
+    "card_approval_title": "Pending approval",
+    "card_approval_subtitle": "{department} — {date}",
+
+    "action_find_substitute": "Find cover",
+    "action_dismiss": "Dismiss",
+    "action_approve": "Approve",
+    "action_assign": "Assign",
+    "action_complete": "Complete",
+    "action_details": "Details",
+    "action_send_reminder": "Send reminder",
+    "action_view": "View",
+
+    "on_duty_suffix": "on duty",
+    "on_break_suffix": "on break",
+    "late_suffix": "late",
+
+    "session_active": "Active",
+    "session_waiting": "Waiting",
+
+    "feed_filter_7d": "7 days",
+    "feed_error": "Could not load activity",
+
+    "kpi_absence_rate": "Absence",
+    "kpi_absence_rate_detail": "{rate}% absence last 30d",
+    "kpi_fill_rate_7d": "Coverage 7d",
+    "kpi_fill_rate_7d_detail": "{rate}% of shifts covered",
+    "kpi_staff_turnover": "Turnover",
+    "kpi_staff_turnover_detail": "{rate}% last 12 months",
+    "kpi_training_readiness": "Training",
+    "kpi_training_readiness_detail": "{rate}% completed",
+    "kpi_task_completion_detail": "{done}/{total} completed",
+    "kpi_deviations_detail": "{count} open deviations",
+
+    "pill_budget_variance": "Budget variance",
+    "pill_gaps_7d": "Gaps next 7d",
+    "pill_unsigned_contracts": "Unsigned contracts",
+    "pill_expiring_training": "Expiring training",
+
+    "toast_approved": "Approved",
+    "toast_reminder_sent": "Reminder sent",
+    "toast_task_completed": "Task completed"
   }
 }
