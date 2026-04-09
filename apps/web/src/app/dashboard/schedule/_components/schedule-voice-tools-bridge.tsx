@@ -32,6 +32,9 @@ type ScheduleVoiceToolsBridgeProps = {
   computed: ScheduleComputed;
   focusDayInUI: (dateId: string, openPlanner: boolean) => void;
   setSelectedDate: (date: string | null) => void;
+  switchScheduleView?: (view: string) => void;
+  setTimePeriod?: (weeks: number) => void;
+  setFilterSituation?: (filter: string) => void;
   createShift: UseCreateShift;
   updateShift: UseUpdateShift;
   deleteShift: UseDeleteShift;
@@ -54,6 +57,9 @@ export function ScheduleVoiceToolsBridge({
   computed,
   focusDayInUI,
   setSelectedDate,
+  switchScheduleView,
+  setTimePeriod,
+  setFilterSituation,
   createShift,
   updateShift,
   deleteShift,
@@ -74,6 +80,10 @@ export function ScheduleVoiceToolsBridge({
       focusDay: (dateId: string) => focusDayInUI(dateId, false),
       openDayPlanner: (dateId: string) => focusDayInUI(dateId, true),
       closeDayPlanner: () => setSelectedDate(null),
+      switchScheduleView,
+      setTimePeriod,
+      setSelectedDate,
+      setFilterSituation,
     },
     mutations: {
       createShift: (input) =>

@@ -209,6 +209,8 @@ function SchedulePageContent() {
     setOnPublishAll,
     setScheduleDraftCount,
     scheduleCompactMode,
+    setScheduleView,
+    setWeeklyPeriodCount,
   } = useContext(DashboardContext);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -966,6 +968,11 @@ function SchedulePageContent() {
         computed={computed}
         focusDayInUI={focusDayInUI}
         setSelectedDate={handleSetSelectedDate}
+        switchScheduleView={(view) =>
+          setScheduleView(view as "ansatt" | "jobb" | "team" | "lokasjon")
+        }
+        setTimePeriod={(weeks) => setWeeklyPeriodCount(weeks)}
+        setFilterSituation={setFilterSituation}
         createShift={createShift}
         updateShift={updateShift}
         deleteShift={deleteShift}

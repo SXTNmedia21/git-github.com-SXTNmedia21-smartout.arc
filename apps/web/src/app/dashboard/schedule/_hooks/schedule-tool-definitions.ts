@@ -459,6 +459,88 @@ const addSessionTask = {
   },
 };
 
+// -- View switching tools -----------------------------------------------------
+
+const switchScheduleView = {
+  temporaryTool: {
+    modelToolName: "switchScheduleView",
+    description:
+      "Switch the schedule grid grouping. Options: 'ansatt' (by employee — default), 'jobb' (by job role), 'team' (by team), 'lokasjon' (by location). Use when the user says 'vis per jobb', 'grupper etter team', 'bytt til ansattvisning', etc.",
+    dynamicParameters: [
+      {
+        name: "view",
+        location: body,
+        schema: {
+          type: "string",
+          description: "View mode: 'ansatt', 'jobb', 'team', or 'lokasjon'",
+        },
+        required: true,
+      },
+    ],
+    client: {},
+  },
+};
+
+const setTimePeriod = {
+  temporaryTool: {
+    modelToolName: "setTimePeriod",
+    description:
+      "Change how many weeks are displayed in the schedule. Options: 1 (one week), 2 (two weeks), 4 (month view), 8 (two months). Use when the user says 'vis en uke', 'manadsvisning', 'vis to uker', 'zoom ut', etc.",
+    dynamicParameters: [
+      {
+        name: "weeks",
+        location: body,
+        schema: {
+          type: "number",
+          description: "Number of weeks to display: 1, 2, 4, or 8",
+        },
+        required: true,
+      },
+    ],
+    client: {},
+  },
+};
+
+const showSingleDay = {
+  temporaryTool: {
+    modelToolName: "showSingleDay",
+    description:
+      "Show only a single day in the schedule view (selects and highlights a date). Use when the user says 'vis bare mandag', 'zoom inn pa fredag', 'vis kun i dag', etc.",
+    dynamicParameters: [
+      {
+        name: "day",
+        location: body,
+        schema: {
+          type: "string",
+          description: "Day name (mandag, tirsdag, etc.) or date (YYYY-MM-DD)",
+        },
+        required: true,
+      },
+    ],
+    client: {},
+  },
+};
+
+const filterSchedule = {
+  temporaryTool: {
+    modelToolName: "filterSchedule",
+    description:
+      "Filter the schedule by role/situation. Use 'Alle' to clear filter. Use when the user says 'vis bare kokkene', 'filtrer pa servitor', 'fjern filter', etc.",
+    dynamicParameters: [
+      {
+        name: "filter",
+        location: body,
+        schema: {
+          type: "string",
+          description: "Role/situation name to filter by, or 'Alle' to show all",
+        },
+        required: true,
+      },
+    ],
+    client: {},
+  },
+};
+
 // -- Export -------------------------------------------------------------------
 
 export const SCHEDULE_TOOL_DEFINITIONS: ClientToolDefinition[] = [
@@ -477,4 +559,8 @@ export const SCHEDULE_TOOL_DEFINITIONS: ClientToolDefinition[] = [
   addReservation,
   updateReservation,
   addSessionTask,
+  switchScheduleView,
+  setTimePeriod,
+  showSingleDay,
+  filterSchedule,
 ];

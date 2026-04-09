@@ -27,6 +27,10 @@ type ScheduleVoiceToolsInput = {
     focusDay: (dateId: string) => void;
     openDayPlanner: (dateId: string) => void;
     closeDayPlanner: () => void;
+    switchScheduleView?: (view: string) => void;
+    setTimePeriod?: (weeks: number) => void;
+    setSelectedDate?: (date: string | null) => void;
+    setFilterSituation?: (filter: string) => void;
   };
   mutations?: {
     createShift: (input: Record<string, unknown>) => Promise<unknown>;
@@ -970,6 +974,83 @@ export function useScheduleVoiceTools(input: ScheduleVoiceToolsInput): ClientToo
       }
     };
 
+    // -- View switching tool implementations ---------------------------
+
+    const switchScheduleViewTool: ClientToolImplementation = (params) => {
+      const d = dataRef.current;
+      const view = (params.view as string) ?? "ansatt";
+      const valid = ["ansatt", "jobb", "team", "lokasjon"];
+      if (!valid.includes(view)) {
+        return JSON.stringify({ error: `Ugyldig visning "${view}". Bruk: ${valid.join(", ")}` });
+      }
+      if (!d.uiActions?.switchScheduleView) {
+        return JSON.stringify({ error: "View switching not available" });
+      }
+      d.uiActions.switchScheduleView(view);
+      const labels: Record<string, string> = {
+        ansatt: "ansatt",
+        jobb: "jobbroller",
+        team: "team",
+        lokasjon: "lokasjon",
+      };
+      return JSON.stringify({
+        success: true,
+        message: `Byttet til ${labels[view] ?? view}-visning.`,
+      });
+    };
+
+    const setTimePeriodTool: ClientToolImplementation = (params) => {
+      const d = dataRef.current;
+      const weeks = Number(params.weeks ?? 4);
+      const valid = [1, 2, 4, 8];
+      if (!valid.includes(weeks)) {
+        return JSON.stringify({ error: `Ugyldig periode. Bruk: ${valid.join(", ")} uker` });
+      }
+      if (!d.uiActions?.setTimePeriod) {
+        return JSON.stringify({ error: "Time period switching not available" });
+      }
+      d.uiActions.setTimePeriod(weeks);
+      const labels: Record<number, string> = {
+        1: "1 uke",
+        2: "2 uker",
+        4: "manedsoversikt (4 uker)",
+        8: "2 maneder",
+      };
+      return JSON.stringify({
+        success: true,
+        message: `Viser ${labels[weeks] ?? weeks + " uker"}.`,
+      });
+    };
+
+    const showSingleDayTool: ClientToolImplementation = (params) => {
+      const d = dataRef.current;
+      const dayInput = (params.day as string) ?? "";
+      const dateId = resolveDateId(dayInput, d.days);
+      if (!dateId) {
+        return JSON.stringify({ error: `Kunne ikke finne dag "${dayInput}"` });
+      }
+      if (!d.uiActions?.setSelectedDate) {
+        return JSON.stringify({ error: "Day selection not available" });
+      }
+      d.uiActions.setSelectedDate(dateId);
+      if (d.uiActions.focusDay) d.uiActions.focusDay(dateId);
+      const dayLabel = d.days.find((day) => day.id === dateId)?.label ?? dateId;
+      return JSON.stringify({ success: true, message: `Viser ${dayLabel}.` });
+    };
+
+    const filterScheduleTool: ClientToolImplementation = (params) => {
+      const d = dataRef.current;
+      const filter = (params.filter as string) ?? "Alle";
+      if (!d.uiActions?.setFilterSituation) {
+        return JSON.stringify({ error: "Filtering not available" });
+      }
+      d.uiActions.setFilterSituation(filter);
+      return JSON.stringify({
+        success: true,
+        message: filter === "Alle" ? "Filter fjernet — viser alle." : `Filtrert pa: ${filter}.`,
+      });
+    };
+
     // -- Combine definitions and implementations ----------------------
 
     const allDefinitions = [...TOOL_DEFINITIONS];
@@ -989,6 +1070,10 @@ export function useScheduleVoiceTools(input: ScheduleVoiceToolsInput): ClientToo
       addReservation: addReservationTool,
       updateReservation: updateReservationTool,
       addSessionTask: addSessionTaskTool,
+      switchScheduleView: switchScheduleViewTool,
+      setTimePeriod: setTimePeriodTool,
+      showSingleDay: showSingleDayTool,
+      filterSchedule: filterScheduleTool,
     };
 
     return {
