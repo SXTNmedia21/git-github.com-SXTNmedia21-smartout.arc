@@ -110,7 +110,8 @@ export type EntityType =
   | "legal_function"
   | "change_proposal"
   | "shift_approval"
-  | "holiday_entry";
+  | "holiday_entry"
+  | "employment_contract";
 
 export type ActionVerb =
   | "created"
@@ -1568,6 +1569,122 @@ export interface ContractAttachmentDeleted extends BaseEvent {
   };
 }
 
+// ─── Contract Composition Events ─────────────────
+export interface ContractComposed extends BaseEvent {
+  event: "contract composed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      template_id: string;
+      profile_id: string;
+      framework_id: string;
+      override_count: number;
+      blocker_count: number;
+    };
+  };
+}
+
+export interface ContractComplianceBlocked extends BaseEvent {
+  event: "contract compliance blocked";
+  properties: {
+    entity: EntityRef;
+    data: { rule_id: string; rule_type: string; violation: string };
+  };
+}
+
+export interface ContractComplianceOverridden extends BaseEvent {
+  event: "contract compliance overridden";
+  properties: {
+    entity: EntityRef;
+    data: {
+      rule_id: string;
+      field: string;
+      expected_value: string;
+      actual_value: string;
+    };
+  };
+}
+
+export interface ContractIntakeStarted extends BaseEvent {
+  event: "contract intake started";
+  properties: {
+    entity: EntityRef;
+    data: { contract_id: string; missing_groups: string[] };
+  };
+}
+
+export interface ContractIntakeFieldSubmitted extends BaseEvent {
+  event: "contract intake field submitted";
+  properties: {
+    entity: EntityRef;
+    data: { group: string };
+  };
+}
+
+export interface ContractIntakeCompleted extends BaseEvent {
+  event: "contract intake completed";
+  properties: {
+    entity: EntityRef;
+    data: { contract_id: string; duration_hours: number };
+  };
+}
+
+export interface ContractIntakeEscalated extends BaseEvent {
+  event: "contract intake escalated";
+  properties: {
+    entity: EntityRef;
+    data: { contract_id: string; escalation_day: number };
+  };
+}
+
+export interface ContractIntakeAdminBypass extends BaseEvent {
+  event: "contract intake admin bypass";
+  properties: {
+    entity: EntityRef;
+    data: { field_group: string; reason: string };
+  };
+}
+
+export interface ContractIntakeDeclined extends BaseEvent {
+  event: "contract intake declined";
+  properties: {
+    entity: EntityRef;
+    data: { group: string; reason_code: string };
+  };
+}
+
+export interface ContractFrameworkDriftDetected extends BaseEvent {
+  event: "contract framework drift detected";
+  properties: {
+    entity: EntityRef;
+    data: { drift_count: number; framework_id: string };
+  };
+}
+
+export interface ContractRegenerated extends BaseEvent {
+  event: "contract regenerated";
+  properties: {
+    entity: EntityRef;
+    data: { framework_id: string; previous_snapshot_date: string };
+  };
+}
+
+export interface ContractRevisionCreated extends BaseEvent {
+  event: "contract revision created";
+  properties: {
+    entity: EntityRef;
+    data: { parent_contract_id: string; revision_number: number };
+  };
+}
+
+export interface ContractRetentionArchived extends BaseEvent {
+  event: "contract retention archived";
+  properties: {
+    entity: EntityRef;
+    data: { anonymized_fields: string[] };
+  };
+}
+
 // ─── Journey: Signup + Onboarding ──────────────────
 export interface SignupCompleted extends BaseEvent {
   event: "signup completed";
@@ -2535,6 +2652,19 @@ export type SmartoutEvent =
   | ContractExpired
   | ContractAttachmentUploaded
   | ContractAttachmentDeleted
+  | ContractComposed
+  | ContractComplianceBlocked
+  | ContractComplianceOverridden
+  | ContractIntakeStarted
+  | ContractIntakeFieldSubmitted
+  | ContractIntakeCompleted
+  | ContractIntakeEscalated
+  | ContractIntakeAdminBypass
+  | ContractIntakeDeclined
+  | ContractFrameworkDriftDetected
+  | ContractRegenerated
+  | ContractRevisionCreated
+  | ContractRetentionArchived
   | HandbookChapterSaved
   | CommunicationSent
   | CommunicationCancelled
@@ -2962,6 +3092,58 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "contract attachment deleted": {
     destinations: ["logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contract composed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contract compliance blocked": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contract compliance overridden": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contract intake started": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract intake field submitted": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contract intake completed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract intake escalated": {
+    destinations: ["posthog", "logger", "activity_trail", "notifications"],
+    category: "contracts",
+  },
+  "contract intake admin bypass": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contract intake declined": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract framework drift detected": {
+    destinations: ["posthog", "logger"],
+    category: "contracts",
+  },
+  "contract regenerated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contract revision created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contract retention archived": {
+    destinations: ["posthog", "logger", "activity_trail"],
     category: "contracts",
   },
 
