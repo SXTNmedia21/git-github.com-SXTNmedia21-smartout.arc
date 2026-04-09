@@ -1,73 +1,97 @@
 /**
- * Generic task runner screen — intake, signing, or any pending task.
+ * Task runner screen — displays a session_task and handles completion.
  *
- * Simple mobile version: title, description, input fields grouped by
- * task type, and a submit button. Used for contract data intake and
- * similar flows driven by engine_state tasks.
+ * Fetches the task by ID from session_task, shows its title, description,
+ * and compliance status. On submit, marks the task as completed with the
+ * current user's profile_id and timestamp.
  */
 
 import React, { useState } from "react";
-import { View, Text, ScrollView, Pressable, TextInput } from "react-native";
+import { View, Text, ScrollView, Pressable, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { ChevronLeft, ClipboardList, CheckCircle } from "lucide-react-native";
+import { ChevronLeft, ClipboardList, CheckCircle, AlertTriangle } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createStyles, useTheme, withOpacity } from "@/theme";
+import { supabase } from "@/lib/supabase";
+import { useMyProfile } from "@/hooks/queries/use-my-profile";
+import type { Database } from "@smartout/supabase/database.types";
 
-/**
- * In a full implementation the task metadata (title, fields, etc.) would
- * be fetched from engine_state / engine_state_step via the task id.
- * For now we show a static identity-group intake form as a representative
- * example of the mobile TaskRunner pattern.
- */
+type SessionTask = Database["public"]["Tables"]["session_task"]["Row"];
 
-type FormValues = {
-  personal_number: string;
-  address: string;
-  postal_code: string;
-  city: string;
-};
-
-const EMPTY_FORM: FormValues = {
-  personal_number: "",
-  address: "",
-  postal_code: "",
-  city: "",
-};
+/** Fetches a single session_task by its ID */
+function useTask(taskId: string | undefined) {
+  return useQuery<SessionTask | null>({
+    queryKey: ["session-task", taskId],
+    queryFn: async () => {
+      if (!taskId) return null;
+      const { data, error } = await supabase
+        .from("session_task")
+        .select("*")
+        .eq("id", taskId)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!taskId,
+  });
+}
 
 export default function TaskRunnerScreen() {
   const styles = useStyles();
   const theme = useTheme();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { data: profile } = useMyProfile();
+  const { data: task, isLoading, isError } = useTask(id);
 
-  const [values, setValues] = useState<FormValues>(EMPTY_FORM);
-  const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  const hasAnyValue = Object.values(values).some((v) => v.trim().length > 0);
+  /** Marks the task as completed in the database */
+  const completeMutation = useMutation({
+    mutationFn: async () => {
+      if (!id || !profile) throw new Error("Missing task ID or profile");
+      const now = new Date().toISOString();
+      const { error } = await supabase
+        .from("session_task")
+        .update({
+          status: "completed" as SessionTask["status"],
+          completed_at: now,
+          completed_by: profile.profile_id,
+        })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setSubmitted(true);
+      /* Refresh the task list so it reflects the completion */
+      queryClient.invalidateQueries({ queryKey: ["my-tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["session-task", id] });
+    },
+  });
 
-  async function handleSubmit() {
-    if (!hasAnyValue || submitting) return;
-    setSubmitting(true);
-
-    // TODO: Call supabase.rpc("admin_submit_employee_pii", ...) or the
-    // appropriate task-completion RPC once task routing is connected.
-    // For now we simulate a short delay.
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    setSubmitted(true);
-    setSubmitting(false);
-  }
-
-  if (submitted) {
+  /* Loading state */
+  if (isLoading) {
     return (
       <SafeAreaView style={styles.container} edges={["top"]}>
         <View style={styles.successWrap}>
-          <CheckCircle size={48} color={theme.colors.brandOrange} strokeWidth={1.4} />
-          <Text style={styles.successTitle}>Takk!</Text>
-          <Text style={styles.successDesc}>Informasjonen er sendt inn. Du kan gaa tilbake.</Text>
+          <ActivityIndicator size="large" color={theme.colors.foreground} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  /* Error or task not found */
+  if (isError || !task) {
+    return (
+      <SafeAreaView style={styles.container} edges={["top"]}>
+        <View style={styles.successWrap}>
+          <AlertTriangle size={48} color={theme.colors.warning} strokeWidth={1.4} />
+          <Text style={styles.successTitle}>Oppgave ikke funnet</Text>
+          <Text style={styles.successDesc}>Oppgaven finnes ikke eller du har ikke tilgang.</Text>
           <Pressable
             onPress={() => {
               Haptics.selectionAsync();
@@ -81,6 +105,30 @@ export default function TaskRunnerScreen() {
       </SafeAreaView>
     );
   }
+
+  /* Already completed (either just now or was already done) */
+  if (submitted || task.status === "completed") {
+    return (
+      <SafeAreaView style={styles.container} edges={["top"]}>
+        <View style={styles.successWrap}>
+          <CheckCircle size={48} color={theme.colors.brandOrange} strokeWidth={1.4} />
+          <Text style={styles.successTitle}>Fullfort!</Text>
+          <Text style={styles.successDesc}>{task.title} er registrert som fullfort.</Text>
+          <Pressable
+            onPress={() => {
+              Haptics.selectionAsync();
+              router.back();
+            }}
+            style={({ pressed }) => [styles.backLink, pressed && { opacity: 0.7 }]}
+          >
+            <Text style={styles.backLinkText}>Tilbake</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const isSubmitting = completeMutation.isPending;
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -108,79 +156,53 @@ export default function TaskRunnerScreen() {
             <ClipboardList size={22} color={theme.colors.brandOrange} strokeWidth={1.5} />
           </View>
           <View style={styles.taskTitleWrap}>
-            <Text style={styles.taskTitle}>Fullfoor profilen din</Text>
-            <Text style={styles.taskDesc}>
-              Vi trenger litt informasjon for aa kunne lage arbeidskontrakten din.
-            </Text>
+            <Text style={styles.taskTitle}>{task.title}</Text>
+            {task.description ? <Text style={styles.taskDesc}>{task.description}</Text> : null}
           </View>
         </View>
 
-        {/* Input fields */}
+        {/* Compliance badge */}
+        {task.is_compliance_required && (
+          <View style={styles.complianceBadge}>
+            <AlertTriangle size={14} color={theme.colors.warning} strokeWidth={2} />
+            <Text style={styles.complianceText}>Lovpaalagt oppgave</Text>
+          </View>
+        )}
+
+        {/* Status info */}
         <View style={styles.fieldGroup}>
-          <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Personnummer</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="11 siffer"
-              placeholderTextColor={withOpacity(theme.colors.mutedForeground, 0.5)}
-              value={values.personal_number}
-              onChangeText={(t) => setValues((v) => ({ ...v, personal_number: t }))}
-              keyboardType="number-pad"
-              accessibilityLabel="Personnummer"
-            />
-          </View>
-
-          <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Adresse</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Gateadresse"
-              placeholderTextColor={withOpacity(theme.colors.mutedForeground, 0.5)}
-              value={values.address}
-              onChangeText={(t) => setValues((v) => ({ ...v, address: t }))}
-              accessibilityLabel="Adresse"
-            />
-          </View>
-
-          <View style={styles.rowFields}>
-            <View style={[styles.field, { flex: 1 }]}>
-              <Text style={styles.fieldLabel}>Postnummer</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="0000"
-                placeholderTextColor={withOpacity(theme.colors.mutedForeground, 0.5)}
-                value={values.postal_code}
-                onChangeText={(t) => setValues((v) => ({ ...v, postal_code: t }))}
-                keyboardType="number-pad"
-                accessibilityLabel="Postnummer"
-              />
-            </View>
-            <View style={[styles.field, { flex: 1 }]}>
-              <Text style={styles.fieldLabel}>Poststed</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="By"
-                placeholderTextColor={withOpacity(theme.colors.mutedForeground, 0.5)}
-                value={values.city}
-                onChangeText={(t) => setValues((v) => ({ ...v, city: t }))}
-                accessibilityLabel="Poststed"
-              />
-            </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.fieldLabel}>Status</Text>
+            <Text style={styles.fieldValue}>
+              {task.status === "pending"
+                ? "Venter"
+                : task.status === "available"
+                  ? "Tilgjengelig"
+                  : task.status === "in_progress"
+                    ? "Paagaar"
+                    : task.status}
+            </Text>
           </View>
         </View>
 
         {/* Submit button */}
         <Pressable
-          onPress={handleSubmit}
-          disabled={!hasAnyValue || submitting}
+          onPress={() => completeMutation.mutate()}
+          disabled={isSubmitting}
           style={({ pressed }) => [
             styles.submitButton,
-            (!hasAnyValue || submitting) && styles.submitDisabled,
+            isSubmitting && styles.submitDisabled,
             pressed && { opacity: 0.9 },
           ]}
         >
-          <Text style={styles.submitText}>{submitting ? "Sender..." : "Send inn"}</Text>
+          <Text style={styles.submitText}>
+            {isSubmitting ? "Registrerer..." : "Marker som fullfort"}
+          </Text>
         </Pressable>
+
+        {completeMutation.isError && (
+          <Text style={styles.errorText}>Noe gikk galt. Proov igjen.</Text>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -233,27 +255,40 @@ const useStyles = createStyles((theme) => ({
   },
   taskDesc: { ...theme.typography.body, color: theme.colors.mutedForeground },
 
-  /* Fields */
+  /* Compliance badge */
+  complianceBadge: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 8,
+    backgroundColor: withOpacity(theme.colors.warning, 0.1),
+    borderRadius: theme.radius.md,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: theme.spacing.page,
+  },
+  complianceText: {
+    fontSize: 13,
+    fontWeight: "600" as const,
+    color: theme.colors.warning,
+  },
+
+  /* Fields / info */
   fieldGroup: { gap: theme.spacing.md, marginBottom: theme.spacing.page },
-  field: { gap: 6 },
+  infoRow: {
+    flexDirection: "row" as const,
+    justifyContent: "space-between" as const,
+    alignItems: "center" as const,
+    paddingVertical: 8,
+  },
   fieldLabel: {
     fontSize: 13,
     fontWeight: "500" as const,
     color: theme.colors.mutedForeground,
   },
-  input: {
-    backgroundColor: theme.isDark ? "rgba(255,255,255,0.04)" : theme.colors.muted,
-    borderRadius: theme.radius.lg,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 16,
+  fieldValue: {
+    fontSize: 14,
+    fontWeight: "500" as const,
     color: theme.colors.foreground,
-    borderWidth: 1,
-    borderColor: theme.isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)",
-  },
-  rowFields: {
-    flexDirection: "row" as const,
-    gap: theme.spacing.md,
   },
 
   /* Submit */
@@ -269,6 +304,14 @@ const useStyles = createStyles((theme) => ({
     fontSize: 16,
     fontWeight: "600" as const,
     color: "#ffffff",
+  },
+
+  /* Error */
+  errorText: {
+    ...theme.typography.caption,
+    color: theme.colors.destructive,
+    textAlign: "center" as const,
+    marginTop: theme.spacing.element,
   },
 
   /* Success */

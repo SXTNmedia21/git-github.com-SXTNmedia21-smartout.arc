@@ -655,8 +655,22 @@ export default function ChatIndex() {
         isPinned={isPinned(contextMenu.conversationId)}
         isMuted={contextMenu.isMuted}
         onTogglePin={() => togglePin(contextMenu.conversationId)}
-        onToggleMute={() => {
-          // TODO: update chat_participant.is_muted in DB
+        onToggleMute={async () => {
+          if (!profile) return;
+          const channelId = contextMenu.conversationId;
+          const newMuted = !contextMenu.isMuted;
+
+          /* Update channel_member.is_muted for the current user in this channel */
+          const { error } = await supabase
+            .from("channel_member")
+            .update({ is_muted: newMuted })
+            .eq("channel_id", channelId)
+            .eq("profile_id", profile.profile_id);
+
+          if (!error) {
+            setContextMenu((prev) => ({ ...prev, isMuted: newMuted }));
+            refetch();
+          }
         }}
         onClose={() => setContextMenu((prev) => ({ ...prev, visible: false }))}
       />
