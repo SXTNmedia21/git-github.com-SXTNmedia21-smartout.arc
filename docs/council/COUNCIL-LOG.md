@@ -331,3 +331,41 @@ R1: 6 blockers → R2: 3 new blockers (in fixes) → R3: 0 new blockers. This is
 
 ### Verdict held
 4 reviewers converged on ship. Steward: "From the agent architecture perspective: this is the right fix in the right place. No follow-up needed." Supervisor: "Ship it, log items as follow-ups." Frontend: grep verified zero hardcoded palette colors.
+
+---
+
+## 2026-04-09 — Contract Composition Engine (Post-Implementation Review)
+**Type:** feature
+**Verdict:** APPROVE WITH CHANGES (8 blocking fixes applied)
+**Agents consulted:** System Steward, Supervisor, Agent Coordinator, Frontend Designer
+**Key decision:** 8 critical bugs caught and fixed before merge: column name mismatches, engine process lookup, JSONB access syntax, missing role gates, actor_id type error, scope creep reverts
+**ADR created:** none (ADR-0076 change_proposal omission documented as tracked debt)
+**Learning created:** none
+
+### Blocking issues found and fixed
+1. `address_line_1` column name mismatch in RPC + intake tools (Steward + Supervisor)
+2. Engine process lookup `.eq("name")` should be `.eq("id")` (Steward + Supervisor)
+3. Compliance drift view JSONB array syntax on object (Steward)
+4. `compute_compliance_diff` field name mismatches (Steward)
+5. Missing admin/owner role gates on 4 API routes (Supervisor)
+6. `actor_id` using auth UID instead of profile_id (Supervisor)
+7. Scope creep: useShiftClock emit removal (Supervisor) — reverted
+8. Scope creep: notifications outbox gutted (Supervisor) — reverted
+
+### Follow-up items tracked
+- ReasoningDrawer: use Sheet instead of fixed panel (Frontend)
+- DerivationStep: use WizardLoadingOverlay not bare spinner (Frontend)
+- Hardcoded Tailwind colors → CSS variables (Frontend + Supervisor)
+- Hardcoded Norwegian → i18n keys (Steward + Supervisor)
+- Missing motion/animation (Frontend)
+- ADR-0076 change_proposal integration (Steward)
+- ADR-0082 idempotency key on send (Steward)
+- Intent classifier for contract vs contract_intake (Agent Coord)
+- Authority config defaults for contract_intake (Agent Coord)
+- actingOnBehalfOf context stripping (Agent Coord)
+- Entity type standardization: employment_contract (Supervisor)
+- DocuSeal Nordic Split chrome (pre-existing gap)
+- E2E test implementation (pre-existing gap)
+
+### Council effectiveness
+All 4 agents found real issues. Steward and Supervisor both independently found bugs 1 and 2. Agent Coordinator identified 6 missing contracts. Frontend identified 9 design issues. High-value session — bugs 1-2 alone would have caused silent data loss in production.
