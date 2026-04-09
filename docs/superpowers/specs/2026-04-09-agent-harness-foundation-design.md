@@ -27,6 +27,9 @@ Denne specen bygger pa research og brainstorm i session 2026-04-09:
   packages/ai (capability registry, tool selector, intent classifier)
 - **ADR-0073** — AI Eval Harness (baselines for intent classifier, tool selection)
 - **ADR-0077/0078** — PII handling, channel restrictions
+- **Council review 2026-04-09** — system-steward, supervisor, system-agent-coordinator,
+  frontend-designer. All four approved with changes. 15 items resolved below.
+  ADR-0083 to be written at implementation.
 
 **Existing infrastructure leveraged (not rebuilt):**
 
@@ -69,6 +72,10 @@ funksjonalitet.
 - Evaluator-optimizer loop (Fase 4+)
 - Memory consolidation/"dreaming" (Fase 4+)
 - Ansatt-tilgang til subagent-features (authority-gated, aktiveres senere)
+- Voice/Ultravox hook integration (hooks are chat-pipeline only in Phase 1;
+  voice sessions go through /adapters/ultravox/ which bypasses routeAgentMessage.
+  PII/budget/telemetry for voice remains via ADR-0077/0078 at process/capability
+  level. Voice hook integration = Phase 4+)
 
 ---
 
@@ -146,43 +153,55 @@ session:completing  -> Sesjon avsluttes (for opprydding, memory-save)
 | Transform | Endrer payload | Context enrichment: legg til real-time skiftdata |
 | Observe | Logger/tracker uten a endre | Telemetri: log tool-kall til PostHog |
 
-**Interface:**
+**Interface (with typed payloads per council R4):**
 
 ```typescript
-type HookName =
-  | "message:received"
-  | "intent:classified"
-  | "context:collected"
-  | "tools:selected"
-  | "llm:before"
-  | "llm:after"
-  | "session:completing";
+type HookPayloadMap = {
+  "message:received": { message: string; sessionId: string; channel: SessionChannel };
+  "intent:classified": { intent: IntentResult; sessionId: string };
+  "context:collected": { context: AgentContext; sessionId: string };
+  "tools:selected": { tools: ReadonlyArray<SmartoutTool>; intent: IntentResult };
+  "llm:before": { systemPrompt: string; tools: Record<string, unknown>; messages: Array<unknown> };
+  "llm:after": { result: GenerateTextResult; sessionId: string; tokensUsed: number };
+  "session:completing": { sessionId: string; summary?: string };
+};
+
+type HookName = keyof HookPayloadMap;
 
 type HookResult =
   | { block: false }
   | { block: true; reason: string };
 
-type HookHandler<T = unknown> = (
-  payload: T
+type HookHandler<N extends HookName> = (
+  payload: HookPayloadMap[N]
 ) => Promise<HookResult | void> | HookResult | void;
 
-interface Hook {
-  name: HookName;
-  handler: HookHandler;
+interface Hook<N extends HookName = HookName> {
+  name: N;
+  handler: HookHandler<N>;
   priority: number;   // Higher runs first. Default 0.
   type: "guard" | "transform" | "observe";
 }
 
 class HookRegistry {
-  register(hook: Hook): void;
-  unregister(name: HookName, handler: HookHandler): void;
-  async run<T>(name: HookName, payload: T): Promise<{
+  register<N extends HookName>(hook: Hook<N>): void;
+  unregister<N extends HookName>(name: N, handler: HookHandler<N>): void;
+  async run<N extends HookName>(name: N, payload: HookPayloadMap[N]): Promise<{
     blocked: boolean;
     reason?: string;
-    payload: T;        // Possibly transformed
+    payload: HookPayloadMap[N];
   }>;
 }
 ```
+
+**Observe hook execution semantics (council clarification):**
+
+Guard and Transform hooks are awaited sequentially. Observe hooks are
+**fire-and-forget** — `run()` detaches their promises and does NOT await them.
+This means observe hooks cannot block the pipeline and add zero latency.
+Transform hooks compose via last-writer-wins on the payload object (shallow merge).
+If two transforms modify different fields, both apply. If they modify the same
+field, the higher-priority hook wins (runs first, subsequent transform sees its output).
 
 **Integrasjon i agent-router.ts:**
 
@@ -292,12 +311,18 @@ class ContextEngine {
 }
 ```
 
-**Compaction-strategi:**
+**Compaction-strategi (async per council R5):**
+
+Compaction runs AFTER the current turn's response is returned. The compacted
+context is stored and used starting from the NEXT turn. This means the first
+turn that exceeds budget may slightly overshoot, but user experience is not
+degraded by 200-400ms extra latency.
 
 - Conversation history eldre enn 5 turns -> sammenfattes til 1-2 setninger
 - Memories med lav importance -> droppes
 - Relationship data -> komprimeres til en setning
 - System prompt, tools, stage instructions -> ALDRI komprimert
+- Token counting: approximate (chars/4). Not exact tokenizer — sufficient for budget gating.
 
 **Integrasjon med eksisterende collectContext():**
 
@@ -317,23 +342,30 @@ class SmartoutContextSource implements ContextSource {
 
 **Maal:** Crash recovery + budget tracking + lane serialization.
 
-**Database-endringer (1 migration):**
+**Database-endringer (Fase 1 migration):**
 
 ```sql
--- Session event log (append-only)
+-- Session event log (append-only, internal replay journal)
+-- NOTE: This is NOT a duplicate of guardian_log. Boundary:
+--   guardian_log = external audit trail (what users see in guardian panel)
+--   engine_session_event = internal crash-recovery journal (replay log, never surfaced to users)
 CREATE TABLE engine_session_event (
-  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  session_id  UUID NOT NULL REFERENCES engine_sessions(id) ON DELETE CASCADE,
-  event_type  TEXT NOT NULL,
-  payload     JSONB NOT NULL DEFAULT '{}',
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id  UUID NOT NULL REFERENCES workspace(workspace_id),
+  session_id    UUID NOT NULL REFERENCES engine_sessions(id) ON DELETE CASCADE,
+  event_type    TEXT NOT NULL,
+  payload       JSONB NOT NULL DEFAULT '{}',
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE INDEX idx_session_event_session ON engine_session_event(session_id, created_at);
 
--- Event types: message_received, intent_classified, tool_called,
--- tool_result, llm_response, stage_advanced, session_completed,
--- subagent_spawned, subagent_completed, error
+-- Dual RLS (per convention)
+ALTER TABLE engine_session_event ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "workspace members can view session events"
+  ON engine_session_event FOR SELECT
+  USING (workspace_id IN (SELECT workspace_id FROM company_member WHERE user_id = auth.uid()));
 
 -- Budget tracking on existing table
 ALTER TABLE engine_sessions ADD COLUMN IF NOT EXISTS
@@ -386,9 +418,17 @@ class SessionLane {
     const prev = this.queues.get(sessionId) ?? Promise.resolve();
     const next = prev.then(() => fn()).catch((err) => { throw err; });
     this.queues.set(sessionId, next.catch(() => {}));
+    // Cleanup: delete key after promise resolves to prevent memory leak
+    next.finally(() => {
+      if (this.queues.get(sessionId) === next) this.queues.delete(sessionId);
+    });
     return next;
   }
 }
+
+// NOTE: SessionLane is in-memory only. On process restart, queue state is lost.
+// This is acceptable for single-instance stage-engine. Crash recovery relies
+// on engine_session_event replay, not on SessionLane state.
 
 // Brukes i route handler:
 const lane = c.get("sessionLane");
@@ -403,20 +443,31 @@ const result = await lane.run(sessionId, () =>
 
 ### 2.1 Session Forking
 
-**Database-endring (samme migration som Fase 1):**
+**Database-endring (Fase 2 migration — separat fra Fase 1):**
 
 ```sql
+-- ENUM for delegation status (per convention, not TEXT CHECK)
+CREATE TYPE delegation_status AS ENUM (
+  'pending', 'running', 'completed', 'failed', 'cancelled'
+);
+
 ALTER TABLE engine_sessions ADD COLUMN IF NOT EXISTS
-  parent_session_id UUID REFERENCES engine_sessions(id);
+  parent_session_id UUID REFERENCES engine_sessions(id) ON DELETE SET NULL;
 ALTER TABLE engine_sessions ADD COLUMN IF NOT EXISTS
   depth INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE engine_sessions ADD COLUMN IF NOT EXISTS
-  delegation_status TEXT CHECK (delegation_status IN (
-    'pending', 'running', 'completed', 'failed', 'cancelled'
-  ));
+  delegation_status delegation_status;
 ALTER TABLE engine_sessions ADD COLUMN IF NOT EXISTS
   delegation_result JSONB;
+
+CREATE INDEX idx_session_parent
+  ON engine_sessions(parent_session_id) WHERE parent_session_id IS NOT NULL;
 ```
+
+**Parent expiry propagation (council R6):** When a parent session expires or is
+abandoned (`expires_at` reached), a cleanup job marks all active children with
+`delegation_status = 'cancelled'`. The ON DELETE SET NULL FK prevents cascade
+delete but allows orphan detection.
 
 **Regler:**
 
@@ -424,13 +475,20 @@ ALTER TABLE engine_sessions ADD COLUMN IF NOT EXISTS
 - Child arver workspace_id og profile_id fra parent.
 - Child arver IKKE conversation history (isolert context, som Claude Code subagents).
 - Child far en fokusert instruction og relevante tools for sin oppgave.
+- Child sessions bruk `mode = 'agent'` (ikke mission-mode) med `mission_id = NULL`.
 - Resultat lagres i delegation_result pa child, og appendes som event pa parent.
 
 ### 2.2 delegate_task Tool
 
-**Fil:** `packages/ai/src/capabilities/delegation/tools.ts` (ny)
+**Fil:** `services/stage-engine/src/tools/delegation.ts` (ny)
 
-Ny capability som registreres i registry:
+> **Council correction (C2):** Tool lives in stage-engine, NOT packages/ai.
+> It needs direct access to createSubagentSession(), appendSessionEvent(),
+> broadcastToSession() — all stage-engine internals. Registered as a
+> stage-engine-provided tool injected via toolContext (existing pattern).
+
+Uses `createSubagentSession()` (ny funksjon i session-manager.ts, council C1)
+instead of `createSession()` — subagent sessions are mission-less, mode="agent":
 
 ```typescript
 const delegateTask: SmartoutTool<AgentToolContext> = {
@@ -584,6 +642,9 @@ async function executeSubagent(childSessionId: string): Promise<void> {
   });
 
   // 3. Kjoer LLM med verktoy (maks 5 steg, som vanlig)
+  // NOTE: Model string must match agent-router.ts. Currently "anthropic/claude-sonnet-4"
+  // but should be bumped to "anthropic/claude-sonnet-4.6" per ADR-0073 Phase 5.
+  // Both agent-router.ts and subagent-executor.ts must use the same model.
   const result = await generateText({
     model: getOpenRouter()("anthropic/claude-sonnet-4.6"),
     system: systemPrompt,
@@ -616,7 +677,23 @@ async function executeSubagent(childSessionId: string): Promise<void> {
 }
 ```
 
-### 2.5 Process Engine Bro
+### 2.5 Subagent Execution Trigger (council Q3)
+
+`delegate_task` calls `executeSubagent()` directly (option a). For non-blocking
+delegation, the call is fire-and-forget (detached promise). For blocking, it
+awaits the result. The subagent runs in the SAME stage-engine process — no
+cross-service calls needed.
+
+```typescript
+// In delegate_task execute():
+if (params.blocking) {
+  await executeSubagent(childSession.id);  // awaited
+} else {
+  executeSubagent(childSession.id);         // fire-and-forget
+}
+```
+
+### 2.6 Process Engine Bro
 
 Subagent-delegering kan ogsa trigge Process Engine workflows:
 
@@ -629,6 +706,12 @@ Subagent-delegering kan ogsa trigge Process Engine workflows:
 
 Dette lar subagenter delegere videre til bakgrunnsprosesser som allerede
 eksisterer i Process Engine (f.eks. kontrakt-opprettelse, varsling, compliance-sjekk).
+
+**Completion callback (council R7):** When a Process Engine workflow (engine_state)
+completes, it emits an `engine_event` with `event_type: "process.completed"`.
+Stage-engine listens for this event type and maps it back to the parent
+`engine_sessions` via `engine_state.context.parent_session_id` (passed through
+at spawn time). The parent session receives a `subagent_completed` broadcast.
 
 ---
 
@@ -653,111 +736,99 @@ VIEW_TITLES i BotssonArena.tsx:
 agents: "Agenter",
 ```
 
-### 3.2 AgentsView Component
+### 3.2 AgentsView Component (council-redesigned)
 
 **Fil:** `apps/web/src/app/Botsson/_components/AgentsView.tsx` (ny)
 
-Viser aktive subagenter for navaerende session:
+Status-kort bruker glassmorphism micro-surfaces (ikke bordered rectangles):
 
 ```
-┌─────────────────────────────────────┐
-│  Aktive agenter                     │
-│                                     │
-│  ┌───────────────────────────────┐  │
-│  │ Kontrakt — Anna Nilsen       │  │
-│  │ Status: Fullfort              │  │
-│  │ Resultat: Draft opprettet    │  │
-│  └───────────────────────────────┘  │
-│                                     │
-│  ┌───────────────────────────────┐  │
-│  │ Kontrakt — Erik Berg         │  │
-│  │ Status: Kjorer...            │  │
-│  │ [Spinner]                    │  │
-│  └───────────────────────────────┘  │
-│                                     │
-│  ┌───────────────────────────────┐  │
-│  │ Vaktplan — Neste uke         │  │
-│  │ Status: Venter pa data       │  │
-│  │ [Avbryt]                     │  │
-│  └───────────────────────────────┘  │
-│                                     │
-│  Fullforte: 3  Aktive: 2  Feilet: 0│
-└─────────────────────────────────────┘
+Background: bg-muted/60 (warm, 60% opacity)
+Border: 1px gradient border (top-left light edge)
+Blur: backdrop-blur-sm (subtle — nested inside already-blurred Arena)
+Corner radius: rounded-lg (8px)
+Padding: p-3 (12px)
 ```
+
+Status indicator: 8px colored dot:
+- Running: `var(--brand-orange)` with slow pulse animation
+- Completed: `var(--color-success)` (green), static
+- Failed: `var(--color-destructive)`, static
+
+Scrollable: `overflow-y: auto`, max-height ~360px, fade-out gradient at bottom
+edge when content overflows. Staggered entrance: `staggerChildren: 0.06` with
+fadeInUp variant. `prefers-reduced-motion`: cards appear instantly without stagger.
+
+**Empty state:** Ghost card with dashed border + i18n key `botsson.agents.empty`.
+**Max visible:** Scrollable, no hard cap. Completed cards auto-collapse after 60s.
+**Result field:** Free-form text from agent (truncated to 100 chars in card).
+
+**All strings via i18n keys:**
+- `botsson.agents.title`, `botsson.agents.status.running`,
+  `botsson.agents.status.completed`, `botsson.agents.status.failed`,
+  `botsson.agents.summary.completed` / `.active` / `.failed`
 
 **Data-kilde:** WebSocket events (`subagent:spawned`, `subagent:completed`,
 `subagent:failed`) + REST fallback for historikk.
 
-### 3.3 Orb Status Glyph: "working"
+### 3.3 Orb Status Glyph: "working" (council-redesigned)
 
 **Fil:** `apps/web/src/app/Botsson/_components/BotssonOrb.tsx`
 
+> **Council correction:** Replace orbiting electrons with concentric pulse rings.
+> Electrons are mechanical and unbounded. Pulse rings are ambient, bounded,
+> consistent with existing notification glyph's ripple-ring language.
+
 Ny OrbStatus: `"working"` — vises nar subagenter er aktive.
 
-Visuelt: Flere sma pulserende sirkler rundt orb-en (som elektroner i en atom),
-en per aktiv subagent. Farge: brand-orange. Antall sirkler = antall aktive
-subagenter.
+Visuelt: 1-3 konsentriske pulse-ringer som sprer seg utover (som ripples i vann).
+`min(activeSubagents, 3)` synlige ringer. Farge: `var(--brand-orange)` ved lav
+opacity. CSS-animasjon pa opacity + scale (ingen per-frame JS).
+Spring: `stiffness: 30, damping: 24, mass: 2.5` — langsomme enden av Nordic Split.
+`prefers-reduced-motion`: ringer vises statisk ved full opacity.
+
+**Orb state priority stack (council recommendation):**
+
+1. `speaking` (hoyest — bruker horer output)
+2. `listening` (bruker gir input)
+3. `notification` (krever oppmerksomhet)
+4. `working` (bakgrunnsaktivitet)
+5. `thinking` (prosesserer)
+6. `idle` (lavest)
+
+Orb viser den hoyest-prioriterte aktive tilstanden. Hvis Botsson snakker mens
+subagenter jobber, vises `speaking`. `working` vises bare nar ingenting med
+hoyere prioritet er aktivt.
 
 ### 3.4 Arena Tab Badge
 
-Fanen "Agenter" viser badge med antall aktive subagenter:
-
 ```typescript
-// I EmmaMenuOverlay:
+// I EmmaMenuOverlay (all labels via i18n):
 {
   id: "agents" as ContentViewType,
-  label: "Agenter",
-  description: "Delegerte oppgaver og subagenter",
+  label: t("botsson.agents.tab"),
+  description: t("botsson.agents.tab_description"),
   badge: activeSubagentCount > 0 ? activeSubagentCount : undefined,
 }
 ```
 
+Badge styling: `bg-brand-orange text-white h-4 min-w-4 text-[10px]` pill.
+Entrance: scale spring 0→1 (stiffness: 40, damping: 20).
+Count change: brief pulse to 1.15x.
+Zero active: badge exits via AnimatePresence (opacity: 0, scale: 0.8, 250ms).
+
 ---
 
-## Database Migration (samlet)
+## Database Migrations (split per phase, council recommendation)
 
-En enkelt migration for alle tre faser:
+**Fase 1 migration:** See Section 1.3 above (engine_session_event + budget columns).
+**Fase 2 migration:** See Section 2.1 above (parent_session_id, depth, delegation_status enum).
 
-```sql
--- Fase 1: Session durability
-CREATE TABLE engine_session_event (
-  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  session_id  UUID NOT NULL REFERENCES engine_sessions(id) ON DELETE CASCADE,
-  event_type  TEXT NOT NULL,
-  payload     JSONB NOT NULL DEFAULT '{}',
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+Each phase ships its own migration. Fase 2 columns only deploy when Fase 2 code ships.
 
-CREATE INDEX idx_session_event_session
-  ON engine_session_event(session_id, created_at);
-
-ALTER TABLE engine_sessions ADD COLUMN IF NOT EXISTS
-  total_turns INTEGER NOT NULL DEFAULT 0;
-ALTER TABLE engine_sessions ADD COLUMN IF NOT EXISTS
-  total_tokens INTEGER NOT NULL DEFAULT 0;
-ALTER TABLE engine_sessions ADD COLUMN IF NOT EXISTS
-  max_turns INTEGER;
-ALTER TABLE engine_sessions ADD COLUMN IF NOT EXISTS
-  max_tokens INTEGER;
-
--- Fase 2: Subagent sessions
-ALTER TABLE engine_sessions ADD COLUMN IF NOT EXISTS
-  parent_session_id UUID REFERENCES engine_sessions(id);
-ALTER TABLE engine_sessions ADD COLUMN IF NOT EXISTS
-  depth INTEGER NOT NULL DEFAULT 0;
-ALTER TABLE engine_sessions ADD COLUMN IF NOT EXISTS
-  delegation_status TEXT CHECK (delegation_status IN (
-    'pending', 'running', 'completed', 'failed', 'cancelled'
-  ));
-ALTER TABLE engine_sessions ADD COLUMN IF NOT EXISTS
-  delegation_result JSONB;
-
-CREATE INDEX idx_session_parent
-  ON engine_sessions(parent_session_id) WHERE parent_session_id IS NOT NULL;
-```
-
-**RLS:** Barn-sessioner arver workspace RLS fra parent. Ingen ny RLS-policy
-trengs — eksisterende workspace_id policy dekker.
+**Retention policy for engine_session_event:** Events older than 30 days are
+pruned by a scheduled cleanup job (same pattern as existing session expiry in
+session-manager.ts). This prevents unbounded table growth.
 
 ---
 
@@ -767,21 +838,21 @@ trengs — eksisterende workspace_id policy dekker.
 
 | Fil | LOC (estimat) | Formaal |
 |-----|--------------|---------|
-| `stage-engine/src/hooks/registry.ts` | ~80 | Hook registry klasse |
-| `stage-engine/src/hooks/builtin.ts` | ~60 | Innebyggde hooks (PII guard, telemetri, budget) |
-| `stage-engine/src/core/context-engine.ts` | ~120 | Context assembly + compaction |
-| `stage-engine/src/core/session-lane.ts` | ~30 | Per-session serialization queue |
+| `stage-engine/src/hooks/registry.ts` | ~100 | Hook registry with typed payloads |
+| `stage-engine/src/hooks/builtin.ts` | ~80 | Innebyggde hooks (PII guard, telemetri, budget) |
+| `stage-engine/src/core/context-engine.ts` | ~120 | Context assembly + async compaction |
+| `stage-engine/src/core/session-lane.ts` | ~35 | Per-session serialization queue + cleanup |
 | `stage-engine/src/core/session-events.ts` | ~40 | appendSessionEvent() helper |
-| `supabase/migrations/YYYYMMDD_agent_harness.sql` | ~30 | Samlet migration |
+| `supabase/migrations/YYYYMMDD_agent_harness_foundation.sql` | ~40 | Fase 1 migration |
 
 ### Fase 2
 
 | Fil | LOC (estimat) | Formaal |
 |-----|--------------|---------|
-| `packages/ai/src/capabilities/delegation/tools.ts` | ~100 | delegate_task + poll_subagent tools |
-| `packages/ai/src/capabilities/delegation/index.ts` | ~20 | Capability registration |
+| `stage-engine/src/tools/delegation.ts` | ~120 | delegate_task + poll_subagent tools (i stage-engine, ikke packages/ai) |
 | `stage-engine/src/core/subagent-executor.ts` | ~80 | Child session LLM executor |
 | `stage-engine/src/core/subagent-prompt.ts` | ~40 | Focused subagent prompt builder |
+| `supabase/migrations/YYYYMMDD_agent_harness_subagent.sql` | ~20 | Fase 2 migration (enum + columns) |
 
 ### Fase 3
 
@@ -801,7 +872,7 @@ trengs — eksisterende workspace_id policy dekker.
 | Fil | Endring | Omfang |
 |-----|---------|--------|
 | `stage-engine/src/index.ts` | Instansier HookRegistry, ContextEngine, SessionLane. Sett pa Hono context. | +15 linjer |
-| `stage-engine/src/core/agent-router.ts` | Legg til 7 hook call sites. Bruk contextEngine.assemble() i stedet for direkte collectContext(). Wrap i sessionLane.run(). | ~20 linjer endret |
+| `stage-engine/src/core/agent-router.ts` | Legg til 7 hook call sites. Bruk contextEngine.assemble() i stedet for direkte collectContext(). Wrap i sessionLane.run(). Bump model to claude-sonnet-4.6. | ~50 linjer endret |
 | `stage-engine/src/core/stage-manager.ts` | Legg til session:completing hook. | +3 linjer |
 | `stage-engine/src/routes/agent/chat.ts` | Wrap handler i sessionLane.run(). | +3 linjer |
 
@@ -809,9 +880,10 @@ trengs — eksisterende workspace_id policy dekker.
 
 | Fil | Endring | Omfang |
 |-----|---------|--------|
-| `packages/ai/src/capabilities/registry.ts` | Registrer delegation capability. | +2 linjer |
-| `stage-engine/src/core/session-manager.ts` | Stotte parent_session_id i createSession(). | +5 linjer |
+| `stage-engine/src/core/session-manager.ts` | Add createSubagentSession() function (mode=agent, no mission). | +30 linjer |
+| `stage-engine/src/core/agent-router.ts` | Register delegation tools via toolContext injection. | +5 linjer |
 | `stage-engine/src/routes/agent/chat.ts` | Trigger subagent executor for nye child sessions. | +10 linjer |
+| `packages/telemetry/src/registry.ts` | Register 6 new agent events. | +20 linjer |
 
 ### Fase 3 (Arena UI)
 
@@ -903,6 +975,34 @@ Subagent-delegering mapper direkte til eksisterende authority-modell:
 | Subagent-kostnader eskalerer | Medium | Medium | Budget guard per session + workspace-level token cap |
 | Race conditions i subagent completion | Lav | Medium | SessionLane + idempotency pa events |
 | Uendelig delegering | Lav | Hoy | Hard depth limit (2) + delegation count per session |
+
+---
+
+## Telemetry Events (council R2)
+
+Register in `packages/telemetry/src/registry.ts`:
+
+| Event | Destinations | Trigger |
+|-------|-------------|---------|
+| `agent.hook_blocked` | PostHog, activity_trail | Guard hook blocks pipeline |
+| `agent.context_compacted` | PostHog | Context Engine runs compaction |
+| `agent.subagent_spawned` | PostHog, activity_trail | delegate_task creates child session |
+| `agent.subagent_completed` | PostHog, activity_trail | Subagent finishes successfully |
+| `agent.subagent_failed` | PostHog, activity_trail, Logger | Subagent fails or times out |
+| `agent.budget_exhausted` | PostHog, activity_trail | Budget guard blocks session |
+
+**Telemetry path:** The `telemetry-observer` builtin hook calls `emit()` from
+`@smartout/telemetry` (CLAUDE.md mandate), NOT `emitGuardianEvent()`.
+Guardian-bus remains for WebSocket broadcasting to UI. These are separate concerns:
+emit() = analytics/audit, guardian-bus = live UI updates.
+
+---
+
+## ADR Required
+
+**ADR-0083: Agent Harness Foundation** — documents this extension to ADR-0042
+(Agent Architecture). Covers: hook registry, context engine, session durability,
+subagent delegation. To be written at implementation start.
 
 ---
 
