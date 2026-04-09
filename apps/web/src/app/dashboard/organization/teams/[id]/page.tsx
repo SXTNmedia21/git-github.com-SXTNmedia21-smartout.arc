@@ -46,7 +46,15 @@ export default function TeamDetailPage() {
   const [departments, setDepartments] = useState<DepartmentRow[]>([]);
   const [allProfiles, setAllProfiles] = useState<ProfileRow[]>([]);
   const [members, setMembers] = useState<ProfileRow[]>([]);
-  const [policyCount, setPolicyCount] = useState(0);
+  const [policies, setPolicies] = useState<
+    Array<{
+      policy_id: string;
+      name: string;
+      policy_type: string;
+      enforcement_status: string;
+      is_active: boolean;
+    }>
+  >([]);
   const [loading, setLoading] = useState(true);
   const [membersLoading, setMembersLoading] = useState(true);
 
@@ -81,7 +89,7 @@ export default function TeamDetailPage() {
         .eq("is_active", true),
       supabase
         .from("policy")
-        .select("policy_id")
+        .select("policy_id, name, policy_type, enforcement_status, is_active")
         .eq("workspace_id", workspaceId)
         .eq("policy_scope", "team")
         .eq("scope_ref_id", params.id),
@@ -94,7 +102,16 @@ export default function TeamDetailPage() {
     }
     if (deptsRes.data) setDepartments(deptsRes.data as DepartmentRow[]);
     if (profilesRes.data) setAllProfiles(profilesRes.data as ProfileRow[]);
-    if (policiesRes.data) setPolicyCount(policiesRes.data.length);
+    if (policiesRes.data)
+      setPolicies(
+        policiesRes.data as Array<{
+          policy_id: string;
+          name: string;
+          policy_type: string;
+          enforcement_status: string;
+          is_active: boolean;
+        }>,
+      );
 
     setLoading(false);
   }, [workspaceId, params.id]);
@@ -316,7 +333,7 @@ export default function TeamDetailPage() {
                   <StatCard
                     icon={<FileText className="h-4 w-4" />}
                     label="Policies"
-                    value={policyCount}
+                    value={policies.length}
                     isDark={isDark}
                   />
                 </div>
@@ -579,27 +596,64 @@ export default function TeamDetailPage() {
           {
             value: "policies",
             label: "Policies",
-            content: (
-              <div
-                className={`flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-16 ${
-                  isDark ? "border-zinc-800 bg-zinc-900/20" : "border-zinc-200 bg-zinc-50"
-                }`}
-              >
-                <FileText
-                  className={`mb-4 h-10 w-10 ${isDark ? "text-zinc-600" : "text-zinc-400"}`}
-                />
-                <h3
-                  className={`mb-1 text-base font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}
+            content:
+              policies.length === 0 ? (
+                <div
+                  className={`flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-16 ${
+                    isDark ? "border-zinc-800 bg-zinc-900/20" : "border-zinc-200 bg-zinc-50"
+                  }`}
                 >
-                  Policies coming soon
-                </h3>
-                <p
-                  className={`max-w-sm text-center text-sm ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                >
-                  Team-scoped policies will be managed here in a future release.
-                </p>
-              </div>
-            ),
+                  <FileText
+                    className={`mb-4 h-10 w-10 ${isDark ? "text-zinc-600" : "text-zinc-400"}`}
+                  />
+                  <h3
+                    className={`mb-1 text-base font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}
+                  >
+                    Ingen policyer tilordnet dette teamet
+                  </h3>
+                  <p
+                    className={`max-w-sm text-center text-sm ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+                  >
+                    Policyer opprettes under Governance og tilordnes hit via omfang.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {policies.map((policy) => (
+                    <div
+                      key={policy.policy_id}
+                      className={`flex items-center justify-between rounded-xl border p-4 ${
+                        isDark ? "border-zinc-800 bg-zinc-900/40" : "border-zinc-200 bg-white"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <FileText
+                          className={`h-4 w-4 ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+                        />
+                        <div>
+                          <span
+                            className={`text-sm font-medium ${isDark ? "text-zinc-200" : "text-zinc-800"}`}
+                          >
+                            {policy.name}
+                          </span>
+                          <p className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+                            {policy.policy_type} &middot; {policy.enforcement_status}
+                          </p>
+                        </div>
+                      </div>
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                          policy.is_active
+                            ? "border border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
+                            : "border border-zinc-500/20 bg-zinc-500/10 text-zinc-400"
+                        }`}
+                      >
+                        {policy.is_active ? "Aktiv" : "Inaktiv"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ),
           },
           {
             value: "settings",
