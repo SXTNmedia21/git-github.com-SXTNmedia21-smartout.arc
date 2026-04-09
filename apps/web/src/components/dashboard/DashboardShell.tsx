@@ -280,6 +280,7 @@ import {
   Building2,
   GraduationCap,
   Banknote,
+  FileSignature,
   FileText,
   CalendarDays,
   ListChecks,
@@ -1440,6 +1441,14 @@ export function DashboardShell({
                               label="Sesong"
                               isDark={isDark}
                               active={isActive("/dashboard/season")}
+                              isCollapsed={isSidebarCollapsed}
+                            />
+                            <NavItem
+                              href="/dashboard/contracts"
+                              icon={FileSignature}
+                              label="Kontrakter"
+                              isDark={isDark}
+                              active={isActive("/dashboard/contracts")}
                               isCollapsed={isSidebarCollapsed}
                             />
                             <NavItem

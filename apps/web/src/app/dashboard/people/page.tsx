@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useContext, useEffect, useCallback, useMemo } from "react";
-import { Users, Star, ShieldCheck, Mail } from "lucide-react";
+import Link from "next/link";
+import { Users, Star, ShieldCheck, Mail, FileSignature } from "lucide-react";
 import { PeopleDataTable } from "./_components/people-data-table";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { createClient } from "@smartout/supabase/client";
@@ -213,6 +214,17 @@ export default function PeoplePage() {
             </span>
           </div>
         </div>
+      </div>
+
+      {/* Quick nav */}
+      <div className="flex items-center gap-3">
+        <Link
+          href="/dashboard/contracts"
+          className="text-muted-foreground hover:text-foreground flex items-center gap-1.5 text-xs font-medium transition-colors"
+        >
+          <FileSignature className="h-3.5 w-3.5" />
+          Kontrakter
+        </Link>
       </div>
 
       {/* Data Table */}
