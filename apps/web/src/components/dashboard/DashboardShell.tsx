@@ -1444,14 +1444,6 @@ export function DashboardShell({
                               isCollapsed={isSidebarCollapsed}
                             />
                             <NavItem
-                              href="/dashboard/contracts"
-                              icon={FileSignature}
-                              label="Kontrakter"
-                              isDark={isDark}
-                              active={isActive("/dashboard/contracts")}
-                              isCollapsed={isSidebarCollapsed}
-                            />
-                            <NavItem
                               href="/dashboard/organization"
                               icon={Building2}
                               label="Organisasjon"
