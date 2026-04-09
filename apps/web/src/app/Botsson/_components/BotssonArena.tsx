@@ -2135,52 +2135,91 @@ function VideoView() {
   );
 }
 function LogView() {
-  const { telemetryEvents, clearTelemetry } = useBotsson();
+  const { agent, telemetryEvents } = useBotsson();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [tab, setTab] = useState<"agent" | "telemetry">("agent");
+
+  const debugLog = agent.debugLog ?? [];
+  const activeList = tab === "agent" ? debugLog : telemetryEvents;
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [telemetryEvents.length]);
+  }, [activeList.length]);
 
-  const CATEGORY_COLORS: Record<string, string> = {
+  const TYPE_COLORS: Record<string, string> = {
+    tool_call: "text-brand-orange",
+    tool_result: "text-emerald-400",
+    api_error: "text-red-400",
+    api_request: "text-blue-400",
+    api_response: "text-blue-300",
+    status: "text-purple-400",
+    context_push: "text-cyan-400",
+    event: "text-muted-foreground",
+    inference: "text-amber-400",
+  };
+
+  const TELE_COLORS: Record<string, string> = {
     auth: "text-blue-400",
-    department: "text-cyan-400",
     shift: "text-amber-400",
-    session: "text-purple-400",
-    protocol: "text-green-400",
     contract: "text-orange-400",
-    wizard: "text-pink-400",
-    communication: "text-sky-400",
-    page: "text-muted-foreground",
-    button: "text-muted-foreground",
     agent: "text-brand-orange",
+    session: "text-purple-400",
+    department: "text-cyan-400",
+    protocol: "text-green-400",
+    communication: "text-sky-400",
   };
 
   return (
     <div className="flex h-full flex-col" data-botsson-content>
-      <div className="border-border/20 flex items-center justify-between border-b px-4 pt-3 pb-2">
-        <div>
+      <div className="border-border/20 border-b px-4 pt-3 pb-2">
+        <div className="mb-2 flex items-center justify-between">
           <h3 className="text-foreground text-sm font-bold">Logg</h3>
-          <p className="text-muted-foreground/40 text-[10px]">Telemetri og tool-kall</p>
+          <span className="text-muted-foreground/40 font-mono text-[10px]">
+            {activeList.length}
+          </span>
         </div>
-        {telemetryEvents.length > 0 && (
+        <div className="flex gap-1">
           <button
-            onClick={clearTelemetry}
-            className="text-muted-foreground hover:text-foreground text-[10px] transition-colors"
+            onClick={() => setTab("agent")}
+            className={`rounded-md px-2 py-1 text-[10px] font-semibold transition-colors ${tab === "agent" ? "bg-brand-orange/15 text-brand-orange" : "text-muted-foreground hover:text-foreground"}`}
           >
-            Tøm
+            Tool Calls
           </button>
-        )}
+          <button
+            onClick={() => setTab("telemetry")}
+            className={`rounded-md px-2 py-1 text-[10px] font-semibold transition-colors ${tab === "telemetry" ? "bg-brand-orange/15 text-brand-orange" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            Telemetri
+          </button>
+        </div>
       </div>
       <div ref={scrollRef} className="flex-1 space-y-0.5 overflow-y-auto p-3 font-mono text-[11px]">
-        {telemetryEvents.length === 0 ? (
+        {activeList.length === 0 ? (
           <div className="text-muted-foreground/30 flex h-full items-center justify-center text-xs">
-            Ingen hendelser ennå
+            {tab === "agent" ? "Ingen tool-kall ennå" : "Ingen hendelser ennå"}
           </div>
+        ) : tab === "agent" ? (
+          debugLog.map((entry, i) => {
+            const time = new Date(entry.timestamp).toLocaleTimeString("no", { hour12: false });
+            const color = TYPE_COLORS[entry.type] ?? "text-muted-foreground";
+            const isError = entry.type === "api_error";
+            return (
+              <div
+                key={i}
+                className={`flex gap-2 leading-tight ${isError ? "-mx-1 rounded bg-red-500/10 px-1" : ""}`}
+              >
+                <span className="text-muted-foreground/50 shrink-0">{time}</span>
+                <span className={`shrink-0 font-semibold ${color}`}>{entry.type}</span>
+                <span className={`break-all ${isError ? "text-red-300" : "text-foreground/80"}`}>
+                  {entry.content}
+                </span>
+              </div>
+            );
+          })
         ) : (
           telemetryEvents.map((entry, i) => {
             const time = new Date(entry.timestamp).toLocaleTimeString("no", { hour12: false });
-            const color = CATEGORY_COLORS[entry.category] ?? "text-muted-foreground";
+            const color = TELE_COLORS[entry.category] ?? "text-muted-foreground";
             return (
               <div key={i} className="flex gap-2 leading-tight">
                 <span className="text-muted-foreground/50 shrink-0">{time}</span>
