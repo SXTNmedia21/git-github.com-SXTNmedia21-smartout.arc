@@ -1,35 +1,37 @@
 /**
- * Registrer fravær — Absence request with balance cards + form.
+ * Registrer frav\u00e6r — Absence request with balance cards + form.
+ *
+ * Fetches real data from:
+ * - useAbsenceBalance() for quota balances (Ferie, Egenmelding, Omsorgsdager)
+ * - useAbsenceTypes() for the type selector pills
+ * - useMyAbsenceRequests() for the history list
+ * - useRequestAbsence() for submitting new absence requests
  *
  * Layout:
- * 1. Hero: "Registrer fravær" serif display
- * 2. Balance cards (3-col): Ferie, Egenmelding, Omsorgsdager
- * 3. Request form: type pills, date range, projection, submit
- * 4. History: Mine søknader with status badges
+ * 1. Balance cards (3-col): dynamic from absence_quota
+ * 2. Request form: type pills, date range, projection, submit
+ * 3. History: Mine s\u00f8knader with status badges
  */
 
-import React, { useState, useCallback } from "react";
-import { View, Text, ScrollView, Pressable, TextInput, Alert } from "react-native";
+import React, { useState, useCallback, useMemo } from "react";
+import {
+  View,
+  Text,
+  ScrollView,
+  Pressable,
+  TextInput,
+  Alert,
+  ActivityIndicator,
+} from "react-native";
 import * as Haptics from "expo-haptics";
-import { Palmtree, Stethoscope, Calendar, Check, Send } from "lucide-react-native";
+import { Palmtree, Stethoscope, Heart, Calendar, Check, Send, FileText } from "lucide-react-native";
 import { createStyles, useTheme, withOpacity } from "@/theme";
+import { useAbsenceBalance } from "@/hooks/queries/use-absence-balance";
+import { useAbsenceTypes } from "@/hooks/queries/use-absence-types";
+import { useMyAbsenceRequests } from "@/hooks/queries/use-my-absence-requests";
+import { useRequestAbsence } from "@/hooks/mutations/use-request-absence";
 
-/* ── Types & Data ── */
-
-const ABSENCE_TYPES = ["Ferie", "Sykdom", "Permisjon"];
-
-type HistoryEntry = {
-  id: string;
-  icon: typeof Palmtree;
-  title: string;
-  dates: string;
-  status: "pending" | "approved" | "rejected";
-};
-
-const MOCK_HISTORY: HistoryEntry[] = [
-  { id: "1", icon: Palmtree, title: "Sommerferie 2026", dates: "12.07 — 28.07", status: "pending" },
-  { id: "2", icon: Stethoscope, title: "Egenmelding", dates: "04.03 — 05.03", status: "approved" },
-];
+/* ── Types & Config ── */
 
 const STATUS_CONFIG = {
   pending: {
@@ -50,7 +52,58 @@ const STATUS_CONFIG = {
     bgColor: "rgba(186,26,26,0.06)",
     borderColor: "rgba(186,26,26,0.2)",
   },
+} as const;
+
+/** Maps absence type categories to display icons */
+const CATEGORY_ICONS: Record<string, typeof Palmtree> = {
+  vacation: Palmtree,
+  sick_leave: Stethoscope,
+  care_days: Heart,
+  leave: FileText,
 };
+
+/** Picks the right icon for an absence type name (fallback to FileText) */
+function getIconForAbsenceType(name: string): typeof Palmtree {
+  const lower = name.toLowerCase();
+  if (lower.includes("ferie")) return Palmtree;
+  if (lower.includes("syk") || lower.includes("egenmelding")) return Stethoscope;
+  if (lower.includes("omsorg")) return Heart;
+  return FileText;
+}
+
+/** Format a date string to "DD.MM" */
+function formatShortDate(dateStr: string): string {
+  const date = new Date(dateStr + "T00:00:00");
+  const day = date.getDate().toString().padStart(2, "0");
+  const month = (date.getMonth() + 1).toString().padStart(2, "0");
+  return `${day}.${month}`;
+}
+
+/** Compute business days between two dates */
+function countBusinessDays(start: string, end: string): number {
+  const startDate = new Date(start + "T00:00:00");
+  const endDate = new Date(end + "T00:00:00");
+  let count = 0;
+  const current = new Date(startDate);
+  while (current <= endDate) {
+    const day = current.getDay();
+    if (day !== 0 && day !== 6) count++;
+    current.setDate(current.getDate() + 1);
+  }
+  return count;
+}
+
+/** Parse DD.MM or DD.MM.YYYY input to YYYY-MM-DD */
+function parseDateInput(input: string): string | null {
+  const parts = input.split(".");
+  if (parts.length < 2) return null;
+  const day = parseInt(parts[0], 10);
+  const month = parseInt(parts[1], 10);
+  const year = parts[2] ? parseInt(parts[2], 10) : new Date().getFullYear();
+  if (isNaN(day) || isNaN(month) || isNaN(year)) return null;
+  if (day < 1 || day > 31 || month < 1 || month > 12) return null;
+  return `${year}-${month.toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`;
+}
 
 /* ── Component ── */
 
@@ -58,13 +111,96 @@ export default function AbsenceRequestScreen() {
   const styles = useStyles();
   const theme = useTheme();
 
+  const { data: balanceData, isLoading: loadingBalance } = useAbsenceBalance();
+  const { data: absenceTypes, isLoading: loadingTypes } = useAbsenceTypes();
+  const { data: requestsData, isLoading: loadingRequests } = useMyAbsenceRequests();
+  const { requestAbsence } = useRequestAbsence();
+
   const [selectedType, setSelectedType] = useState(0);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = useCallback(() => {
-    Alert.alert("Ikke tilgjengelig", "Denne funksjonen er under utvikling.");
-  }, []);
+  // Build type options from real absence types, falling back to defaults
+  const typeOptions = useMemo(() => {
+    if (absenceTypes && absenceTypes.length > 0) {
+      return absenceTypes.map((t) => ({
+        id: t.id,
+        label: t.name_no ?? t.name,
+      }));
+    }
+    return [
+      { id: "ferie", label: "Ferie" },
+      { id: "sykdom", label: "Sykdom" },
+      { id: "permisjon", label: "Permisjon" },
+    ];
+  }, [absenceTypes]);
+
+  // Build balance cards from real quota data — show up to 3
+  const balanceCards = useMemo(() => {
+    if (!balanceData?.quotas || balanceData.quotas.length === 0) return [];
+
+    // Look up absence type names from the types list
+    const typeMap = new Map((absenceTypes ?? []).map((t) => [t.id, t.name_no ?? t.name]));
+
+    return balanceData.quotas.slice(0, 3).map((quota) => {
+      const name = typeMap.get(quota.absence_type_id) ?? "Frav\u00e6r";
+      const total = quota.entitled_days + quota.adjusted_days + quota.carried_over_days;
+      const remaining = quota.remaining_days ?? 0;
+      return { name, total, remaining };
+    });
+  }, [balanceData?.quotas, absenceTypes]);
+
+  // Compute projection from date inputs
+  const projection = useMemo(() => {
+    const start = parseDateInput(startDate);
+    const end = parseDateInput(endDate);
+    if (!start || !end) return null;
+    const days = countBusinessDays(start, end);
+    if (days <= 0) return null;
+
+    // Find remaining balance for the currently selected type
+    const selectedTypeId = typeOptions[selectedType]?.id;
+    const currentQuota = balanceData?.quotas?.find((q) => q.absence_type_id === selectedTypeId);
+    const remaining = currentQuota ? (currentQuota.remaining_days ?? 0) : null;
+
+    return {
+      days,
+      afterBalance: remaining !== null ? remaining - days : null,
+    };
+  }, [startDate, endDate, selectedType, typeOptions, balanceData?.quotas]);
+
+  const handleSubmit = useCallback(async () => {
+    const start = parseDateInput(startDate);
+    const end = parseDateInput(endDate);
+    if (!start || !end) {
+      Alert.alert("Ugyldig dato", "Vennligst fyll inn gyldige datoer (DD.MM).");
+      return;
+    }
+
+    const selectedOption = typeOptions[selectedType];
+    if (!selectedOption) return;
+
+    setIsSubmitting(true);
+    try {
+      await requestAbsence({
+        absenceType: selectedOption.label,
+        shiftDate: start,
+        startDate: start,
+        endDate: end,
+      });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert("Sendt", "Frav\u00e6rss\u00f8knaden din er registrert.");
+      setStartDate("");
+      setEndDate("");
+    } catch {
+      Alert.alert("Feil", "Kunne ikke sende s\u00f8knaden. Pr\u00f8v igjen.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [startDate, endDate, selectedType, typeOptions, requestAbsence]);
+
+  const requests = requestsData?.requests ?? [];
 
   return (
     <ScrollView
@@ -73,74 +209,67 @@ export default function AbsenceRequestScreen() {
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
     >
-      {/* Demo Banner */}
-      <View
-        style={{
-          backgroundColor: "#fef3cd",
-          paddingVertical: 8,
-          paddingHorizontal: 16,
-          borderRadius: 8,
-          marginHorizontal: 16,
-          marginTop: 8,
-          marginBottom: 8,
-        }}
-      >
-        <Text
-          style={{
-            color: "#856404",
-            fontSize: 13,
-            fontWeight: "600",
-            textAlign: "center",
-          }}
-        >
-          Demo — denne siden er under utvikling
-        </Text>
-      </View>
-
-      {/* Balance Cards — 3-col */}
-      <View style={styles.balanceRow}>
-        <View style={styles.balanceCard}>
-          <Text style={styles.balanceLabel}>Ferie</Text>
-          <View style={styles.balanceBottom}>
-            <Text style={styles.balanceValue}>18</Text>
-            <Text style={styles.balanceUnit}> dager</Text>
+      {/* Balance Cards — up to 3-col from real quotas */}
+      {loadingBalance ? (
+        <View style={styles.balanceRow}>
+          <View
+            style={[
+              styles.balanceCard,
+              { alignItems: "center" as const, justifyContent: "center" as const },
+            ]}
+          >
+            <ActivityIndicator size="small" color={theme.colors.mutedForeground} />
           </View>
         </View>
-        <View style={styles.balanceCard}>
-          <Text style={styles.balanceLabel}>Egenm.</Text>
-          <View style={styles.balanceBottom}>
-            <Text style={styles.balanceValue}>3</Text>
-            <Text style={styles.balanceUnit}> / 4</Text>
-          </View>
+      ) : balanceCards.length > 0 ? (
+        <View style={styles.balanceRow}>
+          {balanceCards.map((card, i) => (
+            <View
+              key={card.name}
+              style={[
+                styles.balanceCard,
+                i === balanceCards.length - 1 && styles.balanceCardAccent,
+              ]}
+            >
+              <Text style={styles.balanceLabel}>{card.name}</Text>
+              <View style={styles.balanceBottom}>
+                <Text style={styles.balanceValue}>{card.remaining}</Text>
+                <Text style={styles.balanceUnit}> / {card.total}</Text>
+              </View>
+            </View>
+          ))}
         </View>
-        <View style={[styles.balanceCard, styles.balanceCardAccent]}>
-          <Text style={styles.balanceLabel}>Omsorg</Text>
-          <View style={styles.balanceBottom}>
-            <Text style={styles.balanceValue}>10</Text>
-            <Text style={styles.balanceUnit}> dager</Text>
-          </View>
+      ) : (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyText}>Ingen frav\u00e6rskvoter satt opp enn\u00e5</Text>
         </View>
-      </View>
+      )}
 
       {/* Request Form */}
       <View style={styles.formCard}>
         {/* Type pills */}
-        <Text style={styles.fieldLabel}>Type fravær</Text>
+        <Text style={styles.fieldLabel}>Type frav\u00e6r</Text>
         <View style={styles.typeRow}>
-          {ABSENCE_TYPES.map((type, i) => (
-            <Pressable
-              key={type}
-              onPress={() => {
-                Haptics.selectionAsync();
-                setSelectedType(i);
-              }}
-              style={[styles.typePill, selectedType === i && styles.typePillActive]}
-            >
-              <Text style={[styles.typePillText, selectedType === i && styles.typePillTextActive]}>
-                {type}
-              </Text>
-            </Pressable>
-          ))}
+          {loadingTypes ? (
+            <ActivityIndicator size="small" color={theme.colors.mutedForeground} />
+          ) : (
+            typeOptions.map((type, i) => (
+              <Pressable
+                key={type.id}
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  setSelectedType(i);
+                }}
+                style={[styles.typePill, selectedType === i && styles.typePillActive]}
+              >
+                <Text
+                  style={[styles.typePillText, selectedType === i && styles.typePillTextActive]}
+                >
+                  {type.label}
+                </Text>
+              </Pressable>
+            ))
+          )}
         </View>
 
         {/* Date range */}
@@ -183,64 +312,91 @@ export default function AbsenceRequestScreen() {
           </View>
         </View>
 
-        {/* Projection */}
-        <View style={styles.projectionCard}>
-          <View style={styles.projectionLeft}>
-            <View style={styles.projectionRow}>
-              <Check size={14} color="#16a34a" strokeWidth={2.5} />
-              <Text style={styles.projectionText}>5 virkedager valgt</Text>
+        {/* Projection — only shown when both dates are valid */}
+        {projection && (
+          <View style={styles.projectionCard}>
+            <View style={styles.projectionLeft}>
+              <View style={styles.projectionRow}>
+                <Check size={14} color="#16a34a" strokeWidth={2.5} />
+                <Text style={styles.projectionText}>{projection.days} virkedager valgt</Text>
+              </View>
+              <Text style={styles.projectionCaption}>Beregnet frav\u00e6r for perioden</Text>
             </View>
-            <Text style={styles.projectionCaption}>Beregnet fravær for perioden</Text>
+            {projection.afterBalance !== null && (
+              <View style={styles.projectionRight}>
+                <Text style={styles.projectionAfterLabel}>Saldo etter:</Text>
+                <Text style={styles.projectionAfterValue}>{projection.afterBalance} dager</Text>
+              </View>
+            )}
           </View>
-          <View style={styles.projectionRight}>
-            <Text style={styles.projectionAfterLabel}>Saldo etter:</Text>
-            <Text style={styles.projectionAfterValue}>13 dager</Text>
-          </View>
-        </View>
+        )}
 
         {/* Submit */}
         <Pressable
           onPress={handleSubmit}
-          style={({ pressed }) => [styles.submitButton, pressed && styles.submitPressed]}
+          disabled={isSubmitting}
+          style={({ pressed }) => [
+            styles.submitButton,
+            pressed && styles.submitPressed,
+            isSubmitting && { opacity: 0.6 },
+          ]}
         >
-          <Text style={styles.submitText}>Send søknad</Text>
-          <Send size={18} color="#ffffff" strokeWidth={2} />
+          {isSubmitting ? (
+            <ActivityIndicator size="small" color="#ffffff" />
+          ) : (
+            <>
+              <Text style={styles.submitText}>Send s\u00f8knad</Text>
+              <Send size={18} color="#ffffff" strokeWidth={2} />
+            </>
+          )}
         </Pressable>
       </View>
 
       {/* History */}
       <View style={styles.historySection}>
         <View style={styles.historyHeader}>
-          <Text style={styles.historyTitle}>Mine søknader</Text>
+          <Text style={styles.historyTitle}>Mine s\u00f8knader</Text>
           <Pressable onPress={() => Haptics.selectionAsync()}>
             <Text style={styles.historyViewAll}>Se alle</Text>
           </Pressable>
         </View>
 
-        {MOCK_HISTORY.map((entry) => {
-          const IconComponent = entry.icon;
-          const status = STATUS_CONFIG[entry.status];
+        {loadingRequests && (
+          <View style={styles.emptyState}>
+            <ActivityIndicator size="small" color={theme.colors.mutedForeground} />
+          </View>
+        )}
+
+        {!loadingRequests && requests.length === 0 && (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyText}>Ingen s\u00f8knader enn\u00e5</Text>
+          </View>
+        )}
+
+        {requests.slice(0, 10).map((entry) => {
+          const IconComponent = getIconForAbsenceType(entry.absence_type);
+          const status =
+            STATUS_CONFIG[entry.status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.pending;
+          const isPending = entry.status === "pending";
 
           return (
             <View
-              key={entry.id}
-              style={[styles.historyRow, entry.status !== "pending" && styles.historyRowFaded]}
+              key={entry.schedule_absence_id}
+              style={[styles.historyRow, !isPending && styles.historyRowFaded]}
             >
               <View style={styles.historyLeft}>
                 <View style={styles.historyIcon}>
                   <IconComponent
                     size={20}
-                    color={
-                      entry.status === "pending"
-                        ? theme.colors.brandOrange
-                        : theme.colors.mutedForeground
-                    }
+                    color={isPending ? theme.colors.brandOrange : theme.colors.mutedForeground}
                     strokeWidth={1.5}
                   />
                 </View>
                 <View>
-                  <Text style={styles.historyName}>{entry.title}</Text>
-                  <Text style={styles.historyDates}>{entry.dates}</Text>
+                  <Text style={styles.historyName}>{entry.absence_type}</Text>
+                  <Text style={styles.historyDates}>
+                    {formatShortDate(entry.start_date)} \u2014 {formatShortDate(entry.end_date)}
+                  </Text>
                 </View>
               </View>
               <View
@@ -268,24 +424,6 @@ const useStyles = createStyles((theme) => ({
     paddingHorizontal: theme.spacing.section,
     paddingTop: theme.spacing.md,
     paddingBottom: 160,
-  },
-
-  /* Hero */
-  heroTitle: {
-    fontSize: 42,
-    fontWeight: "400" as const,
-    color: theme.colors.foreground,
-    letterSpacing: -1,
-    lineHeight: 46,
-  },
-  heroTitleLine2: {
-    fontSize: 42,
-    fontWeight: "400" as const,
-    fontStyle: "italic" as const,
-    color: theme.colors.foreground,
-    letterSpacing: -1,
-    lineHeight: 46,
-    marginBottom: theme.spacing.page,
   },
 
   /* Balance Cards — 3-col squares */
@@ -523,5 +661,17 @@ const useStyles = createStyles((theme) => ({
     fontSize: 10,
     fontWeight: "500" as const,
     textTransform: "uppercase" as const,
+  },
+
+  /* Empty / Loading states */
+  emptyState: {
+    paddingVertical: theme.spacing.page,
+    alignItems: "center" as const,
+    marginBottom: theme.spacing.page,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: theme.colors.mutedForeground,
+    fontStyle: "italic" as const,
   },
 }));

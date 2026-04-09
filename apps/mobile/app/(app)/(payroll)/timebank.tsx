@@ -1,70 +1,63 @@
 /**
  * Timebank — Balance overview with hero card and ledger.
  *
+ * Fetches real timebank entries from payroll.timebank_entry via useTimebankBalance().
+ * Balance is computed client-side: sum(credits) - sum(debits).
+ *
  * Layout:
- * 1. Hero card: deep blue gradient, "avspasering" serif, balance 12.5t
+ * 1. Hero card: deep blue gradient, "avspasering" serif, computed balance
  * 2. Stats bento (2-col): Opptjent i år | Brukt i år
  * 3. Siste bevegelser: ledger list with +/- amounts
  */
 
-import React from "react";
-import { View, Text, ScrollView, Pressable, Alert } from "react-native";
+import React, { useMemo } from "react";
+import { View, Text, ScrollView, Pressable, ActivityIndicator } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
-import { LogOut, PlusCircle, Clock, CalendarX } from "lucide-react-native";
+import { LogOut, PlusCircle, Clock, CalendarX, RefreshCw } from "lucide-react-native";
 import { createStyles, useTheme, withOpacity } from "@/theme";
 import { ActionHeader } from "@/components/navigation/ActionHeader";
+import { useTimebankBalance } from "@/hooks/queries/use-timebank-balance";
 
-/* ── Mock data ── */
+/* ── Constants ── */
 
-type LedgerEntry = {
-  id: string;
-  icon: typeof PlusCircle;
-  title: string;
-  date: string;
-  amount: string;
-  isCredit: boolean;
-  note: string;
+/** Entry types that add hours to the timebank */
+const CREDIT_TYPES = ["accrual", "carry_over", "adjustment"] as const;
+
+/** Maps entry_type to a user-friendly label and icon */
+const ENTRY_TYPE_CONFIG: Record<string, { label: string; icon: typeof PlusCircle }> = {
+  accrual: { label: "Overtid opptjent", icon: PlusCircle },
+  carry_over: { label: "Overført fra i fjor", icon: PlusCircle },
+  adjustment: { label: "Justering", icon: RefreshCw },
+  withdrawal: { label: "Uttak avspasering", icon: LogOut },
+  expiry: { label: "Utgått", icon: CalendarX },
+  payout: { label: "Utbetalt", icon: Clock },
 };
 
-const MOCK_LEDGER: LedgerEntry[] = [
-  {
-    id: "1",
-    icon: LogOut,
-    title: "Uttak avspasering",
-    date: "22. MAI 2026 • FREDAG",
-    amount: "4.0t",
-    isCredit: false,
-    note: "Godkjent",
-  },
-  {
-    id: "2",
-    icon: PlusCircle,
-    title: "Overtid 50%",
-    date: "20. MAI 2026 • ONSDAG",
-    amount: "2.0t",
-    isCredit: true,
-    note: "Auto-beregnet",
-  },
-  {
-    id: "3",
-    icon: Clock,
-    title: "Mersmak Prosjekt",
-    date: "18. MAI 2026 • MANDAG",
-    amount: "1.5t",
-    isCredit: true,
-    note: "Manuelt ført",
-  },
-  {
-    id: "4",
-    icon: CalendarX,
-    title: "Tidlig avgang",
-    date: "15. MAI 2026 • FREDAG",
-    amount: "2.0t",
-    isCredit: false,
-    note: "Godkjent",
-  },
-];
+/** Format a date string to Norwegian display format: "22. MAI 2026 • FREDAG" */
+function formatDate(dateStr: string): string {
+  const date = new Date(dateStr + "T00:00:00");
+  const months = [
+    "JAN",
+    "FEB",
+    "MAR",
+    "APR",
+    "MAI",
+    "JUN",
+    "JUL",
+    "AUG",
+    "SEP",
+    "OKT",
+    "NOV",
+    "DES",
+  ];
+  const days = ["SØNDAG", "MANDAG", "TIRSDAG", "ONSDAG", "TORSDAG", "FREDAG", "LØRDAG"];
+  const day = date.getDate();
+  const month = months[date.getMonth()];
+  const year = date.getFullYear();
+  const weekday = days[date.getDay()];
+  return `${day}. ${month} ${year} \u2022 ${weekday}`;
+}
 
 /* ── Component ── */
 
@@ -72,34 +65,47 @@ export default function TimebankScreen() {
   const styles = useStyles();
   const theme = useTheme();
 
+  const { data, isLoading, error } = useTimebankBalance();
+
+  // Compute yearly stats from entries — sum credits and debits for current year
+  const yearlyStats = useMemo(() => {
+    if (!data?.entries) return { earned: 0, used: 0 };
+    const currentYear = new Date().getFullYear();
+
+    let earned = 0;
+    let used = 0;
+
+    for (const entry of data.entries) {
+      const entryYear = new Date(entry.effective_date + "T00:00:00").getFullYear();
+      if (entryYear !== currentYear) continue;
+
+      const isCredit = (CREDIT_TYPES as readonly string[]).includes(entry.entry_type);
+      if (isCredit) {
+        earned += entry.hours;
+      } else {
+        used += entry.hours;
+      }
+    }
+
+    return { earned, used };
+  }, [data?.entries]);
+
+  // Take the 10 most recent entries for the ledger display
+  const recentEntries = useMemo(() => {
+    return (data?.entries ?? []).slice(0, 10);
+  }, [data?.entries]);
+
+  const balance = data?.balance ?? 0;
+  const today = new Date().toLocaleDateString("no-NO", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
   return (
     <View style={styles.container}>
       <ActionHeader title="Timebank" />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Demo Banner */}
-        <View
-          style={{
-            backgroundColor: "#fef3cd",
-            paddingVertical: 8,
-            paddingHorizontal: 16,
-            borderRadius: 8,
-            marginHorizontal: 16,
-            marginTop: 8,
-            marginBottom: 8,
-          }}
-        >
-          <Text
-            style={{
-              color: "#856404",
-              fontSize: 13,
-              fontWeight: "600",
-              textAlign: "center",
-            }}
-          >
-            Demo — denne siden er under utvikling
-          </Text>
-        </View>
-
         {/* Hero Card — deep blue */}
         <Animated.View entering={FadeIn.delay(50).duration(400)} style={styles.heroCard}>
           <View style={styles.heroTop}>
@@ -109,16 +115,22 @@ export default function TimebankScreen() {
             </View>
             <View style={styles.heroBadge}>
               <View style={styles.heroBadgeDot} />
-              <Text style={styles.heroBadgeText}>Oppdatert nå</Text>
+              <Text style={styles.heroBadgeText}>{isLoading ? "Laster..." : "Oppdatert nå"}</Text>
             </View>
           </View>
 
           <View style={styles.heroBottom}>
-            <View style={styles.heroBalanceRow}>
-              <Text style={styles.heroBalance}>12.5</Text>
-              <Text style={styles.heroBalanceUnit}>timer</Text>
-            </View>
-            <Text style={styles.heroCaption}>Basert på dine bevegelser frem til 24. mai 2026</Text>
+            {isLoading ? (
+              <ActivityIndicator size="large" color="#ffffff" />
+            ) : (
+              <>
+                <View style={styles.heroBalanceRow}>
+                  <Text style={styles.heroBalance}>{balance.toFixed(1)}</Text>
+                  <Text style={styles.heroBalanceUnit}>timer</Text>
+                </View>
+                <Text style={styles.heroCaption}>Basert på dine bevegelser frem til {today}</Text>
+              </>
+            )}
           </View>
         </Animated.View>
 
@@ -126,11 +138,13 @@ export default function TimebankScreen() {
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
             <Text style={styles.statLabel}>Opptjent i år</Text>
-            <Text style={[styles.statValue, { color: theme.colors.brandOrange }]}>+24.0t</Text>
+            <Text style={[styles.statValue, { color: theme.colors.brandOrange }]}>
+              +{yearlyStats.earned.toFixed(1)}t
+            </Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statLabel}>Brukt i år</Text>
-            <Text style={styles.statValue}>-11.5t</Text>
+            <Text style={styles.statValue}>-{yearlyStats.used.toFixed(1)}t</Text>
           </View>
         </View>
 
@@ -143,8 +157,32 @@ export default function TimebankScreen() {
             </Pressable>
           </View>
 
-          {MOCK_LEDGER.map((entry) => {
-            const IconComponent = entry.icon;
+          {isLoading && (
+            <View style={styles.emptyState}>
+              <ActivityIndicator size="small" color={theme.colors.mutedForeground} />
+            </View>
+          )}
+
+          {error && (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>Kunne ikke laste timebank</Text>
+            </View>
+          )}
+
+          {!isLoading && !error && recentEntries.length === 0 && (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>Ingen bevegelser enn\u00e5</Text>
+            </View>
+          )}
+
+          {recentEntries.map((entry) => {
+            const isCredit = (CREDIT_TYPES as readonly string[]).includes(entry.entry_type);
+            const config = ENTRY_TYPE_CONFIG[entry.entry_type] ?? {
+              label: entry.entry_type,
+              icon: Clock,
+            };
+            const IconComponent = config.icon;
+
             return (
               <View key={entry.id} style={styles.ledgerRow}>
                 <View style={styles.ledgerLeft}>
@@ -152,7 +190,7 @@ export default function TimebankScreen() {
                     style={[
                       styles.ledgerIcon,
                       {
-                        backgroundColor: entry.isCredit
+                        backgroundColor: isCredit
                           ? withOpacity(theme.colors.brandOrange, 0.08)
                           : withOpacity(theme.colors.destructive, 0.08),
                       },
@@ -160,13 +198,13 @@ export default function TimebankScreen() {
                   >
                     <IconComponent
                       size={20}
-                      color={entry.isCredit ? theme.colors.brandOrange : theme.colors.destructive}
+                      color={isCredit ? theme.colors.brandOrange : theme.colors.destructive}
                       strokeWidth={1.5}
                     />
                   </View>
                   <View>
-                    <Text style={styles.ledgerName}>{entry.title}</Text>
-                    <Text style={styles.ledgerDate}>{entry.date}</Text>
+                    <Text style={styles.ledgerName}>{entry.description || config.label}</Text>
+                    <Text style={styles.ledgerDate}>{formatDate(entry.effective_date)}</Text>
                   </View>
                 </View>
                 <View style={styles.ledgerRight}>
@@ -174,14 +212,14 @@ export default function TimebankScreen() {
                     style={[
                       styles.ledgerAmount,
                       {
-                        color: entry.isCredit ? theme.colors.brandOrange : theme.colors.foreground,
+                        color: isCredit ? theme.colors.brandOrange : theme.colors.foreground,
                       },
                     ]}
                   >
-                    {entry.isCredit ? "+" : "-"}
-                    {entry.amount}
+                    {isCredit ? "+" : "-"}
+                    {entry.hours.toFixed(1)}t
                   </Text>
-                  <Text style={styles.ledgerNote}>{entry.note}</Text>
+                  <Text style={styles.ledgerNote}>{isCredit ? "Opptjent" : "Brukt"}</Text>
                 </View>
               </View>
             );
@@ -382,5 +420,16 @@ const useStyles = createStyles((theme) => ({
     fontSize: 10,
     fontWeight: "400" as const,
     color: withOpacity(theme.colors.mutedForeground, 0.6),
+  },
+
+  /* Empty / Loading states */
+  emptyState: {
+    paddingVertical: theme.spacing.page,
+    alignItems: "center" as const,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: theme.colors.mutedForeground,
+    fontStyle: "italic" as const,
   },
 }));

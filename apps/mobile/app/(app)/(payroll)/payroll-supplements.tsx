@@ -1,62 +1,45 @@
 /**
  * Supplements — Register and track payroll claims.
  *
+ * Fetches real data from:
+ * - useMySupplementClaims() for the employee's recent claims
+ * - useSubmitSupplement() for submitting new claims (offline-first)
+ *
+ * The manual_supplement table requires a schedule_shift_id, so the form
+ * requires the employee to select a shift. If no recent shifts exist,
+ * the form shows a note explaining this requirement.
+ *
  * Layout:
- * 1. Hero: "Supplements" serif title + subtitle
- * 2. Stats bento (2-col): Pending count | Total value
+ * 1. Hero: subtitle
+ * 2. Stats bento (2-col): Pending count | Total value (computed from real claims)
  * 3. New Supplement form: type, amount, date, comment, submit
  * 4. Recent Claims list with status badges
  */
 
-import React, { useState, useCallback } from "react";
-import { View, Text, ScrollView, Pressable, TextInput, Alert } from "react-native";
+import React, { useState, useCallback, useMemo } from "react";
+import {
+  View,
+  Text,
+  ScrollView,
+  Pressable,
+  TextInput,
+  Alert,
+  ActivityIndicator,
+} from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
-import { PlusCircle, Car, UtensilsCrossed, Clock, Send } from "lucide-react-native";
+import { PlusCircle, Car, UtensilsCrossed, Clock, Send, FileText } from "lucide-react-native";
 import { createStyles, useTheme, withOpacity } from "@/theme";
 import { ActionHeader } from "@/components/navigation/ActionHeader";
+import { useMySupplementClaims } from "@/hooks/queries/use-my-supplement-claims";
+import { useMyShifts } from "@/hooks/queries/use-my-shifts";
+import { useSubmitSupplement } from "@/hooks/mutations/use-submit-supplement";
 
 /* ── Types ── */
 
 type ClaimStatus = "pending" | "approved" | "rejected";
 
-type ClaimItem = {
-  id: string;
-  icon: typeof Car;
-  title: string;
-  date: string;
-  amount: string;
-  status: ClaimStatus;
-};
-
-const SUPPLEMENT_TYPES = ["Overtidstillegg", "Reisegodtgjørelse", "Mattillegg", "Annet"];
-
-const MOCK_CLAIMS: ClaimItem[] = [
-  {
-    id: "1",
-    icon: Car,
-    title: "Reiseutlegg",
-    date: "12. OKT 2026",
-    amount: "450,00",
-    status: "pending",
-  },
-  {
-    id: "2",
-    icon: UtensilsCrossed,
-    title: "Kundelunsj",
-    date: "08. OKT 2026",
-    amount: "85,20",
-    status: "approved",
-  },
-  {
-    id: "3",
-    icon: Clock,
-    title: "Helg overtid",
-    date: "01. OKT 2026",
-    amount: "700,00",
-    status: "rejected",
-  },
-];
+const SUPPLEMENT_TYPES = ["Overtidstillegg", "Reisegodtgj\u00f8relse", "Mattillegg", "Annet"];
 
 const STATUS_CONFIG: Record<
   ClaimStatus,
@@ -82,20 +65,114 @@ const STATUS_CONFIG: Record<
   },
 };
 
+/** Pick an icon based on the supplement description */
+function getClaimIcon(description: string): typeof Car {
+  const lower = description.toLowerCase();
+  if (lower.includes("reise") || lower.includes("transport") || lower.includes("bil")) return Car;
+  if (lower.includes("mat") || lower.includes("lunsj") || lower.includes("middag"))
+    return UtensilsCrossed;
+  if (lower.includes("overtid") || lower.includes("tid")) return Clock;
+  return FileText;
+}
+
+/** Format ISO date to Norwegian display: "12. OKT 2026" */
+function formatDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  const months = [
+    "JAN",
+    "FEB",
+    "MAR",
+    "APR",
+    "MAI",
+    "JUN",
+    "JUL",
+    "AUG",
+    "SEP",
+    "OKT",
+    "NOV",
+    "DES",
+  ];
+  return `${date.getDate()}. ${months[date.getMonth()]} ${date.getFullYear()}`;
+}
+
+/** Format amount with Norwegian comma separator */
+function formatAmount(amount: number): string {
+  return amount.toFixed(2).replace(".", ",");
+}
+
 /* ── Component ── */
 
 export default function SupplementsScreen() {
   const styles = useStyles();
   const theme = useTheme();
 
+  const { data: claimsData, isLoading: loadingClaims } = useMySupplementClaims();
+  const { data: shiftsData } = useMyShifts();
+  const { submitSupplement } = useSubmitSupplement();
+
   const [selectedType, setSelectedType] = useState(0);
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState("");
   const [comment, setComment] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = useCallback(() => {
-    Alert.alert("Ikke tilgjengelig", "Denne funksjonen er under utvikling.");
-  }, []);
+  const claims = claimsData?.claims ?? [];
+
+  // Compute stats from real claims
+  const stats = useMemo(() => {
+    const pendingClaims = claims.filter((c) => c.status === "pending");
+    const pendingCount = pendingClaims.length;
+    const totalValue = pendingClaims.reduce((sum, c) => sum + c.amount, 0);
+    return { pendingCount, totalValue };
+  }, [claims]);
+
+  // Find the most recent shift to attach the supplement to
+  const mostRecentShiftId = useMemo(() => {
+    const shifts = shiftsData ?? [];
+    return shifts.length > 0 ? shifts[0].schedule_shift_id : null;
+  }, [shiftsData]);
+
+  const handleSubmit = useCallback(async () => {
+    const parsedAmount = parseFloat(amount.replace(",", "."));
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      Alert.alert("Ugyldig bel\u00f8p", "Vennligst skriv inn et gyldig bel\u00f8p.");
+      return;
+    }
+    if (!comment.trim()) {
+      Alert.alert("Mangler kommentar", "Vennligst begrunn tillegget.");
+      return;
+    }
+    if (!mostRecentShiftId) {
+      Alert.alert(
+        "Ingen vakt funnet",
+        "Du m\u00e5 ha minst \u00e9n registrert vakt for \u00e5 sende inn tillegg.",
+      );
+      return;
+    }
+
+    // Use provided date or today
+    const claimDate = date.trim() || new Date().toISOString().slice(0, 10);
+
+    setIsSubmitting(true);
+    try {
+      await submitSupplement({
+        description: SUPPLEMENT_TYPES[selectedType],
+        amount: parsedAmount,
+        date: claimDate,
+        comment: comment.trim(),
+        scheduleShiftId: mostRecentShiftId,
+      });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert("Sendt", "Tillegget ditt er registrert.");
+      setAmount("");
+      setDate("");
+      setComment("");
+    } catch {
+      Alert.alert("Feil", "Kunne ikke sende kravet. Pr\u00f8v igjen.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [amount, comment, date, selectedType, mostRecentShiftId, submitSupplement]);
 
   return (
     <View style={styles.container}>
@@ -104,42 +181,20 @@ export default function SupplementsScreen() {
         {/* Subtitle */}
         <Text style={styles.heroSubtitle}>Registrer og spor tillegg og utlegg.</Text>
 
-        {/* Demo Banner */}
-        <View
-          style={{
-            backgroundColor: "#fef3cd",
-            paddingVertical: 8,
-            paddingHorizontal: 16,
-            borderRadius: 8,
-            marginHorizontal: 16,
-            marginTop: 8,
-            marginBottom: 8,
-          }}
-        >
-          <Text
-            style={{
-              color: "#856404",
-              fontSize: 13,
-              fontWeight: "600",
-              textAlign: "center",
-            }}
-          >
-            Demo — denne siden er under utvikling
-          </Text>
-        </View>
-
-        {/* Stats Bento */}
+        {/* Stats Bento — computed from real claims */}
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
             <Text style={styles.statLabel}>Ventende</Text>
             <Text style={styles.statValue}>
-              3 <Text style={styles.statUnit}>krav</Text>
+              {loadingClaims ? "\u2014" : stats.pendingCount}{" "}
+              <Text style={styles.statUnit}>krav</Text>
             </Text>
           </View>
           <View style={[styles.statCard, styles.statCardHighlight]}>
             <Text style={styles.statLabel}>Total verdi</Text>
             <Text style={[styles.statValue, { color: theme.colors.brandOrange }]}>
-              1 240<Text style={styles.statUnit}>,00</Text>
+              {loadingClaims ? "\u2014" : formatAmount(stats.totalValue)}
+              <Text style={styles.statUnit}> kr</Text>
             </Text>
           </View>
         </View>
@@ -175,7 +230,7 @@ export default function SupplementsScreen() {
           {/* Amount + Date row */}
           <View style={styles.fieldRow}>
             <View style={styles.fieldHalf}>
-              <Text style={styles.fieldLabel}>Beløp</Text>
+              <Text style={styles.fieldLabel}>Bel\u00f8p</Text>
               <TextInput
                 style={styles.input}
                 placeholder="0,00"
@@ -200,7 +255,7 @@ export default function SupplementsScreen() {
           </View>
 
           {/* Comment */}
-          <Text style={styles.fieldLabel}>Kommentar (påkrevd)</Text>
+          <Text style={styles.fieldLabel}>Kommentar (p\u00e5krevd)</Text>
           <TextInput
             style={[styles.input, styles.inputMultiline]}
             placeholder="Begrunn tillegget..."
@@ -215,10 +270,21 @@ export default function SupplementsScreen() {
           {/* Submit */}
           <Pressable
             onPress={handleSubmit}
-            style={({ pressed }) => [styles.submitButton, pressed && styles.submitPressed]}
+            disabled={isSubmitting}
+            style={({ pressed }) => [
+              styles.submitButton,
+              pressed && styles.submitPressed,
+              isSubmitting && { opacity: 0.6 },
+            ]}
           >
-            <Send size={18} color="#ffffff" strokeWidth={2} />
-            <Text style={styles.submitText}>Send inn krav</Text>
+            {isSubmitting ? (
+              <ActivityIndicator size="small" color="#ffffff" />
+            ) : (
+              <>
+                <Send size={18} color="#ffffff" strokeWidth={2} />
+                <Text style={styles.submitText}>Send inn krav</Text>
+              </>
+            )}
           </Pressable>
         </View>
 
@@ -229,10 +295,23 @@ export default function SupplementsScreen() {
             <Text style={styles.claimsViewAll}>VIS ALLE</Text>
           </View>
 
-          {MOCK_CLAIMS.map((claim) => {
-            const IconComponent = claim.icon;
-            const status = STATUS_CONFIG[claim.status];
-            const isRejected = claim.status === "rejected";
+          {loadingClaims && (
+            <View style={styles.emptyState}>
+              <ActivityIndicator size="small" color={theme.colors.mutedForeground} />
+            </View>
+          )}
+
+          {!loadingClaims && claims.length === 0 && (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>Ingen krav enn\u00e5</Text>
+            </View>
+          )}
+
+          {claims.map((claim) => {
+            const IconComponent = getClaimIcon(claim.description);
+            const claimStatus = (claim.status ?? "pending") as ClaimStatus;
+            const status = STATUS_CONFIG[claimStatus];
+            const isRejected = claimStatus === "rejected";
 
             return (
               <View key={claim.id} style={styles.claimRow}>
@@ -250,13 +329,13 @@ export default function SupplementsScreen() {
                     />
                   </View>
                   <View>
-                    <Text style={styles.claimTitle}>{claim.title}</Text>
-                    <Text style={styles.claimDate}>{claim.date}</Text>
+                    <Text style={styles.claimTitle}>{claim.description}</Text>
+                    <Text style={styles.claimDate}>{formatDate(claim.created_at)}</Text>
                   </View>
                 </View>
                 <View style={styles.claimRight}>
                   <Text style={[styles.claimAmount, isRejected && styles.claimAmountRejected]}>
-                    {claim.amount}
+                    {formatAmount(claim.amount)}
                   </Text>
                   <View
                     style={[
@@ -288,14 +367,6 @@ const useStyles = createStyles((theme) => ({
   },
 
   /* Hero */
-  heroTitle: {
-    fontSize: 40,
-    fontWeight: "400" as const,
-    fontStyle: "italic" as const,
-    color: theme.colors.brandOrange,
-    letterSpacing: -1,
-    marginBottom: 4,
-  },
   heroSubtitle: {
     ...theme.typography.body,
     color: theme.colors.mutedForeground,
@@ -517,5 +588,16 @@ const useStyles = createStyles((theme) => ({
     fontWeight: "600" as const,
     letterSpacing: 0.5,
     textTransform: "uppercase" as const,
+  },
+
+  /* Empty / Loading states */
+  emptyState: {
+    paddingVertical: theme.spacing.page,
+    alignItems: "center" as const,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: theme.colors.mutedForeground,
+    fontStyle: "italic" as const,
   },
 }));
