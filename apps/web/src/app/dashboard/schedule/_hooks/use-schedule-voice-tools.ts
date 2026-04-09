@@ -469,34 +469,10 @@ export function useScheduleVoiceTools(input: ScheduleVoiceToolsInput): ClientToo
         });
       }
 
-      // Direct mode — no proposal context, create real shift
-      if (!d.mutations?.createShift) return JSON.stringify({ error: "Mutations not available" });
-
-      try {
-        await d.mutations.createShift({
-          id: crypto.randomUUID(),
-          employeeId: employee.id,
-          dateId,
-          role,
-          startTime,
-          endTime,
-          workHours,
-          status: "created",
-          dayCategory,
-          indicator: "blue",
-          isPublished: false,
-          breaks: 0,
-        });
-
-        return JSON.stringify({
-          success: true,
-          message: `Shift created for ${employee.name} on ${dayLabel} ${startTime}-${endTime} as ${role}`,
-        });
-      } catch (err: unknown) {
-        return JSON.stringify({
-          error: `Failed to create shift: ${err instanceof Error ? err.message : "unknown"}`,
-        });
-      }
+      // Ghost mode is mandatory — Botsson can never create real shifts directly
+      return JSON.stringify({
+        error: "Forslag-modus er ikke tilgjengelig. Kan ikke opprette vakter uten godkjenning.",
+      });
     };
 
     const updateShiftTool: ClientToolImplementation = async (params) => {
@@ -555,31 +531,14 @@ export function useScheduleVoiceTools(input: ScheduleVoiceToolsInput): ClientToo
         });
       }
 
-      // Direct mode
-      if (!d.mutations?.updateShift) return JSON.stringify({ error: "Mutations not available" });
-
-      try {
-        await d.mutations.updateShift({ id: shift.id, patch });
-        return JSON.stringify({
-          success: true,
-          message: `Updated shift for ${employee.name}: ${JSON.stringify(patch)}`,
-        });
-      } catch (err: unknown) {
-        if (isShiftLockedMutationError(err)) {
-          return JSON.stringify({
-            error:
-              "Kan ikke endre vakt: vakten er låst fordi den har startet eller datoen er passert.",
-          });
-        }
-        return JSON.stringify({
-          error: `Failed to update: ${err instanceof Error ? err.message : "unknown"}`,
-        });
-      }
+      // Ghost mode is mandatory — Botsson can never modify real shifts directly
+      return JSON.stringify({
+        error: "Forslag-modus er ikke tilgjengelig. Kan ikke endre vakter uten godkjenning.",
+      });
     };
 
     const deleteShiftTool: ClientToolImplementation = async (params) => {
       const d = dataRef.current;
-      if (!d.mutations) return JSON.stringify({ error: "Mutations not available" });
 
       const rawNameQuery = (params.employeeName as string) ?? "";
       const employee = findEmployeeByName(d.employees, rawNameQuery);
@@ -603,64 +562,34 @@ export function useScheduleVoiceTools(input: ScheduleVoiceToolsInput): ClientToo
         if (match) shift = match;
       }
 
-      try {
-        await d.mutations.deleteShift(shift.id);
+      // Ghost mode — create delete proposal instead of actually deleting
+      if (d.addProposal) {
         const dayLabel = d.days.find((day) => day.id === dateId)?.label ?? dateId;
+        d.addProposal({
+          id: `proposal-${crypto.randomUUID()}`,
+          type: "delete",
+          shiftId: shift.id,
+          employeeId: employee.id,
+          dateId,
+        });
         return JSON.stringify({
           success: true,
-          message: `Deleted ${employee.name}'s shift on ${dayLabel} (${shift.time})`,
-        });
-      } catch (err) {
-        if (isShiftLockedMutationError(err)) {
-          return JSON.stringify({
-            error:
-              "Kan ikke slette vakt: vakten er låst fordi den har startet eller datoen er passert.",
-          });
-        }
-        return JSON.stringify({
-          error: `Failed to delete: ${err instanceof Error ? err.message : "unknown"}`,
+          ghost: true,
+          message: `Sletteforslag: ${employee.name} sin vakt pa ${dayLabel} (${shift.time}). Venter pa godkjenning.`,
         });
       }
+
+      // Ghost mode is mandatory — Botsson can never delete real shifts directly
+      return JSON.stringify({
+        error: "Forslag-modus er ikke tilgjengelig. Kan ikke slette vakter uten godkjenning.",
+      });
     };
 
-    const publishShiftsTool: ClientToolImplementation = async (params) => {
-      const d = dataRef.current;
-      if (!d.mutations) return JSON.stringify({ error: "Mutations not available" });
-
-      const dayInput = (params.day as string) ?? "all";
-      let draftShifts: typeof d.shifts;
-
-      if (dayInput.toLowerCase() === "all" || dayInput.toLowerCase() === "alle") {
-        draftShifts = d.shifts.filter((s) => !s.isPublished);
-      } else {
-        const dateId = resolveDateId(dayInput, d.days);
-        if (!dateId) {
-          return JSON.stringify({ error: `Could not resolve day "${dayInput}"` });
-        }
-        draftShifts = d.computed.getShiftsForDay(dateId).filter((s) => !s.isPublished);
-      }
-
-      if (draftShifts.length === 0) {
-        return JSON.stringify({ message: "No draft shifts to publish" });
-      }
-
-      try {
-        await d.mutations.publishShifts(draftShifts.map((s) => s.id));
-        return JSON.stringify({
-          success: true,
-          message: `Published ${draftShifts.length} shift(s)`,
-        });
-      } catch (err) {
-        if (isShiftLockedMutationError(err)) {
-          return JSON.stringify({
-            error:
-              "Kan ikke publisere vakter: en eller flere vakter er låst fordi de har startet eller datoen er passert.",
-          });
-        }
-        return JSON.stringify({
-          error: `Failed to publish: ${err instanceof Error ? err.message : "unknown"}`,
-        });
-      }
+    const publishShiftsTool: ClientToolImplementation = async () => {
+      // Botsson can never publish shifts directly — admin must approve and publish manually
+      return JSON.stringify({
+        error: "Publisering krever manuell godkjenning. Be admin publisere fra vaktplanen.",
+      });
     };
 
     const focusDayTool: ClientToolImplementation = (params) => {

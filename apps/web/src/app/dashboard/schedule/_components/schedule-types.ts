@@ -199,4 +199,12 @@ export type ShiftProposalUpdate = {
   patch: Record<string, unknown>;
 };
 
-export type ShiftProposal = ShiftProposalCreate | ShiftProposalUpdate;
+export type ShiftProposalDelete = {
+  id: string;
+  type: "delete";
+  shiftId: string;
+  employeeId: string;
+  dateId: string;
+};
+
+export type ShiftProposal = ShiftProposalCreate | ShiftProposalUpdate | ShiftProposalDelete;

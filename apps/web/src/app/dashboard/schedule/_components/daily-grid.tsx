@@ -908,16 +908,18 @@ export const EmployeeRow = React.memo(function EmployeeRow({
                     }
                   />
                 ))}
-                {cellProposals.map((proposal) => (
-                  <GhostShiftCard
-                    key={proposal.id}
-                    proposal={proposal}
-                    employeeName={employee.name}
-                    isCompact={isCompact}
-                    onApprove={() => void onApproveProposal?.(proposal.id)}
-                    onReject={() => onRejectProposal?.(proposal.id)}
-                  />
-                ))}
+                {cellProposals
+                  .filter((p) => p.type !== "delete")
+                  .map((proposal) => (
+                    <GhostShiftCard
+                      key={proposal.id}
+                      proposal={proposal as Exclude<typeof proposal, { type: "delete" }>}
+                      employeeName={employee.name}
+                      isCompact={isCompact}
+                      onApprove={() => void onApproveProposal?.(proposal.id)}
+                      onReject={() => onRejectProposal?.(proposal.id)}
+                    />
+                  ))}
               </div>
             ) : null}
           </MatrixCell>

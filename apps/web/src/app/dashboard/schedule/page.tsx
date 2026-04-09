@@ -957,6 +957,7 @@ function SchedulePageContent() {
         createShift.mutateAsync(input as Parameters<typeof createShift.mutateAsync>[0])
       }
       updateShift={(input) => updateShift.mutateAsync(input)}
+      deleteShift={(id) => deleteShift.mutateAsync(id)}
     >
       <ScheduleVoiceToolsBridge
         weekStart={weekStart}
