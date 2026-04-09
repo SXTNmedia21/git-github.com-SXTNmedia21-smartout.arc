@@ -4245,7 +4245,7 @@ export type Database = {
           placeholders: Json
           status: string
           template_id: string
-          template_type: string
+          template_type: string | null
           updated_at: string
           variable_fields: Json
           version: number | null
@@ -4274,7 +4274,7 @@ export type Database = {
           placeholders?: Json
           status?: string
           template_id?: string
-          template_type: string
+          template_type?: string | null
           updated_at?: string
           variable_fields?: Json
           version?: number | null
@@ -4303,7 +4303,7 @@ export type Database = {
           placeholders?: Json
           status?: string
           template_id?: string
-          template_type?: string
+          template_type?: string | null
           updated_at?: string
           variable_fields?: Json
           version?: number | null
@@ -5532,6 +5532,13 @@ export type Database = {
             foreignKeyName: "employee_payroll_profile_employment_contract_id_fkey"
             columns: ["employment_contract_id"]
             isOneToOne: false
+            referencedRelation: "compliance_drift"
+            referencedColumns: ["contract_id"]
+          },
+          {
+            foreignKeyName: "employee_payroll_profile_employment_contract_id_fkey"
+            columns: ["employment_contract_id"]
+            isOneToOne: false
             referencedRelation: "employment_contract"
             referencedColumns: ["contract_id"]
           },
@@ -5619,19 +5626,25 @@ export type Database = {
       employment_contract: {
         Row: {
           agreed_weekly_hours: number | null
+          compliance_overrides: Json | null
           contract_id: string
           created_at: string
           created_by: string | null
+          decline_reason_code: string | null
+          decline_reason_text: string | null
           document_url: string | null
           employment_category: string
           employment_percentage: number | null
           end_date: string | null
+          framework_snapshot: Json | null
           hourly_rate: number | null
           monthly_salary: number | null
+          parent_contract_id: string | null
           position_title: string
           profile_id: string
           signature_id: string | null
           signed_at: string | null
+          signing_contract_id: string | null
           start_date: string
           status: Database["public"]["Enums"]["contract_status"]
           updated_at: string
@@ -5639,19 +5652,25 @@ export type Database = {
         }
         Insert: {
           agreed_weekly_hours?: number | null
+          compliance_overrides?: Json | null
           contract_id?: string
           created_at?: string
           created_by?: string | null
+          decline_reason_code?: string | null
+          decline_reason_text?: string | null
           document_url?: string | null
           employment_category: string
           employment_percentage?: number | null
           end_date?: string | null
+          framework_snapshot?: Json | null
           hourly_rate?: number | null
           monthly_salary?: number | null
+          parent_contract_id?: string | null
           position_title: string
           profile_id: string
           signature_id?: string | null
           signed_at?: string | null
+          signing_contract_id?: string | null
           start_date: string
           status?: Database["public"]["Enums"]["contract_status"]
           updated_at?: string
@@ -5659,25 +5678,52 @@ export type Database = {
         }
         Update: {
           agreed_weekly_hours?: number | null
+          compliance_overrides?: Json | null
           contract_id?: string
           created_at?: string
           created_by?: string | null
+          decline_reason_code?: string | null
+          decline_reason_text?: string | null
           document_url?: string | null
           employment_category?: string
           employment_percentage?: number | null
           end_date?: string | null
+          framework_snapshot?: Json | null
           hourly_rate?: number | null
           monthly_salary?: number | null
+          parent_contract_id?: string | null
           position_title?: string
           profile_id?: string
           signature_id?: string | null
           signed_at?: string | null
+          signing_contract_id?: string | null
           start_date?: string
           status?: Database["public"]["Enums"]["contract_status"]
           updated_at?: string
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "employment_contract_parent_contract_id_fkey"
+            columns: ["parent_contract_id"]
+            isOneToOne: false
+            referencedRelation: "compliance_drift"
+            referencedColumns: ["contract_id"]
+          },
+          {
+            foreignKeyName: "employment_contract_parent_contract_id_fkey"
+            columns: ["parent_contract_id"]
+            isOneToOne: false
+            referencedRelation: "employment_contract"
+            referencedColumns: ["contract_id"]
+          },
+          {
+            foreignKeyName: "employment_contract_signing_contract_id_fkey"
+            columns: ["signing_contract_id"]
+            isOneToOne: false
+            referencedRelation: "contract"
+            referencedColumns: ["contract_id"]
+          },
           {
             foreignKeyName: "fk_contract_created_by"
             columns: ["created_by"]
@@ -5748,6 +5794,7 @@ export type Database = {
       }
       engine_delayed_trigger: {
         Row: {
+          cancelled_at: string | null
           created_at: string
           event_id: string
           fire_at: string
@@ -5758,6 +5805,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          cancelled_at?: string | null
           created_at?: string
           event_id: string
           fire_at: string
@@ -5768,6 +5816,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          cancelled_at?: string | null
           created_at?: string
           event_id?: string
           fire_at?: string
@@ -5899,6 +5948,7 @@ export type Database = {
           memory_type: string
           profile_id: string
           scope: string
+          sensitivity: string | null
           source_session_id: string | null
           updated_at: string
           workspace_id: string
@@ -5914,6 +5964,7 @@ export type Database = {
           memory_type: string
           profile_id: string
           scope?: string
+          sensitivity?: string | null
           source_session_id?: string | null
           updated_at?: string
           workspace_id: string
@@ -5929,6 +5980,7 @@ export type Database = {
           memory_type?: string
           profile_id?: string
           scope?: string
+          sensitivity?: string | null
           source_session_id?: string | null
           updated_at?: string
           workspace_id?: string
@@ -6023,6 +6075,7 @@ export type Database = {
       }
       engine_process: {
         Row: {
+          allowed_channels: string[]
           created_at: string
           description: string | null
           id: string
@@ -6033,6 +6086,7 @@ export type Database = {
           workspace_id: string | null
         }
         Insert: {
+          allowed_channels?: string[]
           created_at?: string
           description?: string | null
           id: string
@@ -6043,6 +6097,7 @@ export type Database = {
           workspace_id?: string | null
         }
         Update: {
+          allowed_channels?: string[]
           created_at?: string
           description?: string | null
           id?: string
@@ -14145,12 +14200,47 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      compliance_drift: {
+        Row: {
+          computed_at: string | null
+          contract_id: string | null
+          drift: Json | null
+          framework_id: string | null
+          framework_snapshot: Json | null
+          profile_id: string | null
+          workspace_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_contract_profile"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "fk_contract_workspace"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
     }
     Functions: {
       activate_workspace_v3: {
         Args: { p_data: Json; p_user_id: string }
         Returns: string
+      }
+      admin_submit_employee_pii: {
+        Args: {
+          p_field_group: string
+          p_profile_id: string
+          p_reason: string
+          p_values: Json
+        }
+        Returns: Json
       }
       anonymize_user: { Args: { target_user_id: string }; Returns: undefined }
       append_conversation_turn: {
@@ -14166,6 +14256,10 @@ export type Database = {
         Returns: boolean
       }
       cleanup_expired_api_keys: { Args: never; Returns: number }
+      compute_compliance_diff: {
+        Args: { p_framework_id: string; p_snapshot: Json }
+        Returns: Json
+      }
       compute_platform_metrics: { Args: never; Returns: undefined }
       count_dangling_company_members: { Args: never; Returns: number }
       count_empty_workspaces: { Args: never; Returns: number }
@@ -14593,6 +14687,8 @@ export type Database = {
         | "signed"
         | "expired"
         | "terminated"
+        | "pending_data"
+        | "declined"
       control_frequency: "every_time" | "every_nth" | "never"
       control_list_assigned_to_type:
         | "team_leader"
@@ -16001,6 +16097,8 @@ export const Constants = {
         "signed",
         "expired",
         "terminated",
+        "pending_data",
+        "declined",
       ],
       control_frequency: ["every_time", "every_nth", "never"],
       control_list_assigned_to_type: [
