@@ -30,6 +30,15 @@ Denne specen bygger pa research og brainstorm i session 2026-04-09:
 - **Council review 2026-04-09** — system-steward, supervisor, system-agent-coordinator,
   frontend-designer. All four approved with changes. 15 items resolved below.
   ADR-0083 to be written at implementation.
+- **Anthropic Managed Agents post (April 2026)** — "Scaling Managed Agents:
+  Decoupling brain from hands." Key insight: harnesses encode assumptions that go
+  stale as models improve. Session is NOT context window — session is a durable
+  event log that the brain queries. Irreversible compaction is a trap. Brain and
+  Hands must be physically separate (cattle, not pets).
+- **Strategic decision:** Build our own harness but design interfaces matching
+  Anthropic's emitEvent/getEvents/execute pattern. This gives us control now
+  (authority model is our moat) and a migration path to Managed Agents later
+  if the service matures and pricing works for Norwegian market/GDPR.
 
 **Existing infrastructure leveraged (not rebuilt):**
 
@@ -87,7 +96,7 @@ Smartout adopterer Anthropic's trelagsmodell, tilpasset vart domene:
 BRAIN (stateless, packages/ai + stage-engine core)
   Agent Loop: classify intent -> collect context -> select tools -> run LLM
   Hook Registry: intercept pa 7 punkter i pipelinen
-  Context Engine: assemble -> compact -> persist
+  Context View: computed window over event log (never replaces log)
   Capability Registry: tools gruppert per domene + authority
 
 HANDS (swappable, adapters + providers)
@@ -112,13 +121,15 @@ SESSION (durable, engine_sessions + ny event log)
 | Tool Registry | packages/ai/src/capabilities/registry.ts | Eksisterer, beholdes |
 | Permission Model | stage-engine/src/core/authority.ts | Eksisterer, beholdes |
 | Prompt Builder | packages/ai/src/prompts/mr-botsson.ts | Eksisterer, beholdes |
-| Context Collector | packages/ai/src/context/collector.ts | Eksisterer, abstraheres |
+| Context Collector | packages/ai/src/context/collector.ts | Eksisterer, wrapped by Context View |
 | Event Bus | stage-engine/src/core/guardian-bus.ts | Eksisterer, utvides |
+| Model Provider | **NY** — resolveModel() | Fase 1 |
 | Session Store | stage-engine/src/core/session-manager.ts | Eksisterer, utvides |
 | Subprocess Spawn | supabase/functions/engine-dispatch/index.ts | Eksisterer (start_process) |
 | Hook Registry | **NY** | Fase 1 |
-| Context Engine | **NY** | Fase 1 |
+| Context View | **NY** (replaces Context Engine) | Fase 1 |
 | Session Event Log | **NY** | Fase 1 |
+| get_session_events | **NY** — Botsson tool | Fase 1 |
 | delegate_task tool | **NY** | Fase 2 |
 
 ---
@@ -197,8 +208,10 @@ class HookRegistry {
 **Observe hook execution semantics (council clarification):**
 
 Guard and Transform hooks are awaited sequentially. Observe hooks are
-**fire-and-forget** — `run()` detaches their promises and does NOT await them.
-This means observe hooks cannot block the pipeline and add zero latency.
+**non-blocking** — `run()` collects their promises via `Promise.allSettled()`
+and does NOT await the group. Errors from observe hooks are caught and sent
+to Logger (never silently swallowed — this prevents stille datatap in
+token tracking and telemetry). Observe hooks add zero pipeline latency.
 Transform hooks compose via last-writer-wins on the payload object (shallow merge).
 If two transforms modify different fields, both apply. If they modify the same
 field, the higher-priority hook wins (runs first, subsequent transform sees its output).
@@ -246,99 +259,150 @@ async function routeAgentMessage(params) {
 | budget-guard | llm:before | Guard | Blokker om session token-budget er brukt opp |
 | context-cache | context:collected | Transform | Cache context mellom turns i samme session |
 
-### 1.2 Context Engine
+### 1.2 Context View (renamed from Context Engine)
 
-**Fil:** `services/stage-engine/src/core/context-engine.ts` (ny)
+> **Design principle (Managed Agents insight):** Irreversible compaction is a trap.
+> The event log is the source of truth. Context View computes a WINDOW over the
+> log — it never replaces, summarizes, or drops events. If Botsson needs to know
+> what happened in turn 3, the raw event is always available via get_session_events.
 
-Context Engine styrer hva som gar inn i LLM context window. Tre faser:
+**Fil:** `services/stage-engine/src/core/context-view.ts` (ny)
 
-**Assemble:** Samler context fra flere kilder med prioritetsranking.
-
-```typescript
-interface ContextSource {
-  name: string;
-  priority: number;          // Higher = more important = survives compaction
-  tokenEstimate: number;     // Approximate tokens this source contributes
-  collect(params: ContextParams): Promise<ContextFragment>;
-}
-
-interface ContextFragment {
-  content: string | object;
-  tokens: number;
-  priority: number;
-  compactable: boolean;      // Can this be summarized?
-}
-```
-
-**Kilder (prioritetsrekkefølge):**
-
-| Prioritet | Kilde | Compactable? | Merknad |
-|-----------|-------|-------------|---------|
-| 100 | System prompt (identity, authority rules) | Nei | Overlever alltid |
-| 90 | Active stage instructions | Nei | Bare i mission-mode |
-| 80 | Tool descriptions | Nei | Nødvendig for tool-bruk |
-| 70 | Collected data (current session) | Nei | Session state |
-| 60 | Relevant memories (engine_memory) | Ja | Top 5 |
-| 50 | Relationship data | Ja | Familiarity/trust/sentiment |
-| 40 | Active shift info | Ja | Nåværende vaktdata |
-| 30 | Conversation history (recent 5 turns) | Nei | Siste turns alltid med |
-| 20 | Conversation history (older turns) | Ja | Komprimeres |
-| 10 | Background context (workspace, team) | Ja | Generell info |
-
-**Compact:** Nar total tokens overskrider budget, komprimer lavprioritets-fragmenter.
+Context View assembles what goes into the LLM context window for each turn.
+It is a **read-only projection** of engine_session_event + collectContext().
 
 ```typescript
-class ContextEngine {
-  private sources: ContextSource[] = [];
-  private tokenBudget: number;             // Default: 12000 tokens
-  private compactionThreshold: number;     // Default: 0.8 (80% av budget)
-
-  registerSource(source: ContextSource): void;
+class ContextView {
+  private tokenBudget: number;  // Default: 12000 tokens
 
   async assemble(params: ContextParams): Promise<AssembledContext> {
-    // 1. Collect all fragments in parallel
-    // 2. Sort by priority (descending)
-    // 3. Check total tokens vs budget
-    // 4. If over threshold: compact lowest-priority compactable fragments
-    // 5. Return assembled context
-  }
-
-  async compact(fragments: ContextFragment[]): Promise<ContextFragment[]> {
-    // Summarize compactable fragments using claude-haiku-4-5 (fast, cheap)
-    // Preserve non-compactable fragments verbatim
-    // Return compacted set within budget
+    // 1. Collect domain context via existing collectContext() (parallel fetch)
+    // 2. Load recent conversation from engine_session_event (last N events)
+    // 3. Build system prompt + tool descriptions (always included)
+    // 4. Fit conversation window within token budget:
+    //    - Always include last 5 turns verbatim
+    //    - For older turns: include a POINTER ("Se get_session_events for turn 1-N")
+    //      NOT a summary. Botsson can query the event log if needed.
+    // 5. Return assembled context within budget
   }
 }
 ```
 
-**Compaction-strategi (async per council R5):**
+**What Context View does NOT do:**
 
-Compaction runs AFTER the current turn's response is returned. The compacted
-context is stored and used starting from the NEXT turn. This means the first
-turn that exceeds budget may slightly overshoot, but user experience is not
-degraded by 200-400ms extra latency.
+- Does NOT summarize or compact old conversation turns (irreversible)
+- Does NOT drop events from the log
+- Does NOT make a second LLM call (no compaction model)
+- Does NOT replace collectContext() — wraps it as one data source
 
-- Conversation history eldre enn 5 turns -> sammenfattes til 1-2 setninger
-- Memories med lav importance -> droppes
-- Relationship data -> komprimeres til en setning
-- System prompt, tools, stage instructions -> ALDRI komprimert
-- Token counting: approximate (chars/4). Not exact tokenizer — sufficient for budget gating.
+**What it DOES do:**
+
+- Computes a sliding window of conversation (last 5 turns verbatim)
+- Includes a note to Botsson that older context is available via tool
+- Ranks domain context by priority (system prompt > tools > memories)
+- Truncates gracefully when over budget (drops lowest-priority domain fragments)
+
+**Priority ranking (for what fills the context window):**
+
+| Prioritet | Kilde | Always included? |
+|-----------|-------|-----------------|
+| 100 | System prompt (identity, authority rules) | Ja |
+| 90 | Active stage instructions | Ja (mission-mode) |
+| 80 | Tool descriptions | Ja |
+| 70 | Collected data (current session) | Ja |
+| 60 | Relevant memories (engine_memory) | Nei — dropped first if over budget |
+| 50 | Relationship data | Nei |
+| 40 | Active shift info | Nei |
+| 30 | Conversation history (recent 5 turns) | Ja |
+| 20 | Older conversation pointer | Ja (1 line: "use get_session_events for history") |
+| 10 | Background context (workspace, team) | Nei |
+
+**Token counting:** Approximate (chars/4). Sufficient for budget gating.
 
 **Integrasjon med eksisterende collectContext():**
 
 ```typescript
-// packages/ai/src/context/collector.ts forblir uendret
-// Den blir EN av kildene i Context Engine:
-class SmartoutContextSource implements ContextSource {
-  name = "smartout-context";
-  priority = 60;
-  async collect(params) {
-    return collectContext(params); // Eksisterende funksjon
-  }
+// packages/ai/src/context/collector.ts forblir uendret.
+// Context View calls it internally — no wrapping needed.
+const domainContext = await collectContext({ workspaceId, profileId, ... });
+```
+
+### 1.2b get_session_events — Botsson Tool
+
+> **Managed Agents key insight:** The session's getEvents() interface lets the
+> brain query context by choosing positional slices of the event stream — fetch
+> from where it last read, rewind before a certain moment, or re-read before
+> a particular action.
+
+**Fil:** `services/stage-engine/src/tools/session-events.ts` (ny)
+
+Gir Botsson tilgang til hele event-loggen for sin sesjon:
+
+```typescript
+const getSessionEvents: SmartoutTool<AgentToolContext> = {
+  name: "get_session_events",
+  description:
+    "Retrieve past events from this conversation session. " +
+    "Use when you need to recall what happened earlier — " +
+    "tool calls, user messages, stage advances, subagent results. " +
+    "The event log is the complete truth of this session.",
+  schema: z.object({
+    from_turn: z.number().int().min(0).optional(),
+    to_turn: z.number().int().optional(),
+    event_types: z.array(z.string()).optional(),
+    limit: z.number().int().max(50).default(20),
+  }),
+  execute: async (params, ctx) => {
+    let query = ctx.supabaseAdmin
+      .from("engine_session_event")
+      .select("event_type, payload, created_at")
+      .eq("session_id", ctx.sessionId)
+      .order("created_at", { ascending: true })
+      .limit(params.limit);
+
+    if (params.event_types?.length) {
+      query = query.in("event_type", params.event_types);
+    }
+
+    const { data } = await query;
+    return JSON.stringify(data ?? []);
+  },
+};
+```
+
+Dette betyr at nar Context View kutter samtalehistorikken til de siste 5
+turns, kan Botsson SELV velge a hente eldre context nar den trenger det.
+Ingen irreversibel tap av informasjon.
+
+### 1.3 Model Provider
+
+> **Managed Agents insight:** Harnesses encode assumptions that go stale as
+> models improve. "Context anxiety" fixes for Sonnet 4.5 became dead weight
+> on Opus 4.5. Model selection must not be hardcoded.
+
+**Fil:** `services/stage-engine/src/core/model-provider.ts` (ny)
+
+```typescript
+type ModelContext = {
+  capability?: string;       // "contract", "schedule", etc.
+  workspaceId?: string;      // workspace-level override
+  sessionType: "chat" | "subagent" | "compaction" | "classifier";
+};
+
+function resolveModel(ctx: ModelContext): string {
+  // 1. Check workspace override (engine_authority_config could store this)
+  // 2. Check capability-specific override
+  // 3. Fall back to defaults:
+  //    chat/subagent/classifier → "anthropic/claude-sonnet-4.6"
+  //    compaction → removed (no compaction LLM calls)
+  return defaultModel;
 }
 ```
 
-### 1.3 Token Usage Tracking
+Erstatter alle hardkodede modellstrenger i agent-router.ts, subagent-executor.ts,
+intent-classifier.ts. En fil a oppdatere nar 4.7 dropper.
+
+### 1.4 Token Usage Tracking
 
 **Maal:** Logg all token-bruk pa workspace- og brukerniva. Limits kommer senere.
 
@@ -761,41 +825,74 @@ async function executeSubagent(childSessionId: string): Promise<void> {
 }
 ```
 
-### 2.5 Subagent Execution Trigger (council Q3)
+### 2.5 Subagent Execution — Via Process Engine (Cattle, Not Pets)
 
-`delegate_task` calls `executeSubagent()` directly (option a). For non-blocking
-delegation, the call is fire-and-forget (detached promise). For blocking, it
-awaits the result. The subagent runs in the SAME stage-engine process — no
-cross-service calls needed.
+> **Managed Agents insight:** Brain and Hands must be physically separate.
+> If the process dies, the harness catches it as a tool-call error. Subagent
+> execution is "cattle" — disposable, recoverable, independently scalable.
+
+`delegate_task` does NOT call executeSubagent() in-process. Instead:
+
+1. `delegate_task` emits `agent.task_delegated` event to `engine_event` table
+2. Process Engine (engine-dispatch Edge Function) picks up the event via trigger
+3. Process Engine executes the subagent as a process step (`action_type: "run_subagent"`)
+4. On completion, Process Engine emits `agent.subagent_completed` event
+5. Stage-engine listens for completion and broadcasts to parent session via WebSocket
 
 ```typescript
-// In delegate_task execute():
-if (params.blocking) {
-  await executeSubagent(childSession.id);  // awaited
-} else {
-  executeSubagent(childSession.id);         // fire-and-forget
+// delegate_task ONLY does this:
+await supabase.from("engine_event").insert({
+  event_type: "agent.task_delegated",
+  payload: { child_session_id, capability, instruction, entity_id },
+  workspace_id: ctx.workspaceId,
+});
+
+// For blocking calls: subscribe to engine_sessions.delegation_status
+// via Supabase Realtime (existing pattern) with 60s timeout.
+// For non-blocking: return immediately, UI gets WebSocket update on completion.
+```
+
+**Engine trigger (database seed):**
+
+```sql
+INSERT INTO engine_trigger (event_type, process_id, condition, is_active) VALUES
+  ('agent.task_delegated', 'subagent-execution', '{}', true);
+```
+
+**New action_type in engine-dispatch:** `run_subagent`
+
+```typescript
+case "run_subagent": {
+  const session = await getSession(payload.child_session_id);
+  const tools = getCapabilityTools(session.context.capability, session.context.inherited_authority);
+  const systemPrompt = buildSubagentPrompt(session.context);
+  const result = await generateText({
+    model: resolveModel({ sessionType: "subagent", capability: session.context.capability }),
+    system: systemPrompt,
+    messages: [{ role: "user", content: session.context.instruction }],
+    tools: toVercelTools(tools, toolContext),
+    stopWhen: stepCountIs(5),
+  });
+  await updateSession(payload.child_session_id, {
+    delegation_status: "completed",
+    delegation_result: { text: result.text },
+  });
+  // Emit completion event — stage-engine picks up and broadcasts
+  await supabase.from("engine_event").insert({
+    event_type: "agent.subagent_completed",
+    payload: { child_session_id, parent_session_id: session.parent_session_id, result: result.text },
+    workspace_id: session.workspace_id,
+  });
 }
 ```
 
-### 2.6 Process Engine Bro
+**Why this is better than in-process execution:**
 
-Subagent-delegering kan ogsa trigge Process Engine workflows:
-
-```typescript
-// engine_trigger i database:
-// event_type: "agent.task_delegated"
-// condition: { "match": { "capability": "contract" } }
-// process_id: "contract-creation-workflow"
-```
-
-Dette lar subagenter delegere videre til bakgrunnsprosesser som allerede
-eksisterer i Process Engine (f.eks. kontrakt-opprettelse, varsling, compliance-sjekk).
-
-**Completion callback (council R7):** When a Process Engine workflow (engine_state)
-completes, it emits an `engine_event` with `event_type: "process.completed"`.
-Stage-engine listens for this event type and maps it back to the parent
-`engine_sessions` via `engine_state.context.parent_session_id` (passed through
-at spawn time). The parent session receives a `subagent_completed` broadcast.
+- If stage-engine crashes, the event is still in engine_event — Process Engine retries
+- Subagents scale independently of chat pipeline
+- One execution model (Process Engine) instead of two
+- Reuses existing crash-recovery, step tracking, and depth limiting
+- Completion callback is event-driven, not in-memory promise
 
 ---
 
@@ -910,9 +1007,11 @@ Zero active: badge exits via AnimatePresence (opacity: 0, scale: 0.8, 250ms).
 
 Each phase ships its own migration. Fase 2 columns only deploy when Fase 2 code ships.
 
-**Retention policy for engine_session_event:** Events older than 30 days are
-pruned by a scheduled cleanup job (same pattern as existing session expiry in
-session-manager.ts). This prevents unbounded table growth.
+**Retention policy for engine_session_event:** Do NOT prune in Phase 1. Event
+log is the source of truth for context replay (Managed Agents principle). Start
+with unbounded storage. Partition by month if table grows beyond 1M rows.
+Take retention decisions only after we have data on how far back Botsson
+actually queries via get_session_events.
 
 ---
 
@@ -924,7 +1023,9 @@ session-manager.ts). This prevents unbounded table growth.
 |-----|--------------|---------|
 | `stage-engine/src/hooks/registry.ts` | ~100 | Hook registry with typed payloads |
 | `stage-engine/src/hooks/builtin.ts` | ~80 | Innebyggde hooks (PII guard, telemetri, budget) |
-| `stage-engine/src/core/context-engine.ts` | ~120 | Context assembly + async compaction |
+| `stage-engine/src/core/context-view.ts` | ~80 | Context window over event log (no compaction LLM) |
+| `stage-engine/src/core/model-provider.ts` | ~30 | resolveModel() abstraction |
+| `stage-engine/src/tools/session-events.ts` | ~40 | get_session_events Botsson tool |
 | `stage-engine/src/core/session-lane.ts` | ~35 | Per-session serialization queue + cleanup |
 | `stage-engine/src/core/session-events.ts` | ~40 | appendSessionEvent() helper |
 | `supabase/migrations/YYYYMMDD_agent_harness_foundation.sql` | ~60 | Fase 1 migration (incl. engine_token_log) |
@@ -934,8 +1035,8 @@ session-manager.ts). This prevents unbounded table growth.
 | Fil | LOC (estimat) | Formaal |
 |-----|--------------|---------|
 | `stage-engine/src/tools/delegation.ts` | ~120 | delegate_task + poll_subagent tools (i stage-engine, ikke packages/ai) |
-| `stage-engine/src/core/subagent-executor.ts` | ~80 | Child session LLM executor |
 | `stage-engine/src/core/subagent-prompt.ts` | ~40 | Focused subagent prompt builder |
+| Engine-dispatch: ny action_type `run_subagent` | ~60 | Subagent execution i Process Engine (cattle pattern) |
 | `supabase/migrations/YYYYMMDD_agent_harness_subagent.sql` | ~20 | Fase 2 migration (enum + columns) |
 
 ### Fase 3
@@ -976,6 +1077,79 @@ session-manager.ts). This prevents unbounded table growth.
 | `apps/web/src/app/Botsson/_components/types.ts` | Legg til "agents" i ContentViewType, "working" i OrbStatus. | +2 linjer |
 | `apps/web/src/app/Botsson/_components/BotssonArena.tsx` | Legg til agents view title + render AgentsView. | +5 linjer |
 | `apps/web/src/app/Botsson/_components/BotssonOrb.tsx` | Legg til "working" glyph med orbiting particles. | +30 linjer |
+
+---
+
+## Delegation Contract in Prompt
+
+> Without clear rules, Botsson will either over-delegate (everything becomes
+> a subagent) or never delegate (does everything itself). Delegation heuristics
+> are prompt work, not code work.
+
+Add to `buildBotssonPromptFromContext()` and `buildSubagentPrompt()`:
+
+```
+## Nar du skal delegere (delegate_task)
+Deleger nar:
+- Oppgaven kan kjore parallelt med noe du gjor na (f.eks. lag kontrakt for Anna
+  mens du jobber med Erik)
+- Den berorer en annen entitet enn hovedoppgaven
+- Den har et klart ferdigstillelseskriterium
+
+Deleger IKKE nar:
+- Brukeren venter pa et direkte svar i samtalen
+- Oppgaven krever kontekst fra pagaende dialog
+- Du allerede har delegert 5+ oppgaver (vent pa resultater forst)
+```
+
+---
+
+## Session Resume (Arena Client)
+
+Nar brukeren refresher Arena, ma Botsson gjenoppta samtalen visuelt.
+
+**Nytt endpoint:** `GET /sessions/:id/events?after=:cursor`
+
+Arena kaller dette ved mount for a hente events siden forrige render.
+Deretter streames nye events via eksisterende WebSocket. Uten dette er
+Fase 1 event log usynlig for brukeren.
+
+```typescript
+// apps/web/src/app/Botsson/_components/useSubagents.ts
+// On mount: GET /sessions/:id/events?event_types=subagent_spawned,subagent_completed
+// Then: subscribe to WebSocket for live updates
+// Merge both into local state
+```
+
+---
+
+## Eval Baselines (Before Implementation)
+
+> Fly ikke blindt gjennom tre faser. Mal for og etter.
+
+**10 standard-oppgaver som kjores for og etter hver fase:**
+
+| # | Oppgave | Maler |
+|---|---------|-------|
+| 1 | Enkel chat-svar (hei, hvem er jeg?) | p50/p95 latency |
+| 2 | Tool-kall (sjekk vaktplan) | Tool selection accuracy |
+| 3 | Multi-turn samtale (5 turns) | Context coherence (manuell) |
+| 4 | 8-steg oppgave (lang samtale) | Completion rate (all 8 done?) |
+| 5 | Delegering: lag kontrakt for Anna | Subagent spawns + completes |
+| 6 | Delegering: 3 parallelle kontrakter | All 3 complete, no race condition |
+| 7 | Budget-grense (na max_turns) | Guard blocks correctly |
+| 8 | PII i voice-kanal | Guard blocks correctly |
+| 9 | get_session_events (spol tilbake) | Returns correct events |
+| 10 | Session resume (refresh Arena) | Events reload, subagent status visible |
+
+**KPI-er:**
+
+- p50/p95 latency per turn (for og etter hooks)
+- Subagent completion rate (mal: >90%)
+- Context budget compliance (aldri over 12K)
+- Token tracking accuracy (engine_token_log vs faktisk bruk)
+
+Baseline kjores FOR Fase 1 starter. Gjentatt etter hver fase.
 
 ---
 
