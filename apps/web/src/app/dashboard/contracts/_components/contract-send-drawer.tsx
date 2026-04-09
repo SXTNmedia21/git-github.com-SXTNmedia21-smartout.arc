@@ -171,7 +171,16 @@ export function ContractSendDrawer({
         throw new Error((err as { message?: string }).message ?? "Kunne ikke sende kontrakt");
       }
 
-      toast.success(`Kontrakt sendt til ${employeeName ?? "ansatt"}`);
+      const sendResult = (await sendRes.json()) as {
+        status: "sent" | "queued";
+        message: string;
+      };
+
+      if (sendResult.status === "queued") {
+        toast.warning(sendResult.message);
+      } else {
+        toast.success(`Kontrakt sendt til ${employeeName ?? "ansatt"}`);
+      }
       handleOpenChange(false);
       onSuccess();
     } catch (err) {
