@@ -1362,9 +1362,29 @@ export function DashboardShell({
                                   ? `${inboundRequestCount} Forespørsler`
                                   : undefined
                               }
-                              active={isActive("/dashboard/people")}
+                              active={
+                                isActive("/dashboard/people") || isActive("/dashboard/contracts")
+                              }
                               isCollapsed={isSidebarCollapsed}
                             />
+                            {(isActive("/dashboard/people") || isActive("/dashboard/contracts")) &&
+                              !isSidebarCollapsed && (
+                                <Link
+                                  href="/dashboard/contracts"
+                                  className={`ml-8 flex items-center gap-2 rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
+                                    isActive("/dashboard/contracts")
+                                      ? isDark
+                                        ? "text-white"
+                                        : "text-foreground font-semibold"
+                                      : isDark
+                                        ? "text-zinc-500 hover:text-zinc-300"
+                                        : "text-muted-foreground hover:text-foreground"
+                                  }`}
+                                >
+                                  <FileSignature className="h-3.5 w-3.5" />
+                                  Kontrakter
+                                </Link>
+                              )}
                             <NavItem
                               href="/dashboard/schedule"
                               icon={CalendarDays}
@@ -1441,14 +1461,6 @@ export function DashboardShell({
                               label="Sesong"
                               isDark={isDark}
                               active={isActive("/dashboard/season")}
-                              isCollapsed={isSidebarCollapsed}
-                            />
-                            <NavItem
-                              href="/dashboard/contracts"
-                              icon={FileSignature}
-                              label="Kontrakter"
-                              isDark={isDark}
-                              active={isActive("/dashboard/contracts")}
                               isCollapsed={isSidebarCollapsed}
                             />
                             <NavItem
