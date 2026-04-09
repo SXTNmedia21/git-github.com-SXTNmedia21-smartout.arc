@@ -300,9 +300,8 @@ export default function SettingsScreen() {
               </View>
               <View>
                 <Text style={s.rowSub}>Aktiv Workspace</Text>
-                {/* TODO: join workspace table to get workspace.name — profile only has workspace_id */}
                 <Text style={s.rowLabelBold}>
-                  {isLoading ? "..." : (profile?.workspace_id?.slice(0, 8) ?? "—")}
+                  {isLoading ? "..." : (profile?.workspace?.name ?? "—")}
                 </Text>
               </View>
             </View>
@@ -473,9 +472,8 @@ export default function SettingsScreen() {
           </Text>
         </Pressable>
 
-        {/* TODO: replace workspace_id slice with workspace.name once workspace join is added */}
         <Text style={s.versionText}>
-          SMARTOUT V2.4.12 • {profile?.workspace_id?.slice(0, 8).toUpperCase() ?? "—"}
+          SMARTOUT V2.4.12 • {profile?.workspace?.name?.toUpperCase() ?? "—"}
         </Text>
       </ScrollView>
     </SafeAreaView>
