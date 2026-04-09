@@ -116,7 +116,11 @@ export function HospitalityOperationsCockpit() {
   );
 
   return (
-    <div data-testid="hospitality-operations-cockpit" className="dashboard-enter space-y-6 pb-8">
+    <div
+      data-testid="hospitality-operations-cockpit"
+      className="dashboard-enter flex h-full flex-col gap-3 overflow-hidden p-3"
+    >
+      {/* ── TOP STRIP — compact status bar ── */}
       <CockpitTopStrip
         isLoading={model.isLoading}
         onDutyCount={summary.onDutyCount}
@@ -126,13 +130,19 @@ export function HospitalityOperationsCockpit() {
         lastUpdatedAt={model.feed[0]?.occurredAt ?? null}
       />
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <div className="space-y-6 xl:col-span-2">
-          {/* ── DRIFT — today's operations ── */}
-          <section className="border-border/30 bg-card/30 space-y-4 rounded-2xl border p-5 backdrop-blur-sm">
+      {/* ── 2x2 GRID — fills remaining height ── */}
+      <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-2 gap-3 xl:grid-cols-3">
+        {/* ── TOP LEFT: Bemanning + Risiko ── */}
+        <section className="border-border/30 bg-card/30 flex flex-col overflow-hidden rounded-2xl border backdrop-blur-sm xl:col-span-2">
+          <div className="border-border/20 flex items-center justify-between border-b px-4 pt-3 pb-2">
             <h2 className="text-muted-foreground/60 text-[10px] font-bold tracking-[0.15em] uppercase">
-              Drift
+              Drift — bemanning
             </h2>
+            <span className="text-muted-foreground/40 text-[10px] tabular-nums">
+              {summary.onDutyCount} pa jobb
+            </span>
+          </div>
+          <div className="flex-1 space-y-3 overflow-y-auto p-4">
             <CockpitRiskQueues
               staffingQueue={model.staffingQueue}
               operationalQueue={model.operationalQueue}
@@ -141,25 +151,17 @@ export function HospitalityOperationsCockpit() {
               onOperationalPress={handleOperationalPress}
             />
             <CockpitOnDutyProgress entries={model.onDutyEntries} isLoading={model.isLoading} />
-            <CockpitActivityFeed
-              feed={model.feed}
-              isLoading={model.isLoading}
-              onEventPress={handleEventPress}
-            />
-          </section>
+          </div>
+        </section>
 
-          {/* ── FORBEREDELSE — next 7 days ── */}
-          <section className="border-border/30 bg-card/30 space-y-4 rounded-2xl border p-5 backdrop-blur-sm">
-            <CockpitPrepStrip />
-          </section>
-        </div>
-
-        {/* ── ACTION RAIL — always visible ── */}
-        <div className="xl:sticky xl:top-4 xl:col-span-1 xl:self-start">
-          <div className="border-border/30 bg-card/30 rounded-2xl border p-4 backdrop-blur-sm">
-            <h2 className="text-muted-foreground/60 mb-4 text-[10px] font-bold tracking-[0.15em] uppercase">
+        {/* ── TOP RIGHT: Krever handling ── */}
+        <section className="border-border/30 bg-card/30 flex flex-col overflow-hidden rounded-2xl border backdrop-blur-sm">
+          <div className="border-border/20 flex items-center justify-between border-b px-4 pt-3 pb-2">
+            <h2 className="text-muted-foreground/60 text-[10px] font-bold tracking-[0.15em] uppercase">
               Krever handling
             </h2>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4">
             <CockpitActionRail
               staffingQueue={model.staffingQueue}
               operationalQueue={model.operationalQueue}
@@ -167,7 +169,38 @@ export function HospitalityOperationsCockpit() {
               isLoading={model.isLoading}
             />
           </div>
-        </div>
+        </section>
+
+        {/* ── BOTTOM LEFT: Forberedelse 7 dager ── */}
+        <section className="border-border/30 bg-card/30 flex flex-col overflow-hidden rounded-2xl border backdrop-blur-sm xl:col-span-2">
+          <div className="border-border/20 flex items-center justify-between border-b px-4 pt-3 pb-2">
+            <h2 className="text-muted-foreground/60 text-[10px] font-bold tracking-[0.15em] uppercase">
+              Forberedelse
+            </h2>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4">
+            <CockpitPrepStrip />
+          </div>
+        </section>
+
+        {/* ── BOTTOM RIGHT: Hendelser ── */}
+        <section className="border-border/30 bg-card/30 flex flex-col overflow-hidden rounded-2xl border backdrop-blur-sm">
+          <div className="border-border/20 flex items-center justify-between border-b px-4 pt-3 pb-2">
+            <h2 className="text-muted-foreground/60 text-[10px] font-bold tracking-[0.15em] uppercase">
+              Hendelser
+            </h2>
+            <span className="text-muted-foreground/40 text-[10px] tabular-nums">
+              {summary.eventCount} i dag
+            </span>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4">
+            <CockpitActivityFeed
+              feed={model.feed}
+              isLoading={model.isLoading}
+              onEventPress={handleEventPress}
+            />
+          </div>
+        </section>
       </div>
     </div>
   );
