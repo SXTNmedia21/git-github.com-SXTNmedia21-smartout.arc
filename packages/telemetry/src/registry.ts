@@ -918,6 +918,27 @@ export interface ChangeProposalRejected extends BaseEvent {
   };
 }
 
+export interface WorkspaceSettingsUpdated extends BaseEvent {
+  event: "workspace_settings updated";
+  properties: {
+    data: { section: string };
+  };
+}
+
+export interface TeamCreated extends BaseEvent {
+  event: "team created";
+  properties: {
+    data: Record<string, unknown>;
+  };
+}
+
+export interface TeamDeleted extends BaseEvent {
+  event: "team deleted";
+  properties: {
+    data: { team_id: string };
+  };
+}
+
 export interface KpiTargetUpdated extends BaseEvent {
   event: "kpi_target updated";
   properties: {
@@ -2574,6 +2595,9 @@ export type SmartoutEvent =
   | HourFactorsUpdated
   | OperatingHoursUpdated
   | WorkspaceOperatingHoursUpdated
+  | WorkspaceSettingsUpdated
+  | TeamCreated
+  | TeamDeleted
   | KpiTargetUpdated
   | WorkspaceBudgetUpdated
   | AbsenceCreated
@@ -3087,6 +3111,18 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "workspace_operating_hours updated": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "operations",
+  },
+  "workspace_settings updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "team created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "org_structure",
+  },
+  "team deleted": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "org_structure",
   },
   "kpi_target updated": {
     destinations: ["posthog", "logger", "activity_trail"],

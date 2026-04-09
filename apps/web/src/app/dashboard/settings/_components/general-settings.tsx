@@ -36,8 +36,11 @@ import {
 import { useWorkspace } from "@/lib/workspace-context";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { createClient } from "@smartout/supabase/client";
+import type { Database } from "@smartout/supabase";
 import { emit } from "@smartout/telemetry";
 import { toast } from "sonner";
+
+type CurrencyEnum = Database["public"]["Enums"]["currency"];
 
 // ─── Schema ────────────────────────────────────────────────────────────────
 
@@ -45,11 +48,11 @@ const generalSettingsSchema = z.object({
   name: z.string().min(1, "Workspace name is required"),
   timezone: z.string().min(1, "Timezone is required"),
   currency: z.string().min(1, "Currency is required"),
-  phone: z.string().optional().default(""),
-  email: z.string().email("Invalid email").or(z.literal("")).optional().default(""),
-  address_line_1: z.string().optional().default(""),
-  postal_code: z.string().optional().default(""),
-  city: z.string().optional().default(""),
+  phone: z.string(),
+  email: z.string().email("Invalid email").or(z.literal("")),
+  address_line_1: z.string(),
+  postal_code: z.string(),
+  city: z.string(),
 });
 
 type GeneralSettingsInput = z.infer<typeof generalSettingsSchema>;
@@ -119,9 +122,7 @@ export function GeneralSettings() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("workspace")
-        .select(
-          "name, timezone, currency, phone, email, address_line_1, postal_code, city",
-        )
+        .select("name, timezone, currency, phone, email, address_line_1, postal_code, city")
         .eq("workspace_id", wsId)
         .single();
       if (error) throw error;
@@ -166,7 +167,7 @@ export function GeneralSettings() {
         .update({
           name: values.name,
           timezone: values.timezone,
-          currency: values.currency,
+          currency: values.currency as CurrencyEnum,
           phone: values.phone || null,
           email: values.email || null,
           address_line_1: values.address_line_1 || null,
@@ -178,7 +179,7 @@ export function GeneralSettings() {
     },
     onSuccess: () => {
       void emit({
-        event: "settings updated",
+        event: "workspace_settings updated",
         workspace_id: wsId,
         actor_id: profileId ?? "",
         properties: { data: { section: "general" } },

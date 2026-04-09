@@ -23,7 +23,6 @@ import {
   CardHeader,
   CardTitle,
   Input,
-  Label,
   Skeleton,
 } from "@smartout/ui";
 import { useWorkspace } from "@/lib/workspace-context";
@@ -96,14 +95,14 @@ const METRICS: MetricDef[] = [
 
 // ─── Schema ────────────────────────────────────────────────────────────────
 
-const kpiTargetsSchema = z.object(
-  Object.fromEntries(
-    METRICS.map((m) => [
-      m.key,
-      z.coerce.number().min(0, "Must be >= 0").max(m.unit === "days" ? 365 : 100, `Max ${m.unit === "days" ? "365" : "100"}`),
-    ]),
-  ) as Record<string, z.ZodNumber>,
-);
+const kpiTargetsSchema = z.object({
+  cost_of_sales: z.coerce.number().min(0, "Must be >= 0").max(100, "Max 100"),
+  turnover_90d: z.coerce.number().min(0, "Must be >= 0").max(100, "Max 100"),
+  absence_rate: z.coerce.number().min(0, "Must be >= 0").max(100, "Max 100"),
+  time_to_job_ready: z.coerce.number().min(0, "Must be >= 0").max(365, "Max 365"),
+  task_completion: z.coerce.number().min(0, "Must be >= 0").max(100, "Max 100"),
+  training_readiness: z.coerce.number().min(0, "Must be >= 0").max(100, "Max 100"),
+});
 
 type KpiTargetsInput = z.infer<typeof kpiTargetsSchema>;
 
@@ -149,13 +148,23 @@ export function KpiTargetsSettings() {
     },
   });
 
-  // Build default values from fetched data or metric defaults
-  const defaultValues = Object.fromEntries(
-    METRICS.map((m) => {
-      const existing = targets?.find((t) => t.metric === m.key);
-      return [m.key, existing ? Number(existing.target_value) : m.defaultValue];
-    }),
-  ) as KpiTargetsInput;
+  // Build reset values from fetched data or metric defaults
+  const resetValues: KpiTargetsInput = {
+    cost_of_sales: 30,
+    turnover_90d: 15,
+    absence_rate: 5,
+    time_to_job_ready: 14,
+    task_completion: 90,
+    training_readiness: 80,
+  };
+  if (targets) {
+    for (const m of METRICS) {
+      const existing = targets.find((t) => t.metric === m.key);
+      if (existing) {
+        resetValues[m.key as keyof KpiTargetsInput] = Number(existing.target_value);
+      }
+    }
+  }
 
   const form = useForm<KpiTargetsInput>({
     resolver: zodResolver(kpiTargetsSchema),
@@ -165,9 +174,9 @@ export function KpiTargetsSettings() {
   // Reset form when data loads
   useEffect(() => {
     if (targets) {
-      form.reset(defaultValues);
+      form.reset(resetValues);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only reset when targets change
+    // eslint-disable-next-line -- only reset when targets change
   }, [targets]);
 
   const upsertMutation = useMutation({
@@ -175,7 +184,7 @@ export function KpiTargetsSettings() {
       const rows = METRICS.map((m) => ({
         workspace_id: wsId,
         metric: m.key,
-        target_value: values[m.key],
+        target_value: values[m.key as keyof KpiTargetsInput],
       }));
 
       const { error } = await supabase
@@ -185,10 +194,10 @@ export function KpiTargetsSettings() {
     },
     onSuccess: () => {
       void emit({
-        event: "kpi_targets updated",
+        event: "kpi_target updated",
         workspace_id: wsId,
         actor_id: profileId ?? "",
-        properties: { data: { metrics: METRICS.map((m) => m.key) } },
+        properties: { data: { metric: "all", value: 0 } },
       });
       void queryClient.invalidateQueries({ queryKey });
       toast.success("KPI targets saved");
@@ -230,15 +239,15 @@ export function KpiTargetsSettings() {
                   min={0}
                   max={metric.unit === "days" ? 365 : 100}
                   className="flex-1"
-                  {...form.register(metric.key, { valueAsNumber: true })}
+                  {...form.register(metric.key as keyof KpiTargetsInput, { valueAsNumber: true })}
                 />
                 <span className="text-muted-foreground shrink-0 text-sm font-medium">
                   {metric.unit}
                 </span>
               </div>
-              {form.formState.errors[metric.key] && (
+              {form.formState.errors[metric.key as keyof KpiTargetsInput] && (
                 <p className="text-destructive mt-1 text-xs">
-                  {form.formState.errors[metric.key]?.message}
+                  {form.formState.errors[metric.key as keyof KpiTargetsInput]?.message}
                 </p>
               )}
             </CardContent>
