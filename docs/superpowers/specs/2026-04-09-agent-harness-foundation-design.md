@@ -485,7 +485,7 @@ WHERE workspace_id = ? GROUP BY source;
 **Limits (Fase 2+, ikke denne specen):** Nar tracking er pa plass, kan budget-guard
 hooken sjekke aggregerte tall mot grenser satt pa workspace- eller profilniva.
 
-### 1.4 Session Durability
+### 1.5 Session Durability
 
 **Maal:** Crash recovery + budget tracking + lane serialization.
 
@@ -925,7 +925,7 @@ Zero active: badge exits via AnimatePresence (opacity: 0, scale: 0.8, 250ms).
 
 ## Database Migrations (split per phase, council recommendation)
 
-**Fase 1 migration:** See Section 1.3 above (engine_session_event + budget columns).
+**Fase 1 migration:** See Section 1.5 above (engine_session_event + budget columns).
 **Fase 2 migration:** See Section 2.1 above (parent_session_id, depth, delegation_status enum).
 
 Each phase ships its own migration. Fase 2 columns only deploy when Fase 2 code ships.
@@ -1152,7 +1152,7 @@ Subagent-delegering mapper direkte til eksisterende authority-modell:
 
 | Risiko | Sannsynlighet | Konsekvens | Mitigering |
 |--------|--------------|------------|------------|
-| Hook-overhead forsinker responstid | Lav | Medium | Hooks er async, observe-type hooks kjorer fire-and-forget |
+| Hook-overhead forsinker responstid | Lav | Medium | Hooks er async; observe-type hooks kjorer non-blocking via Promise.allSettled med error logging |
 | Botsson glemmer a bruke get_session_events for eldre context | Medium | Medium | Prompt-eksempler + eval #9. Context View inkluderer pointer til verktoy. |
 | Subagent-kostnader eskalerer | Medium | Medium | Budget guard per session + workspace-level token cap |
 | Race conditions i subagent completion | Lav | Medium | SessionLane + idempotency pa events |
@@ -1184,8 +1184,8 @@ emit() = analytics/audit, guardian-bus = live UI updates.
 ## ADR Required
 
 **ADR-0083: Agent Harness Foundation** — documents this extension to ADR-0042
-(Agent Architecture). Covers: hook registry, context engine, session durability,
-subagent delegation. To be written at implementation start.
+(Agent Architecture). Covers: hook registry, context view, session durability,
+subagent delegation, token tracking. To be written at implementation start.
 
 ---
 
