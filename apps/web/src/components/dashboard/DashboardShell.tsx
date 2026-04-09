@@ -293,6 +293,10 @@ import {
   BookOpen,
   Globe,
   Receipt,
+  Clock,
+  Gavel,
+  UserCircle,
+  FileCheck,
 } from "lucide-react";
 
 import { ContractPendingBanner } from "./ContractPendingBanner";
@@ -1480,6 +1484,22 @@ export function DashboardShell({
                               isCollapsed={isSidebarCollapsed}
                             />
                             <NavItem
+                              href="/dashboard/shift-clock"
+                              icon={Clock}
+                              label="Stempling"
+                              isDark={isDark}
+                              active={isActive("/dashboard/shift-clock")}
+                              isCollapsed={isSidebarCollapsed}
+                            />
+                            <NavItem
+                              href="/dashboard/governance"
+                              icon={Gavel}
+                              label="Governance"
+                              isDark={isDark}
+                              active={isActive("/dashboard/governance")}
+                              isCollapsed={isSidebarCollapsed}
+                            />
+                            <NavItem
                               href="/dashboard"
                               icon={ListChecks}
                               label="Å gjøre"
@@ -1542,6 +1562,22 @@ export function DashboardShell({
                             label="Min lønn"
                             isDark={isDark}
                             active={isActive("/dashboard/my-salary")}
+                            isCollapsed={isSidebarCollapsed}
+                          />
+                          <NavItem
+                            href="/dashboard/my-contract"
+                            icon={FileCheck}
+                            label="Min kontrakt"
+                            isDark={isDark}
+                            active={isActive("/dashboard/my-contract")}
+                            isCollapsed={isSidebarCollapsed}
+                          />
+                          <NavItem
+                            href="/dashboard/my-profile"
+                            icon={UserCircle}
+                            label="Min profil"
+                            isDark={isDark}
+                            active={isActive("/dashboard/my-profile")}
                             isCollapsed={isSidebarCollapsed}
                           />
                         </>
