@@ -2045,7 +2045,9 @@ export function DashboardShell({
                       <DocumentModeShell isDark={isDark} />
                     ) : (
                       <div className="flex min-h-0 flex-1 overflow-hidden">
-                        <div className="scroll-overlay flex min-h-0 flex-1 flex-col overflow-hidden p-6 md:p-8 print:block print:h-auto print:overflow-visible print:p-0">
+                        <div
+                          className={`scroll-overlay flex min-h-0 flex-1 flex-col overflow-hidden print:block print:h-auto print:overflow-visible print:p-0 ${isDashboardPage ? "p-2" : "p-6 md:p-8"}`}
+                        >
                           {isAdminMode && isDashboardPage && (
                             <>
                               <div className="mb-4 flex-shrink-0">

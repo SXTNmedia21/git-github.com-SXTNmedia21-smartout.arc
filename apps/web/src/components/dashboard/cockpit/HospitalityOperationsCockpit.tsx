@@ -85,7 +85,7 @@ export function HospitalityOperationsCockpit() {
   return (
     <div
       data-testid="hospitality-operations-cockpit"
-      className="dashboard-enter grid h-[calc(100vh-140px)] grid-cols-1 gap-3 overflow-hidden xl:grid-cols-3"
+      className="dashboard-enter grid h-full grid-cols-1 gap-2 overflow-hidden xl:grid-cols-3"
     >
       {/* ── LEFT: Drift + Forberedelse stacked ── */}
       <div className="flex min-h-0 flex-col gap-3 xl:col-span-2">

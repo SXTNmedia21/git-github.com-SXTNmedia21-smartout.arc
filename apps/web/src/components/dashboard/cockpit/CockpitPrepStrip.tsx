@@ -119,11 +119,7 @@ export function CockpitPrepStrip() {
   }, [budget]);
 
   return (
-    <div className="space-y-3">
-      <h3 className="text-muted-foreground/60 text-[10px] font-bold tracking-[0.15em] uppercase">
-        Forberedelse
-      </h3>
-
+    <div>
       <div className="grid grid-cols-7 gap-2">
         {days.map((day, i) => {
           const cov = coverageByDate[day.date];
