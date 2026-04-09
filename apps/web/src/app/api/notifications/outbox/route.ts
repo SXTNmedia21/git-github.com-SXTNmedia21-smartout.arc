@@ -41,8 +41,10 @@ export async function POST(request: Request) {
 
   const { event_key, metadata } = parsed.data;
 
-  // 3. Event config lookup — unknown events are silently accepted (best-effort)
-  const config = getEventConfig(event_key);
+  // 3. Event config lookup — convert space-separated event names to dot-notation
+  // to match NOTIFICATION_EVENTS keys (e.g., "shift published" → "shift.published")
+  const configKey = event_key.replace(/\s+/g, ".");
+  const config = getEventConfig(configKey);
   if (!config) {
     return NextResponse.json({ ok: true, skipped: true }, { status: 202 });
   }
@@ -62,7 +64,7 @@ export async function POST(request: Request) {
   const { error } = await insertOutboxNotification(supabase, {
     workspace_id: workspaceId,
     recipient_id: recipientId,
-    event_key,
+    event_key: configKey,
     metadata,
   });
 
