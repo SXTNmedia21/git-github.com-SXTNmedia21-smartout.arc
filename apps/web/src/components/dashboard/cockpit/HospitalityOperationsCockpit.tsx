@@ -118,7 +118,7 @@ export function HospitalityOperationsCockpit() {
   return (
     <div
       data-testid="hospitality-operations-cockpit"
-      className="dashboard-enter flex h-full flex-col gap-3 overflow-hidden p-3"
+      className="dashboard-enter flex min-h-[calc(100vh-180px)] flex-col gap-3 overflow-hidden"
     >
       {/* ── TOP STRIP — compact status bar ── */}
       <CockpitTopStrip
