@@ -8,10 +8,10 @@
  * 4. Complete — score ring + stats
  */
 
-import React, { useState } from "react";
-import { View, Text, ScrollView, Pressable } from "react-native";
+import React, { useMemo, useState } from "react";
+import { View, Text, ScrollView, Pressable, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import Svg, { Circle as SvgCircle } from "react-native-svg";
@@ -26,12 +26,14 @@ import {
   Trophy,
   Check,
   Send,
+  AlertCircle,
 } from "lucide-react-native";
 import { createStyles, useTheme, withOpacity } from "@/theme";
+import { useProcedureSteps } from "@/hooks/queries/use-procedure-steps";
 
 type Phase = "hero" | "manual" | "quiz" | "complete";
 
-// ── Manual steps data ──
+// ── Types for display data derived from DB rows ──
 
 type ManualStep = {
   number: string;
@@ -40,86 +42,87 @@ type ManualStep = {
   tip: string;
 };
 
-const MANUAL_STEPS: ManualStep[] = [
-  {
-    number: "01",
-    title: "Plassering av asjetten",
-    instruction:
-      "Plasser den flate hovedtallerkenen midt foran hver stol, ca. to centimeter fra bordkanten. Sørg for at den ligger parallelt med kanten for et symmetrisk uttrykk.",
-    tip: "Bruk to fingre for å måle avstand",
-  },
-  {
-    number: "02",
-    title: "Bestikk og rekkefølge",
-    instruction:
-      "Legg gafler til venstre og kniver/skjeer til høyre for tallerkenen. Bladet peker innover. Bestikk plasseres i rekkefølge utenfra og inn etter rettens gang.",
-    tip: "Teller utenfra: forrett → hovedrett",
-  },
-  {
-    number: "03",
-    title: "Glass og servietter",
-    instruction:
-      "Vannglass plasseres over knivspissen. Vinglass til høyre for vannglasset. Servietten brettes enkelt og legges på tallerkenen eller til venstre for gaflene.",
-    tip: "Fold servietten i en enkel rektangel for nordisk stil",
-  },
-];
-
-// ── Quiz data ──
-
 type QuizChoice = { id: string; label: string; title: string; subtitle: string };
 
-const QUIZ_CHOICES: QuizChoice[] = [
-  {
-    id: "a",
-    label: "Alternativ A",
-    title: "Strukturert Stillhet",
-    subtitle: "Organiserte omgivelser og dyp konsentrasjon.",
-  },
-  {
-    id: "b",
-    label: "Alternativ B",
-    title: "Spontan Energi",
-    subtitle: "Åpenhet for nye inntrykk og raske skifter.",
-  },
-  {
-    id: "c",
-    label: "Alternativ C",
-    title: "Sosial Resonans",
-    subtitle: "Samhandling og utveksling av ideer med andre.",
-  },
-  {
-    id: "d",
-    label: "Alternativ D",
-    title: "Naturlig Rytme",
-    subtitle: "Følge kroppens behov og naturlige dagslys.",
-  },
-];
-
 const CIRCUMFERENCE = 2 * Math.PI * 100;
+
+/** Map a letter index (0 → "A", 1 → "B", ...) to a choice label */
+function choiceLetter(i: number): string {
+  return String.fromCharCode(65 + i);
+}
 
 export default function FlowPlayerScreen() {
   const styles = useStyles();
   const theme = useTheme();
   const router = useRouter();
+  const { procedureId } = useLocalSearchParams<{ procedureId?: string }>();
+
+  const { data, isLoading, error } = useProcedureSteps(procedureId);
 
   const [phase, setPhase] = useState<Phase>("hero");
   const [stepIndex, setStepIndex] = useState(0);
   const [quizAnswer, setQuizAnswer] = useState<string | null>(null);
 
-  const currentStep = MANUAL_STEPS[stepIndex];
-  const totalSteps = MANUAL_STEPS.length;
+  // Derive manual steps from procedure_step rows
+  const manualSteps: ManualStep[] = useMemo(() => {
+    if (!data?.steps.length) return [];
+    return data.steps.map((s, i) => ({
+      number: String(i + 1).padStart(2, "0"),
+      title: s.title,
+      instruction: s.description,
+      tip: s.training_content ?? "",
+    }));
+  }, [data?.steps]);
+
+  // Derive quiz choices from knowledge_test.questions JSON
+  // Expected shape: { question: string, choices: { id, text, explanation? }[] }
+  const quizData = useMemo(() => {
+    if (!data?.knowledgeTest?.questions) return null;
+    const raw = data.knowledgeTest.questions as {
+      question?: string;
+      subtitle?: string;
+      choices?: { id: string; text: string; explanation?: string }[];
+    };
+    if (!raw.choices?.length) return null;
+    return {
+      question: raw.question ?? "Kunnskapstest",
+      subtitle: raw.subtitle ?? "Velg det alternativet som er riktig.",
+      choices: raw.choices.map(
+        (c, i): QuizChoice => ({
+          id: c.id,
+          label: `Alternativ ${choiceLetter(i)}`,
+          title: c.text,
+          subtitle: c.explanation ?? "",
+        }),
+      ),
+    };
+  }, [data?.knowledgeTest]);
+
+  const hasSteps = manualSteps.length > 0;
+  const hasQuiz = quizData !== null;
+  const currentStep = hasSteps ? manualSteps[stepIndex] : null;
+  const totalSteps = manualSteps.length;
+  const procedureName = data?.procedure?.name ?? "Opplæring";
 
   const handleStart = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setPhase("manual");
+    if (hasSteps) {
+      setPhase("manual");
+    } else if (hasQuiz) {
+      setPhase("quiz");
+    } else {
+      setPhase("complete");
+    }
   };
 
   const handleNextStep = () => {
     Haptics.selectionAsync();
     if (stepIndex < totalSteps - 1) {
       setStepIndex(stepIndex + 1);
-    } else {
+    } else if (hasQuiz) {
       setPhase("quiz");
+    } else {
+      setPhase("complete");
     }
   };
 
@@ -152,25 +155,84 @@ export default function FlowPlayerScreen() {
         <View style={styles.moduleBadge}>
           <Text style={styles.moduleBadgeText}>
             {phase === "manual"
-              ? `MANUAL: BORDDEKKING`
+              ? `MANUAL: ${procedureName.toUpperCase()}`
               : phase === "quiz"
                 ? "QUIZ"
-                : "KURSMODUL 04"}
+                : procedureName.toUpperCase()}
           </Text>
         </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* ══ LOADING ══ */}
+        {isLoading && (
+          <View style={styles.centeredState}>
+            <ActivityIndicator size="large" color={theme.colors.brandOrange} />
+            <Text style={styles.stateText}>Laster treningsinnhold...</Text>
+          </View>
+        )}
+
+        {/* ══ ERROR ══ */}
+        {error && !isLoading && (
+          <View style={styles.centeredState}>
+            <AlertCircle size={40} color={theme.colors.destructive} strokeWidth={1.5} />
+            <Text style={styles.stateText}>Kunne ikke laste innhold</Text>
+            <Text style={styles.stateSubtext}>{(error as Error).message}</Text>
+          </View>
+        )}
+
+        {/* ══ NO PROCEDURE ID ══ */}
+        {!procedureId && !isLoading && (
+          <View style={styles.centeredState}>
+            <AlertCircle size={40} color={theme.colors.mutedForeground} strokeWidth={1.5} />
+            <Text style={styles.stateText}>Ingen treningsinnhold tilgjengelig</Text>
+            <Text style={styles.stateSubtext}>Denne prosedyren har ikke fått innhold ennå.</Text>
+            <Pressable
+              onPress={() => router.back()}
+              style={({ pressed }) => [
+                styles.ctaButton,
+                pressed && styles.ctaPressed,
+                { marginTop: 24 },
+              ]}
+            >
+              <Text style={styles.ctaText}>Tilbake</Text>
+            </Pressable>
+          </View>
+        )}
+
+        {/* ══ EMPTY — procedure exists but no steps and no quiz ══ */}
+        {procedureId && data && !hasSteps && !hasQuiz && !isLoading && (
+          <View style={styles.centeredState}>
+            <AlertCircle size={40} color={theme.colors.mutedForeground} strokeWidth={1.5} />
+            <Text style={styles.stateText}>Ingen treningsinnhold tilgjengelig</Text>
+            <Text style={styles.stateSubtext}>
+              Prosedyren «{procedureName}» har ikke fått steg eller quiz ennå.
+            </Text>
+            <Pressable
+              onPress={() => router.back()}
+              style={({ pressed }) => [
+                styles.ctaButton,
+                pressed && styles.ctaPressed,
+                { marginTop: 24 },
+              ]}
+            >
+              <Text style={styles.ctaText}>Tilbake</Text>
+            </Pressable>
+          </View>
+        )}
+
         {/* ══ HERO ══ */}
-        {phase === "hero" && (
+        {phase === "hero" && data && (hasSteps || hasQuiz) && (
           <Animated.View entering={FadeIn.delay(50).duration(500)} style={styles.hero}>
             <Text style={styles.heroTitle}>
               Velkommen til{"\n"}
-              <Text style={styles.heroAccent}>Opplæring</Text>
+              <Text style={styles.heroAccent}>{procedureName}</Text>
             </Text>
-            <Text style={styles.heroSubtitle}>
-              Mestre kunsten av gjestfrihet gjennom vårt ambient læringssystem. Start din reise her.
-            </Text>
+            {data.procedure.description ? (
+              <Text style={styles.heroSubtitle}>{data.procedure.description}</Text>
+            ) : (
+              <Text style={styles.heroSubtitle}>Følg stegene for å fullføre denne prosedyren.</Text>
+            )}
             <Pressable
               onPress={handleStart}
               style={({ pressed }) => [styles.ctaButton, pressed && styles.ctaPressed]}
@@ -189,7 +251,7 @@ export default function FlowPlayerScreen() {
                 STEG {stepIndex + 1} AV {totalSteps}
               </Text>
               <View style={styles.stepDots}>
-                {MANUAL_STEPS.map((_, i) => (
+                {manualSteps.map((_, i) => (
                   <View
                     key={i}
                     style={[
@@ -216,10 +278,12 @@ export default function FlowPlayerScreen() {
             {/* Instruction */}
             <View style={styles.instructionCard}>
               <Text style={styles.instructionText}>{currentStep.instruction}</Text>
-              <View style={styles.tipRow}>
-                <Lightbulb size={14} color={theme.colors.brandOrange} strokeWidth={1.5} />
-                <Text style={styles.tipText}>TIPS: {currentStep.tip}</Text>
-              </View>
+              {currentStep.tip ? (
+                <View style={styles.tipRow}>
+                  <Lightbulb size={14} color={theme.colors.brandOrange} strokeWidth={1.5} />
+                  <Text style={styles.tipText}>TIPS: {currentStep.tip}</Text>
+                </View>
+              ) : null}
             </View>
 
             {/* Prev / Next */}
@@ -258,7 +322,7 @@ export default function FlowPlayerScreen() {
                 ]}
               >
                 <Text style={styles.navButtonTextPrimary}>
-                  {stepIndex < totalSteps - 1 ? "Neste steg" : "Til quiz"}
+                  {stepIndex < totalSteps - 1 ? "Neste steg" : hasQuiz ? "Til quiz" : "Fullfør"}
                 </Text>
                 <ArrowRight size={18} color="#ffffff" strokeWidth={2} />
               </Pressable>
@@ -268,7 +332,7 @@ export default function FlowPlayerScreen() {
             {stepIndex < totalSteps - 1 && (
               <View style={styles.previewSection}>
                 <Text style={styles.previewLabel}>NESTE STEG I PROSESSEN</Text>
-                {MANUAL_STEPS.slice(stepIndex + 1).map((s) => (
+                {manualSteps.slice(stepIndex + 1).map((s) => (
                   <View key={s.number} style={styles.previewRow}>
                     <View style={styles.previewNumber}>
                       <Text style={styles.previewNumberText}>{s.number}</Text>
@@ -282,26 +346,24 @@ export default function FlowPlayerScreen() {
         )}
 
         {/* ══ QUIZ ══ */}
-        {phase === "quiz" && (
+        {phase === "quiz" && quizData && (
           <Animated.View entering={FadeIn.delay(50).duration(400)}>
             {/* Progress bar */}
             <View style={styles.quizProgress}>
-              <Text style={styles.quizProgressLabel}>MODULE 04 · QUIZ</Text>
-              <Text style={styles.quizProgressPercent}>75% COMPLETE</Text>
+              <Text style={styles.quizProgressLabel}>{procedureName.toUpperCase()} · QUIZ</Text>
+              <Text style={styles.quizProgressPercent}>{hasSteps ? "75%" : "50%"} COMPLETE</Text>
             </View>
             <View style={styles.quizProgressTrack}>
-              <View style={styles.quizProgressFill} />
+              <View style={[styles.quizProgressFill, { width: hasSteps ? "75%" : "50%" }]} />
             </View>
 
             {/* Question */}
-            <Text style={styles.quizTitle}>Hva inspirerer ditt daglige fokus?</Text>
-            <Text style={styles.quizSubtitle}>
-              Velg det alternativet som best beskriver din tilnærming til kreativ flyt i dag.
-            </Text>
+            <Text style={styles.quizTitle}>{quizData.question}</Text>
+            <Text style={styles.quizSubtitle}>{quizData.subtitle}</Text>
 
             {/* Choice cards */}
             <View style={styles.choiceList}>
-              {QUIZ_CHOICES.map((choice, i) => {
+              {quizData.choices.map((choice, i) => {
                 const isSelected = quizAnswer === choice.id;
                 return (
                   <Animated.View
@@ -441,6 +503,25 @@ const useStyles = createStyles((theme) => ({
     color: theme.colors.mutedForeground,
   },
   scrollContent: { paddingHorizontal: theme.spacing.section, paddingBottom: 120 },
+
+  /* Loading / Empty / Error states */
+  centeredState: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: theme.spacing.xl * 3,
+    gap: theme.spacing.md,
+  },
+  stateText: {
+    ...theme.typography.title,
+    color: theme.colors.foreground,
+    textAlign: "center",
+  },
+  stateSubtext: {
+    ...theme.typography.body,
+    color: theme.colors.mutedForeground,
+    textAlign: "center",
+    paddingHorizontal: theme.spacing.page,
+  },
 
   /* Shared CTA */
   ctaButton: {
@@ -595,7 +676,6 @@ const useStyles = createStyles((theme) => ({
   },
   quizProgressFill: {
     height: "100%",
-    width: "75%",
     backgroundColor: theme.colors.brandOrange,
     borderRadius: 3,
   },
