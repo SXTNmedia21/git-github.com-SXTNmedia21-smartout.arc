@@ -62,6 +62,9 @@ const TariffRatesPanel = lazy(() =>
 const ChangeProposalsPanel = lazy(() =>
   import("./ChangeProposalsPanel").then((m) => ({ default: m.ChangeProposalsPanel })),
 );
+const GeneralSettings = lazy(() =>
+  import("./general-settings").then((m) => ({ default: m.GeneralSettings })),
+);
 const FinancialCloseSettings = lazy(() =>
   import("./financial-close-settings").then((m) => ({ default: m.FinancialCloseSettings })),
 );
@@ -233,6 +236,12 @@ function TabContent({ tabId, userId }: { tabId: TabId; userId: string | undefine
       return (
         <Suspense fallback={<SettingsLoadingSkeleton />}>
           <ShiftLockPolicySettings />
+        </Suspense>
+      );
+    case "general":
+      return (
+        <Suspense fallback={<SettingsLoadingSkeleton />}>
+          <GeneralSettings />
         </Suspense>
       );
     default: {
