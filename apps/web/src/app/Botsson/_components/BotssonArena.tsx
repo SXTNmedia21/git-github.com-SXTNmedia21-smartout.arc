@@ -2193,7 +2193,11 @@ function LogView() {
           </button>
         </div>
       </div>
-      <div ref={scrollRef} className="flex-1 space-y-0.5 overflow-y-auto p-3 font-mono text-[11px]">
+      <div
+        ref={scrollRef}
+        onPointerDown={(e) => e.stopPropagation()}
+        className="flex-1 cursor-text space-y-0.5 overflow-y-auto p-3 font-mono text-[11px] select-text"
+      >
         {activeList.length === 0 ? (
           <div className="text-muted-foreground/30 flex h-full items-center justify-center text-xs">
             {tab === "agent" ? "Ingen tool-kall ennå" : "Ingen hendelser ennå"}
