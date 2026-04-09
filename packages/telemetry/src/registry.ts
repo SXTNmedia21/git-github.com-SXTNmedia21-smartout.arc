@@ -925,20 +925,6 @@ export interface WorkspaceSettingsUpdated extends BaseEvent {
   };
 }
 
-export interface TeamCreated extends BaseEvent {
-  event: "team created";
-  properties: {
-    data: Record<string, unknown>;
-  };
-}
-
-export interface TeamDeleted extends BaseEvent {
-  event: "team deleted";
-  properties: {
-    data: { team_id: string };
-  };
-}
-
 export interface KpiTargetUpdated extends BaseEvent {
   event: "kpi_target updated";
   properties: {
@@ -1241,16 +1227,6 @@ export interface ShiftLockPolicyUpdated extends BaseEvent {
   properties: {
     data: {
       lock_mode: "enforce" | "shadow" | "off";
-    };
-  };
-}
-
-// ─── General Settings Events ────────────────────
-export interface SettingsUpdated extends BaseEvent {
-  event: "settings updated";
-  properties: {
-    data: {
-      section: string;
     };
   };
 }
@@ -2668,7 +2644,6 @@ export type SmartoutEvent =
   | FinancialCloseConfigUpdated
   | PayrollSettingsUpdated
   | ShiftLockPolicyUpdated
-  | SettingsUpdated
   | TeamCreated
   | TeamDeleted
   | SalaryCodeCreated
@@ -3312,19 +3287,6 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "shift_lock_policy updated": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "system",
-  },
-
-  "settings updated": {
-    destinations: ["posthog", "logger", "activity_trail"],
-    category: "system",
-  },
-  "team created": {
-    destinations: ["posthog", "logger", "activity_trail"],
-    category: "org_structure",
-  },
-  "team deleted": {
-    destinations: ["posthog", "logger", "activity_trail"],
-    category: "org_structure",
   },
 
   "salary_code created": {

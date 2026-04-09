@@ -135,7 +135,9 @@ export function TeamsSettings() {
     queryFn: async (): Promise<TeamRow[]> => {
       const { data, error } = await supabase
         .from("team")
-        .select("team_id, name, team_type, is_active, department:department_id(name), team_member(count)")
+        .select(
+          "team_id, name, team_type, is_active, department:department_id(name), team_member(count)",
+        )
         .eq("workspace_id", wsId)
         .order("name", { ascending: true });
       if (error) throw error;
@@ -160,12 +162,15 @@ export function TeamsSettings() {
       });
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       void emit({
         event: "team created",
         workspace_id: wsId,
         actor_id: profileId ?? "",
-        properties: { data: {} },
+        properties: {
+          entity: { entity_type: "team", entity_id: "", entity_label: variables.name },
+          data: { team_id: "", name: variables.name },
+        },
       });
       void queryClient.invalidateQueries({ queryKey });
       toast.success("Team created");
@@ -187,7 +192,10 @@ export function TeamsSettings() {
         event: "team deleted",
         workspace_id: wsId,
         actor_id: profileId ?? "",
-        properties: { data: { team_id: teamId } },
+        properties: {
+          entity: { entity_type: "team", entity_id: teamId, entity_label: "" },
+          data: { team_id: teamId, name: "" },
+        },
       });
       void queryClient.invalidateQueries({ queryKey });
       toast.success("Team deleted");
@@ -209,9 +217,7 @@ export function TeamsSettings() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-foreground text-lg font-semibold">Teams & Departments</h2>
-          <p className="text-muted-foreground text-sm">
-            Manage teams within your workspace.
-          </p>
+          <p className="text-muted-foreground text-sm">Manage teams within your workspace.</p>
         </div>
 
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -232,9 +238,7 @@ export function TeamsSettings() {
                   <Label htmlFor="team-name">Team Name</Label>
                   <Input id="team-name" {...form.register("name")} placeholder="e.g. Bar Team" />
                   {form.formState.errors.name && (
-                    <p className="text-destructive text-xs">
-                      {form.formState.errors.name.message}
-                    </p>
+                    <p className="text-destructive text-xs">{form.formState.errors.name.message}</p>
                   )}
                 </div>
                 <div className="space-y-1.5">
