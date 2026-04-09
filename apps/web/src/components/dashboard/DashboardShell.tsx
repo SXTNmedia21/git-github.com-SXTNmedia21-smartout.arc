@@ -1941,8 +1941,8 @@ export function DashboardShell({
                         </>
                       )}
 
-                      {/* Tactical/Strategic Switcher (Only on Dashboard) */}
-                      {!isDocumentMode && isDashboardPage && isAdminMode && (
+                      {/* Tactical/Strategic Switcher — hidden: single static dashboard (council decision 2026-04-09) */}
+                      {false && !isDocumentMode && isDashboardPage && isAdminMode && (
                         <div
                           className={`hidden rounded-xl border p-1 shadow-sm md:flex ${isDark ? "border-zinc-800 bg-[#0a0a0c]" : "border-zinc-200 bg-zinc-100"} mr-2`}
                         >

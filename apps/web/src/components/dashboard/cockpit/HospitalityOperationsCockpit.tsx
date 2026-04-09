@@ -18,6 +18,7 @@ import { CockpitActivityFeed } from "./CockpitActivityFeed";
 import { CockpitOnDutyProgress } from "./CockpitOnDutyProgress";
 import { CockpitRiskQueues } from "./CockpitRiskQueues";
 import { CockpitTopStrip } from "./CockpitTopStrip";
+import { CockpitPrepStrip } from "./CockpitPrepStrip";
 
 /**
  * Returns summary counters derived from first-screen read model output.
@@ -140,9 +141,10 @@ export function HospitalityOperationsCockpit() {
             isLoading={model.isLoading}
             onEventPress={handleEventPress}
           />
+          <CockpitPrepStrip />
         </div>
 
-        <div className="xl:col-span-1">
+        <div className="xl:sticky xl:top-4 xl:col-span-1 xl:self-start">
           <CockpitActionRail
             staffingQueue={model.staffingQueue}
             operationalQueue={model.operationalQueue}
