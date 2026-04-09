@@ -32,6 +32,7 @@ type ScheduleVoiceToolsInput = {
     setSelectedDate?: (date: string | null) => void;
     setFilterSituation?: (filter: string) => void;
     navigateToDate?: (weekOffset: number) => void;
+    switchLayout?: (layout: string) => void;
   };
   mutations?: {
     createShift: (input: Record<string, unknown>) => Promise<unknown>;
@@ -1052,6 +1053,49 @@ export function useScheduleVoiceTools(input: ScheduleVoiceToolsInput): ClientToo
       });
     };
 
+    const switchLayoutTool: ClientToolImplementation = (params) => {
+      const d = dataRef.current;
+      const layout = (params.layout as string) ?? "daily";
+      // Map Norwegian aliases to layout modes
+      const aliases: Record<string, string> = {
+        uke: "daily",
+        dag: "daily",
+        daily: "daily",
+        weekly: "daily",
+        maned: "monthly",
+        maaned: "monthly",
+        monthly: "monthly",
+        month: "monthly",
+        vaktliste: "list",
+        liste: "list",
+        list: "list",
+        vaktgrid: "grid",
+        grid: "grid",
+        rutenett: "grid",
+      };
+      const resolved = aliases[layout.toLowerCase()] ?? layout.toLowerCase();
+      const valid = ["daily", "monthly", "list", "grid"];
+      if (!valid.includes(resolved)) {
+        return JSON.stringify({
+          error: `Ugyldig layout "${layout}". Bruk: uke, maned, vaktliste, vaktgrid`,
+        });
+      }
+      if (!d.uiActions?.switchLayout) {
+        return JSON.stringify({ error: "Layout switching not available" });
+      }
+      d.uiActions.switchLayout(resolved);
+      const labels: Record<string, string> = {
+        daily: "Ukevisning",
+        monthly: "Manedsvisning",
+        list: "Vaktliste",
+        grid: "Vaktgrid",
+      };
+      return JSON.stringify({
+        success: true,
+        message: `Byttet til ${labels[resolved] ?? resolved}.`,
+      });
+    };
+
     const navigateToDateTool: ClientToolImplementation = (params) => {
       const d = dataRef.current;
       const target = ((params.target as string) ?? "").toLowerCase().trim();
@@ -1163,6 +1207,7 @@ export function useScheduleVoiceTools(input: ScheduleVoiceToolsInput): ClientToo
       showSingleDay: showSingleDayTool,
       filterSchedule: filterScheduleTool,
       navigateToDate: navigateToDateTool,
+      switchLayout: switchLayoutTool,
     };
 
     return {

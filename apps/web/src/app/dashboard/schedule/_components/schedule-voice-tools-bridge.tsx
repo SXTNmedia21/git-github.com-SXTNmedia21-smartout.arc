@@ -36,6 +36,7 @@ type ScheduleVoiceToolsBridgeProps = {
   setTimePeriod?: (weeks: number) => void;
   setFilterSituation?: (filter: string) => void;
   navigateToDate?: (weekOffset: number) => void;
+  switchLayout?: (layout: string) => void;
   createShift: UseCreateShift;
   updateShift: UseUpdateShift;
   deleteShift: UseDeleteShift;
@@ -62,6 +63,7 @@ export function ScheduleVoiceToolsBridge({
   setTimePeriod,
   setFilterSituation,
   navigateToDate,
+  switchLayout,
   createShift,
   updateShift,
   deleteShift,
@@ -87,6 +89,7 @@ export function ScheduleVoiceToolsBridge({
       setSelectedDate,
       setFilterSituation,
       navigateToDate,
+      switchLayout,
     },
     mutations: {
       createShift: (input) =>

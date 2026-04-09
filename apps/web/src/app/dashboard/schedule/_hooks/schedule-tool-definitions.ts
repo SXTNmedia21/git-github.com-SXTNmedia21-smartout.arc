@@ -541,6 +541,28 @@ const filterSchedule = {
   },
 };
 
+const switchLayout = {
+  temporaryTool: {
+    modelToolName: "switchLayout",
+    description:
+      "Switch the schedule layout mode. Options: 'daily' (day view/Uke), 'monthly' (month calendar/Maned), " +
+      "'list' (shift list/Vaktliste), 'grid' (shift grid/Vaktgrid). " +
+      "Use when the user says 'vis vaktliste', 'bytt til manedsvisning', 'vis uke', 'vaktgrid', etc.",
+    dynamicParameters: [
+      {
+        name: "layout",
+        location: body,
+        schema: {
+          type: "string",
+          description: "Layout: 'daily', 'monthly', 'list', or 'grid'",
+        },
+        required: true,
+      },
+    ],
+    client: {},
+  },
+};
+
 const navigateToDate = {
   temporaryTool: {
     modelToolName: "navigateToDate",
@@ -588,4 +610,5 @@ export const SCHEDULE_TOOL_DEFINITIONS: ClientToolDefinition[] = [
   showSingleDay,
   filterSchedule,
   navigateToDate,
+  switchLayout,
 ];

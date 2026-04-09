@@ -983,6 +983,9 @@ function SchedulePageContent() {
             setScheduleDateOffset(weekOffset);
           }
         }}
+        switchLayout={(layout) =>
+          setScheduleLayout(layout as "daily" | "weekly" | "monthly" | "list" | "grid")
+        }
         createShift={createShift}
         updateShift={updateShift}
         deleteShift={deleteShift}
