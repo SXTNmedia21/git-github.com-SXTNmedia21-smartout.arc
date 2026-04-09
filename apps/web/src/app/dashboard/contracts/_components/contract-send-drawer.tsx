@@ -307,10 +307,10 @@ function TemplateStep({ workspaceId, selected, onSelect, onNext }: TemplateStepP
     fetch(`/api/contracts/templates?workspace_id=${workspaceId}`)
       .then(async (res) => {
         if (!res.ok) throw new Error("Kunne ikke laste maler");
-        return res.json() as Promise<ContractTemplate[]>;
+        return res.json() as Promise<{ data: ContractTemplate[] }>;
       })
-      .then((data) => {
-        if (!cancelled) setTemplates(data);
+      .then((json) => {
+        if (!cancelled) setTemplates(json.data ?? []);
       })
       .catch((err: unknown) => {
         if (!cancelled) setFetchError(err instanceof Error ? err.message : "Feil ved lasting");

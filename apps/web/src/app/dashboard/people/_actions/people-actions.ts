@@ -5,10 +5,27 @@ import type { Database, TablesUpdate } from "@smartout/supabase";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isValidTransition } from "@smartout/utils";
 import type { ProfileStatus } from "@smartout/utils";
+import { emit } from "@smartout/telemetry";
 
 /** Typed helper to get a server client with proper Database generics. */
 async function getClient(): Promise<SupabaseClient<Database>> {
   return createClient();
+}
+
+/** Resolve the current user's profile_id for telemetry actor_id. */
+async function resolveActorId(supabase: SupabaseClient<Database>): Promise<string> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return "unknown";
+  const { data } = await supabase
+    .from("profile")
+    .select("profile_id")
+    .eq("user_id", user.id)
+    .eq("is_active", true)
+    .limit(1)
+    .maybeSingle();
+  return data?.profile_id ?? "unknown";
 }
 
 export async function updateProfileRole(
@@ -24,6 +41,17 @@ export async function updateProfileRole(
     .eq("workspace_id", workspaceId);
 
   if (error) throw new Error(error.message);
+
+  const actorId = await resolveActorId(supabase);
+  void emit({
+    event: "profile role updated",
+    workspace_id: workspaceId,
+    actor_id: actorId,
+    properties: {
+      entity: { entity_type: "profile", entity_id: profileId },
+      data: { new_role: newRole },
+    },
+  });
 }
 
 export async function updateProfileDepartment(
@@ -51,6 +79,17 @@ export async function updateProfileDepartment(
     .eq("workspace_id", workspaceId);
 
   if (error) throw new Error(error.message);
+
+  const actorId = await resolveActorId(supabase);
+  void emit({
+    event: "profile department updated",
+    workspace_id: workspaceId,
+    actor_id: actorId,
+    properties: {
+      entity: { entity_type: "profile", entity_id: profileId },
+      data: { department_id: departmentId },
+    },
+  });
 }
 
 export async function deactivateProfile(profileId: string, workspaceId: string) {
@@ -62,6 +101,17 @@ export async function deactivateProfile(profileId: string, workspaceId: string) 
     .eq("workspace_id", workspaceId);
 
   if (error) throw new Error(error.message);
+
+  const actorId = await resolveActorId(supabase);
+  void emit({
+    event: "profile deactivated",
+    workspace_id: workspaceId,
+    actor_id: actorId,
+    properties: {
+      entity: { entity_type: "profile", entity_id: profileId },
+      data: {},
+    },
+  });
 }
 
 export async function resetUserPassword(email: string) {
@@ -78,6 +128,16 @@ export async function cancelInvitation(invitationId: string) {
     .eq("invitation_id", invitationId);
 
   if (error) throw new Error(error.message);
+
+  void emit({
+    event: "invitation cancelled",
+    workspace_id: null,
+    actor_id: await resolveActorId(supabase),
+    properties: {
+      entity: { entity_type: "invitation", entity_id: invitationId },
+      data: { invitation_id: invitationId },
+    },
+  });
 }
 
 export async function resendInvitation(workspaceId: string, invitationId: string) {
@@ -115,6 +175,17 @@ export async function resendInvitation(workspaceId: string, invitationId: string
   });
 
   if (error) throw new Error(`Failed to resend: ${error.message}`);
+
+  void emit({
+    event: "invitation resent",
+    workspace_id: workspaceId,
+    actor_id: await resolveActorId(supabase),
+    properties: {
+      entity: { entity_type: "invitation", entity_id: invitationId },
+      data: { invitation_id: invitationId },
+    },
+  });
+
   return data;
 }
 
@@ -202,6 +273,17 @@ export async function updateProfileStatus(
     .eq("workspace_id", workspaceId);
 
   if (error) throw new Error(error.message);
+
+  const actorId = await resolveActorId(supabase);
+  void emit({
+    event: "profile status updated",
+    workspace_id: workspaceId,
+    actor_id: actorId,
+    properties: {
+      entity: { entity_type: "profile", entity_id: profileId },
+      data: { from_status: currentStatus, to_status: newStatus },
+    },
+  });
 }
 
 export async function reactivateProfile(profileId: string, workspaceId: string) {
@@ -211,6 +293,44 @@ export async function reactivateProfile(profileId: string, workspaceId: string) 
     .update({ status: "active", is_active: true } satisfies TablesUpdate<"profile">)
     .eq("profile_id", profileId)
     .eq("workspace_id", workspaceId);
+
+  if (error) throw new Error(error.message);
+
+  const actorId = await resolveActorId(supabase);
+  void emit({
+    event: "profile reactivated",
+    workspace_id: workspaceId,
+    actor_id: actorId,
+    properties: {
+      entity: { entity_type: "profile", entity_id: profileId },
+      data: {},
+    },
+  });
+}
+
+export async function updateEmergencyContact(
+  profileId: string,
+  emergencyName: string | null,
+  emergencyPhone: string | null,
+) {
+  const supabase = await getClient();
+
+  // Look up user_id from profile to update user_identity
+  const { data: profile, error: fetchError } = await supabase
+    .from("profile")
+    .select("user_id")
+    .eq("profile_id", profileId)
+    .single();
+
+  if (fetchError || !profile) throw new Error("Profile not found");
+
+  const { error } = await supabase
+    .from("user_identity")
+    .update({
+      emergency_contact_name: emergencyName,
+      emergency_contact_phone: emergencyPhone,
+    })
+    .eq("user_id", profile.user_id);
 
   if (error) throw new Error(error.message);
 }

@@ -10,11 +10,14 @@
  * ADR-0076: composition as cascade derivation.
  */
 
-import { useState } from "react";
+import { useState, useEffect, useContext } from "react";
 import { CheckCircle, Loader2, Lock, AlertTriangle } from "lucide-react";
+import { toast } from "sonner";
 import { AnimatedWizardShell } from "@/components/wizard/AnimatedWizardShell";
 import type { WizardDefinition, WizardStepProps } from "@smartout/ui";
 import { Button, Input, Label } from "@smartout/ui";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
+import { emit } from "@smartout/telemetry";
 import type { ContractDraftProposal } from "@/lib/contracts/resolve-composition";
 import { GhostValueCard } from "./GhostValueCard";
 import { ComplianceBadge } from "./ComplianceBadge";
@@ -39,22 +42,91 @@ type CompositionState = {
 // Step 1: Select Employee
 // ---------------------------------------------------------------------------
 
+type ProfileOption = {
+  profile_id: string;
+  display_name: string;
+  role: string;
+  department: { name: string } | null;
+};
+
 function SelectEmployeeStep({ state, updateState }: WizardStepProps<CompositionState>) {
+  const { workspaceData } = useContext(DashboardContext);
+  const [profiles, setProfiles] = useState<ProfileOption[]>([]);
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!workspaceData?.workspace_id) return;
+    let cancelled = false;
+
+    import("@smartout/supabase/client").then(async ({ createClient }) => {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("profile")
+        .select("profile_id, display_name, role, department:department_id(name)")
+        .eq("workspace_id", workspaceData.workspace_id)
+        .eq("is_active", true)
+        .order("display_name");
+
+      if (!cancelled && data) {
+        setProfiles(data as unknown as ProfileOption[]);
+      }
+      if (!cancelled) setLoading(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [workspaceData?.workspace_id]);
+
+  const filtered = profiles.filter(
+    (p) =>
+      p.display_name.toLowerCase().includes(search.toLowerCase()) ||
+      p.role.toLowerCase().includes(search.toLowerCase()),
+  );
+
   return (
     <div className="space-y-4">
       <h2 className="font-heading text-xl font-semibold">Velg ansatt</h2>
-      <p className="text-muted-foreground text-sm">
-        Skriv inn profil-ID for den ansatte som skal motta kontrakten.
-      </p>
-      <div className="max-w-sm space-y-2">
-        <Label htmlFor="profile-id">Profil-ID</Label>
+      <p className="text-muted-foreground text-sm">Velg den ansatte som skal motta kontrakten.</p>
+      <div className="max-w-md space-y-3">
         <Input
-          id="profile-id"
-          placeholder="UUID — f.eks. 550e8400-e29b-41d4-a716-..."
-          value={state.profileId}
-          onChange={(e) => updateState({ profileId: e.target.value })}
+          placeholder="Søk etter navn..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
         />
-        <p className="text-muted-foreground text-xs">Ansattvelger kommer i en fremtidig versjon.</p>
+        <div className="max-h-64 space-y-1 overflow-y-auto rounded-lg border p-1">
+          {loading ? (
+            <div className="flex items-center justify-center py-6">
+              <Loader2 className="text-muted-foreground h-5 w-5 animate-spin" />
+            </div>
+          ) : filtered.length === 0 ? (
+            <p className="text-muted-foreground py-4 text-center text-sm">Ingen ansatte funnet</p>
+          ) : (
+            filtered.map((p) => (
+              <button
+                key={p.profile_id}
+                type="button"
+                onClick={() => updateState({ profileId: p.profile_id, proposal: null })}
+                className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm transition-colors ${
+                  state.profileId === p.profile_id
+                    ? "bg-primary/10 text-primary font-medium"
+                    : "hover:bg-muted"
+                }`}
+              >
+                <div className="flex-1">
+                  <p className="font-medium">{p.display_name}</p>
+                  <p className="text-muted-foreground text-xs">
+                    {p.role} {p.department?.name ? `· ${p.department.name}` : ""}
+                  </p>
+                </div>
+                {state.profileId === p.profile_id && (
+                  <CheckCircle className="text-primary h-4 w-4" />
+                )}
+              </button>
+            ))
+          )}
+        </div>
       </div>
     </div>
   );
@@ -86,17 +158,95 @@ function PositionStep({ state, updateState }: WizardStepProps<CompositionState>)
 // Step 3: Derivation (loading state)
 // ---------------------------------------------------------------------------
 
-function DerivationStep({ state }: WizardStepProps<CompositionState>) {
+function DerivationStep({ state, updateState }: WizardStepProps<CompositionState>) {
+  const { workspaceData } = useContext(DashboardContext);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!workspaceData?.workspace_id || !state.profileId || state.proposal) return;
+
+    let cancelled = false;
+    updateState({ isLoading: true });
+    setError(null);
+
+    fetch("/api/employment-contracts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        workspace_id: workspaceData.workspace_id,
+        profile_id: state.profileId,
+      }),
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const body = (await res.json().catch(() => ({}))) as { error?: string };
+          throw new Error(body.error ?? "Kunne ikke hente forslag");
+        }
+        return res.json() as Promise<ContractDraftProposal>;
+      })
+      .then((proposal) => {
+        if (!cancelled) {
+          updateState({ proposal, isLoading: false });
+          void emit({
+            event: "contract composed",
+            workspace_id: workspaceData?.workspace_id ?? null,
+            actor_id: "unknown",
+            properties: {
+              entity: { entity_type: "profile", entity_id: state.profileId },
+              data: {
+                template_id: "",
+                profile_id: state.profileId,
+                framework_id: proposal.framework_snapshot?.framework_name ?? "",
+                override_count: 0,
+                blocker_count: proposal.validations?.blocker?.length ?? 0,
+              },
+            },
+          });
+        }
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          const msg = err instanceof Error ? err.message : "Feil ved henting av forslag";
+          setError(msg);
+          updateState({ isLoading: false });
+          toast.error(msg);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [workspaceData?.workspace_id, state.profileId]);
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <AlertTriangle className="text-destructive mb-4 h-10 w-10" />
+        <p className="text-destructive mb-2 text-sm font-medium">{error}</p>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            updateState({ proposal: null });
+            setError(null);
+          }}
+        >
+          Prøv igjen
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col items-center justify-center py-12">
-      {state.isLoading ? (
+      {state.isLoading || !state.proposal ? (
         <>
           <Loader2 className="text-primary mb-4 h-10 w-10 animate-spin" />
           <p className="text-muted-foreground text-sm">Henter tariff-forslag fra Cascade...</p>
         </>
       ) : (
         <>
-          <CheckCircle className="mb-4 h-10 w-10 text-green-600" />
+          <CheckCircle className="mb-4 h-10 w-10 text-emerald-500" />
           <p className="text-sm font-medium">Forslag hentet</p>
         </>
       )}

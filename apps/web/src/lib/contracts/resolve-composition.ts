@@ -167,6 +167,7 @@ export async function resolveComposition(
   const { data: tariffRows } = await supabase
     .from("tariff_rate_table")
     .select("amount, rate_type, unit")
+    .eq("framework_id", frameworkId)
     .eq("source", "framework")
     .order("effective_from", { ascending: false })
     .limit(1);

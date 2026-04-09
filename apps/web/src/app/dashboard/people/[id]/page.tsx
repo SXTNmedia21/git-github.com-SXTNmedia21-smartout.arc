@@ -34,6 +34,7 @@ import { addToTeam, removeFromTeam, updateProfileStatus } from "../_actions/peop
 
 type ProfileRow = {
   profile_id: string;
+  user_id: string;
   display_name: string;
   job_title: string | null;
   role: string;
@@ -145,7 +146,7 @@ export default function ProfileDetailPage() {
       supabase
         .from("profile")
         .select(
-          `profile_id, display_name, job_title, role, status, avatar_url,
+          `profile_id, user_id, display_name, job_title, role, status, avatar_url,
            department_id, address_line_1, postal_code, city,
            personal_number, bank_account, is_active, created_at,
            department:department_id(name),
@@ -350,7 +351,9 @@ export default function ProfileDetailPage() {
     setSaving(true);
 
     const addressParts = hrAddress.split(",").map((s) => s.trim());
-    const { error } = await supabase
+
+    // Update profile fields (address, personal number, bank account)
+    const { error: profileError } = await supabase
       .from("profile")
       .update({
         address_line_1: addressParts[0] || null,
@@ -361,8 +364,24 @@ export default function ProfileDetailPage() {
       })
       .eq("profile_id", profile.profile_id);
 
-    if (error) toast.error(error.message);
-    else {
+    if (profileError) {
+      toast.error(profileError.message);
+      setSaving(false);
+      return;
+    }
+
+    // Update emergency contact on user_identity (separate table)
+    const { error: identityError } = await supabase
+      .from("user_identity")
+      .update({
+        emergency_contact_name: hrEmergencyName || null,
+        emergency_contact_phone: hrEmergencyPhone || null,
+      })
+      .eq("user_id", profile.user_id);
+
+    if (identityError) {
+      toast.error(identityError.message);
+    } else {
       toast.success("Personal info updated");
       setEditingHr(false);
       fetchProfile();

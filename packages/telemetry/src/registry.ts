@@ -310,6 +310,62 @@ export interface ProfileAccessRevoked extends BaseEvent {
   };
 }
 
+export interface ProfileRoleUpdated extends BaseEvent {
+  event: "profile role updated";
+  properties: {
+    entity: EntityRef;
+    data: { new_role: string };
+  };
+}
+
+export interface ProfileDepartmentUpdated extends BaseEvent {
+  event: "profile department updated";
+  properties: {
+    entity: EntityRef;
+    data: { department_id: string };
+  };
+}
+
+export interface ProfileStatusUpdated extends BaseEvent {
+  event: "profile status updated";
+  properties: {
+    entity: EntityRef;
+    data: { from_status: string; to_status: string };
+  };
+}
+
+export interface ProfileDeactivated extends BaseEvent {
+  event: "profile deactivated";
+  properties: {
+    entity: EntityRef;
+    data: Record<string, never>;
+  };
+}
+
+export interface ProfileReactivated extends BaseEvent {
+  event: "profile reactivated";
+  properties: {
+    entity: EntityRef;
+    data: Record<string, never>;
+  };
+}
+
+export interface InvitationCancelled extends BaseEvent {
+  event: "invitation cancelled";
+  properties: {
+    entity: EntityRef;
+    data: { invitation_id: string };
+  };
+}
+
+export interface InvitationResent extends BaseEvent {
+  event: "invitation resent";
+  properties: {
+    entity: EntityRef;
+    data: { invitation_id: string };
+  };
+}
+
 export interface OnboardingProfessionsConfirmed extends BaseEvent {
   event: "profession confirmed";
   properties: {
@@ -2891,6 +2947,13 @@ export type SmartoutEvent =
   | LegalFunctionAssigned
   | ProfileAccessGranted
   | ProfileAccessRevoked
+  | ProfileRoleUpdated
+  | ProfileDepartmentUpdated
+  | ProfileStatusUpdated
+  | ProfileDeactivated
+  | ProfileReactivated
+  | InvitationCancelled
+  | InvitationResent
   | OnboardingProfessionsConfirmed
   | TelegramSessionCreated
   | TelegramMessageReceived
@@ -3892,6 +3955,34 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "profile revoked": {
     destinations: ["logger", "activity_trail"],
+    category: "org_structure",
+  },
+  "profile role updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "org_structure",
+  },
+  "profile department updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "org_structure",
+  },
+  "profile status updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "org_structure",
+  },
+  "profile deactivated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "org_structure",
+  },
+  "profile reactivated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "org_structure",
+  },
+  "invitation cancelled": {
+    destinations: ["logger", "activity_trail"],
+    category: "org_structure",
+  },
+  "invitation resent": {
+    destinations: ["posthog", "logger", "activity_trail"],
     category: "org_structure",
   },
   "profession confirmed": {

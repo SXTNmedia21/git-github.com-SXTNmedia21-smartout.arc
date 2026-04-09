@@ -853,6 +853,7 @@ export function PeopleDataTable({
         isOpen={!!selectedEmployee}
         onClose={() => setSelectedEmployee(null)}
         onRefresh={onRefresh}
+        onSendContract={setContractProfileId}
       />
 
       {/* Invite Modal */}

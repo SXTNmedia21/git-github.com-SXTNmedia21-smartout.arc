@@ -157,12 +157,12 @@ export default function PeoplePage() {
               <Star className="h-4 w-4" />
             </div>
             <h3 className="text-muted-foreground text-xs font-bold tracking-widest uppercase">
-              Active Now
+              Active
             </h3>
           </div>
           <div className="relative z-10 flex items-end gap-2">
             <span className="text-foreground text-3xl leading-none font-bold">{activeCount}</span>
-            <span className="text-muted-foreground mb-0.5 text-sm font-medium">clocked in</span>
+            <span className="text-muted-foreground mb-0.5 text-sm font-medium">employees</span>
           </div>
         </div>
 
