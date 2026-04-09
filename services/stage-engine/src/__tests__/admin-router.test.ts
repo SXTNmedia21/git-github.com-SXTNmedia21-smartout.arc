@@ -9,7 +9,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // vi.hoisted() runs before vi.mock() factory functions, so variables declared here
 // are safely accessible inside the factory closures even after hoisting.
 const { mockGenerateText, mockModelFn } = vi.hoisted(() => {
-  const mockModelFn = vi.fn().mockReturnValue({ id: "anthropic/claude-sonnet-4" });
+  const mockModelFn = vi.fn().mockReturnValue({ id: "anthropic/claude-sonnet-4.6" });
   const mockGenerateText = vi.fn();
   return { mockGenerateText, mockModelFn };
 });
@@ -101,7 +101,7 @@ describe("routeAdminMessage — basic pipeline", () => {
       conversationHistory: [],
     });
 
-    expect(mockModelFn).toHaveBeenCalledWith("anthropic/claude-sonnet-4");
+    expect(mockModelFn).toHaveBeenCalledWith("anthropic/claude-sonnet-4.6");
   });
 });
 
