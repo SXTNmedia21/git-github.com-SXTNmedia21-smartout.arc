@@ -65,6 +65,9 @@ const ChangeProposalsPanel = lazy(() =>
 const GeneralSettings = lazy(() =>
   import("./general-settings").then((m) => ({ default: m.GeneralSettings })),
 );
+const TeamsSettings = lazy(() =>
+  import("./teams-settings").then((m) => ({ default: m.TeamsSettings })),
+);
 const FinancialCloseSettings = lazy(() =>
   import("./financial-close-settings").then((m) => ({ default: m.FinancialCloseSettings })),
 );
@@ -242,6 +245,12 @@ function TabContent({ tabId, userId }: { tabId: TabId; userId: string | undefine
       return (
         <Suspense fallback={<SettingsLoadingSkeleton />}>
           <GeneralSettings />
+        </Suspense>
+      );
+    case "teams":
+      return (
+        <Suspense fallback={<SettingsLoadingSkeleton />}>
+          <TeamsSettings />
         </Suspense>
       );
     default: {
