@@ -128,7 +128,7 @@ export const getIntakeProgress = defineTool({
   execute: async (_params, ctx: AgentToolContext) => {
     const { data, error } = await ctx.supabaseAdmin
       .from("profile")
-      .select("personal_number, bank_account, address_line1, postal_code, city")
+      .select("personal_number, bank_account, address_line_1, postal_code, city")
       .eq("profile_id", ctx.profileId)
       .single();
 
@@ -138,7 +138,7 @@ export const getIntakeProgress = defineTool({
     // Report completion status per group — never reveal actual values
     const identity = data.personal_number ? "done" : "pending";
     const banking = data.bank_account ? "done" : "pending";
-    const address = data.address_line1 && data.postal_code && data.city ? "done" : "pending";
+    const address = data.address_line_1 && data.postal_code && data.city ? "done" : "pending";
 
     return JSON.stringify({
       identity,

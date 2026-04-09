@@ -46,6 +46,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // ── Role gate: require admin or owner ─────────────────────────────
+    const { data: actorProfile } = await supabase
+      .from("profile")
+      .select("profile_id, role")
+      .eq("user_id", user.id)
+      .eq("workspace_id", workspace_id)
+      .single();
+
+    if (!actorProfile || !["admin", "owner"].includes(actorProfile.role)) {
+      return NextResponse.json(
+        { error: "Forbidden: admin or owner role required" },
+        { status: 403 },
+      );
+    }
+
     const proposal = await resolveComposition(supabase, workspace_id, profile_id, template_id);
 
     return NextResponse.json(proposal);

@@ -23,6 +23,28 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // ── Role gate: load contract workspace, then verify admin/owner ──────
+  const { data: contractCheck } = await supabase
+    .from("employment_contract")
+    .select("workspace_id")
+    .eq("contract_id", id)
+    .single();
+
+  if (!contractCheck) {
+    return NextResponse.json({ error: "Contract not found" }, { status: 404 });
+  }
+
+  const { data: actorProfile } = await supabase
+    .from("profile")
+    .select("profile_id, role")
+    .eq("user_id", user.id)
+    .eq("workspace_id", contractCheck.workspace_id)
+    .single();
+
+  if (!actorProfile || !["admin", "owner"].includes(actorProfile.role)) {
+    return NextResponse.json({ error: "Forbidden: admin or owner role required" }, { status: 403 });
+  }
+
   // ── Load the existing contract ────────────────────────────────────────
   const { data: contract, error: loadError } = await supabase
     .from("employment_contract")
@@ -69,7 +91,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
   void emit({
     event: "contract regenerated",
     workspace_id: contract.workspace_id,
-    actor_id: user.id,
+    actor_id: actorProfile.profile_id,
     properties: {
       entity: { entity_type: "employment_contract", entity_id: id },
       data: {

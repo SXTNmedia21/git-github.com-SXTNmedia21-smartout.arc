@@ -29,6 +29,29 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // ── Step 0: Load the contract first to get workspace_id for role check ─
+  const { data: contractCheck } = await supabase
+    .from("employment_contract")
+    .select("workspace_id")
+    .eq("contract_id", id)
+    .single();
+
+  if (!contractCheck) {
+    return NextResponse.json({ error: "Contract not found" }, { status: 404 });
+  }
+
+  // ── Role gate: require admin or owner ─────────────────────────────────
+  const { data: actorProfile } = await supabase
+    .from("profile")
+    .select("profile_id, role")
+    .eq("user_id", user.id)
+    .eq("workspace_id", contractCheck.workspace_id)
+    .single();
+
+  if (!actorProfile || !["admin", "owner"].includes(actorProfile.role)) {
+    return NextResponse.json({ error: "Forbidden: admin or owner role required" }, { status: 403 });
+  }
+
   // ── Step 1: Load the employment contract ──────────────────────────────
   const { data: contract, error: contractError } = await supabase
     .from("employment_contract")
@@ -123,11 +146,11 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
   // ── Step 5: Create engine_state for the appropriate process ───────────
   const processName = allDataPresent ? "contract_signing" : "contract_data_intake";
 
-  // Look up the engine_process by name to get its id
+  // Look up the engine_process by its TEXT primary key (id)
   const { data: process } = await supabase
     .from("engine_process")
     .select("id")
-    .eq("name", processName)
+    .eq("id", processName)
     .single();
 
   if (process) {
@@ -182,7 +205,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
   void emit({
     event: "contract composed",
     workspace_id,
-    actor_id: user.id,
+    actor_id: actorProfile.profile_id,
     properties: {
       entity: { entity_type: "employment_contract", entity_id: id },
       data: {
@@ -199,7 +222,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     void emit({
       event: "contract intake started",
       workspace_id,
-      actor_id: user.id,
+      actor_id: actorProfile.profile_id,
       properties: {
         entity: { entity_type: "employment_contract", entity_id: id },
         data: { contract_id: id, missing_groups: missingGroups },
@@ -209,7 +232,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     void emit({
       event: "contract sent",
       workspace_id,
-      actor_id: user.id,
+      actor_id: actorProfile.profile_id,
       properties: {
         entity: { entity_type: "employment_contract", entity_id: id },
         data: { recipient_email: "", expires_at: "" },

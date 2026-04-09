@@ -70,8 +70,8 @@ BEGIN
 
     WHEN 'address' THEN
       UPDATE public.profile
-      SET address_line1 = p_values ->> 'address_line1',
-          address_line2 = p_values ->> 'address_line2',
+      SET address_line_1 = p_values ->> 'address_line_1',
+          address_line_2 = p_values ->> 'address_line_2',
           postal_code = p_values ->> 'postal_code',
           city = p_values ->> 'city',
           updated_at = now()
