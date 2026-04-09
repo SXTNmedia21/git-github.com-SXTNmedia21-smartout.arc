@@ -91,6 +91,7 @@ export function mergeBusinessData(
   const placesHours = p.openingHours?.join(", ") || "";
   const legalName = coalesceString(b.legalName, b.navn);
   const orgNumber = coalesceString(b.orgNumber, b.organisasjonsnummer);
+  const ceo = coalesceString(b.dagligLeder, (b as Record<string, unknown>).daglig_leder as string);
   const addressStreet = coalesceString(
     b.address?.street,
     b.forretningsadresse?.adresse?.join(", "),
@@ -105,6 +106,7 @@ export function mergeBusinessData(
     legalName,
     name: legalName || s.companyName || p.displayName || "",
     orgNumber,
+    ceo,
     address: addressStreet,
     postalCode,
     city,

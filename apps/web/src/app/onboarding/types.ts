@@ -56,6 +56,7 @@ export interface BusinessData {
   website: string;
   email: string;
   phone: string;
+  ceo: string;
   address: string;
   postalCode: string;
   city: string;
@@ -201,6 +202,7 @@ export const EMPTY_BUSINESS_DATA: BusinessData = {
   website: "",
   email: "",
   phone: "",
+  ceo: "",
   address: "",
   postalCode: "",
   city: "",
