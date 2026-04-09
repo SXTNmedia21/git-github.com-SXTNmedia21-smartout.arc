@@ -207,7 +207,10 @@ export default function MeScreen() {
         {/* Quick Access */}
         <View style={styles.section}>
           <Pressable
-            onPress={() => Haptics.selectionAsync()}
+            onPress={() => {
+              Haptics.selectionAsync();
+              router.push("/(app)/(me)/contract");
+            }}
             style={({ pressed }) => [styles.quickLink, pressed && styles.cardPressed]}
           >
             <View style={styles.quickLinkLeft}>
