@@ -2135,32 +2135,191 @@ function VideoView() {
   );
 }
 function LogView() {
+  const { telemetryEvents, clearTelemetry } = useBotsson();
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+  }, [telemetryEvents.length]);
+
+  const CATEGORY_COLORS: Record<string, string> = {
+    auth: "text-blue-400",
+    department: "text-cyan-400",
+    shift: "text-amber-400",
+    session: "text-purple-400",
+    protocol: "text-green-400",
+    contract: "text-orange-400",
+    wizard: "text-pink-400",
+    communication: "text-sky-400",
+    page: "text-muted-foreground",
+    button: "text-muted-foreground",
+    agent: "text-brand-orange",
+  };
+
   return (
-    <div
-      className="text-muted-foreground/20 flex h-full items-center justify-center text-xs"
-      data-botsson-content
-    >
-      Logg
+    <div className="flex h-full flex-col" data-botsson-content>
+      <div className="border-border/20 flex items-center justify-between border-b px-4 pt-3 pb-2">
+        <div>
+          <h3 className="text-foreground text-sm font-bold">Logg</h3>
+          <p className="text-muted-foreground/40 text-[10px]">Telemetri og tool-kall</p>
+        </div>
+        {telemetryEvents.length > 0 && (
+          <button
+            onClick={clearTelemetry}
+            className="text-muted-foreground hover:text-foreground text-[10px] transition-colors"
+          >
+            Tøm
+          </button>
+        )}
+      </div>
+      <div ref={scrollRef} className="flex-1 space-y-0.5 overflow-y-auto p-3 font-mono text-[11px]">
+        {telemetryEvents.length === 0 ? (
+          <div className="text-muted-foreground/30 flex h-full items-center justify-center text-xs">
+            Ingen hendelser ennå
+          </div>
+        ) : (
+          telemetryEvents.map((entry, i) => {
+            const time = new Date(entry.timestamp).toLocaleTimeString("no", { hour12: false });
+            const color = CATEGORY_COLORS[entry.category] ?? "text-muted-foreground";
+            return (
+              <div key={i} className="flex gap-2 leading-tight">
+                <span className="text-muted-foreground/50 shrink-0">{time}</span>
+                <span className={`shrink-0 ${color}`}>[{entry.category}]</span>
+                <span className="text-foreground/80 break-all">{entry.event}</span>
+              </div>
+            );
+          })
+        )}
+      </div>
     </div>
   );
 }
+
 function MemoryView() {
+  const [memories, setMemories] = useState<
+    Array<{ content: string; memory_type: string; importance: number; created_at: string }>
+  >([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/emma/memory")
+      .then((res) => (res.ok ? res.json() : Promise.reject()))
+      .then(
+        (data: {
+          memories?: Array<{
+            content: string;
+            memory_type: string;
+            importance: number;
+            created_at: string;
+          }>;
+        }) => {
+          setMemories(data.memories ?? []);
+        },
+      )
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const TYPE_LABELS: Record<string, string> = {
+    preference: "Preferanse",
+    fact: "Fakta",
+    instruction: "Instruks",
+    relationship: "Relasjon",
+    observation: "Observasjon",
+  };
+
+  const TYPE_COLORS: Record<string, string> = {
+    preference: "bg-blue-500/15 text-blue-400",
+    fact: "bg-emerald-500/15 text-emerald-400",
+    instruction: "bg-amber-500/15 text-amber-400",
+    relationship: "bg-purple-500/15 text-purple-400",
+    observation: "bg-cyan-500/15 text-cyan-400",
+  };
+
   return (
-    <div
-      className="text-muted-foreground/20 flex h-full items-center justify-center text-xs"
-      data-botsson-content
-    >
-      Minne
+    <div className="flex h-full flex-col" data-botsson-content>
+      <div className="border-border/20 flex items-center justify-between border-b px-4 pt-3 pb-2">
+        <div>
+          <h3 className="text-foreground text-sm font-bold">Minne</h3>
+          <p className="text-muted-foreground/40 text-[10px]">{memories.length} lagrede minner</p>
+        </div>
+      </div>
+      <div className="flex-1 space-y-2 overflow-y-auto p-3">
+        {loading ? (
+          <div className="text-muted-foreground/30 flex h-full items-center justify-center text-xs">
+            Laster...
+          </div>
+        ) : memories.length === 0 ? (
+          <div className="text-muted-foreground/30 flex h-full items-center justify-center text-xs">
+            Ingen minner ennå
+          </div>
+        ) : (
+          memories.map((m, i) => (
+            <div key={i} className="bg-muted/40 rounded-lg p-2.5">
+              <div className="mb-1 flex items-center gap-2">
+                <span
+                  className={`rounded-full px-1.5 py-0.5 text-[9px] font-medium ${TYPE_COLORS[m.memory_type] ?? "bg-muted text-muted-foreground"}`}
+                >
+                  {TYPE_LABELS[m.memory_type] ?? m.memory_type}
+                </span>
+                <span className="text-muted-foreground/40 text-[9px]">
+                  {new Date(m.created_at).toLocaleDateString("no")}
+                </span>
+              </div>
+              <p className="text-foreground/80 text-xs leading-relaxed">{m.content}</p>
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 }
+
 function HistoryView() {
+  const { agent } = useBotsson();
+  const transcript = agent.transcript ?? [];
+
   return (
-    <div
-      className="text-muted-foreground/20 flex h-full items-center justify-center text-xs"
-      data-botsson-content
-    >
-      Historikk
+    <div className="flex h-full flex-col" data-botsson-content>
+      <div className="border-border/20 flex items-center justify-between border-b px-4 pt-3 pb-2">
+        <div>
+          <h3 className="text-foreground text-sm font-bold">Historikk</h3>
+          <p className="text-muted-foreground/40 text-[10px]">Samtalelogg denne sesjonen</p>
+        </div>
+      </div>
+      <div className="flex-1 space-y-2 overflow-y-auto p-3">
+        {transcript.length === 0 ? (
+          <div className="text-muted-foreground/30 flex h-full items-center justify-center text-xs">
+            Ingen samtale ennå
+          </div>
+        ) : (
+          transcript.map((entry, i) => (
+            <div
+              key={i}
+              className={`flex gap-2.5 ${entry.role === "agent" ? "" : "flex-row-reverse"}`}
+            >
+              <div
+                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
+                  entry.role === "agent"
+                    ? "bg-brand-orange/15 text-brand-orange"
+                    : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {entry.role === "agent" ? "E" : "U"}
+              </div>
+              <div
+                className={`max-w-[85%] rounded-xl px-3 py-1.5 text-xs ${
+                  entry.role === "agent"
+                    ? "bg-muted/60 text-foreground/80"
+                    : "bg-brand-orange/10 text-foreground/80"
+                }`}
+              >
+                {entry.text}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 }
