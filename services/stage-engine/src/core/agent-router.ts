@@ -46,6 +46,7 @@ type AgentRouterInput = {
   conversationHistory: ConversationTurn[];
   situation?: Situation;
   pageContext?: string; // current page pathname from frontend (e.g. "/dashboard/schedule")
+  channel?: "chat" | "voice"; // ADR-0078: propagated to toolContext for PII defense
 };
 
 /**
@@ -67,6 +68,7 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
     conversationHistory,
     situation = "general",
     pageContext,
+    channel,
   } = input;
 
   // Step 1: Load authority config
@@ -154,6 +156,7 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
     profileId,
     userId,
     sessionId,
+    channel,
     supabaseAdmin,
     broadcast: (event: unknown) => broadcastToSession(sessionId, event as MissionProtocolMessage),
   };

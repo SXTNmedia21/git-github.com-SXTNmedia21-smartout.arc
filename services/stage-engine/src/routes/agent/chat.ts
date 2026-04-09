@@ -131,6 +131,7 @@ agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
       userId: auth.userId,
       conversationHistory,
       pageContext: body.page_context,
+      channel: body.channel,
     });
 
     // Append assistant turn
