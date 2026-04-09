@@ -1,7 +1,7 @@
 ---
 title: Development Dashboard
 status: live
-updated: 2026-04-08
+updated: 2026-04-09
 module: meta
 tags: [dashboard, worktrees, git-state]
 ---
@@ -17,14 +17,21 @@ tags: [dashboard, worktrees, git-state]
 
 | #    | Branch                            | Module        | Last Commit     | Dirty | Journey                                              |
 | ---- | --------------------------------- | ------------- | --------------- | ----- | ---------------------------------------------------- |
+| wt-1 | `feat/contract-composition-engine` | contracts | — | — | (missing) |
 | wt-2 | `feat/stage-engine-sonnet4-audit` | stage-engine  | 29 hours ago    | 2     | (missing)                                            |
+| wt-3 | `feat/event-chain-hardening` | engine | merged | 0 | (pending close) |
+| wt-4 | `feat/admin-cost-dashboard` | dashboard | merged | 0 | (pending close) |
+| wt-5 | `feat/settings-realtime` | settings | merged | 0 | (pending close) |
 
 ## Free Slots
 
-wt-1, wt-3, wt-4, wt-5, wt-6, wt-7, wt-8, wt-9, wt-10, wt-11, wt-12, wt-13, wt-15, wt-20
+wt-6, wt-7, wt-8, wt-9, wt-10, wt-11, wt-12, wt-13, wt-15, wt-20
 
 ## Pending Journeys
 
 | Worktree | Feature                      | Journey File                                                    | Status  |
 | -------- | ---------------------------- | --------------------------------------------------------------- | ------- |
 | wt-2     | stage-engine-sonnet4-audit   | `docs/journeys/JOURNEY-stage-engine-sonnet4-audit.md`           | missing |
+| wt-3     | event-chain-hardening        | `docs/journeys/JOURNEY-event-chain-hardening.md`                | missing |
+| wt-4     | admin-cost-dashboard         | `docs/journeys/JOURNEY-admin-cost-dashboard.md`                 | missing |
+| wt-5     | settings-realtime            | `docs/journeys/JOURNEY-settings-realtime.md`                    | missing |

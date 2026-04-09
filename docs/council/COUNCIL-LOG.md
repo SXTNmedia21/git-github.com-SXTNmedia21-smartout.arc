@@ -1,7 +1,7 @@
 ---
 title: Council Session Log
 status: in_progress
-updated: 2026-04-08
+updated: 2026-04-09
 created: 2026-03-26
 module: governance
 tags: [council, decisions, multi-agent, review]
@@ -331,3 +331,54 @@ R1: 6 blockers → R2: 3 new blockers (in fixes) → R3: 0 new blockers. This is
 
 ### Verdict held
 4 reviewers converged on ship. Steward: "From the agent architecture perspective: this is the right fix in the right place. No follow-up needed." Supervisor: "Ship it, log items as follow-ups." Frontend: grep verified zero hardcoded palette colors.
+
+---
+
+## 2026-04-09 — Production Readiness Plan (3 Sub-Plans)
+
+**Type:** plan
+**Verdict:** APPROVE WITH CHANGES — Task A2 (schedule_control) BLOCKED, 6 moderate fixes applied
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator, frontend-designer
+**Key decision:** `session_hook` is a config table, not a per-session instance table. `session-hook-executor` cron handles materialization. ADR needed for future granular scheduling.
+**ADR created:** none (recommended for session hook model)
+**Learning created:** L-0029: session_hook is config/template table; session-hook-executor cron materializes session_task from config + department_session join
+
+### Critical findings (3)
+1. **Task A2 schema mismatch** — plan inserted into columns that don't exist on `session_hook`. Table is per-department config, not per-session scheduling. Task BLOCKED and replaced with telemetry event registration.
+2. **Outbox route payload mismatch** — `emit.ts` sends `{ event_key, metadata }`, plan expected `{ event_type, workspace_id, ... }`. Fixed to match actual payload.
+3. **Missing telemetry events** — `"settings updated"`, `"team created"`, `"team deleted"` not in registry. Added registration task.
+
+### Moderate fixes applied (6)
+- Added `emit()` on team delete mutation
+- Replaced `text-emerald-600` with `text-success` token
+- Fixed `actor_id: ""` to use actual profile/user ID
+- Added join syntax verification note for cost dashboard
+- Fixed component names (SettingsLoadingSkeleton, TabContent)
+- Added context propagation note for upsert_session
+
+### Agent effectiveness
+- **System Steward:** HIGH — caught schema mismatch, verified cascade model alignment
+- **Supervisor:** HIGH — caught outbox payload mismatch + missing registry events + missing emit
+- **Agent Coordinator:** HIGH — caught schema mismatch independently + context propagation gap
+- **Frontend Designer:** MEDIUM — good design guidance but couldn't read plan file (tooling issue)
+
+---
+
+## 2026-04-09 — Production Readiness Post-Implementation Review
+
+**Type:** feature (post-implementation review)
+**Verdict:** APPROVE WITH CHANGES — 2 critical, 3 moderate fixes applied inline
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator, frontend-designer
+**Key decision:** Merge order wt-4 → wt-5 → wt-3 with registry dedup. Agent-coord caught dead-code outbox route (key format mismatch).
+**ADR created:** none
+**Learning created:** L-0030: Notification event config uses dot-notation keys but emit.ts sends space-separated — format conversion needed at API boundary
+
+### Critical findings (2)
+1. **Registry.ts conflict** — wt-3 and wt-5 both defined TeamCreated/TeamDeleted with incompatible types. Resolved by keeping wt-3's stronger types (EntityRef), removing wt-5's weaker defs and wt-3's unused SettingsUpdated.
+2. **Outbox route key format** — emit.ts sends space-separated ("shift completed"), NOTIFICATION_EVENTS uses dot-notation ("shift.published"). Without conversion, the entire outbox route was dead code. Fixed with `.replace(/\s+/g, ".")`.
+
+### Agent effectiveness
+- **Supervisor:** HIGH — found registry conflict + duplicate types + all convention violations
+- **Steward:** HIGH — confirmed cascade alignment + found same registry conflict + merge order
+- **Agent Coordinator:** HIGH — found the CRITICAL key format mismatch that all others missed
+- **Frontend Designer:** LOW — couldn't find worktrees (path mismatch smartout.ai-wt-N vs wt-N)
