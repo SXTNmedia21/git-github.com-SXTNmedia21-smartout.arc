@@ -422,6 +422,21 @@ type ContextDef = { id: ContentViewType; icon: React.ReactNode; label: string };
 
 const CONTEXT_ITEMS: ContextDef[] = [
   {
+    id: "admin-chat" as ContentViewType,
+    label: "Chat",
+    icon: (
+      <svg width="17" height="17" viewBox="0 0 20 20" fill="none">
+        <path
+          d="M4 4H16C17.1 4 18 4.9 18 6V13C18 14.1 17.1 15 16 15H7L3 18V6C3 4.9 3.9 4 5 4Z"
+          stroke="currentColor"
+          strokeWidth="1.4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    ),
+  },
+  {
     id: "log",
     label: "Logg",
     icon: (
