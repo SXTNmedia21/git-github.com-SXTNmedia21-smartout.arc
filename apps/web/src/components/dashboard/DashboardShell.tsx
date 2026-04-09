@@ -1405,6 +1405,14 @@ export function DashboardShell({
                               active={isActive("/dashboard/reconciliation")}
                               isCollapsed={isSidebarCollapsed}
                             />
+                            <NavItem
+                              href="/dashboard/cost"
+                              icon={Banknote}
+                              label="Lønnskostnad"
+                              isDark={isDark}
+                              active={isActive("/dashboard/cost")}
+                              isCollapsed={isSidebarCollapsed}
+                            />
 
                             {!isSidebarCollapsed && (
                               <div
