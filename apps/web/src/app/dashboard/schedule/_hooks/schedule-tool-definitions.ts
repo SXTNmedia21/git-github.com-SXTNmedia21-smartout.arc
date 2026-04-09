@@ -541,6 +541,30 @@ const filterSchedule = {
   },
 };
 
+const navigateToDate = {
+  temporaryTool: {
+    modelToolName: "navigateToDate",
+    description:
+      "Navigate the schedule to a specific week or date. Accepts week number (e.g. 'uke 17'), " +
+      "a date (e.g. '16. april', '2026-04-16'), or relative navigation ('neste uke', 'forrige uke'). " +
+      "Use when the user says 'ga til uke 17', 'vis neste uke', 'hoppa til 16 april', etc.",
+    dynamicParameters: [
+      {
+        name: "target",
+        location: body,
+        schema: {
+          type: "string",
+          description:
+            "Target: week number ('uke 17', '17'), date ('2026-04-16', '16. april'), " +
+            "or relative ('neste uke', 'forrige uke', 'denne uke')",
+        },
+        required: true,
+      },
+    ],
+    client: {},
+  },
+};
+
 // -- Export -------------------------------------------------------------------
 
 export const SCHEDULE_TOOL_DEFINITIONS: ClientToolDefinition[] = [
@@ -563,4 +587,5 @@ export const SCHEDULE_TOOL_DEFINITIONS: ClientToolDefinition[] = [
   setTimePeriod,
   showSingleDay,
   filterSchedule,
+  navigateToDate,
 ];

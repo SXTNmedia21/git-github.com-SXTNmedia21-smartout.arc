@@ -206,6 +206,7 @@ function SchedulePageContent() {
     scheduleLayout,
     setScheduleLayout,
     scheduleDateOffset,
+    setScheduleDateOffset,
     setOnPublishAll,
     setScheduleDraftCount,
     scheduleCompactMode,
@@ -973,6 +974,15 @@ function SchedulePageContent() {
         }
         setTimePeriod={(weeks) => setWeeklyPeriodCount(weeks)}
         setFilterSituation={setFilterSituation}
+        navigateToDate={(weekOffset) => {
+          // Relative (neste/forrige): small offset added to current position
+          // Absolute (uke 17, date): full offset from now
+          if (Math.abs(weekOffset) <= 2 && weekOffset !== 0) {
+            setScheduleDateOffset(scheduleDateOffset + weekOffset);
+          } else {
+            setScheduleDateOffset(weekOffset);
+          }
+        }}
         createShift={createShift}
         updateShift={updateShift}
         deleteShift={deleteShift}

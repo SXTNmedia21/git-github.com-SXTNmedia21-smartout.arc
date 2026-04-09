@@ -31,6 +31,7 @@ type ScheduleVoiceToolsInput = {
     setTimePeriod?: (weeks: number) => void;
     setSelectedDate?: (date: string | null) => void;
     setFilterSituation?: (filter: string) => void;
+    navigateToDate?: (weekOffset: number) => void;
   };
   mutations?: {
     createShift: (input: Record<string, unknown>) => Promise<unknown>;
@@ -1051,6 +1052,93 @@ export function useScheduleVoiceTools(input: ScheduleVoiceToolsInput): ClientToo
       });
     };
 
+    const navigateToDateTool: ClientToolImplementation = (params) => {
+      const d = dataRef.current;
+      const target = ((params.target as string) ?? "").toLowerCase().trim();
+      if (!d.uiActions?.navigateToDate) {
+        return JSON.stringify({ error: "Navigation not available" });
+      }
+
+      // Relative navigation
+      if (target === "neste uke" || target === "next week") {
+        d.uiActions.navigateToDate(1); // relative +1
+        return JSON.stringify({ success: true, message: "Navigert til neste uke." });
+      }
+      if (target === "forrige uke" || target === "last week" || target === "previous week") {
+        d.uiActions.navigateToDate(-1); // relative -1
+        return JSON.stringify({ success: true, message: "Navigert til forrige uke." });
+      }
+      if (
+        target === "denne uke" ||
+        target === "this week" ||
+        target === "i dag" ||
+        target === "today"
+      ) {
+        d.uiActions.navigateToDate(0); // reset to current week (absolute 0)
+        return JSON.stringify({ success: true, message: "Navigert til denne uken." });
+      }
+
+      // Week number: "uke 17", "17", "week 17"
+      const weekMatch = target.match(/(?:uke|week)\s*(\d{1,2})/i) ?? target.match(/^(\d{1,2})$/);
+      if (weekMatch) {
+        const targetWeek = Number(weekMatch[1]);
+        const now = new Date();
+        // Calculate current ISO week number
+        const jan1 = new Date(now.getFullYear(), 0, 1);
+        const currentDay = Math.floor((now.getTime() - jan1.getTime()) / 86400000);
+        const currentWeek = Math.ceil((currentDay + jan1.getDay() + 1) / 7);
+        const weekDiff = targetWeek - currentWeek;
+        d.uiActions.navigateToDate(weekDiff);
+        return JSON.stringify({ success: true, message: `Navigert til uke ${targetWeek}.` });
+      }
+
+      // Date: "2026-04-16" or "16. april" / "april 16"
+      const isoMatch = target.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      const norwegianMonths: Record<string, number> = {
+        januar: 0,
+        februar: 1,
+        mars: 2,
+        april: 3,
+        mai: 4,
+        juni: 5,
+        juli: 6,
+        august: 7,
+        september: 8,
+        oktober: 9,
+        november: 10,
+        desember: 11,
+      };
+      let targetDate: Date | null = null;
+
+      if (isoMatch) {
+        targetDate = new Date(Number(isoMatch[1]), Number(isoMatch[2]) - 1, Number(isoMatch[3]));
+      } else {
+        // "16. april" or "16 april"
+        const norMatch = target.match(/(\d{1,2})\.?\s*([a-zæøå]+)/);
+        if (norMatch?.[1] && norMatch[2]) {
+          const dayNum = Number(norMatch[1]);
+          const monthNum = norwegianMonths[norMatch[2] as string];
+          if (monthNum !== undefined) {
+            const year = new Date().getFullYear();
+            targetDate = new Date(year, monthNum, dayNum);
+          }
+        }
+      }
+
+      if (targetDate && !isNaN(targetDate.getTime())) {
+        const now = new Date();
+        const diffMs = targetDate.getTime() - now.getTime();
+        const diffWeeks = Math.round(diffMs / (7 * 24 * 60 * 60 * 1000));
+        d.uiActions.navigateToDate(diffWeeks);
+        const label = targetDate.toLocaleDateString("no-NO", { day: "numeric", month: "long" });
+        return JSON.stringify({ success: true, message: `Navigert til uken med ${label}.` });
+      }
+
+      return JSON.stringify({
+        error: `Kunne ikke tolke "${target}". Bruk f.eks. "uke 17", "16. april", eller "neste uke".`,
+      });
+    };
+
     // -- Combine definitions and implementations ----------------------
 
     const allDefinitions = [...TOOL_DEFINITIONS];
@@ -1074,6 +1162,7 @@ export function useScheduleVoiceTools(input: ScheduleVoiceToolsInput): ClientToo
       setTimePeriod: setTimePeriodTool,
       showSingleDay: showSingleDayTool,
       filterSchedule: filterScheduleTool,
+      navigateToDate: navigateToDateTool,
     };
 
     return {
