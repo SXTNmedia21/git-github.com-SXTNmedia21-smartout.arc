@@ -108,41 +108,75 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Employee has no email address" }, { status: 400 });
   }
 
-  // Call the contract microservice to create a draft.
-  const serviceUrl = process.env.CONTRACT_SERVICE_URL;
-  const serviceKey = process.env.CONTRACT_SERVICE_KEY;
+  // Fetch template to resolve HTML with placeholder values.
+  const admin = createAdminClient();
+  const { data: template, error: tplErr } = await admin
+    .from("contract_template")
+    .select("name, content_html, placeholders")
+    .eq("template_id", template_id)
+    .single();
 
-  if (!serviceUrl || !serviceKey) {
-    return NextResponse.json({ error: "Contract service not configured" }, { status: 503 });
+  if (tplErr || !template) {
+    return NextResponse.json({ error: "Template not found" }, { status: 404 });
   }
 
-  const serviceResponse = await fetch(`${serviceUrl}/contracts`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Service-Key": serviceKey,
-    },
-    body: JSON.stringify({
-      template_id,
+  // Simple placeholder resolution: replace {{key}} with resolved values.
+  let resolvedHtml = template.content_html ?? "";
+  for (const [key, value] of Object.entries(resolvedValues)) {
+    resolvedHtml = resolvedHtml.replaceAll(`{{${key}}}`, String(value ?? ""));
+  }
+
+  // Generate contract number (sequence-based if RPC exists, fallback to timestamp).
+  let contractNumber = `KONTRAKT-${new Date().getFullYear()}-${Date.now().toString(36).toUpperCase()}`;
+  const { data: numResult } = await admin.rpc("generate_contract_number" as never);
+  if (numResult) contractNumber = numResult as string;
+
+  // Fetch company_id for the workspace.
+  const { data: ws } = await admin
+    .from("workspace")
+    .select("company_id")
+    .eq("workspace_id", workspace_id)
+    .single();
+
+  // Write contract draft directly to Supabase — no microservice needed for draft creation.
+  // The contract-service is only required for DocuSeal signing dispatch.
+  const { data: contract, error: insertErr } = await admin
+    .from("contract")
+    .insert({
+      company_id: ws?.company_id ?? null,
       workspace_id,
+      template_id,
       contract_type: "employee",
+      contract_number: contractNumber,
+      title: `${template.name} - ${recipientName}`,
+      resolved_html: resolvedHtml,
+      resolved_values: resolvedValues,
+      sender_name: "Smartout",
+      sender_email: "no-reply@smartout.ai",
       recipient_name: recipientName,
       recipient_email: recipientEmail,
-      resolved_values: resolvedValues,
-    }),
-  });
+      status: "draft",
+    })
+    .select("contract_id")
+    .single();
 
-  if (!serviceResponse.ok) {
-    const err = await serviceResponse.json().catch(() => ({ error: "Service error" }));
-    return NextResponse.json(err, { status: serviceResponse.status });
+  if (insertErr || !contract) {
+    return NextResponse.json(
+      { error: insertErr?.message ?? "Failed to create contract" },
+      { status: 500 },
+    );
   }
 
-  const contract = (await serviceResponse.json()) as { contract_id: string };
+  // Log creation event.
+  await admin.from("contract_event").insert({
+    contract_id: contract.contract_id,
+    workspace_id,
+    event_type: "created",
+    actor_type: "user",
+    actor_id: user.id,
+  });
 
-  // Link the new contract to the employee's most recent employment_contract row.
-  // Uses admin client to bypass RLS — this is a cross-table system operation, not user-initiated data access.
-  // signing_contract_id was added in migration 20260428210000 — cast needed until types are regenerated.
-  const admin = createAdminClient();
+  // Link to the employee's most recent employment_contract row.
   await admin
     .from("employment_contract")
     .update({ signing_contract_id: contract.contract_id } as Record<string, unknown>)
