@@ -18,7 +18,7 @@ tags: [dashboard, worktrees, git-state]
 
 | #    | Branch                            | Module        | Last Commit     | Dirty | Journey                                              |
 | ---- | --------------------------------- | ------------- | --------------- | ----- | ---------------------------------------------------- |
-| (none) | All worktrees cleaned up | — | — | — | — |
+| wt-1 | feat/contract-preview-editor | contracts | 22df9131 | No | JOURNEY-contract-preview-editor.md |
 
 ## Free Slots
 
