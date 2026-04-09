@@ -116,7 +116,7 @@ export function HospitalityOperationsCockpit() {
   );
 
   return (
-    <div data-testid="hospitality-operations-cockpit" className="dashboard-enter space-y-4 pb-8">
+    <div data-testid="hospitality-operations-cockpit" className="dashboard-enter space-y-6 pb-8">
       <CockpitTopStrip
         isLoading={model.isLoading}
         onDutyCount={summary.onDutyCount}
@@ -126,31 +126,47 @@ export function HospitalityOperationsCockpit() {
         lastUpdatedAt={model.feed[0]?.occurredAt ?? null}
       />
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-        <div className="space-y-4 xl:col-span-2">
-          <CockpitRiskQueues
-            staffingQueue={model.staffingQueue}
-            operationalQueue={model.operationalQueue}
-            isLoading={model.isLoading}
-            onStaffingPress={handleStaffingPress}
-            onOperationalPress={handleOperationalPress}
-          />
-          <CockpitOnDutyProgress entries={model.onDutyEntries} isLoading={model.isLoading} />
-          <CockpitActivityFeed
-            feed={model.feed}
-            isLoading={model.isLoading}
-            onEventPress={handleEventPress}
-          />
-          <CockpitPrepStrip />
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        <div className="space-y-6 xl:col-span-2">
+          {/* ── DRIFT — today's operations ── */}
+          <section className="border-border/30 bg-card/30 space-y-4 rounded-2xl border p-5 backdrop-blur-sm">
+            <h2 className="text-muted-foreground/60 text-[10px] font-bold tracking-[0.15em] uppercase">
+              Drift
+            </h2>
+            <CockpitRiskQueues
+              staffingQueue={model.staffingQueue}
+              operationalQueue={model.operationalQueue}
+              isLoading={model.isLoading}
+              onStaffingPress={handleStaffingPress}
+              onOperationalPress={handleOperationalPress}
+            />
+            <CockpitOnDutyProgress entries={model.onDutyEntries} isLoading={model.isLoading} />
+            <CockpitActivityFeed
+              feed={model.feed}
+              isLoading={model.isLoading}
+              onEventPress={handleEventPress}
+            />
+          </section>
+
+          {/* ── FORBEREDELSE — next 7 days ── */}
+          <section className="border-border/30 bg-card/30 space-y-4 rounded-2xl border p-5 backdrop-blur-sm">
+            <CockpitPrepStrip />
+          </section>
         </div>
 
+        {/* ── ACTION RAIL — always visible ── */}
         <div className="xl:sticky xl:top-4 xl:col-span-1 xl:self-start">
-          <CockpitActionRail
-            staffingQueue={model.staffingQueue}
-            operationalQueue={model.operationalQueue}
-            onDutyEntries={model.onDutyEntries}
-            isLoading={model.isLoading}
-          />
+          <div className="border-border/30 bg-card/30 rounded-2xl border p-4 backdrop-blur-sm">
+            <h2 className="text-muted-foreground/60 mb-4 text-[10px] font-bold tracking-[0.15em] uppercase">
+              Krever handling
+            </h2>
+            <CockpitActionRail
+              staffingQueue={model.staffingQueue}
+              operationalQueue={model.operationalQueue}
+              onDutyEntries={model.onDutyEntries}
+              isLoading={model.isLoading}
+            />
+          </div>
         </div>
       </div>
     </div>
