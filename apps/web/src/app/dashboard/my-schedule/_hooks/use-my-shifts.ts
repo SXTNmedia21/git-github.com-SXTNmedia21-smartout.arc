@@ -6,7 +6,8 @@
  * Connected to: MyWeekView component
  */
 
-import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
 
 export type MyScheduleShift = {
@@ -65,4 +66,43 @@ export function useMyScheduleShifts(profileId: string | null, weekStart: string,
       }));
     },
   });
+}
+
+/**
+ * Subscribes to Supabase Realtime changes on schedule_shift for a given employee.
+ * On any INSERT/UPDATE/DELETE, invalidates the my-schedule query cache so the
+ * UI refreshes automatically when shifts are published or modified.
+ */
+export function useMyShiftsRealtime(profileId: string | null) {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!profileId) return;
+
+    const supabase = createClient();
+
+    const channel = supabase
+      .channel(`my-shifts-realtime-${profileId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "schedule_shift",
+          filter: `employee_id=eq.${profileId}`,
+        },
+        () => {
+          // Invalidate all my-schedule shift queries for this profile so the
+          // current and any prefetched weeks refresh.
+          void queryClient.invalidateQueries({
+            queryKey: ["my-schedule", "shifts", profileId],
+          });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [profileId, queryClient]);
 }

@@ -62,6 +62,15 @@ const TariffRatesPanel = lazy(() =>
 const ChangeProposalsPanel = lazy(() =>
   import("./ChangeProposalsPanel").then((m) => ({ default: m.ChangeProposalsPanel })),
 );
+const GeneralSettings = lazy(() =>
+  import("./general-settings").then((m) => ({ default: m.GeneralSettings })),
+);
+const TeamsSettings = lazy(() =>
+  import("./teams-settings").then((m) => ({ default: m.TeamsSettings })),
+);
+const KpiTargetsSettings = lazy(() =>
+  import("./kpi-targets-settings").then((m) => ({ default: m.KpiTargetsSettings })),
+);
 const FinancialCloseSettings = lazy(() =>
   import("./financial-close-settings").then((m) => ({ default: m.FinancialCloseSettings })),
 );
@@ -233,6 +242,24 @@ function TabContent({ tabId, userId }: { tabId: TabId; userId: string | undefine
       return (
         <Suspense fallback={<SettingsLoadingSkeleton />}>
           <ShiftLockPolicySettings />
+        </Suspense>
+      );
+    case "general":
+      return (
+        <Suspense fallback={<SettingsLoadingSkeleton />}>
+          <GeneralSettings />
+        </Suspense>
+      );
+    case "teams":
+      return (
+        <Suspense fallback={<SettingsLoadingSkeleton />}>
+          <TeamsSettings />
+        </Suspense>
+      );
+    case "kpis":
+      return (
+        <Suspense fallback={<SettingsLoadingSkeleton />}>
+          <KpiTargetsSettings />
         </Suspense>
       );
     default: {
