@@ -338,7 +338,91 @@ class SmartoutContextSource implements ContextSource {
 }
 ```
 
-### 1.3 Session Durability
+### 1.3 Token Usage Tracking
+
+**Maal:** Logg all token-bruk pa workspace- og brukerniva. Limits kommer senere.
+
+**Database (Fase 1 migration):**
+
+```sql
+CREATE TABLE engine_token_log (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id  UUID NOT NULL REFERENCES workspace(workspace_id),
+  profile_id    UUID NOT NULL REFERENCES profile(profile_id),
+  session_id    UUID REFERENCES engine_sessions(id) ON DELETE SET NULL,
+  model         TEXT NOT NULL,              -- "anthropic/claude-sonnet-4.6"
+  input_tokens  INTEGER NOT NULL DEFAULT 0,
+  output_tokens INTEGER NOT NULL DEFAULT 0,
+  total_tokens  INTEGER NOT NULL DEFAULT 0,
+  source        TEXT NOT NULL,              -- "chat" | "subagent" | "compaction" | "intent_classifier"
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_token_log_workspace ON engine_token_log(workspace_id, created_at);
+CREATE INDEX idx_token_log_profile ON engine_token_log(profile_id, created_at);
+
+ALTER TABLE engine_token_log ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "workspace members can view token logs"
+  ON engine_token_log FOR SELECT
+  USING (workspace_id IN (SELECT workspace_id FROM company_member WHERE user_id = auth.uid()));
+```
+
+**Integrasjon via `llm:after` hook:**
+
+```typescript
+// hooks/builtin.ts — token-logger hook
+const tokenLogger: Hook<"llm:after"> = {
+  name: "llm:after",
+  type: "observe",  // fire-and-forget, zero latency impact
+  priority: 0,
+  handler: async (payload) => {
+    await supabaseAdmin.from("engine_token_log").insert({
+      workspace_id: payload.workspaceId,
+      profile_id: payload.profileId,
+      session_id: payload.sessionId,
+      model: payload.model,
+      input_tokens: payload.tokensUsed.input,
+      output_tokens: payload.tokensUsed.output,
+      total_tokens: payload.tokensUsed.input + payload.tokensUsed.output,
+      source: payload.source,  // "chat", "subagent", "compaction", etc.
+    });
+  },
+};
+```
+
+**Hva som logges — alle LLM-kall:**
+
+| Source | Nar | Modell |
+|--------|-----|--------|
+| `chat` | Hver turn i routeAgentMessage() | claude-sonnet-4.6 |
+| `subagent` | Subagent executeSubagent() | claude-sonnet-4.6 |
+| `compaction` | Context Engine compact() | claude-haiku-4-5 |
+| `intent_classifier` | classifyIntent() | claude-sonnet-4.6 |
+
+**Querying (eksempler):**
+
+```sql
+-- Total tokens per workspace denne maneden
+SELECT SUM(total_tokens) FROM engine_token_log
+WHERE workspace_id = ? AND created_at >= date_trunc('month', now());
+
+-- Top 5 brukere per workspace
+SELECT profile_id, SUM(total_tokens) as total
+FROM engine_token_log
+WHERE workspace_id = ? AND created_at >= date_trunc('week', now())
+GROUP BY profile_id ORDER BY total DESC LIMIT 5;
+
+-- Kostnad per source
+SELECT source, SUM(total_tokens) as total
+FROM engine_token_log
+WHERE workspace_id = ? GROUP BY source;
+```
+
+**Limits (Fase 2+, ikke denne specen):** Nar tracking er pa plass, kan budget-guard
+hooken sjekke aggregerte tall mot grenser satt pa workspace- eller profilniva.
+
+### 1.4 Session Durability
 
 **Maal:** Crash recovery + budget tracking + lane serialization.
 
@@ -843,7 +927,7 @@ session-manager.ts). This prevents unbounded table growth.
 | `stage-engine/src/core/context-engine.ts` | ~120 | Context assembly + async compaction |
 | `stage-engine/src/core/session-lane.ts` | ~35 | Per-session serialization queue + cleanup |
 | `stage-engine/src/core/session-events.ts` | ~40 | appendSessionEvent() helper |
-| `supabase/migrations/YYYYMMDD_agent_harness_foundation.sql` | ~40 | Fase 1 migration |
+| `supabase/migrations/YYYYMMDD_agent_harness_foundation.sql` | ~60 | Fase 1 migration (incl. engine_token_log) |
 
 ### Fase 2
 
@@ -990,6 +1074,7 @@ Register in `packages/telemetry/src/registry.ts`:
 | `agent.subagent_completed` | PostHog, activity_trail | Subagent finishes successfully |
 | `agent.subagent_failed` | PostHog, activity_trail, Logger | Subagent fails or times out |
 | `agent.budget_exhausted` | PostHog, activity_trail | Budget guard blocks session |
+| `agent.tokens_used` | PostHog | LLM call completed (all sources) |
 
 **Telemetry path:** The `telemetry-observer` builtin hook calls `emit()` from
 `@smartout/telemetry` (CLAUDE.md mandate), NOT `emitGuardianEvent()`.
