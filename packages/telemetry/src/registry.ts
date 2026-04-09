@@ -838,6 +838,8 @@ export interface ContractCreated extends BaseEvent {
       template_id: string;
       recipient_email: string;
       contract_type: string;
+      /** True when admin edited the contract body in the preview editor before sending */
+      was_edited?: boolean;
     };
   };
 }
@@ -857,7 +859,12 @@ export interface ContractViewed extends BaseEvent {
   event: "contract viewed";
   properties: {
     entity: EntityRef;
-    data: { recipient_email: string };
+    data: {
+      recipient_email?: string;
+      /** Set when viewed in the send-drawer preview editor */
+      template_id?: string;
+      profile_id?: string;
+    };
   };
 }
 

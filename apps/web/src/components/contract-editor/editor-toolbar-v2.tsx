@@ -26,6 +26,8 @@ import { cn } from "@/lib/utils";
 
 type EditorToolbarV2Props = {
   editor: Editor | null;
+  /** "preview" hides template-authoring dropdowns (Seksjon, Felt) */
+  mode?: "full" | "preview";
 };
 
 type ToolbarButtonProps = {
@@ -119,7 +121,7 @@ function ToolbarDropdown({
   );
 }
 
-export function EditorToolbarV2({ editor }: EditorToolbarV2Props) {
+export function EditorToolbarV2({ editor, mode = "full" }: EditorToolbarV2Props) {
   if (!editor) return null;
 
   const sectionItems: DropdownItem[] = [
@@ -383,19 +385,23 @@ export function EditorToolbarV2({ editor }: EditorToolbarV2Props) {
         <Minus className="h-4 w-4" />
       </ToolbarButton>
 
-      <ToolbarDivider />
+      {mode === "full" && (
+        <>
+          <ToolbarDivider />
 
-      {/* Insert dropdowns */}
-      <ToolbarDropdown
-        label="Seksjon"
-        icon={<SquarePlus className="h-3.5 w-3.5" />}
-        items={sectionItems}
-      />
-      <ToolbarDropdown
-        label="Felt"
-        icon={<Paperclip className="h-3.5 w-3.5" />}
-        items={fieldItems}
-      />
+          {/* Insert dropdowns — only in full template-authoring mode */}
+          <ToolbarDropdown
+            label="Seksjon"
+            icon={<SquarePlus className="h-3.5 w-3.5" />}
+            items={sectionItems}
+          />
+          <ToolbarDropdown
+            label="Felt"
+            icon={<Paperclip className="h-3.5 w-3.5" />}
+            items={fieldItems}
+          />
+        </>
+      )}
 
       <ToolbarDivider />
 

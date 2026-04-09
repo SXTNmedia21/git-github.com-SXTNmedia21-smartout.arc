@@ -6,6 +6,7 @@ import { createClient } from "@smartout/supabase/server";
 import { createAdminClient } from "@smartout/supabase/admin";
 import { buildEmployeePlaceholderMap } from "@smartout/utils";
 import { emit } from "@smartout/telemetry";
+import sanitizeHtml from "sanitize-html";
 import { z } from "zod";
 
 const createSchema = z.object({
@@ -13,7 +14,45 @@ const createSchema = z.object({
   profile_id: z.string().uuid(),
   workspace_id: z.string().uuid(),
   overrides: z.record(z.string()).optional(),
+  /** Pre-rendered HTML from the preview editor — bypasses server-side placeholder resolution */
+  resolved_html: z.string().optional(),
 });
+
+/** Allowlist matching Tiptap output — strips scripts, event handlers, iframes */
+const HTML_SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
+  allowedTags: sanitizeHtml.defaults.allowedTags.concat([
+    "h1",
+    "h2",
+    "h3",
+    "span",
+    "div",
+    "section",
+    "hr",
+    "br",
+    "img",
+  ]),
+  allowedAttributes: {
+    ...sanitizeHtml.defaults.allowedAttributes,
+    span: [
+      "class",
+      "data-type",
+      "data-key",
+      "data-label",
+      "data-placeholder-type",
+      "data-role",
+      "data-required",
+      "data-clause-id",
+      "data-title",
+      "data-category",
+      "data-color",
+      "style",
+    ],
+    div: ["class", "data-type", "data-clause-id", "data-title", "data-category", "style"],
+    section: ["class", "data-type", "style"],
+  },
+  allowedSchemes: ["https", "mailto"],
+  disallowedTagsMode: "discard",
+};
 
 const PAGE_SIZE = 20;
 
@@ -65,7 +104,13 @@ export async function POST(request: NextRequest) {
   const parsed = createSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
-  const { template_id, profile_id, workspace_id, overrides } = parsed.data;
+  const {
+    template_id,
+    profile_id,
+    workspace_id,
+    overrides,
+    resolved_html: clientHtml,
+  } = parsed.data;
 
   // Verify caller has admin or owner role in this workspace — employees must not create contracts.
   // Uses the user-scoped client so RLS applies (no bypass via service role).
@@ -83,9 +128,12 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Build the placeholder map using the user's JWT so RLS applies correctly.
-  const placeholderMap = await buildEmployeePlaceholderMap(supabase, profile_id, workspace_id);
-  const resolvedValues = { ...placeholderMap, ...overrides };
+  // Build the placeholder map — skipped when the preview editor provides pre-rendered HTML,
+  // but still needed for resolved_values storage on the contract row.
+  const placeholderMap = clientHtml
+    ? (overrides ?? {})
+    : await buildEmployeePlaceholderMap(supabase, profile_id, workspace_id);
+  const resolvedValues = clientHtml ? (overrides ?? {}) : { ...placeholderMap, ...overrides };
 
   // Fetch recipient email from user_identity via profile.
   // Supabase FK joins may return as array — normalise with Array.isArray.
@@ -120,10 +168,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Template not found" }, { status: 404 });
   }
 
-  // Simple placeholder resolution: replace {{key}} with resolved values.
-  let resolvedHtml = template.content_html ?? "";
-  for (const [key, value] of Object.entries(resolvedValues)) {
-    resolvedHtml = resolvedHtml.replaceAll(`{{${key}}}`, String(value ?? ""));
+  // Use client-provided HTML from the preview editor if available,
+  // otherwise fall back to server-side placeholder resolution.
+  let resolvedHtml: string;
+  if (clientHtml) {
+    // Sanitize client-provided HTML — defense-in-depth against XSS/injection.
+    // The admin is trusted, but the HTML is rendered to employees via DocuSeal.
+    resolvedHtml = sanitizeHtml(clientHtml, HTML_SANITIZE_OPTIONS);
+  } else {
+    resolvedHtml = template.content_html ?? "";
+    for (const [key, value] of Object.entries(resolvedValues)) {
+      resolvedHtml = resolvedHtml.replaceAll(`{{${key}}}`, String(value ?? ""));
+    }
   }
 
   // Generate contract number (sequence-based if RPC exists, fallback to timestamp).
@@ -191,7 +247,12 @@ export async function POST(request: NextRequest) {
     actor_id: user.id,
     properties: {
       entity: { entity_type: "contract" as const, entity_id: contract.contract_id },
-      data: { template_id, recipient_email: recipientEmail, contract_type: "employee" },
+      data: {
+        template_id,
+        recipient_email: recipientEmail,
+        contract_type: "employee",
+        was_edited: !!clientHtml,
+      },
     },
   });
 

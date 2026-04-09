@@ -11,9 +11,13 @@
  * On success: toasts, closes drawer, calls onSuccess callback.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { toast } from "sonner";
 import { CheckCircle2, ChevronRight, FileText, Loader2, Send } from "lucide-react";
+
+import { ContractPreviewEditor } from "./contract-preview-editor";
+import { resolvePlaceholders } from "@smartout/utils";
+import type { PlaceholderDef } from "@smartout/utils";
 
 import {
   AlertDialog,
@@ -86,6 +90,14 @@ export function ContractSendDrawer({
   const [isResolving, setIsResolving] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  // Template HTML fetched when entering preview step
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
+  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
+  // Tracks the admin's edits in the Tiptap editor
+  const editedHtmlRef = useRef<string | null>(null);
+  // Tracks whether the admin has modified the document in the preview editor
+  const [isDocumentEdited, setIsDocumentEdited] = useState(false);
+  const originalHtmlRef = useRef<string | null>(null);
 
   // Reset all local state when drawer closes
   function handleOpenChange(next: boolean) {
@@ -95,6 +107,10 @@ export function ContractSendDrawer({
       setOverrides({});
       setResolvedMap({});
       setShowConfirm(false);
+      setPreviewHtml(null);
+      editedHtmlRef.current = null;
+      setIsDocumentEdited(false);
+      originalHtmlRef.current = null;
     }
     onOpenChange(next);
   }
@@ -118,6 +134,41 @@ export function ContractSendDrawer({
     } finally {
       setIsResolving(false);
       setStep("review");
+    }
+  }
+
+  // Fetch template content_html, resolve placeholders, and transition to preview step.
+  async function goToPreview() {
+    if (!selectedTemplate) return;
+    setIsLoadingPreview(true);
+    try {
+      const res = await fetch(
+        `/api/contracts/templates/${selectedTemplate.template_id}?workspace_id=${workspaceId}`,
+      );
+      if (!res.ok) throw new Error("Kunne ikke laste mal-innhold");
+      const json = (await res.json()) as {
+        data: { content_html: string; placeholders: PlaceholderDef[] };
+      };
+      const contentHtml = json.data.content_html ?? "";
+      const placeholders = json.data.placeholders ?? [];
+
+      // Use canonical resolver that handles both {{key}} and Tiptap span format
+      const { resolved_html } = resolvePlaceholders(
+        contentHtml,
+        placeholders,
+        resolvedMap,
+        overrides,
+      );
+
+      setPreviewHtml(resolved_html);
+      editedHtmlRef.current = resolved_html;
+      originalHtmlRef.current = resolved_html;
+      setIsDocumentEdited(false);
+      setStep("preview");
+    } catch {
+      toast.error("Kunne ikke laste forhåndsvisning");
+    } finally {
+      setIsLoadingPreview(false);
     }
   }
 
@@ -149,6 +200,8 @@ export function ContractSendDrawer({
             acc[f.key] = f.value;
             return acc;
           }, {}),
+          // Pass the admin-edited HTML from the preview editor
+          resolved_html: editedHtmlRef.current ?? undefined,
         }),
       });
 
@@ -185,7 +238,7 @@ export function ContractSendDrawer({
   return (
     <>
       <Sheet open={open} onOpenChange={handleOpenChange}>
-        <SheetContent className="border-border bg-background w-full p-0 sm:max-w-[500px]">
+        <SheetContent className="border-border bg-background w-full p-0 sm:max-w-[640px]">
           <SheetHeader className="border-border border-b px-6 pt-6 pb-4">
             <SheetTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
@@ -216,17 +269,22 @@ export function ContractSendDrawer({
               {step === "review" && selectedTemplate && (
                 <ReviewStep
                   fields={resolvedFields()}
+                  isLoadingPreview={isLoadingPreview}
                   onOverride={(key, value) => setOverrides((prev) => ({ ...prev, [key]: value }))}
                   onBack={() => setStep("template")}
-                  onNext={() => setStep("preview")}
+                  onNext={goToPreview}
                 />
               )}
 
-              {step === "preview" && selectedTemplate && (
+              {step === "preview" && selectedTemplate && previewHtml && (
                 <PreviewStep
-                  template={selectedTemplate}
-                  fields={resolvedFields()}
+                  contentHtml={previewHtml}
                   isSending={isSending}
+                  isEdited={isDocumentEdited}
+                  onContentChange={(html) => {
+                    editedHtmlRef.current = html;
+                    setIsDocumentEdited(html !== originalHtmlRef.current);
+                  }}
                   onBack={() => setStep("review")}
                   onSend={() => setShowConfirm(true)}
                 />
@@ -244,6 +302,11 @@ export function ContractSendDrawer({
             <AlertDialogDescription>
               Kontrakten sendes til den ansatte for elektronisk signering via DocuSeal. Du kan ikke
               angre etter sending.
+              {isDocumentEdited && (
+                <span className="mt-1 block text-xs font-medium text-amber-600">
+                  Du har gjort endringer i dokumentet.
+                </span>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -273,7 +336,7 @@ export function ContractSendDrawer({
 const STEPS: { id: Step; label: string }[] = [
   { id: "template", label: "Mal" },
   { id: "review", label: "Data" },
-  { id: "preview", label: "Send" },
+  { id: "preview", label: "Gjennomgang" },
 ];
 
 function StepIndicator({ current }: { current: Step }) {
@@ -494,12 +557,13 @@ function TemplateRadioRow({
 
 type ReviewStepProps = {
   fields: PlaceholderField[];
+  isLoadingPreview: boolean;
   onOverride: (key: string, value: string) => void;
   onBack: () => void;
   onNext: () => void;
 };
 
-function ReviewStep({ fields, onOverride, onBack, onNext }: ReviewStepProps) {
+function ReviewStep({ fields, isLoadingPreview, onOverride, onBack, onNext }: ReviewStepProps) {
   return (
     <div className="space-y-5">
       <div>
@@ -547,9 +611,18 @@ function ReviewStep({ fields, onOverride, onBack, onNext }: ReviewStepProps) {
         <Button variant="ghost" onClick={onBack} size="sm">
           Tilbake
         </Button>
-        <Button onClick={onNext} size="sm">
-          Neste: forhåndsvisning
-          <ChevronRight className="ml-2 h-4 w-4" />
+        <Button onClick={onNext} size="sm" disabled={isLoadingPreview}>
+          {isLoadingPreview ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Laster...
+            </>
+          ) : (
+            <>
+              Neste: forhåndsvisning
+              <ChevronRight className="ml-2 h-4 w-4" />
+            </>
+          )}
         </Button>
       </div>
     </div>
@@ -559,56 +632,40 @@ function ReviewStep({ fields, onOverride, onBack, onNext }: ReviewStepProps) {
 // ── PreviewStep ───────────────────────────────────────────────
 
 type PreviewStepProps = {
-  template: ContractTemplate;
-  fields: PlaceholderField[];
+  /** Resolved HTML with placeholders replaced — ready for Tiptap rendering */
+  contentHtml: string;
   isSending: boolean;
+  isEdited: boolean;
+  onContentChange: (html: string) => void;
   onBack: () => void;
   onSend: () => void;
 };
 
-function PreviewStep({ template, fields, isSending, onBack, onSend }: PreviewStepProps) {
-  // Find the employee name field if present — used in the summary line
-  const employeeName = fields.find(
-    (f) => f.key === "employee_name" || f.key === "full_name",
-  )?.value;
-
+function PreviewStep({
+  contentHtml,
+  isSending,
+  isEdited,
+  onContentChange,
+  onBack,
+  onSend,
+}: PreviewStepProps) {
   return (
     <div className="space-y-5">
-      <div>
-        <h3 className="text-foreground text-sm font-semibold">Klar til å sende</h3>
-        <p className="text-muted-foreground mt-0.5 text-xs">
-          Kontroller oppsummeringen nedenfor før du sender.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-foreground text-sm font-semibold">Gjennomgang</h3>
+          <p className="text-muted-foreground mt-0.5 text-xs">
+            Kontroller at kontrakten ser riktig ut. Du kan redigere teksten direkte.
+          </p>
+        </div>
+        {isEdited && (
+          <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-600">
+            Redigert
+          </span>
+        )}
       </div>
 
-      {/* Summary card */}
-      <div className="border-border bg-card space-y-3 rounded-lg border p-4">
-        <div className="flex items-center gap-3">
-          <div className="bg-primary/10 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg">
-            <FileText className="text-primary h-5 w-5" />
-          </div>
-          <div>
-            <div className="text-foreground text-sm font-semibold">{template.name}</div>
-            {employeeName && (
-              <div className="text-muted-foreground text-xs">Til: {employeeName}</div>
-            )}
-          </div>
-        </div>
-
-        <Separator />
-
-        <div className="space-y-1.5">
-          {fields.slice(0, 6).map((f) => (
-            <div key={f.key} className="flex items-center justify-between gap-2 text-xs">
-              <span className="text-muted-foreground shrink-0">{f.label}</span>
-              <span className="text-foreground truncate font-medium">{f.value || "—"}</span>
-            </div>
-          ))}
-          {fields.length > 6 && (
-            <p className="text-muted-foreground pt-1 text-xs">+{fields.length - 6} flere felter</p>
-          )}
-        </div>
-      </div>
+      <ContractPreviewEditor contentHtml={contentHtml} onContentChange={onContentChange} />
 
       <div className="bg-muted/60 text-muted-foreground rounded-lg border px-4 py-3 text-xs">
         Kontrakten sendes til den ansattes e-post for elektronisk signering. Du mottar en kopi etter
