@@ -987,10 +987,6 @@ function SchedulePageContent() {
         switchLayout={(layout) =>
           setScheduleLayout(layout as "daily" | "weekly" | "monthly" | "list" | "grid")
         }
-        createShift={createShift}
-        updateShift={updateShift}
-        deleteShift={deleteShift}
-        publishShifts={publishShifts}
       />
       <div
         className={`bg-background border-border text-foreground relative isolate flex h-full flex-1 flex-col overflow-hidden rounded-2xl border font-sans shadow-2xl print:block print:h-auto print:overflow-visible print:border-none print:bg-white print:shadow-none`}

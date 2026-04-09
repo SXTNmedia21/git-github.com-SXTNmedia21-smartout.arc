@@ -34,14 +34,9 @@ type ScheduleVoiceToolsInput = {
     navigateToDate?: (weekOffset: number) => void;
     switchLayout?: (layout: string) => void;
   };
-  mutations?: {
-    createShift: (input: Record<string, unknown>) => Promise<unknown>;
-    updateShift: (input: { id: string; patch: Record<string, unknown> }) => Promise<unknown>;
-    deleteShift: (id: string) => Promise<unknown>;
-    publishShifts: (ids: string[]) => Promise<unknown>;
-  };
-  /** When provided, write tools create ghost proposals instead of real shifts */
-  addProposal?: (proposal: ShiftProposal) => void;
+  /** All write operations go through proposals — ghost cards that require human approval.
+   *  This is REQUIRED, not optional. Botsson can never mutate shifts directly. */
+  addProposal: (proposal: ShiftProposal) => void;
   /** When provided, voice tools prompt for confirmation before creating proposals */
   requestConfirmation?: (title: string, description: string) => Promise<boolean>;
 };
