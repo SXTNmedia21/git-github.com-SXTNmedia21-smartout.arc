@@ -115,6 +115,13 @@ const COMMAND_RESULTS: SearchResult[] = [
     icon: "command",
   },
   {
+    id: "cmd-contracts",
+    title: "Kontrakter",
+    subtitle: "Ga til kontrakter og brev",
+    deepLink: "/dashboard/contracts",
+    icon: "command",
+  },
+  {
     id: "cmd-org",
     title: "Organisasjon",
     subtitle: "Ga til organisasjon",
