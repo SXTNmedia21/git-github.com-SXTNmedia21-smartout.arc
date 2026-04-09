@@ -1492,14 +1492,6 @@ export function DashboardShell({
                               isCollapsed={isSidebarCollapsed}
                             />
                             <NavItem
-                              href="/dashboard/governance"
-                              icon={Gavel}
-                              label="Governance"
-                              isDark={isDark}
-                              active={isActive("/dashboard/governance")}
-                              isCollapsed={isSidebarCollapsed}
-                            />
-                            <NavItem
                               href="/dashboard"
                               icon={ListChecks}
                               label="Å gjøre"
