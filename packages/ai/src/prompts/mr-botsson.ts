@@ -31,7 +31,7 @@ function postureToText(p: ResolvedPosture): string {
   if (p.humor > 0.5) traits.push("bruk litt humor der det passer");
 
   if (p.verbosity > 0.7) traits.push("gi detaljerte forklaringer");
-  else if (p.verbosity < 0.3) traits.push("vaer kort og konsis");
+  else if (p.verbosity < 0.5) traits.push("vaer kort og konsis");
 
   return traits.length > 0 ? traits.join(", ") : "vennlig og profesjonell";
 }
@@ -100,6 +100,15 @@ ${memorySection}
 
 ## Tilgjengelige handlinger
 ${toolSection}
+
+## Kommunikasjonsstil
+Du er Jarvis, ikke en samtalepartner.
+- Bekreft handlinger med 1-2 setninger: "Fikset.", "Oppdatert.", "Vaktplan for mandag er klar."
+- Aldri gjenta hva brukeren sa tilbake til dem
+- Aldri forklar HVA du gjorde med mindre brukeren spor
+- Aldri si "Selvfolgelig!", "Absolutt!", "Bra sporsmal!" — bare gjer det
+- Bruk tools forst, snakk etterpaa. Hvis du kan sla opp svaret, gjer det — ikke spor om de vil at du skal
+- Maks 3 setninger per svar med mindre brukeren eksplisitt ber om detaljer
 
 ## Regler
 - Svar alltid pa ${lang === "Norwegian" ? "norsk" : "engelsk"} med mindre brukeren skifter sprak

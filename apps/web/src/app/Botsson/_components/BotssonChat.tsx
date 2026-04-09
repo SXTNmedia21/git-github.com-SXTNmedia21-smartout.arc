@@ -61,6 +61,7 @@ export function BotssonChat({ workspaceId, primeContext, greeting, className }: 
   const [inputValue, setInputValue] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sessionId, setSessionId] = useState<string | undefined>(undefined);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom on new message
@@ -83,25 +84,21 @@ export function BotssonChat({ workspaceId, primeContext, greeting, className }: 
     setIsSending(true);
     setError(null);
 
-    // Build conversation history for the API. Convert the in-memory messages to the
-    // {role, content} shape the agent runner expects. Keep only the actual conversational
-    // content — drop tool results and input requests since those are UI affordances.
-    const history = messages.map((m) => ({
-      role: m.role,
-      content: m.text,
-    }));
-
     try {
+      // Stage-engine handles conversation history via persistent sessions.
+      // We send session_id on subsequent turns — no need to replay history from client.
+      const currentPage = typeof window !== "undefined" ? window.location.pathname : undefined;
+
       const response = await fetch("/api/botsson/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           workspaceId,
           userMessage: userText,
-          // Only attach primeContext on the very first turn — the agent runner uses it as
-          // entry-point framing, not as ongoing context.
-          primeContext: messages.length === 0 ? primeContext : undefined,
-          conversationHistory: history,
+          sessionId,
+          pageContext: currentPage,
+          // Only attach primeContext on the very first turn
+          primeContext: !sessionId ? primeContext : undefined,
         }),
       });
 
@@ -112,16 +109,17 @@ export function BotssonChat({ workspaceId, primeContext, greeting, className }: 
 
       const data = (await response.json()) as {
         text: string;
-        inputRequests?: BIRDescriptor[];
-        toolResults?: Array<{ tool_name: string; result: string }>;
+        sessionId?: string;
+        intent?: { capability: string; confidence: number };
       };
+
+      // Persist session_id for subsequent turns
+      if (data.sessionId) setSessionId(data.sessionId);
 
       const assistantMsg: ChatMessage = {
         id: `a-${Date.now()}`,
         role: "assistant",
         text: data.text || "(ingen respons)",
-        toolResults: data.toolResults,
-        inputRequests: data.inputRequests,
       };
       setMessages((prev) => [...prev, assistantMsg]);
     } catch (err) {

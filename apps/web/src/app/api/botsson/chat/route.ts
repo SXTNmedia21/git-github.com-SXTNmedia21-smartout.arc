@@ -1,18 +1,15 @@
 /**
  * POST /api/botsson/chat
  *
- * Admin-facing chat endpoint that runs one turn of Botsson against the active workspace.
- * Wraps `runBotssonAgent` from @smartout/ai. The chat UI in EmmaOverlay POSTs here on every
- * user message and renders the returned text + any InputRequestDescriptors.
+ * Admin-facing chat endpoint that proxies to stage-engine's /agent/chat.
+ * This gives chat the same pipeline as voice: sessions, memory, relationship,
+ * authority-gated tools, intent classification, and context windowing.
  *
- * Auth: must be authenticated AND have admin/owner role in the active workspace. Botsson
- * mutation tools (create/send contracts, etc.) re-check role internally as a defense layer.
+ * Auth: must be authenticated AND have admin/owner role in the active workspace.
+ * Stage-engine re-checks via its own auth middleware.
  *
- * Channel: V0 hard-codes 'chat' since this is the typed-input endpoint. Voice has its own
- * runtime path through Ultravox. ADR-0078's three-layer channel restriction lives at:
- *   1. The active session channel (this endpoint = chat)
- *   2. The capability's allowed_channels (set per capability definition — V0 not enforced)
- *   3. The InputRequest's allowed_channels (PII forces chat-only via buildInputRequest)
+ * Session persistence: the frontend passes session_id back on subsequent turns.
+ * Stage-engine creates and maintains the real engine_sessions row.
  */
 
 import type { NextRequest } from "next/server";
@@ -21,33 +18,28 @@ import { z } from "zod";
 
 import { createClient } from "@smartout/supabase/server";
 import { createAdminClient } from "@smartout/supabase/admin";
-import { runBotssonAgent } from "@smartout/ai/agents/botsson";
-import type { ModelMessage, AgentToolContext } from "@smartout/ai/agents/botsson";
+import { env } from "@/env";
+
+const STAGE_ENGINE_URL = env.STAGE_ENGINE_URL ?? "http://localhost:5010";
+const STAGE_ENGINE_API_KEY = env.STAGE_ENGINE_API_KEY;
 
 // ── Request schema ──────────────────────────────────────────────────────────
 const RequestSchema = z.object({
   workspaceId: z.string().uuid(),
   userMessage: z.string().min(1).max(10000),
-  /** Optional context the UI passes when admin clicks "Lag kontrakt for X" — primes Botsson */
+  sessionId: z.string().uuid().optional(),
+  pageContext: z.string().optional(),
   primeContext: z
     .object({
-      kind: z.string(), // 'create_contract', 'view_employee', etc.
+      kind: z.string(),
       profileId: z.string().uuid().optional(),
       profileName: z.string().optional(),
     })
     .optional(),
-  conversationHistory: z
-    .array(
-      z.object({
-        role: z.enum(["user", "assistant", "system", "tool"]),
-        content: z.string(),
-      }),
-    )
-    .max(40), // hard cap so the LLM context doesn't run away
 });
 
 export async function POST(request: NextRequest) {
-  // 1. Auth — must be a real authenticated user.
+  // 1. Auth
   const supabase = await createClient();
   const {
     data: { user },
@@ -58,7 +50,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // 2. Parse + validate body.
+  // 2. Parse body
   let body: z.infer<typeof RequestSchema>;
   try {
     const raw = await request.json();
@@ -71,8 +63,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: message }, { status: 400 });
   }
 
-  // 3. Resolve the caller's profile in the requested workspace + check admin role.
-  // Botsson mutation tools re-check this; the endpoint check is the first layer.
+  // 3. Resolve profile + check admin role
   const admin = createAdminClient();
   const { data: profile, error: profileError } = await admin
     .from("profile")
@@ -91,28 +82,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Profile is not active" }, { status: 403 });
   }
 
-  // 4. Build the AgentToolContext that capability tools require.
-  // sessionId is synthetic for now — V0 doesn't persist Botsson admin chats. When we add
-  // engine_sessions integration we'll write a real session row and propagate the id here.
-  const ctx: AgentToolContext = {
-    workspaceId: body.workspaceId,
-    profileId: profile.profile_id,
-    userId: user.id,
-    sessionId: `botsson-chat-${Date.now()}`,
-    supabaseAdmin: admin,
-  };
-
-  // 5. If the UI passed primeContext, prepend a system-style hint to the user message so
-  // Botsson knows the entry point. We do NOT add a separate system message — runBotssonAgent
-  // already injects its own system prompt; this is contextual framing for THIS turn only.
+  // 4. Prepend primeContext to message on first turn
   let userMessage = body.userMessage;
-  if (body.primeContext && body.conversationHistory.length === 0) {
-    // Only prime on the very first turn of a conversation. After that the model has context.
+  if (body.primeContext && !body.sessionId) {
     const ctxLines: string[] = [];
     if (body.primeContext.kind === "create_contract") {
-      ctxLines.push("[Kontekst: Admin åpnet deg fra kontraktsiden for å lage en ny kontrakt.]");
+      ctxLines.push("[Kontekst: Admin apnet deg fra kontraktsiden for a lage en ny kontrakt.]");
     } else if (body.primeContext.kind === "view_employee") {
-      ctxLines.push("[Kontekst: Admin åpnet deg fra ansattprofilen.]");
+      ctxLines.push("[Kontekst: Admin apnet deg fra ansattprofilen.]");
     }
     if (body.primeContext.profileId && body.primeContext.profileName) {
       ctxLines.push(
@@ -124,23 +101,44 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // 6. Run one turn.
+  // 5. Proxy to stage-engine /agent/chat
   try {
-    const result = await runBotssonAgent({
-      ctx,
-      channel: "chat",
-      userMessage,
-      conversationHistory: body.conversationHistory as ModelMessage[],
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (STAGE_ENGINE_API_KEY) {
+      headers["x-api-key"] = STAGE_ENGINE_API_KEY;
+    }
+
+    const res = await fetch(`${STAGE_ENGINE_URL}/agent/chat`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        message: userMessage,
+        session_id: body.sessionId,
+        profile_id: profile.profile_id,
+        channel: "chat",
+        page_context: body.pageContext,
+      }),
     });
 
+    if (!res.ok) {
+      const errBody = (await res.json().catch(() => ({}))) as { message?: string };
+      throw new Error(errBody.message ?? `Stage engine returned ${res.status}`);
+    }
+
+    const data = (await res.json()) as {
+      session_id: string;
+      response: string;
+      intent?: { capability: string; confidence: number };
+    };
+
     return NextResponse.json({
-      text: result.text,
-      inputRequests: result.inputRequests,
-      toolResults: result.toolResults,
+      text: data.response,
+      sessionId: data.session_id,
+      intent: data.intent,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Botsson chat failed";
-    console.error("[/api/botsson/chat] runBotssonAgent error:", err);
+    console.error("[/api/botsson/chat] stage-engine proxy error:", err);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

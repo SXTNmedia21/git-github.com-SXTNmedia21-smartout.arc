@@ -29,9 +29,13 @@ import { cleanExpiredMemories } from "./core/memory-manager.js";
 import { evaluateAllActiveSessions } from "./core/guardian-evaluator.js";
 import { evaluateCalendarTriggers } from "./core/calendar-guardian.js";
 import { relayToTelegram } from "./core/telegram-bridge.js";
+import { SessionLane } from "./core/session-lane.js";
 
 // Load external API keys from Vault before starting the server
 await loadSecrets();
+
+// Agent Harness — session serialization
+const sessionLane = new SessionLane();
 
 const app = new Hono();
 
@@ -47,6 +51,12 @@ app.use("/ws/*", async (_c, next) => next());
 // which is verified inside the route handler itself.
 app.use("/adapters/telegram/*", async (_c, next) => next());
 app.use("*", authMiddleware);
+
+// Inject harness components into Hono context for route handlers
+app.use("*", async (c, next) => {
+  c.set("sessionLane" as never, sessionLane);
+  await next();
+});
 
 // Error handler
 app.onError(onError);

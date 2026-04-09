@@ -19,10 +19,11 @@ import {
   getConversationHistory,
 } from "../../core/agent-session.js";
 import { emitGuardianEvent } from "../../core/guardian-bus.js";
+import type { SessionLane } from "../../core/session-lane.js";
 import type { AuthContext } from "../../types/auth.js";
 import type { ConversationTurn } from "../../types/agent.js";
 
-const agentChat = new Hono<{ Variables: { auth: AuthContext } }>();
+const agentChat = new Hono<{ Variables: { auth: AuthContext; sessionLane: SessionLane } }>();
 
 // -- Schema --
 
@@ -31,6 +32,7 @@ const chatSchema = z.object({
   session_id: z.string().uuid().optional(),
   profile_id: z.string().uuid(),
   channel: z.enum(["chat", "voice"]).optional().default("chat"),
+  page_context: z.string().optional(), // current page pathname from frontend
 });
 
 // -- POST /agent/chat --
@@ -100,54 +102,59 @@ agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
     sessionId = session.id;
   }
 
-  // Append user turn
-  const userTurn: ConversationTurn = {
-    role: "user",
-    content: body.message,
-    timestamp: new Date().toISOString(),
-  };
-  await appendConversationTurn(sessionId, userTurn);
+  // All session-mutating operations serialized per session to prevent race conditions
+  const lane = c.get("sessionLane");
+  return await lane.run(sessionId, async () => {
+    // Append user turn
+    const userTurn: ConversationTurn = {
+      role: "user",
+      content: body.message,
+      timestamp: new Date().toISOString(),
+    };
+    await appendConversationTurn(sessionId, userTurn);
 
-  emitGuardianEvent({
-    session_id: sessionId,
-    workspace_id: workspaceId,
-    event_type: "user.message",
-    actor: "user",
-    summary: body.message.length > 100 ? body.message.slice(0, 100) + "\u2026" : body.message,
-    data: { text: body.message, channel: body.channel },
+    emitGuardianEvent({
+      session_id: sessionId,
+      workspace_id: workspaceId,
+      event_type: "user.message",
+      actor: "user",
+      summary: body.message.length > 100 ? body.message.slice(0, 100) + "\u2026" : body.message,
+      data: { text: body.message, channel: body.channel },
+    });
+
+    // Route message through agent pipeline
+    const response = await routeAgentMessage({
+      message: body.message,
+      sessionId,
+      workspaceId,
+      profileId: body.profile_id,
+      userId: auth.userId,
+      conversationHistory,
+      pageContext: body.page_context,
+    });
+
+    // Append assistant turn
+    const assistantTurn: ConversationTurn = {
+      role: "assistant",
+      content: response.response,
+      timestamp: new Date().toISOString(),
+    };
+    await appendConversationTurn(sessionId, assistantTurn);
+
+    emitGuardianEvent({
+      session_id: sessionId,
+      workspace_id: workspaceId,
+      event_type: "agent.response",
+      actor: "agent",
+      summary:
+        response.response.length > 100
+          ? response.response.slice(0, 100) + "\u2026"
+          : response.response,
+      data: { text: response.response, intent: response.intent },
+    });
+
+    return c.json(response, 200);
   });
-
-  // Route message through agent pipeline
-  const response = await routeAgentMessage({
-    message: body.message,
-    sessionId,
-    workspaceId,
-    profileId: body.profile_id,
-    userId: auth.userId,
-    conversationHistory,
-  });
-
-  // Append assistant turn
-  const assistantTurn: ConversationTurn = {
-    role: "assistant",
-    content: response.response,
-    timestamp: new Date().toISOString(),
-  };
-  await appendConversationTurn(sessionId, assistantTurn);
-
-  emitGuardianEvent({
-    session_id: sessionId,
-    workspace_id: workspaceId,
-    event_type: "agent.response",
-    actor: "agent",
-    summary:
-      response.response.length > 100
-        ? response.response.slice(0, 100) + "\u2026"
-        : response.response,
-    data: { text: response.response, intent: response.intent },
-  });
-
-  return c.json(response, 200);
 });
 
 export { agentChat };

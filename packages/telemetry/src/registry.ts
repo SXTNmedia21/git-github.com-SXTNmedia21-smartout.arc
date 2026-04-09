@@ -2524,6 +2524,48 @@ export interface AgentToolCalled extends BaseEvent {
   };
 }
 
+// Agent Harness events (Phase 1). Subagent events (spawned/completed/failed) deferred to Phase 2.
+export interface AgentHookBlocked extends BaseEvent {
+  event: "agent hook_blocked";
+  properties: {
+    data: { hook_name: string; hook_type: string; reason: string; session_id: string };
+  };
+}
+
+export interface AgentContextWindowTruncated extends BaseEvent {
+  event: "agent context_window_truncated";
+  properties: {
+    data: { session_id: string; dropped_turns: number; window_size: number };
+  };
+}
+
+export interface AgentBudgetExhausted extends BaseEvent {
+  event: "agent budget_exhausted";
+  properties: {
+    data: {
+      session_id: string;
+      total_tokens: number;
+      max_tokens: number | null;
+      total_turns: number;
+      max_turns: number | null;
+    };
+  };
+}
+
+export interface AgentTokensUsed extends BaseEvent {
+  event: "agent tokens_used";
+  properties: {
+    data: {
+      session_id: string;
+      model: string;
+      input_tokens: number;
+      output_tokens: number;
+      total_tokens: number;
+      source: string;
+    };
+  };
+}
+
 export interface NotificationDeepLinkFollowed extends BaseEvent {
   event: "notification deep_link_followed";
   properties: {
@@ -2939,6 +2981,10 @@ export type SmartoutEvent =
   | AgentSessionStarted
   | AgentSessionClosed
   | AgentToolCalled
+  | AgentHookBlocked
+  | AgentContextWindowTruncated
+  | AgentBudgetExhausted
+  | AgentTokensUsed
   | NotificationDeepLinkFollowed
   | HubActionTapped
   | TaskSurfaceViewed
@@ -3897,6 +3943,22 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "agent tool_called": {
     destinations: ["logger", "activity_trail"],
+    category: "agent",
+  },
+  "agent hook_blocked": {
+    destinations: ["posthog", "activity_trail"],
+    category: "agent",
+  },
+  "agent context_window_truncated": {
+    destinations: ["posthog"],
+    category: "agent",
+  },
+  "agent budget_exhausted": {
+    destinations: ["posthog", "activity_trail"],
+    category: "agent",
+  },
+  "agent tokens_used": {
+    destinations: ["posthog"],
     category: "agent",
   },
 

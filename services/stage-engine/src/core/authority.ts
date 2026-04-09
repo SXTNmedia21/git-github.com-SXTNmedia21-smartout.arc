@@ -26,7 +26,15 @@ export async function loadAuthorityConfig(workspaceId: string): Promise<Authorit
 
   const config: AuthorityConfig = {};
   for (const row of data) {
-    config[row.capability] = row.level as AuthorityLevel;
+    const level = row.level as AuthorityLevel;
+    // Store both the full key ("schedule.read") and the base capability name ("schedule").
+    // Tool-selector looks up by base name; this ensures authority config matches regardless
+    // of whether the DB uses dotted or plain keys.
+    config[row.capability] = level;
+    const base = row.capability.split(".")[0];
+    if (base !== row.capability && !config[base]) {
+      config[base] = level;
+    }
   }
   return config;
 }

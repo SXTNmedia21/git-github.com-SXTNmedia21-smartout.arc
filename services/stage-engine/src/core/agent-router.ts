@@ -45,6 +45,7 @@ type AgentRouterInput = {
   userId?: string;
   conversationHistory: ConversationTurn[];
   situation?: Situation;
+  pageContext?: string; // current page pathname from frontend (e.g. "/dashboard/schedule")
 };
 
 /**
@@ -65,6 +66,7 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
     userId,
     conversationHistory,
     situation = "general",
+    pageContext,
   } = input;
 
   // Step 1: Load authority config
@@ -114,6 +116,12 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
     selectedTools.map((t) => `${t.name}: ${t.description}`),
   );
 
+  // Inject page context into system prompt so Emma knows where the user is
+  let finalSystemPrompt = systemPrompt;
+  if (pageContext) {
+    finalSystemPrompt += `\n\n## Brukerens skjerm\nBrukeren er pa: ${pageContext}`;
+  }
+
   // Inject buffered user actions from WebSocket into the message
   const bufferedActions = getBufferedActions(sessionId);
   let augmentedMessage = message;
@@ -122,8 +130,19 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
     augmentedMessage = `[UI events since last turn: ${actionSummary}]\n\n${message}`;
   }
 
+  // Context window: send last 5 turns verbatim, pointer for older history
+  const CONTEXT_WINDOW = 5;
+  const recentHistory =
+    conversationHistory.length > CONTEXT_WINDOW
+      ? conversationHistory.slice(-CONTEXT_WINDOW)
+      : conversationHistory;
+
+  if (conversationHistory.length > CONTEXT_WINDOW) {
+    finalSystemPrompt += `\n\n## Samtalehistorikk\nDe ${conversationHistory.length - CONTEXT_WINDOW} eldste meldingene er utelatt. Du husker de siste ${CONTEXT_WINDOW} meldingene.`;
+  }
+
   // Build conversation messages for the LLM
-  const messages = conversationHistory.map((turn) => ({
+  const messages = recentHistory.map((turn) => ({
     role: turn.role as "user" | "assistant",
     content: turn.content,
   }));
@@ -142,8 +161,8 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
   const vercelTools = toVercelTools(selectedTools, toolContext);
 
   const result = await generateText({
-    model: getOpenRouter()("anthropic/claude-sonnet-4"),
-    system: systemPrompt,
+    model: getOpenRouter()("anthropic/claude-sonnet-4.6"),
+    system: finalSystemPrompt,
     messages,
     tools: vercelTools,
     stopWhen: stepCountIs(5),

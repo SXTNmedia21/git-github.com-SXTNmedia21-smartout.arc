@@ -90,7 +90,7 @@ export async function routeAdminMessage(input: AdminRouterInput): Promise<AgentC
   ];
 
   const result = await generateText({
-    model: getOpenRouter()("anthropic/claude-sonnet-4"),
+    model: getOpenRouter()("anthropic/claude-sonnet-4.6"),
     system: systemPrompt,
     messages,
   });
