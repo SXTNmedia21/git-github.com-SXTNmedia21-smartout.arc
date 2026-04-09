@@ -8,6 +8,8 @@ import {
   listEmployeeTemplates,
   listEmployeeContracts,
   checkContractStatus,
+  explainContractClause,
+  getComplianceDriftForContract,
   createEmployeeContract,
   sendEmployeeContract,
 } from "./tools.js";
@@ -16,6 +18,8 @@ const readOnlyTools = [
   listEmployeeTemplates,
   listEmployeeContracts,
   checkContractStatus,
+  explainContractClause,
+  getComplianceDriftForContract,
 ] as unknown as ReadonlyArray<SmartoutTool<AgentToolContext>>;
 
 // Both create and send are suggest-level: Botsson proposes, admin confirms before execution.

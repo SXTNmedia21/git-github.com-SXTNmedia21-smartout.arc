@@ -89,6 +89,84 @@ export const checkContractStatus = defineTool({
   },
 });
 
+export const explainContractClause = defineTool({
+  name: "explain_contract_clause",
+  description:
+    "Explain a specific clause from a contract's regulatory framework snapshot. Returns the rule verbatim — read-only, no interpretation.",
+  schema: z.object({
+    contract_id: z.string().uuid().describe("The contract ID to look up"),
+    clause_index: z
+      .number()
+      .int()
+      .min(0)
+      .describe("Zero-based index of the rule in the snapshot's rules array"),
+  }),
+  execute: async (params, ctx: AgentToolContext) => {
+    const supabase = ctx.supabaseAdmin;
+
+    const { data, error } = await supabase
+      .from("employment_contract")
+      .select("framework_snapshot")
+      .eq("contract_id", params.contract_id)
+      .eq("workspace_id", ctx.workspaceId)
+      .single();
+
+    if (error) return `Error loading contract: ${error.message}`;
+    if (!data) return "Contract not found in this workspace.";
+
+    const snapshot = data.framework_snapshot as { rules?: unknown[] } | null;
+    if (!snapshot || !Array.isArray(snapshot.rules)) {
+      return "This contract has no framework snapshot or no rules array.";
+    }
+
+    if (params.clause_index >= snapshot.rules.length) {
+      return `Index ${params.clause_index} is out of range. The snapshot has ${snapshot.rules.length} rule(s) (0–${snapshot.rules.length - 1}).`;
+    }
+
+    const rule = snapshot.rules[params.clause_index] as Record<string, unknown>;
+    return JSON.stringify({
+      rule_id: rule.rule_id,
+      rule_type: rule.rule_type,
+      enforcement_level: rule.enforcement_level,
+      description: rule.description,
+      parameters: rule.parameters,
+    });
+  },
+});
+
+export const getComplianceDriftForContract = defineTool({
+  name: "get_compliance_drift_for_contract",
+  description:
+    "Check whether a contract has compliance drift — differences between the contract's snapshot and the current framework. Read-only.",
+  schema: z.object({
+    contract_id: z.string().uuid().describe("The contract ID to check for drift"),
+  }),
+  execute: async (params, ctx: AgentToolContext) => {
+    const supabase = ctx.supabaseAdmin;
+
+    const { data, error } = await supabase
+      .from("compliance_drift")
+      .select("*")
+      .eq("contract_id", params.contract_id)
+      .eq("workspace_id", ctx.workspaceId);
+
+    if (error) return `Error querying compliance drift: ${error.message}`;
+    if (!data || data.length === 0) {
+      return JSON.stringify({
+        has_drift: false,
+        drift_count: 0,
+        message: "No compliance drift detected for this contract.",
+      });
+    }
+
+    return JSON.stringify({
+      has_drift: true,
+      drift_count: data.length,
+      drifts: data,
+    });
+  },
+});
+
 // ── Admin-gated mutation tools ───────────────────────────────────────────────
 
 /**
