@@ -4,7 +4,7 @@ status: ready-for-plan
 updated: 2026-04-09
 created: 2026-04-09
 module: ai-agent
-tags: [agent-harness, hooks, context-engine, subagent, durability, botsson, stage-engine]
+tags: [agent-harness, hooks, context-view, subagent, durability, botsson, stage-engine, token-tracking]
 ---
 
 # Agent Harness Foundation — Design Spec
@@ -69,7 +69,7 @@ funksjonalitet.
 
 | Fase | Leveranse | Synlig for bruker? |
 |------|-----------|-------------------|
-| 1 — Foundation | Hook registry, Context Engine, Session durability | Nei |
+| 1 — Foundation | Hook registry, Context View, Model Provider, Token Tracking, Session durability | Nei |
 | 2 — Subagent | parent_session_id, delegate_task tool, Process Engine bro | Delvis (admin ser status) |
 | 3 — Arena UI | "Agenter"-view, Orb working-glyph, delegerings-logg | Ja |
 
@@ -459,10 +459,9 @@ const tokenLogger: Hook<"llm:after"> = {
 
 | Source | Nar | Modell |
 |--------|-----|--------|
-| `chat` | Hver turn i routeAgentMessage() | claude-sonnet-4.6 |
-| `subagent` | Subagent executeSubagent() | claude-sonnet-4.6 |
-| `compaction` | Context Engine compact() | claude-haiku-4-5 |
-| `intent_classifier` | classifyIntent() | claude-sonnet-4.6 |
+| `chat` | Hver turn i routeAgentMessage() | resolveModel({sessionType:"chat"}) |
+| `subagent` | Process Engine run_subagent | resolveModel({sessionType:"subagent"}) |
+| `intent_classifier` | classifyIntent() | resolveModel({sessionType:"classifier"}) |
 
 **Querying (eksempler):**
 
@@ -676,11 +675,10 @@ const delegateTask: SmartoutTool<AgentToolContext> = {
       return `Cannot delegate: ${params.capability} authority is ${authorityLevel}.`;
     }
 
-    // 3. Opprett child session
-    const childSession = await createSession({
+    // 3. Opprett child session (mode=agent, no mission)
+    const childSession = await createSubagentSession({
       workspace_id: ctx.workspaceId,
       profile_id: ctx.profileId,
-      channel: "autonomous",
       parent_session_id: ctx.sessionId,
       depth: parentSession.depth + 1,
       context: {
@@ -689,11 +687,10 @@ const delegateTask: SmartoutTool<AgentToolContext> = {
         entity_id: params.entity_id,
         inherited_authority: authorityLevel,
       },
-      delegation_status: "pending",
     });
 
-    // 4. Emit event til Process Engine
-    await supabase.from("engine_event").insert({
+    // 4. Emit event — Process Engine picks up and executes (cattle pattern)
+    await ctx.supabaseAdmin.from("engine_event").insert({
       event_type: "agent.task_delegated",
       payload: {
         parent_session_id: ctx.sessionId,
@@ -705,30 +702,15 @@ const delegateTask: SmartoutTool<AgentToolContext> = {
       workspace_id: ctx.workspaceId,
     });
 
-    // 5. Append event pa parent session
+    // 5. Append event pa parent session log
     await appendSessionEvent(ctx.sessionId, "subagent_spawned", {
       child_session_id: childSession.id,
       capability: params.capability,
-      instruction: params.instruction,
       blocking: params.blocking,
     });
 
-    // 6. Broadcast til Arena UI
-    broadcastToSession(ctx.sessionId, {
-      type: "subagent:spawned",
-      data: {
-        child_session_id: childSession.id,
-        capability: params.capability,
-        instruction: params.instruction,
-        status: "pending",
-      },
-    });
-
+    // 6. For blocking: wait for Process Engine to complete the child
     if (params.blocking) {
-      // Venter pa resultat via Supabase Realtime subscription pa
-      // engine_sessions.delegation_status (med 60s timeout).
-      // Subscription opprettes, venter pa status !== 'pending'/'running',
-      // deretter unsubscribes.
       const result = await waitForChildCompletion(childSession.id, {
         timeout: 60_000,
       });
@@ -737,8 +719,7 @@ const delegateTask: SmartoutTool<AgentToolContext> = {
         : "Subtask timed out. Check status later.";
     }
 
-    return `Subtask delegated (ID: ${childSession.id}). ` +
-           `I'll notify you when it's done.`;
+    return `Subtask delegated. I'll notify you when it's done.`;
   },
 };
 ```
@@ -767,65 +748,7 @@ const pollSubagent: SmartoutTool<AgentToolContext> = {
 };
 ```
 
-### 2.4 Subagent Execution
-
-Child sessions kjores av en ny executor i stage-engine:
-
-**Fil:** `services/stage-engine/src/core/subagent-executor.ts` (ny)
-
-```typescript
-async function executeSubagent(childSessionId: string): Promise<void> {
-  const session = await getSession(childSessionId);
-  const { capability, instruction, entity_id } = session.context;
-
-  // 1. Hent capability tools (filtrert pa inherited authority)
-  const tools = getCapabilityTools(capability, session.context.inherited_authority);
-
-  // 2. Bygg fokusert system prompt
-  const systemPrompt = buildSubagentPrompt({
-    capability,
-    instruction,
-    entity_id,
-    workspace_id: session.workspace_id,
-  });
-
-  // 3. Kjoer LLM med verktoy (maks 5 steg, som vanlig)
-  // NOTE: Model string must match agent-router.ts. Currently "anthropic/claude-sonnet-4"
-  // but should be bumped to "anthropic/claude-sonnet-4.6" per ADR-0073 Phase 5.
-  // Both agent-router.ts and subagent-executor.ts must use the same model.
-  const result = await generateText({
-    model: getOpenRouter()("anthropic/claude-sonnet-4.6"),
-    system: systemPrompt,
-    messages: [{ role: "user", content: instruction }],
-    tools: toVercelTools(tools, toolContext),
-    stopWhen: stepCountIs(5),
-  });
-
-  // 4. Lagre resultat
-  await updateSession(childSessionId, {
-    delegation_status: "completed",
-    delegation_result: { text: result.text, toolCalls: result.toolCalls },
-  });
-
-  // 5. Notify parent session
-  broadcastToSession(session.parent_session_id, {
-    type: "subagent:completed",
-    data: {
-      child_session_id: childSessionId,
-      capability,
-      result: result.text,
-    },
-  });
-
-  // 6. Append event pa parent
-  await appendSessionEvent(session.parent_session_id, "subagent_completed", {
-    child_session_id: childSessionId,
-    result: result.text,
-  });
-}
-```
-
-### 2.5 Subagent Execution — Via Process Engine (Cattle, Not Pets)
+### 2.4 Subagent Execution — Via Process Engine (Cattle, Not Pets)
 
 > **Managed Agents insight:** Brain and Hands must be physically separate.
 > If the process dies, the harness catches it as a tool-call error. Subagent
@@ -1027,7 +950,7 @@ actually queries via get_session_events.
 | `stage-engine/src/core/model-provider.ts` | ~30 | resolveModel() abstraction |
 | `stage-engine/src/tools/session-events.ts` | ~40 | get_session_events Botsson tool |
 | `stage-engine/src/core/session-lane.ts` | ~35 | Per-session serialization queue + cleanup |
-| `stage-engine/src/core/session-events.ts` | ~40 | appendSessionEvent() helper |
+| `stage-engine/src/core/event-log.ts` | ~40 | appendSessionEvent() helper (writes) |
 | `supabase/migrations/YYYYMMDD_agent_harness_foundation.sql` | ~60 | Fase 1 migration (incl. engine_token_log) |
 
 ### Fase 2
@@ -1056,8 +979,8 @@ actually queries via get_session_events.
 
 | Fil | Endring | Omfang |
 |-----|---------|--------|
-| `stage-engine/src/index.ts` | Instansier HookRegistry, ContextEngine, SessionLane. Sett pa Hono context. | +15 linjer |
-| `stage-engine/src/core/agent-router.ts` | Legg til 7 hook call sites. Bruk contextEngine.assemble() i stedet for direkte collectContext(). Wrap i sessionLane.run(). Bump model to claude-sonnet-4.6. | ~50 linjer endret |
+| `stage-engine/src/index.ts` | Instansier HookRegistry, ContextView, SessionLane, ModelProvider. Sett pa Hono context. | +20 linjer |
+| `stage-engine/src/core/agent-router.ts` | Legg til 7 hook call sites. Bruk contextView.assemble() i stedet for direkte collectContext(). Wrap i sessionLane.run(). Use resolveModel() instead of hardcoded model string. | ~50 linjer endret |
 | `stage-engine/src/core/stage-manager.ts` | Legg til session:completing hook. | +3 linjer |
 | `stage-engine/src/routes/agent/chat.ts` | Wrap handler i sessionLane.run(). | +3 linjer |
 
@@ -1067,7 +990,8 @@ actually queries via get_session_events.
 |-----|---------|--------|
 | `stage-engine/src/core/session-manager.ts` | Add createSubagentSession() function (mode=agent, no mission). | +30 linjer |
 | `stage-engine/src/core/agent-router.ts` | Register delegation tools via toolContext injection. | +5 linjer |
-| `stage-engine/src/routes/agent/chat.ts` | Trigger subagent executor for nye child sessions. | +10 linjer |
+| `supabase/functions/engine-dispatch/index.ts` | Add `run_subagent` action_type handler. | +40 linjer |
+| `stage-engine/src/routes/agent/chat.ts` | Listen for agent.subagent_completed events and broadcast to parent session via WebSocket. | +10 linjer |
 | `packages/telemetry/src/registry.ts` | Register 6 new agent events. | +20 linjer |
 
 ### Fase 3 (Arena UI)
@@ -1076,7 +1000,7 @@ actually queries via get_session_events.
 |-----|---------|--------|
 | `apps/web/src/app/Botsson/_components/types.ts` | Legg til "agents" i ContentViewType, "working" i OrbStatus. | +2 linjer |
 | `apps/web/src/app/Botsson/_components/BotssonArena.tsx` | Legg til agents view title + render AgentsView. | +5 linjer |
-| `apps/web/src/app/Botsson/_components/BotssonOrb.tsx` | Legg til "working" glyph med orbiting particles. | +30 linjer |
+| `apps/web/src/app/Botsson/_components/BotssonOrb.tsx` | Legg til "working" glyph med concentric pulse rings + state priority stack. | +30 linjer |
 
 ---
 
@@ -1188,10 +1112,10 @@ Subagent-delegering mapper direkte til eksisterende authority-modell:
 | Type | Hva | Hvor |
 |------|-----|------|
 | Unit | HookRegistry (registrer, prioritet, blokkering) | `stage-engine/src/hooks/__tests__/` |
-| Unit | ContextEngine (assemble, compact, budget) | `stage-engine/src/core/__tests__/` |
+| Unit | ContextView (assemble, budget, window) | `stage-engine/src/core/__tests__/` |
 | Unit | SessionLane (serialization, concurrent requests) | `stage-engine/src/core/__tests__/` |
-| Unit | delegate_task tool (depth limit, authority check) | `packages/ai/src/capabilities/delegation/__tests__/` |
-| Eval | Subagent delegation end-to-end (mocked LLM) | `packages/ai/src/capabilities/delegation/__evals__/` |
+| Unit | delegate_task tool (depth limit, authority check) | `stage-engine/src/tools/__tests__/` |
+| Eval | Subagent delegation end-to-end (mocked LLM) | `stage-engine/src/tools/__evals__/` |
 | E2E | Admin delegerer kontrakt-opprettelse via Arena | `apps/e2e/agent-harness/` |
 
 ---
@@ -1201,7 +1125,7 @@ Subagent-delegering mapper direkte til eksisterende authority-modell:
 ### Fase 1
 
 - [ ] Hook registry kjorer 7 hooks uten merkbar latency (<5ms overhead)
-- [ ] Context Engine holder samtaler innenfor token-budget (12K default)
+- [ ] Context View holder samtaler innenfor token-budget (12K default)
 - [ ] Session event log muliggjor state-rekonstruksjon etter restart
 - [ ] Budget guard blokkerer nar grenser nas
 - [ ] SessionLane forhindrer race conditions i concurrent requests
@@ -1229,7 +1153,7 @@ Subagent-delegering mapper direkte til eksisterende authority-modell:
 | Risiko | Sannsynlighet | Konsekvens | Mitigering |
 |--------|--------------|------------|------------|
 | Hook-overhead forsinker responstid | Lav | Medium | Hooks er async, observe-type hooks kjorer fire-and-forget |
-| Context compaction mister viktig info | Medium | Hoy | Non-compactable priority for kritisk context. Logg hva som komprimeres. |
+| Botsson glemmer a bruke get_session_events for eldre context | Medium | Medium | Prompt-eksempler + eval #9. Context View inkluderer pointer til verktoy. |
 | Subagent-kostnader eskalerer | Medium | Medium | Budget guard per session + workspace-level token cap |
 | Race conditions i subagent completion | Lav | Medium | SessionLane + idempotency pa events |
 | Uendelig delegering | Lav | Hoy | Hard depth limit (2) + delegation count per session |
@@ -1243,7 +1167,7 @@ Register in `packages/telemetry/src/registry.ts`:
 | Event | Destinations | Trigger |
 |-------|-------------|---------|
 | `agent.hook_blocked` | PostHog, activity_trail | Guard hook blocks pipeline |
-| `agent.context_compacted` | PostHog | Context Engine runs compaction |
+| `agent.context_window_truncated` | PostHog | Context View drops low-priority fragments to fit budget |
 | `agent.subagent_spawned` | PostHog, activity_trail | delegate_task creates child session |
 | `agent.subagent_completed` | PostHog, activity_trail | Subagent finishes successfully |
 | `agent.subagent_failed` | PostHog, activity_trail, Logger | Subagent fails or times out |
@@ -1262,6 +1186,27 @@ emit() = analytics/audit, guardian-bus = live UI updates.
 **ADR-0083: Agent Harness Foundation** — documents this extension to ADR-0042
 (Agent Architecture). Covers: hook registry, context engine, session durability,
 subagent delegation. To be written at implementation start.
+
+---
+
+## GDPR & Data Retention
+
+Nar en ansatt utover retten til a bli glemt (profile deletion):
+
+| Tabell | Profil-data? | Cascade-oppforsel | Manuell handling |
+|--------|-------------|-------------------|------------------|
+| `engine_sessions` | profile_id FK | Slettes via workspace cleanup | Cascade sletter children |
+| `engine_session_event` | Nei (bare session_id FK) | ON DELETE CASCADE fra sessions | Automatisk |
+| `engine_token_log` | profile_id FK direkte | ON DELETE SET NULL pa session_id | **Anonymiser**: sett profile_id = NULL, behold aggregat for fakturering |
+
+**Regler:**
+
+- `engine_session_event` forsvinner automatisk nar session slettes (CASCADE)
+- `engine_token_log` ma anonymiseres (ikke slettes) fordi workspace trenger
+  aggregerte token-tall for kostnadsberegning. Sett `profile_id = NULL`.
+- Ingen personlig innhold lagres i engine_token_log (bare tall + modellnavn)
+- Session event log KAN inneholde brukerinnhold i payload JSONB. Ved GDPR
+  deletion: slett hele session → cascade tar events.
 
 ---
 
