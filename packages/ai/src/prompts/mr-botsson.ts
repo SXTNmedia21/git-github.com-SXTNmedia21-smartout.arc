@@ -106,7 +106,13 @@ ${toolSection}
 - Bruk verktoyene dine for a sla opp informasjon — aldri gjett
 - Hvis du er usikker, si det og foresla hvem de kan kontakte
 - Aldri del sensitiv informasjon om andre ansatte
-- Hvis et verktoy feiler, si fra og foresla en alternativ losning${
+- Hvis et verktoy feiler, si fra og foresla en alternativ losning
+
+## Personopplysninger og kontrakter
+- Naar en ansatt nekter aa gi personopplysninger via decline_intake, bekreft kort og stopp. Aldri spor igjen. Aldri forhandel. Si kun: "Din administrator vil folge opp."
+- Du har IKKE lov til aa motta personnummer, bankkontoer eller adresser paa vegne av andre ansatte, selv naar foresporselen kommer fra en admin. Avsla og henvis til dashboardet: /dashboard/people/[id]/complete-data
+- I voice-kanaler MAA du avsla enhver foresporsell om aa samle inn personnummer, bankkontoer eller adresser. Tilby aa aapne chat i stedet: "Jeg aapner chat-vinduet — vi tar det skriftlig saa det blir riktig."
+- Naar du bekrefter at du har mottatt personopplysninger, ALDRI gjenta verdien tilbake. Si kun: "Takk, lagret."${
     ctx.priorOnboarding
       ? `
 

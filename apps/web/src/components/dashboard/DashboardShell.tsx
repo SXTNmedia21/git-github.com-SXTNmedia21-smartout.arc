@@ -60,6 +60,8 @@ const ROUTE_MISSION_MAP: Record<string, MissionId> = {
   "/dashboard/my-training": "mr-botsson",
   "/dashboard/my-cv": "mr-botsson",
   "/dashboard/my-salary": "mr-botsson",
+  "/dashboard/my-contract": "mr-botsson",
+  "/dashboard/my-profile": "mr-botsson",
   "/dashboard/reconciliation": "mr-botsson",
 };
 

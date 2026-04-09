@@ -28,6 +28,7 @@ Deno.serve(async (req) => {
       .from("engine_delayed_trigger")
       .select("id, trigger_id, event_id, workspace_id")
       .eq("fired", false)
+      .is("cancelled_at", null)
       .lte("fire_at", new Date().toISOString())
       .order("fire_at")
       .limit(50);

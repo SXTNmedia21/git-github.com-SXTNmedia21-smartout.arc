@@ -13,9 +13,12 @@ export type CapabilityName =
   | "payroll"
   | "ui"
   | "guardian"
-  | "contract";
+  | "contract"
+  | "contract_intake";
 
 export type AuthorityLevel = "autonomous" | "confirm" | "suggest" | "read_only" | "disabled";
+
+export type SessionChannel = "chat" | "voice" | "sms" | "email" | "autonomous" | "telegram";
 
 export type AgentToolContext = {
   workspaceId: string;
@@ -23,6 +26,14 @@ export type AgentToolContext = {
   userId?: string;
   sessionId: string;
   supabaseAdmin: SupabaseClient;
+  /** ADR-0078: current session channel for defence-in-depth PII restriction */
+  channel?: SessionChannel;
+  /** Active engine_process ID if this session is running a process */
+  processId?: string;
+  /** Active engine_state ID for step tracking */
+  engineStateId?: string;
+  /** Admin acting on behalf of employee (dashboard flows only, never agent) */
+  actingOnBehalfOf?: string;
 };
 
 export type CapabilityDefinition = {
@@ -31,6 +42,8 @@ export type CapabilityDefinition = {
   tools: ReadonlyArray<SmartoutTool<AgentToolContext>>;
   readOnlyTools: ReadonlyArray<SmartoutTool<AgentToolContext>>;
   suggestTools?: ReadonlyArray<SmartoutTool<AgentToolContext>>;
+  /** ADR-0078: if set, capability is only available when session.channel is in this list */
+  allowedChannels?: SessionChannel[];
 };
 
 // -- Personality & Posture --
