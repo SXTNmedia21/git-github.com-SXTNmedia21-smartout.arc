@@ -10,18 +10,19 @@
  * Data: useMyShifts() for shift data.
  */
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import { View, Text, Pressable, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import Animated, { FadeIn } from "react-native-reanimated";
-import { Menu, Calendar, MoreHorizontal } from "lucide-react-native";
+import { Menu, MoreHorizontal, Plus, StickyNote } from "lucide-react-native";
 import { createStyles, useTheme, withOpacity } from "@/theme";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { ActionBar } from "@/components/navigation/ActionBar";
 import { useMyShifts } from "@/hooks/queries/use-my-shifts";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
+import { CreateDayInfoSheet } from "@/components/schedule/CreateDayInfoSheet";
 import type { Database } from "@smartout/supabase/database.types";
 
 type ScheduleShift = Database["public"]["Tables"]["schedule_shift"]["Row"];
@@ -237,6 +238,17 @@ export default function MyShiftsScreen() {
           <Text style={styles.emptyText}>Ingen flere vakter planlagt</Text>
         </View>
       </ScrollView>
+
+      {/* Floating Action Button — create new shift */}
+      <Pressable
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          router.push("/(app)/(shifts)/create");
+        }}
+        style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
+      >
+        <Plus size={24} color="#ffffff" strokeWidth={2} />
+      </Pressable>
     </SafeAreaView>
   );
 }
@@ -459,5 +471,23 @@ const useStyles = createStyles((theme) => ({
     letterSpacing: 2,
     textTransform: "uppercase" as const,
     color: withOpacity(theme.colors.mutedForeground, 0.4),
+  },
+
+  /* Floating Action Button */
+  fab: {
+    position: "absolute" as const,
+    bottom: 100,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: theme.colors.brandOrange,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    ...theme.shadows.lg,
+  },
+  fabPressed: {
+    transform: [{ scale: 0.92 }],
+    opacity: 0.9,
   },
 }));

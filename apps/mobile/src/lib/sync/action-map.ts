@@ -132,4 +132,13 @@ export const actionMap: Record<WriteAction, ActionHandler> = {
 
   // Insert a shift note row in the public schema
   shift_note_add: (p) => assertOk(supabase.from("shift_note").insert(p as any)),
+
+  // Insert a new schedule_shift row (manager creates a shift)
+  create_shift: (p) => assertOk(supabase.from("schedule_shift").insert(p as any)),
+
+  // Insert a new session_task row (manager creates a task for today's session)
+  create_task: (p) => assertOk(supabase.from("session_task").insert(p as any)),
+
+  // Insert a new schedule_day_info row (quick note/event/alert for a date)
+  create_day_info: (p) => assertOk(supabase.from("schedule_day_info").insert(p as any)),
 };
