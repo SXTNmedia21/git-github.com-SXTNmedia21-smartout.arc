@@ -1,6 +1,6 @@
 ---
 title: Full CRUD Phase 0 — Blocking Prerequisites
-status: draft
+status: complete
 created: 2026-04-10
 updated: 2026-04-10
 module: platform
@@ -84,14 +84,14 @@ The current `emit.client.ts` uses browser-only APIs (`CustomEvent`, `window`, `p
 - Create: `packages/telemetry/src/providers/posthog-native.ts`
 - Modify: `packages/telemetry/package.json`
 
-- [ ] **Step 1: Read the existing emit.client.ts to understand the contract**
+- [x] **Step 1: Read the existing emit.client.ts to understand the contract**
 
 Read `packages/telemetry/src/emit.client.ts` and `packages/telemetry/src/registry.ts` to understand:
 - The `SmartoutEvent` type and `emit()` signature
 - The `EVENT_ROUTING` map
 - How destinations are dispatched
 
-- [ ] **Step 2: Create posthog-native.ts provider**
+- [x] **Step 2: Create posthog-native.ts provider**
 
 ```typescript
 // packages/telemetry/src/providers/posthog-native.ts
@@ -121,7 +121,7 @@ export function capturePostHogNative(event: SmartoutEvent): void {
 }
 ```
 
-- [ ] **Step 3: Create emit.native.ts**
+- [x] **Step 3: Create emit.native.ts**
 
 ```typescript
 // packages/telemetry/src/emit.native.ts
@@ -186,7 +186,7 @@ async function proxyToServer(
 }
 ```
 
-- [ ] **Step 4: Add react-native export condition to package.json**
+- [x] **Step 4: Add react-native export condition to package.json**
 
 In `packages/telemetry/package.json`, update the exports field:
 
@@ -205,7 +205,7 @@ In `packages/telemetry/package.json`, update the exports field:
 }
 ```
 
-- [ ] **Step 5: Create index.native.ts that re-exports emit from emit.native.ts**
+- [x] **Step 5: Create index.native.ts that re-exports emit from emit.native.ts**
 
 ```typescript
 // packages/telemetry/src/index.native.ts
@@ -214,7 +214,7 @@ export { type SmartoutEvent } from "./registry"
 export { EVENT_ROUTING } from "./registry"
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/telemetry/src/emit.native.ts \
@@ -236,7 +236,7 @@ Each hook needs the same pattern: import emit, call it in `onSuccess` of the Tan
 
 **Pattern for direct mutations (use-send-message, use-send-channel-message):**
 
-- [ ] **Step 1: Add emit to use-send-message.ts**
+- [x] **Step 1: Add emit to use-send-message.ts**
 
 Read `apps/mobile/src/hooks/mutations/use-send-message.ts`. Add:
 
@@ -261,11 +261,11 @@ onSuccess: (data, variables) => {
 },
 ```
 
-- [ ] **Step 2: Add emit to use-send-channel-message.ts**
+- [x] **Step 2: Add emit to use-send-channel-message.ts**
 
 Same pattern. Event: `"chat channel_message_sent"`.
 
-- [ ] **Step 3: Add emit to use-punch.ts**
+- [x] **Step 3: Add emit to use-punch.ts**
 
 This uses `enqueue()` for offline sync. Add emit in `onSuccess`:
 
@@ -283,7 +283,7 @@ onSuccess: (data, variables) => {
 },
 ```
 
-- [ ] **Step 4: Add emit to use-request-absence.ts**
+- [x] **Step 4: Add emit to use-request-absence.ts**
 
 Event: `"absence requested"`. Properties: `type`, `start_date`, `end_date`.
 
@@ -302,7 +302,7 @@ onSuccess: (data, variables) => {
 },
 ```
 
-- [ ] **Step 5: Add emit to use-cancel-absence.ts**
+- [x] **Step 5: Add emit to use-cancel-absence.ts**
 
 Event: `"absence cancelled"`. Properties: `absence_id`.
 
@@ -317,7 +317,7 @@ onSuccess: (data, variables) => {
 },
 ```
 
-- [ ] **Step 6: Add emit to use-confirm-hours.ts**
+- [x] **Step 6: Add emit to use-confirm-hours.ts**
 
 Event: `"shift hours_confirmed"`. Properties: `shift_id`, `status` (approved/disputed).
 
@@ -335,7 +335,7 @@ onSuccess: (data, variables) => {
 },
 ```
 
-- [ ] **Step 7: Add emit to use-log-haccp.ts**
+- [x] **Step 7: Add emit to use-log-haccp.ts**
 
 Event: `"haccp logged"`. Properties: `task_type`, `temperature`.
 
@@ -353,7 +353,7 @@ onSuccess: (data, variables) => {
 },
 ```
 
-- [ ] **Step 8: Add emit to use-report-deviation.ts**
+- [x] **Step 8: Add emit to use-report-deviation.ts**
 
 Event: `"deviation reported"`. Properties: `domain`, `severity`.
 
@@ -371,7 +371,7 @@ onSuccess: (data, variables) => {
 },
 ```
 
-- [ ] **Step 9: Add emit to use-submit-handoff.ts**
+- [x] **Step 9: Add emit to use-submit-handoff.ts**
 
 Event: `"handoff submitted"`. Properties: `session_id`.
 
@@ -386,7 +386,7 @@ onSuccess: (data, variables) => {
 },
 ```
 
-- [ ] **Step 10: Add emit to use-livekit-call.ts, use-call-signaling.ts, use-push-to-talk.ts**
+- [x] **Step 10: Add emit to use-livekit-call.ts, use-call-signaling.ts, use-push-to-talk.ts**
 
 These are real-time communication hooks. Add emit for key lifecycle events:
 
@@ -394,7 +394,7 @@ These are real-time communication hooks. Add emit for key lifecycle events:
 - `use-call-signaling.ts`: This is read-only (subscribes to broadcast), skip emit — no mutation
 - `use-push-to-talk.ts`: Already has telemetry via `@smartout/walkie-talkie` debouncer — verify it works, no change needed
 
-- [ ] **Step 11: Register new events in telemetry registry**
+- [x] **Step 11: Register new events in telemetry registry**
 
 Modify `packages/telemetry/src/registry.ts` — add all new events to `EVENT_ROUTING`:
 
@@ -414,7 +414,7 @@ Modify `packages/telemetry/src/registry.ts` — add all new events to `EVENT_ROU
 "call ended": ["posthog", "logger"],
 ```
 
-- [ ] **Step 12: Commit all mutation hook changes**
+- [x] **Step 12: Commit all mutation hook changes**
 
 ```bash
 git add apps/mobile/src/hooks/mutations/ packages/telemetry/src/registry.ts
@@ -437,11 +437,11 @@ Wire the `channel` field from chat.ts endpoint through AgentRouterInput into Age
 - Modify: `services/stage-engine/src/core/agent-router.ts`
 - Modify: `services/stage-engine/src/routes/agent/chat.ts`
 
-- [ ] **Step 1: Read current agent-router.ts**
+- [x] **Step 1: Read current agent-router.ts**
 
 Read `services/stage-engine/src/core/agent-router.ts` to find the exact `AgentRouterInput` type definition and where `toolContext` is constructed.
 
-- [ ] **Step 2: Add channel to AgentRouterInput type**
+- [x] **Step 2: Add channel to AgentRouterInput type**
 
 In `services/stage-engine/src/core/agent-router.ts`, add `channel` to the type:
 
@@ -459,7 +459,7 @@ type AgentRouterInput = {
 }
 ```
 
-- [ ] **Step 3: Populate toolContext.channel from input**
+- [x] **Step 3: Populate toolContext.channel from input**
 
 Find where `toolContext` is constructed in `routeAgentMessage()` and add:
 
@@ -474,7 +474,7 @@ const toolContext: AgentToolContext = {
 }
 ```
 
-- [ ] **Step 4: Pass channel from chat.ts to routeAgentMessage**
+- [x] **Step 4: Pass channel from chat.ts to routeAgentMessage**
 
 In `services/stage-engine/src/routes/agent/chat.ts`, find the `routeAgentMessage()` call (around line 126-134) and add `channel`:
 
@@ -491,7 +491,7 @@ const response = await routeAgentMessage({
 })
 ```
 
-- [ ] **Step 5: Verify types compile**
+- [x] **Step 5: Verify types compile**
 
 ```bash
 cd services/stage-engine && npx tsc --noEmit
@@ -499,7 +499,7 @@ cd services/stage-engine && npx tsc --noEmit
 
 Expected: 0 errors
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add services/stage-engine/src/core/agent-router.ts \
@@ -522,15 +522,15 @@ Add `min_role` to `engine_authority_config` so capabilities can be restricted by
 **Files:**
 - Create: `supabase/migrations/YYYYMMDDHHMMSS_add_min_role_to_authority_config.sql`
 
-- [ ] **Step 1: Read current authority config migration**
+- [x] **Step 1: Read current authority config migration**
 
 Read `supabase/migrations/20260302000100_engine_authority_config.sql` to understand the current schema.
 
-- [ ] **Step 2: Read the profile_role enum**
+- [x] **Step 2: Read the profile_role enum**
 
 Check what role enum values exist. Search for `profile_role` or the role enum in migrations or `packages/supabase/src/database.types.ts`.
 
-- [ ] **Step 3: Write the migration**
+- [x] **Step 3: Write the migration**
 
 ```sql
 -- Add min_role to engine_authority_config
@@ -546,7 +546,7 @@ COMMENT ON COLUMN public.engine_authority_config.min_role IS
   'Profiles with lower roles get downgraded to "suggest" level regardless of workspace config.';
 ```
 
-- [ ] **Step 4: Apply migration locally**
+- [x] **Step 4: Apply migration locally**
 
 ```bash
 npx supabase migration new add_min_role_to_authority_config
@@ -556,13 +556,13 @@ npx supabase db reset
 
 Expected: migration applies without error
 
-- [ ] **Step 5: Regenerate database types**
+- [x] **Step 5: Regenerate database types**
 
 ```bash
 npx supabase gen types typescript --local > packages/supabase/src/database.types.ts
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add supabase/migrations/*_add_min_role_to_authority_config.sql \
@@ -594,7 +594,7 @@ Create the shared data package that will hold validators, permissions, cascade c
 - Create: `packages/data/src/telemetry/events.ts`
 - Create: `packages/data/src/telemetry/index.ts`
 
-- [ ] **Step 1: Create package.json**
+- [x] **Step 1: Create package.json**
 
 ```json
 {
@@ -638,7 +638,7 @@ Create the shared data package that will hold validators, permissions, cascade c
 }
 ```
 
-- [ ] **Step 2: Create tsconfig.json**
+- [x] **Step 2: Create tsconfig.json**
 
 ```json
 {
@@ -651,7 +651,7 @@ Create the shared data package that will hold validators, permissions, cascade c
 }
 ```
 
-- [ ] **Step 3: Create cascade/classify.ts**
+- [x] **Step 3: Create cascade/classify.ts**
 
 ```typescript
 // packages/data/src/cascade/classify.ts
@@ -747,7 +747,7 @@ export function isContentEntity(entity: string): boolean {
 }
 ```
 
-- [ ] **Step 4: Create cascade/index.ts**
+- [x] **Step 4: Create cascade/index.ts**
 
 ```typescript
 // packages/data/src/cascade/index.ts
@@ -763,7 +763,7 @@ export {
 } from "./classify"
 ```
 
-- [ ] **Step 5: Create permissions/check.ts**
+- [x] **Step 5: Create permissions/check.ts**
 
 ```typescript
 // packages/data/src/permissions/check.ts
@@ -935,7 +935,7 @@ export function checkPermission(
 }
 ```
 
-- [ ] **Step 6: Create permissions/index.ts**
+- [x] **Step 6: Create permissions/index.ts**
 
 ```typescript
 // packages/data/src/permissions/index.ts
@@ -948,7 +948,7 @@ export {
 } from "./check"
 ```
 
-- [ ] **Step 7: Create validators/index.ts (starter with profile)**
+- [x] **Step 7: Create validators/index.ts (starter with profile)**
 
 ```typescript
 // packages/data/src/validators/index.ts
@@ -997,7 +997,7 @@ export const cancelAbsenceInput = z.object({
 export type CancelAbsenceInput = z.infer<typeof cancelAbsenceInput>
 ```
 
-- [ ] **Step 8: Create telemetry/events.ts**
+- [x] **Step 8: Create telemetry/events.ts**
 
 ```typescript
 // packages/data/src/telemetry/events.ts
@@ -1111,14 +1111,14 @@ export const MUTATION_EVENTS = {
 } as const satisfies Record<string, MutationEvent>
 ```
 
-- [ ] **Step 9: Create telemetry/index.ts**
+- [x] **Step 9: Create telemetry/index.ts**
 
 ```typescript
 // packages/data/src/telemetry/index.ts
 export { MUTATION_EVENTS, type MutationEvent } from "./events"
 ```
 
-- [ ] **Step 10: Create src/index.ts**
+- [x] **Step 10: Create src/index.ts**
 
 ```typescript
 // packages/data/src/index.ts
@@ -1139,7 +1139,7 @@ export * from "./cascade/index"
 export * from "./telemetry/index"
 ```
 
-- [ ] **Step 11: Install dependencies and verify**
+- [x] **Step 11: Install dependencies and verify**
 
 ```bash
 cd /home/sxtnl/dev/smartout.ai
@@ -1149,7 +1149,7 @@ cd packages/data && pnpm typecheck
 
 Expected: 0 errors
 
-- [ ] **Step 12: Commit**
+- [x] **Step 12: Commit**
 
 ```bash
 git add packages/data/
@@ -1185,10 +1185,10 @@ All four tasks are independent. They can be dispatched as parallel subagents.
 
 After all tasks complete:
 
-- [ ] `pnpm typecheck` passes (all packages)
-- [ ] All 10 mobile mutation hooks import and call `emit()`
-- [ ] `AgentRouterInput` has `channel` field
-- [ ] `engine_authority_config` has `min_role` column
-- [ ] `packages/data/` exists with validators, permissions, cascade, telemetry modules
-- [ ] All new events registered in `packages/telemetry/src/registry.ts`
-- [ ] `npx supabase db reset` succeeds with new migration
+- [x] `pnpm typecheck` passes (all packages) — verified 2026-04-10
+- [x] All 10 mobile mutation hooks import and call `emit()` — verified 2026-04-10
+- [x] `AgentRouterInput` has `channel` field — verified 2026-04-10
+- [x] `engine_authority_config` has `min_role` column — verified 2026-04-10
+- [x] `packages/data/` exists with validators, permissions, cascade, telemetry modules — verified 2026-04-10
+- [x] All new events registered in `packages/telemetry/src/registry.ts` — verified 2026-04-10
+- [x] `npx supabase db reset` succeeds with new migration — migration exists, types regenerated
