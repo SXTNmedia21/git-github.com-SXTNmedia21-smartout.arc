@@ -6,13 +6,17 @@
 //
 // Connected to: sessions-tab.tsx (table render)
 //               platform-admin/landing/page.tsx (data fetch + SessionRow type)
+//               @/lib/posthog-links (PostHog session bridge for row quick action)
 // ============================================
 
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { Monitor, Smartphone, Tablet } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ExternalLink, Monitor, Smartphone, Tablet } from "lucide-react";
+import { getPostHogSessionBridgeHref } from "@/lib/posthog-links";
 import type { SessionRow } from "../page";
 
 // ── Helpers ───────────────────────────────────────────────────
@@ -193,6 +197,29 @@ export const sessionColumns: ColumnDef<SessionRow>[] = [
       const ts = getValue() as string;
       return (
         <span className="text-muted-foreground text-xs tabular-nums">{formatRelativeTime(ts)}</span>
+      );
+    },
+  },
+  {
+    id: "posthog",
+    header: "",
+    cell: ({ row }) => {
+      const href = getPostHogSessionBridgeHref(row.original);
+      if (!href) return <span className="text-muted-foreground text-xs">--</span>;
+
+      return (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7"
+          asChild
+          onClick={(event) => event.stopPropagation()}
+          aria-label="Open session in PostHog"
+        >
+          <Link href={href} target="_blank" rel="noopener noreferrer">
+            <ExternalLink className="h-3.5 w-3.5" />
+          </Link>
+        </Button>
       );
     },
   },

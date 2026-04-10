@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 import {
   Tag,
   User,
@@ -35,9 +36,11 @@ import {
   Monitor,
   Smartphone,
   Tablet,
+  ExternalLink,
 } from "lucide-react";
 import type { LeadRow } from "../page";
 import { VisitorTagDialog } from "./visitor-tag-dialog";
+import { getPostHogVisitorBridgeHref } from "@/lib/posthog-links";
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -150,6 +153,7 @@ export function LeadDetail({ lead, onClose }: LeadDetailProps) {
 
   const isIdentified = !!lead?.user_identity_id && !!lead?.user_identity;
   const canTag = lead && !lead.user_identity_id;
+  const postHogUrl = lead ? getPostHogVisitorBridgeHref(lead) : undefined;
 
   return (
     <>
@@ -245,6 +249,16 @@ export function LeadDetail({ lead, onClose }: LeadDetailProps) {
                   >
                     <Tag className="mr-2 h-4 w-4" />
                     {lead.manual_label ? "Edit Tag" : "Tag Visitor"}
+                  </Button>
+                )}
+
+                {/* ── PostHog Bridge ─────────────────────── */}
+                {postHogUrl && (
+                  <Button variant="outline" size="sm" className="w-full" asChild>
+                    <Link href={postHogUrl} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="mr-2 h-4 w-4" />
+                      Open in PostHog
+                    </Link>
                   </Button>
                 )}
 

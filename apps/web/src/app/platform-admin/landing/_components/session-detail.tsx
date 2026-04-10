@@ -5,6 +5,7 @@
 // Opens when a session row is clicked in the sessions table.
 //
 // Connected to: sessions-tab.tsx (parent, provides selectedSession)
+//               session-columns.tsx (row PostHog action shares bridge resolver)
 //               api/admin/session-events/route.ts (event timeline data)
 //               visitor-tag-dialog.tsx (tag anonymous visitors)
 //               platform-admin/landing/page.tsx (SessionRow type)
@@ -22,6 +23,7 @@ import {
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 import {
   Monitor,
   Smartphone,
@@ -35,9 +37,11 @@ import {
   Globe,
   Loader2,
   User,
+  ExternalLink,
 } from "lucide-react";
 import type { SessionRow } from "../page";
 import { VisitorTagDialog } from "./visitor-tag-dialog";
+import { getPostHogSessionBridgeHref } from "@/lib/posthog-links";
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -135,9 +139,9 @@ function formatEventDetail(event: SessionEvent): string {
     }
     case "session_end": {
       const parts: string[] = [];
-      if (typeof d.totalTime === "number") parts.push(`${Math.round(d.totalTime)}s total`);
+      if (typeof d.timeOnPage === "number") parts.push(`${Math.round(d.timeOnPage)}s total`);
       if (typeof d.maxScroll === "number") parts.push(`${d.maxScroll}% scroll`);
-      if (typeof d.clicks === "number") parts.push(`${d.clicks} clicks`);
+      if (typeof d.clickCount === "number") parts.push(`${d.clickCount} clicks`);
       return parts.join(" / ");
     }
     case "page_view": {
@@ -203,6 +207,7 @@ export function SessionDetail({ session, onClose }: SessionDetailProps) {
   const isIdentified = !!visitor?.user_identity_id && !!visitor?.user_identity;
   const isTagged = !!visitor?.manual_label;
   const canTag = visitor && !visitor.user_identity_id;
+  const postHogUrl = session ? getPostHogSessionBridgeHref(session) : undefined;
 
   return (
     <>
@@ -288,6 +293,16 @@ export function SessionDetail({ session, onClose }: SessionDetailProps) {
                   >
                     <Tag className="mr-2 h-4 w-4" />
                     {isTagged ? "Edit Tag" : "Tag Visitor"}
+                  </Button>
+                )}
+
+                {/* ── PostHog Bridge ─────────────────────── */}
+                {postHogUrl && (
+                  <Button variant="outline" size="sm" className="w-full" asChild>
+                    <Link href={postHogUrl} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="mr-2 h-4 w-4" />
+                      Open in PostHog
+                    </Link>
                   </Button>
                 )}
 
