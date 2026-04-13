@@ -82,6 +82,38 @@ function memoryIncrement(key: string, limit: number): RateLimitResult {
   return { allowed: true, remaining: limit - valid.length };
 }
 
+const CHANNEL_LIMITS: Record<string, { perAdmin: number; global: number }> = {
+  email: { perAdmin: PER_ADMIN_LIMIT, global: GLOBAL_LIMIT },
+  sms: { perAdmin: 5, global: 500 },
+  push: { perAdmin: 20, global: 5000 },
+  in_app: { perAdmin: 50, global: 10000 },
+};
+
+export async function checkChannelRateLimit(
+  adminId: string,
+  channel: string,
+): Promise<RateLimitResult> {
+  const limits = CHANNEL_LIMITS[channel];
+  if (!limits) return { allowed: true };
+
+  const adminKey = `${channel}:ratelimit:admin:${adminId}`;
+  const adminResult =
+    (await tryRedisIncrement(adminKey, limits.perAdmin)) ??
+    memoryIncrement(adminKey, limits.perAdmin);
+  if (!adminResult.allowed) return adminResult;
+
+  const globalKey = `${channel}:ratelimit:global`;
+  const globalResult =
+    (await tryRedisIncrement(globalKey, limits.global)) ??
+    memoryIncrement(globalKey, limits.global);
+  if (!globalResult.allowed) return globalResult;
+
+  return {
+    allowed: true,
+    remaining: Math.min(adminResult.remaining ?? 0, globalResult.remaining ?? 0),
+  };
+}
+
 export async function checkRateLimit(
   adminId: string,
   type: EmailClassification,
