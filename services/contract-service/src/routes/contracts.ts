@@ -163,11 +163,13 @@ export async function contractRoutes(app: FastifyInstance) {
         }> | null;
         attachments: Array<{
           id: string;
-          file_name: string;
-          file_path: string;
-          file_size: number;
-          mime_type: string;
-          uploaded_at: string;
+          title?: string;
+          file_name?: string;
+          file_path?: string;
+          file_size?: number;
+          mime_type?: string;
+          content_html?: string;
+          uploaded_at?: string;
         }> | null;
       } | null;
 
@@ -257,22 +259,43 @@ export async function contractRoutes(app: FastifyInstance) {
         name: contract.title ?? "Smartout Contract",
       });
 
-      // Attach template attachments (PDFs from Supabase Storage) as additional documents
+      // Attach template attachments as additional documents in DocuSeal.
+      // Two variants: HTML content (inline vedlegg) or file storage (PDF uploads).
       const templateAttachments = template?.attachments ?? [];
       if (templateAttachments.length > 0) {
-        const attachmentDocs: Array<{ name: string; file: string }> = [];
+        const attachmentDocs: Array<{ name: string; html?: string; file?: string }> = [];
 
         for (const att of templateAttachments) {
-          // Generate a signed URL for the storage file so DocuSeal can download it
-          const { data: signedUrl } = await supabase.storage
-            .from("contract-attachments")
-            .createSignedUrl(att.file_path, 300); // 5 min expiry — enough for DocuSeal to fetch
-
-          if (signedUrl?.signedUrl) {
+          if (att.content_html) {
+            // HTML vedlegg — wrap in a styled document matching the contract branding
+            const attHtml = `<!DOCTYPE html>
+<html lang="no"><head><meta charset="UTF-8">
+<style>
+  body { font-family: Inter, sans-serif; margin: 0; padding: 40px; color: #1a1a2e; }
+  h2, h3 { color: ${accent}; }
+  table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+  th, td { border: 1px solid #e5e7eb; padding: 8px 12px; text-align: left; font-size: 0.9em; }
+  th { background: #f9fafb; font-weight: 600; }
+  ul { padding-left: 1.5em; }
+  li { margin-bottom: 0.3em; }
+</style></head>
+<body>${att.content_html}</body></html>`;
             attachmentDocs.push({
-              name: att.file_name,
-              file: signedUrl.signedUrl,
+              name: att.title ?? att.id,
+              html: attHtml,
             });
+          } else if (att.file_path) {
+            // File vedlegg — generate a signed URL for DocuSeal to download
+            const { data: signedUrl } = await supabase.storage
+              .from("contract-attachments")
+              .createSignedUrl(att.file_path, 300);
+
+            if (signedUrl?.signedUrl) {
+              attachmentDocs.push({
+                name: att.file_name ?? att.title ?? att.id,
+                file: signedUrl.signedUrl,
+              });
+            }
           }
         }
 
