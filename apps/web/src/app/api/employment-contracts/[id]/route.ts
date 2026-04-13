@@ -28,6 +28,7 @@ export async function GET(
     .select(
       `
       contract_id,
+      profile_id,
       status,
       position_title,
       hourly_rate,

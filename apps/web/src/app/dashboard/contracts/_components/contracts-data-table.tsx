@@ -9,7 +9,8 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
-import { FileSignature, MoreHorizontal, RefreshCw } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { FileSignature, MoreHorizontal, RefreshCw, UserPlus } from "lucide-react";
 import { useTranslation } from "@smartout/i18n";
 
 import { Badge } from "@/components/ui/badge";
@@ -52,6 +53,7 @@ type ContractStatus =
 
 type Contract = {
   contract_id: string;
+  profile_id: string | null;
   status: ContractStatus;
   position_title: string | null;
   employment_category: string | null;
@@ -164,6 +166,7 @@ function EmptyState({ hasFilter }: { hasFilter: boolean }) {
 
 export function ContractsDataTable({ workspaceId }: { workspaceId: string }) {
   const { t } = useTranslation("contracts");
+  const router = useRouter();
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -328,6 +331,16 @@ export function ContractsDataTable({ workspaceId }: { workspaceId: string }) {
                         <DropdownMenuItem onClick={() => handleViewDetails(contract.contract_id)}>
                           {t("table.view_details")}
                         </DropdownMenuItem>
+                        {contract.status === "pending_data" && contract.profile_id && (
+                          <DropdownMenuItem
+                            onClick={() =>
+                              router.push(`/dashboard/people/${contract.profile_id}/complete-data`)
+                            }
+                          >
+                            <UserPlus className="mr-2 h-3.5 w-3.5" />
+                            {t("table.complete_data")}
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem
                           onClick={() => void handleResend(contract.contract_id)}
                           disabled={contract.status === "signed" || contract.status === "cancelled"}

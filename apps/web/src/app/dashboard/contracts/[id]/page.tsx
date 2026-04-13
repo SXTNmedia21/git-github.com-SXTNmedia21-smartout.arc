@@ -11,7 +11,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, FileEdit, RefreshCw, AlertCircle, Link2 } from "lucide-react";
+import { ArrowLeft, FileEdit, RefreshCw, AlertCircle, Link2, UserPlus } from "lucide-react";
 import { Button } from "@smartout/ui";
 import { useTranslation } from "@smartout/i18n";
 import { ComplianceBadge } from "../_components/ComplianceBadge";
@@ -29,6 +29,7 @@ type ComplianceOverride = {
 
 type ContractDetail = {
   contract_id: string;
+  profile_id: string | null;
   status: string;
   position_title: string;
   hourly_rate: number | null;
@@ -116,6 +117,7 @@ export default function ContractDetailPage() {
   const isDraft = contract.status === "draft";
   const isSigned = contract.status === "signed";
   const isDeclined = contract.status === "declined";
+  const isPendingData = contract.status === "pending_data";
   const overrides = contract.compliance_overrides ?? [];
   const employeeName = contract.profile?.display_name ?? t("detail_page.unknown_employee");
 
@@ -148,6 +150,14 @@ export default function ContractDetailPage() {
               </Link>
             </Button>
           )}
+          {isPendingData && contract.profile_id && (
+            <Button asChild variant="outline" size="sm" className="gap-1.5">
+              <Link href={`/dashboard/people/${contract.profile_id}/complete-data`}>
+                <UserPlus className="h-3.5 w-3.5" />
+                {t("detail_page.complete_data")}
+              </Link>
+            </Button>
+          )}
           {isSigned && (
             <Button variant="outline" size="sm" className="gap-1.5" disabled>
               <RefreshCw className="h-3.5 w-3.5" />
@@ -169,6 +179,17 @@ export default function ContractDetailPage() {
               </p>
             )}
             {contract.decline_reason_text && <p className="mt-1">{contract.decline_reason_text}</p>}
+          </div>
+        </div>
+      )}
+
+      {/* Pending data info */}
+      {isPendingData && (
+        <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <div>
+            <p className="font-medium">{t("detail_page.pending_data_title")}</p>
+            <p className="mt-1">{t("detail_page.pending_data_description")}</p>
           </div>
         </div>
       )}

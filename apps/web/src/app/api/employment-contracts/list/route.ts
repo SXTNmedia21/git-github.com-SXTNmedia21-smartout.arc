@@ -25,7 +25,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const { data, error } = await supabase
     .from("employment_contract")
     .select(
-      "contract_id, status, position_title, employment_category, employment_percentage, hourly_rate, monthly_salary, created_at, signed_at, profile:profile_id(display_name)",
+      "contract_id, profile_id, status, position_title, employment_category, employment_percentage, hourly_rate, monthly_salary, created_at, signed_at, profile:profile_id(display_name)",
     )
     .eq("workspace_id", workspaceId)
     .order("created_at", { ascending: false });
