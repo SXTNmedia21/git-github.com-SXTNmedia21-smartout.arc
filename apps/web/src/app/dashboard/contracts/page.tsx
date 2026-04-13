@@ -15,10 +15,11 @@ import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { FileText, Sparkles } from "lucide-react";
 import { Button } from "@smartout/ui";
+import { useTranslation } from "@smartout/i18n";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ContractsDataTable } from "./_components/contracts-data-table";
-import { groupByBucket, BUCKET_LABELS, type ContractStatus, type DashboardBucket } from "./filters";
+import { groupByBucket, type ContractStatus, type DashboardBucket } from "./filters";
 
 // Minimal shape returned by the contracts API — only status is needed for bucketing
 type ContractRow = { status: ContractStatus };
@@ -32,6 +33,7 @@ const EMPTY_COUNTS: Record<DashboardBucket, number> = {
 };
 
 export default function ContractsPage() {
+  const { t } = useTranslation("contracts");
   const { workspaceData } = useContext(DashboardContext);
   const [allContracts, setAllContracts] = useState<ContractRow[]>([]);
 
@@ -85,21 +87,19 @@ export default function ContractsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-foreground text-2xl font-bold tracking-tight">Kontrakter</h1>
-          <p className="text-muted-foreground text-sm">
-            Se status, send for signering, og la Botsson hjelpe deg a lage nye.
-          </p>
+          <h1 className="text-foreground text-2xl font-bold tracking-tight">{t("page.title")}</h1>
+          <p className="text-muted-foreground text-sm">{t("page.description")}</p>
         </div>
         <div className="flex items-center gap-2">
           <Button asChild variant="outline" className="gap-2">
             <Link href="/dashboard/contracts/new">
               <FileText className="h-4 w-4" />
-              Ny kontrakt
+              {t("page.new_contract")}
             </Link>
           </Button>
           <Button onClick={openBotssonForContract} className="gap-2">
             <Sparkles className="h-4 w-4" />
-            Lag kontrakt med Botsson
+            {t("page.create_with_botsson")}
           </Button>
         </div>
       </div>
@@ -107,10 +107,10 @@ export default function ContractsPage() {
       {/* Bucket filter tabs */}
       <Tabs defaultValue="all" className="w-full">
         <TabsList>
-          <TabsTrigger value="all">Alle</TabsTrigger>
+          <TabsTrigger value="all">{t("buckets.all")}</TabsTrigger>
           {BUCKET_KEYS.map((bucket) => (
             <TabsTrigger key={bucket} value={bucket}>
-              {BUCKET_LABELS[bucket]}
+              {t(`buckets.${bucket}`)}
               {bucketCounts[bucket] > 0 && (
                 <span className="bg-muted text-muted-foreground ml-1.5 rounded-full px-1.5 py-0.5 text-xs font-medium">
                   {bucketCounts[bucket]}

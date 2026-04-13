@@ -11,6 +11,7 @@
 import * as React from "react";
 import { Sparkles } from "lucide-react";
 import { Button } from "@smartout/ui";
+import { useTranslation } from "@smartout/i18n";
 
 type GhostValueCardProps = {
   label: string;
@@ -29,6 +30,7 @@ export function GhostValueCard({
   acknowledged = false,
   onAcknowledge,
 }: GhostValueCardProps) {
+  const { t } = useTranslation("contracts");
   return (
     <div
       className={`rounded-lg p-4 transition-colors ${
@@ -50,12 +52,12 @@ export function GhostValueCard({
         <div className="flex flex-col gap-1.5">
           {!acknowledged && onAcknowledge && (
             <Button size="sm" variant="outline" onClick={onAcknowledge}>
-              Godkjenn
+              {t("ghost_value.approve")}
             </Button>
           )}
           {onClickExplain && (
             <Button size="sm" variant="ghost" onClick={onClickExplain}>
-              Vis begrunnelse
+              {t("ghost_value.show_reasoning")}
             </Button>
           )}
         </div>

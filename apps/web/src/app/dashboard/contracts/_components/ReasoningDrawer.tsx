@@ -10,6 +10,7 @@
 import * as React from "react";
 import { X } from "lucide-react";
 import { Button } from "@smartout/ui";
+import { useTranslation } from "@smartout/i18n";
 
 type OverrideEntry = {
   date: string;
@@ -34,6 +35,8 @@ export function ReasoningDrawer({
   explanation,
   overrideHistory,
 }: ReasoningDrawerProps) {
+  const { t } = useTranslation("contracts");
+
   if (!open) {
     return null;
   }
@@ -49,25 +52,27 @@ export function ReasoningDrawer({
           </Button>
         </div>
 
-        {/* Kilde (Source) */}
+        {/* Source */}
         <section className="mb-6">
-          <h4 className="text-muted-foreground mb-2 text-xs tracking-wide uppercase">Kilde</h4>
+          <h4 className="text-muted-foreground mb-2 text-xs tracking-wide uppercase">
+            {t("reasoning.source")}
+          </h4>
           <p className="text-sm">{source}</p>
         </section>
 
-        {/* Begrunnelse (Explanation) */}
+        {/* Explanation */}
         <section className="mb-6">
           <h4 className="text-muted-foreground mb-2 text-xs tracking-wide uppercase">
-            Begrunnelse
+            {t("reasoning.explanation")}
           </h4>
           <p className="text-sm leading-relaxed">{explanation}</p>
         </section>
 
-        {/* Override-historikk */}
+        {/* Override history */}
         {overrideHistory && overrideHistory.length > 0 && (
           <section>
             <h4 className="text-muted-foreground mb-2 text-xs tracking-wide uppercase">
-              Override-historikk
+              {t("reasoning.override_history")}
             </h4>
             <div className="space-y-3">
               {overrideHistory.map((entry, idx) => (

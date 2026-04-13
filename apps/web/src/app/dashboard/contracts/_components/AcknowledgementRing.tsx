@@ -8,6 +8,7 @@
  */
 
 import * as React from "react";
+import { useTranslation } from "@smartout/i18n";
 
 type AcknowledgementRingProps = {
   totalBlocks: number;
@@ -22,6 +23,7 @@ export function AcknowledgementRing({
   children,
   onAllAcknowledged,
 }: AcknowledgementRingProps) {
+  const { t } = useTranslation("contracts");
   const allDone = totalBlocks > 0 && acknowledgedBlocks >= totalBlocks;
   const percentage = totalBlocks > 0 ? (acknowledgedBlocks / totalBlocks) * 100 : 0;
 
@@ -42,8 +44,13 @@ export function AcknowledgementRing({
           />
         </div>
         <p className="text-muted-foreground mt-1 text-xs">
-          {acknowledgedBlocks} av {totalBlocks} godkjent
-          {allDone && <span className="text-primary font-medium"> — klar til å sende</span>}
+          {t("acknowledgement.progress", {
+            acknowledged: String(acknowledgedBlocks),
+            total: String(totalBlocks),
+          })}
+          {allDone && (
+            <span className="text-primary font-medium"> {t("acknowledgement.ready_to_send")}</span>
+          )}
         </p>
       </div>
 

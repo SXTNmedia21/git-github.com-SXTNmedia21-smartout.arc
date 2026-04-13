@@ -10,9 +10,11 @@
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { useTranslation } from "@smartout/i18n";
 import { CompositionWizard } from "../../_components/CompositionWizard";
 
 export default function ReviseContractPage() {
+  const { t } = useTranslation("contracts");
   const { id } = useParams<{ id: string }>();
 
   return (
@@ -22,9 +24,9 @@ export default function ReviseContractPage() {
         className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
-        Tilbake til kontrakt
+        {t("revise.back_to_contract")}
       </Link>
-      <p className="text-muted-foreground text-xs">Reviderer kontrakt: {id}</p>
+      <p className="text-muted-foreground text-xs">{t("revise.revising", { id })}</p>
       <CompositionWizard />
     </div>
   );

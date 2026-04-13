@@ -9,6 +9,7 @@
 
 import * as React from "react";
 import { AlertTriangle } from "lucide-react";
+import { useTranslation } from "@smartout/i18n";
 
 type BlockerCounterProps = {
   warningCount: number;
@@ -16,6 +17,8 @@ type BlockerCounterProps = {
 };
 
 export function BlockerCounter({ warningCount, blockerCount }: BlockerCounterProps) {
+  const { t } = useTranslation("contracts");
+
   if (warningCount === 0 && blockerCount === 0) {
     return null;
   }
@@ -26,7 +29,8 @@ export function BlockerCounter({ warningCount, blockerCount }: BlockerCounterPro
         <div className="flex items-center gap-1.5 text-sm font-medium text-red-600">
           <AlertTriangle className="h-4 w-4" />
           <span>
-            {blockerCount} {blockerCount === 1 ? "blokkering" : "blokkeringer"}
+            {blockerCount}{" "}
+            {blockerCount === 1 ? t("blocker.blocker_singular") : t("blocker.blocker_plural")}
           </span>
         </div>
       )}
@@ -34,7 +38,8 @@ export function BlockerCounter({ warningCount, blockerCount }: BlockerCounterPro
         <div className="flex items-center gap-1.5 text-sm font-medium text-amber-600">
           <AlertTriangle className="h-4 w-4" />
           <span>
-            {warningCount} {warningCount === 1 ? "advarsel" : "advarsler"}
+            {warningCount}{" "}
+            {warningCount === 1 ? t("blocker.warning_singular") : t("blocker.warning_plural")}
           </span>
         </div>
       )}

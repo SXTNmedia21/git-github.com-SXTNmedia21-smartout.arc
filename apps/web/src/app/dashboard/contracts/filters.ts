@@ -19,12 +19,6 @@ export type ContractStatus =
 
 export type DashboardBucket = "waiting_employee" | "ready_for_action" | "completed";
 
-export const BUCKET_LABELS: Record<DashboardBucket, string> = {
-  waiting_employee: "Venter paa ansatt",
-  ready_for_action: "Klar til handling",
-  completed: "Fullfort",
-};
-
 /**
  * Map a single contract status to its dashboard bucket.
  *

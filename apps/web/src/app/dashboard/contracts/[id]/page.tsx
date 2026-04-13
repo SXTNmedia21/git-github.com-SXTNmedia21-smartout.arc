@@ -13,6 +13,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, FileEdit, RefreshCw, AlertCircle, Link2 } from "lucide-react";
 import { Button } from "@smartout/ui";
+import { useTranslation } from "@smartout/i18n";
 import { ComplianceBadge } from "../_components/ComplianceBadge";
 import type { ComplianceLevel } from "@smartout/utils";
 
@@ -73,6 +74,7 @@ function StatusBadge({ status }: { status: string }) {
 // ---------------------------------------------------------------------------
 
 export default function ContractDetailPage() {
+  const { t } = useTranslation("contracts");
   const { id } = useParams<{ id: string }>();
   const [contract, setContract] = useState<ContractDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -95,7 +97,7 @@ export default function ContractDetailPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <p className="text-muted-foreground text-sm">Laster kontrakt...</p>
+        <p className="text-muted-foreground text-sm">{t("detail_page.loading")}</p>
       </div>
     );
   }
@@ -103,9 +105,9 @@ export default function ContractDetailPage() {
   if (!contract) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
-        <p className="text-muted-foreground text-sm">Kontrakt ikke funnet.</p>
+        <p className="text-muted-foreground text-sm">{t("detail_page.not_found")}</p>
         <Link href="/dashboard/contracts" className="text-primary mt-2 text-sm underline">
-          Tilbake til kontrakter
+          {t("detail_page.back_to_contracts")}
         </Link>
       </div>
     );
@@ -115,7 +117,7 @@ export default function ContractDetailPage() {
   const isSigned = contract.status === "signed";
   const isDeclined = contract.status === "declined";
   const overrides = contract.compliance_overrides ?? [];
-  const employeeName = contract.profile?.display_name ?? "Ukjent ansatt";
+  const employeeName = contract.profile?.display_name ?? t("detail_page.unknown_employee");
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -125,7 +127,7 @@ export default function ContractDetailPage() {
         className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
-        Alle kontrakter
+        {t("detail_page.all_contracts")}
       </Link>
 
       {/* Header */}
@@ -142,14 +144,14 @@ export default function ContractDetailPage() {
             <Button asChild variant="outline" size="sm" className="gap-1.5">
               <Link href={`/dashboard/contracts/${contract.contract_id}/revise`}>
                 <FileEdit className="h-3.5 w-3.5" />
-                Rediger
+                {t("detail_page.edit")}
               </Link>
             </Button>
           )}
           {isSigned && (
             <Button variant="outline" size="sm" className="gap-1.5" disabled>
               <RefreshCw className="h-3.5 w-3.5" />
-              Generer paa nytt
+              {t("detail_page.regenerate")}
             </Button>
           )}
         </div>
@@ -160,9 +162,11 @@ export default function ContractDetailPage() {
         <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
           <div>
-            <p className="font-medium">Kontrakten ble avslatt</p>
+            <p className="font-medium">{t("detail_page.declined_title")}</p>
             {contract.decline_reason_code && (
-              <p className="mt-1 text-xs">Aarsak: {contract.decline_reason_code}</p>
+              <p className="mt-1 text-xs">
+                {t("detail_page.decline_reason", { code: contract.decline_reason_code })}
+              </p>
             )}
             {contract.decline_reason_text && <p className="mt-1">{contract.decline_reason_text}</p>}
           </div>
@@ -172,31 +176,35 @@ export default function ContractDetailPage() {
       {/* Terms */}
       <section className="rounded-lg border p-4">
         <h2 className="text-foreground mb-3 text-sm font-semibold tracking-wide uppercase">
-          Vilkaar
+          {t("detail_page.terms")}
         </h2>
         <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
           <div>
-            <dt className="text-muted-foreground">Timeloenn</dt>
+            <dt className="text-muted-foreground">{t("detail_page.hourly_rate")}</dt>
             <dd className="text-foreground font-medium">
-              {contract.hourly_rate != null ? `${contract.hourly_rate} kr/t` : "Ikke satt"}
+              {contract.hourly_rate != null
+                ? `${contract.hourly_rate} kr/t`
+                : t("detail_page.not_set")}
             </dd>
           </div>
           <div>
-            <dt className="text-muted-foreground">Maanedsloenn</dt>
+            <dt className="text-muted-foreground">{t("detail_page.monthly_salary")}</dt>
             <dd className="text-foreground font-medium">
-              {contract.monthly_salary != null ? `${contract.monthly_salary} kr` : "Ikke satt"}
+              {contract.monthly_salary != null
+                ? `${contract.monthly_salary} kr`
+                : t("detail_page.not_set")}
             </dd>
           </div>
           <div>
-            <dt className="text-muted-foreground">Stillingsprosent</dt>
+            <dt className="text-muted-foreground">{t("detail_page.employment_percentage")}</dt>
             <dd className="text-foreground font-medium">
               {contract.employment_percentage != null
                 ? `${contract.employment_percentage}%`
-                : "Ikke satt"}
+                : t("detail_page.not_set")}
             </dd>
           </div>
           <div>
-            <dt className="text-muted-foreground">Startdato</dt>
+            <dt className="text-muted-foreground">{t("detail_page.start_date")}</dt>
             <dd className="text-foreground font-medium">{contract.start_date}</dd>
           </div>
         </dl>
@@ -206,7 +214,7 @@ export default function ContractDetailPage() {
       {overrides.length > 0 && (
         <section className="space-y-2">
           <h2 className="text-foreground text-sm font-semibold tracking-wide uppercase">
-            Samsvarsavvik
+            {t("detail_page.compliance_overrides")}
           </h2>
           <div className="flex flex-wrap gap-2">
             {overrides.map((o) => (
@@ -220,7 +228,7 @@ export default function ContractDetailPage() {
       {contract.parent_contract_id && (
         <div className="flex items-center gap-2 text-sm">
           <Link2 className="text-muted-foreground h-4 w-4" />
-          <span className="text-muted-foreground">Opprinnelig kontrakt:</span>
+          <span className="text-muted-foreground">{t("detail_page.parent_contract")}</span>
           <Link
             href={`/dashboard/contracts/${contract.parent_contract_id}`}
             className="text-primary underline"

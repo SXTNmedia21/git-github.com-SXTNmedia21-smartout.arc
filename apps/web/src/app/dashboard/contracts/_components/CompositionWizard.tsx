@@ -3,7 +3,7 @@
 /**
  * CompositionWizard — 5-step wizard for composing employment contracts.
  *
- * Steps: Ansatt → Stilling → Gjennomgang → Bekreft → Send
+ * Steps: Ansatt -> Stilling -> Gjennomgang -> Bekreft -> Send
  * Uses WizardShell from @smartout/ui with the "warm" theme.
  * TanStack Query hooks (useComposeContract, useSendContract) replace raw fetch.
  *
@@ -13,6 +13,7 @@
 import { useState, useEffect, useContext, useCallback } from "react";
 import { CheckCircle, Loader2, Lock, AlertTriangle, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "@smartout/i18n";
 import { AnimatedWizardShell } from "@/components/wizard/AnimatedWizardShell";
 import type { WizardDefinition, WizardStepProps } from "@smartout/ui";
 import { Button, Input, Label } from "@smartout/ui";
@@ -42,7 +43,7 @@ type CompositionState = {
 };
 
 // ---------------------------------------------------------------------------
-// Step 1: Select Employee (kept as-is — works fine)
+// Step 1: Select Employee
 // ---------------------------------------------------------------------------
 
 type ProfileOption = {
@@ -53,6 +54,7 @@ type ProfileOption = {
 };
 
 function SelectEmployeeStep({ state, updateState }: WizardStepProps<CompositionState>) {
+  const { t } = useTranslation("contracts");
   const { workspaceData } = useContext(DashboardContext);
   const [profiles, setProfiles] = useState<ProfileOption[]>([]);
   const [search, setSearch] = useState("");
@@ -90,11 +92,13 @@ function SelectEmployeeStep({ state, updateState }: WizardStepProps<CompositionS
 
   return (
     <div className="space-y-4">
-      <h2 className="font-heading text-xl font-semibold">Velg ansatt</h2>
-      <p className="text-muted-foreground text-sm">Velg den ansatte som skal motta kontrakten.</p>
+      <h2 className="font-heading text-xl font-semibold">{t("composition.select_employee")}</h2>
+      <p className="text-muted-foreground text-sm">
+        {t("composition.select_employee_description")}
+      </p>
       <div className="max-w-md space-y-3">
         <Input
-          placeholder="Søk etter navn..."
+          placeholder={t("composition.search_placeholder")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -104,7 +108,9 @@ function SelectEmployeeStep({ state, updateState }: WizardStepProps<CompositionS
               <Loader2 className="text-muted-foreground h-5 w-5 animate-spin" />
             </div>
           ) : filtered.length === 0 ? (
-            <p className="text-muted-foreground py-4 text-center text-sm">Ingen ansatte funnet</p>
+            <p className="text-muted-foreground py-4 text-center text-sm">
+              {t("composition.no_employees")}
+            </p>
           ) : (
             filtered.map((p) => (
               <button
@@ -120,7 +126,7 @@ function SelectEmployeeStep({ state, updateState }: WizardStepProps<CompositionS
                 <div className="flex-1">
                   <p className="font-medium">{p.display_name}</p>
                   <p className="text-muted-foreground text-xs">
-                    {p.role} {p.department?.name ? `· ${p.department.name}` : ""}
+                    {p.role} {p.department?.name ? `\u00B7 ${p.department.name}` : ""}
                   </p>
                 </div>
                 {state.profileId === p.profile_id && (
@@ -139,13 +145,15 @@ function SelectEmployeeStep({ state, updateState }: WizardStepProps<CompositionS
 // Step 2: Stilling — position title + employment category + percentage
 // ---------------------------------------------------------------------------
 
-const EMPLOYMENT_CATEGORIES: { value: EmploymentCategory; label: string }[] = [
-  { value: "fast", label: "Heltid" },
-  { value: "deltid", label: "Deltid" },
-  { value: "tilkalling", label: "Tilkalling" },
+const EMPLOYMENT_CATEGORY_KEYS: { value: EmploymentCategory; labelKey: string }[] = [
+  { value: "fast", labelKey: "composition.category_full_time" },
+  { value: "deltid", labelKey: "composition.category_part_time" },
+  { value: "tilkalling", labelKey: "composition.category_on_call" },
 ];
 
 function PositionStep({ state, updateState }: WizardStepProps<CompositionState>) {
+  const { t } = useTranslation("contracts");
+
   // When category changes, auto-set percentage for non-deltid categories.
   function handleCategoryChange(category: EmploymentCategory) {
     if (category === "fast") {
@@ -163,18 +171,18 @@ function PositionStep({ state, updateState }: WizardStepProps<CompositionState>)
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="font-heading text-xl font-semibold">Stilling</h2>
+        <h2 className="font-heading text-xl font-semibold">{t("composition.position_title")}</h2>
         <p className="text-muted-foreground mt-1 text-sm">
-          Angi stillingstittel og ansettelsesform for kontrakten.
+          {t("composition.position_description")}
         </p>
       </div>
 
       {/* Position title */}
       <div className="max-w-sm space-y-2">
-        <Label htmlFor="position-title">Stillingstittel</Label>
+        <Label htmlFor="position-title">{t("composition.position_label")}</Label>
         <Input
           id="position-title"
-          placeholder="F.eks. Servitor, Bartender, Kokk"
+          placeholder={t("composition.position_placeholder")}
           value={state.positionTitle}
           onChange={(e) => updateState({ positionTitle: e.target.value })}
         />
@@ -182,9 +190,9 @@ function PositionStep({ state, updateState }: WizardStepProps<CompositionState>)
 
       {/* Employment category — inline segmented toggle */}
       <div className="max-w-sm space-y-2">
-        <Label>Ansettelsesform</Label>
+        <Label>{t("composition.employment_form")}</Label>
         <div className="flex gap-1 rounded-lg border p-1">
-          {EMPLOYMENT_CATEGORIES.map((cat) => (
+          {EMPLOYMENT_CATEGORY_KEYS.map((cat) => (
             <button
               key={cat.value}
               type="button"
@@ -195,7 +203,7 @@ function PositionStep({ state, updateState }: WizardStepProps<CompositionState>)
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              {cat.label}
+              {t(cat.labelKey)}
             </button>
           ))}
         </div>
@@ -205,7 +213,9 @@ function PositionStep({ state, updateState }: WizardStepProps<CompositionState>)
       {state.employmentCategory === "deltid" && (
         <div className="max-w-sm space-y-2">
           <Label htmlFor="employment-percentage">
-            Stillingsprosent — {state.employmentPercentage}%
+            {t("composition.employment_percentage_label", {
+              percentage: String(state.employmentPercentage),
+            })}
           </Label>
           <input
             id="employment-percentage"
@@ -232,6 +242,7 @@ function PositionStep({ state, updateState }: WizardStepProps<CompositionState>)
 // ---------------------------------------------------------------------------
 
 function GjennomgangStep({ state, updateState }: WizardStepProps<CompositionState>) {
+  const { t } = useTranslation("contracts");
   const { workspaceData } = useContext(DashboardContext);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerField, setDrawerField] = useState("");
@@ -284,7 +295,7 @@ function GjennomgangStep({ state, updateState }: WizardStepProps<CompositionStat
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <Loader2 className="text-primary mb-4 h-10 w-10 animate-spin" />
-        <p className="text-muted-foreground text-sm">Henter tariff-forslag fra Cascade...</p>
+        <p className="text-muted-foreground text-sm">{t("composition.loading_cascade")}</p>
       </div>
     );
   }
@@ -294,7 +305,7 @@ function GjennomgangStep({ state, updateState }: WizardStepProps<CompositionStat
     const errorMessage =
       composeMutation.error instanceof Error
         ? composeMutation.error.message
-        : "Kunne ikke hente forslag";
+        : t("composition.error_fetch_proposal");
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <AlertTriangle className="text-destructive mb-4 h-10 w-10" />
@@ -307,7 +318,7 @@ function GjennomgangStep({ state, updateState }: WizardStepProps<CompositionStat
             triggerDerive();
           }}
         >
-          Prøv igjen
+          {t("composition.try_again")}
         </Button>
       </div>
     );
@@ -325,27 +336,31 @@ function GjennomgangStep({ state, updateState }: WizardStepProps<CompositionStat
   const ghostValues = [
     {
       key: "timelonn",
-      label: "Timelønn",
-      value: terms.hourly_rate !== null ? `${terms.hourly_rate} kr/t` : "Ikke satt",
-      source: `Tariff — ${proposal.framework_snapshot.framework_name}`,
+      label: t("composition.ghost_hourly_rate"),
+      value: terms.hourly_rate !== null ? `${terms.hourly_rate} kr/t` : t("composition.not_set"),
+      source: t("composition.ghost_source_tariff", {
+        framework: proposal.framework_snapshot.framework_name,
+      }),
     },
     {
       key: "stillingsprosent",
-      label: "Stillingsprosent",
+      label: t("composition.ghost_percentage"),
       value: `${terms.employment_percentage}%`,
-      source: "Fra steg 2",
+      source: t("composition.ghost_source_step2"),
     },
     {
       key: "kategori",
-      label: "Ansettelseskategori",
+      label: t("composition.ghost_category"),
       value: terms.employment_category,
-      source: "Fra steg 2",
+      source: t("composition.ghost_source_step2"),
     },
     {
       key: "rammeverk",
-      label: "Rammeverk",
+      label: t("composition.ghost_framework"),
       value: proposal.framework_snapshot.framework_name,
-      source: `Snapshot ${proposal.framework_snapshot.snapshot_date.split("T")[0]}`,
+      source: t("composition.ghost_source_snapshot", {
+        date: proposal.framework_snapshot.snapshot_date.split("T")[0] ?? "",
+      }),
     },
   ];
 
@@ -357,7 +372,7 @@ function GjennomgangStep({ state, updateState }: WizardStepProps<CompositionStat
 
   return (
     <div className="space-y-6">
-      <h2 className="font-heading text-xl font-semibold">Gjennomgang</h2>
+      <h2 className="font-heading text-xl font-semibold">{t("composition.review_title")}</h2>
 
       {/* Blocker / warning summary */}
       <BlockerCounter
@@ -386,7 +401,9 @@ function GjennomgangStep({ state, updateState }: WizardStepProps<CompositionStat
       {/* Compliance badges */}
       {allValidations.length > 0 && (
         <div className="space-y-2">
-          <h3 className="text-muted-foreground text-xs tracking-wide uppercase">Samsvar</h3>
+          <h3 className="text-muted-foreground text-xs tracking-wide uppercase">
+            {t("composition.compliance_label")}
+          </h3>
           <div className="flex flex-wrap gap-2">
             {allValidations.map((v) => (
               <ComplianceBadge key={v.rule_id} level={v.level} message={v.message} />
@@ -400,7 +417,9 @@ function GjennomgangStep({ state, updateState }: WizardStepProps<CompositionStat
         <details className="rounded-lg border">
           <summary className="flex cursor-pointer items-center gap-2 px-4 py-3 text-sm font-medium select-none">
             <Lock className="text-muted-foreground h-4 w-4" />
-            Obligatoriske klausuler ({proposal.mandatory_clauses.length})
+            {t("composition.mandatory_clauses", {
+              count: String(proposal.mandatory_clauses.length),
+            })}
           </summary>
           <div className="space-y-3 border-t px-4 py-3">
             {proposal.mandatory_clauses.map((clause) => (
@@ -419,7 +438,10 @@ function GjennomgangStep({ state, updateState }: WizardStepProps<CompositionStat
         onClose={() => setDrawerOpen(false)}
         title={drawerField}
         source={proposal.framework_snapshot.framework_name}
-        explanation={`Verdi utledet fra ${proposal.framework_snapshot.framework_name} (snapshot ${proposal.framework_snapshot.snapshot_date.split("T")[0]}).`}
+        explanation={t("composition.reasoning_explanation", {
+          framework: proposal.framework_snapshot.framework_name,
+          date: proposal.framework_snapshot.snapshot_date.split("T")[0] ?? "",
+        })}
       />
     </div>
   );
@@ -430,26 +452,31 @@ function GjennomgangStep({ state, updateState }: WizardStepProps<CompositionStat
 // ---------------------------------------------------------------------------
 
 function BekreftStep({ state, updateState }: WizardStepProps<CompositionState>) {
+  const { t } = useTranslation("contracts");
   const proposal = state.proposal;
 
   if (!proposal) {
-    return (
-      <p className="text-muted-foreground text-sm">
-        Ingen forslag tilgjengelig. Gå tilbake og hent på nytt.
-      </p>
-    );
+    return <p className="text-muted-foreground text-sm">{t("composition.no_proposal")}</p>;
   }
 
   const terms = proposal.employment_terms;
 
   const summaryItems = [
-    { key: "stilling", label: "Stilling", value: terms.position_title || "—" },
-    { key: "kategori", label: "Kategori", value: terms.employment_category },
-    { key: "prosent", label: "Prosent", value: `${terms.employment_percentage}%` },
+    {
+      key: "stilling",
+      label: t("composition.summary_position"),
+      value: terms.position_title || "\u2014",
+    },
+    { key: "kategori", label: t("composition.summary_category"), value: terms.employment_category },
+    {
+      key: "prosent",
+      label: t("composition.summary_percentage"),
+      value: `${terms.employment_percentage}%`,
+    },
     {
       key: "timelonn",
-      label: "Timelønn",
-      value: terms.hourly_rate !== null ? `${terms.hourly_rate} kr/t` : "Ikke satt",
+      label: t("composition.summary_hourly_rate"),
+      value: terms.hourly_rate !== null ? `${terms.hourly_rate} kr/t` : t("composition.not_set"),
     },
   ];
 
@@ -462,10 +489,8 @@ function BekreftStep({ state, updateState }: WizardStepProps<CompositionState>) 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="font-heading text-xl font-semibold">Bekreft</h2>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Gå gjennom og bekreft alle verdiene før du sender kontrakten.
-        </p>
+        <h2 className="font-heading text-xl font-semibold">{t("composition.confirm_title")}</h2>
+        <p className="text-muted-foreground mt-1 text-sm">{t("composition.confirm_description")}</p>
       </div>
 
       <AcknowledgementRing
@@ -507,6 +532,7 @@ function BekreftStep({ state, updateState }: WizardStepProps<CompositionState>) 
 // ---------------------------------------------------------------------------
 
 function SendStep({ state, updateState }: WizardStepProps<CompositionState>) {
+  const { t } = useTranslation("contracts");
   const { workspaceData } = useContext(DashboardContext);
   const composeMutation = useComposeContract();
   const sendMutation = useSendContract();
@@ -538,7 +564,7 @@ function SendStep({ state, updateState }: WizardStepProps<CompositionState>) {
 
       const contractId = composed.contract_id;
       if (!contractId) {
-        throw new Error("Kontrakten ble ikke lagret — mangler contract_id");
+        throw new Error(t("composition.contract_not_saved"));
       }
 
       updateState({ proposal: composed });
@@ -546,13 +572,13 @@ function SendStep({ state, updateState }: WizardStepProps<CompositionState>) {
       if (piiComplete) {
         // Step B (PII complete path): send immediately for signing
         await sendMutation.mutateAsync({ contract_id: contractId });
-        toast.success("Kontrakt sendt til signering");
+        toast.success(t("composition.contract_sent_for_signing"));
       } else {
         // Step B (PII missing path): contract created, PII collection flow starts
-        toast.success("Kontrakt opprettet — innhenting av manglende data startet");
+        toast.success(t("composition.contract_created_collecting"));
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Noe gikk galt";
+      const message = err instanceof Error ? err.message : t("toast.something_went_wrong");
       toast.error(message);
     } finally {
       updateState({ isSending: false });
@@ -566,11 +592,16 @@ function SendStep({ state, updateState }: WizardStepProps<CompositionState>) {
           <AlertTriangle className="h-10 w-10 text-red-600" />
           <div className="text-center">
             <p className="text-sm font-medium text-red-600">
-              Kan ikke sende — {blockerCount} {blockerCount === 1 ? "blokkering" : "blokkeringer"}{" "}
-              gjenstår
+              {t("composition.cannot_send", {
+                count: String(blockerCount),
+                blockerWord:
+                  blockerCount === 1
+                    ? t("composition.blocker_singular")
+                    : t("composition.blocker_plural"),
+              })}
             </p>
             <p className="text-muted-foreground mt-1 text-xs">
-              Gå tilbake og løs blokkeringene før du sender.
+              {t("composition.resolve_blockers")}
             </p>
           </div>
         </>
@@ -578,10 +609,10 @@ function SendStep({ state, updateState }: WizardStepProps<CompositionState>) {
         <>
           <Sparkles className="text-primary h-10 w-10" />
           <div className="text-center">
-            <p className="text-sm font-medium">Klar til å sende</p>
+            <p className="text-sm font-medium">{t("composition.ready_to_send")}</p>
             {!piiComplete && (
               <p className="text-muted-foreground mt-1 text-xs">
-                Manglende ansattdata — kontrakten vil sende forespørsel om innhenting.
+                {t("composition.missing_pii_notice")}
               </p>
             )}
           </div>
@@ -591,15 +622,13 @@ function SendStep({ state, updateState }: WizardStepProps<CompositionState>) {
       {/* Missing PII notice */}
       {missingPii.length > 0 && (
         <div className="max-w-sm rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-          <p className="mb-1 font-medium">Manglende data fra ansatt:</p>
+          <p className="mb-1 font-medium">{t("composition.missing_pii_title")}</p>
           <ul className="list-inside list-disc text-xs">
             {missingPii.map((field) => (
               <li key={field}>{field}</li>
             ))}
           </ul>
-          <p className="mt-2 text-xs">
-            Kontrakten opprettes og en forespørsel sendes til den ansatte.
-          </p>
+          <p className="mt-2 text-xs">{t("composition.missing_pii_footer")}</p>
         </div>
       )}
 
@@ -613,12 +642,12 @@ function SendStep({ state, updateState }: WizardStepProps<CompositionState>) {
         {isSubmitting ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Sender...
+            {t("composition.sending")}
           </>
         ) : piiComplete ? (
-          "Send kontrakt"
+          t("composition.send_contract")
         ) : (
-          "Opprett og start innhenting"
+          t("composition.create_and_collect")
         )}
       </Button>
     </div>
@@ -640,12 +669,12 @@ const compositionWizard: WizardDefinition<CompositionState> = {
   brandPanel: {
     messages: {
       ansatt: {
-        heading: "Hvem skal få kontrakt?",
+        heading: "Hvem skal f\u00E5 kontrakt?",
         sub: "Velg den ansatte som skal motta avtalen.",
       },
       stilling: {
         heading: "Stilling og form",
-        sub: "Stillingstittel og ansettelsesform brukes i kontrakten og lønnsberegningen.",
+        sub: "Stillingstittel og ansettelsesform brukes i kontrakten og l\u00F8nnsberegningen.",
       },
       gjennomgang: {
         heading: "Cascade henter data",
@@ -653,7 +682,7 @@ const compositionWizard: WizardDefinition<CompositionState> = {
       },
       bekreft: {
         heading: "Kontroller forslaget",
-        sub: "Bekreft verdiene før du går videre til sending.",
+        sub: "Bekreft verdiene f\u00F8r du g\u00E5r videre til sending.",
       },
       send: {
         heading: "Alt klart?",
