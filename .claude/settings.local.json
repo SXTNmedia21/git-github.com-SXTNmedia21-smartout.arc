@@ -2,11 +2,6 @@
   "permissions": {
     "allow": [
       "Bash(ss:*)",
-      "Bash(PGPASSWORD=postgres psql -h 127.0.0.1 -p 54322 -U postgres -d postgres -c \"SELECT email, email_confirmed_at FROM auth.users WHERE email = ''admin@smartout.local'';\")",
-      "Bash(for f:*)",
-      "Bash(do echo:*)",
-      "Read(//home/sxtnl/dev/smartout.ai/**)",
-      "Bash(done)",
       "Bash(~/.claude/scripts/heartbeat-notify.sh file:*)",
       "Bash(~/.claude/scripts/log-activity.sh session:*)",
       "Bash(bash ~/.claude/scripts/heartbeat-session-start.sh)",

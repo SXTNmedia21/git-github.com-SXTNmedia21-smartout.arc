@@ -6,7 +6,7 @@
           {
             "type": "command",
             "command": "bash apps/web/scripts/preflight-json.sh 2>/dev/null || echo '{\"ok\":1,\"errors\":[{\"type\":\"script\",\"issue\":\"preflight script failed\"}],\"warnings\":[]}'",
-            "timeout": 15000
+            "timeout": 15
           }
         ]
       }
@@ -18,7 +18,7 @@
           {
             "type": "command",
             "command": "/home/sxtnl/dev/smartout.ai/.claude/metadata-updater.sh",
-            "timeout": 5000
+            "timeout": 5
           }
         ]
       }

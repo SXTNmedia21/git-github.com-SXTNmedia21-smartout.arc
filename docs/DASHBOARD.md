@@ -2,7 +2,8 @@
 title: Development Dashboard
 status: live
 updated: 2026-04-13
-last-reconciled: 2026-04-09
+last-reconciled: 2026-04-13
+last-reconciled: 2026-04-13
 module: meta
 tags: [dashboard, worktrees, git-state]
 ---
@@ -22,10 +23,11 @@ tags: [dashboard, worktrees, git-state]
 | wt-2 | feat/renholdssjekker | operations | eea36920 | No | journeys/JOURNEY-renholdssjekker.md (missing) |
 | wt-3 | feat/driftsoversikt | operations | eea36920 | No | journeys/JOURNEY-driftsoversikt.md (missing) |
 | wt-4 | feat/skiftbytte | scheduling | eea36920 | No | journeys/JOURNEY-skiftbytte.md (missing) |
+| wt-5 | feat/contract-workspace-tab | platform-admin | 1f21f5f7 | No | journeys/JOURNEY-contract-workspace-tab.md (missing) |
 
 ## Free Slots
 
-wt-5, wt-6, wt-7, wt-8, wt-9, wt-10, wt-11, wt-12, wt-13, wt-15, wt-20
+wt-6, wt-7, wt-8, wt-9, wt-10, wt-11, wt-12, wt-13, wt-15, wt-20
 
 ## Pending Journeys
 
@@ -34,3 +36,4 @@ wt-5, wt-6, wt-7, wt-8, wt-9, wt-10, wt-11, wt-12, wt-13, wt-15, wt-20
 | wt-2 | renholdssjekker | `docs/journeys/JOURNEY-renholdssjekker.md` | missing |
 | wt-3 | driftsoversikt | `docs/journeys/JOURNEY-driftsoversikt.md` | missing |
 | wt-4 | skiftbytte | `docs/journeys/JOURNEY-skiftbytte.md` | missing |
+| wt-5 | contract-workspace-tab | `docs/journeys/JOURNEY-contract-workspace-tab.md` | missing |
