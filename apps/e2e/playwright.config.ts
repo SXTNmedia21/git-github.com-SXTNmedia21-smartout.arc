@@ -1,4 +1,8 @@
+import { config } from "dotenv";
 import { defineConfig, devices } from "@playwright/test";
+
+// Load .env.local for local Supabase keys (gitignored, safe)
+config({ path: ".env.local" });
 
 const localWebPort = Number(process.env.E2E_WEB_PORT) || 3060;
 const localLandingPort = Number(process.env.E2E_LANDING_PORT) || 3056;
