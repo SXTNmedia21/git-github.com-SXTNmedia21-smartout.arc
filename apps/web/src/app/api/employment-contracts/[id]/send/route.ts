@@ -1,26 +1,89 @@
 /**
  * POST /api/employment-contracts/[id]/send — Send a draft employment contract.
  *
- * Snapshots the active framework rules, checks whether the employee's PII is
- * complete, and transitions the contract to either "pending_data" (if PII is
- * missing) or "sent" (if all data is present).
- *
- * When data is missing the route also creates an engine_state for the
- * "contract_data_intake" process and schedules 3 delayed escalation triggers
- * (day 3, 7, 10).
+ * Steps (in order):
+ *  1. Parse optional idempotency_key from request body
+ *  2. Auth — get user, load employment_contract
+ *  3. Guard — must be status='draft'. If signing_contract_id already set → return success (idempotent)
+ *  4. Role gate — require admin or owner in workspace
+ *  5. Snapshot active framework rules (workspace_framework_binding → framework_rule)
+ *  6. Check PII — personal_number, bank_account, address. Determine missing groups.
+ *  7. Resolve template — contract_template where contract_type='employee' + employment_category match
+ *  8. Load company via workspace.company_id for placeholder resolution
+ *  9. Resolve placeholders — replace {{key}} in template HTML
+ * 10. INSERT contract row (DocuSeal signing entity) → SELECT back contract_id
+ * 11. UPDATE employment_contract — status, framework_snapshot, signing_contract_id
+ * 12. INSERT contract_event — event_type='created'
+ * 13. Call contract-service (if PII complete) — non-blocking, failure logs send_failed event
+ * 14. Create engine_state — 'contract_signing' or 'contract_data_intake'
+ * 15. Schedule escalation triggers (day 3, 7, 10) if pending_data
+ * 16. Emit telemetry — 'contract sent'. If pending_data also emit 'contract intake started'.
+ * 17. Return { sent, status, contract_id, signing_contract_id, pii_complete }
  *
  * ADR-0076: composition as cascade derivation.
  * ADR-0077: PII handling — intake flow for missing data.
+ * ADR-0078: channel restriction — critical PII never via voice.
  */
 
 import { NextResponse } from "next/server";
 import { createClient } from "@smartout/supabase/server";
 import { emit } from "@smartout/telemetry";
+import { z } from "zod";
 
-export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+const CONTRACT_SERVICE_URL = process.env.CONTRACT_SERVICE_URL ?? "http://localhost:5012";
+const CONTRACT_SERVICE_KEY = process.env.CONTRACT_SERVICE_KEY ?? "";
+
+// Optional idempotency key lets callers safely retry without double-sending.
+const bodySchema = z.object({
+  idempotency_key: z.string().uuid().optional(),
+});
+
+// Placeholder keys defined in the seed templates. Order matters for readability,
+// not for correctness — replaceAll handles each independently.
+const PLACEHOLDER_KEYS = [
+  "arbeidsgiver_navn",
+  "arbeidsgiver_org_nr",
+  "ansatt_navn",
+  "ansatt_personnummer",
+  "ansatt_adresse",
+  "stilling",
+  "maanedslonn",
+  "timelonn",
+  "stillingsprosent",
+  "kontraktdato",
+  "startdato",
+] as const;
+
+type PlaceholderKey = (typeof PLACEHOLDER_KEYS)[number];
+
+function resolvePlaceholders(
+  html: string,
+  values: Partial<Record<PlaceholderKey, string>>,
+): string {
+  return PLACEHOLDER_KEYS.reduce((resolved, key) => {
+    const value = values[key] ?? "";
+    // Replace every occurrence of {{key}} in the template HTML.
+    return resolved.replaceAll(`{{${key}}}`, value);
+  }, html);
+}
+
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
 
+  // ── Step 1: Parse optional body ──────────────────────────────────────
+  let _idempotencyKey: string | undefined;
+  try {
+    const raw = await request.json().catch(() => ({}));
+    const parsed = bodySchema.safeParse(raw);
+    if (parsed.success) {
+      _idempotencyKey = parsed.data.idempotency_key;
+    }
+  } catch {
+    // Non-JSON body is acceptable — idempotency key simply not provided.
+  }
+
+  // ── Step 2: Auth — get user ──────────────────────────────────────────
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -29,33 +92,12 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // ── Step 0: Load the contract first to get workspace_id for role check ─
-  const { data: contractCheck } = await supabase
-    .from("employment_contract")
-    .select("workspace_id")
-    .eq("contract_id", id)
-    .single();
-
-  if (!contractCheck) {
-    return NextResponse.json({ error: "Contract not found" }, { status: 404 });
-  }
-
-  // ── Role gate: require admin or owner ─────────────────────────────────
-  const { data: actorProfile } = await supabase
-    .from("profile")
-    .select("profile_id, role")
-    .eq("user_id", user.id)
-    .eq("workspace_id", contractCheck.workspace_id)
-    .single();
-
-  if (!actorProfile || !["admin", "owner"].includes(actorProfile.role)) {
-    return NextResponse.json({ error: "Forbidden: admin or owner role required" }, { status: 403 });
-  }
-
-  // ── Step 1: Load the employment contract ──────────────────────────────
+  // Load employment_contract first to get workspace_id for role check.
   const { data: contract, error: contractError } = await supabase
     .from("employment_contract")
-    .select("contract_id, status, workspace_id, profile_id")
+    .select(
+      "contract_id, status, workspace_id, profile_id, employment_category, signing_contract_id, position_title, monthly_salary, hourly_rate, employment_percentage, start_date",
+    )
     .eq("contract_id", id)
     .single();
 
@@ -63,13 +105,37 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     return NextResponse.json({ error: "Contract not found" }, { status: 404 });
   }
 
+  const { workspace_id, profile_id } = contract;
+
+  // ── Step 3: Guard — draft only. Idempotent if already sent. ──────────
+  if (contract.signing_contract_id) {
+    // Already processed — return success without side effects.
+    return NextResponse.json({
+      sent: true,
+      status: contract.status,
+      contract_id: id,
+      signing_contract_id: contract.signing_contract_id,
+      pii_complete: true,
+    });
+  }
+
   if (contract.status !== "draft") {
     return NextResponse.json({ error: "Only draft contracts can be sent" }, { status: 400 });
   }
 
-  const { workspace_id, profile_id } = contract;
+  // ── Step 4: Role gate — admin or owner only ───────────────────────────
+  const { data: actorProfile } = await supabase
+    .from("profile")
+    .select("profile_id, role, display_name")
+    .eq("user_id", user.id)
+    .eq("workspace_id", workspace_id)
+    .single();
 
-  // ── Step 2: Snapshot framework rules ──────────────────────────────────
+  if (!actorProfile || !["admin", "owner"].includes(actorProfile.role)) {
+    return NextResponse.json({ error: "Forbidden: admin or owner role required" }, { status: 403 });
+  }
+
+  // ── Step 5: Snapshot framework rules ─────────────────────────────────
   const { data: binding } = await supabase
     .from("workspace_framework_binding")
     .select("framework_id, regulatory_framework(name, version)")
@@ -107,46 +173,194 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     })),
   };
 
-  // ── Step 3: Check placeholder status (PII completeness) ───────────────
-  const { data: profile } = await supabase
+  // ── Step 6: Check PII completeness ───────────────────────────────────
+  const { data: employeeProfile } = await supabase
     .from("profile")
-    .select("personal_number, bank_account, address_line_1, postal_code")
+    .select("personal_number, bank_account, address_line_1, postal_code, display_name")
     .eq("profile_id", profile_id)
     .eq("workspace_id", workspace_id)
     .single();
 
-  if (!profile) {
-    return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+  if (!employeeProfile) {
+    return NextResponse.json({ error: "Employee profile not found" }, { status: 404 });
   }
 
   const missingGroups: string[] = [];
-  if (!profile.personal_number) missingGroups.push("personal_number");
-  if (!profile.bank_account) missingGroups.push("bank_account");
-  if (!profile.address_line_1 || !profile.postal_code) missingGroups.push("address");
+  if (!employeeProfile.personal_number) missingGroups.push("personal_number");
+  if (!employeeProfile.bank_account) missingGroups.push("bank_account");
+  if (!employeeProfile.address_line_1 || !employeeProfile.postal_code)
+    missingGroups.push("address");
 
   const allDataPresent = missingGroups.length === 0;
   const newStatus = allDataPresent ? "sent" : "pending_data";
 
-  // ── Step 4: Update the contract with snapshot + new status ────────────
+  // ── Step 7: Resolve template ──────────────────────────────────────────
+  // Prefer workspace-specific templates (is_system=false) over platform templates.
+  // Null employment_category on a template matches any category (catch-all).
+  const { data: template } = await supabase
+    .from("contract_template")
+    .select("template_id, name, content_html")
+    .eq("contract_type", "employee")
+    .eq("is_active", true)
+    .or(`employment_category.eq.${contract.employment_category},employment_category.is.null`)
+    .order("is_system", { ascending: true }) // false < true → workspace templates first
+    .limit(1)
+    .single();
+
+  // A missing template is non-fatal — we proceed with empty HTML.
+  const templateId = template?.template_id ?? null;
+  const rawHtml = template?.content_html ?? "";
+
+  // ── Step 8: Load company for placeholder resolution ───────────────────
+  const { data: workspace } = await supabase
+    .from("workspace")
+    .select("company_id")
+    .eq("workspace_id", workspace_id)
+    .single();
+
+  let companyName = "Smartout";
+  let companyOrgNumber = "";
+
+  if (workspace?.company_id) {
+    const { data: company } = await supabase
+      .from("company")
+      .select("name, org_number")
+      .eq("company_id", workspace.company_id)
+      .single();
+
+    if (company) {
+      companyName = company.name;
+      companyOrgNumber = company.org_number ?? "";
+    }
+  }
+
+  // ── Step 9: Resolve placeholders ─────────────────────────────────────
+  const employeeAddress = [employeeProfile.address_line_1 ?? "", employeeProfile.postal_code ?? ""]
+    .filter(Boolean)
+    .join(", ");
+
+  const placeholderValues: Partial<Record<PlaceholderKey, string>> = {
+    arbeidsgiver_navn: companyName,
+    arbeidsgiver_org_nr: companyOrgNumber,
+    ansatt_navn: employeeProfile.display_name,
+    ansatt_personnummer: employeeProfile.personal_number ?? "",
+    ansatt_adresse: employeeAddress,
+    stilling: contract.position_title,
+    maanedslonn: contract.monthly_salary ? String(contract.monthly_salary) : "",
+    timelonn: contract.hourly_rate ? String(contract.hourly_rate) : "",
+    stillingsprosent: contract.employment_percentage ? String(contract.employment_percentage) : "",
+    kontraktdato: new Date().toLocaleDateString("nb-NO"),
+    startdato: contract.start_date ? new Date(contract.start_date).toLocaleDateString("nb-NO") : "",
+  };
+
+  const resolvedHtml = resolvePlaceholders(rawHtml, placeholderValues);
+
+  // ── Step 10: INSERT contract row (DocuSeal signing entity) ────────────
+  const { data: signingContract, error: insertError } = await supabase
+    .from("contract")
+    .insert({
+      workspace_id,
+      contract_type: "employee",
+      template_id: templateId,
+      resolved_html: resolvedHtml,
+      resolved_values: placeholderValues as Record<string, string>,
+      recipient_name: employeeProfile.display_name,
+      recipient_email: "",
+      sender_name: "Smartout",
+      sender_email: "post@smartout.no",
+      status: "draft",
+      // title is required by the schema
+      title: `Arbeidsavtale – ${employeeProfile.display_name}`,
+      // signatories defaults to [] in the schema but is required for Insert
+      signatories: [],
+    })
+    .select("contract_id")
+    .single();
+
+  if (insertError || !signingContract) {
+    return NextResponse.json(
+      { error: `Failed to create signing contract: ${insertError?.message ?? "unknown error"}` },
+      { status: 500 },
+    );
+  }
+
+  const signingContractId = signingContract.contract_id;
+
+  // ── Step 11: UPDATE employment_contract ───────────────────────────────
   const { error: updateError } = await supabase
     .from("employment_contract")
     .update({
       status: newStatus as "sent" | "pending_data",
       framework_snapshot: frameworkSnapshot,
+      signing_contract_id: signingContractId,
     })
     .eq("contract_id", id);
 
   if (updateError) {
     return NextResponse.json(
-      { error: `Failed to update contract: ${updateError.message}` },
+      { error: `Failed to update employment contract: ${updateError.message}` },
       { status: 500 },
     );
   }
 
-  // ── Step 5: Create engine_state for the appropriate process ───────────
+  // ── Step 12: INSERT contract_event ────────────────────────────────────
+  await supabase.from("contract_event").insert({
+    contract_id: signingContractId,
+    event_type: "created",
+    actor_type: "admin",
+    actor_id: actorProfile.profile_id,
+    workspace_id,
+    details: {
+      employment_contract_id: id,
+      status: newStatus,
+      pii_complete: allDataPresent,
+    },
+  });
+
+  // ── Step 13: Call contract-service (if PII complete) ──────────────────
+  // Non-blocking — a failure here does not abort the send flow. The contract
+  // row already exists; contract-service submits it to DocuSeal for signing.
+  if (allDataPresent) {
+    try {
+      const serviceResponse = await fetch(
+        `${CONTRACT_SERVICE_URL}/contracts/${signingContractId}/send`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Service-Key": CONTRACT_SERVICE_KEY,
+          },
+          body: JSON.stringify({ employment_contract_id: id }),
+        },
+      );
+
+      if (!serviceResponse.ok) {
+        // Log the failure as a contract_event but do not surface it as an error.
+        await supabase.from("contract_event").insert({
+          contract_id: signingContractId,
+          event_type: "send_failed",
+          actor_type: "system",
+          actor_id: null,
+          workspace_id,
+          details: { http_status: serviceResponse.status },
+        });
+      }
+    } catch (err) {
+      // Network-level failure (contract-service unreachable in local dev, for example).
+      await supabase.from("contract_event").insert({
+        contract_id: signingContractId,
+        event_type: "send_failed",
+        actor_type: "system",
+        actor_id: null,
+        workspace_id,
+        details: { error: err instanceof Error ? err.message : String(err) },
+      });
+    }
+  }
+
+  // ── Step 14: Create engine_state ─────────────────────────────────────
   const processName = allDataPresent ? "contract_signing" : "contract_data_intake";
 
-  // Look up the engine_process by its TEXT primary key (id)
   const { data: process } = await supabase
     .from("engine_process")
     .select("id")
@@ -160,13 +374,17 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
       entity_id: id,
       workspace_id,
       status: "running",
-      context: { profile_id, missing_groups: missingGroups },
+      context: {
+        profile_id,
+        signing_contract_id: signingContractId,
+        missing_groups: missingGroups,
+      },
     });
   }
 
-  // ── Step 6: Schedule delayed escalation triggers (pending_data only) ──
+  // ── Step 15: Schedule escalation triggers (pending_data only) ─────────
+  // Remind the employee at day 3, 7, and 10 if their PII is still missing.
   if (!allDataPresent && process) {
-    // Find the escalation trigger and event for this process
     const { data: trigger } = await supabase
       .from("engine_trigger")
       .select("id")
@@ -174,46 +392,43 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
       .limit(1)
       .single();
 
-    const { data: event } = await supabase
+    const { data: escalationEvent } = await supabase
       .from("engine_event")
       .select("id")
       .eq("event_name", "contract intake escalated")
       .limit(1)
       .single();
 
-    if (trigger && event) {
+    if (trigger && escalationEvent) {
       const now = new Date();
-      const delays = [3, 7, 10]; // days
-
-      const rows = delays.map((days) => {
+      const escalationRows = [3, 7, 10].map((days) => {
         const fireAt = new Date(now);
         fireAt.setDate(fireAt.getDate() + days);
         return {
           trigger_id: trigger.id,
-          event_id: event.id,
+          event_id: escalationEvent.id,
           workspace_id,
           fire_at: fireAt.toISOString(),
           fired: false,
         };
       });
 
-      await supabase.from("engine_delayed_trigger").insert(rows);
+      await supabase.from("engine_delayed_trigger").insert(escalationRows);
     }
   }
 
-  // ── Step 7: Emit telemetry ────────────────────────────────────────────
+  // ── Step 16: Emit telemetry ───────────────────────────────────────────
   void emit({
-    event: "contract composed",
+    event: "contract sent",
     workspace_id,
     actor_id: actorProfile.profile_id,
     properties: {
       entity: { entity_type: "employment_contract", entity_id: id },
       data: {
-        template_id: "",
-        profile_id,
-        framework_id: frameworkId,
-        override_count: 0,
-        blocker_count: missingGroups.length,
+        recipient_email: "",
+        expires_at: "",
+        pii_complete: allDataPresent,
+        signing_contract_id: signingContractId,
       },
     },
   });
@@ -228,21 +443,14 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
         data: { contract_id: id, missing_groups: missingGroups },
       },
     });
-  } else {
-    void emit({
-      event: "contract sent",
-      workspace_id,
-      actor_id: actorProfile.profile_id,
-      properties: {
-        entity: { entity_type: "employment_contract", entity_id: id },
-        data: { recipient_email: "", expires_at: "" },
-      },
-    });
   }
 
+  // ── Step 17: Return ───────────────────────────────────────────────────
   return NextResponse.json({
     sent: true,
     status: newStatus,
     contract_id: id,
+    signing_contract_id: signingContractId,
+    pii_complete: allDataPresent,
   });
 }
