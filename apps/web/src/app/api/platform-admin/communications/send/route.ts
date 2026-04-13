@@ -613,8 +613,37 @@ async function dispatchPush(
     }
   }
 
-  // Count recipients with no push token as failed
-  failedCount += recipients.length - profiles.length;
+  // For recipients without push tokens: fallback to email if priority >= 1
+  const pushableUserIds = new Set(profiles.map((p) => p.user_id));
+  const noPushRecipients = recipients.filter((r) => !pushableUserIds.has(r.userId));
+
+  if (noPushRecipients.length > 0 && Number(opts.inAppPriority) >= 1) {
+    // Email fallback for high/critical priority
+    const { data: emailUsers } = await admin
+      .from("user_identity")
+      .select("user_id, email, first_name, last_name")
+      .in(
+        "user_id",
+        noPushRecipients.map((r) => r.userId),
+      );
+
+    if (emailUsers && emailUsers.length > 0) {
+      const { sendEmailBatch } = await import("@smartout/notifications");
+      const emailResult = await sendEmailBatch(
+        emailUsers.map((u) => ({
+          to: u.email,
+          subject: opts.pushTitle,
+          html: `<p>${opts.pushBody}</p>`,
+        })),
+      );
+      sentCount += emailResult.sent;
+      // Don't count email fallbacks as push failures
+    } else {
+      failedCount += noPushRecipients.length;
+    }
+  } else {
+    failedCount += noPushRecipients.length;
+  }
 
   return { sentCount, failedCount, provider: "expo" };
 }
@@ -677,6 +706,40 @@ async function dispatchInApp(
 
   if (error) {
     throw new Error(`Failed to insert in-app notifications: ${error.message}`);
+  }
+
+  // Notify workspace admins about the broadcast (in-app only, decision #4)
+  const affectedWorkspaceIds = [...new Set(outboxRows.map((r) => r.workspace_id))];
+  if (affectedWorkspaceIds.length > 0) {
+    const { data: wsAdmins } = await admin
+      .from("profile")
+      .select("user_id, workspace_id")
+      .in("workspace_id", affectedWorkspaceIds)
+      .in("role", ["admin", "owner"])
+      .eq("is_active", true);
+
+    const recipientUserIds = new Set(recipients.map((r) => r.userId));
+    const adminRows = (wsAdmins ?? [])
+      .filter((a) => !recipientUserIds.has(a.user_id))
+      .map((a) => ({
+        workspace_id: a.workspace_id,
+        recipient_id: a.user_id,
+        mode: "work" as const,
+        priority: 0,
+        title: "Platform broadcast sent to your workspace",
+        body: `"${opts.inAppTitle}" was sent to ${outboxRows.filter((r) => r.workspace_id === a.workspace_id).length} members`,
+        action_url: null,
+        metadata: {
+          event_key: "platform.admin_notify",
+          icon_type: "info",
+          source: "platform_admin",
+        },
+        allowed_channels: ["in_app"],
+      }));
+
+    if (adminRows.length > 0) {
+      await admin.from("notification_outbox" as never).insert(adminRows as never);
+    }
   }
 
   return {

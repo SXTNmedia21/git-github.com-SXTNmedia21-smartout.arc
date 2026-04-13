@@ -32,6 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import {
   AudienceSelector,
   type AudienceFilter,
@@ -101,6 +102,7 @@ export function ComposeEmailSheet({
   const [largeAudienceConfirmed, setLargeAudienceConfirmed] = useState(false);
   const [scheduleMode, setScheduleMode] = useState<"now" | "scheduled">("now");
   const [scheduledFor, setScheduledFor] = useState("");
+  const [overrideQuietHours, setOverrideQuietHours] = useState(false);
 
   const classification = templates.find((t) => t.value === template)?.classification ?? null;
   const needsTypeConfirm = dryRunResult !== null && dryRunResult.recipientCount > 100;
@@ -176,6 +178,7 @@ export function ComposeEmailSheet({
             scheduleMode === "scheduled" && scheduledFor
               ? new Date(scheduledFor).toISOString()
               : undefined,
+          overrideQuietHours: overrideQuietHours || undefined,
         }),
       });
 
@@ -219,6 +222,7 @@ export function ComposeEmailSheet({
     setLargeAudienceConfirmed(false);
     setScheduleMode("now");
     setScheduledFor("");
+    setOverrideQuietHours(false);
   }
 
   const smsSegments = Math.ceil(Math.max(smsBody.length, 1) / 160);
@@ -440,6 +444,17 @@ export function ComposeEmailSheet({
                   )}
                 </div>
               )}
+            </div>
+
+            {/* Priority override */}
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label className="text-xs">Override quiet hours</Label>
+                <p className="text-muted-foreground text-[10px]">
+                  Bypass recipient quiet hours for critical messages
+                </p>
+              </div>
+              <Switch checked={overrideQuietHours} onCheckedChange={setOverrideQuietHours} />
             </div>
 
             {/* Actions row */}
