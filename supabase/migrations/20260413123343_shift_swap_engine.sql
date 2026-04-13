@@ -15,16 +15,16 @@ SET search_path TO public, extensions;
 
 -- ── Engine Process Blueprint ────────────────────────────────────────────────
 
-INSERT INTO public.engine_process (id, name, description, is_active, max_steps, allowed_channels)
+-- Note: allowed_channels column is created in a later migration (20260501100300).
+-- Insert without allowed_channels for now; it will be set by the later migration.
+INSERT INTO public.engine_process (id, name, description, is_active, max_steps)
 VALUES (
   'shift_swap',
   'Shift Swap',
   'Mutual shift exchange between two employees with manager approval. 3-phase: request > accept > approve.',
   true,
-  6,
-  ARRAY['chat']
+  6
 ) ON CONFLICT (id) DO UPDATE SET
-  allowed_channels = EXCLUDED.allowed_channels,
   description = EXCLUDED.description;
 
 -- Engine steps for the shift_swap process

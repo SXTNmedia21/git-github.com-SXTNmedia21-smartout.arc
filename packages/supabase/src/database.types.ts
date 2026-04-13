@@ -4234,6 +4234,7 @@ export type Database = {
           default_pricing: Json | null
           description: string | null
           docuseal_template_id: string | null
+          employment_category: string | null
           footer_html: string | null
           header_html: string | null
           is_active: boolean | null
@@ -4263,6 +4264,7 @@ export type Database = {
           default_pricing?: Json | null
           description?: string | null
           docuseal_template_id?: string | null
+          employment_category?: string | null
           footer_html?: string | null
           header_html?: string | null
           is_active?: boolean | null
@@ -4292,6 +4294,7 @@ export type Database = {
           default_pricing?: Json | null
           description?: string | null
           docuseal_template_id?: string | null
+          employment_category?: string | null
           footer_html?: string | null
           header_html?: string | null
           is_active?: boolean | null
@@ -14389,6 +14392,10 @@ export type Database = {
         Args: { p_session_id: string; p_turn: Json }
         Returns: undefined
       }
+      approve_shift_swap: {
+        Args: { p_approved: boolean; p_reason?: string; p_swap_id: string }
+        Returns: undefined
+      }
       archive_onboarding_workspaces: {
         Args: { p_workspace_ids: string[] }
         Returns: undefined
@@ -14584,6 +14591,15 @@ export type Database = {
         Args: { p_communication_id: string; p_field: string }
         Returns: undefined
       }
+      initiate_shift_swap: {
+        Args: {
+          p_reason?: string
+          p_requester_shift_id: string
+          p_target_profile_id: string
+          p_target_shift_id: string
+        }
+        Returns: string
+      }
       is_admin_in_workspace: {
         Args: { uid: string; wid: string }
         Returns: boolean
@@ -14680,6 +14696,10 @@ export type Database = {
             Returns: undefined
           }
       resolve_cascade_tasks: { Args: { p_workspace_id: string }; Returns: Json }
+      respond_to_shift_swap: {
+        Args: { p_accepted: boolean; p_reason?: string; p_swap_id: string }
+        Returns: undefined
+      }
       rollback_audit_entry: { Args: { p_audit_log_id: string }; Returns: Json }
       rotate_api_key: {
         Args: {
