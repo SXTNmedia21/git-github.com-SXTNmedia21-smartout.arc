@@ -39,6 +39,29 @@ import type { ScheduleEmployee } from "../_hooks/use-employees";
 import { SwapRequestDialog } from "./SwapRequestDialog";
 import { ArrowLeftRight } from "lucide-react";
 
+/** Compute work hours from "HH:MM" start/end strings (naive, no overnight handling) */
+function computeWorkHours(startTime: string, endTime: string): number {
+  const [sh, sm] = startTime.split(":").map(Number);
+  const [eh, em] = endTime.split(":").map(Number);
+  if (sh === undefined || sm === undefined || eh === undefined || em === undefined) return 0;
+  const diff = (eh * 60 + em - (sh * 60 + sm)) / 60;
+  return diff > 0 ? diff : diff + 24; // handle overnight shifts
+}
+
+/** Find dateId for a shift by looking it up in the grid cells Map */
+function findDateIdForShift(
+  shiftId: string,
+  cells: Map<string, { assignments: { shiftId: string }[] }>,
+): string {
+  for (const [key, cell] of cells) {
+    if (cell.assignments.some((a) => a.shiftId === shiftId)) {
+      // Key format is "dateId::configId" — extract dateId
+      return key.split("::")[0] ?? "";
+    }
+  }
+  return "";
+}
+
 // ISO week number calculation — avoids a date-fns dependency at the grid level
 function getISOWeek(date: Date): number {
   const d = new Date(date.getTime());
@@ -479,12 +502,15 @@ export function MalGrid({ departmentName, weekStart, departmentOptions }: MalGri
               shift={{
                 id: swapAssignment.shiftId,
                 employeeId: swapAssignment.employeeId,
-                dateId: "",
+                dateId: findDateIdForShift(swapAssignment.shiftId, data?.cells ?? new Map()),
                 role: swapAssignment.role ?? "",
                 time: `${swapAssignment.startTime ?? ""} - ${swapAssignment.endTime ?? ""}`,
                 startTime: swapAssignment.startTime ?? "",
                 endTime: swapAssignment.endTime ?? "",
-                workHours: 0,
+                workHours: computeWorkHours(
+                  swapAssignment.startTime ?? "",
+                  swapAssignment.endTime ?? "",
+                ),
                 status: swapAssignment.status as "published",
                 dayCategory: "morning",
                 indicator: "blue",

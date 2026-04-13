@@ -96,7 +96,7 @@ export function useInitiateSwap() {
       if (error) throw error;
       return data as string;
     },
-    onSuccess: (swapId) => {
+    onSuccess: (swapId, variables) => {
       void emit({
         event: "shift swap_requested",
         workspace_id: workspace.workspace_id,
@@ -105,9 +105,9 @@ export function useInitiateSwap() {
           entity: { entity_type: "engine_state", entity_id: swapId },
           data: {
             swap_id: swapId,
-            requester_shift_id: "",
-            target_shift_id: "",
-            target_profile_id: "",
+            requester_shift_id: variables.requesterShiftId,
+            target_shift_id: variables.targetShiftId,
+            target_profile_id: variables.targetProfileId,
           },
         },
       });
