@@ -114,7 +114,8 @@ export type EntityType =
   | "change_proposal"
   | "shift_approval"
   | "holiday_entry"
-  | "employment_contract";
+  | "employment_contract"
+  | "engine_state";
 
 export type ActionVerb =
   | "created"
@@ -659,6 +660,58 @@ export interface CommunicationBroadcastSent extends BaseEvent {
   event: "communication.broadcast_sent";
   properties: {
     metadata: { source: string; recipient_count: number; channel_id: string };
+  };
+}
+
+// ─── HMS: Cleaning Checklists ──────────────────
+export interface ChecklistStarted extends BaseEvent {
+  event: "checklist started";
+  properties: {
+    data: {
+      procedure_id: string;
+      session_id: string;
+    };
+  };
+}
+
+export interface ChecklistStepCompleted extends BaseEvent {
+  event: "checklist step_completed";
+  properties: {
+    data: {
+      task_id: string;
+    };
+  };
+}
+
+export interface ChecklistCompleted extends BaseEvent {
+  event: "checklist completed";
+  properties: {
+    data: {
+      procedure_id: string;
+      session_id: string;
+      total_steps: number;
+    };
+  };
+}
+
+export interface ChecklistOverdue extends BaseEvent {
+  event: "checklist overdue";
+  properties: {
+    data: {
+      procedure_id: string;
+      session_id: string;
+    };
+  };
+}
+
+export interface ChecklistDeviationFlagged extends BaseEvent {
+  event: "checklist deviation_flagged";
+  properties: {
+    entity: EntityRef;
+    data: {
+      task_id: string;
+      reason: string;
+    };
   };
 }
 
@@ -2878,6 +2931,69 @@ export interface EnrichmentCorrected extends BaseEvent {
   properties: { data: { field_name: string; was_auto: boolean } };
 }
 
+// ─── Shift Swap Events ──────────────────────────
+// Shift swap workflow: request → accept/reject → approve/reject → execute
+// All swap state lives in engine_state.context JSONB (ADR-0067)
+
+export interface ShiftSwapRequested extends BaseEvent {
+  event: "shift swap_requested";
+  properties: {
+    entity: EntityRef;
+    data: {
+      swap_id: string;
+      requester_shift_id: string;
+      target_shift_id: string;
+      target_profile_id: string;
+    };
+  };
+}
+
+export interface ShiftSwapAccepted extends BaseEvent {
+  event: "shift swap_accepted";
+  properties: {
+    entity: EntityRef;
+    data: { swap_id: string };
+  };
+}
+
+export interface ShiftSwapRejected extends BaseEvent {
+  event: "shift swap_rejected";
+  properties: {
+    entity: EntityRef;
+    data: { swap_id: string; rejected_by: string };
+  };
+}
+
+export interface ShiftSwapApproved extends BaseEvent {
+  event: "shift swap_approved";
+  properties: {
+    entity: EntityRef;
+    data: { swap_id: string };
+  };
+}
+
+export interface ShiftSwapExecuted extends BaseEvent {
+  event: "shift swap_executed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      swap_id: string;
+      /** Available when initiated, may not be available on approval path */
+      requester_shift_id?: string;
+      /** Available when initiated, may not be available on approval path */
+      target_shift_id?: string;
+    };
+  };
+}
+
+export interface ShiftSwapCancelled extends BaseEvent {
+  event: "shift swap_cancelled";
+  properties: {
+    entity: EntityRef;
+    data: { swap_id: string };
+  };
+}
+
 // ─── The Single Truth Union ─────────────────────
 // Add every feature's events here. If it isn't here, it can't be emitted.
 export type SmartoutEvent =
@@ -2911,6 +3027,11 @@ export type SmartoutEvent =
   | SessionClosed
   | SessionHookFired
   | SessionTaskCompleted
+  | ChecklistStarted
+  | ChecklistStepCompleted
+  | ChecklistCompleted
+  | ChecklistOverdue
+  | ChecklistDeviationFlagged
   | InvitationAccepted
   | ProtocolAssigned
   | ProtocolStepCompleted
@@ -3194,7 +3315,13 @@ export type SmartoutEvent =
   | EnrichmentRequested
   | EnrichmentHit
   | EnrichmentMissed
-  | EnrichmentCorrected;
+  | EnrichmentCorrected
+  | ShiftSwapRequested
+  | ShiftSwapAccepted
+  | ShiftSwapRejected
+  | ShiftSwapApproved
+  | ShiftSwapExecuted
+  | ShiftSwapCancelled;
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -3316,6 +3443,27 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "session task_completed": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+
+  "checklist started": {
+    destinations: ["posthog", "activity_trail"],
+    category: "operations",
+  },
+  "checklist step_completed": {
+    destinations: ["activity_trail"],
+    category: "operations",
+  },
+  "checklist completed": {
+    destinations: ["posthog", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  "checklist overdue": {
+    destinations: ["posthog", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  "checklist deviation_flagged": {
+    destinations: ["posthog", "activity_trail", "engine_event"],
     category: "operations",
   },
 
@@ -4364,4 +4512,30 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "enrichment hit": { destinations: ["posthog", "logger"], category: "enrichment" },
   "enrichment missed": { destinations: ["posthog", "logger"], category: "enrichment" },
   "enrichment corrected": { destinations: ["posthog", "logger"], category: "enrichment" },
+
+  // Shift swap events (ADR-0067)
+  "shift swap_requested": {
+    destinations: ["posthog", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "shift swap_accepted": {
+    destinations: ["posthog", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "shift swap_rejected": {
+    destinations: ["posthog", "activity_trail"],
+    category: "scheduling",
+  },
+  "shift swap_approved": {
+    destinations: ["posthog", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "shift swap_executed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "shift swap_cancelled": {
+    destinations: ["posthog", "activity_trail"],
+    category: "scheduling",
+  },
 };

@@ -41,6 +41,15 @@ export const strings = {
     dueSoon: "Forfaller snart",
     completed: "Fullført",
   },
+  cleaning: {
+    title: "Renholdssjekk",
+    signAndComplete: "Signer og fullfør",
+    progress: (done: number, total: number) => `${done} av ${total} fullført`,
+    flagDeviation: "Rapporter avvik",
+    takePhoto: "Ta bilde",
+    completed: "Fullført",
+    required: "Påkrevd",
+  },
   chat: {
     channels: "Kanaler",
     directMessages: "Direktmeldinger",

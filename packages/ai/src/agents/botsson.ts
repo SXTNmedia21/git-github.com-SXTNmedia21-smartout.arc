@@ -21,6 +21,10 @@ import type { ModelMessage } from "ai";
 
 import { toVercelTools } from "../adapters/vercel-ai.js";
 import { contractCapability } from "../capabilities/contract/index.js";
+import { operationsCapability } from "../capabilities/operations/index.js";
+import { scheduleCapability } from "../capabilities/schedule/index.js";
+import { guardianCapability } from "../capabilities/guardian/index.js";
+import { shiftSwapCapability } from "../capabilities/shift-swap/index.js";
 import type { AgentToolContext, CapabilityDefinition } from "../capabilities/types.js";
 import type { SmartoutTool } from "../types.js";
 import {
@@ -82,7 +86,13 @@ function getModel() {
 // ── Capabilities surfaced to Botsson chat ───────────────────────────────────
 // V0: contract only. Adding a capability is one line — append to this array.
 // Each capability brings its full tool set (read + suggest + mutation).
-const BOTSSON_CAPABILITIES: ReadonlyArray<CapabilityDefinition> = [contractCapability];
+const BOTSSON_CAPABILITIES: ReadonlyArray<CapabilityDefinition> = [
+  contractCapability,
+  operationsCapability,
+  scheduleCapability,
+  guardianCapability,
+  shiftSwapCapability,
+];
 
 // ── Public types ────────────────────────────────────────────────────────────
 export type BotssonAgentInput = {
