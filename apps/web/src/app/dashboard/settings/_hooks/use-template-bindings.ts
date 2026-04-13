@@ -144,6 +144,7 @@ export function useCreateTemplateBinding() {
         workspace_id: wsId ?? null,
         actor_id: profileId ?? "",
         properties: {
+          entity: { entity_type: "contract_template_binding", entity_id: _data?.id ?? "" },
           data: {
             template_id: variables.template_id,
             employment_category: variables.employment_category,
@@ -186,7 +187,10 @@ export function useDeleteTemplateBinding() {
         event: "template_binding deleted",
         workspace_id: wsId ?? null,
         actor_id: profileId ?? "",
-        properties: { data: { binding_id: data.id } },
+        properties: {
+          entity: { entity_type: "contract_template_binding", entity_id: data.id },
+          data: { template_id: "", employment_category: "", employee_group_id: null },
+        },
       });
       void queryClient.invalidateQueries({
         queryKey: bindingsKey(wsId!, data.groupId),

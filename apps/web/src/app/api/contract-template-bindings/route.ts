@@ -35,7 +35,9 @@ export async function GET(request: NextRequest) {
 
   let query = supabase
     .from("contract_template_binding")
-    .select("*, contract_template(template_id, name, employment_category, is_system)")
+    .select(
+      "id, workspace_id, template_id, employment_category, employee_group_id, priority, is_active, created_at, updated_at, contract_template(template_id, name, employment_category, is_system)",
+    )
     .eq("workspace_id", workspaceId)
     .order("priority", { ascending: false });
 
@@ -90,17 +92,14 @@ export async function POST(request: Request) {
 
     const { data, error } = await supabase
       .from("contract_template_binding")
-      .upsert(
-        {
-          workspace_id,
-          template_id,
-          employment_category,
-          employee_group_id: employee_group_id ?? null,
-          priority,
-          is_active: true,
-        },
-        { onConflict: "workspace_id,employment_category,employee_group_id" },
-      )
+      .upsert({
+        workspace_id,
+        template_id,
+        employment_category,
+        employee_group_id: employee_group_id ?? null,
+        priority,
+        is_active: true,
+      })
       .select("id, template_id, employment_category, employee_group_id")
       .single();
 

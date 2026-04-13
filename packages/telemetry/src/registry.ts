@@ -110,7 +110,8 @@ export type EntityType =
   | "holiday_entry"
   | "employment_contract"
   | "engine_state"
-  | "service_config";
+  | "service_config"
+  | "contract_template_binding";
 
 export type ActionVerb =
   | "created"
@@ -1357,6 +1358,30 @@ export interface TemplateDeleted extends BaseEvent {
   properties: {
     entity: EntityRef;
     data: Record<string, never>;
+  };
+}
+
+export interface TemplateBindingCreated extends BaseEvent {
+  event: "template_binding created";
+  properties: {
+    entity: EntityRef;
+    data: { template_id: string; employment_category: string; employee_group_id: string | null };
+  };
+}
+
+export interface TemplateBindingDeleted extends BaseEvent {
+  event: "template_binding deleted";
+  properties: {
+    entity: EntityRef;
+    data: { template_id: string; employment_category: string; employee_group_id: string | null };
+  };
+}
+
+export interface ContractTemplateCopied extends BaseEvent {
+  event: "contract_template copied";
+  properties: {
+    entity: EntityRef;
+    data: { source_template_id: string; name: string };
   };
 }
 
@@ -3242,6 +3267,9 @@ export type SmartoutEvent =
   | TemplateCreated
   | TemplateUpdated
   | TemplateDeleted
+  | TemplateBindingCreated
+  | TemplateBindingDeleted
+  | ContractTemplateCopied
   | TemplateLoaded
   | TemplateApplied
   | ShiftsPublished
@@ -4007,6 +4035,18 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "template deleted": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "scheduling",
+  },
+  "template_binding created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "template_binding deleted": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contract_template copied": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
   },
   "template loaded": {
     destinations: ["posthog", "logger", "activity_trail"],
