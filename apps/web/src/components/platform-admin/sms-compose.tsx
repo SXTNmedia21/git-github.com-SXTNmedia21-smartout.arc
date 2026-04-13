@@ -7,9 +7,13 @@ import { Textarea } from "@/components/ui/textarea";
 const MAX_CHARS = 1600;
 const SEGMENT_SIZE = 160;
 
+/** Approximate cost per SMS segment to Norway via Twilio (NOK) */
+const COST_PER_SEGMENT_NOK = 0.5;
+
 type SmsComposeProps = {
   value: string;
   onChange: (value: string) => void;
+  recipientCount?: number;
 };
 
 /**
@@ -17,7 +21,7 @@ type SmsComposeProps = {
  * Each SMS segment is 160 characters — messages beyond that are split
  * into multiple segments, increasing cost.
  */
-export function SmsCompose({ value, onChange }: SmsComposeProps) {
+export function SmsCompose({ value, onChange, recipientCount }: SmsComposeProps) {
   const charCount = value.length;
   const segments = charCount === 0 ? 0 : Math.ceil(charCount / SEGMENT_SIZE);
   const isMultiSegment = segments > 1;
@@ -60,6 +64,18 @@ export function SmsCompose({ value, onChange }: SmsComposeProps) {
           )}
         </span>
       </div>
+
+      {recipientCount != null && recipientCount > 0 && segments > 0 && (
+        <div className="bg-muted/50 rounded-md border px-3 py-2">
+          <p className="text-muted-foreground text-xs">
+            Estimated cost: {recipientCount} recipients &times; {segments} segment
+            {segments !== 1 ? "s" : ""} &asymp;{" "}
+            <span className="text-foreground font-medium">
+              {(recipientCount * segments * COST_PER_SEGMENT_NOK).toFixed(0)} NOK
+            </span>
+          </p>
+        </div>
+      )}
 
       {isMultiSegment && (
         <div className="bg-warning/10 text-warning-foreground flex items-start gap-2 rounded-md border border-amber-200 px-3 py-2 dark:border-amber-800">

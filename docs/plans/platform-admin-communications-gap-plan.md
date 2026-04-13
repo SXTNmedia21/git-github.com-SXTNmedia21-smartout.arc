@@ -339,12 +339,12 @@ When complete, Platform Admin can:
 
 ---
 
-## Open Questions (for Pontus)
+## Decisions (confirmed 2026-04-14)
 
-1. **Channel message identity** — When Platform Admin posts to a workspace channel, should it appear as "Smartout System" or as the admin's actual name?
-2. **SMS cost visibility** — Should we show estimated SMS cost before sending (Twilio pricing)?
-3. **Push without token** — When a user has no push token (never installed mobile app), should we auto-fallback to email?
-4. **Workspace admin notifications** — Should workspace admins get a notification when Platform Admin broadcasts to their workspace?
-5. **Rate limits per channel** — Current rate limits are email-only. What limits for SMS and push?
-6. **Priority override** — Should Platform Admin be able to override quiet hours for urgent communications?
-7. **Channel message replies** — Can workspace users reply to platform admin channel messages, or are they one-way announcements?
+1. **Channel message identity** — Posts appear as **"Smartout"** (system origin). Platform admin acts on behalf of the platform, not themselves.
+2. **SMS cost visibility** — **Yes.** Show estimated cost before sending: `{count} recipients × {segments} segments ≈ {cost} NOK`.
+3. **Push without token** — **Auto-fallback to email for priority ≥ 1.** Normal priority (0) = skip silently. High/critical = email fallback.
+4. **Workspace admin notifications** — **Yes, in-app only.** Quiet notification so workspace admins know their users received a platform message.
+5. **Rate limits per channel** — **SMS: 500/hour. Push: 5,000/hour.** Email keeps existing 100k soft / 500k hard caps.
+6. **Priority override** — **Yes, critical only (priority 2).** Checkbox: "Override quiet hours (critical only)". Normal/high = respect quiet hours.
+7. **Channel message replies** — **No replies in v1.** System messages are read-only. Users can react (emoji) but not reply. V2 may add discussion threads.
