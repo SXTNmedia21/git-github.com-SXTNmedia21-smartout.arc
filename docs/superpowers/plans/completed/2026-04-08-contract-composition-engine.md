@@ -1,6 +1,6 @@
 ---
 title: Contract Composition Engine — Implementation Plan
-status: ready
+status: in_progress
 updated: 2026-04-09
 created: 2026-04-08
 module: contracts
