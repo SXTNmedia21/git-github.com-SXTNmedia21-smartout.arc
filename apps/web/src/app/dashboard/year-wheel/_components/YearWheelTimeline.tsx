@@ -1,7 +1,7 @@
 /**
  * YearWheelTimeline — horizontal timeline canvas for seasons and planning events.
  *
- * Supports a full-year grid (12 months) or a single-month “zoom” with one column
+ * Supports a full-year grid (12 months) or a single-month "zoom" with one column
  * per day. Season blocks can report edge drags to the parent for persistence.
  */
 
@@ -27,7 +27,6 @@ type YearWheelTimelineProps = {
   onPinClick: (eventId: string) => void;
   onDateLaneClick?: (date: string) => void;
   focusedDate?: string | null;
-  isDark: boolean;
   onSeasonEdgeCommit?: (seasonId: string, edge: "start" | "end", dateIso: string) => void;
 };
 
@@ -99,7 +98,6 @@ export function YearWheelTimeline({
   onPinClick,
   onDateLaneClick,
   focusedDate,
-  isDark,
   onSeasonEdgeCommit,
 }: YearWheelTimelineProps) {
   const { t } = useTranslation("dashboard");
@@ -206,9 +204,7 @@ export function YearWheelTimeline({
             {MONTH_LABELS_SHORT.map((label, i) => (
               <div
                 key={i}
-                className={`py-1 text-center font-mono text-[10px] tracking-widest uppercase ${
-                  isDark ? "text-zinc-600" : "text-zinc-400"
-                }`}
+                className="text-muted-foreground py-1 text-center font-mono text-[10px] tracking-widest uppercase"
               >
                 {label}
               </div>
@@ -224,9 +220,7 @@ export function YearWheelTimeline({
             {Array.from({ length: daysInZoomMonth }, (_, i) => (
               <div
                 key={i}
-                className={`py-1 text-center font-mono text-[9px] tabular-nums ${
-                  isDark ? "text-zinc-600" : "text-zinc-400"
-                }`}
+                className="text-muted-foreground py-1 text-center font-mono text-[9px] tabular-nums"
               >
                 {i + 1}
               </div>
@@ -235,9 +229,7 @@ export function YearWheelTimeline({
         )}
 
         <div
-          className={`relative rounded-2xl border ${
-            isDark ? "border-zinc-800 bg-zinc-900/30" : "border-zinc-200 bg-zinc-50/50"
-          }`}
+          className="border-border bg-muted/30 relative rounded-2xl border"
           ref={canvasRef}
           style={{ minHeight: "120px" }}
           onClick={handleCanvasClick}
@@ -245,11 +237,7 @@ export function YearWheelTimeline({
           {viewMode === "year" ? (
             <div className="absolute inset-0 grid grid-cols-12">
               {Array.from({ length: 11 }, (_, i) => (
-                <div
-                  key={i}
-                  className={`border-r ${isDark ? "border-zinc-800/50" : "border-zinc-200/50"}`}
-                  style={{ gridColumn: i + 1 }}
-                />
+                <div key={i} className="border-border/50 border-r" style={{ gridColumn: i + 1 }} />
               ))}
             </div>
           ) : (
@@ -262,11 +250,7 @@ export function YearWheelTimeline({
               {Array.from({ length: daysInZoomMonth }, (_, i) => (
                 <div
                   key={i}
-                  className={
-                    i < daysInZoomMonth - 1
-                      ? `border-r ${isDark ? "border-zinc-800/50" : "border-zinc-200/50"}`
-                      : ""
-                  }
+                  className={i < daysInZoomMonth - 1 ? "border-border/50 border-r" : ""}
                 />
               ))}
             </div>
@@ -277,9 +261,10 @@ export function YearWheelTimeline({
               className="pointer-events-none absolute top-0 bottom-0 z-10"
               style={{ left: `${todayPositionPercent}%` }}
             >
-              <div className="h-full w-[2px] bg-orange-500 opacity-70" />
-              <span className="absolute -top-5 left-1/2 -translate-x-1/2 font-mono text-[9px] font-bold text-orange-500">
-                I dag
+              {/* brand-orange is an intentional brand color — not a semantic variable */}
+              <div className="bg-brand-orange h-full w-[2px] opacity-70" />
+              <span className="text-brand-orange absolute -top-5 left-1/2 -translate-x-1/2 font-mono text-[9px] font-bold">
+                {t("yearWheel.today")}
               </span>
             </div>
           )}
@@ -289,7 +274,7 @@ export function YearWheelTimeline({
               className="pointer-events-none absolute top-0 bottom-0 z-10"
               style={{ left: `${focusedDatePositionPercent}%` }}
             >
-              <div className="h-full w-[2px] bg-blue-500 opacity-80" />
+              <div className="bg-primary h-full w-[2px] opacity-80" />
             </div>
           )}
 
@@ -319,19 +304,14 @@ export function YearWheelTimeline({
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className={`flex items-center justify-center py-8 text-sm ${
-                  isDark ? "text-zinc-600" : "text-zinc-400"
-                }`}
+                className="text-muted-foreground flex items-center justify-center py-8 text-sm"
               >
                 {t("yearWheel.empty_select")}
               </motion.div>
             )}
           </div>
 
-          <div
-            className={`relative border-t ${isDark ? "border-zinc-800/50" : "border-zinc-200/50"}`}
-            style={{ height: "44px" }}
-          >
+          <div className="border-border/50 relative border-t" style={{ height: "44px" }}>
             {viewMode === "year" ? (
               <>
                 {singles.map((ev) => (
