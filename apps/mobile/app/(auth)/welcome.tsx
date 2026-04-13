@@ -1,6 +1,6 @@
 /**
  * Welcome screen — entry point for unauthenticated users.
- * Four auth paths: invitation link, workspace code, workspace search, or direct login.
+ * Three auth paths: invitation link, workspace search, or direct login.
  * Always light mode — this is a branding screen.
  */
 import { useState } from "react";
@@ -8,11 +8,10 @@ import { View, Text, TouchableOpacity, Image, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { InviteEntry } from "@/components/auth/InviteEntry";
-import { CodeEntry } from "@/components/auth/CodeEntry";
 import { WorkspaceSearch } from "@/components/auth/WorkspaceSearch";
 import { lightColors, withOpacity, spacing, typography, radius, shadows } from "@/theme";
 
-type AuthPath = "none" | "invite" | "code" | "search";
+type AuthPath = "none" | "invite" | "search";
 
 const t = lightColors;
 
@@ -113,9 +112,6 @@ export default function Welcome() {
   if (activePath === "invite") {
     return <InviteEntry onBack={() => setActivePath("none")} />;
   }
-  if (activePath === "code") {
-    return <CodeEntry onBack={() => setActivePath("none")} />;
-  }
   if (activePath === "search") {
     return <WorkspaceSearch onBack={() => setActivePath("none")} />;
   }
@@ -142,15 +138,6 @@ export default function Welcome() {
         >
           <Text style={styles.pathButtonText}>Jeg har en invitasjon</Text>
           <Text style={styles.pathButtonHint}>Apne lenken du fikk fra din leder</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.pathButton}
-          activeOpacity={0.7}
-          onPress={() => setActivePath("code")}
-        >
-          <Text style={styles.pathButtonText}>Jeg har en kode</Text>
-          <Text style={styles.pathButtonHint}>6-tegns kode fra din leder</Text>
         </TouchableOpacity>
 
         <TouchableOpacity

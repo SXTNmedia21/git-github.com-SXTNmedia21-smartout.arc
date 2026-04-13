@@ -1,8 +1,10 @@
 /**
  * Verify / Login screen — dual purpose based on flow param.
  *
- * flow === "login": Email + password login (matches web login), Google SSO.
- * flow === "invite" | "code" | "search": SMS OTP or magic link verification.
+ * flow === "login": Email + password login (matches web login), Google SSO,
+ *                   or passwordless OTP via "Send meg kode".
+ * flow === "invite" | "search": SMS OTP or magic link verification for
+ *                   workspace onboarding flows.
  *
  * After successful auth, AuthProvider picks up the session and routes to workspace-select.
  */
@@ -59,6 +61,10 @@ export default function Verify() {
 
   const [activeTab, setActiveTab] = useState<VerifyTab>("phone");
 
+  // Login flow: "password" shows the classic email+password form,
+  // "otp" shows the SMS/email OTP tabs for passwordless login.
+  const [loginMode, setLoginMode] = useState<"password" | "otp">("password");
+
   // Login flow state (email + password)
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
@@ -70,9 +76,11 @@ export default function Verify() {
   const [otp, setOtp] = useState("");
   const otpInputRef = useRef<TextInput>(null);
 
-  // Email magic link state
+  // Email OTP / magic link state
   const [email, setEmail] = useState("");
   const [emailSent, setEmailSent] = useState(false);
+  const [emailOtp, setEmailOtp] = useState("");
+  const emailOtpInputRef = useRef<TextInput>(null);
 
   // Shared state
   const [isLoading, setIsLoading] = useState(false);
@@ -204,9 +212,11 @@ export default function Verify() {
     setOtpSent(true);
   }
 
-  // --- Email magic link flow ---
+  // --- Email OTP flow ---
+  // Supabase signInWithOtp({ email }) sends both a magic link AND a 6-digit
+  // code. The user can either click the link or enter the code manually.
 
-  async function sendMagicLink() {
+  async function sendEmailOtp() {
     const trimmed = email.trim().toLowerCase();
     if (!trimmed || !trimmed.includes("@")) {
       setError("Skriv inn en gyldig e-postadresse");
@@ -216,16 +226,53 @@ export default function Verify() {
     setIsLoading(true);
     setError(null);
 
-    const { error: magicError } = await supabase.auth.signInWithOtp({ email: trimmed });
+    const { error: otpError } = await supabase.auth.signInWithOtp({ email: trimmed });
 
     setIsLoading(false);
 
-    if (magicError) {
-      setError("Kunne ikke sende lenke. Prov igjen.");
+    if (otpError) {
+      setError("Kunne ikke sende kode. Prov igjen.");
       return;
     }
 
     setEmailSent(true);
+  }
+
+  function handleEmailOtpChange(text: string) {
+    const cleaned = text.replace(/\D/g, "").slice(0, OTP_LENGTH);
+    setEmailOtp(cleaned);
+    setError(null);
+    if (cleaned.length === OTP_LENGTH) {
+      void verifyEmailOtpWithCode(cleaned);
+    }
+  }
+
+  async function verifyEmailOtpWithCode(code: string) {
+    const trimmed = email.trim().toLowerCase();
+    if (!trimmed) return;
+
+    setIsLoading(true);
+    setError(null);
+
+    const { error: verifyError } = await supabase.auth.verifyOtp({
+      email: trimmed,
+      token: code,
+      type: "email",
+    });
+
+    setIsLoading(false);
+
+    if (verifyError) {
+      setError("Feil kode. Sjekk e-posten og prov igjen.");
+      return;
+    }
+
+    if (isLogin) {
+      router.replace("/(auth)/workspace-select");
+      return;
+    }
+
+    await handlePostAuth();
   }
 
   // --- Post-auth: handle workspace assignment based on flow ---
@@ -324,6 +371,13 @@ export default function Verify() {
       return;
     }
 
+    // Passwordless login via OTP — skip handlePostAuth (no workspace-specific
+    // setup needed), go straight to workspace-select which finds the user's profiles.
+    if (isLogin) {
+      router.replace("/(auth)/workspace-select");
+      return;
+    }
+
     await handlePostAuth();
   }
 
@@ -338,106 +392,330 @@ export default function Verify() {
         <ScrollView contentContainerStyle={s.scrollContent} keyboardShouldPersistTaps="handled">
           <TouchableOpacity
             style={s.backLink}
-            onPress={() => (canGoBack ? router.back() : router.replace("/(auth)/welcome"))}
+            onPress={() => {
+              if (loginMode === "otp") {
+                setLoginMode("password");
+                setError(null);
+                setOtpSent(false);
+                setOtp("");
+                setEmailSent(false);
+                setEmailOtp("");
+              } else if (canGoBack) {
+                router.back();
+              } else {
+                router.replace("/(auth)/welcome");
+              }
+            }}
           >
             <Text style={s.backLinkText}>Tilbake</Text>
           </TouchableOpacity>
 
-          <View style={s.loginHeader}>
-            <Text style={s.heading}>Velkommen tilbake</Text>
-            <Text style={s.subtitle}>Logg inn for a fortsette til Smartout.</Text>
-          </View>
+          {/* --- Password login mode --- */}
+          {loginMode === "password" && (
+            <>
+              <View style={s.loginHeader}>
+                <Text style={s.heading}>Velkommen tilbake</Text>
+                <Text style={s.subtitle}>Logg inn for a fortsette til Smartout.</Text>
+              </View>
 
-          {error && (
-            <View style={s.errorBanner}>
-              <Text style={s.errorBannerText}>{error}</Text>
-            </View>
+              {error && (
+                <View style={s.errorBanner}>
+                  <Text style={s.errorBannerText}>{error}</Text>
+                </View>
+              )}
+
+              {/* Google SSO */}
+              <TouchableOpacity
+                style={s.googleButton}
+                activeOpacity={0.7}
+                onPress={handleGoogleLogin}
+                disabled={googleLoading || isLoading}
+              >
+                {googleLoading ? (
+                  <ActivityIndicator color={t.foreground} />
+                ) : (
+                  <Text style={s.googleButtonText}>Fortsett med Google</Text>
+                )}
+              </TouchableOpacity>
+
+              {/* Divider */}
+              <View style={s.divider}>
+                <View style={s.dividerLine} />
+                <Text style={s.dividerText}>eller</Text>
+                <View style={s.dividerLine} />
+              </View>
+
+              {/* Email */}
+              <Text style={s.label}>E-post</Text>
+              <TextInput
+                style={s.input}
+                placeholder="din@epost.no"
+                placeholderTextColor={t.mutedForeground}
+                value={loginEmail}
+                onChangeText={(v) => {
+                  setLoginEmail(v);
+                  setError(null);
+                }}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="email"
+              />
+
+              {/* Password */}
+              <View style={s.passwordHeader}>
+                <Text style={s.label}>Passord</Text>
+                <TouchableOpacity onPress={handleForgotPassword}>
+                  <Text style={s.forgotLink}>Glemt passord?</Text>
+                </TouchableOpacity>
+              </View>
+              <TextInput
+                style={s.input}
+                placeholder="Passord"
+                placeholderTextColor={t.mutedForeground}
+                value={loginPassword}
+                onChangeText={(v) => {
+                  setLoginPassword(v);
+                  setError(null);
+                }}
+                secureTextEntry
+                autoComplete="password"
+              />
+
+              {/* Submit */}
+              <TouchableOpacity
+                style={[s.primaryButton, isLoading && s.buttonDisabled]}
+                activeOpacity={0.85}
+                onPress={handleLogin}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color={t.primaryForeground} />
+                ) : (
+                  <Text style={s.primaryButtonText}>Logg inn</Text>
+                )}
+              </TouchableOpacity>
+
+              {/* Passwordless OTP login — alternative to password */}
+              <TouchableOpacity
+                style={s.sendCodeLink}
+                onPress={() => {
+                  setLoginMode("otp");
+                  setError(null);
+                }}
+              >
+                <Text style={s.sendCodeLinkText}>Send meg kode</Text>
+              </TouchableOpacity>
+
+              {/* Sign up link */}
+              <TouchableOpacity onPress={() => router.replace("/(auth)/welcome")}>
+                <Text style={s.footerText}>
+                  Har du ikke konto? <Text style={s.footerLink}>Opprett konto</Text>
+                </Text>
+              </TouchableOpacity>
+            </>
           )}
 
-          {/* Google SSO */}
-          <TouchableOpacity
-            style={s.googleButton}
-            activeOpacity={0.7}
-            onPress={handleGoogleLogin}
-            disabled={googleLoading || isLoading}
-          >
-            {googleLoading ? (
-              <ActivityIndicator color={t.foreground} />
-            ) : (
-              <Text style={s.googleButtonText}>Fortsett med Google</Text>
-            )}
-          </TouchableOpacity>
+          {/* --- OTP login mode (passwordless) --- */}
+          {loginMode === "otp" && (
+            <>
+              <View style={s.loginHeader}>
+                <Text style={s.heading}>Send meg kode</Text>
+                <Text style={s.subtitle}>
+                  Skriv inn telefonnummer eller e-post, sa sender vi en innloggingskode.
+                </Text>
+              </View>
 
-          {/* Divider */}
-          <View style={s.divider}>
-            <View style={s.dividerLine} />
-            <Text style={s.dividerText}>eller</Text>
-            <View style={s.dividerLine} />
-          </View>
+              {/* Tab switcher: SMS / E-post */}
+              <View style={s.tabRow}>
+                <TouchableOpacity
+                  style={[s.tab, activeTab === "phone" && s.tabActive]}
+                  onPress={() => {
+                    setActiveTab("phone");
+                    setError(null);
+                  }}
+                >
+                  <Text style={[s.tabText, activeTab === "phone" && s.tabTextActive]}>SMS</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[s.tab, activeTab === "email" && s.tabActive]}
+                  onPress={() => {
+                    setActiveTab("email");
+                    setError(null);
+                  }}
+                >
+                  <Text style={[s.tabText, activeTab === "email" && s.tabTextActive]}>E-post</Text>
+                </TouchableOpacity>
+              </View>
 
-          {/* Email */}
-          <Text style={s.label}>E-post</Text>
-          <TextInput
-            style={s.input}
-            placeholder="din@epost.no"
-            placeholderTextColor={t.mutedForeground}
-            value={loginEmail}
-            onChangeText={(v) => {
-              setLoginEmail(v);
-              setError(null);
-            }}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-            autoComplete="email"
-          />
+              {/* Phone: enter number */}
+              {activeTab === "phone" && !otpSent && (
+                <View style={s.form}>
+                  <Text style={s.label}>Mobilnummer</Text>
+                  <View style={s.phoneRow}>
+                    <View style={s.countryCode}>
+                      <Text style={s.countryCodeText}>+47</Text>
+                    </View>
+                    <TextInput
+                      style={s.phoneInput}
+                      placeholder="12 34 56 78"
+                      placeholderTextColor={t.mutedForeground}
+                      value={phone}
+                      onChangeText={(v) => {
+                        setPhone(v);
+                        setError(null);
+                      }}
+                      keyboardType="phone-pad"
+                      maxLength={11}
+                      autoFocus
+                    />
+                  </View>
 
-          {/* Password */}
-          <View style={s.passwordHeader}>
-            <Text style={s.label}>Passord</Text>
-            <TouchableOpacity onPress={handleForgotPassword}>
-              <Text style={s.forgotLink}>Glemt passord?</Text>
-            </TouchableOpacity>
-          </View>
-          <TextInput
-            style={s.input}
-            placeholder="Passord"
-            placeholderTextColor={t.mutedForeground}
-            value={loginPassword}
-            onChangeText={(v) => {
-              setLoginPassword(v);
-              setError(null);
-            }}
-            secureTextEntry
-            autoComplete="password"
-          />
+                  {error && <Text style={s.errorText}>{error}</Text>}
 
-          {/* Submit */}
-          <TouchableOpacity
-            style={[s.primaryButton, isLoading && s.buttonDisabled]}
-            activeOpacity={0.85}
-            onPress={handleLogin}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator color={t.primaryForeground} />
-            ) : (
-              <Text style={s.primaryButtonText}>Logg inn</Text>
-            )}
-          </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[s.primaryButton, isLoading && s.buttonDisabled]}
+                    onPress={sendOtp}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <ActivityIndicator color={t.primaryForeground} />
+                    ) : (
+                      <Text style={s.primaryButtonText}>Send kode</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              )}
 
-          {/* Sign up link — routes to Welcome where user picks invite/code/search path */}
-          <TouchableOpacity onPress={() => router.replace("/(auth)/welcome")}>
-            <Text style={s.footerText}>
-              Har du ikke konto? <Text style={s.footerLink}>Opprett konto</Text>
-            </Text>
-          </TouchableOpacity>
+              {/* Phone: enter OTP */}
+              {activeTab === "phone" && otpSent && (
+                <View style={s.form}>
+                  <Text style={s.label}>Skriv inn koden fra SMS</Text>
+
+                  <View style={s.otpRow}>
+                    {Array.from({ length: OTP_LENGTH }).map((_, i) => (
+                      <TouchableOpacity
+                        key={i}
+                        style={[s.otpBox, i < otp.length && s.otpBoxFilled]}
+                        onPress={() => otpInputRef.current?.focus()}
+                      >
+                        <Text style={s.otpChar}>{otp[i] ?? ""}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+
+                  <TextInput
+                    ref={otpInputRef}
+                    style={s.hiddenInput}
+                    value={otp}
+                    onChangeText={handleOtpChange}
+                    keyboardType="number-pad"
+                    maxLength={OTP_LENGTH}
+                    autoFocus
+                  />
+
+                  {error && <Text style={s.errorText}>{error}</Text>}
+                  {isLoading && <ActivityIndicator color={t.brandOrange} style={s.loader} />}
+
+                  <TouchableOpacity
+                    style={s.resendLink}
+                    onPress={() => {
+                      setOtp("");
+                      setOtpSent(false);
+                      setError(null);
+                    }}
+                  >
+                    <Text style={s.resendLinkText}>Fikk du ikke kode? Send pa nytt</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Email: enter address */}
+              {activeTab === "email" && !emailSent && (
+                <View style={s.form}>
+                  <Text style={s.label}>E-postadresse</Text>
+                  <TextInput
+                    style={s.input}
+                    placeholder="din@epost.no"
+                    placeholderTextColor={t.mutedForeground}
+                    value={email}
+                    onChangeText={(v) => {
+                      setEmail(v);
+                      setError(null);
+                    }}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    autoFocus
+                  />
+
+                  {error && <Text style={s.errorText}>{error}</Text>}
+
+                  <TouchableOpacity
+                    style={[s.primaryButton, isLoading && s.buttonDisabled]}
+                    onPress={sendEmailOtp}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <ActivityIndicator color={t.primaryForeground} />
+                    ) : (
+                      <Text style={s.primaryButtonText}>Send kode</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Email: enter OTP code */}
+              {activeTab === "email" && emailSent && (
+                <View style={s.form}>
+                  <Text style={s.label}>Skriv inn koden fra e-posten</Text>
+                  <Text style={s.emailOtpHint}>Vi sendte en 6-sifret kode til {email}</Text>
+
+                  <View style={s.otpRow}>
+                    {Array.from({ length: OTP_LENGTH }).map((_, i) => (
+                      <TouchableOpacity
+                        key={i}
+                        style={[s.otpBox, i < emailOtp.length && s.otpBoxFilled]}
+                        onPress={() => emailOtpInputRef.current?.focus()}
+                      >
+                        <Text style={s.otpChar}>{emailOtp[i] ?? ""}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+
+                  <TextInput
+                    ref={emailOtpInputRef}
+                    style={s.hiddenInput}
+                    value={emailOtp}
+                    onChangeText={handleEmailOtpChange}
+                    keyboardType="number-pad"
+                    maxLength={OTP_LENGTH}
+                    autoFocus
+                  />
+
+                  {error && <Text style={s.errorText}>{error}</Text>}
+                  {isLoading && <ActivityIndicator color={t.brandOrange} style={s.loader} />}
+
+                  <TouchableOpacity
+                    style={s.resendLink}
+                    onPress={() => {
+                      setEmailOtp("");
+                      setEmailSent(false);
+                      setError(null);
+                    }}
+                  >
+                    <Text style={s.resendLinkText}>Fikk du ikke kode? Send pa nytt</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </>
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
     );
   }
 
-  // --- Render: Verify flow (invite/code/search) ---
+  // --- Render: Verify flow (invite/search) ---
 
   return (
     <KeyboardAvoidingView
@@ -560,7 +838,7 @@ export default function Verify() {
         </View>
       )}
 
-      {/* Email tab */}
+      {/* Email tab: enter address */}
       {activeTab === "email" && !emailSent && (
         <View style={s.form}>
           <Text style={s.label}>E-postadresse</Text>
@@ -583,34 +861,58 @@ export default function Verify() {
 
           <TouchableOpacity
             style={[s.primaryButton, isLoading && s.buttonDisabled]}
-            onPress={sendMagicLink}
+            onPress={sendEmailOtp}
             disabled={isLoading}
           >
             {isLoading ? (
               <ActivityIndicator color={t.primaryForeground} />
             ) : (
-              <Text style={s.primaryButtonText}>Send innloggingslenke</Text>
+              <Text style={s.primaryButtonText}>Send kode</Text>
             )}
           </TouchableOpacity>
         </View>
       )}
 
-      {/* Email sent confirmation */}
+      {/* Email tab: enter OTP code */}
       {activeTab === "email" && emailSent && (
         <View style={s.form}>
-          <Text style={s.successHeading}>Sjekk innboksen din</Text>
-          <Text style={s.successText}>
-            Vi har sendt en innloggingslenke til {email}. Klikk pa lenken for a logge inn.
-          </Text>
+          <Text style={s.label}>Skriv inn koden fra e-posten</Text>
+          <Text style={s.emailOtpHint}>Vi sendte en 6-sifret kode til {email}</Text>
+
+          <View style={s.otpRow}>
+            {Array.from({ length: OTP_LENGTH }).map((_, i) => (
+              <TouchableOpacity
+                key={i}
+                style={[s.otpBox, i < emailOtp.length && s.otpBoxFilled]}
+                onPress={() => emailOtpInputRef.current?.focus()}
+              >
+                <Text style={s.otpChar}>{emailOtp[i] ?? ""}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <TextInput
+            ref={emailOtpInputRef}
+            style={s.hiddenInput}
+            value={emailOtp}
+            onChangeText={handleEmailOtpChange}
+            keyboardType="number-pad"
+            maxLength={OTP_LENGTH}
+            autoFocus
+          />
+
+          {error && <Text style={s.errorText}>{error}</Text>}
+          {isLoading && <ActivityIndicator color={t.brandOrange} style={s.loader} />}
 
           <TouchableOpacity
             style={s.resendLink}
             onPress={() => {
+              setEmailOtp("");
               setEmailSent(false);
               setError(null);
             }}
           >
-            <Text style={s.resendLinkText}>Fikk du ikke e-post? Prov igjen</Text>
+            <Text style={s.resendLinkText}>Fikk du ikke kode? Send pa nytt</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -731,6 +1033,16 @@ const s = StyleSheet.create({
   forgotLink: {
     ...typography.caption,
     color: t.mutedForeground,
+  },
+  sendCodeLink: {
+    alignItems: "center",
+    marginTop: spacing.md,
+    padding: spacing.tight,
+  },
+  sendCodeLinkText: {
+    ...typography.subheadline,
+    fontWeight: fontWeights.medium,
+    color: t.brandOrange,
   },
   input: {
     height: 52,
@@ -894,17 +1206,10 @@ const s = StyleSheet.create({
     fontWeight: fontWeights.medium,
     color: t.brandOrange,
   },
-  successHeading: {
-    ...typography.title,
-    color: t.foreground,
-    textAlign: "center",
-    marginTop: spacing.lg,
-  },
-  successText: {
-    ...typography.subheadline,
+  emailOtpHint: {
+    ...typography.caption,
     color: t.mutedForeground,
     textAlign: "center",
-    marginTop: spacing.element,
-    paddingHorizontal: spacing.md,
+    marginBottom: spacing.section,
   },
 });

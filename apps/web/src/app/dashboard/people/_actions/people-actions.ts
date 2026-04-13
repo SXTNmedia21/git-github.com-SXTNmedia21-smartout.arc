@@ -349,3 +349,32 @@ export async function bulkUpdateProfiles(
 
   if (error) throw new Error(error.message);
 }
+
+/**
+ * Send a passwordless login code to an employee via SMS or email.
+ * Invokes the send-login-code Edge Function which generates a Supabase
+ * magic link and delivers it through SendGrid (email) or Twilio (SMS).
+ */
+export async function sendLoginCode(
+  profileId: string,
+  workspaceId: string,
+  channel: "email" | "sms",
+) {
+  const supabase = await getClient();
+  const { error } = await supabase.functions.invoke("send-login-code", {
+    body: { profile_id: profileId, channel },
+  });
+
+  if (error) throw new Error(error.message);
+
+  const actorId = await resolveActorId(supabase);
+  void emit({
+    event: "login_code sent",
+    workspace_id: workspaceId,
+    actor_id: actorId,
+    properties: {
+      entity: { entity_type: "profile", entity_id: profileId },
+      data: { channel },
+    },
+  });
+}
