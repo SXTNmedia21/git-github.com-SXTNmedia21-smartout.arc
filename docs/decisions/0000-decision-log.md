@@ -1,7 +1,7 @@
 ---
 title: Decision Log
 status: canonical
-updated: 2026-04-10
+updated: 2026-04-13
 created: 2026-02-27
 module: meta
 tags: [decisions, adr, index]
@@ -26,6 +26,7 @@ tags: [decisions, adr, index]
 
 | ADR | Date | Title | Status |
 |-----|------|-------|--------|
+| [ADR-0086](0086-entity-drawer-surface-pattern.md) | 2026-04-13 | Entity Drawer Surface Pattern (renumbered from ADR-0068 collision on 2026-04-13) | accepted |
 | [ADR-0085](0085-year-wheel-governance-policy.md) | 2026-04-10 | Year Wheel Governance Policy — single active cycle per workspace, max 1 active season | accepted |
 | [ADR-0084](0084-telemetry-conditional-exports.md) | 2026-04-09 | Telemetry package conditional exports — react-server/default split to isolate posthog-node from client bundle, /api/telemetry proxy for server-only destinations | accepted |
 | [ADR-0083](0083-strike-mcp-registration.md) | 2026-04-08 | Strike MCP Registered as Dev-Only Data Source — repo-level .mcp.json with .env.local token, 1Password deferred as debt | accepted |
@@ -114,8 +115,10 @@ tags: [decisions, adr, index]
 
 ## Integrity
 
-- **74 ADRs** (0001-0075, ADR-0000 is this index)
-- **0 number collisions** (verified 2026-04-07 by pre-commit hook + manual audit)
+- **86 ADRs** (0001-0086, ADR-0000 is this index)
+- **0 number collisions** (verified 2026-04-13 — ADR-0068 entity-drawer collision resolved by renumbering to 0086)
 - **0 number gaps** (0052/0053/0054 previously gaps, now occupied by renumbered collision resolvers)
 - **Renumbered 2026-04-07:** 0049 guardian-ws → 0052, 0058 simulation → 0053, 0059 edge-functions → 0054, 0071 protocol-verification → 0074 (see ADR-0075 context)
+- **Renumbered 2026-04-13:** ADR-0068-entity-drawer-surface-pattern → 0086 (collision with 0068-simulation-schema-and-service)
+- **Archived 2026-04-13:** ADR-DRAFT-core-hierarchy-cascade — superseded by cascade spec
 - **Superseded:** 0035 (→0039), 0046 (→0064), 0055 (→0071)

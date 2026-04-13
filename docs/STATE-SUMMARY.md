@@ -12,7 +12,7 @@ derived-from: docs/STATE.md (82KB full version)
 
 | Branch | Status | Notes |
 |--------|--------|-------|
-| `feat/otp-login-replace-join-code` | in_progress | OTP login replacing join codes, mobile verify/welcome, Edge Function |
+| — | — | All feature branches merged. Main repo on development. |
 
 See `docs/DASHBOARD.md` for full worktree map.
 
@@ -23,6 +23,7 @@ See `docs/DASHBOARD.md` for full worktree map.
 3. **Settings incomplete** — 13/16 tabs working, missing: general, KPI, teams
 4. **Trainee first-day redirect** (D2, MEDIUM) — no redirect to my-training after invite accept
 5. **my-schedule realtime** (D6, LOW) — no Realtime subscription on employee shift view
+6. **AI classifier gaps** (MEDIUM) — `contract_intake` and `shift_swap` capabilities unreachable (fix in progress)
 
 ## Cascade Status (~55% complete)
 
@@ -34,12 +35,16 @@ See `docs/DASHBOARD.md` for full worktree map.
 
 ## Recent Merges (last 2 weeks)
 
+- Contract workspace tab + DocuSeal integration + mobile signing (Apr 13)
+- Year-wheel cascade resolution + season operating hours (Apr 13)
+- Year-wheel design debt — CSS vars, i18n, reduced-motion (Apr 13)
+- Platform-admin workspace field inheritance (Apr 13)
 - Employee contract CRUD + invitation RLS fix (Apr 7)
 - Skills authority model, CLAUDE.md slim (Apr 7)
 - Deployment pipeline, 3-branch flow (Apr 6)
 
 ## Quick References
 
-- 75 ADRs, 29 Learnings, 91 Journeys, 124 enums, ~216 tables
+- 86 ADRs, 29 Learnings, 93 Journeys, 130 enums, ~236 tables
 - Canonical cascade spec: `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`
 - Full state: `docs/STATE.md` | Worktrees: `docs/DASHBOARD.md` | Boot cheat sheet: `docs/ORIENTATION.md`

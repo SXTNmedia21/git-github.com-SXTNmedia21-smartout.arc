@@ -7,12 +7,7 @@ export interface BaseEvent {
 }
 
 // ─── Routing Metadata ───────────────────────────
-export type EventDestination =
-  | "posthog"
-  | "logger"
-  | "activity_trail"
-  | "engine_event"
-  | "notifications";
+export type EventDestination = "posthog" | "logger" | "activity_trail" | "engine_event";
 
 export interface EventMeta {
   destinations: EventDestination[];
@@ -76,7 +71,6 @@ export type EntityType =
   | "chat_message"
   | "reconciliation"
   | "handbook_chapter"
-  | "contract"
   | "absence"
   | "roster"
   | "open_shift"
@@ -89,7 +83,7 @@ export type EntityType =
   | "season_goal"
   | "season_policy_binding"
   | "planning_cycle"
-  | "operating_hours"
+  | "department_operating_hours"
   | "kpi_target"
   | "workspace_budget"
   | "authority_config"
@@ -115,7 +109,8 @@ export type EntityType =
   | "shift_approval"
   | "holiday_entry"
   | "employment_contract"
-  | "engine_state";
+  | "engine_state"
+  | "service_config";
 
 export type ActionVerb =
   | "created"
@@ -3068,6 +3063,33 @@ export interface ShiftSwapCancelled extends BaseEvent {
   };
 }
 
+// ─── Platform Admin: Service Config Events ──────
+export interface ServiceConfigCreated extends BaseEvent {
+  event: "service_config created";
+  properties: { entity: EntityRef; data: { slug: string; type: string } };
+}
+
+export interface ServiceConfigUpdated extends BaseEvent {
+  event: "service_config updated";
+  properties: { entity: EntityRef; data: { slug: string; fields: string[] } };
+}
+
+export interface ServiceConfigRestarted extends BaseEvent {
+  event: "service_config restarted";
+  properties: { entity: EntityRef; data: { slug: string } };
+}
+
+export interface ServiceConfigDeleted extends BaseEvent {
+  event: "service_config deleted";
+  properties: { entity: EntityRef; data: { slug: string } };
+}
+
+// ─── Schedule Audit: Rollback ───────────────────
+export interface ScheduleRollback extends BaseEvent {
+  event: "schedule rollback";
+  properties: { entity: EntityRef; data: { audit_log_id: string } };
+}
+
 // ─── The Single Truth Union ─────────────────────
 // Add every feature's events here. If it isn't here, it can't be emitted.
 export type SmartoutEvent =
@@ -3403,7 +3425,12 @@ export type SmartoutEvent =
   | ShiftSwapRejected
   | ShiftSwapApproved
   | ShiftSwapExecuted
-  | ShiftSwapCancelled;
+  | ShiftSwapCancelled
+  | ServiceConfigCreated
+  | ServiceConfigUpdated
+  | ServiceConfigRestarted
+  | ServiceConfigDeleted
+  | ScheduleRollback;
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -3670,7 +3697,7 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "contracts",
   },
   "contract intake escalated": {
-    destinations: ["posthog", "logger", "activity_trail", "notifications"],
+    destinations: ["posthog", "logger", "activity_trail"],
     category: "contracts",
   },
   "contract intake admin bypass": {
@@ -4330,15 +4357,15 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "system",
   },
   "website spokesperson_assigned": {
-    destinations: ["posthog", "activity_trail", "engine_event", "notifications"],
+    destinations: ["posthog", "activity_trail", "engine_event"],
     category: "system",
   },
   "website spokesperson_approved": {
-    destinations: ["posthog", "activity_trail", "engine_event", "notifications"],
+    destinations: ["posthog", "activity_trail", "engine_event"],
     category: "system",
   },
   "website spokesperson_declined": {
-    destinations: ["posthog", "activity_trail", "engine_event", "notifications"],
+    destinations: ["posthog", "activity_trail", "engine_event"],
     category: "system",
   },
   "website spokesperson_content_submitted": {
@@ -4346,11 +4373,11 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "system",
   },
   "website spokesperson_task_overdue": {
-    destinations: ["activity_trail", "engine_event", "notifications"],
+    destinations: ["activity_trail", "engine_event"],
     category: "system",
   },
   "website spokesperson_revoked": {
-    destinations: ["posthog", "activity_trail", "engine_event", "notifications"],
+    destinations: ["posthog", "activity_trail", "engine_event"],
     category: "system",
   },
 
@@ -4647,6 +4674,30 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "shift swap_cancelled": {
     destinations: ["posthog", "activity_trail"],
+    category: "scheduling",
+  },
+
+  // ─── Platform Admin: Service Config ─────────────
+  "service_config created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "system",
+  },
+  "service_config updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "system",
+  },
+  "service_config restarted": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "system",
+  },
+  "service_config deleted": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "system",
+  },
+
+  // ─── Schedule Audit: Rollback ──────────────────
+  "schedule rollback": {
+    destinations: ["posthog", "logger", "activity_trail"],
     category: "scheduling",
   },
 };

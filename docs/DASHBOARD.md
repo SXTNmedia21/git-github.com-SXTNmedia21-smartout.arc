@@ -16,18 +16,14 @@ tags: [dashboard, worktrees, git-state]
 
 ## Active Worktrees
 
-| #    | Branch                              | Module         | Last Commit | Dirty | Journey |
-| ---- | ----------------------------------- | -------------- | ----------- | ----- | ------- |
-| wt-2 | fix/year-wheel-design-debt          | year-wheel     | d99ab5d7    | No    | —       |
-| wt-4 | feat/year-wheel-cascade-resolution  | year-wheel     | 900534a8    | No    | —       |
-| wt-5 | feat/contract-workspace-tab         | platform-admin | fd83444c    | No    | journeys/JOURNEY-contract-workspace-tab.md (missing) |
+| # | Branch | Module | Last Commit | Dirty | Journey |
+|---|--------|--------|-------------|-------|---------|
+| — | development | — | 05fa1a51 | Yes | — |
 
 ## Free Slots
 
-wt-1, wt-3, wt-6, wt-7, wt-8, wt-9, wt-10, wt-11, wt-12, wt-13, wt-15, wt-20
+wt-1, wt-2, wt-3, wt-4, wt-5, wt-6, wt-7, wt-8, wt-9, wt-10, wt-11, wt-12, wt-13, wt-15, wt-20
 
 ## Pending Journeys
 
-| Worktree | Feature                | Journey File                                      | Status  |
-|----------|------------------------|---------------------------------------------------|---------|
-| wt-5     | contract-workspace-tab | `docs/journeys/JOURNEY-contract-workspace-tab.md` | missing |
+None.

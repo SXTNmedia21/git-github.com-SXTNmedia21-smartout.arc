@@ -45,6 +45,8 @@ export const intentSchema = z.object({
     "ui",
     "guardian",
     "contract",
+    "contract_intake",
+    "shift_swap",
     "general",
   ] as const),
   // Confidence in [0, 1]. Range constraint omitted from the schema; the
@@ -85,6 +87,8 @@ Capabilities:
 - ui: Screen navigation, form filling, UI element highlighting, panel display, toast notifications
 - guardian: Workspace health monitoring, readiness alerts, maturity signals, system status
 - contract: Creating, sending, tracking, and managing employment contracts and agreements for employees in the workspace
+- contract_intake: Collecting personal information (bank details, address, tax card) needed to finalize an employment contract
+- shift_swap: Requesting, approving, or managing shift swaps between employees
 - general: Greetings, small talk, unclear intent, meta-questions
 
 The user writes in Norwegian or English. Classify based on intent, not language.
