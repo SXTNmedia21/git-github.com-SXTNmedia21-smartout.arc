@@ -343,7 +343,7 @@
     "name_az": "Name A-Z",
     "date_asc": "Date ascending",
     "date_desc": "Date descending",
-    "confirm_copy_year": "{{year}} already has seasons. Continue copying from {{sourceYear}}?",
+    "confirm_copy_year": "{year} already has seasons. Continue copying from {sourceYear}?",
     "season_name_required": "Season name is required",
     "end_date_invalid": "End date cannot be before start date",
     "new_season": "New season",
