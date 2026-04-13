@@ -100,6 +100,8 @@ const SendRequestSchema = z.object({
   inAppIconType: z.string().optional().default("info"),
   // Scheduling
   scheduledFor: z.string().datetime().optional(),
+  // Priority override — allows bypassing quiet hours for critical messages
+  overrideQuietHours: z.boolean().optional().default(false),
 });
 
 type ChannelResult = {
@@ -144,6 +146,7 @@ export async function POST(request: NextRequest) {
     inAppPriority,
     inAppIconType,
     scheduledFor,
+    overrideQuietHours,
   } = parsed.data;
 
   const admin = createAdminClient();
