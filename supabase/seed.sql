@@ -3076,3 +3076,29 @@ INSERT INTO public.channel_message (
    'f0000000-0000-0000-0000-000000000001',
    'Sender det nå! Sjekk opplæringsmodulen også, der ligger alt.',
    'human', now() - interval '45 minutes');
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Platform API Keys — Development service keys
+-- These keys are for local development only. Production uses 1Password-managed keys.
+-- Plaintext: smo_svc_live_dev_contract_service_0000000000000000
+-- ═══════════════════════════════════════════════════════════════════════════
+INSERT INTO platform_api_key (
+  id, workspace_id, company_id, created_by, name, description,
+  key_type, environment, key_hash, key_prefix, version, rotation_number,
+  scopes, rate_limit_per_minute
+) VALUES (
+  'a0000000-0000-0000-0000-000000000001',
+  NULL,
+  NULL,
+  'e0000000-0000-0000-0000-000000000000',
+  'contract-service (dev)',
+  'Development service key for the contract-service microservice. Seeded automatically.',
+  'service',
+  'live',
+  '36f3d06a74558e440e4be9bab762fc31751454242507075080aa2a8c4adaa54c',
+  '8f6d6ca79371fe7f1338',
+  'current',
+  1,
+  ARRAY['contracts:read', 'contracts:write', 'contracts:send'],
+  120
+);

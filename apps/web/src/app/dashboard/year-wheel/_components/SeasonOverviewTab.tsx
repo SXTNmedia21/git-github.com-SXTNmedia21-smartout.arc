@@ -55,11 +55,12 @@ export function SeasonOverviewTab({
   const { budget } = useSeasonBudget(seasonId);
   const { dayFactors } = useDayFactors(seasonBudgetId);
   const { hourFactors } = useHourFactors(seasonBudgetId);
-  const { hours: operatingHours } = useOperatingHours(firstDeptId);
+  const { hours: operatingHoursRaw } = useOperatingHours(firstDeptId);
+  const operatingHours = operatingHoursRaw || [];
 
   // Derive operating hours
   const opHours = useMemo(() => {
-    if (operatingHours.length === 0) return { openHour: 10, closeHour: 22 };
+    if (!operatingHours || operatingHours.length === 0) return { openHour: 10, closeHour: 22 };
     const openTimes = operatingHours.filter((oh) => !oh.is_closed);
     if (openTimes.length === 0) return { openHour: 10, closeHour: 22 };
     return {
@@ -68,7 +69,7 @@ export function SeasonOverviewTab({
     };
   }, [operatingHours]);
 
-  // Calculate day targets for first week
+  // Calculate day targets for full season
   const sampleDayTargets = useMemo(() => {
     if (!budget || !seasonStartDate || !seasonEndDate) return [];
 
@@ -79,6 +80,33 @@ export function SeasonOverviewTab({
       dayFactors: dayFactors.map((df) => ({ weekday: df.weekday, factor: df.factor })),
     });
   }, [budget, seasonStartDate, seasonEndDate, dayFactors]);
+
+  // Calculate day targets for first week
+  const firstWeekTargets = useMemo(() => {
+    return sampleDayTargets.slice(0, 7);
+  }, [sampleDayTargets]);
+
+  // Group by month for monthly distribution
+  const monthlyTargets = useMemo(() => {
+    const months = new Map<string, number>();
+
+    for (const day of sampleDayTargets) {
+      const monthKey = day.date.substring(0, 7); // "YYYY-MM"
+      months.set(monthKey, (months.get(monthKey) || 0) + day.target);
+    }
+
+    return Array.from(months.entries())
+      .map(([month, target]) => {
+        const [yyyy, mm] = month.split("-");
+        const date = new Date(parseInt(yyyy!), parseInt(mm!) - 1, 1);
+        return {
+          monthKey: month,
+          label: date.toLocaleDateString("nb-NO", { month: "short", year: "2-digit" }),
+          target,
+        };
+      })
+      .sort((a, b) => a.monthKey.localeCompare(b.monthKey));
+  }, [sampleDayTargets]);
 
   // Calculate hour targets for peak day (highest day target)
   const peakDayHourTargets = useMemo(() => {
@@ -218,32 +246,74 @@ export function SeasonOverviewTab({
         </div>
       </div>
 
-      {/* Weekly distribution */}
-      <div className={cardClass}>
-        <h3 className={`mb-4 text-lg font-bold ${isDark ? "text-white" : "text-zinc-900"}`}>
-          Ukentlig fordeling (første uke)
-        </h3>
-        <div className="flex items-end gap-2">
-          {sampleDayTargets.map((d) => {
-            const maxTarget = Math.max(...sampleDayTargets.map((t) => t.target));
-            const heightPct = maxTarget > 0 ? (d.target / maxTarget) * 100 : 0;
-            return (
-              <div key={d.date} className="flex flex-1 flex-col items-center gap-1">
-                <span className={`text-xs font-bold ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
-                  {formatNOK(d.target)}
-                </span>
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        {/* Monthly distribution */}
+        <div className={cardClass}>
+          <h3
+            className={`mb-4 text-sm font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+          >
+            Månedsfordeling
+          </h3>
+          <div className="flex h-32 items-end gap-2 overflow-x-auto pb-2">
+            {monthlyTargets.map((m) => {
+              const maxTarget = Math.max(...monthlyTargets.map((t) => t.target));
+              const heightPct = maxTarget > 0 ? (m.target / maxTarget) * 100 : 0;
+              return (
                 <div
-                  className="w-full rounded-t-lg bg-blue-600/30 transition-all"
-                  style={{ height: `${Math.max(heightPct * 1.5, 8)}px` }}
-                />
-                <span
-                  className={`text-xs font-medium ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+                  key={m.monthKey}
+                  className="flex min-w-[60px] flex-1 flex-col items-center gap-1"
                 >
-                  {WEEKDAY_SHORT[d.weekday]}
-                </span>
-              </div>
-            );
-          })}
+                  <span
+                    className={`text-[10px] font-bold ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
+                  >
+                    {formatNOK(m.target)}
+                  </span>
+                  <div
+                    className="w-full rounded-t-lg bg-orange-600/30 transition-all"
+                    style={{ height: `${Math.max(heightPct, 8)}%` }}
+                  />
+                  <span
+                    className={`text-xs font-medium capitalize ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+                  >
+                    {m.label}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Weekly distribution */}
+        <div className={cardClass}>
+          <h3
+            className={`mb-4 text-sm font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+          >
+            Ukentlig fordeling (første uke)
+          </h3>
+          <div className="flex h-32 items-end gap-2 overflow-x-auto pb-2">
+            {firstWeekTargets.map((d) => {
+              const maxTarget = Math.max(...firstWeekTargets.map((t) => t.target));
+              const heightPct = maxTarget > 0 ? (d.target / maxTarget) * 100 : 0;
+              return (
+                <div key={d.date} className="flex min-w-[40px] flex-1 flex-col items-center gap-1">
+                  <span
+                    className={`text-[10px] font-bold ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
+                  >
+                    {formatNOK(d.target)}
+                  </span>
+                  <div
+                    className="w-full rounded-t-lg bg-blue-600/30 transition-all"
+                    style={{ height: `${Math.max(heightPct, 8)}%` }}
+                  />
+                  <span
+                    className={`text-xs font-medium ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+                  >
+                    {WEEKDAY_SHORT[d.weekday]}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
 

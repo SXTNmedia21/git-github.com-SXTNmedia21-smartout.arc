@@ -124,7 +124,7 @@ export function DayFactorsTab({ seasonBudgetId, isDark, isReadOnly = false }: Pr
                 min={BUDGET_SETUP_LIMITS.dayFactor.min}
                 max={BUDGET_SETUP_LIMITS.dayFactor.max}
                 disabled={isReadOnly}
-                className={`w-20 rounded-lg border px-3 py-1.5 text-center text-sm font-medium outline-none ${
+                className={`w-16 rounded-lg border px-2 py-1.5 text-center text-sm font-medium outline-none ${
                   isDark
                     ? "border-zinc-700 bg-zinc-900 text-white focus:border-blue-500"
                     : "border-zinc-300 bg-white text-zinc-900 focus:border-blue-500"
@@ -135,11 +135,11 @@ export function DayFactorsTab({ seasonBudgetId, isDark, isReadOnly = false }: Pr
         })}
       </div>
 
-      <div className="mt-8 flex justify-end">
+      <div className="mt-6 flex justify-end">
         <button
           onClick={handleSave}
           disabled={saveDayFactors.isPending || isReadOnly}
-          className="rounded-xl bg-blue-600 px-6 py-3 text-sm font-bold text-white transition-colors hover:bg-blue-500 disabled:opacity-50"
+          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-blue-500 disabled:opacity-50"
         >
           {saveDayFactors.isPending ? "Lagrer..." : "Lagre dagfaktorer"}
         </button>

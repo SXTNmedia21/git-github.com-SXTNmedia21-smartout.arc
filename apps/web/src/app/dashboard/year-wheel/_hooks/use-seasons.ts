@@ -30,6 +30,12 @@ type CreateSeasonInput = {
   endDate?: string | null;
 };
 
+type UpdateSeasonDatesInput = {
+  seasonId: string;
+  start_date?: string | null;
+  end_date?: string | null;
+};
+
 /**
  * Converts free text into a stable slug format for season names.
  */
@@ -240,6 +246,182 @@ export function useSeasons() {
     },
   });
 
+  /**
+   * Duplicates all seasons from a source year into a target year.
+   * Shifts dates forward by the year difference. Also clones planning_event
+   * rows for each season. Budgets and factors are NOT cloned — those need
+   * fresh configuration for the new year.
+   */
+  const duplicateYear = useMutation({
+    mutationFn: async ({
+      sourceYear,
+      targetYear,
+    }: {
+      sourceYear: number;
+      targetYear: number;
+    }): Promise<Season[]> => {
+      const yearDiff = targetYear - sourceYear;
+
+      const sourceSeasons = (query.data ?? []).filter((s) => {
+        if (!s.start_date) return false;
+        return new Date(s.start_date).getFullYear() === sourceYear;
+      });
+
+      if (sourceSeasons.length === 0) {
+        throw new Error(`Ingen sesonger funnet for ${sourceYear}`);
+      }
+
+      const existingSlugs = new Set((query.data ?? []).map((s) => s.slug));
+      const createdSeasons: Season[] = [];
+
+      for (const source of sourceSeasons) {
+        const newStartDate = shiftDateByYears(source.start_date, yearDiff);
+        const newEndDate = source.end_date ? shiftDateByYears(source.end_date, yearDiff) : null;
+        const newName = source.name.replace(String(sourceYear), String(targetYear));
+
+        let slug = toSlug(newName) || "season";
+        let suffix = 2;
+        while (existingSlugs.has(slug)) {
+          slug = `${toSlug(newName)}-${suffix}`;
+          suffix += 1;
+        }
+        existingSlugs.add(slug);
+
+        const { data: newSeason, error } = await supabase
+          .from("season")
+          .insert({
+            workspace_id: wsId!,
+            name: newName,
+            slug,
+            season_type: source.season_type,
+            start_date: newStartDate,
+            end_date: newEndDate,
+            status: "draft",
+            description: source.description,
+            color: source.color,
+            icon: source.icon,
+          })
+          .select(
+            "season_id, name, slug, season_type, start_date, end_date, status, is_default, color, icon, description, planning_cycle_id",
+          )
+          .single();
+
+        if (error) throw new Error(error.message);
+        createdSeasons.push(newSeason);
+
+        // Clone planning events for this season's planning cycle
+        if (source.planning_cycle_id) {
+          const { data: sourceEvents } = await supabase
+            .from("planning_event")
+            .select("*")
+            .eq("planning_cycle_id", source.planning_cycle_id)
+            .eq("workspace_id", wsId!);
+
+          if (sourceEvents && sourceEvents.length > 0) {
+            const clonedEvents = sourceEvents.map((ev) => ({
+              workspace_id: wsId!,
+              planning_cycle_id: null,
+              name: ev.name,
+              description: ev.description,
+              category: ev.category,
+              source: ev.source,
+              event_date: shiftDateByYears(ev.event_date, yearDiff),
+              end_date: ev.end_date ? shiftDateByYears(ev.end_date, yearDiff) : null,
+              demand_multiplier: ev.demand_multiplier,
+              expected_covers: ev.expected_covers,
+              confidence: ev.confidence,
+              is_recurring: ev.is_recurring,
+              recurrence_rule: ev.recurrence_rule,
+            }));
+
+            await supabase.from("planning_event").insert(clonedEvents);
+          }
+        }
+      }
+
+      return createdSeasons;
+    },
+    onSuccess: (created, { sourceYear, targetYear }) => {
+      void emit({
+        event: "season created",
+        workspace_id: wsId ?? null,
+        actor_id: profileId ?? "",
+        properties: {
+          entity: {
+            entity_type: "season",
+            entity_id: created[0]?.season_id ?? "",
+            entity_label: `Duplicated ${sourceYear} → ${targetYear}`,
+          },
+          data: { name: `Year duplication: ${created.length} seasons`, status: "draft" },
+        },
+      });
+      queryClient.invalidateQueries({
+        queryKey: dashboardKeys.seasons(wsId ?? "none"),
+      });
+      toast.success(`${created.length} sesonger kopiert fra ${sourceYear} til ${targetYear}`);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const updateSeasonDates = useMutation({
+    mutationFn: async (input: UpdateSeasonDatesInput): Promise<Season> => {
+      const list = query.data ?? [];
+      const current = list.find((s) => s.season_id === input.seasonId);
+      if (!current) throw new Error("Sesong ikke funnet");
+
+      const nextStart = input.start_date !== undefined ? input.start_date : current.start_date;
+      const nextEnd = input.end_date !== undefined ? input.end_date : current.end_date;
+
+      if (nextStart && nextEnd && new Date(nextStart) > new Date(nextEnd)) {
+        throw new Error("Startdato må være på eller før sluttdato");
+      }
+
+      const { data, error } = await supabase
+        .from("season")
+        .update({
+          start_date: nextStart,
+          end_date: nextEnd,
+        })
+        .eq("season_id", input.seasonId)
+        .eq("workspace_id", wsId!)
+        .select(
+          "season_id, name, slug, season_type, start_date, end_date, status, is_default, color, icon, description, planning_cycle_id",
+        )
+        .single();
+
+      if (error) throw new Error(error.message);
+      return data;
+    },
+    onSuccess: (data) => {
+      void emit({
+        event: "season updated",
+        workspace_id: wsId ?? null,
+        actor_id: profileId ?? "",
+        properties: {
+          entity: {
+            entity_type: "season",
+            entity_id: data.season_id,
+            entity_label: data.name,
+          },
+          data: {
+            start_date: data.start_date,
+            end_date: data.end_date,
+            source: "year_wheel_resize",
+          },
+        },
+      });
+      queryClient.invalidateQueries({
+        queryKey: dashboardKeys.seasons(wsId ?? "none"),
+      });
+      toast.success("Sesongdatoer oppdatert");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
   return {
     seasons: query.data ?? [],
     isLoading: query.isLoading,
@@ -247,5 +429,18 @@ export function useSeasons() {
     createSeason,
     activateSeason,
     archiveSeason,
+    duplicateYear,
+    updateSeasonDates,
   };
+}
+
+/**
+ * Shifts a date string by a given number of years, preserving month and day.
+ * Handles Feb 29 → Feb 28 for non-leap-year targets.
+ */
+function shiftDateByYears(dateStr: string | null, years: number): string | null {
+  if (!dateStr) return null;
+  const date = new Date(dateStr);
+  date.setFullYear(date.getFullYear() + years);
+  return date.toISOString().split("T")[0]!;
 }

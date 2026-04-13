@@ -13,6 +13,7 @@ import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { toast } from "sonner";
+import { emit } from "@smartout/telemetry";
 import type { PlanningCycleRow, PlanningCycleStatus } from "@/lib/cascade/types";
 
 type CreateCycleInput = {
@@ -113,11 +114,87 @@ export function usePlanningCycles() {
     },
   });
 
+  const activateCycle = useMutation({
+    mutationFn: async (cycleId: string) => {
+      const { error: archiveError } = await supabase
+        .from("planning_cycle")
+        .update({ status: "archived" as PlanningCycleStatus, updated_at: new Date().toISOString() })
+        .eq("workspace_id", wsId!)
+        .eq("status", "active" as PlanningCycleStatus);
+
+      if (archiveError) throw new Error(archiveError.message);
+
+      const { data, error } = await supabase
+        .from("planning_cycle")
+        .update({ status: "active" as PlanningCycleStatus, updated_at: new Date().toISOString() })
+        .eq("planning_cycle_id", cycleId)
+        .select("planning_cycle_id, name")
+        .single();
+      if (error) throw new Error(error.message);
+      return data;
+    },
+    onSuccess: (data) => {
+      void emit({
+        event: "planning_cycle activated",
+        workspace_id: wsId ?? null,
+        actor_id: profileId ?? "",
+        properties: {
+          entity: {
+            entity_type: "planning_cycle",
+            entity_id: data.planning_cycle_id,
+            entity_label: data.name,
+          },
+          data: { status: "active" as const },
+        },
+      });
+      invalidate();
+      toast.success("Planperiode aktivert");
+    },
+    onError: (error: Error) => {
+      toast.error(`Kunne ikke aktivere: ${error.message}`);
+    },
+  });
+
+  const archiveCycle = useMutation({
+    mutationFn: async (cycleId: string) => {
+      const { data, error } = await supabase
+        .from("planning_cycle")
+        .update({ status: "archived" as PlanningCycleStatus, updated_at: new Date().toISOString() })
+        .eq("planning_cycle_id", cycleId)
+        .select("planning_cycle_id, name")
+        .single();
+      if (error) throw new Error(error.message);
+      return data;
+    },
+    onSuccess: (data) => {
+      void emit({
+        event: "planning_cycle archived",
+        workspace_id: wsId ?? null,
+        actor_id: profileId ?? "",
+        properties: {
+          entity: {
+            entity_type: "planning_cycle",
+            entity_id: data.planning_cycle_id,
+            entity_label: data.name,
+          },
+          data: { status: "archived" as const },
+        },
+      });
+      invalidate();
+      toast.success("Planperiode arkivert");
+    },
+    onError: (error: Error) => {
+      toast.error(`Kunne ikke arkivere: ${error.message}`);
+    },
+  });
+
   return {
     cycles: query.data ?? [],
     isLoading: query.isLoading,
     createCycle,
     updateCycle,
     linkSeasonToCycle,
+    activateCycle,
+    archiveCycle,
   };
 }

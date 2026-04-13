@@ -7,7 +7,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { CalendarRange, ChevronDown, Check, Plus, Loader2 } from "lucide-react";
+import { Archive, CalendarRange, ChevronDown, Check, Loader2, Play, Plus } from "lucide-react";
 import { usePlanningCycles } from "../_hooks/use-planning-cycles";
 import { useSeasons } from "../_hooks";
 import { Input } from "@/components/ui/input";
@@ -40,6 +40,10 @@ function formatDate(dateStr: string): string {
   });
 }
 
+function getYearFromDate(dateStr: string) {
+  return new Date(dateStr + "T00:00:00").getFullYear().toString();
+}
+
 /**
  * Status badge color mapping — 3-level isDark pattern.
  */
@@ -62,7 +66,8 @@ function statusBadgeClass(status: PlanningCycleStatus, isDark: boolean): string 
 }
 
 export function PlanningCycleSelector({ selectedSeasonId, isDark }: Props) {
-  const { cycles, isLoading, createCycle, linkSeasonToCycle } = usePlanningCycles();
+  const { cycles, isLoading, createCycle, linkSeasonToCycle, activateCycle, archiveCycle } =
+    usePlanningCycles();
   const { seasons } = useSeasons();
 
   const [isOpen, setIsOpen] = useState(false);
@@ -286,45 +291,110 @@ export function PlanningCycleSelector({ selectedSeasonId, isDark }: Props) {
                   Ingen planperioder opprettet.
                 </p>
               ) : (
-                <div className="max-h-60 space-y-0.5 overflow-y-auto">
-                  {cycles.map((cycle) => {
-                    const isLinked = cycle.planning_cycle_id === linkedCycleId;
-                    return (
-                      <div
-                        key={cycle.planning_cycle_id}
-                        onClick={() => handleSelectCycle(cycle.planning_cycle_id)}
-                        className={`${itemClass} flex items-center gap-2`}
-                      >
-                        {/* Checkmark column */}
-                        <div className="flex h-4 w-4 shrink-0 items-center justify-center">
-                          {isLinked ? (
-                            <Check
-                              className={`h-[14px] w-[14px] ${isDark ? "text-orange-400" : "text-orange-600"}`}
-                            />
-                          ) : null}
-                        </div>
-
-                        {/* Cycle info */}
-                        <div className="min-w-0 flex-1">
-                          <p
-                            className={`truncate text-sm font-semibold ${isDark ? "text-white" : "text-zinc-900"}`}
-                          >
-                            {cycle.name}
-                          </p>
-                          <p className={`text-xs ${labelClass}`}>
-                            {formatDate(cycle.start_date)} &mdash; {formatDate(cycle.end_date)}
-                          </p>
-                        </div>
-
-                        {/* Status badge */}
-                        <span
-                          className={`shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-bold uppercase ${statusBadgeClass(cycle.status, isDark)}`}
-                        >
-                          {cycle.status}
-                        </span>
-                      </div>
+                <div className="max-h-60 space-y-2 overflow-y-auto pr-1">
+                  {(() => {
+                    const cyclesByYear = cycles.reduce(
+                      (acc, cycle) => {
+                        const year = getYearFromDate(cycle.start_date);
+                        if (!acc[year]) acc[year] = [];
+                        acc[year].push(cycle);
+                        return acc;
+                      },
+                      {} as Record<string, typeof cycles>,
                     );
-                  })}
+
+                    return Object.entries(cyclesByYear)
+                      .sort(([yearA], [yearB]) => Number(yearB) - Number(yearA))
+                      .map(([year, yearCycles]) => (
+                        <div key={year}>
+                          <div
+                            className={`px-3 py-1 text-[10px] font-bold tracking-wider uppercase ${labelClass}`}
+                          >
+                            {year}
+                          </div>
+                          <div className="space-y-0.5">
+                            {yearCycles.map((cycle) => {
+                              const isLinked = cycle.planning_cycle_id === linkedCycleId;
+                              return (
+                                <div
+                                  key={cycle.planning_cycle_id}
+                                  onClick={() => handleSelectCycle(cycle.planning_cycle_id)}
+                                  title={`Velg ${cycle.name} (${formatDate(cycle.start_date)} - ${formatDate(cycle.end_date)})`}
+                                  className={`${itemClass} flex items-center gap-2`}
+                                >
+                                  {/* Checkmark column */}
+                                  <div className="flex h-4 w-4 shrink-0 items-center justify-center">
+                                    {isLinked ? (
+                                      <Check
+                                        className={`h-[14px] w-[14px] ${isDark ? "text-orange-400" : "text-orange-600"}`}
+                                      />
+                                    ) : null}
+                                  </div>
+
+                                  {/* Cycle info */}
+                                  <div className="min-w-0 flex-1">
+                                    <p
+                                      className={`truncate text-sm font-semibold ${isDark ? "text-white" : "text-zinc-900"}`}
+                                    >
+                                      {cycle.name}
+                                    </p>
+                                    <p className={`text-xs ${labelClass}`}>
+                                      {formatDate(cycle.start_date)} &mdash;{" "}
+                                      {formatDate(cycle.end_date)}
+                                    </p>
+                                  </div>
+
+                                  {/* Status badge + lifecycle actions */}
+                                  <div className="flex shrink-0 items-center gap-1">
+                                    <span
+                                      className={`rounded border px-1.5 py-0.5 text-[10px] font-bold uppercase ${statusBadgeClass(cycle.status, isDark)}`}
+                                    >
+                                      {cycle.status}
+                                    </span>
+                                    {cycle.status === "draft" ? (
+                                      <button
+                                        type="button"
+                                        aria-label="Aktiver planperiode"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          activateCycle.mutate(cycle.planning_cycle_id);
+                                        }}
+                                        className={
+                                          isDark
+                                            ? "rounded-md p-1 text-zinc-400 hover:bg-zinc-800/80 hover:text-emerald-400"
+                                            : "rounded-md p-1 text-zinc-500 hover:bg-zinc-100 hover:text-emerald-600"
+                                        }
+                                      >
+                                        <Play className="h-3.5 w-3.5" />
+                                      </button>
+                                    ) : null}
+                                    {cycle.status === "active" ? (
+                                      <button
+                                        type="button"
+                                        aria-label="Arkiver planperiode"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          if (!window.confirm("Arkivere denne planperioden?"))
+                                            return;
+                                          archiveCycle.mutate(cycle.planning_cycle_id);
+                                        }}
+                                        className={
+                                          isDark
+                                            ? "rounded-md p-1 text-zinc-400 hover:bg-zinc-800/80 hover:text-amber-400"
+                                            : "rounded-md p-1 text-zinc-500 hover:bg-zinc-100 hover:text-amber-600"
+                                        }
+                                      >
+                                        <Archive className="h-3.5 w-3.5" />
+                                      </button>
+                                    ) : null}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ));
+                  })()}
                 </div>
               )}
 

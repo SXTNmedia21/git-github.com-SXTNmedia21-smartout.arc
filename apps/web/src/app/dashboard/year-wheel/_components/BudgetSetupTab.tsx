@@ -101,10 +101,10 @@ export function BudgetSetupTab({ seasonId, isDark }: Props) {
     : "rounded-2xl border border-zinc-200 bg-white p-6";
 
   const inputClass = isDark
-    ? "w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-white outline-none focus:border-blue-500"
-    : "w-full rounded-xl border border-zinc-300 bg-zinc-50 px-4 py-3 text-zinc-900 outline-none focus:border-blue-500";
+    ? "w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2.5 text-sm text-white outline-none focus:border-blue-500"
+    : "w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-sm text-zinc-900 outline-none focus:border-blue-500";
 
-  const labelClass = `mb-2 block text-xs font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`;
+  const labelClass = `mb-1.5 block text-[10px] font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`;
 
   if (isLoading) {
     return <div className={`${cardClass} h-64 animate-pulse`} />;
@@ -112,12 +112,30 @@ export function BudgetSetupTab({ seasonId, isDark }: Props) {
 
   return (
     <div className={cardClass}>
-      <h3 className={`mb-6 text-lg font-bold ${isDark ? "text-white" : "text-zinc-900"}`}>
-        Budsjettoppsett
-      </h3>
+      <div className="mb-6 flex items-center gap-4">
+        <h3 className={`text-lg font-bold ${isDark ? "text-white" : "text-zinc-900"}`}>
+          Budsjettoppsett
+        </h3>
+        <div className="flex-1" />
+        <select
+          value={status}
+          onChange={(e) => setStatus(e.target.value as SeasonBudgetStatus)}
+          className={`rounded-lg border px-3 py-1.5 text-xs font-bold tracking-wider uppercase outline-none ${
+            isDark
+              ? "border-zinc-700 bg-zinc-900 text-white focus:border-blue-500"
+              : "border-zinc-300 bg-white text-zinc-900 focus:border-blue-500"
+          }`}
+        >
+          {SEASON_BUDGET_STATUS_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </div>
 
       <div
-        className={`mb-6 rounded-xl border px-4 py-3 text-sm ${
+        className={`mb-6 rounded-lg border px-3 py-2 text-xs ${
           isDark
             ? "border-zinc-800 bg-zinc-900/40 text-zinc-400"
             : "border-zinc-200 bg-zinc-50 text-zinc-600"
@@ -127,7 +145,7 @@ export function BudgetSetupTab({ seasonId, isDark }: Props) {
         er skrivebeskyttet.
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2">
         <div>
           <label className={labelClass}>Total omsetningsmål (NOK)</label>
           <input
@@ -213,31 +231,13 @@ export function BudgetSetupTab({ seasonId, isDark }: Props) {
             Multipliserer snittpris per gjest i sesongen
           </p>
         </div>
-
-        <div>
-          <label className={labelClass}>Budsjettstatus</label>
-          <select
-            value={status}
-            onChange={(e) => setStatus(e.target.value as SeasonBudgetStatus)}
-            className={inputClass}
-          >
-            {SEASON_BUDGET_STATUS_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label} - {option.description}
-              </option>
-            ))}
-          </select>
-          <p className={`mt-1 text-xs ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>
-            Sett til Locked når oppsettet er ferdig
-          </p>
-        </div>
       </div>
 
-      <div className="mt-8 flex justify-end">
+      <div className="mt-6 flex justify-end">
         <button
           onClick={handleSave}
           disabled={upsertBudget.isPending || !totalTarget}
-          className="rounded-xl bg-blue-600 px-6 py-3 text-sm font-bold text-white transition-colors hover:bg-blue-500 disabled:opacity-50"
+          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-blue-500 disabled:opacity-50"
         >
           {upsertBudget.isPending ? "Lagrer..." : "Lagre budsjett"}
         </button>

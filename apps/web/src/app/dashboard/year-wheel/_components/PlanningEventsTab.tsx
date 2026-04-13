@@ -29,6 +29,7 @@ import type { PlanningEventRow, PlanningEventCategory } from "@/lib/cascade/type
 
 type Props = {
   seasonId: string;
+  planningCycleId: string | null;
   isDark: boolean;
 };
 
@@ -175,8 +176,9 @@ function formStateFromEvent(ev: PlanningEventRow): EventFormState {
 // Component
 // --------------------------------------------------------
 
-export function PlanningEventsTab({ seasonId: _seasonId, isDark }: Props) {
-  const { events, isLoading, createEvent, updateEvent, deleteEvent } = usePlanningEvents(undefined);
+export function PlanningEventsTab({ seasonId: _seasonId, planningCycleId, isDark }: Props) {
+  const { events, isLoading, createEvent, updateEvent, deleteEvent } =
+    usePlanningEvents(planningCycleId);
 
   // Calendar navigation
   const now = new Date();

@@ -92,16 +92,16 @@ test.describe("Cascade UI — Season Planning", () => {
   });
 
   test("should navigate to season page", async ({ page }) => {
-    await page.goto("/dashboard/season");
+    await page.goto("/dashboard/year-wheel");
     await page.waitForLoadState("networkidle", { timeout: 15000 }).catch(() => {});
-    expect(page.url()).toContain("/dashboard/season");
+    expect(page.url()).toContain("/dashboard/year-wheel");
 
     // Should show the page header
     await expect(page.locator("text=Sesongplanlegging").first()).toBeVisible({ timeout: 10000 });
   });
 
   test("should show planning cycle selector", async ({ page }) => {
-    await page.goto("/dashboard/season", { waitUntil: "domcontentloaded" });
+    await page.goto("/dashboard/year-wheel", { waitUntil: "domcontentloaded" });
     await page.waitForTimeout(3000);
 
     // The planning cycle selector or season heading should be visible
@@ -115,7 +115,7 @@ test.describe("Cascade UI — Season Planning", () => {
   });
 
   test("should show Hendelser tab in season page", async ({ page }) => {
-    await page.goto("/dashboard/season");
+    await page.goto("/dashboard/year-wheel");
     await page.waitForLoadState("networkidle", { timeout: 15000 }).catch(() => {});
 
     // Select a season first if there is one
@@ -152,7 +152,7 @@ test.describe("Cascade UI — Season Planning", () => {
   });
 
   test("should open planning cycle dropdown", async ({ page }) => {
-    await page.goto("/dashboard/season");
+    await page.goto("/dashboard/year-wheel");
     await page.waitForLoadState("networkidle", { timeout: 15000 }).catch(() => {});
 
     // Find the cycle selector trigger

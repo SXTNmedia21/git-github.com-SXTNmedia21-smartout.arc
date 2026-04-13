@@ -163,7 +163,7 @@ export function HourFactorsTab({ seasonBudgetId, isDark, isReadOnly = false }: P
         ))}
       </div>
 
-      <div className="space-y-2">
+      <div className="grid gap-x-8 gap-y-2 sm:grid-cols-2">
         {factors.map((f) => {
           const barWidth = (f.factor / maxFactor) * 100;
           const isPeak = f.factor >= maxFactor * 0.8;
@@ -173,7 +173,7 @@ export function HourFactorsTab({ seasonBudgetId, isDark, isReadOnly = false }: P
           return (
             <div key={f.hour} className="flex items-center gap-3">
               <span
-                className={`w-14 text-right font-mono text-sm ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+                className={`w-12 text-right font-mono text-sm ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
               >
                 {String(f.hour).padStart(2, "0")}:00
               </span>
@@ -195,7 +195,7 @@ export function HourFactorsTab({ seasonBudgetId, isDark, isReadOnly = false }: P
                 min={BUDGET_SETUP_LIMITS.hourFactor.min}
                 max={BUDGET_SETUP_LIMITS.hourFactor.max}
                 disabled={isReadOnly}
-                className={`w-20 rounded-lg border px-3 py-1.5 text-center text-sm font-medium outline-none ${
+                className={`w-16 rounded-lg border px-2 py-1 text-center text-sm font-medium outline-none ${
                   isDark
                     ? "border-zinc-700 bg-zinc-900 text-white focus:border-blue-500"
                     : "border-zinc-300 bg-white text-zinc-900 focus:border-blue-500"
@@ -206,11 +206,11 @@ export function HourFactorsTab({ seasonBudgetId, isDark, isReadOnly = false }: P
         })}
       </div>
 
-      <div className="mt-8 flex justify-end">
+      <div className="mt-6 flex justify-end">
         <button
           onClick={handleSave}
           disabled={saveHourFactors.isPending || isReadOnly}
-          className="rounded-xl bg-blue-600 px-6 py-3 text-sm font-bold text-white transition-colors hover:bg-blue-500 disabled:opacity-50"
+          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-blue-500 disabled:opacity-50"
         >
           {saveHourFactors.isPending ? "Lagrer..." : "Lagre timefaktorer"}
         </button>
