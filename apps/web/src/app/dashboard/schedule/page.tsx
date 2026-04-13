@@ -68,6 +68,7 @@ import { useEmployees, type ScheduleEmployee } from "./_hooks/use-employees";
 import { ScheduleUIProvider, useScheduleUI } from "./_components/schedule-ui-context";
 import { AgentProposalsProvider, useAgentProposals } from "./_components/agent-proposals-context";
 import { ProposalBanner } from "./_components/proposal-banner";
+import { SwapApprovalSection } from "./_components/SwapApprovalSection";
 import { ScheduleVoiceToolsBridge } from "./_components/schedule-voice-tools-bridge";
 import {
   useShifts,
@@ -1002,6 +1003,9 @@ function SchedulePageContent() {
 
             {/* Agent proposal banner — shows when Emma has pending shift proposals */}
             <ProposalBanner />
+
+            {/* Shift swap approval section — shows pending swaps for admin/manager */}
+            <SwapApprovalSection isAdmin={true} />
 
             {/* VAKTGRID — single grid, columns grouped by department horizontally */}
             {scheduleLayout === "grid" && (
