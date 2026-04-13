@@ -55,6 +55,9 @@ export type PricingTermsData = {
 type ContractTabProps = {
   workspaceId: string;
   companyId: string | null;
+  companyName: string;
+  dagligLeder: string;
+  companyEmail: string;
   subscriptionPlan: string;
   subscriptionStatus: string;
   contractStatus: string;
@@ -111,6 +114,9 @@ function toFormState(terms: PricingTermsData | null): PricingFormState {
 export function ContractTab({
   workspaceId,
   companyId,
+  companyName,
+  dagligLeder,
+  companyEmail,
   subscriptionPlan,
   subscriptionStatus,
   contractStatus,
@@ -119,6 +125,17 @@ export function ContractTab({
   contracts,
   pricingTerms: initialPricingTerms,
 }: ContractTabProps) {
+  // Build pre-filled "Ny kontrakt" URL with all known data
+  const newContractParams = new URLSearchParams();
+  if (companyId) newContractParams.set("company_id", companyId);
+  newContractParams.set("workspace_id", workspaceId);
+  if (dagligLeder) newContractParams.set("recipient_name", dagligLeder);
+  if (companyEmail) newContractParams.set("recipient_email", companyEmail);
+  if (companyName) {
+    newContractParams.set("title", `Smartout Kundeavtale \u2014 ${companyName}`);
+  }
+  const newContractHref = `/platform-admin/contracts/new?${newContractParams.toString()}`;
+
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [pricingTerms, setPricingTerms] = useState<PricingTermsData | null>(initialPricingTerms);
@@ -505,9 +522,7 @@ export function ContractTab({
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-4">
           <CardTitle className="text-base">Kontrakter</CardTitle>
-          <Link
-            href={`/platform-admin/contracts/new?company_id=${companyId ?? ""}&workspace_id=${workspaceId}`}
-          >
+          <Link href={newContractHref}>
             <Button variant="outline" size="sm">
               <Plus className="mr-2 h-3.5 w-3.5" />
               Ny kontrakt
@@ -521,9 +536,7 @@ export function ContractTab({
           ) : (
             <div className="rounded-lg border border-dashed p-8 text-center">
               <p className="text-muted-foreground text-sm">Ingen kontrakter</p>
-              <Link
-                href={`/platform-admin/contracts/new?company_id=${companyId ?? ""}&workspace_id=${workspaceId}`}
-              >
+              <Link href={newContractHref}>
                 <Button variant="outline" size="sm" className="mt-3">
                   <Plus className="mr-2 h-3.5 w-3.5" />
                   Opprett forste kontrakt

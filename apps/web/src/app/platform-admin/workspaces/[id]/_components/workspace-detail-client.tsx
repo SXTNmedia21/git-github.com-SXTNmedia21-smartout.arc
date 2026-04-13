@@ -140,6 +140,9 @@ export function WorkspaceDetailClient({
         <ContractTab
           workspaceId={currentWorkspace.workspaceId}
           companyId={currentCompany?.companyId ?? null}
+          companyName={currentCompany?.name ?? ""}
+          dagligLeder={currentCompany?.dagligLeder ?? ""}
+          companyEmail={currentCompany?.email ?? ""}
           subscriptionPlan={currentCompany?.subscriptionPlan ?? "\u2014"}
           subscriptionStatus={currentCompany?.subscriptionStatus ?? "unknown"}
           contractStatus={currentWorkspace.contractStatus}
