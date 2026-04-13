@@ -662,6 +662,58 @@ export interface CommunicationBroadcastSent extends BaseEvent {
   };
 }
 
+// ─── HMS: Cleaning Checklists ──────────────────
+export interface ChecklistStarted extends BaseEvent {
+  event: "checklist started";
+  properties: {
+    data: {
+      procedure_id: string;
+      session_id: string;
+    };
+  };
+}
+
+export interface ChecklistStepCompleted extends BaseEvent {
+  event: "checklist step_completed";
+  properties: {
+    data: {
+      task_id: string;
+    };
+  };
+}
+
+export interface ChecklistCompleted extends BaseEvent {
+  event: "checklist completed";
+  properties: {
+    data: {
+      procedure_id: string;
+      session_id: string;
+      total_steps: number;
+    };
+  };
+}
+
+export interface ChecklistOverdue extends BaseEvent {
+  event: "checklist overdue";
+  properties: {
+    data: {
+      procedure_id: string;
+      session_id: string;
+    };
+  };
+}
+
+export interface ChecklistDeviationFlagged extends BaseEvent {
+  event: "checklist deviation_flagged";
+  properties: {
+    entity: EntityRef;
+    data: {
+      task_id: string;
+      reason: string;
+    };
+  };
+}
+
 // ─── HMS: Deviations ────────────────────────────
 export interface DeviationReported extends BaseEvent {
   event: "deviation reported";
@@ -2911,6 +2963,11 @@ export type SmartoutEvent =
   | SessionClosed
   | SessionHookFired
   | SessionTaskCompleted
+  | ChecklistStarted
+  | ChecklistStepCompleted
+  | ChecklistCompleted
+  | ChecklistOverdue
+  | ChecklistDeviationFlagged
   | InvitationAccepted
   | ProtocolAssigned
   | ProtocolStepCompleted
@@ -3316,6 +3373,27 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "session task_completed": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+
+  "checklist started": {
+    destinations: ["posthog", "activity_trail"],
+    category: "operations",
+  },
+  "checklist step_completed": {
+    destinations: ["activity_trail"],
+    category: "operations",
+  },
+  "checklist completed": {
+    destinations: ["posthog", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  "checklist overdue": {
+    destinations: ["posthog", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  "checklist deviation_flagged": {
+    destinations: ["posthog", "activity_trail", "engine_event"],
     category: "operations",
   },
 
