@@ -631,7 +631,7 @@ async function dispatchPush(
       const { sendEmailBatch } = await import("@smartout/notifications");
       const emailResult = await sendEmailBatch(
         emailUsers.map((u) => ({
-          to: u.email,
+          email: u.email,
           subject: opts.pushTitle,
           html: `<p>${opts.pushBody}</p>`,
         })),
