@@ -141,4 +141,36 @@ export const actionMap: Record<WriteAction, ActionHandler> = {
 
   // Insert a new schedule_day_info row (quick note/event/alert for a date)
   create_day_info: (p) => assertOk(supabase.from("schedule_day_info").insert(p as any)),
+
+  // Mark a single checklist checkpoint as completed (cleaning checklists)
+  complete_checkpoint: (p) =>
+    assertOk(
+      supabase
+        .from("session_task")
+        .update({
+          status: p.status,
+          completed_by: p.completed_by,
+          completed_at: p.completed_at,
+          evidence: p.evidence ?? null,
+        } as any)
+        .eq("id", p.task_id as string),
+    ),
+
+  // Batch-complete all remaining checklist tasks (sign-off)
+  sign_checklist: async (p) => {
+    const taskIds = p.task_ids as string[];
+    for (const taskId of taskIds) {
+      await assertOk(
+        supabase
+          .from("session_task")
+          .update({
+            status: p.status,
+            completed_by: p.completed_by,
+            completed_at: p.completed_at,
+          } as any)
+          .eq("id", taskId)
+          .eq("status", "pending"),
+      );
+    }
+  },
 };
