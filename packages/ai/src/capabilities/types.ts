@@ -7,6 +7,7 @@ export type CapabilityName =
   | "schedule"
   | "training"
   | "operations"
+  | "operations_intelligence" // ADR-0088: manager/system-scoped intelligence
   | "profile"
   | "communication"
   | "memory"
