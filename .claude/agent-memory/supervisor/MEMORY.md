@@ -40,7 +40,16 @@
 - Copying spring constants from existing year-wheel code (they're wrong — 10x too stiff)
 - Building new year-wheel features before design debt is fixed (compounds violations)
 
+## Komm (Communications) Module (verified 2026-04-13)
+- [Full review](komm_module_review.md) — AI tool bugs, i18n violations, dead infrastructure, legacy tables
+- 2 CRITICAL AI tool bugs: wrong column name (`sender_profile_id` vs `sender_id`), non-existent column query (`unread_count`)
+- `channel_event` and `channel_ai_policy` tables are dead infrastructure (created, never consumed)
+- Legacy `chat_*` tables never dropped — coexist with `channel_*`
+- `packages/ai/src/tools/channels.ts` has orphaned tools (search_knowledge) not in any capability
+- 20+ hardcoded Norwegian strings in hooks despite `komm.json` existing
+
 ## Review Patterns
 - When reviewing year-wheel agent output: always check for hardcoded colors, isDark prop usage, spring constants, and Norwegian strings.
 - When reviewing cascade agent output: verify D1↔D4 bridge exists (season activation → department_operating_hours).
 - When reviewing AI capability output: verify tools registered in capability registry AND intent classifier.
+- When reviewing komm/comms agent output: verify AI tool column names match `database.types.ts`, check `channel_ai_policy` enforcement, verify `channel_event` wiring.
