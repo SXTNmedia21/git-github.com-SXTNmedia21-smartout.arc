@@ -1,6 +1,15 @@
 "use client";
 
+/**
+ * SeasonOverviewTab — Budget-derived season summary with charts.
+ *
+ * Shows four KPI cards (season goal, daily average, peak staffing, guests/day)
+ * and three chart strips (monthly, weekly, hourly) calculated from the season
+ * budget and day/hour factor tables.
+ */
+
 import { useMemo } from "react";
+import { useTranslation } from "@smartout/i18n";
 import { useSeasonBudget, useDayFactors, useHourFactors } from "../_hooks";
 import { useOperatingHours } from "../../settings/_hooks/use-operating-hours";
 import {
@@ -13,6 +22,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
 
+// Parses "HH:MM" time strings to integer hours for operating hours calculations.
 function parseTimeToHour(time: string): number {
   return parseInt(time.split(":")[0] ?? "0", 10);
 }
@@ -22,16 +32,18 @@ type Props = {
   seasonBudgetId: string;
   seasonStartDate: string | null;
   seasonEndDate: string | null;
-  isDark: boolean;
 };
+
+// English abbreviated weekday names indexed by the weekday number (0=Mon … 6=Sun).
+const WEEKDAY_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 export function SeasonOverviewTab({
   seasonId,
   seasonBudgetId,
   seasonStartDate,
   seasonEndDate,
-  isDark,
 }: Props) {
+  const { t } = useTranslation("dashboard");
   const ctx = useWorkspaceOptional();
   const wsId = ctx?.workspace.workspace_id;
   const supabase = createClient();
@@ -58,7 +70,7 @@ export function SeasonOverviewTab({
   const { hours: operatingHoursRaw } = useOperatingHours(firstDeptId);
   const operatingHours = operatingHoursRaw || [];
 
-  // Derive operating hours
+  // Derive the earliest open and latest close time across all operating day records.
   const opHours = useMemo(() => {
     if (!operatingHours || operatingHours.length === 0) return { openHour: 10, closeHour: 22 };
     const openTimes = operatingHours.filter((oh) => !oh.is_closed);
@@ -69,7 +81,7 @@ export function SeasonOverviewTab({
     };
   }, [operatingHours]);
 
-  // Calculate day targets for full season
+  // Spread total season revenue across every day weighted by day factors.
   const sampleDayTargets = useMemo(() => {
     if (!budget || !seasonStartDate || !seasonEndDate) return [];
 
@@ -81,12 +93,12 @@ export function SeasonOverviewTab({
     });
   }, [budget, seasonStartDate, seasonEndDate, dayFactors]);
 
-  // Calculate day targets for first week
+  // First seven days used for the weekly distribution chart.
   const firstWeekTargets = useMemo(() => {
     return sampleDayTargets.slice(0, 7);
   }, [sampleDayTargets]);
 
-  // Group by month for monthly distribution
+  // Aggregate daily targets into calendar months for the monthly bar chart.
   const monthlyTargets = useMemo(() => {
     const months = new Map<string, number>();
 
@@ -108,7 +120,7 @@ export function SeasonOverviewTab({
       .sort((a, b) => a.monthKey.localeCompare(b.monthKey));
   }, [sampleDayTargets]);
 
-  // Calculate hour targets for peak day (highest day target)
+  // Distribute the peak day's revenue across hours using hour factors.
   const peakDayHourTargets = useMemo(() => {
     const first = sampleDayTargets[0];
     if (!first) return [];
@@ -121,7 +133,7 @@ export function SeasonOverviewTab({
     });
   }, [sampleDayTargets, hourFactors, opHours]);
 
-  // Peak hour staffing
+  // Derive peak-hour staffing need from labor percentage and average wage.
   const peakStaffing = useMemo(() => {
     const firstHour = peakDayHourTargets[0];
     if (!firstHour || !budget) return null;
@@ -140,7 +152,6 @@ export function SeasonOverviewTab({
     };
   }, [peakDayHourTargets, budget]);
 
-  // Summary stats
   const avgDailyTarget =
     sampleDayTargets.length > 0
       ? sampleDayTargets.reduce((sum, d) => sum + d.target, 0) / sampleDayTargets.length
@@ -153,20 +164,11 @@ export function SeasonOverviewTab({
         )
       : null;
 
-  const cardClass = isDark
-    ? "rounded-2xl border border-zinc-800 bg-[#0c0c0e] p-6"
-    : "rounded-2xl border border-zinc-200 bg-white p-6";
-
-  const metricCardClass = isDark
-    ? "flex flex-col justify-between rounded-2xl border border-zinc-800/80 bg-[#121216] p-4"
-    : "flex flex-col justify-between rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm";
-
+  // Guard: budget must exist for any calculations to be meaningful.
   if (!budget) {
     return (
-      <div className={cardClass}>
-        <p className={`text-sm ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
-          Sett opp budsjett først for å se beregninger.
-        </p>
+      <div className="border-border bg-card rounded-2xl border p-6">
+        <p className="text-muted-foreground text-sm">{t("yearWheel.setup_budget_first")}</p>
       </div>
     );
   }
@@ -178,103 +180,85 @@ export function SeasonOverviewTab({
       maximumFractionDigits: 0,
     }).format(n);
 
-  const WEEKDAY_SHORT = ["Man", "Tir", "Ons", "Tor", "Fre", "Lør", "Søn"];
-
   return (
     <div className="space-y-6">
-      {/* Metric cards */}
+      {/* KPI metric cards */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <div className={metricCardClass}>
+        <div className="border-border bg-card flex flex-col justify-between rounded-2xl border p-4">
           <div className="mb-2 flex items-center gap-2">
-            <DollarSign className="h-4 w-4 text-emerald-500" />
-            <span
-              className={`text-xs font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-            >
-              Sesongmål
+            <DollarSign className="text-success h-4 w-4" />
+            <span className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
+              {t("yearWheel.season_goals")}
             </span>
           </div>
-          <span className={`text-2xl font-extrabold ${isDark ? "text-white" : "text-zinc-900"}`}>
+          <span className="text-foreground text-2xl font-extrabold">
             {formatNOK(budget.total_target_revenue)}
           </span>
         </div>
 
-        <div className={metricCardClass}>
+        <div className="border-border bg-card flex flex-col justify-between rounded-2xl border p-4">
           <div className="mb-2 flex items-center gap-2">
-            <TrendingUp className="h-4 w-4 text-blue-500" />
-            <span
-              className={`text-xs font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-            >
-              Snitt/dag
+            <TrendingUp className="text-primary h-4 w-4" />
+            <span className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
+              {t("yearWheel.season_overview_avg_day")}
             </span>
           </div>
-          <span className={`text-2xl font-extrabold ${isDark ? "text-white" : "text-zinc-900"}`}>
+          <span className="text-foreground text-2xl font-extrabold">
             {formatNOK(avgDailyTarget)}
           </span>
         </div>
 
-        <div className={metricCardClass}>
+        <div className="border-border bg-card flex flex-col justify-between rounded-2xl border p-4">
           <div className="mb-2 flex items-center gap-2">
-            <Users className="h-4 w-4 text-purple-500" />
-            <span
-              className={`text-xs font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-            >
-              Topp bemanning
+            <Users className="text-chart-4 h-4 w-4" />
+            <span className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
+              {t("yearWheel.season_overview_peak_staff")}
             </span>
           </div>
-          <span className={`text-2xl font-extrabold ${isDark ? "text-white" : "text-zinc-900"}`}>
+          <span className="text-foreground text-2xl font-extrabold">
             {peakStaffing ? `${Math.ceil(peakStaffing.staffNeeded)} pers` : "\u2014"}
           </span>
           {peakStaffing && (
-            <span className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
-              kl {peakStaffing.hour}:00
-            </span>
+            <span className="text-muted-foreground text-xs">kl {peakStaffing.hour}:00</span>
           )}
         </div>
 
-        <div className={metricCardClass}>
+        <div className="border-border bg-card flex flex-col justify-between rounded-2xl border p-4">
           <div className="mb-2 flex items-center gap-2">
-            <Clock className="h-4 w-4 text-orange-500" />
-            <span
-              className={`text-xs font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-            >
-              Gjester/dag
+            <Clock className="text-brand-orange h-4 w-4" />
+            <span className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
+              {t("yearWheel.season_overview_guests_day")}
             </span>
           </div>
-          <span className={`text-2xl font-extrabold ${isDark ? "text-white" : "text-zinc-900"}`}>
+          <span className="text-foreground text-2xl font-extrabold">
             {expectedGuests ?? "\u2014"}
           </span>
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        {/* Monthly distribution */}
-        <div className={cardClass}>
-          <h3
-            className={`mb-4 text-sm font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-          >
-            Månedsfordeling
+        {/* Monthly distribution bar chart */}
+        <div className="border-border bg-card rounded-2xl border p-6">
+          <h3 className="text-muted-foreground mb-4 text-sm font-bold tracking-wider uppercase">
+            {t("yearWheel.monthly_distribution")}
           </h3>
           <div className="flex h-32 items-end gap-2 overflow-x-auto pb-2">
             {monthlyTargets.map((m) => {
-              const maxTarget = Math.max(...monthlyTargets.map((t) => t.target));
+              const maxTarget = Math.max(...monthlyTargets.map((mt) => mt.target));
               const heightPct = maxTarget > 0 ? (m.target / maxTarget) * 100 : 0;
               return (
                 <div
                   key={m.monthKey}
                   className="flex min-w-[60px] flex-1 flex-col items-center gap-1"
                 >
-                  <span
-                    className={`text-[10px] font-bold ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
-                  >
+                  <span className="text-muted-foreground text-[10px] font-bold">
                     {formatNOK(m.target)}
                   </span>
                   <div
-                    className="w-full rounded-t-lg bg-orange-600/30 transition-all"
+                    className="bg-brand-orange/30 w-full rounded-t-lg transition-all"
                     style={{ height: `${Math.max(heightPct, 8)}%` }}
                   />
-                  <span
-                    className={`text-xs font-medium capitalize ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                  >
+                  <span className="text-muted-foreground text-xs font-medium capitalize">
                     {m.label}
                   </span>
                 </div>
@@ -283,31 +267,25 @@ export function SeasonOverviewTab({
           </div>
         </div>
 
-        {/* Weekly distribution */}
-        <div className={cardClass}>
-          <h3
-            className={`mb-4 text-sm font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-          >
-            Ukentlig fordeling (første uke)
+        {/* Weekly distribution bar chart (first 7 days of season) */}
+        <div className="border-border bg-card rounded-2xl border p-6">
+          <h3 className="text-muted-foreground mb-4 text-sm font-bold tracking-wider uppercase">
+            {t("yearWheel.weekly_distribution")}
           </h3>
           <div className="flex h-32 items-end gap-2 overflow-x-auto pb-2">
             {firstWeekTargets.map((d) => {
-              const maxTarget = Math.max(...firstWeekTargets.map((t) => t.target));
+              const maxTarget = Math.max(...firstWeekTargets.map((ft) => ft.target));
               const heightPct = maxTarget > 0 ? (d.target / maxTarget) * 100 : 0;
               return (
                 <div key={d.date} className="flex min-w-[40px] flex-1 flex-col items-center gap-1">
-                  <span
-                    className={`text-[10px] font-bold ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
-                  >
+                  <span className="text-muted-foreground text-[10px] font-bold">
                     {formatNOK(d.target)}
                   </span>
                   <div
-                    className="w-full rounded-t-lg bg-blue-600/30 transition-all"
+                    className="bg-primary/30 w-full rounded-t-lg transition-all"
                     style={{ height: `${Math.max(heightPct, 8)}%` }}
                   />
-                  <span
-                    className={`text-xs font-medium ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                  >
+                  <span className="text-muted-foreground text-xs font-medium">
                     {WEEKDAY_SHORT[d.weekday]}
                   </span>
                 </div>
@@ -317,34 +295,29 @@ export function SeasonOverviewTab({
         </div>
       </div>
 
-      {/* Hourly distribution for peak day */}
+      {/* Hourly revenue distribution for the peak day */}
       {peakDayHourTargets.length > 0 && (
-        <div className={cardClass}>
-          <h3 className={`mb-4 text-lg font-bold ${isDark ? "text-white" : "text-zinc-900"}`}>
-            Timefordeling (toppdag)
+        <div className="border-border bg-card rounded-2xl border p-6">
+          <h3 className="text-foreground mb-4 text-lg font-bold">
+            {t("yearWheel.hourly_distribution")}
           </h3>
           <div className="flex items-end gap-1">
             {peakDayHourTargets.map((h) => {
-              const maxHourTarget = Math.max(...peakDayHourTargets.map((t) => t.target));
+              const maxHourTarget = Math.max(...peakDayHourTargets.map((ht) => ht.target));
               const heightPct = maxHourTarget > 0 ? (h.target / maxHourTarget) * 100 : 0;
+              // Highlight bars that are within 80% of the peak to show the busy window.
               const isPeak = h.target >= maxHourTarget * 0.8;
 
               return (
                 <div key={h.hour} className="flex flex-1 flex-col items-center gap-1">
-                  <span
-                    className={`text-[10px] font-bold ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                  >
+                  <span className="text-muted-foreground text-[10px] font-bold">
                     {formatNOK(h.target)}
                   </span>
                   <div
-                    className={`w-full rounded-t-md transition-all ${isPeak ? "bg-emerald-600/40" : "bg-blue-600/20"}`}
+                    className={`w-full rounded-t-md transition-all ${isPeak ? "bg-success/40" : "bg-primary/20"}`}
                     style={{ height: `${Math.max(heightPct * 1.2, 4)}px` }}
                   />
-                  <span
-                    className={`font-mono text-[10px] ${isDark ? "text-zinc-600" : "text-zinc-400"}`}
-                  >
-                    {h.hour}
-                  </span>
+                  <span className="text-muted-foreground font-mono text-[10px]">{h.hour}</span>
                 </div>
               );
             })}
