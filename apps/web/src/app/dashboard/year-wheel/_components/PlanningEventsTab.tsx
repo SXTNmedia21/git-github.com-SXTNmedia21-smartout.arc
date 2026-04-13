@@ -14,12 +14,13 @@
  * - action: updateEvent(id) (inline edit save)
  * - action: deleteEvent(id) (Trash2 button)
  * - action: toggleCreateForm() (Ny hendelse button / "+" on selected date)
- * - color-regime: category-based (external=blue, cultural=purple, internal=emerald, weather=amber, recurring=zinc)
+ * - color-regime: category-based via chart CSS variables (chart-1..5)
  */
 
 import { useState, useMemo, useCallback } from "react";
 import { ChevronLeft, ChevronRight, Plus, Trash2, CalendarDays, X, Loader2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { useTranslation } from "@smartout/i18n";
 import { usePlanningEvents } from "../_hooks/use-planning-events";
 import type { PlanningEventRow, PlanningEventCategory } from "@/lib/cascade/types";
 
@@ -30,64 +31,67 @@ import type { PlanningEventRow, PlanningEventCategory } from "@/lib/cascade/type
 type Props = {
   seasonId: string;
   planningCycleId: string | null;
-  isDark: boolean;
 };
 
 // --------------------------------------------------------
 // Constants
 // --------------------------------------------------------
 
-const CATEGORY_OPTIONS = [
-  { value: "external_scraped", label: "Ekstern" },
-  { value: "cultural_commercial", label: "Kulturell" },
-  { value: "internal", label: "Intern" },
-  { value: "weather", label: "Vær" },
-  { value: "recurring", label: "Gjentakende" },
-] as const;
+/**
+ * Maps each category value to its i18n key suffix.
+ * The full key is yearWheel.category_{suffix}.
+ */
+const CATEGORY_I18N_KEYS: Record<PlanningEventCategory, string> = {
+  external_scraped: "yearWheel.category_external",
+  cultural_commercial: "yearWheel.category_cultural",
+  internal: "yearWheel.category_internal",
+  weather: "yearWheel.category_weather",
+  recurring: "yearWheel.category_recurring",
+};
+
+/** Category values in display order */
+const CATEGORY_OPTION_VALUES: PlanningEventCategory[] = [
+  "external_scraped",
+  "cultural_commercial",
+  "internal",
+  "weather",
+  "recurring",
+];
 
 const WEEKDAY_HEADERS = ["Man", "Tir", "Ons", "Tor", "Fre", "Lør", "Søn"];
 
-/** Category → color tokens for dots, pills, and badges */
-const CATEGORY_COLORS: Record<
-  PlanningEventCategory,
-  { dot: string; pill: string; pillDark: string; text: string; textDark: string }
-> = {
-  external_scraped: {
-    dot: "bg-blue-400",
-    pill: "border-blue-200 bg-blue-50 text-blue-600",
-    pillDark: "border-blue-500/20 bg-blue-500/10 text-blue-400",
-    text: "text-blue-600",
-    textDark: "text-blue-400",
-  },
-  cultural_commercial: {
-    dot: "bg-purple-400",
-    pill: "border-purple-200 bg-purple-50 text-purple-600",
-    pillDark: "border-purple-500/20 bg-purple-500/10 text-purple-400",
-    text: "text-purple-600",
-    textDark: "text-purple-400",
-  },
-  internal: {
-    dot: "bg-emerald-400",
-    pill: "border-emerald-200 bg-emerald-50 text-emerald-600",
-    pillDark: "border-emerald-500/20 bg-emerald-500/10 text-emerald-400",
-    text: "text-emerald-600",
-    textDark: "text-emerald-400",
-  },
-  weather: {
-    dot: "bg-amber-400",
-    pill: "border-amber-200 bg-amber-50 text-amber-600",
-    pillDark: "border-amber-500/20 bg-amber-500/10 text-amber-400",
-    text: "text-amber-600",
-    textDark: "text-amber-400",
-  },
-  recurring: {
-    dot: "bg-zinc-400",
-    pill: "border-zinc-300 bg-zinc-100 text-zinc-600",
-    pillDark: "border-zinc-500/20 bg-zinc-500/10 text-zinc-400",
-    text: "text-zinc-600",
-    textDark: "text-zinc-400",
-  },
-};
+/**
+ * Category → chart CSS variable color tokens.
+ * Uses bg/border/text chart variables so the theme controls the palette.
+ */
+const CATEGORY_COLORS: Record<PlanningEventCategory, { dot: string; pill: string; text: string }> =
+  {
+    external_scraped: {
+      dot: "bg-chart-1",
+      pill: "border-chart-1/20 bg-chart-1/10 text-chart-1",
+      text: "text-chart-1",
+    },
+    cultural_commercial: {
+      dot: "bg-chart-4",
+      pill: "border-chart-4/20 bg-chart-4/10 text-chart-4",
+      text: "text-chart-4",
+    },
+    internal: {
+      dot: "bg-chart-2",
+      pill: "border-chart-2/20 bg-chart-2/10 text-chart-2",
+      text: "text-chart-2",
+    },
+    weather: {
+      dot: "bg-chart-3",
+      pill: "border-chart-3/20 bg-chart-3/10 text-chart-3",
+      text: "text-chart-3",
+    },
+    recurring: {
+      dot: "bg-chart-5",
+      pill: "border-chart-5/20 bg-chart-5/10 text-chart-5",
+      text: "text-chart-5",
+    },
+  };
 
 // --------------------------------------------------------
 // Helpers
@@ -176,7 +180,8 @@ function formStateFromEvent(ev: PlanningEventRow): EventFormState {
 // Component
 // --------------------------------------------------------
 
-export function PlanningEventsTab({ seasonId: _seasonId, planningCycleId, isDark }: Props) {
+export function PlanningEventsTab({ seasonId: _seasonId, planningCycleId }: Props) {
+  const { t } = useTranslation("dashboard");
   const { events, isLoading, createEvent, updateEvent, deleteEvent } =
     usePlanningEvents(planningCycleId);
 
@@ -227,6 +232,13 @@ export function PlanningEventsTab({ seasonId: _seasonId, planningCycleId, isDark
     month: "long",
     year: "numeric",
   });
+
+  // ---- Category options with translated labels ----
+
+  const categoryOptions = CATEGORY_OPTION_VALUES.map((value) => ({
+    value,
+    label: t(CATEGORY_I18N_KEYS[value]),
+  }));
 
   // ---- Handlers ----
 
@@ -326,17 +338,12 @@ export function PlanningEventsTab({ seasonId: _seasonId, planningCycleId, isDark
     });
   };
 
-  // ---- Style tokens (matching existing season tab patterns) ----
+  // ---- Style tokens (CSS variable-based, no isDark) ----
 
-  const cardClass = isDark
-    ? "rounded-2xl border border-zinc-800 bg-[#0c0c0e] p-6"
-    : "rounded-2xl border border-zinc-200 bg-white p-6";
-
-  const inputClass = isDark
-    ? "w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-white outline-none focus:border-blue-500"
-    : "w-full rounded-xl border border-zinc-300 bg-zinc-50 px-4 py-3 text-zinc-900 outline-none focus:border-blue-500";
-
-  const labelClass = `mb-2 block text-xs font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`;
+  const cardClass = "rounded-2xl border border-border bg-card p-6";
+  const inputClass =
+    "w-full rounded-xl border border-input bg-background px-4 py-3 text-foreground outline-none focus:border-ring";
+  const labelClass = "mb-2 block text-xs font-bold tracking-wider uppercase text-muted-foreground";
 
   // ---- Loading state ----
 
@@ -361,15 +368,11 @@ export function PlanningEventsTab({ seasonId: _seasonId, planningCycleId, isDark
     submitLabel: string,
   ) {
     return (
-      <div
-        className={`rounded-xl border p-5 ${
-          isDark ? "border-zinc-800 bg-[#121216]" : "border-zinc-200 bg-zinc-50"
-        }`}
-      >
+      <div className="border-border bg-accent rounded-xl border p-5">
         <div className="grid gap-4 md:grid-cols-2">
           {/* Name */}
           <div className="md:col-span-2">
-            <label className={labelClass}>Navn</label>
+            <label className={labelClass}>{t("yearWheel.event_name")}</label>
             <input
               type="text"
               value={form.name}
@@ -381,7 +384,7 @@ export function PlanningEventsTab({ seasonId: _seasonId, planningCycleId, isDark
 
           {/* Event date */}
           <div>
-            <label className={labelClass}>Dato</label>
+            <label className={labelClass}>{t("yearWheel.event_date")}</label>
             <input
               type="date"
               value={form.event_date}
@@ -392,7 +395,7 @@ export function PlanningEventsTab({ seasonId: _seasonId, planningCycleId, isDark
 
           {/* End date */}
           <div>
-            <label className={labelClass}>Sluttdato (valgfri)</label>
+            <label className={labelClass}>{t("yearWheel.event_end_date")}</label>
             <input
               type="date"
               value={form.end_date}
@@ -403,7 +406,7 @@ export function PlanningEventsTab({ seasonId: _seasonId, planningCycleId, isDark
 
           {/* Category */}
           <div>
-            <label className={labelClass}>Kategori</label>
+            <label className={labelClass}>{t("yearWheel.event_category")}</label>
             <select
               value={form.category}
               onChange={(e) =>
@@ -414,7 +417,7 @@ export function PlanningEventsTab({ seasonId: _seasonId, planningCycleId, isDark
               }
               className={inputClass}
             >
-              {CATEGORY_OPTIONS.map((opt) => (
+              {categoryOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>
                   {opt.label}
                 </option>
@@ -424,7 +427,7 @@ export function PlanningEventsTab({ seasonId: _seasonId, planningCycleId, isDark
 
           {/* Demand multiplier */}
           <div>
-            <label className={labelClass}>Etterspørselsfaktor</label>
+            <label className={labelClass}>{t("yearWheel.demand_factor")}</label>
             <input
               type="number"
               value={form.demand_multiplier}
@@ -434,14 +437,14 @@ export function PlanningEventsTab({ seasonId: _seasonId, planningCycleId, isDark
               step="0.1"
               className={inputClass}
             />
-            <p className={`mt-1 text-xs ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>
-              Multipliserer forventet trafikk (0.5 - 3.0)
+            <p className="text-muted-foreground mt-1 text-xs">
+              {t("yearWheel.demand_help")} (0.5 - 3.0)
             </p>
           </div>
 
           {/* Expected covers */}
           <div>
-            <label className={labelClass}>Forventet antall (valgfri)</label>
+            <label className={labelClass}>{t("yearWheel.expected_covers")}</label>
             <input
               type="number"
               value={form.expected_covers}
@@ -454,7 +457,7 @@ export function PlanningEventsTab({ seasonId: _seasonId, planningCycleId, isDark
 
           {/* Confidence */}
           <div>
-            <label className={labelClass}>Konfidensgrad</label>
+            <label className={labelClass}>{t("yearWheel.confidence")}</label>
             <div className="flex items-center gap-3">
               <input
                 type="range"
@@ -463,11 +466,9 @@ export function PlanningEventsTab({ seasonId: _seasonId, planningCycleId, isDark
                 min="0"
                 max="1"
                 step="0.1"
-                className="h-2 flex-1 cursor-pointer appearance-none rounded-full bg-zinc-700 accent-blue-500"
+                className="bg-muted accent-primary h-2 flex-1 cursor-pointer appearance-none rounded-full"
               />
-              <span
-                className={`w-10 text-center text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}
-              >
+              <span className="text-foreground w-10 text-center text-sm font-bold">
                 {parseFloat(form.confidence).toFixed(1)}
               </span>
             </div>
@@ -479,9 +480,7 @@ export function PlanningEventsTab({ seasonId: _seasonId, planningCycleId, isDark
               checked={form.is_recurring}
               onCheckedChange={(checked) => setForm((prev) => ({ ...prev, is_recurring: checked }))}
             />
-            <span className={`text-sm font-medium ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-              Gjentakende
-            </span>
+            <span className="text-foreground text-sm font-medium">{t("yearWheel.recurring")}</span>
           </div>
         </div>
 
@@ -489,23 +488,19 @@ export function PlanningEventsTab({ seasonId: _seasonId, planningCycleId, isDark
         <div className="mt-6 flex justify-end gap-3">
           <button
             onClick={onCancel}
-            className={`rounded-xl px-5 py-2.5 text-sm font-medium transition-colors ${
-              isDark
-                ? "text-zinc-400 hover:bg-zinc-800 hover:text-white"
-                : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
-            }`}
+            className="text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded-xl px-5 py-2.5 text-sm font-medium transition-colors"
           >
-            Avbryt
+            {t("yearWheel.cancel")}
           </button>
           <button
             onClick={onSubmit}
             disabled={isPending || !form.name.trim()}
-            className="rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-bold text-white transition-colors hover:bg-blue-500 disabled:opacity-50"
+            className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl px-6 py-2.5 text-sm font-bold transition-colors disabled:opacity-50"
           >
             {isPending ? (
               <span className="flex items-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Lagrer...
+                {t("yearWheel.saving")}
               </span>
             ) : (
               submitLabel
@@ -524,34 +519,19 @@ export function PlanningEventsTab({ seasonId: _seasonId, planningCycleId, isDark
       <div className={cardClass}>
         {/* Month header with nav */}
         <div className="mb-4 flex items-center justify-between">
-          <button
-            onClick={prevMonth}
-            className={`rounded-lg p-2 transition-colors ${
-              isDark ? "hover:bg-zinc-800" : "hover:bg-zinc-100"
-            }`}
-          >
-            <ChevronLeft className={`h-5 w-5 ${isDark ? "text-zinc-400" : "text-zinc-500"}`} />
+          <button onClick={prevMonth} className="hover:bg-accent rounded-lg p-2 transition-colors">
+            <ChevronLeft className="text-muted-foreground h-5 w-5" />
           </button>
-          <h3 className={`text-lg font-bold capitalize ${isDark ? "text-white" : "text-zinc-900"}`}>
-            {monthLabel}
-          </h3>
-          <button
-            onClick={nextMonth}
-            className={`rounded-lg p-2 transition-colors ${
-              isDark ? "hover:bg-zinc-800" : "hover:bg-zinc-100"
-            }`}
-          >
-            <ChevronRight className={`h-5 w-5 ${isDark ? "text-zinc-400" : "text-zinc-500"}`} />
+          <h3 className="text-card-foreground text-lg font-bold capitalize">{monthLabel}</h3>
+          <button onClick={nextMonth} className="hover:bg-accent rounded-lg p-2 transition-colors">
+            <ChevronRight className="text-muted-foreground h-5 w-5" />
           </button>
         </div>
 
         {/* Weekday headers */}
         <div className="mb-1 grid grid-cols-7 gap-1">
           {WEEKDAY_HEADERS.map((day) => (
-            <div
-              key={day}
-              className={`py-1 text-center text-xs font-bold ${isDark ? "text-zinc-600" : "text-zinc-400"}`}
-            >
+            <div key={day} className="text-muted-foreground py-1 text-center text-xs font-bold">
               {day}
             </div>
           ))}
@@ -564,7 +544,7 @@ export function PlanningEventsTab({ seasonId: _seasonId, planningCycleId, isDark
               return (
                 <div
                   key={`empty-${idx}`}
-                  className={`rounded-lg p-2 ${isDark ? "bg-zinc-900/30" : "bg-zinc-50/50"}`}
+                  className="bg-muted/50 rounded-lg p-2"
                   style={{ minHeight: "56px" }}
                 />
               );
@@ -582,13 +562,7 @@ export function PlanningEventsTab({ seasonId: _seasonId, planningCycleId, isDark
                 key={ds}
                 onClick={() => handleDayClick(date)}
                 className={`group relative flex flex-col items-start rounded-lg p-2 text-left transition-colors ${
-                  isSelected
-                    ? isDark
-                      ? "bg-blue-500/10 ring-1 ring-blue-500/40"
-                      : "bg-blue-50 ring-1 ring-blue-300"
-                    : isDark
-                      ? "hover:bg-zinc-800/60"
-                      : "hover:bg-zinc-100"
+                  isSelected ? "bg-primary/10 ring-primary/40 ring-1" : "hover:bg-accent"
                 }`}
                 style={{ minHeight: "56px" }}
               >
@@ -596,10 +570,8 @@ export function PlanningEventsTab({ seasonId: _seasonId, planningCycleId, isDark
                 <span
                   className={`text-sm font-semibold ${
                     isToday
-                      ? "flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-white"
-                      : isDark
-                        ? "text-zinc-300"
-                        : "text-zinc-700"
+                      ? "bg-primary text-primary-foreground flex h-6 w-6 items-center justify-center rounded-full"
+                      : "text-foreground"
                   }`}
                 >
                   {date.getDate()}
@@ -615,9 +587,7 @@ export function PlanningEventsTab({ seasonId: _seasonId, planningCycleId, isDark
                       />
                     ))}
                     {overflow > 0 && (
-                      <span
-                        className={`ml-0.5 text-[10px] leading-none font-bold ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                      >
+                      <span className="text-muted-foreground ml-0.5 text-[10px] leading-none font-bold">
                         +{overflow}
                       </span>
                     )}
@@ -634,32 +604,28 @@ export function PlanningEventsTab({ seasonId: _seasonId, planningCycleId, isDark
       {/* ------------------------------------------------ */}
       <div className={cardClass}>
         <div className="mb-4 flex items-center justify-between">
-          <h3 className={`text-lg font-bold ${isDark ? "text-white" : "text-zinc-900"}`}>
+          <h3 className="text-card-foreground text-lg font-bold">
             {selectedDate ? (
               <>
-                Hendelser {formatDateShort(selectedDate)}
+                {t("yearWheel.events_tab")} {formatDateShort(selectedDate)}
                 <button
                   onClick={() => setSelectedDate(null)}
-                  className={`ml-2 inline-flex items-center rounded-md px-1.5 py-0.5 text-xs font-medium transition-colors ${
-                    isDark
-                      ? "text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300"
-                      : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
-                  }`}
+                  className="text-muted-foreground hover:bg-accent hover:text-accent-foreground ml-2 inline-flex items-center rounded-md px-1.5 py-0.5 text-xs font-medium transition-colors"
                 >
                   <X className="mr-0.5 h-3 w-3" />
-                  Vis alle
+                  {t("yearWheel.show_all")}
                 </button>
               </>
             ) : (
-              "Kommende hendelser (30 dager)"
+              t("yearWheel.upcoming_30_days")
             )}
           </h3>
           <button
             onClick={openCreateForm}
-            className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-blue-500"
+            className="bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-bold transition-colors"
           >
             <Plus className="h-4 w-4" />
-            Ny hendelse
+            {t("yearWheel.new_event")}
           </button>
         </div>
 
@@ -671,36 +637,24 @@ export function PlanningEventsTab({ seasonId: _seasonId, planningCycleId, isDark
             handleCreate,
             () => setShowCreateForm(false),
             createEvent.isPending,
-            "Opprett",
+            t("yearWheel.create"),
           )}
 
         {/* Spacer between create form and list */}
-        {showCreateForm && listEvents.length > 0 && (
-          <div className={`my-4 h-px w-full ${isDark ? "bg-zinc-800/50" : "bg-zinc-200"}`} />
-        )}
+        {showCreateForm && listEvents.length > 0 && <div className="bg-muted my-4 h-px w-full" />}
 
         {/* Event rows */}
         {listEvents.length === 0 && !showCreateForm ? (
-          <div
-            className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed py-12 ${
-              isDark ? "border-zinc-800 bg-zinc-900/20" : "border-zinc-300 bg-zinc-50"
-            }`}
-          >
-            <CalendarDays
-              className={`mb-3 h-8 w-8 ${isDark ? "text-zinc-700" : "text-zinc-300"}`}
-            />
-            <p className={`text-sm ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
-              {selectedDate
-                ? "Ingen hendelser denne dagen."
-                : "Ingen kommende hendelser de neste 30 dagene."}
+          <div className="border-border bg-accent flex flex-col items-center justify-center rounded-xl border-2 border-dashed py-12">
+            <CalendarDays className="text-muted-foreground mb-3 h-8 w-8" />
+            <p className="text-muted-foreground text-sm">
+              {selectedDate ? t("yearWheel.no_events_on_day") : t("yearWheel.no_upcoming_events")}
             </p>
             <button
               onClick={openCreateForm}
-              className={`mt-3 text-sm font-medium transition-colors ${
-                isDark ? "text-blue-400 hover:text-blue-300" : "text-blue-600 hover:text-blue-500"
-              }`}
+              className="text-primary hover:text-primary/80 mt-3 text-sm font-medium transition-colors"
             >
-              Legg til en hendelse
+              {t("yearWheel.add_event")}
             </button>
           </div>
         ) : (
@@ -718,7 +672,7 @@ export function PlanningEventsTab({ seasonId: _seasonId, planningCycleId, isDark
                       handleUpdate,
                       () => setEditingEventId(null),
                       updateEvent.isPending,
-                      "Lagre endringer",
+                      t("yearWheel.save_changes"),
                     )}
                   </div>
                 );
@@ -728,69 +682,47 @@ export function PlanningEventsTab({ seasonId: _seasonId, planningCycleId, isDark
                 <button
                   key={ev.planning_event_id}
                   onClick={() => startEdit(ev)}
-                  className={`group flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-colors ${
-                    isDark
-                      ? "border-zinc-800/80 bg-[#121216] hover:border-zinc-700"
-                      : "border-zinc-200 bg-white hover:border-zinc-300 hover:shadow-sm"
-                  }`}
+                  className="group border-border bg-card hover:border-border/60 flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-colors hover:shadow-sm"
                 >
                   {/* Date badge */}
-                  <div
-                    className={`flex h-10 w-10 flex-shrink-0 flex-col items-center justify-center rounded-lg text-center ${
-                      isDark ? "bg-zinc-800" : "bg-zinc-100"
-                    }`}
-                  >
-                    <span
-                      className={`text-[10px] leading-tight font-bold uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                    >
+                  <div className="bg-muted flex h-10 w-10 flex-shrink-0 flex-col items-center justify-center rounded-lg text-center">
+                    <span className="text-muted-foreground text-[10px] leading-tight font-bold uppercase">
                       {new Date(ev.event_date + "T00:00:00").toLocaleDateString("nb-NO", {
                         month: "short",
                       })}
                     </span>
-                    <span
-                      className={`text-sm leading-tight font-black ${isDark ? "text-zinc-300" : "text-zinc-700"}`}
-                    >
+                    <span className="text-foreground text-sm leading-tight font-black">
                       {new Date(ev.event_date + "T00:00:00").getDate()}
                     </span>
                   </div>
 
                   {/* Name + category pill */}
                   <div className="min-w-0 flex-1">
-                    <span
-                      className={`block truncate text-sm font-semibold ${isDark ? "text-white" : "text-zinc-900"}`}
-                    >
+                    <span className="text-card-foreground block truncate text-sm font-semibold">
                       {ev.name}
                     </span>
                     <span
-                      className={`mt-0.5 inline-block rounded border px-1.5 py-0.5 text-[10px] font-bold ${
-                        isDark ? colors.pillDark : colors.pill
-                      }`}
+                      className={`mt-0.5 inline-block rounded border px-1.5 py-0.5 text-[10px] font-bold ${colors.pill}`}
                     >
-                      {CATEGORY_OPTIONS.find((c) => c.value === ev.category)?.label ?? ev.category}
+                      {categoryOptions.find((c) => c.value === ev.category)?.label ?? ev.category}
                     </span>
                   </div>
 
                   {/* Demand multiplier */}
                   <div className="flex-shrink-0 text-right">
-                    <span
-                      className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}
-                    >
+                    <span className="text-foreground text-sm font-bold">
                       {ev.demand_multiplier.toFixed(1)}x
                     </span>
                   </div>
 
                   {/* Confidence bar */}
                   <div className="flex w-16 flex-shrink-0 flex-col items-end gap-0.5">
-                    <span
-                      className={`text-[10px] font-medium ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                    >
+                    <span className="text-muted-foreground text-[10px] font-medium">
                       {((ev.confidence ?? 0) * 100).toFixed(0)}%
                     </span>
-                    <div
-                      className={`h-1.5 w-full overflow-hidden rounded-full ${isDark ? "bg-zinc-800" : "bg-zinc-200"}`}
-                    >
+                    <div className="bg-muted h-1.5 w-full overflow-hidden rounded-full">
                       <div
-                        className="h-full rounded-full bg-blue-500 transition-all"
+                        className="bg-primary h-full rounded-full transition-all"
                         style={{ width: `${(ev.confidence ?? 0) * 100}%` }}
                       />
                     </div>
@@ -807,11 +739,7 @@ export function PlanningEventsTab({ seasonId: _seasonId, planningCycleId, isDark
                         handleDelete(ev.planning_event_id);
                       }}
                       disabled={deleteEvent.isPending}
-                      className={`rounded-lg p-1.5 transition-colors ${
-                        isDark
-                          ? "text-zinc-600 hover:bg-red-500/10 hover:text-red-400"
-                          : "text-zinc-300 hover:bg-red-50 hover:text-red-500"
-                      }`}
+                      className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive rounded-lg p-1.5 transition-colors"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>

@@ -4,11 +4,15 @@
  * Positioned horizontally on the 12-month grid based on event_date.
  * Provides a 44px invisible hit area (WCAG 2.5.8 minimum target size).
  * When 3+ pins cluster on the same month, they collapse into a numbered badge.
+ *
+ * All colors come from CSS variables (bg-card, bg-muted, etc.) — no hardcoded
+ * zinc/blue/purple classes. Springs come from @smartout/design-tokens.
  */
 
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
+import { motion as motionTokens } from "@smartout/design-tokens";
 import type { PlanningEventRow } from "@/lib/cascade/types";
 
 type TimelineViewMode = "year" | "month";
@@ -17,7 +21,6 @@ type TimelinePinProps = {
   event: PlanningEventRow;
   year: number;
   onClick: (eventId: string) => void;
-  isDark: boolean;
   viewMode?: TimelineViewMode;
   /** 0–11 when viewMode is "month". */
   zoomMonth?: number;
@@ -51,40 +54,46 @@ function computePinPositionInMonth(
   return ((day - 0.5) / dim) * 100;
 }
 
+/**
+ * Maps planning event categories to chart CSS variables so colors
+ * respond to light/dark mode automatically.
+ */
 const CATEGORY_COLORS: Record<string, string> = {
-  external_scraped: "bg-blue-500",
-  cultural_commercial: "bg-purple-500",
-  internal: "bg-amber-500",
-  weather: "bg-sky-500",
-  recurring: "bg-orange-500",
+  external_scraped: "bg-chart-1",
+  cultural_commercial: "bg-chart-4",
+  internal: "bg-chart-3",
+  weather: "bg-chart-1",
+  recurring: "bg-chart-3",
 };
 
 export function TimelinePin({
   event,
   year,
   onClick,
-  isDark,
   viewMode = "year",
   zoomMonth = 0,
 }: TimelinePinProps) {
+  const prefersReducedMotion = useReducedMotion();
   const position =
     viewMode === "month"
       ? computePinPositionInMonth(event.event_date, year, zoomMonth)
       : computePinPosition(event.event_date, year);
   if (position === null) return null;
 
-  const dotColor = CATEGORY_COLORS[event.category] ?? "bg-zinc-400";
+  const dotColor = CATEGORY_COLORS[event.category] ?? "bg-chart-5";
 
   return (
     <motion.button
       initial={{ opacity: 0, scale: 0.5 }}
       animate={{ opacity: 1, scale: 1 }}
-      transition={{ type: "spring", stiffness: 400, damping: 20 }}
+      transition={
+        prefersReducedMotion ? { duration: 0 } : { type: "spring", ...motionTokens.springSnappy }
+      }
       onClick={(clickEvent) => {
         clickEvent.stopPropagation();
         onClick(event.planning_event_id);
       }}
-      className="group absolute focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:outline-none"
+      className="group focus-visible:ring-ring absolute flex min-h-[44px] min-w-[44px] items-center justify-center focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
       style={{
         left: `${position}%`,
         top: "50%",
@@ -101,11 +110,7 @@ export function TimelinePin({
       />
 
       {/* Tooltip on hover */}
-      <span
-        className={`pointer-events-none absolute -top-8 left-1/2 z-10 -translate-x-1/2 rounded-md px-2 py-1 text-[10px] font-medium whitespace-nowrap opacity-0 transition-opacity group-hover:opacity-100 ${
-          isDark ? "bg-zinc-800 text-zinc-200" : "bg-white text-zinc-700 shadow-md"
-        }`}
-      >
+      <span className="bg-card text-card-foreground border-border pointer-events-none absolute -top-8 left-1/2 z-10 -translate-x-1/2 rounded-md border px-2 py-1 text-[10px] font-medium whitespace-nowrap opacity-0 shadow-md transition-opacity group-hover:opacity-100">
         {event.name}
       </span>
     </motion.button>
@@ -121,10 +126,10 @@ type PinClusterProps = {
   month: number;
   year: number;
   onClick: (eventIds: string[]) => void;
-  isDark: boolean;
 };
 
-export function PinCluster({ events, month, year, onClick, isDark }: PinClusterProps) {
+export function PinCluster({ events, month, year, onClick }: PinClusterProps) {
+  const prefersReducedMotion = useReducedMotion();
   const monthStart = new Date(year, month, 1);
   const monthEnd = new Date(year, month + 1, 0);
   const yearStart = new Date(year, 0, 1);
@@ -138,12 +143,14 @@ export function PinCluster({ events, month, year, onClick, isDark }: PinClusterP
     <motion.button
       initial={{ opacity: 0, scale: 0.5 }}
       animate={{ opacity: 1, scale: 1 }}
-      transition={{ type: "spring", stiffness: 400, damping: 20 }}
+      transition={
+        prefersReducedMotion ? { duration: 0 } : { type: "spring", ...motionTokens.springSnappy }
+      }
       onClick={(clickEvent) => {
         clickEvent.stopPropagation();
         onClick(events.map((e) => e.planning_event_id));
       }}
-      className="group absolute focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:outline-none"
+      className="group focus-visible:ring-ring absolute flex min-h-[44px] min-w-[44px] items-center justify-center focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
       style={{
         left: `${position}%`,
         top: "50%",
@@ -154,11 +161,7 @@ export function PinCluster({ events, month, year, onClick, isDark }: PinClusterP
       aria-label={`${events.length} events in this month`}
       tabIndex={0}
     >
-      <span
-        className={`absolute top-1/2 left-1/2 flex h-5 w-5 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full text-[10px] font-bold ${
-          isDark ? "bg-zinc-700 text-zinc-200" : "bg-zinc-200 text-zinc-700"
-        } transition-transform group-hover:scale-125`}
-      >
+      <span className="bg-muted text-muted-foreground absolute top-1/2 left-1/2 flex h-5 w-5 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full text-[10px] font-bold transition-transform group-hover:scale-125">
         {events.length}
       </span>
     </motion.button>

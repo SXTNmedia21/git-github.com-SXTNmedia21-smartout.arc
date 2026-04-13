@@ -20,6 +20,7 @@ import { ClipboardCheck } from "lucide-react-native";
 
 import { EmptyState } from "@/components/ui";
 import { createStyles, useTheme } from "@/theme";
+import { withOpacity } from "@/theme/colors";
 import { strings } from "@/constants/strings";
 import { TaskModal, type SessionTask } from "./TaskModal";
 import { ChecklistView } from "./ChecklistView";
@@ -101,12 +102,18 @@ export function TaskFeed({ tasks, profileId }: TaskFeedProps) {
     for (const [hookId, pendingTasks] of hookGroups) {
       if (pendingTasks.length > 0) {
         const allTasks = fullHookGroups.get(hookId) ?? pendingTasks;
+        /* TODO: derive from session_hook.procedure.name when join available.
+           Currently the join only includes hook_linked_procedure_id (UUID),
+           not the procedure name. Falls back to generic checklist title. */
+        const firstTask = allTasks[0];
+        const derivedName = firstTask?.title ?? strings.cleaning.title;
+
         items.push({
           type: "checklist",
           group: {
             hookId,
             tasks: allTasks,
-            procedureName: strings.cleaning.title,
+            procedureName: derivedName,
           },
         });
       }
@@ -228,7 +235,7 @@ function ChecklistGroupCard({ group, onPress }: { group: ChecklistGroup; onPress
       accessibilityRole="button"
       accessibilityLabel={`${group.procedureName}, ${strings.cleaning.progress(completedCount, totalCount)}`}
     >
-      <View style={[styles.checklistIcon, { backgroundColor: colors.primary + "15" }]}>
+      <View style={[styles.checklistIcon, { backgroundColor: withOpacity(colors.primary, 0.08) }]}>
         <ClipboardCheck size={18} color={colors.primary} />
       </View>
       <View style={styles.rowContent}>
@@ -343,7 +350,7 @@ const useStyles = createStyles((theme) => ({
     padding: theme.spacing.element,
     gap: theme.spacing.element,
     borderWidth: 1,
-    borderColor: theme.colors.primary + "30",
+    borderColor: withOpacity(theme.colors.primary, 0.19),
   },
   checklistIcon: {
     width: 36,

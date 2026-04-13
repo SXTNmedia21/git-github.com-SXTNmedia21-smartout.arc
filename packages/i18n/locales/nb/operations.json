@@ -21,6 +21,7 @@
   "operations.temperature": "Temperatur",
   "operations.temperatureOk": "OK",
   "operations.temperatureDeviation": "Avvik",
+  "operations.temperatureStaleValue": "Utdatert",
   "operations.temperatureStale": "Siste måling over 2 timer gammel",
   "operations.temperatureNone": "Ingen målinger i dag",
   "operations.cleaning": "Renholdssjekk",

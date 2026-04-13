@@ -46,6 +46,17 @@ export type DeviationBreakdown = {
   total: number;
 };
 
+/** Shape of the joined cleaning task row from the session_task query. */
+type CleaningTaskRow = {
+  id: string;
+  status: string;
+  completed_at: string | null;
+  session_hook: {
+    linked_procedure_id: string;
+    procedure: { procedure_type: string } | null;
+  } | null;
+};
+
 export type OperationsData = {
   // Metric cards
   taskCompletion: { done: number; total: number; pct: number };
@@ -211,19 +222,54 @@ export function useOperationsData() {
       const shiftList = shifts ?? [];
       const deviationList = deviations ?? [];
 
-      // ── Fetch tasks for today's sessions (step 2, needs session IDs) ──
-      let taskList: Array<{ status: string; session_hook_id: string | null }> = [];
-      if (sessionList.length > 0) {
-        const sessionIds = sessionList.map((s) => s.department_session_id);
-        const { data: tasks, error: tasksError } = await supabase
-          .from("session_task")
-          .select("status, session_hook_id")
-          .in("department_session_id", sessionIds)
-          .eq("workspace_id", wsId);
+      // ── Prepare data needed for the second batch of queries ──────────
+      const assignedShifts = shiftList.filter((s) => !!s.employee_id);
+      const presentCount = assignedShifts.length;
+      const expectedCount = shiftList.length;
+      const assignedEmployeeIds = [
+        ...new Set(assignedShifts.map((s) => s.employee_id).filter((id): id is string => !!id)),
+      ];
+      const sessionIds = sessionList.map((s) => s.department_session_id);
 
-        if (tasksError) console.error("[operations] tasks error:", tasksError.message);
-        taskList = tasks ?? [];
-      }
+      // ── Second batch: tasks, profiles, cleaning — all depend on first
+      //    batch results but are independent of each other ───────────────
+      const [taskResult, profileResult, cleaningResult] = await Promise.all([
+        // Tasks query (depends on sessionIds)
+        sessionIds.length > 0
+          ? supabase
+              .from("session_task")
+              .select("status, session_hook_id")
+              .in("department_session_id", sessionIds)
+              .eq("workspace_id", wsId)
+          : Promise.resolve({ data: null, error: null }),
+
+        // Profile names query (depends on assignedEmployeeIds from shifts)
+        assignedEmployeeIds.length > 0
+          ? supabase
+              .from("profile")
+              .select("profile_id, display_name")
+              .in("profile_id", assignedEmployeeIds)
+              .eq("workspace_id", wsId)
+          : Promise.resolve({ data: null, error: null }),
+
+        // Cleaning tasks query (depends on sessionIds)
+        sessionIds.length > 0
+          ? supabase
+              .from("session_task")
+              .select(
+                "id, status, completed_at, session_hook:session_hook_id(linked_procedure_id, procedure:linked_procedure_id(procedure_type))",
+              )
+              .in("department_session_id", sessionIds)
+              .eq("workspace_id", wsId)
+              .not("session_hook_id", "is", null)
+          : Promise.resolve({ data: null, error: null }),
+      ]);
+
+      if (taskResult.error) console.error("[operations] tasks error:", taskResult.error.message);
+      if (profileResult.error)
+        console.error("[operations] profiles error:", profileResult.error.message);
+
+      const taskList = taskResult.data ?? [];
 
       // ── Derive task completion metrics ────────────────────────────────
       const totalTasks = taskList.length;
@@ -237,31 +283,10 @@ export function useOperationsData() {
       const completionPct = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
 
       // ── Derive staff presence metrics ─────────────────────────────────
-      // Shifts with an employee assigned = present. Total shifts = expected.
-      const assignedShifts = shiftList.filter((s) => !!s.employee_id);
-      const presentCount = assignedShifts.length;
-      const expectedCount = shiftList.length;
-
-      // Look up display names for assigned employees in a dedicated query.
-      // We avoid the embedded join on schedule_shift because Supabase's type
-      // generator flags the profile FK as ambiguous (multiple relationships exist).
-      const assignedEmployeeIds = [
-        ...new Set(assignedShifts.map((s) => s.employee_id).filter((id): id is string => !!id)),
-      ];
-
-      let staffNames: string[] = [];
-      if (assignedEmployeeIds.length > 0) {
-        const { data: profiles } = await supabase
-          .from("profile")
-          .select("profile_id, display_name")
-          .in("profile_id", assignedEmployeeIds)
-          .eq("workspace_id", wsId);
-
-        staffNames = (profiles ?? [])
-          .map((p) => p.display_name)
-          .filter(Boolean)
-          .slice(0, 6); // Cap at 6 names for the sub-label display
-      }
+      const staffNames = (profileResult.data ?? [])
+        .map((p) => p.display_name)
+        .filter(Boolean)
+        .slice(0, 6); // Cap at 6 names for the sub-label display
 
       // ── Derive stress level ───────────────────────────────────────────
       const capacityPct = expectedCount > 0 ? Math.round((presentCount / expectedCount) * 100) : 0;
@@ -275,33 +300,14 @@ export function useOperationsData() {
         stressLabel = "high";
       }
 
-      // ── Fetch cleaning tasks (needs session IDs from step 1) ─────────
+      // ── Derive cleaning status from cleaning query results ───────────
       // Cleaning tasks are session_task rows linked via session_hook to a
       // procedure with procedure_type = "maintenance".
-      let cleaningDone = 0;
-      let cleaningTotal = 0;
-      if (sessionList.length > 0) {
-        const sessionIds = sessionList.map((s) => s.department_session_id);
-        const { data: cleaningTasks } = await supabase
-          .from("session_task")
-          .select(
-            "id, status, session_hook:session_hook_id(linked_procedure_id, procedure:linked_procedure_id(procedure_type))",
-          )
-          .in("department_session_id", sessionIds)
-          .eq("workspace_id", wsId)
-          .not("session_hook_id", "is", null);
-
-        // Filter to only maintenance (cleaning) procedures
-        const maintenanceTasks = (cleaningTasks ?? []).filter((t: Record<string, unknown>) => {
-          const hook = t.session_hook as Record<string, unknown> | null;
-          const proc = hook?.procedure as Record<string, unknown> | null;
-          return proc?.procedure_type === "maintenance";
-        });
-        cleaningTotal = maintenanceTasks.length;
-        cleaningDone = maintenanceTasks.filter(
-          (t: Record<string, unknown>) => t.status === "completed",
-        ).length;
-      }
+      const maintenanceTasks = ((cleaningResult.data ?? []) as CleaningTaskRow[]).filter((t) => {
+        return t.session_hook?.procedure?.procedure_type === "maintenance";
+      });
+      const cleaningTotal = maintenanceTasks.length;
+      const cleaningDone = maintenanceTasks.filter((t) => t.status === "completed").length;
 
       // ── Derive HACCP temperature status ──────────────────────────────
       const haccpReadings: HaccpReading[] = (haccpData ?? []).map((r) => ({

@@ -36,6 +36,7 @@ import {
   resendInvitation,
   reactivateProfile,
   bulkUpdateProfiles,
+  sendLoginCode,
 } from "../_actions/people-actions";
 import type { Enums } from "@smartout/supabase";
 
@@ -277,6 +278,17 @@ export function PeopleDataTable({
       onRefresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to resend invitation");
+    }
+  }
+
+  async function handleSendLoginCode(profileId: string, channel: "email" | "sms") {
+    if (!workspaceId) return;
+    try {
+      await sendLoginCode(profileId, workspaceId, channel);
+      const label = channel === "sms" ? "SMS" : "e-post";
+      toast.success(`Innloggingskode sendt via ${label}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Kunne ikke sende innloggingskode");
     }
   }
 
@@ -837,6 +849,7 @@ export function PeopleDataTable({
                       onConfirmAction={handleConfirmAction}
                       onResendInvite={handleResendInvite}
                       onSendContract={setContractProfileId}
+                      onSendLoginCode={handleSendLoginCode}
                     />
                   </td>
                 </tr>

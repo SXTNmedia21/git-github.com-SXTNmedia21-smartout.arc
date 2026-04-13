@@ -33,7 +33,6 @@ type SeasonDrawerProps = {
   season: Season | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  isDark: boolean;
 };
 
 type DrawerTab = "overview" | "goals" | "procedures";
@@ -44,7 +43,7 @@ const DRAWER_TABS: { id: DrawerTab; labelKey: string; icon: typeof LayoutDashboa
   { id: "procedures", labelKey: "yearWheel.tab_procedures", icon: ShieldCheck },
 ];
 
-export function SeasonDrawer({ season, open, onOpenChange, isDark }: SeasonDrawerProps) {
+export function SeasonDrawer({ season, open, onOpenChange }: SeasonDrawerProps) {
   const { t } = useTranslation("dashboard");
   const [activeTab, setActiveTab] = useState<DrawerTab>("overview");
   const [machineRoomOpen, setMachineRoomOpen] = useState(false);
@@ -54,39 +53,40 @@ export function SeasonDrawer({ season, open, onOpenChange, isDark }: SeasonDrawe
   if (!season) return null;
 
   const statusLabel =
-    season.status === "active" ? "Aktiv" : season.status === "draft" ? "Utkast" : "Arkivert";
+    season.status === "active"
+      ? t("yearWheel.active")
+      : season.status === "draft"
+        ? t("yearWheel.draft")
+        : t("yearWheel.archived");
 
+  // Semantic color per status — uses CSS variable tokens
   const statusColor =
     season.status === "active"
-      ? "text-emerald-500"
+      ? "text-success"
       : season.status === "draft"
-        ? "text-amber-500"
-        : "text-zinc-500";
+        ? "text-warning"
+        : "text-muted-foreground";
 
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent
           side="right"
-          className={`w-full overflow-y-auto sm:max-w-xl ${
-            isDark ? "border-zinc-800 bg-zinc-950" : "border-zinc-200 bg-white"
-          }`}
+          className="border-border bg-card w-full overflow-y-auto sm:max-w-xl"
         >
-          <SheetHeader className="border-b border-zinc-800/50 pb-4">
+          <SheetHeader className="border-border/50 border-b pb-4">
             <div className="flex items-center gap-3">
-              <SheetTitle
-                className={`font-heading text-lg ${isDark ? "text-white" : "text-zinc-900"}`}
-              >
+              <SheetTitle className="font-heading text-card-foreground text-lg">
                 {season.name}
               </SheetTitle>
               <span className={`text-xs font-bold tracking-wide uppercase ${statusColor}`}>
                 {statusLabel}
               </span>
             </div>
-            <SheetDescription className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+            <SheetDescription className="text-muted-foreground text-xs">
               {season.start_date && season.end_date
                 ? `${new Date(season.start_date).toLocaleDateString("nb-NO")} – ${new Date(season.end_date).toLocaleDateString("nb-NO")}`
-                : "Ingen datoer satt"}
+                : t("yearWheel.no_dates_set")}
             </SheetDescription>
           </SheetHeader>
 
@@ -101,12 +101,8 @@ export function SeasonDrawer({ season, open, onOpenChange, isDark }: SeasonDrawe
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
                     isActive
-                      ? isDark
-                        ? "bg-zinc-800 text-white"
-                        : "bg-zinc-100 text-zinc-900"
-                      : isDark
-                        ? "text-zinc-500 hover:text-white"
-                        : "text-zinc-400 hover:text-zinc-900"
+                      ? "bg-accent text-accent-foreground"
+                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                   }`}
                 >
                   <Icon className="h-3.5 w-3.5" />
@@ -120,14 +116,10 @@ export function SeasonDrawer({ season, open, onOpenChange, isDark }: SeasonDrawe
           {budget && (
             <button
               onClick={() => setMachineRoomOpen(true)}
-              className={`mb-4 flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${
-                isDark
-                  ? "border-zinc-800 text-zinc-400 hover:bg-zinc-800 hover:text-white"
-                  : "border-zinc-200 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
-              }`}
+              className="border-border text-muted-foreground hover:bg-accent hover:text-accent-foreground mb-4 flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium transition-colors"
             >
               <Settings2 className="h-3.5 w-3.5" />
-              Rediger vekting
+              {t("yearWheel.edit_weighting")}
             </button>
           )}
 
@@ -140,21 +132,14 @@ export function SeasonDrawer({ season, open, onOpenChange, isDark }: SeasonDrawe
                   seasonBudgetId={budget.season_budget_id}
                   seasonStartDate={season.start_date}
                   seasonEndDate={season.end_date}
-                  isDark={isDark}
                 />
               ) : (
-                <p
-                  className={`py-8 text-center text-sm ${isDark ? "text-zinc-600" : "text-zinc-400"}`}
-                >
+                <p className="text-muted-foreground py-8 text-center text-sm">
                   {t("yearWheel.empty_budget")}
                 </p>
               ))}
-            {activeTab === "goals" && (
-              <SeasonGoalsTab seasonId={season.season_id} isDark={isDark} />
-            )}
-            {activeTab === "procedures" && (
-              <SeasonProceduresTab seasonId={season.season_id} isDark={isDark} />
-            )}
+            {activeTab === "goals" && <SeasonGoalsTab seasonId={season.season_id} />}
+            {activeTab === "procedures" && <SeasonProceduresTab seasonId={season.season_id} />}
           </div>
         </SheetContent>
       </Sheet>
@@ -167,7 +152,6 @@ export function SeasonDrawer({ season, open, onOpenChange, isDark }: SeasonDrawe
           budgetStatus={budget.status}
           open={machineRoomOpen}
           onOpenChange={setMachineRoomOpen}
-          isDark={isDark}
         />
       )}
     </>

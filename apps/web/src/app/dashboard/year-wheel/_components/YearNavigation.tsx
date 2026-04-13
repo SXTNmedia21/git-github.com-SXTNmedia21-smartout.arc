@@ -15,10 +15,9 @@ import { useTranslation } from "@smartout/i18n";
 type YearNavigationProps = {
   currentYear: number;
   onYearChange: (year: number) => void;
-  isDark: boolean;
 };
 
-export function YearNavigation({ currentYear, onYearChange, isDark }: YearNavigationProps) {
+export function YearNavigation({ currentYear, onYearChange }: YearNavigationProps) {
   const { t } = useTranslation("dashboard");
   const prevYear = currentYear - 1;
   const nextYear = currentYear + 1;
@@ -31,9 +30,7 @@ export function YearNavigation({ currentYear, onYearChange, isDark }: YearNaviga
     >
       <button
         onClick={() => onYearChange(prevYear)}
-        className={`rounded-lg p-2 transition-colors ${
-          isDark ? "text-zinc-400 hover:bg-zinc-800" : "text-zinc-500 hover:bg-zinc-100"
-        }`}
+        className="text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded-lg p-2 transition-colors"
         aria-label={`Navigate to ${prevYear}`}
       >
         <ChevronLeft className="h-5 w-5" />
@@ -42,9 +39,7 @@ export function YearNavigation({ currentYear, onYearChange, isDark }: YearNaviga
       <div className="flex items-baseline gap-4">
         <button
           onClick={() => onYearChange(prevYear)}
-          className={`font-heading text-lg transition-colors ${
-            isDark ? "text-zinc-600 hover:text-zinc-400" : "text-zinc-400 hover:text-zinc-600"
-          }`}
+          className="font-heading text-muted-foreground hover:text-foreground text-lg transition-colors"
         >
           {prevYear}
         </button>
@@ -56,9 +51,7 @@ export function YearNavigation({ currentYear, onYearChange, isDark }: YearNaviga
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.2 }}
-            className={`font-heading text-3xl font-semibold ${
-              isDark ? "text-white" : "text-zinc-900"
-            }`}
+            className="font-heading text-foreground text-3xl font-semibold"
             aria-live="polite"
           >
             {currentYear}
@@ -67,9 +60,7 @@ export function YearNavigation({ currentYear, onYearChange, isDark }: YearNaviga
 
         <button
           onClick={() => onYearChange(nextYear)}
-          className={`font-heading text-lg transition-colors ${
-            isDark ? "text-zinc-600 hover:text-zinc-400" : "text-zinc-400 hover:text-zinc-600"
-          }`}
+          className="font-heading text-muted-foreground hover:text-foreground text-lg transition-colors"
         >
           {nextYear}
         </button>
@@ -77,9 +68,7 @@ export function YearNavigation({ currentYear, onYearChange, isDark }: YearNaviga
 
       <button
         onClick={() => onYearChange(nextYear)}
-        className={`rounded-lg p-2 transition-colors ${
-          isDark ? "text-zinc-400 hover:bg-zinc-800" : "text-zinc-500 hover:bg-zinc-100"
-        }`}
+        className="text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded-lg p-2 transition-colors"
         aria-label={`Navigate to ${nextYear}`}
       >
         <ChevronRight className="h-5 w-5" />
@@ -88,13 +77,9 @@ export function YearNavigation({ currentYear, onYearChange, isDark }: YearNaviga
       {currentYear !== todayYear && (
         <button
           onClick={() => onYearChange(todayYear)}
-          className={`ml-2 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-            isDark
-              ? "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
-              : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
-          }`}
+          className="bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground ml-2 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
         >
-          I dag
+          {t("yearWheel.today")}
         </button>
       )}
     </nav>

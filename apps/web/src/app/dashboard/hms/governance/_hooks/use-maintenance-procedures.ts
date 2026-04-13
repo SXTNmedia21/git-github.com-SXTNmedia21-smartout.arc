@@ -15,6 +15,7 @@ import { useContext } from "react";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { emit } from "@smartout/telemetry";
 import { toast } from "sonner";
+import { useTranslation } from "@smartout/i18n";
 
 export type MaintenanceStep = {
   step_id: string;
@@ -82,6 +83,7 @@ export function useCreateSessionHook() {
   const ctx = useWorkspaceOptional();
   const wsId = ctx?.workspace.workspace_id;
   const { profileId } = useContext(DashboardContext);
+  const { t } = useTranslation("cleaning");
   const qc = useQueryClient();
 
   return useMutation({
@@ -104,14 +106,27 @@ export function useCreateSessionHook() {
         .select("id")
         .single();
       if (error) throw error;
-      return data;
+      return { ...data, ...params };
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: maintenanceKey(wsId ?? "") });
-      toast.success("Sjekkliste koblet til avdeling");
+      void emit({
+        event: "session_hook created",
+        workspace_id: wsId ?? null,
+        actor_id: profileId ?? "",
+        properties: {
+          data: {
+            hook_id: _data.id,
+            department_id: variables.department_id,
+            hook_type: variables.hook_type,
+            linked_procedure_id: variables.linked_procedure_id,
+          },
+        },
+      });
+      toast.success(t("cleaning.hookCreated"));
     },
     onError: (error: Error) => {
-      toast.error(`Kunne ikke koble sjekkliste: ${error.message}`);
+      toast.error(`${t("cleaning.hookCreateError")}: ${error.message}`);
     },
   });
 }
@@ -119,6 +134,8 @@ export function useCreateSessionHook() {
 export function useDeleteSessionHook() {
   const ctx = useWorkspaceOptional();
   const wsId = ctx?.workspace.workspace_id;
+  const { profileId } = useContext(DashboardContext);
+  const { t } = useTranslation("cleaning");
   const qc = useQueryClient();
 
   return useMutation({
@@ -127,12 +144,22 @@ export function useDeleteSessionHook() {
       const { error } = await supabase.from("session_hook").delete().eq("id", hookId);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, hookId) => {
       qc.invalidateQueries({ queryKey: maintenanceKey(wsId ?? "") });
-      toast.success("Kobling fjernet");
+      void emit({
+        event: "session_hook deleted",
+        workspace_id: wsId ?? null,
+        actor_id: profileId ?? "",
+        properties: {
+          data: {
+            hook_id: hookId,
+          },
+        },
+      });
+      toast.success(t("cleaning.hookDeleted"));
     },
     onError: (error: Error) => {
-      toast.error(`Kunne ikke fjerne kobling: ${error.message}`);
+      toast.error(`${t("cleaning.hookDeleteError")}: ${error.message}`);
     },
   });
 }

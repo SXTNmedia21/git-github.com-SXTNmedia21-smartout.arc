@@ -21,6 +21,7 @@
   "operations.temperature": "Temperature",
   "operations.temperatureOk": "OK",
   "operations.temperatureDeviation": "Deviation",
+  "operations.temperatureStaleValue": "Stale",
   "operations.temperatureStale": "Last reading over 2 hours ago",
   "operations.temperatureNone": "No readings today",
   "operations.cleaning": "Cleaning Check",

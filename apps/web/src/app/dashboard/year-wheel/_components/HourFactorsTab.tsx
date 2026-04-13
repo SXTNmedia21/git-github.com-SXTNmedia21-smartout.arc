@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { useTranslation } from "@smartout/i18n";
 import { useHourFactors, DEFAULT_HOUR_FACTORS } from "../_hooks";
 import { useOperatingHours } from "../../settings/_hooks/use-operating-hours";
 import {
@@ -19,11 +20,11 @@ function parseTimeToHour(time: string): number {
 
 type Props = {
   seasonBudgetId: string;
-  isDark: boolean;
   isReadOnly?: boolean;
 };
 
-export function HourFactorsTab({ seasonBudgetId, isDark, isReadOnly = false }: Props) {
+export function HourFactorsTab({ seasonBudgetId, isReadOnly = false }: Props) {
+  const { t } = useTranslation("dashboard");
   const ctx = useWorkspaceOptional();
   const wsId = ctx?.workspace.workspace_id;
   const supabase = createClient();
@@ -105,7 +106,7 @@ export function HourFactorsTab({ seasonBudgetId, isDark, isReadOnly = false }: P
 
   const handleSave = () => {
     if (isReadOnly) {
-      toast.error("Budsjettet er låst. Sett status til Draft eller Active for å redigere.");
+      toast.error(t("yearWheel.budget_locked"));
       return;
     }
     saveHourFactors.mutate(factors);
@@ -116,28 +117,22 @@ export function HourFactorsTab({ seasonBudgetId, isDark, isReadOnly = false }: P
    */
   const applyTemplate = (template: HourFactorTemplateId) => {
     if (isReadOnly) {
-      toast.error("Budsjettet er låst. Sett status til Draft eller Active for å redigere.");
+      toast.error(t("yearWheel.budget_locked"));
       return;
     }
     setFactors(getHourFactorTemplate(template, openHour, closeHour));
   };
 
-  const cardClass = isDark
-    ? "rounded-2xl border border-zinc-800 bg-[#0c0c0e] p-6"
-    : "rounded-2xl border border-zinc-200 bg-white p-6";
-
   const isLoading = loadingFactors || loadingHours;
 
   if (isLoading) {
-    return <div className={`${cardClass} h-64 animate-pulse`} />;
+    return <div className="border-border bg-card h-64 animate-pulse rounded-2xl border p-6" />;
   }
 
   return (
-    <div className={cardClass}>
-      <h3 className={`mb-2 text-lg font-bold ${isDark ? "text-white" : "text-zinc-900"}`}>
-        Timefaktorer
-      </h3>
-      <p className={`mb-6 text-sm ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+    <div className="border-border bg-card rounded-2xl border p-6">
+      <h3 className="text-foreground mb-2 text-lg font-bold">{t("yearWheel.hour_factors")}</h3>
+      <p className="text-muted-foreground mb-6 text-sm">
         Fordeling av daglig omsetning per time ({openHour}:00&ndash;{closeHour}:00). Høyere faktor =
         mer omsetning forventet den timen.
       </p>
@@ -148,17 +143,13 @@ export function HourFactorsTab({ seasonBudgetId, isDark, isReadOnly = false }: P
             key={template}
             onClick={() => applyTemplate(template)}
             disabled={isReadOnly}
-            className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-              isDark
-                ? "border border-zinc-700 text-zinc-400 hover:bg-zinc-800 hover:text-white"
-                : "border border-zinc-300 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
-            }`}
+            className="border-border text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors"
           >
             {template === "restaurant"
-              ? "Restaurant"
+              ? t("yearWheel.template_restaurant")
               : template === "dinner_peak"
-                ? "Middagstopp"
-                : "Flat"}
+                ? t("yearWheel.template_dinner_peak")
+                : t("yearWheel.template_flat")}
           </button>
         ))}
       </div>
@@ -167,18 +158,16 @@ export function HourFactorsTab({ seasonBudgetId, isDark, isReadOnly = false }: P
         {factors.map((f) => {
           const barWidth = (f.factor / maxFactor) * 100;
           const isPeak = f.factor >= maxFactor * 0.8;
-          const barColor = isPeak ? "bg-emerald-600/30" : "bg-blue-600/20";
-          const textColor = isPeak ? "text-emerald-400" : "text-blue-400";
+          const barColor = isPeak ? "bg-chart-2/30" : "bg-chart-1/20";
+          const textColor = isPeak ? "text-chart-2" : "text-chart-1";
 
           return (
             <div key={f.hour} className="flex items-center gap-3">
-              <span
-                className={`w-12 text-right font-mono text-sm ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-              >
+              <span className="text-muted-foreground w-12 text-right font-mono text-sm">
                 {String(f.hour).padStart(2, "0")}:00
               </span>
               <div className="flex-1">
-                <div className={`h-7 rounded-md ${isDark ? "bg-zinc-900" : "bg-zinc-100"}`}>
+                <div className="bg-muted h-7 rounded-md">
                   <div
                     className={`flex h-full items-center rounded-md px-2 transition-all ${barColor}`}
                     style={{ width: `${barWidth}%` }}
@@ -195,11 +184,7 @@ export function HourFactorsTab({ seasonBudgetId, isDark, isReadOnly = false }: P
                 min={BUDGET_SETUP_LIMITS.hourFactor.min}
                 max={BUDGET_SETUP_LIMITS.hourFactor.max}
                 disabled={isReadOnly}
-                className={`w-16 rounded-lg border px-2 py-1 text-center text-sm font-medium outline-none ${
-                  isDark
-                    ? "border-zinc-700 bg-zinc-900 text-white focus:border-blue-500"
-                    : "border-zinc-300 bg-white text-zinc-900 focus:border-blue-500"
-                }`}
+                className="border-input bg-background text-foreground focus:border-primary w-16 rounded-lg border px-2 py-1 text-center text-sm font-medium outline-none"
               />
             </div>
           );
@@ -210,9 +195,9 @@ export function HourFactorsTab({ seasonBudgetId, isDark, isReadOnly = false }: P
         <button
           onClick={handleSave}
           disabled={saveHourFactors.isPending || isReadOnly}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-blue-500 disabled:opacity-50"
+          className="bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm font-bold transition-colors hover:opacity-90 disabled:opacity-50"
         >
-          {saveHourFactors.isPending ? "Lagrer..." : "Lagre timefaktorer"}
+          {saveHourFactors.isPending ? t("yearWheel.saving") : t("yearWheel.save_hour_factors")}
         </button>
       </div>
     </div>

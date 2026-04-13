@@ -30,5 +30,10 @@
   "cleaning.inactive": "Inactive",
   "cleaning.linkToDepartment": "Link to department",
   "cleaning.checkpoints": "Checkpoints",
-  "cleaning.noCheckpoints": "No checkpoints added"
+  "cleaning.noCheckpoints": "No checkpoints added",
+  "cleaning.hookCreated": "Checklist linked to department",
+  "cleaning.hookCreateError": "Could not link checklist",
+  "cleaning.hookDeleted": "Link removed",
+  "cleaning.hookDeleteError": "Could not remove link",
+  "cleaning.emptyStateDescription": "Create a cleaning checklist for your departments."
 }
