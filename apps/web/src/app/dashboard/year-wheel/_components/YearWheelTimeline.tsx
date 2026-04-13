@@ -340,7 +340,6 @@ export function YearWheelTimeline({
                     event={ev}
                     year={year}
                     onClick={onPinClick}
-                    isDark={isDark}
                     viewMode="year"
                   />
                 ))}
@@ -353,7 +352,6 @@ export function YearWheelTimeline({
                     onClick={(ids) => {
                       if (ids[0]) onPinClick(ids[0]);
                     }}
-                    isDark={isDark}
                   />
                 ))}
               </>
@@ -364,7 +362,6 @@ export function YearWheelTimeline({
                   event={ev}
                   year={year}
                   onClick={onPinClick}
-                  isDark={isDark}
                   viewMode="month"
                   zoomMonth={zoomMonth}
                 />
