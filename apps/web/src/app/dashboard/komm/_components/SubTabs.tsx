@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@smartout/i18n";
 
-export type KommTab = "kanaler" | "chat" | "nyheter";
+export type KommTab = "oversikt" | "kanaler" | "chat" | "nyheter";
 
 type Props = {
   activeTab: KommTab;
@@ -12,9 +12,10 @@ type Props = {
   chatUnread: number;
 };
 
-const TAB_KEYS: KommTab[] = ["kanaler", "chat", "nyheter"];
+const TAB_KEYS: KommTab[] = ["oversikt", "kanaler", "chat", "nyheter"];
 
 const TAB_I18N: Record<KommTab, string> = {
+  oversikt: "tabs.overview",
   kanaler: "tabs.channels",
   chat: "tabs.chat",
   nyheter: "tabs.news",

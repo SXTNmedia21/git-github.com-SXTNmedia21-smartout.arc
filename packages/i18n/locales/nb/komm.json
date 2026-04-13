@@ -1,12 +1,13 @@
 {
   "shell": {
-    "title": "Komm",
+    "title": "Kanaler",
     "empty_state": "Velg en kanal eller person for å begynne",
     "connection_error": "Kunne ikke koble til samtale",
     "retry": "Prøv igjen",
     "loading_profile": "Laster profil..."
   },
   "tabs": {
+    "overview": "Oversikt",
     "channels": "Kanaler",
     "chat": "Chat",
     "news": "Nyheter"
@@ -168,5 +169,14 @@
     "announcement": "Kunngjøring",
     "reminder": "Påminnelse",
     "summary": "Oppsummering"
+  },
+  "overview": {
+    "filter_all": "Alle",
+    "filter_announcement": "Kunngjøringer",
+    "filter_brief": "Briefinger",
+    "filter_handoff": "Overleveringer",
+    "filter_reminder": "Påminnelser",
+    "filter_event": "Hendelser",
+    "empty": "Ingen kommunikasjon registrert ennå"
   }
 }

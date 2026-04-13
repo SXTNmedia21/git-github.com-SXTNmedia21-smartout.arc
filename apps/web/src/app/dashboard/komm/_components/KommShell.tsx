@@ -13,6 +13,7 @@ import { useMuteParticipant } from "../_hooks/use-mute-participant";
 import { getLiveKitToken } from "@smartout/walkie-talkie";
 import { createClient } from "@smartout/supabase/client";
 import { SubTabs, type KommTab } from "./SubTabs";
+import { CommunicationOverview } from "./CommunicationOverview";
 import { ChannelList } from "./ChannelList";
 import { ChatList } from "./ChatList";
 import { NewsFeed } from "./NewsFeed";
@@ -23,6 +24,7 @@ import { MemberPanel } from "./MemberPanel";
 import { IncomingCallOverlay } from "./IncomingCallOverlay";
 import { CallRoom } from "./CallRoom";
 import { MessageSquare } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useTranslation } from "@smartout/i18n";
 
@@ -35,7 +37,7 @@ export function KommShell({ profileId }: { profileId: string }) {
   const { t } = useTranslation("komm");
   const { workspace } = useWorkspace();
   const workspaceId = workspace.workspace_id;
-  const [activeTab, setActiveTab] = useState<KommTab>("kanaler");
+  const [activeTab, setActiveTab] = useState<KommTab>("oversikt");
   const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
   const [showMembers, setShowMembers] = useState(false);
   const [replyToId, setReplyToId] = useState<string | null>(null);
@@ -140,10 +142,17 @@ export function KommShell({ profileId }: { profileId: string }) {
     setShowMembers(false);
   };
 
+  const isFullWidthTab = activeTab === "oversikt";
+
   return (
     <div className="flex h-full overflow-hidden rounded-lg border">
-      {/* Left panel: sub-tabs + list */}
-      <div className="bg-card flex w-80 flex-shrink-0 flex-col border-r">
+      {/* Left panel: sub-tabs + list (or full-width for overview) */}
+      <div
+        className={cn(
+          "bg-card flex flex-shrink-0 flex-col",
+          isFullWidthTab ? "flex-1" : "w-80 border-r",
+        )}
+      >
         <div className="flex items-center justify-between border-b px-4 py-2.5">
           <h2 className="text-base font-semibold">{t("shell.title")}</h2>
         </div>
@@ -154,6 +163,7 @@ export function KommShell({ profileId }: { profileId: string }) {
           chatUnread={chatUnread}
         />
         <div className="flex-1 overflow-y-auto">
+          {activeTab === "oversikt" && <CommunicationOverview />}
           {activeTab === "kanaler" && (
             <ChannelList
               channelGroups={channelGroups ?? []}
@@ -175,57 +185,59 @@ export function KommShell({ profileId }: { profileId: string }) {
         </div>
       </div>
 
-      {/* Center: Messages + Call */}
-      <div className="flex min-w-0 flex-1 flex-col">
-        {activeChannel ? (
-          <>
-            <ChannelHeader
-              channel={activeChannel}
-              profileId={profileId}
-              showMembers={showMembers}
-              onToggleMembers={() => setShowMembers(!showMembers)}
-              onJoinCall={handleJoinCall}
-              liveParticipantCount={liveParticipantCount}
-            />
-            <MessageTimeline
-              channelId={activeChannelId!}
-              profileId={profileId}
-              onReply={setReplyToId}
-            />
-            {!activeChannel.is_read_only && (
-              <MessageInput
+      {/* Center: Messages + Call (hidden when full-width tab is active) */}
+      {!isFullWidthTab && (
+        <div className="flex min-w-0 flex-1 flex-col">
+          {activeChannel ? (
+            <>
+              <ChannelHeader
+                channel={activeChannel}
+                profileId={profileId}
+                showMembers={showMembers}
+                onToggleMembers={() => setShowMembers(!showMembers)}
+                onJoinCall={handleJoinCall}
+                liveParticipantCount={liveParticipantCount}
+              />
+              <MessageTimeline
                 channelId={activeChannelId!}
                 profileId={profileId}
-                replyToId={replyToId}
-                onCancelReply={() => setReplyToId(null)}
-                audioPolicy={activeChannel.audio_policy}
-                pttProps={undefined}
+                onReply={setReplyToId}
               />
-            )}
+              {!activeChannel.is_read_only && (
+                <MessageInput
+                  channelId={activeChannelId!}
+                  profileId={profileId}
+                  replyToId={replyToId}
+                  onCancelReply={() => setReplyToId(null)}
+                  audioPolicy={activeChannel.audio_policy}
+                  pttProps={undefined}
+                />
+              )}
 
-            {/* LiveKit Call Room — full audio/video/screenshare + chat via official components */}
-            {livekitConnection && (
-              <CallRoom
-                serverUrl={livekitConnection.serverUrl}
-                token={livekitConnection.token}
-                channelId={activeChannelId!}
-                profileId={profileId}
-                audioPolicy={activeChannel.audio_policy}
-                onDisconnect={handleDisconnect}
-                onParticipantCountChange={setLiveParticipantCount}
-              />
-            )}
-          </>
-        ) : (
-          <div className="flex flex-1 flex-col items-center justify-center gap-3">
-            <MessageSquare className="text-muted-foreground/40 h-12 w-12" />
-            <p className="text-muted-foreground text-sm">{t("shell.empty_state")}</p>
-          </div>
-        )}
-      </div>
+              {/* LiveKit Call Room */}
+              {livekitConnection && (
+                <CallRoom
+                  serverUrl={livekitConnection.serverUrl}
+                  token={livekitConnection.token}
+                  channelId={activeChannelId!}
+                  profileId={profileId}
+                  audioPolicy={activeChannel.audio_policy}
+                  onDisconnect={handleDisconnect}
+                  onParticipantCountChange={setLiveParticipantCount}
+                />
+              )}
+            </>
+          ) : (
+            <div className="flex flex-1 flex-col items-center justify-center gap-3">
+              <MessageSquare className="text-muted-foreground/40 h-12 w-12" />
+              <p className="text-muted-foreground text-sm">{t("shell.empty_state")}</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Right: Member panel */}
-      {showMembers && activeChannelId && (
+      {!isFullWidthTab && showMembers && activeChannelId && (
         <MemberPanel
           channelId={activeChannelId}
           profileId={profileId}
