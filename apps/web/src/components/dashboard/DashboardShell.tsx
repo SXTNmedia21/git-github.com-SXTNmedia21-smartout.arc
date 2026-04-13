@@ -237,7 +237,7 @@ export const DashboardContext = createContext({
     void _val;
   },
   scheduleDateOffset: 0,
-  setScheduleDateOffset: (_val: number) => {
+  setScheduleDateOffset: (_val: number | ((prev: number) => number)) => {
     void _val;
   },
   onPublishAll: null as (() => void) | null,

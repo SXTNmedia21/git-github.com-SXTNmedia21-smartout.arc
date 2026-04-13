@@ -13,7 +13,7 @@ export type Season = {
   season_id: string;
   name: string;
   slug: string;
-  season_type: string;
+  season_type: "default" | "calendar" | "focus" | "cycle" | "custom";
   start_date: string | null;
   end_date: string | null;
   status: "draft" | "active" | "archived";
@@ -318,23 +318,27 @@ export function useSeasons() {
             .eq("workspace_id", wsId!);
 
           if (sourceEvents && sourceEvents.length > 0) {
-            const clonedEvents = sourceEvents.map((ev) => ({
-              workspace_id: wsId!,
-              planning_cycle_id: null,
-              name: ev.name,
-              description: ev.description,
-              category: ev.category,
-              source: ev.source,
-              event_date: shiftDateByYears(ev.event_date, yearDiff),
-              end_date: ev.end_date ? shiftDateByYears(ev.end_date, yearDiff) : null,
-              demand_multiplier: ev.demand_multiplier,
-              expected_covers: ev.expected_covers,
-              confidence: ev.confidence,
-              is_recurring: ev.is_recurring,
-              recurrence_rule: ev.recurrence_rule,
-            }));
+            const clonedEvents = sourceEvents
+              .filter((ev) => ev.event_date !== null)
+              .map((ev) => ({
+                workspace_id: wsId!,
+                planning_cycle_id: null as string | null,
+                name: ev.name,
+                description: ev.description,
+                category: ev.category,
+                source: ev.source,
+                event_date: shiftDateByYears(ev.event_date!, yearDiff)!,
+                end_date: ev.end_date ? shiftDateByYears(ev.end_date, yearDiff) : null,
+                demand_multiplier: ev.demand_multiplier,
+                expected_covers: ev.expected_covers,
+                confidence: ev.confidence,
+                is_recurring: ev.is_recurring,
+                recurrence_rule: ev.recurrence_rule,
+              }));
 
-            await supabase.from("planning_event").insert(clonedEvents);
+            if (clonedEvents.length > 0) {
+              await supabase.from("planning_event").insert(clonedEvents);
+            }
           }
         }
       }
