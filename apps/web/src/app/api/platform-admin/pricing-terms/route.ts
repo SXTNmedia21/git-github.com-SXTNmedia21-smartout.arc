@@ -12,13 +12,16 @@ import { emit } from "@smartout/telemetry";
 
 // ── Validation schemas ────────────────────────────────────────────────────────
 
+// Currency enum mirrors the database constraint — must stay in sync with the DB enum.
+const CurrencyEnum = z.enum(["NOK", "SEK", "DKK", "EUR"]);
+
 const CreateSchema = z.object({
   workspace_id: z.string().uuid(),
   company_id: z.string().uuid(),
   price_per_employee: z.number().nonnegative(),
   effective_from: z.string(), // ISO date string
   billing_interval: z.string().optional(),
-  currency: z.string().optional(),
+  currency: CurrencyEnum.optional(),
   monthly_cost: z.number().nonnegative().nullable().optional(),
   discount_percent: z.number().min(0).max(100).nullable().optional(),
   discount_label: z.string().max(100).nullable().optional(),
@@ -35,7 +38,7 @@ const UpdateSchema = z.object({
   price_per_employee: z.number().nonnegative().optional(),
   effective_from: z.string().optional(),
   billing_interval: z.string().optional(),
-  currency: z.string().optional(),
+  currency: CurrencyEnum.optional(),
   monthly_cost: z.number().nonnegative().nullable().optional(),
   discount_percent: z.number().min(0).max(100).nullable().optional(),
   discount_label: z.string().max(100).nullable().optional(),
