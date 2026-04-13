@@ -88,13 +88,13 @@ export default async function DashboardLayout({
     workspace = wsData;
   } else if (wsParam) {
     // Local dev: specific workspace selected via ?ws= query param
-    const profile = await getProfileInWorkspace(user.id, wsParam);
-    if (profile) {
+    const [profile, wsData] = await Promise.all([
+      getProfileInWorkspace(user.id, wsParam),
+      getWorkspaceById(wsParam),
+    ]);
+    if (profile && wsData) {
       profileId = profile.profile_id;
-      const wsData = await getWorkspaceById(wsParam);
-      if (wsData) {
-        workspace = wsData;
-      }
+      workspace = wsData;
     }
   }
 

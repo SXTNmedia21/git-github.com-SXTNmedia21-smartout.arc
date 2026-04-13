@@ -21,6 +21,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@smartout/ui";
+import { useTranslation } from "@smartout/i18n";
 import { Skeleton } from "@/components/ui/skeleton";
 import { createClient } from "@smartout/supabase/client";
 import { OpeningHoursSettings } from "./opening-hours-settings";
@@ -78,51 +79,56 @@ const ShiftLockPolicySettings = lazy(() =>
   import("./shift-lock-policy-settings").then((m) => ({ default: m.ShiftLockPolicySettings })),
 );
 
-type Tab = { id: string; label: string; icon: LucideIcon };
-type Section = { title: string; tabs: Tab[] };
+type Tab = { id: string; labelKey: string; icon: LucideIcon };
+type Section = { id: string; titleKey: string; tabs: Tab[] };
 
 const SECTIONS: Section[] = [
   {
-    title: "General",
+    id: "general",
+    titleKey: "settings_page.sections.general",
     tabs: [
-      { id: "general", label: "General", icon: Building2 },
-      { id: "hours", label: "Opening Hours", icon: Clock },
-      { id: "kpis", label: "KPI Targets", icon: Target },
-      { id: "notifications", label: "Notifications", icon: Bell },
-      { id: "teams", label: "Teams & Departments", icon: Users },
-      { id: "security", label: "Security", icon: Shield },
-      { id: "financial-close", label: "Dagsoppgjor", icon: Receipt },
+      { id: "general", labelKey: "settings_page.tabs.general", icon: Building2 },
+      { id: "hours", labelKey: "settings_page.tabs.opening_hours", icon: Clock },
+      { id: "kpis", labelKey: "settings_page.tabs.kpi_targets", icon: Target },
+      { id: "notifications", labelKey: "settings_page.tabs.notifications", icon: Bell },
+      { id: "teams", labelKey: "settings_page.tabs.teams_departments", icon: Users },
+      { id: "security", labelKey: "settings_page.tabs.security", icon: Shield },
+      { id: "financial-close", labelKey: "settings_page.tabs.financial_close", icon: Receipt },
     ],
   },
   {
-    title: "Payroll",
+    id: "payroll",
+    titleKey: "settings_page.sections.payroll",
     tabs: [
-      { id: "payroll-general", label: "Payroll", icon: Banknote },
-      { id: "salary-codes", label: "Salary Codes", icon: Receipt },
-      { id: "employee-groups", label: "Employee Groups", icon: Users },
-      { id: "supplements", label: "Supplements", icon: CalendarClock },
-      { id: "meal-rules", label: "Meal Rules", icon: Utensils },
+      { id: "payroll-general", labelKey: "settings_page.tabs.payroll", icon: Banknote },
+      { id: "salary-codes", labelKey: "settings_page.tabs.salary_codes", icon: Receipt },
+      { id: "employee-groups", labelKey: "settings_page.tabs.employee_groups", icon: Users },
+      { id: "supplements", labelKey: "settings_page.tabs.supplements", icon: CalendarClock },
+      { id: "meal-rules", labelKey: "settings_page.tabs.meal_rules", icon: Utensils },
     ],
   },
   {
-    title: "Schedule",
+    id: "schedule",
+    titleKey: "settings_page.sections.schedule",
     tabs: [
-      { id: "shift-types", label: "Shift Types", icon: Timer },
-      { id: "break-rules", label: "Break Rules", icon: Timer },
-      { id: "working-time", label: "Working Time", icon: ShieldCheck },
+      { id: "shift-types", labelKey: "settings_page.tabs.shift_types", icon: Timer },
+      { id: "break-rules", labelKey: "settings_page.tabs.break_rules", icon: Timer },
+      { id: "working-time", labelKey: "settings_page.tabs.working_time", icon: ShieldCheck },
     ],
   },
   {
-    title: "Regelverk",
+    id: "framework",
+    titleKey: "settings_page.sections.framework",
     tabs: [
-      { id: "framework-rules", label: "Arbeidsregler", icon: Scale },
-      { id: "tariff-rates", label: "Tariffsatser", icon: Calculator },
-      { id: "change-proposals", label: "Endringsforslag", icon: GitBranch },
+      { id: "framework-rules", labelKey: "settings_page.tabs.framework_rules", icon: Scale },
+      { id: "tariff-rates", labelKey: "settings_page.tabs.tariff_rates", icon: Calculator },
+      { id: "change-proposals", labelKey: "settings_page.tabs.change_proposals", icon: GitBranch },
     ],
   },
   {
-    title: "Organisation",
-    tabs: [{ id: "holidays", label: "Holidays", icon: CalendarDays }],
+    id: "organization",
+    titleKey: "settings_page.sections.organization",
+    tabs: [{ id: "holidays", labelKey: "settings_page.tabs.holidays", icon: CalendarDays }],
   },
 ];
 
@@ -130,13 +136,15 @@ const ALL_TABS = SECTIONS.flatMap((s) => s.tabs);
 type TabId = (typeof ALL_TABS)[number]["id"];
 
 function TabPlaceholder({ icon: Icon, label }: { icon: LucideIcon; label: string }) {
+  const { t } = useTranslation("dashboard");
+
   return (
     <div className="flex flex-1 flex-col items-center justify-center py-24">
       <div className="bg-muted mb-4 flex h-14 w-14 items-center justify-center rounded-full">
         <Icon className="text-muted-foreground h-7 w-7" />
       </div>
       <h3 className="text-foreground mb-1 text-lg font-semibold">{label}</h3>
-      <p className="text-muted-foreground text-sm">Coming soon</p>
+      <p className="text-muted-foreground text-sm">{t("settings_page.coming_soon")}</p>
     </div>
   );
 }
@@ -155,6 +163,8 @@ function SettingsLoadingSkeleton() {
 }
 
 function TabContent({ tabId, userId }: { tabId: TabId; userId: string | undefined }) {
+  const { t } = useTranslation("dashboard");
+
   switch (tabId) {
     case "hours":
       return <OpeningHoursSettings />;
@@ -264,12 +274,13 @@ function TabContent({ tabId, userId }: { tabId: TabId; userId: string | undefine
       );
     default: {
       const tab = ALL_TABS.find((t) => t.id === tabId)!;
-      return <TabPlaceholder icon={tab.icon} label={tab.label} />;
+      return <TabPlaceholder icon={tab.icon} label={t(tab.labelKey)} />;
     }
   }
 }
 
 export function SettingsTabs() {
+  const { t } = useTranslation("dashboard");
   const [activeTab, setActiveTab] = useState<TabId>("hours");
   // Fetch auth user id for notification preferences (keyed by user_id, not profile_id)
   const [userId, setUserId] = useState<string | undefined>();
@@ -298,9 +309,9 @@ export function SettingsTabs() {
       {/* Left sidebar nav */}
       <nav className="w-56 shrink-0 space-y-4">
         {SECTIONS.map((section) => (
-          <div key={section.title}>
+          <div key={section.id}>
             <p className="text-muted-foreground mb-1 px-3 text-xs font-medium tracking-wider uppercase">
-              {section.title}
+              {t(section.titleKey)}
             </p>
             <div className="space-y-0.5">
               {section.tabs.map((tab) => {
@@ -318,7 +329,7 @@ export function SettingsTabs() {
                     )}
                   >
                     <Icon className="h-4 w-4" />
-                    {tab.label}
+                    {t(tab.labelKey)}
                   </button>
                 );
               })}

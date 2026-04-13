@@ -100,12 +100,12 @@ const STEPS: SetupStep[] = [
   },
   {
     id: "season",
-    title: "Din sesong",
-    subtitle: "Budsjett og m\u00e5l",
+    title: "Ditt årshjul",
+    subtitle: "Sesonger, budsjett og mål",
     explanation:
-      "Sesongen setter rammene for alt: budsjett, bemanningsm\u00e5l, og KPI-er. N\u00e5r sesongen er aktiv, begynner dashboardet \u00e5 vise ekte tall.",
+      "Årshjulet setter rammene for alt: sesonger, budsjett, bemanningsmål, og KPI-er. Når en sesong er aktiv, begynner dashboardet å vise ekte tall.",
     helpTip:
-      "Sesongen er tidsrammen for budsjett og m\u00e5l. Dashboard viser f\u00f8rst ekte data n\u00e5r en sesong er aktiv.",
+      "Årshjulet organiserer året i sesonger med budsjett og mål. Dashboard viser først ekte data når en sesong er aktiv.",
   },
   {
     id: "handbook",

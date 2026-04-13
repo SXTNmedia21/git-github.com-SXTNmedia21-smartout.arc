@@ -220,7 +220,7 @@ const DASHBOARD_PAGES: Record<string, { path: string; label: string }> = {
   operations: { path: "/dashboard/operations", label: "Daglig drift" },
   people: { path: "/dashboard/people", label: "Ansatte" },
   organization: { path: "/dashboard/organization", label: "Organisasjon" },
-  season: { path: "/dashboard/season", label: "Sesong" },
+  season: { path: "/dashboard/year-wheel", label: "Årshjul" },
   handbook: { path: "/dashboard/handbook", label: "Håndbok" },
   governance: { path: "/dashboard/governance", label: "Retningslinjer" },
   "my-training": { path: "/dashboard/my-training", label: "Min opplæring" },

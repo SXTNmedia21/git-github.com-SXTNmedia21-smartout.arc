@@ -50,7 +50,7 @@ const ROUTE_MISSION_MAP: Record<string, MissionId> = {
   "/dashboard/komm": "mr-botsson",
   "/dashboard/people": "mr-botsson",
   "/dashboard/reports": "mr-botsson",
-  "/dashboard/season": "mr-botsson",
+  "/dashboard/year-wheel": "mr-botsson",
   "/dashboard/organization": "mr-botsson",
   "/dashboard/onboarding-assistant": "onboarding-interview",
   "/dashboard/ai": "mr-botsson",
@@ -370,6 +370,43 @@ export function DashboardShell({
   const [weeklyPeriodCount, setWeeklyPeriodCount] = useState(4);
   const [scheduleDateOffset, setScheduleDateOffset] = useState(0);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+
+  /**
+   * Converts scheduleDateOffset when switching between week-based and month-based views.
+   * Without this, an offset of 4 (= 4 weeks ahead in Ukeplan) would be
+   * misinterpreted as 4 months ahead in Måned — jumping from April to August.
+   */
+  const switchScheduleLayout = useCallback(
+    (newLayout: ScheduleLayoutMode) => {
+      const isWeekBased = (l: ScheduleLayoutMode) =>
+        l === "daily" || l === "list" || l === "grid" || l === "weekly";
+
+      if (isWeekBased(scheduleLayout) && newLayout === "monthly") {
+        const now = new Date();
+        const targetMonday = new Date(now);
+        targetMonday.setDate(now.getDate() - ((now.getDay() + 6) % 7) + scheduleDateOffset * 7);
+        const today = new Date();
+        const monthDiff =
+          (targetMonday.getFullYear() - today.getFullYear()) * 12 +
+          (targetMonday.getMonth() - today.getMonth());
+        setScheduleDateOffset(monthDiff);
+      } else if (scheduleLayout === "monthly" && isWeekBased(newLayout)) {
+        const target = new Date();
+        target.setMonth(target.getMonth() + scheduleDateOffset, 1);
+        target.setHours(0, 0, 0, 0);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const startOfCurrentWeek = new Date(today);
+        startOfCurrentWeek.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+        const diffMs = target.getTime() - startOfCurrentWeek.getTime();
+        const weekDiff = Math.round(diffMs / (1000 * 60 * 60 * 24 * 7));
+        setScheduleDateOffset(weekDiff);
+      }
+
+      setScheduleLayout(newLayout);
+    },
+    [scheduleLayout, scheduleDateOffset],
+  );
   const onPublishAllRef = useRef<(() => void) | null>(null);
   const scheduleDraftCountRef = useRef(0);
   const [scheduleDraftCountDisplay, setScheduleDraftCountDisplay] = useState(0);
@@ -488,7 +525,7 @@ export function DashboardShell({
       adminView,
       setAdminView,
       scheduleLayout,
-      setScheduleLayout,
+      setScheduleLayout: switchScheduleLayout,
       scheduleView,
       setScheduleView,
       activeDepartment,
@@ -518,6 +555,7 @@ export function DashboardShell({
       isDark,
       adminView,
       scheduleLayout,
+      switchScheduleLayout,
       scheduleView,
       activeDepartment,
       isSidebarCollapsed,
@@ -772,8 +810,8 @@ export function DashboardShell({
       {
         id: "season",
         label: "Open season planning",
-        selector: '[data-autoplay="nav-/dashboard/season"]',
-        expectedPathname: "/dashboard/season",
+        selector: '[data-autoplay="nav-/dashboard/year-wheel"]',
+        expectedPathname: "/dashboard/year-wheel",
       },
       {
         id: "organization",
@@ -1044,7 +1082,7 @@ export function DashboardShell({
                     <span
                       className={isDark ? "text-muted-foreground" : "text-[oklch(0.52_0.02_50)]"}
                     >
-                      Sesong:
+                      Aktiv sesong:
                     </span>
                     <span
                       className={`font-semibold ${isDark ? "text-foreground" : "text-[oklch(0.25_0.01_50)]"}`}
@@ -1460,11 +1498,11 @@ export function DashboardShell({
                               isCollapsed={isSidebarCollapsed}
                             />
                             <NavItem
-                              href="/dashboard/season"
+                              href="/dashboard/year-wheel"
                               icon={Gamepad2}
-                              label="Sesong"
+                              label="Årshjul"
                               isDark={isDark}
-                              active={isActive("/dashboard/season")}
+                              active={isActive("/dashboard/year-wheel")}
                               isCollapsed={isSidebarCollapsed}
                             />
                             <NavItem
@@ -1590,7 +1628,7 @@ export function DashboardShell({
                           <NavItem
                             href="/dashboard/komm"
                             icon={Radio}
-                            label="Komm"
+                            label="Kanaler"
                             isDark={isDark}
                             active={isActive("/dashboard/komm")}
                             isCollapsed={isSidebarCollapsed}
@@ -1723,11 +1761,11 @@ export function DashboardShell({
                                 operations: "Drift",
                                 hms: "HMS",
                                 governance: "HMS",
-                                season: "Sesong",
+                                "year-wheel": "Årshjul",
                                 organization: "Organisasjon",
                                 settings: "Innstillinger",
                                 help: "Hjelp",
-                                komm: "Komm",
+                                komm: "Kanaler",
                                 ai: "Mr. Botsson",
                                 "onboarding-assistant": "Onboarding-assistent",
                                 "my-schedule": "Min vaktplan",
@@ -1748,33 +1786,32 @@ export function DashboardShell({
                             className={`hidden rounded-xl border p-1 shadow-sm md:flex ${isDark ? "border-zinc-800 bg-[#0a0a0c]" : "border-zinc-200 bg-zinc-100"} mr-2`}
                           >
                             <button
-                              onClick={() => setScheduleLayout("daily")}
+                              onClick={() => switchScheduleLayout("daily")}
                               data-autoplay="schedule-layout-daily"
                               className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "daily" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : isDark ? "text-zinc-500 hover:text-white" : "text-zinc-500 hover:text-zinc-900"}`}
                             >
-                              Uke
+                              Ukeplan
                             </button>
-                            {/* Rullerende — hidden until implemented */}
                             <button
-                              onClick={() => setScheduleLayout("monthly")}
+                              onClick={() => switchScheduleLayout("monthly")}
                               data-autoplay="schedule-layout-monthly"
                               className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "monthly" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : isDark ? "text-zinc-500 hover:text-white" : "text-zinc-500 hover:text-zinc-900"}`}
                             >
                               Måned
                             </button>
                             <button
-                              onClick={() => setScheduleLayout("list")}
+                              onClick={() => switchScheduleLayout("list")}
                               data-autoplay="schedule-layout-list"
                               className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "list" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : isDark ? "text-zinc-500 hover:text-white" : "text-zinc-500 hover:text-zinc-900"}`}
                             >
                               Vaktliste
                             </button>
                             <button
-                              onClick={() => setScheduleLayout("grid")}
+                              onClick={() => switchScheduleLayout("grid")}
                               data-autoplay="schedule-layout-grid"
                               className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "grid" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : isDark ? "text-zinc-500 hover:text-white" : "text-zinc-500 hover:text-zinc-900"}`}
                             >
-                              Vaktgrid
+                              Bemanning
                             </button>
                           </div>
 
@@ -1821,7 +1858,11 @@ export function DashboardShell({
                                   } text-[13px] font-bold`}
                                 >
                                   {(() => {
-                                    if (scheduleLayout === "daily") {
+                                    if (
+                                      scheduleLayout === "daily" ||
+                                      scheduleLayout === "list" ||
+                                      scheduleLayout === "grid"
+                                    ) {
                                       const now = new Date();
                                       now.setDate(
                                         now.getDate() -
@@ -1837,6 +1878,7 @@ export function DashboardShell({
                                         ? "Aktiv syklus"
                                         : `Syklus ${scheduleDateOffset > 0 ? "+" : ""}${scheduleDateOffset}`;
                                     }
+                                    // monthly only
                                     const now = new Date();
                                     now.setMonth(now.getMonth() + scheduleDateOffset);
                                     const months = [

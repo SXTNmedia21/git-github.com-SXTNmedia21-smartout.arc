@@ -95,9 +95,9 @@ const COMMAND_RESULTS: SearchResult[] = [
   },
   {
     id: "cmd-season",
-    title: "Sesong",
-    subtitle: "Ga til sesongplanlegging",
-    deepLink: "/dashboard/season",
+    title: "Årshjul",
+    subtitle: "Gå til årshjul og sesongplanlegging",
+    deepLink: "/dashboard/year-wheel",
     icon: "command",
   },
   {
