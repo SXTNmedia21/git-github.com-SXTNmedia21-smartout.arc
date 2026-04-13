@@ -229,6 +229,8 @@ function ProcedureCard({
 
 /** Empty state with dashed border ghost card (Nordic Split pattern) */
 function EmptyChecklistState({ label }: { label: string }) {
+  const { t } = useTranslation("cleaning");
+
   return (
     <div className="border-border bg-card/50 flex flex-col items-center justify-center rounded-2xl border border-dashed p-12">
       <div className="bg-muted mb-4 flex h-16 w-16 items-center justify-center rounded-full">
@@ -236,7 +238,7 @@ function EmptyChecklistState({ label }: { label: string }) {
       </div>
       <h2 className="text-foreground mb-2 text-xl font-bold">{label}</h2>
       <p className="text-muted-foreground max-w-sm text-center text-sm">
-        Opprett en renholdssjekkliste for avdelingene dine.
+        {t("cleaning.emptyStateDescription")}
       </p>
     </div>
   );

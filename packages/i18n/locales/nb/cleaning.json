@@ -30,5 +30,10 @@
   "cleaning.inactive": "Inaktiv",
   "cleaning.linkToDepartment": "Koble til avdeling",
   "cleaning.checkpoints": "Sjekkpunkter",
-  "cleaning.noCheckpoints": "Ingen sjekkpunkter lagt til"
+  "cleaning.noCheckpoints": "Ingen sjekkpunkter lagt til",
+  "cleaning.hookCreated": "Sjekkliste koblet til avdeling",
+  "cleaning.hookCreateError": "Kunne ikke koble sjekkliste",
+  "cleaning.hookDeleted": "Kobling fjernet",
+  "cleaning.hookDeleteError": "Kunne ikke fjerne kobling",
+  "cleaning.emptyStateDescription": "Opprett en renholdssjekkliste for avdelingene dine."
 }
