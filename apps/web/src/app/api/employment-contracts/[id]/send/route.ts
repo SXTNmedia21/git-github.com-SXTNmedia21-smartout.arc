@@ -2,23 +2,25 @@
  * POST /api/employment-contracts/[id]/send — Send a draft employment contract.
  *
  * Steps (in order):
- *  1. Parse optional idempotency_key from request body
- *  2. Auth — get user, load employment_contract
- *  3. Guard — must be status='draft'. If signing_contract_id already set → return success (idempotent)
- *  4. Role gate — require admin or owner in workspace
- *  5. Snapshot active framework rules (workspace_framework_binding → framework_rule)
- *  6. Check PII — personal_number, bank_account, address. Determine missing groups.
- *  7. Resolve template — contract_template where contract_type='employee' + employment_category match
- *  8. Load company via workspace.company_id for placeholder resolution
- *  9. Resolve placeholders — replace {{key}} in template HTML
- * 10. INSERT contract row (DocuSeal signing entity) → SELECT back contract_id
- * 11. UPDATE employment_contract — status, framework_snapshot, signing_contract_id
- * 12. INSERT contract_event — event_type='created'
- * 13. Call contract-service (if PII complete) — non-blocking, failure logs send_failed event
- * 14. Create engine_state — 'contract_signing' or 'contract_data_intake'
- * 15. Schedule escalation triggers (day 3, 7, 10) if pending_data
- * 16. Emit telemetry — 'contract sent'. If pending_data also emit 'contract intake started'.
- * 17. Return { sent, status, contract_id, signing_contract_id, pii_complete }
+ *  1. Auth — get user, load employment_contract
+ *  2. Guard — must be status='draft'. If signing_contract_id already set → return success (idempotent)
+ *  3. Role gate — require admin or owner in workspace
+ *  4. Snapshot active framework rules (workspace_framework_binding → framework_rule)
+ *  5. Check PII — personal_number, bank_account, address. Determine missing groups.
+ *  6. Resolve template — contract_template where contract_type='employee' + employment_category match
+ *  7. Load company via workspace.company_id for placeholder resolution
+ *  8. Resolve placeholders — replace {{key}} in template HTML
+ *  9. INSERT contract row (DocuSeal signing entity) → SELECT back contract_id
+ * 10. UPDATE employment_contract — status, framework_snapshot, signing_contract_id
+ * 11. INSERT contract_event — event_type='created'
+ * 12. Call contract-service (if PII complete) — non-blocking, failure logs send_failed event
+ * 13. Create engine_state — 'contract_signing' or 'contract_data_intake'
+ * 14. Schedule escalation triggers (day 3, 7, 10) if pending_data
+ * 15. Emit telemetry — 'contract sent'. If pending_data also emit 'contract intake started'.
+ * 16. Return { sent, status, contract_id, signing_contract_id, pii_complete }
+ *
+ * Idempotency: signing_contract_id presence is the guard — a second call returns
+ * early (step 2) without side effects.
  *
  * ADR-0076: composition as cascade derivation.
  * ADR-0077: PII handling — intake flow for missing data.
@@ -28,15 +30,9 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@smartout/supabase/server";
 import { emit } from "@smartout/telemetry";
-import { z } from "zod";
 
 const CONTRACT_SERVICE_URL = process.env.CONTRACT_SERVICE_URL ?? "http://localhost:5012";
 const CONTRACT_SERVICE_KEY = process.env.CONTRACT_SERVICE_KEY ?? "";
-
-// Optional idempotency key lets callers safely retry without double-sending.
-const bodySchema = z.object({
-  idempotency_key: z.string().uuid().optional(),
-});
 
 // Placeholder keys defined in the seed templates. Order matters for readability,
 // not for correctness — replaceAll handles each independently.
@@ -67,23 +63,11 @@ function resolvePlaceholders(
   }, html);
 }
 
-export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
 
-  // ── Step 1: Parse optional body ──────────────────────────────────────
-  let _idempotencyKey: string | undefined;
-  try {
-    const raw = await request.json().catch(() => ({}));
-    const parsed = bodySchema.safeParse(raw);
-    if (parsed.success) {
-      _idempotencyKey = parsed.data.idempotency_key;
-    }
-  } catch {
-    // Non-JSON body is acceptable — idempotency key simply not provided.
-  }
-
-  // ── Step 2: Auth — get user ──────────────────────────────────────────
+  // ── Step 1: Auth — get user ──────────────────────────────────────────
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -107,7 +91,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   const { workspace_id, profile_id } = contract;
 
-  // ── Step 3: Guard — draft only. Idempotent if already sent. ──────────
+  // ── Step 2: Guard — draft only. Idempotent if already sent. ──────────
   if (contract.signing_contract_id) {
     // Already processed — return success without side effects.
     return NextResponse.json({
@@ -123,7 +107,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Only draft contracts can be sent" }, { status: 400 });
   }
 
-  // ── Step 4: Role gate — admin or owner only ───────────────────────────
+  // ── Step 3: Role gate — admin or owner only ───────────────────────────
   const { data: actorProfile } = await supabase
     .from("profile")
     .select("profile_id, role, display_name")
@@ -135,7 +119,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Forbidden: admin or owner role required" }, { status: 403 });
   }
 
-  // ── Step 5: Snapshot framework rules ─────────────────────────────────
+  // ── Step 4: Snapshot framework rules ─────────────────────────────────
   const { data: binding } = await supabase
     .from("workspace_framework_binding")
     .select("framework_id, regulatory_framework(name, version)")
@@ -173,7 +157,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     })),
   };
 
-  // ── Step 6: Check PII completeness ───────────────────────────────────
+  // ── Step 5: Check PII completeness ───────────────────────────────────
   const { data: employeeProfile } = await supabase
     .from("profile")
     .select("personal_number, bank_account, address_line_1, postal_code, display_name")
@@ -194,7 +178,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const allDataPresent = missingGroups.length === 0;
   const newStatus = allDataPresent ? "sent" : "pending_data";
 
-  // ── Step 7: Resolve template ──────────────────────────────────────────
+  // ── Step 6: Resolve template ──────────────────────────────────────────
   // Prefer workspace-specific templates (is_system=false) over platform templates.
   // Null employment_category on a template matches any category (catch-all).
   const { data: template } = await supabase
@@ -211,7 +195,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const templateId = template?.template_id ?? null;
   const rawHtml = template?.content_html ?? "";
 
-  // ── Step 8: Load company for placeholder resolution ───────────────────
+  // ── Step 7: Load company for placeholder resolution ───────────────────
   const { data: workspace } = await supabase
     .from("workspace")
     .select("company_id")
@@ -234,7 +218,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
   }
 
-  // ── Step 9: Resolve placeholders ─────────────────────────────────────
+  // ── Step 8: Resolve placeholders ─────────────────────────────────────
   const employeeAddress = [employeeProfile.address_line_1 ?? "", employeeProfile.postal_code ?? ""]
     .filter(Boolean)
     .join(", ");
@@ -255,7 +239,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   const resolvedHtml = resolvePlaceholders(rawHtml, placeholderValues);
 
-  // ── Step 10: INSERT contract row (DocuSeal signing entity) ────────────
+  // ── Step 9: INSERT contract row (DocuSeal signing entity) ────────────
   const { data: signingContract, error: insertError } = await supabase
     .from("contract")
     .insert({
@@ -286,7 +270,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   const signingContractId = signingContract.contract_id;
 
-  // ── Step 11: UPDATE employment_contract ───────────────────────────────
+  // ── Step 10: UPDATE employment_contract ───────────────────────────────
   const { error: updateError } = await supabase
     .from("employment_contract")
     .update({
@@ -303,7 +287,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     );
   }
 
-  // ── Step 12: INSERT contract_event ────────────────────────────────────
+  // ── Step 11: INSERT contract_event ────────────────────────────────────
   await supabase.from("contract_event").insert({
     contract_id: signingContractId,
     event_type: "created",
@@ -317,7 +301,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     },
   });
 
-  // ── Step 13: Call contract-service (if PII complete) ──────────────────
+  // ── Step 12: Call contract-service (if PII complete) ──────────────────
   // Non-blocking — a failure here does not abort the send flow. The contract
   // row already exists; contract-service submits it to DocuSeal for signing.
   if (allDataPresent) {
@@ -358,7 +342,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
   }
 
-  // ── Step 14: Create engine_state ─────────────────────────────────────
+  // ── Step 13: Create engine_state ─────────────────────────────────────
   const processName = allDataPresent ? "contract_signing" : "contract_data_intake";
 
   const { data: process } = await supabase
@@ -382,7 +366,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     });
   }
 
-  // ── Step 15: Schedule escalation triggers (pending_data only) ─────────
+  // ── Step 14: Schedule escalation triggers (pending_data only) ─────────
   // Remind the employee at day 3, 7, and 10 if their PII is still missing.
   if (!allDataPresent && process) {
     const { data: trigger } = await supabase
@@ -417,7 +401,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
   }
 
-  // ── Step 16: Emit telemetry ───────────────────────────────────────────
+  // ── Step 15: Emit telemetry ───────────────────────────────────────────
   void emit({
     event: "contract sent",
     workspace_id,
@@ -440,7 +424,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     });
   }
 
-  // ── Step 17: Return ───────────────────────────────────────────────────
+  // ── Step 16: Return ───────────────────────────────────────────────────
   return NextResponse.json({
     sent: true,
     status: newStatus,

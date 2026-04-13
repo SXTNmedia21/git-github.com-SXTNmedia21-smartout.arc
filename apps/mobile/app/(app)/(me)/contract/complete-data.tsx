@@ -114,11 +114,7 @@ export default function CompleteDataScreen() {
         }
       }
 
-      // Emit telemetry — track which field groups were submitted
-      const submittedGroups: string[] = [];
-      if (values.personal_number.trim()) submittedGroups.push("identity");
-      if (Object.keys(addressValues).length > 0) submittedGroups.push("address");
-
+      // Emit telemetry on successful PII submission
       void emit({
         event: "contract intake completed",
         workspace_id: workspaceId,

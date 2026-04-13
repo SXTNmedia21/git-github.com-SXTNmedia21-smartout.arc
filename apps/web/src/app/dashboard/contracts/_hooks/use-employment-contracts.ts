@@ -151,21 +151,8 @@ export function useSendContract() {
       return res.json() as Promise<SendResult>;
     },
     onSuccess: (_data, variables) => {
-      void emit({
-        event: "contract sent",
-        workspace_id: null,
-        actor_id: "",
-        properties: {
-          entity: {
-            entity_type: "employment_contract",
-            entity_id: variables.contract_id,
-          },
-          data: {
-            recipient_email: "",
-            expires_at: "",
-          },
-        },
-      });
+      // Telemetry for "contract sent" is emitted by the server route with
+      // correct workspace_id and actor data — do not duplicate here.
       toast.success(t("toast.contract_sent"));
       void queryClient.invalidateQueries({
         queryKey: contractKeys.detail(variables.contract_id),
