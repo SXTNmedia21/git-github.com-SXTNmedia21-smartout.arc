@@ -1,36 +1,37 @@
+// ============================================
+// SeasonSelector.tsx
+// Dropdown to select the active season, with a status badge.
+// Reads all seasons for the workspace and lets the user pick one.
+// Connected to: page.tsx (rendered in the year-wheel toolbar)
+// ============================================
+
 "use client";
 
+import { useTranslation } from "@smartout/i18n";
 import { useSeasons } from "../_hooks";
 
 type Props = {
   selectedSeasonId: string | null;
   onSelect: (seasonId: string) => void;
-  isDark: boolean;
 };
 
-export function SeasonSelector({ selectedSeasonId, onSelect, isDark }: Props) {
+export function SeasonSelector({ selectedSeasonId, onSelect }: Props) {
+  const { t } = useTranslation("dashboard");
   const { seasons, isLoading } = useSeasons();
 
   if (isLoading) {
-    return (
-      <div
-        className={`h-10 w-64 animate-pulse rounded-xl ${isDark ? "bg-zinc-800" : "bg-zinc-200"}`}
-      />
-    );
+    return <div className="bg-muted h-10 w-64 animate-pulse rounded-xl" />;
   }
 
   if (seasons.length === 0) {
-    return (
-      <p className={`text-sm ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
-        Ingen sesonger opprettet enn&aring;.
-      </p>
-    );
+    return <p className="text-muted-foreground text-sm">{t("yearWheel.no_seasons_yet")}</p>;
   }
 
+  // Status badge: maps season status to semantic CSS variable classes
   const statusColors: Record<string, string> = {
-    draft: "text-yellow-400 bg-yellow-500/10 border-yellow-500/20",
-    active: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
-    archived: "text-zinc-400 bg-zinc-500/10 border-zinc-500/20",
+    draft: "text-warning bg-warning/10 border-warning/20",
+    active: "text-success bg-success/10 border-success/20",
+    archived: "text-muted-foreground bg-muted border-border",
   };
 
   return (
@@ -38,14 +39,10 @@ export function SeasonSelector({ selectedSeasonId, onSelect, isDark }: Props) {
       <select
         value={selectedSeasonId ?? ""}
         onChange={(e) => onSelect(e.target.value)}
-        className={`rounded-xl border px-4 py-2 text-sm font-medium transition-colors outline-none ${
-          isDark
-            ? "border-zinc-700 bg-zinc-900 text-white focus:border-blue-500"
-            : "border-zinc-300 bg-white text-zinc-900 focus:border-blue-500"
-        }`}
+        className="border-input bg-background text-foreground focus:border-primary rounded-xl border px-4 py-2 text-sm font-medium transition-colors outline-none"
       >
         <option value="" disabled>
-          Velg sesong...
+          {t("yearWheel.select_season")}
         </option>
         {seasons.map((s) => (
           <option key={s.season_id} value={s.season_id}>
@@ -62,7 +59,11 @@ export function SeasonSelector({ selectedSeasonId, onSelect, isDark }: Props) {
             <span
               className={`rounded border px-2 py-0.5 text-xs font-bold ${statusColors[selected.status] ?? statusColors.draft}`}
             >
-              {selected.status.toUpperCase()}
+              {selected.status === "active"
+                ? t("yearWheel.active")
+                : selected.status === "draft"
+                  ? t("yearWheel.draft")
+                  : t("yearWheel.archived")}
             </span>
           );
         })()}

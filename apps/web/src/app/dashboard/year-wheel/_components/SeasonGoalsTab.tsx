@@ -9,6 +9,7 @@
  */
 
 import { useState } from "react";
+import { useTranslation } from "@smartout/i18n";
 import { Plus, Check, X, Trash2, RotateCcw, Loader2, Target } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -17,33 +18,20 @@ import type { SeasonGoalStatus } from "@/lib/cascade/types";
 
 type Props = {
   seasonId: string;
-  isDark: boolean;
 };
 
-const STATUS_LABELS: Record<SeasonGoalStatus, string> = {
-  active: "Aktiv",
-  completed: "Fullført",
-  cancelled: "Avbrutt",
+// CSS variable-based badge classes per goal status.
+// active = success (green) to indicate the goal is in flight.
+// completed = muted because the work is done — de-emphasised.
+// cancelled = warning (orange) to flag that the goal was abandoned.
+const STATUS_BADGE_CLASSES: Record<SeasonGoalStatus, string> = {
+  active: "border-success/20 bg-success/10 text-success",
+  completed: "border-muted-foreground/20 bg-muted text-muted-foreground",
+  cancelled: "border-warning/20 bg-warning/10 text-warning",
 };
 
-function statusBadgeClass(status: SeasonGoalStatus, isDark: boolean): string {
-  switch (status) {
-    case "completed":
-      return isDark
-        ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
-        : "border-emerald-200 bg-emerald-50 text-emerald-600";
-    case "cancelled":
-      return isDark
-        ? "border-zinc-500/20 bg-zinc-500/10 text-zinc-500"
-        : "border-zinc-300 bg-zinc-100 text-zinc-400";
-    default:
-      return isDark
-        ? "border-orange-500/20 bg-orange-500/10 text-orange-400"
-        : "border-orange-200 bg-orange-50 text-orange-600";
-  }
-}
-
-export function SeasonGoalsTab({ seasonId, isDark }: Props) {
+export function SeasonGoalsTab({ seasonId }: Props) {
+  const { t } = useTranslation("dashboard");
   const { goals, isLoading, createGoal, updateGoal, deleteGoal } = useSeasonGoals(seasonId);
   const [showCreate, setShowCreate] = useState(false);
   const [title, setTitle] = useState("");
@@ -75,19 +63,10 @@ export function SeasonGoalsTab({ seasonId, isDark }: Props) {
     );
   }
 
-  const cardClass = isDark
-    ? "rounded-xl border border-zinc-800 bg-[#0c0c0e] p-4"
-    : "rounded-xl border border-zinc-200 bg-white p-4";
-
-  const labelClass = isDark ? "text-zinc-400" : "text-zinc-500";
-  const inputClass = isDark
-    ? "border-zinc-700 bg-zinc-900 text-white"
-    : "border-zinc-300 bg-white text-zinc-900";
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className={`h-6 w-6 animate-spin ${isDark ? "text-zinc-600" : "text-zinc-300"}`} />
+        <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
       </div>
     );
   }
@@ -97,10 +76,8 @@ export function SeasonGoalsTab({ seasonId, isDark }: Props) {
       {/* Header with create button */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className={`text-sm font-bold ${isDark ? "text-white" : "text-zinc-900"}`}>
-            Sesongmål
-          </h3>
-          <p className={`text-xs ${labelClass}`}>Sett mål og KPI-er for denne sesongen</p>
+          <h3 className="text-foreground text-sm font-bold">{t("yearWheel.season_goals")}</h3>
+          <p className="text-muted-foreground text-xs">Sett mål og KPI-er for denne sesongen</p>
         </div>
         <Button
           size="sm"
@@ -108,63 +85,69 @@ export function SeasonGoalsTab({ seasonId, isDark }: Props) {
           className="h-8 bg-gradient-to-r from-orange-600 to-rose-600 text-xs text-white hover:opacity-90"
         >
           <Plus className="mr-1 h-3.5 w-3.5" />
-          Nytt mål
+          {t("yearWheel.new_goal")}
         </Button>
       </div>
 
-      {/* Create form */}
+      {/* Inline create form */}
       {showCreate && (
-        <div className={cardClass}>
+        <div className="border-border bg-card rounded-xl border p-4">
           <div className="space-y-3">
             <div>
-              <label className={`mb-1 block text-xs font-semibold ${labelClass}`}>Tittel *</label>
+              <label className="text-muted-foreground mb-1 block text-xs font-semibold">
+                {t("yearWheel.goal_title")} *
+              </label>
               <Input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="F.eks. Redusere lønnskostnad til 28%"
-                className={`h-8 text-sm ${inputClass}`}
+                className="border-border bg-background text-foreground h-8 text-sm"
               />
             </div>
             <div>
-              <label className={`mb-1 block text-xs font-semibold ${labelClass}`}>
-                Beskrivelse
+              <label className="text-muted-foreground mb-1 block text-xs font-semibold">
+                {t("yearWheel.goal_description")}
               </label>
               <Input
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Valgfri utdypning"
-                className={`h-8 text-sm ${inputClass}`}
+                className="border-border bg-background text-foreground h-8 text-sm"
               />
             </div>
             <div className="grid grid-cols-3 gap-2">
               <div>
-                <label className={`mb-1 block text-xs font-semibold ${labelClass}`}>
-                  Nøkkeltall
+                <label className="text-muted-foreground mb-1 block text-xs font-semibold">
+                  {t("yearWheel.goal_metric_key")}
                 </label>
                 <Input
                   value={metricKey}
                   onChange={(e) => setMetricKey(e.target.value)}
                   placeholder="labor_pct"
-                  className={`h-8 text-sm ${inputClass}`}
+                  className="border-border bg-background text-foreground h-8 text-sm"
                 />
               </div>
               <div>
-                <label className={`mb-1 block text-xs font-semibold ${labelClass}`}>Målverdi</label>
+                <label className="text-muted-foreground mb-1 block text-xs font-semibold">
+                  {t("yearWheel.goal_target_value")}
+                </label>
                 <Input
                   type="number"
                   value={targetValue}
                   onChange={(e) => setTargetValue(e.target.value)}
                   placeholder="28"
-                  className={`h-8 text-sm ${inputClass}`}
+                  className="border-border bg-background text-foreground h-8 text-sm"
                 />
               </div>
               <div>
-                <label className={`mb-1 block text-xs font-semibold ${labelClass}`}>Enhet</label>
+                <label className="text-muted-foreground mb-1 block text-xs font-semibold">
+                  {t("yearWheel.goal_unit")}
+                </label>
                 <Input
                   value={targetUnit}
                   onChange={(e) => setTargetUnit(e.target.value)}
                   placeholder="%"
-                  className={`h-8 text-sm ${inputClass}`}
+                  className="border-border bg-background text-foreground h-8 text-sm"
                 />
               </div>
             </div>
@@ -175,7 +158,7 @@ export function SeasonGoalsTab({ seasonId, isDark }: Props) {
                 onClick={() => setShowCreate(false)}
                 className="h-7 text-xs"
               >
-                Avbryt
+                {t("yearWheel.cancel")}
               </Button>
               <Button
                 size="sm"
@@ -184,56 +167,53 @@ export function SeasonGoalsTab({ seasonId, isDark }: Props) {
                 className="h-7 bg-gradient-to-r from-orange-600 to-rose-600 text-xs text-white hover:opacity-90"
               >
                 {createGoal.isPending && <Loader2 className="mr-1 h-3 w-3 animate-spin" />}
-                Opprett
+                {t("yearWheel.create")}
               </Button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Goals list */}
+      {/* Goals list — empty state or populated list */}
       {goals.length === 0 && !showCreate ? (
-        <div className={`${cardClass} py-8 text-center`}>
-          <Target
-            className={`mx-auto mb-3 h-8 w-8 ${isDark ? "text-zinc-700" : "text-zinc-300"}`}
-          />
-          <p className={`text-sm ${labelClass}`}>Ingen mål satt for denne sesongen ennå.</p>
+        <div className="border-border bg-card rounded-xl border p-4 py-8 text-center">
+          <Target className="text-muted-foreground mx-auto mb-3 h-8 w-8" />
+          <p className="text-muted-foreground text-sm">Ingen mål satt for denne sesongen ennå.</p>
         </div>
       ) : (
         <div className="space-y-2">
           {goals.map((goal) => (
-            <div key={goal.season_goal_id} className={`${cardClass} flex items-start gap-3`}>
+            <div
+              key={goal.season_goal_id}
+              className="border-border bg-card flex items-start gap-3 rounded-xl border p-4"
+            >
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <p
-                    className={`text-sm font-semibold ${
-                      goal.status === "cancelled"
-                        ? "line-through opacity-50"
-                        : isDark
-                          ? "text-white"
-                          : "text-zinc-900"
+                    className={`text-foreground text-sm font-semibold ${
+                      goal.status === "cancelled" ? "line-through opacity-50" : ""
                     }`}
                   >
                     {goal.title}
                   </p>
                   <span
-                    className={`shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-bold uppercase ${statusBadgeClass(goal.status, isDark)}`}
+                    className={`shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-bold uppercase ${STATUS_BADGE_CLASSES[goal.status]}`}
                   >
-                    {STATUS_LABELS[goal.status]}
+                    {t(`yearWheel.goal_status_${goal.status}`)}
                   </span>
                 </div>
                 {goal.description && (
-                  <p className={`mt-0.5 text-xs ${labelClass}`}>{goal.description}</p>
+                  <p className="text-muted-foreground mt-0.5 text-xs">{goal.description}</p>
                 )}
                 {goal.target_value != null && (
-                  <p
-                    className={`mt-1 font-mono text-xs ${isDark ? "text-orange-400/70" : "text-orange-600/70"}`}
-                  >
+                  <p className="text-brand-orange mt-1 font-mono text-xs">
                     {goal.metric_key ? `${goal.metric_key}: ` : ""}
                     {goal.target_value} {goal.target_unit ?? ""}
                   </p>
                 )}
               </div>
+
+              {/* Status action buttons */}
               <div className="flex shrink-0 items-center gap-1">
                 {goal.status === "active" && (
                   <>
@@ -244,9 +224,9 @@ export function SeasonGoalsTab({ seasonId, isDark }: Props) {
                           status: "completed",
                         })
                       }
-                      title="Marker som fullført"
-                      aria-label="Marker som fullført"
-                      className={`rounded-md p-1.5 transition-colors ${isDark ? "text-emerald-500 hover:bg-emerald-500/10" : "text-emerald-600 hover:bg-emerald-50"}`}
+                      title={t("yearWheel.mark_completed")}
+                      aria-label={t("yearWheel.mark_completed")}
+                      className="text-success hover:bg-success/10 rounded-md p-1.5 transition-colors"
                     >
                       <Check className="h-3.5 w-3.5" />
                     </button>
@@ -257,9 +237,9 @@ export function SeasonGoalsTab({ seasonId, isDark }: Props) {
                           status: "cancelled",
                         })
                       }
-                      title="Avbryt mål"
-                      aria-label="Avbryt mål"
-                      className={`rounded-md p-1.5 transition-colors ${isDark ? "text-zinc-500 hover:bg-zinc-800" : "text-zinc-400 hover:bg-zinc-100"}`}
+                      title={t("yearWheel.cancel_goal")}
+                      aria-label={t("yearWheel.cancel_goal")}
+                      className="text-muted-foreground hover:bg-muted rounded-md p-1.5 transition-colors"
                     >
                       <X className="h-3.5 w-3.5" />
                     </button>
@@ -270,22 +250,22 @@ export function SeasonGoalsTab({ seasonId, isDark }: Props) {
                     onClick={() =>
                       updateGoal.mutate({ season_goal_id: goal.season_goal_id, status: "active" })
                     }
-                    title="Reaktiver mål"
-                    aria-label="Reaktiver mål"
-                    className={`rounded-md p-1.5 transition-colors ${isDark ? "text-orange-400 hover:bg-orange-500/10" : "text-orange-600 hover:bg-orange-50"}`}
+                    title={t("yearWheel.reactivate_goal")}
+                    aria-label={t("yearWheel.reactivate_goal")}
+                    className="text-warning hover:bg-warning/10 rounded-md p-1.5 transition-colors"
                   >
                     <RotateCcw className="h-3.5 w-3.5" />
                   </button>
                 )}
                 <button
                   onClick={() => {
-                    if (window.confirm("Er du sikker på at du vil slette dette målet?")) {
+                    if (window.confirm(t("yearWheel.confirm_delete"))) {
                       deleteGoal.mutate(goal.season_goal_id);
                     }
                   }}
-                  title="Slett mål"
-                  aria-label="Slett mål"
-                  className={`rounded-md p-1.5 transition-colors ${isDark ? "text-red-500/60 hover:bg-red-500/10" : "text-red-400 hover:bg-red-50"}`}
+                  title={t("yearWheel.delete_goal")}
+                  aria-label={t("yearWheel.delete_goal")}
+                  className="text-destructive/60 hover:bg-destructive/10 rounded-md p-1.5 transition-colors"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>

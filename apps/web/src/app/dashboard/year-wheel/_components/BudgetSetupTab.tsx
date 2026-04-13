@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useTranslation } from "@smartout/i18n";
 import { useSeasonBudget } from "../_hooks";
 import {
   BUDGET_SETUP_LIMITS,
@@ -11,10 +12,10 @@ import { toast } from "sonner";
 
 type Props = {
   seasonId: string;
-  isDark: boolean;
 };
 
-export function BudgetSetupTab({ seasonId, isDark }: Props) {
+export function BudgetSetupTab({ seasonId }: Props) {
+  const { t } = useTranslation("dashboard");
   const { budget, isLoading, upsertBudget } = useSeasonBudget(seasonId);
 
   const [totalTarget, setTotalTarget] = useState("");
@@ -56,7 +57,7 @@ export function BudgetSetupTab({ seasonId, isDark }: Props) {
 
   const handleSave = () => {
     if (isLocked) {
-      toast.error("Budsjettet er låst. Sett status til Draft eller Active for å redigere.");
+      toast.error(t("yearWheel.budget_locked"));
       return;
     }
 
@@ -67,7 +68,7 @@ export function BudgetSetupTab({ seasonId, isDark }: Props) {
     const priceFactor = parseFloat(seasonPriceFactor);
 
     if (isNaN(target) || target <= 0) {
-      toast.error("Total omsetningsmål må være et positivt tall");
+      toast.error(t("yearWheel.total_revenue_target") + " må være et positivt tall");
       return;
     }
 
@@ -96,35 +97,19 @@ export function BudgetSetupTab({ seasonId, isDark }: Props) {
     });
   };
 
-  const cardClass = isDark
-    ? "rounded-2xl border border-zinc-800 bg-[#0c0c0e] p-6"
-    : "rounded-2xl border border-zinc-200 bg-white p-6";
-
-  const inputClass = isDark
-    ? "w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2.5 text-sm text-white outline-none focus:border-blue-500"
-    : "w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-sm text-zinc-900 outline-none focus:border-blue-500";
-
-  const labelClass = `mb-1.5 block text-[10px] font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`;
-
   if (isLoading) {
-    return <div className={`${cardClass} h-64 animate-pulse`} />;
+    return <div className="border-border bg-card h-64 animate-pulse rounded-2xl border p-6" />;
   }
 
   return (
-    <div className={cardClass}>
+    <div className="border-border bg-card rounded-2xl border p-6">
       <div className="mb-6 flex items-center gap-4">
-        <h3 className={`text-lg font-bold ${isDark ? "text-white" : "text-zinc-900"}`}>
-          Budsjettoppsett
-        </h3>
+        <h3 className="text-foreground text-lg font-bold">{t("yearWheel.budget_setup")}</h3>
         <div className="flex-1" />
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value as SeasonBudgetStatus)}
-          className={`rounded-lg border px-3 py-1.5 text-xs font-bold tracking-wider uppercase outline-none ${
-            isDark
-              ? "border-zinc-700 bg-zinc-900 text-white focus:border-blue-500"
-              : "border-zinc-300 bg-white text-zinc-900 focus:border-blue-500"
-          }`}
+          className="border-input bg-background text-foreground focus:border-primary rounded-lg border px-3 py-1.5 text-xs font-bold tracking-wider uppercase outline-none"
         >
           {SEASON_BUDGET_STATUS_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>
@@ -134,20 +119,16 @@ export function BudgetSetupTab({ seasonId, isDark }: Props) {
         </select>
       </div>
 
-      <div
-        className={`mb-6 rounded-lg border px-3 py-2 text-xs ${
-          isDark
-            ? "border-zinc-800 bg-zinc-900/40 text-zinc-400"
-            : "border-zinc-200 bg-zinc-50 text-zinc-600"
-        }`}
-      >
+      <div className="border-border bg-muted text-muted-foreground mb-6 rounded-lg border px-3 py-2 text-xs">
         Status styrer redigering: <strong>Draft/Active</strong> kan endres, <strong>Locked</strong>{" "}
         er skrivebeskyttet.
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         <div>
-          <label className={labelClass}>Total omsetningsmål (NOK)</label>
+          <label className="text-muted-foreground mb-1.5 block text-[10px] font-bold tracking-wider uppercase">
+            {t("yearWheel.total_revenue_target")} (NOK)
+          </label>
           <input
             type="number"
             value={totalTarget}
@@ -156,15 +137,15 @@ export function BudgetSetupTab({ seasonId, isDark }: Props) {
             min={BUDGET_SETUP_LIMITS.totalTargetRevenue.min}
             max={BUDGET_SETUP_LIMITS.totalTargetRevenue.max}
             disabled={isLocked}
-            className={inputClass}
+            className="border-input bg-background text-foreground focus:border-primary w-full rounded-lg border px-3 py-2.5 text-sm outline-none"
           />
-          <p className={`mt-1 text-xs ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>
-            Totalt for hele sesongen
-          </p>
+          <p className="text-muted-foreground mt-1 text-xs">Totalt for hele sesongen</p>
         </div>
 
         <div>
-          <label className={labelClass}>Mål lønnsandel (%)</label>
+          <label className="text-muted-foreground mb-1.5 block text-[10px] font-bold tracking-wider uppercase">
+            Mål lønnsandel (%)
+          </label>
           <input
             type="number"
             value={laborPct}
@@ -173,15 +154,17 @@ export function BudgetSetupTab({ seasonId, isDark }: Props) {
             min={BUDGET_SETUP_LIMITS.targetLaborPercentage.min}
             max={BUDGET_SETUP_LIMITS.targetLaborPercentage.max}
             disabled={isLocked}
-            className={inputClass}
+            className="border-input bg-background text-foreground focus:border-primary w-full rounded-lg border px-3 py-2.5 text-sm outline-none"
           />
-          <p className={`mt-1 text-xs ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>
+          <p className="text-muted-foreground mt-1 text-xs">
             Andel av omsetning til lønn (typisk 25-35%)
           </p>
         </div>
 
         <div>
-          <label className={labelClass}>Gj.snitt timeslønn (NOK)</label>
+          <label className="text-muted-foreground mb-1.5 block text-[10px] font-bold tracking-wider uppercase">
+            Gj.snitt timeslønn (NOK)
+          </label>
           <input
             type="number"
             value={hourlyWage}
@@ -190,15 +173,15 @@ export function BudgetSetupTab({ seasonId, isDark }: Props) {
             min={BUDGET_SETUP_LIMITS.avgHourlyWage.min}
             max={BUDGET_SETUP_LIMITS.avgHourlyWage.max}
             disabled={isLocked}
-            className={inputClass}
+            className="border-input bg-background text-foreground focus:border-primary w-full rounded-lg border px-3 py-2.5 text-sm outline-none"
           />
-          <p className={`mt-1 text-xs ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>
-            Brukes til bemanningsberegning
-          </p>
+          <p className="text-muted-foreground mt-1 text-xs">Brukes til bemanningsberegning</p>
         </div>
 
         <div>
-          <label className={labelClass}>Snittpris per gjest (NOK)</label>
+          <label className="text-muted-foreground mb-1.5 block text-[10px] font-bold tracking-wider uppercase">
+            Snittpris per gjest (NOK)
+          </label>
           <input
             type="number"
             value={basePrice}
@@ -207,15 +190,15 @@ export function BudgetSetupTab({ seasonId, isDark }: Props) {
             min={BUDGET_SETUP_LIMITS.basePricePerGuest.min}
             max={BUDGET_SETUP_LIMITS.basePricePerGuest.max}
             disabled={isLocked}
-            className={inputClass}
+            className="border-input bg-background text-foreground focus:border-primary w-full rounded-lg border px-3 py-2.5 text-sm outline-none"
           />
-          <p className={`mt-1 text-xs ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>
-            Gjennomsnittlig kuvert uten drikke
-          </p>
+          <p className="text-muted-foreground mt-1 text-xs">Gjennomsnittlig kuvert uten drikke</p>
         </div>
 
         <div>
-          <label className={labelClass}>Sesong prisfaktor</label>
+          <label className="text-muted-foreground mb-1.5 block text-[10px] font-bold tracking-wider uppercase">
+            Sesong prisfaktor
+          </label>
           <input
             type="number"
             value={seasonPriceFactor}
@@ -225,9 +208,9 @@ export function BudgetSetupTab({ seasonId, isDark }: Props) {
             min={BUDGET_SETUP_LIMITS.seasonPriceFactor.min}
             max={BUDGET_SETUP_LIMITS.seasonPriceFactor.max}
             disabled={isLocked}
-            className={inputClass}
+            className="border-input bg-background text-foreground focus:border-primary w-full rounded-lg border px-3 py-2.5 text-sm outline-none"
           />
-          <p className={`mt-1 text-xs ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>
+          <p className="text-muted-foreground mt-1 text-xs">
             Multipliserer snittpris per gjest i sesongen
           </p>
         </div>
@@ -237,9 +220,9 @@ export function BudgetSetupTab({ seasonId, isDark }: Props) {
         <button
           onClick={handleSave}
           disabled={upsertBudget.isPending || !totalTarget}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-blue-500 disabled:opacity-50"
+          className="bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm font-bold transition-colors hover:opacity-90 disabled:opacity-50"
         >
-          {upsertBudget.isPending ? "Lagrer..." : "Lagre budsjett"}
+          {upsertBudget.isPending ? t("yearWheel.saving") : t("yearWheel.save_budget")}
         </button>
       </div>
     </div>
