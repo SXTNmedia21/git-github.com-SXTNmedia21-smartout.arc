@@ -226,13 +226,20 @@ const haccp = supabase
   .order('logged_at', { ascending: false });
 
 // New query: Cleaning checklist status
+// Join through session_hook -> procedure to get procedure_type for filtering
 const cleaning = supabase
   .from('session_task')
-  .select('id, status, completed_at, session_hook:session_hook_id(linked_procedure_id)')
+  .select(`
+    id, status, completed_at,
+    session_hook:session_hook_id(
+      linked_procedure_id,
+      procedure:linked_procedure_id(procedure_type)
+    )
+  `)
   .eq('workspace_id', wsId)
   .in('department_session_id', sessionIds)
   .not('session_hook_id', 'is', null);
-// Filter client-side for procedure_type='maintenance'
+// Filter client-side: .filter(t => t.session_hook?.procedure?.procedure_type === 'maintenance')
 ```
 
 Both added to existing `Promise.all()`.
@@ -334,7 +341,7 @@ Executed at request time AND re-validated at approval time:
 | **11-hour rest** | Previous/next shift gap for target | Warning — rest period < 11 hours |
 | **Delt dagsverk** | Riksavtalen: gap > 2 hours between shifts | Warning — triggers +28 kr/t supplement |
 
-Validation logic lives in `packages/` (shared, not `apps/web/`).
+Validation logic lives in `packages/utils/src/swap/` (shared, not `apps/web/`). File: `validate-swap.ts` — pure function, no React, importable from both web and mobile.
 
 ### RLS and Access Control
 
@@ -389,6 +396,10 @@ BEGIN
 END;
 $$;
 ```
+
+### Telemetry in RPCs
+
+SECURITY DEFINER RPCs execute in PostgreSQL and cannot call TypeScript `emit()`. Pattern: the **calling client** (web hook or mobile mutation) emits after the RPC returns successfully. Each `useMutation.onSuccess` handler calls `emit()` with the appropriate event. This matches existing patterns where mutations emit in `onSuccess`, not inside the server operation.
 
 ### Approval Flow
 
@@ -448,8 +459,10 @@ Ansatt A                     Ansatt B                     Leder
 ### Agent Integration
 
 **New capability:** `packages/ai/src/capabilities/shift-swap/`
-- `index.ts` — CapabilityDefinition
-- `tools.ts` — requestSwap, getSwapRequests, getSwapEligibility, respondToSwap
+- `index.ts` — CapabilityDefinition with `allowedChannels: ['chat']` (per ADR-0078 — swap involves specific shift/colleague selection, not suitable for voice)
+- `tools.ts` — tools with authority split:
+  - `readOnlyTools`: `getSwapRequests`, `getSwapEligibility` (no authority gate)
+  - `suggestTools`: `requestSwap`, `respondToSwap` (requires `confirm` authority to execute)
 
 **Botsson update:** Add to `BOTSSON_CAPABILITIES` array:
 - `operationsCapability` (already exists, not wired)
@@ -500,17 +513,32 @@ Per CLAUDE.md: data layer and hooks in `packages/`, not `apps/web/`. All three f
 
 | Feature | Shared package | Web UI | Mobile UI |
 |---------|---------------|--------|-----------|
-| Renholdssjekker | `useChecklistTasks()`, `useCompleteCheckpoint()`, `useSignChecklist()` | Admin CRUD in `/hms/governance/` | ChecklistView in TaskFeed |
-| Driftsoversikt | Extended `useOperationsData()` with HACCP + cleaning queries | Enhanced `/operations/` page | Enhanced operations.tsx bento-feed |
-| Skiftbytte | `useSwapRequests()`, `useSwapEligibility()`, validation logic | Schedule view extension | Bottom sheet + push notification flow |
+| Renholdssjekker | `packages/utils/src/checklist/` — `useChecklistTasks()`, `useCompleteCheckpoint()`, `useSignChecklist()` | Admin CRUD in `/hms/governance/` | ChecklistView in TaskFeed |
+| Driftsoversikt | Extended `useOperationsData()` in `apps/web/` + shared types in `packages/types/` | Enhanced `/operations/` page | Enhanced operations.tsx bento-feed |
+| Skiftbytte | `packages/utils/src/swap/` — `useSwapRequests()`, `useSwapEligibility()`, `validate-swap.ts` | Schedule view extension | Bottom sheet + push notification flow |
 
 ### Design System (Nordic Split)
 
 - All new components use glassmorphism card: `bg-background/80 backdrop-blur-xl` + 1px gradient border + noise
-- All animations: Nordic Split springs (stiffness 30-45, damping 20-24, mass 2-2.5)
+- All animations use Nordic Split spring preset: `{ type: 'spring', stiffness: 35, damping: 22, mass: 2.2 }` — see `docs/design/motion.md` for full reference. NEVER use Framer Motion defaults (stiffness 100, damping 10) — they are 10x too snappy for Nordic Split.
 - All status badges: semantic color tokens + Lucide icon + text label (accessibility: never color-only)
 - All touch targets: minimum 44x44px (48px preferred for checklists)
 - `useReducedMotion` respected on all animated elements
+- Empty states: ghost card with dashed border and contextual message (e.g. "Ingen sjekklister i dag", "Ingen ventende bytter"). Use `text-muted-foreground` + `border-dashed border-border`.
+
+### Accessibility (WCAG AA)
+
+- Status badges: icon + text label always, never color-only
+- Photo evidence: `aria-label` on capture button ("Ta bilde"), `alt` text on thumbnails
+- Swap colleague picker: `role="listbox"` with `role="option"` per colleague, keyboard navigable (arrow keys + Enter)
+- Checklist checkboxes: native `<input type="checkbox">` wrapped in label, not div-based faux checkboxes
+- All interactive elements: visible focus ring (`focus-visible:ring-2 ring-ring`)
+
+### Build Order Dependency
+
+Agent A (Cleaning) must land seed data (example maintenance procedure + session_hook) BEFORE Agent B (Operations) can test the cleaning query. Options:
+- Agent B stubs the cleaning card with mock data, Agent A's merge enables real data
+- Or: Agent A lands first, Agent B starts after
 
 ### i18n
 
