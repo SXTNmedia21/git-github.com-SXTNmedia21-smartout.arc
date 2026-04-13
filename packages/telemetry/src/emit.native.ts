@@ -54,15 +54,6 @@ export async function emit(event: SmartoutEvent): Promise<void> {
     );
   }
 
-  // 5. Notifications — proxy through the same edge function
-  if (routing.destinations.includes("notifications")) {
-    promises.push(
-      proxyToEdgeFunction(event, ["notifications"]).catch(() => {
-        // Silent fail — notification delivery is best-effort
-      }),
-    );
-  }
-
   await Promise.allSettled(promises);
 }
 

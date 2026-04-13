@@ -52,18 +52,4 @@ export async function emit(event: SmartoutEvent): Promise<void> {
       console.warn(`[telemetry] Failed to proxy "${event.event}" to server`);
     });
   }
-
-  // 5. Notifications (client-side only — server uses engine-dispatch)
-  if (routing.destinations.includes("notifications")) {
-    fetch("/api/notifications/outbox", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        event_key: event.event,
-        metadata: event.properties,
-      }),
-    }).catch(() => {
-      /* Silent fail — notification delivery is best-effort from telemetry */
-    });
-  }
 }
