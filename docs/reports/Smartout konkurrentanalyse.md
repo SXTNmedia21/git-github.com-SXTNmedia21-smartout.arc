@@ -149,7 +149,7 @@ tags: [prising, konkurrenter, sammenligning]
 
 ## 3. Funksjonssammenligning
 
-Hva er inkludert hos hver leverandør? For konkurrentene vises **laveste betalte plan**. For Smartout vises plattformen samlet (se `Smartout features.md` for komplett funksjonsliste).
+Hva er inkludert hos hver leverandør? For konkurrentene vises **laveste betalte plan**. For Smartout vises plattformen samlet (se `Smartout hva du får.md` for kundeversjon, `Smartout features.md` for teknisk detalj).
 
 | Funksjon | **Smartout** | Planday | Tidsbanken | Timegrip | Runwell | Smartplan | Workfeed | PowerPlan | eSmiley |
 |---|---|---|---|---|---|---|---|---|---|
@@ -204,6 +204,7 @@ Hvilke konkurrenter opererer i hvert funksjonsområde?
 
 **Relaterte dokumenter:**
 
-- `Smartout features.md` — Komplett funksjonsoversikt (moduler + AI)
+- `Smartout hva du får.md` — Kundevendt funksjonsoversikt (salg + kunde)
+- `Smartout features.md` — Teknisk funksjonsoversikt (intern)
 - `Smartout prising grunnlag.md` — Prismodeller og faktagrunnlag
 - `Smartout onboarding-nivåer.md` — Tre nivåer av onboarding-hjelp
