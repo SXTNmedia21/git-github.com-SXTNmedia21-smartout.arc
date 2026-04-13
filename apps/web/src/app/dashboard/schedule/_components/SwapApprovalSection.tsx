@@ -10,7 +10,8 @@
  * Connected to: use-shift-swap.ts (queries + mutations)
  */
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -24,6 +25,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { useTranslation } from "@smartout/i18n";
+import { createClient } from "@smartout/supabase/client";
 
 import {
   useSwapRequests,
@@ -67,7 +69,15 @@ function SwapStatusBadge({ status }: { status: string }) {
 
 // ── Swap Card ───────────────────────────────────────────────────────────────
 
-function SwapCard({ swap, isManager }: { swap: SwapRequest; isManager: boolean }) {
+function SwapCard({
+  swap,
+  isManager,
+  profileNames,
+}: {
+  swap: SwapRequest;
+  isManager: boolean;
+  profileNames: Map<string, string>;
+}) {
   const approveSwap = useApproveSwap();
   const respondToSwap = useRespondToSwap();
   const [rejectReason, setRejectReason] = useState("");
@@ -116,11 +126,11 @@ function SwapCard({ swap, isManager }: { swap: SwapRequest; isManager: boolean }
           <div className="text-muted-foreground grid grid-cols-2 gap-2 text-xs">
             <div>
               <span className="font-medium">{t("swap.requester")}</span>{" "}
-              {ctx.requester_profile_id.slice(0, 8)}...
+              {profileNames.get(ctx.requester_profile_id) ?? t("swap.unknownProfile")}
             </div>
             <div>
               <span className="font-medium">{t("swap.recipient")}</span>{" "}
-              {ctx.target_profile_id.slice(0, 8)}...
+              {profileNames.get(ctx.target_profile_id) ?? t("swap.unknownProfile")}
             </div>
           </div>
           {ctx.reason && (
@@ -203,7 +213,39 @@ export function SwapApprovalSection({ isAdmin }: { isAdmin: boolean }) {
     (s) => s.context.status === "pending_recipient" || s.context.status === "pending_manager",
   );
 
+  // Collect unique profile IDs from all active swaps for name resolution
+  const profileIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const swap of activeSwaps) {
+      ids.add(swap.context.requester_profile_id);
+      ids.add(swap.context.target_profile_id);
+    }
+    return [...ids];
+  }, [activeSwaps]);
+
+  // Resolve profile IDs to display names
+  const { data: profileNames } = useQuery({
+    queryKey: ["profiles", "display-names", profileIds],
+    enabled: profileIds.length > 0,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("profile")
+        .select("profile_id, display_name")
+        .in("profile_id", profileIds);
+
+      const map = new Map<string, string>();
+      for (const p of data ?? []) {
+        map.set(p.profile_id, p.display_name ?? t("swap.unknownProfile"));
+      }
+      return map;
+    },
+  });
+
   if (isLoading || activeSwaps.length === 0) return null;
+
+  const resolvedNames = profileNames ?? new Map<string, string>();
 
   return (
     <div className="border-border border-b px-4 py-2">
@@ -221,7 +263,7 @@ export function SwapApprovalSection({ isAdmin }: { isAdmin: boolean }) {
       {expanded && (
         <div className="mt-2 space-y-2">
           {activeSwaps.map((swap) => (
-            <SwapCard key={swap.id} swap={swap} isManager={isAdmin} />
+            <SwapCard key={swap.id} swap={swap} isManager={isAdmin} profileNames={resolvedNames} />
           ))}
         </div>
       )}

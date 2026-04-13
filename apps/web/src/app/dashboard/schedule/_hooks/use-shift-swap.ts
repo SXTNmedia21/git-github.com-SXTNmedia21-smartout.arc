@@ -197,8 +197,18 @@ export function useApproveSwap() {
     },
     onSuccess: (_, vars) => {
       if (vars.approved) {
+        // Emit both approval and execution — the RPC swaps employee_ids on approval
         void emit({
           event: "shift swap_approved",
+          workspace_id: workspace.workspace_id,
+          actor_id: profileId ?? "",
+          properties: {
+            entity: { entity_type: "engine_state", entity_id: vars.swapId },
+            data: { swap_id: vars.swapId, approved_by: profileId ?? "" },
+          },
+        });
+        void emit({
+          event: "shift swap_executed",
           workspace_id: workspace.workspace_id,
           actor_id: profileId ?? "",
           properties: {
@@ -228,3 +238,6 @@ export function useApproveSwap() {
     },
   });
 }
+
+// TODO: add cancel_shift_swap RPC — then implement useCancelSwap mutation
+// that calls the RPC and emits "shift swap_cancelled" telemetry event.

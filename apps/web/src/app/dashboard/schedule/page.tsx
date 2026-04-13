@@ -204,6 +204,7 @@ function SchedulePageContent() {
   const firstInteractionCapturedRef = useRef(false);
   const {
     isDark,
+    isAdminMode,
     scheduleLayout,
     setScheduleLayout,
     scheduleDateOffset,
@@ -1005,7 +1006,7 @@ function SchedulePageContent() {
             <ProposalBanner />
 
             {/* Shift swap approval section — shows pending swaps for admin/manager */}
-            <SwapApprovalSection isAdmin={true} />
+            <SwapApprovalSection isAdmin={isAdminMode} />
 
             {/* VAKTGRID — single grid, columns grouped by department horizontally */}
             {scheduleLayout === "grid" && (
