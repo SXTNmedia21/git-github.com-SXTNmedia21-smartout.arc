@@ -68,7 +68,7 @@ All routes for the web dashboard (`apps/web`), landing page (`apps/landing`), an
 | `/dashboard/operations`           | Live operations              | Operations      |
 | `/dashboard/reports`              | Reports & KPIs               | Reports         |
 | `/dashboard/governance`           | Policy & protocol management | Governance      |
-| `/dashboard/season`               | Season management            | Season Planning |
+| `/dashboard/year-wheel`           | Year wheel & season planning | Season Planning |
 | `/dashboard/organization`         | Organization settings        | Org Structure   |
 | `/dashboard/chat`                 | Team chat                    | Communication   |
 | `/dashboard/ai`                   | AI assistant (Mr. Botsson)   | AI              |

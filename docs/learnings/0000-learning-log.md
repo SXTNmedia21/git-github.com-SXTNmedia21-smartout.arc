@@ -1,7 +1,7 @@
 ---
 title: Learning Log
 status: in_progress
-updated: 2026-04-07
+updated: 2026-04-10
 created: 2026-03-26
 module: schedule
 tags: [learnings]
@@ -46,3 +46,5 @@ tags: [learnings]
 | 2   | 2026-04-07 | Every Botsson mutation tool must call emit() — capability layer is part of telemetry coverage ([0027](0027-botsson-mutation-tools-must-emit.md))                                          | Refactored telemetry to be importable from server-only packages; added Botsson emit pattern to review checklist                             |
 | 29  | 2026-04-08 | Four parallel permission mechanisms is an ontology drift smell ([0029](0029-four-parallel-permission-mechanisms-ontology-smell.md))                                                        | Before adding new permission flags, enumerate existing mechanisms (C4 authority, action_type handlers, allowed_channels). If it can be expressed via combinations, don't add. |
 | 30  | 2026-04-08 | "contract" word overloaded across two unrelated systems — `employment_contract` (HR) vs `contract` (ADR-0024 platform legal) ([0030](0030-contract-word-overloaded-across-two-systems.md)) | Migrations must always use `public.contract_status` explicitly. Variable naming must mirror the table, not the concept. UI-text uses "Arbeidsavtale" vs "Brukeravtale". |
+| 31  | 2026-04-10 | Clickable row actions need explicit propagation + a11y contract in row-click tables ([0031](0031-clickable-row-action-propagation-contract.md)) | Prevents double-trigger UX bugs (row open + inline action), especially for external handoff actions like PostHog links. |
+| 32  | 2026-04-10 | App Router directory renames are safer than they appear — relative imports survive, only string references break ([0032](0032-app-router-rename-blast-radius.md)) | Prefer clean renames + redirects over rewrites that create permanent URL/filesystem discrepancy. Count actual broken references, don't estimate from file count. |

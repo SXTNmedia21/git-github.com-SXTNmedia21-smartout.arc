@@ -1,7 +1,7 @@
 ---
 title: Council Session Log
 status: in_progress
-updated: 2026-04-09
+updated: 2026-04-10
 created: 2026-03-26
 module: governance
 tags: [council, decisions, multi-agent, review]
@@ -422,3 +422,90 @@ All 4 agents found real issues. Steward and Supervisor both independently found 
 - **Steward:** HIGH — confirmed cascade alignment + found same registry conflict + merge order
 - **Agent Coordinator:** HIGH — found the CRITICAL key format mismatch that all others missed
 - **Frontend Designer:** LOW — couldn't find worktrees (path mismatch smartout.ai-wt-N vs wt-N)
+
+---
+
+## 2026-04-10 — Platform Admin PostHog Bridge Phase 1
+
+**Type:** architecture
+**Verdict:** APPROVE WITH CHANGES
+**Agents consulted:** system-steward, supervisor, system-agent-coordinator, frontend-designer, narrator
+**Key decision:** Keep Supabase landing tables as operational source-of-truth and use PostHog as auxiliary investigative context via detail + row quick-action links.
+**ADR created:** none (ADR-0037 addendum updated)
+**Learning created:** 0031
+
+---
+
+## 2026-04-10 — Year Wheel (Årshjul) UX Pivot
+
+**Type:** architecture
+**Verdict:** APPROVE WITH CHANGES
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator, frontend-designer, narrator
+**Key decision:** Physical directory rename (`season/` → `year-wheel/`) + `next.config.ts` permanent redirect. Supervisor's rewrite strategy overruled — actual blast radius verified as 25 string replacements across 14 files, not "hundreds of import path changes". Canvas/Blocks/Pins maps 1:1 to cascade resolution tiers.
+**ADR created:** none (ADR-0085 already covers governance)
+**Learning created:** 0032
+
+### Key rulings
+
+1. **Physical rename + redirect**, not rewrite (overrules Supervisor — blast radius overestimated)
+2. **Click-to-edit for v1**, not drag (accepts Frontend Designer — touch incompatible)
+3. **"Duplicate Last Year" is Phase 3**, not scope creep (concept is core, implementation is phased)
+4. **E2E tests in Phase 1** (not Phase 5 — tests break immediately on route move)
+5. **Keep BotssonTools key as `"season"`**, update path only (accepts Agent Coordinator)
+6. **Block overlap needs design decision** before Phase 2 starts (swim lanes vs stacking)
+7. **Pin minimum 44px hit area** (WCAG 2.5.8) with cluster collapsing for 3+ pins
+8. **New fixup migration** for `resolve_cascade_tasks_rpc.sql` hardcoded hrefs (BLOCKING)
+
+### Consensus (all 4 agents agreed)
+
+- Canvas/Blocks/Pins is the correct mental model — direct visualization of cascade resolution
+- SQL migration with hardcoded hrefs needs fixup migration (immutable)
+- i18n layer already aligned (sidebar says "Årshjul", locale keys exist)
+- AI architecture unaffected (Stage Engine routes by mission_id, not URL)
+
+### Conflicts resolved
+
+- **Rename vs Rewrite:** Steward overruled Supervisor. App Router relative imports survive rename. Rewrite would create permanent URL/filesystem discrepancy contradicting the pivot's purpose.
+- **"Kopier forrige år" scope:** Supervisor called it scope creep, Designer called it hospitality-native. Resolution: ship CTA as disabled placeholder in Phase 1, full implementation in Phase 3.
+- **Events tab removal:** Must keep PlanningEventsTab as list-view fallback until Pin UI has full CRUD parity.
+
+### Agent effectiveness
+
+- **System Steward:** HIGH — verified all 25 references, confirmed cascade alignment, correct rename decision
+- **Supervisor:** HIGH — caught i18n violations, nested Sheet risk, mobile parity gap; rewrite recommendation was reasonable but overestimated risk
+- **Agent Coordinator:** HIGH — confirmed AI safety, precise 10-change list with line numbers, correct BotssonTools key recommendation
+- **Frontend Designer:** HIGH — complete design spec (typography, blocks, pins, canvas, empty state, animations, a11y, responsive), caught 3 high-risk areas
+
+---
+
+## 2026-04-12 — Year Wheel PRD Consolidation + "Fra kaos til kaskade" Hypothesis
+**Type:** architecture + feature
+**Verdict:** APPROVE WITH CHANGES
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator, frontend-designer
+**Key decision:** Consolidate 5 Year Wheel documents into one master PRD (MODULE_YEAR_WHEEL_PRD.md v2.0.0). Mark UX pivot spec and gap closure design spec as superseded. Keep gap closure execution plan (stale paths need update). Keep ADR-0085. PRD written in English (convention alignment). Hypothesis framework lives in PRD Section 3 (pragmatic compromise — design rationale marked explicitly).
+**ADR created:** none (language exception documented in PRD frontmatter)
+**Learning created:** UI event types != DB enum values — PRD must show both layers and the mapping
+
+### Critical findings
+
+1. **Cascade Resolution Gap (Steward, P0):** Seasons exist in DB but produce zero `department_operating_hours` rows. Canvas/Blocks/Pins is conceptually correct but operationally disconnected from cascade scheduling. Activating a season has no downstream effect on actual staffing calculations.
+2. **`season.opening_hours` is deprecated (Steward, confirmed by code):** Migration `20260421210000` explicitly marks it as `LEGACY: deprecated by Cascade A1`. Dead schema.
+3. **`is_default` is governance fallback, not Canvas (Steward, confirmed by code):** Restaurant templates use `is_default = true` to find a season for policy-binding. Canvas in cascade resolution is `season_id IS NULL`. Two different concepts.
+4. **Gap closure plan has 44 stale paths (Supervisor, P0):** All references point to deleted `/dashboard/season/` directory. Any agent executing this plan will fail.
+5. **5 orphaned season tools (Agent Coordinator):** `packages/ai/src/tools/season/` tools exist but are not registered in any capability. Year Wheel has zero voice/chat tools.
+6. **Design system violations (Frontend Designer, P0):** Hardcoded color classes, isDark prop drilling, spring constants 10x stiffer than Nordic Split tokens, no prefers-reduced-motion handling.
+
+### Resolved questions (user confirmed)
+
+| Question | Answer | Evidence |
+|---|---|---|
+| `is_default` semantics | Governance template fallback, NOT Canvas | `governance.sql:108`, `mattilsynet.sql:118`, `alcohol-labor.sql:86` all query `is_default = true` for policy-binding |
+| `season.opening_hours` role | Dead schema (deprecated) | `20260421210000_cascade_cleanup_markers.sql:17-21` explicitly marks as LEGACY |
+| Multiple active seasons | Max 1 active (current behavior correct) | User confirmed. Overlapping blocks are draft/planning only. |
+| PRD language | English (convention alignment) | User confirmed. |
+
+### Agent effectiveness
+- **System Steward:** HIGH — found cascade resolution gap, data model incompleteness, is_default ambiguity, opening_hours dual-source risk
+- **Supervisor:** HIGH — found stale path danger, convention analysis (spec vs PRD), scope creep guardrails, i18n violation
+- **Agent Coordinator:** HIGH — found orphaned tools, missing capability, dual control path, calendar guardian single-season bug
+- **Frontend Designer:** HIGH — complete design spec for all 7 planned features, found 6 design system violations with specific fix recommendations

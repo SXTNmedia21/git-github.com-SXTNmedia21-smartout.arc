@@ -4,7 +4,7 @@ id: ADR_0037
 status: accepted
 layer: decision
 created: 2026-03-01
-updated: 2026-03-01
+updated: 2026-04-10
 ---
 
 # ADR-0037: Landing Page Event Tracking
@@ -42,9 +42,32 @@ Chosen option: **"New `landing_event` table"**, because:
 - **Bad, because** two separate tracking systems now exist (PostHog for frontend analytics, Supabase for internal admin visibility) — these are complementary, not duplicated
 - **Agent Impact:**
   - When adding new landing page features that should appear in platform admin, insert rows into `landing_event` via the `/api/track` route (client) or `createAdminClient()` (server)
-  - Valid `event_type` values: `page_view`, `voice_session_started`, `cta_click`
+  - Initial MVP `event_type` values were `page_view`, `voice_session_started`, `cta_click` (see addendum for current runtime taxonomy)
   - The `landing_event` table has no RLS — service role only (never expose to browser)
   - The `/api/track` route in the landing app is the public write gateway
+
+## Addendum (2026-04-10): Platform Admin -> PostHog Bridge (Phase 1)
+
+This addendum clarifies operational ownership and bridge-link behavior approved for Phase 1.
+
+- **Expanded taxonomy (runtime):** `landing_event.event_type` is no longer limited to three values in practice. Current `/api/track` schema accepts:
+  - `page_view`
+  - `voice_session_started`
+  - `cta_click`
+  - `click`
+  - `scroll_depth`
+  - `session_heartbeat`
+  - `session_end`
+  - `form_started`
+  - `waitlist_submitted`
+  - `waitlist_failed`
+- **Operational source-of-truth:** Supabase landing tables (`landing_event`, `landing_session`, `landing_visitor`) remain the authoritative data source for Platform Admin views and KPI cards.
+- **PostHog role in Phase 1:** PostHog is an auxiliary investigative layer used for handoff, search, and replay context from Platform Admin links. It does not replace Supabase operational queries.
+- **Minimum ID contract for bridge links:**
+  - `session_id` from `landing_session` / `landing_event` is always passed into PostHog links (`q`, `session_id`) as the primary replay/search key.
+  - `visitor_id` is treated as the expected `distinct_id` mapping and is passed as `distinct_id` when available.
+  - If `visitor_id` is missing, links still open with `session_id` context only.
+  - If `NEXT_PUBLIC_POSTHOG_PROJECT_ID` is missing, links fall back to PostHog UI root with query context preserved for manual lookup.
 
 ## Implementation
 

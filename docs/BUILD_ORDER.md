@@ -724,7 +724,7 @@ changelog:
 ### 6.3 — Module 15: Season Planning [DONE]
 
 > **Refs:** [Module 15 Spec](modules/SMARTOUT_MODULE_15_SEASON_PLANNING.md)
-> **Route:** `/dashboard/season`
+> **Route:** `/dashboard/year-wheel`
 
 #### 6.3.1 — Season Lifecycle [DONE]
 
@@ -992,7 +992,7 @@ The project has built significantly out of wave order — especially AI (Wave 6.
 | 12: AI              | `/dashboard/ai` + Stage Engine                    | Built       | 6    | ~80%       |
 | 13: Multi-tenant    | Cross-cutting                                     | Built       | 0    | ~90%       |
 | 14: Production      | (new route)                                       | Not started | 6    | 0%         |
-| 15: Season Planning | `/dashboard/season`                               | Done        | 6    | ~95%       |
+| 15: Season Planning | `/dashboard/year-wheel`                           | Done        | 6    | ~95%       |
 | 17: Platform Admin  | `/platform-admin/*`                               | Done        | 0    | ~95%       |
 | 18: WebRTC          | `/dashboard/chat` (extends)                       | Minimal     | 2    | ~10%       |
 

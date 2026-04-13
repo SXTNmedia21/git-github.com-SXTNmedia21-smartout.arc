@@ -58,7 +58,7 @@ The top bar shows:
 | Page             | Route                     | What it does                                          |
 | ---------------- | ------------------------- | ----------------------------------------------------- |
 | **Governance**   | `/dashboard/governance`   | Policies, protocols, compliance tracking (HACCP etc.) |
-| **Season**       | `/dashboard/season`       | Season management: budget, day factors, hour factors  |
+| **Season**       | `/dashboard/year-wheel`   | Year wheel & season management: timeline, budget, day factors, hour factors |
 | **Organization** | `/dashboard/organization` | Departments, locations, teams, positions              |
 
 ### Communication (both modes)

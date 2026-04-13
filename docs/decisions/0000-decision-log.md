@@ -1,7 +1,7 @@
 ---
 title: Decision Log
 status: canonical
-updated: 2026-04-08
+updated: 2026-04-10
 created: 2026-02-27
 module: meta
 tags: [decisions, adr, index]
@@ -18,6 +18,9 @@ tags: [decisions, adr, index]
 >
 > **Per-feature decision tables** (previously embedded here) have been removed. They live in
 > `docs/handoffs/HANDOFF-<feature>.md` and in `activity-log.md` (per ADR-0075).
+>
+> **2026-04-10 note:** ADR-0037 received an addendum clarifying expanded landing event taxonomy,
+> Supabase operational source-of-truth, and Phase 1 Platform Admin -> PostHog bridge ID contract.
 >
 > Ordered newest first.
 

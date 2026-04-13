@@ -5,7 +5,7 @@ version: "1.0"
 status: canonical
 layer: reference
 created: 2026-02-28
-updated: 2026-03-24
+updated: 2026-04-10
 author: claude
 supersedes: []
 superseded_by: null
@@ -13,6 +13,8 @@ depends_on: []
 tags: [env, secrets, configuration, 1password, validation, t3-env]
 tables: []
 changelog:
+  - date: 2026-04-10
+    change: "Document NEXT_PUBLIC_POSTHOG_PROJECT_ID for web + landing env sections (optional, Platform Admin bridge links)"
   - date: 2026-03-11
     change: "Note consolidated .env.example, add Edge Function + service vars, add TWILIO_FROM_NUMBER"
   - date: 2026-02-28
@@ -47,6 +49,7 @@ Both `apps/web` and `apps/landing` use `@t3-oss/env-nextjs` with Zod schemas:
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `z.string().optional()`         | --                         | Yes (practical) | From `npx supabase status`                               |
 | `NEXT_PUBLIC_POSTHOG_KEY`       | `z.string().optional()`         | --                         | No              | PostHog project API key                                  |
 | `NEXT_PUBLIC_POSTHOG_HOST`      | `z.string().url().default(...)` | `https://eu.i.posthog.com` | No              | PostHog EU proxy                                         |
+| `NEXT_PUBLIC_POSTHOG_PROJECT_ID` | `z.string().optional()`         | --                         | No              | PostHog project id used by Platform Admin bridge links   |
 | `NEXT_PUBLIC_SENTRY_DSN`        | `z.string().url().optional()`   | --                         | No              | Sentry client-side tracking                              |
 | `NEXT_PUBLIC_ROOT_DOMAIN`       | `z.string().default(...)`       | `localhost`                | No              | Set to `smartout.ai` in production for subdomain routing |
 | `NEXT_PUBLIC_LIVEKIT_URL`       | `z.string().url().optional()`   | --                         | No              | LiveKit Cloud WebSocket URL (voice calls)                |
@@ -90,6 +93,7 @@ Both `apps/web` and `apps/landing` use `@t3-oss/env-nextjs` with Zod schemas:
 | `NEXT_PUBLIC_WEB_APP_URL`       | `z.string().url().optional()`   | --                         | No              | URL to web dashboard (for CTAs) |
 | `NEXT_PUBLIC_POSTHOG_KEY`       | `z.string().optional()`         | --                         | No              | Same as web                     |
 | `NEXT_PUBLIC_POSTHOG_HOST`      | `z.string().url().default(...)` | `https://eu.i.posthog.com` | No              | Same as web                     |
+| `NEXT_PUBLIC_POSTHOG_PROJECT_ID` | `N/A (not validated in landing env.ts)` | --               | No              | Optional shared env for Platform Admin PostHog bridge links |
 
 ### Server Variables
 
