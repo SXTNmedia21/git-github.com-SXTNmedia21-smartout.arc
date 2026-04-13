@@ -141,7 +141,11 @@
   },
   "ghost_value": {
     "approve": "Godkjenn",
-    "show_reasoning": "Vis begrunnelse"
+    "show_reasoning": "Vis begrunnelse",
+    "template": "Kontraktmal",
+    "source_workspace_group": "Fra lønnsgruppe: {{group}}",
+    "source_workspace_category": "Tilpasset mal for arbeidsområdet",
+    "source_system": "Standard systemmal"
   },
   "blocker": {
     "blocker_singular": "blokkering",

@@ -67,6 +67,12 @@ type ComposeInput = {
 type ComposeResult = ContractDraftProposal & {
   contract_id?: string;
   persisted?: boolean;
+  resolved_template?: {
+    template_id: string;
+    template_name: string;
+    source: "workspace_group" | "workspace_category" | "system";
+    employee_group_name?: string;
+  } | null;
 };
 
 export function useComposeContract() {

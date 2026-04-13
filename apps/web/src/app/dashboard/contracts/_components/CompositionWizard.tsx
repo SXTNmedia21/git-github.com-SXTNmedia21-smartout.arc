@@ -362,6 +362,24 @@ function GjennomgangStep({ state, updateState }: WizardStepProps<CompositionStat
         date: proposal.framework_snapshot.snapshot_date.split("T")[0] ?? "",
       }),
     },
+    // Template source — only shown when template resolution is available
+    ...(proposal.resolved_template
+      ? [
+          {
+            key: "mal",
+            label: t("ghost_value.template"),
+            value: proposal.resolved_template.template_name,
+            source:
+              proposal.resolved_template.source === "workspace_group"
+                ? t("ghost_value.source_workspace_group", {
+                    group: proposal.resolved_template.employee_group_name ?? "",
+                  })
+                : proposal.resolved_template.source === "workspace_category"
+                  ? t("ghost_value.source_workspace_category")
+                  : t("ghost_value.source_system"),
+          },
+        ]
+      : []),
   ];
 
   function handleAcknowledge(key: string) {

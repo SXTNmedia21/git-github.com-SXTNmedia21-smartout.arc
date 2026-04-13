@@ -141,7 +141,11 @@
   },
   "ghost_value": {
     "approve": "Approve",
-    "show_reasoning": "Show reasoning"
+    "show_reasoning": "Show reasoning",
+    "template": "Contract template",
+    "source_workspace_group": "From wage group: {{group}}",
+    "source_workspace_category": "Custom workspace template",
+    "source_system": "Standard system template"
   },
   "blocker": {
     "blocker_singular": "blocker",
