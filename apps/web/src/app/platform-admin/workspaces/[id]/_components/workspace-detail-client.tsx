@@ -5,11 +5,8 @@
 // Each tab is a self-contained component in the tabs/ directory.
 
 import { useState } from "react";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { StatusBadge } from "@/components/platform-admin/status-badge";
 import { ComposeEmailSheet } from "@/components/platform-admin/compose-email-sheet";
 import type { AudienceFilter } from "@/components/platform-admin/audience-selector";
@@ -30,29 +27,12 @@ import type { NoteRow } from "./tabs/NotesTab";
 
 import type { ContractRow } from "@/components/platform-admin/contract-columns";
 
+import { ContractTab } from "./tabs/ContractTab";
+import type { PricingTermsData } from "./tabs/ContractTab";
+
 // ── Re-export types consumed upstream (e.g. the server page component) ───────
 export type { WorkspaceData, CompanyData, ProfileRow, DocChunk, MemoryRow, StorageFile, NoteRow };
-
-// Pricing terms as seen by the workspace detail page — camelCase mirror of the DB row.
-export type PricingTermsData = {
-  pricingTermsId: string;
-  companyId: string;
-  workspaceId: string | null;
-  monthlyCost: number | null;
-  pricePerEmployee: number;
-  billingInterval: string;
-  currency: string;
-  discountPercent: number | null;
-  discountLabel: string | null;
-  onboardingPackage: string | null;
-  onboardingCost: number | null;
-  trialDays: number | null;
-  effectiveFrom: string;
-  effectiveUntil: string | null;
-  notes: string | null;
-  contractId: string | null;
-  updatedAt: string;
-};
+export type { PricingTermsData };
 
 // ── Props ────────────────────────────────────────────────────────────────────
 
@@ -73,7 +53,6 @@ type Props = {
     memories: MemoryRow[];
     files: StorageFile[];
   };
-  // Fetched at SSR time; passed to ContractTab when it is implemented (Task 10).
   contracts: ContractRow[];
   pricingTerms: PricingTermsData | null;
 };
@@ -87,11 +66,8 @@ export function WorkspaceDetailClient({
   notes,
   commHistory,
   intelligence,
-  // contracts and pricingTerms are accepted here but wired up in Task 10 (ContractTab).
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  contracts: _contracts,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  pricingTerms: _pricingTerms,
+  contracts,
+  pricingTerms,
 }: Props) {
   // Shared compose state — opened by both ChampionsTab (per-user) and CommunicationTab (audience).
   const [composeOpen, setComposeOpen] = useState(false);
@@ -161,53 +137,18 @@ export function WorkspaceDetailClient({
           onOpenCompose={openCompose}
         />
 
-        {/* Avtaler tab — Stripe-managed plan info. Actions are stubs pending Stripe integration. */}
-        <TabsContent value="avtaler" className="mt-4 space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <Card>
-              <CardContent className="p-4">
-                <p className="text-muted-foreground text-xs uppercase">Current Plan</p>
-                <p className="mt-2 text-2xl font-semibold capitalize">
-                  {currentCompany?.subscriptionPlan ?? "\u2014"}
-                </p>
-                <div className="mt-2">
-                  {currentCompany && <StatusBadge status={currentCompany.subscriptionStatus} />}
-                </div>
-              </CardContent>
-            </Card>
-            {trialDaysLeft !== null && (
-              <Card>
-                <CardContent className="p-4">
-                  <p className="text-muted-foreground text-xs uppercase">Trial Status</p>
-                  <p
-                    className={`mt-2 text-2xl font-semibold ${trialDaysLeft <= 3 ? "text-destructive" : ""}`}
-                  >
-                    {trialDaysLeft} days left
-                  </p>
-                  <p className="text-muted-foreground text-xs">
-                    Expires {new Date(currentCompany!.trialEndsAt!).toLocaleDateString("no-NO")}
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-          <TooltipProvider>
-            <div className="flex gap-2">
-              {["Extend Trial", "Change Plan", "Pause / Cancel"].map((label) => (
-                <Tooltip key={label}>
-                  <TooltipTrigger asChild>
-                    <Button variant="outline" size="sm" disabled>
-                      {label}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Stripe integration coming</p>
-                  </TooltipContent>
-                </Tooltip>
-              ))}
-            </div>
-          </TooltipProvider>
-        </TabsContent>
+        <ContractTab
+          workspaceId={currentWorkspace.workspaceId}
+          companyId={currentCompany?.companyId ?? null}
+          subscriptionPlan={currentCompany?.subscriptionPlan ?? "\u2014"}
+          subscriptionStatus={currentCompany?.subscriptionStatus ?? "unknown"}
+          contractStatus={currentWorkspace.contractStatus}
+          activeContractId={currentWorkspace.activeContractId}
+          trialEndsAt={currentCompany?.trialEndsAt ?? null}
+          trialDaysLeft={trialDaysLeft}
+          contracts={contracts}
+          pricingTerms={pricingTerms}
+        />
 
         <NotesTab initialNotes={notes} workspaceId={currentWorkspace.workspaceId} />
       </Tabs>
