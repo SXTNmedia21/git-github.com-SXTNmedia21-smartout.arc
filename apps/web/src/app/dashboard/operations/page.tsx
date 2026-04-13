@@ -27,7 +27,7 @@ import type { StressLabel } from "./_hooks/use-operations-data";
 import { DeviationDialog } from "./_components/DeviationDialog";
 import { DepartmentBreakdown } from "./_components/DepartmentBreakdown";
 import { formatDistanceToNow } from "date-fns";
-import { nb } from "date-fns/locale";
+import { nb, enUS } from "date-fns/locale";
 
 // ─── Stress-level color maps (CSS variables, no isDark branching) ─────────
 
@@ -91,7 +91,8 @@ const stressLabelKey: Record<StressLabel, string> = {
 export default function OperationsPage() {
   const { workspaceData, profileId } = useContext(DashboardContext);
   const { data, isLoading, isError } = useOperationsData();
-  const { t } = useTranslation("operations");
+  const { t, locale } = useTranslation("operations");
+  const dateFnsLocale = locale === "nb" ? nb : enUS;
 
   const [showDeptBreakdown, setShowDeptBreakdown] = useState(false);
 
@@ -313,7 +314,9 @@ export default function OperationsPage() {
                     ? "—"
                     : data.haccpStatus === "ok"
                       ? t("operations.temperatureOk")
-                      : t("operations.temperatureDeviation")}
+                      : data.haccpStatus === "stale"
+                        ? t("operations.temperatureStaleValue")
+                        : t("operations.temperatureDeviation")}
                 </div>
                 <div className="text-muted-foreground text-[10px] font-semibold">
                   {data.haccpStatus === "stale" && (
@@ -325,7 +328,7 @@ export default function OperationsPage() {
                     data.haccpStatus !== "none" &&
                     formatDistanceToNow(new Date(data.lastHaccpTime), {
                       addSuffix: true,
-                      locale: nb,
+                      locale: dateFnsLocale,
                     })}
                 </div>
               </div>
