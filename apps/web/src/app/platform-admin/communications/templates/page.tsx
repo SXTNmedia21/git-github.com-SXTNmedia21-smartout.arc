@@ -11,8 +11,22 @@ export default async function EmailTemplatesPage() {
 
   const { data: templates } = await admin
     .from("platform_email_template")
-    .select("template_id, name, category, subject, status, is_active, created_at, updated_at")
+    .select(
+      "template_id, name, channel, category, subject, status, is_active, created_at, updated_at",
+    )
     .order("updated_at", { ascending: false });
+
+  type TemplateRow = {
+    template_id: string;
+    name: string;
+    channel: string;
+    category: string;
+    subject: string;
+    status: string;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+  };
 
   return (
     <div className="space-y-6">
@@ -20,14 +34,3 @@ export default async function EmailTemplatesPage() {
     </div>
   );
 }
-
-type TemplateRow = {
-  template_id: string;
-  name: string;
-  category: string;
-  subject: string;
-  status: string;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-};
