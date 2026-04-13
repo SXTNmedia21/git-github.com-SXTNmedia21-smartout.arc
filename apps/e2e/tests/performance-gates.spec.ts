@@ -260,11 +260,14 @@ test.describe("Performance Gates — API Content", () => {
 
   test("season page renders within 2s", async ({ page }) => {
     await page.goto("/dashboard/year-wheel", { waitUntil: "commit" });
+    // The year-wheel page no longer has a "Sesongplanlegging" heading — it was
+    // replaced with a timeline-first layout. The "Sesonger" section heading (h3)
+    // is the first stable landmark rendered after client hydration.
     await expectVisibleWithin(
       page,
-      "text=Sesongplanlegging",
+      'h3:has-text("Sesonger")',
       PERF_GATES.apiContent,
-      "Season page heading",
+      "Season page — Sesonger section heading",
     );
   });
 });

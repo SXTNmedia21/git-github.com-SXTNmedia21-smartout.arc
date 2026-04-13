@@ -3,27 +3,34 @@ import { expect, type Page } from "@playwright/test";
 /**
  * Performance gates for UX quality.
  *
- * | Gate                    | Target  | Rationale                        |
- * |-------------------------|---------|----------------------------------|
- * | Login → dashboard       | < 2s    | First impression after auth      |
- * | Page navigation         | < 1s    | Sidebar clicks must feel instant |
- * | API content visible     | < 2s    | Data lists, tables, cards        |
- * | Wizard step transition  | < 500ms | Already loaded, just swapping    |
- * | Full page cold load     | < 3s    | First load with SSR              |
+ * | Gate                    | CI target | Dev multiplier | Rationale                        |
+ * |-------------------------|-----------|----------------|----------------------------------|
+ * | Login → dashboard       | < 2s      | ×3 → 6s        | First impression after auth      |
+ * | Page navigation         | < 1s      | ×4 → 4s        | Sidebar clicks must feel instant |
+ * | API content visible     | < 2s      | ×3 → 6s        | Data lists, tables, cards        |
+ * | Wizard step transition  | < 500ms   | ×4 → 2s        | Already loaded, just swapping    |
+ * | Full page cold load     | < 3s      | ×3.3 → 10s     | First load with SSR              |
+ *
+ * Dev mode (no CI env var) applies looser thresholds because Next.js compiles
+ * routes on-demand, adding 3-8s of JIT compilation overhead that does not
+ * occur in production. The tight CI thresholds are what actually enforce the
+ * UX quality bar.
  */
+
+const isDev = !process.env.CI;
 
 export const PERF_GATES = {
   /** Login animation + redirect + dashboard render */
-  loginToDashboard: 2000,
+  loginToDashboard: isDev ? 6000 : 2000,
   /** Sidebar navigation → target page content visible */
-  pageNavigation: 1000,
+  pageNavigation: isDev ? 4000 : 1000,
   /** API-driven content (lists, tables) after page frame renders */
-  apiContent: 2000,
+  apiContent: isDev ? 6000 : 2000,
   /** Setup wizard step-to-step transition */
-  wizardStep: 500,
+  wizardStep: isDev ? 2000 : 500,
   /** Cold page load (first visit, no cache) */
-  coldPageLoad: 3000,
-} as const;
+  coldPageLoad: isDev ? 10000 : 3000,
+};
 
 /**
  * Measures time from now until a locator becomes visible.
