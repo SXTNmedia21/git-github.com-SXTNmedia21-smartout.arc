@@ -6,17 +6,23 @@
  *   2. Deadline approaching (< 30 min) — yellow indicator
  *   3. General tasks — neutral indicator
  *
- * Tapping a task opens the universal TaskModal. Empty state shows an
- * encouraging "Alt klart" message with next shift info.
+ * Maintenance tasks that share the same session_hook_id are grouped into
+ * a single checklist card (cleaning checklists). Tapping that card opens
+ * ChecklistView instead of individual TaskModals.
+ *
+ * Tapping a non-grouped task opens the universal TaskModal. Empty state
+ * shows an encouraging "Alt klart" message with next shift info.
  */
 import React, { useCallback, useMemo, useState } from "react";
 import { FlatList, Pressable, Text, View } from "react-native";
 import * as Haptics from "expo-haptics";
+import { ClipboardCheck } from "lucide-react-native";
 
 import { EmptyState } from "@/components/ui";
 import { createStyles, useTheme } from "@/theme";
 import { strings } from "@/constants/strings";
 import { TaskModal, type SessionTask } from "./TaskModal";
+import { ChecklistView } from "./ChecklistView";
 
 type TaskFeedProps = {
   /** Session tasks to display (pre-fetched by parent) */
@@ -28,24 +34,85 @@ type TaskFeedProps = {
 /** Priority levels for sort order and visual indicators */
 type Priority = "compliance" | "deadline" | "general";
 
-/** Minutes threshold for "deadline approaching" status */
-const DEADLINE_THRESHOLD_MINUTES = 30;
+/** A group of maintenance tasks sharing the same session_hook_id */
+type ChecklistGroup = {
+  hookId: string;
+  tasks: SessionTask[];
+  /** Derived from the first task's title or a generic label */
+  procedureName: string;
+};
+
+/** Feed item — either a single task or a grouped checklist */
+type FeedItem = { type: "task"; task: SessionTask } | { type: "checklist"; group: ChecklistGroup };
 
 export function TaskFeed({ tasks, profileId }: TaskFeedProps) {
   const styles = useStyles();
   const [selectedTask, setSelectedTask] = useState<SessionTask | null>(null);
+  const [activeChecklist, setActiveChecklist] = useState<ChecklistGroup | null>(null);
 
-  /** Sort tasks: compliance first, then approaching deadline, then general */
-  const sortedTasks = useMemo(() => {
+  /**
+   * Group maintenance tasks by session_hook_id, then build a mixed feed
+   * of individual tasks and checklist groups. Compliance tasks at top,
+   * checklist groups next, then general tasks.
+   */
+  const feedItems = useMemo(() => {
     const now = Date.now();
+    const activeTasks = tasks.filter((t) => t.status !== "completed" && t.status !== "skipped");
 
-    return [...tasks]
-      .filter((t) => t.status !== "completed" && t.status !== "skipped")
-      .sort((a, b) => {
-        const priorityA = getTaskPriority(a, now);
-        const priorityB = getTaskPriority(b, now);
-        return PRIORITY_ORDER[priorityA] - PRIORITY_ORDER[priorityB];
-      });
+    /* Separate maintenance-linked tasks (have hook with procedure) from regular tasks */
+    const hookGroups = new Map<string, SessionTask[]>();
+    const individualTasks: SessionTask[] = [];
+
+    for (const task of activeTasks) {
+      if (task.session_hook_id && task.hook_linked_procedure_id) {
+        const group = hookGroups.get(task.session_hook_id) ?? [];
+        group.push(task);
+        hookGroups.set(task.session_hook_id, group);
+      } else {
+        individualTasks.push(task);
+      }
+    }
+
+    /* Also include all tasks (including completed) for checklist groups
+       so progress is accurate */
+    const fullHookGroups = new Map<string, SessionTask[]>();
+    for (const task of tasks) {
+      if (task.session_hook_id && task.hook_linked_procedure_id) {
+        const group = fullHookGroups.get(task.session_hook_id) ?? [];
+        group.push(task);
+        fullHookGroups.set(task.session_hook_id, group);
+      }
+    }
+
+    const items: FeedItem[] = [];
+
+    /* Sort individual tasks by priority */
+    const sorted = [...individualTasks].sort((a, b) => {
+      const priorityA = getTaskPriority(a, now);
+      const priorityB = getTaskPriority(b, now);
+      return PRIORITY_ORDER[priorityA] - PRIORITY_ORDER[priorityB];
+    });
+
+    for (const task of sorted) {
+      items.push({ type: "task", task });
+    }
+
+    /* Add checklist groups (only if they have pending tasks) */
+    for (const [hookId, pendingTasks] of hookGroups) {
+      if (pendingTasks.length > 0) {
+        const allTasks = fullHookGroups.get(hookId) ?? pendingTasks;
+        items.push({
+          type: "checklist",
+          group: {
+            hookId,
+            tasks: allTasks,
+            procedureName: strings.cleaning.title,
+          },
+        });
+      }
+    }
+
+    return items;
   }, [tasks]);
 
   const handleSelectTask = useCallback((task: SessionTask) => {
@@ -53,11 +120,32 @@ export function TaskFeed({ tasks, profileId }: TaskFeedProps) {
     setSelectedTask(task);
   }, []);
 
+  const handleOpenChecklist = useCallback((group: ChecklistGroup) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setActiveChecklist(group);
+  }, []);
+
   const handleDismiss = useCallback(() => {
     setSelectedTask(null);
   }, []);
 
-  if (sortedTasks.length === 0) {
+  const handleCloseChecklist = useCallback(() => {
+    setActiveChecklist(null);
+  }, []);
+
+  /* If a checklist is open, show ChecklistView full-screen */
+  if (activeChecklist) {
+    return (
+      <ChecklistView
+        tasks={activeChecklist.tasks}
+        procedureName={activeChecklist.procedureName}
+        profileId={profileId}
+        onClose={handleCloseChecklist}
+      />
+    );
+  }
+
+  if (feedItems.length === 0) {
     return (
       <EmptyState
         title={strings.tasks.noTasks}
@@ -69,9 +157,21 @@ export function TaskFeed({ tasks, profileId }: TaskFeedProps) {
   return (
     <View style={styles.container}>
       <FlatList
-        data={sortedTasks}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <TaskRow task={item} onPress={() => handleSelectTask(item)} />}
+        data={feedItems}
+        keyExtractor={(item) =>
+          item.type === "task" ? item.task.id : `checklist-${item.group.hookId}`
+        }
+        renderItem={({ item }) => {
+          if (item.type === "checklist") {
+            return (
+              <ChecklistGroupCard
+                group={item.group}
+                onPress={() => handleOpenChecklist(item.group)}
+              />
+            );
+          }
+          return <TaskRow task={item.task} onPress={() => handleSelectTask(item.task)} />;
+        }}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
       />
@@ -108,6 +208,50 @@ function TaskRow({ task, onPress }: { task: SessionTask; onPress: () => void }) 
         )}
       </View>
       {priority === "deadline" && <Text style={styles.deadlineLabel}>{strings.tasks.dueSoon}</Text>}
+    </Pressable>
+  );
+}
+
+/** A grouped checklist card showing progress and procedure name */
+function ChecklistGroupCard({ group, onPress }: { group: ChecklistGroup; onPress: () => void }) {
+  const styles = useStyles();
+  const { colors } = useTheme();
+
+  const completedCount = group.tasks.filter((t) => t.status === "completed").length;
+  const totalCount = group.tasks.length;
+  const progressPercent = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.checklistCard, pressed && styles.rowPressed]}
+      accessibilityRole="button"
+      accessibilityLabel={`${group.procedureName}, ${strings.cleaning.progress(completedCount, totalCount)}`}
+    >
+      <View style={[styles.checklistIcon, { backgroundColor: colors.primary + "15" }]}>
+        <ClipboardCheck size={18} color={colors.primary} />
+      </View>
+      <View style={styles.rowContent}>
+        <Text style={styles.rowTitle} numberOfLines={1}>
+          {group.procedureName}
+        </Text>
+        <Text style={styles.rowSubtitle}>
+          {strings.cleaning.progress(completedCount, totalCount)}
+        </Text>
+
+        {/* Progress bar */}
+        <View style={styles.checklistProgress}>
+          <View
+            style={[
+              styles.checklistProgressFill,
+              {
+                width: `${progressPercent}%` as `${number}%`,
+                backgroundColor: completedCount === totalCount ? colors.success : colors.primary,
+              },
+            ]}
+          />
+        </View>
+      </View>
     </Pressable>
   );
 }
@@ -190,5 +334,33 @@ const useStyles = createStyles((theme) => ({
     ...theme.typography.caption,
     color: theme.colors.warning,
     fontWeight: theme.fontWeights.semibold,
+  },
+  checklistCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.element,
+    gap: theme.spacing.element,
+    borderWidth: 1,
+    borderColor: theme.colors.primary + "30",
+  },
+  checklistIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: theme.radius.md,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  checklistProgress: {
+    height: 3,
+    backgroundColor: theme.colors.muted,
+    borderRadius: theme.radius.full,
+    overflow: "hidden",
+    marginTop: theme.spacing.xxs,
+  },
+  checklistProgressFill: {
+    height: "100%",
+    borderRadius: theme.radius.full,
   },
 }));
