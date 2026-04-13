@@ -90,7 +90,7 @@ export function InAppCompose({
   const titleNearLimit = title.length > MAX_TITLE - 30;
   const bodyNearLimit = body.length > MAX_BODY - 100;
 
-  const IconComponent = getIconComponent(iconType);
+  const Icon = ICON_OPTIONS.find((opt) => opt.value === iconType)?.icon ?? Bell;
 
   const priorityLabel = PRIORITY_OPTIONS.find((p) => p.value === priority)?.label ?? "Normal";
 
@@ -231,7 +231,7 @@ export function InAppCompose({
                     : "bg-muted text-muted-foreground"
               }`}
             >
-              <IconComponent className="h-4 w-4" />
+              <Icon className="h-4 w-4" />
             </div>
 
             {/* Content */}
