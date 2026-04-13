@@ -189,11 +189,11 @@ export default function CompleteDataScreen() {
           }}
           style={styles.backButton}
           accessibilityRole="button"
-          accessibilityLabel="Tilbake"
+          accessibilityLabel={strings.contract.back}
         >
           <ChevronLeft size={22} color={theme.colors.foreground} strokeWidth={1.6} />
         </Pressable>
-        <Text style={styles.headerTitle}>Fyll ut informasjon</Text>
+        <Text style={styles.headerTitle}>{strings.contract.fillInfo}</Text>
         <View style={styles.backButton} />
       </View>
 
@@ -209,10 +209,7 @@ export default function CompleteDataScreen() {
           {/* Info banner */}
           <View style={styles.infoBanner}>
             <Info size={16} color="#3b82f6" strokeWidth={1.6} />
-            <Text style={styles.infoText}>
-              Vi trenger litt informasjon for å kunne opprette arbeidskontrakten din. Fyll inn det
-              du kan — du kan fylle inn resten senere.
-            </Text>
+            <Text style={styles.infoText}>{strings.contract.infoText}</Text>
           </View>
 
           {/* Form */}
