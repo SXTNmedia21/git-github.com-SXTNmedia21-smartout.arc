@@ -423,6 +423,8 @@
     "category_internal": "Intern",
     "category_weather": "Vær",
     "category_recurring": "Gjentakende",
+    "no_events_on_day": "Ingen hendelser denne dagen.",
+    "no_upcoming_events": "Ingen kommende hendelser de neste 30 dagene.",
     "season_overview_avg_day": "Snitt/dag",
     "season_overview_peak_staff": "Topp bemanning",
     "season_overview_guests_day": "Gjester/dag",

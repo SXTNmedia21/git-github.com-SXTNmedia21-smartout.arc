@@ -648,9 +648,7 @@ export function PlanningEventsTab({ seasonId: _seasonId, planningCycleId }: Prop
           <div className="border-border bg-accent flex flex-col items-center justify-center rounded-xl border-2 border-dashed py-12">
             <CalendarDays className="text-muted-foreground mb-3 h-8 w-8" />
             <p className="text-muted-foreground text-sm">
-              {selectedDate
-                ? "Ingen hendelser denne dagen."
-                : "Ingen kommende hendelser de neste 30 dagene."}
+              {selectedDate ? t("yearWheel.no_events_on_day") : t("yearWheel.no_upcoming_events")}
             </p>
             <button
               onClick={openCreateForm}

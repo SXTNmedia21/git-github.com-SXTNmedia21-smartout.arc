@@ -423,6 +423,8 @@
     "category_internal": "Internal",
     "category_weather": "Weather",
     "category_recurring": "Recurring",
+    "no_events_on_day": "No events on this day.",
+    "no_upcoming_events": "No upcoming events in the next 30 days.",
     "season_overview_avg_day": "Avg/day",
     "season_overview_peak_staff": "Peak staffing",
     "season_overview_guests_day": "Guests/day",
