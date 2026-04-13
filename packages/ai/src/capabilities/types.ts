@@ -14,7 +14,8 @@ export type CapabilityName =
   | "ui"
   | "guardian"
   | "contract"
-  | "contract_intake";
+  | "contract_intake"
+  | "shift_swap";
 
 export type AuthorityLevel = "autonomous" | "confirm" | "suggest" | "read_only" | "disabled";
 
