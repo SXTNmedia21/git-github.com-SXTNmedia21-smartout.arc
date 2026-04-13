@@ -53,31 +53,35 @@ async function skipOrNext(page: Page) {
 test.describe("join-wizard-e2e", () => {
   test.describe.configure({ mode: "serial" });
 
-  test("full join flow: account → business → about → hours → menu → password", async ({ page }) => {
+  test("full join flow: account → business → about → hours → menu → summary", async ({ page }) => {
     test.setTimeout(120_000);
 
     // ── Step 1: Account ──
+    // Auth (signUp) now happens silently in step 1 after email+password entry.
+    // firstName, lastName, password, and confirmPassword all live on step 1.
     await page.goto("http://localhost:3060/join");
     await page.evaluate(() => localStorage.removeItem("smartout_signup_wizard"));
     await page.reload();
     await waitForStepHeading(page, /Opprett din konto/);
     console.log("Step 1: Account");
 
-    await page.locator("#email").fill(TEST_EMAIL);
     await page.locator("#companyName").fill(DUMMY_DATA.companyName);
     await page.locator("#industry").click();
     await page.getByRole("option", { name: /Restaurant/i }).click();
     await page.locator("#city").fill(DUMMY_DATA.city);
-    await page.locator("#websiteUrl").fill(DUMMY_DATA.websiteUrl);
+    await page.locator("#email").fill(TEST_EMAIL);
+    await page.locator("#password").fill(TEST_PASSWORD);
+    await page.locator("#confirmPassword").fill(TEST_PASSWORD);
+    await page.locator("#firstName").fill(DUMMY_DATA.firstName);
+    await page.locator("#lastName").fill(DUMMY_DATA.lastName);
 
     await clickNeste(page);
 
     // ── Step 2: Business ──
+    // No firstName/lastName here — those moved to step 1.
     await waitForStepHeading(page, /Bedriftsinformasjon/, 30_000);
     console.log("Step 2: Business");
 
-    await page.locator("#firstName").fill(DUMMY_DATA.firstName);
-    await page.locator("#lastName").fill(DUMMY_DATA.lastName);
     await page.locator("#street").fill(DUMMY_DATA.street);
     await page.locator("#postalCode").fill(DUMMY_DATA.postalCode);
     await page.locator("#city").fill(DUMMY_DATA.city);
@@ -101,12 +105,12 @@ test.describe("join-wizard-e2e", () => {
     console.log("Step 5: Menu — skipping");
     await skipOrNext(page);
 
-    // ── Step 6: Password (last) ──
-    await waitForStepHeading(page, /Opprett konto/, 15_000);
-    console.log("Step 6: Password");
-
-    await page.locator("#password").fill(TEST_PASSWORD);
-    await page.locator("#confirmPassword").fill(TEST_PASSWORD);
+    // ── Step 6: Summary (last) ──
+    // Step 6 is now a read-only review step ("Alt ser bra ut").
+    // Auth already happened silently in step 1. The "Fullfør" button is
+    // in the wizard nav bar (isLast=true) — it triggers onComplete directly.
+    await waitForStepHeading(page, /Alt ser bra ut/, 15_000);
+    console.log("Step 6: Summary — submitting");
 
     await page.locator("button:has-text('Fullf')").click();
 

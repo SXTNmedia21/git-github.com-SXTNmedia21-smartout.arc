@@ -51,20 +51,22 @@ test.describe("Journey: Full Wizard Flow", () => {
     await page.evaluate(() => localStorage.removeItem("smartout_signup_wizard"));
     await page.reload();
 
-    // Step 1: Account
+    // Step 1: Account — auth (signUp) happens silently here.
+    // firstName, lastName, password, confirmPassword all on step 1 now.
     await waitForHeading(page, /Opprett din konto/);
-    await page.locator("#email").fill(TEST_EMAIL);
     await page.locator("#companyName").fill("Journey Test Restaurant");
     await page.locator("#industry").click();
     await page.getByRole("option", { name: /Restaurant/i }).click();
     await page.locator("#city").fill("Trondheim");
-    await page.locator("#websiteUrl").fill("https://example.com");
-    await clickNeste(page);
-
-    // Step 2: Business
-    await waitForHeading(page, /Bedriftsinformasjon/);
+    await page.locator("#email").fill(TEST_EMAIL);
+    await page.locator("#password").fill(TEST_PASSWORD);
+    await page.locator("#confirmPassword").fill(TEST_PASSWORD);
     await page.locator("#firstName").fill("Journey");
     await page.locator("#lastName").fill("Tester");
+    await clickNeste(page);
+
+    // Step 2: Business — no firstName/lastName here, those moved to step 1
+    await waitForHeading(page, /Bedriftsinformasjon/);
     await page.locator("#street").fill("Munkegata 1");
     await page.locator("#postalCode").fill("7011");
     await page.locator("#city").fill("Trondheim");
@@ -84,10 +86,9 @@ test.describe("Journey: Full Wizard Flow", () => {
     await waitForHeading(page, /Meny/);
     await skipOrNext(page);
 
-    // Step 6: Password
-    await waitForHeading(page, /Opprett konto/);
-    await page.locator("#password").fill(TEST_PASSWORD);
-    await page.locator("#confirmPassword").fill(TEST_PASSWORD);
+    // Step 6: Summary — auth already done in step 1.
+    // "Fullfør" is the wizard nav button on the last step.
+    await waitForHeading(page, /Alt ser bra ut/);
     await page.locator("button:has-text('Fullf')").click();
 
     // Should redirect to /onboarding

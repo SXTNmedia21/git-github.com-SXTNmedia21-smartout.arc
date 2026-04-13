@@ -94,16 +94,15 @@ test.describe("signup-flow", () => {
 
     await loginAsAdmin(page, { skipOnboarding: false });
 
-    // Wizard should show
-    const wizardHeader = page.locator('text="Oppsett av arbeidsrom"');
-    await expect(wizardHeader).toBeVisible({ timeout: 15_000 });
+    // Wizard should show — DashboardShell redirects to /dashboard/setup
+    await page.waitForURL("**/dashboard/setup**", { timeout: 15_000 });
 
     // StrategicView should NOT be visible
     await expect(page.locator('text="Strategisk oversikt"')).not.toBeVisible();
 
-    // Wizard first step should be visible
+    // Wizard first step should be visible — welcome step h1 is "Velkommen til Smartout"
     await expect(page.locator('h1:has-text("Velkommen til Smartout")')).toBeVisible({
-      timeout: 5_000,
+      timeout: 15_000,
     });
 
     // Restore data for other tests
