@@ -20,6 +20,11 @@ export type SmartoutConfig = {
 /**
  * Build a flat map of placeholder key -> value from workspace and company data.
  * Pure function — no DB or config dependencies.
+ *
+ * Uses company as primary source for business identity fields (name, org_number,
+ * daglig_leder), but falls back to workspace data when company fields are empty.
+ * This handles cases where workspace has richer data than the parent company
+ * (e.g., phone, email, address populated on workspace but not on company).
  */
 export function buildAutofillMap(
   workspace: Record<string, unknown> | null,
@@ -29,38 +34,43 @@ export function buildAutofillMap(
   const m: Record<string, string> = {};
   const str = (v: unknown) => (typeof v === "string" && v ? v : "");
 
-  // Company / Kunde fields
-  if (company) {
-    m.kunde_firma = str(company.name);
-    m.kunde_org_nr = str(company.org_number);
-    m.kunde_tlf = str(company.phone);
-    m.kunde_epost = str(company.email);
-    m.kunde_faktura_epost = str(company.invoice_email) || str(company.email);
-    m.kunde_daglig_leder = str(company.daglig_leder);
-    // Legacy keys
-    m.name_company = str(company.name);
-    m.client_company_name = str(company.name);
-    m.company_org_number = str(company.org_number);
-    m.client_org_number = str(company.org_number);
-    m.company_phone = str(company.phone);
-    m.company_email = str(company.email);
-  }
+  // Company / Kunde fields — with workspace fallback for shared fields
+  const companyName = str(company?.name) || str(workspace?.name);
+  const companyPhone = str(company?.phone) || str(workspace?.phone);
+  const companyEmail = str(company?.email) || str(workspace?.email);
+  const companyOrgNr = str(company?.org_number);
+  const companyDagligLeder = str(company?.daglig_leder);
+  const companyBillingEmail =
+    str(company?.billing_email) || str(company?.invoice_email) || companyEmail;
 
-  // Workspace / Arbeidssted fields
-  if (workspace) {
-    const addr = str(workspace.address_line_1);
-    const postal = str(workspace.postal_code);
-    const city = str(workspace.city);
+  m.kunde_firma = companyName;
+  m.kunde_org_nr = companyOrgNr;
+  m.kunde_tlf = companyPhone;
+  m.kunde_epost = companyEmail;
+  m.kunde_faktura_epost = companyBillingEmail;
+  m.kunde_daglig_leder = companyDagligLeder;
 
-    m.kunde_adresse = addr;
-    m.kunde_postnr_sted = [postal, city].filter(Boolean).join(", ");
-    m.company_street = addr;
-    m.client_address = addr;
-    m.company_zip_code = postal;
-    m.client_postal_code = postal;
-    m.workspace_city = city;
-    m.client_city = city;
-  }
+  // Legacy keys
+  m.name_company = companyName;
+  m.client_company_name = companyName;
+  m.company_org_number = companyOrgNr;
+  m.client_org_number = companyOrgNr;
+  m.company_phone = companyPhone;
+  m.company_email = companyEmail;
+
+  // Workspace / Arbeidssted fields — with company fallback for address
+  const addr = str(workspace?.address_line_1) || str(company?.address_line_1);
+  const postal = str(workspace?.postal_code) || str(company?.postal_code);
+  const city = str(workspace?.city) || str(company?.city);
+
+  m.kunde_adresse = addr;
+  m.kunde_postnr_sted = [postal, city].filter(Boolean).join(", ");
+  m.company_street = addr;
+  m.client_address = addr;
+  m.company_zip_code = postal;
+  m.client_postal_code = postal;
+  m.workspace_city = city;
+  m.client_city = city;
 
   // Smartout constants
   m.smartout_kontakt = smartoutConfig.contactName;

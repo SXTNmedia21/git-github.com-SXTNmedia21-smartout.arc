@@ -108,28 +108,34 @@ export async function POST(request: NextRequest) {
   let resolvedValues: Record<string, string> = {};
 
   if (workspaceId && placeholders.length > 0) {
-    const { data: wsData } = await admin
+    const { data: wsData, error: wsError } = await admin
       .from("workspace")
       .select("*, company:company_id(*)")
       .eq("workspace_id", workspaceId)
       .single();
 
-    const company = (wsData?.company ?? null) as Record<string, unknown> | null;
+    if (wsError) {
+      console.error("[contract-create] Failed to fetch workspace for autofill:", wsError.message);
+    }
 
-    const { buildAutofillMap, resolvePlaceholders } = await import("@smartout/utils");
-    const autofillMap = buildAutofillMap(wsData, company, {
-      companyName: process.env.PLATFORM_COMPANY_NAME ?? "",
-      orgNumber: process.env.PLATFORM_ORG_NUMBER ?? "",
-      contactEmail: process.env.PLATFORM_CONTACT_EMAIL ?? "",
-      contactName: process.env.PLATFORM_CONTACT_NAME ?? "",
-    });
+    if (wsData) {
+      const company = (wsData.company ?? null) as Record<string, unknown> | null;
 
-    const result = resolvePlaceholders(resolvedHtml, placeholders, autofillMap, {
-      recipient_name: body.data.recipient_name,
-      recipient_email: body.data.recipient_email,
-    });
-    resolvedHtml = result.resolved_html;
-    resolvedValues = result.resolved_values;
+      const { buildAutofillMap, resolvePlaceholders } = await import("@smartout/utils");
+      const autofillMap = buildAutofillMap(wsData as Record<string, unknown>, company, {
+        companyName: process.env.PLATFORM_COMPANY_NAME ?? "",
+        orgNumber: process.env.PLATFORM_ORG_NUMBER ?? "",
+        contactEmail: process.env.PLATFORM_CONTACT_EMAIL ?? "",
+        contactName: process.env.PLATFORM_CONTACT_NAME ?? "",
+      });
+
+      const result = resolvePlaceholders(resolvedHtml, placeholders, autofillMap, {
+        recipient_name: body.data.recipient_name,
+        recipient_email: body.data.recipient_email,
+      });
+      resolvedHtml = result.resolved_html;
+      resolvedValues = result.resolved_values;
+    }
   }
 
   // Create the contract record as draft
