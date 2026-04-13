@@ -8,6 +8,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Archive, CalendarRange, ChevronDown, Check, Loader2, Play, Plus } from "lucide-react";
+import { useTranslation } from "@smartout/i18n";
 import { usePlanningCycles } from "../_hooks/use-planning-cycles";
 import { useSeasons } from "../_hooks";
 import { Input } from "@/components/ui/input";
@@ -24,7 +25,6 @@ import type { PlanningCycleStatus } from "@/lib/cascade/types";
 
 type Props = {
   selectedSeasonId: string | null;
-  isDark: boolean;
 };
 
 /**
@@ -45,27 +45,23 @@ function getYearFromDate(dateStr: string) {
 }
 
 /**
- * Status badge color mapping — 3-level isDark pattern.
+ * Status badge color mapping using CSS semantic variables.
+ * active = success, draft = warning, archived = muted.
  */
-function statusBadgeClass(status: PlanningCycleStatus, isDark: boolean): string {
+function statusBadgeClass(status: PlanningCycleStatus): string {
   switch (status) {
     case "active":
-      return isDark
-        ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
-        : "border-emerald-200 bg-emerald-50 text-emerald-600";
+      return "border-success/20 bg-success/10 text-success";
     case "archived":
-      return isDark
-        ? "border-amber-500/20 bg-amber-500/10 text-amber-400"
-        : "border-amber-200 bg-amber-50 text-amber-600";
+      return "border-muted-foreground/20 bg-muted text-muted-foreground";
     default:
       // draft
-      return isDark
-        ? "border-zinc-500/20 bg-zinc-500/10 text-zinc-400"
-        : "border-zinc-300 bg-zinc-100 text-zinc-500";
+      return "border-warning/20 bg-warning/10 text-warning";
   }
 }
 
-export function PlanningCycleSelector({ selectedSeasonId, isDark }: Props) {
+export function PlanningCycleSelector({ selectedSeasonId }: Props) {
+  const { t } = useTranslation("dashboard");
   const { cycles, isLoading, createCycle, linkSeasonToCycle, activateCycle, archiveCycle } =
     usePlanningCycles();
   const { seasons } = useSeasons();
@@ -151,31 +147,9 @@ export function PlanningCycleSelector({ selectedSeasonId, isDark }: Props) {
     );
   }
 
-  // --- Styling ---
-  const triggerClass = isDark
-    ? "border-zinc-800 bg-[#0c0c0e] hover:bg-zinc-800/50 text-zinc-300"
-    : "border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700";
-
-  const dropdownClass = isDark
-    ? "rounded-xl border border-zinc-800 bg-[#0c0c0e] shadow-lg"
-    : "rounded-xl border border-zinc-200 bg-white shadow-lg";
-
-  const itemClass = isDark
-    ? "rounded-lg px-3 py-2 hover:bg-zinc-800/50 cursor-pointer transition-colors"
-    : "rounded-lg px-3 py-2 hover:bg-zinc-100 cursor-pointer transition-colors";
-
-  const labelClass = isDark ? "text-zinc-400" : "text-zinc-500";
-  const inputClass = isDark
-    ? "border-zinc-700 bg-zinc-900 text-white"
-    : "border-zinc-300 bg-white text-zinc-900";
-
   // Loading skeleton
   if (isLoading) {
-    return (
-      <div
-        className={`h-8 w-56 animate-pulse rounded-lg ${isDark ? "bg-zinc-800/50" : "bg-zinc-200"}`}
-      />
-    );
+    return <div className="bg-muted h-8 w-56 animate-pulse rounded-lg" />;
   }
 
   // No season selected — nothing to link to
@@ -190,12 +164,14 @@ export function PlanningCycleSelector({ selectedSeasonId, isDark }: Props) {
           setIsOpen((prev) => !prev);
           if (isOpen) setShowCreate(false);
         }}
-        className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${triggerClass}`}
+        className="border-border bg-card text-card-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors"
       >
         <CalendarRange className="h-[16px] w-[16px] shrink-0 opacity-60" />
-        <span className={`text-xs font-semibold ${labelClass}`}>Planperiode:</span>
-        <span className={`truncate ${isDark ? "text-white" : "text-zinc-900"}`}>
-          {linkedCycle ? linkedCycle.name : "Ingen"}
+        <span className="text-muted-foreground text-xs font-semibold">
+          {t("yearWheel.planning_period")}:
+        </span>
+        <span className="text-foreground truncate">
+          {linkedCycle ? linkedCycle.name : t("yearWheel.none")}
         </span>
         <ChevronDown
           className={`h-[14px] w-[14px] shrink-0 opacity-50 transition-transform ${isOpen ? "rotate-180" : ""}`}
@@ -204,64 +180,68 @@ export function PlanningCycleSelector({ selectedSeasonId, isDark }: Props) {
 
       {/* Dropdown */}
       {isOpen && (
-        <div
-          className={`animate-in fade-in slide-in-from-top-2 absolute top-full left-0 z-50 mt-1.5 w-80 duration-200 ${dropdownClass}`}
-        >
+        <div className="animate-in fade-in slide-in-from-top-2 border-border bg-card absolute top-full left-0 z-50 mt-1.5 w-80 rounded-xl border shadow-lg duration-200">
           {showCreate ? (
             /* --- Create form --- */
             <div className="space-y-3 p-4">
-              <p className={`text-xs font-bold tracking-wider uppercase ${labelClass}`}>
-                Ny planperiode
+              <p className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
+                {t("yearWheel.new_planning_period")}
               </p>
 
               <div className="space-y-2">
                 <div>
-                  <label className={`mb-1 block text-xs font-semibold ${labelClass}`}>Navn</label>
+                  <label className="text-muted-foreground mb-1 block text-xs font-semibold">
+                    {t("yearWheel.name")}
+                  </label>
                   <Input
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="F.eks. V\u00e5r 2026"
-                    className={`h-8 text-sm ${inputClass}`}
+                    placeholder="F.eks. Vår 2026"
+                    className="border-input bg-background text-foreground h-8 text-sm"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className={`mb-1 block text-xs font-semibold ${labelClass}`}>Fra</label>
+                    <label className="text-muted-foreground mb-1 block text-xs font-semibold">
+                      {t("yearWheel.from")}
+                    </label>
                     <Input
                       type="date"
                       value={startDate}
                       onChange={(e) => setStartDate(e.target.value)}
-                      className={`h-8 text-sm ${inputClass}`}
+                      className="border-input bg-background text-foreground h-8 text-sm"
                     />
                   </div>
                   <div>
-                    <label className={`mb-1 block text-xs font-semibold ${labelClass}`}>Til</label>
+                    <label className="text-muted-foreground mb-1 block text-xs font-semibold">
+                      {t("yearWheel.to")}
+                    </label>
                     <Input
                       type="date"
                       value={endDate}
                       onChange={(e) => setEndDate(e.target.value)}
-                      className={`h-8 text-sm ${inputClass}`}
+                      className="border-input bg-background text-foreground h-8 text-sm"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className={`mb-1 block text-xs font-semibold ${labelClass}`}>
-                    Omsetningsm\u00e5l (NOK, valgfritt)
+                  <label className="text-muted-foreground mb-1 block text-xs font-semibold">
+                    {t("yearWheel.revenue_target_nok")}
                   </label>
                   <Input
                     type="number"
                     value={revenueTarget}
                     onChange={(e) => setRevenueTarget(e.target.value)}
                     placeholder="0"
-                    className={`h-8 text-sm ${inputClass}`}
+                    className="border-input bg-background text-foreground h-8 text-sm"
                   />
                 </div>
               </div>
 
               {/* Divider */}
-              <div className={`h-px w-full ${isDark ? "bg-zinc-800/50" : "bg-zinc-200"}`} />
+              <div className="bg-border h-px w-full" />
 
               <div className="flex items-center justify-end gap-2">
                 <Button
@@ -270,7 +250,7 @@ export function PlanningCycleSelector({ selectedSeasonId, isDark }: Props) {
                   onClick={() => setShowCreate(false)}
                   className="h-7 text-xs"
                 >
-                  Avbryt
+                  {t("yearWheel.cancel")}
                 </Button>
                 <Button
                   size="sm"
@@ -279,7 +259,7 @@ export function PlanningCycleSelector({ selectedSeasonId, isDark }: Props) {
                   className="h-7 bg-gradient-to-r from-orange-600 to-rose-600 text-xs text-white hover:opacity-90"
                 >
                   {createCycle.isPending ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : null}
-                  Opprett
+                  {t("yearWheel.create")}
                 </Button>
               </div>
             </div>
@@ -287,8 +267,8 @@ export function PlanningCycleSelector({ selectedSeasonId, isDark }: Props) {
             /* --- Cycle list --- */
             <div className="p-2">
               {cycles.length === 0 ? (
-                <p className={`px-3 py-3 text-center text-xs ${labelClass}`}>
-                  Ingen planperioder opprettet.
+                <p className="text-muted-foreground px-3 py-3 text-center text-xs">
+                  {t("yearWheel.no_planning_periods")}
                 </p>
               ) : (
                 <div className="max-h-60 space-y-2 overflow-y-auto pr-1">
@@ -307,9 +287,7 @@ export function PlanningCycleSelector({ selectedSeasonId, isDark }: Props) {
                       .sort(([yearA], [yearB]) => Number(yearB) - Number(yearA))
                       .map(([year, yearCycles]) => (
                         <div key={year}>
-                          <div
-                            className={`px-3 py-1 text-[10px] font-bold tracking-wider uppercase ${labelClass}`}
-                          >
+                          <div className="text-muted-foreground px-3 py-1 text-[10px] font-bold tracking-wider uppercase">
                             {year}
                           </div>
                           <div className="space-y-0.5">
@@ -320,25 +298,21 @@ export function PlanningCycleSelector({ selectedSeasonId, isDark }: Props) {
                                   key={cycle.planning_cycle_id}
                                   onClick={() => handleSelectCycle(cycle.planning_cycle_id)}
                                   title={`Velg ${cycle.name} (${formatDate(cycle.start_date)} - ${formatDate(cycle.end_date)})`}
-                                  className={`${itemClass} flex items-center gap-2`}
+                                  className="hover:bg-accent hover:text-accent-foreground flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 transition-colors"
                                 >
                                   {/* Checkmark column */}
                                   <div className="flex h-4 w-4 shrink-0 items-center justify-center">
                                     {isLinked ? (
-                                      <Check
-                                        className={`h-[14px] w-[14px] ${isDark ? "text-orange-400" : "text-orange-600"}`}
-                                      />
+                                      <Check className="text-brand-orange h-[14px] w-[14px]" />
                                     ) : null}
                                   </div>
 
                                   {/* Cycle info */}
                                   <div className="min-w-0 flex-1">
-                                    <p
-                                      className={`truncate text-sm font-semibold ${isDark ? "text-white" : "text-zinc-900"}`}
-                                    >
+                                    <p className="text-foreground truncate text-sm font-semibold">
                                       {cycle.name}
                                     </p>
-                                    <p className={`text-xs ${labelClass}`}>
+                                    <p className="text-muted-foreground text-xs">
                                       {formatDate(cycle.start_date)} &mdash;{" "}
                                       {formatDate(cycle.end_date)}
                                     </p>
@@ -347,23 +321,19 @@ export function PlanningCycleSelector({ selectedSeasonId, isDark }: Props) {
                                   {/* Status badge + lifecycle actions */}
                                   <div className="flex shrink-0 items-center gap-1">
                                     <span
-                                      className={`rounded border px-1.5 py-0.5 text-[10px] font-bold uppercase ${statusBadgeClass(cycle.status, isDark)}`}
+                                      className={`rounded border px-1.5 py-0.5 text-[10px] font-bold uppercase ${statusBadgeClass(cycle.status)}`}
                                     >
                                       {cycle.status}
                                     </span>
                                     {cycle.status === "draft" ? (
                                       <button
                                         type="button"
-                                        aria-label="Aktiver planperiode"
+                                        aria-label={t("yearWheel.activate_planning_period")}
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           activateCycle.mutate(cycle.planning_cycle_id);
                                         }}
-                                        className={
-                                          isDark
-                                            ? "rounded-md p-1 text-zinc-400 hover:bg-zinc-800/80 hover:text-emerald-400"
-                                            : "rounded-md p-1 text-zinc-500 hover:bg-zinc-100 hover:text-emerald-600"
-                                        }
+                                        className="text-muted-foreground hover:bg-accent hover:text-success flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md"
                                       >
                                         <Play className="h-3.5 w-3.5" />
                                       </button>
@@ -371,18 +341,16 @@ export function PlanningCycleSelector({ selectedSeasonId, isDark }: Props) {
                                     {cycle.status === "active" ? (
                                       <button
                                         type="button"
-                                        aria-label="Arkiver planperiode"
+                                        aria-label={t("yearWheel.archive")}
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          if (!window.confirm("Arkivere denne planperioden?"))
+                                          if (
+                                            !window.confirm(t("yearWheel.archive_planning_period"))
+                                          )
                                             return;
                                           archiveCycle.mutate(cycle.planning_cycle_id);
                                         }}
-                                        className={
-                                          isDark
-                                            ? "rounded-md p-1 text-zinc-400 hover:bg-zinc-800/80 hover:text-amber-400"
-                                            : "rounded-md p-1 text-zinc-500 hover:bg-zinc-100 hover:text-amber-600"
-                                        }
+                                        className="text-muted-foreground hover:bg-accent hover:text-warning flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md"
                                       >
                                         <Archive className="h-3.5 w-3.5" />
                                       </button>
@@ -399,21 +367,17 @@ export function PlanningCycleSelector({ selectedSeasonId, isDark }: Props) {
               )}
 
               {/* Divider */}
-              <div className={`my-1.5 h-px w-full ${isDark ? "bg-zinc-800/50" : "bg-zinc-200"}`} />
+              <div className="bg-border my-1.5 h-px w-full" />
 
               {/* Create button */}
               <button
                 type="button"
                 onClick={() => setShowCreate(true)}
-                className={`flex w-full items-center gap-2 ${itemClass}`}
+                className="hover:bg-accent hover:text-accent-foreground flex w-full cursor-pointer items-center gap-2 rounded-lg px-3 py-2 transition-colors"
               >
-                <Plus
-                  className={`h-[14px] w-[14px] ${isDark ? "text-orange-400" : "text-orange-600"}`}
-                />
-                <span
-                  className={`text-sm font-semibold ${isDark ? "text-orange-400" : "text-orange-600"}`}
-                >
-                  Ny planperiode
+                <Plus className="text-brand-orange h-[14px] w-[14px]" />
+                <span className="text-brand-orange text-sm font-semibold">
+                  {t("yearWheel.new_planning_period")}
                 </span>
               </button>
             </div>
