@@ -39,7 +39,8 @@
     "empty_title": "Ingen kontrakter ennå",
     "empty_description": "Send din første kontrakt fra ansattprofilen.",
     "empty_filtered_title": "Ingen kontrakter med valgt status",
-    "empty_filtered_description": "Prøv et annet filter for å se kontrakter."
+    "empty_filtered_description": "Prøv et annet filter for å se kontrakter.",
+    "complete_data": "Fyll ut data"
   },
   "detail": {
     "title": "Kontraktdetaljer",
@@ -68,7 +69,10 @@
     "start_date": "Startdato",
     "not_set": "Ikke satt",
     "compliance_overrides": "Samsvarsavvik",
-    "parent_contract": "Opprinnelig kontrakt:"
+    "parent_contract": "Opprinnelig kontrakt:",
+    "complete_data": "Fyll ut data",
+    "pending_data_title": "Venter på ansattdata",
+    "pending_data_description": "Denne kontrakten krever personopplysninger fra den ansatte før den kan sendes til signering. Du kan fylle ut på vegne av den ansatte."
   },
   "revise": {
     "back_to_contract": "Tilbake til kontrakt",
@@ -190,6 +194,21 @@
     "contract_resent": "Kontrakt sendt på nytt",
     "contract_cancelled": "Kontrakt avbrutt",
     "something_went_wrong": "Noe gikk galt"
+  },
+  "my_contract": {
+    "title": "Min kontrakt",
+    "no_contracts_title": "Ingen kontrakter",
+    "no_contracts_description": "Du har ingen kontrakter knyttet til denne arbeidsplassen ennå.",
+    "awaiting_signature": "Denne kontrakten venter på din signatur.",
+    "sign_contract": "Signer kontrakt",
+    "pending_data_notice": "Vi trenger noe informasjon fra deg før kontrakten kan sendes.",
+    "pending_data_sub": "Du vil bli kontaktet med instruksjoner.",
+    "compensation_label": "Kompensasjon",
+    "employment_percentage_label": "Stillingsandel",
+    "start_date_label": "Startdato",
+    "history_label": "Historikk",
+    "hourly_rate_suffix": "kr/t",
+    "monthly_suffix": "kr/mnd"
   },
   "errors": {
     "fetch_contracts": "Kunne ikke hente kontrakter",

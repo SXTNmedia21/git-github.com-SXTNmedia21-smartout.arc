@@ -88,7 +88,7 @@ const STATUS_VARIANT: Record<
   expired: { variant: "destructive" },
   pending_data: {
     variant: "outline",
-    className: "border-amber-500 text-amber-700",
+    className: "border-warning text-warning-foreground",
   },
   declined: { variant: "destructive" },
   cancelled: { variant: "secondary", className: "line-through opacity-60" },
@@ -260,6 +260,8 @@ export function ContractsDataTable({ workspaceId }: { workspaceId: string }) {
               <SelectItem value="viewed">{t("status.viewed")}</SelectItem>
               <SelectItem value="signed">{t("status.signed")}</SelectItem>
               <SelectItem value="expired">{t("status.expired")}</SelectItem>
+              <SelectItem value="pending_data">{t("status.pending_data")}</SelectItem>
+              <SelectItem value="declined">{t("status.declined")}</SelectItem>
               <SelectItem value="cancelled">{t("status.cancelled")}</SelectItem>
             </SelectContent>
           </Select>
@@ -447,6 +449,19 @@ export function ContractsDataTable({ workspaceId }: { workspaceId: string }) {
 
               {/* Actions */}
               <div className="flex gap-2 border-t pt-4">
+                {detailContract.status === "pending_data" && detailContract.profile_id && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5"
+                    onClick={() =>
+                      router.push(`/dashboard/people/${detailContract.profile_id}/complete-data`)
+                    }
+                  >
+                    <UserPlus className="h-3.5 w-3.5" />
+                    {t("table.complete_data")}
+                  </Button>
+                )}
                 <Button
                   variant="outline"
                   size="sm"

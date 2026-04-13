@@ -39,7 +39,8 @@
     "empty_title": "No contracts yet",
     "empty_description": "Send your first contract from an employee profile.",
     "empty_filtered_title": "No contracts with selected status",
-    "empty_filtered_description": "Try a different filter to see contracts."
+    "empty_filtered_description": "Try a different filter to see contracts.",
+    "complete_data": "Complete data"
   },
   "detail": {
     "title": "Contract details",
@@ -68,7 +69,10 @@
     "start_date": "Start date",
     "not_set": "Not set",
     "compliance_overrides": "Compliance overrides",
-    "parent_contract": "Parent contract:"
+    "parent_contract": "Parent contract:",
+    "complete_data": "Complete data",
+    "pending_data_title": "Waiting for employee data",
+    "pending_data_description": "This contract requires personal information from the employee before it can be sent for signing. You can complete it on their behalf."
   },
   "revise": {
     "back_to_contract": "Back to contract",
@@ -190,6 +194,21 @@
     "contract_resent": "Contract resent",
     "contract_cancelled": "Contract cancelled",
     "something_went_wrong": "Something went wrong"
+  },
+  "my_contract": {
+    "title": "My contract",
+    "no_contracts_title": "No contracts",
+    "no_contracts_description": "You have no contracts linked to this workplace yet.",
+    "awaiting_signature": "This contract is awaiting your signature.",
+    "sign_contract": "Sign contract",
+    "pending_data_notice": "We need some information from you before the contract can be sent.",
+    "pending_data_sub": "You will be contacted with instructions.",
+    "compensation_label": "Compensation",
+    "employment_percentage_label": "Employment share",
+    "start_date_label": "Start date",
+    "history_label": "History",
+    "hourly_rate_suffix": "kr/h",
+    "monthly_suffix": "kr/mo"
   },
   "errors": {
     "fetch_contracts": "Could not fetch contracts",

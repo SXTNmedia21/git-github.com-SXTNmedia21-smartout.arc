@@ -54,7 +54,7 @@ const STATUS_COLORS: Record<string, string> = {
   viewed: "bg-blue-50 text-blue-700",
   signed: "bg-green-50 text-green-700",
   expired: "bg-amber-50 text-amber-700",
-  pending_data: "bg-amber-50 text-amber-700",
+  pending_data: "bg-warning/10 text-warning-foreground",
   declined: "bg-red-50 text-red-700",
   cancelled: "bg-zinc-100 text-zinc-500",
 };
@@ -185,7 +185,7 @@ export default function ContractDetailPage() {
 
       {/* Pending data info */}
       {isPendingData && (
-        <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+        <div className="border-warning/30 bg-warning/10 text-warning-foreground flex items-start gap-3 rounded-lg border p-4 text-sm">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
           <div>
             <p className="font-medium">{t("detail_page.pending_data_title")}</p>

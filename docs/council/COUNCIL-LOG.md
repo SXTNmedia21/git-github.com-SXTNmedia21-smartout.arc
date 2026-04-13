@@ -546,3 +546,30 @@ Phase 3: Agent wiring (after C merges)
 - **Supervisor:** DID NOT REVIEW (returned without output)
 - **Agent Coordinator:** HIGH — verified capability registry gap, found SeasonToolContext incompatibility, Calendar Guardian bug with exact line numbers, "trust-destroying pattern" insight was council's strongest finding
 - **Frontend Designer:** HIGH — 258 hardcoded color instances counted, detailed design specs for all Phase 1 features, correct FR-SEA-15 prerequisite analysis
+
+---
+
+## 2026-04-13 — Contract `pending_data` Workflow Wiring
+**Type:** feature
+**Verdict:** APPROVE WITH CHANGES
+**Agents consulted:** System Steward, Supervisor, Frontend Designer (Agent Coordinator skipped — no AI involvement)
+**Key decision:** Wire existing admin PII bypass form to contract detail page and data table for `pending_data` status. Add `--warning-foreground` design token. Keep `UserPlus` icon (Steward overruled Designer).
+**ADR created:** none
+**Learning created:** none (convention reminder: add missing semantic tokens WITH the feature, not as follow-up debt)
+
+### Key findings
+1. **Steward:** ADR-0081 compliance confirmed. Secondary action placement correct. `profile_id` FK is correct and RLS-protected.
+2. **Supervisor:** Clean wiring, i18n correct, 4 pre-existing debts noted but none introduced.
+3. **Frontend Designer:** 6 hardcoded amber values, missing `--warning-foreground` token, `UserPlus` icon semantically wrong. Two "must fix" raised.
+4. **Steward synthesis:** Accepted amber token fix, rejected icon change (UserPlus = established SaaS convention for "complete your profile").
+
+### Implementation
+- Added `--warning-foreground` to design tokens (light + dark mode)
+- Replaced all 6 hardcoded amber values with `bg-warning/10`, `text-warning-foreground`, `border-warning/30`
+- Added `pending_data` + `declined` to status filter dropdown
+- Added "Fyll ut data" button in detail sheet for `pending_data` contracts
+
+### Agent effectiveness
+- **System Steward:** HIGH — ADR verification precise, good synthesis weighing icon decision
+- **Supervisor:** HIGH — found 4 pre-existing debts, correctly scoped what's new vs inherited
+- **Frontend Designer:** HIGH — only agent to catch dark mode risk and missing token. Icon pushback was reasonable even though overruled.
