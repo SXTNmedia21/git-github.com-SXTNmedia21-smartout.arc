@@ -53,10 +53,10 @@ export default function NewContractPage() {
     template_id: "",
     company_id: searchParams.get("company_id") ?? "",
     workspace_id: searchParams.get("workspace_id") ?? "",
-    recipient_name: "",
-    recipient_email: "",
-    title: "",
-    notes: "",
+    recipient_name: searchParams.get("recipient_name") ?? "",
+    recipient_email: searchParams.get("recipient_email") ?? "",
+    title: searchParams.get("title") ?? "",
+    notes: searchParams.get("notes") ?? "",
   });
 
   useEffect(() => {
@@ -79,6 +79,7 @@ export default function NewContractPage() {
   }, []);
 
   // Load workspaces when company changes
+  const prefillWorkspaceId = searchParams.get("workspace_id") ?? "";
   useEffect(() => {
     if (!formData.company_id) {
       setWorkspaces([]);
@@ -94,8 +95,13 @@ export default function NewContractPage() {
         const { data } = await res.json();
         const ws = data ?? [];
         setWorkspaces(ws);
-        // Auto-select if only one workspace
-        if (ws.length === 1) {
+        // Keep URL-prefilled workspace if it exists in the list
+        if (
+          prefillWorkspaceId &&
+          ws.some((w: Workspace) => w.workspace_id === prefillWorkspaceId)
+        ) {
+          setFormData((prev) => ({ ...prev, workspace_id: prefillWorkspaceId }));
+        } else if (ws.length === 1) {
           setFormData((prev) => ({ ...prev, workspace_id: ws[0].workspace_id }));
         } else {
           setFormData((prev) => ({ ...prev, workspace_id: "" }));
@@ -103,7 +109,7 @@ export default function NewContractPage() {
       }
     }
     loadWorkspaces();
-  }, [formData.company_id]);
+  }, [formData.company_id, prefillWorkspaceId]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
