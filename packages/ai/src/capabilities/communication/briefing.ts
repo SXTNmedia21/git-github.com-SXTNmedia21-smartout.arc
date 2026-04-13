@@ -100,7 +100,7 @@ export const composeShiftBriefing = defineTool({
             .from("engine_memory")
             .select("content, memory_type, importance, created_at")
             .eq("workspace_id", ctx.workspaceId)
-            .gte("importance", 5)
+            .gte("importance", 0.5)
             .order("created_at", { ascending: false })
             .limit(5)
         : Promise.resolve({ data: [], error: null }),
