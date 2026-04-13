@@ -31,7 +31,8 @@ export type EventCategory =
   | "telegram"
   | "wizard"
   | "security"
-  | "enrichment";
+  | "enrichment"
+  | "ops_intelligence"; // ADR-0088
 
 // ─── Entity Reference (for robust UI audit trails) ─
 export interface EntityRef {
@@ -3025,6 +3026,44 @@ export interface EnrichmentCorrected extends BaseEvent {
   properties: { data: { field_name: string; was_auto: boolean } };
 }
 
+// ─── Operations Intelligence Events (ADR-0088) ──────────────────────
+
+export interface OpsCompileDayBrief extends BaseEvent {
+  event: "ops.compile day_brief";
+  properties: {
+    entity: { entity_type: "department_session"; entity_id: string };
+    data: { department_id: string; shift_count: number; critical_tasks: number };
+  };
+}
+
+export interface OpsCompilePreclose extends BaseEvent {
+  event: "ops.compile preclose_summary";
+  properties: {
+    entity: { entity_type: "department_session"; entity_id: string };
+    data: { tasks_remaining: number; deviations_open: number; ready_for_signoff: boolean };
+  };
+}
+
+export interface OpsCompileShiftBrief extends BaseEvent {
+  event: "ops.compile shift_brief";
+  properties: {
+    entity: { entity_type: "shift"; entity_id: string };
+    data: { profile_id: string };
+  };
+}
+
+export interface OpsTriageClassified extends BaseEvent {
+  event: "ops.triage classified";
+  properties: {
+    data: {
+      original_event: string;
+      classification_type: string;
+      urgency: string;
+      tier: "ambient" | "active" | "critical";
+    };
+  };
+}
+
 // ─── Shift Swap Events ──────────────────────────
 // Shift swap workflow: request → accept/reject → approve/reject → execute
 // All swap state lives in engine_state.context JSONB (ADR-0067)
@@ -3458,7 +3497,11 @@ export type SmartoutEvent =
   | ServiceConfigUpdated
   | ServiceConfigRestarted
   | ServiceConfigDeleted
-  | ScheduleRollback;
+  | ScheduleRollback
+  | OpsCompileDayBrief
+  | OpsCompilePreclose
+  | OpsCompileShiftBrief
+  | OpsTriageClassified;
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -4739,5 +4782,23 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "schedule rollback": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "scheduling",
+  },
+
+  // ─── Operations Intelligence (ADR-0088) ────────
+  "ops.compile day_brief": {
+    destinations: ["logger", "engine_event"],
+    category: "ops_intelligence",
+  },
+  "ops.compile preclose_summary": {
+    destinations: ["logger", "engine_event"],
+    category: "ops_intelligence",
+  },
+  "ops.compile shift_brief": {
+    destinations: ["logger", "engine_event"],
+    category: "ops_intelligence",
+  },
+  "ops.triage classified": {
+    destinations: ["logger", "engine_event"],
+    category: "ops_intelligence",
   },
 };
