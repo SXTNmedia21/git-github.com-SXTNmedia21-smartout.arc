@@ -216,10 +216,10 @@ export default function CompleteDataScreen() {
           <View style={styles.form}>
             {/* Personnummer */}
             <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>Personnummer</Text>
+              <Text style={styles.fieldLabel}>{strings.contract.fieldPersonalNumber}</Text>
               <TextInput
                 style={styles.input}
-                placeholder="11 siffer"
+                placeholder={strings.contract.placeholderPersonalNumber}
                 placeholderTextColor={theme.colors.mutedForeground}
                 value={values.personal_number}
                 onChangeText={(text) => {
@@ -234,16 +234,16 @@ export default function CompleteDataScreen() {
                 autoComplete="off"
                 textContentType="none"
                 secureTextEntry={false}
-                accessibilityLabel="Personnummer"
+                accessibilityLabel={strings.contract.fieldPersonalNumber}
               />
             </View>
 
             {/* Adresse */}
             <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>Adresse</Text>
+              <Text style={styles.fieldLabel}>{strings.contract.fieldAddress}</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Gateadresse"
+                placeholder={strings.contract.placeholderAddress}
                 placeholderTextColor={theme.colors.mutedForeground}
                 value={values.address}
                 onChangeText={(text) => {
@@ -252,17 +252,17 @@ export default function CompleteDataScreen() {
                 }}
                 autoCorrect={false}
                 autoCapitalize="words"
-                accessibilityLabel="Adresse"
+                accessibilityLabel={strings.contract.fieldAddress}
               />
             </View>
 
             {/* Postnummer + By — side by side */}
             <View style={styles.row}>
               <View style={[styles.fieldGroup, styles.rowFieldSmall]}>
-                <Text style={styles.fieldLabel}>Postnummer</Text>
+                <Text style={styles.fieldLabel}>{strings.contract.fieldPostalCode}</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="0000"
+                  placeholder={strings.contract.placeholderPostalCode}
                   placeholderTextColor={theme.colors.mutedForeground}
                   value={values.postal_code}
                   onChangeText={(text) => {
@@ -273,14 +273,14 @@ export default function CompleteDataScreen() {
                   keyboardType="number-pad"
                   maxLength={4}
                   autoCorrect={false}
-                  accessibilityLabel="Postnummer"
+                  accessibilityLabel={strings.contract.fieldPostalCode}
                 />
               </View>
               <View style={[styles.fieldGroup, styles.rowFieldLarge]}>
-                <Text style={styles.fieldLabel}>By</Text>
+                <Text style={styles.fieldLabel}>{strings.contract.fieldCity}</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Poststed"
+                  placeholder={strings.contract.placeholderCity}
                   placeholderTextColor={theme.colors.mutedForeground}
                   value={values.city}
                   onChangeText={(text) => {
@@ -289,7 +289,7 @@ export default function CompleteDataScreen() {
                   }}
                   autoCorrect={false}
                   autoCapitalize="words"
-                  accessibilityLabel="By"
+                  accessibilityLabel={strings.contract.fieldCity}
                 />
               </View>
             </View>
@@ -311,12 +311,12 @@ export default function CompleteDataScreen() {
             style={[styles.submitButton, submitting && styles.submitButtonDisabled]}
             disabled={submitting}
             accessibilityRole="button"
-            accessibilityLabel="Send inn"
+            accessibilityLabel={strings.contract.submitButton}
           >
             {submitting ? (
               <ActivityIndicator size="small" color="#ffffff" />
             ) : (
-              <Text style={styles.submitButtonText}>Send inn</Text>
+              <Text style={styles.submitButtonText}>{strings.contract.submitButton}</Text>
             )}
           </Pressable>
         </ScrollView>
