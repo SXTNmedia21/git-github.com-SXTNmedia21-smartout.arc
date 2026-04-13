@@ -274,7 +274,10 @@ import {
   Moon,
   Gamepad2,
   MessageSquare,
-  Radio,
+  MessageCircle,
+  Hash,
+  Newspaper,
+  BarChart3,
   Bot,
   HelpCircle,
   Building2,
@@ -1028,9 +1031,9 @@ export function DashboardShell({
 
   // Helper to determine if a link is active
   const isActive = (path: string) => {
-    // Exact match for dashboard root, otherwise starts with
-    if (path === "/dashboard") {
-      return pathname === "/dashboard";
+    // Exact match for dashboard root and komm root, otherwise starts with
+    if (path === "/dashboard" || path === "/dashboard/komm") {
+      return pathname === path;
     }
     return pathname.startsWith(path);
   };
@@ -1627,10 +1630,34 @@ export function DashboardShell({
                           {isSidebarCollapsed && <div className="mt-2" />}
                           <NavItem
                             href="/dashboard/komm"
-                            icon={Radio}
+                            icon={Hash}
                             label="Kanaler"
                             isDark={isDark}
                             active={isActive("/dashboard/komm")}
+                            isCollapsed={isSidebarCollapsed}
+                          />
+                          <NavItem
+                            href="/dashboard/komm/chat"
+                            icon={MessageCircle}
+                            label="Chat"
+                            isDark={isDark}
+                            active={isActive("/dashboard/komm/chat")}
+                            isCollapsed={isSidebarCollapsed}
+                          />
+                          <NavItem
+                            href="/dashboard/komm/nyheter"
+                            icon={Newspaper}
+                            label="Nyheter"
+                            isDark={isDark}
+                            active={isActive("/dashboard/komm/nyheter")}
+                            isCollapsed={isSidebarCollapsed}
+                          />
+                          <NavItem
+                            href="/dashboard/komm/oversikt"
+                            icon={BarChart3}
+                            label="Oversikt"
+                            isDark={isDark}
+                            active={isActive("/dashboard/komm/oversikt")}
                             isCollapsed={isSidebarCollapsed}
                           />
                           {FEATURE_FLAGS.AI_CHAT && (

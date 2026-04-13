@@ -133,6 +133,32 @@
     "empty_no_channel": "No news channel yet",
     "empty_no_messages": "No news yet"
   },
+  "nyheter": {
+    "title": "News",
+    "compose_button": "New announcement",
+    "compose_title": "New announcement",
+    "compose_description": "Write an announcement that appears in the news feed.",
+    "field_title": "Title",
+    "field_title_placeholder": "e.g. New lunch routines",
+    "field_body": "Content",
+    "field_body_placeholder": "Write your announcement...",
+    "field_audience": "Audience",
+    "audience_all": "Everyone",
+    "publish": "Publish",
+    "publishing": "Publishing...",
+    "publish_success": "Announcement published",
+    "publish_error": "Could not publish announcement",
+    "empty_title": "No news yet",
+    "empty_subtitle": "Announcements from management will appear here",
+    "add_reaction": "Add reaction",
+    "read_placeholder": "Seen",
+    "load_more": "Load more",
+    "loading_more": "Loading...",
+    "role_employee": "Employee",
+    "role_manager": "Manager",
+    "role_admin": "Admin",
+    "role_owner": "Owner"
+  },
   "time": {
     "just_now": "Just now",
     "hours_ago": "{{count}}h ago",
@@ -188,5 +214,20 @@
     "today": "Today",
     "yesterday": "Yesterday",
     "days_ago": "{{count}} days ago"
+  },
+  "oversikt": {
+    "stat_channels": "Channels",
+    "stat_conversations_today": "Conversations today",
+    "stat_unread": "Unread messages",
+    "stat_pending_help": "Pending help",
+    "quick_actions": "Quick actions",
+    "action_botsson": "Ask Botsson",
+    "action_report": "Report problem",
+    "action_manual": "Find manual",
+    "action_call": "Call manager",
+    "recent_activity": "Recent activity",
+    "empty_activity": "No activity recorded yet",
+    "coming_soon": "Coming soon",
+    "call_coming_soon": "Call feature coming soon"
   }
 }

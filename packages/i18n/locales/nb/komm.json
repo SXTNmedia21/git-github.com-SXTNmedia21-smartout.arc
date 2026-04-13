@@ -133,6 +133,32 @@
     "empty_no_channel": "Ingen nyhetskanal ennå",
     "empty_no_messages": "Ingen nyheter ennå"
   },
+  "nyheter": {
+    "title": "Nyheter",
+    "compose_button": "Ny kunngjoring",
+    "compose_title": "Ny kunngjoring",
+    "compose_description": "Skriv en kunngjoring som vises i nyhetsfeeden.",
+    "field_title": "Tittel",
+    "field_title_placeholder": "f.eks. Nye rutiner for lunsj",
+    "field_body": "Innhold",
+    "field_body_placeholder": "Skriv kunngoringens innhold...",
+    "field_audience": "Mottakere",
+    "audience_all": "Alle",
+    "publish": "Publiser",
+    "publishing": "Publiserer...",
+    "publish_success": "Kunngjoring publisert",
+    "publish_error": "Kunne ikke publisere kunngjoring",
+    "empty_title": "Ingen nyheter enna",
+    "empty_subtitle": "Kunngoringer fra ledelsen vises her",
+    "add_reaction": "Legg til reaksjon",
+    "read_placeholder": "Sett",
+    "load_more": "Last inn flere",
+    "loading_more": "Laster...",
+    "role_employee": "Ansatt",
+    "role_manager": "Leder",
+    "role_admin": "Administrator",
+    "role_owner": "Eier"
+  },
   "time": {
     "just_now": "Akkurat nå",
     "hours_ago": "{{count}}t siden",
@@ -188,5 +214,20 @@
     "today": "I dag",
     "yesterday": "I går",
     "days_ago": "{{count}} dager siden"
+  },
+  "oversikt": {
+    "stat_channels": "Kanaler",
+    "stat_conversations_today": "Samtaler i dag",
+    "stat_unread": "Uleste meldinger",
+    "stat_pending_help": "Ventende hjelp",
+    "quick_actions": "Hurtighandlinger",
+    "action_botsson": "Spor Botsson",
+    "action_report": "Rapporter problem",
+    "action_manual": "Finn manual",
+    "action_call": "Ring leder",
+    "recent_activity": "Siste aktivitet",
+    "empty_activity": "Ingen aktivitet registrert ennå",
+    "coming_soon": "Kommer snart",
+    "call_coming_soon": "Ringefunksjon kommer snart"
   }
 }

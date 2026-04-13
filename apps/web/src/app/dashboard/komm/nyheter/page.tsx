@@ -2,10 +2,10 @@
 
 import { useContext } from "react";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import { KanalerClient } from "./KanalerClient";
+import { NyheterClient } from "../_components/NyheterClient";
 import { useTranslation } from "@smartout/i18n";
 
-export function ChannelsPageClient() {
+export default function NyheterPage() {
   const { profileId } = useContext(DashboardContext);
   const { t } = useTranslation("komm");
 
@@ -17,5 +17,5 @@ export function ChannelsPageClient() {
     );
   }
 
-  return <KanalerClient profileId={profileId} />;
+  return <NyheterClient profileId={profileId} />;
 }
