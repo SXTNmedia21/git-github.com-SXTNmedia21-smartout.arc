@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -44,14 +44,15 @@ type Workspace = {
 
 export default function NewContractPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [templates, setTemplates] = useState<Template[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     template_id: "",
-    company_id: "",
-    workspace_id: "",
+    company_id: searchParams.get("company_id") ?? "",
+    workspace_id: searchParams.get("workspace_id") ?? "",
     recipient_name: "",
     recipient_email: "",
     title: "",
