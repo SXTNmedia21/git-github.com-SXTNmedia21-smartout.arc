@@ -33,14 +33,20 @@ WHERE w.is_active = true
 ON CONFLICT (workspace_id, capability) DO NOTHING;
 
 -- 4. Seed default ai_operations policy per active workspace
-INSERT INTO policy (workspace_id, name, description, policy_type, scope, is_active, rules_json, created_at, updated_at)
+-- Uses WHERE NOT EXISTS guard since policy has no unique constraint on (workspace_id, policy_type).
+INSERT INTO policy (
+  workspace_id, name, description, policy_type, policy_scope,
+  statement, enforcement_status, rules_json, is_active, created_by,
+  created_at, updated_at
+)
 SELECT
   w.workspace_id,
   'AI Operations Configuration',
   'Default AI operations intelligence thresholds and toggles',
   'ai_operations',
-  'workspace',
-  true,
+  'workspace'::policy_scope,
+  'Defines AI operations intelligence thresholds and channel routing toggles for this workspace.',
+  'aspirational'::enforcement_status,
   '{
     "late_punchin_threshold_minutes": 10,
     "noshow_threshold_minutes": 30,
@@ -53,8 +59,14 @@ SELECT
     "alert_tier_active_channels": ["push"],
     "alert_tier_ambient_channels": ["in_app"]
   }'::jsonb,
+  true,
+  (SELECT p.profile_id FROM profile p WHERE p.workspace_id = w.workspace_id AND p.role = 'owner' LIMIT 1),
   now(),
   now()
 FROM workspace w
 WHERE w.is_active = true
-ON CONFLICT DO NOTHING;
+  AND EXISTS (SELECT 1 FROM profile p WHERE p.workspace_id = w.workspace_id AND p.role = 'owner')
+  AND NOT EXISTS (
+    SELECT 1 FROM policy pol
+    WHERE pol.workspace_id = w.workspace_id AND pol.policy_type = 'ai_operations'
+  );

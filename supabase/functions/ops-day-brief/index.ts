@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
 
   const authHeader = req.headers.get("authorization");
   const cronSecret = Deno.env.get("WATCHDOG_CRON_SECRET");
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     return new Response("Unauthorized", { status: 401 });
   }
 
@@ -105,40 +105,40 @@ Deno.serve(async (req) => {
       if (openDeviations > 0) summaryParts.push(`${openDeviations} open deviations`);
       if (handoffNotes) summaryParts.push("handoff notes from yesterday");
 
-      // Insert notification for department managers
-      await supabase.from("notification").insert({
-        workspace_id: session.workspace_id,
-        title: `Day Brief: ${deptName}`,
-        body: summaryParts.join(" | "),
-        icon_type: openDeviations > 0 || criticalTasks > 0 ? "alert" : "info",
-        priority: criticalTasks > 0 ? "high" : "normal",
-        target_type: "department",
-        target_id: session.department_id,
-        metadata: {
-          type: "day_brief",
-          department_id: session.department_id,
-          session_id: session.department_session_id,
-          shift_count: shiftCount,
-          critical_tasks: criticalTasks,
-          open_deviations: openDeviations,
-          has_handoff: !!handoffNotes,
-        },
-      });
-
-      // Emit telemetry
-      await supabase.from("engine_event").insert({
-        workspace_id: session.workspace_id,
-        event_type: "ops.compile.day_brief",
-        payload: {
-          department_id: session.department_id,
-          session_id: session.department_session_id,
-          shift_count: shiftCount,
-          critical_tasks: criticalTasks,
-          open_deviations: openDeviations,
-          source: "cron",
-          origin: "system",
-        },
-      });
+      // Insert notification + emit telemetry in parallel
+      await Promise.all([
+        supabase.from("notification").insert({
+          workspace_id: session.workspace_id,
+          title: `Day Brief: ${deptName}`,
+          body: summaryParts.join(" | "),
+          icon_type: openDeviations > 0 || criticalTasks > 0 ? "alert" : "info",
+          priority: criticalTasks > 0 ? "high" : "normal",
+          target_type: "department",
+          target_id: session.department_id,
+          metadata: {
+            type: "day_brief",
+            department_id: session.department_id,
+            session_id: session.department_session_id,
+            shift_count: shiftCount,
+            critical_tasks: criticalTasks,
+            open_deviations: openDeviations,
+            has_handoff: !!handoffNotes,
+          },
+        }),
+        supabase.from("engine_event").insert({
+          workspace_id: session.workspace_id,
+          event_type: "ops.compile.day_brief",
+          payload: {
+            department_id: session.department_id,
+            session_id: session.department_session_id,
+            shift_count: shiftCount,
+            critical_tasks: criticalTasks,
+            open_deviations: openDeviations,
+            source: "cron",
+            origin: "system",
+          },
+        }),
+      ]);
 
       compiled++;
     }

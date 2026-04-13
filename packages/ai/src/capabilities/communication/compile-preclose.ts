@@ -51,7 +51,7 @@ export const compilePreclose = defineTool({
         .select("deviation_id, title, severity, status")
         .eq("workspace_id", ctx.workspaceId)
         .eq("department_id", params.department_id)
-        .eq("status", "open")
+        .in("status", ["open", "in_progress"])
         .order("severity", { ascending: true }),
 
       supabase

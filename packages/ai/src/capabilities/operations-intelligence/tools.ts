@@ -17,7 +17,9 @@ export const triageEvent = defineTool({
   schema: z.object({
     event_type: z
       .string()
-      .describe("The engine_event event_type to triage (e.g. 'deviation.reported', 'session_task.overdue')"),
+      .describe(
+        "The engine_event event_type to triage (e.g. 'deviation.reported', 'session_task.overdue')",
+      ),
     event_payload: z
       .record(z.unknown())
       .optional()
@@ -88,16 +90,13 @@ type EventClassification = {
   channels: string[];
 };
 
-function classifyEvent(
-  eventType: string,
-  payload?: Record<string, unknown>,
-): EventClassification {
+function classifyEvent(eventType: string, payload?: Record<string, unknown>): EventClassification {
   // Critical events
   if (
     eventType.includes("temperature_violation") ||
     eventType.includes("no_show") ||
     eventType.includes("safety") ||
-    (payload?.severity === "critical")
+    payload?.severity === "critical"
   ) {
     return { type: "emergency", urgency: "immediate", tier: "critical", channels: ["push", "sms"] };
   }
@@ -107,13 +106,13 @@ function classifyEvent(
     eventType.includes("overdue") ||
     eventType.includes("deviation") ||
     eventType.includes("coverage_gap") ||
-    (payload?.severity === "high")
+    payload?.severity === "high"
   ) {
     return { type: "action_needed", urgency: "next_break", tier: "active", channels: ["push"] };
   }
 
-  // Deviation events (medium severity)
-  if (eventType.includes("deviation") || eventType.includes("flagged")) {
+  // Flagged events (medium severity — deviation already caught above)
+  if (eventType.includes("flagged")) {
     return { type: "deviation", urgency: "end_of_shift", tier: "active", channels: ["push"] };
   }
 

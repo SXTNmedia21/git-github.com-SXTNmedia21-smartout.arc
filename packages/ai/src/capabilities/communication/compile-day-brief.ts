@@ -25,76 +25,83 @@ export const compileDayBrief = defineTool({
       .toISOString()
       .slice(0, 10);
 
-    // Parallel fetches: previous handoff, today's session, shifts, pending tasks, deviations, memories
-    const [
-      handoffResult,
-      sessionResult,
-      shiftsResult,
-      tasksResult,
-      deviationsResult,
-      memoriesResult,
-    ] = await Promise.all([
-      // Previous session handoff notes
-      supabase
-        .from("department_session")
-        .select("handoff_notes, signed_off_by, status")
-        .eq("workspace_id", ctx.workspaceId)
-        .eq("department_id", params.department_id)
-        .eq("session_date", yesterday)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
+    // Stage 1: fetch session + context that doesn't depend on session ID
+    const [handoffResult, sessionResult, shiftsResult, deviationsResult, memoriesResult] =
+      await Promise.all([
+        // Previous session handoff notes
+        supabase
+          .from("department_session")
+          .select("handoff_notes, signed_off_by, status")
+          .eq("workspace_id", ctx.workspaceId)
+          .eq("department_id", params.department_id)
+          .eq("session_date", yesterday)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
 
-      // Today's session
-      supabase
-        .from("department_session")
-        .select(
-          "department_session_id, status, planned_open, planned_close, duty_leader_id, tasks_total, tasks_completed",
-        )
-        .eq("workspace_id", ctx.workspaceId)
-        .eq("department_id", params.department_id)
-        .eq("session_date", targetDate)
-        .limit(1)
-        .maybeSingle(),
+        // Today's session
+        supabase
+          .from("department_session")
+          .select(
+            "department_session_id, status, planned_open, planned_close, duty_leader_id, tasks_total, tasks_completed",
+          )
+          .eq("workspace_id", ctx.workspaceId)
+          .eq("department_id", params.department_id)
+          .eq("session_date", targetDate)
+          .limit(1)
+          .maybeSingle(),
 
-      // Today's shifts
-      supabase
-        .from("schedule_shift")
-        .select("employee_id, role, start_time, end_time, status")
-        .eq("workspace_id", ctx.workspaceId)
-        .eq("department_id", params.department_id)
-        .eq("shift_date", targetDate)
-        .in("status", ["published", "confirmed"])
-        .order("start_time", { ascending: true }),
+        // Today's shifts
+        supabase
+          .from("schedule_shift")
+          .select("employee_id, role, start_time, end_time, status")
+          .eq("workspace_id", ctx.workspaceId)
+          .eq("department_id", params.department_id)
+          .eq("shift_date", targetDate)
+          .in("status", ["published", "confirmed"])
+          .order("start_time", { ascending: true }),
 
-      // Pending tasks for today's session
-      supabase
-        .from("session_task")
-        .select("id, title, priority, status, due_at, task_type")
-        .eq("workspace_id", ctx.workspaceId)
-        .eq("status", "pending")
-        .order("due_at", { ascending: true })
-        .limit(20),
+        // Open deviations
+        supabase
+          .from("deviation")
+          .select("deviation_id, title, severity, status, created_at")
+          .eq("workspace_id", ctx.workspaceId)
+          .eq("department_id", params.department_id)
+          .in("status", ["open", "in_progress"])
+          .order("created_at", { ascending: false })
+          .limit(10),
 
-      // Open deviations (last 7 days)
-      supabase
-        .from("deviation")
-        .select("deviation_id, title, severity, status, created_at")
-        .eq("workspace_id", ctx.workspaceId)
-        .eq("department_id", params.department_id)
-        .in("status", ["open", "in_progress"])
-        .order("created_at", { ascending: false })
-        .limit(10),
+        // Recent announcements from engine_memory (K1b)
+        supabase
+          .from("engine_memory")
+          .select("content, memory_type, importance, created_at")
+          .eq("workspace_id", ctx.workspaceId)
+          .gte("importance", 0.5)
+          .order("created_at", { ascending: false })
+          .limit(5),
+      ]);
 
-      // Recent announcements from engine_memory (K1b)
-      supabase
-        .from("engine_memory")
-        .select("content, memory_type, importance, created_at")
-        .eq("workspace_id", ctx.workspaceId)
-        .gte("importance", 0.5)
-        .order("created_at", { ascending: false })
-        .limit(5),
-    ]);
+    // Stage 2: fetch tasks scoped to today's session (requires session ID from stage 1)
+    const sessionId = sessionResult.data?.department_session_id;
+    const tasksResult = sessionId
+      ? await supabase
+          .from("session_task")
+          .select("id, title, priority, status, due_at, task_type")
+          .eq("workspace_id", ctx.workspaceId)
+          .eq("department_session_id", sessionId)
+          .eq("status", "pending")
+          .order("due_at", { ascending: true })
+          .limit(20)
+      : {
+          data: [] as {
+            id: string;
+            title: string;
+            priority: string;
+            status: string;
+            due_at: string;
+            task_type: string;
+          }[],
+        };
 
     const brief = {
       department_id: params.department_id,

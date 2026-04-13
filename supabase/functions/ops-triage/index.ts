@@ -55,7 +55,8 @@ function classify(eventType: string, payload: Record<string, unknown>): Classifi
     return { type: "action_needed", urgency: "next_break", tier: "active" };
   }
 
-  if (type.includes("deviation") || type.includes("flagged")) {
+  // Flagged events (medium severity — deviation already caught above)
+  if (type.includes("flagged")) {
     return { type: "deviation", urgency: "end_of_shift", tier: "active" };
   }
 
@@ -71,7 +72,7 @@ Deno.serve(async (req) => {
 
   const authHeader = req.headers.get("authorization");
   const cronSecret = Deno.env.get("WATCHDOG_CRON_SECRET");
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     return new Response("Unauthorized", { status: 401 });
   }
 
