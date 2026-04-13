@@ -466,14 +466,14 @@ export function useReassignShiftType() {
 
     onSuccess: (_data, params) => {
       void emit({
-        event: "shift reassigned",
+        event: "shift updated",
         workspace_id: params.workspaceId,
         actor_id: params.actorId,
         properties: {
           entity: { entity_type: "shift", entity_id: params.shiftId },
-          data: {
-            shift_type_id: params.shiftTypeId,
-            role: params.role,
+          changes: {
+            shift_type_id: { before: "unassigned", after: params.shiftTypeId },
+            role: { before: "unknown", after: params.role },
           },
         },
       });
