@@ -226,6 +226,14 @@ export interface AuthLoggedIn extends BaseEvent {
   properties: { data: { method: "password" | "otp" | "google" } };
 }
 
+export interface LoginCodeSent extends BaseEvent {
+  event: "login_code sent";
+  properties: {
+    entity: { entity_type: "profile"; entity_id: string };
+    data: { channel: string };
+  };
+}
+
 // ─── Navigation / UI Rules ──────────────────────
 export interface PageViewed extends BaseEvent {
   event: "page viewed";
@@ -1030,6 +1038,30 @@ export interface SeasonUpdated extends BaseEvent {
       end_date: string | null;
       source?: string;
     };
+  };
+}
+
+export interface SeasonOperatingHoursCopied extends BaseEvent {
+  event: "season operating_hours_copied";
+  properties: {
+    entity: EntityRef;
+    data: { rows_copied: number };
+  };
+}
+
+export interface SeasonOperatingHoursUpdated extends BaseEvent {
+  event: "season operating_hours_updated";
+  properties: {
+    entity: EntityRef;
+    data: Record<string, never>;
+  };
+}
+
+export interface SeasonOperatingHoursRemoved extends BaseEvent {
+  event: "season operating_hours_removed";
+  properties: {
+    entity: EntityRef;
+    data: Record<string, never>;
   };
 }
 
@@ -3124,6 +3156,9 @@ export type SmartoutEvent =
   | SeasonActivated
   | SeasonArchived
   | SeasonUpdated
+  | SeasonOperatingHoursCopied
+  | SeasonOperatingHoursUpdated
+  | SeasonOperatingHoursRemoved
   | SeasonBudgetUpdated
   | SeasonGoalCreated
   | SeasonGoalUpdated
@@ -3331,6 +3366,7 @@ export type SmartoutEvent =
   | AuthOtpVerified
   | AuthOtpFailed
   | AuthLoggedIn
+  | LoginCodeSent
   | SecurityRateLimited
   | SecurityLockoutTriggered
   | SecuritySandboxBlocked
@@ -3743,6 +3779,18 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "operations",
   },
   "season updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "season operating_hours_copied": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "season operating_hours_updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "season operating_hours_removed": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "operations",
   },
@@ -4527,6 +4575,7 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "auth otp_verified": { destinations: ["posthog", "logger"], category: "auth" },
   "auth otp_failed": { destinations: ["posthog", "logger"], category: "auth" },
   "auth logged_in": { destinations: ["posthog", "logger"], category: "auth" },
+  "login_code sent": { destinations: ["posthog", "logger", "activity_trail"], category: "auth" },
   // ─── Security ─────────────────────────────────
   "security rate_limited": { destinations: ["logger", "activity_trail"], category: "security" },
   "security lockout_triggered": {

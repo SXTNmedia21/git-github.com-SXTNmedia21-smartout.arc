@@ -24,9 +24,10 @@ import {
 import { SeasonOverviewTab } from "./SeasonOverviewTab";
 import { SeasonGoalsTab } from "./SeasonGoalsTab";
 import { SeasonProceduresTab } from "./SeasonProceduresTab";
+import { SeasonHoursTab } from "./SeasonHoursTab";
 import { MachineRoomSheet } from "./MachineRoomSheet";
 import { useSeasonBudget } from "../_hooks/use-season-budget";
-import { LayoutDashboard, Target, ShieldCheck, Settings2 } from "lucide-react";
+import { Clock, LayoutDashboard, Target, ShieldCheck, Settings2 } from "lucide-react";
 import type { Season } from "../_hooks/use-seasons";
 
 type SeasonDrawerProps = {
@@ -36,10 +37,11 @@ type SeasonDrawerProps = {
   isDark: boolean;
 };
 
-type DrawerTab = "overview" | "goals" | "procedures";
+type DrawerTab = "overview" | "hours" | "goals" | "procedures";
 
 const DRAWER_TABS: { id: DrawerTab; labelKey: string; icon: typeof LayoutDashboard }[] = [
   { id: "overview", labelKey: "yearWheel.tab_overview", icon: LayoutDashboard },
+  { id: "hours", labelKey: "yearWheel.tab_hours", icon: Clock },
   { id: "goals", labelKey: "yearWheel.tab_goals", icon: Target },
   { id: "procedures", labelKey: "yearWheel.tab_procedures", icon: ShieldCheck },
 ];
@@ -149,6 +151,7 @@ export function SeasonDrawer({ season, open, onOpenChange, isDark }: SeasonDrawe
                   {t("yearWheel.empty_budget")}
                 </p>
               ))}
+            {activeTab === "hours" && <SeasonHoursTab seasonId={season.season_id} />}
             {activeTab === "goals" && (
               <SeasonGoalsTab seasonId={season.season_id} isDark={isDark} />
             )}

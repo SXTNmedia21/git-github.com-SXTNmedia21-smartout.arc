@@ -16,3 +16,5 @@ export { usePlanningCycles } from "./use-planning-cycles";
 export { useSeasonPolicyBindings } from "./use-season-policy-bindings";
 
 export { useSeasonGoals } from "./use-season-goals";
+
+export { useSeasonOperatingHours } from "./use-season-operating-hours";
