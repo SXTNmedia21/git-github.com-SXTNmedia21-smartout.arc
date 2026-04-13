@@ -36,7 +36,7 @@ import { Play, Archive, Loader2 } from "lucide-react";
 
 export default function YearWheelPage() {
   const { t } = useTranslation("dashboard");
-  const { isDark, profileId } = useContext(DashboardContext);
+  const { profileId } = useContext(DashboardContext);
   const ctx = useWorkspaceOptional();
   const wsId = ctx?.workspace.workspace_id ?? null;
 
@@ -183,10 +183,10 @@ export default function YearWheelPage() {
   const handleCreateFromTimeline = useCallback(async () => {
     const title = createTitle.trim();
     const fallbackTitle = {
-      training_slot: "Opplæringstidspunkt",
-      season_start: `Sesongstart ${selectedDate}`,
-      important_event: "Viktig hendelse",
-      special_day: "Spesiell dag",
+      training_slot: t("yearWheel.training_slot"),
+      season_start: `${t("yearWheel.season_start")} ${selectedDate}`,
+      important_event: t("yearWheel.important_event"),
+      special_day: t("yearWheel.special_day"),
     }[createType];
 
     const finalTitle = title || fallbackTitle;
@@ -282,28 +282,18 @@ export default function YearWheelPage() {
         />
         <button
           onClick={() => jumpToDate(`${currentYear}-06-01`)}
-          className={`rounded-lg border px-3 py-2 text-xs font-semibold transition-colors ${
-            isDark
-              ? "border-zinc-700 text-zinc-300 hover:bg-zinc-800"
-              : "border-zinc-300 text-zinc-700 hover:bg-zinc-100"
-          }`}
+          className="border-border text-foreground hover:bg-accent rounded-lg border px-3 py-2 text-xs font-semibold transition-colors"
         >
-          1. juni
+          {t("yearWheel.june_first")}
         </button>
         <button
           onClick={() => jumpToDate(new Date().toISOString().split("T")[0]!)}
-          className={`rounded-lg border px-3 py-2 text-xs font-semibold transition-colors ${
-            isDark
-              ? "border-zinc-700 text-zinc-300 hover:bg-zinc-800"
-              : "border-zinc-300 text-zinc-700 hover:bg-zinc-100"
-          }`}
+          className="border-border text-foreground hover:bg-accent rounded-lg border px-3 py-2 text-xs font-semibold transition-colors"
         >
-          I dag
+          {t("yearWheel.today")}
         </button>
 
-        <label
-          className={`ml-2 flex items-center gap-2 text-xs ${isDark ? "text-zinc-400" : "text-zinc-600"}`}
-        >
+        <label className="text-muted-foreground ml-2 flex items-center gap-2 text-xs">
           <span className="shrink-0">{t("yearWheel.view_label")}</span>
           <select
             value={timelineView}
@@ -314,11 +304,7 @@ export default function YearWheelPage() {
                 setZoomMonth(new Date(selectedDate).getMonth());
               }
             }}
-            className={`h-9 rounded-md border px-2 text-xs ${
-              isDark
-                ? "border-zinc-700 bg-zinc-900 text-zinc-100"
-                : "border-zinc-300 bg-white text-zinc-900"
-            }`}
+            className="border-input bg-background text-foreground h-9 rounded-md border px-2 text-xs"
           >
             <option value="year">{t("yearWheel.view_year")}</option>
             <option value="month">{t("yearWheel.view_month")}</option>
@@ -380,7 +366,10 @@ export default function YearWheelPage() {
               if (hasTargetSeasons) {
                 if (
                   !window.confirm(
-                    `${currentYear} har allerede sesonger. Vil du fortsatt kopiere fra ${sourceYear}?`,
+                    t("yearWheel.confirm_copy_year", {
+                      year: currentYear,
+                      sourceYear,
+                    }),
                   )
                 )
                   return;
@@ -389,11 +378,7 @@ export default function YearWheelPage() {
             }}
             disabled={duplicateYear.isPending}
             title={t("yearWheel.copy_previous_year")}
-            className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-bold transition-all disabled:opacity-50 ${
-              isDark
-                ? "border-zinc-700 text-zinc-400 hover:bg-zinc-800"
-                : "border-zinc-300 text-zinc-500 hover:bg-zinc-100"
-            }`}
+            className="border-border text-muted-foreground hover:bg-accent inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-bold transition-all disabled:opacity-50"
           >
             {duplicateYear.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
             {t("yearWheel.copy_previous_year")}
@@ -422,7 +407,7 @@ export default function YearWheelPage() {
                 <button
                   onClick={() => archiveSeason.mutate(selectedSeasonId!)}
                   disabled={archiveSeason.isPending}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-600 px-3 py-2 text-xs font-bold text-zinc-300 shadow-sm transition-colors hover:bg-zinc-800 disabled:opacity-50"
+                  className="border-border text-foreground hover:bg-accent inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-bold shadow-sm transition-colors disabled:opacity-50"
                 >
                   {archiveSeason.isPending ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -446,25 +431,17 @@ export default function YearWheelPage() {
 
       {/* List + sort below timeline */}
       <div className="grid gap-4 lg:grid-cols-2">
-        <div
-          className={`rounded-xl border p-4 ${isDark ? "border-zinc-800 bg-zinc-900/40" : "border-zinc-200 bg-white"}`}
-        >
+        <div className="border-border bg-card rounded-xl border p-4">
           <div className="mb-3 flex items-center justify-between gap-2">
-            <h3 className={`text-sm font-semibold ${isDark ? "text-zinc-200" : "text-zinc-800"}`}>
-              Sesonger
-            </h3>
+            <h3 className="text-foreground text-sm font-semibold">{t("yearWheel.seasons")}</h3>
             <select
               value={seasonSort}
               onChange={(event) => setSeasonSort(event.target.value as typeof seasonSort)}
-              className={`h-8 rounded-md border px-2 text-xs ${
-                isDark
-                  ? "border-zinc-700 bg-zinc-900 text-zinc-100"
-                  : "border-zinc-300 bg-white text-zinc-900"
-              }`}
+              className="border-input bg-background text-foreground h-8 rounded-md border px-2 text-xs"
             >
-              <option value="start-asc">Startdato stigende</option>
-              <option value="start-desc">Startdato synkende</option>
-              <option value="name">Navn A-Å</option>
+              <option value="start-asc">{t("yearWheel.start_date_asc")}</option>
+              <option value="start-desc">{t("yearWheel.start_date_desc")}</option>
+              <option value="name">{t("yearWheel.name_az")}</option>
             </select>
           </div>
           <div className="max-h-64 space-y-1 overflow-auto">
@@ -472,12 +449,10 @@ export default function YearWheelPage() {
               <button
                 key={season.season_id}
                 onClick={() => handleBlockClick(season.season_id)}
-                className={`w-full rounded-md px-3 py-2 text-left text-xs transition-colors ${
-                  isDark ? "text-zinc-300 hover:bg-zinc-800" : "text-zinc-700 hover:bg-zinc-100"
-                }`}
+                className="text-foreground hover:bg-accent w-full rounded-md px-3 py-2 text-left text-xs transition-colors"
               >
                 <div className="font-medium">{season.name}</div>
-                <div className={isDark ? "text-zinc-500" : "text-zinc-500"}>
+                <div className="text-muted-foreground">
                   {season.start_date ?? "–"} {season.end_date ? `→ ${season.end_date}` : ""}
                 </div>
               </button>
@@ -485,25 +460,17 @@ export default function YearWheelPage() {
           </div>
         </div>
 
-        <div
-          className={`rounded-xl border p-4 ${isDark ? "border-zinc-800 bg-zinc-900/40" : "border-zinc-200 bg-white"}`}
-        >
+        <div className="border-border bg-card rounded-xl border p-4">
           <div className="mb-3 flex items-center justify-between gap-2">
-            <h3 className={`text-sm font-semibold ${isDark ? "text-zinc-200" : "text-zinc-800"}`}>
-              Hendelser
-            </h3>
+            <h3 className="text-foreground text-sm font-semibold">{t("yearWheel.events")}</h3>
             <select
               value={eventSort}
               onChange={(event) => setEventSort(event.target.value as typeof eventSort)}
-              className={`h-8 rounded-md border px-2 text-xs ${
-                isDark
-                  ? "border-zinc-700 bg-zinc-900 text-zinc-100"
-                  : "border-zinc-300 bg-white text-zinc-900"
-              }`}
+              className="border-input bg-background text-foreground h-8 rounded-md border px-2 text-xs"
             >
-              <option value="date-asc">Dato stigende</option>
-              <option value="date-desc">Dato synkende</option>
-              <option value="name">Navn A-Å</option>
+              <option value="date-asc">{t("yearWheel.date_asc")}</option>
+              <option value="date-desc">{t("yearWheel.date_desc")}</option>
+              <option value="name">{t("yearWheel.name_az")}</option>
             </select>
           </div>
           <div className="max-h-64 space-y-1 overflow-auto">
@@ -511,14 +478,10 @@ export default function YearWheelPage() {
               <button
                 key={eventRow.planning_event_id}
                 onClick={() => handlePinClick(eventRow.planning_event_id)}
-                className={`w-full rounded-md px-3 py-2 text-left text-xs transition-colors ${
-                  isDark ? "text-zinc-300 hover:bg-zinc-800" : "text-zinc-700 hover:bg-zinc-100"
-                }`}
+                className="text-foreground hover:bg-accent w-full rounded-md px-3 py-2 text-left text-xs transition-colors"
               >
                 <div className="font-medium">{eventRow.name}</div>
-                <div className={isDark ? "text-zinc-500" : "text-zinc-500"}>
-                  {eventRow.event_date}
-                </div>
+                <div className="text-muted-foreground">{eventRow.event_date}</div>
               </button>
             ))}
           </div>
@@ -535,14 +498,16 @@ export default function YearWheelPage() {
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingEventId ? "Rediger hendelse" : "Opprett fra årshjul"}</DialogTitle>
+            <DialogTitle>
+              {editingEventId ? t("yearWheel.edit_event") : t("yearWheel.create_from_wheel")}
+            </DialogTitle>
             <DialogDescription>
-              Dato: {new Date(selectedDate).toLocaleDateString("nb-NO")}
+              {t("yearWheel.date")}: {new Date(selectedDate).toLocaleDateString("nb-NO")}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-3">
             <label className="text-sm font-medium" htmlFor="timeline-create-type">
-              Type
+              {t("yearWheel.type")}
             </label>
             <select
               id="timeline-create-type"
@@ -550,30 +515,26 @@ export default function YearWheelPage() {
               onChange={(event) => {
                 setCreateType(event.target.value as typeof createType);
               }}
-              className={`h-10 rounded-md border px-3 text-sm ${
-                isDark
-                  ? "border-zinc-700 bg-zinc-900 text-zinc-100"
-                  : "border-zinc-300 bg-white text-zinc-900"
-              }`}
+              className="border-input bg-background text-foreground h-10 rounded-md border px-3 text-sm"
             >
-              <option value="training_slot">Opplæringstidspunkt</option>
-              <option value="season_start">Sesongstart</option>
-              <option value="important_event">Viktig hendelse</option>
-              <option value="special_day">Spesiell dag</option>
+              <option value="training_slot">{t("yearWheel.training_slot")}</option>
+              <option value="season_start">{t("yearWheel.season_start")}</option>
+              <option value="important_event">{t("yearWheel.important_event")}</option>
+              <option value="special_day">{t("yearWheel.special_day")}</option>
             </select>
 
             <label className="text-sm font-medium" htmlFor="timeline-create-title">
-              Tittel
+              {t("yearWheel.title_label")}
             </label>
             <Input
               id="timeline-create-title"
               value={createTitle}
               onChange={(event) => setCreateTitle(event.target.value)}
-              placeholder="Navn på hendelse eller sesong"
+              placeholder={t("yearWheel.event_name_placeholder")}
             />
 
             <label className="text-sm font-medium" htmlFor="timeline-create-date">
-              Dato
+              {t("yearWheel.date")}
             </label>
             <Input
               id="timeline-create-date"
@@ -585,7 +546,7 @@ export default function YearWheelPage() {
             {createType === "season_start" && (
               <>
                 <label className="text-sm font-medium" htmlFor="timeline-create-end-date">
-                  Sesongslutt
+                  {t("yearWheel.season_end")}
                 </label>
                 <Input
                   id="timeline-create-end-date"
@@ -602,11 +563,9 @@ export default function YearWheelPage() {
                 setCreateDialogOpen(false);
                 setEditingEventId(null);
               }}
-              className={`rounded-md px-3 py-2 text-sm ${
-                isDark ? "text-zinc-300 hover:bg-zinc-800" : "text-zinc-600 hover:bg-zinc-100"
-              }`}
+              className="text-foreground hover:bg-accent rounded-md px-3 py-2 text-sm"
             >
-              Avbryt
+              {t("yearWheel.cancel")}
             </button>
             <button
               onClick={() => {
@@ -614,7 +573,7 @@ export default function YearWheelPage() {
               }}
               className="rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-500"
             >
-              {editingEventId ? "Lagre" : "Opprett"}
+              {editingEventId ? t("yearWheel.save") : t("yearWheel.create")}
             </button>
           </DialogFooter>
         </DialogContent>
