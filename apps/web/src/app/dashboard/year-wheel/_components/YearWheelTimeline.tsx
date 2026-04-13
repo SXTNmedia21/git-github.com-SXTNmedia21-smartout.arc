@@ -309,7 +309,6 @@ export function YearWheelTimeline({
                   viewMode={viewMode}
                   zoomMonth={zoomMonth}
                   onClick={onBlockClick}
-                  isDark={isDark}
                   resolveDateFromClientX={resolveDateFromClientX}
                   onEdgeCommit={onSeasonEdgeCommit}
                 />

@@ -129,7 +129,7 @@ function getBlockStyle(status: Season["status"]) {
       return {
         bg: "bg-success/5",
         border: "border-solid border-success",
-        accent: "bg-emerald-500",
+        accent: "bg-success",
         text: "text-success",
       };
     case "archived":
@@ -232,7 +232,7 @@ export function TimelineBlock({
           aria-orientation="vertical"
           aria-label={t("yearWheel.drag_start_date")}
           onPointerDown={handleEdgePointerDown("start")}
-          className="absolute top-0 left-0 z-20 h-full w-3 cursor-ew-resize rounded-l-xl border-r border-transparent hover:border-emerald-500/40 hover:bg-accent before:absolute before:inset-y-0 before:-inset-x-4 before:content-['']"
+          className="hover:border-success/40 hover:bg-accent absolute top-0 left-0 z-20 h-full w-3 cursor-ew-resize rounded-l-xl border-r border-transparent before:absolute before:-inset-x-4 before:inset-y-0 before:content-['']"
         />
       ) : null}
 
@@ -242,7 +242,7 @@ export function TimelineBlock({
           clickEvent.stopPropagation();
           onClick(season.season_id);
         }}
-        className={`absolute inset-y-0 cursor-pointer rounded-xl focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:outline-none ${
+        className={`focus-visible:ring-ring absolute inset-y-0 cursor-pointer rounded-xl focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none ${
           showHandles ? "right-3 left-3" : "inset-x-0"
         }`}
         aria-label={`${season.name} (${season.status}) — ${startMonth} to ${endMonth}`}
@@ -260,7 +260,7 @@ export function TimelineBlock({
           aria-orientation="vertical"
           aria-label={t("yearWheel.drag_end_date")}
           onPointerDown={handleEdgePointerDown("end")}
-          className="absolute top-0 right-0 z-20 h-full w-3 cursor-ew-resize rounded-r-xl border-l border-transparent hover:border-emerald-500/40 hover:bg-accent before:absolute before:inset-y-0 before:-inset-x-4 before:content-['']"
+          className="hover:border-success/40 hover:bg-accent absolute top-0 right-0 z-20 h-full w-3 cursor-ew-resize rounded-r-xl border-l border-transparent before:absolute before:-inset-x-4 before:inset-y-0 before:content-['']"
         />
       ) : null}
     </motion.div>
