@@ -158,6 +158,10 @@ export const createDeviation = defineTool({
   schema: z.object({
     title: z.string().min(3).describe("Short title describing the deviation"),
     description: z.string().optional().describe("Detailed description of what happened"),
+    domain: z
+      .enum(["safety", "customer", "procedure", "system", "material"])
+      .default("procedure")
+      .describe("Deviation domain category"),
     severity: z
       .enum(["low", "medium", "high", "critical"])
       .optional()
@@ -189,6 +193,7 @@ export const createDeviation = defineTool({
       .insert({
         workspace_id: ctx.workspaceId,
         department_id: deptId,
+        domain: params.domain,
         reported_by: ctx.profileId,
         title: params.title,
         description: params.description ?? null,
