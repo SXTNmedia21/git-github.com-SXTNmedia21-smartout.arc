@@ -363,6 +363,15 @@ export interface ProfileReactivated extends BaseEvent {
   };
 }
 
+/** Emitted when an admin sends a passwordless login code to a profile (SMS or email). */
+export interface ProfileLoginCodeSent extends BaseEvent {
+  event: "profile login code sent";
+  properties: {
+    entity: EntityRef;
+    data: { channel: "email" | "sms" };
+  };
+}
+
 export interface InvitationCancelled extends BaseEvent {
   event: "invitation cancelled";
   properties: {
@@ -3359,6 +3368,7 @@ export type SmartoutEvent =
   | ProfileStatusUpdated
   | ProfileDeactivated
   | ProfileReactivated
+  | ProfileLoginCodeSent
   | InvitationCancelled
   | InvitationResent
   | OnboardingProfessionsConfirmed
@@ -4519,6 +4529,10 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "org_structure",
   },
   "profile reactivated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "org_structure",
+  },
+  "profile login code sent": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "org_structure",
   },

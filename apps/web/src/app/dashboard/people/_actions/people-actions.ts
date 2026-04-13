@@ -369,7 +369,7 @@ export async function sendLoginCode(
 
   const actorId = await resolveActorId(supabase);
   void emit({
-    event: "login_code sent",
+    event: "profile login code sent",
     workspace_id: workspaceId,
     actor_id: actorId,
     properties: {

@@ -6,7 +6,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { createClient } from "@smartout/supabase/server";
 
-export async function GET(request: NextRequest) {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   const workspaceId = request.nextUrl.searchParams.get("workspace_id");
 
   if (!workspaceId) {
