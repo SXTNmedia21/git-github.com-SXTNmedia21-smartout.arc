@@ -1,7 +1,7 @@
 ---
 title: Council Session Log
 status: in_progress
-updated: 2026-04-10
+updated: 2026-04-13
 created: 2026-03-26
 module: governance
 tags: [council, decisions, multi-agent, review]
@@ -48,6 +48,7 @@ Tracks all System Council sessions — multi-agent review meetings where specs, 
 | 2026-04-06 | Code Review: mobile-prod + prod-gaps  | code review  | APPROVE WITH CHANGES     | steward, supervisor, agent-coordinator, frontend-designer | Pending: Migration Safety ADR                                                     | DROP TABLE CASCADE in migrations = silent data destruction. supabaseAdmin:unknown forces unsafe casts across all agent tools. sendMessage only mutation tool without emit(). indigo-500 is cold-spectrum (hue ~240) in warm-only OKLCH system. Agent tools bypass RLS by design — every query MUST include manual .eq(workspace_id).   |
 | 2026-04-06 | Full Plan Portfolio Review (11 plans) | plan         | MIXED (see below)        | steward, supervisor, agent-coordinator, frontend-designer | None                                                                              | See details below                                                                                                                                                                                                                                                                                                                      |
 | 2026-04-06 | Journey Inference as Agent Harness    | architecture | APPROVE WITH CHANGES     | steward, supervisor, agent-coordinator, frontend-designer | Pending: Mobile Telemetry Offline Emit ADR, Journey Progress via Domain Process Engine ADR | 5 breaks verified: 12/12 mobile hooks 0 emit(), no runtime journey tracking, two journey systems, Guardian AI-only, rescue unwired. Rescue≠Re-engagement (two-tier model). Journey DB tables are dev-tracking artifacts (never repurpose). All orchestration via engine_process. |
+| 2026-04-13 | Contract E2E Gap Closure + Template Binding + Hospitality Intelligence | architecture | APPROVE WITH CHANGES | steward, supervisor, agent-coordinator, frontend-designer | Amend ADR-0076 (template as input), New ADR (employment_category enum), Amend ADR-0077 (form-based PII Phase 1-2) | 13 gaps mapped in contract flow — chain completely broken between composition and signing. 3-phase plan: gap closure, template binding, agent integration. Template binding placed as K1b. employment_category needs enum (TEXT is sand). Tariff lookup fragile (LIMIT 1 returns arbitrary rate). Send route telemetry bug (emits wrong event). Wizard restructured to 5 steps. Template selection invisible to admin (cascade-derived). PII collection via form page, not agent, for Phase 1-2. Tripletex researched: they do NOT generate documents — our cascade-derived contracts + compliance checking is the differentiator. |
 | 2026-04-09 | Agent Harness Foundation Spec         | architecture | APPROVE WITH CHANGES     | steward, supervisor, agent-coordinator, frontend-designer | Pending: ADR-0083 (Agent Harness Foundation, extends ADR-0042)                    | engine_session_event vs guardian_log boundary must be explicit (internal replay vs external audit). delegate_task tool must live in stage-engine, not packages/ai (package boundary). createSession() requires mission_id — subagents need separate createSubagentSession(). Hooks are chat-pipeline only in Phase 1 (voice bypasses routeAgentMessage). Orbiting electrons rejected — concentric pulse rings match Nordic Split ambient language. |
 | 2026-04-07 | ADR-0075 Implementation Review (post-migration) | architecture | APPROVE WITH CHANGES → FIXED | steward, supervisor, agent-coordinator, frontend-designer | ADR-0075 already written + accepted; 7 follow-up fixes applied same session | Decision log file was corrupt (concatenated frontmatters from merged feature branches) — rebuilt from scratch. `/status` did NOT regenerate DASHBOARD from `git worktree list` — command doc rewritten to enforce regeneration contract. Race in end-session.sh (DASHBOARD sed before activity-log write) reordered. close-feature.sh silent failure `2>/dev/null || true` replaced with explicit warning pattern. narrator.md line 135 missed in sweep — fixed. INDEX vs ORIENTATION trust-hierarchy conflict resolved (STATE.md demoted to layer 7). ORIENTATION MEMORY.md ambiguity clarified. All 7 fixes committed 5fe73c8b and pushed. Biggest lesson: sweep grep regex must match bare words, not just file extensions. |
 | 2026-04-09 | Contract System Reconciliation: Two Unfinished Strategies | architecture | APPROVE WITH CHANGES | steward (chair), supervisor, system-agent-coordinator, frontend-designer | None (ADR-0076 already covers) | **CRITICAL FINDING: CompositionWizard is a non-functional shell** — merged as "complete" but never calls resolveComposition or any API. `state.proposal` always null, wizard always shows "Ingen forslag tilgjengelig". **Send-drawer template fetch broken** — API returns `{ data: [...] }`, drawer expects bare array, always shows empty state. Neither contract flow has EVER worked for end users despite 79 files + 5300 LOC merged. Root cause: backend is correct, UI shells exist, but wiring between them was never completed. The two strategies (template-based vs cascade-derived) are COMPLEMENTARY not competing: cascade owns substance (terms, rates, compliance), templates own form (document presentation). Phase 1 plan: wire wizard to resolveComposition API (~50 LOC), fix template fetch (1-line), fix tariff lookup (add framework_id filter), replace UUID input with employee picker, add telemetry (13 events registered but never emitted). Phase 2: change_proposal integration per ADR-0076, workspace admin template CRUD at /dashboard/settings/contracts/, merge send-drawer into wizard as final step, i18n + Nordic Split. Phase 3 (separate): contract_intake capability completely unreachable (not in intent classifier, channel never set on AgentToolContext, allowedChannels dead code). Additional findings: actor_id uses auth.uid() not profile_id in contract API routes, RLS vs API semantic mismatch (is_system vs workspace_id IS NULL), authority config seed uses wrong key format (dotted vs flat — all capabilities default to read_only). |
@@ -509,3 +510,39 @@ All 4 agents found real issues. Steward and Supervisor both independently found 
 - **Supervisor:** HIGH — found stale path danger, convention analysis (spec vs PRD), scope creep guardrails, i18n violation
 - **Agent Coordinator:** HIGH — found orphaned tools, missing capability, dual control path, calendar guardian single-season bug
 - **Frontend Designer:** HIGH — complete design spec for all 7 planned features, found 6 design system violations with specific fix recommendations
+
+---
+
+## 2026-04-13 — Year Wheel Implementation Sequencing (Handoff Review)
+**Type:** plan/architecture
+**Verdict:** APPROVE WITH CHANGES
+**Agents consulted:** system-steward (chair), system-agent-coordinator, frontend-designer (supervisor returned without review)
+**Key decision:** B (design debt) and C (cascade resolution gap) execute in parallel. B is a hard prerequisite for A (Phase 1 features). Agent tool registration gated on C completion ("agent trust gate"). D4-only season activation is valid with warning. Calendar Guardian bug included in C scope.
+**ADR created:** ADR-0086 (Year Wheel Implementation Sequencing)
+**Learning created:** Agent trust depends on data pipeline completeness, not tool registration. Calendar Guardian must scope by session context, not global workspace query.
+
+### Critical findings
+
+1. **Option C scope understated (Steward):** "Wire season activation" requires per-department season hours config UI + activation warning + D1 row lifecycle — not just a hook.
+2. **B is prerequisite for A (Frontend Designer):** FR-SEA-15 (fractal noise overlay) cannot be implemented without CSS variable color system. 258+ hardcoded color instances, 227+ isDark references across 17/29 files.
+3. **Agent trust gate (Agent Coordinator):** Registering season tools before cascade gap is fixed lets Emma make promises the system can't keep. Tool registration must wait for data pipeline.
+4. **Calendar Guardian bug confirmed (Agent Coordinator):** `calendar-guardian.ts:91-98` picks newest season by `created_at`, not active season. With multiple drafts, evaluates wrong season.
+5. **D4-only activation is valid (Steward):** `resolveEffectiveHours()` correctly falls back to default hours. Warn on activation, don't block.
+
+### Implementation sequence
+```
+Phase 0: D (supersede stale plan) + fix decision log — DONE
+Phase 1: B + C in parallel (zero file overlap)
+Phase 2: A (after B merges)
+Phase 3: Agent wiring (after C merges)
+```
+
+### Plans written
+- `docs/superpowers/plans/2026-04-13-year-wheel-design-debt-cleanup.md` (Plan B)
+- `docs/superpowers/plans/2026-04-13-year-wheel-cascade-resolution.md` (Plan C)
+
+### Agent effectiveness
+- **System Steward:** HIGH — verified cascade gap depth, found ADR index gap, correct scoping questions, self-corrected Phase 3 priority after hearing other agents
+- **Supervisor:** DID NOT REVIEW (returned without output)
+- **Agent Coordinator:** HIGH — verified capability registry gap, found SeasonToolContext incompatibility, Calendar Guardian bug with exact line numbers, "trust-destroying pattern" insight was council's strongest finding
+- **Frontend Designer:** HIGH — 258 hardcoded color instances counted, detailed design specs for all Phase 1 features, correct FR-SEA-15 prerequisite analysis
