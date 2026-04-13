@@ -1,24 +1,27 @@
 "use client";
 
 /**
- * CompositionWizard — 6-step wizard for composing employment contracts.
+ * CompositionWizard — 5-step wizard for composing employment contracts.
  *
+ * Steps: Ansatt → Stilling → Gjennomgang → Bekreft → Send
  * Uses WizardShell from @smartout/ui with the "warm" theme.
- * Each step guides the admin through selecting an employee, setting position,
- * reviewing cascade-derived values, acknowledging clauses, and sending.
+ * TanStack Query hooks (useComposeContract, useSendContract) replace raw fetch.
  *
  * ADR-0076: composition as cascade derivation.
  */
 
-import { useState, useEffect, useContext } from "react";
-import { CheckCircle, Loader2, Lock, AlertTriangle } from "lucide-react";
+import { useState, useEffect, useContext, useCallback } from "react";
+import { CheckCircle, Loader2, Lock, AlertTriangle, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { AnimatedWizardShell } from "@/components/wizard/AnimatedWizardShell";
 import type { WizardDefinition, WizardStepProps } from "@smartout/ui";
 import { Button, Input, Label } from "@smartout/ui";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import { emit } from "@smartout/telemetry";
-import type { ContractDraftProposal } from "@/lib/contracts/resolve-composition";
+import type {
+  ContractDraftProposal,
+  EmploymentCategory,
+} from "@/lib/contracts/resolve-composition";
+import { useComposeContract, useSendContract } from "../_hooks/use-employment-contracts";
 import { GhostValueCard } from "./GhostValueCard";
 import { ComplianceBadge } from "./ComplianceBadge";
 import { BlockerCounter } from "./BlockerCounter";
@@ -32,14 +35,17 @@ import { ReasoningDrawer } from "./ReasoningDrawer";
 type CompositionState = {
   profileId: string;
   positionTitle: string;
-  proposal: ContractDraftProposal | null;
+  employmentCategory: EmploymentCategory;
+  employmentPercentage: number;
+  proposal: (ContractDraftProposal & { contract_id?: string }) | null;
   acknowledgedBlocks: Set<string>;
   overrides: Record<string, { reason: string }>;
   isLoading: boolean;
+  isSending: boolean;
 };
 
 // ---------------------------------------------------------------------------
-// Step 1: Select Employee
+// Step 1: Select Employee (kept as-is — works fine)
 // ---------------------------------------------------------------------------
 
 type ProfileOption = {
@@ -133,14 +139,40 @@ function SelectEmployeeStep({ state, updateState }: WizardStepProps<CompositionS
 }
 
 // ---------------------------------------------------------------------------
-// Step 2: Position
+// Step 2: Stilling — position title + employment category + percentage
 // ---------------------------------------------------------------------------
 
+const EMPLOYMENT_CATEGORIES: { value: EmploymentCategory; label: string }[] = [
+  { value: "fast", label: "Heltid" },
+  { value: "deltid", label: "Deltid" },
+  { value: "tilkalling", label: "Tilkalling" },
+];
+
 function PositionStep({ state, updateState }: WizardStepProps<CompositionState>) {
+  // When category changes, auto-set percentage for non-deltid categories.
+  function handleCategoryChange(category: EmploymentCategory) {
+    if (category === "fast") {
+      updateState({ employmentCategory: category, employmentPercentage: 100 });
+    } else if (category === "tilkalling") {
+      updateState({ employmentCategory: category, employmentPercentage: 0 });
+    } else {
+      // deltid: keep current percentage (or default to 50 if it's currently 100 or 0)
+      const currentPct = state.employmentPercentage;
+      const pct = currentPct > 0 && currentPct < 100 ? currentPct : 50;
+      updateState({ employmentCategory: category, employmentPercentage: pct });
+    }
+  }
+
   return (
-    <div className="space-y-4">
-      <h2 className="font-heading text-xl font-semibold">Stilling</h2>
-      <p className="text-muted-foreground text-sm">Angi stillingstittel for kontrakten.</p>
+    <div className="space-y-6">
+      <div>
+        <h2 className="font-heading text-xl font-semibold">Stilling</h2>
+        <p className="text-muted-foreground mt-1 text-sm">
+          Angi stillingstittel og ansettelsesform for kontrakten.
+        </p>
+      </div>
+
+      {/* Position title */}
       <div className="max-w-sm space-y-2">
         <Label htmlFor="position-title">Stillingstittel</Label>
         <Input
@@ -150,85 +182,132 @@ function PositionStep({ state, updateState }: WizardStepProps<CompositionState>)
           onChange={(e) => updateState({ positionTitle: e.target.value })}
         />
       </div>
+
+      {/* Employment category — inline segmented toggle */}
+      <div className="max-w-sm space-y-2">
+        <Label>Ansettelsesform</Label>
+        <div className="flex gap-1 rounded-lg border p-1">
+          {EMPLOYMENT_CATEGORIES.map((cat) => (
+            <button
+              key={cat.value}
+              type="button"
+              onClick={() => handleCategoryChange(cat.value)}
+              className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                state.employmentCategory === cat.value
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Percentage slider — only shown for deltid */}
+      {state.employmentCategory === "deltid" && (
+        <div className="max-w-sm space-y-2">
+          <Label htmlFor="employment-percentage">
+            Stillingsprosent — {state.employmentPercentage}%
+          </Label>
+          <input
+            id="employment-percentage"
+            type="range"
+            min={10}
+            max={99}
+            step={5}
+            value={state.employmentPercentage}
+            onChange={(e) => updateState({ employmentPercentage: Number(e.target.value) })}
+            className="accent-primary w-full"
+          />
+          <div className="text-muted-foreground flex justify-between text-xs">
+            <span>10%</span>
+            <span>99%</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Step 3: Derivation (loading state)
+// Step 3: Gjennomgang — derivation loading + GhostValueCards + clauses
 // ---------------------------------------------------------------------------
 
-function DerivationStep({ state, updateState }: WizardStepProps<CompositionState>) {
+function GjennomgangStep({ state, updateState }: WizardStepProps<CompositionState>) {
   const { workspaceData } = useContext(DashboardContext);
-  const [error, setError] = useState<string | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerField, setDrawerField] = useState("");
 
-  useEffect(() => {
+  const composeMutation = useComposeContract();
+
+  // Trigger derivation on mount when we don't have a proposal yet.
+  // Wrapped in useCallback so the effect dependency is stable.
+  const triggerDerive = useCallback(() => {
     if (!workspaceData?.workspace_id || !state.profileId || state.proposal) return;
 
-    let cancelled = false;
     updateState({ isLoading: true });
-    setError(null);
-
-    fetch("/api/employment-contracts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    composeMutation.mutate(
+      {
         workspace_id: workspaceData.workspace_id,
         profile_id: state.profileId,
-      }),
-    })
-      .then(async (res) => {
-        if (!res.ok) {
-          const body = (await res.json().catch(() => ({}))) as { error?: string };
-          throw new Error(body.error ?? "Kunne ikke hente forslag");
-        }
-        return res.json() as Promise<ContractDraftProposal>;
-      })
-      .then((proposal) => {
-        if (!cancelled) {
+        position_title: state.positionTitle,
+        employment_category: state.employmentCategory,
+        employment_percentage: state.employmentPercentage,
+        persist: false,
+      },
+      {
+        onSuccess: (proposal) => {
           updateState({ proposal, isLoading: false });
-          void emit({
-            event: "contract composed",
-            workspace_id: workspaceData?.workspace_id ?? null,
-            actor_id: "unknown",
-            properties: {
-              entity: { entity_type: "profile", entity_id: state.profileId },
-              data: {
-                template_id: "",
-                profile_id: state.profileId,
-                framework_id: proposal.framework_snapshot?.framework_name ?? "",
-                override_count: 0,
-                blocker_count: proposal.validations?.blocker?.length ?? 0,
-              },
-            },
-          });
-        }
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) {
-          const msg = err instanceof Error ? err.message : "Feil ved henting av forslag";
-          setError(msg);
+        },
+        onError: (err: Error) => {
           updateState({ isLoading: false });
-          toast.error(msg);
-        }
-      });
+          toast.error(err.message);
+        },
+      },
+    );
+  }, [
+    workspaceData?.workspace_id,
+    state.profileId,
+    state.positionTitle,
+    state.employmentCategory,
+    state.employmentPercentage,
+    state.proposal,
+  ]);
 
-    return () => {
-      cancelled = true;
-    };
-  }, [workspaceData?.workspace_id, state.profileId]);
+  // Run once on mount — triggerDerive is memoised via useCallback.
+  // We intentionally pass an empty dep array: re-running on every dep change
+  // would re-fetch on every parent render rather than once when the step mounts.
+  useEffect(() => {
+    triggerDerive();
+  }, []);
 
-  if (error) {
+  // --- Loading state ---
+  if (state.isLoading || (!state.proposal && !composeMutation.isError)) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <Loader2 className="text-primary mb-4 h-10 w-10 animate-spin" />
+        <p className="text-muted-foreground text-sm">Henter tariff-forslag fra Cascade...</p>
+      </div>
+    );
+  }
+
+  // --- Error state ---
+  if (composeMutation.isError || !state.proposal) {
+    const errorMessage =
+      composeMutation.error instanceof Error
+        ? composeMutation.error.message
+        : "Kunne ikke hente forslag";
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <AlertTriangle className="text-destructive mb-4 h-10 w-10" />
-        <p className="text-destructive mb-2 text-sm font-medium">{error}</p>
+        <p className="text-destructive mb-2 text-sm font-medium">{errorMessage}</p>
         <Button
           variant="outline"
           size="sm"
           onClick={() => {
             updateState({ proposal: null });
-            setError(null);
+            triggerDerive();
           }}
         >
           Prøv igjen
@@ -237,40 +316,7 @@ function DerivationStep({ state, updateState }: WizardStepProps<CompositionState
     );
   }
 
-  return (
-    <div className="flex flex-col items-center justify-center py-12">
-      {state.isLoading || !state.proposal ? (
-        <>
-          <Loader2 className="text-primary mb-4 h-10 w-10 animate-spin" />
-          <p className="text-muted-foreground text-sm">Henter tariff-forslag fra Cascade...</p>
-        </>
-      ) : (
-        <>
-          <CheckCircle className="mb-4 h-10 w-10 text-emerald-500" />
-          <p className="text-sm font-medium">Forslag hentet</p>
-        </>
-      )}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Step 4: Review
-// ---------------------------------------------------------------------------
-
-function ReviewStep({ state, updateState }: WizardStepProps<CompositionState>) {
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [drawerField, setDrawerField] = useState("");
-
   const proposal = state.proposal;
-  if (!proposal) {
-    return (
-      <p className="text-muted-foreground text-sm">
-        Ingen forslag tilgjengelig. Gaa tilbake og hent paa nytt.
-      </p>
-    );
-  }
-
   const terms = proposal.employment_terms;
   const allValidations = [
     ...proposal.validations.ok,
@@ -278,25 +324,31 @@ function ReviewStep({ state, updateState }: WizardStepProps<CompositionState>) {
     ...proposal.validations.blocker,
   ];
 
-  // Ghost value cards: rate, percentage, category
+  // Ghost value cards: the four derived values the admin needs to review
   const ghostValues = [
     {
-      key: "hourly_rate",
-      label: "Timelonn",
+      key: "timelonn",
+      label: "Timelønn",
       value: terms.hourly_rate !== null ? `${terms.hourly_rate} kr/t` : "Ikke satt",
       source: `Tariff — ${proposal.framework_snapshot.framework_name}`,
     },
     {
-      key: "employment_percentage",
+      key: "stillingsprosent",
       label: "Stillingsprosent",
       value: `${terms.employment_percentage}%`,
-      source: "Standard — kan overstyres",
+      source: "Fra steg 2",
     },
     {
-      key: "employment_category",
+      key: "kategori",
       label: "Ansettelseskategori",
       value: terms.employment_category,
-      source: "Standard — fra profil",
+      source: "Fra steg 2",
+    },
+    {
+      key: "rammeverk",
+      label: "Rammeverk",
+      value: proposal.framework_snapshot.framework_name,
+      source: `Snapshot ${proposal.framework_snapshot.snapshot_date.split("T")[0]}`,
     },
   ];
 
@@ -304,11 +356,6 @@ function ReviewStep({ state, updateState }: WizardStepProps<CompositionState>) {
     const next = new Set(state.acknowledgedBlocks);
     next.add(key);
     updateState({ acknowledgedBlocks: next });
-  }
-
-  function openReasoning(field: string) {
-    setDrawerField(field);
-    setDrawerOpen(true);
   }
 
   return (
@@ -321,35 +368,53 @@ function ReviewStep({ state, updateState }: WizardStepProps<CompositionState>) {
         warningCount={proposal.validations.warning.length}
       />
 
-      {/* Ghost value cards inside acknowledgement ring */}
-      <AcknowledgementRing
-        totalBlocks={ghostValues.length}
-        acknowledgedBlocks={state.acknowledgedBlocks.size}
-      >
-        <div className="space-y-3">
-          {ghostValues.map((gv) => (
-            <GhostValueCard
-              key={gv.key}
-              label={gv.label}
-              value={gv.value}
-              source={gv.source}
-              acknowledged={state.acknowledgedBlocks.has(gv.key)}
-              onAcknowledge={() => handleAcknowledge(gv.key)}
-              onClickExplain={() => openReasoning(gv.key)}
-            />
-          ))}
-        </div>
-      </AcknowledgementRing>
+      {/* Ghost value cards — each requires acknowledgement */}
+      <div className="space-y-3">
+        {ghostValues.map((gv) => (
+          <GhostValueCard
+            key={gv.key}
+            label={gv.label}
+            value={gv.value}
+            source={gv.source}
+            acknowledged={state.acknowledgedBlocks.has(gv.key)}
+            onAcknowledge={() => handleAcknowledge(gv.key)}
+            onClickExplain={() => {
+              setDrawerField(gv.key);
+              setDrawerOpen(true);
+            }}
+          />
+        ))}
+      </div>
 
       {/* Compliance badges */}
-      <div className="space-y-2">
-        <h3 className="text-muted-foreground text-xs tracking-wide uppercase">Samsvar</h3>
-        <div className="flex flex-wrap gap-2">
-          {allValidations.map((v) => (
-            <ComplianceBadge key={v.rule_id} level={v.level} message={v.message} />
-          ))}
+      {allValidations.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="text-muted-foreground text-xs tracking-wide uppercase">Samsvar</h3>
+          <div className="flex flex-wrap gap-2">
+            {allValidations.map((v) => (
+              <ComplianceBadge key={v.rule_id} level={v.level} message={v.message} />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Mandatory clauses — collapsible */}
+      {proposal.mandatory_clauses.length > 0 && (
+        <details className="rounded-lg border">
+          <summary className="flex cursor-pointer items-center gap-2 px-4 py-3 text-sm font-medium select-none">
+            <Lock className="text-muted-foreground h-4 w-4" />
+            Obligatoriske klausuler ({proposal.mandatory_clauses.length})
+          </summary>
+          <div className="space-y-3 border-t px-4 py-3">
+            {proposal.mandatory_clauses.map((clause) => (
+              <div key={clause.rule_id}>
+                <p className="text-sm font-medium">{clause.title}</p>
+                <p className="text-muted-foreground mt-1 text-sm leading-relaxed">{clause.text}</p>
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
 
       {/* Reasoning drawer */}
       <ReasoningDrawer
@@ -357,87 +422,208 @@ function ReviewStep({ state, updateState }: WizardStepProps<CompositionState>) {
         onClose={() => setDrawerOpen(false)}
         title={drawerField}
         source={proposal.framework_snapshot.framework_name}
-        explanation={`Verdi utledet fra ${proposal.framework_snapshot.framework_name} (snapshot ${proposal.framework_snapshot.snapshot_date}).`}
+        explanation={`Verdi utledet fra ${proposal.framework_snapshot.framework_name} (snapshot ${proposal.framework_snapshot.snapshot_date.split("T")[0]}).`}
       />
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Step 5: Clauses
+// Step 4: Bekreft — summary + AcknowledgementRing
 // ---------------------------------------------------------------------------
 
-function ClausesStep({ state }: WizardStepProps<CompositionState>) {
-  const clauses = state.proposal?.mandatory_clauses ?? [];
+function BekreftStep({ state, updateState }: WizardStepProps<CompositionState>) {
+  const proposal = state.proposal;
+
+  if (!proposal) {
+    return (
+      <p className="text-muted-foreground text-sm">
+        Ingen forslag tilgjengelig. Gå tilbake og hent på nytt.
+      </p>
+    );
+  }
+
+  const terms = proposal.employment_terms;
+
+  const summaryItems = [
+    { key: "stilling", label: "Stilling", value: terms.position_title || "—" },
+    { key: "kategori", label: "Kategori", value: terms.employment_category },
+    { key: "prosent", label: "Prosent", value: `${terms.employment_percentage}%` },
+    {
+      key: "timelonn",
+      label: "Timelønn",
+      value: terms.hourly_rate !== null ? `${terms.hourly_rate} kr/t` : "Ikke satt",
+    },
+  ];
+
+  function handleAcknowledge(key: string) {
+    const next = new Set(state.acknowledgedBlocks);
+    next.add(key);
+    updateState({ acknowledgedBlocks: next });
+  }
 
   return (
-    <div className="space-y-4">
-      <h2 className="font-heading text-xl font-semibold">Obligatoriske klausuler</h2>
-      {clauses.length === 0 ? (
-        <p className="text-muted-foreground text-sm">
-          Ingen obligatoriske klausuler funnet i rammeverket.
+    <div className="space-y-6">
+      <div>
+        <h2 className="font-heading text-xl font-semibold">Bekreft</h2>
+        <p className="text-muted-foreground mt-1 text-sm">
+          Gå gjennom og bekreft alle verdiene før du sender kontrakten.
         </p>
-      ) : (
-        <div className="space-y-3">
-          {clauses.map((clause) => (
-            <div key={clause.rule_id} className="rounded-lg border p-4">
-              <div className="mb-1 flex items-center gap-2">
-                <Lock className="text-muted-foreground h-3.5 w-3.5" />
-                <span className="text-sm font-medium">{clause.title}</span>
-                <span className="inline-flex items-center rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-medium tracking-wide uppercase dark:bg-zinc-800">
-                  Laast
-                </span>
-              </div>
-              <p className="text-muted-foreground text-sm leading-relaxed">{clause.text}</p>
-            </div>
-          ))}
+      </div>
+
+      <AcknowledgementRing
+        totalBlocks={summaryItems.length}
+        acknowledgedBlocks={
+          summaryItems.filter((item) => state.acknowledgedBlocks.has(item.key)).length
+        }
+      >
+        <div className="grid grid-cols-2 gap-3">
+          {summaryItems.map((item) => {
+            const isAcknowledged = state.acknowledgedBlocks.has(item.key);
+            return (
+              <button
+                key={item.key}
+                type="button"
+                onClick={() => handleAcknowledge(item.key)}
+                className={`rounded-lg border p-4 text-left transition-colors ${
+                  isAcknowledged
+                    ? "border-primary/40 bg-primary/5"
+                    : "hover:border-muted-foreground/40"
+                }`}
+              >
+                <p className="text-muted-foreground text-xs tracking-wide uppercase">
+                  {item.label}
+                </p>
+                <p className="mt-1 text-sm font-medium">{item.value}</p>
+                {isAcknowledged && <CheckCircle className="text-primary mt-2 h-4 w-4" />}
+              </button>
+            );
+          })}
         </div>
-      )}
+      </AcknowledgementRing>
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Step 6: Send
+// Step 5: Send — two-path submit using TanStack Query hooks
 // ---------------------------------------------------------------------------
 
-function SendStep({ state }: WizardStepProps<CompositionState>) {
+function SendStep({ state, updateState }: WizardStepProps<CompositionState>) {
+  const { workspaceData } = useContext(DashboardContext);
+  const composeMutation = useComposeContract();
+  const sendMutation = useSendContract();
+
   const blockerCount = state.proposal?.validations.blocker.length ?? 0;
-  const missingData = state.proposal?.placeholder_status.missing ?? [];
+  const missingPii = state.proposal?.placeholder_status.missing ?? [];
   const hasBlockers = blockerCount > 0;
 
+  // True when PII is complete — we can send directly after persist-compose
+  const piiComplete = missingPii.length === 0;
+
+  const isSubmitting = state.isSending;
+
+  async function handleSubmit() {
+    if (!workspaceData?.workspace_id || !state.profileId) return;
+
+    updateState({ isSending: true });
+
+    try {
+      // Step A: compose with persist=true to get a contract_id
+      const composed = await composeMutation.mutateAsync({
+        workspace_id: workspaceData.workspace_id,
+        profile_id: state.profileId,
+        position_title: state.positionTitle,
+        employment_category: state.employmentCategory,
+        employment_percentage: state.employmentPercentage,
+        persist: true,
+      });
+
+      const contractId = composed.contract_id;
+      if (!contractId) {
+        throw new Error("Kontrakten ble ikke lagret — mangler contract_id");
+      }
+
+      updateState({ proposal: composed });
+
+      if (piiComplete) {
+        // Step B (PII complete path): send immediately for signing
+        await sendMutation.mutateAsync({ contract_id: contractId });
+        toast.success("Kontrakt sendt til signering");
+      } else {
+        // Step B (PII missing path): contract created, PII collection flow starts
+        toast.success("Kontrakt opprettet — innhenting av manglende data startet");
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Noe gikk galt";
+      toast.error(message);
+    } finally {
+      updateState({ isSending: false });
+    }
+  }
+
   return (
-    <div className="flex flex-col items-center justify-center py-12">
+    <div className="flex flex-col items-center justify-center gap-6 py-12">
       {hasBlockers ? (
         <>
-          <AlertTriangle className="mb-4 h-10 w-10 text-red-600" />
-          <p className="mb-2 text-sm font-medium text-red-600">
-            Kan ikke sende — {blockerCount} {blockerCount === 1 ? "blokkering" : "blokkeringer"}{" "}
-            gjenstaar
-          </p>
-          <p className="text-muted-foreground text-xs">
-            Gaa tilbake og loess blokkeringene foer du sender.
-          </p>
+          <AlertTriangle className="h-10 w-10 text-red-600" />
+          <div className="text-center">
+            <p className="text-sm font-medium text-red-600">
+              Kan ikke sende — {blockerCount} {blockerCount === 1 ? "blokkering" : "blokkeringer"}{" "}
+              gjenstår
+            </p>
+            <p className="text-muted-foreground mt-1 text-xs">
+              Gå tilbake og løs blokkeringene før du sender.
+            </p>
+          </div>
         </>
       ) : (
         <>
-          <CheckCircle className="mb-4 h-10 w-10 text-green-600" />
-          <p className="text-sm font-medium">Klar til aa sende</p>
+          <Sparkles className="text-primary h-10 w-10" />
+          <div className="text-center">
+            <p className="text-sm font-medium">Klar til å sende</p>
+            {!piiComplete && (
+              <p className="text-muted-foreground mt-1 text-xs">
+                Manglende ansattdata — kontrakten vil sende forespørsel om innhenting.
+              </p>
+            )}
+          </div>
         </>
       )}
 
-      {/* Missing data warning */}
-      {missingData.length > 0 && (
-        <div className="mt-6 max-w-sm rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+      {/* Missing PII notice */}
+      {missingPii.length > 0 && (
+        <div className="max-w-sm rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
           <p className="mb-1 font-medium">Manglende data fra ansatt:</p>
           <ul className="list-inside list-disc text-xs">
-            {missingData.map((field) => (
+            {missingPii.map((field) => (
               <li key={field}>{field}</li>
             ))}
           </ul>
-          <p className="mt-2 text-xs">Kontrakten vil inneholde plassholdere for disse feltene.</p>
+          <p className="mt-2 text-xs">
+            Kontrakten opprettes og en forespørsel sendes til den ansatte.
+          </p>
         </div>
       )}
+
+      {/* Submit button — two labels depending on PII completeness */}
+      <Button
+        onClick={() => void handleSubmit()}
+        disabled={hasBlockers || isSubmitting}
+        size="lg"
+        className="min-w-48"
+      >
+        {isSubmitting ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Sender...
+          </>
+        ) : piiComplete ? (
+          "Send kontrakt"
+        ) : (
+          "Opprett og start innhenting"
+        )}
+      </Button>
     </div>
   );
 }
@@ -456,25 +642,21 @@ const compositionWizard: WizardDefinition<CompositionState> = {
   },
   brandPanel: {
     messages: {
-      "select-employee": {
-        heading: "Hvem skal faa kontrakt?",
+      ansatt: {
+        heading: "Hvem skal få kontrakt?",
         sub: "Velg den ansatte som skal motta avtalen.",
       },
-      position: {
-        heading: "Stilling",
-        sub: "Stillingstittel brukes i kontrakten og loennsberegningen.",
+      stilling: {
+        heading: "Stilling og form",
+        sub: "Stillingstittel og ansettelsesform brukes i kontrakten og lønnsberegningen.",
       },
-      derivation: {
+      gjennomgang: {
         heading: "Cascade henter data",
         sub: "Tariff, regler og klausuler hentes automatisk fra rammeverket.",
       },
-      review: {
+      bekreft: {
         heading: "Kontroller forslaget",
-        sub: "Godkjenn verdier og sjekk samsvar foer du gaar videre.",
-      },
-      clauses: {
-        heading: "Obligatoriske klausuler",
-        sub: "Disse er laast av rammeverket og kan ikke fjernes.",
+        sub: "Bekreft verdiene før du går videre til sending.",
       },
       send: {
         heading: "Alt klart?",
@@ -484,29 +666,24 @@ const compositionWizard: WizardDefinition<CompositionState> = {
   },
   steps: [
     {
-      id: "select-employee",
-      labelKey: "contracts.composition.steps.selectEmployee",
+      id: "ansatt",
+      labelKey: "contracts.composition.steps.ansatt",
       component: SelectEmployeeStep,
     },
     {
-      id: "position",
-      labelKey: "contracts.composition.steps.position",
+      id: "stilling",
+      labelKey: "contracts.composition.steps.stilling",
       component: PositionStep,
     },
     {
-      id: "derivation",
-      labelKey: "contracts.composition.steps.derivation",
-      component: DerivationStep,
+      id: "gjennomgang",
+      labelKey: "contracts.composition.steps.gjennomgang",
+      component: GjennomgangStep,
     },
     {
-      id: "review",
-      labelKey: "contracts.composition.steps.review",
-      component: ReviewStep,
-    },
-    {
-      id: "clauses",
-      labelKey: "contracts.composition.steps.clauses",
-      component: ClausesStep,
+      id: "bekreft",
+      labelKey: "contracts.composition.steps.bekreft",
+      component: BekreftStep,
     },
     {
       id: "send",
@@ -517,10 +694,13 @@ const compositionWizard: WizardDefinition<CompositionState> = {
   initialState: {
     profileId: "",
     positionTitle: "",
+    employmentCategory: "fast",
+    employmentPercentage: 100,
     proposal: null,
     acknowledgedBlocks: new Set<string>(),
     overrides: {},
     isLoading: false,
+    isSending: false,
   },
 };
 
