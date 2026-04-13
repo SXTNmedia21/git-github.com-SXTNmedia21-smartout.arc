@@ -20,7 +20,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { ArrowLeft, Send } from "lucide-react";
+import { ArrowLeft, FilePlus } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 
@@ -136,17 +136,15 @@ export default function NewContractPage() {
       }
 
       const result = await res.json();
-      const status = result.data?.status;
+      const contractId = result.data?.contract_id;
 
-      if (status === "sent") {
-        toast.success("Kontrakt opprettet og sendt");
-      } else {
-        toast.success("Kontrakt opprettet som utkast", {
-          description: result.warning || "Kontrakten kan sendes manuelt fra kontraktsiden.",
-        });
-      }
+      toast.success("Kontrakt opprettet", {
+        description: "Gjennomga og send fra kontraktsiden.",
+      });
 
-      router.push("/platform-admin/contracts");
+      router.push(
+        contractId ? `/platform-admin/contracts/${contractId}` : "/platform-admin/contracts",
+      );
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Noe gikk galt");
     } finally {
@@ -314,8 +312,8 @@ export default function NewContractPage() {
                 </Button>
               </Link>
               <Button type="submit" disabled={loading}>
-                <Send className="mr-2 h-4 w-4" />
-                {loading ? "Oppretter..." : "Opprett og send"}
+                <FilePlus className="mr-2 h-4 w-4" />
+                {loading ? "Oppretter..." : "Opprett"}
               </Button>
             </CardFooter>
           </Card>
