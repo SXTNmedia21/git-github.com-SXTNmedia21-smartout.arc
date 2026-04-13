@@ -66,6 +66,15 @@ export type ContractDraftProposal = {
   };
 };
 
+export type EmploymentCategory = "fast" | "deltid" | "tilkalling";
+
+export type CompositionInput = {
+  employment_category: EmploymentCategory;
+  employment_percentage: number;
+  position_title: string;
+  employee_group_id?: string;
+};
+
 // ---------------------------------------------------------------------------
 // Helper: compute placeholder status from profile fields
 // ---------------------------------------------------------------------------
@@ -109,7 +118,7 @@ export async function resolveComposition(
   supabase: SupabaseClient,
   workspaceId: string,
   profileId: string,
-  _templateId?: string,
+  input: CompositionInput,
 ): Promise<ContractDraftProposal> {
   // ---- Step 1: Load profile from D2 ----
   const { data: profile, error: profileError } = await supabase
@@ -162,13 +171,23 @@ export async function resolveComposition(
   const activeRules = rules ?? [];
 
   // ---- Step 4: Load tariff_rate_table for suggested rate ----
-  // Look for a matching tariff rate. The tariff_rate_table uses rate_type
-  // rather than employment_category directly — we look for "hourly" rates.
+  // Query employee_payroll_profile to determine if employee has fagbrev.
+  // Use rate_type "minstelonn_faglart" if has_fagbrev, else "minstelonn_ufaglart".
+  // Lookup against platform-level rates (workspace_id = null).
+  const { data: payrollProfile } = await supabase
+    .from("employee_payroll_profile")
+    .select("has_fagbrev")
+    .eq("profile_id", profileId)
+    .eq("workspace_id", workspaceId)
+    .single();
+
+  const rateType = payrollProfile?.has_fagbrev ? "minstelonn_faglart" : "minstelonn_ufaglart";
+
   const { data: tariffRows } = await supabase
     .from("tariff_rate_table")
     .select("amount, rate_type, unit")
-    .eq("framework_id", frameworkId)
-    .eq("source", "framework")
+    .is("workspace_id", null)
+    .eq("rate_type", rateType)
     .order("effective_from", { ascending: false })
     .limit(1);
 
@@ -244,11 +263,11 @@ export async function resolveComposition(
   // ---- Assemble the proposal ----
   return {
     employment_terms: {
-      position_title: "",
+      position_title: input.position_title,
       hourly_rate: suggestedRate,
       monthly_salary: null,
-      employment_percentage: 100,
-      employment_category: "fast",
+      employment_percentage: input.employment_percentage,
+      employment_category: input.employment_category,
       start_date: new Date().toISOString().split("T")[0] ?? "",
     },
     framework_snapshot: {
