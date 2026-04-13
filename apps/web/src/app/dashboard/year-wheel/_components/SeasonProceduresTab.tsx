@@ -10,66 +10,57 @@
  */
 
 import { useState } from "react";
+import { useTranslation } from "@smartout/i18n";
 import { Loader2, ShieldCheck, ShieldAlert, ShieldOff } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useSeasonPolicyBindings } from "../_hooks/use-season-policy-bindings";
 
 type Props = {
   seasonId: string;
-  isDark: boolean;
 };
 
-const POLICY_TYPE_LABELS: Record<string, string> = {
-  operational: "Drift",
-  haccp: "HACCP",
-  hr: "HR",
-  safety: "Sikkerhet",
-  access: "Tilgang",
-  payroll: "Lønn",
-  custom: "Egendefinert",
-};
-
+// Display order for policy type groups — safety-critical types surface first.
 const POLICY_TYPE_ORDER = ["safety", "haccp", "operational", "hr", "access", "payroll", "custom"];
 
-function policyTypeIcon(type: string, isDark: boolean) {
-  const cls = `h-4 w-4 ${isDark ? "text-zinc-500" : "text-zinc-400"}`;
+// Returns the appropriate shield icon for a policy type group header.
+function policyTypeIcon(type: string) {
+  const cls = "h-4 w-4 text-muted-foreground";
   switch (type) {
     case "safety":
     case "haccp":
+      // Safety and HACCP use an alert variant to signal higher risk.
       return <ShieldAlert className={cls} />;
     default:
       return <ShieldCheck className={cls} />;
   }
 }
 
-export function SeasonProceduresTab({ seasonId, isDark }: Props) {
+export function SeasonProceduresTab({ seasonId }: Props) {
+  const { t } = useTranslation("dashboard");
   const { policies, isLoading, toggleBinding } = useSeasonPolicyBindings(seasonId);
   const [pendingPolicyId, setPendingPolicyId] = useState<string | null>(null);
 
-  const cardClass = isDark
-    ? "rounded-xl border border-zinc-800 bg-[#0c0c0e]"
-    : "rounded-xl border border-zinc-200 bg-white";
-
-  const labelClass = isDark ? "text-zinc-400" : "text-zinc-500";
+  // Maps internal policy_type keys to translated display labels.
+  function getPolicyTypeLabel(type: string): string {
+    const key = `yearWheel.policy_type_${type}` as Parameters<typeof t>[0];
+    // Fall back to the raw type string for unknown/future types.
+    return t(key) ?? type;
+  }
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className={`h-6 w-6 animate-spin ${isDark ? "text-zinc-600" : "text-zinc-300"}`} />
+        <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
       </div>
     );
   }
 
   if (policies.length === 0) {
     return (
-      <div className={`${cardClass} p-12 text-center`}>
-        <ShieldOff
-          className={`mx-auto mb-3 h-8 w-8 ${isDark ? "text-zinc-700" : "text-zinc-300"}`}
-        />
-        <h3 className={`mb-2 text-sm font-bold ${isDark ? "text-white" : "text-zinc-900"}`}>
-          Ingen prosedyrer
-        </h3>
-        <p className={`text-xs ${labelClass}`}>
+      <div className="border-border bg-card rounded-xl border p-12 text-center">
+        <ShieldOff className="text-muted-foreground mx-auto mb-3 h-8 w-8" />
+        <h3 className="text-foreground mb-2 text-sm font-bold">{t("yearWheel.no_procedures")}</h3>
+        <p className="text-muted-foreground text-xs">
           Opprett prosedyrer under HMS-modulen for å kunne aktivere dem per sesong.
         </p>
       </div>
@@ -95,64 +86,57 @@ export function SeasonProceduresTab({ seasonId, isDark }: Props) {
   return (
     <div className="space-y-4">
       <div>
-        <h3 className={`text-sm font-bold ${isDark ? "text-white" : "text-zinc-900"}`}>
-          Prosedyrer & HMS
-        </h3>
-        <p className={`text-xs ${labelClass}`}>
+        <h3 className="text-foreground text-sm font-bold">{t("yearWheel.procedures_hms")}</h3>
+        <p className="text-muted-foreground text-xs">
           {activeCount} av {policies.length} prosedyrer er aktive for denne sesongen
         </p>
       </div>
 
       {grouped.map(({ type, items }) => (
-        <div key={type} className={cardClass}>
-          <div
-            className={`flex items-center gap-2 border-b px-4 py-2.5 ${isDark ? "border-zinc-800" : "border-zinc-100"}`}
-          >
-            {policyTypeIcon(type, isDark)}
-            <span className={`text-xs font-bold tracking-wider uppercase ${labelClass}`}>
-              {POLICY_TYPE_LABELS[type] ?? type}
+        <div key={type} className="border-border bg-card rounded-xl border">
+          {/* Group header with type label and item count */}
+          <div className="border-border flex items-center gap-2 border-b px-4 py-2.5">
+            {policyTypeIcon(type)}
+            <span className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
+              {getPolicyTypeLabel(type)}
             </span>
-            <span className={`text-[10px] ${labelClass}`}>
+            <span className="text-muted-foreground text-[10px]">
               ({items.filter((i) => i.is_bound_to_season).length}/{items.length})
             </span>
           </div>
-          <div className="divide-y divide-zinc-800/30">
+
+          <div className="divide-border/30 divide-y">
             {items.map((policy) => (
               <div
                 key={policy.policy_id}
-                className={`flex items-center gap-3 px-4 py-3 transition-colors ${
-                  isDark ? "hover:bg-zinc-800/30" : "hover:bg-zinc-50"
-                }`}
+                className="hover:bg-muted/50 flex items-center gap-3 px-4 py-3 transition-colors"
               >
                 <div className="min-w-0 flex-1">
                   <p
                     id={`policy-name-${policy.policy_id}`}
-                    className={`text-sm font-medium ${isDark ? "text-white" : "text-zinc-900"}`}
+                    className="text-foreground text-sm font-medium"
                   >
                     {policy.name}
                   </p>
                   {policy.description && (
-                    <p className={`mt-0.5 truncate text-xs ${labelClass}`}>{policy.description}</p>
+                    <p className="text-muted-foreground mt-0.5 truncate text-xs">
+                      {policy.description}
+                    </p>
                   )}
                   <div className="mt-1 flex items-center gap-2">
+                    {/* Enforcement status badge — enforced policies are highlighted as destructive */}
                     <span
                       className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${
                         policy.enforcement_status === "enforced"
-                          ? isDark
-                            ? "bg-red-500/10 text-red-400"
-                            : "bg-red-50 text-red-600"
-                          : isDark
-                            ? "bg-zinc-500/10 text-zinc-500"
-                            : "bg-zinc-100 text-zinc-400"
+                          ? "bg-destructive/10 text-destructive"
+                          : "bg-muted text-muted-foreground"
                       }`}
                     >
                       {policy.enforcement_status}
                     </span>
                     {!policy.is_active_global && (
-                      <span
-                        className={`text-[10px] ${isDark ? "text-amber-400" : "text-amber-600"}`}
-                      >
-                        (Globalt deaktivert)
+                      <span className="text-warning text-[10px]">
+                        {t("yearWheel.globally_disabled")}
                       </span>
                     )}
                   </div>
