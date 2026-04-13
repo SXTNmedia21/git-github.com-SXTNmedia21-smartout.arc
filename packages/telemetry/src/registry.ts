@@ -2029,6 +2029,18 @@ export interface ContractRetentionArchived extends BaseEvent {
   };
 }
 
+// ─── Pricing Terms Events ──────────────────────────
+export interface PricingTermsUpdated extends BaseEvent {
+  event: "pricing terms updated";
+  properties: {
+    entity: EntityRef;
+    data: {
+      action: "created" | "updated";
+      fields?: string[];
+    };
+  };
+}
+
 // ─── Journey: Signup + Onboarding ──────────────────
 export interface SignupCompleted extends BaseEvent {
   event: "signup completed";
@@ -3121,6 +3133,7 @@ export type SmartoutEvent =
   | ContractRegenerated
   | ContractRevisionCreated
   | ContractRetentionArchived
+  | PricingTermsUpdated
   | HandbookChapterSaved
   | CommunicationSent
   | CommunicationCancelled
@@ -3671,6 +3684,10 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "contracts",
   },
   "contract retention archived": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "pricing terms updated": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "contracts",
   },
