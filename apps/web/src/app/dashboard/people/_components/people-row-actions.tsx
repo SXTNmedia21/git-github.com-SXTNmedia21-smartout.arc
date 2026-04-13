@@ -12,6 +12,8 @@ import {
   XCircle,
   RefreshCw,
   FileSignature,
+  Smartphone,
+  Mail,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -42,6 +44,7 @@ type PeopleRowActionsProps = {
   onConfirmAction: (action: ConfirmAction) => void;
   onResendInvite: (invitationId: string, email: string) => void;
   onSendContract?: (profileId: string) => void;
+  onSendLoginCode?: (profileId: string, channel: "email" | "sms") => void;
 };
 
 const ROLE_HIERARCHY: Record<ProfileRole, ProfileRole[]> = {
@@ -62,6 +65,7 @@ export function PeopleRowActions({
   onConfirmAction,
   onResendInvite,
   onSendContract,
+  onSendLoginCode,
 }: PeopleRowActionsProps) {
   const isAdmin = currentUserRole === "owner" || currentUserRole === "admin";
   const isInvited = employee.status === "invited";
@@ -193,6 +197,26 @@ export function PeopleRowActions({
                   Send kontrakt
                 </DropdownMenuItem>
               </>
+            )}
+
+            {/* Send login code — passwordless login link to employee */}
+            {employee.profileId && onSendLoginCode && (
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <Send className="mr-2 h-4 w-4" />
+                  Send innloggingskode
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  <DropdownMenuItem onClick={() => onSendLoginCode(employee.profileId!, "sms")}>
+                    <Smartphone className="mr-2 h-4 w-4" />
+                    SMS
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onSendLoginCode(employee.profileId!, "email")}>
+                    <Mail className="mr-2 h-4 w-4" />
+                    E-post
+                  </DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
             )}
 
             <DropdownMenuSeparator />

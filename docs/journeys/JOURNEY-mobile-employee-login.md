@@ -1,7 +1,7 @@
 ---
 title: "User Journeys — Mobile Employee Login"
 status: done
-updated: 2026-04-06
+updated: 2026-04-13
 created: 2026-04-06
 module: mobile
 tags: [mobile, auth, login, otp, workspace, journey]
@@ -10,7 +10,7 @@ tags: [mobile, auth, login, otp, workspace, journey]
 # User Journeys — Mobile Employee Login
 
 > Complete auth flow on mobile: Welcome → Verify → Workspace Select → App.
-> Four entry paths converge into a single post-auth flow.
+> Three entry paths (invitation, search, login) plus passwordless OTP login.
 
 ---
 
@@ -19,7 +19,7 @@ tags: [mobile, auth, login, otp, workspace, journey]
 **Precondition:** Employee has an existing Smartout account with e-post and passord. App is installed.
 
 1. Employee opens app → AuthProvider checks session → No session → Redirects to `/(auth)/welcome`
-2. Employee sees Welcome screen with 4 options → Taps "Logg inn eller opprett konto" (orange CTA)
+2. Employee sees Welcome screen with 3 options → Taps "Logg inn eller opprett konto" (orange CTA)
 3. System navigates to `/(auth)/verify` with `flow=login` → Employee sees "Velkommen tilbake" heading, Google SSO button, e-post + passord form
 4. Employee enters e-post and passord → Taps "Logg inn" → System calls `supabase.auth.signInWithPassword()`
 5. Supabase validates credentials → Returns session with JWT → AuthProvider picks up session via `onAuthStateChange`
@@ -81,23 +81,49 @@ tags: [mobile, auth, login, otp, workspace, journey]
 
 ---
 
-## Journey: Employee — Workspace Code (Path 2: 6-tegns kode)
+## Journey: Employee — Passwordless OTP Login (Path 2: Send meg kode)
 
-**Precondition:** Employee received a 6-character join code from their leader.
+**Precondition:** Employee has an existing Smartout account. App is installed.
 
-1. Employee taps "Jeg har en kode" on Welcome screen → `CodeEntry` component renders
-2. Employee enters 6-character code → System auto-calls `lookup_workspace_by_code()` RPC on 6th character
-3. If found → Shows workspace name + logo + "Bli med" CTA
-4. Employee taps "Bli med" → System navigates to `/(auth)/verify` with `flow=code` and workspace context
-5. Employee verifies via SMS OTP or e-post magic link
-6. After auth → `handlePostAuth()` routes to workspace-select → Profile already exists (code = authorization) → Auto-redirect to app
+1. Employee navigates to login screen (same as Path 1 steps 1-3)
+2. Employee taps "Send meg kode" link below the password field
+3. Login screen switches to OTP mode with SMS/E-post tabs
+4. **SMS path:** Employee enters Norwegian mobile number → Taps "Send kode" → Receives 6-digit SMS → Enters code → Auto-verifies on 6th digit
+5. **E-post path:** Employee enters email → Taps "Send innloggingslenke" → Receives magic link → Taps link → Session created
+6. After auth → System navigates to workspace-select (same as Path 1 steps 6-9)
 
-**Postcondition:** Employee authenticated, workspace entered, on shift hub.
+**Postcondition:** Same as Path 1. Employee authenticated, on the correct workspace.
 
 **Error paths:**
 
-- Invalid code → "Ingen arbeidsplass funnet med denne koden." error
-- RPC error → Generic error, retry available
+- Invalid phone → "Skriv inn et gyldig norsk mobilnummer (8 siffer)"
+- SMS send failed → "Kunne ikke sende kode. Prøv igjen."
+- Wrong OTP → "Feil kode. Sjekk SMS-en og prøv igjen."
+- Invalid email → "Skriv inn en gyldig e-postadresse"
+- Magic link send failed → "Kunne ikke sende lenke. Prøv igjen."
+- 0 profiles → Redirected to pending screen
+- Employee taps "Tilbake" → Returns to password login mode
+
+---
+
+## Journey: Manager — Send innloggingskode (Dashboard)
+
+**Precondition:** Manager/admin is logged into the web dashboard.
+
+1. Manager navigates to People page → Finds the employee in the list
+2. Manager clicks the "..." menu on the employee row → Selects "Send innloggingskode"
+3. Submenu shows "SMS" and "E-post" options → Manager selects delivery channel
+4. System invokes `send-login-code` Edge Function → Generates Supabase magic link → Sends via SendGrid (email) or Twilio (SMS)
+5. Toast confirmation: "Innloggingskode sendt via SMS/e-post"
+6. Employee receives the link → Taps it → Authenticated and routed to workspace
+
+**Postcondition:** Employee receives a passwordless login link. Manager sees confirmation toast.
+
+**Error paths:**
+
+- Employee has no email/phone registered → Error toast
+- SendGrid/Twilio not configured → Silently skipped (dev env)
+- Permission denied → Error toast (only manager/admin/owner can send)
 
 ---
 
@@ -133,7 +159,7 @@ tags: [mobile, auth, login, otp, workspace, journey]
 
 ## Journey: Employee — SMS OTP Verification
 
-**Precondition:** Employee is on the verify screen with a non-login flow (invite/code/search).
+**Precondition:** Employee is on the verify screen (invite/search flow or login OTP mode).
 
 1. SMS tab is active by default → Employee enters Norwegian mobile number (8 digits)
 2. System normalizes to +47 format → Calls `supabase.auth.signInWithOtp({ phone })`
@@ -199,9 +225,9 @@ tags: [mobile, auth, login, otp, workspace, journey]
 **Precondition:** Employee is on login screen, does not have an account.
 
 1. Employee taps "Opprett konto" link → System navigates to Welcome screen
-2. Employee chooses one of the 4 paths (invite, code, search, or login)
-3. For invite/code/search: OTP flow creates the account automatically
-4. For login path: Employee would need to use Google SSO (which auto-creates) or be directed to web signup
+2. Employee chooses one of the 3 paths (invite, search, or login)
+3. For invite/search: OTP flow creates the account automatically
+4. For login path: Employee can use Google SSO (which auto-creates), "Send meg kode" (OTP), or be directed to web signup
 
 **Note:** Mobile does not have a standalone signup form — account creation is handled through the invitation/OTP flows or Google SSO. The "Opprett konto" link redirects to Welcome where the user can choose the appropriate onboarding path.
 
@@ -217,11 +243,11 @@ tags: [mobile, auth, login, otp, workspace, journey]
 
 ---
 
-## Known Bugs & Limitations (2026-04-07 audit)
+## Known Bugs & Limitations (2026-04-13 audit)
 
 | ID | Severity | Description | Status |
 |----|----------|-------------|--------|
-| B3 | CRITICAL | Code entry flow (Path 2) never creates profile or invitation — user stuck on pending | Pre-existing, needs ADR |
+| ~~B3~~ | ~~CRITICAL~~ | ~~Code entry flow (Path 2) never creates profile or invitation — user stuck on pending~~ | Resolved: workspace code flow removed, replaced by OTP login |
 | B6 | HIGH | Google OAuth callback not handled on native — `detectSessionInUrl: false` + no route for `smartout://auth/callback` | Pre-existing |
 | B7 | LOW | Pending screen Realtime subscription is dead — `profile` table not in `supabase_realtime` publication. 30s polling compensates. | Pre-existing |
 | B8 | MEDIUM | Pending screen has no rejection feedback — admin rejection leaves user stuck | Pre-existing |
