@@ -22,6 +22,7 @@ import {
 import * as Haptics from "expo-haptics";
 import { createStyles, useTheme, withOpacity } from "@/theme";
 import { supabase } from "@/lib/supabase";
+import { strings } from "@/constants/strings";
 import type { Database } from "@smartout/supabase/database.types";
 
 type Contract = Database["public"]["Tables"]["employment_contract"]["Row"];
@@ -29,9 +30,9 @@ type Contract = Database["public"]["Tables"]["employment_contract"]["Row"];
 type Tab = "kontrakt" | "rettigheter" | "forklart";
 
 const TABS: { key: Tab; label: string; disabled: boolean }[] = [
-  { key: "kontrakt", label: "Kontrakt", disabled: false },
-  { key: "rettigheter", label: "Rettigheter", disabled: false },
-  { key: "forklart", label: "Forklart", disabled: true },
+  { key: "kontrakt", label: strings.contract.tabKontrakt, disabled: false },
+  { key: "rettigheter", label: strings.contract.tabRettigheter, disabled: false },
+  { key: "forklart", label: strings.contract.tabForklart, disabled: true },
 ];
 
 function formatDate(iso: string): string {
@@ -44,14 +45,14 @@ function formatDate(iso: string): string {
 
 function statusLabel(status: Contract["status"]): string {
   const map: Record<Contract["status"], string> = {
-    draft: "Utkast",
-    sent: "Sendt",
-    viewed: "Sett",
-    signed: "Signert",
-    expired: "Utloept",
-    terminated: "Oppsagt",
-    pending_data: "Venter paa data",
-    declined: "Avslatt",
+    draft: strings.contract.statusDraft,
+    sent: strings.contract.statusSent,
+    viewed: strings.contract.statusViewed,
+    signed: strings.contract.statusSigned,
+    expired: strings.contract.statusExpired,
+    terminated: strings.contract.statusTerminated,
+    pending_data: strings.contract.statusPendingData,
+    declined: strings.contract.statusDeclined,
   };
   return map[status] ?? status;
 }
@@ -110,7 +111,7 @@ export default function ContractDetailScreen() {
           <ChevronLeft size={22} color={theme.colors.foreground} strokeWidth={1.6} />
         </Pressable>
         <Text style={styles.headerTitle} numberOfLines={1}>
-          {contract?.position_title ?? "Kontrakt"}
+          {contract?.position_title ?? strings.contract.headerFallback}
         </Text>
         <View style={styles.backButton} />
       </View>
@@ -156,13 +157,13 @@ export default function ContractDetailScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {loading && (
           <View style={styles.centered}>
-            <Text style={styles.mutedText}>Laster...</Text>
+            <Text style={styles.mutedText}>{strings.contract.loading}</Text>
           </View>
         )}
 
         {!loading && !contract && (
           <View style={styles.centered}>
-            <Text style={styles.mutedText}>Kontrakten ble ikke funnet.</Text>
+            <Text style={styles.mutedText}>{strings.contract.notFound}</Text>
           </View>
         )}
 
@@ -180,7 +181,7 @@ export default function ContractDetailScreen() {
 
             {["sent", "viewed"].includes(contract.status) && (
               <View style={styles.signingBanner}>
-                <Text style={styles.signingText}>Denne kontrakten venter på din signatur.</Text>
+                <Text style={styles.signingText}>{strings.contract.awaitingSignature}</Text>
                 {signingUrl && (
                   <Pressable
                     onPress={() => {
@@ -190,10 +191,10 @@ export default function ContractDetailScreen() {
                     }}
                     style={styles.signingButton}
                     accessibilityRole="button"
-                    accessibilityLabel="Signer kontrakt"
+                    accessibilityLabel={strings.contract.signContract}
                   >
                     <ExternalLink size={16} color="#ffffff" strokeWidth={1.8} />
-                    <Text style={styles.signingButtonText}>Signer kontrakt</Text>
+                    <Text style={styles.signingButtonText}>{strings.contract.signContract}</Text>
                   </Pressable>
                 )}
               </View>
@@ -201,9 +202,7 @@ export default function ContractDetailScreen() {
 
             {contract.status === "pending_data" && (
               <View style={styles.dataBanner}>
-                <Text style={styles.dataText}>
-                  Vi trenger noe informasjon fra deg før kontrakten kan sendes.
-                </Text>
+                <Text style={styles.dataText}>{strings.contract.pendingDataNotice}</Text>
                 <Pressable
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -211,56 +210,58 @@ export default function ContractDetailScreen() {
                   }}
                   style={styles.dataButton}
                   accessibilityRole="button"
-                  accessibilityLabel="Fyll ut informasjon"
+                  accessibilityLabel={strings.contract.fillInfoButton}
                 >
-                  <Text style={styles.dataButtonText}>Fyll ut informasjon</Text>
+                  <Text style={styles.dataButtonText}>{strings.contract.fillInfoButton}</Text>
                 </Pressable>
               </View>
             )}
 
             <InfoRow
               icon={<Briefcase size={16} color={theme.colors.mutedForeground} strokeWidth={1.5} />}
-              label="Stilling"
+              label={strings.contract.labelPosition}
               value={contract.position_title}
               styles={styles}
             />
             <InfoRow
               icon={<Briefcase size={16} color={theme.colors.mutedForeground} strokeWidth={1.5} />}
-              label="Kompensasjon"
+              label={strings.contract.labelCompensation}
               value={
                 contract.hourly_rate
-                  ? `${contract.hourly_rate} kr/t`
+                  ? `${contract.hourly_rate} ${strings.contract.hourlyRateSuffix}`
                   : contract.monthly_salary
-                    ? `${contract.monthly_salary} kr/mnd`
-                    : "Ikke satt"
+                    ? `${contract.monthly_salary} ${strings.contract.monthlySuffix}`
+                    : strings.contract.notSet
               }
               styles={styles}
             />
             <InfoRow
               icon={<Clock size={16} color={theme.colors.mutedForeground} strokeWidth={1.5} />}
-              label="Stillingsandel"
+              label={strings.contract.labelEmploymentShare}
               value={
-                contract.employment_percentage ? `${contract.employment_percentage}%` : "Ikke satt"
+                contract.employment_percentage
+                  ? `${contract.employment_percentage}%`
+                  : strings.contract.notSet
               }
               styles={styles}
             />
             <InfoRow
               icon={<Calendar size={16} color={theme.colors.mutedForeground} strokeWidth={1.5} />}
-              label="Startdato"
+              label={strings.contract.labelStartDate}
               value={formatDate(contract.start_date)}
               styles={styles}
             />
             {contract.end_date && (
               <InfoRow
                 icon={<Calendar size={16} color={theme.colors.mutedForeground} strokeWidth={1.5} />}
-                label="Sluttdato"
+                label={strings.contract.labelEndDate}
                 value={formatDate(contract.end_date)}
                 styles={styles}
               />
             )}
             <InfoRow
               icon={<Briefcase size={16} color={theme.colors.mutedForeground} strokeWidth={1.5} />}
-              label="Kategori"
+              label={strings.contract.labelCategory}
               value={contract.employment_category}
               styles={styles}
             />
@@ -276,7 +277,7 @@ export default function ContractDetailScreen() {
               strokeWidth={1.2}
             />
             <Text style={[styles.mutedText, { marginTop: 12 }]}>
-              Rettigheter og tariffinfo kommer snart.
+              {strings.contract.rightsComingSoon}
             </Text>
           </View>
         )}

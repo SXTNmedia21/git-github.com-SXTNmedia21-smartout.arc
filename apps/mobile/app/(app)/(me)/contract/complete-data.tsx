@@ -26,6 +26,8 @@ import { ChevronLeft, CheckCircle, Info } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import { createStyles, useTheme, withOpacity } from "@/theme";
 import { supabase } from "@/lib/supabase";
+import { emit } from "@smartout/telemetry";
+import { strings } from "@/constants/strings";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
 
 type FormValues = {
@@ -58,11 +60,11 @@ export default function CompleteDataScreen() {
 
   function validate(): string | null {
     const pnr = values.personal_number.trim();
-    if (pnr && pnr.length !== 11) return "Personnummer må være nøyaktig 11 siffer.";
+    if (pnr && pnr.length !== 11) return strings.contract.validationPersonalNumber;
     const pc = values.postal_code.trim();
-    if (pc && pc.length !== 4) return "Postnummer må være nøyaktig 4 siffer.";
+    if (pc && pc.length !== 4) return strings.contract.validationPostalCode;
     const hasAny = Object.values(values).some((v) => v.trim().length > 0);
-    if (!hasAny) return "Fyll inn minst ett felt.";
+    if (!hasAny) return strings.contract.validationAtLeastOne;
     return null;
   }
 
@@ -88,7 +90,7 @@ export default function CompleteDataScreen() {
         });
 
         if (identityError) {
-          setError(`Feil: ${identityError.message}`);
+          setError(`${strings.contract.errorPrefix}${identityError.message}`);
           return;
         }
       }
@@ -107,14 +109,29 @@ export default function CompleteDataScreen() {
         });
 
         if (addressError) {
-          setError(`Feil: ${addressError.message}`);
+          setError(`${strings.contract.errorPrefix}${addressError.message}`);
           return;
         }
       }
 
+      // Emit telemetry — track which field groups were submitted
+      const submittedGroups: string[] = [];
+      if (values.personal_number.trim()) submittedGroups.push("identity");
+      if (Object.keys(addressValues).length > 0) submittedGroups.push("address");
+
+      void emit({
+        event: "contract intake completed",
+        workspace_id: workspaceId,
+        actor_id: profileId,
+        properties: {
+          entity: { entity_type: "profile", entity_id: profileId },
+          data: { field_groups: submittedGroups },
+        },
+      });
+
       setSubmitted(true);
     } catch {
-      setError("Noe gikk galt. Prøv igjen.");
+      setError(strings.contract.genericError);
     } finally {
       setSubmitting(false);
     }
@@ -136,7 +153,7 @@ export default function CompleteDataScreen() {
           >
             <ChevronLeft size={22} color={theme.colors.foreground} strokeWidth={1.6} />
           </Pressable>
-          <Text style={styles.headerTitle}>Fyll ut informasjon</Text>
+          <Text style={styles.headerTitle}>{strings.contract.fillInfo}</Text>
           <View style={styles.backButton} />
         </View>
 
@@ -144,10 +161,8 @@ export default function CompleteDataScreen() {
           <View style={styles.successIcon}>
             <CheckCircle size={40} color="#22c55e" strokeWidth={1.5} />
           </View>
-          <Text style={styles.successTitle}>Takk!</Text>
-          <Text style={styles.successBody}>
-            Informasjonen er lagret. Kontrakten din vil bli oppdatert snart.
-          </Text>
+          <Text style={styles.successTitle}>{strings.contract.successTitle}</Text>
+          <Text style={styles.successBody}>{strings.contract.successBody}</Text>
           <Pressable
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -156,7 +171,7 @@ export default function CompleteDataScreen() {
             style={styles.submitButton}
             accessibilityRole="button"
           >
-            <Text style={styles.submitButtonText}>Tilbake</Text>
+            <Text style={styles.submitButtonText}>{strings.contract.back}</Text>
           </Pressable>
         </View>
       </SafeAreaView>

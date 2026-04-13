@@ -10,7 +10,7 @@
  * ADR-0076: composition as cascade derivation.
  */
 
-import { useState, useEffect, useContext, useCallback } from "react";
+import { useState, useEffect, useContext, useCallback, useMemo } from "react";
 import { CheckCircle, Loader2, Lock, AlertTriangle, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "@smartout/i18n";
@@ -655,85 +655,88 @@ function SendStep({ state, updateState }: WizardStepProps<CompositionState>) {
 }
 
 // ---------------------------------------------------------------------------
-// Wizard Definition
-// ---------------------------------------------------------------------------
-
-const compositionWizard: WizardDefinition<CompositionState> = {
-  id: "contract-composition",
-  theme: "warm",
-  metadata: {
-    titleKey: "contracts.composition.title",
-    descriptionKey: "contracts.composition.description",
-    i18nNamespace: "contracts",
-  },
-  brandPanel: {
-    messages: {
-      ansatt: {
-        heading: "Hvem skal f\u00E5 kontrakt?",
-        sub: "Velg den ansatte som skal motta avtalen.",
-      },
-      stilling: {
-        heading: "Stilling og form",
-        sub: "Stillingstittel og ansettelsesform brukes i kontrakten og l\u00F8nnsberegningen.",
-      },
-      gjennomgang: {
-        heading: "Cascade henter data",
-        sub: "Tariff, regler og klausuler hentes automatisk fra rammeverket.",
-      },
-      bekreft: {
-        heading: "Kontroller forslaget",
-        sub: "Bekreft verdiene f\u00F8r du g\u00E5r videre til sending.",
-      },
-      send: {
-        heading: "Alt klart?",
-        sub: "Send kontrakten til den ansatte for signering.",
-      },
-    },
-  },
-  steps: [
-    {
-      id: "ansatt",
-      labelKey: "contracts.composition.steps.ansatt",
-      component: SelectEmployeeStep,
-    },
-    {
-      id: "stilling",
-      labelKey: "contracts.composition.steps.stilling",
-      component: PositionStep,
-    },
-    {
-      id: "gjennomgang",
-      labelKey: "contracts.composition.steps.gjennomgang",
-      component: GjennomgangStep,
-    },
-    {
-      id: "bekreft",
-      labelKey: "contracts.composition.steps.bekreft",
-      component: BekreftStep,
-    },
-    {
-      id: "send",
-      labelKey: "contracts.composition.steps.send",
-      component: SendStep,
-    },
-  ],
-  initialState: {
-    profileId: "",
-    positionTitle: "",
-    employmentCategory: "fast",
-    employmentPercentage: 100,
-    proposal: null,
-    acknowledgedBlocks: new Set<string>(),
-    overrides: {},
-    isLoading: false,
-    isSending: false,
-  },
-};
-
-// ---------------------------------------------------------------------------
 // Exported Component
 // ---------------------------------------------------------------------------
 
 export function CompositionWizard() {
-  return <AnimatedWizardShell definition={compositionWizard} />;
+  const { t } = useTranslation("contracts");
+
+  // Build wizard definition inside the component so brandPanel messages
+  // are translated at render time via the active locale.
+  const definition = useMemo<WizardDefinition<CompositionState>>(
+    () => ({
+      id: "contract-composition",
+      theme: "warm",
+      metadata: {
+        titleKey: "contracts.composition.title",
+        descriptionKey: "contracts.composition.description",
+        i18nNamespace: "contracts",
+      },
+      brandPanel: {
+        messages: {
+          ansatt: {
+            heading: t("composition.brand_ansatt_heading"),
+            sub: t("composition.brand_ansatt_sub"),
+          },
+          stilling: {
+            heading: t("composition.brand_stilling_heading"),
+            sub: t("composition.brand_stilling_sub"),
+          },
+          gjennomgang: {
+            heading: t("composition.brand_gjennomgang_heading"),
+            sub: t("composition.brand_gjennomgang_sub"),
+          },
+          bekreft: {
+            heading: t("composition.brand_bekreft_heading"),
+            sub: t("composition.brand_bekreft_sub"),
+          },
+          send: {
+            heading: t("composition.brand_send_heading"),
+            sub: t("composition.brand_send_sub"),
+          },
+        },
+      },
+      steps: [
+        {
+          id: "ansatt",
+          labelKey: "contracts.composition.steps.ansatt",
+          component: SelectEmployeeStep,
+        },
+        {
+          id: "stilling",
+          labelKey: "contracts.composition.steps.stilling",
+          component: PositionStep,
+        },
+        {
+          id: "gjennomgang",
+          labelKey: "contracts.composition.steps.gjennomgang",
+          component: GjennomgangStep,
+        },
+        {
+          id: "bekreft",
+          labelKey: "contracts.composition.steps.bekreft",
+          component: BekreftStep,
+        },
+        {
+          id: "send",
+          labelKey: "contracts.composition.steps.send",
+          component: SendStep,
+        },
+      ],
+      initialState: {
+        profileId: "",
+        positionTitle: "",
+        employmentCategory: "fast",
+        employmentPercentage: 100,
+        proposal: null,
+        acknowledgedBlocks: new Set<string>(),
+        overrides: {},
+        isLoading: false,
+        isSending: false,
+      },
+    }),
+    [t],
+  );
+
+  return <AnimatedWizardShell definition={definition} />;
 }

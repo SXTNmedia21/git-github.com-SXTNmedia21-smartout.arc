@@ -12,6 +12,7 @@
 import { useContext, useEffect, useState, useMemo } from "react";
 import { FileText, Briefcase, Clock, Calendar } from "lucide-react";
 import { createClient } from "@smartout/supabase/client";
+import { useTranslation } from "@smartout/i18n";
 import type { Database } from "@smartout/supabase/database.types";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 
@@ -26,29 +27,8 @@ function formatDate(iso: string): string {
   });
 }
 
-/** Human-readable status label */
-function statusLabel(status: Contract["status"]): string {
-  const map: Record<Contract["status"], string> = {
-    draft: "Utkast",
-    sent: "Sendt",
-    viewed: "Sett",
-    signed: "Signert",
-    expired: "Utloept",
-    terminated: "Oppsagt",
-    pending_data: "Venter paa data",
-    declined: "Avslatt",
-  };
-  return map[status] ?? status;
-}
-
-/** Compensation display — hourly rate or monthly salary */
-function compensationText(contract: Contract): string {
-  if (contract.hourly_rate) return `${contract.hourly_rate} kr/t`;
-  if (contract.monthly_salary) return `${contract.monthly_salary} kr/mnd`;
-  return "Ikke satt";
-}
-
 export default function MyContractPage() {
+  const { t } = useTranslation("contracts");
   const { workspaceData, profileId } = useContext(DashboardContext);
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [signingUrl, setSigningUrl] = useState<string | null>(null);
@@ -115,17 +95,17 @@ export default function MyContractPage() {
     return (
       <div className="mx-auto max-w-xl py-12 text-center">
         <FileText className="text-muted-foreground mx-auto mb-4 h-12 w-12" />
-        <h2 className="text-foreground text-lg font-semibold">Ingen kontrakter</h2>
-        <p className="text-muted-foreground text-sm">
-          Du har ingen kontrakter knyttet til denne arbeidsplassen ennaa.
-        </p>
+        <h2 className="text-foreground text-lg font-semibold">
+          {t("my_contract.no_contracts_title")}
+        </h2>
+        <p className="text-muted-foreground text-sm">{t("my_contract.no_contracts_description")}</p>
       </div>
     );
   }
 
   return (
     <div className="mx-auto max-w-xl space-y-6">
-      <h1 className="text-foreground text-xl font-bold tracking-tight">Min kontrakt</h1>
+      <h1 className="text-foreground text-xl font-bold tracking-tight">{t("my_contract.title")}</h1>
 
       {/* Active contract hero card */}
       {activeContract && (
@@ -139,7 +119,7 @@ export default function MyContractPage() {
                 {activeContract.position_title}
               </h2>
               <span className="bg-primary/10 text-primary mt-1 inline-block rounded-full px-2.5 py-0.5 text-xs font-medium">
-                {statusLabel(activeContract.status)}
+                {t(`status.${activeContract.status}`)}
               </span>
             </div>
           </div>
@@ -148,7 +128,7 @@ export default function MyContractPage() {
           {["sent", "viewed"].includes(activeContract.status) && (
             <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950">
               <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-                Denne kontrakten venter paa din signatur.
+                {t("my_contract.awaiting_signature")}
               </p>
               {signingUrl && (
                 <a
@@ -157,7 +137,7 @@ export default function MyContractPage() {
                   rel="noopener noreferrer"
                   className="mt-2 inline-flex items-center gap-2 rounded-md bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700"
                 >
-                  Signer kontrakt
+                  {t("my_contract.sign_contract")}
                 </a>
               )}
             </div>
@@ -166,10 +146,10 @@ export default function MyContractPage() {
           {activeContract.status === "pending_data" && (
             <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950">
               <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                Vi trenger noe informasjon fra deg foer kontrakten kan sendes.
+                {t("my_contract.pending_data_notice")}
               </p>
               <p className="mt-1 text-xs text-blue-600 dark:text-blue-300">
-                Du vil bli kontaktet med instruksjoner.
+                {t("my_contract.pending_data_sub")}
               </p>
             </div>
           )}
@@ -178,9 +158,15 @@ export default function MyContractPage() {
             <div className="flex items-center gap-2">
               <Briefcase className="text-muted-foreground h-4 w-4" />
               <div>
-                <p className="text-muted-foreground text-xs">Kompensasjon</p>
+                <p className="text-muted-foreground text-xs">
+                  {t("my_contract.compensation_label")}
+                </p>
                 <p className="text-foreground text-sm font-medium">
-                  {compensationText(activeContract)}
+                  {activeContract.hourly_rate
+                    ? `${activeContract.hourly_rate} ${t("my_contract.hourly_rate_suffix")}`
+                    : activeContract.monthly_salary
+                      ? `${activeContract.monthly_salary} ${t("my_contract.monthly_suffix")}`
+                      : t("detail_page.not_set")}
                 </p>
               </div>
             </div>
@@ -188,11 +174,13 @@ export default function MyContractPage() {
             <div className="flex items-center gap-2">
               <Clock className="text-muted-foreground h-4 w-4" />
               <div>
-                <p className="text-muted-foreground text-xs">Stillingsandel</p>
+                <p className="text-muted-foreground text-xs">
+                  {t("my_contract.employment_percentage_label")}
+                </p>
                 <p className="text-foreground text-sm font-medium">
                   {activeContract.employment_percentage
                     ? `${activeContract.employment_percentage}%`
-                    : "Ikke satt"}
+                    : t("detail_page.not_set")}
                 </p>
               </div>
             </div>
@@ -200,7 +188,7 @@ export default function MyContractPage() {
             <div className="col-span-2 flex items-center gap-2">
               <Calendar className="text-muted-foreground h-4 w-4" />
               <div>
-                <p className="text-muted-foreground text-xs">Startdato</p>
+                <p className="text-muted-foreground text-xs">{t("my_contract.start_date_label")}</p>
                 <p className="text-foreground text-sm font-medium">
                   {formatDate(activeContract.start_date)}
                 </p>
@@ -213,7 +201,9 @@ export default function MyContractPage() {
       {/* Contract history */}
       {history.length > 0 && (
         <div className="space-y-3">
-          <h3 className="text-muted-foreground text-sm font-medium">Historikk</h3>
+          <h3 className="text-muted-foreground text-sm font-medium">
+            {t("my_contract.history_label")}
+          </h3>
           {history.map((contract) => (
             <div
               key={contract.contract_id}
@@ -222,10 +212,16 @@ export default function MyContractPage() {
               <div>
                 <p className="text-foreground text-sm font-medium">{contract.position_title}</p>
                 <p className="text-muted-foreground text-xs">
-                  {formatDate(contract.start_date)} — {statusLabel(contract.status)}
+                  {formatDate(contract.start_date)} — {t(`status.${contract.status}`)}
                 </p>
               </div>
-              <p className="text-muted-foreground text-sm">{compensationText(contract)}</p>
+              <p className="text-muted-foreground text-sm">
+                {contract.hourly_rate
+                  ? `${contract.hourly_rate} ${t("my_contract.hourly_rate_suffix")}`
+                  : contract.monthly_salary
+                    ? `${contract.monthly_salary} ${t("my_contract.monthly_suffix")}`
+                    : t("detail_page.not_set")}
+              </p>
             </div>
           ))}
         </div>
