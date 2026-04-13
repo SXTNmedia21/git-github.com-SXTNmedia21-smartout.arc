@@ -129,7 +129,7 @@ export async function contractRoutes(app: FastifyInstance) {
     const { data: contract, error } = await supabase
       .from("contract")
       .select(
-        "*, template:template_id(content_html, placeholders, header_html, footer_html, content_css, accent_color)",
+        "*, template:template_id(content_html, placeholders, header_html, footer_html, content_css, accent_color, attachments)",
       )
       .eq("contract_id", id)
       .single();
@@ -160,6 +160,14 @@ export async function contractRoutes(app: FastifyInstance) {
           source: string;
           default_value?: string;
           required: boolean;
+        }> | null;
+        attachments: Array<{
+          id: string;
+          file_name: string;
+          file_path: string;
+          file_size: number;
+          mime_type: string;
+          uploaded_at: string;
         }> | null;
       } | null;
 
@@ -248,6 +256,62 @@ export async function contractRoutes(app: FastifyInstance) {
         html: fullHtml,
         name: contract.title ?? "Smartout Contract",
       });
+
+      // Attach template attachments (PDFs from Supabase Storage) as additional documents
+      const templateAttachments = template?.attachments ?? [];
+      if (templateAttachments.length > 0) {
+        const attachmentDocs: Array<{ name: string; file: string }> = [];
+
+        for (const att of templateAttachments) {
+          // Generate a signed URL for the storage file so DocuSeal can download it
+          const { data: signedUrl } = await supabase.storage
+            .from("contract-attachments")
+            .createSignedUrl(att.file_path, 300); // 5 min expiry — enough for DocuSeal to fetch
+
+          if (signedUrl?.signedUrl) {
+            attachmentDocs.push({
+              name: att.file_name,
+              file: signedUrl.signedUrl,
+            });
+          }
+        }
+
+        if (attachmentDocs.length > 0) {
+          await getDocuseal().updateTemplateDocuments(dsTemplate.id, {
+            documents: attachmentDocs,
+          });
+        }
+      }
+
+      // Also attach per-contract attachments (uploaded specifically for this contract)
+      const { data: contractAttachments } = await supabase
+        .from("contract_attachment")
+        .select("filename, storage_path, mime_type")
+        .eq("contract_id", id)
+        .order("display_order");
+
+      if (contractAttachments && contractAttachments.length > 0) {
+        const perContractDocs: Array<{ name: string; file: string }> = [];
+
+        for (const att of contractAttachments) {
+          const { data: signedUrl } = await supabase.storage
+            .from("contract-attachments")
+            .createSignedUrl(att.storage_path, 300);
+
+          if (signedUrl?.signedUrl) {
+            perContractDocs.push({
+              name: att.filename,
+              file: signedUrl.signedUrl,
+            });
+          }
+        }
+
+        if (perContractDocs.length > 0) {
+          await getDocuseal().updateTemplateDocuments(dsTemplate.id, {
+            documents: perContractDocs,
+          });
+        }
+      }
 
       // Fallback to config values if sender/recipient not set on contract
       const senderEmail = contract.sender_email || config.SMARTOUT_CONTACT_EMAIL;
