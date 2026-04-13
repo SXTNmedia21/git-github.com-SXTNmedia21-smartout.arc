@@ -393,7 +393,7 @@ export default function YearWheelPage() {
                   title={
                     !isReady ? t("yearWheel.activate_tooltip") : t("yearWheel.activate_season")
                   }
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white shadow-sm transition-all hover:bg-emerald-500 active:scale-95 disabled:pointer-events-none disabled:opacity-50"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold shadow-sm transition-all active:scale-95 disabled:pointer-events-none disabled:opacity-50"
                 >
                   {activateSeason.isPending ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -571,7 +571,7 @@ export default function YearWheelPage() {
               onClick={() => {
                 void handleCreateFromTimeline();
               }}
-              className="rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-500"
+              className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-md px-3 py-2 text-sm font-semibold"
             >
               {editingEventId ? t("yearWheel.save") : t("yearWheel.create")}
             </button>

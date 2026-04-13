@@ -98,10 +98,10 @@ export function DayFactorsTab({ seasonBudgetId, isReadOnly = false }: Props) {
               <div className="flex-1">
                 <div className="bg-muted h-8 rounded-lg">
                   <div
-                    className="flex h-full items-center rounded-lg bg-blue-600/20 px-3 transition-all"
+                    className="bg-chart-1/20 flex h-full items-center rounded-lg px-3 transition-all"
                     style={{ width: `${barWidth}%` }}
                   >
-                    <span className="text-xs font-bold text-blue-400">{f.factor.toFixed(1)}x</span>
+                    <span className="text-chart-1 text-xs font-bold">{f.factor.toFixed(1)}x</span>
                   </div>
                 </div>
               </div>

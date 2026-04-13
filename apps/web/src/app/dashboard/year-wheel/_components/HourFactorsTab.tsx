@@ -158,8 +158,8 @@ export function HourFactorsTab({ seasonBudgetId, isReadOnly = false }: Props) {
         {factors.map((f) => {
           const barWidth = (f.factor / maxFactor) * 100;
           const isPeak = f.factor >= maxFactor * 0.8;
-          const barColor = isPeak ? "bg-emerald-600/30" : "bg-blue-600/20";
-          const textColor = isPeak ? "text-emerald-400" : "text-blue-400";
+          const barColor = isPeak ? "bg-chart-2/30" : "bg-chart-1/20";
+          const textColor = isPeak ? "text-chart-2" : "text-chart-1";
 
           return (
             <div key={f.hour} className="flex items-center gap-3">
