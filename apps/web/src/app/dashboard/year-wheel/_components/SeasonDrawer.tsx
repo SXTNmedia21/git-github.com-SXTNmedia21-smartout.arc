@@ -140,7 +140,6 @@ export function SeasonDrawer({ season, open, onOpenChange, isDark }: SeasonDrawe
                   seasonBudgetId={budget.season_budget_id}
                   seasonStartDate={season.start_date}
                   seasonEndDate={season.end_date}
-                  isDark={isDark}
                 />
               ) : (
                 <p
@@ -149,12 +148,8 @@ export function SeasonDrawer({ season, open, onOpenChange, isDark }: SeasonDrawe
                   {t("yearWheel.empty_budget")}
                 </p>
               ))}
-            {activeTab === "goals" && (
-              <SeasonGoalsTab seasonId={season.season_id} isDark={isDark} />
-            )}
-            {activeTab === "procedures" && (
-              <SeasonProceduresTab seasonId={season.season_id} isDark={isDark} />
-            )}
+            {activeTab === "goals" && <SeasonGoalsTab seasonId={season.season_id} />}
+            {activeTab === "procedures" && <SeasonProceduresTab seasonId={season.season_id} />}
           </div>
         </SheetContent>
       </Sheet>
