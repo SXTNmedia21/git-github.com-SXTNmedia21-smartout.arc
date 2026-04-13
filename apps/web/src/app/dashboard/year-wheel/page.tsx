@@ -268,7 +268,7 @@ export default function YearWheelPage() {
     <div className="z-10 mx-auto w-full max-w-7xl flex-1 overflow-x-hidden overflow-y-auto px-6 py-6 md:px-10 lg:px-12">
       {/* Year navigation */}
       <div className="mb-6">
-        <YearNavigation currentYear={currentYear} onYearChange={handleYearChange} isDark={isDark} />
+        <YearNavigation currentYear={currentYear} onYearChange={handleYearChange} />
       </div>
 
       {/* Date-first controls (MVP): date picker + June 1 quick jump */}
@@ -363,7 +363,6 @@ export default function YearWheelPage() {
             setCreateEndDate("");
             setEditingEventId(null);
           }}
-          isDark={isDark}
           onSeasonEdgeCommit={handleSeasonEdgeCommit}
         />
       </div>
@@ -437,7 +436,6 @@ export default function YearWheelPage() {
           )}
 
           <SeasonCreateSheet
-            isDark={isDark}
             onSeasonCreated={(seasonId) => {
               setSelectedSeasonId(seasonId);
               setDrawerOpen(true);
@@ -532,7 +530,6 @@ export default function YearWheelPage() {
         season={selectedSeason ?? null}
         open={drawerOpen}
         onOpenChange={setDrawerOpen}
-        isDark={isDark}
       />
 
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
