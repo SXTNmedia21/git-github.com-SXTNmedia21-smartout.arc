@@ -60,6 +60,7 @@ import { useShifts, useCreateShift, useUpdateShift, useDeleteShift } from "../_h
 import { useWeekRange } from "../_hooks/use-week-range";
 import { useEmployees, type ScheduleEmployee } from "../_hooks/use-employees";
 import { useShiftRuleCheck } from "../_hooks/use-shift-rule-check";
+import { useShiftTypeConfigs } from "../_hooks/use-shift-type-configs";
 import { useAuditLog, type AuditLogEntry } from "../_hooks/use-audit-log";
 import { AVAILABLE_ZONES } from "./schedule-data";
 import type { DayCategory, ShiftStatus, Shift } from "./schedule-types";
@@ -423,6 +424,7 @@ function ShiftHistoryTimeline({
 type ShiftFormState = {
   employeeId: string;
   role: string;
+  shiftTypeId: string;
   team: string;
   startTime: string;
   endTime: string;
@@ -457,10 +459,12 @@ export function ShiftModal() {
     [auditLogQuery.data],
   );
 
-  const availableRoles = useMemo(
-    () => [...new Set(employees.map((e) => e.jobTitle || e.role).filter((v): v is string => !!v))],
-    [employees],
+  const shiftTypeConfigsQuery = useShiftTypeConfigs();
+  const shiftTypeConfigs = useMemo(
+    () => shiftTypeConfigsQuery.data ?? [],
+    [shiftTypeConfigsQuery.data],
   );
+
   const availableTeams = useMemo(
     () => [...new Set(employees.map((e) => e.team).filter((v): v is string => !!v))],
     [employees],
@@ -473,6 +477,7 @@ export function ShiftModal() {
   const [form, setForm] = useState<ShiftFormState>({
     employeeId: "",
     role: "",
+    shiftTypeId: "",
     team: "",
     startTime: "08:00",
     endTime: "16:00",
@@ -492,6 +497,7 @@ export function ShiftModal() {
       setForm({
         employeeId: existingShift.employeeId ?? "",
         role: existingShift.role,
+        shiftTypeId: existingShift.shiftTypeId ?? "",
         team: emp?.team ?? "",
         startTime: existingShift.startTime,
         endTime: existingShift.endTime,
@@ -510,6 +516,7 @@ export function ShiftModal() {
       setForm({
         employeeId: createShiftContext.employeeId ?? "",
         role: (employee?.jobTitle || employee?.role) ?? "",
+        shiftTypeId: "",
         team: employee?.team ?? "",
         startTime: "08:00",
         endTime: "16:00",
@@ -562,13 +569,13 @@ export function ShiftModal() {
 
   const handleEmployeeChange = useCallback(
     (employeeId: string) => {
-      // Treat the magic "none" string as clearing the employee selection (open shift)
       const targetId = employeeId === "none" ? "" : employeeId;
       const employee = employees.find((e) => e.id === targetId);
       setForm((prev) => ({
         ...prev,
         employeeId: targetId,
-        role: (employee?.jobTitle || employee?.role) ?? prev.role,
+        // Only override role from employee if no shift type is selected
+        role: prev.shiftTypeId ? prev.role : ((employee?.jobTitle || employee?.role) ?? prev.role),
         team: employee?.team ?? prev.team,
       }));
     },
@@ -612,6 +619,7 @@ export function ShiftModal() {
           patch: {
             employeeId: form.employeeId || null,
             role: form.role,
+            shiftTypeId: form.shiftTypeId || undefined,
             startTime: form.startTime,
             endTime: form.endTime,
             workHours: hours,
@@ -624,11 +632,14 @@ export function ShiftModal() {
           },
         });
       } else if (dateId) {
+        const selectedConfig = shiftTypeConfigs.find((c) => c.shiftTypeId === form.shiftTypeId);
         createShiftMutation.mutate({
           id: crypto.randomUUID(),
           employeeId: form.employeeId || null,
           dateId,
           role: form.role,
+          shiftTypeId: form.shiftTypeId || undefined,
+          departmentId: selectedConfig?.departmentId ?? undefined,
           startTime: form.startTime,
           endTime: form.endTime,
           workHours: hours,
@@ -648,6 +659,7 @@ export function ShiftModal() {
       isEditMode,
       existingShift,
       dateId,
+      shiftTypeConfigs,
       createShiftMutation,
       updateShiftMutation,
       handleClose,
@@ -1028,22 +1040,59 @@ export function ShiftModal() {
                 <div className="grid grid-cols-2 gap-5">
                   <div className="space-y-2">
                     <Label
-                      htmlFor="role"
+                      htmlFor="shiftType"
                       className="text-muted-foreground text-[11px] font-semibold"
                     >
-                      Rolle
+                      Vakttype
                     </Label>
-                    <Select value={form.role} onValueChange={(v) => updateField("role", v)}>
+                    <Select
+                      value={form.shiftTypeId || "none"}
+                      onValueChange={(v) => {
+                        const typeId = v === "none" ? "" : v;
+                        const config = shiftTypeConfigs.find((c) => c.shiftTypeId === typeId);
+                        if (config) {
+                          setForm((prev) => ({
+                            ...prev,
+                            shiftTypeId: typeId,
+                            role: config.shiftTypeName,
+                            startTime: config.startTime,
+                            endTime: config.endTime,
+                            breaks: config.breakMinutes,
+                            dayCategory: inferDayCategory(config.startTime),
+                          }));
+                        } else {
+                          updateField("shiftTypeId", typeId);
+                        }
+                      }}
+                    >
                       <SelectTrigger
-                        id="role"
+                        id="shiftType"
                         className="bg-card/40 border-border/60 h-10 rounded-xl font-medium shadow-sm backdrop-blur-sm transition-all focus:ring-2 focus:ring-emerald-500/20"
                       >
-                        <SelectValue placeholder="Velg rolle" />
+                        <SelectValue placeholder="Velg vakttype" />
                       </SelectTrigger>
                       <SelectContent className="rounded-xl">
-                        {availableRoles.map((r) => (
-                          <SelectItem key={r} value={r} className="rounded-lg text-sm">
-                            {r}
+                        <SelectItem value="none" className="rounded-lg text-sm">
+                          Ingen (manuell)
+                        </SelectItem>
+                        {shiftTypeConfigs.map((config) => (
+                          <SelectItem
+                            key={config.configId}
+                            value={config.shiftTypeId}
+                            className="rounded-lg text-sm"
+                          >
+                            <span className="flex items-center gap-2">
+                              {config.shiftTypeColor && (
+                                <span
+                                  className="inline-block h-2.5 w-2.5 rounded-full"
+                                  style={{ backgroundColor: config.shiftTypeColor }}
+                                />
+                              )}
+                              {config.label}
+                              <span className="text-muted-foreground text-xs">
+                                {config.startTime}–{config.endTime}
+                              </span>
+                            </span>
                           </SelectItem>
                         ))}
                       </SelectContent>

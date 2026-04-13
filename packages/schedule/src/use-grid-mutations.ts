@@ -422,6 +422,74 @@ type RemoveGridShiftParams = {
   actorId: string;
 };
 
+// ══════════════════════════════════════════════════════════════
+// Mutation: Reassign a shift's type (drag from "Ikke tildelt" to a column)
+// ══════════════════════════════════════════════════════════════
+
+type ReassignShiftTypeParams = {
+  shiftId: string;
+  shiftTypeId: string;
+  departmentId: string;
+  role: string;
+  startTime: string;
+  endTime: string;
+  breakMinutes: number;
+  workspaceId: string;
+  weekStart: string;
+  actorId: string;
+};
+
+/**
+ * Updates a shift's shift_type_id, role, and default times when dragged
+ * from the "Ikke tildelt" column to a specific shift type column.
+ */
+export function useReassignShiftType() {
+  const queryClient = useQueryClient();
+  const supabase = createClient();
+
+  return useMutation({
+    mutationFn: async (params: ReassignShiftTypeParams) => {
+      const { error } = await supabase
+        .from("schedule_shift")
+        .update({
+          shift_type_id: params.shiftTypeId,
+          department_id: params.departmentId,
+          role: params.role,
+          start_time: params.startTime,
+          end_time: params.endTime,
+          break_minutes: params.breakMinutes,
+        })
+        .eq("schedule_shift_id", params.shiftId);
+
+      if (error) throw error;
+    },
+
+    onSuccess: (_data, params) => {
+      void emit({
+        event: "shift reassigned",
+        workspace_id: params.workspaceId,
+        actor_id: params.actorId,
+        properties: {
+          entity: { entity_type: "shift", entity_id: params.shiftId },
+          data: {
+            shift_type_id: params.shiftTypeId,
+            role: params.role,
+          },
+        },
+      });
+
+      void queryClient.invalidateQueries({
+        predicate: (query) => {
+          const key = query.queryKey as string[];
+          return (
+            key[0] === "schedule" && key[1] === "grid-week-shifts" && key[2] === params.workspaceId
+          );
+        },
+      });
+    },
+  });
+}
+
 /**
  * Deletes a schedule_shift row. Used when the user removes an employee from a slot.
  */

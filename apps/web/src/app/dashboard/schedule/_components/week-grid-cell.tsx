@@ -5,10 +5,15 @@
  * Renders assigned employees, ghost proposal tags, empty slot placeholders
  * with inline employee picker, and optional task tags for a given
  * (date x config) intersection.
+ *
+ * Cells in shift-type columns are droppable targets for DnD from the
+ * "Ikke tildelt" column. Unassigned cells make their tags draggable.
  */
 
 import { useState } from "react";
+import { useDroppable } from "@dnd-kit/core";
 import type { GridCell, GridColumn, MalEmployeeAssignment, MalTask } from "@smartout/schedule";
+import { UNASSIGNED_CONFIG_ID } from "@smartout/schedule";
 import type { ShiftProposalCreate } from "./schedule-types";
 import type { ScheduleEmployee } from "../_hooks/use-employees";
 import { MalEmployeeTag } from "./shift-employee-tag";
@@ -41,21 +46,32 @@ export function MalShiftCell({
   onApproveProposal,
   onRejectProposal,
 }: MalShiftCellProps) {
-  // Track which empty slot (by index) has its picker open
   const [openPickerIndex, setOpenPickerIndex] = useState<number | null>(null);
 
-  // Adjust empty slots: subtract ghost proposals that will become real shifts
+  const isUnassignedColumn = column.configId === UNASSIGNED_CONFIG_ID;
+  const isShiftTypeColumn = !isUnassignedColumn;
+
+  // Shift-type cells are droppable targets for DnD from the unassigned column
+  const { setNodeRef, isOver } = useDroppable({
+    id: `drop-${cell.dateId}-${column.configId}`,
+    data: { column, dateId: cell.dateId },
+    disabled: isUnassignedColumn,
+  });
+
   const ghostCount = ghostProposals?.length ?? 0;
   const adjustedEmptySlots = Math.max(0, cell.emptySlots - ghostCount);
 
   return (
-    <div className="group border-border hover:bg-muted/50 flex min-h-[44px] cursor-pointer flex-wrap items-start gap-[3px] border-r border-b p-[5px] transition-[background] duration-[250ms] ease-[cubic-bezier(0.25,0.1,0.25,1)]">
-      {/* 1. Assigned employees — real shifts */}
+    <div
+      ref={isShiftTypeColumn ? setNodeRef : undefined}
+      className={`group border-border hover:bg-muted/50 flex min-h-[44px] cursor-pointer flex-wrap items-start gap-[3px] border-r border-b p-[5px] transition-[background] duration-[250ms] ease-[cubic-bezier(0.25,0.1,0.25,1)] ${isOver ? "bg-orange-500/10 ring-2 ring-orange-500/30 ring-inset" : ""} ${isUnassignedColumn ? "bg-muted/20 border-dashed" : ""}`}
+    >
       {cell.assignments.map((assignment) => (
         <MalEmployeeTag
           key={assignment.shiftId}
           assignment={assignment}
           onClick={() => onEmployeeClick?.(assignment)}
+          draggable={isUnassignedColumn}
         />
       ))}
 

@@ -25,6 +25,14 @@ export type MalEmployeeAssignment = {
   status: "created" | "assigned" | "published" | "active" | "completed" | "unpublished";
   hasSwapRequest: boolean;
   hasUnreadMessage: boolean;
+  /** Shift start time (HH:MM) — used in tooltip and for DnD placement */
+  startTime?: string;
+  /** Shift end time (HH:MM) */
+  endTime?: string;
+  /** Role/position label from the shift */
+  role?: string;
+  /** Department ID the shift belongs to */
+  departmentId?: string;
 };
 
 export type MalTask = {
@@ -133,6 +141,13 @@ export type WeekGridData = {
   weekDays: DayInfo[];
   stats: GridStats;
 };
+
+/**
+ * Synthetic configId for shifts that have no shift_type_id.
+ * These appear in the "Ikke tildelt" column so every shift in the week
+ * is visible in Bemanning, even if it was created without a shift type.
+ */
+export const UNASSIGNED_CONFIG_ID = "__unassigned__";
 
 /** Cell key for grid lookup: `${dateId}::${configId}` */
 export function gridCellKey(dateId: string, configId: string): string {

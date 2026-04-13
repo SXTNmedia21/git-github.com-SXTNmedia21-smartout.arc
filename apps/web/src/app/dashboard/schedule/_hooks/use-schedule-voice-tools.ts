@@ -1009,10 +1009,10 @@ export function useScheduleVoiceTools(input: ScheduleVoiceToolsInput): ClientToo
       }
       d.uiActions.switchLayout(resolved);
       const labels: Record<string, string> = {
-        daily: "Ukevisning",
+        daily: "Ukeplan",
         monthly: "Manedsvisning",
         list: "Vaktliste",
-        grid: "Vaktgrid",
+        grid: "Bemanning",
       };
       return JSON.stringify({
         success: true,

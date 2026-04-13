@@ -5,7 +5,7 @@ export { gridKeys } from "./grid-query-keys";
 
 // New grid-first types and hooks (week-grid redesign)
 export type { GridColumn, GridCell, GridStats, DayInfo, WeekGridData } from "./grid-types";
-export { gridCellKey } from "./grid-types";
+export { gridCellKey, UNASSIGNED_CONFIG_ID } from "./grid-types";
 export { useWeekGridData } from "./use-week-grid-data";
 export {
   useFillFromTemplate,
@@ -14,4 +14,5 @@ export {
   useAssignEmployee,
   useCreateGridShift,
   useRemoveGridShift,
+  useReassignShiftType,
 } from "./use-grid-mutations";

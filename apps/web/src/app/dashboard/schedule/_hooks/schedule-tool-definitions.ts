@@ -545,9 +545,9 @@ const switchLayout = {
   temporaryTool: {
     modelToolName: "switchLayout",
     description:
-      "Switch the schedule layout mode. Options: 'daily' (day view/Uke), 'monthly' (month calendar/Maned), " +
-      "'list' (shift list/Vaktliste), 'grid' (shift grid/Vaktgrid). " +
-      "Use when the user says 'vis vaktliste', 'bytt til manedsvisning', 'vis uke', 'vaktgrid', etc.",
+      "Switch the schedule layout mode. Options: 'daily' (week plan/Ukeplan), 'monthly' (month calendar/Maned), " +
+      "'list' (shift list/Vaktliste), 'grid' (staffing grid/Bemanning). " +
+      "Use when the user says 'vis vaktliste', 'bytt til manedsvisning', 'vis ukeplan', 'bemanning', etc.",
     dynamicParameters: [
       {
         name: "layout",

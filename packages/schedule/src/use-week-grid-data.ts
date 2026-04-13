@@ -24,10 +24,10 @@ import type {
   WeekGridData,
   DayInfo,
 } from "./grid-types";
-import { cellKey, addDays, gridCellKey } from "./grid-types";
+import { cellKey, addDays, gridCellKey, UNASSIGNED_CONFIG_ID } from "./grid-types";
 import { gridKeys } from "./grid-query-keys";
 
-/** Norwegian day names for the grid header */
+/** Norwegian full day names for the grid row primary label */
 const DAY_NAMES: string[] = [
   "Mandag",
   "Tirsdag",
@@ -37,7 +37,28 @@ const DAY_NAMES: string[] = [
   "Lørdag",
   "Søndag",
 ];
-const DAY_SHORT: string[] = ["MAN", "TIR", "ONS", "TOR", "FRE", "LØR", "SØN"];
+
+/** Norwegian month names for date formatting in grid rows */
+const MONTH_NAMES: string[] = [
+  "januar",
+  "februar",
+  "mars",
+  "april",
+  "mai",
+  "juni",
+  "juli",
+  "august",
+  "september",
+  "oktober",
+  "november",
+  "desember",
+];
+
+/** Format a date string as "5. april" for the grid row secondary label */
+function formatDateLabel(dateStr: string): string {
+  const d = new Date(dateStr + "T00:00:00");
+  return `${d.getDate()}. ${MONTH_NAMES[d.getMonth()] ?? "januar"}`;
+}
 
 /** Calculate decimal work hours from HH:MM time strings — handles overnight shifts */
 function calcHours(start: string, end: string): number {
@@ -249,7 +270,7 @@ export function useMalData(params: {
         };
       });
 
-      // Build the 7-day array for the week
+      // Build the 7-day array for the week (Mon → Sun)
       const weekDays = Array.from({ length: 7 }, (_, i) => {
         const dateId = addDays(weekStart, i);
         const dayOfWeek = new Date(dateId + "T00:00:00").getDay();
@@ -258,7 +279,7 @@ export function useMalData(params: {
           index: i,
           dateId,
           label: DAY_NAMES[mappedIndex] ?? DAY_NAMES[0]!,
-          shortLabel: DAY_SHORT[mappedIndex] ?? DAY_SHORT[0]!,
+          shortLabel: formatDateLabel(dateId),
           isWeekend: dayOfWeek === 0 || dayOfWeek === 6,
         };
       });
@@ -508,6 +529,7 @@ export function useWeekGridData(params: {
           status,
           department_id,
           work_hours,
+          role,
           profile:employee_id (display_name)
         `,
         )
@@ -646,7 +668,7 @@ function buildWeekGridData(input: {
     };
   });
 
-  // Build 7-day array
+  // Build 7-day array (Mon → Sun) — label is the day name, shortLabel is the date
   const weekDays: DayInfo[] = Array.from({ length: 7 }, (_, i) => {
     const dateId = addDays(weekStart, i);
     const dayOfWeek = new Date(dateId + "T00:00:00").getDay();
@@ -655,7 +677,7 @@ function buildWeekGridData(input: {
       index: i,
       dateId,
       label: DAY_NAMES[mappedIndex] ?? DAY_NAMES[0]!,
-      shortLabel: DAY_SHORT[mappedIndex] ?? DAY_SHORT[0]!,
+      shortLabel: formatDateLabel(dateId),
       isWeekend: dayOfWeek === 0 || dayOfWeek === 6,
     };
   });
@@ -671,6 +693,25 @@ function buildWeekGridData(input: {
     existing.push(cfg);
     configsByTypeAndDept.set(key, existing);
   }
+
+  // Add a synthetic "Ikke tildelt" column for shifts without a shift type.
+  // This ensures every shift from Ukeplan is visible in Bemanning.
+  const unassignedColumn: GridColumn = {
+    configId: UNASSIGNED_CONFIG_ID,
+    shiftTypeId: "",
+    shiftTypeName: "Ikke tildelt",
+    shiftTypeColor: null,
+    label: "Ikke tildelt",
+    startTime: "00:00",
+    endTime: "00:00",
+    workHours: 0,
+    breakMinutes: 0,
+    slotCount: 0,
+    sortOrder: 9999,
+    departmentId: "",
+    departmentName: "",
+  };
+  columns.push(unassignedColumn);
 
   // Initialize empty cells for every day × column combination
   const cells = new Map<string, GridCell>();
@@ -688,27 +729,35 @@ function buildWeekGridData(input: {
     }
   }
 
-  // Populate cells with shift assignments — match by shift_type_id + department + time
+  // Populate cells with shift assignments
   for (const shift of shifts) {
-    if (!shift.shift_type_id || !shift.department_id) continue;
-    const candidates = configsByTypeAndDept.get(`${shift.shift_type_id}::${shift.department_id}`);
-    if (!candidates || candidates.length === 0) continue;
+    let targetConfigId: string;
 
-    // Pick the config whose default_start_time is closest to the shift's start_time
-    const cfg =
-      candidates.length === 1
-        ? candidates[0]!
-        : candidates.reduce((best, c) => {
-            const diffBest = Math.abs(
-              timeToMinutes(best.default_start_time) - timeToMinutes(shift.start_time),
-            );
-            const diffC = Math.abs(
-              timeToMinutes(c.default_start_time) - timeToMinutes(shift.start_time),
-            );
-            return diffC < diffBest ? c : best;
-          });
+    if (shift.shift_type_id && shift.department_id) {
+      // Try to match to a configured shift type column
+      const candidates = configsByTypeAndDept.get(`${shift.shift_type_id}::${shift.department_id}`);
+      if (candidates && candidates.length > 0) {
+        const cfg =
+          candidates.length === 1
+            ? candidates[0]!
+            : candidates.reduce((best, c) => {
+                const diffBest = Math.abs(
+                  timeToMinutes(best.default_start_time) - timeToMinutes(shift.start_time),
+                );
+                const diffC = Math.abs(
+                  timeToMinutes(c.default_start_time) - timeToMinutes(shift.start_time),
+                );
+                return diffC < diffBest ? c : best;
+              });
+        targetConfigId = cfg.id;
+      } else {
+        targetConfigId = UNASSIGNED_CONFIG_ID;
+      }
+    } else {
+      targetConfigId = UNASSIGNED_CONFIG_ID;
+    }
 
-    const key = gridCellKey(shift.shift_date, cfg.id);
+    const key = gridCellKey(shift.shift_date, targetConfigId);
     const cell = cells.get(key);
     if (!cell) continue;
 
@@ -726,11 +775,17 @@ function buildWeekGridData(input: {
       status: (shift.status as MalEmployeeAssignment["status"]) ?? "created",
       hasSwapRequest: false,
       hasUnreadMessage: false,
+      startTime: shift.start_time ?? undefined,
+      endTime: shift.end_time ?? undefined,
+      role: (shift as Record<string, unknown>).role as string | undefined,
+      departmentId: shift.department_id ?? undefined,
     };
     cell.assignments.push(assignment);
 
-    const col = columns.find((c) => c.configId === cfg.id);
-    cell.emptySlots = Math.max(0, (col?.slotCount ?? 1) - cell.assignments.length);
+    if (targetConfigId !== UNASSIGNED_CONFIG_ID) {
+      const col = columns.find((c) => c.configId === targetConfigId);
+      cell.emptySlots = Math.max(0, (col?.slotCount ?? 1) - cell.assignments.length);
+    }
   }
 
   // Populate tasks — attach to first column per department (same logic as legacy)
@@ -756,19 +811,38 @@ function buildWeekGridData(input: {
     }
   }
 
-  // Aggregate stats
-  const totalSlots = columns.reduce((sum, c) => sum + c.slotCount, 0) * 7;
+  // Build a map of shift work_hours for accurate stats on unassigned shifts
+  const shiftHoursById = new Map<string, number>();
+  for (const shift of shifts) {
+    const hours =
+      shift.work_hours ??
+      (shift.start_time && shift.end_time ? calcHours(shift.start_time, shift.end_time) : 0);
+    shiftHoursById.set(shift.schedule_shift_id, hours);
+  }
+
+  // Aggregate stats — exclude the synthetic unassigned column from slot count
+  const totalSlots =
+    columns
+      .filter((c) => c.configId !== UNASSIGNED_CONFIG_ID)
+      .reduce((sum, c) => sum + c.slotCount, 0) * 7;
   let filledSlots = 0;
   let totalHours = 0;
   let taskCount = 0;
   let swapRequests = 0;
 
   cells.forEach((cell) => {
-    filledSlots += cell.assignments.length;
+    if (cell.configId !== UNASSIGNED_CONFIG_ID) {
+      filledSlots += cell.assignments.length;
+    }
     taskCount += cell.tasks.length;
     const col = columns.find((c) => c.configId === cell.configId);
-    if (col) {
+    if (col && col.configId !== UNASSIGNED_CONFIG_ID) {
       totalHours += cell.assignments.length * col.workHours;
+    } else {
+      // Unassigned shifts — use each shift's actual hours
+      for (const a of cell.assignments) {
+        totalHours += shiftHoursById.get(a.shiftId) ?? 0;
+      }
     }
     swapRequests += cell.assignments.filter((a) => a.hasSwapRequest).length;
   });
