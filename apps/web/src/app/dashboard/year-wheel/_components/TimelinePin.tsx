@@ -11,7 +11,7 @@
 
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { motion as motionTokens } from "@smartout/design-tokens";
 import type { PlanningEventRow } from "@/lib/cascade/types";
 
@@ -73,6 +73,7 @@ export function TimelinePin({
   viewMode = "year",
   zoomMonth = 0,
 }: TimelinePinProps) {
+  const prefersReducedMotion = useReducedMotion();
   const position =
     viewMode === "month"
       ? computePinPositionInMonth(event.event_date, year, zoomMonth)
@@ -85,7 +86,9 @@ export function TimelinePin({
     <motion.button
       initial={{ opacity: 0, scale: 0.5 }}
       animate={{ opacity: 1, scale: 1 }}
-      transition={{ type: "spring", ...motionTokens.springSnappy }}
+      transition={
+        prefersReducedMotion ? { duration: 0 } : { type: "spring", ...motionTokens.springSnappy }
+      }
       onClick={(clickEvent) => {
         clickEvent.stopPropagation();
         onClick(event.planning_event_id);
@@ -126,6 +129,7 @@ type PinClusterProps = {
 };
 
 export function PinCluster({ events, month, year, onClick }: PinClusterProps) {
+  const prefersReducedMotion = useReducedMotion();
   const monthStart = new Date(year, month, 1);
   const monthEnd = new Date(year, month + 1, 0);
   const yearStart = new Date(year, 0, 1);
@@ -139,7 +143,9 @@ export function PinCluster({ events, month, year, onClick }: PinClusterProps) {
     <motion.button
       initial={{ opacity: 0, scale: 0.5 }}
       animate={{ opacity: 1, scale: 1 }}
-      transition={{ type: "spring", ...motionTokens.springSnappy }}
+      transition={
+        prefersReducedMotion ? { duration: 0 } : { type: "spring", ...motionTokens.springSnappy }
+      }
       onClick={(clickEvent) => {
         clickEvent.stopPropagation();
         onClick(events.map((e) => e.planning_event_id));

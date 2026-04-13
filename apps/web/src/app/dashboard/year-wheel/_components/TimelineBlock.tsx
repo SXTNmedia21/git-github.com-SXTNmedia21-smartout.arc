@@ -12,7 +12,7 @@
 "use client";
 
 import { useCallback } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { motion as motionTokens } from "@smartout/design-tokens";
 import { useTranslation } from "@smartout/i18n";
 import type { Season } from "../_hooks/use-seasons";
@@ -152,6 +152,7 @@ export function TimelineBlock({
   onEdgeCommit,
 }: TimelineBlockProps) {
   const { t } = useTranslation("dashboard");
+  const prefersReducedMotion = useReducedMotion();
 
   const pos =
     viewMode === "year"
@@ -218,7 +219,9 @@ export function TimelineBlock({
     <motion.div
       initial={{ opacity: 0, scaleX: 0.8 }}
       animate={{ opacity: 1, scaleX: 1 }}
-      transition={{ type: "spring", ...motionTokens.springSnappy }}
+      transition={
+        prefersReducedMotion ? { duration: 0 } : { type: "spring", ...motionTokens.springSnappy }
+      }
       className={`absolute top-0 h-10 rounded-xl border ${style.bg} ${style.border} group transition-shadow hover:shadow-md`}
       style={{
         left: `${pos.left}%`,
