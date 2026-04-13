@@ -4,12 +4,17 @@
  * Positioned horizontally across the year or month grid based on start/end dates.
  * Left/right edges are draggable to update start_date / end_date when a resolver
  * and commit callback are provided. The center opens the season drawer on click.
+ *
+ * Theme: all colors are CSS variables — no isDark prop needed.
+ * Spring physics: from @smartout/design-tokens motionTokens.springSnappy.
  */
 
 "use client";
 
 import { useCallback } from "react";
 import { motion } from "framer-motion";
+import { motion as motionTokens } from "@smartout/design-tokens";
+import { useTranslation } from "@smartout/i18n";
 import type { Season } from "../_hooks/use-seasons";
 
 export type TimelineViewMode = "year" | "month";
@@ -21,7 +26,6 @@ type TimelineBlockProps = {
   /** Calendar month index 0–11 when viewMode is "month". */
   zoomMonth: number;
   onClick: (seasonId: string) => void;
-  isDark: boolean;
   /** Maps viewport X to YYYY-MM-DD; null if track is not measurable. */
   resolveDateFromClientX: (clientX: number) => string | null;
   /** Persist new start or end after a resize gesture on an edge handle. */
@@ -107,28 +111,33 @@ function computeBlockPositionInMonth(
   return { left: Math.max(0, left), width: Math.min(100 - left, width) };
 }
 
-function getBlockStyle(status: Season["status"], isDark: boolean) {
+/**
+ * Returns CSS variable class names for a season's visual style based on status.
+ * No isDark needed — classes resolve via Tailwind v4 CSS variables that
+ * auto-switch when the `dark` class is on <html>.
+ */
+function getBlockStyle(status: Season["status"]) {
   switch (status) {
     case "draft":
       return {
-        bg: isDark ? "bg-zinc-800/60" : "bg-zinc-200/60",
-        border: isDark ? "border-dashed border-zinc-600" : "border-dashed border-zinc-400",
-        accent: isDark ? "bg-zinc-500" : "bg-zinc-400",
-        text: isDark ? "text-zinc-400" : "text-zinc-500",
+        bg: "bg-muted",
+        border: "border-dashed border-border",
+        accent: "bg-muted-foreground",
+        text: "text-muted-foreground",
       };
     case "active":
       return {
-        bg: isDark ? "bg-emerald-950/60" : "bg-emerald-50",
-        border: isDark ? "border-solid border-emerald-700" : "border-solid border-emerald-400",
+        bg: "bg-success/5",
+        border: "border-solid border-success",
         accent: "bg-emerald-500",
-        text: isDark ? "text-emerald-300" : "text-emerald-700",
+        text: "text-success",
       };
     case "archived":
       return {
-        bg: isDark ? "bg-zinc-900/40" : "bg-zinc-100/60",
-        border: isDark ? "border-solid border-zinc-800" : "border-solid border-zinc-300",
-        accent: isDark ? "bg-zinc-700" : "bg-zinc-300",
-        text: isDark ? "text-zinc-600" : "text-zinc-400",
+        bg: "bg-muted/60",
+        border: "border-solid border-border",
+        accent: "bg-muted-foreground",
+        text: "text-muted-foreground",
       };
   }
 }
@@ -139,17 +148,18 @@ export function TimelineBlock({
   viewMode,
   zoomMonth,
   onClick,
-  isDark,
   resolveDateFromClientX,
   onEdgeCommit,
 }: TimelineBlockProps) {
+  const { t } = useTranslation("dashboard");
+
   const pos =
     viewMode === "year"
       ? computeBlockPosition(season.start_date, season.end_date, year)
       : computeBlockPositionInMonth(season.start_date, season.end_date, year, zoomMonth);
   if (!pos) return null;
 
-  const style = getBlockStyle(season.status, isDark);
+  const style = getBlockStyle(season.status);
   const startMonth = season.start_date ? MONTH_LABELS[new Date(season.start_date).getMonth()] : "";
   const endMonth = season.end_date ? MONTH_LABELS[new Date(season.end_date).getMonth()] : "";
 
@@ -208,7 +218,7 @@ export function TimelineBlock({
     <motion.div
       initial={{ opacity: 0, scaleX: 0.8 }}
       animate={{ opacity: 1, scaleX: 1 }}
-      transition={{ type: "spring", stiffness: 300, damping: 25 }}
+      transition={{ type: "spring", ...motionTokens.springSnappy }}
       className={`absolute top-0 h-10 rounded-xl border ${style.bg} ${style.border} group transition-shadow hover:shadow-md`}
       style={{
         left: `${pos.left}%`,
@@ -220,11 +230,9 @@ export function TimelineBlock({
         <div
           role="separator"
           aria-orientation="vertical"
-          aria-label="Dra for å endre startdato"
+          aria-label={t("yearWheel.drag_start_date")}
           onPointerDown={handleEdgePointerDown("start")}
-          className={`absolute top-0 left-0 z-20 h-full w-3 cursor-ew-resize rounded-l-xl border-r border-transparent hover:border-emerald-500/40 ${
-            isDark ? "hover:bg-white/5" : "hover:bg-black/5"
-          }`}
+          className="absolute top-0 left-0 z-20 h-full w-3 cursor-ew-resize rounded-l-xl border-r border-transparent hover:border-emerald-500/40 hover:bg-accent before:absolute before:inset-y-0 before:-inset-x-4 before:content-['']"
         />
       ) : null}
 
@@ -250,11 +258,9 @@ export function TimelineBlock({
         <div
           role="separator"
           aria-orientation="vertical"
-          aria-label="Dra for å endre sluttdato"
+          aria-label={t("yearWheel.drag_end_date")}
           onPointerDown={handleEdgePointerDown("end")}
-          className={`absolute top-0 right-0 z-20 h-full w-3 cursor-ew-resize rounded-r-xl border-l border-transparent hover:border-emerald-500/40 ${
-            isDark ? "hover:bg-white/5" : "hover:bg-black/5"
-          }`}
+          className="absolute top-0 right-0 z-20 h-full w-3 cursor-ew-resize rounded-r-xl border-l border-transparent hover:border-emerald-500/40 hover:bg-accent before:absolute before:inset-y-0 before:-inset-x-4 before:content-['']"
         />
       ) : null}
     </motion.div>
