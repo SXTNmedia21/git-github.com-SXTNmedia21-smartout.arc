@@ -114,7 +114,8 @@ export type EntityType =
   | "change_proposal"
   | "shift_approval"
   | "holiday_entry"
-  | "employment_contract";
+  | "employment_contract"
+  | "engine_state";
 
 export type ActionVerb =
   | "created"
@@ -2878,6 +2879,67 @@ export interface EnrichmentCorrected extends BaseEvent {
   properties: { data: { field_name: string; was_auto: boolean } };
 }
 
+// ─── Shift Swap Events ──────────────────────────
+// Shift swap workflow: request → accept/reject → approve/reject → execute
+// All swap state lives in engine_state.context JSONB (ADR-0067)
+
+export interface ShiftSwapRequested extends BaseEvent {
+  event: "shift swap_requested";
+  properties: {
+    entity: EntityRef;
+    data: {
+      swap_id: string;
+      requester_shift_id: string;
+      target_shift_id: string;
+      target_profile_id: string;
+    };
+  };
+}
+
+export interface ShiftSwapAccepted extends BaseEvent {
+  event: "shift swap_accepted";
+  properties: {
+    entity: EntityRef;
+    data: { swap_id: string };
+  };
+}
+
+export interface ShiftSwapRejected extends BaseEvent {
+  event: "shift swap_rejected";
+  properties: {
+    entity: EntityRef;
+    data: { swap_id: string; rejected_by: string };
+  };
+}
+
+export interface ShiftSwapApproved extends BaseEvent {
+  event: "shift swap_approved";
+  properties: {
+    entity: EntityRef;
+    data: { swap_id: string };
+  };
+}
+
+export interface ShiftSwapExecuted extends BaseEvent {
+  event: "shift swap_executed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      swap_id: string;
+      requester_shift_id: string;
+      target_shift_id: string;
+    };
+  };
+}
+
+export interface ShiftSwapCancelled extends BaseEvent {
+  event: "shift swap_cancelled";
+  properties: {
+    entity: EntityRef;
+    data: { swap_id: string };
+  };
+}
+
 // ─── The Single Truth Union ─────────────────────
 // Add every feature's events here. If it isn't here, it can't be emitted.
 export type SmartoutEvent =
@@ -3194,7 +3256,13 @@ export type SmartoutEvent =
   | EnrichmentRequested
   | EnrichmentHit
   | EnrichmentMissed
-  | EnrichmentCorrected;
+  | EnrichmentCorrected
+  | ShiftSwapRequested
+  | ShiftSwapAccepted
+  | ShiftSwapRejected
+  | ShiftSwapApproved
+  | ShiftSwapExecuted
+  | ShiftSwapCancelled;
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -4364,4 +4432,30 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "enrichment hit": { destinations: ["posthog", "logger"], category: "enrichment" },
   "enrichment missed": { destinations: ["posthog", "logger"], category: "enrichment" },
   "enrichment corrected": { destinations: ["posthog", "logger"], category: "enrichment" },
+
+  // Shift swap events (ADR-0067)
+  "shift swap_requested": {
+    destinations: ["posthog", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "shift swap_accepted": {
+    destinations: ["posthog", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "shift swap_rejected": {
+    destinations: ["posthog", "activity_trail"],
+    category: "scheduling",
+  },
+  "shift swap_approved": {
+    destinations: ["posthog", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "shift swap_executed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "shift swap_cancelled": {
+    destinations: ["posthog", "activity_trail"],
+    category: "scheduling",
+  },
 };
