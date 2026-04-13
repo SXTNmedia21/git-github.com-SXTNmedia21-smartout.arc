@@ -97,6 +97,7 @@ function Field({
   mono,
   readOnly,
   capitalize: cap,
+  inheritedFrom,
 }: {
   label: string;
   value: string;
@@ -106,7 +107,12 @@ function Field({
   mono?: boolean;
   readOnly?: boolean;
   capitalize?: boolean;
+  /** Company value to show when workspace field is empty. Displays "(fra selskap)" in read mode, used as placeholder in edit mode. */
+  inheritedFrom?: string;
 }) {
+  const displayValue = value || inheritedFrom || "";
+  const isInherited = !value && !!inheritedFrom;
+
   if (editing && !readOnly) {
     return (
       <div className="space-y-1.5">
@@ -114,6 +120,7 @@ function Field({
         <Input
           type={type}
           value={value}
+          placeholder={inheritedFrom ? `${inheritedFrom} (fra selskap)` : undefined}
           onChange={(e) => onChange?.(e.target.value)}
           className={`h-9 ${mono ? "font-mono" : ""}`}
         />
@@ -124,7 +131,10 @@ function Field({
     <div>
       <dt className="text-muted-foreground text-xs">{label}</dt>
       <dd className={`text-sm ${mono ? "font-mono" : ""} ${cap ? "capitalize" : ""}`}>
-        {value || "\u2014"}
+        {displayValue || "\u2014"}
+        {isInherited && (
+          <span className="text-muted-foreground ml-1.5 text-xs font-normal">(fra selskap)</span>
+        )}
       </dd>
     </div>
   );
@@ -446,42 +456,47 @@ export function OverviewTab({
               onChange={(v) => setEditWs({ ...editWs, timezone: v })}
             />
             <Field
-              label="Email"
+              label="E-post"
               value={isEditingInfo ? editWs.email : currentWorkspace.email}
               editing={isEditingInfo}
               onChange={(v) => setEditWs({ ...editWs, email: v })}
               type="email"
+              inheritedFrom={currentCompany?.email}
             />
             <Field
-              label="Phone"
+              label="Telefon"
               value={isEditingInfo ? editWs.phone : currentWorkspace.phone}
               editing={isEditingInfo}
               onChange={(v) => setEditWs({ ...editWs, phone: v })}
+              inheritedFrom={currentCompany?.phone}
             />
             <Field
-              label="Address"
+              label="Adresse"
               value={isEditingInfo ? editWs.addressLine1 : currentWorkspace.addressLine1}
               editing={isEditingInfo}
               onChange={(v) => setEditWs({ ...editWs, addressLine1: v })}
+              inheritedFrom={currentCompany?.addressLine1}
             />
             <Field
-              label="Address Line 2"
+              label="Adresse linje 2"
               value={isEditingInfo ? editWs.addressLine2 : currentWorkspace.addressLine2}
               editing={isEditingInfo}
               onChange={(v) => setEditWs({ ...editWs, addressLine2: v })}
             />
             <Field
-              label="Postal Code"
+              label="Postnummer"
               value={isEditingInfo ? editWs.postalCode : currentWorkspace.postalCode}
               editing={isEditingInfo}
               onChange={(v) => setEditWs({ ...editWs, postalCode: v })}
               mono
+              inheritedFrom={currentCompany?.postalCode}
             />
             <Field
-              label="City"
+              label="By"
               value={isEditingInfo ? editWs.city : currentWorkspace.city}
               editing={isEditingInfo}
               onChange={(v) => setEditWs({ ...editWs, city: v })}
+              inheritedFrom={currentCompany?.city}
             />
             <Field
               label="Country"
