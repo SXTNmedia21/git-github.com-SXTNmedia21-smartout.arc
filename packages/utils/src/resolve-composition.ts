@@ -64,6 +64,14 @@ export type ContractDraftProposal = {
     filled: string[];
     missing: string[];
   };
+  resolved_template: ResolvedTemplate | null;
+};
+
+export type ResolvedTemplate = {
+  template_id: string;
+  template_name: string;
+  source: "workspace_group" | "workspace_category" | "system";
+  employee_group_name?: string;
 };
 
 export type EmploymentCategory = "fast" | "deltid" | "tilkalling";
@@ -108,6 +116,90 @@ function computePlaceholderStatus(profile: {
   }
 
   return { filled, missing };
+}
+
+// ---------------------------------------------------------------------------
+// Helper: resolve contract template via 3-layer K1b binding cascade
+// ---------------------------------------------------------------------------
+
+async function resolveTemplate(
+  supabase: SupabaseClient,
+  workspaceId: string,
+  employmentCategory: EmploymentCategory,
+  employeeGroupId?: string,
+): Promise<ResolvedTemplate | null> {
+  // Layer 1: workspace binding for specific group + category
+  if (employeeGroupId) {
+    const { data: groupBinding } = await supabase
+      .from("contract_template_binding")
+      .select("template_id, contract_template(name)")
+      .eq("workspace_id", workspaceId)
+      .eq("employment_category", employmentCategory)
+      .eq("employee_group_id", employeeGroupId)
+      .eq("is_active", true)
+      .order("priority", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (groupBinding) {
+      const tmpl = groupBinding.contract_template as unknown as { name: string } | null;
+      const { data: group } = await supabase
+        .schema("payroll")
+        .from("employee_group")
+        .select("name")
+        .eq("id", employeeGroupId)
+        .single();
+
+      return {
+        template_id: groupBinding.template_id,
+        template_name: tmpl?.name ?? "Unknown",
+        source: "workspace_group",
+        employee_group_name: group?.name ?? undefined,
+      };
+    }
+  }
+
+  // Layer 2: workspace binding for category only (no specific group)
+  const { data: categoryBinding } = await supabase
+    .from("contract_template_binding")
+    .select("template_id, contract_template(name)")
+    .eq("workspace_id", workspaceId)
+    .eq("employment_category", employmentCategory)
+    .is("employee_group_id", null)
+    .eq("is_active", true)
+    .order("priority", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (categoryBinding) {
+    const tmpl = categoryBinding.contract_template as unknown as { name: string } | null;
+    return {
+      template_id: categoryBinding.template_id,
+      template_name: tmpl?.name ?? "Unknown",
+      source: "workspace_category",
+    };
+  }
+
+  // Layer 3: system template fallback
+  const { data: systemTemplate } = await supabase
+    .from("contract_template")
+    .select("template_id, name")
+    .eq("is_system", true)
+    .eq("is_active", true)
+    .eq("contract_type", "employee")
+    .eq("employment_category", employmentCategory)
+    .limit(1)
+    .maybeSingle();
+
+  if (systemTemplate) {
+    return {
+      template_id: systemTemplate.template_id,
+      template_name: systemTemplate.name,
+      source: "system",
+    };
+  }
+
+  return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -260,6 +352,14 @@ export async function resolveComposition(
     });
   }
 
+  // ---- Step 8: Resolve contract template via K1b binding cascade ----
+  const resolvedTemplate = await resolveTemplate(
+    supabase,
+    workspaceId,
+    input.employment_category,
+    input.employee_group_id,
+  );
+
   // ---- Assemble the proposal ----
   return {
     employment_terms: {
@@ -284,5 +384,6 @@ export async function resolveComposition(
     mandatory_clauses: mandatoryClauses,
     validations,
     placeholder_status: placeholderStatus,
+    resolved_template: resolvedTemplate,
   };
 }
