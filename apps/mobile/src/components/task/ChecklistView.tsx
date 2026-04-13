@@ -9,7 +9,7 @@
  * for checkpoint completion and signing.
  */
 
-import React, { useCallback, useEffect, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { View, Text, ScrollView, Pressable } from "react-native";
 import * as Haptics from "expo-haptics";
 import { Check } from "lucide-react-native";
@@ -39,7 +39,7 @@ export function ChecklistView({ tasks, procedureName, profileId, onClose }: Chec
 
   /* Sort tasks by title to maintain consistent order */
   const sortedTasks = useMemo(
-    () => [...tasks].sort((a, b) => a.title.localeCompare(b.title, "nb")),
+    () => [...tasks].sort((a, b) => a.title.localeCompare(b.title)),
     [tasks],
   );
 
@@ -54,23 +54,23 @@ export function ChecklistView({ tasks, procedureName, profileId, onClose }: Chec
     [sortedTasks],
   );
 
-  /* Emit "checklist started" on mount */
+  /* Emit "checklist started" once when tasks and profile are available */
+  const hasEmittedRef = useRef(false);
   useEffect(() => {
-    if (sortedTasks.length > 0) {
-      void emit({
-        event: "checklist started",
-        workspace_id: sortedTasks[0]!.workspace_id,
-        actor_id: profileId,
-        properties: {
-          data: {
-            procedure_id: procedureName,
-            session_id: sortedTasks[0]!.department_session_id,
-          },
+    if (hasEmittedRef.current || sortedTasks.length === 0 || !profileId) return;
+    hasEmittedRef.current = true;
+    void emit({
+      event: "checklist started",
+      workspace_id: sortedTasks[0]!.workspace_id,
+      actor_id: profileId,
+      properties: {
+        data: {
+          procedure_id: procedureName,
+          session_id: sortedTasks[0]!.department_session_id,
         },
-      });
-    }
-    // Only fire on mount — intentionally empty deps
-  }, []);
+      },
+    });
+  }, [sortedTasks.length, profileId, procedureName, sortedTasks]);
 
   const handleToggleCheckpoint = useCallback(
     async (task: SessionTask) => {

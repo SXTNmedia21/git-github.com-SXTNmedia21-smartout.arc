@@ -629,6 +629,27 @@ export interface SessionHookFired extends BaseEvent {
   };
 }
 
+export interface SessionHookCreated extends BaseEvent {
+  event: "session_hook created";
+  properties: {
+    data: {
+      hook_id: string;
+      department_id: string;
+      hook_type: string;
+      linked_procedure_id: string;
+    };
+  };
+}
+
+export interface SessionHookDeleted extends BaseEvent {
+  event: "session_hook deleted";
+  properties: {
+    data: {
+      hook_id: string;
+    };
+  };
+}
+
 export interface SessionTaskCompleted extends BaseEvent {
   event: "session task_completed";
   properties: {
@@ -2962,6 +2983,8 @@ export type SmartoutEvent =
   | SessionPendingSignoff
   | SessionClosed
   | SessionHookFired
+  | SessionHookCreated
+  | SessionHookDeleted
   | SessionTaskCompleted
   | ChecklistStarted
   | ChecklistStepCompleted
@@ -3369,6 +3392,14 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "session hook_fired": {
     destinations: ["logger", "engine_event"],
+    category: "operations",
+  },
+  "session_hook created": {
+    destinations: ["posthog", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  "session_hook deleted": {
+    destinations: ["posthog", "activity_trail", "engine_event"],
     category: "operations",
   },
   "session task_completed": {
