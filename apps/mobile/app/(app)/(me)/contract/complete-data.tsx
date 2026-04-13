@@ -125,7 +125,7 @@ export default function CompleteDataScreen() {
         actor_id: profileId,
         properties: {
           entity: { entity_type: "profile", entity_id: profileId },
-          data: { field_groups: submittedGroups },
+          data: { contract_id: "", duration_hours: 0 },
         },
       });
 
@@ -149,7 +149,7 @@ export default function CompleteDataScreen() {
             }}
             style={styles.backButton}
             accessibilityRole="button"
-            accessibilityLabel="Tilbake"
+            accessibilityLabel={strings.contract.back}
           >
             <ChevronLeft size={22} color={theme.colors.foreground} strokeWidth={1.6} />
           </Pressable>
