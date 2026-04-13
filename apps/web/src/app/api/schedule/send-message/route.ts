@@ -77,6 +77,18 @@ export async function POST(request: NextRequest) {
 
   const { workspaceId, message, channels, audience, selectedEmployeeIds } = parsed.data;
 
+  // Only SMS is currently supported — guard before auth/DB work
+  const unsupportedChannels = channels.filter((c) => c !== "sms");
+  if (unsupportedChannels.length > 0) {
+    return NextResponse.json(
+      {
+        error: "Unsupported channel selection: this endpoint currently supports sms only.",
+        unsupportedChannels,
+      },
+      { status: 400 },
+    );
+  }
+
   const { data: membership, error: membershipError } = await supabase
     .from("profile")
     .select("profile_id, role")
