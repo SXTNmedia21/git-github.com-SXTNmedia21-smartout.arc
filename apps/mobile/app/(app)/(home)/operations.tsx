@@ -25,6 +25,7 @@ import {
   UtensilsCrossed,
   StickyNote,
   RefreshCw,
+  Plus,
 } from "lucide-react-native";
 import { createStyles, useTheme, withOpacity } from "@/theme";
 import { useOperationsFeed } from "@/hooks/queries/use-operations-feed";
@@ -186,7 +187,16 @@ export default function OperationsScreen() {
           <ChevronLeft size={24} color={theme.colors.foreground} strokeWidth={1.8} />
         </Pressable>
         <Text style={s.headerTitle}>Oppgaver</Text>
-        <View style={{ width: 40 }} />
+        <Pressable
+          onPress={() => {
+            Haptics.selectionAsync();
+            router.push("/(app)/(home)/create-task");
+          }}
+          hitSlop={12}
+          style={s.addBtn}
+        >
+          <Plus size={22} color={theme.colors.brandOrange} strokeWidth={2} />
+        </Pressable>
       </View>
 
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
@@ -367,6 +377,13 @@ const useStyles = createStyles((theme) => ({
     height: 40,
     alignItems: "center" as const,
     justifyContent: "center" as const,
+  },
+  addBtn: {
+    width: 40,
+    height: 40,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    borderRadius: 20,
   },
   headerTitle: {
     fontSize: 22,

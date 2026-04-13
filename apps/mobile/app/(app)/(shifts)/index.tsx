@@ -114,6 +114,15 @@ export default function MyShiftsScreen() {
     }));
   }, [shifts]);
 
+  const [dayInfoSheetVisible, setDayInfoSheetVisible] = useState(false);
+  const [dayInfoDate, setDayInfoDate] = useState(() => new Date().toISOString().split("T")[0]);
+
+  const handleAddDayInfo = useCallback((date: string) => {
+    Haptics.selectionAsync();
+    setDayInfoDate(date);
+    setDayInfoSheetVisible(true);
+  }, []);
+
   const nextShift = shifts[0] ?? null;
   const thisWeekHours = weekGroups[0]?.totalHours ?? 0;
 
@@ -175,7 +184,16 @@ export default function MyShiftsScreen() {
           >
             <View style={styles.weekHeader}>
               <Text style={styles.weekTitle}>Uke {group.weekNumber}</Text>
-              <Text style={styles.weekRange}>{group.dateRange}</Text>
+              <View style={styles.weekHeaderRight}>
+                <Pressable
+                  onPress={() => handleAddDayInfo(group.shifts[0].shift_date)}
+                  hitSlop={8}
+                  style={styles.addNoteBtn}
+                >
+                  <StickyNote size={14} color={theme.colors.mutedForeground} strokeWidth={1.5} />
+                </Pressable>
+                <Text style={styles.weekRange}>{group.dateRange}</Text>
+              </View>
             </View>
 
             {group.shifts.map((shift) => {
@@ -238,6 +256,13 @@ export default function MyShiftsScreen() {
           <Text style={styles.emptyText}>Ingen flere vakter planlagt</Text>
         </View>
       </ScrollView>
+
+      {/* Day info bottom sheet */}
+      <CreateDayInfoSheet
+        date={dayInfoDate}
+        visible={dayInfoSheetVisible}
+        onDismiss={() => setDayInfoSheetVisible(false)}
+      />
 
       {/* Floating Action Button — create new shift */}
       <Pressable
@@ -366,6 +391,19 @@ const useStyles = createStyles((theme) => ({
     fontWeight: "300" as const,
     fontStyle: "italic" as const,
     color: theme.colors.foreground,
+  },
+  weekHeaderRight: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 8,
+  },
+  addNoteBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: theme.isDark ? "rgba(255,255,255,0.06)" : theme.colors.muted,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
   },
   weekRange: {
     fontSize: 10,
