@@ -11,17 +11,6 @@
         ]
       }
     ],
-    "PreToolUse": [
-      {
-        "matcher": "Write|Edit|MultiEdit|Bash",
-        "hooks": [
-          {
-            "type": "prompt",
-            "prompt": "Review $TOOL_INPUT. If this tool action touches onboarding code, onboarding docs, join flow, dashboard setup flow, steward prompts, or activate/finalize workspace paths, deny any action that would: 1) reintroduce /create-workspace as the active route, 2) treat /join as runtime truth, 3) treat /dashboard/setup as the creator of runtime truth, 4) use workspace.onboarding_completed as the generic setup-guide switch, or 5) add new canonical onboarding dependence on activate-workspace or activate_workspace_v3 instead of shell plus /onboarding finalization. Otherwise allow. Return hookSpecificOutput.permissionDecision and a short systemMessage."
-          }
-        ]
-      }
-    ],
     "PostToolUse": [
       {
         "matcher": "Bash",

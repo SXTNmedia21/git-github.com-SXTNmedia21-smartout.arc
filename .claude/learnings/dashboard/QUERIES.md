@@ -34,3 +34,23 @@ order by display_name;
 ```
 
 **Notes:** Use alongside the voice query string to compare normalized forms (`alexander` vs `aleksander`).
+
+### Q-003: Inspect workspace language and locale readiness
+
+**Use case:** Validate workspace language defaults when dashboard UI appears in the wrong locale.
+**SQL:**
+
+```sql
+select
+  workspace_id,
+  slug,
+  name,
+  language,
+  country,
+  timezone
+from workspace
+order by updated_at desc
+limit 50;
+```
+
+**Notes:** Confirms persisted workspace locale fields that drive locale-aware UX and fallback behavior.

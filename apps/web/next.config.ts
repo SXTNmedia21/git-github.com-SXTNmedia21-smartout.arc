@@ -20,6 +20,22 @@ if (existsSync(rootEnvPath)) {
 
 const nextConfig: NextConfig = {
   ...(process.env.NEXT_DIST_DIR ? { distDir: process.env.NEXT_DIST_DIR } : {}),
+  experimental: {
+    optimizePackageImports: [
+      "lucide-react",
+      "framer-motion",
+      "recharts",
+      "@dnd-kit/core",
+      "@dnd-kit/sortable",
+      "@smartout/ui",
+      "@smartout/types",
+      "@smartout/telemetry",
+      "date-fns",
+      "posthog-js",
+      "@tiptap/react",
+      "@tiptap/starter-kit",
+    ],
+  },
   serverExternalPackages: ["posthog-node"],
   transpilePackages: [
     "@smartout/ai",
@@ -78,6 +94,20 @@ const nextConfig: NextConfig = {
     );
 
     return config;
+  },
+  async redirects() {
+    return [
+      {
+        source: "/dashboard/season/:path*",
+        destination: "/dashboard/year-wheel/:path*",
+        permanent: true,
+      },
+      {
+        source: "/dashboard/season",
+        destination: "/dashboard/year-wheel",
+        permanent: true,
+      },
+    ];
   },
   async rewrites() {
     return [

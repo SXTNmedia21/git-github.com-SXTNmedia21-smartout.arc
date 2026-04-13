@@ -5753,6 +5753,7 @@ export type Database = {
           created_at: string
           id: string
           level: string
+          min_role: string
           updated_at: string
           updated_by: string
           workspace_id: string
@@ -5762,6 +5763,7 @@ export type Database = {
           created_at?: string
           id?: string
           level?: string
+          min_role?: string
           updated_at?: string
           updated_by: string
           workspace_id: string
@@ -5771,6 +5773,7 @@ export type Database = {
           created_at?: string
           id?: string
           level?: string
+          min_role?: string
           updated_at?: string
           updated_by?: string
           workspace_id?: string
@@ -11926,6 +11929,141 @@ export type Database = {
           },
         ]
       }
+      season_goal: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          metric_key: string | null
+          season_goal_id: string
+          season_id: string
+          sort_order: number
+          status: Database["public"]["Enums"]["season_goal_status"]
+          target_unit: string | null
+          target_value: number | null
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          metric_key?: string | null
+          season_goal_id?: string
+          season_id: string
+          sort_order?: number
+          status?: Database["public"]["Enums"]["season_goal_status"]
+          target_unit?: string | null
+          target_value?: number | null
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          metric_key?: string | null
+          season_goal_id?: string
+          season_id?: string
+          sort_order?: number
+          status?: Database["public"]["Enums"]["season_goal_status"]
+          target_unit?: string | null
+          target_value?: number | null
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "season_goal_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "season_goal_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "season"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "season_goal_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      season_policy_binding: {
+        Row: {
+          activated_by: string | null
+          created_at: string
+          is_active: boolean
+          notes: string | null
+          policy_id: string
+          season_id: string
+          season_policy_binding_id: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          activated_by?: string | null
+          created_at?: string
+          is_active?: boolean
+          notes?: string | null
+          policy_id: string
+          season_id: string
+          season_policy_binding_id?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          activated_by?: string | null
+          created_at?: string
+          is_active?: boolean
+          notes?: string | null
+          policy_id?: string
+          season_id?: string
+          season_policy_binding_id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "season_policy_binding_activated_by_fkey"
+            columns: ["activated_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "season_policy_binding_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policy"
+            referencedColumns: ["policy_id"]
+          },
+          {
+            foreignKeyName: "season_policy_binding_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "season"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "season_policy_binding_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       service_config: {
         Row: {
           config: Json
@@ -14242,6 +14380,10 @@ export type Database = {
         }
         Returns: Json
       }
+      anonymize_contract: {
+        Args: { p_contract_id: string }
+        Returns: undefined
+      }
       anonymize_user: { Args: { target_user_id: string }; Returns: undefined }
       append_conversation_turn: {
         Args: { p_session_id: string; p_turn: Json }
@@ -14880,6 +15022,7 @@ export type Database = {
         | "unreconciled"
       revenue_source: "ocr" | "manual"
       routine_assigned_to_type: "team" | "role" | "profile"
+      season_goal_status: "active" | "completed" | "cancelled"
       season_status: "draft" | "active" | "archived"
       season_type: "default" | "calendar" | "focus" | "cycle" | "custom"
       service_status: "active" | "stopped" | "error" | "unconfigured"
@@ -16311,6 +16454,7 @@ export const Constants = {
       ],
       revenue_source: ["ocr", "manual"],
       routine_assigned_to_type: ["team", "role", "profile"],
+      season_goal_status: ["active", "completed", "cancelled"],
       season_status: ["draft", "active", "archived"],
       season_type: ["default", "calendar", "focus", "cycle", "custom"],
       service_status: ["active", "stopped", "error", "unconfigured"],

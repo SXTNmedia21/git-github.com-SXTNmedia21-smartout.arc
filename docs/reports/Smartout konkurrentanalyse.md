@@ -67,7 +67,7 @@ tags: [prising, konkurrenter, sammenligning]
 | **Laveste plan** | 349 NOK/lokasjon/mnd (5 ansatte inkl.) |
 | **Ekstra ansatte** | 39 NOK/bruker/mnd |
 | **Typisk kostnad (20 ansatte)** | ~940 NOK/mnd |
-| **Gratis plan** | 30 dager proveperiode |
+| **Gratis plan** | 30 dager prøveperiode |
 | **Fokus** | Operasjoner, onboarding, kompetanse |
 
 **Funksjoner:** Automatisert onboarding, kompetanseregistrering, roller, multi-location. Mangler vaktplan (bruker Planday-integrasjon), stemplingsur, IK-mat.
@@ -112,7 +112,7 @@ tags: [prising, konkurrenter, sammenligning]
 | **Prismodell** | Per ansatt per måned |
 | **Laveste plan** | ~55 NOK/ansatt/mnd |
 | **Typisk kostnad (20 ansatte)** | ~1 100 NOK/mnd |
-| **Gratis plan** | 1 mnd gratis prove |
+| **Gratis plan** | 1 mnd gratis prøve |
 | **Fokus** | Vaktplanlegging |
 
 **Funksjoner:** Vaktplan, skiftmaler, åpne skift, skiftbytte, overtidsvarsler, flerukersplanlegging. Ingen stemplingsur, ingen kontrakter, ingen opplæring, ingen IK-mat.
@@ -134,7 +134,7 @@ tags: [prising, konkurrenter, sammenligning]
 
 ## 2. Internasjonale referanser
 
-| Leverandor | Land | Prismodell | Typisk kost (20 pers) | Gratis plan | Styrke | Svakhet |
+| Leverandør | Land | Prismodell | Typisk kost (20 pers) | Gratis plan | Styrke | Svakhet |
 |---|---|---|---|---|---|---|
 | **7shifts** | USA/Canada | Per lokasjon/mnd | ~330 NOK | Ja (30 pers, 1 lok) | Restaurant-fokus, tips-deling | Mangler HR, IK-mat, nordisk |
 | **Homebase** | USA | Per lokasjon/mnd | ~330 NOK | Ja (10 pers, 1 lok) | Enkel vaktplan | Begrenset gratis, ingen nordisk |
@@ -177,7 +177,7 @@ Hva er inkludert hos hver leverandør? For konkurrentene vises **laveste betalte
 
 Hvilke konkurrenter opererer i hvert funksjonsområde?
 
-| Funksjonsområde | Nordiske aktorer | Internasjonale aktorer | Typisk prisrange |
+| Funksjonsområde | Nordiske aktører | Internasjonale aktører | Typisk prisrange |
 |---|---|---|---|
 | **Vaktplanlegging** | Planday, Smartplan, Workfeed, PowerPlan, Timegrip, Tidsbanken | 7shifts, Homebase, When I Work | 480–1 100 NOK/mnd |
 | **Stemplingsur** | Planday, Tidsbanken, Timegrip, Smartplan | 7shifts, Homebase, Connecteam | Ofte inkludert i vaktplan |

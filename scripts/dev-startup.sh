@@ -68,8 +68,15 @@ fi
 # ── 3. Supabase local ─────────────────────────────────────
 log "Checking Supabase..."
 
+# Ensure npx cache is up to date — a new supabase release causes npx to
+# prompt "OK to install?" which hangs when stdout is redirected.
+if ! npx --yes supabase --version &>/dev/null; then
+  warn "Supabase CLI not available via npx — run: npx --yes supabase --version"
+  fail "Cannot proceed without Supabase CLI"
+fi
+
 if npx supabase status &>/dev/null; then
-  ok "Supabase is running"
+  ok "Supabase is running ($(npx supabase --version 2>/dev/null))"
 else
   warn "Supabase is not running — starting..."
   npx supabase start

@@ -162,8 +162,24 @@ async function upsertSession(
       if (newDepth > currentDepth) {
         updates.max_scroll_depth = newDepth;
       }
+    } else if (event_type === "session_heartbeat" && details?.scrollPercent != null) {
+      // Heartbeats provide a continuous scroll sample between threshold events.
+      const newDepth = Number(details.scrollPercent);
+      const currentDepth = existing.max_scroll_depth as number;
+      if (newDepth > currentDepth) {
+        updates.max_scroll_depth = newDepth;
+      }
     } else if (event_type === "session_end" && details?.timeOnPage != null) {
       updates.duration_seconds = Number(details.timeOnPage);
+      if (details.maxScroll != null) {
+        updates.max_scroll_depth = Number(details.maxScroll);
+      }
+      if (details.clickCount != null) {
+        updates.click_count = Number(details.clickCount);
+      }
+      if (details.pageCount != null) {
+        updates.page_count = Number(details.pageCount);
+      }
     }
 
     await admin.from("landing_session").update(updates).eq("id", existing.id);

@@ -86,6 +86,9 @@ export type EntityType =
   | "leader_pulse"
   | "conversation"
   | "season_budget"
+  | "season_goal"
+  | "season_policy_binding"
+  | "planning_cycle"
   | "operating_hours"
   | "kpi_target"
   | "workspace_budget"
@@ -941,6 +944,88 @@ export interface SeasonArchived extends BaseEvent {
   properties: {
     entity: EntityRef;
     data: { status: "archived" };
+  };
+}
+
+export interface SeasonUpdated extends BaseEvent {
+  event: "season updated";
+  properties: {
+    entity: EntityRef;
+    data: {
+      start_date: string | null;
+      end_date: string | null;
+      source?: string;
+    };
+  };
+}
+
+export interface SeasonGoalCreated extends BaseEvent {
+  event: "season_goal created";
+  properties: {
+    entity: EntityRef;
+    data: { title: string; season_id: string };
+  };
+}
+
+export interface SeasonGoalUpdated extends BaseEvent {
+  event: "season_goal updated";
+  properties: {
+    entity: EntityRef;
+    data: { status?: string };
+  };
+}
+
+export interface SeasonGoalDeleted extends BaseEvent {
+  event: "season_goal deleted";
+  properties: {
+    entity: EntityRef;
+  };
+}
+
+export interface SeasonPolicyBindingUpdated extends BaseEvent {
+  event: "season_policy_binding updated";
+  properties: {
+    entity: EntityRef;
+    data: { policy_id: string; is_active: boolean };
+  };
+}
+
+export interface PlanningCycleActivated extends BaseEvent {
+  event: "planning_cycle activated";
+  properties: {
+    entity: EntityRef;
+    data: { status: "active" };
+  };
+}
+
+export interface PlanningCycleArchived extends BaseEvent {
+  event: "planning_cycle archived";
+  properties: {
+    entity: EntityRef;
+    data: { status: "archived" };
+  };
+}
+
+export interface YearWheelBlockClicked extends BaseEvent {
+  event: "season block_clicked";
+  properties: {
+    entity: EntityRef;
+    data: { season_name: string; year: number };
+  };
+}
+
+export interface YearWheelPinClicked extends BaseEvent {
+  event: "season pin_clicked";
+  properties: {
+    entity: EntityRef;
+    data: { event_name: string; year: number };
+  };
+}
+
+export interface YearWheelYearNavigated extends BaseEvent {
+  event: "season year_navigated";
+  properties: {
+    data: { from_year: number; to_year: number; direction: "forward" | "backward" };
   };
 }
 
@@ -2894,7 +2979,17 @@ export type SmartoutEvent =
   | SeasonCreated
   | SeasonActivated
   | SeasonArchived
+  | SeasonUpdated
   | SeasonBudgetUpdated
+  | SeasonGoalCreated
+  | SeasonGoalUpdated
+  | SeasonGoalDeleted
+  | SeasonPolicyBindingUpdated
+  | PlanningCycleActivated
+  | PlanningCycleArchived
+  | YearWheelBlockClicked
+  | YearWheelPinClicked
+  | YearWheelYearNavigated
   | DayFactorsUpdated
   | HourFactorsUpdated
   | OperatingHoursUpdated
@@ -3457,16 +3552,56 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "flow skipped": { destinations: ["posthog", "logger"], category: "onboarding" },
   "season created": {
-    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    destinations: ["posthog", "logger", "activity_trail"],
     category: "operations",
   },
   "season activated": {
-    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    destinations: ["posthog", "logger", "activity_trail"],
     category: "operations",
   },
   "season archived": {
-    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    destinations: ["posthog", "logger", "activity_trail"],
     category: "operations",
+  },
+  "season updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "season_goal created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "season_goal updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "season_goal deleted": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "season_policy_binding updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "planning_cycle activated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "planning_cycle archived": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "season block_clicked": {
+    destinations: ["posthog"],
+    category: "navigation",
+  },
+  "season pin_clicked": {
+    destinations: ["posthog"],
+    category: "navigation",
+  },
+  "season year_navigated": {
+    destinations: ["posthog"],
+    category: "navigation",
   },
   "season_budget updated": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
@@ -3644,7 +3779,6 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "scheduling",
   },
-
   "guardian_signal acknowledged": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "system",

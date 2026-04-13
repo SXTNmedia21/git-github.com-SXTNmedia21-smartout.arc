@@ -26,7 +26,7 @@ async function warmupDashboardRoutes(browser: Browser): Promise<void> {
       "/dashboard/schedule",
       "/dashboard/website",
       "/dashboard/website/setup",
-      "/dashboard/season",
+      "/dashboard/year-wheel",
     ]) {
       await page.goto(route, { waitUntil: "commit" }).catch(() => {});
     }
@@ -200,7 +200,7 @@ test.describe("Performance Gates — Page Navigation", () => {
   });
 
   test("sidebar → season within 1s", async ({ page }) => {
-    const link = page.locator('a[href*="/dashboard/season"]').first();
+    const link = page.locator('a[href*="/dashboard/year-wheel"]').first();
     if (!(await link.isVisible({ timeout: 3000 }).catch(() => false))) {
       test.skip(true, "Season link not visible");
       return;
@@ -259,7 +259,7 @@ test.describe("Performance Gates — API Content", () => {
   });
 
   test("season page renders within 2s", async ({ page }) => {
-    await page.goto("/dashboard/season", { waitUntil: "commit" });
+    await page.goto("/dashboard/year-wheel", { waitUntil: "commit" });
     await expectVisibleWithin(
       page,
       "text=Sesongplanlegging",

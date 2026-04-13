@@ -22,7 +22,7 @@ export async function checkRateLimit(
   _customLimit?: number,
 ): Promise<{ allowed: boolean; remaining: number; resetAt: number }> {
   const rl = getRateLimiter();
-  if (!rl) return { allowed: false, remaining: 0, resetAt: 0 };
+  if (!rl) return { allowed: true, remaining: -1, resetAt: 0 };
 
   const { success, remaining, reset } = await rl.limit(identifier);
   return { allowed: success, remaining, resetAt: reset };

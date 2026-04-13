@@ -27,6 +27,9 @@ nano infra/.env
 ## Local Development
 
 ```bash
+# Secure startup (prompts 1Password login if needed, validates envs, starts services)
+pnpm infra:start
+
 # Start all services (auto-applies override for dev)
 cd infra
 docker compose up --build
