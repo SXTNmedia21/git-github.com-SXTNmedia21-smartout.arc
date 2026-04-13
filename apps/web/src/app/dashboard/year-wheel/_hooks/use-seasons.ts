@@ -2,6 +2,7 @@
 
 import { useContext } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "@smartout/i18n";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
 import { emit } from "@smartout/telemetry";
@@ -48,6 +49,7 @@ function toSlug(value: string): string {
 }
 
 export function useSeasons() {
+  const { t } = useTranslation("dashboard");
   const ctx = useWorkspaceOptional();
   const wsId = ctx?.workspace.workspace_id;
   const { profileId } = useContext(DashboardContext);
@@ -128,8 +130,8 @@ export function useSeasons() {
     },
   });
 
-  const activateSeason = useMutation({
-    mutationFn: async (seasonId: string): Promise<Season> => {
+  const activateSeason = useMutation<Season | null, Error, string>({
+    mutationFn: async (seasonId: string): Promise<Season | null> => {
       // Validate: budget must exist and have required fields
       const { data: budget, error: budgetError } = await supabase
         .from("season_budget")
@@ -160,6 +162,17 @@ export function useSeasons() {
 
       if (!hourFactorCount || hourFactorCount === 0) throw new Error("Sesong mangler timefaktorer");
 
+      const { count: hoursCount } = await supabase
+        .from("department_operating_hours")
+        .select("*", { count: "exact", head: true })
+        .eq("workspace_id", wsId!)
+        .eq("season_id", seasonId);
+
+      if (!hoursCount || hoursCount === 0) {
+        const proceed = window.confirm(t("yearWheel.activate_no_season_hours_confirm"));
+        if (!proceed) return null;
+      }
+
       // Deactivate any currently active season in this workspace.
       // We check the error explicitly so a failed deactivation doesn't leave two
       // seasons active at the same time (partial success window).
@@ -185,6 +198,7 @@ export function useSeasons() {
       return data;
     },
     onSuccess: (data) => {
+      if (!data) return;
       void emit({
         event: "season activated",
         workspace_id: wsId ?? null,

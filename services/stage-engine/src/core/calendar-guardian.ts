@@ -88,14 +88,33 @@ export async function evaluateCalendarTriggers(): Promise<void> {
       // Query the season table directly for authoritative dates (not collected_data which is fragile)
       if (!session.workspace_id) continue;
 
-      const { data: season } = await supabaseAdmin
+      const { data: activeSeason } = await supabaseAdmin
         .from("season")
         .select("start_date, end_date")
         .eq("workspace_id", session.workspace_id)
-        .in("status", ["draft", "active"])
-        .order("created_at", { ascending: false })
+        .eq("status", "active")
         .limit(1)
-        .single();
+        .maybeSingle();
+
+      const season = activeSeason
+        ? activeSeason
+        : (
+            await supabaseAdmin
+              .from("season")
+              .select("start_date, end_date")
+              .eq("workspace_id", session.workspace_id)
+              .eq("status", "draft")
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle()
+          ).data;
+
+      if (!activeSeason && season) {
+        console.warn(
+          `[CalendarGuardian] No active season for workspace ${session.workspace_id}. ` +
+            `Falling back to newest draft season.`,
+        );
+      }
 
       if (!season?.start_date || !season?.end_date) continue;
 

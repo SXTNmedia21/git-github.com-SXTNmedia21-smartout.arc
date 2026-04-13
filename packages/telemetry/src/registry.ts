@@ -1041,6 +1041,30 @@ export interface SeasonUpdated extends BaseEvent {
   };
 }
 
+export interface SeasonOperatingHoursCopied extends BaseEvent {
+  event: "season operating_hours_copied";
+  properties: {
+    entity: EntityRef;
+    data: { rows_copied: number };
+  };
+}
+
+export interface SeasonOperatingHoursUpdated extends BaseEvent {
+  event: "season operating_hours_updated";
+  properties: {
+    entity: EntityRef;
+    data: Record<string, never>;
+  };
+}
+
+export interface SeasonOperatingHoursRemoved extends BaseEvent {
+  event: "season operating_hours_removed";
+  properties: {
+    entity: EntityRef;
+    data: Record<string, never>;
+  };
+}
+
 export interface SeasonGoalCreated extends BaseEvent {
   event: "season_goal created";
   properties: {
@@ -3132,6 +3156,9 @@ export type SmartoutEvent =
   | SeasonActivated
   | SeasonArchived
   | SeasonUpdated
+  | SeasonOperatingHoursCopied
+  | SeasonOperatingHoursUpdated
+  | SeasonOperatingHoursRemoved
   | SeasonBudgetUpdated
   | SeasonGoalCreated
   | SeasonGoalUpdated
@@ -3752,6 +3779,18 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "operations",
   },
   "season updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "season operating_hours_copied": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "season operating_hours_updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "season operating_hours_removed": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "operations",
   },
