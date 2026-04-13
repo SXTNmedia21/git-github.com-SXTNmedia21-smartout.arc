@@ -14754,6 +14754,10 @@ export type Database = {
         Args: { p_workspace_id: string }
         Returns: string
       }
+      submit_own_pii: {
+        Args: { p_field_group: string; p_values: Json; p_workspace_id: string }
+        Returns: Json
+      }
       trigger_due_emma_tasks: { Args: never; Returns: number }
       upsert_secret: {
         Args: { p_description?: string; p_name: string; p_secret: string }

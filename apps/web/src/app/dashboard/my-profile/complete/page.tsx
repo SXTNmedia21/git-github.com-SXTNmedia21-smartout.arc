@@ -5,8 +5,8 @@
  *
  * UI lens for contract_data_intake: the employee fills in missing PII
  * (identity group: personal_number, address, postal_code, city) needed
- * for their employment contract. Uses the admin_submit_employee_pii RPC
- * with the employee's own profile_id and a "Self-service intake" reason.
+ * for their employment contract. Uses the submit_own_pii RPC — employee
+ * submits their own data without requiring admin/owner role.
  *
  * ADR-0077: PII handling. ADR-0078: channel restriction (chat only — voice forbidden).
  */
@@ -61,24 +61,37 @@ export default function CompleteProfilePage() {
     try {
       const supabase = createClient();
 
-      // Build the values payload — only include non-empty fields
-      const groupValues: Record<string, string> = {};
-      if (values.personal_number.trim())
-        groupValues.personal_number = values.personal_number.trim();
-      if (values.address.trim()) groupValues.address_line_1 = values.address.trim();
-      if (values.postal_code.trim()) groupValues.postal_code = values.postal_code.trim();
-      if (values.city.trim()) groupValues.city = values.city.trim();
+      // Submit identity group (personal_number) if provided
+      if (values.personal_number.trim()) {
+        const { error: identityError } = await supabase.rpc("submit_own_pii", {
+          p_workspace_id: workspaceId!,
+          p_field_group: "identity",
+          p_values: { personal_number: values.personal_number.trim() },
+        });
 
-      const { error } = await supabase.rpc("admin_submit_employee_pii", {
-        p_profile_id: profileId!,
-        p_field_group: "identity",
-        p_values: groupValues,
-        p_reason: "Self-service intake",
-      });
+        if (identityError) {
+          toast.error(`Feil: ${identityError.message}`);
+          return;
+        }
+      }
 
-      if (error) {
-        toast.error(`Feil: ${error.message}`);
-        return;
+      // Submit address group if any address field is provided
+      const addressValues: Record<string, string> = {};
+      if (values.address.trim()) addressValues.address_line_1 = values.address.trim();
+      if (values.postal_code.trim()) addressValues.postal_code = values.postal_code.trim();
+      if (values.city.trim()) addressValues.city = values.city.trim();
+
+      if (Object.keys(addressValues).length > 0) {
+        const { error: addressError } = await supabase.rpc("submit_own_pii", {
+          p_workspace_id: workspaceId!,
+          p_field_group: "address",
+          p_values: addressValues,
+        });
+
+        if (addressError) {
+          toast.error(`Feil: ${addressError.message}`);
+          return;
+        }
       }
 
       await emit({
@@ -87,7 +100,7 @@ export default function CompleteProfilePage() {
         actor_id: actorId,
         properties: {
           entity: { entity_type: "profile", entity_id: profileId! },
-          data: { group: "identity" },
+          data: { group: "self_service" },
         },
       });
 

@@ -5,8 +5,8 @@
  * - Personnummer (identity group)
  * - Adresse, Postnummer, By (address group)
  *
- * Uses admin_submit_employee_pii RPC — mirrors web /my-profile/complete.
- * ADR-0077: PII handling. ADR-0078: voice forbidden for PII fields.
+ * Uses submit_own_pii RPC — employee submits their own data without admin role.
+ * Mirrors web /my-profile/complete. ADR-0077: PII handling. ADR-0078: voice forbidden.
  */
 
 import React, { useState } from "react";
@@ -54,6 +54,7 @@ export default function CompleteDataScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const profileId = profile?.profile_id;
+  const workspaceId = profile?.workspace_id;
 
   function validate(): string | null {
     const pnr = values.personal_number.trim();
@@ -66,7 +67,7 @@ export default function CompleteDataScreen() {
   }
 
   async function handleSubmit() {
-    if (!profileId || submitting) return;
+    if (!profileId || !workspaceId || submitting) return;
 
     const validationError = validate();
     if (validationError) {
@@ -80,11 +81,10 @@ export default function CompleteDataScreen() {
     try {
       // Submit identity group (personal_number) if provided
       if (values.personal_number.trim()) {
-        const { error: identityError } = await supabase.rpc("admin_submit_employee_pii", {
-          p_profile_id: profileId,
+        const { error: identityError } = await supabase.rpc("submit_own_pii", {
+          p_workspace_id: workspaceId,
           p_field_group: "identity",
           p_values: { personal_number: values.personal_number.trim() },
-          p_reason: "Self-service intake",
         });
 
         if (identityError) {
@@ -100,11 +100,10 @@ export default function CompleteDataScreen() {
       if (values.city.trim()) addressValues.city = values.city.trim();
 
       if (Object.keys(addressValues).length > 0) {
-        const { error: addressError } = await supabase.rpc("admin_submit_employee_pii", {
-          p_profile_id: profileId,
+        const { error: addressError } = await supabase.rpc("submit_own_pii", {
+          p_workspace_id: workspaceId,
           p_field_group: "address",
           p_values: addressValues,
-          p_reason: "Self-service intake",
         });
 
         if (addressError) {
