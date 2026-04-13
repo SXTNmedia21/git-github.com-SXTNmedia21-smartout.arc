@@ -10,7 +10,7 @@ import nbDashboard from "../locales/nb/dashboard.json";
 import nbMobile from "../locales/nb/mobile.json";
 import nbNotifications from "../locales/nb/notifications.json";
 import nbAuth from "../locales/nb/auth.json";
-import nbCleaning from "../locales/nb/cleaning.json";
+import nbSwap from "../locales/nb/swap.json";
 import enCommon from "../locales/en/common.json";
 import enLanding from "../locales/en/landing.json";
 import enDocs from "../locales/en/docs.json";
@@ -21,7 +21,7 @@ import enDashboard from "../locales/en/dashboard.json";
 import enMobile from "../locales/en/mobile.json";
 import enNotifications from "../locales/en/notifications.json";
 import enAuth from "../locales/en/auth.json";
-import enCleaning from "../locales/en/cleaning.json";
+import enSwap from "../locales/en/swap.json";
 
 type MessageValue = string | Record<string, string | Record<string, string>>;
 type Messages = Record<string, MessageValue>;
@@ -38,7 +38,7 @@ const localeModules: Record<string, Record<string, Messages>> = {
     mobile: nbMobile,
     notifications: nbNotifications,
     auth: nbAuth,
-    cleaning: nbCleaning,
+    swap: nbSwap,
   },
   en: {
     common: enCommon,
@@ -51,7 +51,7 @@ const localeModules: Record<string, Record<string, Messages>> = {
     mobile: enMobile,
     notifications: enNotifications,
     auth: enAuth,
-    cleaning: enCleaning,
+    swap: enSwap,
   },
 };
 

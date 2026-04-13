@@ -36,6 +36,31 @@ import { SaveTemplateDialog } from "./save-template-dialog";
 import { useAgentProposals } from "./agent-proposals-context";
 import type { ShiftProposalCreate } from "./schedule-types";
 import type { ScheduleEmployee } from "../_hooks/use-employees";
+import { SwapRequestDialog } from "./SwapRequestDialog";
+import { ArrowLeftRight } from "lucide-react";
+
+/** Compute work hours from "HH:MM" start/end strings (naive, no overnight handling) */
+function computeWorkHours(startTime: string, endTime: string): number {
+  const [sh, sm] = startTime.split(":").map(Number);
+  const [eh, em] = endTime.split(":").map(Number);
+  if (sh === undefined || sm === undefined || eh === undefined || em === undefined) return 0;
+  const diff = (eh * 60 + em - (sh * 60 + sm)) / 60;
+  return diff > 0 ? diff : diff + 24; // handle overnight shifts
+}
+
+/** Find dateId for a shift by looking it up in the grid cells Map */
+function findDateIdForShift(
+  shiftId: string,
+  cells: Map<string, { assignments: { shiftId: string }[] }>,
+): string {
+  for (const [key, cell] of cells) {
+    if (cell.assignments.some((a) => a.shiftId === shiftId)) {
+      // Key format is "dateId::configId" — extract dateId
+      return key.split("::")[0] ?? "";
+    }
+  }
+  return "";
+}
 
 // ISO week number calculation — avoids a date-fns dependency at the grid level
 function getISOWeek(date: Date): number {
@@ -57,6 +82,8 @@ export function MalGrid({ departmentName, weekStart, departmentOptions }: MalGri
   const [loadTemplateOpen, setLoadTemplateOpen] = useState(false);
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
   const [selectedAssignment, setSelectedAssignment] = useState<MalEmployeeAssignment | null>(null);
+  const [swapDialogOpen, setSwapDialogOpen] = useState(false);
+  const [swapAssignment, setSwapAssignment] = useState<MalEmployeeAssignment | null>(null);
 
   const { workspace } = useWorkspace();
   const { isDark, setActiveDepartment, profileId, setScheduleDateOffset } =
@@ -446,9 +473,54 @@ export function MalGrid({ departmentName, weekStart, departmentOptions }: MalGri
                 >
                   Rediger vakt
                 </Button>
+                {selectedAssignment?.status === "published" && selectedAssignment?.employeeId && (
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      setSwapAssignment(selectedAssignment);
+                      setSwapDialogOpen(true);
+                      setSelectedAssignment(null);
+                    }}
+                  >
+                    <ArrowLeftRight className="mr-2 h-4 w-4" />
+                    Foreslå bytte
+                  </Button>
+                )}
               </div>
             </SheetContent>
           </Sheet>
+
+          {/* Swap request dialog — opens from the shift detail sheet */}
+          {swapDialogOpen && swapAssignment && (
+            <SwapRequestDialog
+              open={swapDialogOpen}
+              onOpenChange={(val) => {
+                setSwapDialogOpen(val);
+                if (!val) setSwapAssignment(null);
+              }}
+              shift={{
+                id: swapAssignment.shiftId,
+                employeeId: swapAssignment.employeeId,
+                dateId: findDateIdForShift(swapAssignment.shiftId, data?.cells ?? new Map()),
+                role: swapAssignment.role ?? "",
+                time: `${swapAssignment.startTime ?? ""} - ${swapAssignment.endTime ?? ""}`,
+                startTime: swapAssignment.startTime ?? "",
+                endTime: swapAssignment.endTime ?? "",
+                workHours: computeWorkHours(
+                  swapAssignment.startTime ?? "",
+                  swapAssignment.endTime ?? "",
+                ),
+                status: swapAssignment.status as "published",
+                dayCategory: "morning",
+                indicator: "blue",
+                isPublished: true,
+                breaks: 0,
+                createdAt: "",
+                updatedAt: "",
+              }}
+            />
+          )}
         </div>
       </DndContext>
     </TooltipProvider>
