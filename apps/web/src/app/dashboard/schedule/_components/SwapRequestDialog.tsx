@@ -29,6 +29,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ArrowLeftRight, AlertTriangle, XCircle, CheckCircle, Loader2 } from "lucide-react";
+import { useTranslation } from "@smartout/i18n";
 
 import { useWorkspace } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
@@ -60,6 +61,7 @@ type EligibleShift = ShiftForValidation & {
 export function SwapRequestDialog({ open, onOpenChange, shift }: SwapRequestDialogProps) {
   const { workspace } = useWorkspace();
   const initiateSwap = useInitiateSwap();
+  const { t } = useTranslation("swap");
 
   const [selectedTargetShift, setSelectedTargetShift] = useState<EligibleShift | null>(null);
   const [reason, setReason] = useState("");
@@ -102,7 +104,7 @@ export function SwapRequestDialog({ open, onOpenChange, shift }: SwapRequestDial
 
       const profileMap = new Map<string, string>();
       for (const p of (profiles ?? []) as ColleagueProfile[]) {
-        profileMap.set(p.profile_id, p.display_name ?? "Ukjent");
+        profileMap.set(p.profile_id, p.display_name ?? t("swap.unknownProfile"));
       }
 
       return (shifts ?? []).map(
@@ -115,7 +117,7 @@ export function SwapRequestDialog({ open, onOpenChange, shift }: SwapRequestDial
           work_hours: Number(s.work_hours),
           position_id: s.position_id,
           status: s.status,
-          display_name: profileMap.get(s.employee_id ?? "") ?? "Ukjent",
+          display_name: profileMap.get(s.employee_id ?? "") ?? t("swap.unknownProfile"),
         }),
       );
     },
@@ -217,14 +219,14 @@ export function SwapRequestDialog({ open, onOpenChange, shift }: SwapRequestDial
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ArrowLeftRight className="h-5 w-5" />
-            Foreslå bytte
+            {t("swap.requestSwap")}
           </DialogTitle>
-          <DialogDescription>Velg en kollega og vakt å bytte med</DialogDescription>
+          <DialogDescription>{t("swap.selectColleagueAndShift")}</DialogDescription>
         </DialogHeader>
 
         {/* ── Your shift details ──────────────────────────────────── */}
         <div className="border-border bg-muted/50 rounded-lg border p-3">
-          <p className="text-muted-foreground text-xs font-medium">Din vakt</p>
+          <p className="text-muted-foreground text-xs font-medium">{t("swap.yourShift")}</p>
           <p className="text-sm font-semibold">
             {shift.dateId} &middot; {shift.startTime} - {shift.endTime}
           </p>
@@ -233,17 +235,17 @@ export function SwapRequestDialog({ open, onOpenChange, shift }: SwapRequestDial
 
         {/* ── Colleague picker ────────────────────────────────────── */}
         <div className="space-y-2">
-          <Label className="text-sm">Velg kollega og vakt</Label>
+          <Label className="text-sm">{t("swap.selectColleagueShift")}</Label>
           <ScrollArea className="max-h-48">
             {eligibleQuery.isLoading && (
               <div className="text-muted-foreground flex items-center gap-2 p-4 text-sm">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Laster kolleger...
+                {t("swap.loadingColleagues")}
               </div>
             )}
             {groupedByEmployee.length === 0 && !eligibleQuery.isLoading && (
               <div className="border-border text-muted-foreground rounded-lg border border-dashed p-4 text-center text-sm">
-                Ingen tilgjengelige kolleger for denne vakten
+                {t("swap.noEligible")}
               </div>
             )}
             <div className="space-y-1" role="listbox">
@@ -309,7 +311,7 @@ export function SwapRequestDialog({ open, onOpenChange, shift }: SwapRequestDial
             )}
             {validationResult.tariff_delta !== undefined && (
               <p className="text-muted-foreground text-xs">
-                Kostnadsendring: {validationResult.tariff_delta} kr/t
+                {t("swap.tariffDelta", { amount: String(validationResult.tariff_delta) })}
               </p>
             )}
             {validationResult.eligible && validationResult.warnings.length === 0 && (
@@ -318,7 +320,7 @@ export function SwapRequestDialog({ open, onOpenChange, shift }: SwapRequestDial
                 className="border-success text-success flex w-full items-center justify-start gap-1.5"
               >
                 <CheckCircle className="h-3.5 w-3.5" />
-                Ingen blokkeringer eller advarsler
+                {t("swap.noBlockersOrWarnings")}
               </Badge>
             )}
           </div>
@@ -328,11 +330,11 @@ export function SwapRequestDialog({ open, onOpenChange, shift }: SwapRequestDial
         {selectedTargetShift && (
           <div className="space-y-1">
             <Label htmlFor="swap-reason" className="text-sm">
-              Begrunnelse (valgfri)
+              {t("swap.reason")}
             </Label>
             <Textarea
               id="swap-reason"
-              placeholder="F.eks. Legetime, bytte av fridag..."
+              placeholder={t("swap.reasonPlaceholder")}
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               rows={2}
@@ -342,16 +344,16 @@ export function SwapRequestDialog({ open, onOpenChange, shift }: SwapRequestDial
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Avbryt
+            {t("swap.cancelSwap")}
           </Button>
           <Button onClick={handleConfirm} disabled={!canSubmit}>
             {initiateSwap.isPending ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Sender...
+                {t("swap.sending")}
               </>
             ) : (
-              "Bekreft bytte"
+              t("swap.confirmSwap")
             )}
           </Button>
         </DialogFooter>

@@ -23,6 +23,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
+import { useTranslation } from "@smartout/i18n";
 
 import {
   useSwapRequests,
@@ -34,34 +35,28 @@ import {
 // ── Status badge config ─────────────────────────────────────────────────────
 // Uses semantic color tokens per Nordic Split spec
 
-const STATUS_CONFIG = {
-  pending_recipient: {
-    label: "Venter på kollega",
-    Icon: Clock,
-    className: "border-warning text-warning",
-  },
-  pending_manager: {
-    label: "Venter på godkjenning",
-    Icon: UserCheck,
-    className: "border-info text-info",
-  },
-  approved: {
-    label: "Godkjent",
-    Icon: CheckCircle,
-    className: "border-success text-success",
-  },
-  rejected: {
-    label: "Avvist",
-    Icon: XCircle,
-    className: "border-destructive text-destructive",
-  },
+const STATUS_STYLE = {
+  pending_recipient: { Icon: Clock, className: "border-warning text-warning" },
+  pending_manager: { Icon: UserCheck, className: "border-info text-info" },
+  approved: { Icon: CheckCircle, className: "border-success text-success" },
+  rejected: { Icon: XCircle, className: "border-destructive text-destructive" },
 } as const;
 
-function SwapStatusBadge({ status }: { status: string }) {
-  const config = STATUS_CONFIG[status as keyof typeof STATUS_CONFIG];
-  if (!config) return null;
+/** Maps swap status to the corresponding i18n key */
+const STATUS_I18N_KEY: Record<string, string> = {
+  pending_recipient: "swap.pendingRecipient",
+  pending_manager: "swap.pendingManager",
+  approved: "swap.approved",
+  rejected: "swap.rejected",
+};
 
-  const { label, Icon, className } = config;
+function SwapStatusBadge({ status }: { status: string }) {
+  const style = STATUS_STYLE[status as keyof typeof STATUS_STYLE];
+  const { t } = useTranslation("swap");
+  if (!style) return null;
+
+  const { Icon, className } = style;
+  const label = t(STATUS_I18N_KEY[status] ?? status);
   return (
     <Badge variant="outline" className={`flex items-center gap-1 ${className}`}>
       <Icon className="h-3 w-3" />
@@ -77,6 +72,7 @@ function SwapCard({ swap, isManager }: { swap: SwapRequest; isManager: boolean }
   const respondToSwap = useRespondToSwap();
   const [rejectReason, setRejectReason] = useState("");
   const [showRejectInput, setShowRejectInput] = useState(false);
+  const { t } = useTranslation("swap");
 
   const ctx = swap.context;
   const canApprove = isManager && ctx.status === "pending_manager";
@@ -114,16 +110,17 @@ function SwapCard({ swap, isManager }: { swap: SwapRequest; isManager: boolean }
         <div className="flex-1 space-y-1">
           <div className="flex items-center gap-2">
             <ArrowLeftRight className="text-muted-foreground h-4 w-4" />
-            <span className="text-sm font-medium">Skiftbytte</span>
+            <span className="text-sm font-medium">{t("swap.shiftSwap")}</span>
             <SwapStatusBadge status={ctx.status} />
           </div>
           <div className="text-muted-foreground grid grid-cols-2 gap-2 text-xs">
             <div>
-              <span className="font-medium">Forslagsstiller:</span>{" "}
+              <span className="font-medium">{t("swap.requester")}</span>{" "}
               {ctx.requester_profile_id.slice(0, 8)}...
             </div>
             <div>
-              <span className="font-medium">Mottaker:</span> {ctx.target_profile_id.slice(0, 8)}...
+              <span className="font-medium">{t("swap.recipient")}</span>{" "}
+              {ctx.target_profile_id.slice(0, 8)}...
             </div>
           </div>
           {ctx.reason && (
@@ -131,7 +128,7 @@ function SwapCard({ swap, isManager }: { swap: SwapRequest; isManager: boolean }
           )}
           {ctx.validation_result?.tariff_delta !== undefined && (
             <p className="text-muted-foreground text-xs">
-              Kostnadsendring: {ctx.validation_result.tariff_delta} kr/t
+              {t("swap.tariffDelta", { amount: String(ctx.validation_result.tariff_delta) })}
             </p>
           )}
         </div>
@@ -142,7 +139,7 @@ function SwapCard({ swap, isManager }: { swap: SwapRequest; isManager: boolean }
             <>
               <Button size="sm" variant="outline" onClick={handleApprove}>
                 <CheckCircle className="mr-1 h-3.5 w-3.5" />
-                Godkjenn
+                {t("swap.approve")}
               </Button>
               <Button
                 size="sm"
@@ -151,7 +148,7 @@ function SwapCard({ swap, isManager }: { swap: SwapRequest; isManager: boolean }
                 onClick={() => setShowRejectInput(!showRejectInput)}
               >
                 <XCircle className="mr-1 h-3.5 w-3.5" />
-                Avvis
+                {t("swap.reject")}
               </Button>
             </>
           )}
@@ -159,7 +156,7 @@ function SwapCard({ swap, isManager }: { swap: SwapRequest; isManager: boolean }
             <>
               <Button size="sm" variant="outline" onClick={handleAccept}>
                 <CheckCircle className="mr-1 h-3.5 w-3.5" />
-                Aksepter
+                {t("swap.accept")}
               </Button>
               <Button
                 size="sm"
@@ -168,7 +165,7 @@ function SwapCard({ swap, isManager }: { swap: SwapRequest; isManager: boolean }
                 onClick={() => setShowRejectInput(!showRejectInput)}
               >
                 <XCircle className="mr-1 h-3.5 w-3.5" />
-                Avvis
+                {t("swap.reject")}
               </Button>
             </>
           )}
@@ -179,14 +176,14 @@ function SwapCard({ swap, isManager }: { swap: SwapRequest; isManager: boolean }
       {showRejectInput && (
         <div className="mt-2 flex gap-2">
           <Textarea
-            placeholder="Begrunnelse (valgfri)"
+            placeholder={t("swap.reason")}
             value={rejectReason}
             onChange={(e) => setRejectReason(e.target.value)}
             rows={1}
             className="text-sm"
           />
           <Button size="sm" variant="destructive" onClick={handleReject}>
-            Bekreft avvisning
+            {t("swap.confirmRejection")}
           </Button>
         </div>
       )}
@@ -199,6 +196,7 @@ function SwapCard({ swap, isManager }: { swap: SwapRequest; isManager: boolean }
 export function SwapApprovalSection({ isAdmin }: { isAdmin: boolean }) {
   const [expanded, setExpanded] = useState(true);
   const { data: swaps, isLoading } = useSwapRequests();
+  const { t } = useTranslation("swap");
 
   // Filter to only show actionable swaps
   const activeSwaps = (swaps ?? []).filter(
@@ -215,7 +213,7 @@ export function SwapApprovalSection({ isAdmin }: { isAdmin: boolean }) {
       >
         <span className="flex items-center gap-2">
           <ArrowLeftRight className="h-4 w-4" />
-          Ventende bytter ({activeSwaps.length})
+          {t("swap.pendingSwaps")} ({activeSwaps.length})
         </span>
         {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
       </button>
