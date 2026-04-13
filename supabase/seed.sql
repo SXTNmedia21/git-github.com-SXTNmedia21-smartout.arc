@@ -1634,24 +1634,6 @@ INSERT INTO public.season_goal (
    'total_revenue', 2500000.00, 'NOK', 'active', 2,
    'f0000000-0000-0000-0000-000000000000');
 
--- ── 10.6 Season Policy Bindings (bind 4 of 5 policies to Vinter 2026) ───
-INSERT INTO public.season_policy_binding (
-  season_policy_binding_id, workspace_id, season_id, policy_id,
-  is_active, notes, activated_by
-) VALUES
-  ('af000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000000',
-   'ac000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000001',
-   true, 'HACCP er alltid aktiv.', 'f0000000-0000-0000-0000-000000000000'),
-  ('af000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000000',
-   'ac000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000002',
-   true, NULL, 'f0000000-0000-0000-0000-000000000000'),
-  ('af000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000',
-   'ac000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000003',
-   true, 'Ekstra viktig i vintesesongen med mange nyansatte.', 'f0000000-0000-0000-0000-000000000000'),
-  ('af000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000000',
-   'ac000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000005',
-   true, NULL, 'f0000000-0000-0000-0000-000000000000');
-
 -- ── 10.7 Operating Hours ────────────────────────────────────────
 INSERT INTO public.operating_hours (workspace_id, day_of_week, open_time, close_time, is_closed)
 VALUES
@@ -1911,6 +1893,25 @@ INSERT INTO public.policy (
    'Helse, miljø og sikkerhet',
    'Alle ansatte skal kjenne til rømningsveier, brannslukker-plassering og førstehjelp.',
    'aspirational', true, 'f0000000-0000-0000-0000-000000000000');
+
+-- Season policy bindings require policies to exist first (FK policy_id).
+-- ── 11.1b Season Policy Bindings (bind 4 of 5 policies to Vinter 2026) ───
+INSERT INTO public.season_policy_binding (
+  season_policy_binding_id, workspace_id, season_id, policy_id,
+  is_active, notes, activated_by
+) VALUES
+  ('af000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000000',
+   'ac000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000001',
+   true, 'HACCP er alltid aktiv.', 'f0000000-0000-0000-0000-000000000000'),
+  ('af000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000000',
+   'ac000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000002',
+   true, NULL, 'f0000000-0000-0000-0000-000000000000'),
+  ('af000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000',
+   'ac000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000003',
+   true, 'Ekstra viktig i vintesesongen med mange nyansatte.', 'f0000000-0000-0000-0000-000000000000'),
+  ('af000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000000',
+   'ac000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000005',
+   true, NULL, 'f0000000-0000-0000-0000-000000000000');
 
 -- ── 11.2 Protocols (one per policy) ──────────────────────────────────
 INSERT INTO public.protocol (

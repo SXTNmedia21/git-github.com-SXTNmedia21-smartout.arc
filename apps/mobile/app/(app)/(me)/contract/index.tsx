@@ -75,7 +75,14 @@ export default function ContractListScreen() {
       });
   }, [profileId, workspaceId]);
 
-  const active = useMemo(() => contracts.find((c) => c.status === "signed") ?? null, [contracts]);
+  const ACTIVE_STATUSES = ["signed", "sent", "viewed", "pending_data"] as const;
+  const active = useMemo(
+    () =>
+      contracts.find((c) =>
+        ACTIVE_STATUSES.includes(c.status as (typeof ACTIVE_STATUSES)[number]),
+      ) ?? null,
+    [contracts],
+  );
   const history = useMemo(
     () => contracts.filter((c) => c.contract_id !== active?.contract_id),
     [contracts, active],

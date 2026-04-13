@@ -6,7 +6,7 @@
  */
 
 import React, { useEffect, useState } from "react";
-import { View, Text, ScrollView, Pressable } from "react-native";
+import { View, Text, ScrollView, Pressable, Linking } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import {
@@ -17,6 +17,7 @@ import {
   Calendar,
   Scale,
   Lock,
+  ExternalLink,
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import { createStyles, useTheme, withOpacity } from "@/theme";
@@ -64,6 +65,7 @@ export default function ContractDetailScreen() {
   const [contract, setContract] = useState<Contract | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>("kontrakt");
+  const [signingUrl, setSigningUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -78,6 +80,19 @@ export default function ContractDetailScreen() {
         setLoading(false);
       });
   }, [id]);
+
+  useEffect(() => {
+    if (!contract?.signing_contract_id) return;
+
+    supabase
+      .from("contract")
+      .select("signing_url")
+      .eq("contract_id", contract.signing_contract_id)
+      .single()
+      .then(({ data }) => {
+        if (data?.signing_url) setSigningUrl(data.signing_url);
+      });
+  }, [contract?.signing_contract_id]);
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -162,6 +177,35 @@ export default function ContractDetailScreen() {
                 <Text style={styles.statusBadgeText}>{statusLabel(contract.status)}</Text>
               </View>
             </View>
+
+            {["sent", "viewed"].includes(contract.status) && (
+              <View style={styles.signingBanner}>
+                <Text style={styles.signingText}>Denne kontrakten venter på din signatur.</Text>
+                {signingUrl && (
+                  <Pressable
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                      const url = `https://smartout.ai/sign/${signingUrl}`;
+                      Linking.openURL(url);
+                    }}
+                    style={styles.signingButton}
+                    accessibilityRole="button"
+                    accessibilityLabel="Signer kontrakt"
+                  >
+                    <ExternalLink size={16} color="#ffffff" strokeWidth={1.8} />
+                    <Text style={styles.signingButtonText}>Signer kontrakt</Text>
+                  </Pressable>
+                )}
+              </View>
+            )}
+
+            {contract.status === "pending_data" && (
+              <View style={styles.dataBanner}>
+                <Text style={styles.dataText}>
+                  Vi trenger noe informasjon fra deg før kontrakten kan sendes.
+                </Text>
+              </View>
+            )}
 
             <InfoRow
               icon={<Briefcase size={16} color={theme.colors.mutedForeground} strokeWidth={1.5} />}
@@ -343,6 +387,44 @@ const useStyles = createStyles((theme) => ({
     fontSize: 12,
     fontWeight: "500" as const,
     color: theme.colors.brandOrange,
+  },
+
+  signingBanner: {
+    backgroundColor: withOpacity(theme.colors.brandOrange, 0.08),
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.card,
+    gap: 12,
+    marginBottom: theme.spacing.md,
+  },
+  signingText: {
+    ...theme.typography.body,
+    fontWeight: "500" as const,
+    color: theme.colors.foreground,
+  },
+  signingButton: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    gap: 8,
+    backgroundColor: theme.colors.brandOrange,
+    borderRadius: theme.radius.lg,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+  },
+  signingButtonText: {
+    fontSize: 15,
+    fontWeight: "600" as const,
+    color: "#ffffff",
+  },
+  dataBanner: {
+    backgroundColor: withOpacity("#3b82f6", 0.08),
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.card,
+    marginBottom: theme.spacing.md,
+  },
+  dataText: {
+    ...theme.typography.body,
+    color: theme.colors.foreground,
   },
 
   infoRow: {

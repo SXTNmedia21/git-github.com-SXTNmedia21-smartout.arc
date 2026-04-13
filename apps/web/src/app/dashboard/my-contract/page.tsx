@@ -51,6 +51,7 @@ function compensationText(contract: Contract): string {
 export default function MyContractPage() {
   const { workspaceData, profileId } = useContext(DashboardContext);
   const [contracts, setContracts] = useState<Contract[]>([]);
+  const [signingUrl, setSigningUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const workspaceId = workspaceData?.workspace_id;
@@ -66,13 +67,33 @@ export default function MyContractPage() {
       .eq("workspace_id", workspaceId)
       .order("created_at", { ascending: false })
       .then(({ data, error }) => {
-        if (!error && data) setContracts(data);
+        if (!error && data) {
+          setContracts(data);
+
+          // Load signing URL for contracts awaiting signature
+          const active = data.find((c) => ["sent", "viewed"].includes(c.status));
+          if (active?.signing_contract_id) {
+            supabase
+              .from("contract")
+              .select("signing_url")
+              .eq("contract_id", active.signing_contract_id)
+              .single()
+              .then(({ data: sc }) => {
+                if (sc?.signing_url) setSigningUrl(sc.signing_url);
+              });
+          }
+        }
         setLoading(false);
       });
   }, [workspaceId, profileId]);
 
+  const ACTIVE_STATUSES = ["signed", "sent", "viewed", "pending_data"] as const;
+
   const activeContract = useMemo(
-    () => contracts.find((c) => c.status === "signed") ?? null,
+    () =>
+      contracts.find((c) =>
+        ACTIVE_STATUSES.includes(c.status as (typeof ACTIVE_STATUSES)[number]),
+      ) ?? null,
     [contracts],
   );
 
@@ -122,6 +143,36 @@ export default function MyContractPage() {
               </span>
             </div>
           </div>
+
+          {/* Action banners for pending statuses */}
+          {["sent", "viewed"].includes(activeContract.status) && (
+            <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950">
+              <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                Denne kontrakten venter paa din signatur.
+              </p>
+              {signingUrl && (
+                <a
+                  href={`/sign/${signingUrl}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 inline-flex items-center gap-2 rounded-md bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700"
+                >
+                  Signer kontrakt
+                </a>
+              )}
+            </div>
+          )}
+
+          {activeContract.status === "pending_data" && (
+            <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950">
+              <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                Vi trenger noe informasjon fra deg foer kontrakten kan sendes.
+              </p>
+              <p className="mt-1 text-xs text-blue-600 dark:text-blue-300">
+                Du vil bli kontaktet med instruksjoner.
+              </p>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div className="flex items-center gap-2">
