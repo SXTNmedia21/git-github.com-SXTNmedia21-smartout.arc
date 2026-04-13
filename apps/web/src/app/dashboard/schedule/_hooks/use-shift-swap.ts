@@ -204,7 +204,7 @@ export function useApproveSwap() {
           actor_id: profileId ?? "",
           properties: {
             entity: { entity_type: "engine_state", entity_id: vars.swapId },
-            data: { swap_id: vars.swapId, approved_by: profileId ?? "" },
+            data: { swap_id: vars.swapId },
           },
         });
         void emit({

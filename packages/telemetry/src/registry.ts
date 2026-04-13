@@ -2926,8 +2926,10 @@ export interface ShiftSwapExecuted extends BaseEvent {
     entity: EntityRef;
     data: {
       swap_id: string;
-      requester_shift_id: string;
-      target_shift_id: string;
+      /** Available when initiated, may not be available on approval path */
+      requester_shift_id?: string;
+      /** Available when initiated, may not be available on approval path */
+      target_shift_id?: string;
     };
   };
 }
