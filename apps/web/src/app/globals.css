@@ -58,6 +58,30 @@
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
   --color-info: var(--info);
+  /* Komm — Communication semantic colors */
+  --color-komm-announcement: var(--komm-announcement);
+  --color-komm-brief: var(--komm-brief);
+  --color-komm-handoff: var(--komm-handoff);
+  --color-komm-reminder: var(--komm-reminder);
+  --color-komm-summary: var(--komm-summary);
+  --color-komm-planning: var(--komm-planning);
+  --color-komm-call-active: var(--komm-call-active);
+  --color-komm-call-incoming: var(--komm-call-incoming);
+  --color-komm-ptt-active: var(--komm-ptt-active);
+  --color-komm-problem: var(--komm-problem);
+  --color-komm-manual: var(--komm-manual);
+  --color-komm-training: var(--komm-training);
+  --color-komm-quiz: var(--komm-quiz);
+  --color-komm-task: var(--komm-task);
+  --color-komm-images: var(--komm-images);
+  --color-komm-link: var(--komm-link);
+  --color-komm-ai: var(--komm-ai);
+  --color-komm-department: var(--komm-department);
+  --color-komm-team: var(--komm-team);
+  --color-komm-session: var(--komm-session);
+  --color-komm-direct: var(--komm-direct);
+  --color-komm-news: var(--komm-news);
+  --color-komm-skill: var(--komm-skill);
   /* Onboarding color temperature journey */
   --color-onboarding-hero: oklch(0.13 0.01 250);
   --color-onboarding-business: oklch(0.12 0.02 60);

@@ -4330,6 +4330,57 @@ export type Database = {
           },
         ]
       }
+      contract_template_binding: {
+        Row: {
+          created_at: string
+          employee_group_id: string | null
+          employment_category: string
+          id: string
+          is_active: boolean
+          priority: number
+          template_id: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          employee_group_id?: string | null
+          employment_category: string
+          id?: string
+          is_active?: boolean
+          priority?: number
+          template_id: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          employee_group_id?: string | null
+          employment_category?: string
+          id?: string
+          is_active?: boolean
+          priority?: number
+          template_id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_template_binding_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "contract_template"
+            referencedColumns: ["template_id"]
+          },
+          {
+            foreignKeyName: "contract_template_binding_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       control_list: {
         Row: {
           assigned_to_ref: string | null
@@ -9199,9 +9250,55 @@ export type Database = {
           },
         ]
       }
+      platform_communication_channel_result: {
+        Row: {
+          channel: string
+          communication_id: string
+          created_at: string
+          failed_count: number
+          id: string
+          provider: string | null
+          provider_batch_id: string | null
+          recipient_count: number
+          sent_count: number
+        }
+        Insert: {
+          channel: string
+          communication_id: string
+          created_at?: string
+          failed_count?: number
+          id?: string
+          provider?: string | null
+          provider_batch_id?: string | null
+          recipient_count?: number
+          sent_count?: number
+        }
+        Update: {
+          channel?: string
+          communication_id?: string
+          created_at?: string
+          failed_count?: number
+          id?: string
+          provider?: string | null
+          provider_batch_id?: string | null
+          recipient_count?: number
+          sent_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_communication_channel_result_communication_id_fkey"
+            columns: ["communication_id"]
+            isOneToOne: false
+            referencedRelation: "platform_communication_log"
+            referencedColumns: ["communication_id"]
+          },
+        ]
+      }
       platform_communication_log: {
         Row: {
           audience_filter: Json | null
+          campaign_id: string | null
+          channel: string
           classification: string
           clicked_count: number
           communication_id: string
@@ -9213,6 +9310,7 @@ export type Database = {
           provider: string | null
           provider_batch_id: string | null
           recipient_count: number
+          scheduled_for: string | null
           sendgrid_template_id: string | null
           sent_count: number
           status: string
@@ -9225,6 +9323,8 @@ export type Database = {
         }
         Insert: {
           audience_filter?: Json | null
+          campaign_id?: string | null
+          channel?: string
           classification?: string
           clicked_count?: number
           communication_id?: string
@@ -9236,6 +9336,7 @@ export type Database = {
           provider?: string | null
           provider_batch_id?: string | null
           recipient_count?: number
+          scheduled_for?: string | null
           sendgrid_template_id?: string | null
           sent_count?: number
           status?: string
@@ -9248,6 +9349,8 @@ export type Database = {
         }
         Update: {
           audience_filter?: Json | null
+          campaign_id?: string | null
+          channel?: string
           classification?: string
           clicked_count?: number
           communication_id?: string
@@ -9259,6 +9362,7 @@ export type Database = {
           provider?: string | null
           provider_batch_id?: string | null
           recipient_count?: number
+          scheduled_for?: string | null
           sendgrid_template_id?: string | null
           sent_count?: number
           status?: string
@@ -9430,12 +9534,23 @@ export type Database = {
       platform_email_template: {
         Row: {
           category: string
+          channel: string
           created_at: string
           created_by: string | null
+          in_app_action_url: string | null
+          in_app_body: string | null
+          in_app_icon_type: string | null
+          in_app_mode: string | null
+          in_app_priority: number | null
+          in_app_title: string | null
           is_active: boolean
           name: string
           placeholders: Json
+          push_action_url: string | null
+          push_body: string | null
+          push_title: string | null
           sections: Json
+          sms_body: string | null
           status: string
           subject: string
           template_id: string
@@ -9443,12 +9558,23 @@ export type Database = {
         }
         Insert: {
           category?: string
+          channel?: string
           created_at?: string
           created_by?: string | null
+          in_app_action_url?: string | null
+          in_app_body?: string | null
+          in_app_icon_type?: string | null
+          in_app_mode?: string | null
+          in_app_priority?: number | null
+          in_app_title?: string | null
           is_active?: boolean
           name: string
           placeholders?: Json
+          push_action_url?: string | null
+          push_body?: string | null
+          push_title?: string | null
           sections?: Json
+          sms_body?: string | null
           status?: string
           subject?: string
           template_id?: string
@@ -9456,12 +9582,23 @@ export type Database = {
         }
         Update: {
           category?: string
+          channel?: string
           created_at?: string
           created_by?: string | null
+          in_app_action_url?: string | null
+          in_app_body?: string | null
+          in_app_icon_type?: string | null
+          in_app_mode?: string | null
+          in_app_priority?: number | null
+          in_app_title?: string | null
           is_active?: boolean
           name?: string
           placeholders?: Json
+          push_action_url?: string | null
+          push_body?: string | null
+          push_title?: string | null
           sections?: Json
+          sms_body?: string | null
           status?: string
           subject?: string
           template_id?: string

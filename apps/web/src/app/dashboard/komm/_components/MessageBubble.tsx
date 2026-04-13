@@ -82,7 +82,7 @@ export function MessageBubble({ message, channelId, profileId, isOwn, onReply }:
               className={cn(
                 "text-sm font-medium",
                 isOwn && "text-primary",
-                message.sender_role === "system" && "text-amber-500",
+                message.sender_role === "system" && "text-komm-ai",
               )}
             >
               {message.sender_name ?? t("message.unknown_sender")}
@@ -91,7 +91,7 @@ export function MessageBubble({ message, channelId, profileId, isOwn, onReply }:
             {message.edited_at && (
               <span className="text-muted-foreground text-[10px]">{t("message.edited")}</span>
             )}
-            {message.is_pinned && <Pin className="h-3 w-3 text-amber-500" />}
+            {message.is_pinned && <Pin className="text-komm-ai h-3 w-3" />}
           </div>
           <p className="text-sm leading-relaxed break-words whitespace-pre-wrap">
             {message.content}

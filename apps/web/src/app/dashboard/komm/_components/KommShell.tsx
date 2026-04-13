@@ -27,6 +27,9 @@ import { MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useTranslation } from "@smartout/i18n";
+import { AnimatePresence, motion } from "framer-motion";
+
+const TAB_TRANSITION = { type: "spring" as const, stiffness: 260, damping: 20, mass: 1 };
 
 type LiveKitConnection = {
   serverUrl: string;
@@ -162,26 +165,37 @@ export function KommShell({ profileId }: { profileId: string }) {
           channelUnread={channelUnread}
           chatUnread={chatUnread}
         />
-        <div className="flex-1 overflow-y-auto">
-          {activeTab === "oversikt" && <CommunicationOverview />}
-          {activeTab === "kanaler" && (
-            <ChannelList
-              channelGroups={channelGroups ?? []}
-              isLoading={isLoading}
-              activeChannelId={activeChannelId}
-              onSelectChannel={handleSelectChannel}
-              profileId={profileId}
-            />
-          )}
-          {activeTab === "chat" && (
-            <ChatList
-              channels={allChannels}
-              activeChannelId={activeChannelId}
-              onSelectChannel={handleSelectChannel}
-              profileId={profileId}
-            />
-          )}
-          {activeTab === "nyheter" && <NewsFeed channels={allChannels} profileId={profileId} />}
+        <div className="relative flex-1 overflow-y-auto">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={TAB_TRANSITION}
+              className="h-full"
+            >
+              {activeTab === "oversikt" && <CommunicationOverview />}
+              {activeTab === "kanaler" && (
+                <ChannelList
+                  channelGroups={channelGroups ?? []}
+                  isLoading={isLoading}
+                  activeChannelId={activeChannelId}
+                  onSelectChannel={handleSelectChannel}
+                  profileId={profileId}
+                />
+              )}
+              {activeTab === "chat" && (
+                <ChatList
+                  channels={allChannels}
+                  activeChannelId={activeChannelId}
+                  onSelectChannel={handleSelectChannel}
+                  profileId={profileId}
+                />
+              )}
+              {activeTab === "nyheter" && <NewsFeed channels={allChannels} profileId={profileId} />}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </div>
 

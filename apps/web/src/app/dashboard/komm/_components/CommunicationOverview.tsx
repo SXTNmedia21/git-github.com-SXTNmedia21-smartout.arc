@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { useTranslation } from "@smartout/i18n";
+
+type TranslateFn = (key: string, params?: Record<string, string | number>) => string;
 import {
   useCommunicationOverview,
   type CommunicationEntry,
@@ -17,29 +19,40 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { motion, useReducedMotion } from "framer-motion";
 
 const TYPE_CONFIG: Record<CommunicationEntry["type"], { icon: typeof Megaphone; color: string }> = {
-  announcement: { icon: Megaphone, color: "bg-orange-500/15 text-orange-600" },
-  brief: { icon: FileText, color: "bg-blue-500/15 text-blue-600" },
-  handoff: { icon: ArrowRightLeft, color: "bg-purple-500/15 text-purple-600" },
-  reminder: { icon: Clock, color: "bg-amber-500/15 text-amber-600" },
-  summary: { icon: Bell, color: "bg-green-500/15 text-green-600" },
-  planning_event: { icon: CalendarDays, color: "bg-cyan-500/15 text-cyan-600" },
+  announcement: { icon: Megaphone, color: "bg-komm-announcement/15 text-komm-announcement" },
+  brief: { icon: FileText, color: "bg-komm-brief/15 text-komm-brief" },
+  handoff: { icon: ArrowRightLeft, color: "bg-komm-handoff/15 text-komm-handoff" },
+  reminder: { icon: Clock, color: "bg-komm-reminder/15 text-komm-reminder" },
+  summary: { icon: Bell, color: "bg-komm-summary/15 text-komm-summary" },
+  planning_event: { icon: CalendarDays, color: "bg-komm-planning/15 text-komm-planning" },
+};
+
+const SPRING = { type: "spring" as const, stiffness: 260, damping: 20, mass: 1 };
+const STAGGER_CONTAINER = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.04 } },
+};
+const STAGGER_ITEM = {
+  hidden: { opacity: 0, y: 8 },
+  visible: { opacity: 1, y: 0, transition: SPRING },
 };
 
 type FilterType = CommunicationEntry["type"] | "all";
 
-function formatDate(dateStr: string): string {
+function formatDate(dateStr: string, t: TranslateFn): string {
   const date = new Date(dateStr);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffDays = Math.floor(diffMs / 86400000);
 
   if (diffDays === 0) {
-    return `I dag ${date.toLocaleTimeString("nb-NO", { hour: "2-digit", minute: "2-digit" })}`;
+    return `${t("dates.today")} ${date.toLocaleTimeString("nb-NO", { hour: "2-digit", minute: "2-digit" })}`;
   }
-  if (diffDays === 1) return "I går";
-  if (diffDays < 7) return `${diffDays} dager siden`;
+  if (diffDays === 1) return t("dates.yesterday");
+  if (diffDays < 7) return t("dates.days_ago", { count: diffDays });
   return date.toLocaleDateString("nb-NO", { day: "numeric", month: "short", year: "numeric" });
 }
 
@@ -66,6 +79,7 @@ export function CommunicationOverview() {
   const { t } = useTranslation("komm");
   const { data: entries, isLoading } = useCommunicationOverview();
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
+  const prefersReducedMotion = useReducedMotion();
 
   const filters: { key: FilterType; label: string }[] = [
     { key: "all", label: t("overview.filter_all") },
@@ -134,48 +148,55 @@ export function CommunicationOverview() {
                 </span>
               </div>
               {/* Entries */}
-              {items.map((entry) => {
-                const config = TYPE_CONFIG[entry.type];
-                const Icon = config.icon;
-                return (
-                  <div
-                    key={entry.id}
-                    className="hover:bg-accent/50 flex items-start gap-3 px-3 py-2.5 transition-colors"
-                  >
-                    <div
-                      className={cn(
-                        "flex h-7 w-7 shrink-0 items-center justify-center rounded-full",
-                        config.color,
-                      )}
+              <motion.div
+                variants={prefersReducedMotion ? undefined : STAGGER_CONTAINER}
+                initial="hidden"
+                animate="visible"
+              >
+                {items.map((entry) => {
+                  const config = TYPE_CONFIG[entry.type];
+                  const Icon = config.icon;
+                  return (
+                    <motion.div
+                      key={entry.id}
+                      variants={prefersReducedMotion ? undefined : STAGGER_ITEM}
+                      className="hover:bg-accent/50 flex items-start gap-3 px-3 py-2.5 transition-colors"
                     >
-                      <Icon className="h-3.5 w-3.5" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-baseline justify-between gap-2">
-                        <span className="text-xs font-semibold">{entry.title}</span>
-                        <span className="text-muted-foreground shrink-0 text-[10px]">
-                          {formatDate(entry.date)}
-                        </span>
-                      </div>
-                      <p className="text-foreground/80 mt-0.5 line-clamp-2 text-xs leading-relaxed">
-                        {entry.content}
-                      </p>
-                      <div className="mt-1 flex items-center gap-2">
-                        {entry.channelName && (
-                          <span className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-[10px]">
-                            #{entry.channelName}
-                          </span>
+                      <div
+                        className={cn(
+                          "flex h-7 w-7 shrink-0 items-center justify-center rounded-full",
+                          config.color,
                         )}
-                        {entry.targetDescription && (
-                          <span className="text-muted-foreground text-[10px]">
-                            {entry.targetDescription}
-                          </span>
-                        )}
+                      >
+                        <Icon className="h-3.5 w-3.5" />
                       </div>
-                    </div>
-                  </div>
-                );
-              })}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-baseline justify-between gap-2">
+                          <span className="text-xs font-semibold">{entry.title}</span>
+                          <span className="text-muted-foreground shrink-0 text-[10px]">
+                            {formatDate(entry.date, t)}
+                          </span>
+                        </div>
+                        <p className="text-foreground/80 mt-0.5 line-clamp-2 text-xs leading-relaxed">
+                          {entry.content}
+                        </p>
+                        <div className="mt-1 flex items-center gap-2">
+                          {entry.channelName && (
+                            <span className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-[10px]">
+                              #{entry.channelName}
+                            </span>
+                          )}
+                          {entry.targetDescription && (
+                            <span className="text-muted-foreground text-[10px]">
+                              {entry.targetDescription}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </motion.div>
             </div>
           ))
         )}

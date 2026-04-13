@@ -78,6 +78,31 @@
     --priority-normal: oklch(0.6 0.15 250);
     --priority-low: oklch(0.55 0 0);
 
+    /* Komm — Communication semantic colors */
+    --komm-announcement: oklch(0.75 0.12 55);
+    --komm-brief: oklch(0.6 0.15 250);
+    --komm-handoff: oklch(0.55 0.25 300);
+    --komm-reminder: oklch(0.75 0.18 85);
+    --komm-summary: oklch(0.65 0.2 145);
+    --komm-planning: oklch(0.6 0.15 200);
+    --komm-call-active: oklch(0.65 0.2 145);
+    --komm-call-incoming: oklch(0.75 0.12 55);
+    --komm-ptt-active: oklch(0.75 0.12 55);
+    --komm-problem: oklch(0.577 0.245 27.325);
+    --komm-manual: oklch(0.6 0.15 250);
+    --komm-training: oklch(0.6 0.15 200);
+    --komm-quiz: oklch(0.65 0.2 340);
+    --komm-task: oklch(0.65 0.2 145);
+    --komm-images: oklch(0.6 0.15 250);
+    --komm-link: oklch(0.75 0.12 55);
+    --komm-ai: oklch(0.75 0.18 85);
+    --komm-department: oklch(0.6 0.15 250);
+    --komm-team: oklch(0.55 0.25 300);
+    --komm-session: oklch(0.75 0.18 85);
+    --komm-direct: oklch(0.65 0.2 145);
+    --komm-news: oklch(0.75 0.12 55);
+    --komm-skill: oklch(0.6 0.15 200);
+
     /* Wizard Shell — Dark Theme */
     --wizard-dark-bg: oklch(0.12 0.02 50);
     --wizard-dark-sidebar: oklch(0.08 0.01 50);

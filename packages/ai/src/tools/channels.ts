@@ -1,6 +1,12 @@
 // ============================================
 // channels.ts
-// AI tool definitions for Botsson's channel context and
+// @deprecated — These tools have been migrated to the communication capability:
+//   packages/ai/src/capabilities/communication/tools.ts
+// The canonical versions are getChannelContext and searchKnowledge in that file.
+// This file is kept for backward compatibility but should not be used for new work.
+// Migration date: 2026-04-13
+// ============================================
+// Original: AI tool definitions for Botsson's channel context and
 // workspace knowledge search. Definitions only — handlers
 // live in the stage-engine service.
 // Connected to: packages/walkieTalkie (channel infrastructure)

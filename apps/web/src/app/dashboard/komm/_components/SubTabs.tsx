@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@smartout/i18n";
+import { motion } from "framer-motion";
 
 export type KommTab = "oversikt" | "kanaler" | "chat" | "nyheter";
 
@@ -49,7 +50,11 @@ export function SubTabs({ activeTab, onTabChange, channelUnread, chatUnread }: P
               </span>
             )}
             {activeTab === key && (
-              <div className="bg-primary absolute right-[20%] bottom-0 left-[20%] h-0.5 rounded-full" />
+              <motion.div
+                layoutId="komm-tab-indicator"
+                className="bg-primary absolute right-[20%] bottom-0 left-[20%] h-0.5 rounded-full"
+                transition={{ type: "spring", stiffness: 260, damping: 20, mass: 1 }}
+              />
             )}
           </button>
         );

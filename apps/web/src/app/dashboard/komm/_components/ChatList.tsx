@@ -47,13 +47,13 @@ function useWorkspaceMembers(profileId: string) {
 }
 
 const INITIALS_COLORS = [
-  "bg-blue-500/15 text-blue-500",
-  "bg-purple-500/15 text-purple-500",
-  "bg-green-500/15 text-green-500",
-  "bg-pink-500/15 text-pink-500",
-  "bg-cyan-500/15 text-cyan-500",
-  "bg-orange-500/15 text-orange-500",
-  "bg-red-500/15 text-red-500",
+  "bg-komm-brief/15 text-komm-brief",
+  "bg-komm-handoff/15 text-komm-handoff",
+  "bg-komm-summary/15 text-komm-summary",
+  "bg-komm-quiz/15 text-komm-quiz",
+  "bg-komm-training/15 text-komm-training",
+  "bg-komm-announcement/15 text-komm-announcement",
+  "bg-komm-problem/15 text-komm-problem",
 ];
 
 function getColorClass(name: string): string {

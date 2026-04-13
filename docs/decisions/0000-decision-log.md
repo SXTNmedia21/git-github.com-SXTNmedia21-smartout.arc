@@ -26,6 +26,7 @@ tags: [decisions, adr, index]
 
 | ADR | Date | Title | Status |
 |-----|------|-------|--------|
+| [ADR-0087](0087-communications-as-cascade-consumer.md) | 2026-04-13 | Communications as Cascade Consumer — C2 Contract | accepted |
 | [ADR-0086](0086-entity-drawer-surface-pattern.md) | 2026-04-13 | Entity Drawer Surface Pattern (renumbered from ADR-0068 collision on 2026-04-13) | accepted |
 | [ADR-0085](0085-year-wheel-governance-policy.md) | 2026-04-10 | Year Wheel Governance Policy — single active cycle per workspace, max 1 active season | accepted |
 | [ADR-0084](0084-telemetry-conditional-exports.md) | 2026-04-09 | Telemetry package conditional exports — react-server/default split to isolate posthog-node from client bundle, /api/telemetry proxy for server-only destinations | accepted |

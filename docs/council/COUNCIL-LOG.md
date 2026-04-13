@@ -573,3 +573,15 @@ Phase 3: Agent wiring (after C merges)
 - **System Steward:** HIGH — ADR verification precise, good synthesis weighing icon decision
 - **Supervisor:** HIGH — found 4 pre-existing debts, correctly scoped what's new vs inherited
 - **Frontend Designer:** HIGH — only agent to catch dark mode risk and missing token. Icon pushback was reasonable even though overruled.
+
+## 2026-04-13 — Communications/Chat/Channels Architecture — Hospitality Intelligence Integration
+**Type:** architecture
+**Verdict:** APPROVE WITH CHANGES (Phased Remediation)
+**Agents consulted:** system-steward, supervisor, system-agent-coordinator, frontend-designer
+**Key decision:** Communications is a cascade consumer, not a domain owner. C2 control plane delivers intelligence via Event Engine; Komm is a thin display surface. No cascade queries in Komm hooks. ADR-0087 written.
+**Critical bugs found:** 3 (sender_profile_id wrong column, unread_count non-existent column, collector.ts employee_id vs profile_id)
+**Dead infrastructure flagged:** channel_ai_policy (zero consumers), channel_event (zero consumers) — wire or drop within 90 days
+**Design debt:** 20+ hardcoded Norwegian strings, ~55 hardcoded color classes, zero Framer Motion, zero glassmorphism
+**Long-term vision:** Replace Slack paradigm with Shift Intelligence Surface (briefing card + quick reach + persistent PTT) — Phase 3, future council topic
+**ADR created:** ADR-0087
+**Learning created:** AI tool column verification, dead infrastructure 90-day deadline

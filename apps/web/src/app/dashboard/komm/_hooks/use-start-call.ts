@@ -3,6 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
+import { useTranslation } from "@smartout/i18n";
 import { emit } from "@smartout/telemetry";
 import { startCall, getLiveKitToken } from "@smartout/walkie-talkie";
 import type { CallType } from "@smartout/walkie-talkie";
@@ -20,6 +21,7 @@ export function useStartCall() {
   const queryClient = useQueryClient();
   const { workspace } = useWorkspace();
   const workspaceId = workspace.workspace_id;
+  const { t } = useTranslation("komm");
 
   return useMutation({
     mutationFn: async ({ channelId, callType, calleeProfileId }: StartCallParams) => {
@@ -59,7 +61,7 @@ export function useStartCall() {
     },
 
     onError: () => {
-      toast.error("Kunne ikke starte samtale");
+      toast.error(t("call.start_error"));
     },
   });
 }

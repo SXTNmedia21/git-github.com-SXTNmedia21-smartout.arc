@@ -68,7 +68,7 @@ export function IncomingCallOverlay({ call, onAccept, onReject }: Props) {
           <Button
             ref={acceptRef}
             size="icon"
-            className="h-14 w-14 rounded-full bg-green-500 text-white hover:bg-green-600"
+            className="bg-komm-call-active hover:bg-komm-call-active/90 h-14 w-14 rounded-full text-white"
             onClick={onAccept}
             aria-label={t("incoming_call.accept_aria")}
           >

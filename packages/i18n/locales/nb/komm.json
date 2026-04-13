@@ -178,5 +178,15 @@
     "filter_reminder": "Påminnelser",
     "filter_event": "Hendelser",
     "empty": "Ingen kommunikasjon registrert ennå"
+  },
+  "visibility": {
+    "all_members": "Alle medlemmer",
+    "admins": "Kun ledere",
+    "targeted_members": "Utvalgte"
+  },
+  "dates": {
+    "today": "I dag",
+    "yesterday": "I går",
+    "days_ago": "{{count}} dager siden"
   }
 }

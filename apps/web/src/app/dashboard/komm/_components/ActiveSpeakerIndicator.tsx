@@ -16,15 +16,15 @@ export function ActiveSpeakerIndicator({ isSpeaking, size = "md", children }: Pr
       <div
         className={cn(
           "rounded-full transition-all duration-200",
-          isSpeaking && `${ringSize} ring-offset-background ring-green-500 ring-offset-2`,
+          isSpeaking && `${ringSize} ring-offset-background ring-komm-call-active ring-offset-2`,
         )}
       >
         {children}
       </div>
       {isSpeaking && (
         <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
-          <span className="relative inline-flex h-3 w-3 rounded-full bg-green-500" />
+          <span className="bg-komm-call-active/75 absolute inline-flex h-full w-full animate-ping rounded-full opacity-75" />
+          <span className="bg-komm-call-active relative inline-flex h-3 w-3 rounded-full" />
         </span>
       )}
     </div>

@@ -30,13 +30,13 @@ const TYPE_ICONS: Record<string, typeof Hash> = {
 };
 
 const TYPE_COLORS: Record<string, string> = {
-  department: "bg-blue-500/15 text-blue-500",
-  team: "bg-purple-500/15 text-purple-500",
-  session: "bg-amber-500/15 text-amber-500",
+  department: "bg-komm-department/15 text-komm-department",
+  team: "bg-komm-team/15 text-komm-team",
+  session: "bg-komm-session/15 text-komm-session",
   custom: "bg-primary/10 text-primary",
-  direct: "bg-green-500/15 text-green-500",
-  news: "bg-orange-500/15 text-orange-500",
-  skill: "bg-cyan-500/15 text-cyan-500",
+  direct: "bg-komm-direct/15 text-komm-direct",
+  news: "bg-komm-news/15 text-komm-news",
+  skill: "bg-komm-skill/15 text-komm-skill",
 };
 
 type Props = {
@@ -107,7 +107,7 @@ export function ChannelHeader({
           {voiceEnabled && (
             <Button
               size="icon"
-              className="h-8 w-8 rounded-full bg-green-500 text-white hover:bg-green-600"
+              className="bg-komm-call-active hover:bg-komm-call-active/90 h-8 w-8 rounded-full text-white"
               onClick={hasActiveCall ? onJoinCall : handleStartCall}
               disabled={startCall.isPending}
               title={hasActiveCall ? t("call.join_call") : t("call.start_call")}

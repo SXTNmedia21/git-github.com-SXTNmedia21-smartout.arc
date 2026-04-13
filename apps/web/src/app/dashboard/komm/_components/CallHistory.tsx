@@ -48,8 +48,8 @@ export function CallHistory({ channelId }: Props) {
     <div className="divide-y">
       {history.map((entry) => (
         <div key={entry.id} className="flex items-center gap-3 px-4 py-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-green-500/10">
-            <Phone className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+          <div className="bg-komm-call-active/10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full">
+            <Phone className="text-komm-call-active h-3.5 w-3.5" />
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium">{formatTime(entry.startedAt)}</p>

@@ -131,7 +131,7 @@ export function MessageInput({
         />
         {isPTTMode ? (
           <div
-            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-orange-500 text-white select-none"
+            className="bg-komm-ptt-active flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-white select-none"
             onPointerDown={ptt.onPressStart}
             onPointerUp={ptt.onPressEnd}
             onPointerCancel={ptt.onPressEnd}

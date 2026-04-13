@@ -3,8 +3,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
+import { useTranslation } from "@smartout/i18n";
 import { channelKeys } from "./channel-keys";
 import type { MessageType } from "./channel-types";
+
+type TranslateFn = (key: string, params?: Record<string, string | number>) => string;
 
 /**
  * A communication entry — either a system message from a channel
@@ -27,6 +30,7 @@ const SYSTEM_TYPES: MessageType[] = ["announcement", "brief", "handoff", "remind
 export function useCommunicationOverview() {
   const { workspace } = useWorkspace();
   const workspaceId = workspace.workspace_id;
+  const { t } = useTranslation("komm");
 
   return useQuery({
     queryKey: [...channelKeys.all, "overview", workspaceId],
@@ -64,11 +68,11 @@ export function useCommunicationOverview() {
           entries.push({
             id: msg.id,
             type: msg.message_type as CommunicationEntry["type"],
-            title: formatTypeLabel(msg.message_type),
+            title: formatTypeLabel(msg.message_type, t),
             content: msg.content,
             channelName: ch.name,
             senderName: null,
-            targetDescription: formatVisibility(msg.visibility_scope),
+            targetDescription: formatVisibility(msg.visibility_scope, t),
             date: msg.created_at,
           });
         }
@@ -106,22 +110,24 @@ export function useCommunicationOverview() {
   });
 }
 
-function formatTypeLabel(type: string): string {
-  const labels: Record<string, string> = {
-    announcement: "Kunngjøring",
-    brief: "Briefing",
-    handoff: "Overlevering",
-    reminder: "Påminnelse",
-    summary: "Oppsummering",
+function formatTypeLabel(type: string, t: TranslateFn): string {
+  const keyMap: Record<string, string> = {
+    announcement: "system_message.announcement",
+    brief: "system_message.briefing",
+    handoff: "system_message.handover",
+    reminder: "system_message.reminder",
+    summary: "system_message.summary",
   };
-  return labels[type] ?? type;
+  const key = keyMap[type];
+  return key ? t(key) : type;
 }
 
-function formatVisibility(scope: string): string {
-  const labels: Record<string, string> = {
-    all_members: "Alle medlemmer",
-    admins: "Kun ledere",
-    targeted_members: "Utvalgte",
+function formatVisibility(scope: string, t: TranslateFn): string {
+  const keyMap: Record<string, string> = {
+    all_members: "visibility.all_members",
+    admins: "visibility.admins",
+    targeted_members: "visibility.targeted_members",
   };
-  return labels[scope] ?? scope;
+  const key = keyMap[scope];
+  return key ? t(key) : scope;
 }
