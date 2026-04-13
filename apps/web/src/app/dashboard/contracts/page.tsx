@@ -42,9 +42,9 @@ export default function ContractsPage() {
   const fetchForCounts = useCallback(async () => {
     if (!workspaceId) return;
     try {
-      const res = await fetch(`/api/contracts?workspace_id=${workspaceId}&page=1`);
+      const res = await fetch(`/api/employment-contracts/list?workspace_id=${workspaceId}`);
       if (!res.ok) return;
-      const json = (await res.json()) as { data?: ContractRow[]; total?: number };
+      const json = (await res.json()) as { data?: ContractRow[] };
       setAllContracts(json.data ?? []);
     } catch {
       // Counts are non-critical — silently ignore errors

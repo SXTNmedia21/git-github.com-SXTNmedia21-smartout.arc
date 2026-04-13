@@ -39,16 +39,25 @@ import {
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-type ContractStatus = "draft" | "sent" | "viewed" | "signed" | "expired" | "cancelled";
+type ContractStatus =
+  | "draft"
+  | "sent"
+  | "viewed"
+  | "signed"
+  | "expired"
+  | "pending_data"
+  | "declined"
+  | "cancelled";
 
 type Contract = {
   contract_id: string;
-  recipient_name: string;
-  recipient_email: string;
   status: ContractStatus;
+  position_title: string | null;
+  employment_category: string | null;
+  employment_percentage: number | null;
   created_at: string;
   signed_at: string | null;
-  sent_at: string | null;
+  profile: { display_name: string } | null;
 };
 
 type ApiResponse = {
@@ -75,6 +84,12 @@ const STATUS_CONFIG: Record<
   viewed: { label: "Åpnet", variant: "outline", className: "border-primary/60 text-primary" },
   signed: { label: "Signert", variant: "default" },
   expired: { label: "Utløpt", variant: "destructive" },
+  pending_data: {
+    label: "Venter på data",
+    variant: "outline",
+    className: "border-amber-500 text-amber-700",
+  },
+  declined: { label: "Avslått", variant: "destructive" },
   cancelled: { label: "Avbrutt", variant: "secondary", className: "line-through opacity-60" },
 };
 
@@ -167,22 +182,21 @@ export function ContractsDataTable({ workspaceId }: { workspaceId: string }) {
     try {
       const params = new URLSearchParams({
         workspace_id: workspaceId,
-        page: String(page),
       });
       if (statusFilter !== "all") params.set("status", statusFilter);
 
-      const res = await fetch(`/api/contracts?${params.toString()}`);
+      const res = await fetch(`/api/employment-contracts/list?${params.toString()}`);
       if (!res.ok) throw new Error("Kunne ikke hente kontrakter");
 
       const json: ApiResponse = await res.json();
       setContracts(json.data ?? []);
-      setTotal(json.total ?? 0);
+      setTotal(json.data?.length ?? 0);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Noe gikk galt");
     } finally {
       setLoading(false);
     }
-  }, [workspaceId, page, statusFilter]);
+  }, [workspaceId, statusFilter]);
 
   // Refetch when page or filter changes
   useEffect(() => {
@@ -284,9 +298,9 @@ export function ContractsDataTable({ workspaceId }: { workspaceId: string }) {
                 >
                   <TableCell className="font-medium">
                     <div className="flex flex-col">
-                      <span>{contract.recipient_name || "—"}</span>
+                      <span>{contract.profile?.display_name || "—"}</span>
                       <span className="text-muted-foreground text-xs">
-                        {contract.recipient_email}
+                        {contract.position_title || "—"}
                       </span>
                     </div>
                   </TableCell>
@@ -294,7 +308,7 @@ export function ContractsDataTable({ workspaceId }: { workspaceId: string }) {
                     <StatusBadge status={contract.status} />
                   </TableCell>
                   <TableCell className="text-muted-foreground font-mono text-sm">
-                    {formatDate(contract.sent_at ?? contract.created_at)}
+                    {formatDate(contract.created_at)}
                   </TableCell>
                   <TableCell className="text-muted-foreground font-mono text-sm">
                     {formatDate(contract.signed_at)}
@@ -373,13 +387,15 @@ export function ContractsDataTable({ workspaceId }: { workspaceId: string }) {
 
           {detailContract && (
             <div className="mt-6 space-y-6">
-              {/* Recipient info */}
+              {/* Employee info */}
               <div className="space-y-1">
                 <p className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
-                  Mottaker
+                  Ansatt
                 </p>
-                <p className="text-sm font-medium">{detailContract.recipient_name || "—"}</p>
-                <p className="text-muted-foreground text-sm">{detailContract.recipient_email}</p>
+                <p className="text-sm font-medium">{detailContract.profile?.display_name || "—"}</p>
+                <p className="text-muted-foreground text-sm">
+                  {detailContract.position_title || "—"}
+                </p>
               </div>
 
               {/* Status */}
@@ -400,15 +416,19 @@ export function ContractsDataTable({ workspaceId }: { workspaceId: string }) {
                 </div>
                 <div className="space-y-1">
                   <p className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
-                    Sendt
-                  </p>
-                  <p className="font-mono text-sm">{formatDate(detailContract.sent_at)}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
                     Signert
                   </p>
                   <p className="font-mono text-sm">{formatDate(detailContract.signed_at)}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
+                    Stillingsprosent
+                  </p>
+                  <p className="font-mono text-sm">
+                    {detailContract.employment_percentage
+                      ? `${detailContract.employment_percentage}%`
+                      : "—"}
+                  </p>
                 </div>
               </div>
 

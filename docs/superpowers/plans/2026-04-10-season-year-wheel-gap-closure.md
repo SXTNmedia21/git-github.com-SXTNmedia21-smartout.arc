@@ -1,3 +1,11 @@
+---
+title: "Season & Year Wheel Gap Closure — Implementation Plan"
+status: superseded
+superseded-by: docs/modules/MODULE_YEAR_WHEEL_PRD.md
+date: 2026-04-10
+note: "Superseded 2026-04-13 by council decision. PRD v2.0.0 is now the single source of truth. This plan has 44 stale references to the deleted /dashboard/season/ directory."
+---
+
 # Season & Year Wheel Gap Closure — Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.

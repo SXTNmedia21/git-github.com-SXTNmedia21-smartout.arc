@@ -18,7 +18,7 @@ Rebuild from Bubble.io. Live Stripe billing + DocuSign contracts. Modern stack, 
 1. **Code + database schema** → always wins
 2. **This file** → conventions, rules, critical traps
    2.5. **Cascade Core Foundation spec** → canonical cascade architecture (`docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`)
-   2.5. **docs/STATE.md** → current system state, gaps, weekly plan (updated weekly)
+   2.5. **docs/STATE-SUMMARY.md** → current priorities + active gaps (lightweight; full STATE.md for deep dives)
 3. **docs/decisions/** → accepted ADRs (code-review reviewed, in git blame)
 4. **docs/reference/** → DATABASE, ROUTES, PACKAGES, ENV_VARS
 5. **docs/engines/** → Event Motor domain packaging (industry, niche, role capability, environment, handbook)
@@ -106,29 +106,7 @@ smartout_v3/
 
 > Full performance governance: `docs/cross-cutting/performance-governance.md`
 
-**Code Readability — Self-Documenting First:**
-
-Priority order:
-
-1. Make code speak for itself — descriptive variable/function names, extract logic into
-   well-named functions, named constants over magic numbers. The code should read like
-   plain English wherever possible.
-2. Comment the WHY and the big picture — why this approach was chosen, how pieces
-   connect across files, what the overall block is trying to achieve. A comment that
-   gives context or explains the larger goal is always welcome.
-3. Never comment WHAT code does when the code already says it clearly.
-
-Good: `const isEligibleForTrial = !company.has_subscription && daysSinceCreation < 14;`
-Bad: `const x = !c.sub && d < 14; // check if eligible for trial`
-
-File headers: brief explanation of what the file does and why it exists.
-Function comments: purpose + why it exists + return value — but only when the name alone
-doesn't capture the full picture. If the function name says it all, skip the comment.
-Inline comments: use for explaining context — edge cases, business rules, cross-file
-relationships, "this looks wrong but it's intentional because...", or a sentence that
-helps a reader understand the bigger picture without reading three other files.
-
-Goal: a non-developer should be able to read the codebase and follow the logic.
+**Code Readability:** Self-documenting first. (1) Descriptive names + named constants. (2) Comment WHY, not WHAT. (3) File headers: what + why. (4) Function comments only when name doesn't say it all. Goal: a non-developer should follow the logic.
 
 **Commits:** Enforced by commitlint (`@commitlint/config-conventional`) + husky.
 
@@ -258,29 +236,9 @@ Three laws — no exceptions:
 
 1. Check this file first → reference files → module docs → architecture docs
 2. This file wins for structural facts; module docs win for business logic
-3. For implementation planning: read STATE.md FIRST — it has verified gaps and week-by-week tasks
+3. For implementation planning: read `docs/STATE-SUMMARY.md` for current priorities (full STATE.md is 82KB — use semantic search for specifics)
 4. Never load `docs/archive/` — superseded
 5. If code changes contradict this file → update this file immediately
-
----
-
-## Dev Commands
-
-```bash
-npx supabase start                    # Start local Supabase
-npx supabase status                   # Get credentials
-pnpm --filter web dev                 # Dashboard (3060)
-pnpm --filter landing dev             # Landing (3055)
-pnpm dev                              # All (requires 1Password)
-pnpm dev:local                        # All (no 1Password)
-pnpm typecheck                        # Type check all
-pnpm lint                             # Lint all
-pnpm build                            # Build all
-pnpm check                            # lint + typecheck + format
-pnpm clean                            # Clean build artifacts
-npx supabase gen types typescript --local > packages/supabase/src/database.types.ts
-cd apps/web && npx shadcn@latest add <component>
-```
 
 ---
 
@@ -327,35 +285,3 @@ When spawning a worker, always include in the task description:
 - Reviewing PRs before merge
 - Breaking down complex tasks into worker-sized pieces
 - Communicating with me (the human)
-
----
-
-## Changelog
-
-| Date       | Version | Change                                                                                                                                                                                                                                                                 | Author |
-| ---------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| 2026-04-06 | 11.0.0  | Skills authority model: moved DB, Cascade, API Gateway, Security, UI content to authoritative skills. CLAUDE.md slimmed from 566 to ~350 lines. Fixed Botsson package name.                                                                                            | Claude |
-| 2026-03-21 | 10.0.0  | Cascade Core Foundation: I1+6D+4C+K1a/K1b as organizing principle. Source of Truth updated, 7 cascade DB traps, Data Model reorganized by dimension, Domain Concepts + Industry Engine Layer merged into Cascade Core Model section, 7 cascade rules in What NOT To Do | Claude |
-| 2026-03-17 | 9.5.0   | Domain audit: Trainee Mode status-only clarification, Veikart/Reise/Protokoll conceptual-only, Event Engine journey registry clarification, action_type handlers documented, telemetry registry reference added, emit() coverage fix (33 mutations)                    | Claude |
-| 2026-03-17 | 9.4.0   | Audit fix: ports (3060, 5010-5012, 8000), counts (72 enums, 31 EFs, 54 ADRs, 23 modules), onboarding rewrite, added packages (agent-sdk, Botsson, walkieTalkie), organization scope, packages/ai subdirs, integration clarifications                                   | Pontus |
-| 2026-03-17 | 9.3.0   | Code Readability section added to Code Conventions: self-documenting first, comment WHY not WHAT, priority order for naming/comments                                                                                                                                   | Pontus |
-| 2026-03-17 | 9.2.0   | Added commitlint rules to Code Conventions (header/body max 100 chars, types, scope kebab-case)                                                                                                                                                                        | Claude |
-| 2026-03-09 | 9.1.0   | ENV protocol: op run as standard, .env.template as single source of truth, removed .env.local references, added ENV_PROTOCOL.md to protocols table                                                                                                                     | Pontus |
-| 2026-04-13 | 9.0.0   | Module Zero: 7 new tables, 3 enums, 26 telemetry events, 13 engine handlers, employee UI (my-schedule, my-training, handbook), governance CRUD, setup wizard, season status trap                                                                                       | Claude |
-| 2026-03-06 | 8.1.0   | Season planning (Module 15 MVP): season_budget, day_factor, hour_factor tables, budget_status enum, calculation engine, 4 hooks, 5 UI components, /dashboard/season page                                                                                               | Claude |
-| 2026-03-02 | 8.0.0   | Agent architecture: engine_memory, engine_authority_config tables, agent mode in engine_sessions, ADR-0042                                                                                                                                                             | Claude |
-| 2026-03-01 | 7.9.0   | Onboarding wizard refactored: 15 step components, 4 drawers, progressive save, auth step, invite step                                                                                                                                                                  | Claude |
-| 2026-03-01 | 7.8.0   | Doc audit: add infra/, stage-engine, interview-mcp, i18n, tailwind-config; fix counts                                                                                                                                                                                  | Claude |
-| 2026-03-01 | 7.7.0   | shift-mcp service, schedule_shift table, ADR-0036, schedules scope active                                                                                                                                                                                              | Claude |
-| 2026-03-01 | 7.6.0   | workspace-api gateway: 7 endpoints, usage tracking, env enforcement, 15 Edge Functions                                                                                                                                                                                 | Claude |
-| 2026-03-01 | 7.5.0   | API Gateway enforcement: mandatory checklists, scope table, service auth, env enforcement                                                                                                                                                                              | Claude |
-| 2026-03-01 | 7.4.0   | Inline security summary: Three Laws, API key tiers, env vars always in context                                                                                                                                                                                         | Claude |
-| 2026-03-01 | 7.3.0   | Protocols folder, templates folder, security protocol populated                                                                                                                                                                                                        | Claude |
-| 2026-02-28 | 7.2.0   | API key management: 3 tables, 2 Edge Functions, 8 API routes, UI, ADR-0028                                                                                                                                                                                             | Claude |
-| 2026-02-28 | 7.1.0   | Added Security section referencing SMARTOUT_SECURITY_PROTOCOL                                                                                                                                                                                                          | Pontus |
-| 2026-02-28 | 7.0.0   | Major trim: moved details to reference files, <280 lines                                                                                                                                                                                                               | Claude |
-| 2026-02-28 | 6.1.0   | Pricing terms, workspace creation, ADR-0027                                                                                                                                                                                                                            | Claude |
-| 2026-02-28 | 6.0.0   | Docs restructuring, INDEX.md, reference files, YAML, ADR-0025                                                                                                                                                                                                          | Claude |
-| 2026-02-28 | 5.0.0   | Contract system, microservice, notifications, ADR-0021-0024                                                                                                                                                                                                            | Claude |
-| 2026-02-27 | 2.0.0   | Complete rewrite verified against codebase                                                                                                                                                                                                                             | Claude |
-| 2026-01-01 | 1.0.0   | Initial version                                                                                                                                                                                                                                                        | Pontus |
