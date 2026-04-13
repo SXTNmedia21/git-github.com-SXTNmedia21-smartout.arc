@@ -7,11 +7,14 @@
  * Audit log is read-only (populated by DB triggers). Rollback calls an RPC function.
  */
 
+import { useContext } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { useWorkspace } from "@/lib/workspace-context";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { createClient } from "@smartout/supabase/client";
+import { emit } from "@smartout/telemetry";
 
 import { scheduleKeys } from "./schedule-keys";
 import { type AuditLogEntry, fromDbAuditLog } from "./schedule-mappers";
@@ -54,6 +57,8 @@ export function useAuditLog(tableName: string, rowId: string) {
 
 export function useRollback() {
   const queryClient = useQueryClient();
+  const { workspace } = useWorkspace();
+  const { profileId } = useContext(DashboardContext);
 
   return useMutation({
     mutationFn: async (auditLogId: string) => {
@@ -66,7 +71,20 @@ export function useRollback() {
       if (error) throw error;
     },
 
-    onSuccess: () => {
+    onSuccess: (_data, auditLogId) => {
+      void emit({
+        event: "schedule rollback",
+        workspace_id: workspace.workspace_id,
+        actor_id: profileId ?? "",
+        properties: {
+          entity: {
+            entity_type: "reconciliation",
+            entity_id: auditLogId,
+            entity_label: "Audit log rollback",
+          },
+          data: { audit_log_id: auditLogId },
+        },
+      });
       toast.success("Endring rullet tilbake");
       // Invalidate ALL schedule queries since rollback can affect any table
       queryClient.invalidateQueries({ queryKey: scheduleKeys.all });

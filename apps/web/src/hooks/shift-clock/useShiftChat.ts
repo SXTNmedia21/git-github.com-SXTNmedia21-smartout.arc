@@ -17,6 +17,7 @@
 import { useContext, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
+import { emit } from "@smartout/telemetry";
 import { useWorkspace } from "@/lib/workspace-context";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 
@@ -228,6 +229,16 @@ export function useShiftChat({
       });
       if (error) throw error;
     },
+    onSuccess: () => {
+      void emit({
+        event: "chat message_sent",
+        workspace_id: workspaceId,
+        actor_id: profileId ?? "",
+        properties: {
+          data: { channel_id: sessionConvId.current ?? "", has_attachments: false },
+        },
+      });
+    },
     onSettled: () => {
       // Invalidate both the conversation lookup and the messages
       void queryClient.invalidateQueries({
@@ -260,6 +271,16 @@ export function useShiftChat({
         content,
       });
       if (error) throw error;
+    },
+    onSuccess: () => {
+      void emit({
+        event: "chat message_sent",
+        workspace_id: workspaceId,
+        actor_id: profileId ?? "",
+        properties: {
+          data: { channel_id: shiftConvId.current ?? "", has_attachments: false },
+        },
+      });
     },
     onSettled: () => {
       void queryClient.invalidateQueries({

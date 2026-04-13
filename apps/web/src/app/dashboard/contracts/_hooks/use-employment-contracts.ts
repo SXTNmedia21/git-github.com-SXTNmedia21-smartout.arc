@@ -7,6 +7,8 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useTranslation } from "@smartout/i18n";
+import { emit } from "@smartout/telemetry";
 import type { ContractDraftProposal, EmploymentCategory } from "@smartout/utils";
 
 // ---------------------------------------------------------------------------
@@ -84,6 +86,25 @@ export function useComposeContract() {
       return res.json() as Promise<ComposeResult>;
     },
     onSuccess: (data, variables) => {
+      void emit({
+        event: "contract composed",
+        workspace_id: variables.workspace_id,
+        actor_id: variables.profile_id,
+        properties: {
+          entity: {
+            entity_type: "employment_contract",
+            entity_id: data.contract_id ?? "",
+            entity_label: variables.position_title,
+          },
+          data: {
+            template_id: "",
+            profile_id: variables.profile_id,
+            framework_id: "",
+            override_count: 0,
+            blocker_count: 0,
+          },
+        },
+      });
       if (data.persisted) {
         void queryClient.invalidateQueries({
           queryKey: contractKeys.all(variables.workspace_id),
@@ -112,6 +133,7 @@ type SendResult = {
 
 export function useSendContract() {
   const queryClient = useQueryClient();
+  const { t } = useTranslation("contracts");
 
   return useMutation({
     mutationFn: async (input: SendInput): Promise<SendResult> => {
@@ -129,7 +151,22 @@ export function useSendContract() {
       return res.json() as Promise<SendResult>;
     },
     onSuccess: (_data, variables) => {
-      toast.success("Kontrakt sendt");
+      void emit({
+        event: "contract sent",
+        workspace_id: null,
+        actor_id: "",
+        properties: {
+          entity: {
+            entity_type: "employment_contract",
+            entity_id: variables.contract_id,
+          },
+          data: {
+            recipient_email: "",
+            expires_at: "",
+          },
+        },
+      });
+      toast.success(t("toast.contract_sent"));
       void queryClient.invalidateQueries({
         queryKey: contractKeys.detail(variables.contract_id),
       });
