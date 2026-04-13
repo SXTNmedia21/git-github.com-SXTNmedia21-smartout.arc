@@ -26,6 +26,7 @@ tags: [decisions, adr, index]
 
 | ADR | Date | Title | Status |
 |-----|------|-------|--------|
+| [ADR-0088](0088-ai-operations-intelligence-capability.md) | 2026-04-14 | AI Operations Intelligence as Capability, Not Daemon | accepted |
 | [ADR-0087](0087-communications-as-cascade-consumer.md) | 2026-04-13 | Communications as Cascade Consumer — C2 Contract | accepted |
 | [ADR-0086](0086-entity-drawer-surface-pattern.md) | 2026-04-13 | Entity Drawer Surface Pattern (renumbered from ADR-0068 collision on 2026-04-13) | accepted |
 | [ADR-0085](0085-year-wheel-governance-policy.md) | 2026-04-10 | Year Wheel Governance Policy — single active cycle per workspace, max 1 active season | accepted |
@@ -116,7 +117,7 @@ tags: [decisions, adr, index]
 
 ## Integrity
 
-- **86 ADRs** (0001-0086, ADR-0000 is this index)
+- **88 ADRs** (0001-0088, ADR-0000 is this index)
 - **0 number collisions** (verified 2026-04-13 — ADR-0068 entity-drawer collision resolved by renumbering to 0086)
 - **0 number gaps** (0052/0053/0054 previously gaps, now occupied by renumbered collision resolvers)
 - **Renumbered 2026-04-07:** 0049 guardian-ws → 0052, 0058 simulation → 0053, 0059 edge-functions → 0054, 0071 protocol-verification → 0074 (see ADR-0075 context)

@@ -585,3 +585,20 @@ Phase 3: Agent wiring (after C merges)
 **Long-term vision:** Replace Slack paradigm with Shift Intelligence Surface (briefing card + quick reach + persistent PTT) — Phase 3, future council topic
 **ADR created:** ADR-0087
 **Learning created:** AI tool column verification, dead infrastructure 90-day deadline
+
+## 2026-04-14 — AI Intelligence Layer for Hospitality
+**Type:** architecture + feature
+**Verdict:** APPROVE WITH CHANGES
+**Agents consulted:** system-steward, supervisor, system-agent-coordinator, frontend-designer
+**Key decisions:**
+- Kill `ai_session_event` table — use existing `emit()` → `engine_event`
+- Kill `ai_operations_config` table — use `policy_type: 'ai_operations'`
+- No persistent daemon — use Event Engine triggers + scheduled Edge Functions
+- Split into `operations-intelligence` (manager/system) + existing `operations` (employee) capabilities
+- HACCP tools inside `operations-intelligence` with domain discriminator
+- PREDICT is advisory only — never mutates cascade state
+- LEARN persists to K1b (`engine_memory`)
+- Phase: COMPILE+TRIAGE → MONITOR+ACT → PREDICT+LEARN
+**ADR created:** ADR-0088
+**Learning created:** Specs proposing new config/event tables must check existing policy + telemetry infra first
+**Mobile requirements:** HACCP temp input <3s, offline queue, punch-in bottom sheet, three-tier haptic alerts, all capabilities must support apps/mobile/
