@@ -180,6 +180,7 @@ Etter 3 måneder har kunden:
 
 **Relaterte dokumenter:**
 
-- `Smartout features.md` — Komplett funksjonsoversikt (moduler + AI)
+- `Smartout hva du får.md` — Kundevendt funksjonsoversikt (salg + kunde)
+- `Smartout features.md` — Teknisk funksjonsoversikt (intern)
 - `Smartout prising grunnlag.md` — Prismodeller og faktagrunnlag
 - `Smartout konkurrentanalyse.md` — Pris- og funksjonssammenligning med konkurrenter

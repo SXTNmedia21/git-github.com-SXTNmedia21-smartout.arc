@@ -31,7 +31,7 @@ Smartout er en alt-i-ett-plattform for skiftbaserte bedrifter. Åtte produktomr�
 | **Kommunikasjon** | Intern chat, kanaler, push-varsler, morgendigest |
 | **AI og automasjon** | 15 AI-funksjoner: stemmeassistent, planleggingsmotor, guardian, rapporter |
 
-Alt er bygget i én plattform med felles brukerbase og delte data. Se `Smartout features.md` for komplett funksjonsliste per modul.
+Alt er bygget i én plattform med felles brukerbase og delte data. Se `Smartout hva du får.md` for kundeversjon, `Smartout features.md` for teknisk detalj.
 
 ---
 
@@ -121,6 +121,7 @@ Beslutninger arbeidsgruppen må ta:
 
 **Relaterte dokumenter:**
 
-- `Smartout features.md` — Komplett funksjonsoversikt (moduler + AI)
+- `Smartout hva du får.md` — Kundevendt funksjonsoversikt (salg + kunde)
+- `Smartout features.md` — Teknisk funksjonsoversikt (intern)
 - `Smartout konkurrentanalyse.md` — Pris- og funksjonssammenligning med konkurrenter
 - `Smartout onboarding-nivåer.md` — Definisjon av tre onboarding-pakker

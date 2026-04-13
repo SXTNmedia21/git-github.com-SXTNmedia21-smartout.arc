@@ -6,3 +6,5 @@ export * from "./readiness";
 export * from "./contract-placeholders";
 export { buildEmployeePlaceholderMap } from "./employee-contract-placeholders";
 export * from "./people";
+export * from "./swap/types";
+export * from "./swap/validate-swap";

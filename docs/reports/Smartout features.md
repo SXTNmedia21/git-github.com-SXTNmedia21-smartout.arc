@@ -1,17 +1,18 @@
 ---
-title: Smartout — Funksjoner og AI
+title: Smartout — Funksjoner og AI (intern)
 status: draft
 updated: 2026-04-13
 created: 2026-03-28
 module: product
-tags: [funksjoner, ai, moduler, features]
+tags: [funksjoner, ai, moduler, features, intern]
 ---
 
-# Smartout — Funksjoner og AI
+# Smartout — Funksjoner og AI (intern)
 
-**Versjon:** 2.0
+**Versjon:** 3.0
 **Dato:** 13. april 2026
-**Formål:** Komplett oversikt over hva Smartout leverer — modulfunksjoner og AI-funksjoner.
+**Målgruppe:** Internt (prisgruppe, investorer, teknisk salg). Ikke for kunder — bruk `Smartout hva du får.md` for kundevendt materiale.
+**Formål:** Komplett teknisk oversikt over hva Smartout leverer — modulfunksjoner, AI-funksjoner, arkitektur og estimater.
 
 ---
 
@@ -361,7 +362,10 @@ Daglige/ukentlige ledersammendrag — hendelser, avvik, KPI-trender.
 
 ---
 
-## Del 3: Samlet tidsbesparelse
+## Del 3: Samlet tidsbesparelse (estimater — ikke verifisert)
+
+> Tallene under er kvalifiserte estimater basert på typiske arbeidsflyter i bransjen.
+> De er ikke målt hos kunder. Bruk dem som retningsgivende, ikke som salgsløfter.
 
 ### Per rolle, per uke
 
@@ -420,6 +424,7 @@ Konfigureres per arbeidssted, per kapabilitet. Full audit trail.
 
 **Relaterte dokumenter:**
 
+- `Smartout hva du får.md` — Kundevendt versjon (salg + kunde)
 - `Smartout prising grunnlag.md` — Prismodeller og faktagrunnlag
 - `Smartout konkurrentanalyse.md` — Pris- og funksjonssammenligning med konkurrenter
 - `Smartout onboarding-nivåer.md` — Tre nivåer av onboarding-hjelp
