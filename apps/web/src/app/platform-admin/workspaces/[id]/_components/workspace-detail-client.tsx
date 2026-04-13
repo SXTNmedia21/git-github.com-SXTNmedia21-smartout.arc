@@ -28,8 +28,31 @@ import { CommunicationTab } from "./tabs/CommunicationTab";
 import { NotesTab } from "./tabs/NotesTab";
 import type { NoteRow } from "./tabs/NotesTab";
 
+import type { ContractRow } from "@/components/platform-admin/contract-columns";
+
 // ── Re-export types consumed upstream (e.g. the server page component) ───────
 export type { WorkspaceData, CompanyData, ProfileRow, DocChunk, MemoryRow, StorageFile, NoteRow };
+
+// Pricing terms as seen by the workspace detail page — camelCase mirror of the DB row.
+export type PricingTermsData = {
+  pricingTermsId: string;
+  companyId: string;
+  workspaceId: string | null;
+  monthlyCost: number | null;
+  pricePerEmployee: number;
+  billingInterval: string;
+  currency: string;
+  discountPercent: number | null;
+  discountLabel: string | null;
+  onboardingPackage: string | null;
+  onboardingCost: number | null;
+  trialDays: number | null;
+  effectiveFrom: string;
+  effectiveUntil: string | null;
+  notes: string | null;
+  contractId: string | null;
+  updatedAt: string;
+};
 
 // ── Props ────────────────────────────────────────────────────────────────────
 
@@ -50,6 +73,9 @@ type Props = {
     memories: MemoryRow[];
     files: StorageFile[];
   };
+  // Fetched at SSR time; passed to ContractTab when it is implemented (Task 10).
+  contracts: ContractRow[];
+  pricingTerms: PricingTermsData | null;
 };
 
 // ════════════════════════════════════════════════════════════════════
@@ -61,6 +87,11 @@ export function WorkspaceDetailClient({
   notes,
   commHistory,
   intelligence,
+  // contracts and pricingTerms are accepted here but wired up in Task 10 (ContractTab).
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  contracts: _contracts,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  pricingTerms: _pricingTerms,
 }: Props) {
   // Shared compose state — opened by both ChampionsTab (per-user) and CommunicationTab (audience).
   const [composeOpen, setComposeOpen] = useState(false);

@@ -4,7 +4,17 @@
 // Exports WorkspaceData and CompanyData types so other tabs can import them.
 
 import { useState } from "react";
-import { Users, Building2, CreditCard, Calendar, MapPin, Star, Pencil, Check, X } from "lucide-react";
+import {
+  Users,
+  Building2,
+  CreditCard,
+  Calendar,
+  MapPin,
+  Star,
+  Pencil,
+  Check,
+  X,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
@@ -48,6 +58,11 @@ export type WorkspaceData = {
   googlePriceLevel: string;
   latitude: number | null;
   longitude: number | null;
+  // Contract and trial fields from the workspace row (used by the Avtaler/Contract tab).
+  contractStatus: string;
+  activeContractId: string | null;
+  trialStartedAt: string | null;
+  wsTrialEndsAt: string | null;
 };
 
 export type CompanyData = {
@@ -132,7 +147,13 @@ type Props = {
   onCompanyChange: (co: CompanyData) => void;
 };
 
-export function OverviewTab({ workspace, company, stats, onWorkspaceChange, onCompanyChange }: Props) {
+export function OverviewTab({
+  workspace,
+  company,
+  stats,
+  onWorkspaceChange,
+  onCompanyChange,
+}: Props) {
   const [isEditingInfo, setIsEditingInfo] = useState(false);
   const [isSavingInfo, setIsSavingInfo] = useState(false);
 
@@ -528,8 +549,7 @@ export function OverviewTab({ workspace, company, stats, onWorkspaceChange, onCo
                 <div>
                   <dt className="text-muted-foreground text-xs">Coordinates</dt>
                   <dd className="font-mono text-xs">
-                    {currentWorkspace.latitude.toFixed(5)},{" "}
-                    {currentWorkspace.longitude.toFixed(5)}
+                    {currentWorkspace.latitude.toFixed(5)}, {currentWorkspace.longitude.toFixed(5)}
                   </dd>
                 </div>
               )}
@@ -640,7 +660,6 @@ export function OverviewTab({ workspace, company, stats, onWorkspaceChange, onCo
           </CardContent>
         </Card>
       )}
-
     </TabsContent>
   );
 }
