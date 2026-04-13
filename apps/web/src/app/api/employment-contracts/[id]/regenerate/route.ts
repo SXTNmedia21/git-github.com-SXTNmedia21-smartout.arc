@@ -9,7 +9,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@smartout/supabase/server";
 import { emit } from "@smartout/telemetry";
-import { resolveComposition } from "@/lib/contracts/resolve-composition";
+import { resolveComposition, type CompositionInput } from "@/lib/contracts/resolve-composition";
 
 export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -48,7 +48,9 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
   // ── Load the existing contract ────────────────────────────────────────
   const { data: contract, error: loadError } = await supabase
     .from("employment_contract")
-    .select("contract_id, status, workspace_id, profile_id, framework_snapshot")
+    .select(
+      "contract_id, status, workspace_id, profile_id, framework_snapshot, employment_category, employment_percentage, position_title",
+    )
     .eq("contract_id", id)
     .single();
 
@@ -66,7 +68,19 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     framework_id?: string;
   } | null;
 
-  const proposal = await resolveComposition(supabase, contract.workspace_id, contract.profile_id);
+  const compositionInput: CompositionInput = {
+    employment_category: (contract.employment_category ??
+      "fast") as CompositionInput["employment_category"],
+    employment_percentage: contract.employment_percentage ?? 100,
+    position_title: contract.position_title ?? "",
+  };
+
+  const proposal = await resolveComposition(
+    supabase,
+    contract.workspace_id,
+    contract.profile_id,
+    compositionInput,
+  );
 
   // ── Update the contract with fresh terms + snapshot ───────────────────
   const { error: updateError } = await supabase

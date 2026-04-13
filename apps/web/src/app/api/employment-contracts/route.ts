@@ -122,7 +122,7 @@ export async function POST(request: Request) {
       actor_id: actorProfile.profile_id,
       properties: {
         entity: { entity_type: "employment_contract", entity_id: contract.contract_id },
-        data: { template_id: "", profile_id, employment_category },
+        data: { template_id: "", recipient_email: "", contract_type: "employee" },
       },
     });
 

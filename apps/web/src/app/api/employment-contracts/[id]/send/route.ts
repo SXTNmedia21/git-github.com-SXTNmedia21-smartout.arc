@@ -424,12 +424,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     actor_id: actorProfile.profile_id,
     properties: {
       entity: { entity_type: "employment_contract", entity_id: id },
-      data: {
-        recipient_email: "",
-        expires_at: "",
-        pii_complete: allDataPresent,
-        signing_contract_id: signingContractId,
-      },
+      data: { recipient_email: "", expires_at: "" },
     },
   });
 
