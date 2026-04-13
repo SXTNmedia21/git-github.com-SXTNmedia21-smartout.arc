@@ -204,6 +204,17 @@ export default function ContractDetailScreen() {
                 <Text style={styles.dataText}>
                   Vi trenger noe informasjon fra deg før kontrakten kan sendes.
                 </Text>
+                <Pressable
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    router.push("/(app)/(me)/contract/complete-data");
+                  }}
+                  style={styles.dataButton}
+                  accessibilityRole="button"
+                  accessibilityLabel="Fyll ut informasjon"
+                >
+                  <Text style={styles.dataButtonText}>Fyll ut informasjon</Text>
+                </Pressable>
               </View>
             )}
 
@@ -421,10 +432,24 @@ const useStyles = createStyles((theme) => ({
     borderRadius: theme.radius.lg,
     padding: theme.spacing.card,
     marginBottom: theme.spacing.md,
+    gap: 12,
   },
   dataText: {
     ...theme.typography.body,
     color: theme.colors.foreground,
+  },
+  dataButton: {
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    backgroundColor: "#3b82f6",
+    borderRadius: theme.radius.lg,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+  },
+  dataButtonText: {
+    fontSize: 14,
+    fontWeight: "600" as const,
+    color: "#ffffff",
   },
 
   infoRow: {

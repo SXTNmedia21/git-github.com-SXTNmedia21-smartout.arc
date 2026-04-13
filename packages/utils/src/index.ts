@@ -8,3 +8,12 @@ export { buildEmployeePlaceholderMap } from "./employee-contract-placeholders";
 export * from "./people";
 export * from "./swap/types";
 export * from "./swap/validate-swap";
+export {
+  resolveComposition,
+  type ContractDraftProposal,
+  type EmploymentCategory,
+  type CompositionInput,
+  type ComplianceLevel,
+  type ComplianceValidation,
+  type MandatoryClause,
+} from "./resolve-composition";

@@ -14,7 +14,7 @@ import Link from "next/link";
 import { ArrowLeft, FileEdit, RefreshCw, AlertCircle, Link2 } from "lucide-react";
 import { Button } from "@smartout/ui";
 import { ComplianceBadge } from "../_components/ComplianceBadge";
-import type { ComplianceLevel } from "@/lib/contracts/resolve-composition";
+import type { ComplianceLevel } from "@smartout/utils";
 
 // ---------------------------------------------------------------------------
 // Types

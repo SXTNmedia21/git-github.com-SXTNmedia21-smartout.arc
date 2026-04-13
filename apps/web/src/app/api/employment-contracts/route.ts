@@ -15,7 +15,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@smartout/supabase/server";
 import { z } from "zod";
-import { resolveComposition, type EmploymentCategory } from "@/lib/contracts/resolve-composition";
+import { resolveComposition, type EmploymentCategory } from "@smartout/utils";
 import { emit } from "@smartout/telemetry";
 
 const composeSchema = z.object({

@@ -7,10 +7,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import type {
-  ContractDraftProposal,
-  EmploymentCategory,
-} from "@/lib/contracts/resolve-composition";
+import type { ContractDraftProposal, EmploymentCategory } from "@smartout/utils";
 
 // ---------------------------------------------------------------------------
 // Keys

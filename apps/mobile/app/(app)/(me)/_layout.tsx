@@ -21,6 +21,10 @@ export default function MeLayout() {
       <Stack.Screen name="notifications" options={{ headerShown: false, title: "Varsler" }} />
       <Stack.Screen name="contract/index" options={{ headerShown: false, title: "Min kontrakt" }} />
       <Stack.Screen name="contract/[id]" options={{ headerShown: false, title: "Kontrakt" }} />
+      <Stack.Screen
+        name="contract/complete-data"
+        options={{ headerShown: false, title: "Fyll ut data" }}
+      />
       <Stack.Screen name="tasks/[id]" options={{ headerShown: false, title: "Oppgave" }} />
     </Stack>
   );

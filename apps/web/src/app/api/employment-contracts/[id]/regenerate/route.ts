@@ -9,7 +9,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@smartout/supabase/server";
 import { emit } from "@smartout/telemetry";
-import { resolveComposition, type CompositionInput } from "@/lib/contracts/resolve-composition";
+import { resolveComposition, type CompositionInput } from "@smartout/utils";
 
 export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

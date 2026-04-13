@@ -9,7 +9,7 @@
 
 import * as React from "react";
 import { CheckCircle, AlertTriangle, XCircle } from "lucide-react";
-import type { ComplianceLevel } from "@/lib/contracts/resolve-composition";
+import type { ComplianceLevel } from "@smartout/utils";
 
 type ComplianceBadgeProps = {
   level: ComplianceLevel;

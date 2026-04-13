@@ -17,10 +17,7 @@ import { AnimatedWizardShell } from "@/components/wizard/AnimatedWizardShell";
 import type { WizardDefinition, WizardStepProps } from "@smartout/ui";
 import { Button, Input, Label } from "@smartout/ui";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import type {
-  ContractDraftProposal,
-  EmploymentCategory,
-} from "@/lib/contracts/resolve-composition";
+import type { ContractDraftProposal, EmploymentCategory } from "@smartout/utils";
 import { useComposeContract, useSendContract } from "../_hooks/use-employment-contracts";
 import { GhostValueCard } from "./GhostValueCard";
 import { ComplianceBadge } from "./ComplianceBadge";
