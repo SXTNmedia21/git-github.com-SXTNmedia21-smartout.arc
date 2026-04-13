@@ -3102,3 +3102,78 @@ INSERT INTO platform_api_key (
   ARRAY['contracts:read', 'contracts:write', 'contracts:send'],
   120
 );
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Cleaning Checklist Seed Data — Kitchen morning cleaning procedure
+-- UUID scheme: f1... (policy f10, protocol f11, procedure f12, steps f121,
+-- session_hook f13)
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- Policy: Kitchen cleaning compliance (HACCP / Mattilsynet)
+INSERT INTO public.policy (
+  policy_id, workspace_id, policy_type, policy_scope, name, statement,
+  enforcement_status, created_by
+) VALUES (
+  'f1000000-0000-0000-0000-000000000000',
+  'b0000000-0000-0000-0000-000000000000',
+  'haccp', 'department',
+  'Kjøkkenrenhold',
+  'Kjøkkenet skal rengjøres etter Mattilsynets krav ved åpning og stenging.',
+  'enforced',
+  'f0000000-0000-0000-0000-000000000000'
+) ON CONFLICT DO NOTHING;
+
+-- Protocol: Daily kitchen cleaning
+INSERT INTO public.protocol (
+  protocol_id, policy_id, workspace_id, name, description,
+  version, status, owner_profile_id, created_by
+) VALUES (
+  'f1100000-0000-0000-0000-000000000000',
+  'f1000000-0000-0000-0000-000000000000',
+  'b0000000-0000-0000-0000-000000000000',
+  'Daglig kjøkkenrenhold',
+  'Sjekkliste for daglig renhold av kjøkken',
+  '1.0', 'active',
+  'f0000000-0000-0000-0000-000000000000',
+  'f0000000-0000-0000-0000-000000000000'
+) ON CONFLICT DO NOTHING;
+
+-- Procedure: Morning cleaning checklist (type = maintenance)
+INSERT INTO public.procedure (
+  procedure_id, protocol_id, name, description, procedure_type, is_active
+) VALUES (
+  'f1200000-0000-0000-0000-000000000000',
+  'f1100000-0000-0000-0000-000000000000',
+  'Morgenrenhold kjøkken',
+  'Sjekkliste for renhold før åpning',
+  'maintenance', true
+) ON CONFLICT DO NOTHING;
+
+-- 5 procedure steps (checkpoints) for the morning cleaning checklist
+INSERT INTO public.procedure_step (
+  step_id, procedure_id, title, description, step_order, is_required
+) VALUES
+  ('f1210000-0000-0000-0000-000000000000', 'f1200000-0000-0000-0000-000000000000',
+   'Rengjør arbeidsflater', 'Tørk av alle benker og skjærefjøler med desinfiserende middel.', 1, true),
+  ('f1210000-0000-0000-0000-000000000001', 'f1200000-0000-0000-0000-000000000000',
+   'Vask gulv', 'Feie og vaske kjøkkengulvet. Sjekk under utstyr.', 2, true),
+  ('f1210000-0000-0000-0000-000000000002', 'f1200000-0000-0000-0000-000000000000',
+   'Tøm søppel', 'Tøm alle søppelbøtter. Sett inn nye poser.', 3, true),
+  ('f1210000-0000-0000-0000-000000000003', 'f1200000-0000-0000-0000-000000000000',
+   'Sjekk håndvask', 'Kontroller at såpe og papir er fylt opp ved alle håndvasker.', 4, true),
+  ('f1210000-0000-0000-0000-000000000004', 'f1200000-0000-0000-0000-000000000000',
+   'Rengjør kjøleskap utvendig', 'Tørk av håndtak og overflater på kjøleskap og fryser.', 5, false)
+ON CONFLICT DO NOTHING;
+
+-- Session hook: fire morning cleaning at pre_open for Kitchen department
+INSERT INTO public.session_hook (
+  id, workspace_id, department_id, hook_type, trigger_offset_min,
+  linked_procedure_id, is_active
+) VALUES (
+  'f1300000-0000-0000-0000-000000000000',
+  'b0000000-0000-0000-0000-000000000000',
+  'd0000000-0000-0000-0000-000000000001',
+  'pre_open', 0,
+  'f1200000-0000-0000-0000-000000000000',
+  true
+) ON CONFLICT DO NOTHING;
