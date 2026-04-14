@@ -297,7 +297,7 @@ export function PlanningCycleSelector({ selectedSeasonId }: Props) {
                                 <div
                                   key={cycle.planning_cycle_id}
                                   onClick={() => handleSelectCycle(cycle.planning_cycle_id)}
-                                  title={`Velg ${cycle.name} (${formatDate(cycle.start_date)} - ${formatDate(cycle.end_date)})`}
+                                  title={`${t("yearWheel.select_cycle_title", { name: cycle.name })} (${formatDate(cycle.start_date)} - ${formatDate(cycle.end_date)})`}
                                   className="hover:bg-accent hover:text-accent-foreground flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 transition-colors"
                                 >
                                   {/* Checkmark column */}

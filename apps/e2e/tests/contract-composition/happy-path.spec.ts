@@ -331,8 +331,8 @@ test.describe("Employee contract view", () => {
   });
 
   test.skip("employee signs contract via DocuSeal", async () => {
-    // DocuSeal is an external signing service — cannot be controlled in local dev.
-    // Signing flow: /sign/{signing_url} → DocuSeal iframe → webhook callback
-    // Test this manually or with a DocuSeal sandbox environment.
+    // PERMANENT SKIP: DocuSeal is an external signing service.
+    // Local dev has no DocuSeal sandbox. Manual test or staging-only.
+    // Flow: /sign/{signing_url} → DocuSeal iframe → webhook callback
   });
 });

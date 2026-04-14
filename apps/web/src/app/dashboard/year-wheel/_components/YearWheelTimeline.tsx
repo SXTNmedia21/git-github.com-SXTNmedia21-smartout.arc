@@ -30,20 +30,21 @@ type YearWheelTimelineProps = {
   onSeasonEdgeCommit?: (seasonId: string, edge: "start" | "end", dateIso: string) => void;
 };
 
-const MONTH_LABELS_SHORT = [
-  "JAN",
-  "FEB",
-  "MAR",
-  "APR",
-  "MAI",
-  "JUN",
-  "JUL",
-  "AUG",
-  "SEP",
-  "OKT",
-  "NOV",
-  "DES",
-];
+/** Month label i18n keys — resolved to translated labels via t() in the component. */
+const MONTH_LABEL_KEYS = [
+  "yearWheel.month_jan",
+  "yearWheel.month_feb",
+  "yearWheel.month_mar",
+  "yearWheel.month_apr",
+  "yearWheel.month_may",
+  "yearWheel.month_jun",
+  "yearWheel.month_jul",
+  "yearWheel.month_aug",
+  "yearWheel.month_sep",
+  "yearWheel.month_oct",
+  "yearWheel.month_nov",
+  "yearWheel.month_dec",
+] as const;
 
 function groupEventsByMonth(events: PlanningEventRow[], year: number) {
   const monthBuckets: Record<number, PlanningEventRow[]> = {};
@@ -194,19 +195,19 @@ export function YearWheelTimeline({
 
   return (
     <section
-      aria-label={`Årshjul ${year}`}
+      aria-label={t("yearWheel.year_wheel_aria", { year })}
       className="w-full overflow-x-auto"
       ref={scrollContainerRef}
     >
       <div style={{ minWidth: minCanvasWidth }}>
         {viewMode === "year" ? (
           <div className="mb-1 grid grid-cols-12">
-            {MONTH_LABELS_SHORT.map((label, i) => (
+            {MONTH_LABEL_KEYS.map((key, i) => (
               <div
                 key={i}
                 className="text-muted-foreground py-1 text-center font-mono text-[10px] tracking-widest uppercase"
               >
-                {label}
+                {t(key)}
               </div>
             ))}
           </div>

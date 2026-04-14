@@ -250,16 +250,7 @@ test.describe("join-wizard", () => {
     await expect(page.locator("button", { hasText: "Fullfør" })).toBeVisible();
   });
 
-  // ─── Test 8: Brand panel → SKIPPED ─────────────────────
-  // Brand panel no longer exists in WizardShell. Replaced by WizardSidebar
-  // which shows step labels (visible on lg+ screens only).
-
-  test.skip("brand panel shows step-specific messages", async () => {
-    // WizardShell replaced brand panel with WizardSidebar.
-    // Sidebar shows step labels, not contextual brand messages.
-  });
-
-  // ─── Test 9: Sidebar progress labels match join steps ───
+  // ─── Test 8: Sidebar progress labels match join steps ───
 
   test("sidebar progress labels match the actual join steps", async ({ page }) => {
     await page.goto("/join");
