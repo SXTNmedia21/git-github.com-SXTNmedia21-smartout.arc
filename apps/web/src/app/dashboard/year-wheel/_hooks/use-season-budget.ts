@@ -2,6 +2,7 @@
 
 import { useContext } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "@smartout/i18n";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
 import { emit } from "@smartout/telemetry";
@@ -32,6 +33,7 @@ type UpsertSeasonBudgetInput = {
 };
 
 export function useSeasonBudget(seasonId: string | null) {
+  const { t } = useTranslation("dashboard");
   const ctx = useWorkspaceOptional();
   const wsId = ctx?.workspace.workspace_id;
   const { profileId } = useContext(DashboardContext);
@@ -110,10 +112,10 @@ export function useSeasonBudget(seasonId: string | null) {
       queryClient.invalidateQueries({
         queryKey: dashboardKeys.seasonBudget(wsId!, seasonId!),
       });
-      toast.success("Sesongbudsjett lagret");
+      toast.success(t("yearWheel.toast_budget_saved"));
     },
     onError: (err: Error) => {
-      toast.error(`Kunne ikke lagre budsjett: ${err.message}`);
+      toast.error(t("yearWheel.toast_budget_save_error", { message: err.message }));
     },
   });
 

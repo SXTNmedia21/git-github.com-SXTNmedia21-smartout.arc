@@ -7,20 +7,24 @@ status: draft
 
 # UX Audit — Login Journey
 
-**Total duration:** 19515ms
+**Total duration:** 25072ms
 **Steps:** 4
 **Passed:** 4
 **Failed:** 0
-**Slowest step:** 1_open_login
+**Slowest step:** 3_submit_login
 
 ## Per-Step Timing
 
 | Step | Title | Total ms | Action ms | Settle ms | Gate ms | Status |
 |------|-------|----------|-----------|-----------|---------|--------|
-| 1 | Åpne login-siden | 6310 | 3936 | 1508 | 152 | passed |
-| 2 | Fylle inn påloggingsinfo | 3015 | 870 | 1503 | 32 | passed |
-| 3 | Logg inn | 5899 | 225 | 1502 | 3507 | passed |
-| 4 | Autentisert — ser innlogget side | 4291 | 2036 | 1504 | 0 | passed |
+| 1 | Åpne login-siden | 8113 | 5658 | 1503 | 103 | passed |
+| 2 | Fylle inn påloggingsinfo | 3600 | 920 | 1507 | 16 | passed |
+| 3 | Logg inn | 9432 | 227 | 1504 | 6517 | passed |
+| 4 | Autentisert — ser innlogget side | 3927 | 2108 | 1502 | 0 | passed |
+
+## Observations
+
+- Step 3_submit_login gate took 6517ms
 
 ## Improvement Recommendations
 

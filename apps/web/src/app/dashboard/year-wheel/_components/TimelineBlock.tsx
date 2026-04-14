@@ -32,20 +32,21 @@ type TimelineBlockProps = {
   onEdgeCommit?: (seasonId: string, edge: "start" | "end", dateIso: string) => void;
 };
 
-const MONTH_LABELS = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "Mai",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Okt",
-  "Nov",
-  "Des",
-];
+/** Short month label i18n keys — resolved to translated labels via t(). */
+const MONTH_SHORT_KEYS = [
+  "yearWheel.month_short_jan",
+  "yearWheel.month_short_feb",
+  "yearWheel.month_short_mar",
+  "yearWheel.month_short_apr",
+  "yearWheel.month_short_may",
+  "yearWheel.month_short_jun",
+  "yearWheel.month_short_jul",
+  "yearWheel.month_short_aug",
+  "yearWheel.month_short_sep",
+  "yearWheel.month_short_oct",
+  "yearWheel.month_short_nov",
+  "yearWheel.month_short_dec",
+] as const;
 
 /**
  * Computes the left position and width of a block as percentages of the
@@ -161,8 +162,10 @@ export function TimelineBlock({
   if (!pos) return null;
 
   const style = getBlockStyle(season.status);
-  const startMonth = season.start_date ? MONTH_LABELS[new Date(season.start_date).getMonth()] : "";
-  const endMonth = season.end_date ? MONTH_LABELS[new Date(season.end_date).getMonth()] : "";
+  const startMonth = season.start_date
+    ? t(MONTH_SHORT_KEYS[new Date(season.start_date).getMonth()])
+    : "";
+  const endMonth = season.end_date ? t(MONTH_SHORT_KEYS[new Date(season.end_date).getMonth()]) : "";
 
   const effectiveEndIso = season.end_date ?? `${year}-12-31`;
   const effectiveStartIso = season.start_date ?? effectiveEndIso;

@@ -123,10 +123,10 @@ export function useSeasons() {
       queryClient.invalidateQueries({
         queryKey: dashboardKeys.seasons(wsId ?? "none"),
       });
-      toast.success("Sesong opprettet");
+      toast.success(t("yearWheel.toast_season_created"));
     },
     onError: (error: Error) => {
-      toast.error(`Kunne ikke opprette sesong: ${error.message}`);
+      toast.error(t("yearWheel.toast_season_create_error", { message: error.message }));
     },
   });
 
@@ -139,9 +139,9 @@ export function useSeasons() {
         .eq("season_id", seasonId)
         .single();
 
-      if (budgetError || !budget) throw new Error("Sesong mangler budsjett");
+      if (budgetError || !budget) throw new Error(t("yearWheel.toast_missing_budget"));
       if (!budget.total_target_revenue || budget.total_target_revenue <= 0)
-        throw new Error("Budsjett mangler omsetningsmål");
+        throw new Error(t("yearWheel.toast_missing_revenue_target"));
 
       // Validate: day factors must exist (keyed on season_budget_id).
       // workspace_id guard ensures we never see factors from another tenant's budget
@@ -152,7 +152,8 @@ export function useSeasons() {
         .eq("season_budget_id", budget.season_budget_id)
         .eq("workspace_id", wsId!);
 
-      if (!dayFactorCount || dayFactorCount === 0) throw new Error("Sesong mangler dagfaktorer");
+      if (!dayFactorCount || dayFactorCount === 0)
+        throw new Error(t("yearWheel.toast_missing_day_factors"));
 
       // Validate: hour factors must exist (keyed on season_budget_id)
       const { count: hourFactorCount } = await supabase
@@ -160,7 +161,8 @@ export function useSeasons() {
         .select("*", { count: "exact", head: true })
         .eq("season_budget_id", budget.season_budget_id);
 
-      if (!hourFactorCount || hourFactorCount === 0) throw new Error("Sesong mangler timefaktorer");
+      if (!hourFactorCount || hourFactorCount === 0)
+        throw new Error(t("yearWheel.toast_missing_hour_factors"));
 
       const { count: hoursCount } = await supabase
         .from("department_operating_hours")
@@ -215,7 +217,7 @@ export function useSeasons() {
       queryClient.invalidateQueries({
         queryKey: dashboardKeys.seasons(wsId ?? "none"),
       });
-      toast.success(`${data.name} er nå aktiv!`);
+      toast.success(t("yearWheel.toast_season_activated", { name: data.name }));
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -253,7 +255,7 @@ export function useSeasons() {
       queryClient.invalidateQueries({
         queryKey: dashboardKeys.seasons(wsId ?? "none"),
       });
-      toast.success(`${data.name} er arkivert`);
+      toast.success(t("yearWheel.toast_season_archived", { name: data.name }));
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -282,7 +284,7 @@ export function useSeasons() {
       });
 
       if (sourceSeasons.length === 0) {
-        throw new Error(`Ingen sesonger funnet for ${sourceYear}`);
+        throw new Error(t("yearWheel.toast_no_seasons_for_year", { year: sourceYear }));
       }
 
       const existingSlugs = new Set((query.data ?? []).map((s) => s.slug));
@@ -376,7 +378,13 @@ export function useSeasons() {
       queryClient.invalidateQueries({
         queryKey: dashboardKeys.seasons(wsId ?? "none"),
       });
-      toast.success(`${created.length} sesonger kopiert fra ${sourceYear} til ${targetYear}`);
+      toast.success(
+        t("yearWheel.toast_year_duplicated", {
+          count: created.length,
+          source: sourceYear,
+          target: targetYear,
+        }),
+      );
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -387,13 +395,13 @@ export function useSeasons() {
     mutationFn: async (input: UpdateSeasonDatesInput): Promise<Season> => {
       const list = query.data ?? [];
       const current = list.find((s) => s.season_id === input.seasonId);
-      if (!current) throw new Error("Sesong ikke funnet");
+      if (!current) throw new Error(t("yearWheel.toast_season_not_found"));
 
       const nextStart = input.start_date !== undefined ? input.start_date : current.start_date;
       const nextEnd = input.end_date !== undefined ? input.end_date : current.end_date;
 
       if (nextStart && nextEnd && new Date(nextStart) > new Date(nextEnd)) {
-        throw new Error("Startdato må være på eller før sluttdato");
+        throw new Error(t("yearWheel.toast_date_order_error"));
       }
 
       const { data, error } = await supabase
@@ -433,7 +441,7 @@ export function useSeasons() {
       queryClient.invalidateQueries({
         queryKey: dashboardKeys.seasons(wsId ?? "none"),
       });
-      toast.success("Sesongdatoer oppdatert");
+      toast.success(t("yearWheel.toast_season_dates_updated"));
     },
     onError: (error: Error) => {
       toast.error(error.message);
