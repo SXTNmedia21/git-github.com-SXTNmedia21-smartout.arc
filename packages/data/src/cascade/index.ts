@@ -8,3 +8,15 @@ export {
   isGovernanceGated,
   isContentEntity,
 } from "./classify.js";
+
+export {
+  type EvaluationOutcome,
+  type FrameworkRule,
+  type EvaluationContext,
+  type EvaluationResult,
+  type AggregatedEvaluation,
+  type EvaluationConfig,
+  type Condition,
+  EvaluationConfigSchema,
+  evaluateFrameworkRules,
+} from "./evaluate-rules.js";
