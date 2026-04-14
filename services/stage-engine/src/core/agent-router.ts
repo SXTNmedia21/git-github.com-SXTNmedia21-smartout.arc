@@ -110,7 +110,7 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
   }
 
   // Step 4: Select tools based on intent + authority
-  const selectedTools = selectTools(intent, authorityConfig);
+  const selectedTools = selectTools(intent, authorityConfig, channel);
 
   // Step 5: Build posture-aware system prompt
   const systemPrompt = buildBotssonPromptFromContext(
