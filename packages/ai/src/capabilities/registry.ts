@@ -9,6 +9,7 @@ import { communicationCapability } from "./communication/index.js";
 import { contractCapability } from "./contract/index.js";
 import { contractIntakeCapability } from "./contract-intake/index.js";
 import { shiftSwapCapability } from "./shift-swap/index.js";
+import { trainingCapability } from "./training/index.js";
 
 const capabilities: Record<string, CapabilityDefinition> = {
   profile: profileCapability,
@@ -20,6 +21,7 @@ const capabilities: Record<string, CapabilityDefinition> = {
   contract: contractCapability,
   contract_intake: contractIntakeCapability,
   shift_swap: shiftSwapCapability,
+  training: trainingCapability,
 };
 
 export function getCapability(name: CapabilityName): CapabilityDefinition | undefined {
