@@ -20,9 +20,9 @@ See `docs/DASHBOARD.md` for full worktree map.
 
 No critical gaps. Next focus areas:
 
-1. **Cascade Phase D (Adapters)** — NOT STARTED. Connects cascade pure functions to live data.
-2. **Cascade Phase E (Control Planes)** — NOT STARTED. C4 governance first.
-3. **Cascade Phase C last 15%** — I1 bootstrap wired, needs final verification.
+1. **Cascade Phase E (Control Planes)** — NOT STARTED. C4 governance first.
+2. **Cascade Phase C last 15%** — I1 bootstrap wired, needs final verification.
+3. **Cascade Phase F (External Adapters)** — NOT STARTED. Tripletex payroll sync first target.
 
 ### Closed gaps (Apr 14 audit + fixes)
 
@@ -33,16 +33,19 @@ No critical gaps. Next focus areas:
 - ~~my-schedule realtime~~ — DONE. `useMyShiftsRealtime()` called in MyWeekView.tsx:85.
 - ~~AI classifier gaps~~ — NOT A GAP. `contract_intake` and `shift_swap` are chat-only by design (ADR-0078).
 
-## Cascade Status (~55% complete)
+## Cascade Status (~75% complete)
 
 - Phase A (Schema): DONE
-- Phase B (Pure Functions): DONE — 9 functions, 8 test files
+- Phase B (Pure Functions): DONE — 10 functions, 8 test files
 - Phase C (Bootstrap): 85% — framework seeded, I1 bootstrap wired
-- Phase D (Adapters): NOT STARTED
+- Phase D (Operational Layer): DONE — hooks, panels, engine actions, publish validation all wired
 - Phase E (Control Planes): NOT STARTED — C4 governance first
+- Phase F (External Adapters): NOT STARTED — Tripletex first target
 
 ## Recent Merges (last 2 weeks)
 
+- Cascade Phase D completion: publish validation dialog wired (Apr 14)
+- E2E cleanup: 8 obsolete tests removed, skip messages improved (Apr 14)
 - Gap fixes: schedule_control handler, trainee redirect flow (Apr 14)
 - Training Module 6: admin assignment CRUD, mobile training wiring, readiness dashboard (Apr 14)
 - Contract template binding K1b layer (Apr 14)
