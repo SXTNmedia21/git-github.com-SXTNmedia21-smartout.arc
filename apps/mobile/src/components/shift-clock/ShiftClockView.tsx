@@ -6,6 +6,7 @@
  * - clocked_in: ShiftClockHeader + ShiftClockActions + content area
  * - on_break: Break timer + resume button via ShiftClockActions
  * - summary: ShiftClockSummary with stats
+ * - after_shift: AfterShiftView with handoff form + hours confirmation
  *
  * Orchestrates all child components and connects them to the shift phase store
  * and mutation hooks.
@@ -24,19 +25,22 @@ import { useShiftPhase } from "@/hooks/stores/use-shift-phase";
 import { useActiveTimeEntry } from "@/hooks/queries/use-active-time-entry";
 import { usePunch } from "@/hooks/mutations/use-punch";
 import { useSupplements } from "@/hooks/shift-clock/useSupplements";
+import { useSubmitHandoff } from "@/hooks/mutations/use-submit-handoff";
+import { useConfirmHours } from "@/hooks/mutations/use-confirm-hours";
 import { strings } from "@/constants/strings";
 
 import { TaskFeed } from "@/components/task/TaskFeed";
 import { useMyTasks } from "@/hooks/queries/use-my-tasks";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
 import { useLeaderPhone } from "@/hooks/queries/use-leader-phone";
+import { AfterShiftView } from "@/components/home/AfterShiftView";
 import { PunchAnimation } from "./PunchAnimation";
 import { ShiftClockHeader } from "./ShiftClockHeader";
 import { ShiftClockActions } from "./ShiftClockActions";
 import { ShiftClockSummary } from "./ShiftClockSummary";
 import { SupplementSheet } from "./SupplementSheet";
 
-type ShiftClockPhase = "idle" | "clocked_in" | "on_break" | "summary";
+type ShiftClockPhase = "idle" | "clocked_in" | "on_break" | "summary" | "after_shift";
 
 export function ShiftClockView() {
   const styles = useStyles();
@@ -68,18 +72,29 @@ export function ShiftClockView() {
     claimSupplement,
   } = useSupplements(shiftId, workspaceId);
 
+  // End-of-shift mutation hooks — handoff note + hours confirmation
+  const { submitHandoff, isSubmitting: submittingHandoff } = useSubmitHandoff();
+  const { confirmHours, isSubmitting: confirmingHours } = useConfirmHours();
+  // Track whether handoff was submitted during this after-shift flow
+  const [handoffSubmitted, setHandoffSubmitted] = useState(false);
+
   // Local view phase — drives which child renders
   const [viewPhase, setViewPhase] = useState<ShiftClockPhase>("idle");
   const [showSupplements, setShowSupplements] = useState(false);
   // Captured at the moment of punch-out so the summary timestamp doesn't drift on re-renders
   const [capturedPunchOut, setCapturedPunchOut] = useState<string | null>(null);
 
-  // Sync view phase with shift phase store
+  // Sync view phase with shift phase store.
+  // Guard: don't override "summary" or "after_shift" — those are driven by user interaction,
+  // not by the shift phase store. The store will report no_shift after punch-out, but the
+  // employee hasn't finished the post-shift flow yet.
   useEffect(() => {
     if (isClockedIn) {
       setViewPhase(isOnBreak ? "on_break" : "clocked_in");
     } else if (phase === "no_shift" || phase === "before_shift") {
-      setViewPhase("idle");
+      setViewPhase((prev) =>
+        prev === "summary" || prev === "after_shift" ? prev : "idle",
+      );
     }
   }, [isClockedIn, isOnBreak, phase]);
 
@@ -117,10 +132,46 @@ export function ShiftClockView() {
     setViewPhase("clocked_in");
   }, []);
 
-  /* ---- Dismiss summary ---- */
+  /* ---- Dismiss summary → transition to after-shift flow ---- */
   const handleDismissSummary = useCallback(() => {
-    setViewPhase("idle");
+    setViewPhase("after_shift");
   }, []);
+
+  /* ---- After-shift callbacks ---- */
+  const handleAfterShiftHandoff = useCallback(
+    async (text: string) => {
+      if (!currentTimeEntry || !profile) return;
+      await submitHandoff({
+        department_session_id: currentTimeEntry.shift_id,
+        created_by: profile.profile_id,
+        workspace_id: profile.workspace_id,
+        content: text,
+      });
+      setHandoffSubmitted(true);
+    },
+    [currentTimeEntry, profile, submitHandoff],
+  );
+
+  const handleAfterShiftConfirmHours = useCallback(async () => {
+    if (!currentTimeEntry) return;
+    await confirmHours({
+      approval_id: currentTimeEntry.time_entry_id,
+      status: "approved",
+    });
+    setViewPhase("idle");
+    setHandoffSubmitted(false);
+  }, [currentTimeEntry, confirmHours]);
+
+  const handleAfterShiftDisputeHours = useCallback(async () => {
+    if (!currentTimeEntry) return;
+    await confirmHours({
+      approval_id: currentTimeEntry.time_entry_id,
+      status: "disputed",
+      edit_justification: "Bestridt via ShiftClock",
+    });
+    setViewPhase("idle");
+    setHandoffSubmitted(false);
+  }, [currentTimeEntry, confirmHours]);
 
   /* ---- Build shift info for PunchAnimation ---- */
   const shiftInfo = shiftForPunch
@@ -176,6 +227,35 @@ export function ShiftClockView() {
             status: c._isPending ? "pending" : "confirmed",
           }))}
           onDismiss={handleDismissSummary}
+        />
+      </SafeAreaView>
+    );
+  }
+
+  /* ---- AFTER_SHIFT: Handoff + hours confirmation ---- */
+  if (viewPhase === "after_shift") {
+    return (
+      <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
+        <AfterShiftView
+          shift={activeShift ?? null}
+          timeEntry={{
+            time_entry_id: currentTimeEntry?.time_entry_id ?? "",
+            shift_id: currentTimeEntry?.shift_id ?? "",
+            profile_id: currentTimeEntry?.profile_id ?? "",
+            workspace_id: currentTimeEntry?.workspace_id ?? "",
+            punch_in: currentTimeEntry?.punch_in ?? new Date().toISOString(),
+            punch_out: capturedPunchOut ?? currentTimeEntry?.punch_out ?? null,
+            breaks: currentTimeEntry?.breaks ?? null,
+            punch_in_location: currentTimeEntry?.punch_in_location ?? null,
+            status: currentTimeEntry?.status ?? "completed",
+            created_at: currentTimeEntry?.created_at ?? new Date().toISOString(),
+            updated_at: currentTimeEntry?.updated_at ?? new Date().toISOString(),
+          }}
+          onSubmitHandoff={(text) => void handleAfterShiftHandoff(text)}
+          submittingHandoff={submittingHandoff}
+          onConfirmHours={() => void handleAfterShiftConfirmHours()}
+          confirmingHours={confirmingHours}
+          onDisputeHours={() => void handleAfterShiftDisputeHours()}
         />
       </SafeAreaView>
     );
