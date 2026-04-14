@@ -70,7 +70,13 @@ export function usePlanningCycles() {
       if (error) throw new Error(error.message);
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (_data, input) => {
+      void emit({
+        event: "planning_cycle created" as never,
+        workspace_id: wsId ?? null,
+        actor_id: profileId ?? "",
+        properties: {},
+      });
       invalidate();
       toast.success("Planperiode opprettet");
     },
@@ -88,7 +94,13 @@ export function usePlanningCycles() {
         .eq("planning_cycle_id", planning_cycle_id);
       if (error) throw new Error(error.message);
     },
-    onSuccess: () => {
+    onSuccess: (_data, input) => {
+      void emit({
+        event: "planning_cycle updated" as never,
+        workspace_id: wsId ?? null,
+        actor_id: profileId ?? "",
+        properties: {},
+      });
       invalidate();
       toast.success("Planperiode oppdatert");
     },
@@ -106,7 +118,7 @@ export function usePlanningCycles() {
       if (error) throw new Error(error.message);
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["seasons"] });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard", "seasons", wsId] });
       toast.success("Sesong koblet til planperiode");
     },
     onError: (error: Error) => {

@@ -119,7 +119,13 @@ export function usePlanningEvents(planningCycleId?: string | null) {
         .eq("planning_event_id", planning_event_id);
       if (error) throw new Error(error.message);
     },
-    onSuccess: () => {
+    onSuccess: (_data, input) => {
+      void emit({
+        event: "planning_event updated" as never,
+        workspace_id: wsId ?? null,
+        actor_id: profileId ?? "",
+        properties: {},
+      });
       invalidate();
       toast.success("Hendelse oppdatert");
     },
@@ -136,7 +142,13 @@ export function usePlanningEvents(planningCycleId?: string | null) {
         .eq("planning_event_id", eventId);
       if (error) throw new Error(error.message);
     },
-    onSuccess: () => {
+    onSuccess: (_data, eventId) => {
+      void emit({
+        event: "planning_event deleted" as never,
+        workspace_id: wsId ?? null,
+        actor_id: profileId ?? "",
+        properties: {},
+      });
       invalidate();
       toast.success("Hendelse slettet");
     },

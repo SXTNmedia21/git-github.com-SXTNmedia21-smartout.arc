@@ -76,8 +76,8 @@ export function SeasonOverviewTab({
     const openTimes = operatingHours.filter((oh) => !oh.is_closed);
     if (openTimes.length === 0) return { openHour: 10, closeHour: 22 };
     return {
-      openHour: Math.min(...openTimes.map((oh) => parseTimeToHour(oh.open_time))),
-      closeHour: Math.max(...openTimes.map((oh) => parseTimeToHour(oh.close_time))),
+      openHour: Math.min(...openTimes.map((oh) => parseTimeToHour(oh.open_time ?? "10:00"))),
+      closeHour: Math.max(...openTimes.map((oh) => parseTimeToHour(oh.close_time ?? "22:00"))),
     };
   }, [operatingHours]);
 
