@@ -60,7 +60,7 @@ export const getProfileInWorkspace = cache(async (userId: string, workspaceId: s
   const supabase = await createClient();
   const { data } = await supabase
     .from("profile")
-    .select("profile_id")
+    .select("profile_id, status")
     .eq("user_id", userId)
     .eq("workspace_id", workspaceId)
     .single();
@@ -78,7 +78,7 @@ export const getFirstProfile = cache(async (userId: string) => {
   const supabase = await createClient();
   const { data } = await supabase
     .from("profile")
-    .select("workspace_id, profile_id, workspace:workspace!inner(onboarding_completed)")
+    .select("workspace_id, profile_id, status, workspace:workspace!inner(onboarding_completed)")
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(10);
@@ -88,6 +88,7 @@ export const getFirstProfile = cache(async (userId: string) => {
   const profiles = data as Array<{
     workspace_id: string;
     profile_id: string;
+    status: string;
     workspace: { onboarding_completed: boolean };
   }>;
 
@@ -95,5 +96,5 @@ export const getFirstProfile = cache(async (userId: string) => {
   const onboarded = profiles.find((p) => p.workspace.onboarding_completed);
 
   const best = onboarded ?? profiles[0]!;
-  return { workspace_id: best.workspace_id, profile_id: best.profile_id };
+  return { workspace_id: best.workspace_id, profile_id: best.profile_id, status: best.status };
 });

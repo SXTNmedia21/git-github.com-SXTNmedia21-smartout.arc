@@ -263,8 +263,9 @@ export async function middleware(request: NextRequest): Promise<Response> {
   if (subdomain.type === "workspace") {
     const slug = subdomain.slug;
 
-    // Set workspace slug header for downstream consumption
+    // Set workspace slug + pathname headers for downstream consumption
     response.headers.set("x-workspace-slug", slug);
+    response.headers.set("x-pathname", pathname);
 
     // Sandbox enforcement — block restricted routes for unverified workspaces.
     // Runs before the root redirect so a sandboxed workspace hitting /dashboard/settings/api-keys
@@ -335,6 +336,11 @@ async function handleLegacyRouting(request: NextRequest): Promise<Response> {
   const wsParam = request.nextUrl.searchParams.get("ws");
   if (wsParam && needsDashboardGate) {
     response.headers.set("x-workspace-id-param", wsParam);
+  }
+
+  // Pass pathname for downstream server components (e.g. trainee redirect in layout)
+  if (needsDashboardGate) {
+    response.headers.set("x-pathname", pathname);
   }
 
   // /join is always open — anyone can start creating a workspace
