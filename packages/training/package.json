@@ -20,7 +20,8 @@
   },
   "devDependencies": {
     "@smartout/eslint-config": "workspace:^",
-    "@smartout/typescript-config": "workspace:*"
+    "@smartout/typescript-config": "workspace:*",
+    "@types/react": "^19.2.14"
   },
   "peerDependencies": {
     "@supabase/supabase-js": "^2.0.0",
