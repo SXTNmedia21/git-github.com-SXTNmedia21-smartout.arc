@@ -15,12 +15,12 @@ import type { IndustryPackage } from "@smartout/types";
 
 /** Correct Riksavtalen tariff rates (2024 satser) */
 export const HOSPITALITY_TARIFF_RATES = [
-  { rateType: "kveldstillegg", amount: 28, unit: "kr/t" as const, applies: "21:00-06:00" },
+  { rateType: "kveldstillegg", amount: 15.65, unit: "kr/t" as const, applies: "21:00-06:00" },
   {
     rateType: "helgetillegg",
-    amount: 28,
+    amount: 29.74,
     unit: "kr/t" as const,
-    applies: "Sat 15:00-24:00, Sun all day 45 kr/t",
+    applies: "Sat 15:00 - Sun 24:00",
   },
   {
     rateType: "helligdagstillegg",
@@ -115,7 +115,7 @@ export const hospitalityPackage: IndustryPackage = {
         {
           id: "riks-kveld",
           name: "Kveldstillegg",
-          rate: 28,
+          rate: 15.65,
           unit: "kr/t",
           condition_type: "time_range",
           from_hour: "21:00",
@@ -124,7 +124,7 @@ export const hospitalityPackage: IndustryPackage = {
         {
           id: "riks-lordag",
           name: "L\u00f8rdagstillegg",
-          rate: 28,
+          rate: 29.74,
           unit: "kr/t",
           condition_type: "days",
           days: ["l\u00f8rdag"],
@@ -133,7 +133,7 @@ export const hospitalityPackage: IndustryPackage = {
         {
           id: "riks-sondag",
           name: "S\u00f8ndagstillegg",
-          rate: 45,
+          rate: 29.74,
           unit: "kr/t",
           condition_type: "days",
           days: ["s\u00f8ndag"],
@@ -182,7 +182,7 @@ export const hospitalityPackage: IndustryPackage = {
           description: "Per m\u00e5ltid n\u00e5r mat ikke tilbys",
         },
       ],
-      minWagePerHour: 196.04,
+      minWagePerHour: 198.5,
     },
     {
       key: "hotelloverenskomsten",
@@ -191,7 +191,7 @@ export const hospitalityPackage: IndustryPackage = {
         {
           id: "hotell-kveld",
           name: "Kveldstillegg",
-          rate: 28,
+          rate: 15.65,
           unit: "kr/t",
           condition_type: "time_range",
           from_hour: "21:00",
@@ -209,7 +209,7 @@ export const hospitalityPackage: IndustryPackage = {
         {
           id: "hotell-lordag",
           name: "L\u00f8rdagstillegg",
-          rate: 28,
+          rate: 29.74,
           unit: "kr/t",
           condition_type: "days",
           days: ["l\u00f8rdag"],
@@ -218,7 +218,7 @@ export const hospitalityPackage: IndustryPackage = {
         {
           id: "hotell-sondag",
           name: "S\u00f8ndagstillegg",
-          rate: 45,
+          rate: 29.74,
           unit: "kr/t",
           condition_type: "days",
           days: ["s\u00f8ndag"],
@@ -275,7 +275,7 @@ export const hospitalityPackage: IndustryPackage = {
           description: "Per rom utover norm (fastsettes lokalt)",
         },
       ],
-      minWagePerHour: 196.04,
+      minWagePerHour: 198.5,
     },
   ],
   defaultTariffKey: "riksavtalen",
