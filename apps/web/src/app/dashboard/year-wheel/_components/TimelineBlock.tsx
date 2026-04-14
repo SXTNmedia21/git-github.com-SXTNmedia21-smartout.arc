@@ -163,9 +163,9 @@ export function TimelineBlock({
 
   const style = getBlockStyle(season.status);
   const startMonth = season.start_date
-    ? t(MONTH_SHORT_KEYS[new Date(season.start_date).getMonth()])
+    ? t(MONTH_SHORT_KEYS[new Date(season.start_date).getMonth()] ?? "")
     : "";
-  const endMonth = season.end_date ? t(MONTH_SHORT_KEYS[new Date(season.end_date).getMonth()]) : "";
+  const endMonth = season.end_date ? t(MONTH_SHORT_KEYS[new Date(season.end_date).getMonth()] ?? "") : "";
 
   const effectiveEndIso = season.end_date ?? `${year}-12-31`;
   const effectiveStartIso = season.start_date ?? effectiveEndIso;
