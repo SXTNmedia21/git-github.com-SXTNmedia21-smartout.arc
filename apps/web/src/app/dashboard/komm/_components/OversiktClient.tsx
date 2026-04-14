@@ -154,15 +154,17 @@ function ActivityItem({
   content,
   date,
   reducedMotion,
+  formatDate,
 }: {
   type: ActivityType;
   title: string;
   content: string;
   date: string;
   reducedMotion: boolean;
+  formatDate: (dateStr: string) => string;
 }) {
   const Icon = ACTIVITY_ICON[type] ?? Settings;
-  const formatted = formatRelativeDate(date);
+  const formatted = formatDate(date);
 
   return (
     <motion.div
@@ -187,20 +189,23 @@ function ActivityItem({
 // Helpers
 // ---------------------------------------------------------------------------
 
-function formatRelativeDate(dateStr: string): string {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60_000);
+function useFormatRelativeDate() {
+  const { t } = useTranslation("komm");
+  return (dateStr: string): string => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60_000);
 
-  if (diffMins < 1) return "nå";
-  if (diffMins < 60) return `${diffMins}m`;
-  const diffHours = Math.floor(diffMins / 60);
-  if (diffHours < 24) return `${diffHours}t`;
-  const diffDays = Math.floor(diffHours / 24);
-  if (diffDays === 1) return "i går";
-  if (diffDays < 7) return `${diffDays}d`;
-  return date.toLocaleDateString("nb-NO", { day: "numeric", month: "short" });
+    if (diffMins < 1) return t("time.just_now");
+    if (diffMins < 60) return `${diffMins}m`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return t("time.hours_ago", { count: diffHours });
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays === 1) return t("time.yesterday");
+    if (diffDays < 7) return t("time.days_ago", { count: diffDays });
+    return date.toLocaleDateString("nb-NO", { day: "numeric", month: "short" });
+  };
 }
 
 function mapEntryToActivity(entry: CommunicationEntry): {
@@ -228,6 +233,7 @@ export function OversiktClient({ profileId }: { profileId: string }) {
   const rm = !!prefersReducedMotion;
 
   const [showHelpDesk, setShowHelpDesk] = useState(false);
+  const formatDate = useFormatRelativeDate();
 
   // Data hooks
   const { data: channelGroups } = useChannels();
@@ -317,7 +323,7 @@ export function OversiktClient({ profileId }: { profileId: string }) {
 
       {/* Quick actions */}
       <section>
-        <h2 className="text-muted-foreground mb-3 text-xs font-medium tracking-wider uppercase">
+        <h2 className="font-heading text-muted-foreground mb-3 text-sm tracking-wider">
           {t("oversikt.quick_actions")}
         </h2>
         <motion.div
@@ -356,7 +362,7 @@ export function OversiktClient({ profileId }: { profileId: string }) {
 
       {/* Activity feed */}
       <section>
-        <h2 className="text-muted-foreground mb-3 text-xs font-medium tracking-wider uppercase">
+        <h2 className="font-heading text-muted-foreground mb-3 text-sm tracking-wider">
           {t("oversikt.recent_activity")}
         </h2>
         <Card className="border-border/30 bg-card/60 rounded-xl backdrop-blur-sm">
@@ -392,6 +398,7 @@ export function OversiktClient({ profileId }: { profileId: string }) {
                   content={a.content}
                   date={a.date}
                   reducedMotion={rm}
+                  formatDate={formatDate}
                 />
               ))}
             </motion.div>
