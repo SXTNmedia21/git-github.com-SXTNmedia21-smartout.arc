@@ -13,6 +13,8 @@ const TEMPLATE_CLASSIFICATION: Record<EmailTemplate, EmailClassification> = {
   "trial-reminder": "transactional",
   "payment-reminder": "transactional",
   "contract-reminder": "transactional",
+  "contract-lifecycle": "transactional",
+  "contract-reminder-due": "transactional",
   "sendgrid-dynamic": "broadcast",
 };
 
