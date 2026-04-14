@@ -204,6 +204,84 @@ export function useDeleteTemplateBinding() {
 }
 
 // ---------------------------------------------------------------------------
+// Read: all bindings for the workspace (no group filter)
+// ---------------------------------------------------------------------------
+
+export function useAllBindings() {
+  const ctx = useWorkspaceOptional();
+  const wsId = ctx?.workspace.workspace_id;
+
+  return useQuery({
+    queryKey: ["template-bindings", wsId ?? "none", "all"] as const,
+    queryFn: async (): Promise<TemplateBindingRow[]> => {
+      const params = new URLSearchParams({ workspace_id: wsId! });
+
+      const res = await fetch(`/api/contract-template-bindings?${params}`);
+      if (!res.ok) throw new Error("Failed to fetch bindings");
+      const json = (await res.json()) as { data: TemplateBindingRow[] };
+      return json.data;
+    },
+    enabled: !!wsId,
+    staleTime: 2 * 60 * 1000,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Mutation: update binding (is_active, priority, template_id)
+// ---------------------------------------------------------------------------
+
+type UpdateBindingInput = {
+  id: string;
+  is_active?: boolean;
+  priority?: number;
+  template_id?: string;
+};
+
+export function useUpdateTemplateBinding() {
+  const ctx = useWorkspaceOptional();
+  const wsId = ctx?.workspace.workspace_id;
+  const { profileId } = useContext(DashboardContext);
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...fields }: UpdateBindingInput) => {
+      const res = await fetch(`/api/contract-template-bindings/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(fields),
+      });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(body.error ?? "Failed to update binding");
+      }
+      return (await res.json()) as { data: TemplateBindingRow };
+    },
+    onSuccess: (result, variables) => {
+      void emit({
+        event: "template_binding updated",
+        workspace_id: wsId ?? null,
+        actor_id: profileId ?? "",
+        properties: {
+          entity: { entity_type: "contract_template_binding", entity_id: variables.id },
+          data: {
+            is_active: variables.is_active,
+            priority: variables.priority,
+            template_id: variables.template_id,
+          },
+        },
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ["template-bindings", wsId],
+        exact: false,
+      });
+    },
+    onError: (err: Error) => {
+      toast.error(err.message);
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Mutation: copy system template to workspace
 // ---------------------------------------------------------------------------
 

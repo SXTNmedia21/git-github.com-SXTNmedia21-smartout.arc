@@ -26,27 +26,32 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import {
   useTemplateBindings,
   useWorkspaceTemplates,
   useCreateTemplateBinding,
   useDeleteTemplateBinding,
+  useUpdateTemplateBinding,
   useCopySystemTemplate,
   type TemplateBindingRow,
   type WorkspaceTemplate,
 } from "../_hooks/use-template-bindings";
+import { useTranslation } from "@smartout/i18n";
+import { toast } from "sonner";
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-const CATEGORY_LABELS: Record<string, string> = {
-  fast: "Fast ansatt",
-  deltid: "Deltid",
-  tilkalling: "Tilkalling",
-};
-
 const CATEGORIES = ["fast", "deltid", "tilkalling"] as const;
+type EmploymentCategory = (typeof CATEGORIES)[number];
+
+const CATEGORY_I18N_MAP: Record<EmploymentCategory, string> = {
+  fast: "template_bindings.category_fast",
+  deltid: "template_bindings.category_deltid",
+  tilkalling: "template_bindings.category_tilkalling",
+};
 
 // ---------------------------------------------------------------------------
 // Bind Sheet
@@ -61,23 +66,32 @@ type BindSheetProps = {
 };
 
 function BindSheet({ open, onClose, groupId, templates, existingCategories }: BindSheetProps) {
+  const { t } = useTranslation("dashboard");
   const createBinding = useCreateTemplateBinding();
   const [category, setCategory] = useState<string>("");
   const [templateId, setTemplateId] = useState<string>("");
+  const [priority, setPriority] = useState<number>(0);
 
   const availableCategories = CATEGORIES.filter((c) => !existingCategories.has(c));
   const filteredTemplates = templates.filter(
-    (t) => !category || !t.employment_category || t.employment_category === category,
+    (tpl) => !category || !tpl.employment_category || tpl.employment_category === category,
   );
 
   function handleSubmit() {
     if (!category || !templateId) return;
     createBinding.mutate(
-      { template_id: templateId, employment_category: category, employee_group_id: groupId },
+      {
+        template_id: templateId,
+        employment_category: category,
+        employee_group_id: groupId,
+        priority,
+      },
       {
         onSuccess: () => {
+          toast.success(t("template_bindings.toast_created"));
           setCategory("");
           setTemplateId("");
+          setPriority(0);
           onClose();
         },
       },
@@ -88,23 +102,23 @@ function BindSheet({ open, onClose, groupId, templates, existingCategories }: Bi
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
       <SheetContent className="flex w-full flex-col sm:max-w-md">
         <SheetHeader>
-          <SheetTitle>Knytt kontraktmal</SheetTitle>
+          <SheetTitle>{t("template_bindings.sheet_title_create")}</SheetTitle>
           <SheetDescription>
-            Velg ansettelsesform og kontraktmal for denne lønnsgruppen.
+            {t("template_bindings.description")}
           </SheetDescription>
         </SheetHeader>
 
         <div className="flex-1 space-y-4 py-4">
           <div className="space-y-1.5">
-            <Label>Ansettelsesform</Label>
+            <Label>{t("template_bindings.category_label")}</Label>
             <Select value={category} onValueChange={setCategory}>
               <SelectTrigger>
-                <SelectValue placeholder="Velg..." />
+                <SelectValue placeholder="..." />
               </SelectTrigger>
               <SelectContent>
                 {availableCategories.map((c) => (
                   <SelectItem key={c} value={c}>
-                    {CATEGORY_LABELS[c]}
+                    {t(CATEGORY_I18N_MAP[c])}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -112,33 +126,50 @@ function BindSheet({ open, onClose, groupId, templates, existingCategories }: Bi
           </div>
 
           <div className="space-y-1.5">
-            <Label>Kontraktmal</Label>
+            <Label>{t("template_bindings.template_label")}</Label>
             <Select value={templateId} onValueChange={setTemplateId}>
               <SelectTrigger>
-                <SelectValue placeholder="Velg mal..." />
+                <SelectValue placeholder="..." />
               </SelectTrigger>
               <SelectContent>
-                {filteredTemplates.map((t) => (
-                  <SelectItem key={t.template_id} value={t.template_id}>
-                    {t.name}
-                    {t.is_system && " (system)"}
+                {filteredTemplates.map((tpl) => (
+                  <SelectItem key={tpl.template_id} value={tpl.template_id}>
+                    {tpl.name}
+                    {tpl.is_system && " (system)"}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
+
+          <div className="space-y-1.5">
+            <Label>{t("template_bindings.priority_label")}</Label>
+            <Input
+              type="number"
+              min={0}
+              value={priority}
+              onChange={(e) => setPriority(Number(e.target.value))}
+            />
+            <p className="text-muted-foreground text-xs">
+              {t("template_bindings.priority_hint")}
+            </p>
+          </div>
         </div>
 
         <SheetFooter className="flex-row gap-2 pt-4">
           <Button variant="outline" onClick={onClose}>
-            Avbryt
+            {t("template_bindings.cancel")}
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={!category || !templateId || createBinding.isPending}
           >
-            {createBinding.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : null}
-            Knytt mal
+            {createBinding.isPending ? (
+              <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+            ) : null}
+            {createBinding.isPending
+              ? t("template_bindings.saving")
+              : t("template_bindings.save")}
           </Button>
         </SheetFooter>
       </SheetContent>
@@ -157,6 +188,7 @@ type CopySheetProps = {
 };
 
 function CopyTemplateSheet({ open, onClose, template }: CopySheetProps) {
+  const { t } = useTranslation("dashboard");
   const copyTemplate = useCopySystemTemplate();
   const [name, setName] = useState("");
 
@@ -177,14 +209,14 @@ function CopyTemplateSheet({ open, onClose, template }: CopySheetProps) {
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
       <SheetContent className="flex w-full flex-col sm:max-w-md">
         <SheetHeader>
-          <SheetTitle>Kopier systemmal</SheetTitle>
+          <SheetTitle>{t("template_bindings.sheet_title_create")}</SheetTitle>
           <SheetDescription>
-            Lag en redigerbar kopi av «{template?.name}» for arbeidsområdet ditt.
+            {template?.name}
           </SheetDescription>
         </SheetHeader>
         <div className="flex-1 space-y-4 py-4">
           <div className="space-y-1.5">
-            <Label>Navn på kopi</Label>
+            <Label>{t("template_bindings.template_label")}</Label>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -194,11 +226,13 @@ function CopyTemplateSheet({ open, onClose, template }: CopySheetProps) {
         </div>
         <SheetFooter className="flex-row gap-2 pt-4">
           <Button variant="outline" onClick={onClose}>
-            Avbryt
+            {t("template_bindings.cancel")}
           </Button>
           <Button onClick={handleCopy} disabled={!name || copyTemplate.isPending}>
-            {copyTemplate.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : null}
-            Kopier
+            {copyTemplate.isPending ? (
+              <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+            ) : null}
+            {t("template_bindings.save")}
           </Button>
         </SheetFooter>
       </SheetContent>
@@ -215,17 +249,39 @@ type TemplateBindingsPanelProps = {
 };
 
 export function TemplateBindingsPanel({ groupId }: TemplateBindingsPanelProps) {
+  const { t } = useTranslation("dashboard");
   const { data: bindings = [], isLoading } = useTemplateBindings(groupId);
   const { data: templates = [] } = useWorkspaceTemplates();
   const deleteBinding = useDeleteTemplateBinding();
+  const updateBinding = useUpdateTemplateBinding();
   const [bindSheetOpen, setBindSheetOpen] = useState(false);
   const [copyTarget, setCopyTarget] = useState<WorkspaceTemplate | null>(null);
 
   const existingCategories = new Set(bindings.map((b) => b.employment_category));
-  const systemTemplates = templates.filter((t) => t.is_system);
+  const systemTemplates = templates.filter((tpl) => tpl.is_system);
+
+  function handleToggleActive(binding: TemplateBindingRow) {
+    const newActive = !binding.is_active;
+    updateBinding.mutate(
+      { id: binding.id, is_active: newActive },
+      {
+        onSuccess: () => {
+          toast.success(
+            newActive
+              ? t("template_bindings.toast_activated")
+              : t("template_bindings.toast_deactivated"),
+          );
+        },
+      },
+    );
+  }
 
   if (isLoading) {
-    return <div className="text-muted-foreground px-4 py-3 text-sm">Laster maler...</div>;
+    return (
+      <div className="text-muted-foreground px-4 py-3 text-sm">
+        {t("template_bindings.loading")}
+      </div>
+    );
   }
 
   return (
@@ -233,23 +289,23 @@ export function TemplateBindingsPanel({ groupId }: TemplateBindingsPanelProps) {
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <FileText className="text-muted-foreground h-4 w-4" />
-          <span className="text-sm font-medium">Kontraktmaler</span>
+          <span className="text-sm font-medium">{t("template_bindings.title")}</span>
         </div>
         <div className="flex gap-1.5">
           {systemTemplates.length > 0 && (
             <Select
               onValueChange={(id) =>
-                setCopyTarget(systemTemplates.find((t) => t.template_id === id) ?? null)
+                setCopyTarget(systemTemplates.find((tpl) => tpl.template_id === id) ?? null)
               }
             >
               <SelectTrigger className="h-7 w-auto gap-1.5 text-xs">
                 <Copy className="h-3 w-3" />
-                <SelectValue placeholder="Kopier systemmal" />
+                <SelectValue placeholder="..." />
               </SelectTrigger>
               <SelectContent>
-                {systemTemplates.map((t) => (
-                  <SelectItem key={t.template_id} value={t.template_id}>
-                    {t.name}
+                {systemTemplates.map((tpl) => (
+                  <SelectItem key={tpl.template_id} value={tpl.template_id}>
+                    {tpl.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -262,42 +318,63 @@ export function TemplateBindingsPanel({ groupId }: TemplateBindingsPanelProps) {
             onClick={() => setBindSheetOpen(true)}
           >
             <Plus className="mr-1 h-3 w-3" />
-            Knytt mal
+            {t("template_bindings.bind_template")}
           </Button>
         </div>
       </div>
 
       {bindings.length === 0 ? (
         <p className="text-muted-foreground py-2 text-xs">
-          Ingen maler knyttet. Kontrakten vil bruke systemmalen basert på ansettelsesform.
+          {t("template_bindings.system_fallback_hint")}
         </p>
       ) : (
         <div className="space-y-1.5">
           {bindings.map((b) => (
             <div
               key={b.id}
-              className="flex items-center justify-between rounded-md border px-3 py-2"
+              className={`flex items-center justify-between rounded-md border px-3 py-2 ${
+                b.is_active ? "" : "opacity-50"
+              }`}
             >
               <div className="flex items-center gap-2">
                 <Badge variant="secondary" className="text-xs">
-                  {CATEGORY_LABELS[b.employment_category] ?? b.employment_category}
+                  {t(CATEGORY_I18N_MAP[b.employment_category as EmploymentCategory] ?? b.employment_category)}
                 </Badge>
-                <span className="text-sm">{b.contract_template?.name ?? "Ukjent mal"}</span>
+                <span className="text-sm">{b.contract_template?.name ?? "?"}</span>
                 {b.contract_template?.is_system && (
                   <Badge variant="outline" className="text-xs">
                     System
                   </Badge>
                 )}
+                {b.priority > 0 && (
+                  <span className="text-muted-foreground text-xs">P{b.priority}</span>
+                )}
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 w-7 p-0"
-                onClick={() => deleteBinding.mutate({ id: b.id, groupId })}
-                disabled={deleteBinding.isPending}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={b.is_active}
+                  onCheckedChange={() => handleToggleActive(b)}
+                  disabled={updateBinding.isPending}
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 p-0"
+                  onClick={() =>
+                    deleteBinding.mutate(
+                      { id: b.id, groupId },
+                      {
+                        onSuccess: () => {
+                          toast.success(t("template_bindings.toast_deleted"));
+                        },
+                      },
+                    )
+                  }
+                  disabled={deleteBinding.isPending}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
             </div>
           ))}
         </div>

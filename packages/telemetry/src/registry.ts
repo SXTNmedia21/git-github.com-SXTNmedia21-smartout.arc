@@ -1370,6 +1370,14 @@ export interface TemplateBindingCreated extends BaseEvent {
   };
 }
 
+export interface TemplateBindingUpdated extends BaseEvent {
+  event: "template_binding updated";
+  properties: {
+    entity: EntityRef;
+    data: { template_id?: string; employment_category: string; employee_group_id: string | null; is_active?: boolean; priority?: number };
+  };
+}
+
 export interface TemplateBindingDeleted extends BaseEvent {
   event: "template_binding deleted";
   properties: {
@@ -3479,6 +3487,7 @@ export type SmartoutEvent =
   | TemplateUpdated
   | TemplateDeleted
   | TemplateBindingCreated
+  | TemplateBindingUpdated
   | TemplateBindingDeleted
   | ContractTemplateCopied
   | TemplateLoaded
@@ -4272,6 +4281,10 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "scheduling",
   },
   "template_binding created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "template_binding updated": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "contracts",
   },
