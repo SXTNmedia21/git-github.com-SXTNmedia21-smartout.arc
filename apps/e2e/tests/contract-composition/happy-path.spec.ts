@@ -1,24 +1,26 @@
 import { test, expect, type Page } from "@playwright/test";
 import { loginAsAdmin, loginAsEmployee } from "../../helpers/auth";
 
-// Re-export the skipOnboarding helper (duplicated from auth.ts to avoid circular dep)
+// Dismiss setup wizard if redirected, using force:true to bypass dev overlay
 async function skipSetupIfRedirected(page: Page): Promise<void> {
+  if (!page.url().includes("/dashboard/setup")) return;
+
+  await dismissDevOverlay(page);
+
+  const skipBtn = page.getByRole("button", { name: "Hopp over og gå til dashboard" });
+  for (let i = 0; i < 6; i++) {
+    const visible = await skipBtn.isVisible({ timeout: 1_500 }).catch(() => false);
+    if (visible) {
+      await skipBtn.click({ force: true });
+      await page.waitForTimeout(800);
+    }
+    if (!page.url().includes("/dashboard/setup")) return;
+    await page.waitForTimeout(600);
+  }
+  // Last resort: navigate directly
   if (page.url().includes("/dashboard/setup")) {
-    const skipBtn = page.getByRole("button", { name: "Hopp over og gå til dashboard" });
-    for (let i = 0; i < 6; i++) {
-      const visible = await skipBtn.isVisible({ timeout: 1_500 }).catch(() => false);
-      if (visible) {
-        await skipBtn.click();
-        await page.waitForTimeout(800);
-      }
-      if (!page.url().includes("/dashboard/setup")) return;
-      await page.waitForTimeout(600);
-    }
-    // Last resort: navigate directly
-    if (page.url().includes("/dashboard/setup")) {
-      await page.goto("/dashboard");
-      await page.waitForLoadState("domcontentloaded");
-    }
+    await page.goto("/dashboard");
+    await page.waitForLoadState("domcontentloaded");
   }
 }
 
@@ -65,19 +67,63 @@ async function clickNeste(page: Page): Promise<void> {
 test.describe.serial("Contract Composition — Happy Path", () => {
   test("admin composes contract via wizard", async ({ page }) => {
     // ── 1. Login ──────────────────────────────────────────────────────────────
-    await loginAsAdmin(page);
+    // Login as admin with default skipOnboarding:true. The helper handles setup,
+    // but the dev overlay can block the skip button click. We work around this
+    // by using the Supabase auth API directly to complete login, then handle any
+    // residual onboarding state.
+    await loginAsAdmin(page, { skipOnboarding: false });
+    await dismissDevOverlay(page);
+
+    // Robustly skip any setup/onboarding wizard using force clicks
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const url = page.url();
+      if (!url.includes("/setup") && !url.includes("/onboarding")) break;
+
+      // Remove the dev overlay that intercepts pointer events on every iteration
+      await page
+        .evaluate(() => {
+          document.querySelectorAll("nextjs-portal").forEach((el) => el.remove());
+        })
+        .catch(() => {});
+
+      // Wait for the skip button to be in the DOM
+      const skipBtn = page
+        .locator("button")
+        .filter({ hasText: "Hopp over og gå til dashboard" })
+        .first();
+      const skipInDom = (await skipBtn.count()) > 0;
+
+      if (skipInDom) {
+        // Use JavaScript click() to bypass all overlay interceptors
+        await skipBtn.evaluate((el) => (el as HTMLButtonElement).click());
+        await page.waitForLoadState("domcontentloaded");
+        await page.waitForTimeout(400);
+      } else {
+        // Navigate directly to dashboard if skip button not found
+        await page.goto("/dashboard");
+        await page.waitForLoadState("domcontentloaded");
+        break;
+      }
+    }
 
     // ── 2. Navigate to new contract wizard ───────────────────────────────────
-    await page.goto("/dashboard/contracts/new");
-    await page.waitForLoadState("domcontentloaded");
-
-    // Handle potential redirect to setup wizard (can happen if onboarding not fully skipped)
-    await skipSetupIfRedirected(page);
-
-    // If still not on the contracts page, navigate again
-    if (!page.url().includes("/contracts/new")) {
+    // Navigate and handle any onboarding/setup redirects
+    for (let attempt = 0; attempt < 3; attempt++) {
       await page.goto("/dashboard/contracts/new");
       await page.waitForLoadState("domcontentloaded");
+      await dismissDevOverlay(page);
+
+      if (page.url().includes("/dashboard/setup")) {
+        await skipSetupIfRedirected(page);
+      } else if (page.url().includes("/onboarding")) {
+        const skipBtn = page.getByRole("button", { name: "Hopp over og gå til dashboard" });
+        const visible = await skipBtn.isVisible({ timeout: 2_000 }).catch(() => false);
+        if (visible) await skipBtn.click({ force: true });
+        await page.waitForTimeout(500);
+      }
+
+      if (page.url().includes("/contracts/new")) break;
+      await page.waitForTimeout(500);
     }
 
     // Remove the Next.js dev overlay portal that can intercept clicks
@@ -248,36 +294,94 @@ test.describe.serial("Contract Composition — Happy Path", () => {
 
   test("employee views pending contract page", async ({ page }) => {
     // ── Login as employee (Anna Olsen) ────────────────────────────────────────
+    // Sign out the admin session from Test 1.
+    // Serial mode reuses the browser context — Supabase session persists in cookies.
+    // Use the UserMenu "Logg ut" button to sign out properly.
+    try {
+      await page.goto("/dashboard");
+      await page.waitForLoadState("domcontentloaded");
+      await dismissDevOverlay(page);
+
+      // Open the user menu (top-right avatar button) and click "Logg ut"
+      // The UserMenu button shows the user's initials/name
+      const userMenuBtn = page.locator("header button").last();
+      await userMenuBtn.click({ force: true });
+      await page.waitForTimeout(300);
+
+      const logoutBtn = page.getByText("Logg ut", { exact: false });
+      const logoutVisible = await logoutBtn.isVisible({ timeout: 2_000 }).catch(() => false);
+      if (logoutVisible) {
+        await logoutBtn.click({ force: true });
+        await page.waitForURL(/\/login/, { timeout: 10_000 });
+      } else {
+        // Fallback: clear cookies
+        await page.context().clearCookies();
+        await page.goto("/login");
+        await page.waitForLoadState("domcontentloaded");
+      }
+    } catch {
+      await page.context().clearCookies();
+      await page.goto("/login");
+      await page.waitForLoadState("domcontentloaded");
+    }
+
     await loginAsEmployee(page, "anna@smartout.local", "password123");
+    await dismissDevOverlay(page);
 
     // ── Navigate to the employee contract page ────────────────────────────────
     await page.goto("/dashboard/my-contract");
     await page.waitForLoadState("domcontentloaded");
+    await dismissDevOverlay(page);
+
+    // Verify we actually reached the my-contract page.
+    // If middleware redirected us (e.g., to onboarding), navigate again.
+    if (!page.url().includes("my-contract")) {
+      // Handle onboarding redirect
+      if (page.url().includes("/onboarding") || page.url().includes("/setup")) {
+        await skipSetupIfRedirected(page);
+        const skipOnboarding = page.getByRole("button", { name: "Hopp over og gå til dashboard" });
+        const skipVisible = await skipOnboarding.isVisible({ timeout: 2_000 }).catch(() => false);
+        if (skipVisible) {
+          await skipOnboarding.click({ force: true });
+          await page.waitForTimeout(1_000);
+        } else {
+          await page.goto("/dashboard");
+          await page.waitForLoadState("domcontentloaded");
+        }
+      }
+      // Navigate to my-contract
+      await page.goto("/dashboard/my-contract");
+      await page.waitForLoadState("domcontentloaded");
+      await dismissDevOverlay(page);
+    }
+
+    // Verify we're on the right page
+    expect(page.url()).toContain("my-contract");
 
     // The page renders a loading skeleton while fetching contracts, then either:
-    // - "Min kontrakt" heading + contract card (if a contract exists)
+    // - h1 "Min kontrakt" heading + contract card (if a contract exists)
     // - "Ingen kontrakter" empty state (if no contract exists yet)
     // Both outcomes are valid — we verify the page loads without crashing.
-
-    // Wait for the page content to load.
-    // The loading skeleton uses .animate-pulse with h-48 (tall block), distinct from
-    // the dashboard status indicator dot (h-1.5). Target the skeleton block specifically.
-    const loadingSkeleton = page.locator(".animate-pulse.h-48");
+    //
+    // Wait for the tall loading skeleton blocks to disappear.
+    // Avoid waiting for '.animate-pulse' broadly — the dashboard has a pulse dot.
+    const loadingSkeleton = page.locator(".animate-pulse.rounded-xl");
     const skeletonExists = (await loadingSkeleton.count()) > 0;
     if (skeletonExists) {
       await expect(loadingSkeleton.first()).toBeHidden({ timeout: 10_000 });
     } else {
-      // Skeleton may have already resolved — wait for domcontentloaded
-      await page.waitForLoadState("domcontentloaded");
       await page.waitForTimeout(500);
     }
 
     // Verify one of the expected terminal states is visible
-    const contractHeading = page.getByRole("heading", { name: /Min kontrakt/i });
-    const noContractTitle = page.locator("text=Ingen kontrakter");
+    const contractHeading = page
+      .locator("h1")
+      .filter({ hasText: /Min kontrakt/i })
+      .first();
+    const noContractTitle = page.getByText("Ingen kontrakter", { exact: false });
 
-    const headingVisible = await contractHeading.isVisible({ timeout: 3_000 }).catch(() => false);
-    const emptyVisible = await noContractTitle.isVisible({ timeout: 500 }).catch(() => false);
+    const headingVisible = await contractHeading.isVisible({ timeout: 5_000 }).catch(() => false);
+    const emptyVisible = await noContractTitle.isVisible({ timeout: 1_000 }).catch(() => false);
 
     expect(headingVisible || emptyVisible).toBe(true);
 

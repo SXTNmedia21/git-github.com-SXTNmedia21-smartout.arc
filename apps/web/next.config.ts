@@ -47,6 +47,7 @@ const nextConfig: NextConfig = {
     "@smartout/design-tokens",
     "@smartout/utils",
     "@smartout/agent-sdk",
+    "@smartout/training",
   ],
   webpack: (config, { dir, isServer }) => {
     // posthog-node (via @smartout/telemetry dynamic import) uses node:fs and

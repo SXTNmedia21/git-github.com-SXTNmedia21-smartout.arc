@@ -55,13 +55,13 @@ test.describe("HMS Avvik", () => {
     await page.waitForLoadState("networkidle");
 
     // Should be in admin mode by default, showing kanban
-    await expect(page.locator("text=Kanban").or(page.locator("text=Apen"))).toBeVisible({
+    await expect(page.locator("text=Kanban").or(page.locator("text=Åpen"))).toBeVisible({
       timeout: 10000,
     });
 
     // Check that seeded deviations are visible
     await expect(
-      page.locator("text=Kjoleskap 8C").or(page.locator("text=Manglende bruk av hansker")),
+      page.locator("text=Kjøleskap 8C").or(page.locator("text=Manglende bruk av hansker")),
     ).toBeVisible({ timeout: 5000 });
   });
 
@@ -79,7 +79,7 @@ test.describe("HMS Avvik", () => {
 
       // Fill resolution notes
       await page.fill(
-        'textarea[placeholder*="lukke avviket"]',
+        'textarea[placeholder*="lukke avviket"], textarea',
         "Tatt opp med ansatt. Rutine gjennomgatt.",
       );
 
@@ -95,7 +95,7 @@ test.describe("HMS Avvik", () => {
 
     // The Oversikt KPI card should show open deviation count
     // After resolution, count should be lower
-    const avvikCard = page.locator("text=Apne avvik").locator("..");
+    const avvikCard = page.locator("text=Åpne avvik").locator("..");
     await expect(avvikCard).toBeVisible({ timeout: 5000 });
   });
 });

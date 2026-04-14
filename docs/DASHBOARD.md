@@ -20,17 +20,15 @@ tags: [dashboard, worktrees, git-state]
 |---|--------|--------|-------------|-------|---------|
 | — | `development` | — | c6380d2c (5 min ago) | 1 file | — |
 | wt-1 | `feat/ops-intelligence-phase1` | ai | c6cee574 (2 min ago) | 1 file | missing |
-| wt-2 | `feat/training-schema-foundation` | training | 550662a5 (5 hours ago) | 1 file | missing |
 | wt-3 | `feat/mobile-shift-completion` | schedule | c6380d2c (just now) | clean | missing |
 
 ## Free Slots
 
-wt-4, wt-5, wt-6, wt-7, wt-8, wt-9, wt-10, wt-11, wt-12, wt-13, wt-15, wt-20
+wt-2, wt-4, wt-5, wt-6, wt-7, wt-8, wt-9, wt-10, wt-11, wt-12, wt-13, wt-15, wt-20
 
 ## Pending Journeys
 
 | # | Feature | Journey Path | Status |
 |---|---------|-------------|--------|
 | wt-1 | ops-intelligence-phase1 | `docs/journeys/JOURNEY-ops-intelligence-phase1.md` | missing |
-| wt-2 | training-schema-foundation | `docs/journeys/JOURNEY-training-schema-foundation.md` | missing |
 | wt-3 | mobile-shift-completion | `docs/journeys/JOURNEY-mobile-shift-completion.md` | missing |

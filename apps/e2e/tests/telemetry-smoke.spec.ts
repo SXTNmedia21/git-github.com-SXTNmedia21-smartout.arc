@@ -78,16 +78,18 @@ test.describe("journey:admin-creates-website-from-template", () => {
     await loginAsAdmin(page);
     await page.goto("/dashboard/website/setup", { waitUntil: "domcontentloaded" });
 
-    const templateCard = page.locator("button").filter({ hasText: "Restaurant Classic" }).first();
+    // Target the template name text inside the card button to avoid the hover-reveal
+    // preview overlay that can intercept clicks at certain positions.
+    const templateName = page
+      .locator("button span.font-semibold", { hasText: "Restaurant Classic" })
+      .first();
     const nextButton = page.getByRole("button", { name: "Neste" });
-    await expect(templateCard).toBeVisible({ timeout: 15000 });
-    await templateCard.click();
+    await expect(templateName).toBeVisible({ timeout: 15000 });
+    await templateName.click();
 
-    // Some local runs focus the card without toggling the selected state on first click.
-    // If that happens, press Enter on the focused card and wait for the step button to enable.
+    // Retry if the first click didn't register (e.g. hydration race)
     if (!(await nextButton.isEnabled().catch(() => false))) {
-      await templateCard.focus();
-      await templateCard.press("Enter");
+      await templateName.click({ force: true });
     }
 
     await expect(nextButton).toBeEnabled({ timeout: 5000 });

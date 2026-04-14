@@ -11,6 +11,23 @@
 import { test, expect } from "@playwright/test";
 import { loginAsAdmin } from "../helpers/auth";
 
+/**
+ * Removes the Next.js dev overlay portal that intercepts pointer events.
+ * Needed because platform-admin pages aren't covered by loginAsAdmin's
+ * dismissal (the overlay can re-appear after navigation).
+ */
+async function dismissDevOverlay(page: import("@playwright/test").Page): Promise<void> {
+  await page
+    .evaluate(() => {
+      const observer = new MutationObserver(() => {
+        document.querySelectorAll("nextjs-portal").forEach((el) => el.remove());
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+      document.querySelectorAll("nextjs-portal").forEach((el) => el.remove());
+    })
+    .catch(() => {});
+}
+
 test.describe("Platform Admin — landing PostHog bridge", () => {
   test.beforeEach(async ({ page }) => {
     await loginAsAdmin(page);
@@ -22,6 +39,9 @@ test.describe("Platform Admin — landing PostHog bridge", () => {
     await page.goto("/platform-admin/landing", { waitUntil: "domcontentloaded" });
     await expect(page.getByRole("tab", { name: /Sessions/i })).toBeVisible({ timeout: 15_000 });
 
+    // Dismiss dev overlay that can intercept pointer events on tab clicks
+    await dismissDevOverlay(page);
+
     const sessionBridge = page.locator('[aria-label="Open session in PostHog"]');
     const sessionCount = await sessionBridge.count();
     if (sessionCount > 0) {
@@ -31,8 +51,12 @@ test.describe("Platform Admin — landing PostHog bridge", () => {
       await expect(first).toHaveAttribute("target", "_blank");
     }
 
-    await page.getByRole("tab", { name: /Leads/i }).click();
-    await expect(page.getByRole("tab", { name: /Leads/i })).toHaveAttribute("data-state", "active");
+    // Radix UI tabs activate on pointerdown — ensure the click is a real
+    // user gesture by waiting for network idle and using a standard click.
+    const leadsTab = page.getByRole("tab", { name: /Leads/i });
+    await page.waitForLoadState("networkidle");
+    await leadsTab.click();
+    await expect(leadsTab).toHaveAttribute("data-state", "active", { timeout: 5_000 });
 
     const visitorBridge = page.locator('[aria-label="Open visitor in PostHog"]');
     const visitorCount = await visitorBridge.count();

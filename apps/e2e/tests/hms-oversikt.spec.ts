@@ -11,17 +11,17 @@ test.describe("HMS Oversikt", () => {
     await page.waitForLoadState("networkidle");
 
     // Admin view should show KPI cards
-    await expect(page.locator("text=Apne avvik")).toBeVisible({ timeout: 10000 });
+    await expect(page.locator("text=Åpne avvik")).toBeVisible({ timeout: 10000 });
 
     // The count should be a number (not "0" placeholder from Phase 1)
     const avvikValue = page
-      .locator("text=Apne avvik")
+      .locator("text=Åpne avvik")
       .locator("..")
       .locator("p.text-2xl, .text-2xl");
     await expect(avvikValue).toBeVisible({ timeout: 3000 });
   });
 
-  test("Oversikt sub-nav renders all 5 tabs", async ({ page }) => {
+  test("Oversikt sub-nav renders all 6 tabs", async ({ page }) => {
     await page.goto("/dashboard/hms");
     await page.waitForLoadState("networkidle");
 

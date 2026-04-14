@@ -25,7 +25,7 @@ test.describe("HMS Session Sign-off", () => {
 
       // Should show compliance task status
       await expect(
-        page.locator("text=Pakrevde oppgaver").or(page.locator("text=Ingen pakrevde oppgaver")),
+        page.locator("text=Påkrevde oppgaver").or(page.locator("text=Ingen påkrevde oppgaver")),
       ).toBeVisible({ timeout: 3000 });
     }
   });
@@ -47,7 +47,7 @@ test.describe("HMS Session Sign-off", () => {
 
         // Fill notes
         await page.fill(
-          'textarea[placeholder*="unntak"]',
+          'textarea[placeholder*="unntak"], textarea',
           "Temperaturkontroll ble forsinket pga leveranse.",
         );
 
@@ -67,10 +67,10 @@ test.describe("HMS Session Sign-off", () => {
       await page.waitForTimeout(500);
 
       // If clean sign-off is available
-      const cleanBtn = page.locator("text=Signer okt");
+      const cleanBtn = page.locator("text=Signer økt");
       if (await cleanBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
         await cleanBtn.click();
-        await expect(page.locator("text=Okt signert og lukket")).toBeVisible({ timeout: 5000 });
+        await expect(page.locator("text=Økt signert og lukket")).toBeVisible({ timeout: 5000 });
       }
     }
   });

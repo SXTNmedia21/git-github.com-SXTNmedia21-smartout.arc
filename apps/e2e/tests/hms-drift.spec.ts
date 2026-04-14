@@ -11,7 +11,7 @@ test.describe("HMS Drift", () => {
     await page.waitForLoadState("networkidle");
 
     // Admin view — session table should render
-    await expect(page.locator("text=Avdeling").or(page.locator("text=Ingen okter"))).toBeVisible({
+    await expect(page.locator("text=Avdeling").or(page.locator("text=Ingen økter"))).toBeVisible({
       timeout: 10000,
     });
   });
@@ -21,7 +21,7 @@ test.describe("HMS Drift", () => {
     await page.waitForLoadState("networkidle");
 
     // Click on a department row
-    const row = page.locator("text=Kitchen").or(page.locator("text=Kjokken"));
+    const row = page.locator("text=Kitchen").or(page.locator("text=Kjøkken"));
     if (await row.isVisible({ timeout: 5000 }).catch(() => false)) {
       await row.click();
       await page.waitForTimeout(500);
@@ -30,7 +30,7 @@ test.describe("HMS Drift", () => {
       await expect(
         page
           .locator("text=Temperaturkontroll")
-          .or(page.locator("text=Apningskontroll"))
+          .or(page.locator("text=Åpningskontroll"))
           .or(page.locator("text=Ingen oppgaver")),
       ).toBeVisible({ timeout: 5000 });
     }
@@ -40,8 +40,8 @@ test.describe("HMS Drift", () => {
     await page.goto("/dashboard/hms/drift");
     await page.waitForLoadState("networkidle");
 
-    // Find the date display
-    const dateDisplay = page.locator("text=mars 2026").or(page.locator("text=March 2026"));
+    // Find the date display — uses nb-NO long format, match the year
+    const dateDisplay = page.locator("text=2026");
     await expect(dateDisplay).toBeVisible({ timeout: 5000 });
 
     // Click previous day
@@ -50,7 +50,7 @@ test.describe("HMS Drift", () => {
       await prevBtn.click();
       await page.waitForTimeout(500);
       // Should still render without errors
-      await expect(page.locator("text=Avdeling").or(page.locator("text=Ingen okter"))).toBeVisible({
+      await expect(page.locator("text=Avdeling").or(page.locator("text=Ingen økter"))).toBeVisible({
         timeout: 5000,
       });
     }
