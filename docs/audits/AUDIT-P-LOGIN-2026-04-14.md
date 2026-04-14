@@ -7,7 +7,7 @@ status: draft
 
 # UX Audit — Login Journey
 
-**Total duration:** 23440ms
+**Total duration:** 19515ms
 **Steps:** 4
 **Passed:** 4
 **Failed:** 0
@@ -17,10 +17,10 @@ status: draft
 
 | Step | Title | Total ms | Action ms | Settle ms | Gate ms | Status |
 |------|-------|----------|-----------|-----------|---------|--------|
-| 1 | Åpne login-siden | 7773 | 5787 | 1514 | 76 | passed |
-| 2 | Fylle inn påloggingsinfo | 5883 | 663 | 4262 | 59 | passed |
-| 3 | Logg inn | 5382 | 84 | 1507 | 3010 | passed |
-| 4 | Autentisert — ser innlogget side | 4402 | 2137 | 1508 | 0 | passed |
+| 1 | Åpne login-siden | 6310 | 3936 | 1508 | 152 | passed |
+| 2 | Fylle inn påloggingsinfo | 3015 | 870 | 1503 | 32 | passed |
+| 3 | Logg inn | 5899 | 225 | 1502 | 3507 | passed |
+| 4 | Autentisert — ser innlogget side | 4291 | 2036 | 1504 | 0 | passed |
 
 ## Improvement Recommendations
 
