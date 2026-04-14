@@ -11,7 +11,7 @@
 import { useMemo, useState, useCallback, useRef, useEffect } from "react";
 import { useTranslation } from "@smartout/i18n";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { Newspaper, Plus, Eye, Send, Smile } from "lucide-react";
+import { Newspaper, Plus, Eye, Send, Smile, Filter } from "lucide-react";
 import { useChannels } from "../_hooks/use-channels";
 import { useChannelMessages } from "../_hooks/use-channel-messages";
 import { useToggleReaction } from "../_hooks/use-reactions";
@@ -434,12 +434,14 @@ export function NyheterClient({ profileId }: { profileId: string }) {
       <div className="mx-auto max-w-2xl px-4 py-6">
         <div className="mb-6 flex items-center justify-between">
           <h1 className="font-heading text-xl">{t("nyheter.title")}</h1>
-          {canCompose && newsChannel && (
-            <Button size="sm" onClick={() => setComposeOpen(true)}>
-              <Plus className="mr-1.5 h-4 w-4" />
-              {t("nyheter.compose_button")}
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {canCompose && newsChannel && (
+              <Button size="sm" onClick={() => setComposeOpen(true)}>
+                <Plus className="mr-1.5 h-4 w-4" />
+                {t("nyheter.compose_button")}
+              </Button>
+            )}
+          </div>
         </div>
         <div className="flex flex-col items-center justify-center py-20">
           <Newspaper className="text-muted-foreground/40 mb-4 h-12 w-12" />
@@ -464,7 +466,16 @@ export function NyheterClient({ profileId }: { profileId: string }) {
       {/* Header row */}
       <div className="mb-6 flex items-center justify-between">
         <h1 className="font-heading text-xl">{t("nyheter.title")}</h1>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          <Select defaultValue="all">
+            <SelectTrigger className="h-8 w-auto gap-1.5 text-xs">
+              <Filter className="h-3.5 w-3.5" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t("nyheter.filter_all")}</SelectItem>
+            </SelectContent>
+          </Select>
           {canCompose && (
             <Button size="sm" onClick={() => setComposeOpen(true)}>
               <Plus className="mr-1.5 h-4 w-4" />
