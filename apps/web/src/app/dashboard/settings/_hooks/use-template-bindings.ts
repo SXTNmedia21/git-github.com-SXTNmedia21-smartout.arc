@@ -267,6 +267,8 @@ export function useUpdateTemplateBinding() {
             is_active: variables.is_active,
             priority: variables.priority,
             template_id: variables.template_id,
+            employment_category: result.data.employment_category,
+            employee_group_id: result.data.employee_group_id,
           },
         },
       });
