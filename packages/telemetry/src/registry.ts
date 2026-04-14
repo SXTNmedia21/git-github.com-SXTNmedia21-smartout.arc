@@ -2858,6 +2858,21 @@ export interface AgentTokensUsed extends BaseEvent {
   };
 }
 
+// ─── Emma Task Events ──────────────────────────
+export interface EmmaTaskScheduled extends BaseEvent {
+  event: "emma_task scheduled";
+  properties: {
+    data: { title: string; priority: string; has_deadline: boolean };
+  };
+}
+
+export interface EmmaTaskCompleted extends BaseEvent {
+  event: "emma_task completed";
+  properties: {
+    data: { task_id: string; title: string };
+  };
+}
+
 export interface NotificationDeepLinkFollowed extends BaseEvent {
   event: "notification deep_link_followed";
   properties: {
@@ -3398,6 +3413,8 @@ export type SmartoutEvent =
   | AgentContextWindowTruncated
   | AgentBudgetExhausted
   | AgentTokensUsed
+  | EmmaTaskScheduled
+  | EmmaTaskCompleted
   | NotificationDeepLinkFollowed
   | HubActionTapped
   | TaskSurfaceViewed
@@ -4512,6 +4529,14 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "agent tokens_used": {
     destinations: ["posthog"],
+    category: "agent",
+  },
+  "emma_task scheduled": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "emma_task completed": {
+    destinations: ["posthog", "logger", "activity_trail"],
     category: "agent",
   },
 
