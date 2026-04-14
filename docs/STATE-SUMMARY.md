@@ -21,7 +21,7 @@ See `docs/DASHBOARD.md` for full worktree map.
 No critical gaps. Next focus areas:
 
 1. **Cascade Phase E (Control Planes)** — NOT STARTED. C4 governance first.
-2. **Cascade Phase C last 15%** — I1 bootstrap wired, needs final verification.
+2. **Cascade Phase C** — CLOSED. Rate constants corrected, 10 verification tests pass.
 3. **Cascade Phase F (External Adapters)** — NOT STARTED. Tripletex payroll sync first target.
 
 ### Closed gaps (Apr 14 audit + fixes)
@@ -33,11 +33,11 @@ No critical gaps. Next focus areas:
 - ~~my-schedule realtime~~ — DONE. `useMyShiftsRealtime()` called in MyWeekView.tsx:85.
 - ~~AI classifier gaps~~ — NOT A GAP. `contract_intake` and `shift_swap` are chat-only by design (ADR-0078).
 
-## Cascade Status (~75% complete)
+## Cascade Status (~80% complete)
 
 - Phase A (Schema): DONE
 - Phase B (Pure Functions): DONE — 10 functions, 8 test files
-- Phase C (Bootstrap): 85% — framework seeded, I1 bootstrap wired
+- Phase C (Bootstrap): DONE — framework seeded, I1 wired, rates corrected, 10 verification tests
 - Phase D (Operational Layer): DONE — hooks, panels, engine actions, publish validation all wired
 - Phase E (Control Planes): NOT STARTED — C4 governance first
 - Phase F (External Adapters): NOT STARTED — Tripletex first target
