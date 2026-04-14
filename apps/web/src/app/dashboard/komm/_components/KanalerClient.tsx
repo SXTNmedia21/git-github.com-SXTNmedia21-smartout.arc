@@ -3,12 +3,10 @@
 import { useState, useCallback } from "react";
 import { useWorkspace } from "@/lib/workspace-context";
 import { useChannels } from "../_hooks/use-channels";
-import { useUnreadCounts } from "../_hooks/use-unread-counts";
 import { useChannelRealtime } from "../_hooks/use-channel-realtime";
 import { useCallSignaling } from "../_hooks/use-call-signaling";
 import { useCallRealtime } from "../_hooks/use-call-realtime";
 import { useCallInvite } from "../_hooks/use-call-invite";
-import { useStartCall } from "../_hooks/use-start-call";
 import { useMuteParticipant } from "../_hooks/use-mute-participant";
 import { getLiveKitToken } from "@smartout/walkie-talkie";
 import { createClient } from "@smartout/supabase/client";
@@ -29,8 +27,7 @@ type LiveKitConnection = {
 };
 
 /**
- * Channels-only view — KommShell minus SubTabs.
- * Shows channel list (left) + message timeline/input (right) + call room.
+ * Channels page — 2-panel layout: channel list (left) + message timeline/input (right) + call room.
  */
 export function KanalerClient({ profileId }: { profileId: string }) {
   const { t } = useTranslation("komm");
@@ -45,19 +42,13 @@ export function KanalerClient({ profileId }: { profileId: string }) {
   const [liveParticipantCount, setLiveParticipantCount] = useState(0);
 
   const { data: channelGroups, isLoading } = useChannels();
-  const { data: unreadCounts } = useUnreadCounts();
   useChannelRealtime(workspaceId, activeChannelId);
 
   // Voice call hooks
   const { incomingCall, dismissIncoming } = useCallSignaling(profileId, activeChannelId);
   useCallRealtime(activeChannelId);
   const callInvite = useCallInvite();
-  const startCall = useStartCall();
   const muteParticipant = useMuteParticipant(profileId);
-
-  // Suppress unused variable warnings for hooks that are needed for side effects
-  void startCall;
-  void unreadCounts;
 
   const handleJoinCall = useCallback(async () => {
     if (!activeChannelId) return;
@@ -136,11 +127,11 @@ export function KanalerClient({ profileId }: { profileId: string }) {
   };
 
   return (
-    <div className="flex h-full overflow-hidden rounded-lg border">
-      {/* Left panel: channel list */}
-      <div className="bg-card flex w-80 flex-shrink-0 flex-col border-r">
-        <div className="flex items-center justify-between border-b px-4 py-2.5">
-          <h2 className="text-base font-semibold">{t("shell.title")}</h2>
+    <div className="border-border/50 flex h-full overflow-hidden rounded-lg border">
+      {/* Left panel: channel sidebar (w-72) */}
+      <div className="bg-background/80 border-border/50 flex w-72 flex-shrink-0 flex-col border-r backdrop-blur-xl">
+        <div className="border-border/50 flex items-center justify-between border-b px-4 py-2.5">
+          <h2 className="font-heading text-base font-semibold">{t("channel.header")}</h2>
         </div>
         <div className="flex-1 overflow-y-auto">
           <ChannelList
