@@ -3161,6 +3161,66 @@ export interface OpsActSessionFrozen extends BaseEvent {
   };
 }
 
+// ─── Operations Intelligence PREDICT Events (ADR-0088 Phase 3) ────────
+
+export interface OpsPredictGenerated extends BaseEvent {
+  event: "ops.predict generated";
+  properties: {
+    entity: { entity_type: "department"; entity_id: string };
+    data: {
+      prediction_type: "coverage_gap" | "task_bottleneck" | "compliance_risk" | "employee_overload";
+      confidence: number;
+      department_id: string;
+    };
+  };
+}
+
+export interface OpsPredictCoverageQueried extends BaseEvent {
+  event: "ops.predict coverage_queried";
+  properties: {
+    entity: { entity_type: "department"; entity_id: string };
+    data: { department_id: string; date_range_days: number; gaps_found: number };
+  };
+}
+
+export interface OpsPredictComplianceQueried extends BaseEvent {
+  event: "ops.predict compliance_queried";
+  properties: {
+    entity: { entity_type: "workspace"; entity_id: string };
+    data: { department_id: string | null; completion_rate: number; threshold: number };
+  };
+}
+
+// ─── Operations Intelligence LEARN Events (ADR-0088 Phase 3) ──────────
+
+export interface OpsLearnPatternExtracted extends BaseEvent {
+  event: "ops.learn pattern_extracted";
+  properties: {
+    entity: { entity_type: "workspace"; entity_id: string };
+    data: {
+      pattern_type: "task_duration" | "staffing" | "deviation_correlation";
+      data_range_days: number;
+      confidence: number;
+    };
+  };
+}
+
+export interface OpsLearnRetentionCleaned extends BaseEvent {
+  event: "ops.learn retention_cleaned";
+  properties: {
+    entity: { entity_type: "workspace"; entity_id: string };
+    data: { expired_count: number; retained_count: number };
+  };
+}
+
+export interface OpsLearnPatternsQueried extends BaseEvent {
+  event: "ops.learn patterns_queried";
+  properties: {
+    entity: { entity_type: "workspace"; entity_id: string };
+    data: { pattern_type: string | null; results_count: number };
+  };
+}
+
 // ─── Shift Swap Events ──────────────────────────
 // Shift swap workflow: request → accept/reject → approve/reject → execute
 // All swap state lives in engine_state.context JSONB (ADR-0067)
@@ -3610,7 +3670,13 @@ export type SmartoutEvent =
   | OpsMonitorSessionIntelligenceQueried
   | OpsActEscalated
   | OpsActTasksRedistributed
-  | OpsActSessionFrozen;
+  | OpsActSessionFrozen
+  | OpsPredictGenerated
+  | OpsPredictCoverageQueried
+  | OpsPredictComplianceQueried
+  | OpsLearnPatternExtracted
+  | OpsLearnRetentionCleaned
+  | OpsLearnPatternsQueried;
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -4954,6 +5020,31 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "ops.act session_frozen": {
     destinations: ["logger", "engine_event", "activity_trail"],
+    category: "ops_intelligence",
+  },
+  // Phase 3: PREDICT + LEARN events
+  "ops.predict generated": {
+    destinations: ["logger", "engine_event"],
+    category: "ops_intelligence",
+  },
+  "ops.predict coverage_queried": {
+    destinations: ["logger", "engine_event"],
+    category: "ops_intelligence",
+  },
+  "ops.predict compliance_queried": {
+    destinations: ["logger", "engine_event"],
+    category: "ops_intelligence",
+  },
+  "ops.learn pattern_extracted": {
+    destinations: ["logger", "engine_event"],
+    category: "ops_intelligence",
+  },
+  "ops.learn retention_cleaned": {
+    destinations: ["logger", "engine_event"],
+    category: "ops_intelligence",
+  },
+  "ops.learn patterns_queried": {
+    destinations: ["logger", "engine_event"],
     category: "ops_intelligence",
   },
 };
