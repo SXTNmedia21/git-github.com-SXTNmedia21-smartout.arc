@@ -356,7 +356,7 @@ Deno.serve(async (req) => {
 
   // Auth: cron secret (fail closed with !cronSecret ||)
   const authHeader = req.headers.get("authorization");
-  const cronSecret = Deno.env.get("OPS_LEARN_CRON_SECRET");
+  const cronSecret = Deno.env.get("WATCHDOG_CRON_SECRET");
 
   if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     return new Response("Unauthorized", { status: 401, headers: corsHeaders });

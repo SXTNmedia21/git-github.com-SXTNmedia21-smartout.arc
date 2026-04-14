@@ -561,15 +561,14 @@ Deno.serve(async (req: Request) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  // Auth guard: cron secret required
-  const cronSecret = req.headers.get("x-cron-secret");
-  const expectedSecret = Deno.env.get("CRON_SECRET");
+  // Auth guard: WATCHDOG_CRON_SECRET bearer token (standard cron pattern)
+  const authHeader = req.headers.get("authorization");
+  const cronSecret = Deno.env.get("WATCHDOG_CRON_SECRET");
 
-  if (!cronSecret || cronSecret !== expectedSecret) {
-    console.error("Auth failed: invalid or missing cron secret");
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     return new Response(
       JSON.stringify({ error: "Unauthorized" }),
-      { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   }
 
