@@ -429,7 +429,37 @@ function BindingMatrix({
 
   return (
     <>
-      <div className="overflow-x-auto">
+      {/* Mobile: card stack (one card per row, 3 labeled cells inside) */}
+      <div className="space-y-3 md:hidden">
+        {rows.map((row) => (
+          <div key={row.id ?? "ws"} className="rounded-lg border p-3">
+            <div className="text-foreground mb-2 text-sm font-medium">{row.label}</div>
+            <div className="space-y-2">
+              {CATEGORIES.map((cat) => (
+                <div key={cat}>
+                  <div className="text-muted-foreground mb-1 text-xs font-medium">
+                    {t(CATEGORY_I18N_MAP[cat])}
+                  </div>
+                  <BindingCell
+                    binding={getBinding(row.id, cat)}
+                    category={cat}
+                    groupId={row.id}
+                    onEdit={handleEdit}
+                    onCreate={handleCreate}
+                    onDelete={handleDelete}
+                    onToggleActive={handleToggleActive}
+                    isDeleting={deleteBinding.isPending}
+                    isUpdating={updateBinding.isPending}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop: matrix table */}
+      <div className="hidden overflow-x-auto md:block">
         <table className="w-full border-collapse">
           <thead>
             <tr>
