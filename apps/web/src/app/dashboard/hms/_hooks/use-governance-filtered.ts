@@ -25,7 +25,10 @@ export function useGovernanceFiltered(domain: Domain = "all") {
     const overdue = filtered.filter((p) => p.expiredCount > 0).length;
     const avgCompletion =
       total > 0 ? Math.round(filtered.reduce((s, p) => s + p.completionPercent, 0) / total) : 0;
-    return { total, overdue, avgCompletion };
+    const notStarted = filtered.reduce((s, p) => s + (p.notStartedCount ?? 0), 0);
+    const inProgress = filtered.reduce((s, p) => s + (p.inProgressCount ?? 0), 0);
+    const waived = filtered.reduce((s, p) => s + (p.waivedCount ?? 0), 0);
+    return { total, overdue, avgCompletion, notStarted, inProgress, waived };
   }, [filtered]);
 
   return { protocols: filtered, stats, isLoading, error };

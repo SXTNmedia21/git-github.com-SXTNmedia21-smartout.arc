@@ -10,14 +10,20 @@ import {
   GraduationCap,
   ClipboardCheck,
   FileSearch,
+  CalendarClock,
   Loader2,
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "@smartout/i18n";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
+import { useWorkspace } from "@/lib/workspace-context";
+import { createClient } from "@smartout/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useGovernanceFiltered } from "../_hooks/use-governance-filtered";
 import { useDeviations } from "../_hooks/use-deviations";
+import { useCompetenceData } from "./CompetenceMatrix";
+import { DepartmentReadiness } from "./DepartmentReadiness";
 
 type KpiCardProps = {
   icon: typeof ShieldCheck;
@@ -53,9 +59,33 @@ function KpiCard({ icon: Icon, label, value, sublabel, variant = "default" }: Kp
 export function OversiktDashboard() {
   const { t } = useTranslation("dashboard");
   const { isDark } = useContext(DashboardContext);
+  const { workspace } = useWorkspace();
   const { protocols, stats, isLoading } = useGovernanceFiltered("all");
   const { data: openDeviations } = useDeviations({ status: ["open", "acknowledged", "escalated"] });
   const openDeviationCount = openDeviations?.length ?? 0;
+  const { data: competenceData } = useCompetenceData();
+
+  // Count assignments with next_review_at within 30 days
+  const { data: upcomingReviews } = useQuery({
+    queryKey: ["hms", "upcoming-reviews", workspace.workspace_id],
+    staleTime: 5 * 60 * 1000,
+    queryFn: async (): Promise<number> => {
+      const supabase = createClient();
+      const thirtyDaysFromNow = new Date();
+      thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+
+      const { count, error } = await supabase
+        .from("protocol_assignment")
+        .select("*", { count: "exact", head: true })
+        .eq("workspace_id", workspace.workspace_id)
+        .not("next_review_at", "is", null)
+        .lte("next_review_at", thirtyDaysFromNow.toISOString());
+
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+  const upcomingReviewCount = upcomingReviews ?? 0;
 
   if (isLoading) {
     return (
@@ -101,8 +131,20 @@ export function OversiktDashboard() {
             variant={stats.overdue > 0 ? "warning" : "default"}
           />
           <KpiCard icon={Users} label={t("hms.overview.protocols")} value={stats.total} />
+          <KpiCard
+            icon={CalendarClock}
+            label="Kommende fornyelser"
+            value={upcomingReviewCount}
+            sublabel="Neste 30 dager"
+            variant={upcomingReviewCount > 5 ? "warning" : "default"}
+          />
         </div>
       </div>
+
+      {/* Block A2: Department Readiness */}
+      {competenceData && competenceData.rows.length > 0 && (
+        <DepartmentReadiness rows={competenceData.rows} />
+      )}
 
       {/* Block B: Attention */}
       <div>

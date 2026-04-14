@@ -92,6 +92,9 @@ export type ProtocolOverviewItem = {
   completedCount: number;
   pendingCount: number;
   expiredCount: number;
+  notStartedCount: number;
+  inProgressCount: number;
+  waivedCount: number;
   completionPercent: number;
 };
 
