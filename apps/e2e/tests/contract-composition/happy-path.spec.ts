@@ -1,6 +1,27 @@
 import { test, expect, type Page } from "@playwright/test";
 import { loginAsAdmin, loginAsEmployee } from "../../helpers/auth";
 
+// Re-export the skipOnboarding helper (duplicated from auth.ts to avoid circular dep)
+async function skipSetupIfRedirected(page: Page): Promise<void> {
+  if (page.url().includes("/dashboard/setup")) {
+    const skipBtn = page.getByRole("button", { name: "Hopp over og gå til dashboard" });
+    for (let i = 0; i < 6; i++) {
+      const visible = await skipBtn.isVisible({ timeout: 1_500 }).catch(() => false);
+      if (visible) {
+        await skipBtn.click();
+        await page.waitForTimeout(800);
+      }
+      if (!page.url().includes("/dashboard/setup")) return;
+      await page.waitForTimeout(600);
+    }
+    // Last resort: navigate directly
+    if (page.url().includes("/dashboard/setup")) {
+      await page.goto("/dashboard");
+      await page.waitForLoadState("domcontentloaded");
+    }
+  }
+}
+
 /**
  * Contract Composition — Happy Path
  *
@@ -49,6 +70,15 @@ test.describe.serial("Contract Composition — Happy Path", () => {
     // ── 2. Navigate to new contract wizard ───────────────────────────────────
     await page.goto("/dashboard/contracts/new");
     await page.waitForLoadState("domcontentloaded");
+
+    // Handle potential redirect to setup wizard (can happen if onboarding not fully skipped)
+    await skipSetupIfRedirected(page);
+
+    // If still not on the contracts page, navigate again
+    if (!page.url().includes("/contracts/new")) {
+      await page.goto("/dashboard/contracts/new");
+      await page.waitForLoadState("domcontentloaded");
+    }
 
     // Remove the Next.js dev overlay portal that can intercept clicks
     await dismissDevOverlay(page);
