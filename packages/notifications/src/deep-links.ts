@@ -9,6 +9,14 @@ export type NotificationType =
   | "shift_reminder"
   | "shift_published"
   | "shift_updated"
+  | "shift_confirmation_reminder"
+  | "shift_reminder_24h"
+  | "shift_reminder_4h"
+  | "shift_reminder_2h"
+  | "shift_swap_initiated"
+  | "shift_swap_approved"
+  | "shift_swap_rejected"
+  | "shift_swap_cancelled"
   | "chat_message"
   | "task_assigned"
   | "deviation_reported"
@@ -23,6 +31,14 @@ export const DEEP_LINK_MAP: Record<NotificationType | "notification_tap", DeepLi
   shift_reminder: (data) => `/(app)/(shifts)/${data.shift_id}`,
   shift_published: (data) => `/(app)/(shifts)/${data.shift_id}`,
   shift_updated: (data) => `/(app)/(shifts)/${data.shift_id}`,
+  shift_confirmation_reminder: (data) => `/(app)/(shifts)/${data.shift_id}`,
+  shift_reminder_24h: (data) => `/(app)/(shifts)/${data.shift_id}`,
+  shift_reminder_4h: (data) => `/(app)/(shifts)/${data.shift_id}`,
+  shift_reminder_2h: (data) => `/(app)/(shifts)/${data.shift_id}`,
+  shift_swap_initiated: () => "/(app)/(shifts)",
+  shift_swap_approved: () => "/(app)/(shifts)",
+  shift_swap_rejected: () => "/(app)/(shifts)",
+  shift_swap_cancelled: () => "/(app)/(shifts)",
   chat_message: (data) => `/(app)/(chat)/${data.conversation_id}`,
   task_assigned: () => "/(app)/(home)",
   deviation_reported: (data) => (data.deviation_id ? "/(app)/(home)/deviation" : "/(app)/(home)"),

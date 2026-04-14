@@ -5,6 +5,7 @@ import type {
   AuthorityLevel,
   CapabilityDefinition,
   CapabilityName,
+  SessionChannel,
 } from "../capabilities/types.js";
 import { getCapability, getAllCapabilities } from "../capabilities/registry.js";
 import type { IntentResult } from "./intent-classifier.js";
@@ -31,6 +32,7 @@ function getToolsForAuthority(
 export function selectTools(
   intent: IntentResult,
   authorityConfig: AuthorityConfig,
+  channel?: SessionChannel,
 ): ReadonlyArray<SmartoutTool<AgentToolContext>> {
   const defaultLevel: AuthorityLevel = "read_only";
 
@@ -53,12 +55,22 @@ export function selectTools(
     // See ADR-0073 audit addendum for the council decision rationale.
     if (!capability) return [];
 
+    // ADR-0078: skip capability if channel is restricted
+    if (channel && capability.allowedChannels && !capability.allowedChannels.includes(channel)) {
+      return [];
+    }
+
     const level = authorityConfig[capability.name] ?? defaultLevel;
     return getToolsForAuthority(capability, level);
   }
 
   const allTools: SmartoutTool<AgentToolContext>[] = [];
   for (const capability of getAllCapabilities()) {
+    // ADR-0078: skip capabilities restricted to other channels
+    if (channel && capability.allowedChannels && !capability.allowedChannels.includes(channel)) {
+      continue;
+    }
+
     const level = authorityConfig[capability.name] ?? defaultLevel;
     const tools = getToolsForAuthority(capability, level);
     allTools.push(...tools);

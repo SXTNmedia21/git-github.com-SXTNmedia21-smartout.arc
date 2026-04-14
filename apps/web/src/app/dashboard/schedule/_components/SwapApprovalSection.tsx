@@ -10,7 +10,7 @@
  * Connected to: use-shift-swap.ts (queries + mutations)
  */
 
-import { useMemo, useState } from "react";
+import { useContext, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +19,7 @@ import {
   ArrowLeftRight,
   CheckCircle,
   XCircle,
+  X,
   Clock,
   UserCheck,
   ChevronDown,
@@ -26,11 +27,13 @@ import {
 } from "lucide-react";
 import { useTranslation } from "@smartout/i18n";
 import { createClient } from "@smartout/supabase/client";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
 
 import {
   useSwapRequests,
   useApproveSwap,
   useRespondToSwap,
+  useCancelSwap,
   type SwapRequest,
 } from "../_hooks/use-shift-swap";
 
@@ -73,13 +76,16 @@ function SwapCard({
   swap,
   isManager,
   profileNames,
+  currentProfileId,
 }: {
   swap: SwapRequest;
   isManager: boolean;
   profileNames: Map<string, string>;
+  currentProfileId: string | null;
 }) {
   const approveSwap = useApproveSwap();
   const respondToSwap = useRespondToSwap();
+  const cancelSwap = useCancelSwap();
   const [rejectReason, setRejectReason] = useState("");
   const [showRejectInput, setShowRejectInput] = useState(false);
   const { t } = useTranslation("swap");
@@ -87,6 +93,9 @@ function SwapCard({
   const ctx = swap.context;
   const canApprove = isManager && ctx.status === "pending_manager";
   const canRespond = !isManager && ctx.status === "pending_recipient";
+  const canCancel =
+    currentProfileId === ctx.requester_profile_id &&
+    (ctx.status === "pending_recipient" || ctx.status === "pending_manager");
 
   function handleApprove() {
     approveSwap.mutate({ swapId: swap.id, approved: true });
@@ -179,6 +188,18 @@ function SwapCard({
               </Button>
             </>
           )}
+          {canCancel && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-destructive hover:text-destructive"
+              disabled={cancelSwap.isPending}
+              onClick={() => cancelSwap.mutate(swap.id)}
+            >
+              <X className="mr-1 h-3.5 w-3.5" />
+              Kanseller
+            </Button>
+          )}
         </div>
       </div>
 
@@ -206,6 +227,7 @@ function SwapCard({
 export function SwapApprovalSection({ isAdmin }: { isAdmin: boolean }) {
   const [expanded, setExpanded] = useState(true);
   const { data: swaps, isLoading } = useSwapRequests();
+  const { profileId } = useContext(DashboardContext);
   const { t } = useTranslation("swap");
 
   // Filter to only show actionable swaps
@@ -263,7 +285,13 @@ export function SwapApprovalSection({ isAdmin }: { isAdmin: boolean }) {
       {expanded && (
         <div className="mt-2 space-y-2">
           {activeSwaps.map((swap) => (
-            <SwapCard key={swap.id} swap={swap} isManager={isAdmin} profileNames={resolvedNames} />
+            <SwapCard
+              key={swap.id}
+              swap={swap}
+              isManager={isAdmin}
+              profileNames={resolvedNames}
+              currentProfileId={profileId}
+            />
           ))}
         </div>
       )}

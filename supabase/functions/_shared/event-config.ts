@@ -1,9 +1,7 @@
 /**
- * Event config registry for Deno Edge Functions.
- *
- * SYNC: This is a copy of packages/notifications/src/event-config.ts
- * for use in Deno Edge Functions which cannot import from packages/.
- * When modifying event configs, update BOTH files.
+ * Event Config Registry — maps every notification event_key to its static config.
+ * This is the single source of truth for how each notification type behaves:
+ * priority, allowed channels, grouping window, i18n keys, and action URLs.
  */
 
 export type NotificationEventConfig = {
@@ -338,7 +336,6 @@ export const NOTIFICATION_EVENTS: Record<string, NotificationEventConfig> = {
     grouping_window_sec: 180,
     admin_overridable: false,
   },
-  // SYNC: packages/notifications/src/event-config.ts
   "call.incoming": {
     event_key: "call.incoming",
     mode: "community",
@@ -368,6 +365,130 @@ export const NOTIFICATION_EVENTS: Record<string, NotificationEventConfig> = {
     allowed_channels: ["push", "in_app"],
     grouping_window_sec: 0,
     admin_overridable: false,
+  },
+
+  // ─── Shift Swap ──────────────────────────────────────────
+  "shift.swap_initiated": {
+    event_key: "shift.swap_initiated",
+    mode: "work",
+    default_priority: 1,
+    group_key_template: null,
+    title_template: "Byttforespørsel mottatt",
+    body_template: "{requester_name} vil bytte vakt med deg ({date})",
+    title_i18n_key: "notifications.shift.swap_initiated.title",
+    body_i18n_key: "notifications.shift.swap_initiated.body",
+    action_url_template: "/dashboard/schedule",
+    icon_type: "shift",
+    allowed_channels: ["push", "email", "in_app"],
+    grouping_window_sec: 0,
+    admin_overridable: false,
+  },
+  "shift.swap_approved": {
+    event_key: "shift.swap_approved",
+    mode: "work",
+    default_priority: 1,
+    group_key_template: null,
+    title_template: "Vaktbytte godkjent",
+    body_template: "Vakten din {date} er byttet med {other_name}",
+    title_i18n_key: "notifications.shift.swap_approved.title",
+    body_i18n_key: "notifications.shift.swap_approved.body",
+    action_url_template: "/dashboard/my-schedule",
+    icon_type: "shift",
+    allowed_channels: ["push", "email", "in_app"],
+    grouping_window_sec: 0,
+    admin_overridable: false,
+  },
+  "shift.swap_rejected": {
+    event_key: "shift.swap_rejected",
+    mode: "work",
+    default_priority: 0,
+    group_key_template: null,
+    title_template: "Vaktbytte avslått",
+    body_template: "Byttforespørselen din for {date} ble avslått",
+    title_i18n_key: "notifications.shift.swap_rejected.title",
+    body_i18n_key: "notifications.shift.swap_rejected.body",
+    action_url_template: "/dashboard/schedule",
+    icon_type: "shift",
+    allowed_channels: ["push", "in_app"],
+    grouping_window_sec: 0,
+    admin_overridable: false,
+  },
+  "shift.swap_cancelled": {
+    event_key: "shift.swap_cancelled",
+    mode: "work",
+    default_priority: 0,
+    group_key_template: null,
+    title_template: "Vaktbytte kansellert",
+    body_template: "{requester_name} kansellerte byttforespørselen for {date}",
+    title_i18n_key: "notifications.shift.swap_cancelled.title",
+    body_i18n_key: "notifications.shift.swap_cancelled.body",
+    action_url_template: "/dashboard/schedule",
+    icon_type: "shift",
+    allowed_channels: ["in_app"],
+    grouping_window_sec: 0,
+    admin_overridable: false,
+  },
+
+  // ─── Shift Reminders ─────────────────────────────────────
+  "shift.confirmation_reminder": {
+    event_key: "shift.confirmation_reminder",
+    mode: "work",
+    default_priority: 1,
+    group_key_template: null,
+    title_template: "Bekreft vakt",
+    body_template: "Du har en ubekreftet vakt {date} kl {start_time}",
+    title_i18n_key: "notifications.shift.confirmation_reminder.title",
+    body_i18n_key: "notifications.shift.confirmation_reminder.body",
+    action_url_template: "/dashboard/my-schedule",
+    icon_type: "shift",
+    allowed_channels: ["push", "in_app"],
+    grouping_window_sec: 0,
+    admin_overridable: true,
+  },
+  "shift.reminder_24h": {
+    event_key: "shift.reminder_24h",
+    mode: "work",
+    default_priority: 0,
+    group_key_template: null,
+    title_template: "Vakt i morgen",
+    body_template: "Du har vakt i morgen kl {start_time}",
+    title_i18n_key: "notifications.shift.reminder_24h.title",
+    body_i18n_key: "notifications.shift.reminder_24h.body",
+    action_url_template: "/dashboard/my-schedule",
+    icon_type: "shift",
+    allowed_channels: ["push", "in_app"],
+    grouping_window_sec: 0,
+    admin_overridable: true,
+  },
+  "shift.reminder_4h": {
+    event_key: "shift.reminder_4h",
+    mode: "work",
+    default_priority: 1,
+    group_key_template: null,
+    title_template: "Vakt om 4 timer",
+    body_template: "Vakten din starter kl {start_time}",
+    title_i18n_key: "notifications.shift.reminder_4h.title",
+    body_i18n_key: "notifications.shift.reminder_4h.body",
+    action_url_template: "/dashboard/my-schedule",
+    icon_type: "shift",
+    allowed_channels: ["push", "in_app"],
+    grouping_window_sec: 0,
+    admin_overridable: true,
+  },
+  "shift.reminder_2h": {
+    event_key: "shift.reminder_2h",
+    mode: "work",
+    default_priority: 1,
+    group_key_template: null,
+    title_template: "Vakt om 2 timer",
+    body_template: "Vakten din starter snart — kl {start_time}",
+    title_i18n_key: "notifications.shift.reminder_2h.title",
+    body_i18n_key: "notifications.shift.reminder_2h.body",
+    action_url_template: "/dashboard/my-schedule",
+    icon_type: "shift",
+    allowed_channels: ["push", "in_app"],
+    grouping_window_sec: 0,
+    admin_overridable: true,
   },
 };
 

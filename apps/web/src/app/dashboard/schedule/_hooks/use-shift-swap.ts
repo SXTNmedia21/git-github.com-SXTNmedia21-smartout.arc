@@ -239,5 +239,40 @@ export function useApproveSwap() {
   });
 }
 
-// TODO: add cancel_shift_swap RPC — then implement useCancelSwap mutation
-// that calls the RPC and emits "shift swap_cancelled" telemetry event.
+// ── Mutation: Cancel Swap ──────────────────────────────────────────────────
+
+export function useCancelSwap() {
+  const { workspace } = useWorkspace();
+  const { profileId } = useContext(DashboardContext);
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (swapId: string) => {
+      const supabase = createClient();
+      // RPC not yet in generated types — cast fn name until next `supabase gen types`
+      const { data, error } = await supabase.rpc(
+        "cancel_shift_swap" as never,
+        { p_swap_id: swapId } as never,
+      );
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, swapId) => {
+      void emit({
+        event: "shift swap_cancelled",
+        workspace_id: workspace.workspace_id,
+        actor_id: profileId ?? "",
+        properties: {
+          entity: { entity_type: "engine_state", entity_id: swapId },
+          data: { swap_id: swapId },
+        },
+      });
+      void qc.invalidateQueries({ queryKey: swapKey(workspace.workspace_id) });
+      toast.success("Byttforespørsel kansellert");
+    },
+    onError: (err) => {
+      const message = err instanceof Error ? err.message : "Kunne ikke kansellere bytte";
+      toast.error(message);
+    },
+  });
+}
