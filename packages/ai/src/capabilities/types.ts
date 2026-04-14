@@ -28,6 +28,9 @@ export type AgentToolContext = {
   userId?: string;
   sessionId: string;
   supabaseAdmin: SupabaseClient;
+  /** Employee-scoped Supabase client (RLS-enforced via user JWT).
+   *  Used for self-service PII writes (submit_own_pii) where auth.uid() must resolve. */
+  supabaseUser?: SupabaseClient;
   /** ADR-0078: current session channel for defence-in-depth PII restriction */
   channel?: SessionChannel;
   /** Active engine_process ID if this session is running a process */

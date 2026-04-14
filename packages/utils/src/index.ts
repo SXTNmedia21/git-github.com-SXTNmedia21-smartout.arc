@@ -6,6 +6,7 @@ export * from "./readiness";
 export * from "./contract-placeholders";
 export { buildEmployeePlaceholderMap } from "./employee-contract-placeholders";
 export * from "./people";
+export { validatePersonnummer, validateNorwegianBankAccount } from "./norwegian-validators";
 export * from "./swap/types";
 export * from "./swap/validate-swap";
 export {

@@ -17,7 +17,7 @@ import type { AgentContext } from "@smartout/ai/context/types";
 import type { Situation } from "@smartout/ai/capabilities/types";
 import { loadAuthorityConfig } from "./authority.js";
 import { loadOnboardingContext } from "./session-manager.js";
-import { supabaseAdmin } from "../lib/supabase.js";
+import { supabaseAdmin, createUserClient } from "../lib/supabase.js";
 import { broadcastToSession } from "../ws/connection-manager.js";
 import { getBufferedActions } from "../routes/ws.js";
 import type { MissionProtocolMessage } from "@smartout/types";
@@ -47,6 +47,7 @@ type AgentRouterInput = {
   situation?: Situation;
   pageContext?: string; // current page pathname from frontend (e.g. "/dashboard/schedule")
   channel?: "chat" | "voice"; // ADR-0078: propagated to toolContext for PII defense
+  userJwt?: string; // Employee JWT for user-scoped PII writes (contract intake)
 };
 
 /**
@@ -69,6 +70,7 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
     situation = "general",
     pageContext,
     channel,
+    userJwt,
   } = input;
 
   // Step 1: Load authority config
@@ -151,6 +153,9 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
   messages.push({ role: "user", content: augmentedMessage });
 
   // Step 6: Run LLM with tools
+  // Create user-scoped client when JWT is provided (needed for PII writes via submit_own_pii)
+  const supabaseUser = userJwt ? createUserClient(userJwt) : undefined;
+
   const toolContext = {
     workspaceId,
     profileId,
@@ -158,6 +163,7 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
     sessionId,
     channel,
     supabaseAdmin,
+    supabaseUser,
     broadcast: (event: unknown) => broadcastToSession(sessionId, event as MissionProtocolMessage),
   };
 
