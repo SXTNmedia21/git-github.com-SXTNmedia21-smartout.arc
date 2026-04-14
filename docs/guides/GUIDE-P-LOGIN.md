@@ -1,7 +1,7 @@
 ---
 title: "Guide: Login Journey"
 protocol_id: P-LOGIN
-generated: 2026-04-13
+generated: 2026-04-14
 status: draft
 ---
 
@@ -32,4 +32,4 @@ Bruker trykker logg inn og systemet autentiserer.
 Bruker er logget inn og ser dashboard, onboarding, eller setup.
 
 ---
-*Generert av Protocol Verification Engine 2026-04-13*
+*Generert av Protocol Verification Engine 2026-04-14*

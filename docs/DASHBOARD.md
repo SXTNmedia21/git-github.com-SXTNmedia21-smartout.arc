@@ -19,11 +19,16 @@ tags: [dashboard, worktrees, git-state]
 | # | Branch | Module | Last Commit | Dirty | Journey |
 |---|--------|--------|-------------|-------|---------|
 | — | development | — | 05fa1a51 | Yes | — |
+| wt-1 | `feat/ops-intelligence-phase1` | ai | in_progress | `journeys/JOURNEY-ops-intelligence-phase1.md` (missing) |
+| wt-2 | `feat/training-schema-foundation` | training | in_progress | `journeys/JOURNEY-training-schema-foundation.md` (missing) |
 
 ## Free Slots
 
-wt-1, wt-2, wt-3, wt-4, wt-5, wt-6, wt-7, wt-8, wt-9, wt-10, wt-11, wt-12, wt-13, wt-15, wt-20
+wt-3, wt-4, wt-5, wt-6, wt-7, wt-8, wt-9, wt-10, wt-11, wt-12, wt-13, wt-15, wt-20
 
 ## Pending Journeys
 
-None.
+| # | Feature | Journey Path | Status |
+|---|---------|-------------|--------|
+| wt-1 | ops-intelligence-phase1 | `docs/journeys/JOURNEY-ops-intelligence-phase1.md` | missing |
+| wt-2 | training-schema-foundation | `docs/journeys/JOURNEY-training-schema-foundation.md` | missing |
