@@ -46,6 +46,7 @@
     "@smartout/shift-clock": "workspace:*",
     "@smartout/supabase": "workspace:*",
     "@smartout/telemetry": "workspace:*",
+    "@smartout/training": "workspace:^",
     "@smartout/types": "workspace:*",
     "@smartout/ui": "workspace:*",
     "@smartout/utils": "workspace:^",
