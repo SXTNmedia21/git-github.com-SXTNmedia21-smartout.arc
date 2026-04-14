@@ -1633,7 +1633,7 @@ export function DashboardShell({
                             icon={Hash}
                             label="Kanaler"
                             isDark={isDark}
-                            active={isActive("/dashboard/komm")}
+                            active={pathname === "/dashboard/komm"}
                             isCollapsed={isSidebarCollapsed}
                           />
                           <NavItem

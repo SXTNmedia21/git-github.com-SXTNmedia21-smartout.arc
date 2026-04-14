@@ -71,6 +71,10 @@
     "add_error": "Kunne ikke legge til medlem",
     "remove_error": "Kunne ikke fjerne medlem"
   },
+  "chat": {
+    "active_conversations": "Aktive samtaler",
+    "empty_state": "Velg en samtale eller start en ny"
+  },
   "chat_list": {
     "filter_placeholder": "Filtrer etter navn...",
     "all_members": "Alle medarbeidere",

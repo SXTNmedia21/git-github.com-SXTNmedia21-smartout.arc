@@ -217,9 +217,9 @@ export function ChatClient({ profileId }: { profileId: string }) {
   }, [activeChannel, members]);
 
   return (
-    <div className="flex h-full overflow-hidden rounded-lg border">
-      {/* ── Left sidebar ── */}
-      <div className="bg-card border-border/30 flex w-72 flex-shrink-0 flex-col border-r">
+    <div className="border-border/50 flex h-full overflow-hidden rounded-lg border">
+      {/* Left sidebar: DM conversations + member directory */}
+      <div className="bg-background/80 border-border/50 flex w-72 flex-shrink-0 flex-col border-r backdrop-blur-xl">
         {/* Search */}
         <div className="border-b p-3">
           <div className="relative">
@@ -238,7 +238,7 @@ export function ChatClient({ profileId }: { profileId: string }) {
           {filteredDMs.length > 0 && (
             <div className="py-1">
               <div className="text-muted-foreground px-3 pt-2 pb-1 text-[10px] font-semibold tracking-wider uppercase">
-                Aktive samtaler
+                {t("chat.active_conversations")}
               </div>
               <AnimatePresence mode="wait">
                 <motion.div
@@ -346,7 +346,7 @@ export function ChatClient({ profileId }: { profileId: string }) {
           /* Empty state */
           <div className="flex flex-1 flex-col items-center justify-center gap-3">
             <MessageCircle className="text-muted-foreground/40 h-12 w-12" />
-            <p className="text-muted-foreground text-sm">Velg en samtale eller start en ny</p>
+            <p className="text-muted-foreground text-sm">{t("chat.empty_state")}</p>
           </div>
         )}
       </div>

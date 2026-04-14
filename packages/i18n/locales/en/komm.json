@@ -71,6 +71,10 @@
     "add_error": "Could not add member",
     "remove_error": "Could not remove member"
   },
+  "chat": {
+    "active_conversations": "Active conversations",
+    "empty_state": "Select a conversation or start a new one"
+  },
   "chat_list": {
     "filter_placeholder": "Filter by name...",
     "all_members": "All members",
