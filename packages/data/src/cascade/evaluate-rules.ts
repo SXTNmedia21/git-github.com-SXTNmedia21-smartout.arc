@@ -29,11 +29,25 @@ export type EvaluationOutcome =
   | "review_required"
   | "blocked";
 
+/**
+ * Mirrors the `rule_severity` Postgres enum (ADR-0094). Mapped to
+ * `EvaluationOutcome` via `ruleSeverityToOutcome` when a rule matches without
+ * an explicit `outcome_if_match` in its config.
+ */
+export type RuleSeverity = "info" | "warning" | "hard_block";
+
+/** ADR-0094 fallback mapping: severity → default outcome when config is silent. */
+export const ruleSeverityToOutcome: Record<RuleSeverity, EvaluationOutcome> = {
+  info: "allowed_with_exception",
+  warning: "review_required",
+  hard_block: "blocked",
+};
+
 /** Structural subset of `framework_rule` that this engine reads. */
 export type FrameworkRule = {
   rule_id: string;
   code: string;
-  severity: string;
+  severity: RuleSeverity;
   default_outcome: EvaluationOutcome;
   evaluation_config: unknown;
 };
@@ -52,7 +66,7 @@ export type EvaluationContext = {
 export type EvaluationResult = {
   rule_id: string;
   outcome: EvaluationOutcome;
-  severity: string;
+  severity: RuleSeverity;
   /** Human-readable explanation. `exception_reason` from the config when matched. */
   reason?: string;
 };

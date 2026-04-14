@@ -11,6 +11,7 @@ export {
 
 export {
   type EvaluationOutcome,
+  type RuleSeverity,
   type FrameworkRule,
   type EvaluationContext,
   type EvaluationResult,
@@ -19,4 +20,5 @@ export {
   type Condition,
   EvaluationConfigSchema,
   evaluateFrameworkRules,
+  ruleSeverityToOutcome,
 } from "./evaluate-rules.js";
