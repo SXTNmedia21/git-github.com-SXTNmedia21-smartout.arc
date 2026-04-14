@@ -11,10 +11,13 @@ import {
   ShieldCheck,
   ChevronDown,
   ClipboardList,
+  UserPlus,
 } from "lucide-react";
 import type { ProtocolOverviewItem } from "@/app/dashboard/_hooks";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { ProtocolEmployeeList } from "./ProtocolEmployeeList";
+import { AssignProtocolSheet } from "./AssignProtocolSheet";
 
 // UI Events:
 // - interaction: click toggles accordion — only one protocol open at a time
@@ -74,6 +77,7 @@ interface GovernanceOverviewProps {
 
 export function GovernanceOverview({ protocols }: GovernanceOverviewProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [assignProtocolId, setAssignProtocolId] = useState<string | null>(null);
 
   if (protocols.length === 0) {
     return (
@@ -139,6 +143,19 @@ export function GovernanceOverview({ protocols }: GovernanceOverviewProps) {
                 </div>
               </div>
 
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground hover:text-foreground shrink-0 text-xs"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setAssignProtocolId(protocol.protocolId);
+                }}
+              >
+                <UserPlus className="mr-1 h-3.5 w-3.5" />
+                Tildel
+              </Button>
+
               <ChevronDown
                 className={`text-muted-foreground h-4 w-4 shrink-0 transition-transform duration-300 ${
                   isExpanded ? "rotate-180" : ""
@@ -161,6 +178,15 @@ export function GovernanceOverview({ protocols }: GovernanceOverviewProps) {
           </div>
         );
       })}
+
+      {/* Assign sheet */}
+      <AssignProtocolSheet
+        protocolId={assignProtocolId ?? undefined}
+        open={!!assignProtocolId}
+        onOpenChange={(open) => {
+          if (!open) setAssignProtocolId(null);
+        }}
+      />
     </div>
   );
 }

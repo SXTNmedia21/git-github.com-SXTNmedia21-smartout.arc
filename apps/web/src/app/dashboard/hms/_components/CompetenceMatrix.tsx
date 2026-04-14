@@ -1,7 +1,7 @@
 "use client";
 
 import { useContext, useMemo, useState } from "react";
-import { Loader2, Filter } from "lucide-react";
+import { Loader2, Filter, UserPlus } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "@smartout/i18n";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
@@ -9,6 +9,7 @@ import { useWorkspace } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { AssignProtocolSheet } from "@/app/dashboard/governance/_components/AssignProtocolSheet";
 
 type MatrixRow = {
   profileId: string;
@@ -142,6 +143,7 @@ export function CompetenceMatrix() {
   const { isDark } = useContext(DashboardContext);
   const { data, isLoading } = useCompetenceData();
   const [departmentFilter, setDepartmentFilter] = useState<string | null>(null);
+  const [assignSheetOpen, setAssignSheetOpen] = useState(false);
 
   const departments = useMemo(() => {
     if (!data) return [];
@@ -179,6 +181,10 @@ export function CompetenceMatrix() {
           <h2 className="text-foreground text-lg font-bold">{t("hms.competence_matrix.title")}</h2>
           <p className="text-muted-foreground text-sm">{t("hms.competence_matrix.description")}</p>
         </div>
+        <Button size="sm" variant="outline" onClick={() => setAssignSheetOpen(true)}>
+          <UserPlus className="mr-1.5 h-4 w-4" />
+          Tildel protokoll
+        </Button>
         {departments.length > 1 && (
           <div className="flex items-center gap-1">
             <Filter className="text-muted-foreground h-4 w-4" />
@@ -265,6 +271,9 @@ export function CompetenceMatrix() {
           </tbody>
         </table>
       </div>
+
+      {/* Assign sheet (no fixed protocol — user picks) */}
+      <AssignProtocolSheet open={assignSheetOpen} onOpenChange={setAssignSheetOpen} />
     </div>
   );
 }
