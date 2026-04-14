@@ -1,7 +1,7 @@
 ---
 title: Decision Log
 status: canonical
-updated: 2026-04-13
+updated: 2026-04-14
 created: 2026-02-27
 module: meta
 tags: [decisions, adr, index]
@@ -26,6 +26,10 @@ tags: [decisions, adr, index]
 
 | ADR | Date | Title | Status |
 |-----|------|-------|--------|
+| [ADR-0094](0094-framework-rule-severity-enum.md) | 2026-04-14 | Framework Rule Severity as Enum (info/warning/hard_block, WP1 retrofit) | accepted |
+| [ADR-0093](0093-contract-draft-proposals-unified-cascade.md) | 2026-04-14 | Contract Draft Proposals Flow Through Unified apply_cascade() (amends ADR-0076) | accepted |
+| ADR-0092 | — | *reserved — Monitor Mode Graduation Criteria (Phase E / WP6)* | reserved |
+| [ADR-0091](0091-governance-gate-placement-postgres-rpc.md) | 2026-04-14 | Governance Gate Placement — Postgres RPC (SECURITY DEFINER), covers service-role | accepted |
 | [ADR-0090](0090-framework-rule-evaluation-config-schema.md) | 2026-04-14 | Framework Rule Evaluation Config JSON Schema (Phase E / WP1 foundation) | accepted |
 | [ADR-0089](0089-walkai-bridge-architecture.md) | 2026-04-14 | WalkAi Bridge Architecture — Client vs Server Tools | accepted |
 | [ADR-0088](0088-ai-operations-intelligence-capability.md) | 2026-04-14 | AI Operations Intelligence as Capability, Not Daemon | accepted |
@@ -119,8 +123,9 @@ tags: [decisions, adr, index]
 
 ## Integrity
 
-- **90 ADRs** (0001-0090, ADR-0000 is this index)
+- **93 ADRs** (0001-0094 with 0092 reserved, ADR-0000 is this index)
 - **0 number collisions** (verified 2026-04-13 — ADR-0068 entity-drawer collision resolved by renumbering to 0086)
+- **1 reserved slot:** 0092 — Monitor Mode Graduation Criteria (Phase E / WP6), to be written when WP6 lands
 - **0 number gaps** (0052/0053/0054 previously gaps, now occupied by renumbered collision resolvers)
 - **Renumbered 2026-04-07:** 0049 guardian-ws → 0052, 0058 simulation → 0053, 0059 edge-functions → 0054, 0071 protocol-verification → 0074 (see ADR-0075 context)
 - **Renumbered 2026-04-13:** ADR-0068-entity-drawer-surface-pattern → 0086 (collision with 0068-simulation-schema-and-service)
