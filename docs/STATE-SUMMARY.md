@@ -1,6 +1,6 @@
 ---
 title: "STATE Summary — Quick Session Start"
-updated: 2026-04-13
+updated: 2026-04-14
 derived-from: docs/STATE.md (82KB full version)
 ---
 
@@ -18,12 +18,20 @@ See `docs/DASHBOARD.md` for full worktree map.
 
 ## Top Priority Gaps
 
-1. **Shift Publish -> Session** (D6, HIGH) — end-to-end flow untested (emit -> trigger -> upsert_session -> hooks)
-2. **Notifications delivery** (HIGH) — `send_notification` works, downstream channel adapters missing
-3. **Settings incomplete** — 13/16 tabs working, missing: general, KPI, teams
-4. **Trainee first-day redirect** (D2, MEDIUM) — no redirect to my-training after invite accept
-5. **my-schedule realtime** (D6, LOW) — no Realtime subscription on employee shift view
-6. **AI classifier gaps** (MEDIUM) — `contract_intake` and `shift_swap` capabilities unreachable (fix in progress)
+No critical gaps. Next focus areas:
+
+1. **Cascade Phase D (Adapters)** — NOT STARTED. Connects cascade pure functions to live data.
+2. **Cascade Phase E (Control Planes)** — NOT STARTED. C4 governance first.
+3. **Cascade Phase C last 15%** — I1 bootstrap wired, needs final verification.
+
+### Closed gaps (Apr 14 audit + fixes)
+
+- ~~Shift Publish -> Session~~ — FIXED. `schedule_control` handler implemented (`d730bedf`). Full flow: emit -> trigger -> upsert_session -> session hooks.
+- ~~Trainee first-day redirect~~ — FIXED. Invite sets "trainee" for employees, dashboard layout redirects to my-training (`13fe0015`).
+- ~~Notifications delivery~~ — DONE. All 4 channels implemented (push, email, SMS, in-app).
+- ~~Settings incomplete~~ — DONE. All 19 tabs implemented (general, KPI, teams all working).
+- ~~my-schedule realtime~~ — DONE. `useMyShiftsRealtime()` called in MyWeekView.tsx:85.
+- ~~AI classifier gaps~~ — NOT A GAP. `contract_intake` and `shift_swap` are chat-only by design (ADR-0078).
 
 ## Cascade Status (~55% complete)
 
@@ -35,13 +43,15 @@ See `docs/DASHBOARD.md` for full worktree map.
 
 ## Recent Merges (last 2 weeks)
 
+- Gap fixes: schedule_control handler, trainee redirect flow (Apr 14)
+- Training Module 6: admin assignment CRUD, mobile training wiring, readiness dashboard (Apr 14)
+- Contract template binding K1b layer (Apr 14)
+- Ops intelligence phases 1-3, e2e test repair, mobile shift completion (Apr 14)
 - Contract workspace tab + DocuSeal integration + mobile signing (Apr 13)
 - Year-wheel cascade resolution + season operating hours (Apr 13)
 - Year-wheel design debt — CSS vars, i18n, reduced-motion (Apr 13)
 - Platform-admin workspace field inheritance (Apr 13)
 - Employee contract CRUD + invitation RLS fix (Apr 7)
-- Skills authority model, CLAUDE.md slim (Apr 7)
-- Deployment pipeline, 3-branch flow (Apr 6)
 
 ## Quick References
 
