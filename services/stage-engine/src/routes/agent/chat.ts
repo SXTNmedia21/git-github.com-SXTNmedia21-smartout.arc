@@ -33,6 +33,8 @@ const chatSchema = z.object({
   profile_id: z.string().uuid(),
   channel: z.enum(["chat", "voice"]).optional().default("chat"),
   page_context: z.string().optional(), // current page pathname from frontend
+  /** Employee JWT for RLS-enforced PII writes (contract intake). */
+  user_jwt: z.string().optional(),
 });
 
 // -- POST /agent/chat --
@@ -132,6 +134,7 @@ agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
       conversationHistory,
       pageContext: body.page_context,
       channel: body.channel,
+      userJwt: body.user_jwt,
     });
 
     // Append assistant turn

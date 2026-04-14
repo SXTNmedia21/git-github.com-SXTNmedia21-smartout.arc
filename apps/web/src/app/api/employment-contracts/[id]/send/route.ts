@@ -422,6 +422,23 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
         data: { contract_id: id, missing_groups: missingGroups },
       },
     });
+
+    // ── Step 15b: Create emma_task for employee PII intake ──────────────
+    // This triggers the Botsson chat to present the contract intake mission
+    // to the employee on their next page load.
+    await supabase.from("emma_task").insert({
+      workspace_id,
+      profile_id,
+      title: "Fyll inn opplysninger for arbeidsavtalen din",
+      description:
+        "Vi trenger personnummer, bankkontonummer og adresse for å fullføre arbeidsavtalen din.",
+      mission: "contract_intake",
+      status: "triggered",
+      context: {
+        contract_id: signingContractId,
+        employment_contract_id: id,
+      },
+    });
   }
 
   // ── Step 16: Return ───────────────────────────────────────────────────

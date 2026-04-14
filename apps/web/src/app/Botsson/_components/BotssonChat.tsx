@@ -53,10 +53,25 @@ export type BotssonChatProps = {
   /** Greeting line shown above the empty chat. Defaults to a sensible Norwegian opener. */
   greeting?: string;
   className?: string;
+  /** Override the chat API endpoint. Defaults to /api/botsson/chat (admin).
+   *  For employee-facing flows, use /api/emma/chat. */
+  chatEndpoint?: string;
+  /** Mission identifier to pass with the first turn (e.g. 'contract_intake'). */
+  mission?: string;
+  /** Additional mission context to pass with the first turn. */
+  missionContext?: Record<string, unknown>;
 };
 
 // ── Component ───────────────────────────────────────────────────────────────
-export function BotssonChat({ workspaceId, primeContext, greeting, className }: BotssonChatProps) {
+export function BotssonChat({
+  workspaceId,
+  primeContext,
+  greeting,
+  className,
+  chatEndpoint = "/api/botsson/chat",
+  mission,
+  missionContext,
+}: BotssonChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -89,7 +104,7 @@ export function BotssonChat({ workspaceId, primeContext, greeting, className }: 
       // We send session_id on subsequent turns — no need to replay history from client.
       const currentPage = typeof window !== "undefined" ? window.location.pathname : undefined;
 
-      const response = await fetch("/api/botsson/chat", {
+      const response = await fetch(chatEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -97,8 +112,10 @@ export function BotssonChat({ workspaceId, primeContext, greeting, className }: 
           userMessage: userText,
           sessionId,
           pageContext: currentPage,
-          // Only attach primeContext on the very first turn
+          // Only attach primeContext on the very first turn (admin chat)
           primeContext: !sessionId ? primeContext : undefined,
+          // Mission context for employee-facing flows (e.g. contract_intake)
+          ...(mission && !sessionId ? { mission, missionContext } : {}),
         }),
       });
 

@@ -9,8 +9,8 @@
  * DashboardContext.
  */
 
-import { useContext, useEffect, useState, useMemo } from "react";
-import { FileText, Briefcase, Clock, Calendar } from "lucide-react";
+import { useContext, useEffect, useState, useMemo, useCallback } from "react";
+import { FileText, Briefcase, Clock, Calendar, MessageCircle } from "lucide-react";
 import { createClient } from "@smartout/supabase/client";
 import { useTranslation } from "@smartout/i18n";
 import type { Database } from "@smartout/supabase/database.types";
@@ -151,6 +151,32 @@ export default function MyContractPage() {
               <p className="mt-1 text-xs text-blue-600 dark:text-blue-300">
                 {t("my_contract.pending_data_sub")}
               </p>
+              <button
+                type="button"
+                onClick={() => {
+                  // Open Botsson chat with contract_intake mission
+                  window.dispatchEvent(
+                    new CustomEvent("botsson:open", {
+                      detail: {
+                        view: "admin-chat",
+                        primeContext: {
+                          kind: "contract_intake",
+                          chatEndpoint: "/api/emma/chat",
+                          mission: "contract_intake",
+                          missionContext: {
+                            employment_contract_id: activeContract.contract_id,
+                            contract_id: activeContract.signing_contract_id,
+                          },
+                        },
+                      },
+                    }),
+                  );
+                }}
+                className="mt-3 inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              >
+                <MessageCircle className="h-4 w-4" />
+                {t("my_contract.talk_to_emma")}
+              </button>
             </div>
           )}
 
