@@ -214,7 +214,7 @@ export default function MyShiftsScreen() {
               const isRequester = ctx.requester_profile_id === profile?.profile_id;
               return (
                 <SwapInboxCard
-                  key={swap.engine_state_id}
+                  key={swap.id}
                   swap={swap}
                   isTarget={isTarget}
                   isRequester={isRequester}

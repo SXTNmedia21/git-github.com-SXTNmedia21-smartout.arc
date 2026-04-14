@@ -19,6 +19,7 @@ import { emit } from "@smartout/telemetry";
 
 type InitiateSwapPayload = {
   requester_shift_id: string;
+  target_profile_id: string;
   target_shift_id: string;
   reason?: string;
 };
@@ -38,11 +39,14 @@ export function useInitiateSwap(): UseInitiateSwapReturn {
       setIsSubmitting(true);
 
       try {
-        const { error } = await supabase.rpc("initiate_shift_swap" as never, {
-          p_requester_shift_id: payload.requester_shift_id,
-          p_target_shift_id: payload.target_shift_id,
-          p_reason: payload.reason ?? null,
-        } as never);
+        const { error } = await supabase.rpc(
+          "initiate_shift_swap" as never,
+          {
+            p_requester_shift_id: payload.requester_shift_id,
+            p_target_shift_id: payload.target_shift_id,
+            p_reason: payload.reason ?? null,
+          } as never,
+        );
 
         if (error) throw error;
 
@@ -55,10 +59,12 @@ export function useInitiateSwap(): UseInitiateSwapReturn {
           workspace_id: "",
           actor_id: selectedProfileId ?? "",
           properties: {
-            entity: { entity_type: "shift_swap", entity_id: payload.requester_shift_id },
+            entity: { entity_type: "engine_state", entity_id: payload.requester_shift_id },
             data: {
+              swap_id: payload.requester_shift_id,
               requester_shift_id: payload.requester_shift_id,
               target_shift_id: payload.target_shift_id,
+              target_profile_id: payload.target_profile_id,
             },
           },
         });
@@ -95,27 +101,41 @@ export function useRespondToSwap(): UseRespondToSwapReturn {
       setIsSubmitting(true);
 
       try {
-        const { error } = await supabase.rpc("respond_to_shift_swap" as never, {
-          p_engine_state_id: payload.engine_state_id,
-          p_accepted: payload.accepted,
-          p_rejection_reason: payload.rejection_reason ?? null,
-        } as never);
+        const { error } = await supabase.rpc(
+          "respond_to_shift_swap" as never,
+          {
+            p_swap_id: payload.engine_state_id,
+            p_accepted: payload.accepted,
+            p_rejection_reason: payload.rejection_reason ?? null,
+          } as never,
+        );
 
         if (error) throw error;
 
         void queryClient.invalidateQueries({ queryKey: ["swap-requests"] });
         void queryClient.invalidateQueries({ queryKey: ["my-shifts"] });
 
-        const eventName = payload.accepted ? "shift swap_accepted" : "shift swap_rejected";
-        void emit({
-          event: eventName,
-          workspace_id: "",
-          actor_id: selectedProfileId ?? "",
-          properties: {
-            entity: { entity_type: "shift_swap", entity_id: payload.engine_state_id },
-            data: { accepted: payload.accepted },
-          },
-        });
+        if (payload.accepted) {
+          void emit({
+            event: "shift swap_accepted",
+            workspace_id: "",
+            actor_id: selectedProfileId ?? "",
+            properties: {
+              entity: { entity_type: "engine_state", entity_id: payload.engine_state_id },
+              data: { swap_id: payload.engine_state_id },
+            },
+          });
+        } else {
+          void emit({
+            event: "shift swap_rejected",
+            workspace_id: "",
+            actor_id: selectedProfileId ?? "",
+            properties: {
+              entity: { entity_type: "engine_state", entity_id: payload.engine_state_id },
+              data: { swap_id: payload.engine_state_id, rejected_by: selectedProfileId ?? "" },
+            },
+          });
+        }
       } finally {
         setIsSubmitting(false);
       }
@@ -147,9 +167,12 @@ export function useCancelSwap(): UseCancelSwapReturn {
       setIsSubmitting(true);
 
       try {
-        const { error } = await supabase.rpc("cancel_shift_swap" as never, {
-          p_engine_state_id: payload.engine_state_id,
-        } as never);
+        const { error } = await supabase.rpc(
+          "cancel_shift_swap" as never,
+          {
+            p_swap_id: payload.engine_state_id,
+          } as never,
+        );
 
         if (error) throw error;
 
@@ -161,8 +184,8 @@ export function useCancelSwap(): UseCancelSwapReturn {
           workspace_id: "",
           actor_id: selectedProfileId ?? "",
           properties: {
-            entity: { entity_type: "shift_swap", entity_id: payload.engine_state_id },
-            data: {},
+            entity: { entity_type: "engine_state", entity_id: payload.engine_state_id },
+            data: { swap_id: payload.engine_state_id },
           },
         });
       } finally {

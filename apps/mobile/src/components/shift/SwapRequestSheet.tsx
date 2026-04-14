@@ -35,9 +35,8 @@ import {
 import { createStyles, useTheme, withOpacity } from "@/theme";
 import { useEligibleSwapShifts } from "@/hooks/queries/use-eligible-swap-shifts";
 import { useInitiateSwap } from "@/hooks/mutations/use-swap";
-import { validateSwap } from "@smartout/utils/swap/validate-swap";
+import { validateSwap, type ShiftForValidation, type SwapValidationResult } from "@smartout/utils";
 import type { EligibleSwapShift } from "@/hooks/queries/use-eligible-swap-shifts";
-import type { ShiftForValidation, SwapValidationResult } from "@smartout/utils/swap/types";
 import type { Database } from "@smartout/supabase/database.types";
 
 type ScheduleShift = Database["public"]["Tables"]["schedule_shift"]["Row"];
@@ -112,6 +111,7 @@ export function SwapRequestSheet({ shift, profileId }: SwapRequestSheetProps) {
     try {
       await initiateSwap({
         requester_shift_id: shift.schedule_shift_id,
+        target_profile_id: selectedShift.employee_id ?? "",
         target_shift_id: selectedShift.schedule_shift_id,
         reason: reason.trim() || undefined,
       });
@@ -224,10 +224,13 @@ export function SwapRequestSheet({ shift, profileId }: SwapRequestSheetProps) {
 
         {/* Validation results */}
         {validationResult && selectedShift && (
-          <Animated.View entering={FadeInDown.delay(100).duration(300)} style={styles.validationBox}>
+          <Animated.View
+            entering={FadeInDown.delay(100).duration(300)}
+            style={styles.validationBox}
+          >
             {validationResult.blockers.length > 0 && (
               <View style={styles.blockerSection}>
-                {validationResult.blockers.map((b, i) => (
+                {validationResult.blockers.map((b: string, i: number) => (
                   <View key={i} style={styles.validationRow}>
                     <XCircle size={14} color="#ef4444" strokeWidth={2} />
                     <Text style={styles.blockerText}>{formatValidationKey(b)}</Text>
@@ -237,7 +240,7 @@ export function SwapRequestSheet({ shift, profileId }: SwapRequestSheetProps) {
             )}
             {validationResult.warnings.length > 0 && (
               <View style={styles.warningSection}>
-                {validationResult.warnings.map((w, i) => (
+                {validationResult.warnings.map((w: string, i: number) => (
                   <View key={i} style={styles.validationRow}>
                     <AlertTriangle size={14} color="#f59e0b" strokeWidth={2} />
                     <Text style={styles.warningText}>{formatValidationKey(w)}</Text>

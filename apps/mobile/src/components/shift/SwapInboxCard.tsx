@@ -44,9 +44,9 @@ export function SwapInboxCard({
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setLoadingAction(action);
     try {
-      if (action === "accept") await onAccept(swap.engine_state_id);
-      else if (action === "reject") await onReject(swap.engine_state_id);
-      else await onCancel(swap.engine_state_id);
+      if (action === "accept") await onAccept(swap.id);
+      else if (action === "reject") await onReject(swap.id);
+      else await onCancel(swap.id);
     } finally {
       setLoadingAction(null);
     }
@@ -68,7 +68,17 @@ export function SwapInboxCard({
           <Text style={styles.title} numberOfLines={1}>
             {statusLabel}
           </Text>
-          <SwapStatusBadge status={ctx.status} />
+          <SwapStatusBadge
+            status={
+              ctx.status as
+                | "pending_recipient"
+                | "pending_manager"
+                | "approved"
+                | "rejected"
+                | "cancelled"
+                | "executed"
+            }
+          />
         </View>
       </View>
 
@@ -114,22 +124,23 @@ export function SwapInboxCard({
           </>
         )}
 
-        {isRequester && (ctx.status === "pending_recipient" || ctx.status === "pending_manager") && (
-          <Pressable
-            onPress={() => handleAction("cancel")}
-            disabled={loadingAction !== null}
-            style={({ pressed }) => [styles.cancelBtn, pressed && styles.btnPressed]}
-          >
-            {loadingAction === "cancel" ? (
-              <ActivityIndicator size="small" color={theme.colors.mutedForeground} />
-            ) : (
-              <>
-                <X size={14} color={theme.colors.mutedForeground} strokeWidth={2} />
-                <Text style={styles.cancelText}>Kanseller</Text>
-              </>
-            )}
-          </Pressable>
-        )}
+        {isRequester &&
+          (ctx.status === "pending_recipient" || ctx.status === "pending_manager") && (
+            <Pressable
+              onPress={() => handleAction("cancel")}
+              disabled={loadingAction !== null}
+              style={({ pressed }) => [styles.cancelBtn, pressed && styles.btnPressed]}
+            >
+              {loadingAction === "cancel" ? (
+                <ActivityIndicator size="small" color={theme.colors.mutedForeground} />
+              ) : (
+                <>
+                  <X size={14} color={theme.colors.mutedForeground} strokeWidth={2} />
+                  <Text style={styles.cancelText}>Kanseller</Text>
+                </>
+              )}
+            </Pressable>
+          )}
       </View>
     </View>
   );
