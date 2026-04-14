@@ -36,25 +36,36 @@ import type {
 
 // ── Types ──
 
-type CourseStatus = "expiring" | "high_priority" | "in_progress";
+type CourseStatus = "not_started" | "in_progress" | "completed" | "expired" | "waived";
 
-/** Map protocol_assignment_status to a display status and label */
-function mapCourseStatus(assignment: TrainingCourse): { status: CourseStatus; label: string } {
-  if (assignment.status === "expired") {
-    return { status: "expiring", label: "Utløpt" };
+type StatusColorKey = "not_started" | "in_progress" | "completed" | "expired" | "waived";
+
+/** Map assignment status to a display label (Norwegian) */
+function getStatusDisplay(status: CourseStatus): { label: string; colorKey: StatusColorKey } {
+  switch (status) {
+    case "not_started":
+      return { label: "Ikke startet", colorKey: "not_started" };
+    case "in_progress":
+      return { label: "Pågående", colorKey: "in_progress" };
+    case "completed":
+      return { label: "Fullført", colorKey: "completed" };
+    case "expired":
+      return { label: "Utløpt", colorKey: "expired" };
+    case "waived":
+      return { label: "Fritatt", colorKey: "waived" };
   }
-  if (assignment.status === "completed") {
-    return { status: "in_progress", label: "Fullført" };
-  }
-  // pending — check if recently assigned (new = high priority)
-  const daysSinceAssigned = Math.floor(
-    (Date.now() - new Date(assignment.assigned_at).getTime()) / (1000 * 60 * 60 * 24),
-  );
-  if (daysSinceAssigned < 7) {
-    return { status: "high_priority", label: "Ny oppgave" };
-  }
-  return { status: "in_progress", label: "Pågående" };
 }
+
+/** Norwegian labels for assignment_source enum values */
+const SOURCE_LABELS: Record<string, string> = {
+  workspace: "Bedrift",
+  department: "Avdeling",
+  team: "Team",
+  location: "Lokasjon",
+  position: "Stilling",
+  manual: "Manuell",
+  season: "Sesong",
+};
 
 /** Format date to "MMM YYYY" for certificate display */
 function formatCertDate(dateStr: string): string {
@@ -78,8 +89,16 @@ function formatCertDate(dateStr: string): string {
 
 // ── Components ──
 
-/** Readiness progress card with gradient bar */
-function ReadinessCard({ percent }: { percent: number }) {
+/** Readiness progress card with gradient bar and completion counts */
+function ReadinessCard({
+  percent,
+  completed,
+  total,
+}: {
+  percent: number;
+  completed?: number;
+  total?: number;
+}) {
   const styles = useReadinessStyles();
 
   const subtitle =
@@ -89,12 +108,16 @@ function ReadinessCard({ percent }: { percent: number }) {
         ? "Gratulerer! Du er fullsertifisert."
         : "Du er godt på vei til å bli fullsertifisert for sesongen.";
 
+  const countText =
+    completed !== undefined && total !== undefined ? `${completed} av ${total} fullført` : null;
+
   return (
     <Animated.View entering={FadeInDown.delay(100).duration(500).springify()} style={styles.card}>
       <View style={styles.headerRow}>
         <View style={styles.headerText}>
           <Text style={styles.title}>Din beredskap: {percent}%</Text>
           <Text style={styles.subtitle}>{subtitle}</Text>
+          {countText && <Text style={styles.countText}>{countText}</Text>}
         </View>
         <Text style={styles.decorNumber}>01</Text>
       </View>
@@ -136,6 +159,12 @@ const useReadinessStyles = createStyles((theme) => ({
     ...theme.typography.subheadline,
     color: theme.colors.mutedForeground,
   },
+  countText: {
+    ...theme.typography.caption,
+    color: theme.colors.brandOrange,
+    fontWeight: "500",
+    marginTop: 2,
+  },
   decorNumber: {
     fontSize: 36,
     fontStyle: "italic",
@@ -169,36 +198,47 @@ const useReadinessStyles = createStyles((theme) => ({
   },
 }));
 
-/** Single course card with progress bar and urgency tag */
+/** Single course card with real progress bar, status badge, and source badge */
 function CourseCard({ course, index }: { course: TrainingCourse; index: number }) {
   const styles = useCourseStyles();
   const theme = useTheme();
   const router = useRouter();
 
-  const { status, label } = mapCourseStatus(course);
-  const progress = course.status === "completed" ? 100 : course.status === "expired" ? 0 : 50;
+  const { label, colorKey } = getStatusDisplay(course.status);
+  const progress = course.progress.percent;
 
-  const tagColors = {
-    expiring: {
-      bg: withOpacity(theme.colors.destructive, 0.06),
-      border: withOpacity(theme.colors.destructive, 0.2),
-      text: theme.colors.destructive,
-    },
-    high_priority: {
-      bg: withOpacity(theme.colors.brandOrange, 0.06),
-      border: withOpacity(theme.colors.brandOrange, 0.2),
-      text: theme.colors.brandOrange,
+  const tagColors: Record<StatusColorKey, { bg: string; border: string; text: string }> = {
+    not_started: {
+      bg: withOpacity(theme.colors.mutedForeground, 0.06),
+      border: withOpacity(theme.colors.mutedForeground, 0.2),
+      text: theme.colors.mutedForeground,
     },
     in_progress: {
       bg: withOpacity(theme.colors.info, 0.06),
       border: withOpacity(theme.colors.info, 0.2),
       text: theme.colors.info,
     },
+    completed: {
+      bg: withOpacity(theme.colors.success, 0.06),
+      border: withOpacity(theme.colors.success, 0.2),
+      text: theme.colors.success,
+    },
+    expired: {
+      bg: withOpacity(theme.colors.destructive, 0.06),
+      border: withOpacity(theme.colors.destructive, 0.2),
+      text: theme.colors.destructive,
+    },
+    waived: {
+      bg: withOpacity(theme.colors.warning, 0.06),
+      border: withOpacity(theme.colors.warning, 0.2),
+      text: theme.colors.warning,
+    },
   };
 
-  const tag = tagColors[status];
+  const tag = tagColors[colorKey];
   const title = course.protocol?.name ?? "Ukjent kurs";
   const subtitle = course.protocol?.description ?? "";
+  const sourceLabel = course.assigned_via ? SOURCE_LABELS[course.assigned_via] : null;
 
   return (
     <Animated.View
@@ -218,17 +258,24 @@ function CourseCard({ course, index }: { course: TrainingCourse; index: number }
         accessibilityRole="button"
         accessibilityLabel={title}
       >
-        {/* Top row: icon + tag */}
+        {/* Top row: icon + badges */}
         <View style={styles.topRow}>
           <View style={styles.iconBox}>
             <BookOpen size={20} color={theme.colors.brandOrange} strokeWidth={1.6} />
           </View>
-          <View style={[styles.tag, { backgroundColor: tag.bg, borderColor: tag.border }]}>
-            <Text style={[styles.tagText, { color: tag.text }]}>{label}</Text>
+          <View style={styles.badgeRow}>
+            {sourceLabel && (
+              <View style={styles.sourceBadge}>
+                <Text style={styles.sourceBadgeText}>{sourceLabel}</Text>
+              </View>
+            )}
+            <View style={[styles.tag, { backgroundColor: tag.bg, borderColor: tag.border }]}>
+              <Text style={[styles.tagText, { color: tag.text }]}>{label}</Text>
+            </View>
           </View>
         </View>
 
-        {/* Title + subtitle */}
+        {/* Title + subtitle + version */}
         <View style={styles.textBlock}>
           <Text style={styles.title} numberOfLines={2}>
             {title}
@@ -236,9 +283,12 @@ function CourseCard({ course, index }: { course: TrainingCourse; index: number }
           <Text style={styles.subtitle} numberOfLines={1}>
             {subtitle}
           </Text>
+          {course.protocol_version && (
+            <Text style={styles.versionText}>v{course.protocol_version}</Text>
+          )}
         </View>
 
-        {/* Progress bar */}
+        {/* Progress bar — now uses real progress from shared hook */}
         <View style={styles.progressRow}>
           <View style={styles.progressTrack}>
             <View style={[styles.progressFill, { width: `${progress}%` }]} />
@@ -280,6 +330,11 @@ const useCourseStyles = createStyles((theme) => ({
     alignItems: "center",
     justifyContent: "center",
   },
+  badgeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
   tag: {
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -292,6 +347,21 @@ const useCourseStyles = createStyles((theme) => ({
     letterSpacing: 0.3,
     textTransform: "uppercase",
   },
+  sourceBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: theme.radius.sm,
+    backgroundColor: theme.isDark
+      ? withOpacity(theme.colors.muted, 0.5)
+      : withOpacity(theme.colors.muted, 0.8),
+  },
+  sourceBadgeText: {
+    fontSize: 9,
+    fontWeight: "500",
+    letterSpacing: 0.5,
+    color: theme.colors.mutedForeground,
+    textTransform: "uppercase",
+  },
   textBlock: {
     gap: 4,
   },
@@ -302,6 +372,12 @@ const useCourseStyles = createStyles((theme) => ({
   subtitle: {
     ...theme.typography.caption,
     color: withOpacity(theme.colors.mutedForeground, 0.7),
+  },
+  versionText: {
+    fontSize: 10,
+    fontWeight: "400",
+    color: withOpacity(theme.colors.mutedForeground, 0.5),
+    fontStyle: "italic",
   },
   progressRow: {
     flexDirection: "row",
@@ -502,6 +578,9 @@ export default function TrainingScreen() {
   const certificates = data?.certificates ?? [];
   const readinessPercent = data?.readinessPercent ?? 0;
 
+  const completedCount = courses.filter((c) => c.status === "completed").length;
+  const totalCount = courses.length;
+
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       {/* Header — same as HMS/Operations */}
@@ -535,7 +614,11 @@ export default function TrainingScreen() {
         >
           {/* ── Readiness Progress ── */}
           <View style={styles.section}>
-            <ReadinessCard percent={readinessPercent} />
+            <ReadinessCard
+              percent={readinessPercent}
+              completed={completedCount}
+              total={totalCount}
+            />
           </View>
 
           {/* ── Active Courses ── */}
