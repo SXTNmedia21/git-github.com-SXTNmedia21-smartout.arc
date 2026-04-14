@@ -31,7 +31,8 @@ export type EventCategory =
   | "telegram"
   | "wizard"
   | "security"
-  | "enrichment";
+  | "enrichment"
+  | "ops_intelligence"; // ADR-0088
 
 // ─── Entity Reference (for robust UI audit trails) ─
 export interface EntityRef {
@@ -3040,6 +3041,201 @@ export interface EnrichmentCorrected extends BaseEvent {
   properties: { data: { field_name: string; was_auto: boolean } };
 }
 
+// ─── Operations Intelligence Events (ADR-0088) ──────────────────────
+
+export interface OpsCompileDayBrief extends BaseEvent {
+  event: "ops.compile day_brief";
+  properties: {
+    entity: { entity_type: "department_session"; entity_id: string };
+    data: { department_id: string; shift_count: number; critical_tasks: number };
+  };
+}
+
+export interface OpsCompilePreclose extends BaseEvent {
+  event: "ops.compile preclose_summary";
+  properties: {
+    entity: { entity_type: "department_session"; entity_id: string };
+    data: { tasks_remaining: number; deviations_open: number; ready_for_signoff: boolean };
+  };
+}
+
+export interface OpsCompileShiftBrief extends BaseEvent {
+  event: "ops.compile shift_brief";
+  properties: {
+    entity: { entity_type: "shift"; entity_id: string };
+    data: { profile_id: string };
+  };
+}
+
+export interface OpsTriageClassified extends BaseEvent {
+  event: "ops.triage classified";
+  properties: {
+    data: {
+      original_event: string;
+      classification_type: string;
+      urgency: string;
+      tier: "ambient" | "active" | "critical";
+    };
+  };
+}
+
+// ─── Operations Intelligence Phase 2 Events (ADR-0088) ─────────────
+
+export interface OpsMonitorLatePunchin extends BaseEvent {
+  event: "ops.monitor late_punchin";
+  properties: {
+    entity: { entity_type: "shift"; entity_id: string };
+    data: { employee_id: string; elapsed_minutes: number; department_id: string };
+  };
+}
+
+export interface OpsMonitorNoShow extends BaseEvent {
+  event: "ops.monitor no_show";
+  properties: {
+    entity: { entity_type: "shift"; entity_id: string };
+    data: { employee_id: string; elapsed_minutes: number; department_id: string };
+  };
+}
+
+export interface OpsMonitorTaskOverdue extends BaseEvent {
+  event: "ops.monitor task_overdue";
+  properties: {
+    entity: { entity_type: "session_task"; entity_id: string };
+    data: { title: string; elapsed_minutes: number; priority: string };
+  };
+}
+
+export interface OpsMonitorCriticalTaskMissed extends BaseEvent {
+  event: "ops.monitor critical_task_missed";
+  properties: {
+    entity: { entity_type: "session_task"; entity_id: string };
+    data: { title: string; department_id: string };
+  };
+}
+
+export interface OpsMonitorUnderstaffing extends BaseEvent {
+  event: "ops.monitor understaffing";
+  properties: {
+    entity: { entity_type: "department_session"; entity_id: string };
+    data: { current_count: number; min_required: number; deficit: number };
+  };
+}
+
+export interface OpsMonitorApproachingClose extends BaseEvent {
+  event: "ops.monitor session_approaching_close";
+  properties: {
+    entity: { entity_type: "department_session"; entity_id: string };
+    data: { minutes_until_close: number; incomplete_tasks: number };
+  };
+}
+
+export interface OpsMonitorUnsignedSession extends BaseEvent {
+  event: "ops.monitor unsigned_session";
+  properties: {
+    entity: { entity_type: "department_session"; entity_id: string };
+    data: { minutes_past_close: number };
+  };
+}
+
+export interface OpsMonitorAlertsQueried extends BaseEvent {
+  event: "ops.monitor alerts_queried";
+  properties: {
+    data: { department_id: string | null; hours: number; total_alerts: number };
+  };
+}
+
+export interface OpsMonitorSessionIntelligenceQueried extends BaseEvent {
+  event: "ops.monitor session_intelligence_queried";
+  properties: {
+    entity: { entity_type: "department_session"; entity_id: string };
+    data: { department_id: string; health_score: number };
+  };
+}
+
+export interface OpsActEscalated extends BaseEvent {
+  event: "ops.act escalated";
+  properties: {
+    entity: { entity_type: "department_session"; entity_id: string };
+    data: { alert_rule: string; severity: string; department_id: string };
+  };
+}
+
+export interface OpsActTasksRedistributed extends BaseEvent {
+  event: "ops.act tasks_redistributed";
+  properties: {
+    entity: { entity_type: "department_session"; entity_id: string };
+    data: { absent_employee_id: string; tasks_redistributed: number };
+  };
+}
+
+export interface OpsActSessionFrozen extends BaseEvent {
+  event: "ops.act session_frozen";
+  properties: {
+    entity: { entity_type: "department_session"; entity_id: string };
+    data: { tasks_total: number; tasks_completed: number; tasks_frozen: number };
+  };
+}
+
+// ─── Operations Intelligence PREDICT Events (ADR-0088 Phase 3) ────────
+
+export interface OpsPredictGenerated extends BaseEvent {
+  event: "ops.predict generated";
+  properties: {
+    entity: { entity_type: "department"; entity_id: string };
+    data: {
+      prediction_type: "coverage_gap" | "task_bottleneck" | "compliance_risk" | "employee_overload";
+      confidence: number;
+      department_id: string;
+    };
+  };
+}
+
+export interface OpsPredictCoverageQueried extends BaseEvent {
+  event: "ops.predict coverage_queried";
+  properties: {
+    entity: { entity_type: "department"; entity_id: string };
+    data: { department_id: string; date_range_days: number; gaps_found: number };
+  };
+}
+
+export interface OpsPredictComplianceQueried extends BaseEvent {
+  event: "ops.predict compliance_queried";
+  properties: {
+    entity: { entity_type: "workspace"; entity_id: string };
+    data: { department_id: string | null; completion_rate: number; threshold: number };
+  };
+}
+
+// ─── Operations Intelligence LEARN Events (ADR-0088 Phase 3) ──────────
+
+export interface OpsLearnPatternExtracted extends BaseEvent {
+  event: "ops.learn pattern_extracted";
+  properties: {
+    entity: { entity_type: "workspace"; entity_id: string };
+    data: {
+      pattern_type: "task_duration" | "staffing" | "deviation_correlation";
+      data_range_days: number;
+      confidence: number;
+    };
+  };
+}
+
+export interface OpsLearnRetentionCleaned extends BaseEvent {
+  event: "ops.learn retention_cleaned";
+  properties: {
+    entity: { entity_type: "workspace"; entity_id: string };
+    data: { expired_count: number; retained_count: number };
+  };
+}
+
+export interface OpsLearnPatternsQueried extends BaseEvent {
+  event: "ops.learn patterns_queried";
+  properties: {
+    entity: { entity_type: "workspace"; entity_id: string };
+    data: { pattern_type: string | null; results_count: number };
+  };
+}
+
 // ─── Shift Swap Events ──────────────────────────
 // Shift swap workflow: request → accept/reject → approve/reject → execute
 // All swap state lives in engine_state.context JSONB (ADR-0067)
@@ -3475,7 +3671,29 @@ export type SmartoutEvent =
   | ServiceConfigUpdated
   | ServiceConfigRestarted
   | ServiceConfigDeleted
-  | ScheduleRollback;
+  | ScheduleRollback
+  | OpsCompileDayBrief
+  | OpsCompilePreclose
+  | OpsCompileShiftBrief
+  | OpsTriageClassified
+  | OpsMonitorLatePunchin
+  | OpsMonitorNoShow
+  | OpsMonitorTaskOverdue
+  | OpsMonitorCriticalTaskMissed
+  | OpsMonitorUnderstaffing
+  | OpsMonitorApproachingClose
+  | OpsMonitorUnsignedSession
+  | OpsMonitorAlertsQueried
+  | OpsMonitorSessionIntelligenceQueried
+  | OpsActEscalated
+  | OpsActTasksRedistributed
+  | OpsActSessionFrozen
+  | OpsPredictGenerated
+  | OpsPredictCoverageQueried
+  | OpsPredictComplianceQueried
+  | OpsLearnPatternExtracted
+  | OpsLearnRetentionCleaned
+  | OpsLearnPatternsQueried;
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -4764,5 +4982,94 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "schedule rollback": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "scheduling",
+  },
+
+  // ─── Operations Intelligence (ADR-0088) ────────
+  "ops.compile day_brief": {
+    destinations: ["logger", "engine_event"],
+    category: "ops_intelligence",
+  },
+  "ops.compile preclose_summary": {
+    destinations: ["logger", "engine_event"],
+    category: "ops_intelligence",
+  },
+  "ops.compile shift_brief": {
+    destinations: ["logger", "engine_event"],
+    category: "ops_intelligence",
+  },
+  "ops.triage classified": {
+    destinations: ["logger", "engine_event"],
+    category: "ops_intelligence",
+  },
+  // Phase 2: MONITOR + ACT events
+  "ops.monitor late_punchin": {
+    destinations: ["logger", "engine_event"],
+    category: "ops_intelligence",
+  },
+  "ops.monitor no_show": { destinations: ["logger", "engine_event"], category: "ops_intelligence" },
+  "ops.monitor task_overdue": {
+    destinations: ["logger", "engine_event"],
+    category: "ops_intelligence",
+  },
+  "ops.monitor critical_task_missed": {
+    destinations: ["logger", "engine_event"],
+    category: "ops_intelligence",
+  },
+  "ops.monitor understaffing": {
+    destinations: ["logger", "engine_event"],
+    category: "ops_intelligence",
+  },
+  "ops.monitor session_approaching_close": {
+    destinations: ["logger", "engine_event"],
+    category: "ops_intelligence",
+  },
+  "ops.monitor unsigned_session": {
+    destinations: ["logger", "engine_event"],
+    category: "ops_intelligence",
+  },
+  "ops.monitor alerts_queried": {
+    destinations: ["logger", "engine_event"],
+    category: "ops_intelligence",
+  },
+  "ops.monitor session_intelligence_queried": {
+    destinations: ["logger", "engine_event"],
+    category: "ops_intelligence",
+  },
+  "ops.act escalated": {
+    destinations: ["logger", "engine_event", "activity_trail"],
+    category: "ops_intelligence",
+  },
+  "ops.act tasks_redistributed": {
+    destinations: ["logger", "engine_event", "activity_trail"],
+    category: "ops_intelligence",
+  },
+  "ops.act session_frozen": {
+    destinations: ["logger", "engine_event", "activity_trail"],
+    category: "ops_intelligence",
+  },
+  // Phase 3: PREDICT + LEARN events
+  "ops.predict generated": {
+    destinations: ["logger", "engine_event"],
+    category: "ops_intelligence",
+  },
+  "ops.predict coverage_queried": {
+    destinations: ["logger", "engine_event"],
+    category: "ops_intelligence",
+  },
+  "ops.predict compliance_queried": {
+    destinations: ["logger", "engine_event"],
+    category: "ops_intelligence",
+  },
+  "ops.learn pattern_extracted": {
+    destinations: ["logger", "engine_event"],
+    category: "ops_intelligence",
+  },
+  "ops.learn retention_cleaned": {
+    destinations: ["logger", "engine_event"],
+    category: "ops_intelligence",
+  },
+  "ops.learn patterns_queried": {
+    destinations: ["logger", "engine_event"],
+    category: "ops_intelligence",
   },
 };

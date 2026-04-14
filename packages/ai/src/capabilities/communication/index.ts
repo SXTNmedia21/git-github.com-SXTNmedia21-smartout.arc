@@ -9,6 +9,8 @@ import {
   searchKnowledge,
 } from "./tools.js";
 import { composeShiftBriefing } from "./briefing.js";
+import { compileDayBrief } from "./compile-day-brief.js";
+import { compilePreclose } from "./compile-preclose.js";
 
 const allTools = [
   getConversations,
@@ -17,6 +19,8 @@ const allTools = [
   getChannelContext,
   searchKnowledge,
   composeShiftBriefing,
+  compileDayBrief,
+  compilePreclose,
 ] as unknown as ReadonlyArray<SmartoutTool<AgentToolContext>>;
 
 const readOnlyTools = [
@@ -25,6 +29,8 @@ const readOnlyTools = [
   getChannelContext,
   searchKnowledge,
   composeShiftBriefing,
+  compileDayBrief,
+  compilePreclose,
 ] as unknown as ReadonlyArray<SmartoutTool<AgentToolContext>>;
 
 const suggestTools = [sendMessage] as unknown as ReadonlyArray<SmartoutTool<AgentToolContext>>;

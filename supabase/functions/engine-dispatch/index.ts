@@ -596,6 +596,7 @@ async function executeStep(
       const ap = step.action_payload as Record<string, unknown>;
       // Create session_task if department_session context exists
       if (state.entity_type === "department_session" && state.entity_id) {
+        const ctxOrigin = (state.context as Record<string, unknown>).origin as string | undefined;
         await supabase.from("session_task").insert({
           workspace_id: state.workspace_id,
           department_session_id: state.entity_id,
@@ -604,6 +605,7 @@ async function executeStep(
           status: "available",
           assigned_to: state.assignee_id ?? null,
           is_compliance_required: false,
+          metadata: ctxOrigin === "system" ? { origin: "system" } : {},
         });
       }
       await advanceToNextStep(supabase, state, step);
@@ -1045,6 +1047,7 @@ async function executeStep(
       const hookId = (state.context as Record<string, unknown>).session_hook_id as
         | string
         | undefined;
+      const ctxOrigin = (state.context as Record<string, unknown>).origin as string | undefined;
 
       if (sessionId) {
         await supabase.from("session_task").insert({
@@ -1056,6 +1059,7 @@ async function executeStep(
           status: "available",
           assigned_to: state.assignee_id ?? null,
           is_compliance_required: (ap.compliance_required as boolean) ?? false,
+          metadata: ctxOrigin === "system" ? { origin: "system" } : {},
         });
       }
       await advanceToNextStep(supabase, state, step);
@@ -1322,6 +1326,183 @@ async function executeStep(
           labor_percentage: laborPercentage,
         })
         .eq("reconciliation_id", reconciliationId);
+
+      await advanceToNextStep(supabase, state, step);
+      break;
+    }
+
+    case "ops_escalate": {
+      // ADR-0088 Phase 2 ACT: escalate an operational alert through the chain.
+      const ap = step.action_payload as Record<string, unknown>;
+      const alertRule = (ap.alert_rule as string) ?? "escalation";
+      const severity = (ap.severity as string) ?? "warning";
+      const message = (ap.message as string) ?? `Escalation: ${alertRule}`;
+      const deptId = (ap.department_id as string) ?? null;
+
+      await supabase.from("notification").insert({
+        workspace_id: state.workspace_id,
+        title: `[ESCALATION] ${alertRule.replace(/_/g, " ")}`,
+        body: message,
+        icon_type: severity === "critical" ? "alert" : "warning",
+        priority: severity === "critical" ? "critical" : "high",
+        target_type: deptId ? "department" : "workspace",
+        target_id: deptId ?? state.workspace_id,
+        metadata: {
+          type: "ops_escalation",
+          alert_rule: alertRule,
+          session_id: (ap.session_id as string) ?? state.entity_id,
+          origin: "system",
+        },
+      });
+
+      await supabase.from("engine_event").insert({
+        workspace_id: state.workspace_id,
+        event_type: "ops.act.escalated",
+        payload: {
+          alert_rule: alertRule,
+          department_id: deptId,
+          session_id: (ap.session_id as string) ?? state.entity_id,
+          severity,
+          origin: "system",
+        },
+      });
+
+      await advanceToNextStep(supabase, state, step);
+      break;
+    }
+
+    case "ops_redistribute_tasks": {
+      // ADR-0088 Phase 2 ACT: redistribute tasks from a no-show employee
+      const ap = step.action_payload as Record<string, unknown>;
+      const absentId = ap.absent_employee_id as string;
+      const sessionId = (ap.session_id as string) ?? state.entity_id;
+      const deptId = ap.department_id as string;
+      const today = new Date().toISOString().slice(0, 10);
+
+      if (absentId && sessionId) {
+        const { data: orphanedTasks } = await supabase
+          .from("session_task")
+          .select("id, title, priority")
+          .eq("department_session_id", sessionId)
+          .eq("assigned_to", absentId)
+          .in("status", ["pending", "available"]);
+
+        if (orphanedTasks && orphanedTasks.length > 0) {
+          const taskIds = orphanedTasks.map((t: { id: string }) => t.id);
+          await supabase
+            .from("session_task")
+            .update({
+              assigned_to: null,
+              status: "available",
+              metadata: { origin: "system", redistributed_from: absentId },
+              updated_at: new Date().toISOString(),
+            })
+            .in("id", taskIds);
+        }
+
+        if (deptId) {
+          const { data: onShift } = await supabase
+            .from("schedule_shift")
+            .select("employee_id")
+            .eq("workspace_id", state.workspace_id)
+            .eq("department_id", deptId)
+            .eq("shift_date", today)
+            .in("status", ["published", "confirmed"])
+            .neq("employee_id", absentId);
+
+          for (const shift of onShift ?? []) {
+            if (!shift.employee_id) continue;
+            await supabase.from("notification_outbox").insert({
+              workspace_id: state.workspace_id,
+              recipient_id: shift.employee_id,
+              mode: "work",
+              priority: 1,
+              title: "Tasks redistributed",
+              body: `${orphanedTasks?.length ?? 0} tasks need pickup due to absent colleague`,
+              action_url: null,
+              metadata: {
+                event_key: "ops.act.tasks_redistributed",
+                session_id: sessionId,
+                origin: "system",
+              },
+              allowed_channels: ["push", "in_app"],
+            });
+          }
+        }
+
+        await supabase.from("engine_event").insert({
+          workspace_id: state.workspace_id,
+          event_type: "ops.act.tasks_redistributed",
+          payload: {
+            absent_employee_id: absentId,
+            department_id: deptId,
+            session_id: sessionId,
+            tasks_redistributed: orphanedTasks?.length ?? 0,
+            origin: "system",
+          },
+        });
+      }
+
+      await advanceToNextStep(supabase, state, step);
+      break;
+    }
+
+    case "ops_freeze_session": {
+      // ADR-0088 Phase 2 ACT: freeze session task statuses and prepare handoff.
+      const ap = step.action_payload as Record<string, unknown>;
+      const sessionId = (ap.session_id as string) ?? state.entity_id;
+
+      if (sessionId) {
+        const { data: activeTasks } = await supabase
+          .from("session_task")
+          .select("id, status")
+          .eq("department_session_id", sessionId)
+          .in("status", ["pending", "in_progress", "available"]);
+
+        if (activeTasks && activeTasks.length > 0) {
+          const taskIds = activeTasks.map((t: { id: string }) => t.id);
+          await supabase
+            .from("session_task")
+            .update({
+              status: "skipped",
+              metadata: { origin: "system", frozen_at: new Date().toISOString() },
+              updated_at: new Date().toISOString(),
+            })
+            .in("id", taskIds);
+        }
+
+        const { count: totalCount } = await supabase
+          .from("session_task")
+          .select("id", { count: "exact", head: true })
+          .eq("department_session_id", sessionId);
+
+        const { count: completedCount } = await supabase
+          .from("session_task")
+          .select("id", { count: "exact", head: true })
+          .eq("department_session_id", sessionId)
+          .eq("status", "completed");
+
+        await supabase
+          .from("department_session")
+          .update({
+            tasks_total: totalCount ?? 0,
+            tasks_completed: completedCount ?? 0,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("department_session_id", sessionId);
+
+        await supabase.from("engine_event").insert({
+          workspace_id: state.workspace_id,
+          event_type: "ops.act.session_frozen",
+          payload: {
+            session_id: sessionId,
+            tasks_total: totalCount ?? 0,
+            tasks_completed: completedCount ?? 0,
+            tasks_frozen: activeTasks?.length ?? 0,
+            origin: "system",
+          },
+        });
+      }
 
       await advanceToNextStep(supabase, state, step);
       break;
