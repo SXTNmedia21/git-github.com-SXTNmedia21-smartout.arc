@@ -712,7 +712,71 @@ async function executeStep(
     }
 
     case "schedule_control": {
-      // Reserved for future schedule automation
+      const ctx = state.context as Record<string, unknown>;
+      const ctxData = (ctx.data as Record<string, unknown>) ?? {};
+      const dates = (ctxData.dates as string[]) ?? (ctx.dates as string[]) ?? [];
+      const deptIds =
+        (ctxData.department_ids as string[]) ?? (ctx.department_ids as string[]) ?? [];
+
+      const ap = step.action_payload as Record<string, unknown>;
+      const hookTypes = (ap.hooks as string[]) ?? [];
+
+      // Timing config: offset in minutes relative to the anchor time
+      const hookOffsets: Record<string, { anchor: "open" | "close"; offset: number }> = {
+        pre_open: { anchor: "open", offset: -30 },
+        open: { anchor: "open", offset: 0 },
+        pre_close: { anchor: "close", offset: -30 },
+        close: { anchor: "close", offset: 0 },
+      };
+
+      // Look up department_sessions for each date × department
+      const { data: sessions } = await supabase
+        .from("department_session")
+        .select("id, workspace_id, department_id, session_date, planned_open, planned_close")
+        .eq("workspace_id", state.workspace_id)
+        .in("department_id", deptIds)
+        .in("session_date", dates);
+
+      const hookRows: Array<{
+        workspace_id: string;
+        department_id: string;
+        hook_type: string;
+        trigger_offset_min: number;
+        is_active: boolean;
+      }> = [];
+
+      for (const session of sessions ?? []) {
+        for (const hookType of hookTypes) {
+          const config = hookOffsets[hookType];
+          if (!config) continue;
+
+          hookRows.push({
+            workspace_id: session.workspace_id,
+            department_id: session.department_id,
+            hook_type: hookType,
+            trigger_offset_min: config.offset,
+            is_active: true,
+          });
+        }
+      }
+
+      if (hookRows.length > 0) {
+        // Delete existing hooks for these departments to make re-runs idempotent,
+        // then insert fresh rows. No unique constraint exists on (workspace_id, department_id, hook_type).
+        await supabase
+          .from("session_hook")
+          .delete()
+          .eq("workspace_id", state.workspace_id)
+          .in("department_id", deptIds)
+          .in("hook_type", hookTypes);
+
+        await supabase.from("session_hook").insert(hookRows);
+      }
+
+      console.log(
+        `[engine-dispatch] schedule_control: created ${hookRows.length} hooks for ${(sessions ?? []).length} sessions`,
+      );
+
       await advanceToNextStep(supabase, state, step);
       break;
     }
