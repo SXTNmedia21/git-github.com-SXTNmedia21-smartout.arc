@@ -19,6 +19,9 @@
     "@smartout/supabase": "workspace:*",
     "@smartout/telemetry": "workspace:*"
   },
+  "devDependencies": {
+    "@smartout/typescript-config": "workspace:*"
+  },
   "peerDependencies": {
     "@tanstack/react-query": "^5",
     "react": "^19",
