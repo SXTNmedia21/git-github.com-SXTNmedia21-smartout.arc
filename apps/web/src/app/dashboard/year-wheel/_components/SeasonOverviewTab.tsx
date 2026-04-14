@@ -11,6 +11,7 @@
 import { useMemo } from "react";
 import { useTranslation } from "@smartout/i18n";
 import { useSeasonBudget, useDayFactors, useHourFactors } from "../_hooks";
+import { useSeasonOperatingHours } from "../_hooks/use-season-operating-hours";
 import { useOperatingHours } from "../../settings/_hooks/use-operating-hours";
 import {
   calculateDayTargets,
@@ -67,8 +68,10 @@ export function SeasonOverviewTab({
   const { budget } = useSeasonBudget(seasonId);
   const { dayFactors } = useDayFactors(seasonBudgetId);
   const { hourFactors } = useHourFactors(seasonBudgetId);
-  const { hours: operatingHoursRaw } = useOperatingHours(firstDeptId);
-  const operatingHours = operatingHoursRaw || [];
+  // Prefer season-specific operating hours; fall back to default (season_id=NULL) hours
+  const { hours: seasonHours, hasSeasonHours } = useSeasonOperatingHours(seasonId);
+  const { hours: defaultHoursRaw } = useOperatingHours(firstDeptId);
+  const operatingHours = hasSeasonHours ? seasonHours : defaultHoursRaw || [];
 
   // Derive the earliest open and latest close time across all operating day records.
   const opHours = useMemo(() => {
