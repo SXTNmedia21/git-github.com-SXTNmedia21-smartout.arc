@@ -36,7 +36,9 @@ type CockpitRiskQueuesProps = {
  * @returns Action-ready summary for staffing triage.
  */
 function staffingSummary(risk: StaffingRisk): string {
-  return `${risk.uncoveredShifts} uncovered shift${risk.uncoveredShifts === 1 ? "" : "s"} across ${risk.affectedTeams} team${risk.affectedTeams === 1 ? "" : "s"}`;
+  const vakter = `${risk.uncoveredShifts} ${risk.uncoveredShifts === 1 ? "ubemannet vakt" : "ubemannede vakter"}`;
+  const team = `${risk.affectedTeams} team`;
+  return `${vakter} · ${team}`;
 }
 
 /**
@@ -49,12 +51,15 @@ function staffingSummary(risk: StaffingRisk): string {
  */
 function operationalSummary(risk: OperationalRisk): string {
   if (risk.blockingDeviations > 0) {
-    return `${risk.blockingDeviations} blocking deviation${risk.blockingDeviations === 1 ? "" : "s"}`;
+    const ord = risk.blockingDeviations === 1 ? "blokkerende avvik" : "blokkerende avvik";
+    return `${risk.blockingDeviations} ${ord}`;
   }
   if (risk.overdueTasks > 0) {
-    return `${risk.overdueTasks} overdue task${risk.overdueTasks === 1 ? "" : "s"}`;
+    const ord = risk.overdueTasks === 1 ? "forfalt oppgave" : "forfalte oppgaver";
+    return `${risk.overdueTasks} ${ord}`;
   }
-  return `${risk.upcomingTasks} upcoming task${risk.upcomingTasks === 1 ? "" : "s"}`;
+  const ord = risk.upcomingTasks === 1 ? "kommende oppgave" : "kommende oppgaver";
+  return `${risk.upcomingTasks} ${ord}`;
 }
 
 /**
@@ -94,7 +99,7 @@ function QueueCard({
       </CardHeader>
       <CardContent className="space-y-2 pb-5">
         {isLoading ? (
-          <p className="text-muted-foreground text-sm">Loading queue...</p>
+          <p className="text-muted-foreground text-sm">Laster kø…</p>
         ) : rows.length === 0 ? (
           <p className="text-muted-foreground text-sm">{emptyText}</p>
         ) : (
@@ -107,7 +112,11 @@ function QueueCard({
             >
               <p className="text-sm font-medium">{row.summary}</p>
               <Badge variant="outline" className={getSeverityToneStyles(row.severity).badge}>
-                {row.severity}
+                {row.severity === "critical"
+                  ? "kritisk"
+                  : row.severity === "warning"
+                    ? "advarsel"
+                    : "info"}
               </Badge>
             </button>
           ))
@@ -138,9 +147,9 @@ export function CockpitRiskQueues({
   return (
     <section data-testid="cockpit-risk-queues" className="grid grid-cols-1 gap-4 xl:grid-cols-2">
       <QueueCard
-        title="Staffing queue"
+        title="Bemanning"
         icon="staffing"
-        emptyText="No staffing blockers right now."
+        emptyText="Ingen bemanningshull akkurat nå."
         isLoading={isLoading}
         rows={staffingQueue.slice(0, 4).map((risk) => ({
           id: risk.id,
@@ -150,9 +159,9 @@ export function CockpitRiskQueues({
         }))}
       />
       <QueueCard
-        title="Operations queue"
+        title="Drift"
         icon="operations"
-        emptyText="No operational deviations, overdue tasks, or upcoming tasks right now."
+        emptyText="Ingen avvik eller oppgaver å håndtere nå."
         isLoading={isLoading}
         rows={operationalQueue.slice(0, 4).map((risk) => ({
           id: risk.id,

@@ -16,7 +16,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
 
-const DAYS_NO = ["Son", "Man", "Tir", "Ons", "Tor", "Fre", "Lor"];
+const DAYS_NO = ["Søn", "Man", "Tir", "Ons", "Tor", "Fre", "Lør"];
 
 function getNext7Days(): Array<{
   date: string;

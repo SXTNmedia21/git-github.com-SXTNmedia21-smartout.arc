@@ -53,11 +53,12 @@ function buildActions(
   const actions: ActionItem[] = [];
 
   if (staffingQueue.length > 0) {
+    const n = staffingQueue[0]!.uncoveredShifts;
     actions.push({
       id: "cover-staffing-gaps",
-      label: "Cover staffing gaps",
-      description: `${staffingQueue[0]!.uncoveredShifts} uncovered shift${staffingQueue[0]!.uncoveredShifts === 1 ? "" : "s"} need assignment`,
-      ctaLabel: "Open schedule",
+      label: "Dekk bemanningshull",
+      description: `${n} ${n === 1 ? "ubemannet vakt trenger bemanning" : "ubemannede vakter trenger bemanning"}`,
+      ctaLabel: "Åpne vaktplan",
       href: "/dashboard/schedule",
       tone: staffingQueue[0]!.severity === "critical" ? "critical" : "warning",
       icon: CalendarClock,
@@ -68,16 +69,16 @@ function buildActions(
     const topOperationalRisk = operationalQueue[0]!;
     const operationalDescription =
       topOperationalRisk.blockingDeviations > 0
-        ? `${topOperationalRisk.blockingDeviations} blocking deviation${topOperationalRisk.blockingDeviations === 1 ? "" : "s"} in queue`
+        ? `${topOperationalRisk.blockingDeviations} blokkerende avvik i kø`
         : topOperationalRisk.overdueTasks > 0
-          ? `${topOperationalRisk.overdueTasks} overdue task${topOperationalRisk.overdueTasks === 1 ? "" : "s"} in queue`
-          : `${topOperationalRisk.upcomingTasks} upcoming task${topOperationalRisk.upcomingTasks === 1 ? "" : "s"} to prepare`;
+          ? `${topOperationalRisk.overdueTasks} ${topOperationalRisk.overdueTasks === 1 ? "forfalt oppgave" : "forfalte oppgaver"} i kø`
+          : `${topOperationalRisk.upcomingTasks} ${topOperationalRisk.upcomingTasks === 1 ? "kommende oppgave" : "kommende oppgaver"} å forberede`;
 
     actions.push({
       id: "clear-operational-blockers",
-      label: "Manage operational queue",
+      label: "Håndter driftskø",
       description: operationalDescription,
-      ctaLabel: "Open operations",
+      ctaLabel: "Åpne drift",
       href: "/dashboard/operations",
       tone: topOperationalRisk.severity === "critical" ? "critical" : "warning",
       icon: Siren,
@@ -87,9 +88,9 @@ function buildActions(
   if (lateCount > 0 || waitingCount > 0) {
     actions.push({
       id: "follow-up-attendance",
-      label: "Follow up attendance",
-      description: `${lateCount} late, ${waitingCount} waiting to clock in`,
-      ctaLabel: "Check attendance",
+      label: "Følg opp oppmøte",
+      description: `${lateCount} forsinket, ${waitingCount} venter på innstempling`,
+      ctaLabel: "Se oppmøte",
       href: "/dashboard/schedule",
       tone: lateCount > 0 ? "critical" : "warning",
       icon: Users,
@@ -99,9 +100,9 @@ function buildActions(
   if (actions.length === 0) {
     actions.push({
       id: "daily-review",
-      label: "Run daily review",
-      description: "No urgent blockers. Confirm checklist completion.",
-      ctaLabel: "Open reconciliation",
+      label: "Kjør dagsavslutning",
+      description: "Ingen hasteoppgaver. Bekreft sjekklister.",
+      ctaLabel: "Åpne avstemming",
       href: "/dashboard/reconciliation",
       tone: "neutral",
       icon: ListChecks,
@@ -131,11 +132,11 @@ export function CockpitActionRail({
     <section data-testid="cockpit-action-rail">
       <Card className="border-border h-full shadow-none">
         <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold">Action rail</CardTitle>
+          <CardTitle className="text-base font-semibold">Handlinger</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2.5 pb-5">
           {isLoading ? (
-            <p className="text-muted-foreground text-sm">Loading recommended actions...</p>
+            <p className="text-muted-foreground text-sm">Laster anbefalte handlinger…</p>
           ) : (
             actions.map((action) => (
               <div key={action.id} className="border-border bg-muted/20 rounded-lg border p-3">
@@ -144,7 +145,11 @@ export function CockpitActionRail({
                   <span
                     className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold ${getSeverityToneStyles(action.tone).badge}`}
                   >
-                    {action.tone}
+                    {action.tone === "critical"
+                      ? "kritisk"
+                      : action.tone === "warning"
+                        ? "advarsel"
+                        : "nøytral"}
                   </span>
                 </div>
                 <p className="text-sm font-semibold">{action.label}</p>

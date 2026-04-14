@@ -8,14 +8,18 @@
 // first operations awareness on tactical view.
 // ============================================
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useContext, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useCockpitFirstScreen } from "@/app/dashboard/_hooks/use-cockpit-first-screen";
+import { useCockpitDateAnchor } from "@/app/dashboard/_hooks/use-cockpit-date-anchor";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
 // useEntityDrawer removed — activity feed panel removed from cockpit
 import { CockpitActionRail } from "./CockpitActionRail";
 import { CockpitOnDutyProgress } from "./CockpitOnDutyProgress";
 import { CockpitRiskQueues } from "./CockpitRiskQueues";
 import { CockpitPrepStrip } from "./CockpitPrepStrip";
+import { CockpitDateAnchor } from "./CockpitDateAnchor";
+import { CockpitQuickActions } from "./CockpitQuickActions";
 
 /**
  * Returns summary counters derived from first-screen read model output.
@@ -56,6 +60,8 @@ export function HospitalityOperationsCockpit() {
     feedFilters: { category: "all", timeRange: "today" },
   });
   const router = useRouter();
+  const { anchorDate } = useCockpitDateAnchor();
+  const { profileId } = useContext(DashboardContext);
 
   const handleStaffingPress = useCallback(
     (_riskId: string) => router.push("/dashboard/schedule"),
@@ -85,61 +91,71 @@ export function HospitalityOperationsCockpit() {
   return (
     <div
       data-testid="hospitality-operations-cockpit"
-      className="dashboard-enter grid h-full grid-cols-1 gap-2 overflow-hidden xl:grid-cols-3"
+      className="flex h-full min-h-0 flex-col gap-3"
     >
-      {/* ── LEFT: Drift + Forberedelse stacked ── */}
-      <div className="flex min-h-0 flex-col gap-3 xl:col-span-2">
-        {/* Drift — bemanning + risiko */}
-        <section className="border-border/30 bg-card/30 flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border backdrop-blur-sm">
+      {/* ── TOP: Date anchor + quick actions ── */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <CockpitDateAnchor />
+        <CockpitQuickActions anchorDate={anchorDate} profileId={profileId} />
+      </div>
+
+      {/* ── MAIN: Drift + Forberedelse + Krever handling ── */}
+      <div className="dashboard-enter grid min-h-0 flex-1 grid-cols-1 gap-2 overflow-hidden xl:grid-cols-3">
+        {/* ── LEFT: Drift + Forberedelse stacked ── */}
+        <div className="flex min-h-0 flex-col gap-3 xl:col-span-2">
+          {/* Drift — bemanning + risiko */}
+          <section className="border-border/30 bg-card/30 flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border backdrop-blur-sm">
+            <div className="border-border/20 flex items-center justify-between border-b px-4 pt-3 pb-2">
+              <h2 className="text-muted-foreground/60 text-[10px] font-bold tracking-[0.15em] uppercase">
+                Drift
+              </h2>
+              <span className="text-muted-foreground/40 text-[10px] tabular-nums">
+                {summary.onDutyCount} på jobb · {summary.criticalCount + summary.warningCount}{" "}
+                varsler
+              </span>
+            </div>
+            <div className="flex-1 space-y-2 overflow-y-auto p-3">
+              <CockpitRiskQueues
+                staffingQueue={model.staffingQueue}
+                operationalQueue={model.operationalQueue}
+                isLoading={model.isLoading}
+                onStaffingPress={handleStaffingPress}
+                onOperationalPress={handleOperationalPress}
+              />
+              <CockpitOnDutyProgress entries={model.onDutyEntries} isLoading={model.isLoading} />
+            </div>
+          </section>
+
+          {/* Forberedelse — 7-dags horisont */}
+          <section className="border-border/30 bg-card/30 flex flex-col overflow-hidden rounded-2xl border backdrop-blur-sm">
+            <div className="border-border/20 flex items-center justify-between border-b px-4 pt-3 pb-2">
+              <h2 className="text-muted-foreground/60 text-[10px] font-bold tracking-[0.15em] uppercase">
+                Forberedelse
+              </h2>
+            </div>
+            <div className="p-3">
+              <CockpitPrepStrip />
+            </div>
+          </section>
+        </div>
+
+        {/* ── RIGHT: Krever handling (full height) ── */}
+        <section className="border-border/30 bg-card/30 flex min-h-0 flex-col overflow-hidden rounded-2xl border backdrop-blur-sm">
           <div className="border-border/20 flex items-center justify-between border-b px-4 pt-3 pb-2">
             <h2 className="text-muted-foreground/60 text-[10px] font-bold tracking-[0.15em] uppercase">
-              Drift
+              Krever handling
             </h2>
-            <span className="text-muted-foreground/40 text-[10px] tabular-nums">
-              {summary.onDutyCount} pa jobb · {summary.criticalCount + summary.warningCount} varsler
-            </span>
           </div>
-          <div className="flex-1 space-y-2 overflow-y-auto p-3">
-            <CockpitRiskQueues
+          <div className="flex-1 overflow-y-auto p-3">
+            <CockpitActionRail
               staffingQueue={model.staffingQueue}
               operationalQueue={model.operationalQueue}
+              onDutyEntries={model.onDutyEntries}
               isLoading={model.isLoading}
-              onStaffingPress={handleStaffingPress}
-              onOperationalPress={handleOperationalPress}
             />
-            <CockpitOnDutyProgress entries={model.onDutyEntries} isLoading={model.isLoading} />
-          </div>
-        </section>
-
-        {/* Forberedelse — 7-dags horisont */}
-        <section className="border-border/30 bg-card/30 flex flex-col overflow-hidden rounded-2xl border backdrop-blur-sm">
-          <div className="border-border/20 flex items-center justify-between border-b px-4 pt-3 pb-2">
-            <h2 className="text-muted-foreground/60 text-[10px] font-bold tracking-[0.15em] uppercase">
-              Forberedelse
-            </h2>
-          </div>
-          <div className="p-3">
-            <CockpitPrepStrip />
           </div>
         </section>
       </div>
-
-      {/* ── RIGHT: Krever handling (full height) ── */}
-      <section className="border-border/30 bg-card/30 flex min-h-0 flex-col overflow-hidden rounded-2xl border backdrop-blur-sm">
-        <div className="border-border/20 flex items-center justify-between border-b px-4 pt-3 pb-2">
-          <h2 className="text-muted-foreground/60 text-[10px] font-bold tracking-[0.15em] uppercase">
-            Krever handling
-          </h2>
-        </div>
-        <div className="flex-1 overflow-y-auto p-3">
-          <CockpitActionRail
-            staffingQueue={model.staffingQueue}
-            operationalQueue={model.operationalQueue}
-            onDutyEntries={model.onDutyEntries}
-            isLoading={model.isLoading}
-          />
-        </div>
-      </section>
     </div>
   );
 }
