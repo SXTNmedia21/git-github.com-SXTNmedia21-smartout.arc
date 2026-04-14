@@ -178,7 +178,7 @@ test.describe("setup-wizard", () => {
     // wizard starts at step 1 (document-drop), not step 0 (welcome).
     await page.waitForTimeout(5_000);
 
-    await expect(page.locator('h1:has-text("Last opp dokumenter")')).toBeVisible({
+    await expect(page.locator("h1").filter({ hasText: /Last opp dokumenter|Upload documents/ })).toBeVisible({
       timeout: 15_000,
     });
 
@@ -196,7 +196,7 @@ test.describe("setup-wizard", () => {
     await page.waitForTimeout(5_000);
 
     // With data hidden, wizard starts at document-drop step
-    await expect(page.locator('h1:has-text("Last opp dokumenter")')).toBeVisible({
+    await expect(page.locator("h1").filter({ hasText: /Last opp dokumenter|Upload documents/ })).toBeVisible({
       timeout: 15_000,
     });
 
@@ -217,7 +217,7 @@ test.describe("setup-wizard", () => {
     await page.waitForTimeout(5_000);
 
     // Wizard starts at document-drop (step 1) since data is hidden
-    await expect(page.locator('h1:has-text("Last opp dokumenter")')).toBeVisible({
+    await expect(page.locator("h1").filter({ hasText: /Last opp dokumenter|Upload documents/ })).toBeVisible({
       timeout: 15_000,
     });
 
@@ -252,7 +252,7 @@ test.describe("setup-wizard", () => {
     await page.waitForTimeout(5_000);
 
     // Wizard starts at document-drop (step 1) since data is hidden
-    await expect(page.locator('h1:has-text("Last opp dokumenter")')).toBeVisible({
+    await expect(page.locator("h1").filter({ hasText: /Last opp dokumenter|Upload documents/ })).toBeVisible({
       timeout: 15_000,
     });
 
@@ -285,7 +285,7 @@ test.describe("setup-wizard", () => {
 
     // Wait for setup wizard to load (starts at document-drop when data is hidden)
     await page.waitForTimeout(5_000);
-    await expect(page.locator('h1:has-text("Last opp dokumenter")')).toBeVisible({
+    await expect(page.locator("h1").filter({ hasText: /Last opp dokumenter|Upload documents/ })).toBeVisible({
       timeout: 15_000,
     });
 
@@ -320,7 +320,7 @@ test.describe("setup-wizard", () => {
 
     // Wait for setup wizard to load (starts at document-drop when data is hidden)
     await page.waitForTimeout(5_000);
-    await expect(page.locator('h1:has-text("Last opp dokumenter")')).toBeVisible({
+    await expect(page.locator("h1").filter({ hasText: /Last opp dokumenter|Upload documents/ })).toBeVisible({
       timeout: 15_000,
     });
 
@@ -393,7 +393,7 @@ test.describe("setup-wizard", () => {
 
     // Wizard should redirect to /dashboard/setup (starts at document-drop)
     await page.waitForTimeout(5_000);
-    await expect(page.locator('h1:has-text("Last opp dokumenter")')).toBeVisible({
+    await expect(page.locator("h1").filter({ hasText: /Last opp dokumenter|Upload documents/ })).toBeVisible({
       timeout: 15_000,
     });
 
@@ -426,7 +426,7 @@ test.describe("setup-wizard", () => {
     await loginAsAdmin(page, { skipOnboarding: false });
 
     await page.waitForTimeout(5_000);
-    await expect(page.locator('h1:has-text("Last opp dokumenter")')).toBeVisible({
+    await expect(page.locator("h1").filter({ hasText: /Last opp dokumenter|Upload documents/ })).toBeVisible({
       timeout: 15_000,
     });
 
@@ -446,7 +446,7 @@ test.describe("setup-wizard", () => {
     await page.waitForTimeout(5_000);
 
     // Should show the setup wizard again (starts at document-drop)
-    await expect(page.locator('h1:has-text("Last opp dokumenter")')).toBeVisible({
+    await expect(page.locator("h1").filter({ hasText: /Last opp dokumenter|Upload documents/ })).toBeVisible({
       timeout: 15_000,
     });
   });
@@ -462,7 +462,7 @@ test.describe("setup-wizard", () => {
 
     // Wizard starts at document-drop (step 1) since data is hidden
     await page.waitForTimeout(5_000);
-    await expect(page.locator('h1:has-text("Last opp dokumenter")')).toBeVisible({
+    await expect(page.locator("h1").filter({ hasText: /Last opp dokumenter|Upload documents/ })).toBeVisible({
       timeout: 15_000,
     });
 

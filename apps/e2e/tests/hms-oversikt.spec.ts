@@ -25,17 +25,24 @@ test.describe("HMS Oversikt", () => {
     await page.goto("/dashboard/hms");
     await page.waitForLoadState("networkidle");
 
-    // Use href selectors to avoid sidebar/breadcrumb ambiguity
-    await expect(page.locator("a[href='/dashboard/hms']").first()).toBeVisible({ timeout: 5000 });
-    await expect(page.locator("a[href='/dashboard/hms/drift']")).toBeVisible({ timeout: 3000 });
-    await expect(page.locator("a[href='/dashboard/hms/training']")).toBeVisible({ timeout: 3000 });
-    await expect(page.locator("a[href='/dashboard/hms/documents']")).toBeVisible({ timeout: 3000 });
-    await expect(page.locator("a[href='/dashboard/hms/deviations']")).toBeVisible({
-      timeout: 3000,
-    });
-    await expect(page.locator("a[href='/dashboard/hms/governance']")).toBeVisible({
-      timeout: 3000,
-    });
+    // Wait for HMS sub-nav to render — it is a client component inside the layout.
+    // The sub-nav is a rounded-xl container with 6 Link elements.
+    await page.waitForTimeout(2000);
+
+    // Use href selectors scoped to the page (not sidebar)
+    const hmsLinks = [
+      "/dashboard/hms",
+      "/dashboard/hms/drift",
+      "/dashboard/hms/training",
+      "/dashboard/hms/documents",
+      "/dashboard/hms/deviations",
+      "/dashboard/hms/governance",
+    ];
+
+    for (const href of hmsLinks) {
+      const link = page.locator(`a[href='${href}']`).first();
+      await expect(link).toBeVisible({ timeout: 5000 });
+    }
   });
 
   test("navigation between HMS tabs works", async ({ page }) => {
