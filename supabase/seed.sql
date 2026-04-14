@@ -3178,3 +3178,30 @@ INSERT INTO public.session_hook (
   'f1200000-0000-0000-0000-000000000000',
   true
 ) ON CONFLICT DO NOTHING;
+
+-- ═══════════════════════════════════════════════════════════════
+-- Contract system seed data
+-- ═══════════════════════════════════════════════════════════════
+
+-- Bind workspace to hospitality framework (required for contract composition)
+INSERT INTO public.workspace_framework_binding (
+  workspace_id, framework_id, is_active
+) SELECT
+  'b0000000-0000-0000-0000-000000000000',
+  rf.framework_id,
+  true
+FROM public.regulatory_framework rf
+WHERE rf.code = 'hospitality.no.default.v1'
+ON CONFLICT DO NOTHING;
+
+-- Employee payroll profiles (required for tariff lookup — has_fagbrev determines rate)
+INSERT INTO public.employee_payroll_profile (
+  workspace_id, profile_id, has_fagbrev, salary_type, agreed_weekly_hours,
+  tariff_category, seniority_start_date, valid_from
+) VALUES
+  ('b0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000001', false, 'hourly', 37.5, 'ufaglart', '2024-01-01', '2024-01-01'),
+  ('b0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000002', true, 'hourly', 37.5, 'faglart', '2022-06-01', '2022-06-01'),
+  ('b0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000003', false, 'hourly', 20, 'ufaglart', '2025-01-01', '2025-01-01'),
+  ('b0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000004', false, 'monthly', 37.5, 'ufaglart', '2023-03-01', '2023-03-01'),
+  ('b0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000005', true, 'hourly', 37.5, 'faglart', '2021-08-01', '2021-08-01')
+ON CONFLICT DO NOTHING;
