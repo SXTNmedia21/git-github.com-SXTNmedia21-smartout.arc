@@ -8,6 +8,8 @@ export type EmailTemplate =
   | "trial-reminder"
   | "payment-reminder"
   | "contract-reminder"
+  | "contract-lifecycle"
+  | "contract-reminder-due"
   | "sendgrid-dynamic";
 
 export type SendGridTemplateData = {

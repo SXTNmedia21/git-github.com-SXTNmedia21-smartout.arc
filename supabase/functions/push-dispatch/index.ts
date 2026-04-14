@@ -16,7 +16,12 @@ import { sendSms } from "../_shared/twilio.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 
 /** Events that warrant SMS fallback when push token is unavailable */
-const CRITICAL_EVENTS = new Set(["shift_confirmation_reminder", "deviation_reported"]);
+const CRITICAL_EVENTS = new Set([
+  "shift_confirmation_reminder",
+  "deviation_reported",
+  "contract.signed",
+  "contract.expired",
+]);
 
 type PushRequest = {
   event: string;
