@@ -1,10 +1,10 @@
 ---
 title: Council Session Log
-status: in_progress
+status: live
 updated: 2026-04-14
 created: 2026-03-26
 module: governance
-tags: [council, decisions, multi-agent, review]
+tags: [council, decisions, multi-agent, review, governance]
 ---
 
 # Council Session Log
@@ -626,3 +626,17 @@ Phase 3: Agent wiring (after C merges)
 **Key decision:** 3 parallel features (template binding UI, contract intake agent, notifications) approved with P1 accessibility fixes applied immediately
 **ADR created:** none
 **Learning:** useMemo with setState calls is a lint-breaking anti-pattern — always useEffect. Semantic table attributes (scope="col"/"row") and aria-label on icon-only buttons are mandatory for matrix UIs. 3 council agents hitting usage limits simultaneously = degraded mode acceptable when orchestrator can cover gaps.
+
+## 2026-04-14 — Phase E C4 Governance Plan Review
+**Type:** plan
+**Verdict:** APPROVE WITH CHANGES
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator (frontend-designer skipped — 95% backend)
+**Key decisions:**
+- Postgres RPC gate with SECURITY DEFINER (ADR-0091)
+- Contract drafts through unified apply_cascade (ADR-0093, amends ADR-0076)
+- Severity → enum (ADR-0094, retrofits WP1)
+- WP8 deferred to Phase E.1
+- WP7 promoted P1 → P0
+**ADRs created:** 0091, 0093, 0094
+**Learnings created:** none
+**Notes:** WP1 shipped during council review (3 commits, 23 tests green). Severity retrofit needed before WP2. Min_role enforcement in tool-selector is prerequisite for WP4.
