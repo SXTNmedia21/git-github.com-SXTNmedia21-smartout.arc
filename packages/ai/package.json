@@ -118,6 +118,10 @@
       "types": "./dist/router/tool-selector.d.ts",
       "default": "./dist/router/tool-selector.js"
     },
+    "./router/min-role": {
+      "types": "./dist/router/min-role.d.ts",
+      "default": "./dist/router/min-role.js"
+    },
     "./prompts/mr-botsson": {
       "types": "./dist/prompts/mr-botsson.d.ts",
       "default": "./dist/prompts/mr-botsson.js"
