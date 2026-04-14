@@ -3064,6 +3064,103 @@ export interface OpsTriageClassified extends BaseEvent {
   };
 }
 
+// ─── Operations Intelligence Phase 2 Events (ADR-0088) ─────────────
+
+export interface OpsMonitorLatePunchin extends BaseEvent {
+  event: "ops.monitor late_punchin";
+  properties: {
+    entity: { entity_type: "shift"; entity_id: string };
+    data: { employee_id: string; elapsed_minutes: number; department_id: string };
+  };
+}
+
+export interface OpsMonitorNoShow extends BaseEvent {
+  event: "ops.monitor no_show";
+  properties: {
+    entity: { entity_type: "shift"; entity_id: string };
+    data: { employee_id: string; elapsed_minutes: number; department_id: string };
+  };
+}
+
+export interface OpsMonitorTaskOverdue extends BaseEvent {
+  event: "ops.monitor task_overdue";
+  properties: {
+    entity: { entity_type: "session_task"; entity_id: string };
+    data: { title: string; elapsed_minutes: number; priority: string };
+  };
+}
+
+export interface OpsMonitorCriticalTaskMissed extends BaseEvent {
+  event: "ops.monitor critical_task_missed";
+  properties: {
+    entity: { entity_type: "session_task"; entity_id: string };
+    data: { title: string; department_id: string };
+  };
+}
+
+export interface OpsMonitorUnderstaffing extends BaseEvent {
+  event: "ops.monitor understaffing";
+  properties: {
+    entity: { entity_type: "department_session"; entity_id: string };
+    data: { current_count: number; min_required: number; deficit: number };
+  };
+}
+
+export interface OpsMonitorApproachingClose extends BaseEvent {
+  event: "ops.monitor session_approaching_close";
+  properties: {
+    entity: { entity_type: "department_session"; entity_id: string };
+    data: { minutes_until_close: number; incomplete_tasks: number };
+  };
+}
+
+export interface OpsMonitorUnsignedSession extends BaseEvent {
+  event: "ops.monitor unsigned_session";
+  properties: {
+    entity: { entity_type: "department_session"; entity_id: string };
+    data: { minutes_past_close: number };
+  };
+}
+
+export interface OpsMonitorAlertsQueried extends BaseEvent {
+  event: "ops.monitor alerts_queried";
+  properties: {
+    data: { department_id: string | null; hours: number; total_alerts: number };
+  };
+}
+
+export interface OpsMonitorSessionIntelligenceQueried extends BaseEvent {
+  event: "ops.monitor session_intelligence_queried";
+  properties: {
+    entity: { entity_type: "department_session"; entity_id: string };
+    data: { department_id: string; health_score: number };
+  };
+}
+
+export interface OpsActEscalated extends BaseEvent {
+  event: "ops.act escalated";
+  properties: {
+    entity: { entity_type: "department_session"; entity_id: string };
+    data: { alert_rule: string; severity: string; department_id: string };
+  };
+}
+
+export interface OpsActTasksRedistributed extends BaseEvent {
+  event: "ops.act tasks_redistributed";
+  properties: {
+    entity: { entity_type: "department_session"; entity_id: string };
+    data: { absent_employee_id: string; tasks_redistributed: number };
+  };
+}
+
+export interface OpsActSessionFrozen extends BaseEvent {
+  event: "ops.act session_frozen";
+  properties: {
+    entity: { entity_type: "department_session"; entity_id: string };
+    data: { tasks_total: number; tasks_completed: number; tasks_frozen: number };
+  };
+}
+
 // ─── Shift Swap Events ──────────────────────────
 // Shift swap workflow: request → accept/reject → approve/reject → execute
 // All swap state lives in engine_state.context JSONB (ADR-0067)
@@ -3501,7 +3598,19 @@ export type SmartoutEvent =
   | OpsCompileDayBrief
   | OpsCompilePreclose
   | OpsCompileShiftBrief
-  | OpsTriageClassified;
+  | OpsTriageClassified
+  | OpsMonitorLatePunchin
+  | OpsMonitorNoShow
+  | OpsMonitorTaskOverdue
+  | OpsMonitorCriticalTaskMissed
+  | OpsMonitorUnderstaffing
+  | OpsMonitorApproachingClose
+  | OpsMonitorUnsignedSession
+  | OpsMonitorAlertsQueried
+  | OpsMonitorSessionIntelligenceQueried
+  | OpsActEscalated
+  | OpsActTasksRedistributed
+  | OpsActSessionFrozen;
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -4799,6 +4908,52 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "ops.triage classified": {
     destinations: ["logger", "engine_event"],
+    category: "ops_intelligence",
+  },
+  // Phase 2: MONITOR + ACT events
+  "ops.monitor late_punchin": {
+    destinations: ["logger", "engine_event"],
+    category: "ops_intelligence",
+  },
+  "ops.monitor no_show": { destinations: ["logger", "engine_event"], category: "ops_intelligence" },
+  "ops.monitor task_overdue": {
+    destinations: ["logger", "engine_event"],
+    category: "ops_intelligence",
+  },
+  "ops.monitor critical_task_missed": {
+    destinations: ["logger", "engine_event"],
+    category: "ops_intelligence",
+  },
+  "ops.monitor understaffing": {
+    destinations: ["logger", "engine_event"],
+    category: "ops_intelligence",
+  },
+  "ops.monitor session_approaching_close": {
+    destinations: ["logger", "engine_event"],
+    category: "ops_intelligence",
+  },
+  "ops.monitor unsigned_session": {
+    destinations: ["logger", "engine_event"],
+    category: "ops_intelligence",
+  },
+  "ops.monitor alerts_queried": {
+    destinations: ["logger", "engine_event"],
+    category: "ops_intelligence",
+  },
+  "ops.monitor session_intelligence_queried": {
+    destinations: ["logger", "engine_event"],
+    category: "ops_intelligence",
+  },
+  "ops.act escalated": {
+    destinations: ["logger", "engine_event", "activity_trail"],
+    category: "ops_intelligence",
+  },
+  "ops.act tasks_redistributed": {
+    destinations: ["logger", "engine_event", "activity_trail"],
+    category: "ops_intelligence",
+  },
+  "ops.act session_frozen": {
+    destinations: ["logger", "engine_event", "activity_trail"],
     category: "ops_intelligence",
   },
 };
