@@ -4,12 +4,23 @@
 import type { SmartoutTool } from "../../types.js";
 import type { AgentToolContext, CapabilityDefinition } from "../types.js";
 import { triageEvent } from "./tools.js";
+import { queryMonitorAlerts, getSessionIntelligence } from "./monitor-tools.js";
 
-const allTools = [triageEvent] as unknown as ReadonlyArray<SmartoutTool<AgentToolContext>>;
+const allTools = [
+  triageEvent,
+  queryMonitorAlerts,
+  getSessionIntelligence,
+] as unknown as ReadonlyArray<SmartoutTool<AgentToolContext>>;
 
-const readOnlyTools = [] as unknown as ReadonlyArray<SmartoutTool<AgentToolContext>>;
+const readOnlyTools = [queryMonitorAlerts, getSessionIntelligence] as unknown as ReadonlyArray<
+  SmartoutTool<AgentToolContext>
+>;
 
-const suggestTools = [triageEvent] as unknown as ReadonlyArray<SmartoutTool<AgentToolContext>>;
+const suggestTools = [
+  triageEvent,
+  queryMonitorAlerts,
+  getSessionIntelligence,
+] as unknown as ReadonlyArray<SmartoutTool<AgentToolContext>>;
 
 export const operationsIntelligenceCapability: CapabilityDefinition = {
   name: "operations_intelligence",
