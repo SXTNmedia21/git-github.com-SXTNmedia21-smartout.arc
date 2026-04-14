@@ -1,26 +1,14 @@
-"use client";
-
-import { useContext } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "@smartout/i18n";
-import { useWorkspaceOptional } from "@/lib/workspace-context";
+
 import { createClient } from "@smartout/supabase/client";
 import { emit } from "@smartout/telemetry";
-import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import { dashboardKeys } from "../../_hooks/dashboard-keys";
-import { toast } from "sonner";
-import type { SeasonBudgetStatus } from "../_definitions/season-planning";
 
-export type SeasonBudget = {
-  season_budget_id: string;
-  season_id: string;
-  total_target_revenue: number;
-  base_price_per_guest: number | null;
-  season_price_factor: number;
-  target_labor_percentage: number;
-  avg_hourly_wage: number | null;
-  status: SeasonBudgetStatus;
-};
+import { yearWheelKeys } from "../query-keys";
+import { toast } from "sonner";
+import type { SeasonBudget, SeasonBudgetStatus } from "../types";
+
+export type { SeasonBudget };
 
 type UpsertSeasonBudgetInput = {
   season_id: string;
@@ -32,16 +20,20 @@ type UpsertSeasonBudgetInput = {
   status?: SeasonBudgetStatus;
 };
 
-export function useSeasonBudget(seasonId: string | null) {
+export function useSeasonBudget(
+  seasonId: string | null,
+  workspaceId: string | null,
+  profileId: string | null,
+) {
   const { t } = useTranslation("dashboard");
-  const ctx = useWorkspaceOptional();
-  const wsId = ctx?.workspace.workspace_id;
-  const { profileId } = useContext(DashboardContext);
+
+  const wsId = workspaceId;
+
   const supabase = createClient();
   const queryClient = useQueryClient();
 
   const query = useQuery({
-    queryKey: dashboardKeys.seasonBudget(wsId ?? "none", seasonId ?? "none"),
+    queryKey: yearWheelKeys.seasonBudget(wsId ?? "none", seasonId ?? "none"),
     queryFn: async (): Promise<SeasonBudget | null> => {
       const { data, error } = await supabase
         .from("season_budget")
@@ -110,12 +102,12 @@ export function useSeasonBudget(seasonId: string | null) {
         },
       });
       queryClient.invalidateQueries({
-        queryKey: dashboardKeys.seasonBudget(wsId!, seasonId!),
+        queryKey: yearWheelKeys.seasonBudget(wsId!, seasonId!),
       });
       toast.success(t("yearWheel.toast_budget_saved"));
     },
     onError: (err: Error) => {
-      toast.error(t("yearWheel.toast_budget_save_error", { message: err.message }));
+      toast.error(t("yearWheel.toast_budget_save_error", { error: err.message }));
     },
   });
 

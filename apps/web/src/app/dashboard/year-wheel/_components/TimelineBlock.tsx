@@ -5,7 +5,7 @@
  * Left/right edges are draggable to update start_date / end_date when a resolver
  * and commit callback are provided. The center opens the season drawer on click.
  *
- * Theme: all colors are CSS variables — no isDark prop needed.
+ * Theme: all colors use CSS variables that auto-switch in dark mode.
  * Spring physics: from @smartout/design-tokens motionTokens.springSnappy.
  */
 
@@ -15,7 +15,7 @@ import { useCallback } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { motion as motionTokens } from "@smartout/design-tokens";
 import { useTranslation } from "@smartout/i18n";
-import type { Season } from "../_hooks/use-seasons";
+import type { Season } from "../_hooks";
 
 export type TimelineViewMode = "year" | "month";
 
@@ -32,7 +32,6 @@ type TimelineBlockProps = {
   onEdgeCommit?: (seasonId: string, edge: "start" | "end", dateIso: string) => void;
 };
 
-/** Short month label i18n keys — resolved to translated labels via t(). */
 const MONTH_SHORT_KEYS = [
   "yearWheel.month_short_jan",
   "yearWheel.month_short_feb",
@@ -114,8 +113,8 @@ function computeBlockPositionInMonth(
 
 /**
  * Returns CSS variable class names for a season's visual style based on status.
- * No isDark needed — classes resolve via Tailwind v4 CSS variables that
- * auto-switch when the `dark` class is on <html>.
+ * Classes resolve via Tailwind v4 CSS variables that auto-switch when the
+ * `dark` class is on <html>.
  */
 function getBlockStyle(status: Season["status"]) {
   switch (status) {
@@ -162,10 +161,14 @@ export function TimelineBlock({
   if (!pos) return null;
 
   const style = getBlockStyle(season.status);
-  const startMonth = season.start_date
-    ? t(MONTH_SHORT_KEYS[new Date(season.start_date).getMonth()] ?? "")
-    : "";
-  const endMonth = season.end_date ? t(MONTH_SHORT_KEYS[new Date(season.end_date).getMonth()] ?? "") : "";
+  const startMonthKey = season.start_date
+    ? MONTH_SHORT_KEYS[new Date(season.start_date).getMonth()]
+    : null;
+  const endMonthKey = season.end_date
+    ? MONTH_SHORT_KEYS[new Date(season.end_date).getMonth()]
+    : null;
+  const startMonth = startMonthKey ? t(startMonthKey) : "";
+  const endMonth = endMonthKey ? t(endMonthKey) : "";
 
   const effectiveEndIso = season.end_date ?? `${year}-12-31`;
   const effectiveStartIso = season.start_date ?? effectiveEndIso;

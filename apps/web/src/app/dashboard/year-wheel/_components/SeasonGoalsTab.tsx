@@ -13,7 +13,7 @@ import { useTranslation } from "@smartout/i18n";
 import { Plus, Check, X, Trash2, RotateCcw, Loader2, Target } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useSeasonGoals } from "../_hooks/use-season-goals";
+import { useSeasonGoals } from "../_hooks";
 import type { SeasonGoalStatus } from "@/lib/cascade/types";
 
 type Props = {
@@ -100,7 +100,7 @@ export function SeasonGoalsTab({ seasonId }: Props) {
               <Input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder={t("yearWheel.placeholder_goal_title")}
+                placeholder={t("yearWheel.goal_title_placeholder")}
                 className="border-border bg-background text-foreground h-8 text-sm"
               />
             </div>
@@ -111,7 +111,7 @@ export function SeasonGoalsTab({ seasonId }: Props) {
               <Input
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder={t("yearWheel.placeholder_goal_description")}
+                placeholder={t("yearWheel.goal_description_placeholder")}
                 className="border-border bg-background text-foreground h-8 text-sm"
               />
             </div>

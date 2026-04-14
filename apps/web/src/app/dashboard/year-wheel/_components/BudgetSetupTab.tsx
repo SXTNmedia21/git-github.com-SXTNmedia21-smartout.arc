@@ -49,7 +49,7 @@ export function BudgetSetupTab({ seasonId }: Props) {
   ): boolean => {
     if (value == null) return true;
     if (value < limits.min || value > limits.max) {
-      toast.error(t("yearWheel.validation_range_error", { label, min: limits.min, max: limits.max }));
+      toast.error(t("yearWheel.validation_range", { label, min: limits.min, max: limits.max }));
       return false;
     }
     return true;
@@ -68,17 +68,35 @@ export function BudgetSetupTab({ seasonId }: Props) {
     const priceFactor = parseFloat(seasonPriceFactor);
 
     if (isNaN(target) || target <= 0) {
-      toast.error(t("yearWheel.total_revenue_target") + " " + t("yearWheel.validation_positive_number"));
+      toast.error(
+        t("yearWheel.validation_positive_number", { label: t("yearWheel.total_revenue_target") }),
+      );
       return;
     }
 
     const validations = [
-      validateNumberInRange(t("yearWheel.label_total_revenue"), target, BUDGET_SETUP_LIMITS.totalTargetRevenue),
-      validateNumberInRange(t("yearWheel.label_labor_percentage"), labor, BUDGET_SETUP_LIMITS.targetLaborPercentage),
-      validateNumberInRange(t("yearWheel.label_hourly_wage"), wage, BUDGET_SETUP_LIMITS.avgHourlyWage),
-      validateNumberInRange(t("yearWheel.label_price_per_guest"), price, BUDGET_SETUP_LIMITS.basePricePerGuest),
       validateNumberInRange(
-        t("yearWheel.label_season_price_factor"),
+        t("yearWheel.total_revenue_target"),
+        target,
+        BUDGET_SETUP_LIMITS.totalTargetRevenue,
+      ),
+      validateNumberInRange(
+        t("yearWheel.target_labor_label"),
+        labor,
+        BUDGET_SETUP_LIMITS.targetLaborPercentage,
+      ),
+      validateNumberInRange(
+        t("yearWheel.avg_hourly_wage_label"),
+        wage,
+        BUDGET_SETUP_LIMITS.avgHourlyWage,
+      ),
+      validateNumberInRange(
+        t("yearWheel.base_price_label"),
+        price,
+        BUDGET_SETUP_LIMITS.basePricePerGuest,
+      ),
+      validateNumberInRange(
+        t("yearWheel.season_price_factor_label"),
         priceFactor,
         BUDGET_SETUP_LIMITS.seasonPriceFactor,
       ),
@@ -119,10 +137,9 @@ export function BudgetSetupTab({ seasonId }: Props) {
         </select>
       </div>
 
-      <div
-        className="border-border bg-muted text-muted-foreground mb-6 rounded-lg border px-3 py-2 text-xs"
-        dangerouslySetInnerHTML={{ __html: t("yearWheel.budget_status_help") }}
-      />
+      <div className="border-border bg-muted text-muted-foreground mb-6 rounded-lg border px-3 py-2 text-xs">
+        {t("yearWheel.budget_status_help")}
+      </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         <div>
@@ -139,26 +156,24 @@ export function BudgetSetupTab({ seasonId }: Props) {
             disabled={isLocked}
             className="border-input bg-background text-foreground focus:border-primary w-full rounded-lg border px-3 py-2.5 text-sm outline-none"
           />
-          <p className="text-muted-foreground mt-1 text-xs">{t("yearWheel.total_for_season")}</p>
+          <p className="text-muted-foreground mt-1 text-xs">{t("yearWheel.budget_total_help")}</p>
         </div>
 
         <div>
           <label className="text-muted-foreground mb-1.5 block text-[10px] font-bold tracking-wider uppercase">
-            {t("yearWheel.target_labor_pct_label")}
+            {t("yearWheel.target_labor_label")}
           </label>
           <input
             type="number"
             value={laborPct}
             onChange={(e) => setLaborPct(e.target.value)}
-            placeholder="30"
+            placeholder={t("yearWheel.placeholder_labor_pct")}
             min={BUDGET_SETUP_LIMITS.targetLaborPercentage.min}
             max={BUDGET_SETUP_LIMITS.targetLaborPercentage.max}
             disabled={isLocked}
             className="border-input bg-background text-foreground focus:border-primary w-full rounded-lg border px-3 py-2.5 text-sm outline-none"
           />
-          <p className="text-muted-foreground mt-1 text-xs">
-            {t("yearWheel.labor_pct_help")}
-          </p>
+          <p className="text-muted-foreground mt-1 text-xs">{t("yearWheel.target_labor_help")}</p>
         </div>
 
         <div>
@@ -175,12 +190,14 @@ export function BudgetSetupTab({ seasonId }: Props) {
             disabled={isLocked}
             className="border-input bg-background text-foreground focus:border-primary w-full rounded-lg border px-3 py-2.5 text-sm outline-none"
           />
-          <p className="text-muted-foreground mt-1 text-xs">{t("yearWheel.wage_help")}</p>
+          <p className="text-muted-foreground mt-1 text-xs">
+            {t("yearWheel.avg_hourly_wage_help")}
+          </p>
         </div>
 
         <div>
           <label className="text-muted-foreground mb-1.5 block text-[10px] font-bold tracking-wider uppercase">
-            {t("yearWheel.price_per_guest_label")}
+            {t("yearWheel.base_price_label")}
           </label>
           <input
             type="number"
@@ -192,7 +209,7 @@ export function BudgetSetupTab({ seasonId }: Props) {
             disabled={isLocked}
             className="border-input bg-background text-foreground focus:border-primary w-full rounded-lg border px-3 py-2.5 text-sm outline-none"
           />
-          <p className="text-muted-foreground mt-1 text-xs">{t("yearWheel.price_help")}</p>
+          <p className="text-muted-foreground mt-1 text-xs">{t("yearWheel.base_price_help")}</p>
         </div>
 
         <div>
@@ -203,7 +220,7 @@ export function BudgetSetupTab({ seasonId }: Props) {
             type="number"
             value={seasonPriceFactor}
             onChange={(e) => setSeasonPriceFactor(e.target.value)}
-            placeholder="1.0"
+            placeholder={t("yearWheel.placeholder_factor")}
             step="0.1"
             min={BUDGET_SETUP_LIMITS.seasonPriceFactor.min}
             max={BUDGET_SETUP_LIMITS.seasonPriceFactor.max}
@@ -211,7 +228,7 @@ export function BudgetSetupTab({ seasonId }: Props) {
             className="border-input bg-background text-foreground focus:border-primary w-full rounded-lg border px-3 py-2.5 text-sm outline-none"
           />
           <p className="text-muted-foreground mt-1 text-xs">
-            {t("yearWheel.price_factor_help")}
+            {t("yearWheel.season_price_factor_help")}
           </p>
         </div>
       </div>

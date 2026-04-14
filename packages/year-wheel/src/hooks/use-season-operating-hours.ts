@@ -5,15 +5,10 @@
  * Connected to: resolve-hours.ts (cascade consumer), SeasonHoursTab.tsx (UI)
  */
 
-"use client";
-
-import { useContext } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
 import { emit } from "@smartout/telemetry";
-import { DashboardContext } from "@/components/dashboard/DashboardShell";
-
+import { yearWheelKeys } from "../query-keys";
 import type { Database } from "@smartout/supabase";
 
 type DepartmentOperatingHoursRow =
@@ -26,14 +21,15 @@ type DepartmentOperatingHoursInsert =
  * Returns the season-scoped hours grouped by department, and mutations
  * to copy default hours as a starting point and save edits.
  */
-export function useSeasonOperatingHours(seasonId: string | null) {
-  const ctx = useWorkspaceOptional();
-  const workspaceId = ctx?.workspace.workspace_id;
-  const { profileId } = useContext(DashboardContext);
+export function useSeasonOperatingHours(
+  seasonId: string | null,
+  workspaceId: string | null,
+  profileId: string | null,
+) {
   const supabase = createClient();
   const queryClient = useQueryClient();
 
-  const queryKey = ["season-operating-hours", workspaceId, seasonId] as const;
+  const queryKey = yearWheelKeys.seasonOperatingHours(workspaceId ?? "none", seasonId ?? "none");
 
   const query = useQuery({
     queryKey,

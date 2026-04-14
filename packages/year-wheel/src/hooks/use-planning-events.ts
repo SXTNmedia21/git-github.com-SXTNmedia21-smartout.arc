@@ -1,24 +1,18 @@
-"use client";
-
 /**
  * usePlanningEvents — CRUD for planning_event table.
  *
  * Fetches events scoped to a workspace, optionally filtered by planning_cycle_id.
  * Used by the PlanningEventsTab in the season page.
  */
-
-import { useContext } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useWorkspaceOptional } from "@/lib/workspace-context";
+import { useTranslation } from "@smartout/i18n";
+
 import { createClient } from "@smartout/supabase/client";
 import { emit } from "@smartout/telemetry";
-import { DashboardContext } from "@/components/dashboard/DashboardShell";
+
 import { toast } from "sonner";
-import type {
-  PlanningEventRow,
-  PlanningEventCategory,
-  PlanningEventSource,
-} from "@/lib/cascade/types";
+import type { PlanningEventRow, PlanningEventCategory, PlanningEventSource } from "../types";
+import { yearWheelKeys } from "../query-keys";
 
 type CreateEventInput = {
   name: string;
@@ -37,19 +31,20 @@ type CreateEventInput = {
 
 type UpdateEventInput = Partial<CreateEventInput> & { planning_event_id: string };
 
-function planningEventKeys(workspaceId: string, cycleId?: string | null) {
-  return ["planning-events", workspaceId, cycleId ?? "all"] as const;
-}
+export function usePlanningEvents(
+  workspaceId: string | null,
+  profileId: string | null,
+  planningCycleId?: string | null,
+) {
+  const { t } = useTranslation("dashboard");
 
-export function usePlanningEvents(planningCycleId?: string | null) {
-  const ctx = useWorkspaceOptional();
-  const wsId = ctx?.workspace.workspace_id;
-  const { profileId } = useContext(DashboardContext);
+  const wsId = workspaceId;
+
   const supabase = createClient();
   const queryClient = useQueryClient();
 
   const query = useQuery({
-    queryKey: planningEventKeys(wsId ?? "none", planningCycleId),
+    queryKey: yearWheelKeys.planningEvents(wsId ?? "none", planningCycleId),
     queryFn: async (): Promise<PlanningEventRow[]> => {
       let q = supabase
         .from("planning_event")
@@ -69,9 +64,13 @@ export function usePlanningEvents(planningCycleId?: string | null) {
     staleTime: 60_000,
   });
 
+  /**
+   * Drops all planning_event queries for this workspace (any planning_cycle_id),
+   * matching the query key prefix used by `yearWheelKeys.planningEvents`.
+   */
   const invalidate = () => {
     void queryClient.invalidateQueries({
-      queryKey: ["planning-events", wsId],
+      queryKey: ["planning-events", wsId ?? "none"],
     });
   };
 
@@ -103,10 +102,10 @@ export function usePlanningEvents(planningCycleId?: string | null) {
         properties: {},
       });
       invalidate();
-      toast.success("Hendelse opprettet");
+      toast.success(t("yearWheel.toast_event_created"));
     },
     onError: (error: Error) => {
-      toast.error(`Kunne ikke opprette: ${error.message}`);
+      toast.error(t("yearWheel.toast_event_create_error", { error: error.message }));
     },
   });
 
@@ -127,10 +126,10 @@ export function usePlanningEvents(planningCycleId?: string | null) {
         properties: {},
       });
       invalidate();
-      toast.success("Hendelse oppdatert");
+      toast.success(t("yearWheel.toast_event_updated"));
     },
     onError: (error: Error) => {
-      toast.error(`Kunne ikke oppdatere: ${error.message}`);
+      toast.error(t("yearWheel.toast_event_update_error", { error: error.message }));
     },
   });
 
@@ -150,10 +149,10 @@ export function usePlanningEvents(planningCycleId?: string | null) {
         properties: {},
       });
       invalidate();
-      toast.success("Hendelse slettet");
+      toast.success(t("yearWheel.toast_event_deleted"));
     },
     onError: (error: Error) => {
-      toast.error(`Kunne ikke slette: ${error.message}`);
+      toast.error(t("yearWheel.toast_event_delete_error", { error: error.message }));
     },
   });
 

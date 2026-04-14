@@ -26,9 +26,9 @@ import { SeasonGoalsTab } from "./SeasonGoalsTab";
 import { SeasonProceduresTab } from "./SeasonProceduresTab";
 import { SeasonHoursTab } from "./SeasonHoursTab";
 import { MachineRoomSheet } from "./MachineRoomSheet";
-import { useSeasonBudget } from "../_hooks/use-season-budget";
+import { useSeasonBudget } from "../_hooks";
 import { Clock, LayoutDashboard, Target, ShieldCheck, Settings2 } from "lucide-react";
-import type { Season } from "../_hooks/use-seasons";
+import type { Season } from "../_hooks";
 
 type SeasonDrawerProps = {
   season: Season | null;

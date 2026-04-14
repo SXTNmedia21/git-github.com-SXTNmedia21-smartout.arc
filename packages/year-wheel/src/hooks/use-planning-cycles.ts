@@ -1,20 +1,17 @@
-"use client";
-
 /**
  * usePlanningCycles — CRUD for planning_cycle table.
  *
  * Fetches cycles scoped to a workspace, ordered by start_date descending.
  * Used by PlanningCycleSelector in the season page.
  */
-
-import { useContext } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useWorkspaceOptional } from "@/lib/workspace-context";
+import { useTranslation } from "@smartout/i18n";
 import { createClient } from "@smartout/supabase/client";
-import { DashboardContext } from "@/components/dashboard/DashboardShell";
+import { yearWheelKeys } from "../query-keys";
+
 import { toast } from "sonner";
 import { emit } from "@smartout/telemetry";
-import type { PlanningCycleRow, PlanningCycleStatus } from "@/lib/cascade/types";
+import type { PlanningCycleRow, PlanningCycleStatus } from "../types";
 
 type CreateCycleInput = {
   name: string;
@@ -26,15 +23,16 @@ type CreateCycleInput = {
 
 type UpdateCycleInput = Partial<CreateCycleInput> & { planning_cycle_id: string };
 
-export function usePlanningCycles() {
-  const ctx = useWorkspaceOptional();
-  const wsId = ctx?.workspace.workspace_id;
-  const { profileId } = useContext(DashboardContext);
+export function usePlanningCycles(workspaceId: string | null, profileId: string | null) {
+  const { t } = useTranslation("dashboard");
+
+  const wsId = workspaceId;
+
   const supabase = createClient();
   const queryClient = useQueryClient();
 
   const query = useQuery({
-    queryKey: ["planning-cycles", wsId],
+    queryKey: yearWheelKeys.planningCycles(wsId ?? "none"),
     queryFn: async (): Promise<PlanningCycleRow[]> => {
       const { data, error } = await supabase
         .from("planning_cycle")
@@ -49,7 +47,7 @@ export function usePlanningCycles() {
   });
 
   const invalidate = () => {
-    void queryClient.invalidateQueries({ queryKey: ["planning-cycles", wsId] });
+    void queryClient.invalidateQueries({ queryKey: yearWheelKeys.planningCycles(wsId ?? "none") });
   };
 
   const createCycle = useMutation({
@@ -78,10 +76,10 @@ export function usePlanningCycles() {
         properties: {},
       });
       invalidate();
-      toast.success("Planperiode opprettet");
+      toast.success(t("yearWheel.toast_cycle_created"));
     },
     onError: (error: Error) => {
-      toast.error(`Kunne ikke opprette: ${error.message}`);
+      toast.error(t("yearWheel.toast_cycle_create_error", { error: error.message }));
     },
   });
 
@@ -102,10 +100,10 @@ export function usePlanningCycles() {
         properties: {},
       });
       invalidate();
-      toast.success("Planperiode oppdatert");
+      toast.success(t("yearWheel.toast_cycle_updated"));
     },
     onError: (error: Error) => {
-      toast.error(`Kunne ikke oppdatere: ${error.message}`);
+      toast.error(t("yearWheel.toast_cycle_update_error", { error: error.message }));
     },
   });
 
@@ -118,11 +116,11 @@ export function usePlanningCycles() {
       if (error) throw new Error(error.message);
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["dashboard", "seasons", wsId] });
-      toast.success("Sesong koblet til planperiode");
+      void queryClient.invalidateQueries({ queryKey: yearWheelKeys.seasons(wsId ?? "none") });
+      toast.success(t("yearWheel.toast_cycle_linked"));
     },
     onError: (error: Error) => {
-      toast.error(`Kunne ikke koble: ${error.message}`);
+      toast.error(t("yearWheel.toast_cycle_link_error", { error: error.message }));
     },
   });
 
@@ -160,10 +158,10 @@ export function usePlanningCycles() {
         },
       });
       invalidate();
-      toast.success("Planperiode aktivert");
+      toast.success(t("yearWheel.toast_cycle_activated"));
     },
     onError: (error: Error) => {
-      toast.error(`Kunne ikke aktivere: ${error.message}`);
+      toast.error(t("yearWheel.toast_cycle_activate_error", { error: error.message }));
     },
   });
 
@@ -193,10 +191,10 @@ export function usePlanningCycles() {
         },
       });
       invalidate();
-      toast.success("Planperiode arkivert");
+      toast.success(t("yearWheel.toast_cycle_archived"));
     },
     onError: (error: Error) => {
-      toast.error(`Kunne ikke arkivere: ${error.message}`);
+      toast.error(t("yearWheel.toast_cycle_archive_error", { error: error.message }));
     },
   });
 

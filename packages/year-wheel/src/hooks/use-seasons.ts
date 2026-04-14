@@ -1,13 +1,10 @@
-"use client";
-
-import { useContext } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "@smartout/i18n";
-import { useWorkspaceOptional } from "@/lib/workspace-context";
+
 import { createClient } from "@smartout/supabase/client";
 import { emit } from "@smartout/telemetry";
-import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import { dashboardKeys } from "../../_hooks/dashboard-keys";
+
+import { yearWheelKeys } from "../query-keys";
 import { toast } from "sonner";
 
 export type Season = {
@@ -48,16 +45,14 @@ function toSlug(value: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-export function useSeasons() {
+export function useSeasons(workspaceId: string | null, profileId: string | null) {
   const { t } = useTranslation("dashboard");
-  const ctx = useWorkspaceOptional();
-  const wsId = ctx?.workspace.workspace_id;
-  const { profileId } = useContext(DashboardContext);
+  const wsId = workspaceId;
   const supabase = createClient();
   const queryClient = useQueryClient();
 
   const query = useQuery({
-    queryKey: dashboardKeys.seasons(wsId ?? "none"),
+    queryKey: yearWheelKeys.seasons(wsId ?? "none"),
     queryFn: async (): Promise<Season[]> => {
       const { data, error } = await supabase
         .from("season")
@@ -121,12 +116,12 @@ export function useSeasons() {
         },
       });
       queryClient.invalidateQueries({
-        queryKey: dashboardKeys.seasons(wsId ?? "none"),
+        queryKey: yearWheelKeys.seasons(wsId ?? "none"),
       });
       toast.success(t("yearWheel.toast_season_created"));
     },
     onError: (error: Error) => {
-      toast.error(t("yearWheel.toast_season_create_error", { message: error.message }));
+      toast.error(t("yearWheel.toast_season_create_error", { error: error.message }));
     },
   });
 
@@ -139,9 +134,9 @@ export function useSeasons() {
         .eq("season_id", seasonId)
         .single();
 
-      if (budgetError || !budget) throw new Error(t("yearWheel.toast_missing_budget"));
+      if (budgetError || !budget) throw new Error(t("yearWheel.toast_season_missing_budget"));
       if (!budget.total_target_revenue || budget.total_target_revenue <= 0)
-        throw new Error(t("yearWheel.toast_missing_revenue_target"));
+        throw new Error(t("yearWheel.toast_budget_missing_target"));
 
       // Validate: day factors must exist (keyed on season_budget_id).
       // workspace_id guard ensures we never see factors from another tenant's budget
@@ -153,7 +148,7 @@ export function useSeasons() {
         .eq("workspace_id", wsId!);
 
       if (!dayFactorCount || dayFactorCount === 0)
-        throw new Error(t("yearWheel.toast_missing_day_factors"));
+        throw new Error(t("yearWheel.toast_season_missing_day_factors"));
 
       // Validate: hour factors must exist (keyed on season_budget_id)
       const { count: hourFactorCount } = await supabase
@@ -162,7 +157,7 @@ export function useSeasons() {
         .eq("season_budget_id", budget.season_budget_id);
 
       if (!hourFactorCount || hourFactorCount === 0)
-        throw new Error(t("yearWheel.toast_missing_hour_factors"));
+        throw new Error(t("yearWheel.toast_season_missing_hour_factors"));
 
       const { count: hoursCount } = await supabase
         .from("department_operating_hours")
@@ -215,7 +210,7 @@ export function useSeasons() {
         },
       });
       queryClient.invalidateQueries({
-        queryKey: dashboardKeys.seasons(wsId ?? "none"),
+        queryKey: yearWheelKeys.seasons(wsId ?? "none"),
       });
       toast.success(t("yearWheel.toast_season_activated", { name: data.name }));
     },
@@ -253,7 +248,7 @@ export function useSeasons() {
         },
       });
       queryClient.invalidateQueries({
-        queryKey: dashboardKeys.seasons(wsId ?? "none"),
+        queryKey: yearWheelKeys.seasons(wsId ?? "none"),
       });
       toast.success(t("yearWheel.toast_season_archived", { name: data.name }));
     },
@@ -376,14 +371,10 @@ export function useSeasons() {
         },
       });
       queryClient.invalidateQueries({
-        queryKey: dashboardKeys.seasons(wsId ?? "none"),
+        queryKey: yearWheelKeys.seasons(wsId ?? "none"),
       });
       toast.success(
-        t("yearWheel.toast_year_duplicated", {
-          count: created.length,
-          source: sourceYear,
-          target: targetYear,
-        }),
+        t("yearWheel.toast_seasons_copied", { count: created.length, sourceYear, targetYear }),
       );
     },
     onError: (error: Error) => {
@@ -401,7 +392,7 @@ export function useSeasons() {
       const nextEnd = input.end_date !== undefined ? input.end_date : current.end_date;
 
       if (nextStart && nextEnd && new Date(nextStart) > new Date(nextEnd)) {
-        throw new Error(t("yearWheel.toast_date_order_error"));
+        throw new Error(t("yearWheel.toast_start_before_end"));
       }
 
       const { data, error } = await supabase
@@ -439,7 +430,7 @@ export function useSeasons() {
         },
       });
       queryClient.invalidateQueries({
-        queryKey: dashboardKeys.seasons(wsId ?? "none"),
+        queryKey: yearWheelKeys.seasons(wsId ?? "none"),
       });
       toast.success(t("yearWheel.toast_season_dates_updated"));
     },

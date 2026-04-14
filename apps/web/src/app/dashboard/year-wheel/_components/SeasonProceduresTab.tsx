@@ -13,7 +13,7 @@ import { useState } from "react";
 import { useTranslation } from "@smartout/i18n";
 import { Loader2, ShieldCheck, ShieldAlert, ShieldOff } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
-import { useSeasonPolicyBindings } from "../_hooks/use-season-policy-bindings";
+import { useSeasonPolicyBindings } from "../_hooks";
 
 type Props = {
   seasonId: string;
@@ -60,9 +60,7 @@ export function SeasonProceduresTab({ seasonId }: Props) {
       <div className="border-border bg-card rounded-xl border p-12 text-center">
         <ShieldOff className="text-muted-foreground mx-auto mb-3 h-8 w-8" />
         <h3 className="text-foreground mb-2 text-sm font-bold">{t("yearWheel.no_procedures")}</h3>
-        <p className="text-muted-foreground text-xs">
-          {t("yearWheel.no_procedures_help")}
-        </p>
+        <p className="text-muted-foreground text-xs">{t("yearWheel.no_procedures_description")}</p>
       </div>
     );
   }
@@ -88,7 +86,7 @@ export function SeasonProceduresTab({ seasonId }: Props) {
       <div>
         <h3 className="text-foreground text-sm font-bold">{t("yearWheel.procedures_hms")}</h3>
         <p className="text-muted-foreground text-xs">
-          {t("yearWheel.procedures_summary", { active: activeCount, total: policies.length })}
+          {t("yearWheel.procedures_count", { active: activeCount, total: policies.length })}
         </p>
       </div>
 

@@ -1,14 +1,12 @@
-"use client";
-
-import { useContext } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useWorkspaceOptional } from "@/lib/workspace-context";
+import { useTranslation } from "@smartout/i18n";
+
 import { createClient } from "@smartout/supabase/client";
 import { emit } from "@smartout/telemetry";
-import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import { dashboardKeys } from "../../_hooks/dashboard-keys";
+
+import { yearWheelKeys } from "../query-keys";
 import { toast } from "sonner";
-import { getHourFactorTemplate } from "../_definitions/season-planning";
+import { getHourFactorTemplate } from "../season-planning";
 
 export type HourFactor = {
   hour_factor_id: string;
@@ -21,15 +19,20 @@ const DEFAULT_HOUR_FACTORS = getHourFactorTemplate("restaurant", 10, 22);
 
 export { DEFAULT_HOUR_FACTORS };
 
-export function useHourFactors(seasonBudgetId: string | null) {
-  const ctx = useWorkspaceOptional();
-  const wsId = ctx?.workspace.workspace_id;
-  const { profileId } = useContext(DashboardContext);
+export function useHourFactors(
+  seasonBudgetId: string | null,
+  workspaceId: string | null,
+  profileId: string | null,
+) {
+  const { t } = useTranslation("dashboard");
+
+  const wsId = workspaceId;
+
   const supabase = createClient();
   const queryClient = useQueryClient();
 
   const query = useQuery({
-    queryKey: dashboardKeys.hourFactors(wsId ?? "none", seasonBudgetId ?? "none"),
+    queryKey: yearWheelKeys.hourFactors(wsId ?? "none", seasonBudgetId ?? "none"),
     queryFn: async (): Promise<HourFactor[]> => {
       const { data, error } = await supabase
         .from("hour_factor")
@@ -79,12 +82,12 @@ export function useHourFactors(seasonBudgetId: string | null) {
         },
       });
       queryClient.invalidateQueries({
-        queryKey: dashboardKeys.hourFactors(wsId!, seasonBudgetId!),
+        queryKey: yearWheelKeys.hourFactors(wsId!, seasonBudgetId!),
       });
-      toast.success("Timefaktorer lagret");
+      toast.success(t("yearWheel.toast_hour_factors_saved"));
     },
     onError: (err: Error) => {
-      toast.error(`Kunne ikke lagre timefaktorer: ${err.message}`);
+      toast.error(t("yearWheel.toast_hour_factors_save_error", { error: err.message }));
     },
   });
 

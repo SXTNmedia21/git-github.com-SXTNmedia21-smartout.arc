@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * useSeasonGoals — CRUD for season_goal table.
  *
@@ -7,16 +5,15 @@
  * Provides create, update, and delete mutations with telemetry.
  * Used by SeasonGoalsTab in the season page.
  */
-
-import { useContext } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useWorkspaceOptional } from "@/lib/workspace-context";
+import { useTranslation } from "@smartout/i18n";
+
 import { createClient } from "@smartout/supabase/client";
 import { emit } from "@smartout/telemetry";
-import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import { dashboardKeys } from "../../_hooks/dashboard-keys";
+
+import { yearWheelKeys } from "../query-keys";
 import { toast } from "sonner";
-import type { SeasonGoalRow, SeasonGoalStatus } from "@/lib/cascade/types";
+import type { SeasonGoalRow, SeasonGoalStatus } from "../types";
 
 type CreateGoalInput = {
   title: string;
@@ -37,14 +34,19 @@ type UpdateGoalInput = {
   sort_order?: number;
 };
 
-export function useSeasonGoals(seasonId: string | null) {
-  const ctx = useWorkspaceOptional();
-  const wsId = ctx?.workspace.workspace_id;
-  const { profileId } = useContext(DashboardContext);
+export function useSeasonGoals(
+  seasonId: string | null,
+  workspaceId: string | null,
+  profileId: string | null,
+) {
+  const { t } = useTranslation("dashboard");
+
+  const wsId = workspaceId;
+
   const supabase = createClient();
   const queryClient = useQueryClient();
 
-  const queryKey = dashboardKeys.seasonGoals(wsId ?? "none", seasonId ?? "none");
+  const queryKey = yearWheelKeys.seasonGoals(wsId ?? "none", seasonId ?? "none");
 
   const query = useQuery({
     queryKey,
@@ -106,10 +108,10 @@ export function useSeasonGoals(seasonId: string | null) {
         },
       });
       invalidate();
-      toast.success("Mål opprettet");
+      toast.success(t("yearWheel.toast_goal_created"));
     },
     onError: (error: Error) => {
-      toast.error(`Kunne ikke opprette mål: ${error.message}`);
+      toast.error(t("yearWheel.toast_goal_create_error", { error: error.message }));
     },
   });
 
@@ -136,10 +138,10 @@ export function useSeasonGoals(seasonId: string | null) {
         },
       });
       invalidate();
-      toast.success("Mål oppdatert");
+      toast.success(t("yearWheel.toast_goal_updated"));
     },
     onError: (error: Error) => {
-      toast.error(`Kunne ikke oppdatere: ${error.message}`);
+      toast.error(t("yearWheel.toast_goal_update_error", { error: error.message }));
     },
   });
 
@@ -161,10 +163,10 @@ export function useSeasonGoals(seasonId: string | null) {
         },
       });
       invalidate();
-      toast.success("Mål slettet");
+      toast.success(t("yearWheel.toast_goal_deleted"));
     },
     onError: (error: Error) => {
-      toast.error(`Kunne ikke slette: ${error.message}`);
+      toast.error(t("yearWheel.toast_goal_delete_error", { error: error.message }));
     },
   });
 

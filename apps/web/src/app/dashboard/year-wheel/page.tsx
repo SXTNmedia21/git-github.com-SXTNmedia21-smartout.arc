@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/dialog";
 import { SeasonCreateSheet } from "./_components/SeasonCreateSheet";
 import { useDayFactors, useHourFactors, useSeasonBudget, useSeasons } from "./_hooks";
-import { usePlanningEvents } from "./_hooks/use-planning-events";
+import { usePlanningEvents } from "./_hooks";
 import { YearWheelTimeline } from "./_components/YearWheelTimeline";
 import { YearNavigation } from "./_components/YearNavigation";
 import { SeasonDrawer } from "./_components/SeasonDrawer";
@@ -60,7 +60,11 @@ export default function YearWheelPage() {
 
   const { seasons, activateSeason, archiveSeason, duplicateYear, createSeason, updateSeasonDates } =
     useSeasons();
-  const { events, createEvent, updateEvent } = usePlanningEvents();
+
+  const selectedSeason = seasons.find((s) => s.season_id === selectedSeasonId);
+  const { events, createEvent, updateEvent } = usePlanningEvents(
+    selectedSeason?.planning_cycle_id ?? undefined,
+  );
   const allEvents = events ?? [];
 
   useEffect(() => {
@@ -77,7 +81,6 @@ export default function YearWheelPage() {
   const { budget } = useSeasonBudget(selectedSeasonId);
   const { dayFactors } = useDayFactors(budget?.season_budget_id ?? null);
   const { hourFactors } = useHourFactors(budget?.season_budget_id ?? null);
-  const selectedSeason = seasons.find((s) => s.season_id === selectedSeasonId);
   const isBudgetLocked = budget?.status === "locked";
 
   const setupStatus = {
@@ -278,7 +281,7 @@ export default function YearWheelPage() {
           value={selectedDate}
           onChange={(event) => jumpToDate(event.target.value)}
           className="w-[180px]"
-          aria-label={t("yearWheel.go_to_date_aria")}
+          aria-label="Go to date"
         />
         <button
           onClick={() => jumpToDate(`${currentYear}-06-01`)}

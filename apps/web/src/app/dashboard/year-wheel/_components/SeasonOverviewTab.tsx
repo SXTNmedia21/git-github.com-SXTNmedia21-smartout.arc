@@ -11,7 +11,7 @@
 import { useMemo } from "react";
 import { useTranslation } from "@smartout/i18n";
 import { useSeasonBudget, useDayFactors, useHourFactors } from "../_hooks";
-import { useSeasonOperatingHours } from "../_hooks/use-season-operating-hours";
+import { useSeasonOperatingHours } from "../_hooks";
 import { useOperatingHours } from "../../settings/_hooks/use-operating-hours";
 import {
   calculateDayTargets,
@@ -35,8 +35,16 @@ type Props = {
   seasonEndDate: string | null;
 };
 
-// English abbreviated weekday names indexed by the weekday number (0=Mon … 6=Sun).
-const WEEKDAY_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+/** Weekday key suffixes indexed by weekday number (0=Mon … 6=Sun). */
+const WEEKDAY_KEYS = [
+  "yearWheel.weekday_mon",
+  "yearWheel.weekday_tue",
+  "yearWheel.weekday_wed",
+  "yearWheel.weekday_thu",
+  "yearWheel.weekday_fri",
+  "yearWheel.weekday_sat",
+  "yearWheel.weekday_sun",
+] as const;
 
 export function SeasonOverviewTab({
   seasonId,
@@ -219,10 +227,14 @@ export function SeasonOverviewTab({
             </span>
           </div>
           <span className="text-foreground text-2xl font-extrabold">
-            {peakStaffing ? `${Math.ceil(peakStaffing.staffNeeded)} pers` : "\u2014"}
+            {peakStaffing
+              ? `${Math.ceil(peakStaffing.staffNeeded)} ${t("yearWheel.persons_short")}`
+              : "\u2014"}
           </span>
           {peakStaffing && (
-            <span className="text-muted-foreground text-xs">kl {peakStaffing.hour}:00</span>
+            <span className="text-muted-foreground text-xs">
+              {t("yearWheel.time_prefix")} {peakStaffing.hour}:00
+            </span>
           )}
         </div>
 
@@ -289,7 +301,7 @@ export function SeasonOverviewTab({
                     style={{ height: `${Math.max(heightPct, 8)}%` }}
                   />
                   <span className="text-muted-foreground text-xs font-medium">
-                    {WEEKDAY_SHORT[d.weekday]}
+                    {t(WEEKDAY_KEYS[d.weekday]!)}
                   </span>
                 </div>
               );

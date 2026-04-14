@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { motion } from "framer-motion";
 import { useTranslation } from "@smartout/i18n";
-import type { Season } from "../_hooks/use-seasons";
+import type { Season } from "../_hooks";
 import type { PlanningEventRow } from "@/lib/cascade/types";
 import { clientXToIsoDateMonth, clientXToIsoDateYear, getDaysInYear } from "../_lib/timeline-date";
 import { TimelineBlock, type TimelineViewMode } from "./TimelineBlock";
@@ -30,7 +30,6 @@ type YearWheelTimelineProps = {
   onSeasonEdgeCommit?: (seasonId: string, edge: "start" | "end", dateIso: string) => void;
 };
 
-/** Month label i18n keys — resolved to translated labels via t() in the component. */
 const MONTH_LABEL_KEYS = [
   "yearWheel.month_jan",
   "yearWheel.month_feb",

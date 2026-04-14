@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * useSeasonPolicyBindings — Per-season policy activation toggle.
  *
@@ -8,14 +6,13 @@
  * Used by SeasonProceduresTab to let managers decide which HMS policies
  * are active during a specific season.
  */
-
-import { useContext } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useWorkspaceOptional } from "@/lib/workspace-context";
+import { useTranslation } from "@smartout/i18n";
+
 import { createClient } from "@smartout/supabase/client";
 import { emit } from "@smartout/telemetry";
-import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import { dashboardKeys } from "../../_hooks/dashboard-keys";
+
+import { yearWheelKeys } from "../query-keys";
 import { toast } from "sonner";
 
 type PolicyWithBinding = {
@@ -31,14 +28,19 @@ type PolicyWithBinding = {
   season_policy_binding_id: string | null;
 };
 
-export function useSeasonPolicyBindings(seasonId: string | null) {
-  const ctx = useWorkspaceOptional();
-  const wsId = ctx?.workspace.workspace_id;
-  const { profileId } = useContext(DashboardContext);
+export function useSeasonPolicyBindings(
+  seasonId: string | null,
+  workspaceId: string | null,
+  profileId: string | null,
+) {
+  const { t } = useTranslation("dashboard");
+
+  const wsId = workspaceId;
+
   const supabase = createClient();
   const queryClient = useQueryClient();
 
-  const queryKey = dashboardKeys.seasonPolicyBindings(wsId ?? "none", seasonId ?? "none");
+  const queryKey = yearWheelKeys.seasonPolicyBindings(wsId ?? "none", seasonId ?? "none");
 
   const query = useQuery({
     queryKey,
@@ -121,10 +123,14 @@ export function useSeasonPolicyBindings(seasonId: string | null) {
         },
       });
       invalidate();
-      toast.success(isActive ? "Prosedyre aktivert for sesong" : "Prosedyre deaktivert for sesong");
+      toast.success(
+        isActive
+          ? t("yearWheel.toast_binding_activated")
+          : t("yearWheel.toast_binding_deactivated"),
+      );
     },
     onError: (error: Error) => {
-      toast.error(`Kunne ikke oppdatere: ${error.message}`);
+      toast.error(t("yearWheel.toast_binding_error", { error: error.message }));
     },
   });
 

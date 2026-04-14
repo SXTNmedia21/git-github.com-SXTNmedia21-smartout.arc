@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/button";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
 import { useSeasonOperatingHours } from "../_hooks";
-import { WEEKDAY_LABELS } from "../_hooks/use-day-factors";
+import { WEEKDAY_LABELS } from "../_hooks";
 
 import type { Database } from "@smartout/supabase";
 
