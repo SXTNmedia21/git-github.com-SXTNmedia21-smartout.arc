@@ -222,13 +222,14 @@ test.describe("setup-wizard", () => {
     });
 
     // Remaining step titles from step 1 onward
+    // NOTE: "Sesong" was renamed to "Årshjul" (season_title i18n key)
     const remainingTitles = [
       "Retningslinjer og policies",
       "Lønn og tariff",
       "Ansettelsesvilkår",
       "Team og medarbeidere",
       "Vaktmaler",
-      "Sesong",
+      "Årshjul",
       "Personalhandbok",
     ];
 
@@ -466,13 +467,14 @@ test.describe("setup-wizard", () => {
     });
 
     // Remaining step titles from document-drop onward
+    // NOTE: "Sesong" was renamed to "Årshjul" (season_title i18n key)
     const remainingTitles = [
       "Retningslinjer og policies",
       "Lønn og tariff",
       "Ansettelsesvilkår",
       "Team og medarbeidere",
       "Vaktmaler",
-      "Sesong",
+      "Årshjul",
       "Personalhandbok",
     ];
 
