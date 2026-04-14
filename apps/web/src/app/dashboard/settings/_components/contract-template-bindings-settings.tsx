@@ -8,16 +8,9 @@
  * Admins can create, edit, deactivate, and delete bindings from this panel.
  */
 
-import { useState, useMemo, useCallback, useContext } from "react";
-import {
-  FileText,
-  Plus,
-  Pencil,
-  Trash2,
-  Loader2,
-  Info,
-} from "lucide-react";
-import { Button, Badge, Label, Input, Card, CardContent, CardHeader, CardTitle, CardDescription } from "@smartout/ui";
+import { useState, useMemo, useCallback, useEffect } from "react";
+import { Plus, Pencil, Trash2, Loader2, Info } from "lucide-react";
+import { Button, Badge, Label, Input, Card, CardContent } from "@smartout/ui";
 import {
   Sheet,
   SheetContent,
@@ -45,9 +38,6 @@ import {
 } from "../_hooks/use-template-bindings";
 import { useEmployeeGroups, type EmployeeGroupRow } from "../_hooks/use-employee-groups";
 import { useTranslation } from "@smartout/i18n";
-import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import { emit } from "@smartout/telemetry";
-import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { toast } from "sonner";
 
 // ---------------------------------------------------------------------------
@@ -91,9 +81,14 @@ function CategoryBindSheet({ open, onClose, mode, templates }: CategoryBindSheet
   const [isActive, setIsActive] = useState<boolean>(true);
 
   // Reset state when mode changes
-  const modeKey = mode?.type === "edit" ? mode.binding.id : mode?.type === "create" ? `${mode.groupId}-${mode.category}` : "";
+  const modeKey =
+    mode?.type === "edit"
+      ? mode.binding.id
+      : mode?.type === "create"
+        ? `${mode.groupId}-${mode.category}`
+        : "";
 
-  useMemo(() => {
+  useEffect(() => {
     if (mode?.type === "edit") {
       setTemplateId(mode.binding.template_id);
       setPriority(mode.binding.priority);
@@ -103,10 +98,12 @@ function CategoryBindSheet({ open, onClose, mode, templates }: CategoryBindSheet
       setPriority(0);
       setIsActive(true);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [modeKey]);
+  }, [modeKey, mode]);
 
-  const category = mode?.type === "create" ? mode.category : (existingBinding?.employment_category as EmploymentCategory | undefined);
+  const category =
+    mode?.type === "create"
+      ? mode.category
+      : (existingBinding?.employment_category as EmploymentCategory | undefined);
   const filteredTemplates = useMemo(() => {
     return templates.filter(
       (tpl) => !category || !tpl.employment_category || tpl.employment_category === category,
@@ -160,9 +157,7 @@ function CategoryBindSheet({ open, onClose, mode, templates }: CategoryBindSheet
               ? t("template_bindings.sheet_title_edit")
               : t("template_bindings.sheet_title_create")}
           </SheetTitle>
-          <SheetDescription>
-            {category ? t(CATEGORY_I18N_MAP[category]) : null}
-          </SheetDescription>
+          <SheetDescription>{category ? t(CATEGORY_I18N_MAP[category]) : null}</SheetDescription>
         </SheetHeader>
 
         <div className="flex-1 space-y-4 py-4">
@@ -171,7 +166,6 @@ function CategoryBindSheet({ open, onClose, mode, templates }: CategoryBindSheet
             <div className="text-muted-foreground text-sm">
               {category ? t(CATEGORY_I18N_MAP[category]) : "-"}
             </div>
-
           </div>
 
           <div className="space-y-1.5">
@@ -199,9 +193,7 @@ function CategoryBindSheet({ open, onClose, mode, templates }: CategoryBindSheet
               value={priority}
               onChange={(e) => setPriority(Number(e.target.value))}
             />
-            <p className="text-muted-foreground text-xs">
-              {t("template_bindings.priority_hint")}
-            </p>
+            <p className="text-muted-foreground text-xs">{t("template_bindings.priority_hint")}</p>
           </div>
 
           {isEdit && (
@@ -303,14 +295,13 @@ function BindingCell({
       }`}
     >
       <div className="flex items-start justify-between gap-1">
-        <span className="text-sm leading-tight">
-          {binding.contract_template?.name ?? "?"}
-        </span>
+        <span className="text-sm leading-tight">{binding.contract_template?.name ?? "?"}</span>
         <div className="flex shrink-0 gap-0.5">
           <Button
             variant="ghost"
             size="sm"
             className="h-6 w-6 p-0"
+            aria-label={t("template_bindings.sheet_title_edit")}
             onClick={() => onEdit(binding)}
           >
             <Pencil className="h-3 w-3" />
@@ -319,6 +310,7 @@ function BindingCell({
             variant="ghost"
             size="sm"
             className="h-6 w-6 p-0"
+            aria-label={t("template_bindings.delete")}
             onClick={() => onDelete(binding)}
             disabled={isDeleting}
           >
@@ -333,19 +325,15 @@ function BindingCell({
           </Badge>
         )}
         {binding.priority > 0 && (
-          <span className="text-muted-foreground text-[10px]">
-            P{binding.priority}
-          </span>
+          <span className="text-muted-foreground text-[10px]">P{binding.priority}</span>
         )}
         <button
           type="button"
-          className="ml-auto text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+          className="text-muted-foreground hover:text-foreground ml-auto text-[10px] transition-colors"
           onClick={() => onToggleActive(binding)}
           disabled={isUpdating}
         >
-          {binding.is_active
-            ? t("template_bindings.deactivate")
-            : t("template_bindings.activate")}
+          {binding.is_active ? t("template_bindings.deactivate") : t("template_bindings.activate")}
         </button>
       </div>
     </div>
@@ -391,12 +379,9 @@ function BindingMatrix({
     setSheetMode({ type: "edit", binding });
   }, []);
 
-  const handleCreate = useCallback(
-    (groupId: string | null, category: EmploymentCategory) => {
-      setSheetMode({ type: "create", groupId, category });
-    },
-    [],
-  );
+  const handleCreate = useCallback((groupId: string | null, category: EmploymentCategory) => {
+    setSheetMode({ type: "create", groupId, category });
+  }, []);
 
   const handleDelete = useCallback(
     (binding: TemplateBindingRow) => {
@@ -448,10 +433,14 @@ function BindingMatrix({
         <table className="w-full border-collapse">
           <thead>
             <tr>
-              <th className="text-muted-foreground w-48 p-2 text-left text-xs font-medium" />
+              <th
+                scope="col"
+                className="text-muted-foreground w-48 p-2 text-left text-xs font-medium"
+              />
               {CATEGORIES.map((cat) => (
                 <th
                   key={cat}
+                  scope="col"
                   className="text-muted-foreground p-2 text-center text-xs font-medium"
                 >
                   {t(CATEGORY_I18N_MAP[cat])}
@@ -462,9 +451,9 @@ function BindingMatrix({
           <tbody>
             {rows.map((row) => (
               <tr key={row.id ?? "ws"} className="border-t">
-                <td className="p-2 text-sm font-medium">
+                <th scope="row" className="p-2 text-left text-sm font-medium">
                   {row.label}
-                </td>
+                </th>
                 {CATEGORIES.map((cat) => (
                   <td key={cat} className="p-2">
                     <BindingCell
@@ -519,29 +508,19 @@ export function ContractTemplateBindingsSettings() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-foreground text-lg font-semibold">
-          {t("template_bindings.title")}
-        </h2>
-        <p className="text-muted-foreground text-sm">
-          {t("template_bindings.description")}
-        </p>
+        <h2 className="text-foreground text-lg font-semibold">{t("template_bindings.title")}</h2>
+        <p className="text-muted-foreground text-sm">{t("template_bindings.description")}</p>
       </div>
 
       <ResolutionOrderCallout />
 
       <Card>
         <CardContent className="p-0">
-          <BindingMatrix
-            bindings={bindings}
-            groups={groups}
-            templates={templates}
-          />
+          <BindingMatrix bindings={bindings} groups={groups} templates={templates} />
         </CardContent>
       </Card>
 
-      <p className="text-muted-foreground text-xs">
-        {t("template_bindings.system_fallback_hint")}
-      </p>
+      <p className="text-muted-foreground text-xs">{t("template_bindings.system_fallback_hint")}</p>
     </div>
   );
 }
