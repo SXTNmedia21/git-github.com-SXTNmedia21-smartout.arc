@@ -38,4 +38,5 @@ export const contractCapability: CapabilityDefinition = {
   tools: allTools,
   readOnlyTools,
   suggestTools,
+  allowedChannels: ["chat"],
 };
