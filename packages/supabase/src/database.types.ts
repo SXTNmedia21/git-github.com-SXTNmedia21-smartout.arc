@@ -7628,9 +7628,11 @@ export type Database = {
       }
       knowledge_test_attempt: {
         Row: {
+          ai_confidence: number | null
           answers: Json
           attempted_at: string
           created_at: string
+          graded_by: string | null
           id: string
           knowledge_test_id: string
           passed: boolean
@@ -7640,9 +7642,11 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          ai_confidence?: number | null
           answers?: Json
           attempted_at?: string
           created_at?: string
+          graded_by?: string | null
           id?: string
           knowledge_test_id: string
           passed?: boolean
@@ -7652,9 +7656,11 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          ai_confidence?: number | null
           answers?: Json
           attempted_at?: string
           created_at?: string
+          graded_by?: string | null
           id?: string
           knowledge_test_id?: string
           passed?: boolean
@@ -10772,33 +10778,75 @@ export type Database = {
       protocol_assignment: {
         Row: {
           assigned_at: string
+          assigned_by: string | null
+          assigned_ref_id: string | null
+          assigned_via: Database["public"]["Enums"]["assignment_source"] | null
           assignment_id: string
           completed_at: string | null
+          confirmations_signed: number
+          confirmations_total: number
           created_at: string
+          next_review_at: string | null
+          procedures_completed: number
+          procedures_total: number
           profile_id: string
           protocol_id: string
+          protocol_version: string | null
           status: Database["public"]["Enums"]["protocol_assignment_status"]
+          tests_passed: number
+          tests_total: number
           updated_at: string
+          waived_by: string | null
+          waived_reason: string | null
+          workspace_id: string
         }
         Insert: {
           assigned_at?: string
+          assigned_by?: string | null
+          assigned_ref_id?: string | null
+          assigned_via?: Database["public"]["Enums"]["assignment_source"] | null
           assignment_id?: string
           completed_at?: string | null
+          confirmations_signed?: number
+          confirmations_total?: number
           created_at?: string
+          next_review_at?: string | null
+          procedures_completed?: number
+          procedures_total?: number
           profile_id: string
           protocol_id: string
+          protocol_version?: string | null
           status?: Database["public"]["Enums"]["protocol_assignment_status"]
+          tests_passed?: number
+          tests_total?: number
           updated_at?: string
+          waived_by?: string | null
+          waived_reason?: string | null
+          workspace_id: string
         }
         Update: {
           assigned_at?: string
+          assigned_by?: string | null
+          assigned_ref_id?: string | null
+          assigned_via?: Database["public"]["Enums"]["assignment_source"] | null
           assignment_id?: string
           completed_at?: string | null
+          confirmations_signed?: number
+          confirmations_total?: number
           created_at?: string
+          next_review_at?: string | null
+          procedures_completed?: number
+          procedures_total?: number
           profile_id?: string
           protocol_id?: string
+          protocol_version?: string | null
           status?: Database["public"]["Enums"]["protocol_assignment_status"]
+          tests_passed?: number
+          tests_total?: number
           updated_at?: string
+          waived_by?: string | null
+          waived_reason?: string | null
+          workspace_id?: string
         }
         Relationships: [
           {
@@ -10814,6 +10862,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "protocol"
             referencedColumns: ["protocol_id"]
+          },
+          {
+            foreignKeyName: "fk_protocol_assignment_workspace"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "protocol_assignment_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "protocol_assignment_waived_by_fkey"
+            columns: ["waived_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
           },
         ]
       }
@@ -14907,6 +14976,14 @@ export type Database = {
       api_key_type: "workspace" | "service"
       api_key_version_status: "current" | "previous" | "revoked"
       asset_type: "equipment" | "safety" | "storage" | "station" | "other"
+      assignment_source:
+        | "workspace"
+        | "department"
+        | "team"
+        | "location"
+        | "position"
+        | "manual"
+        | "season"
       audit_operation: "INSERT" | "UPDATE" | "DELETE"
       auth_provider: "supabase" | "google" | "microsoft"
       authority_level: "duty" | "deputy" | "leader"
@@ -15172,7 +15249,13 @@ export type Database = {
         | "custom"
       profile_role: "employee" | "manager" | "admin" | "owner" | "system"
       profile_status: "trainee" | "active" | "inactive" | "offboarding"
-      protocol_assignment_status: "pending" | "completed" | "expired"
+      protocol_assignment_status:
+        | "pending"
+        | "completed"
+        | "expired"
+        | "not_started"
+        | "in_progress"
+        | "waived"
       protocol_status: "draft" | "active" | "deprecated"
       reconciliation_status:
         | "open"
@@ -16311,6 +16394,15 @@ export const Constants = {
       api_key_type: ["workspace", "service"],
       api_key_version_status: ["current", "previous", "revoked"],
       asset_type: ["equipment", "safety", "storage", "station", "other"],
+      assignment_source: [
+        "workspace",
+        "department",
+        "team",
+        "location",
+        "position",
+        "manual",
+        "season",
+      ],
       audit_operation: ["INSERT", "UPDATE", "DELETE"],
       auth_provider: ["supabase", "google", "microsoft"],
       authority_level: ["duty", "deputy", "leader"],
@@ -16603,7 +16695,14 @@ export const Constants = {
       ],
       profile_role: ["employee", "manager", "admin", "owner", "system"],
       profile_status: ["trainee", "active", "inactive", "offboarding"],
-      protocol_assignment_status: ["pending", "completed", "expired"],
+      protocol_assignment_status: [
+        "pending",
+        "completed",
+        "expired",
+        "not_started",
+        "in_progress",
+        "waived",
+      ],
       protocol_status: ["draft", "active", "deprecated"],
       reconciliation_status: [
         "open",
