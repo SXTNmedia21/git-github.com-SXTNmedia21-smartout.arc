@@ -2066,34 +2066,34 @@ INSERT INTO public.confirmation (
 -- ── 11.9 Protocol Assignments ────────────────────────────────────────
 -- Active employees get assigned protocols based on department
 INSERT INTO public.protocol_assignment (
-  assignment_id, protocol_id, profile_id, status, completed_at
+  assignment_id, protocol_id, profile_id, workspace_id, status, completed_at, assigned_via
 ) VALUES
   -- Anna (Kitchen) — HACCP completed, Onboarding completed
   ('c9000000-0000-0000-0000-000000000001', 'c2000000-0000-0000-0000-000000000001',
-   'f0000000-0000-0000-0000-000000000001', 'completed', now() - interval '30 days'),
+   'f0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000000', 'completed', now() - interval '30 days', 'workspace'),
   ('c9000000-0000-0000-0000-000000000002', 'c2000000-0000-0000-0000-000000000003',
-   'f0000000-0000-0000-0000-000000000001', 'completed', now() - interval '60 days'),
+   'f0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000000', 'completed', now() - interval '60 days', 'workspace'),
   -- Erik (Kitchen, manager) — HACCP completed
   ('c9000000-0000-0000-0000-000000000003', 'c2000000-0000-0000-0000-000000000001',
-   'f0000000-0000-0000-0000-000000000002', 'completed', now() - interval '45 days'),
+   'f0000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000000', 'completed', now() - interval '45 days', 'workspace'),
   -- Ole (Bar) — Bar completed, Onboarding completed
   ('c9000000-0000-0000-0000-000000000004', 'c2000000-0000-0000-0000-000000000004',
-   'f0000000-0000-0000-0000-000000000004', 'completed', now() - interval '20 days'),
+   'f0000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000000', 'completed', now() - interval '20 days', 'workspace'),
   ('c9000000-0000-0000-0000-000000000005', 'c2000000-0000-0000-0000-000000000003',
-   'f0000000-0000-0000-0000-000000000004', 'completed', now() - interval '40 days'),
-  -- Kari (Service, trainee) — Service pending, Onboarding pending
+   'f0000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000000', 'completed', now() - interval '40 days', 'workspace'),
+  -- Kari (Service, trainee) — Service not_started, Onboarding not_started
   ('c9000000-0000-0000-0000-000000000006', 'c2000000-0000-0000-0000-000000000002',
-   'f0000000-0000-0000-0000-000000000005', 'pending', NULL),
+   'f0000000-0000-0000-0000-000000000005', 'b0000000-0000-0000-0000-000000000000', 'not_started', NULL, 'workspace'),
   ('c9000000-0000-0000-0000-000000000007', 'c2000000-0000-0000-0000-000000000003',
-   'f0000000-0000-0000-0000-000000000005', 'pending', NULL),
-  -- Jonas (Kitchen, trainee) — HACCP pending, Onboarding pending
+   'f0000000-0000-0000-0000-000000000005', 'b0000000-0000-0000-0000-000000000000', 'not_started', NULL, 'workspace'),
+  -- Jonas (Kitchen, trainee) — HACCP not_started, Onboarding not_started
   ('c9000000-0000-0000-0000-000000000008', 'c2000000-0000-0000-0000-000000000001',
-   'f0000000-0000-0000-0000-000000000008', 'pending', NULL),
+   'f0000000-0000-0000-0000-000000000008', 'b0000000-0000-0000-0000-000000000000', 'not_started', NULL, 'workspace'),
   ('c9000000-0000-0000-0000-000000000009', 'c2000000-0000-0000-0000-000000000003',
-   'f0000000-0000-0000-0000-000000000008', 'pending', NULL),
-  -- Silje (Service, trainee) — Service pending
+   'f0000000-0000-0000-0000-000000000008', 'b0000000-0000-0000-0000-000000000000', 'not_started', NULL, 'workspace'),
+  -- Silje (Service, trainee) — Service not_started
   ('c9000000-0000-0000-0000-000000000010', 'c2000000-0000-0000-0000-000000000002',
-   'f0000000-0000-0000-0000-000000000009', 'pending', NULL);
+   'f0000000-0000-0000-0000-000000000009', 'b0000000-0000-0000-0000-000000000000', 'not_started', NULL, 'workspace');
 
 
 -- ============================================================================
