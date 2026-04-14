@@ -77,7 +77,7 @@
   },
   "chat_list": {
     "filter_placeholder": "Filtrer etter navn...",
-    "all_members": "Alle medarbeidere",
+    "all_members": "Alle personer",
     "unknown": "Ukjent"
   },
   "call": {
@@ -156,6 +156,7 @@
     "empty_subtitle": "Kunngoringer fra ledelsen vises her",
     "add_reaction": "Legg til reaksjon",
     "read_placeholder": "Sett",
+    "filter_all": "Alle",
     "load_more": "Last inn flere",
     "loading_more": "Laster...",
     "role_employee": "Ansatt",

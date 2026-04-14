@@ -217,11 +217,11 @@ export function ChatClient({ profileId }: { profileId: string }) {
   }, [activeChannel, members]);
 
   return (
-    <div className="border-border/50 flex h-full overflow-hidden rounded-lg border">
+    <div className="bg-background/80 border-border/50 flex h-full overflow-hidden rounded-lg border backdrop-blur-xl">
       {/* Left sidebar: DM conversations + member directory */}
-      <div className="bg-background/80 border-border/50 flex w-72 flex-shrink-0 flex-col border-r backdrop-blur-xl">
+      <div className="border-border/50 flex w-72 flex-shrink-0 flex-col border-r">
         {/* Search */}
-        <div className="border-b p-3">
+        <div className="border-border/50 border-b p-3">
           <div className="relative">
             <Search className="text-muted-foreground/60 absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2" />
             <Input
@@ -237,7 +237,7 @@ export function ChatClient({ profileId }: { profileId: string }) {
           {/* Active conversations */}
           {filteredDMs.length > 0 && (
             <div className="py-1">
-              <div className="text-muted-foreground px-3 pt-2 pb-1 text-[10px] font-semibold tracking-wider uppercase">
+              <div className="font-heading text-muted-foreground px-3 pt-2 pb-1 text-xs tracking-wider">
                 {t("chat.active_conversations")}
               </div>
               <AnimatePresence mode="wait">
@@ -270,7 +270,7 @@ export function ChatClient({ profileId }: { profileId: string }) {
           {/* All people directory */}
           {filteredMembers.length > 0 && (
             <div className="py-1">
-              <div className="text-muted-foreground px-3 pt-2 pb-1 text-[10px] font-semibold tracking-wider uppercase">
+              <div className="font-heading text-muted-foreground px-3 pt-2 pb-1 text-xs tracking-wider">
                 {t("chat_list.all_members")}
               </div>
               <AnimatePresence mode="wait">
@@ -297,7 +297,7 @@ export function ChatClient({ profileId }: { profileId: string }) {
         {activeChannel ? (
           <>
             {/* Chat header */}
-            <div className="flex items-center gap-3 border-b px-4 py-2.5">
+            <div className="border-border/50 flex items-center gap-3 border-b px-4 py-2.5">
               <Avatar className="h-10 w-10">
                 {otherAvatar && <AvatarImage src={otherAvatar} />}
                 <AvatarFallback className={cn("text-sm font-semibold", getColorClass(otherName))}>
@@ -305,7 +305,7 @@ export function ChatClient({ profileId }: { profileId: string }) {
                 </AvatarFallback>
               </Avatar>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold">{otherName}</p>
+                <p className="font-heading truncate text-sm">{otherName}</p>
                 {otherMember && (
                   <p className="text-muted-foreground truncate text-xs">
                     {otherMember.department_name ? `${otherMember.department_name} · ` : ""}

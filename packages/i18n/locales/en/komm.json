@@ -77,7 +77,7 @@
   },
   "chat_list": {
     "filter_placeholder": "Filter by name...",
-    "all_members": "All members",
+    "all_members": "All people",
     "unknown": "Unknown"
   },
   "call": {
@@ -156,6 +156,7 @@
     "empty_subtitle": "Announcements from management will appear here",
     "add_reaction": "Add reaction",
     "read_placeholder": "Seen",
+    "filter_all": "All",
     "load_more": "Load more",
     "loading_more": "Loading...",
     "role_employee": "Employee",
