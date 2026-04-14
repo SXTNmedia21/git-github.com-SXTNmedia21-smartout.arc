@@ -22,6 +22,9 @@ import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { ActionBar } from "@/components/navigation/ActionBar";
 import { useMyShifts } from "@/hooks/queries/use-my-shifts";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
+import { useSwapRequests } from "@/hooks/queries/use-swap-requests";
+import { useRespondToSwap, useCancelSwap } from "@/hooks/mutations/use-swap";
+import { SwapInboxCard } from "@/components/shift/SwapInboxCard";
 import { CreateDayInfoSheet } from "@/components/schedule/CreateDayInfoSheet";
 import type { Database } from "@smartout/supabase/database.types";
 
@@ -95,6 +98,31 @@ export default function MyShiftsScreen() {
   const router = useRouter();
   const { data: shifts = [] } = useMyShifts();
   const { data: profile } = useMyProfile();
+  const { data: swapRequests = [] } = useSwapRequests();
+  const { respondToSwap } = useRespondToSwap();
+  const { cancelSwap } = useCancelSwap();
+
+  const handleSwapAccept = useCallback(
+    async (engineStateId: string) => {
+      await respondToSwap({ engine_state_id: engineStateId, accepted: true });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    },
+    [respondToSwap],
+  );
+
+  const handleSwapReject = useCallback(
+    async (engineStateId: string) => {
+      await respondToSwap({ engine_state_id: engineStateId, accepted: false });
+    },
+    [respondToSwap],
+  );
+
+  const handleSwapCancel = useCallback(
+    async (engineStateId: string) => {
+      await cancelSwap({ engine_state_id: engineStateId });
+    },
+    [cancelSwap],
+  );
 
   const weekGroups = useMemo((): WeekGroup[] => {
     const groups = new Map<number, ScheduleShift[]>();
@@ -175,6 +203,31 @@ export default function MyShiftsScreen() {
             <Text style={styles.summaryHoursLabel}>Denne uken</Text>
           </View>
         </View>
+
+        {/* Swap Inbox */}
+        {swapRequests.length > 0 && (
+          <View style={styles.swapInbox}>
+            <Text style={styles.swapInboxTitle}>Bytteforespørsler</Text>
+            {swapRequests.map((swap) => {
+              const ctx = swap.context;
+              const isTarget = ctx.target_profile_id === profile?.profile_id;
+              const isRequester = ctx.requester_profile_id === profile?.profile_id;
+              return (
+                <SwapInboxCard
+                  key={swap.engine_state_id}
+                  swap={swap}
+                  isTarget={isTarget}
+                  isRequester={isRequester}
+                  requesterName={ctx.requester_profile_id.slice(0, 8)}
+                  targetName={ctx.target_profile_id.slice(0, 8)}
+                  onAccept={handleSwapAccept}
+                  onReject={handleSwapReject}
+                  onCancel={handleSwapCancel}
+                />
+              );
+            })}
+          </View>
+        )}
 
         {/* Week Sections */}
         {weekGroups.map((group, gi) => (
@@ -371,6 +424,20 @@ const useStyles = createStyles((theme) => ({
     letterSpacing: 2,
     textTransform: "uppercase" as const,
     color: withOpacity(theme.colors.mutedForeground, 0.6),
+  },
+
+  /* Swap Inbox */
+  swapInbox: {
+    gap: 8,
+    marginBottom: theme.spacing.page,
+  },
+  swapInboxTitle: {
+    fontSize: 12,
+    fontWeight: "600" as const,
+    letterSpacing: 1.5,
+    textTransform: "uppercase" as const,
+    color: withOpacity(theme.colors.brandOrange, 0.7),
+    marginBottom: 4,
   },
 
   /* Week Section */
