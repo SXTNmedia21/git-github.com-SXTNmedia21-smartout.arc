@@ -10,6 +10,8 @@ import { generateText, stepCountIs } from "ai";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { classifyIntent } from "@smartout/ai/router/intent-classifier";
 import { selectTools } from "@smartout/ai/router/tool-selector";
+import { applyMinRoleDowngrade } from "@smartout/ai/router/min-role";
+import type { ProfileRole } from "@smartout/ai/capabilities/types";
 import { buildBotssonPromptFromContext } from "@smartout/ai/prompts/mr-botsson";
 import { toVercelTools } from "@smartout/ai/adapters/vercel-ai";
 import { collectContext } from "@smartout/ai/context/collector";
@@ -73,8 +75,23 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
     userJwt,
   } = input;
 
-  // Step 1: Load authority config
-  const authorityConfig = await loadAuthorityConfig(workspaceId);
+  // Step 1: Load authority config + caller's role in parallel, then apply min_role downgrade.
+  // ADR-0091 unifies role-based C4 checks with authority config; min_role enforcement here
+  // downgrades to 'suggest' whenever the profile role is below the per-capability floor.
+  const [rawAuthority, { data: profileRow }] = await Promise.all([
+    loadAuthorityConfig(workspaceId),
+    supabaseAdmin
+      .from("profile")
+      .select("role")
+      .eq("id", profileId)
+      .maybeSingle<{ role: ProfileRole }>(),
+  ]);
+  const callerRole: ProfileRole = profileRow?.role ?? "employee";
+  const authorityConfig = applyMinRoleDowngrade(
+    rawAuthority.levels,
+    rawAuthority.minRoles,
+    callerRole,
+  );
 
   // Step 2: Classify intent
   const intent = await classifyIntent(message, "", {
