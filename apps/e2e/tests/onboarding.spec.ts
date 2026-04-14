@@ -1,15 +1,22 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Onboarding Wizard Flow", () => {
-  // Skip: onboarding wizard was rewritten with new UI/labels.
-  // These tests reference the old English wizard. See workspace-setup-flow.spec.ts for current tests.
-  test.skip(true, "Onboarding wizard rewritten — tests need update to match new Norwegian UI");
+  // NOTE: The onboarding wizard was fully rewritten.
+  // Old flow: scroll-based AI wizard with URL input, scraping, English labels.
+  // New flow: AnimatedWizardShell confirmation wizard (departments → roles → positions
+  //           → locations → procedures → summary) with Norwegian labels.
+  // Current tests for the new flow: workspace-setup-flow.spec.ts
+  // These tests are preserved for reference until new equivalents are written.
 
   test.setTimeout(60000);
 
   test("should complete entire wizard with fallback data (unauthenticated → skip auth)", async ({
     page,
   }) => {
+    test.skip(
+      true,
+      "Old scroll-based wizard removed. New confirmation wizard has no URL-input step.",
+    );
     // 1. Init step — enter URL
     await page.goto("/onboarding");
     await expect(page.locator('h1:has-text("Let\'s build your workspace.")')).toBeVisible({
@@ -109,6 +116,7 @@ test.describe("Onboarding Wizard Flow", () => {
   });
 
   test("should show auth step with signup form", async ({ page }) => {
+    test.skip(true, "Old auth step removed. New wizard is authenticated-only via /join flow.");
     await page.goto("/onboarding");
     await page.fill('input[placeholder="your-webpage.com"]', "test.com");
     await page.click('button:has-text("Scan & Generate")');
@@ -133,6 +141,10 @@ test.describe("Onboarding Wizard Flow", () => {
   });
 
   test("should navigate back through steps", async ({ page }) => {
+    test.skip(
+      true,
+      "Old multi-section scroll wizard removed. New wizard uses AnimatedWizardShell back navigation.",
+    );
     await page.goto("/onboarding");
     await page.fill('input[placeholder="your-webpage.com"]', "test.com");
     await page.click('button:has-text("Scan & Generate")');
@@ -158,6 +170,7 @@ test.describe("Onboarding Wizard Flow", () => {
   });
 
   test("should edit sections from battlefield review", async ({ page }) => {
+    test.skip(true, "Battlefield Review step removed. New wizard has ConfirmSummary step instead.");
     // Fast-track to review by going through all steps
     await page.goto("/onboarding");
     await page.fill('input[placeholder="your-webpage.com"]', "test.com");
@@ -209,6 +222,10 @@ test.describe("Onboarding Wizard Flow", () => {
   });
 
   test("should skip URL input with skip button", async ({ page }) => {
+    test.skip(
+      true,
+      "URL input step removed. Onboarding entry is now via /join wizard, not direct URL scraping.",
+    );
     await page.goto("/onboarding");
     await expect(page.locator('h1:has-text("Let\'s build your workspace.")')).toBeVisible({
       timeout: 10000,
