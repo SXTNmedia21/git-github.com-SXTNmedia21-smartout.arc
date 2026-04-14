@@ -68,7 +68,7 @@ export function SeasonCreateSheet({ onSeasonCreated }: Props) {
         <SheetHeader className="mb-6">
           <SheetTitle className="text-card-foreground">{t("yearWheel.new_season")}</SheetTitle>
           <SheetDescription className="text-muted-foreground">
-            Opprett en ny sesong for å starte budsjettering og faktoroppsett.
+            {t("yearWheel.new_season_description")}
           </SheetDescription>
         </SheetHeader>
 
@@ -81,7 +81,7 @@ export function SeasonCreateSheet({ onSeasonCreated }: Props) {
               type="text"
               value={name}
               onChange={(event) => setName(event.target.value)}
-              placeholder="f.eks. Sommersesong 2026"
+              placeholder={t("yearWheel.season_name_placeholder")}
               className="border-input bg-background text-foreground focus:border-primary w-full rounded-xl border px-4 py-3 text-sm outline-none"
             />
           </div>

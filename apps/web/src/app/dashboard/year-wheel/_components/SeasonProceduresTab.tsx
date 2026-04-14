@@ -61,7 +61,7 @@ export function SeasonProceduresTab({ seasonId }: Props) {
         <ShieldOff className="text-muted-foreground mx-auto mb-3 h-8 w-8" />
         <h3 className="text-foreground mb-2 text-sm font-bold">{t("yearWheel.no_procedures")}</h3>
         <p className="text-muted-foreground text-xs">
-          Opprett prosedyrer under HMS-modulen for å kunne aktivere dem per sesong.
+          {t("yearWheel.no_procedures_help")}
         </p>
       </div>
     );
@@ -88,7 +88,7 @@ export function SeasonProceduresTab({ seasonId }: Props) {
       <div>
         <h3 className="text-foreground text-sm font-bold">{t("yearWheel.procedures_hms")}</h3>
         <p className="text-muted-foreground text-xs">
-          {activeCount} av {policies.length} prosedyrer er aktive for denne sesongen
+          {t("yearWheel.procedures_summary", { active: activeCount, total: policies.length })}
         </p>
       </div>
 

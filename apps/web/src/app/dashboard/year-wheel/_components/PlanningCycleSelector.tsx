@@ -196,7 +196,7 @@ export function PlanningCycleSelector({ selectedSeasonId }: Props) {
                   <Input
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="F.eks. Vår 2026"
+                    placeholder={t("yearWheel.placeholder_cycle_name")}
                     className="border-input bg-background text-foreground h-8 text-sm"
                   />
                 </div>

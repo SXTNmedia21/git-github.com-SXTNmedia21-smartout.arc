@@ -133,8 +133,7 @@ export function HourFactorsTab({ seasonBudgetId, isReadOnly = false }: Props) {
     <div className="border-border bg-card rounded-2xl border p-6">
       <h3 className="text-foreground mb-2 text-lg font-bold">{t("yearWheel.hour_factors")}</h3>
       <p className="text-muted-foreground mb-6 text-sm">
-        Fordeling av daglig omsetning per time ({openHour}:00&ndash;{closeHour}:00). Høyere faktor =
-        mer omsetning forventet den timen.
+        {t("yearWheel.hour_factors_help", { open: openHour, close: closeHour })}
       </p>
 
       <div className="mb-6 flex gap-2">

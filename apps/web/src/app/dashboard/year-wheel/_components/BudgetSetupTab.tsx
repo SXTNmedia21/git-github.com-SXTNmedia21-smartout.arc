@@ -49,7 +49,7 @@ export function BudgetSetupTab({ seasonId }: Props) {
   ): boolean => {
     if (value == null) return true;
     if (value < limits.min || value > limits.max) {
-      toast.error(`${label} må være mellom ${limits.min} og ${limits.max}`);
+      toast.error(t("yearWheel.validation_range_error", { label, min: limits.min, max: limits.max }));
       return false;
     }
     return true;
@@ -68,17 +68,17 @@ export function BudgetSetupTab({ seasonId }: Props) {
     const priceFactor = parseFloat(seasonPriceFactor);
 
     if (isNaN(target) || target <= 0) {
-      toast.error(t("yearWheel.total_revenue_target") + " må være et positivt tall");
+      toast.error(t("yearWheel.total_revenue_target") + " " + t("yearWheel.validation_positive_number"));
       return;
     }
 
     const validations = [
-      validateNumberInRange("Total omsetningsmål", target, BUDGET_SETUP_LIMITS.totalTargetRevenue),
-      validateNumberInRange("Mål lønnsandel", labor, BUDGET_SETUP_LIMITS.targetLaborPercentage),
-      validateNumberInRange("Gj.snitt timeslønn", wage, BUDGET_SETUP_LIMITS.avgHourlyWage),
-      validateNumberInRange("Snittpris per gjest", price, BUDGET_SETUP_LIMITS.basePricePerGuest),
+      validateNumberInRange(t("yearWheel.label_total_revenue"), target, BUDGET_SETUP_LIMITS.totalTargetRevenue),
+      validateNumberInRange(t("yearWheel.label_labor_percentage"), labor, BUDGET_SETUP_LIMITS.targetLaborPercentage),
+      validateNumberInRange(t("yearWheel.label_hourly_wage"), wage, BUDGET_SETUP_LIMITS.avgHourlyWage),
+      validateNumberInRange(t("yearWheel.label_price_per_guest"), price, BUDGET_SETUP_LIMITS.basePricePerGuest),
       validateNumberInRange(
-        "Sesong prisfaktor",
+        t("yearWheel.label_season_price_factor"),
         priceFactor,
         BUDGET_SETUP_LIMITS.seasonPriceFactor,
       ),
@@ -119,10 +119,10 @@ export function BudgetSetupTab({ seasonId }: Props) {
         </select>
       </div>
 
-      <div className="border-border bg-muted text-muted-foreground mb-6 rounded-lg border px-3 py-2 text-xs">
-        Status styrer redigering: <strong>Draft/Active</strong> kan endres, <strong>Locked</strong>{" "}
-        er skrivebeskyttet.
-      </div>
+      <div
+        className="border-border bg-muted text-muted-foreground mb-6 rounded-lg border px-3 py-2 text-xs"
+        dangerouslySetInnerHTML={{ __html: t("yearWheel.budget_status_help") }}
+      />
 
       <div className="grid gap-4 md:grid-cols-2">
         <div>
@@ -133,18 +133,18 @@ export function BudgetSetupTab({ seasonId }: Props) {
             type="number"
             value={totalTarget}
             onChange={(e) => setTotalTarget(e.target.value)}
-            placeholder="f.eks. 5000000"
+            placeholder={t("yearWheel.placeholder_revenue")}
             min={BUDGET_SETUP_LIMITS.totalTargetRevenue.min}
             max={BUDGET_SETUP_LIMITS.totalTargetRevenue.max}
             disabled={isLocked}
             className="border-input bg-background text-foreground focus:border-primary w-full rounded-lg border px-3 py-2.5 text-sm outline-none"
           />
-          <p className="text-muted-foreground mt-1 text-xs">Totalt for hele sesongen</p>
+          <p className="text-muted-foreground mt-1 text-xs">{t("yearWheel.total_for_season")}</p>
         </div>
 
         <div>
           <label className="text-muted-foreground mb-1.5 block text-[10px] font-bold tracking-wider uppercase">
-            Mål lønnsandel (%)
+            {t("yearWheel.target_labor_pct_label")}
           </label>
           <input
             type="number"
@@ -157,47 +157,47 @@ export function BudgetSetupTab({ seasonId }: Props) {
             className="border-input bg-background text-foreground focus:border-primary w-full rounded-lg border px-3 py-2.5 text-sm outline-none"
           />
           <p className="text-muted-foreground mt-1 text-xs">
-            Andel av omsetning til lønn (typisk 25-35%)
+            {t("yearWheel.labor_pct_help")}
           </p>
         </div>
 
         <div>
           <label className="text-muted-foreground mb-1.5 block text-[10px] font-bold tracking-wider uppercase">
-            Gj.snitt timeslønn (NOK)
+            {t("yearWheel.avg_hourly_wage_label")}
           </label>
           <input
             type="number"
             value={hourlyWage}
             onChange={(e) => setHourlyWage(e.target.value)}
-            placeholder="f.eks. 220"
+            placeholder={t("yearWheel.placeholder_wage")}
             min={BUDGET_SETUP_LIMITS.avgHourlyWage.min}
             max={BUDGET_SETUP_LIMITS.avgHourlyWage.max}
             disabled={isLocked}
             className="border-input bg-background text-foreground focus:border-primary w-full rounded-lg border px-3 py-2.5 text-sm outline-none"
           />
-          <p className="text-muted-foreground mt-1 text-xs">Brukes til bemanningsberegning</p>
+          <p className="text-muted-foreground mt-1 text-xs">{t("yearWheel.wage_help")}</p>
         </div>
 
         <div>
           <label className="text-muted-foreground mb-1.5 block text-[10px] font-bold tracking-wider uppercase">
-            Snittpris per gjest (NOK)
+            {t("yearWheel.price_per_guest_label")}
           </label>
           <input
             type="number"
             value={basePrice}
             onChange={(e) => setBasePrice(e.target.value)}
-            placeholder="f.eks. 450"
+            placeholder={t("yearWheel.placeholder_price")}
             min={BUDGET_SETUP_LIMITS.basePricePerGuest.min}
             max={BUDGET_SETUP_LIMITS.basePricePerGuest.max}
             disabled={isLocked}
             className="border-input bg-background text-foreground focus:border-primary w-full rounded-lg border px-3 py-2.5 text-sm outline-none"
           />
-          <p className="text-muted-foreground mt-1 text-xs">Gjennomsnittlig kuvert uten drikke</p>
+          <p className="text-muted-foreground mt-1 text-xs">{t("yearWheel.price_help")}</p>
         </div>
 
         <div>
           <label className="text-muted-foreground mb-1.5 block text-[10px] font-bold tracking-wider uppercase">
-            Sesong prisfaktor
+            {t("yearWheel.season_price_factor_label")}
           </label>
           <input
             type="number"
@@ -211,7 +211,7 @@ export function BudgetSetupTab({ seasonId }: Props) {
             className="border-input bg-background text-foreground focus:border-primary w-full rounded-lg border px-3 py-2.5 text-sm outline-none"
           />
           <p className="text-muted-foreground mt-1 text-xs">
-            Multipliserer snittpris per gjest i sesongen
+            {t("yearWheel.price_factor_help")}
           </p>
         </div>
       </div>

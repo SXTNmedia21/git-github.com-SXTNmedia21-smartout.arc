@@ -58,7 +58,17 @@ const CATEGORY_OPTION_VALUES: PlanningEventCategory[] = [
   "recurring",
 ];
 
-const WEEKDAY_HEADERS = ["Man", "Tir", "Ons", "Tor", "Fre", "Lør", "Søn"];
+/** Weekday header keys for the calendar grid (Mon-start).
+ * Resolved to translated labels inside the component via t(). */
+const WEEKDAY_HEADER_KEYS = [
+  "yearWheel.weekday_mon",
+  "yearWheel.weekday_tue",
+  "yearWheel.weekday_wed",
+  "yearWheel.weekday_thu",
+  "yearWheel.weekday_fri",
+  "yearWheel.weekday_sat",
+  "yearWheel.weekday_sun",
+] as const;
 
 /**
  * Category → chart CSS variable color tokens.
@@ -377,7 +387,7 @@ export function PlanningEventsTab({ seasonId: _seasonId, planningCycleId }: Prop
               type="text"
               value={form.name}
               onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
-              placeholder="f.eks. Gladmatfestivalen"
+              placeholder={t("yearWheel.placeholder_event_name")}
               className={inputClass}
             />
           </div>
@@ -449,7 +459,7 @@ export function PlanningEventsTab({ seasonId: _seasonId, planningCycleId }: Prop
               type="number"
               value={form.expected_covers}
               onChange={(e) => setForm((prev) => ({ ...prev, expected_covers: e.target.value }))}
-              placeholder="f.eks. 200"
+              placeholder={t("yearWheel.placeholder_covers")}
               min="0"
               className={inputClass}
             />
@@ -530,9 +540,9 @@ export function PlanningEventsTab({ seasonId: _seasonId, planningCycleId }: Prop
 
         {/* Weekday headers */}
         <div className="mb-1 grid grid-cols-7 gap-1">
-          {WEEKDAY_HEADERS.map((day) => (
-            <div key={day} className="text-muted-foreground py-1 text-center text-xs font-bold">
-              {day}
+          {WEEKDAY_HEADER_KEYS.map((key) => (
+            <div key={key} className="text-muted-foreground py-1 text-center text-xs font-bold">
+              {t(key)}
             </div>
           ))}
         </div>

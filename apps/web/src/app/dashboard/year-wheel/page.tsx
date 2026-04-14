@@ -278,7 +278,7 @@ export default function YearWheelPage() {
           value={selectedDate}
           onChange={(event) => jumpToDate(event.target.value)}
           className="w-[180px]"
-          aria-label="Go to date"
+          aria-label={t("yearWheel.go_to_date_aria")}
         />
         <button
           onClick={() => jumpToDate(`${currentYear}-06-01`)}

@@ -77,7 +77,7 @@ export function SeasonGoalsTab({ seasonId }: Props) {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-foreground text-sm font-bold">{t("yearWheel.season_goals")}</h3>
-          <p className="text-muted-foreground text-xs">Sett mål og KPI-er for denne sesongen</p>
+          <p className="text-muted-foreground text-xs">{t("yearWheel.goals_description")}</p>
         </div>
         <Button
           size="sm"
@@ -100,7 +100,7 @@ export function SeasonGoalsTab({ seasonId }: Props) {
               <Input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="F.eks. Redusere lønnskostnad til 28%"
+                placeholder={t("yearWheel.placeholder_goal_title")}
                 className="border-border bg-background text-foreground h-8 text-sm"
               />
             </div>
@@ -111,7 +111,7 @@ export function SeasonGoalsTab({ seasonId }: Props) {
               <Input
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Valgfri utdypning"
+                placeholder={t("yearWheel.placeholder_goal_description")}
                 className="border-border bg-background text-foreground h-8 text-sm"
               />
             </div>
@@ -178,7 +178,7 @@ export function SeasonGoalsTab({ seasonId }: Props) {
       {goals.length === 0 && !showCreate ? (
         <div className="border-border bg-card rounded-xl border p-4 py-8 text-center">
           <Target className="text-muted-foreground mx-auto mb-3 h-8 w-8" />
-          <p className="text-muted-foreground text-sm">Ingen mål satt for denne sesongen ennå.</p>
+          <p className="text-muted-foreground text-sm">{t("yearWheel.no_goals_yet")}</p>
         </div>
       ) : (
         <div className="space-y-2">

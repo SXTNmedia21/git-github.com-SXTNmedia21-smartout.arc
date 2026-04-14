@@ -83,8 +83,7 @@ export function DayFactorsTab({ seasonBudgetId, isReadOnly = false }: Props) {
       </div>
 
       <p className="text-muted-foreground mb-6 text-sm">
-        Relative vekter per ukedag. Høyere = mer omsetning forventet. Systemet normaliserer
-        automatisk.
+        {t("yearWheel.day_factors_help")}
       </p>
 
       <div className="space-y-3">
