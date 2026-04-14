@@ -2,8 +2,8 @@
 "use client";
 
 import { useMemo } from "react";
-import type { ReadinessScore } from "../types.js";
-import { useAssignedProtocols } from "./use-assigned-protocols.js";
+import type { ReadinessScore } from "../types";
+import { useAssignedProtocols } from "./use-assigned-protocols";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 type UseReadinessScoreOptions = {

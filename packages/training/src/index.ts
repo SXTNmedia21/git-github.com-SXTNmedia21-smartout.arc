@@ -1,12 +1,8 @@
 // packages/training/src/index.ts
-export { trainingKeys } from "./hooks/keys.js";
-export { useAssignedProtocols } from "./hooks/use-assigned-protocols.js";
-export {
-  useCompleteStep,
-  useSubmitTest,
-  useSignConfirmation,
-} from "./hooks/use-step-completion.js";
-export { useReadinessScore } from "./hooks/use-readiness-score.js";
+export { trainingKeys } from "./hooks/keys";
+export { useAssignedProtocols } from "./hooks/use-assigned-protocols";
+export { useCompleteStep, useSubmitTest, useSignConfirmation } from "./hooks/use-step-completion";
+export { useReadinessScore } from "./hooks/use-readiness-score";
 export type {
   AssignedProtocol,
   AssignedProcedure,
@@ -14,4 +10,4 @@ export type {
   AssignedKnowledgeTest,
   AssignedConfirmation,
   ReadinessScore,
-} from "./types.js";
+} from "./types";

@@ -3,8 +3,8 @@
 
 import { useQuery } from "@tanstack/react-query";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { AssignedProtocol } from "../types.js";
-import { trainingKeys } from "./keys.js";
+import type { AssignedProtocol } from "../types";
+import { trainingKeys } from "./keys";
 
 type UseAssignedProtocolsOptions = {
   profileId: string | null;

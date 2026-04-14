@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Json } from "@smartout/supabase";
 import { emit } from "@smartout/telemetry";
-import { trainingKeys } from "./keys.js";
+import { trainingKeys } from "./keys";
 
 type TrainingMutationContext = {
   supabase: SupabaseClient;

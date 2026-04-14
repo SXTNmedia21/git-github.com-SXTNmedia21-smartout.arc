@@ -104,11 +104,11 @@ test.describe("Performance Gates — Login to Dashboard", () => {
     const start = Date.now();
     await page.click('button[type="submit"]');
 
-    // Wait for any post-login content (login animation, dashboard, or wizard)
+    // Wait for any post-login content (login animation, dashboard sidebar, or setup wizard)
     await page
       .locator("text=Der er du jo")
-      .or(page.locator("[data-sidebar]"))
-      .or(page.locator("text=Oppsett av arbeidsrom"))
+      .or(page.locator("aside"))
+      .or(page.locator("text=Last opp dokumenter"))
       .first()
       .waitFor({ state: "visible", timeout: PERF_GATES.loginToDashboard + 1000 });
 

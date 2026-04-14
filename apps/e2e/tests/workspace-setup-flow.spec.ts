@@ -183,7 +183,7 @@ test.describe("setup-wizard", () => {
     });
 
     // Sidebar should NOT be visible (wizard is fullscreen)
-    const dashSidebar = page.locator('[data-sidebar="sidebar"]');
+    const dashSidebar = page.locator("aside");
     await expect(dashSidebar).not.toBeVisible();
   });
 

@@ -147,7 +147,9 @@ test.describe("Cascade UI — Season Planning", () => {
 
       // Look for calendar navigation or empty state
       const calendarOrEmpty = page
-        .locator("text=Man, text=Ny hendelse, text=Ingen hendelser")
+        .locator("text=Man")
+        .or(page.locator("text=Ny hendelse"))
+        .or(page.locator("text=Ingen hendelser"))
         .first();
       await expect(calendarOrEmpty)
         .toBeVisible({ timeout: 5000 })

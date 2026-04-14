@@ -12,7 +12,7 @@ test.describe("HMS Avvik", () => {
 
     // Employee mode — should see the form
     // Toggle to employee mode if needed
-    const adminToggle = page.locator('[data-testid="admin-toggle"], [aria-label*="admin"]');
+    const adminToggle = page.locator('[data-autoplay="admin-mode-toggle"]');
     if (await adminToggle.isVisible({ timeout: 2000 }).catch(() => false)) {
       // If in admin mode, toggle off to see employee form
       const isAdmin = await page
