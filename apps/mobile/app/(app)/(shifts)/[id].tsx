@@ -26,6 +26,7 @@ import {
   ChevronRight,
   ChevronLeft,
   Sparkles,
+  ArrowLeftRight,
 } from "lucide-react-native";
 import { createStyles, useTheme, withOpacity } from "@/theme";
 import { Avatar } from "@/components/common/Avatar";
@@ -394,6 +395,25 @@ export default function ShiftDetailScreen() {
           </Pressable>
         )}
 
+        {/* Swap shift — only published shifts owned by current user */}
+        {shift.status === "published" && shift.employee_id === selectedProfileId && (
+          <Pressable
+            onPress={() => {
+              Haptics.selectionAsync();
+              router.push({
+                pathname: "/(app)/(shifts)/swap",
+                params: { shiftId: shift.schedule_shift_id },
+              });
+            }}
+            style={({ pressed }) => [styles.swapButton, pressed && styles.confirmPressed]}
+            accessibilityRole="button"
+            accessibilityLabel="Bytt vakt"
+          >
+            <ArrowLeftRight size={16} color={theme.colors.brandOrange} strokeWidth={2} />
+            <Text style={styles.confirmText}>Bytt vakt</Text>
+          </Pressable>
+        )}
+
         {/* Primary CTA — navigate to punch clock */}
         <Pressable
           onPress={() => {
@@ -683,6 +703,17 @@ const useStyles = createStyles((theme) => ({
     fontSize: 13,
     fontWeight: "600",
     color: theme.colors.brandOrange,
+  },
+  swapButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.section,
+    borderRadius: theme.radius.lg,
+    borderWidth: 1,
+    borderColor: withOpacity(theme.colors.brandOrange, 0.2),
+    backgroundColor: withOpacity(theme.colors.brandOrange, 0.06),
   },
   punchButton: {
     flex: 1,
