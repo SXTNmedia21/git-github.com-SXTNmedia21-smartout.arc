@@ -16,3 +16,11 @@ export {
   useRemoveGridShift,
   useReassignShiftType,
 } from "./use-grid-mutations";
+
+// Shift lifecycle (Phase 6 / ADR-0095) — cross-platform read hook.
+export {
+  useShiftLifecycle,
+  type ShiftLifecycleRow,
+  type ShiftLifecyclePhase,
+  type UseShiftLifecycleOptions,
+} from "./hooks/useShiftLifecycle";
