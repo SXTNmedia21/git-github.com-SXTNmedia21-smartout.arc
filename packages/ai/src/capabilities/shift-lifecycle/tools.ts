@@ -86,7 +86,8 @@ export const publishShift = defineTool({
         workspace_id: ctx.workspaceId,
         actor_id: ctx.profileId,
         properties: {
-          entity: { entity_type: "shift", entity_id: params.shift_id },
+          entity_type: "shift",
+          entity_id: params.shift_id,
           data: { shift_id: params.shift_id, gate_allowed: false, reason: gate.reason ?? "denied" },
         },
       });
@@ -110,7 +111,8 @@ export const publishShift = defineTool({
       workspace_id: ctx.workspaceId,
       actor_id: ctx.profileId,
       properties: {
-        entity: { entity_type: "shift", entity_id: params.shift_id },
+        entity_type: "shift",
+        entity_id: params.shift_id,
         data: { shift_id: params.shift_id, gate_allowed: true },
       },
     });
@@ -122,7 +124,8 @@ export const publishShift = defineTool({
       workspace_id: ctx.workspaceId,
       actor_id: ctx.profileId,
       properties: {
-        entity: { entity_type: "shift", entity_id: params.shift_id },
+        entity_type: "shift",
+        entity_id: params.shift_id,
         data: {
           dates: [],
           department_ids: shift.department_id ? [shift.department_id] : [],
@@ -180,7 +183,8 @@ export const approveShift = defineTool({
         workspace_id: ctx.workspaceId,
         actor_id: ctx.profileId,
         properties: {
-          entity: { entity_type: "shift", entity_id: params.shift_id },
+          entity_type: "shift",
+          entity_id: params.shift_id,
           data: {
             shift_id: params.shift_id,
             approved_hours: params.approved_hours,
@@ -205,7 +209,8 @@ export const approveShift = defineTool({
         workspace_id: ctx.workspaceId,
         actor_id: ctx.profileId,
         properties: {
-          entity: { entity_type: "shift", entity_id: params.shift_id },
+          entity_type: "shift",
+          entity_id: params.shift_id,
           data: {
             shift_id: params.shift_id,
             approved_hours: params.approved_hours,
@@ -252,7 +257,8 @@ export const approveShift = defineTool({
       workspace_id: ctx.workspaceId,
       actor_id: ctx.profileId,
       properties: {
-        entity: { entity_type: "shift", entity_id: params.shift_id },
+        entity_type: "shift",
+        entity_id: params.shift_id,
         data: {
           shift_id: params.shift_id,
           approval_id: existing.approval_id,
@@ -268,7 +274,8 @@ export const approveShift = defineTool({
       workspace_id: ctx.workspaceId,
       actor_id: ctx.profileId,
       properties: {
-        entity: { entity_type: "shift", entity_id: params.shift_id },
+        entity_type: "shift",
+        entity_id: params.shift_id,
         data: { shift_id: params.shift_id, status: "approved" },
       },
     });
@@ -323,7 +330,8 @@ export const interpretShift = defineTool({
       workspace_id: ctx.workspaceId,
       actor_id: ctx.profileId,
       properties: {
-        entity: { entity_type: "shift", entity_id: params.shift_id },
+        entity_type: "shift",
+        entity_id: params.shift_id,
         data: {
           shift_id: params.shift_id,
           interpretation_id: interpretationId ?? undefined,
@@ -393,7 +401,8 @@ export const settleShift = defineTool({
         workspace_id: ctx.workspaceId,
         actor_id: ctx.profileId,
         properties: {
-          entity: { entity_type: "shift", entity_id: params.shift_id },
+          entity_type: "shift",
+          entity_id: params.shift_id,
           data: {
             shift_id: params.shift_id,
             snapshot_id: existingSnap.id,
@@ -420,7 +429,8 @@ export const settleShift = defineTool({
       workspace_id: ctx.workspaceId,
       actor_id: ctx.profileId,
       properties: {
-        entity: { entity_type: "shift", entity_id: params.shift_id },
+        entity_type: "shift",
+        entity_id: params.shift_id,
         data: {
           shift_id: params.shift_id,
           snapshot_id: id ?? undefined,

@@ -68,7 +68,8 @@ export function useCreateShift(): UseCreateShiftReturn {
           workspace_id: payload.workspace_id,
           actor_id: "",
           properties: {
-            entity: { entity_type: "shift", entity_id: shiftId },
+            entity_type: "shift",
+            entity_id: shiftId,
             data: {
               assigned_to: payload.employee_id ?? "",
               date: payload.shift_date,

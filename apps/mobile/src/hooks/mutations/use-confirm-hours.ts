@@ -40,7 +40,8 @@ export function useConfirmHours(): UseConfirmHoursReturn {
         workspace_id: null,
         actor_id: "",
         properties: {
-          entity: { entity_type: "shift_approval", entity_id: payload.approval_id },
+          entity_type: "shift",
+          entity_id: payload.approval_id,
           data: { shift_id: payload.approval_id, status: payload.status },
         },
       });

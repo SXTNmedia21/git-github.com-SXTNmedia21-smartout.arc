@@ -102,7 +102,8 @@ export function useInitiateSwap() {
         workspace_id: workspace.workspace_id,
         actor_id: profileId ?? "",
         properties: {
-          entity: { entity_type: "engine_state", entity_id: swapId },
+          entity_type: "shift",
+          entity_id: swapId,
           data: {
             swap_id: swapId,
             requester_shift_id: variables.requesterShiftId,
@@ -149,7 +150,8 @@ export function useRespondToSwap() {
           workspace_id: workspace.workspace_id,
           actor_id: profileId ?? "",
           properties: {
-            entity: { entity_type: "engine_state", entity_id: vars.swapId },
+            entity_type: "shift",
+            entity_id: vars.swapId,
             data: { swap_id: vars.swapId },
           },
         });
@@ -159,7 +161,8 @@ export function useRespondToSwap() {
           workspace_id: workspace.workspace_id,
           actor_id: profileId ?? "",
           properties: {
-            entity: { entity_type: "engine_state", entity_id: vars.swapId },
+            entity_type: "shift",
+            entity_id: vars.swapId,
             data: { swap_id: vars.swapId, rejected_by: profileId ?? "" },
           },
         });
@@ -203,7 +206,8 @@ export function useApproveSwap() {
           workspace_id: workspace.workspace_id,
           actor_id: profileId ?? "",
           properties: {
-            entity: { entity_type: "engine_state", entity_id: vars.swapId },
+            entity_type: "shift",
+            entity_id: vars.swapId,
             data: { swap_id: vars.swapId },
           },
         });
@@ -212,7 +216,8 @@ export function useApproveSwap() {
           workspace_id: workspace.workspace_id,
           actor_id: profileId ?? "",
           properties: {
-            entity: { entity_type: "engine_state", entity_id: vars.swapId },
+            entity_type: "shift",
+            entity_id: vars.swapId,
             data: { swap_id: vars.swapId },
           },
         });
@@ -222,7 +227,8 @@ export function useApproveSwap() {
           workspace_id: workspace.workspace_id,
           actor_id: profileId ?? "",
           properties: {
-            entity: { entity_type: "engine_state", entity_id: vars.swapId },
+            entity_type: "shift",
+            entity_id: vars.swapId,
             data: { swap_id: vars.swapId, rejected_by: profileId ?? "" },
           },
         });
@@ -263,7 +269,8 @@ export function useCancelSwap() {
         workspace_id: workspace.workspace_id,
         actor_id: profileId ?? "",
         properties: {
-          entity: { entity_type: "engine_state", entity_id: swapId },
+          entity_type: "shift",
+          entity_id: swapId,
           data: { swap_id: swapId },
         },
       });

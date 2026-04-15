@@ -101,7 +101,8 @@ export function useSubmitSupplement() {
         workspace_id: workspaceId,
         actor_id: profileId,
         properties: {
-          entity: { entity_type: "shift", entity_id: input.scheduleShiftId },
+          entity_type: "shift",
+          entity_id: input.scheduleShiftId,
           data: {
             shift_id: input.scheduleShiftId,
             supplement_rule_id: input.supplementRuleId ?? "",

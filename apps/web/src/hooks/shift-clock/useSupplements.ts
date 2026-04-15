@@ -152,7 +152,8 @@ export function useSupplements(shiftId: string | null) {
         workspace_id: workspaceId,
         actor_id: profileId ?? "",
         properties: {
-          entity: { entity_type: "shift" as const, entity_id: shiftId ?? "" },
+          entity_type: "shift" as const,
+          entity_id: shiftId ?? "",
           data: {
             shift_id: shiftId ?? "",
             supplement_rule_id: data.supplementRuleId,

@@ -98,7 +98,8 @@ export function usePunch() {
         workspace_id: workspaceId,
         actor_id: profileId,
         properties: {
-          entity: { entity_type: "shift", entity_id: shiftId },
+          entity_type: "shift",
+          entity_id: shiftId,
           data: {
             shift_id: shiftId,
             time_entry_id: timeEntryId,
@@ -140,7 +141,8 @@ export function usePunch() {
         workspace_id: null,
         actor_id: "",
         properties: {
-          entity: { entity_type: "shift", entity_id: timeEntryId },
+          entity_type: "shift",
+          entity_id: timeEntryId,
           data: {
             shift_id: "",
             time_entry_id: timeEntryId,

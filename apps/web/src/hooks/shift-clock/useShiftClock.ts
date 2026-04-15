@@ -230,7 +230,8 @@ export function useShiftClock() {
         workspace_id: workspace.workspace_id,
         actor_id: profileId ?? "",
         properties: {
-          entity: { entity_type: "shift" as const, entity_id: shiftId },
+          entity_type: "shift" as const,
+          entity_id: shiftId,
           data: {
             shift_id: shiftId,
             time_entry_id: entry.time_entry_id,
@@ -327,7 +328,8 @@ export function useShiftClock() {
         workspace_id: workspace.workspace_id,
         actor_id: profileId ?? "",
         properties: {
-          entity: { entity_type: "shift" as const, entity_id: state.shiftId },
+          entity_type: "shift" as const,
+          entity_id: state.shiftId,
           data: {
             shift_id: state.shiftId,
             time_entry_id: state.timeEntryId,
@@ -356,7 +358,8 @@ export function useShiftClock() {
             workspace_id: workspace.workspace_id,
             actor_id: profileId ?? "",
             properties: {
-              entity: { entity_type: "shift" as const, entity_id: state.shiftId! },
+              entity_type: "shift" as const,
+              entity_id: state.shiftId!,
               data: {
                 shift_ids: [state.shiftId!],
                 department_id: shift.department_id,
@@ -423,7 +426,8 @@ export function useShiftClock() {
         workspace_id: workspace.workspace_id,
         actor_id: profileId ?? "",
         properties: {
-          entity: { entity_type: "shift" as const, entity_id: state.shiftId },
+          entity_type: "shift" as const,
+          entity_id: state.shiftId,
           data: {
             shift_id: state.shiftId,
             time_entry_id: state.timeEntryId,
@@ -482,7 +486,8 @@ export function useShiftClock() {
         workspace_id: workspace.workspace_id,
         actor_id: profileId ?? "",
         properties: {
-          entity: { entity_type: "shift" as const, entity_id: state.shiftId },
+          entity_type: "shift" as const,
+          entity_id: state.shiftId,
           data: {
             shift_id: state.shiftId,
             time_entry_id: state.timeEntryId,
@@ -590,7 +595,8 @@ export function useShiftClock() {
         workspace_id: workspace.workspace_id,
         actor_id: profileId ?? "",
         properties: {
-          entity: { entity_type: "shift" as const, entity_id: shiftId },
+          entity_type: "shift" as const,
+          entity_id: shiftId,
           data: {
             shift_id: shiftId,
             department_id: departmentId ?? workspace.workspace_id,
@@ -604,7 +610,8 @@ export function useShiftClock() {
         workspace_id: workspace.workspace_id,
         actor_id: profileId ?? "",
         properties: {
-          entity: { entity_type: "shift" as const, entity_id: shiftId },
+          entity_type: "shift" as const,
+          entity_id: shiftId,
           data: {
             shift_id: shiftId,
             time_entry_id: entry.time_entry_id,
@@ -719,7 +726,8 @@ export function useShiftClock() {
         workspace_id: workspace.workspace_id,
         actor_id: profileId ?? "",
         properties: {
-          entity: { entity_type: "shift" as const, entity_id: shiftId },
+          entity_type: "shift" as const,
+          entity_id: shiftId,
           data: {
             shift_id: shiftId,
             time_entry_id: entry.time_entry_id,
