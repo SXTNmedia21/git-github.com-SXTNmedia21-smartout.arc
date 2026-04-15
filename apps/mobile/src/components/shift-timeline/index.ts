@@ -2,8 +2,8 @@
  * apps/mobile/src/components/shift-timeline — barrel.
  *
  * Council 6.4 (2026-04-15) locked these components to apps/mobile — a new
- * `packages/ui-native` was explicitly rejected. Web primitives remain in
- * `packages/ui/src/shift-timeline/` unchanged.
+ * native-ui workspace package was explicitly rejected. Web primitives stay
+ * under apps/web and are not imported here.
  */
 
 export { ShiftTimeline, type ShiftTimelineProps } from "./ShiftTimeline";

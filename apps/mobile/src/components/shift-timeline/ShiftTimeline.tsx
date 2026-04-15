@@ -14,7 +14,7 @@
  */
 
 import React, { useMemo, useState } from "react";
-import { StyleSheet, View, Text, Pressable } from "react-native";
+import { View, Text, Pressable } from "react-native";
 import { createStyles, useTheme, type Theme } from "@/theme";
 import { useTranslation } from "@smartout/i18n";
 
