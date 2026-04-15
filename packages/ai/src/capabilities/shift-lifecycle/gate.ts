@@ -21,6 +21,14 @@ export type GateActionArgs = {
   channel: SessionChannel;
   actionType: string;
   approversPresent?: string[];
+  /**
+   * ADR-0101: the domain entity being acted on (e.g. schedule_shift_id).
+   * Required for four-eyes capabilities — the gate uses it to scope the
+   * prior-distinct-actor history lookup on gate_evaluation. Capabilities
+   * marked `requires_four_eyes=true` that do not receive an entity_id are
+   * denied (fail-closed).
+   */
+  entityId?: string;
 };
 
 export type GateActionResult = {
@@ -48,6 +56,7 @@ export async function callGateAction(
     p_actor_profile_id: actorProfileId,
     p_action_type: args.actionType,
     p_approvers_present: args.approversPresent ?? [actorProfileId],
+    p_entity_id: args.entityId ?? null,
   });
 
   // Phase 1 (ADR-0099) RPC may not be deployed yet. Fail closed for

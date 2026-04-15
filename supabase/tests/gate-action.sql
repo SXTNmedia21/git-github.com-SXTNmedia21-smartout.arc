@@ -168,4 +168,84 @@ BEGIN
   RAISE NOTICE 'PASS: audit rows persisted (% rows)', v_count;
 END $$;
 
+-- ── 6a. Four-eyes: single actor, no prior row → denied (ADR-0101) ──
+DO $$
+DECLARE
+  v_result JSONB;
+  v_workspace_id UUID := current_setting('test.workspace_id')::uuid;
+  v_user_id UUID := current_setting('test.user_id')::uuid;
+  v_mgr_id UUID := current_setting('test.mgr_id')::uuid;
+  v_entity_id UUID := gen_random_uuid();
+BEGIN
+  PERFORM set_config('test.four_eyes_entity_id', v_entity_id::text, false);
+
+  INSERT INTO engine_authority_config (workspace_id, capability, level, min_role, requires_four_eyes, updated_by)
+    VALUES (v_workspace_id, 'cap_four_eyes', 'autonomous', 'manager', true, v_user_id);
+
+  v_result := public.gate_action(
+    v_workspace_id, 'cap_four_eyes', 'chat', v_mgr_id, 'approve_shift',
+    NULL, NULL, ARRAY[]::UUID[], v_entity_id
+  );
+
+  IF (v_result->>'allow')::boolean THEN
+    RAISE EXCEPTION 'FAIL: four-eyes single-actor should be denied, got %', v_result;
+  END IF;
+  IF v_result->>'reason' != 'four_eyes_required' THEN
+    RAISE EXCEPTION 'FAIL: expected reason=four_eyes_required, got %', v_result->>'reason';
+  END IF;
+  IF (v_result->>'approvers_needed')::int != 2 THEN
+    RAISE EXCEPTION 'FAIL: expected approvers_needed=2, got %', v_result->>'approvers_needed';
+  END IF;
+  RAISE NOTICE 'PASS: four-eyes single actor blocked with four_eyes_required';
+END $$;
+
+-- ── 6b. Four-eyes: second distinct actor on same entity → allowed ──
+DO $$
+DECLARE
+  v_result JSONB;
+  v_workspace_id UUID := current_setting('test.workspace_id')::uuid;
+  v_adm_id UUID := current_setting('test.adm_id')::uuid;
+  v_entity_id UUID := current_setting('test.four_eyes_entity_id')::uuid;
+BEGIN
+  -- Manager already audited above; admin is the second eye.
+  v_result := public.gate_action(
+    v_workspace_id, 'cap_four_eyes', 'chat', v_adm_id, 'approve_shift',
+    NULL, NULL, ARRAY[]::UUID[], v_entity_id
+  );
+
+  IF NOT (v_result->>'allow')::boolean THEN
+    RAISE EXCEPTION 'FAIL: second distinct actor should be allowed, got %', v_result;
+  END IF;
+  IF v_result->>'reason' = 'four_eyes_required' THEN
+    RAISE EXCEPTION 'FAIL: second actor should NOT have four_eyes_required reason, got %', v_result;
+  END IF;
+  RAISE NOTICE 'PASS: second distinct actor allowed on same entity';
+END $$;
+
+-- ── 6c. requires_four_eyes=false on same shape → unchanged (allow) ──
+DO $$
+DECLARE
+  v_result JSONB;
+  v_workspace_id UUID := current_setting('test.workspace_id')::uuid;
+  v_user_id UUID := current_setting('test.user_id')::uuid;
+  v_mgr_id UUID := current_setting('test.mgr_id')::uuid;
+  v_entity_id UUID := gen_random_uuid();
+BEGIN
+  INSERT INTO engine_authority_config (workspace_id, capability, level, min_role, requires_four_eyes, updated_by)
+    VALUES (v_workspace_id, 'cap_no_four_eyes', 'autonomous', 'manager', false, v_user_id);
+
+  v_result := public.gate_action(
+    v_workspace_id, 'cap_no_four_eyes', 'chat', v_mgr_id, 'approve_shift',
+    NULL, NULL, ARRAY[]::UUID[], v_entity_id
+  );
+
+  IF NOT (v_result->>'allow')::boolean THEN
+    RAISE EXCEPTION 'FAIL: requires_four_eyes=false should allow single actor, got %', v_result;
+  END IF;
+  IF v_result->>'reason' = 'four_eyes_required' THEN
+    RAISE EXCEPTION 'FAIL: four_eyes=false should not emit four_eyes_required reason, got %', v_result;
+  END IF;
+  RAISE NOTICE 'PASS: requires_four_eyes=false unchanged (allow)';
+END $$;
+
 ROLLBACK;
