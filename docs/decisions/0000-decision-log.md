@@ -32,6 +32,8 @@ tags: [decisions, adr, index]
 | [ADR-0103](0103-observer-request-c4-decision-layer.md) | 2026-04-15 | observer_request in C4 Decision Layer (parallel to shift_approval, claim/approve/reject via gate_action) | accepted |
 | [ADR-0102](0102-evidence-tier-enum.md) | 2026-04-15 | evidence_tier Enum for Protocol Proof Requirements (replaces protocol.risk_level; orthogonal to rule/deviation severity) | accepted |
 | [ADR-0101](0101-four-eyes-extension-gate-action.md) | 2026-04-15 | Four-Eyes Extension of gate_action RPC (requires_four_eyes column + extended return shape; UI renders, never re-evaluates) | accepted |
+| ADR-0109 | 2026-04-15 | *reserved — Four-Eyes Extension of gate_action RPC (claimed by PR #197 pending rename from 0101)* | reserved |
+| ADR-0101 | 2026-04-15 | *reserved — Governance/Training Council ADR (PR #200). Previously also claimed by PR #197; collision resolved by renumbering PR #197 to ADR-0109.* | reserved |
 | [ADR-0100](0100-daily-close-as-aggregate-consumer.md) | 2026-04-15 | daily_close as Department-Aggregate Consumer of Settled Shifts | accepted |
 | [ADR-0099](0099-unified-authority-gate.md) | 2026-04-15 | Unified Authority-Gate Across agent-router and engine-dispatch (closes ADR-0077/0078 violation) | accepted |
 | [ADR-0098](0098-engine-state-as-coordination-spor.md) | 2026-04-15 | engine_state as Coordination Spor, Not Truth Owner | accepted |
@@ -141,5 +143,6 @@ tags: [decisions, adr, index]
 - **0 number gaps** (0052/0053/0054 previously gaps, now occupied by renumbered collision resolvers)
 - **Renumbered 2026-04-07:** 0049 guardian-ws → 0052, 0058 simulation → 0053, 0059 edge-functions → 0054, 0071 protocol-verification → 0074 (see ADR-0075 context)
 - **Renumbered 2026-04-13:** ADR-0068-entity-drawer-surface-pattern → 0086 (collision with 0068-simulation-schema-and-service)
+- **Reserved 2026-04-15 (Council R2 F11):** ADR-0101 double-claimed by PR #197 (`feat/shift-lifecycle-capability-wiring` — Four-Eyes Extension of gate_action) and PR #200 (governance/training council). PR #200 keeps the 0101 slot; PR #197 must rename its ADR file `0101-four-eyes-extension-gate-action.md` → `0109-four-eyes-extension-gate-action.md` during rebase, update its own front-matter and any cross-references, then drop the 0101 placeholder row from this log when it lands on 0109.
 - **Archived 2026-04-13:** ADR-DRAFT-core-hierarchy-cascade — superseded by cascade spec
 - **Superseded:** 0035 (→0039), 0046 (→0064), 0055 (→0071)
