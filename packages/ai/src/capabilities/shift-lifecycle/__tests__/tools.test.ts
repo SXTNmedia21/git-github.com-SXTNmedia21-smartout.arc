@@ -220,7 +220,18 @@ describe("interpret_shift", () => {
     const supabase = makeSupabase({
       rpc: (fn) => {
         if (fn === "gate_action") return { data: { allow: true }, error: null };
-        if (fn === "derive_shift_hours") return { data: interpretationId, error: null };
+        if (fn === "derive_shift_hours") {
+          // Match jsonb return shape post-20260510100000 migration
+          return {
+            data: {
+              interpretation_id: interpretationId,
+              session_date: "2026-04-15",
+              department_id: "dept-1",
+              workspace_id: "ws-1",
+            },
+            error: null,
+          };
+        }
         return { data: null, error: null };
       },
     });
@@ -263,7 +274,16 @@ describe("settle_shift", () => {
         if (fn === "gate_action") return { data: { allow: true }, error: null };
         if (fn === "snapshot_shift_cost") {
           snapshotRpcCalled = true;
-          return { data: "new-snap", error: null };
+          // Match jsonb return shape post-20260510100000 migration
+          return {
+            data: {
+              cost_snapshot_id: "new-snap",
+              session_date: "2026-04-15",
+              department_id: "dept-1",
+              workspace_id: "ws-1",
+            },
+            error: null,
+          };
         }
         return { data: null, error: null };
       },

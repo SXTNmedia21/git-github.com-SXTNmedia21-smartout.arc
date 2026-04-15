@@ -323,7 +323,10 @@ export const interpretShift = defineTool({
     });
 
     if (error) return `Feil ved derivering: ${error.message}`;
-    const interpretationId = typeof data === "string" ? data : null;
+    // RPC returns jsonb { interpretation_id, session_date, department_id, workspace_id }
+    // per migration 20260510100000 (BREAK 2 fix). Extract interpretation_id off the object.
+    const interpretationId =
+      (data as { interpretation_id?: string } | null)?.interpretation_id ?? null;
 
     void emit({
       event: "shift_lifecycle interpreted",
@@ -422,7 +425,9 @@ export const settleShift = defineTool({
     });
 
     if (snapErr) return `Feil ved snapshot: ${snapErr.message}`;
-    const id = typeof snapshotId === "string" ? snapshotId : null;
+    // RPC returns jsonb { cost_snapshot_id, session_date, department_id, workspace_id }
+    // per migration 20260510100000 (BREAK 2 fix). Extract cost_snapshot_id off the object.
+    const id = (snapshotId as { cost_snapshot_id?: string } | null)?.cost_snapshot_id ?? null;
 
     void emit({
       event: "shift_lifecycle settled",
