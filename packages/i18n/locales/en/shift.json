@@ -1,0 +1,87 @@
+{
+  "timeline": {
+    "heading": "Your shift",
+    "heading_admin": "Shift",
+    "phase": {
+      "planlegges": "Planned",
+      "pagar": "In progress",
+      "oppgjor": "Settlement",
+      "avsluttet": "Closed"
+    },
+    "metric": {
+      "planned_hours": "Planned: {hours} h",
+      "not_started": "Not started",
+      "in_progress": "In progress · {hours} h",
+      "interpreted_hours": "Interpreted: {hours} h",
+      "approved_hours": "Approved: {hours} h"
+    },
+    "badge": {
+      "deviation": "Deviation",
+      "blocking": "Blocking",
+      "pending_approval": "Pending approval",
+      "punched_in": "Punched in",
+      "punched_out": "Punched out",
+      "locked": "Locked"
+    },
+    "aria": {
+      "phase_change": "Your shift moved from {from} to {to}",
+      "step_list": "Shift steps"
+    },
+    "action": {
+      "open_botsson": "Talk to Botsson",
+      "open_deviation": "View deviation",
+      "understand": "I understand",
+      "contact_manager": "Contact manager",
+      "approve": "Approve",
+      "request_interpretation": "Request new interpretation",
+      "open_in_botsson": "Open in Botsson"
+    },
+    "fallback": {
+      "error": "Could not load the shift",
+      "loading": "Loading shift…",
+      "empty": "Shift not found"
+    }
+  },
+  "notification": {
+    "published": {
+      "title": "Shift published",
+      "body": "A new shift has been published for you."
+    },
+    "reminder": {
+      "title": "Shift reminder",
+      "body": "Your shift starts soon."
+    },
+    "punched_in": {
+      "title": "Punched in",
+      "body": "You are punched in."
+    },
+    "punched_out": {
+      "title": "Punched out",
+      "body": "You are punched out."
+    },
+    "interpretation_ready": {
+      "title": "Interpretation ready",
+      "body": "Hours are interpreted and ready for approval."
+    },
+    "approval_needed": {
+      "title": "Approval needed",
+      "body": "A shift is waiting for approval."
+    },
+    "approved": {
+      "title": "Approved",
+      "body": "The shift is approved."
+    },
+    "deviation_raised": {
+      "title": "New deviation",
+      "body": "A deviation was raised on the shift."
+    },
+    "deviation_blocking": {
+      "title": "Deviation blocking",
+      "body": "A deviation must be resolved before closing."
+    },
+    "closed": {
+      "title": "Closed",
+      "body": "The shift is closed."
+    }
+  }
+}
