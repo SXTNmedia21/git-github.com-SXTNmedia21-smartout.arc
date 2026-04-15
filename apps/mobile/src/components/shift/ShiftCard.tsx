@@ -18,6 +18,7 @@ import { strings } from "@/constants/strings";
 import { getShiftSupplements, mapDbRules } from "@/lib/supplements";
 import { useSupplementRules } from "@/hooks/queries/use-supplement-rules";
 import { useShiftLifecycle } from "@/hooks/useShiftLifecycle";
+import { useIsOnline } from "@/hooks/useIsOnline";
 import { PhaseStrip, PHASE_STRIP_HEIGHT } from "@/components/shift-timeline";
 import type { Database } from "@smartout/supabase/database.types";
 
@@ -97,6 +98,7 @@ export function ShiftCard({
   // Only fetch the lifecycle when the strip is requested — keeps other
   // card usages (swap, roster lists) on the same lightweight footprint.
   const { data: lifecycle } = useShiftLifecycle(showPhaseStrip ? shift.schedule_shift_id : null);
+  const isOnline = useIsOnline();
 
   const supplements = useMemo(() => {
     if (!supplementData?.rules || supplementData.rules.length === 0) return [];
@@ -125,7 +127,7 @@ export function ShiftCard({
     <Card onPress={needsConfirm ? undefined : onPress}>
       {showPhaseStrip && lifecycle ? (
         <View style={styles.phaseStripContainer}>
-          <PhaseStrip activePhase={lifecycle.phase} />
+          <PhaseStrip activePhase={lifecycle.phase} frozen={!isOnline} />
         </View>
       ) : null}
       {needsConfirm && onPress ? (

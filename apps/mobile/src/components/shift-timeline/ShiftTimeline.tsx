@@ -38,6 +38,14 @@ export type ShiftTimelineProps = {
   onLongPressPhase?: (phase: ShiftLifecyclePhase) => void;
   /** When true, the orb and transitions are frozen. Set by the host on offline. */
   frozen?: boolean;
+  /**
+   * When provided, renders the "Oppdatert HH:MM" pill in the header and
+   * suppresses the deviation action with a toast. Typically sourced from
+   * TanStack Query's `dataUpdatedAt`.
+   */
+  lastUpdatedAt?: number | null;
+  /** Callback fired when user taps deviation while offline. Hosts show a toast. */
+  onOfflineDeviationAttempt?: () => void;
 };
 
 /** Format hours as Norwegian-style `7,25` — matches the web component. */
@@ -49,11 +57,19 @@ function formatHours(hours: number | null | undefined): string | undefined {
 /** Vertical distance each phase row occupies in the full timeline. */
 const ROW_HEIGHT = 84;
 
+/** Format a UNIX-ms timestamp as HH:MM (local). Used by the offline pill. */
+function formatClock(ms: number): string {
+  const d = new Date(ms);
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
 export function ShiftTimeline({
   lifecycle,
   onOpenBotsson,
   onLongPressPhase,
   frozen = false,
+  lastUpdatedAt,
+  onOfflineDeviationAttempt,
 }: ShiftTimelineProps) {
   const styles = useStyles();
   const theme = useTheme();
@@ -98,7 +114,16 @@ export function ShiftTimeline({
 
   return (
     <View style={styles.container} accessibilityLabel={t("timeline.aria.step_list")}>
-      <Text style={styles.heading}>{t("timeline.heading")}</Text>
+      <View style={styles.headerRow}>
+        <Text style={styles.heading}>{t("timeline.heading")}</Text>
+        {frozen && lastUpdatedAt ? (
+          <View style={styles.pill}>
+            <Text style={styles.pillText}>
+              {t("timeline.offline.pill", { time: formatClock(lastUpdatedAt) })}
+            </Text>
+          </View>
+        ) : null}
+      </View>
 
       <View style={[styles.track, { height: trackHeight }]}>
         {!frozen && (
@@ -136,14 +161,17 @@ export function ShiftTimeline({
                   accessibilityLabel={t(
                     showBlocking ? "timeline.badge.blocking" : "timeline.badge.deviation",
                   )}
-                  disabled={frozen}
-                  onPress={() =>
+                  onPress={() => {
+                    if (frozen) {
+                      onOfflineDeviationAttempt?.();
+                      return;
+                    }
                     onOpenBotsson({
                       kind: "deviation",
                       shift_id: lifecycle.shift_id,
                       phase,
-                    })
-                  }
+                    });
+                  }}
                   style={[
                     styles.deviationBadge,
                     showBlocking
@@ -204,7 +232,22 @@ const useStyles = createStyles((theme) => ({
     fontSize: 20,
     fontWeight: "600",
     color: theme.colors.foreground,
+  },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: theme.spacing.element,
+  },
+  pill: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.colors.muted,
+  },
+  pillText: {
+    fontSize: 12,
+    color: theme.colors.mutedForeground,
   },
   track: {
     position: "relative",
