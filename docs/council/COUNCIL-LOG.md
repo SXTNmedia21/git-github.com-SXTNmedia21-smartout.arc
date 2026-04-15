@@ -661,3 +661,37 @@ Phase 3: Agent wiring (after C merges)
 - engine_state lifespan must match coordination need (per-transition, not per-entity-lifetime) to avoid scale blowup
 - Mobile punch DOES emit telemetry (deep dive overstated this gap); real telemetry hole is admin_action paths in approval/reconciliation
 **Notes:** Phase 1 (authority-gate + channel-guard in engine-dispatch) ships independently as security fix regardless of consolidation cadence. Phase 3 (Derivation migrations) blocks payroll work.
+
+## 2026-04-15 — Tripletex-Ready Schema Scope Lock
+**Type:** plan
+**Verdict:** APPROVE WITH CHANGES
+**Agents consulted:** system-steward (chair), supervisor (frontend-designer + system-agent-coordinator skipped — backend/DB only, no agent runtime)
+**Prior verdict held?** n/a — first session on this plan
+**Key decisions:**
+- ADR renumber 0080-0084 → 0107-0111 (0080-0084 taken)
+- employee_type as K1a platform-level (nullable workspace_id, matches tariff_rate_table)
+- payroll_ledger_archive = Bubble historical ONLY; operational ledger separate + deferred
+- M8 trigger filter = whitelist `source = 'operational'`, not blacklist
+- Enum ALTER split into isolated M2a migration (PG tx rule)
+- Cross-schema source column in timesheet.time_entry (symmetry wins)
+**ADRs to create:** 0107, 0108, 0109, 0110, 0111 (all written same session)
+**Learnings:** K1a vs D2 decision pattern for industry-generic taxonomies; enum ALTER tx-split as migration authoring checklist item
+
+## 2026-04-15 — Tripletex-Ready Schema Architectural Decisions (M3–M9 + ADRs)
+**Type:** plan (extends above)
+**Verdict:** APPROVE WITH CHANGES
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator (code-tracer mandate)
+**Prior verdict held?** yes — scope-lock verdict (same day) unchanged
+**Key decisions (after semantic conflict resolution):**
+- M3 PK: surrogate `detail_id` + UNIQUE constraint (matches shift_cost_snapshot precedent) — supervisor wins over steward's composite PK
+- M3 columns: Tripletex-only (5 cols), no HR-field mirror — supervisor wins over steward's hybrid
+- M5 payroll_ledger_archive: lean typed columns + raw_json (matches engine_state_archive precedent) — supervisor wins
+- ADR-0109 bypass rule: block-and-supersede (UPDATE on migrated rows raises exception; admin issues new contract via composition) — hybrid resolving steward (b) vs supervisor (a) conflict
+- No partitioning in Phase 1 (both agreed)
+- CHECK enum (3 values) on source column (both agreed)
+**Agent Trust Gate:** CAN-WITH-M8-COMPLETENESS — agent-coord code-trace surfaced 5 blocker triggers + 4th side-channel (schedule_audit_log) missing from brief
+**ADRs created:** 0107, 0108, 0109, 0110, 0111 (5 ADRs, commit c3bf97ec)
+**Learnings:**
+- Code-tracer mandate saved us — concept-level reviewers missed 4 hard-coded triggers + 1 side-channel (schedule_audit_log not named in brief)
+- "Source discriminator = one-column filter" ≠ "boundary = one-column filter" — cascading side-effects (channel/protocol_assignment/outbox) must be enumerated separately
+- INSERT-only invariant is load-bearing: neutralizes 3 UPDATE-only triggers without filter changes
