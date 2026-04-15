@@ -123,22 +123,9 @@ async function ensureDepartmentSessionLifecycleSeed() {
     assertNoSupabaseError(triggerInsertResult.error, "seed shift.published trigger");
   }
 
-  const { data: existingPluralTrigger } = await supabase
-    .from("engine_trigger")
-    .select("id")
-    .eq("event_type", "shifts.published")
-    .eq("process_id", "department_session_lifecycle")
-    .maybeSingle();
-
-  if (!existingPluralTrigger) {
-    const triggerInsertResult = await supabase.from("engine_trigger").insert({
-      event_type: "shifts.published",
-      process_id: "department_session_lifecycle",
-      condition: null,
-      is_active: true,
-    });
-    assertNoSupabaseError(triggerInsertResult.error, "seed shifts.published trigger");
-  }
+  // Plural `shifts.published` alias unwound per ADR-0095
+  // (migration 20260507100200). Only the singular `shift.published`
+  // trigger is seeded for department_session_lifecycle.
 }
 
 /**
@@ -326,7 +313,7 @@ test.describe("journey:shift-publish-session-spine", () => {
 
     const targetDate = todayISO();
     const result = await dispatch(
-      "shifts.published",
+      "shift.published",
       {
         entity_type: "shift",
         entity_id: crypto.randomUUID(),
@@ -450,7 +437,10 @@ test.describe("journey:shift-publish-session-spine", () => {
     hookDispatcherStateId = dispatcherState!.id;
   });
 
-  test("trigger contract keeps both shift.published and shifts.published wired", async () => {
+  test("trigger contract canonicalizes on singular shift.published", async () => {
+    // Per ADR-0095 (Council 2026-04-15, migration 20260507100200)
+    // the plural `shifts.published` alias is unwound. Only the
+    // singular canonical form is wired for department_session_lifecycle.
     const { data: triggerRows, error } = await supabase
       .from("engine_trigger")
       .select("event_type, process_id, is_active")
@@ -463,6 +453,6 @@ test.describe("journey:shift-publish-session-spine", () => {
 
     const eventTypes = new Set((triggerRows ?? []).map((row) => row.event_type));
     expect(eventTypes.has("shift.published")).toBeTruthy();
-    expect(eventTypes.has("shifts.published")).toBeTruthy();
+    expect(eventTypes.has("shifts.published")).toBeFalsy();
   });
 });

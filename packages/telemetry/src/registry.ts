@@ -1374,7 +1374,13 @@ export interface TemplateBindingUpdated extends BaseEvent {
   event: "template_binding updated";
   properties: {
     entity: EntityRef;
-    data: { template_id?: string; employment_category: string; employee_group_id: string | null; is_active?: boolean; priority?: number };
+    data: {
+      template_id?: string;
+      employment_category: string;
+      employee_group_id: string | null;
+      is_active?: boolean;
+      priority?: number;
+    };
   };
 }
 
@@ -4304,8 +4310,13 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "scheduling",
   },
+  // Soft-deprecated plural alias per ADR-0095 (Council 2026-04-15).
+  // Canonical event is `shift published` (singular). engine_event
+  // routing dropped; posthog/logger/activity_trail retained so any
+  // stragglers still surface in analytics/audit while call sites are
+  // migrated. Remove entry entirely in a follow-up cleanup migration.
   "shifts published": {
-    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    destinations: ["posthog", "logger", "activity_trail"],
     category: "scheduling",
   },
   "week reset": {
