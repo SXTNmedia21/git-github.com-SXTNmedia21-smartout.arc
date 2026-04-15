@@ -1,87 +1,63 @@
 -- 20260414072301_seed_contract_notification_templates.sql
 -- Seed message_template rows for contract lifecycle notifications.
--- Norwegian (no) and English (en) variants for each template.
+--
+-- Rewritten 2026-04-15 to match actual message_template schema
+-- (key/subject_no/subject_en/body_no/body_en). Original used misaligned
+-- column names (template_key/language/subject/body) that did not exist
+-- on the table defined in 20260228140000_contract_system_foundation.sql,
+-- causing `npx supabase db reset` to fail.
 
-INSERT INTO message_template (category, template_key, language, subject, body, channel, created_at)
-VALUES
-  -- contract.employee.created
-  ('contract', 'contract.employee.created', 'no',
+INSERT INTO public.message_template (
+  key, channel, category,
+  subject_no, subject_en,
+  body_no, body_en
+) VALUES
+  ('contract.employee.created', 'email', 'contract',
    'Ny kontrakt opprettet',
-   'Hei {{employee_name}}, en ny kontrakt er opprettet for deg hos {{company_name}}.',
-   'email', now()),
-  ('contract', 'contract.employee.created', 'en',
    'New contract created',
-   'Hi {{employee_name}}, a new contract has been created for you at {{company_name}}.',
-   'email', now()),
+   'Hei {{employee_name}}, en ny kontrakt er opprettet for deg hos {{company_name}}.',
+   'Hi {{employee_name}}, a new contract has been created for you at {{company_name}}.'),
 
-  -- contract.employee.sent
-  ('contract', 'contract.employee.sent', 'no',
+  ('contract.employee.sent', 'email', 'contract',
    'Kontrakt klar for signering',
-   'Hei {{employee_name}}, du har en kontrakt som venter på din signering. Vennligst logg inn for å se og signere kontrakten.',
-   'email', now()),
-  ('contract', 'contract.employee.sent', 'en',
    'Contract ready for signing',
-   'Hi {{employee_name}}, you have a contract waiting for your signature. Please log in to view and sign the contract.',
-   'email', now()),
+   'Hei {{employee_name}}, du har en kontrakt som venter på din signering. Vennligst logg inn for å se og signere kontrakten.',
+   'Hi {{employee_name}}, you have a contract waiting for your signature. Please log in to view and sign the contract.'),
 
-  -- contract.employee.signed.admin
-  ('contract', 'contract.employee.signed.admin', 'no',
+  ('contract.employee.signed.admin', 'email', 'contract',
    'Kontrakt signert av {{employee_name}}',
-   '{{employee_name}} har signert kontrakten sin. Du kan nå se den signerte kontrakten i dashbordet.',
-   'email', now()),
-  ('contract', 'contract.employee.signed.admin', 'en',
    'Contract signed by {{employee_name}}',
-   '{{employee_name}} has signed their contract. You can now view the signed contract in the dashboard.',
-   'email', now()),
+   '{{employee_name}} har signert kontrakten sin. Du kan nå se den signerte kontrakten i dashbordet.',
+   '{{employee_name}} has signed their contract. You can now view the signed contract in the dashboard.'),
 
-  -- contract.employee.signed.employee
-  ('contract', 'contract.employee.signed.employee', 'no',
+  ('contract.employee.signed.employee', 'email', 'contract',
    'Kontrakten din er signert',
-   'Hei {{employee_name}}, kontrakten din er nå signert. Du kan finne en kopi i dashbordet ditt.',
-   'email', now()),
-  ('contract', 'contract.employee.signed.employee', 'en',
    'Your contract is signed',
-   'Hi {{employee_name}}, your contract is now signed. You can find a copy in your dashboard.',
-   'email', now()),
+   'Hei {{employee_name}}, kontrakten din er nå signert. Du kan finne en kopi i dashbordet ditt.',
+   'Hi {{employee_name}}, your contract is now signed. You can find a copy in your dashboard.'),
 
-  -- contract.employee.declined
-  ('contract', 'contract.employee.declined', 'no',
+  ('contract.employee.declined', 'email', 'contract',
    'Kontrakt avslått av {{employee_name}}',
-   '{{employee_name}} har avslått kontrakten. Vennligst følg opp med den ansatte.',
-   'email', now()),
-  ('contract', 'contract.employee.declined', 'en',
    'Contract declined by {{employee_name}}',
-   '{{employee_name}} has declined the contract. Please follow up with the employee.',
-   'email', now()),
+   '{{employee_name}} har avslått kontrakten. Vennligst følg opp med den ansatte.',
+   '{{employee_name}} has declined the contract. Please follow up with the employee.'),
 
-  -- contract.employee.expired.admin
-  ('contract', 'contract.employee.expired.admin', 'no',
+  ('contract.employee.expired.admin', 'email', 'contract',
    'Kontrakt utløpt — {{employee_name}}',
-   'Kontrakten for {{employee_name}} har utløpt uten signering. Vurder å sende en ny kontrakt.',
-   'email', now()),
-  ('contract', 'contract.employee.expired.admin', 'en',
    'Contract expired — {{employee_name}}',
-   'The contract for {{employee_name}} has expired without being signed. Consider sending a new contract.',
-   'email', now()),
+   'Kontrakten for {{employee_name}} har utløpt uten signering. Vurder å sende en ny kontrakt.',
+   'The contract for {{employee_name}} has expired without being signed. Consider sending a new contract.'),
 
-  -- contract.employee.expired.employee
-  ('contract', 'contract.employee.expired.employee', 'no',
+  ('contract.employee.expired.employee', 'email', 'contract',
    'Kontrakten din har utløpt',
-   'Hei {{employee_name}}, kontrakten din har utløpt. Kontakt din leder for videre informasjon.',
-   'email', now()),
-  ('contract', 'contract.employee.expired.employee', 'en',
    'Your contract has expired',
-   'Hi {{employee_name}}, your contract has expired. Contact your manager for further information.',
-   'email', now()),
+   'Hei {{employee_name}}, kontrakten din har utløpt. Kontakt din leder for videre informasjon.',
+   'Hi {{employee_name}}, your contract has expired. Contact your manager for further information.'),
 
-  -- contract.employee.reminder
-  ('contract', 'contract.employee.reminder', 'no',
+  ('contract.employee.reminder', 'email', 'contract',
    'Påminnelse: Signer kontrakten din',
-   'Hei {{employee_name}}, du har fortsatt en usignert kontrakt. Vennligst logg inn og signer så snart som mulig.',
-   'email', now()),
-  ('contract', 'contract.employee.reminder', 'en',
    'Reminder: Sign your contract',
-   'Hi {{employee_name}}, you still have an unsigned contract. Please log in and sign it as soon as possible.',
-   'email', now())
+   'Hei {{employee_name}}, du har fortsatt en usignert kontrakt. Vennligst logg inn og signer så snart som mulig.',
+   'Hi {{employee_name}}, you still have an unsigned contract. Please log in and sign it as soon as possible.')
 
-ON CONFLICT DO NOTHING;
+ON CONFLICT (key) DO NOTHING;
