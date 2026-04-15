@@ -32,6 +32,7 @@ tags: [decisions, adr, index]
 | [ADR-0103](0103-observer-request-c4-decision-layer.md) | 2026-04-15 | observer_request in C4 Decision Layer (parallel to shift_approval, claim/approve/reject via gate_action) | accepted |
 | [ADR-0102](0102-evidence-tier-enum.md) | 2026-04-15 | evidence_tier Enum for Protocol Proof Requirements (replaces protocol.risk_level; orthogonal to rule/deviation severity) | accepted |
 | [ADR-0101](0101-four-eyes-extension-gate-action.md) | 2026-04-15 | Four-Eyes Extension of gate_action RPC (requires_four_eyes column + extended return shape; UI renders, never re-evaluates) | accepted |
+| [ADR-0112](0112-intent-classifier-coverage-invariant.md) | 2026-04-15 | Intent Classifier Coverage Invariant — every registered capability must have an intent-schema entry (Council R2 F5 follow-up) | accepted |
 | ADR-0109 | 2026-04-15 | *reserved — Four-Eyes Extension of gate_action RPC (claimed by PR #197 pending rename from 0101)* | reserved |
 | ADR-0101 | 2026-04-15 | *reserved — Governance/Training Council ADR (PR #200). Previously also claimed by PR #197; collision resolved by renumbering PR #197 to ADR-0109.* | reserved |
 | [ADR-0100](0100-daily-close-as-aggregate-consumer.md) | 2026-04-15 | daily_close as Department-Aggregate Consumer of Settled Shifts | accepted |
