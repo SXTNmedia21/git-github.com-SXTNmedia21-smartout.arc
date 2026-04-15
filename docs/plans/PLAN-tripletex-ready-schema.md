@@ -87,6 +87,29 @@ state-machine knowledge and breaks strike-mcp's dry-run-only safety model.
 Cutover notice: "All pending shift swaps must be re-initiated in v3 after
 migration." Documented in HANDOFF.
 
+### `shift` — flat worktime cache (no JSON snapshot in practice)
+
+Live probe confirmed `shift.Json` field is declared in Bubble meta but
+empty on 0/20 sampled Wrightegaarden shifts. Bubble instead denormalizes
+worktime summary as flat columns on the shift row:
+`worktime.start/end/hours/salary`, `baseSalary`, `shift.Salary`,
+`shift.durationSeconds`, plus FK lists (`list of 🗓️ records`,
+`list of 🗓️ salaryDetails`).
+
+**Decision:** v3 does NOT add these flat cache columns to `schedule_shift`.
+Cost data lives on the existing `shift_cost_snapshot` (C3 Commercial
+plane, already in `supabase/migrations/20260421100200_cascade_a1_domain_tables.sql`).
+Historical Bubble cost data flows into `payroll_ledger_archive`, then is
+aggregated into `shift_cost_snapshot` via M10. This respects the
+D6 Production vs C3 Commercial cascade separation instead of denormalizing
+onto the shift row the way Bubble did.
+
+Migration order for cost data:
+1. `schedule_shift` (D6) — operational shift without cost
+2. `timesheet.time_entry` — punch-clock evidence from `🗓️record` workTime rows
+3. `payroll_ledger_archive` — all 17 607 salary_transaction rows as ground truth
+4. `shift_cost_snapshot` — derived via M10 from the ledger
+
 ## Tasks
 
 ### Phase 1 — Migration additions
@@ -112,10 +135,11 @@ migration." Documented in HANDOFF.
 - [ ] M5: add `public.payroll_ledger_archive` table — receives 17 607 ⏱️salary_transaction rows
   - Columns: `payroll_ledger_id uuid PK`, `workspace_id uuid FK`, `schedule_shift_id uuid FK`, `profile_id uuid FK`, `department_id uuid FK`, `team_id uuid FK`, `transaction_date date`, `work_date date`, `start_time text`, `stop_time text`, `hours numeric`, `base_salary numeric`, `total_salary numeric`, `is_worktime boolean`, `salary_category text`, `salary_type_name text`, `a_melding_code text`, `accounting_account_code text`, `bubble_record_id text UNIQUE`, `source text DEFAULT 'bubble_migration'`, `raw_json jsonb`, `comment text`, `created_at`
   - RLS workspace-scoped read + admin-only INSERT; explicit `USING (false)` for UPDATE + DELETE (archive immutability — ADR-0110)
-- [ ] M6: extend `public.schedule_shift` with `source_snapshot_json jsonb` (raw `shift.Json` fallback from Bubble)
+- [x] ~~M6: extend `public.schedule_shift` with `source_snapshot_json jsonb`~~ — **DROPPED 2026-04-15.** Live inspection: `shift.Json` is declared in Bubble meta but empty on 0/20 sampled Wrightegaarden shifts. The field is unused in practice. No JSONB archive column needed on schedule_shift.
 - [ ] M7: add `source text DEFAULT 'operational'` column + CHECK (`'operational' | 'bubble_migration' | 'v3_engine'`) to: workspace, company, location, department, team, profile, employment_contract, employment_contract_detail, employee_type, schedule_shift, timesheet.time_entry, invitation (12 tables)
 - [ ] M8: enumerate every `AFTER INSERT/UPDATE` trigger on the 12 source-column tables; add `WHERE source = 'operational'` (whitelist) filter where applicable. Enumeration table lives in ADR-0108 before migration authoring (per ADR-0108)
 - [ ] M9: regenerate `packages/supabase/src/database.types.ts`
+- [ ] M10: seed `public.shift_cost_snapshot` (existing C3 Commercial table, `supabase/migrations/20260421100200_cascade_a1_domain_tables.sql:379`) from `payroll_ledger_archive` — derivation query aggregates ledger rows per `schedule_shift_id` after M5 lands. Keeps cost data on cascade C3 plane instead of denormalizing onto `schedule_shift` (D6). Bubble duplicated `worktime.hours/salary/baseSalary` flat on its shift row for performance; v3 relies on Postgres index + join instead.
 
 ### Phase 2 — ADRs
 
