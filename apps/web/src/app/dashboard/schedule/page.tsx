@@ -737,7 +737,10 @@ function SchedulePageContent() {
     const emp = employees.find((e: ScheduleEmployee) => e.id === employeeId);
     const name = emp?.name ?? "Ansatt";
     toast.warning(`${name} — ${entry.readinessPercent}% klar`, {
-      description: `Mangler: ${entry.pendingProtocols.slice(0, 3).join(", ")}${entry.pendingProtocols.length > 3 ? "…" : ""}`,
+      description: `Mangler: ${entry.pendingProtocols
+        .slice(0, 3)
+        .map((p) => p.name)
+        .join(", ")}${entry.pendingProtocols.length > 3 ? "…" : ""}`,
     });
   };
 
