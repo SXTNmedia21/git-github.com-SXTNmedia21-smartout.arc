@@ -91,9 +91,11 @@ migration." Documented in HANDOFF.
 
 ### Phase 1 — Migration additions
 
-- [ ] M1: create `public.employee_type` reference table + seed 3 rows from Wrightegaarden
-  - Columns: `employee_type_id uuid PK`, `workspace_id uuid FK`, `title text`, `employment_form_derived text` (permanent/temporary/NULL), `fixed_salary boolean`, `max_hours_week numeric`, `accounting_account_code text`, `color_pallet text`, `max_vacation_days int`, `days_trial_period int`, `created_at`, `updated_at`
-  - Seed the 3 Wrightegaarden rows verbatim (Månedslønn, Timelønn sesongmedarbeider, Frivillig) — strike-mcp transform resolves employee_type_id FK per employment_profile
+- [ ] M1: create `public.employee_type` K1a platform-level reference table + seed 3 rows as platform data
+  - Columns: `employee_type_id uuid PK`, `workspace_id uuid NULL` (nullable — K1a pattern, matches `tariff_rate_table`), `title text`, `employment_form_derived text` (permanent/temporary/NULL), `fixed_salary boolean`, `max_hours_week numeric`, `accounting_account_code text`, `color_pallet text`, `max_vacation_days int`, `days_trial_period int`, `created_at`, `updated_at`
+  - RLS: read-to-all-authenticated; write-platform-admin-only
+  - Seed the 3 rows (Månedslønn, Timelønn sesongmedarbeider, Frivillig) as platform rows with `workspace_id = NULL` — strike-mcp resolves FK per profile at migration time; workspace-overrides allowed via future INSERT
+  - NO `source` column (employee_type is not in the 12-table discriminator set)
 - [ ] M2: extend `public.employment_contract` with Tripletex-required columns
   - `occupation_code text` (STYRK-08, 7-digit, nullable — validated at sync time, not here)
   - `employment_form text` with CHECK `IN ('permanent','temporary') OR IS NULL` (NULL = volunteer)
@@ -101,6 +103,7 @@ migration." Documented in HANDOFF.
   - `working_hours_scheme text` (Tripletex lookup: dagtid/skift/turnus/…)
   - `fte_percentage numeric` (stillingsprosent)
   - `employee_type_id uuid REFERENCES public.employee_type`
+- [ ] M2a: `ALTER TYPE public.contract_status ADD VALUE 'migration_incomplete'` — isolated migration (PG tx rule: new enum value unusable in same tx)
 - [ ] M3: add `public.employment_contract_detail` table (versioned contract state)
   - Tripletex expects append-only history per `effective_date`
   - Columns mirror M2 additions + `effective_date date NOT NULL`
@@ -108,22 +111,32 @@ migration." Documented in HANDOFF.
 - [ ] M4: extend `public.profile` with `external_employee_number text` + `UNIQUE(workspace_id, external_employee_number) WHERE external_employee_number IS NOT NULL`
 - [ ] M5: add `public.payroll_ledger_archive` table — receives 17 607 ⏱️salary_transaction rows
   - Columns: `payroll_ledger_id uuid PK`, `workspace_id uuid FK`, `schedule_shift_id uuid FK`, `profile_id uuid FK`, `department_id uuid FK`, `team_id uuid FK`, `transaction_date date`, `work_date date`, `start_time text`, `stop_time text`, `hours numeric`, `base_salary numeric`, `total_salary numeric`, `is_worktime boolean`, `salary_category text`, `salary_type_name text`, `a_melding_code text`, `accounting_account_code text`, `bubble_record_id text UNIQUE`, `source text DEFAULT 'bubble_migration'`, `raw_json jsonb`, `comment text`, `created_at`
-  - RLS workspace-scoped read + admin-only write
-  - NO updates post-insert (archive semantics — ADR-0083 enforces)
+  - RLS workspace-scoped read + admin-only INSERT; explicit `USING (false)` for UPDATE + DELETE (archive immutability — ADR-0110)
 - [ ] M6: extend `public.schedule_shift` with `source_snapshot_json jsonb` (raw `shift.Json` fallback from Bubble)
 - [ ] M7: add `source text DEFAULT 'operational'` column + CHECK (`'operational' | 'bubble_migration' | 'v3_engine'`) to: workspace, company, location, department, team, profile, employment_contract, employment_contract_detail, employee_type, schedule_shift, timesheet.time_entry, invitation (12 tables)
-- [ ] M8: audit `engine_process` triggers for reconciliation + lifecycle; add `WHERE source != 'bubble_migration'` filter where applicable (per ADR-0081)
+- [ ] M8: enumerate every `AFTER INSERT/UPDATE` trigger on the 12 source-column tables; add `WHERE source = 'operational'` (whitelist) filter where applicable. Enumeration table lives in ADR-0108 before migration authoring (per ADR-0108)
 - [ ] M9: regenerate `packages/supabase/src/database.types.ts`
 
 ### Phase 2 — ADRs
 
-ADR numbers TBD — verify next available in `docs/decisions/0000-decision-log.md` before authoring. The existing 0080-0082 are already taken; the strike-mcp-side plan references ADR-0080/0081/0082 which must be renumbered.
+ADR numbering verified 2026-04-15: highest existing = 0106. Range 0080-0084 is taken (0080 compliance-drift, 0081 admin-pii-bypass, 0082 contract-drafts-not-versions, 0083 strike-mcp-registration, 0084 telemetry-conditional-exports). Final assignment:
 
-- [ ] ADR-XXXX: strike-mcp telemetry boundary (no emit(), no engine_event, no activity_trail; provenance via source column only)
-- [ ] ADR-XXXX: `source` discriminator pattern across migration-targeted tables + engine_process trigger filters
-- [ ] ADR-XXXX: migrated profile contract shell — zero-contract profile handling with `status='migration_incomplete'` + Tripletex-optional fields nullable + volunteer null-semantics
-- [ ] ADR-XXXX: payroll_ledger_archive semantics — read-only historical ledger, Tripletex sync source, v3 framework engine writes new rows with `source='v3_engine'` into the operational payroll table (separate from archive)
-- [ ] ADR-XXXX: employment_contract_detail versioning — append-only history semantics matching Tripletex EmploymentDetails
+- [ ] **ADR-0107**: strike-mcp telemetry boundary — **extends ADR-0083** (registration). No `emit()`, no `engine_event`, no `activity_trail`; provenance via `source` column only. Bypasses ADR-0076 composition derivation for historical imports.
+- [ ] **ADR-0108**: `source` discriminator pattern across migration-targeted tables + `engine_process` trigger filters. **Whitelist semantics** (`source = 'operational'`), not blacklist. Enumerates concrete triggers affected in a table.
+- [ ] **ADR-0109**: migrated profile contract shell — zero-contract profile handling with `status='migration_incomplete'` + Tripletex-optional fields nullable + volunteer null-semantics. **Explicitly declares ADR-0076 composition bypass** as bounded historical exception for `source='bubble_migration'` rows; re-entry semantics for post-migration mutation.
+- [ ] **ADR-0110**: `payroll_ledger_archive` semantics — read-only Bubble historical ledger (archive-only). v3 framework engine writes new rows to a SEPARATE operational payroll table (NOT this archive). RLS explicit `USING (false)` for UPDATE/DELETE.
+- [ ] **ADR-0111**: `employment_contract_detail` append-only versioning matching Tripletex EmploymentDetails. **Reconciles with ADR-0082** — detail rows are intra-contract state snapshots (effective_date), NOT pre-send drafts; parent_contract_id lineage (0082) remains for inter-contract versioning.
+
+### Council verdict conditions (2026-04-15 scope-lock)
+
+Council APPROVED WITH CHANGES. Binding conditions carried into ADR/migration authoring:
+
+1. **M1 employee_type as K1a platform-level** (nullable `workspace_id`, read-to-all-authenticated, write-platform-admin-only). Matches `tariff_rate_table` pattern. Seed 3 Wrightegaarden rows as platform data. `source` column omitted (not in 12-table discriminator set).
+2. **M2a separation:** `ALTER TYPE public.contract_status ADD VALUE 'migration_incomplete'` in dedicated migration file, isolated from any migration using the new value (PG tx rule).
+3. **M5 nomenclature resolved:** `payroll_ledger_archive` is Bubble historical archive only. v3 writes new payroll data to a separate operational table (out of scope here — future work).
+4. **M7 cross-schema:** include `timesheet.time_entry` (INSERT-time metadata; no ADR-0097 immutability conflict).
+5. **M8 whitelist:** `WHERE source = 'operational'` (or explicit list), not `WHERE source != 'bubble_migration'`. Enumerate trigger targets in ADR-0108 before writing migration.
+6. **Every migration must qualify `public.contract_status`** (ADR-0079 naming collision with text column in 20260228140000).
 
 ### Phase 3 — Verification
 
