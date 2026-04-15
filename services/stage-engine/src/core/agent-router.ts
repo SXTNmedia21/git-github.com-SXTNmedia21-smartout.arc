@@ -11,7 +11,7 @@ import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { classifyIntent } from "@smartout/ai/router/intent-classifier";
 import { selectTools } from "@smartout/ai/router/tool-selector";
 import { applyMinRoleDowngrade } from "@smartout/ai/router/min-role";
-import type { ProfileRole } from "@smartout/ai/capabilities/types";
+import type { AuthorityLevel, ProfileRole } from "@smartout/ai/capabilities/types";
 import { buildBotssonPromptFromContext } from "@smartout/ai/prompts/mr-botsson";
 import { toVercelTools } from "@smartout/ai/adapters/vercel-ai";
 import { collectContext } from "@smartout/ai/context/collector";
@@ -75,28 +75,61 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
     userJwt,
   } = input;
 
-  // Step 1: Load authority config + caller's role in parallel, then apply min_role downgrade.
-  // ADR-0091 unifies role-based C4 checks with authority config; min_role enforcement here
-  // downgrades to 'suggest' whenever the profile role is below the per-capability floor.
-  const [rawAuthority, { data: profileRow }] = await Promise.all([
-    loadAuthorityConfig(workspaceId),
-    supabaseAdmin
-      .from("profile")
-      .select("role")
-      .eq("id", profileId)
-      .maybeSingle<{ role: ProfileRole }>(),
-  ]);
+  // Step 1: Load authority config (advisory map used for tool selection only; the authoritative
+  // per-call decision is the public.gate_action RPC invoked after intent is known — ADR-0099).
+  const rawAuthority = await loadAuthorityConfig(workspaceId);
+
+  // Step 2: Classify intent
+  const intent = await classifyIntent(message, "", {
+    apiKey: getSecrets().openrouterApiKey ?? undefined,
+  });
+
+  // Step 2b: Unified authority gate (ADR-0099). Replaces inline min-role + channel logic.
+  // Gate returns { allow, downgrade_to, reason, gate_evaluation_id } and writes a gate_evaluation audit row.
+  const { data: gateResult, error: gateError } = await supabaseAdmin.rpc("gate_action", {
+    p_workspace_id: workspaceId,
+    p_capability: intent.capability,
+    p_channel: channel ?? "chat",
+    p_actor_profile_id: profileId,
+    p_action_type: "agent_chat",
+  });
+  if (gateError) {
+    throw new Error(`gate_action RPC failed: ${gateError.message}`);
+  }
+  const gate = gateResult as {
+    allow: boolean;
+    downgrade_to: string | null;
+    reason: string | null;
+    gate_evaluation_id: string;
+  };
+  if (!gate.allow) {
+    return {
+      session_id: sessionId,
+      response:
+        gate.reason === "channel_not_permitted"
+          ? "Dette kan jeg ikke gjøre på denne kanalen. Prøv via chat i dashbordet."
+          : "Dette er ikke tillatt for din rolle akkurat nå.",
+      intent: { capability: intent.capability, confidence: intent.confidence },
+    };
+  }
+
+  // Tool selection still needs per-capability authority for filtering;
+  // apply min-role downgrade on the advisory map for the caller's role.
+  const { data: profileRow } = await supabaseAdmin
+    .from("profile")
+    .select("role")
+    .eq("id", profileId)
+    .maybeSingle<{ role: ProfileRole }>();
   const callerRole: ProfileRole = profileRow?.role ?? "employee";
   const authorityConfig = applyMinRoleDowngrade(
     rawAuthority.levels,
     rawAuthority.minRoles,
     callerRole,
   );
-
-  // Step 2: Classify intent
-  const intent = await classifyIntent(message, "", {
-    apiKey: getSecrets().openrouterApiKey ?? undefined,
-  });
+  // Honour RPC downgrade verdict for the matched capability.
+  if (gate.downgrade_to) {
+    authorityConfig[intent.capability] = gate.downgrade_to as AuthorityLevel;
+  }
 
   // Determine situation from intent if not explicitly provided
   const resolvedSituation: Situation =
