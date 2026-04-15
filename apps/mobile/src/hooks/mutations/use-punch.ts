@@ -124,6 +124,23 @@ export function usePunch() {
     async (timeEntryId: string) => {
       const now = new Date().toISOString();
 
+      // Read the active time entry from cache to capture shift_id + actor/
+      // workspace identifiers and compute work_minutes for the telemetry
+      // payload. The cache row was populated by punchIn (or by
+      // useActiveTimeEntry on app open), so it is the cheapest authoritative
+      // source without a network round-trip. If the cache is cold we still
+      // emit with shift_id unknown — the engine trigger will record the
+      // event but the orchestrator cannot match an entity. The server-side
+      // sync worker can re-emit a canonical event when needed.
+      const activeEntry = queryClient.getQueryData<TimeEntry | null>(["active-time-entry"]);
+
+      const shiftId = activeEntry?.shift_id ?? "";
+      const profileId = activeEntry?.profile_id ?? "";
+      const workspaceId = activeEntry?.workspace_id ?? null;
+      const punchInMs = activeEntry?.punch_in ? new Date(activeEntry.punch_in).getTime() : null;
+      const workMinutes =
+        punchInMs !== null ? Math.max(0, Math.round((Date.now() - punchInMs) / 60_000)) : 0;
+
       const payload = {
         time_entry_id: timeEntryId,
         punch_out: now,
@@ -135,17 +152,22 @@ export function usePunch() {
       // Optimistically clear the active time entry — employee is no longer clocked in
       queryClient.setQueryData<TimeEntry | null>(["active-time-entry"], null);
 
+      // entity_id MUST be the schedule_shift id — engine-dispatch stamps
+      // engine_state.entity_id from payload.entity_id so shift_lifecycle_v1
+      // can match subsequent steps (update_entity on schedule_shift,
+      // derive_shift_hours RPC keyed by p_shift_id). Using time_entry_id
+      // here would break the entire process chain.
       void emit({
         event: "shift punched_out",
-        workspace_id: null,
-        actor_id: "",
+        workspace_id: workspaceId,
+        actor_id: profileId,
         properties: {
-          entity: { entity_type: "shift", entity_id: timeEntryId },
+          entity: { entity_type: "shift", entity_id: shiftId },
           data: {
-            shift_id: "",
+            shift_id: shiftId,
             time_entry_id: timeEntryId,
             punch_time: now,
-            work_minutes: 0,
+            work_minutes: workMinutes,
             break_minutes: 0,
             gps_verified: false,
           },
