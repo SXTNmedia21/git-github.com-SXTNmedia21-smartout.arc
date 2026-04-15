@@ -37,6 +37,7 @@ function statusLabel(status: Contract["status"]): string {
     terminated: "Oppsagt",
     pending_data: "Venter paa data",
     declined: "Avslatt",
+    ready_to_send: "Klar til sending",
   };
   return map[status] ?? status;
 }
