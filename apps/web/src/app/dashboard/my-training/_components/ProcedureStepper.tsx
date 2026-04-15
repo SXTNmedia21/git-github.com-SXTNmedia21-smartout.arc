@@ -30,7 +30,7 @@ export function ProcedureStepper({ procedures, assignmentId, isDark }: Procedure
 
   if (procedures.length === 0) {
     return (
-      <p className={`py-4 text-center text-sm ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+      <p className={`py-4 text-center text-sm ${isDark ? "text-muted-foreground" : "text-muted-foreground"}`}>
         Ingen prosedyrer i denne protokollen.
       </p>
     );
@@ -47,7 +47,7 @@ export function ProcedureStepper({ procedures, assignmentId, isDark }: Procedure
           <div
             key={proc.procedureId}
             className={`rounded-lg border ${
-              isDark ? "border-zinc-800 bg-zinc-900/30" : "border-zinc-100 bg-zinc-50/50"
+              isDark ? "border-border bg-muted" : "border-border bg-muted"
             }`}
           >
             {/* Procedure header */}
@@ -55,7 +55,7 @@ export function ProcedureStepper({ procedures, assignmentId, isDark }: Procedure
               type="button"
               onClick={() => setExpandedProcedure(isExpanded ? null : proc.procedureId)}
               className={`flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors ${
-                isDark ? "hover:bg-zinc-800/50" : "hover:bg-zinc-100"
+                isDark ? "hover:bg-muted" : "hover:bg-muted"
               }`}
             >
               <div
@@ -63,33 +63,33 @@ export function ProcedureStepper({ procedures, assignmentId, isDark }: Procedure
                   allDone
                     ? "bg-emerald-500/10 text-emerald-500"
                     : isDark
-                      ? "bg-zinc-800 text-zinc-400"
-                      : "bg-zinc-200 text-zinc-500"
+                      ? "bg-muted text-muted-foreground"
+                      : "bg-muted text-muted-foreground"
                 }`}
               >
                 {allDone ? <CheckCircle2 className="h-3.5 w-3.5" /> : (proc.sortOrder ?? "?")}
               </div>
               <span
-                className={`flex-1 text-sm font-semibold ${isDark ? "text-zinc-200" : "text-zinc-800"}`}
+                className={`flex-1 text-sm font-semibold ${isDark ? "text-foreground" : "text-foreground"}`}
               >
                 {proc.name}
               </span>
               <span
-                className={`text-[10px] font-bold ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+                className={`text-[10px] font-bold ${isDark ? "text-muted-foreground" : "text-muted-foreground"}`}
               >
                 {doneCount}/{proc.steps.length}
               </span>
               <ChevronRight
                 className={`h-3.5 w-3.5 transition-transform duration-200 ${
                   isExpanded ? "rotate-90" : ""
-                } ${isDark ? "text-zinc-600" : "text-zinc-400"}`}
+                } ${isDark ? "text-muted-foreground" : "text-muted-foreground"}`}
               />
             </button>
 
             {/* Steps */}
             {isExpanded && (
               <div
-                className={`border-t px-3 py-2 ${isDark ? "border-zinc-800" : "border-zinc-100"}`}
+                className={`border-t px-3 py-2 ${isDark ? "border-border" : "border-border"}`}
               >
                 <div className="space-y-1">
                   {proc.steps.map((step, idx) => {
@@ -113,8 +113,8 @@ export function ProcedureStepper({ procedures, assignmentId, isDark }: Procedure
                                 isNext
                                   ? "text-orange-500"
                                   : isDark
-                                    ? "text-zinc-700"
-                                    : "text-zinc-300"
+                                    ? "text-muted-foreground"
+                                    : "text-muted-foreground"
                               }`}
                             />
                           )}
@@ -126,18 +126,18 @@ export function ProcedureStepper({ procedures, assignmentId, isDark }: Procedure
                             className={`text-sm font-medium ${
                               step.isCompleted
                                 ? isDark
-                                  ? "text-zinc-500 line-through"
-                                  : "text-zinc-400 line-through"
+                                  ? "text-muted-foreground line-through"
+                                  : "text-muted-foreground line-through"
                                 : isDark
-                                  ? "text-zinc-200"
-                                  : "text-zinc-800"
+                                  ? "text-foreground"
+                                  : "text-foreground"
                             }`}
                           >
                             {step.title}
                           </p>
                           {step.description && isNext && (
                             <p
-                              className={`mt-0.5 text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+                              className={`mt-0.5 text-xs ${isDark ? "text-muted-foreground" : "text-muted-foreground"}`}
                             >
                               {step.description}
                             </p>
@@ -145,7 +145,7 @@ export function ProcedureStepper({ procedures, assignmentId, isDark }: Procedure
                           {step.estimatedMinutes && isNext && (
                             <p
                               className={`mt-1 flex items-center gap-1 text-[10px] font-medium ${
-                                isDark ? "text-zinc-600" : "text-zinc-400"
+                                isDark ? "text-muted-foreground" : "text-muted-foreground"
                               }`}
                             >
                               <Clock className="h-3 w-3" />~{step.estimatedMinutes} min

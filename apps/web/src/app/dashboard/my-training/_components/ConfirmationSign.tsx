@@ -28,7 +28,7 @@ export function ConfirmationSign({ confirmations, assignmentId, isDark }: Confir
 
   if (confirmations.length === 0) {
     return (
-      <p className={`py-4 text-center text-sm ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+      <p className={`py-4 text-center text-sm ${isDark ? "text-muted-foreground" : "text-muted-foreground"}`}>
         Ingen bekreftelser i denne protokollen.
       </p>
     );
@@ -48,8 +48,8 @@ export function ConfirmationSign({ confirmations, assignmentId, isDark }: Confir
                   ? "border-emerald-500/20 bg-emerald-500/5"
                   : "border-emerald-200 bg-emerald-50"
                 : isDark
-                  ? "border-zinc-800 bg-zinc-900/30"
-                  : "border-zinc-100 bg-zinc-50"
+                  ? "border-border bg-muted"
+                  : "border-border bg-muted"
             }`}
           >
             {/* Header */}
@@ -57,11 +57,11 @@ export function ConfirmationSign({ confirmations, assignmentId, isDark }: Confir
               {conf.isSigned ? (
                 <CheckCircle2 className="h-4 w-4 text-emerald-500" />
               ) : (
-                <PenTool className={`h-4 w-4 ${isDark ? "text-zinc-500" : "text-zinc-400"}`} />
+                <PenTool className={`h-4 w-4 ${isDark ? "text-muted-foreground" : "text-muted-foreground"}`} />
               )}
               <h4
                 className={`text-sm font-bold ${
-                  conf.isSigned ? "text-emerald-500" : isDark ? "text-zinc-200" : "text-zinc-800"
+                  conf.isSigned ? "text-emerald-500" : isDark ? "text-foreground" : "text-foreground"
                 }`}
               >
                 {conf.name}
@@ -69,7 +69,7 @@ export function ConfirmationSign({ confirmations, assignmentId, isDark }: Confir
               {conf.isSigned && conf.signedAt && (
                 <span
                   className={`ml-auto text-[10px] font-medium ${
-                    isDark ? "text-zinc-500" : "text-zinc-400"
+                    isDark ? "text-muted-foreground" : "text-muted-foreground"
                   }`}
                 >
                   Signert {new Date(conf.signedAt).toLocaleDateString("nb-NO")}
@@ -81,8 +81,8 @@ export function ConfirmationSign({ confirmations, assignmentId, isDark }: Confir
             <div
               className={`mb-4 rounded-lg border p-3 text-sm leading-relaxed ${
                 isDark
-                  ? "border-zinc-800 bg-zinc-950 text-zinc-300"
-                  : "border-zinc-200 bg-white text-zinc-700"
+                  ? "border-border bg-card text-foreground"
+                  : "border-border bg-card text-foreground"
               }`}
             >
               {conf.confirmationText}
@@ -107,7 +107,7 @@ export function ConfirmationSign({ confirmations, assignmentId, isDark }: Confir
                     className="mt-0.5"
                   />
                   <span
-                    className={`text-xs font-medium ${isDark ? "text-zinc-300" : "text-zinc-700"}`}
+                    className={`text-xs font-medium ${isDark ? "text-foreground" : "text-foreground"}`}
                   >
                     Jeg bekrefter at jeg har lest og forstatt innholdet ovenfor.
                   </span>
