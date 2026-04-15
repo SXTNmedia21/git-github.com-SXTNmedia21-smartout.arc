@@ -1636,17 +1636,30 @@ async function executeStep(
     }
 
     // ──────────────────────────────────────────────────────────
-    // call_rpc — invoke a Postgres RPC and store its UUID result in
-    // engine_state.context[output_key]. Used by shift_lifecycle_v1
-    // to call derive_shift_hours / snapshot_shift_cost per ADR-0095.
+    // call_rpc — invoke a Postgres RPC and merge its result into
+    // engine_state.context. Used by shift_lifecycle_v1 to call
+    // derive_shift_hours / snapshot_shift_cost per ADR-0095 +
+    // ADR-0110.
     //
     // Payload schema:
     //   {
     //     rpc_name: string,
     //     args_from_context: string[],   // context keys to read
     //     args_param_names: string[],    // matching RPC arg names
-    //     output_key: string             // where to stash the result
+    //     output_key: string             // legacy: where to stash scalar
+    //                                     result when RPC returns UUID
     //   }
+    //
+    // Result handling (ADR-0110, Council R2 BREAK 2 fix):
+    //   - If the RPC returns a JSON object, the whole object is merged
+    //     into engine_state.context. This lets RPCs surface ancillary
+    //     context (session_date, department_id, …) alongside the
+    //     primary key without requiring a second read step. Fixes the
+    //     silent shift.settled handoff failure where session_date +
+    //     department_id were missing from the downstream emit payload.
+    //   - If the RPC returns a scalar (UUID or primitive), the value
+    //     is stored under output_key — backward-compatible with the
+    //     pre-ADR-0110 contract.
     //
     // ADR-0099 note: call_rpc is a gated mutation type. Once
     // gate_action() is landed, add "call_rpc" to GATED_MUTATION_TYPES
@@ -1687,7 +1700,7 @@ async function executeStep(
 
       try {
         // @ts-expect-error supabase-js rpc typing is narrow; our RPCs
-        // are plpgsql and return scalar UUIDs.
+        // are plpgsql and return scalar UUIDs or jsonb objects.
         const { data: rpcResult, error: rpcErr } = await supabase.rpc(rpcName, rpcArgs);
         if (rpcErr) {
           console.error(`[engine-dispatch] call_rpc ${rpcName} failed:`, rpcErr);
@@ -1702,8 +1715,17 @@ async function executeStep(
           break;
         }
 
-        // Merge result into context under output_key.
-        const nextContext = { ...ctx, [outputKey]: rpcResult };
+        // ADR-0110: if the RPC returned a JSON object, merge the whole
+        // object into context (so session_date / department_id reach
+        // shift.settled downstream). Otherwise fall back to the legacy
+        // scalar-under-output_key behaviour.
+        const isPlainObject =
+          rpcResult !== null &&
+          typeof rpcResult === "object" &&
+          !Array.isArray(rpcResult);
+        const nextContext = isPlainObject
+          ? { ...ctx, ...(rpcResult as Record<string, unknown>) }
+          : { ...ctx, [outputKey]: rpcResult };
         await supabase
           .from("engine_state")
           .update({

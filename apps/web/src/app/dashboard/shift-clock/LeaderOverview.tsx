@@ -267,7 +267,8 @@ export function LeaderOverview() {
         workspace_id: workspace.workspace_id,
         actor_id: profileId ?? "",
         properties: {
-          entity: { entity_type: "shift" as const, entity_id: shiftId },
+          entity_type: "shift" as const,
+          entity_id: shiftId,
           data: {
             shift_id: shiftId,
             time_entry_id: "",

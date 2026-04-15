@@ -24,6 +24,8 @@
     "build": "npx tsc && node ../../scripts/fix-esm-imports.mjs",
     "lint": "eslint src/",
     "typecheck": "npx tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "clean": "rimraf dist .turbo"
   },
   "dependencies": {
@@ -36,7 +38,8 @@
     "@smartout/typescript-config": "workspace:*",
     "@types/node": "^20",
     "@types/react": "^19",
-    "typescript": "^5.9.0"
+    "typescript": "^5.9.0",
+    "vitest": "^4.0.18"
   },
   "peerDependencies": {
     "react": "^19.0.0"

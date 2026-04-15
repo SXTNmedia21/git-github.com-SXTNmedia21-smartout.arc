@@ -401,10 +401,12 @@ export interface OnboardingProfessionsConfirmed extends BaseEvent {
 }
 
 // ─── Scheduling Events ──────────────────────────
+// FLAT entity contract (see engine-event contract note below).
 export interface ShiftCreated extends BaseEvent {
   event: "shift created";
   properties: {
-    entity: EntityRef;
+    entity_type: "shift";
+    entity_id: string;
     data: {
       assigned_to: string;
       date: string;
@@ -418,7 +420,8 @@ export interface ShiftCreated extends BaseEvent {
 export interface ShiftUpdated extends BaseEvent {
   event: "shift updated";
   properties: {
-    entity: EntityRef;
+    entity_type: "shift";
+    entity_id: string;
     changes: Record<string, { before: unknown; after: unknown }>;
   };
 }
@@ -426,7 +429,8 @@ export interface ShiftUpdated extends BaseEvent {
 export interface ShiftDeleted extends BaseEvent {
   event: "shift deleted";
   properties: {
-    entity: EntityRef;
+    entity_type: "shift";
+    entity_id: string;
     data: {
       assigned_to: string;
       date: string;
@@ -437,13 +441,14 @@ export interface ShiftDeleted extends BaseEvent {
 }
 
 // ─── Journey 03 (Sjekke vakter) — PoC events ────
-// These events use a FLAT properties shape (entity_type/entity_id at the top
-// level) — NOT the nested EntityRef pattern used by ShiftCreated/Updated/Deleted.
-// This is intentional and required by the Event Engine: engine-dispatch reads
-// `payload.entity_id` directly from the top of the payload to enforce the
-// engine_state unique-active dedupe (one journey instance per profile+process).
+// These events use the canonical FLAT properties shape (entity_type/entity_id
+// at the top level), matching the Shift* lifecycle events above.
+// This is REQUIRED by the Event Engine contract: engine-dispatch reads
+// `payload.entity_id` directly from the top of the payload to populate
+// `engine_state.entity_id` and enforce unique-active dedupe.
 // engine-event.ts builds payload as `{ ...event.properties }`, so the entity
-// keys MUST be flat in `properties`. See spec C2 + Task 0 finding 0.9.
+// keys MUST be flat in `properties`. See spec C2 + Task 0 finding 0.9
+// + Council R2 BREAK 1 (2026-04-15).
 export interface ShiftListViewed extends BaseEvent {
   event: "shift list_viewed";
   properties: {
@@ -462,11 +467,19 @@ export interface ShiftDetailViewed extends BaseEvent {
   };
 }
 
-// ─── Scheduling: Batch Publish ──────────────────
+// ─── Scheduling: Shift lifecycle events (FLAT entity contract) ──
+// These events use the FLAT properties shape per the engine-event
+// contract documented above: `entity_type` + `entity_id` at the top
+// of `properties`, not a nested `entity: EntityRef`. The engine-event
+// provider spreads `event.properties` into the dispatch payload, and
+// engine-dispatch reads `payload.entity_id` to populate
+// `engine_state.entity_id`. See Council R2 / BREAK 1, Supervisor
+// code-trace and `Journey 03` events above for the rationale.
 export interface ShiftPublished extends BaseEvent {
   event: "shift published";
   properties: {
-    entity: EntityRef;
+    entity_type: "shift";
+    entity_id: string;
     data: {
       dates: string[];
       department_ids: string[];
@@ -480,7 +493,8 @@ export interface ShiftPublished extends BaseEvent {
 export interface ShiftCompleted extends BaseEvent {
   event: "shift completed";
   properties: {
-    entity: EntityRef;
+    entity_type: "shift";
+    entity_id: string;
     data: {
       shift_ids: string[];
       department_id: string;
@@ -492,7 +506,8 @@ export interface ShiftCompleted extends BaseEvent {
 export interface ShiftPunchedIn extends BaseEvent {
   event: "shift punched_in";
   properties: {
-    entity: EntityRef;
+    entity_type: "shift";
+    entity_id: string;
     data: {
       shift_id: string;
       time_entry_id: string;
@@ -507,7 +522,8 @@ export interface ShiftPunchedIn extends BaseEvent {
 export interface ShiftPunchedOut extends BaseEvent {
   event: "shift punched_out";
   properties: {
-    entity: EntityRef;
+    entity_type: "shift";
+    entity_id: string;
     data: {
       shift_id: string;
       time_entry_id: string;
@@ -522,7 +538,8 @@ export interface ShiftPunchedOut extends BaseEvent {
 export interface ShiftBreakStarted extends BaseEvent {
   event: "shift break_started";
   properties: {
-    entity: EntityRef;
+    entity_type: "shift";
+    entity_id: string;
     data: { shift_id: string; time_entry_id: string };
   };
 }
@@ -530,7 +547,8 @@ export interface ShiftBreakStarted extends BaseEvent {
 export interface ShiftBreakEnded extends BaseEvent {
   event: "shift break_ended";
   properties: {
-    entity: EntityRef;
+    entity_type: "shift";
+    entity_id: string;
     data: {
       shift_id: string;
       time_entry_id: string;
@@ -543,7 +561,8 @@ export interface ShiftBreakEnded extends BaseEvent {
 export interface ShiftSupplementClaimed extends BaseEvent {
   event: "shift supplement_claimed";
   properties: {
-    entity: EntityRef;
+    entity_type: "shift";
+    entity_id: string;
     data: { shift_id: string; supplement_rule_id: string; amount: number };
   };
 }
@@ -551,7 +570,8 @@ export interface ShiftSupplementClaimed extends BaseEvent {
 export interface ShiftSupplementReviewed extends BaseEvent {
   event: "shift supplement_reviewed";
   properties: {
-    entity: EntityRef;
+    entity_type: "shift";
+    entity_id: string;
     data: {
       supplement_id: string;
       status: "approved" | "rejected";
@@ -563,7 +583,8 @@ export interface ShiftSupplementReviewed extends BaseEvent {
 export interface ShiftNoteAdded extends BaseEvent {
   event: "shift note_added";
   properties: {
-    entity: EntityRef;
+    entity_type: "shift";
+    entity_id: string;
     data: { shift_id: string; note_id: string };
   };
 }
@@ -571,7 +592,8 @@ export interface ShiftNoteAdded extends BaseEvent {
 export interface ShiftAdhocCreated extends BaseEvent {
   event: "shift adhoc_created";
   properties: {
-    entity: EntityRef;
+    entity_type: "shift";
+    entity_id: string;
     data: { shift_id: string; department_id: string; requires_approval: boolean };
   };
 }
@@ -579,7 +601,8 @@ export interface ShiftAdhocCreated extends BaseEvent {
 export interface ShiftAdhocApproved extends BaseEvent {
   event: "shift adhoc_approved";
   properties: {
-    entity: EntityRef;
+    entity_type: "shift";
+    entity_id: string;
     data: { shift_id: string; approved_by: string };
   };
 }
@@ -587,7 +610,8 @@ export interface ShiftAdhocApproved extends BaseEvent {
 export interface ShiftCallInitiated extends BaseEvent {
   event: "shift call_initiated";
   properties: {
-    entity: EntityRef;
+    entity_type: "shift";
+    entity_id: string;
     data: { shift_id: string; department_id: string; leaders_on_duty: number };
   };
 }
@@ -596,7 +620,8 @@ export interface ShiftCallInitiated extends BaseEvent {
 export interface ShiftLateDetected extends BaseEvent {
   event: "shift late_detected";
   properties: {
-    entity: EntityRef;
+    entity_type: "shift";
+    entity_id: string;
     data: { minutes_late: number; threshold: number };
   };
 }
@@ -604,7 +629,8 @@ export interface ShiftLateDetected extends BaseEvent {
 export interface ShiftNoShowEscalated extends BaseEvent {
   event: "shift no_show_escalated";
   properties: {
-    entity: EntityRef;
+    entity_type: "shift";
+    entity_id: string;
     data: { minutes_late: number };
   };
 }
@@ -1261,7 +1287,8 @@ export interface AbsenceCancelled extends BaseEvent {
 export interface ShiftHoursConfirmed extends BaseEvent {
   event: "shift hours_confirmed";
   properties: {
-    entity: EntityRef;
+    entity_type: "shift";
+    entity_id: string;
     data: { shift_id: string; status: "approved" | "disputed" };
   };
 }
@@ -1270,17 +1297,20 @@ export interface ShiftHoursConfirmed extends BaseEvent {
 // Emitted by packages/ai/src/capabilities/shift-lifecycle/ tools.
 // These events observe agent-initiated lifecycle operations so that
 // the unified gate (ADR-0099) and downstream processes can audit them.
+// FLAT entity contract per engine-event dispatch (BREAK 1 fix).
 export interface ShiftLifecyclePublished extends BaseEvent {
   event: "shift_lifecycle published";
   properties: {
-    entity: EntityRef;
+    entity_type: "shift";
+    entity_id: string;
     data: { shift_id: string; gate_allowed: boolean; reason?: string };
   };
 }
 export interface ShiftLifecycleApproved extends BaseEvent {
   event: "shift_lifecycle approved";
   properties: {
-    entity: EntityRef;
+    entity_type: "shift";
+    entity_id: string;
     data: {
       shift_id: string;
       approval_id?: string;
@@ -1294,14 +1324,16 @@ export interface ShiftLifecycleApproved extends BaseEvent {
 export interface ShiftLifecycleInterpreted extends BaseEvent {
   event: "shift_lifecycle interpreted";
   properties: {
-    entity: EntityRef;
+    entity_type: "shift";
+    entity_id: string;
     data: { shift_id: string; interpretation_id?: string };
   };
 }
 export interface ShiftLifecycleSettled extends BaseEvent {
   event: "shift_lifecycle settled";
   properties: {
-    entity: EntityRef;
+    entity_type: "shift";
+    entity_id: string;
     data: { shift_id: string; snapshot_id?: string; idempotent_hit: boolean };
   };
 }
@@ -1463,14 +1495,6 @@ export interface TemplateApplied extends BaseEvent {
   };
 }
 
-export interface ShiftsPublished extends BaseEvent {
-  event: "shifts published";
-  properties: {
-    entity: EntityRef;
-    data: { shift_count: number; week_start: string };
-  };
-}
-
 export interface WeekReset extends BaseEvent {
   event: "week reset";
   properties: {
@@ -1482,7 +1506,8 @@ export interface WeekReset extends BaseEvent {
 export interface TemplateShiftCreated extends BaseEvent {
   event: "template_shift created";
   properties: {
-    entity: EntityRef;
+    entity_type: "template_shift";
+    entity_id: string;
     data: { role: string; start_time: string; end_time: string };
   };
 }
@@ -1490,7 +1515,8 @@ export interface TemplateShiftCreated extends BaseEvent {
 export interface ShiftAssigned extends BaseEvent {
   event: "shift assigned";
   properties: {
-    entity: EntityRef;
+    entity_type: "shift";
+    entity_id: string;
     data: { employee_id: string };
   };
 }
@@ -1498,7 +1524,8 @@ export interface ShiftAssigned extends BaseEvent {
 export interface ShiftUnassigned extends BaseEvent {
   event: "shift unassigned";
   properties: {
-    entity: EntityRef;
+    entity_type: "shift";
+    entity_id: string;
     data: { employee_id: string };
   };
 }
@@ -3334,7 +3361,8 @@ export interface OpsLearnPatternsQueried extends BaseEvent {
 export interface ShiftSwapRequested extends BaseEvent {
   event: "shift swap_requested";
   properties: {
-    entity: EntityRef;
+    entity_type: "shift";
+    entity_id: string;
     data: {
       swap_id: string;
       requester_shift_id: string;
@@ -3347,7 +3375,8 @@ export interface ShiftSwapRequested extends BaseEvent {
 export interface ShiftSwapAccepted extends BaseEvent {
   event: "shift swap_accepted";
   properties: {
-    entity: EntityRef;
+    entity_type: "shift";
+    entity_id: string;
     data: { swap_id: string };
   };
 }
@@ -3355,7 +3384,8 @@ export interface ShiftSwapAccepted extends BaseEvent {
 export interface ShiftSwapRejected extends BaseEvent {
   event: "shift swap_rejected";
   properties: {
-    entity: EntityRef;
+    entity_type: "shift";
+    entity_id: string;
     data: { swap_id: string; rejected_by: string };
   };
 }
@@ -3363,7 +3393,8 @@ export interface ShiftSwapRejected extends BaseEvent {
 export interface ShiftSwapApproved extends BaseEvent {
   event: "shift swap_approved";
   properties: {
-    entity: EntityRef;
+    entity_type: "shift";
+    entity_id: string;
     data: { swap_id: string };
   };
 }
@@ -3371,7 +3402,8 @@ export interface ShiftSwapApproved extends BaseEvent {
 export interface ShiftSwapExecuted extends BaseEvent {
   event: "shift swap_executed";
   properties: {
-    entity: EntityRef;
+    entity_type: "shift";
+    entity_id: string;
     data: {
       swap_id: string;
       /** Available when initiated, may not be available on approval path */
@@ -3385,7 +3417,8 @@ export interface ShiftSwapExecuted extends BaseEvent {
 export interface ShiftSwapCancelled extends BaseEvent {
   event: "shift swap_cancelled";
   properties: {
-    entity: EntityRef;
+    entity_type: "shift";
+    entity_id: string;
     data: { swap_id: string };
   };
 }
@@ -3656,7 +3689,6 @@ export type SmartoutEvent =
   | ContractTemplateCopied
   | TemplateLoaded
   | TemplateApplied
-  | ShiftsPublished
   | WeekReset
   | TemplateShiftCreated
   | ShiftAssigned
@@ -4492,15 +4524,6 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "scheduling",
   },
   "template applied": {
-    destinations: ["posthog", "logger", "activity_trail"],
-    category: "scheduling",
-  },
-  // Soft-deprecated plural alias per ADR-0095 (Council 2026-04-15).
-  // Canonical event is `shift published` (singular). engine_event
-  // routing dropped; posthog/logger/activity_trail retained so any
-  // stragglers still surface in analytics/audit while call sites are
-  // migrated. Remove entry entirely in a follow-up cleanup migration.
-  "shifts published": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "scheduling",
   },

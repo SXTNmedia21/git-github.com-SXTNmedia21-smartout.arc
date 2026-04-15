@@ -196,7 +196,10 @@ export function usePublishWeek() {
         workspace_id: workspaceId,
         actor_id: actorId,
         properties: {
-          entity: { entity_type: "template", entity_id: templateId },
+          // FLAT entity contract per engine-event. entity_id is the first
+          // published shift; the full list lives in data.shift_ids.
+          entity_type: "shift",
+          entity_id: shiftIds[0] ?? templateId,
           data: {
             dates,
             department_ids: [departmentId],
@@ -315,7 +318,8 @@ export function useAssignEmployee() {
         workspace_id: workspaceId,
         actor_id: actorId,
         properties: {
-          entity: { entity_type: "shift", entity_id: shiftId },
+          entity_type: "shift",
+          entity_id: shiftId,
           data: { employee_id: employeeId ?? "" },
         },
       });
@@ -405,7 +409,8 @@ export function useCreateGridShift() {
         workspace_id: params.workspaceId,
         actor_id: params.actorId,
         properties: {
-          entity: { entity_type: "shift", entity_id: shiftId },
+          entity_type: "shift",
+          entity_id: shiftId,
           data: { employee_id: params.employeeId },
         },
       });
@@ -488,7 +493,8 @@ export function useReassignShiftType() {
         workspace_id: params.workspaceId,
         actor_id: params.actorId,
         properties: {
-          entity: { entity_type: "shift", entity_id: params.shiftId },
+          entity_type: "shift",
+          entity_id: params.shiftId,
           changes: {
             shift_type_id: { before: "unassigned", after: params.shiftTypeId },
             role: { before: "unknown", after: params.role },
@@ -531,7 +537,8 @@ export function useRemoveGridShift() {
         workspace_id: params.workspaceId,
         actor_id: params.actorId,
         properties: {
-          entity: { entity_type: "shift", entity_id: params.shiftId },
+          entity_type: "shift",
+          entity_id: params.shiftId,
           data: { employee_id: "" },
         },
       });

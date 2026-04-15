@@ -112,11 +112,8 @@ export function useCreateShift(weekStart: string) {
         workspace_id: workspace.workspace_id,
         actor_id: profileId ?? "",
         properties: {
-          entity: {
-            entity_type: "shift",
-            entity_id: data.id,
-            entity_label: `${data.dateId} ${data.startTime}-${data.endTime}`,
-          },
+          entity_type: "shift",
+          entity_id: data.id,
           data: {
             assigned_to: data.employeeId ?? "",
             date: data.dateId,
@@ -202,7 +199,8 @@ export function useUpdateShift(weekStart: string) {
         workspace_id: workspace.workspace_id,
         actor_id: profileId ?? "",
         properties: {
-          entity: { entity_type: "shift", entity_id: id },
+          entity_type: "shift",
+          entity_id: id,
           changes: Object.fromEntries(
             Object.entries(patch).map(([k, v]) => [k, { before: undefined, after: v }]),
           ),
@@ -270,7 +268,8 @@ export function useDeleteShift(weekStart: string) {
         workspace_id: workspace.workspace_id,
         actor_id: profileId ?? "",
         properties: {
-          entity: { entity_type: "shift", entity_id: shiftId },
+          entity_type: "shift",
+          entity_id: shiftId,
           data: {
             assigned_to: deleted?.employeeId ?? "",
             date: deleted?.dateId ?? "",
@@ -358,7 +357,8 @@ export function useMoveShift(weekStart: string) {
         workspace_id: workspace.workspace_id,
         actor_id: profileId ?? "",
         properties: {
-          entity: { entity_type: "shift", entity_id: id },
+          entity_type: "shift",
+          entity_id: id,
           changes: {
             employeeId: { before: undefined, after: employeeId },
             dateId: { before: undefined, after: dateId },
@@ -442,11 +442,8 @@ export function usePublishShifts(weekStart: string) {
         workspace_id: workspace.workspace_id,
         actor_id: profileId ?? "",
         properties: {
-          entity: {
-            entity_type: "shift",
-            entity_id: shiftIds[0] ?? "",
-            entity_label: `${shiftIds.length} shifts`,
-          },
+          entity_type: "shift",
+          entity_id: shiftIds[0] ?? "",
           data: {
             dates,
             department_ids: departmentIds,
@@ -540,11 +537,8 @@ export function usePasteDay(weekStart: string) {
           workspace_id: workspaceId,
           actor_id: profileId ?? "",
           properties: {
-            entity: {
-              entity_type: "shift",
-              entity_id: shift.id,
-              entity_label: `${targetDateId} ${shift.startTime}-${shift.endTime}`,
-            },
+            entity_type: "shift",
+            entity_id: shift.id,
             data: {
               assigned_to: shift.employeeId ?? "",
               date: targetDateId,
@@ -624,7 +618,8 @@ export function useUnpublishShifts(weekStart: string) {
           workspace_id: workspace.workspace_id,
           actor_id: profileId ?? "",
           properties: {
-            entity: { entity_type: "shift", entity_id: shiftId },
+            entity_type: "shift",
+            entity_id: shiftId,
             changes: {
               status: { before: "published", after: "unpublished" },
               is_published: { before: true, after: false },
@@ -699,7 +694,8 @@ export function useCompleteShift(weekStart: string) {
         workspace_id: workspaceId,
         actor_id: profileId ?? "",
         properties: {
-          entity: { entity_type: "shift", entity_id: shiftId },
+          entity_type: "shift",
+          entity_id: shiftId,
           data: {
             shift_ids: [shiftId],
             department_id: completedShift?.departmentId ?? "",

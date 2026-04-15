@@ -86,7 +86,8 @@ export const publishShift = defineTool({
         workspace_id: ctx.workspaceId,
         actor_id: ctx.profileId,
         properties: {
-          entity: { entity_type: "shift", entity_id: params.shift_id },
+          entity_type: "shift",
+          entity_id: params.shift_id,
           data: { shift_id: params.shift_id, gate_allowed: false, reason: gate.reason ?? "denied" },
         },
       });
@@ -110,7 +111,8 @@ export const publishShift = defineTool({
       workspace_id: ctx.workspaceId,
       actor_id: ctx.profileId,
       properties: {
-        entity: { entity_type: "shift", entity_id: params.shift_id },
+        entity_type: "shift",
+        entity_id: params.shift_id,
         data: { shift_id: params.shift_id, gate_allowed: true },
       },
     });
@@ -122,7 +124,8 @@ export const publishShift = defineTool({
       workspace_id: ctx.workspaceId,
       actor_id: ctx.profileId,
       properties: {
-        entity: { entity_type: "shift", entity_id: params.shift_id },
+        entity_type: "shift",
+        entity_id: params.shift_id,
         data: {
           dates: [],
           department_ids: shift.department_id ? [shift.department_id] : [],
@@ -180,7 +183,8 @@ export const approveShift = defineTool({
         workspace_id: ctx.workspaceId,
         actor_id: ctx.profileId,
         properties: {
-          entity: { entity_type: "shift", entity_id: params.shift_id },
+          entity_type: "shift",
+          entity_id: params.shift_id,
           data: {
             shift_id: params.shift_id,
             approved_hours: params.approved_hours,
@@ -205,7 +209,8 @@ export const approveShift = defineTool({
         workspace_id: ctx.workspaceId,
         actor_id: ctx.profileId,
         properties: {
-          entity: { entity_type: "shift", entity_id: params.shift_id },
+          entity_type: "shift",
+          entity_id: params.shift_id,
           data: {
             shift_id: params.shift_id,
             approved_hours: params.approved_hours,
@@ -252,7 +257,8 @@ export const approveShift = defineTool({
       workspace_id: ctx.workspaceId,
       actor_id: ctx.profileId,
       properties: {
-        entity: { entity_type: "shift", entity_id: params.shift_id },
+        entity_type: "shift",
+        entity_id: params.shift_id,
         data: {
           shift_id: params.shift_id,
           approval_id: existing.approval_id,
@@ -268,7 +274,8 @@ export const approveShift = defineTool({
       workspace_id: ctx.workspaceId,
       actor_id: ctx.profileId,
       properties: {
-        entity: { entity_type: "shift", entity_id: params.shift_id },
+        entity_type: "shift",
+        entity_id: params.shift_id,
         data: { shift_id: params.shift_id, status: "approved" },
       },
     });
@@ -316,14 +323,18 @@ export const interpretShift = defineTool({
     });
 
     if (error) return `Feil ved derivering: ${error.message}`;
-    const interpretationId = typeof data === "string" ? data : null;
+    // RPC returns jsonb { interpretation_id, session_date, department_id, workspace_id }
+    // per migration 20260510100000 (BREAK 2 fix). Extract interpretation_id off the object.
+    const interpretationId =
+      (data as { interpretation_id?: string } | null)?.interpretation_id ?? null;
 
     void emit({
       event: "shift_lifecycle interpreted",
       workspace_id: ctx.workspaceId,
       actor_id: ctx.profileId,
       properties: {
-        entity: { entity_type: "shift", entity_id: params.shift_id },
+        entity_type: "shift",
+        entity_id: params.shift_id,
         data: {
           shift_id: params.shift_id,
           interpretation_id: interpretationId ?? undefined,
@@ -393,7 +404,8 @@ export const settleShift = defineTool({
         workspace_id: ctx.workspaceId,
         actor_id: ctx.profileId,
         properties: {
-          entity: { entity_type: "shift", entity_id: params.shift_id },
+          entity_type: "shift",
+          entity_id: params.shift_id,
           data: {
             shift_id: params.shift_id,
             snapshot_id: existingSnap.id,
@@ -413,14 +425,17 @@ export const settleShift = defineTool({
     });
 
     if (snapErr) return `Feil ved snapshot: ${snapErr.message}`;
-    const id = typeof snapshotId === "string" ? snapshotId : null;
+    // RPC returns jsonb { cost_snapshot_id, session_date, department_id, workspace_id }
+    // per migration 20260510100000 (BREAK 2 fix). Extract cost_snapshot_id off the object.
+    const id = (snapshotId as { cost_snapshot_id?: string } | null)?.cost_snapshot_id ?? null;
 
     void emit({
       event: "shift_lifecycle settled",
       workspace_id: ctx.workspaceId,
       actor_id: ctx.profileId,
       properties: {
-        entity: { entity_type: "shift", entity_id: params.shift_id },
+        entity_type: "shift",
+        entity_id: params.shift_id,
         data: {
           shift_id: params.shift_id,
           snapshot_id: id ?? undefined,

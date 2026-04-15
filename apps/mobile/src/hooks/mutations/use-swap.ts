@@ -59,7 +59,8 @@ export function useInitiateSwap(): UseInitiateSwapReturn {
           workspace_id: "",
           actor_id: selectedProfileId ?? "",
           properties: {
-            entity: { entity_type: "engine_state", entity_id: payload.requester_shift_id },
+            entity_type: "shift",
+            entity_id: payload.requester_shift_id,
             data: {
               swap_id: payload.requester_shift_id,
               requester_shift_id: payload.requester_shift_id,
@@ -121,7 +122,8 @@ export function useRespondToSwap(): UseRespondToSwapReturn {
             workspace_id: "",
             actor_id: selectedProfileId ?? "",
             properties: {
-              entity: { entity_type: "engine_state", entity_id: payload.engine_state_id },
+              entity_type: "shift",
+              entity_id: payload.engine_state_id,
               data: { swap_id: payload.engine_state_id },
             },
           });
@@ -131,7 +133,8 @@ export function useRespondToSwap(): UseRespondToSwapReturn {
             workspace_id: "",
             actor_id: selectedProfileId ?? "",
             properties: {
-              entity: { entity_type: "engine_state", entity_id: payload.engine_state_id },
+              entity_type: "shift",
+              entity_id: payload.engine_state_id,
               data: { swap_id: payload.engine_state_id, rejected_by: selectedProfileId ?? "" },
             },
           });
@@ -184,7 +187,8 @@ export function useCancelSwap(): UseCancelSwapReturn {
           workspace_id: "",
           actor_id: selectedProfileId ?? "",
           properties: {
-            entity: { entity_type: "engine_state", entity_id: payload.engine_state_id },
+            entity_type: "shift",
+            entity_id: payload.engine_state_id,
             data: { swap_id: payload.engine_state_id },
           },
         });
