@@ -3,11 +3,12 @@
  * Handles routing: redirects to (auth) when logged out, (app) when logged in.
  * Registers push notification token after successful authentication.
  */
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { useRouter, useSegments } from "expo-router";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
-import { registerPushToken, setupNotificationListeners } from "@/lib/push";
+import { setupNotificationListeners } from "@/lib/push";
+import { usePushToken } from "@/hooks/use-push-token";
 import { useWorkspaceStore } from "@/hooks/stores/use-workspace-store";
 
 type AuthContextValue = {
@@ -31,10 +32,11 @@ type AuthProviderProps = {
 };
 
 /**
- * Resolve the user's active profile and register for push notifications.
- * Fetches the first active profile for the user (one device per person in V1).
+ * Resolve the active profile ID for the current user. Returns the first active
+ * profile (V1 assumes one device per person). Errors are swallowed — push
+ * registration is non-critical and must not block app startup.
  */
-async function registerPushForUser(userId: string): Promise<void> {
+async function resolveActiveProfileId(userId: string): Promise<string | null> {
   try {
     const { data: profile } = await supabase
       .from("profile")
@@ -43,24 +45,24 @@ async function registerPushForUser(userId: string): Promise<void> {
       .eq("is_active", true)
       .limit(1)
       .single();
-
-    if (profile?.profile_id) {
-      await registerPushToken(profile.profile_id);
-    }
+    return profile?.profile_id ?? null;
   } catch (error) {
-    // Non-critical — push registration failure shouldn't block the app
-    console.warn("Push registration failed:", error);
+    console.warn("Profile lookup for push registration failed:", error);
+    return null;
   }
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  // profileId drives usePushToken — kept as state so the hook re-runs when it changes
+  const [pushProfileId, setPushProfileId] = useState<string | null>(null);
   const segments = useSegments() as string[];
   const router = useRouter();
 
-  // Track whether push has been registered for this session to avoid redundant calls
-  const pushRegistered = useRef(false);
+  // Register push token whenever the active profile is known.
+  // The hook handles permission request, Expo token fetch, and Supabase sync.
+  usePushToken(pushProfileId);
 
   useEffect(() => {
     // Get initial session
@@ -68,10 +70,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setSession(initialSession);
       setIsLoading(false);
 
-      // Register push for existing session (app restart while logged in)
-      if (initialSession?.user && !pushRegistered.current) {
-        pushRegistered.current = true;
-        void registerPushForUser(initialSession.user.id);
+      if (initialSession?.user) {
+        void resolveActiveProfileId(initialSession.user.id).then(setPushProfileId);
       }
     });
 
@@ -81,15 +81,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } = supabase.auth.onAuthStateChange((event, newSession) => {
       setSession(newSession);
 
-      // Register push token on sign-in events
-      if (event === "SIGNED_IN" && newSession?.user && !pushRegistered.current) {
-        pushRegistered.current = true;
-        void registerPushForUser(newSession.user.id);
+      if (event === "SIGNED_IN" && newSession?.user) {
+        void resolveActiveProfileId(newSession.user.id).then(setPushProfileId);
       }
 
-      // Reset flag on sign-out so next sign-in re-registers
       if (event === "SIGNED_OUT") {
-        pushRegistered.current = false;
+        setPushProfileId(null);
         useWorkspaceStore.getState().clearSelectedProfile();
       }
     });
