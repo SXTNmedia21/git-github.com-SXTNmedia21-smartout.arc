@@ -21,6 +21,9 @@ export type GateActionArgs = {
   channel: SessionChannel;
   actionType: string;
   approversPresent?: string[];
+  // Optional entity id (e.g. shift_id). Enables ADR-0101 four-eyes to
+  // scope approvals per entity so one approval doesn't cover every shift.
+  entityId?: string;
 };
 
 export type GateActionResult = {
@@ -48,6 +51,7 @@ export async function callGateAction(
     p_actor_profile_id: actorProfileId,
     p_action_type: args.actionType,
     p_approvers_present: args.approversPresent ?? [actorProfileId],
+    ...(args.entityId ? { p_entity_id: args.entityId } : {}),
   });
 
   // Phase 1 (ADR-0099) RPC may not be deployed yet. Fail closed for

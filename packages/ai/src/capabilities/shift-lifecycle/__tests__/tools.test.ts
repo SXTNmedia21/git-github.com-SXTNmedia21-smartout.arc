@@ -109,13 +109,103 @@ function makeCtx(overrides: Partial<AgentToolContext> = {}): AgentToolContext {
 
 // ── Tests ───────────────────────────────────────────────────────────
 
+// A "ready" protocol_assignment fixture for check_readiness — single
+// completed row means ready=true per governance/tools.ts logic.
+const READY_PROTOCOL_ROWS = [
+  {
+    assignment_id: "a1",
+    protocol_id: "p1",
+    status: "completed",
+    completed_at: "2026-04-10T10:00:00Z",
+    assigned_at: "2026-04-01T10:00:00Z",
+    protocol: { protocol_id: "p1", policy_id: "pol-1" },
+  },
+];
+
+const UNREADY_PROTOCOL_ROWS = [
+  {
+    assignment_id: "a1",
+    protocol_id: "p1",
+    status: "completed",
+    completed_at: "2026-04-10T10:00:00Z",
+    assigned_at: "2026-04-01T10:00:00Z",
+    protocol: { protocol_id: "p1", policy_id: "pol-1" },
+  },
+  {
+    assignment_id: "a2",
+    protocol_id: "p2",
+    status: "pending",
+    completed_at: null,
+    assigned_at: "2026-04-14T10:00:00Z",
+    protocol: { protocol_id: "p2", policy_id: "pol-2" },
+  },
+];
+
+const SHIFT_FIXTURE = {
+  schedule_shift_id: "11111111-1111-1111-1111-111111111111",
+  workspace_id: "ws-1",
+  employee_id: "emp-1",
+  department_id: "dept-1",
+  status: "created",
+};
+
 describe("publish_shift", () => {
   beforeEach(() => vi.clearAllMocks());
+
+  it("blocks without mutating when the employee is not ready (readiness_gap)", async () => {
+    const updates: Array<{ table: string; payload: Record<string, unknown> }> = [];
+    const rpcCalls: string[] = [];
+    const supabase = makeSupabase({
+      recordUpdates: updates,
+      tables: {
+        schedule_shift: {
+          result: { data: SHIFT_FIXTURE, error: null },
+          update: { data: null, error: null },
+        },
+        profile: {
+          result: { data: { profile_id: "emp-1", workspace_id: "ws-1" }, error: null },
+        },
+        protocol_assignment: {
+          result: { data: UNREADY_PROTOCOL_ROWS, error: null },
+        },
+      },
+      rpc: (fn) => {
+        rpcCalls.push(fn);
+        return { data: null, error: null };
+      },
+    });
+
+    const result = await publishShift.execute(
+      { shift_id: SHIFT_FIXTURE.schedule_shift_id },
+      makeCtx({ supabaseAdmin: supabase }),
+    );
+
+    // Readiness must block BEFORE gate_action is ever called.
+    expect(rpcCalls).not.toContain("gate_action");
+    expect(updates).toHaveLength(0);
+    const parsed = JSON.parse(result);
+    expect(parsed.allowed).toBe(false);
+    expect(parsed.reason).toBe("readiness_gap");
+    expect(parsed.missing_protocols).toContain("p2");
+    expect(parsed.missing_policies).toContain("pol-2");
+  });
 
   it("aborts without mutating when gate_action denies", async () => {
     const updates: Array<{ table: string; payload: Record<string, unknown> }> = [];
     const supabase = makeSupabase({
       recordUpdates: updates,
+      tables: {
+        schedule_shift: {
+          result: { data: SHIFT_FIXTURE, error: null },
+          update: { data: null, error: null },
+        },
+        profile: {
+          result: { data: { profile_id: "emp-1", workspace_id: "ws-1" }, error: null },
+        },
+        protocol_assignment: {
+          result: { data: READY_PROTOCOL_ROWS, error: null },
+        },
+      },
       rpc: (fn) => {
         if (fn === "gate_action") {
           return { data: { allow: false, reason: "role_below_min" }, error: null };
@@ -125,36 +215,36 @@ describe("publish_shift", () => {
     });
 
     const result = await publishShift.execute(
-      { shift_id: "11111111-1111-1111-1111-111111111111" },
+      { shift_id: SHIFT_FIXTURE.schedule_shift_id },
       makeCtx({ supabaseAdmin: supabase }),
     );
 
     expect(supabase.rpc).toHaveBeenCalledWith(
       "gate_action",
-      expect.objectContaining({ p_capability: "shift_lifecycle.publish" }),
+      expect.objectContaining({
+        p_capability: "shift_lifecycle.publish",
+        p_entity_id: SHIFT_FIXTURE.schedule_shift_id,
+      }),
     );
     expect(updates).toHaveLength(0);
     expect(result).toContain('"allowed":false');
     expect(result).toContain("role_below_min");
   });
 
-  it("updates schedule_shift to published when gate allows", async () => {
+  it("updates schedule_shift to published when ready and gate allows", async () => {
     const updates: Array<{ table: string; payload: Record<string, unknown> }> = [];
     const supabase = makeSupabase({
       recordUpdates: updates,
       tables: {
         schedule_shift: {
-          result: {
-            data: {
-              schedule_shift_id: "11111111-1111-1111-1111-111111111111",
-              workspace_id: "ws-1",
-              employee_id: "emp-1",
-              department_id: "dept-1",
-              status: "created",
-            },
-            error: null,
-          },
+          result: { data: SHIFT_FIXTURE, error: null },
           update: { data: null, error: null },
+        },
+        profile: {
+          result: { data: { profile_id: "emp-1", workspace_id: "ws-1" }, error: null },
+        },
+        protocol_assignment: {
+          result: { data: READY_PROTOCOL_ROWS, error: null },
         },
       },
       rpc: (fn) =>
@@ -162,7 +252,7 @@ describe("publish_shift", () => {
     });
 
     const result = await publishShift.execute(
-      { shift_id: "11111111-1111-1111-1111-111111111111" },
+      { shift_id: SHIFT_FIXTURE.schedule_shift_id },
       makeCtx({ supabaseAdmin: supabase }),
     );
 
@@ -177,8 +267,75 @@ describe("publish_shift", () => {
 describe("approve_shift", () => {
   beforeEach(() => vi.clearAllMocks());
 
+  it("blocks without mutating when the employee is not ready (readiness_gap)", async () => {
+    const updates: Array<{ table: string; payload: Record<string, unknown> }> = [];
+    const rpcCalls: string[] = [];
+    const supabase = makeSupabase({
+      recordUpdates: updates,
+      tables: {
+        schedule_shift: {
+          result: {
+            data: {
+              schedule_shift_id: "22222222-2222-2222-2222-222222222222",
+              workspace_id: "ws-1",
+              employee_id: "emp-1",
+              department_id: "dept-1",
+              status: "published",
+            },
+            error: null,
+          },
+        },
+        profile: {
+          result: { data: { profile_id: "emp-1", workspace_id: "ws-1" }, error: null },
+        },
+        protocol_assignment: {
+          result: { data: UNREADY_PROTOCOL_ROWS, error: null },
+        },
+      },
+      rpc: (fn) => {
+        rpcCalls.push(fn);
+        return { data: null, error: null };
+      },
+    });
+
+    const result = await approveShift.execute(
+      {
+        shift_id: "22222222-2222-2222-2222-222222222222",
+        approved_hours: 8,
+      },
+      makeCtx({ supabaseAdmin: supabase, channel: "chat" }),
+    );
+
+    expect(rpcCalls).not.toContain("gate_action");
+    expect(updates).toHaveLength(0);
+    const parsed = JSON.parse(result);
+    expect(parsed.allowed).toBe(false);
+    expect(parsed.reason).toBe("readiness_gap");
+    expect(parsed.missing_protocols).toContain("p2");
+  });
+
   it("returns pending-second-approver when gate signals four_eyes_required", async () => {
     const supabase = makeSupabase({
+      tables: {
+        schedule_shift: {
+          result: {
+            data: {
+              schedule_shift_id: "22222222-2222-2222-2222-222222222222",
+              workspace_id: "ws-1",
+              employee_id: "emp-1",
+              department_id: "dept-1",
+              status: "published",
+            },
+            error: null,
+          },
+        },
+        profile: {
+          result: { data: { profile_id: "emp-1", workspace_id: "ws-1" }, error: null },
+        },
+        protocol_assignment: {
+          result: { data: READY_PROTOCOL_ROWS, error: null },
+        },
+      },
       rpc: (fn) => {
         if (fn === "gate_action") {
           return {
