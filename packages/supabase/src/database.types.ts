@@ -5218,6 +5218,13 @@ export type Database = {
             referencedColumns: ["shift_id"]
           },
           {
+            foreignKeyName: "deviation_linked_shift_id_fkey"
+            columns: ["linked_shift_id"]
+            isOneToOne: false
+            referencedRelation: "v_shift_lifecycle_employee"
+            referencedColumns: ["shift_id"]
+          },
+          {
             foreignKeyName: "deviation_procedure_id_fkey"
             columns: ["procedure_id"]
             isOneToOne: false
@@ -13312,6 +13319,13 @@ export type Database = {
             referencedColumns: ["shift_id"]
           },
           {
+            foreignKeyName: "shift_approval_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "v_shift_lifecycle_employee"
+            referencedColumns: ["shift_id"]
+          },
+          {
             foreignKeyName: "shift_approval_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
@@ -13482,6 +13496,13 @@ export type Database = {
             referencedColumns: ["interpretation_id"]
           },
           {
+            foreignKeyName: "shift_cost_snapshot_interpretation_id_fkey"
+            columns: ["interpretation_id"]
+            isOneToOne: false
+            referencedRelation: "v_shift_lifecycle_employee"
+            referencedColumns: ["interpretation_id"]
+          },
+          {
             foreignKeyName: "shift_cost_snapshot_payroll_profile_id_fkey"
             columns: ["payroll_profile_id"]
             isOneToOne: false
@@ -13507,6 +13528,13 @@ export type Database = {
             columns: ["schedule_shift_id"]
             isOneToOne: false
             referencedRelation: "v_shift_lifecycle"
+            referencedColumns: ["shift_id"]
+          },
+          {
+            foreignKeyName: "shift_cost_snapshot_schedule_shift_id_fkey"
+            columns: ["schedule_shift_id"]
+            isOneToOne: false
+            referencedRelation: "v_shift_lifecycle_employee"
             referencedColumns: ["shift_id"]
           },
           {
@@ -13602,6 +13630,13 @@ export type Database = {
             referencedColumns: ["shift_id"]
           },
           {
+            foreignKeyName: "shift_hour_interpretation_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "v_shift_lifecycle_employee"
+            referencedColumns: ["shift_id"]
+          },
+          {
             foreignKeyName: "shift_hour_interpretation_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
@@ -13658,6 +13693,13 @@ export type Database = {
             columns: ["shift_id"]
             isOneToOne: false
             referencedRelation: "v_shift_lifecycle"
+            referencedColumns: ["shift_id"]
+          },
+          {
+            foreignKeyName: "shift_note_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "v_shift_lifecycle_employee"
             referencedColumns: ["shift_id"]
           },
           {
@@ -15275,6 +15317,69 @@ export type Database = {
           },
         ]
       }
+      v_shift_lifecycle_employee: {
+        Row: {
+          approval_id: string | null
+          approval_status:
+            | Database["public"]["Enums"]["shift_approval_status"]
+            | null
+          approved_hours: number | null
+          department_id: string | null
+          employee_id: string | null
+          has_blocking_deviation: boolean | null
+          has_deviation: boolean | null
+          interpretation_id: string | null
+          interpreted_hours: number | null
+          last_punch_in: string | null
+          last_punch_out: string | null
+          phase: string | null
+          reconciliation_id: string | null
+          reconciliation_status:
+            | Database["public"]["Enums"]["reconciliation_status"]
+            | null
+          scheduled_hours: number | null
+          session_status:
+            | Database["public"]["Enums"]["department_session_status"]
+            | null
+          shift_date: string | null
+          shift_id: string | null
+          shift_status: Database["public"]["Enums"]["shift_status"] | null
+          time_entry_status:
+            | Database["timesheet"]["Enums"]["time_entry_status"]
+            | null
+          workspace_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_shift_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "department"
+            referencedColumns: ["department_id"]
+          },
+          {
+            foreignKeyName: "schedule_shift_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "schedule_shift_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "shift_approval_reconciliation_id_fkey"
+            columns: ["reconciliation_id"]
+            isOneToOne: false
+            referencedRelation: "daily_reconciliation"
+            referencedColumns: ["reconciliation_id"]
+          },
+        ]
+      }
     }
     Functions: {
       _role_rank: { Args: { p_role: string }; Returns: number }
@@ -15316,6 +15421,7 @@ export type Database = {
         Args: { p_workspace_id: string }
         Returns: boolean
       }
+      can_read_shift_cost: { Args: { wid: string }; Returns: boolean }
       cancel_shift_swap: {
         Args: { p_swap_id: string }
         Returns: {
