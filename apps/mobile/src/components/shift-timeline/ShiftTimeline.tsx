@@ -13,12 +13,13 @@
  * `BotssonProvider.openWithIntent`.
  */
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { StyleSheet, View, Text, Pressable } from "react-native";
 import { createStyles, useTheme, type Theme } from "@/theme";
 import { useTranslation } from "@smartout/i18n";
 
 import { PhaseOrb } from "./PhaseOrb";
+import { PhaseExplainer } from "./PhaseExplainer";
 import {
   PHASE_ORDER,
   deriveStageState,
@@ -57,6 +58,11 @@ export function ShiftTimeline({
   const styles = useStyles();
   const theme = useTheme();
   const { t } = useTranslation("shift");
+  const [explainerFor, setExplainerFor] = useState<ShiftLifecyclePhase | null>(null);
+  const handleLongPress = (phase: ShiftLifecyclePhase) => {
+    setExplainerFor(phase);
+    onLongPressPhase?.(phase);
+  };
 
   const activePhase: ShiftLifecyclePhase = lifecycle.phase;
   const trackHeight = PHASE_ORDER.length * ROW_HEIGHT;
@@ -109,7 +115,7 @@ export function ShiftTimeline({
           return (
             <Pressable
               key={phase}
-              onLongPress={onLongPressPhase ? () => onLongPressPhase(phase) : undefined}
+              onLongPress={() => handleLongPress(phase)}
               delayLongPress={400}
               accessibilityRole="button"
               accessibilityState={{ selected: isActive }}
@@ -154,6 +160,10 @@ export function ShiftTimeline({
             </Pressable>
           );
         })}
+
+        {explainerFor ? (
+          <PhaseExplainer phase={explainerFor} onDismiss={() => setExplainerFor(null)} />
+        ) : null}
       </View>
     </View>
   );

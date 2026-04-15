@@ -11,12 +11,13 @@
  * detail route.
  */
 
-import React from "react";
+import React, { useState } from "react";
 import { StyleSheet, View, Text, Pressable } from "react-native";
 import { createStyles, useTheme } from "@/theme";
 import { useTranslation } from "@smartout/i18n";
 
 import { PhaseOrb } from "./PhaseOrb";
+import { PhaseExplainer } from "./PhaseExplainer";
 import { PHASE_ORDER, deriveStageState, type ShiftLifecyclePhase } from "./types";
 
 export const PHASE_STRIP_HEIGHT = 56;
@@ -33,6 +34,14 @@ export function PhaseStrip({ activePhase, frozen = false, onLongPressPhase }: Ph
   const styles = useStyles();
   const theme = useTheme();
   const { t } = useTranslation("shift");
+  // Long-press reveals the phase explainer in-place. The host can still
+  // intercept via `onLongPressPhase` — we call it after our own state flips
+  // so analytics get recorded as well.
+  const [explainerFor, setExplainerFor] = useState<ShiftLifecyclePhase | null>(null);
+  const handleLongPress = (phase: ShiftLifecyclePhase) => {
+    setExplainerFor(phase);
+    onLongPressPhase?.(phase);
+  };
 
   // Strip is horizontal — the PhaseOrb needs a horizontal track.
   // We estimate track width via layout; use a fixed pct-based position inside
@@ -68,7 +77,7 @@ export function PhaseStrip({ activePhase, frozen = false, onLongPressPhase }: Ph
         return (
           <Pressable
             key={phase}
-            onLongPress={onLongPressPhase ? () => onLongPressPhase(phase) : undefined}
+            onLongPress={() => handleLongPress(phase)}
             delayLongPress={400}
             accessibilityRole="tab"
             accessibilityState={{ selected: isActive }}
@@ -88,6 +97,10 @@ export function PhaseStrip({ activePhase, frozen = false, onLongPressPhase }: Ph
           </Pressable>
         );
       })}
+
+      {explainerFor ? (
+        <PhaseExplainer phase={explainerFor} onDismiss={() => setExplainerFor(null)} />
+      ) : null}
     </View>
   );
 }
