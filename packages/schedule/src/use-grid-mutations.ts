@@ -174,17 +174,35 @@ export function usePublishWeek() {
 
       if (error) throw error;
 
-      return { shiftCount: data?.length ?? 0 };
+      const shiftIds = (data ?? []).map(
+        (row: { schedule_shift_id: string }) => row.schedule_shift_id,
+      );
+      return { shiftCount: shiftIds.length, shiftIds };
     },
 
-    onSuccess: ({ shiftCount }, { workspaceId, weekStart, templateId, actorId }) => {
+    onSuccess: (
+      { shiftCount, shiftIds },
+      { workspaceId, weekStart, templateId, actorId, departmentId },
+    ) => {
+      // Canonical event name is singular `shift published` per ADR-0095
+      // (plural alias unwound in migration 20260507100200). The singular
+      // schema expects dates/department_ids/shift_ids/shift_count, so we
+      // adapt the batch result to that shape.
+      const dates: string[] = [];
+      for (let i = 0; i < 7; i++) dates.push(addDays(weekStart, i));
+
       void emit({
-        event: "shifts published",
+        event: "shift published",
         workspace_id: workspaceId,
         actor_id: actorId,
         properties: {
           entity: { entity_type: "template", entity_id: templateId },
-          data: { shift_count: shiftCount, week_start: weekStart },
+          data: {
+            dates,
+            department_ids: [departmentId],
+            shift_ids: shiftIds,
+            shift_count: shiftCount,
+          },
         },
       });
 

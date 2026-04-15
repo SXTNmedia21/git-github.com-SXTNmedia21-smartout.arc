@@ -1259,6 +1259,46 @@ export interface ShiftHoursConfirmed extends BaseEvent {
   };
 }
 
+// ─── Scheduling: Lifecycle Capability (ADR-0095) ────
+// Emitted by packages/ai/src/capabilities/shift-lifecycle/ tools.
+// These events observe agent-initiated lifecycle operations so that
+// the unified gate (ADR-0099) and downstream processes can audit them.
+export interface ShiftLifecyclePublished extends BaseEvent {
+  event: "shift_lifecycle published";
+  properties: {
+    entity: EntityRef;
+    data: { shift_id: string; gate_allowed: boolean; reason?: string };
+  };
+}
+export interface ShiftLifecycleApproved extends BaseEvent {
+  event: "shift_lifecycle approved";
+  properties: {
+    entity: EntityRef;
+    data: {
+      shift_id: string;
+      approval_id?: string;
+      approved_hours?: number;
+      four_eyes_pending?: boolean;
+      gate_allowed: boolean;
+      reason?: string;
+    };
+  };
+}
+export interface ShiftLifecycleInterpreted extends BaseEvent {
+  event: "shift_lifecycle interpreted";
+  properties: {
+    entity: EntityRef;
+    data: { shift_id: string; interpretation_id?: string };
+  };
+}
+export interface ShiftLifecycleSettled extends BaseEvent {
+  event: "shift_lifecycle settled";
+  properties: {
+    entity: EntityRef;
+    data: { shift_id: string; snapshot_id?: string; idempotent_hit: boolean };
+  };
+}
+
 // ─── HACCP: Temperature Logging ─────────────────────
 export interface HaccpLogged extends BaseEvent {
   event: "haccp logged";
@@ -3398,6 +3438,10 @@ export type SmartoutEvent =
   | ShiftCallInitiated
   | ShiftLateDetected
   | ShiftNoShowEscalated
+  | ShiftLifecyclePublished
+  | ShiftLifecycleApproved
+  | ShiftLifecycleInterpreted
+  | ShiftLifecycleSettled
   | SessionOpened
   | SessionPendingSignoff
   | SessionClosed
@@ -4265,6 +4309,22 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "operations",
   },
+  "shift_lifecycle published": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "shift_lifecycle approved": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "shift_lifecycle interpreted": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "scheduling",
+  },
+  "shift_lifecycle settled": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
   "haccp logged": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "haccp",
@@ -4342,8 +4402,13 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "scheduling",
   },
+  // Soft-deprecated plural alias per ADR-0095 (Council 2026-04-15).
+  // Canonical event is `shift published` (singular). engine_event
+  // routing dropped; posthog/logger/activity_trail retained so any
+  // stragglers still surface in analytics/audit while call sites are
+  // migrated. Remove entry entirely in a follow-up cleanup migration.
   "shifts published": {
-    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    destinations: ["posthog", "logger", "activity_trail"],
     category: "scheduling",
   },
   "week reset": {

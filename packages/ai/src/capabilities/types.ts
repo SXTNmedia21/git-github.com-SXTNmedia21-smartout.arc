@@ -16,11 +16,23 @@ export type CapabilityName =
   | "guardian"
   | "contract"
   | "contract_intake"
-  | "shift_swap";
+  | "shift_swap"
+  | "shift_lifecycle"
+  | "governance";
 
 export type AuthorityLevel = "autonomous" | "confirm" | "suggest" | "read_only" | "disabled";
 
-export type SessionChannel = "chat" | "voice" | "sms" | "email" | "autonomous" | "telegram";
+export type SessionChannel =
+  | "chat"
+  | "voice"
+  | "sms"
+  | "email"
+  | "autonomous"
+  | "telegram"
+  // ADR-0099: originating_channel for DB-trigger / cron / engine-dispatch paths.
+  // Used by gate_action to permit internal/system-only capabilities
+  // (e.g. shift_lifecycle.interpret, shift_lifecycle.settle).
+  | "system";
 
 export type AgentToolContext = {
   workspaceId: string;
