@@ -35,6 +35,7 @@ tags: [decisions, adr, index]
 | [ADR-0112](0112-intent-classifier-coverage-invariant.md) | 2026-04-15 | Intent Classifier Coverage Invariant — every registered capability must have an intent-schema entry (Council R2 F5 follow-up) | accepted |
 | ADR-0109 | 2026-04-15 | *reserved — Four-Eyes Extension of gate_action RPC (claimed by PR #197 pending rename from 0101)* | reserved |
 | ADR-0101 | 2026-04-15 | *reserved — Governance/Training Council ADR (PR #200). Previously also claimed by PR #197; collision resolved by renumbering PR #197 to ADR-0109.* | reserved |
+| [ADR-0107](0107-botsson-provider-channel-derivation.md) | 2026-04-15 | BotssonProvider Channel Derivation (closes ADR-0078 mobile gap — derive from session mode, never platform label) | accepted |
 | [ADR-0100](0100-daily-close-as-aggregate-consumer.md) | 2026-04-15 | daily_close as Department-Aggregate Consumer of Settled Shifts | accepted |
 | [ADR-0099](0099-unified-authority-gate.md) | 2026-04-15 | Unified Authority-Gate Across agent-router and engine-dispatch (closes ADR-0077/0078 violation) | accepted |
 | [ADR-0098](0098-engine-state-as-coordination-spor.md) | 2026-04-15 | engine_state as Coordination Spor, Not Truth Owner | accepted |
