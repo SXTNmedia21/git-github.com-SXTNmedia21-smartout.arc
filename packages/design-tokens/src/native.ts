@@ -64,4 +64,31 @@ export const nativeTheme = {
   },
   radius: { sm: 6, md: 8, lg: 10, xl: 14, full: 9999 },
   spacing: { page: 32, section: 24, card: 20, element: 12, tight: 8 },
+  /**
+   * Nordic Split motion tokens — shared between RN shift timeline surfaces.
+   *
+   * Two spring vocabularies (Council 6.4 2026-04-15):
+   *
+   * - `springAmbient` — slow lava-lamp drift used by the orb between phase
+   *   anchors. Low stiffness + high damping + high mass produces an
+   *   unhurried, ambient motion that never competes with the UI.
+   * - `springReactive` — snappy touch feedback and phase-transition impulses
+   *   triggered by the user or by lifecycle events. Tuned for a confident
+   *   "it heard me" response without overshoot that would feel twitchy.
+   *
+   * All durations are milliseconds. Consumers import via `nativeTheme.motion`
+   * (or the destructured subset) so no inline constants leak into components.
+   */
+  motion: {
+    /** Ambient drift spring — orb breathing between phases. */
+    springAmbient: { stiffness: 35, damping: 22, mass: 2.2 },
+    /** Reactive spring — touch feedback and phase transitions. */
+    springReactive: { stiffness: 180, damping: 20, mass: 1 },
+    /** Full orb drift-loop period (ms). */
+    orbDriftMs: 40_000,
+    /** Migration duration when active phase changes (ms). */
+    orbMigrationMs: 800,
+    /** Phase-to-phase visual transition duration (ms). */
+    phaseTransitionMs: 450,
+  },
 } as const;
