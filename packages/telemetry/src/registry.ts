@@ -112,7 +112,10 @@ export type EntityType =
   | "employment_contract"
   | "engine_state"
   | "service_config"
-  | "contract_template_binding";
+  | "contract_template_binding"
+  | "observer_request"
+  | "inspection_link"
+  | "notification_policy";
 
 export type ActionVerb =
   | "created"
@@ -184,7 +187,11 @@ export type ActionVerb =
   | "logged"
   | "rate_limited"
   | "lockout_triggered"
-  | "sandbox_blocked";
+  | "sandbox_blocked"
+  | "resolved"
+  | "issued"
+  | "converted"
+  | "claimed";
 
 // ─── Auth Module Events ─────────────────────────
 export interface AuthSignedUp extends BaseEvent {
@@ -3410,6 +3417,83 @@ export interface ScheduleRollback extends BaseEvent {
   properties: { entity: EntityRef; data: { audit_log_id: string } };
 }
 
+// ─── Governance / Training MVP — Phase 0 (ADR-0101..0106) ──────
+export interface PolicyPublished extends BaseEvent {
+  event: "policy published";
+  properties: { entity: EntityRef; data: { policy_id: string } };
+}
+
+export interface ObserverRequestCreated extends BaseEvent {
+  event: "observer_request created";
+  properties: {
+    entity: EntityRef;
+    data: {
+      subject_profile_id: string;
+      protocol_assignment_id: string;
+    };
+  };
+}
+
+export interface ObserverRequestClaimed extends BaseEvent {
+  event: "observer_request claimed";
+  properties: {
+    entity: EntityRef;
+    data: { observer_profile_id: string };
+  };
+}
+
+export interface ObserverRequestResolved extends BaseEvent {
+  event: "observer_request resolved";
+  properties: {
+    entity: EntityRef;
+    data: { resolution: "approved" | "rejected" | "expired" };
+  };
+}
+
+export interface ApprovalRequested extends BaseEvent {
+  event: "approval requested";
+  properties: {
+    entity: EntityRef;
+    data: { approvers_needed: number };
+  };
+}
+
+export interface ApprovalResolved extends BaseEvent {
+  event: "approval resolved";
+  properties: {
+    entity: EntityRef;
+    data: { resolution: "approved" | "rejected" };
+  };
+}
+
+export interface ReminderSent extends BaseEvent {
+  event: "reminder sent";
+  properties: {
+    entity: EntityRef;
+    data: {
+      subject_profile_id: string;
+      tier: string;
+      channel: string;
+    };
+  };
+}
+
+export interface ReminderOpened extends BaseEvent {
+  event: "reminder opened";
+  properties: {
+    entity: EntityRef;
+    data: { subject_profile_id: string };
+  };
+}
+
+export interface ReminderConverted extends BaseEvent {
+  event: "reminder converted";
+  properties: {
+    entity: EntityRef;
+    data: { subject_profile_id: string };
+  };
+}
+
 // ─── The Single Truth Union ─────────────────────
 // Add every feature's events here. If it isn't here, it can't be emitted.
 export type SmartoutEvent =
@@ -3784,7 +3868,16 @@ export type SmartoutEvent =
   | OpsPredictComplianceQueried
   | OpsLearnPatternExtracted
   | OpsLearnRetentionCleaned
-  | OpsLearnPatternsQueried;
+  | OpsLearnPatternsQueried
+  | PolicyPublished
+  | ObserverRequestCreated
+  | ObserverRequestClaimed
+  | ObserverRequestResolved
+  | ApprovalRequested
+  | ApprovalResolved
+  | ReminderSent
+  | ReminderOpened
+  | ReminderConverted;
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -5196,5 +5289,43 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "ops.learn patterns_queried": {
     destinations: ["logger", "engine_event"],
     category: "ops_intelligence",
+  },
+
+  // ─── Governance / Training MVP — Phase 0 (ADR-0101..0106) ────
+  "policy published": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "training",
+  },
+  "observer_request created": {
+    destinations: ["posthog", "activity_trail", "engine_event"],
+    category: "training",
+  },
+  "observer_request claimed": {
+    destinations: ["posthog", "activity_trail"],
+    category: "training",
+  },
+  "observer_request resolved": {
+    destinations: ["posthog", "activity_trail", "engine_event"],
+    category: "training",
+  },
+  "approval requested": {
+    destinations: ["posthog", "activity_trail", "engine_event"],
+    category: "training",
+  },
+  "approval resolved": {
+    destinations: ["posthog", "activity_trail", "engine_event"],
+    category: "training",
+  },
+  "reminder sent": {
+    destinations: ["posthog", "logger"],
+    category: "training",
+  },
+  "reminder opened": {
+    destinations: ["posthog"],
+    category: "training",
+  },
+  "reminder converted": {
+    destinations: ["posthog", "activity_trail"],
+    category: "training",
   },
 };
