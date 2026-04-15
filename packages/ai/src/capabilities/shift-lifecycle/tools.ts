@@ -22,6 +22,7 @@ import { emit } from "@smartout/telemetry";
 import { defineTool } from "../../types.js";
 import type { AgentToolContext, SessionChannel } from "../types.js";
 import { callGateAction } from "./gate.js";
+import { checkReadiness } from "../governance/tools.js";
 
 type ShiftRow = {
   schedule_shift_id: string;
@@ -37,6 +38,52 @@ const CAPABILITY_INTERPRET = "shift_lifecycle.interpret";
 const CAPABILITY_SETTLE = "shift_lifecycle.settle";
 
 const normaliseChannel = (c: SessionChannel | undefined): SessionChannel => c ?? "system";
+
+type ReadinessGateResult =
+  | { ready: true }
+  | {
+      ready: false;
+      missingPolicies: string[];
+      missingProtocols: string[];
+      error?: string;
+    };
+
+// WS-A4: readiness must be verified before any Decision-layer mutation on
+// a shift (publish, approve). Wraps the governance capability's check_readiness
+// tool so gating stays centralised (ADR-0095 + PLAN-secure-shift-lifecycle).
+async function evaluateReadinessGate(
+  ctx: AgentToolContext,
+  profileId: string | null,
+): Promise<ReadinessGateResult> {
+  // Unassigned shifts have nothing to gate on — readiness is trivially ready.
+  if (!profileId) return { ready: true };
+
+  const raw = await checkReadiness.execute({ profile_id: profileId }, ctx);
+
+  // check_readiness returns a stringified JSON payload on success, or a
+  // plain error string on failure. Treat parse failure as a readiness
+  // gap to fail-closed.
+  try {
+    const parsed = JSON.parse(raw) as {
+      ready?: boolean;
+      missing_policies?: string[];
+      missing_protocols?: string[];
+    };
+    if (parsed.ready === true) return { ready: true };
+    return {
+      ready: false,
+      missingPolicies: parsed.missing_policies ?? [],
+      missingProtocols: parsed.missing_protocols ?? [],
+    };
+  } catch {
+    return {
+      ready: false,
+      missingPolicies: [],
+      missingProtocols: [],
+      error: raw,
+    };
+  }
+}
 
 async function loadShift(
   supabase: SupabaseClient,
@@ -62,7 +109,7 @@ async function loadShift(
 export const publishShift = defineTool({
   name: "publish_shift",
   description:
-    "Publish a shift so the assigned employee can see it and punch in. Requires publish-level authority. Not allowed over voice.",
+    "Publish a shift so the assigned employee can see it and punch in. Blocks when the assigned employee is not ready (missing policies/protocols) and when authority/four-eyes denies (ADR-0101). Chat + system only — not allowed over voice (ADR-0078).",
   schema: z.object({
     shift_id: z.string().uuid().describe("The shift to publish (schedule_shift_id)"),
   }),
@@ -74,10 +121,41 @@ export const publishShift = defineTool({
       return "Publisering av skift kan ikke gjøres over stemme (ADR-0078).";
     }
 
+    const { shift, error: loadErr } = await loadShift(supabase, params.shift_id, ctx.workspaceId);
+    if (loadErr) return `Kunne ikke laste skift: ${loadErr}`;
+    if (!shift) return "Shift not found.";
+
+    // WS-A4: readiness gate before authority gate. An unready employee must
+    // never see a published shift — publication is a contract the system
+    // makes with the employee that they are allowed to work.
+    const readiness = await evaluateReadinessGate(ctx, shift.employee_id);
+    if (!readiness.ready) {
+      void emit({
+        event: "shift_lifecycle published",
+        workspace_id: ctx.workspaceId,
+        actor_id: ctx.profileId,
+        properties: {
+          entity: { entity_type: "shift", entity_id: params.shift_id },
+          data: {
+            shift_id: params.shift_id,
+            gate_allowed: false,
+            reason: "readiness_gap",
+          },
+        },
+      });
+      return JSON.stringify({
+        allowed: false,
+        reason: "readiness_gap",
+        missing_policies: readiness.missingPolicies,
+        missing_protocols: readiness.missingProtocols,
+      });
+    }
+
     const gate = await callGateAction(supabase, ctx.workspaceId, ctx.profileId, {
       capability: CAPABILITY_PUBLISH,
       channel,
       actionType: "publish_shift",
+      entityId: params.shift_id,
     });
 
     if (!gate.allow) {
@@ -92,10 +170,6 @@ export const publishShift = defineTool({
       });
       return JSON.stringify({ allowed: false, reason: gate.reason ?? "denied" });
     }
-
-    const { shift, error: loadErr } = await loadShift(supabase, params.shift_id, ctx.workspaceId);
-    if (loadErr) return `Kunne ikke laste skift: ${loadErr}`;
-    if (!shift) return "Shift not found.";
 
     const { error: updateErr } = await supabase
       .from("schedule_shift")
@@ -142,7 +216,7 @@ export const publishShift = defineTool({
 export const approveShift = defineTool({
   name: "approve_shift",
   description:
-    "Approve a shift's interpreted hours, transitioning shift_approval from pending to approved. Chat-only. May require a second approver (four-eyes).",
+    "Approve a shift's interpreted hours, transitioning shift_approval from pending to approved. Blocks when the assigned employee is not ready, when authority denies, or when four-eyes requires a second distinct approver on this shift (ADR-0101). Chat-only (ADR-0078).",
   schema: z.object({
     shift_id: z.string().uuid().describe("The shift being approved (schedule_shift_id)"),
     approved_hours: z
@@ -167,10 +241,41 @@ export const approveShift = defineTool({
       return "Shift approval is only available over chat (ADR-0078).";
     }
 
+    const { shift, error: loadErr } = await loadShift(supabase, params.shift_id, ctx.workspaceId);
+    if (loadErr) return `Kunne ikke laste skift: ${loadErr}`;
+    if (!shift) return "Shift not found.";
+
+    // WS-A4: readiness gate before authority gate. Never approve hours for
+    // a shift whose employee has not completed the required training.
+    const readiness = await evaluateReadinessGate(ctx, shift.employee_id);
+    if (!readiness.ready) {
+      void emit({
+        event: "shift_lifecycle approved",
+        workspace_id: ctx.workspaceId,
+        actor_id: ctx.profileId,
+        properties: {
+          entity: { entity_type: "shift", entity_id: params.shift_id },
+          data: {
+            shift_id: params.shift_id,
+            approved_hours: params.approved_hours,
+            gate_allowed: false,
+            reason: "readiness_gap",
+          },
+        },
+      });
+      return JSON.stringify({
+        allowed: false,
+        reason: "readiness_gap",
+        missing_policies: readiness.missingPolicies,
+        missing_protocols: readiness.missingProtocols,
+      });
+    }
+
     const gate = await callGateAction(supabase, ctx.workspaceId, ctx.profileId, {
       capability: CAPABILITY_APPROVE,
       channel,
       actionType: "approve_shift",
+      entityId: params.shift_id,
     });
 
     // Four-eyes path (ADR-0101): return a pending response, do NOT mutate.
