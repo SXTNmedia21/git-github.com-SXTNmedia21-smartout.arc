@@ -6,6 +6,8 @@
   "scripts": {
     "lint": "eslint src/",
     "typecheck": "npx tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "clean": "rimraf dist .turbo"
   },
   "dependencies": {
@@ -26,6 +28,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "typescript": "^5.9.0",
+    "vitest": "^4.0.18",
     "zod": "^3.25.0"
   },
   "peerDependencies": {
