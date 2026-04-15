@@ -101,6 +101,7 @@ export function useCreatePolicy() {
     },
 
     onSuccess: (data) => {
+      // TODO(plan-phase-2): event pending — no "policy created" event registered yet
       void emit({
         event: "button clicked",
         workspace_id: workspace.workspace_id,
@@ -142,6 +143,7 @@ export function useUpdatePolicy() {
     },
 
     onSuccess: (data) => {
+      // TODO(plan-phase-2): event pending — no "policy updated" event registered yet
       void emit({
         event: "button clicked",
         workspace_id: workspace.workspace_id,
@@ -190,6 +192,7 @@ export function useCreateProtocol() {
     },
 
     onSuccess: (data) => {
+      // TODO(plan-phase-2): event pending — no "protocol created" event registered yet
       void emit({
         event: "button clicked",
         workspace_id: workspace.workspace_id,
@@ -231,6 +234,7 @@ export function useUpdateProtocol() {
     },
 
     onSuccess: (data) => {
+      // TODO(plan-phase-2): event pending — no "protocol updated" event registered yet
       void emit({
         event: "button clicked",
         workspace_id: workspace.workspace_id,
@@ -291,6 +295,7 @@ export function useCreateProcedure() {
     },
 
     onSuccess: (data) => {
+      // TODO(plan-phase-2): event pending — no "procedure created" event registered yet
       void emit({
         event: "button clicked",
         workspace_id: workspace.workspace_id,
@@ -339,6 +344,7 @@ export function useCreateKnowledgeTest() {
     },
 
     onSuccess: (data) => {
+      // TODO(plan-phase-2): event pending — no "knowledge_test created" event registered yet
       void emit({
         event: "button clicked",
         workspace_id: workspace.workspace_id,
@@ -383,6 +389,7 @@ export function useCreateConfirmation() {
     },
 
     onSuccess: (data) => {
+      // TODO(plan-phase-2): event pending — no "confirmation created" event registered yet
       void emit({
         event: "button clicked",
         workspace_id: workspace.workspace_id,
