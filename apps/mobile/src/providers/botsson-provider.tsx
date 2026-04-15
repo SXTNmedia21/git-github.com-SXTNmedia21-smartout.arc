@@ -6,6 +6,12 @@
  *
  * Voice mode uses Ultravox WebRTC (browser context via Expo Web).
  * Text mode connects to Stage Engine via useAgentChat.
+ *
+ * ADR-0107: `channel` is a SessionChannel ('chat' | 'voice' | 'system' | ...).
+ * It MUST be derived from `mode` — never a device/platform label like
+ * "mobile" or "web". Device type is surfaced separately on `device_type`
+ * for telemetry only. The security defence-in-depth declared by ADR-0077,
+ * ADR-0078 and the ADR-0099 gate_action RPC all read this field verbatim.
  */
 
 import {
@@ -20,6 +26,16 @@ import {
 import { useShiftPhase } from "@/hooks/stores/use-shift-phase";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
 import { useMyTasks } from "@/hooks/queries/use-my-tasks";
+import {
+  deriveBotssonChannel,
+  type BotssonDeviceType,
+  type BotssonMode,
+  type BotssonSessionChannel,
+} from "./botsson-channel";
+
+export { deriveBotssonChannel } from "./botsson-channel";
+export type { BotssonMode, BotssonSessionChannel, BotssonDeviceType } from "./botsson-channel";
+
 /** Minimal voice session interface — matches UltravoxVoiceSession from @smartout/agent-sdk */
 type VoiceSession = {
   muteMic(): void;
@@ -28,12 +44,17 @@ type VoiceSession = {
 };
 
 export type BotssonStatus = "idle" | "connecting" | "active" | "error";
-export type BotssonMode = "voice" | "text";
 
 type BotssonSessionContext = {
-  /** Current channel: mobile context info for the agent */
-  channel: "mobile";
-  device_type: "phone";
+  /**
+   * ADR-0107: SessionChannel derived from `mode`. NEVER a device label.
+   * 'voice' when mode === 'voice', 'chat' otherwise (including when mode
+   * is null — 'chat' is the safest default for pre-session readers because
+   * it denies voice-PII tools by default).
+   */
+  channel: BotssonSessionChannel;
+  /** Device/platform metadata. Telemetry only — no security meaning. */
+  device_type: BotssonDeviceType;
   shift_phase: string;
   language: string;
   pending_tasks_count: number;
@@ -76,16 +97,17 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
   const { data: _profile } = useMyProfile();
   const { data: tasks } = useMyTasks();
 
-  // Build mobile context for AI agent — passed as session params
+  // Build mobile context for AI agent — passed as session params.
+  // ADR-0107: channel is derived from mode, device_type is separate.
   const sessionContext = useMemo<BotssonSessionContext>(
     () => ({
-      channel: "mobile",
-      device_type: "phone",
+      channel: deriveBotssonChannel(mode),
+      device_type: "mobile",
       shift_phase: phase ?? "no_shift",
       language: "nb",
       pending_tasks_count: tasks?.length ?? 0,
     }),
-    [phase, tasks],
+    [mode, phase, tasks],
   );
 
   const setMicrophoneMuted = useCallback((muted: boolean) => {
