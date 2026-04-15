@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS public.gate_evaluation (
   capability          TEXT NOT NULL,
   action_type         TEXT NOT NULL,
   channel             TEXT NOT NULL,
-  actor_profile_id    UUID REFERENCES profile(id),
+  actor_profile_id    UUID REFERENCES profile(profile_id),
   engine_process_id   TEXT REFERENCES engine_process(id),
   engine_state_id     UUID REFERENCES engine_state(id),
   allow               BOOLEAN NOT NULL,
@@ -132,7 +132,7 @@ BEGIN
     SELECT role::TEXT
       INTO v_caller_role
       FROM public.profile
-     WHERE id = p_actor_profile_id;
+     WHERE profile_id = p_actor_profile_id;
   END IF;
 
   -- Channel check against engine_process.allowed_channels (only when engine step).

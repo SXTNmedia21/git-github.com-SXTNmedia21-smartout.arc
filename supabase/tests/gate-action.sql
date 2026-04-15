@@ -31,26 +31,32 @@ BEGIN
   PERFORM set_config('test.process_id', v_process_id, false);
   PERFORM set_config('test.user_id', v_user_id::text, false);
 
-  INSERT INTO user_identity (user_id, email)
-    VALUES (v_user_id, 'gatetest+' || v_user_id || '@example.test');
+  INSERT INTO auth.users (id, email, aud, role, instance_id)
+    VALUES (v_user_id, 'gatetest+' || v_user_id || '@example.test',
+            'authenticated', 'authenticated', '00000000-0000-0000-0000-000000000000');
 
-  INSERT INTO company (company_id, name, created_by)
-    VALUES (v_company_id, 'Gate Test Co', v_user_id);
+  -- user_identity row is created automatically by on_auth_user_created trigger.
+  UPDATE user_identity
+     SET first_name = 'Gate', last_name = 'Test'
+   WHERE user_id = v_user_id;
 
-  INSERT INTO workspace (workspace_id, company_id, name, slug, created_by)
+  INSERT INTO company (company_id, name)
+    VALUES (v_company_id, 'Gate Test Co');
+
+  INSERT INTO workspace (workspace_id, company_id, name, slug)
     VALUES (v_workspace_id, v_company_id, 'Gate Test WS',
-            'gate-test-' || substr(v_workspace_id::text, 1, 8), v_user_id);
+            'gate-test-' || substr(v_workspace_id::text, 1, 8));
 
-  INSERT INTO profile (id, user_id, workspace_id, role, is_active, first_name, last_name)
+  INSERT INTO profile (profile_id, profile_code, user_id, workspace_id, role, is_active, display_name)
     VALUES
-      (v_emp_id, v_user_id, v_workspace_id, 'employee', true, 'Emp', 'Loyee'),
-      (v_mgr_id, v_user_id, v_workspace_id, 'manager',  true, 'Man',  'Ager'),
-      (v_adm_id, v_user_id, v_workspace_id, 'admin',    true, 'Adm',  'In'),
-      (v_own_id, v_user_id, v_workspace_id, 'owner',    true, 'Own',  'Er');
+      (v_emp_id, 'gate-emp-' || substr(v_emp_id::text,1,8), v_user_id, v_workspace_id, 'employee', true, 'Emp Loyee'),
+      (v_mgr_id, 'gate-mgr-' || substr(v_mgr_id::text,1,8), v_user_id, v_workspace_id, 'manager',  true, 'Man Ager'),
+      (v_adm_id, 'gate-adm-' || substr(v_adm_id::text,1,8), v_user_id, v_workspace_id, 'admin',    true, 'Adm In'),
+      (v_own_id, 'gate-own-' || substr(v_own_id::text,1,8), v_user_id, v_workspace_id, 'owner',    true, 'Own Er');
 
-  INSERT INTO engine_process (id, workspace_id, name, description, trigger_type, allowed_channels)
+  INSERT INTO engine_process (id, workspace_id, name, description, allowed_channels)
     VALUES (v_process_id, v_workspace_id, 'gate test', 'test',
-            'manual', ARRAY['chat', 'system']);
+            ARRAY['chat', 'system']);
 END $$;
 
 -- ── 1. Default-allow when no authority config ──
