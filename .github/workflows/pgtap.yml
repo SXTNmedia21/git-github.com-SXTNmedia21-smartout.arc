@@ -1,0 +1,80 @@
+name: pgTAP
+
+on:
+  pull_request:
+    branches: [main, development, preview]
+    paths:
+      - "supabase/migrations/**"
+      - "supabase/tests/**"
+      - "supabase/seed.sql"
+      - "supabase/config.toml"
+      - ".github/workflows/pgtap.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  pgtap:
+    name: pgTAP Suites
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      # Supabase Local default DB URL (see supabase/config.toml: db.port = 54322)
+      DATABASE_URL: postgresql://postgres:postgres@localhost:54322/postgres
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start Supabase Local (apply migrations + seed)
+        run: npx supabase start
+
+      - name: Verify database is ready
+        run: |
+          psql "$DATABASE_URL" -c "SELECT version();"
+          psql "$DATABASE_URL" -c "SELECT count(*) AS migrations FROM supabase_migrations.schema_migrations;"
+
+      - name: Run pgTAP — gate-action
+        run: psql "$DATABASE_URL" --set ON_ERROR_STOP=1 -f supabase/tests/gate-action.sql
+
+      - name: Run pgTAP — derivation
+        run: psql "$DATABASE_URL" --set ON_ERROR_STOP=1 -f supabase/tests/derivation.sql
+
+      - name: Run pgTAP — lifecycle-processes
+        run: psql "$DATABASE_URL" --set ON_ERROR_STOP=1 -f supabase/tests/lifecycle-processes.sql
+
+      - name: Run pgTAP — lifecycle-capability
+        run: psql "$DATABASE_URL" --set ON_ERROR_STOP=1 -f supabase/tests/lifecycle-capability.sql
+
+      - name: Capture Supabase logs on failure
+        if: failure()
+        run: |
+          mkdir -p artifacts/pgtap
+          npx supabase status > artifacts/pgtap/supabase-status.txt 2>&1 || true
+          docker ps -a > artifacts/pgtap/docker-ps.txt 2>&1 || true
+          for c in $(docker ps -aq --filter "name=supabase"); do
+            name=$(docker inspect --format='{{.Name}}' "$c" | sed 's|^/||')
+            docker logs "$c" > "artifacts/pgtap/${name}.log" 2>&1 || true
+          done
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pgtap-failure-logs
+          path: artifacts/pgtap/
+          retention-days: 7
+
+      - name: Stop Supabase Local
+        if: always()
+        run: npx supabase stop --no-backup || true
