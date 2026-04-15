@@ -716,6 +716,8 @@ async function executeStep(
         "department_session",
         "profile",
         "protocol_assignment",
+        "change_proposal",
+        "observer_request",
       ];
       if (allowed.includes(entity) && state.entity_id) {
         const pkColumn = ENTITY_PK[entity] ?? "id";
