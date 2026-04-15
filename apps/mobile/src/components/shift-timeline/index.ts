@@ -10,6 +10,7 @@ export { ShiftTimeline, type ShiftTimelineProps } from "./ShiftTimeline";
 export { PhaseOrb } from "./PhaseOrb";
 export { PhaseStrip, PHASE_STRIP_HEIGHT, type PhaseStripProps } from "./PhaseStrip";
 export { PhaseExplainer } from "./PhaseExplainer";
+export { ShiftTimelineContainer } from "./ShiftTimelineContainer";
 export {
   PHASE_ORDER,
   deriveStageState,

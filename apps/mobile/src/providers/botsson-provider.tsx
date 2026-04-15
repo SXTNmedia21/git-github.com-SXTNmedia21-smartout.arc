@@ -60,12 +60,27 @@ type BotssonSessionContext = {
   pending_tasks_count: number;
 };
 
+/**
+ * Intent handed to Botsson when opened from another surface (e.g. a
+ * deviation badge on the shift timeline). Council 6.4 rejected AsyncStorage
+ * as the deep-link mechanism — the intent lives in provider state so the
+ * session starts with it already wired into sessionContext.
+ */
+export type BotssonIntent = {
+  kind: "deviation" | "help";
+  shift_id: string;
+  deviation_id?: string | null;
+  phase?: string | null;
+};
+
 type BotssonContextValue = {
   status: BotssonStatus;
   mode: BotssonMode | null;
   /** Whether the microphone is currently muted in the active voice session */
   isMuted: boolean;
   sessionContext: BotssonSessionContext;
+  /** Intent to consume when the next session starts (one-shot). */
+  pendingIntent: BotssonIntent | null;
   startVoiceSession: () => Promise<void>;
   startTextSession: () => void;
   endSession: () => void;
@@ -74,6 +89,21 @@ type BotssonContextValue = {
    * No-op if there is no active voice session.
    */
   setMicrophoneMuted: (muted: boolean) => void;
+  /**
+   * Open Botsson with a pre-populated intent. Council 6.4: replaces the
+   * AsyncStorage / route-param deep-link pattern. The caller stages an
+   * intent, the provider starts a text session with that intent attached.
+   *
+   * Voice interlock (ADR-0078): if a voice session is active when a caller
+   * invokes openWithIntent, we call endSession() first so the intent opens
+   * in a fresh text session. Callers that want to refuse instead (the
+   * timeline does, because voice-PII is a security boundary) should check
+   * `status === 'active' && mode === 'voice'` themselves and emit a toast
+   * before calling openWithIntent.
+   */
+  openWithIntent: (intent: BotssonIntent) => void;
+  /** Clear any pending intent without opening a session. */
+  clearIntent: () => void;
   /** Error message if status is "error" */
   error: string | null;
 };
@@ -89,6 +119,7 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
   const [mode, setMode] = useState<BotssonMode | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState(false);
+  const [pendingIntent, setPendingIntent] = useState<BotssonIntent | null>(null);
 
   // Holds the active Ultravox session so we can control mic state directly
   const voiceSessionRef = useRef<VoiceSession | null>(null);
@@ -153,16 +184,39 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
     setIsMuted(false);
   }, []);
 
+  /**
+   * Stage a one-shot intent and start a text session. If a voice session
+   * is active we end it first so the intent doesn't leak into voice (ADR-
+   * 0078). The pending intent is cleared by consumers via `clearIntent`
+   * after they read it.
+   */
+  const openWithIntent = useCallback((intent: BotssonIntent) => {
+    setPendingIntent(intent);
+    voiceSessionRef.current?.leave();
+    voiceSessionRef.current = null;
+    setError(null);
+    setIsMuted(false);
+    setStatus("active");
+    setMode("text");
+  }, []);
+
+  const clearIntent = useCallback(() => {
+    setPendingIntent(null);
+  }, []);
+
   const value = useMemo<BotssonContextValue>(
     () => ({
       status,
       mode,
       isMuted,
       sessionContext,
+      pendingIntent,
       startVoiceSession,
       startTextSession,
       endSession,
       setMicrophoneMuted,
+      openWithIntent,
+      clearIntent,
       error,
     }),
     [
@@ -170,10 +224,13 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
       mode,
       isMuted,
       sessionContext,
+      pendingIntent,
       startVoiceSession,
       startTextSession,
       endSession,
       setMicrophoneMuted,
+      openWithIntent,
+      clearIntent,
       error,
     ],
   );
