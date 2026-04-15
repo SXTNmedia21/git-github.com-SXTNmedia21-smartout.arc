@@ -15,8 +15,9 @@
       "outputs": []
     },
     "test": {
-      "dependsOn": ["build"],
-      "outputs": ["coverage/**"]
+      "dependsOn": ["^typecheck"],
+      "outputs": ["coverage/**"],
+      "inputs": ["src/**", "vitest.config.ts", "vitest.config.mts", "tsconfig.json", "package.json"]
     },
     "dev": {
       "cache": false,
