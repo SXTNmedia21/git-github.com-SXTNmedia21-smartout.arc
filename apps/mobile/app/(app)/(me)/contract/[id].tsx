@@ -53,6 +53,7 @@ function statusLabel(status: Contract["status"]): string {
     terminated: strings.contract.statusTerminated,
     pending_data: strings.contract.statusPendingData,
     declined: strings.contract.statusDeclined,
+    ready_to_send: strings.contract.statusDraft,
   };
   return map[status] ?? status;
 }
