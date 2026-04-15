@@ -33,6 +33,7 @@ import { useMyTasks } from "@/hooks/queries/use-my-tasks";
 import { useShiftColleagues } from "@/hooks/queries/use-shift-colleagues";
 import { useDayInfo } from "@/hooks/queries/use-day-info";
 import { useDutyLeader } from "@/hooks/queries/use-duty-leader";
+import { ShiftCard } from "@/components/shift/ShiftCard";
 
 export default function HomeScreen() {
   const styles = useStyles();
@@ -86,6 +87,16 @@ export default function HomeScreen() {
         contentContainerStyle={styles.phaseContent}
         showsVerticalScrollIndicator={false}
       >
+        {/*
+         * Council 6.4: the ShiftCard header hosts the 56pt PhaseStrip so the
+         * employee always sees the full lifecycle arc before the phase-
+         * specific body loads. Rendered whenever an active or upcoming shift
+         * exists — suppressed on the 'no_shift' surface.
+         */}
+        {relevantShift && phase !== "no_shift" ? (
+          <ShiftCard shift={relevantShift} showPhaseStrip />
+        ) : null}
+
         {phase === "no_shift" && <NoShiftView firstName={firstName} nextShift={nextShift} />}
         {phase === "before_shift" && nextShift && (
           <BeforeShiftView
