@@ -1374,7 +1374,13 @@ export interface TemplateBindingUpdated extends BaseEvent {
   event: "template_binding updated";
   properties: {
     entity: EntityRef;
-    data: { template_id?: string; employment_category: string; employee_group_id: string | null; is_active?: boolean; priority?: number };
+    data: {
+      template_id?: string;
+      employment_category: string;
+      employee_group_id: string | null;
+      is_active?: boolean;
+      priority?: number;
+    };
   };
 }
 
@@ -3021,6 +3027,36 @@ export interface SecuritySandboxBlocked extends BaseEvent {
   properties: { data: { action: string; workspace_id: string } };
 }
 
+// ADR-0099: unified authority gate telemetry.
+export interface GateEvaluated extends BaseEvent {
+  event: "gate evaluated";
+  properties: {
+    data: {
+      capability: string;
+      action_type: string;
+      channel: string;
+      allow: boolean;
+      downgrade_to: string | null;
+      gate_evaluation_id: string;
+      engine_state_id?: string | null;
+    };
+  };
+}
+
+export interface GateDenied extends BaseEvent {
+  event: "gate denied";
+  properties: {
+    data: {
+      capability: string;
+      action_type: string;
+      channel: string;
+      reason: string;
+      gate_evaluation_id: string;
+      engine_state_id?: string | null;
+    };
+  };
+}
+
 export interface WorkspaceAbandoned extends BaseEvent {
   event: "workspace abandoned";
   properties: { data: { workspace_id: string; created_at: string; last_step: string } };
@@ -3665,6 +3701,8 @@ export type SmartoutEvent =
   | SecurityRateLimited
   | SecurityLockoutTriggered
   | SecuritySandboxBlocked
+  | GateEvaluated
+  | GateDenied
   | WorkspaceAbandoned
   | EnrichmentRequested
   | EnrichmentHit
@@ -4937,6 +4975,15 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "security",
   },
   "security sandbox_blocked": { destinations: ["logger", "activity_trail"], category: "security" },
+  // ADR-0099: unified authority gate — every gate_action evaluation and every denial.
+  "gate evaluated": {
+    destinations: ["posthog", "activity_trail"],
+    category: "security",
+  },
+  "gate denied": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "security",
+  },
   "workspace abandoned": {
     destinations: ["logger", "activity_trail", "engine_event"],
     category: "security",
