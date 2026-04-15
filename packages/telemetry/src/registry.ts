@@ -1338,6 +1338,32 @@ export interface ShiftLifecycleSettled extends BaseEvent {
   };
 }
 
+// Deviation-Botsson bridge (Phase 6.4, Council 6.4 2026-04-15).
+// `opened` fires when the mobile shift timeline successfully stages an
+// intent into BotssonProvider.openWithIntent. `refused` fires when the
+// bridge is blocked — either by the ADR-0078 voice interlock or the
+// offline UX — so we can monitor how often the guard triggers.
+export interface ShiftLifecycleDeviationBridgeOpened extends BaseEvent {
+  event: "shift_lifecycle deviation_bridge_opened";
+  properties: {
+    data: {
+      shift_id: string;
+      phase: string;
+      has_deviation_id: boolean;
+    };
+  };
+}
+export interface ShiftLifecycleDeviationBridgeRefused extends BaseEvent {
+  event: "shift_lifecycle deviation_bridge_refused";
+  properties: {
+    data: {
+      shift_id: string;
+      reason: "voice_active" | "offline";
+      phase?: string;
+    };
+  };
+}
+
 // ─── HACCP: Temperature Logging ─────────────────────
 export interface HaccpLogged extends BaseEvent {
   event: "haccp logged";
@@ -3559,6 +3585,8 @@ export type SmartoutEvent =
   | ShiftLifecycleApproved
   | ShiftLifecycleInterpreted
   | ShiftLifecycleSettled
+  | ShiftLifecycleDeviationBridgeOpened
+  | ShiftLifecycleDeviationBridgeRefused
   | SessionOpened
   | SessionPendingSignoff
   | SessionClosed
@@ -4448,6 +4476,14 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "shift_lifecycle settled": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "shift_lifecycle deviation_bridge_opened": {
+    destinations: ["posthog", "logger"],
+    category: "scheduling",
+  },
+  "shift_lifecycle deviation_bridge_refused": {
+    destinations: ["posthog", "logger"],
     category: "scheduling",
   },
   "haccp logged": {

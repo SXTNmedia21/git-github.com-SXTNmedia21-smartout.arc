@@ -17,6 +17,9 @@ import { SupplementBadges } from "@/components/payroll/SupplementBadges";
 import { strings } from "@/constants/strings";
 import { getShiftSupplements, mapDbRules } from "@/lib/supplements";
 import { useSupplementRules } from "@/hooks/queries/use-supplement-rules";
+import { useShiftLifecycle } from "@/hooks/useShiftLifecycle";
+import { useIsOnline } from "@/hooks/useIsOnline";
+import { PhaseStrip, PHASE_STRIP_HEIGHT } from "@/components/shift-timeline";
 import type { Database } from "@smartout/supabase/database.types";
 
 type ScheduleShift = Database["public"]["Tables"]["schedule_shift"]["Row"];
@@ -29,6 +32,12 @@ type ShiftCardProps = {
   onConfirm?: (shiftId: string) => void;
   /** Whether confirmation is in progress */
   confirming?: boolean;
+  /**
+   * When true, render the 56pt PhaseStrip at the top of the card so the
+   * employee sees the current lifecycle phase at a glance (Council 6.4).
+   * Defaults to false to keep the card backwards-compatible.
+   */
+  showPhaseStrip?: boolean;
 };
 
 /**
@@ -76,10 +85,20 @@ function formatWorkHours(hours: number): string {
 // - action: confirmShift(shiftId) (confirm button)
 // - display: supplement badges (kveld/helg/helligdag color-coded)
 
-export function ShiftCard({ shift, onPress, onConfirm, confirming = false }: ShiftCardProps) {
+export function ShiftCard({
+  shift,
+  onPress,
+  onConfirm,
+  confirming = false,
+  showPhaseStrip = false,
+}: ShiftCardProps) {
   const styles = useStyles();
   const isConfirmed = Boolean(shift.confirmed_at);
   const { data: supplementData } = useSupplementRules();
+  // Only fetch the lifecycle when the strip is requested — keeps other
+  // card usages (swap, roster lists) on the same lightweight footprint.
+  const { data: lifecycle } = useShiftLifecycle(showPhaseStrip ? shift.schedule_shift_id : null);
+  const isOnline = useIsOnline();
 
   const supplements = useMemo(() => {
     if (!supplementData?.rules || supplementData.rules.length === 0) return [];
@@ -106,6 +125,11 @@ export function ShiftCard({ shift, onPress, onConfirm, confirming = false }: Shi
   // Instead, we make the card body a separate Pressable for navigation.
   return (
     <Card onPress={needsConfirm ? undefined : onPress}>
+      {showPhaseStrip && lifecycle ? (
+        <View style={styles.phaseStripContainer}>
+          <PhaseStrip activePhase={lifecycle.phase} frozen={!isOnline} />
+        </View>
+      ) : null}
       {needsConfirm && onPress ? (
         <Pressable
           onPress={() => {
@@ -205,5 +229,10 @@ const useStyles = createStyles((theme) => ({
   },
   confirmRow: {
     marginTop: theme.spacing.element,
+  },
+  phaseStripContainer: {
+    height: PHASE_STRIP_HEIGHT,
+    marginBottom: theme.spacing.element,
+    marginHorizontal: -theme.spacing.tight,
   },
 }));
