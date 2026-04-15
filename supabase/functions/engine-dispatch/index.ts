@@ -1572,6 +1572,271 @@ async function executeStep(
       break;
     }
 
+    // ──────────────────────────────────────────────────────────
+    // call_rpc — invoke a Postgres RPC and store its UUID result in
+    // engine_state.context[output_key]. Used by shift_lifecycle_v1
+    // to call derive_shift_hours / snapshot_shift_cost per ADR-0095.
+    //
+    // Payload schema:
+    //   {
+    //     rpc_name: string,
+    //     args_from_context: string[],   // context keys to read
+    //     args_param_names: string[],    // matching RPC arg names
+    //     output_key: string             // where to stash the result
+    //   }
+    //
+    // ADR-0099 note: call_rpc is a gated mutation type. Once
+    // gate_action() is landed, add "call_rpc" to GATED_MUTATION_TYPES
+    // and check engine_authority_config before invoking. For now the
+    // seeded shift_lifecycle_v1 process runs with
+    // allowed_channels=['system'] so the gate is trivially satisfied.
+    // ──────────────────────────────────────────────────────────
+    case "call_rpc": {
+      const ap = step.action_payload as Record<string, unknown>;
+      const rpcName = ap.rpc_name as string | undefined;
+      const argsFromContext = (ap.args_from_context as string[] | undefined) ?? [];
+      const argsParamNames = (ap.args_param_names as string[] | undefined) ?? argsFromContext;
+      const outputKey = (ap.output_key as string | undefined) ?? `${rpcName}_result`;
+
+      if (!rpcName) {
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "failed",
+            last_error: "call_rpc: rpc_name missing in action_payload",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+        break;
+      }
+
+      // Special case: entity_id comes from state (not context body).
+      // The shift_lifecycle_v1 process uses args_from_context=['entity_id']
+      // to pass the shift_id.
+      const ctx = state.context as Record<string, unknown>;
+      const rpcArgs: Record<string, unknown> = {};
+      for (let i = 0; i < argsFromContext.length; i++) {
+        const ctxKey = argsFromContext[i];
+        const paramName = argsParamNames[i] ?? ctxKey;
+        rpcArgs[paramName] =
+          ctxKey === "entity_id" ? state.entity_id : (ctx[ctxKey] ?? null);
+      }
+
+      try {
+        // @ts-expect-error supabase-js rpc typing is narrow; our RPCs
+        // are plpgsql and return scalar UUIDs.
+        const { data: rpcResult, error: rpcErr } = await supabase.rpc(rpcName, rpcArgs);
+        if (rpcErr) {
+          console.error(`[engine-dispatch] call_rpc ${rpcName} failed:`, rpcErr);
+          await supabase
+            .from("engine_state")
+            .update({
+              status: "failed",
+              last_error: `call_rpc ${rpcName}: ${rpcErr.message}`,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", state.id);
+          break;
+        }
+
+        // Merge result into context under output_key.
+        const nextContext = { ...ctx, [outputKey]: rpcResult };
+        await supabase
+          .from("engine_state")
+          .update({
+            context: nextContext,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+
+        // Telemetry: emit a synthetic engine event so observers see
+        // the RPC invocation.
+        await supabase.from("engine_event").insert({
+          workspace_id: state.workspace_id,
+          event_type: "engine.call_rpc",
+          payload: {
+            state_id: state.id,
+            rpc_name: rpcName,
+            output_key: outputKey,
+            result: rpcResult,
+            origin: "system",
+          },
+        });
+
+        await advanceToNextStep(
+          supabase,
+          { ...state, context: nextContext },
+          step,
+        );
+      } catch (err) {
+        console.error(`[engine-dispatch] call_rpc ${rpcName} threw:`, err);
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "failed",
+            last_error: `call_rpc ${rpcName}: ${String(err)}`,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+      }
+      break;
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // emit_event — write a new row to engine_event. Used by
+    // shift_lifecycle_v1 to emit shift.settled (ADR-0100) and by
+    // department_session_lifecycle to emit pending_signoff.
+    //
+    // Payload schema:
+    //   {
+    //     event_type: string,
+    //     payload_from_context: string[],   // context keys to copy
+    //     include_entity: boolean           // also copy entity_type/id
+    //   }
+    // ──────────────────────────────────────────────────────────
+    case "emit_event": {
+      const ap = step.action_payload as Record<string, unknown>;
+      const eventType = ap.event_type as string | undefined;
+      const keys = (ap.payload_from_context as string[] | undefined) ?? [];
+      const includeEntity = ap.include_entity === true;
+
+      if (!eventType) {
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "failed",
+            last_error: "emit_event: event_type missing",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+        break;
+      }
+
+      const ctx = state.context as Record<string, unknown>;
+      const emitPayload: Record<string, unknown> = {
+        origin: "system",
+      };
+      for (const k of keys) {
+        if (ctx[k] !== undefined) emitPayload[k] = ctx[k];
+      }
+      if (includeEntity) {
+        emitPayload.entity_type = state.entity_type;
+        emitPayload.entity_id = state.entity_id;
+      }
+
+      await supabase.from("engine_event").insert({
+        workspace_id: state.workspace_id,
+        event_type: eventType,
+        payload: emitPayload,
+      });
+
+      await advanceToNextStep(supabase, state, step);
+      break;
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // queue_shift_approval — Decision-layer handoff (ADR-0095).
+    // Ensures a pending shift_approval row exists for this shift
+    // linked to the day's daily_reconciliation. Idempotent:
+    // re-runs find the existing row and do not duplicate.
+    //
+    // Assumes state.entity_type === 'schedule_shift' and
+    // state.entity_id is the shift id. For unattached shifts (no
+    // session/recon yet) the step creates a placeholder recon row.
+    // ──────────────────────────────────────────────────────────
+    case "queue_shift_approval": {
+      if (state.entity_type !== "schedule_shift" || !state.entity_id) {
+        console.warn(
+          `[engine-dispatch] queue_shift_approval: skipped — entity_type=${state.entity_type} entity_id=${state.entity_id}`,
+        );
+        await advanceToNextStep(supabase, state, step);
+        break;
+      }
+
+      const { data: shift } = await supabase
+        .from("schedule_shift")
+        .select("schedule_shift_id, workspace_id, shift_date, position_id, employee_id")
+        .eq("schedule_shift_id", state.entity_id)
+        .maybeSingle();
+
+      if (!shift) {
+        console.warn(`[engine-dispatch] queue_shift_approval: shift ${state.entity_id} not found`);
+        await advanceToNextStep(supabase, state, step);
+        break;
+      }
+
+      // Resolve department via position (schedule_shift has no
+      // department_id directly). If unknown, the recon lookup is
+      // skipped and we exit gracefully — a later re-run will retry.
+      let departmentId: string | null = null;
+      if (shift.position_id) {
+        const { data: pos } = await supabase
+          .from("position")
+          .select("department_id")
+          .eq("position_id", shift.position_id)
+          .maybeSingle();
+        departmentId = (pos?.department_id as string | undefined) ?? null;
+      }
+
+      // Find the matching daily_reconciliation (workspace + dept + date).
+      let reconciliationId: string | null = null;
+      if (departmentId) {
+        const { data: recon } = await supabase
+          .from("daily_reconciliation")
+          .select("reconciliation_id")
+          .eq("workspace_id", shift.workspace_id)
+          .eq("department_id", departmentId)
+          .eq("reconciliation_date", shift.shift_date)
+          .maybeSingle();
+        reconciliationId = (recon?.reconciliation_id as string | undefined) ?? null;
+
+        if (!reconciliationId) {
+          // Create a placeholder reconciliation. Status starts as
+          // 'open'; daily_close will transition it later.
+          const { data: newRecon } = await supabase
+            .from("daily_reconciliation")
+            .insert({
+              workspace_id: shift.workspace_id,
+              department_id: departmentId,
+              reconciliation_date: shift.shift_date,
+              status: "open",
+            })
+            .select("reconciliation_id")
+            .single();
+          reconciliationId = (newRecon?.reconciliation_id as string | undefined) ?? null;
+        }
+      }
+
+      if (!reconciliationId) {
+        console.warn(
+          `[engine-dispatch] queue_shift_approval: no reconciliation resolvable for shift ${shift.schedule_shift_id}`,
+        );
+        await advanceToNextStep(supabase, state, step);
+        break;
+      }
+
+      // Idempotent upsert of shift_approval.
+      const { data: existing } = await supabase
+        .from("shift_approval")
+        .select("approval_id")
+        .eq("shift_id", shift.schedule_shift_id)
+        .eq("reconciliation_id", reconciliationId)
+        .maybeSingle();
+
+      if (!existing) {
+        await supabase.from("shift_approval").insert({
+          reconciliation_id: reconciliationId,
+          shift_id: shift.schedule_shift_id,
+          workspace_id: shift.workspace_id,
+          planned_hours: 0, // will be backfilled by reporting queries
+          status: "pending",
+        });
+      }
+
+      await advanceToNextStep(supabase, state, step);
+      break;
+    }
+
     default:
       // Unknown action type — fail
       await supabase
