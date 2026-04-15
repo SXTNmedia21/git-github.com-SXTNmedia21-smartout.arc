@@ -640,3 +640,24 @@ Phase 3: Agent wiring (after C merges)
 **ADRs created:** 0091, 0093, 0094
 **Learnings created:** none
 **Notes:** WP1 shipped during council review (3 commits, 23 tests green). Severity retrofit needed before WP2. Min_role enforcement in tool-selector is prerequisite for WP4.
+
+## 2026-04-15 — Shift Lifecycle Consolidation
+**Type:** architecture
+**Verdict:** APPROVE WITH CHANGES
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator, frontend-designer, narrator
+**Key decisions:**
+- Five-Layer Architecture: Reality / Interpretation / Derivation / Decision / Execution
+- Event Engine = coordination spor, NOT truth-owner (engine_state lives only during active coordination)
+- shift-mcp stays thin (ADR-0036 honored); new `shift_lifecycle` capability separate from read-only `schedule`
+- daily_close consumes `shift.settled` events; doesn't subsume shift_lifecycle_v1
+- 1 session : N shifts (formal relation)
+- time_entry = D6 source input, immutable after interpretation
+- Unified authority-gate extracted from agent-router, wired into engine-dispatch (closes ADR-0077/78 active violation)
+- UI: 4 phenomenological phases (Planlegges/Pågår/Oppgjør/Avsluttet); orb-driven timeline; cockpit primary, shift-sheet drill-down
+- Botsson mediates deviation conversation; `deviation` table owns state
+**ADRs to create:** 0095 (Five-Layer), 0096 (session↔shift), 0097 (time_entry immutable), 0098 (engine_state coordination spor), 0099 (unified authority-gate), 0100 (daily_close as aggregate consumer)
+**Learnings:**
+- Diagnosis "5 parallel state machines" was symptom; actual disease is missing Interpretation layer between time_entry and shift_approval
+- engine_state lifespan must match coordination need (per-transition, not per-entity-lifetime) to avoid scale blowup
+- Mobile punch DOES emit telemetry (deep dive overstated this gap); real telemetry hole is admin_action paths in approval/reconciliation
+**Notes:** Phase 1 (authority-gate + channel-guard in engine-dispatch) ships independently as security fix regardless of consolidation cadence. Phase 3 (Derivation migrations) blocks payroll work.

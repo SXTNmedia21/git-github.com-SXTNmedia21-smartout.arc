@@ -1,7 +1,7 @@
 ---
 title: Decision Log
 status: canonical
-updated: 2026-04-14
+updated: 2026-04-15
 created: 2026-02-27
 module: meta
 tags: [decisions, adr, index]
@@ -26,6 +26,12 @@ tags: [decisions, adr, index]
 
 | ADR | Date | Title | Status |
 |-----|------|-------|--------|
+| [ADR-0100](0100-daily-close-as-aggregate-consumer.md) | 2026-04-15 | daily_close as Department-Aggregate Consumer of Settled Shifts | accepted |
+| [ADR-0099](0099-unified-authority-gate.md) | 2026-04-15 | Unified Authority-Gate Across agent-router and engine-dispatch (closes ADR-0077/0078 violation) | accepted |
+| [ADR-0098](0098-engine-state-as-coordination-spor.md) | 2026-04-15 | engine_state as Coordination Spor, Not Truth Owner | accepted |
+| [ADR-0097](0097-time-entry-as-reality-source.md) | 2026-04-15 | time_entry as D6 Reality Source (Immutable) | accepted |
+| [ADR-0096](0096-schedule-shift-vs-department-session.md) | 2026-04-15 | schedule_shift vs department_session — 1:N Formal Relation | accepted |
+| [ADR-0095](0095-shift-lifecycle-five-layer-architecture.md) | 2026-04-15 | Shift Lifecycle Five-Layer Architecture (Reality/Interpretation/Derivation/Decision/Execution) | accepted |
 | [ADR-0094](0094-framework-rule-severity-enum.md) | 2026-04-14 | Framework Rule Severity as Enum (info/warning/hard_block, WP1 retrofit) | accepted |
 | [ADR-0093](0093-contract-draft-proposals-unified-cascade.md) | 2026-04-14 | Contract Draft Proposals Flow Through Unified apply_cascade() (amends ADR-0076) | accepted |
 | ADR-0092 | — | *reserved — Monitor Mode Graduation Criteria (Phase E / WP6)* | reserved |
