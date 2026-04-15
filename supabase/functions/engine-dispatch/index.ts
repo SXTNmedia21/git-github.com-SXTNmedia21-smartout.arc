@@ -306,7 +306,15 @@ Deno.serve(async (req) => {
           .eq("process_id", processId)
           .order("step_order");
 
-        // Create engine state
+        // Create engine state.
+        // ADR-0099: stamp originating_channel for every new engine_state. Trigger-dispatched
+        // runs default to 'system'; callers can override via payload.originating_channel.
+        const payloadObj = (payload ?? {}) as Record<string, unknown>;
+        const stateContext: Record<string, unknown> = {
+          ...payloadObj,
+          originating_channel:
+            (payloadObj.originating_channel as string | undefined) ?? "system",
+        };
         const { data: state, error: stateErr } = await supabase
           .from("engine_state")
           .insert({
@@ -315,11 +323,9 @@ Deno.serve(async (req) => {
             workspace_id,
             status: "active",
             current_step: 1,
-            entity_type:
-              ((payload as Record<string, unknown>)?.entity_type as string | undefined) ?? null,
-            entity_id:
-              ((payload as Record<string, unknown>)?.entity_id as string | undefined) ?? null,
-            context: payload ?? {},
+            entity_type: (payloadObj.entity_type as string | undefined) ?? null,
+            entity_id: (payloadObj.entity_id as string | undefined) ?? null,
+            context: stateContext,
             steps_snapshot: steps ?? [],
             result: {},
           })
@@ -578,6 +584,61 @@ async function executeStep(
         .eq("id", state.id);
     }
     return;
+  }
+
+  // ADR-0099: unified authority gate. Call public.gate_action before every mutation step.
+  // Non-mutation step types (wait_for_event, generate_steps, cascade_*, check_readiness, ops_*)
+  // are pure flow control and bypass the gate.
+  const GATED_MUTATION_TYPES = new Set([
+    "assign_task",
+    "send_notification",
+    "update_entity",
+    "create_deviation",
+    "validate_settlement",
+    "lock_checkout",
+    "start_process",
+  ]);
+  if (GATED_MUTATION_TYPES.has(step.action_type)) {
+    const originatingChannel =
+      ((state.context as Record<string, unknown> | null)?.originating_channel as
+        | string
+        | undefined) ?? "system";
+    const { data: gateResult, error: gateError } = await supabase.rpc("gate_action", {
+      p_workspace_id: state.workspace_id,
+      p_capability: state.process_id,
+      p_channel: originatingChannel,
+      p_actor_profile_id: state.assignee_id ?? null,
+      p_action_type: step.action_type,
+      p_engine_process_id: state.process_id,
+      p_engine_state_id: state.id,
+    });
+    if (gateError) {
+      await supabase
+        .from("engine_state")
+        .update({
+          status: "blocked",
+          last_error: `gate_action RPC failed: ${gateError.message}`,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", state.id);
+      return;
+    }
+    const gate = gateResult as {
+      allow: boolean;
+      reason: string | null;
+      gate_evaluation_id: string;
+    } | null;
+    if (gate && !gate.allow) {
+      await supabase
+        .from("engine_state")
+        .update({
+          status: "blocked",
+          last_error: `gate_denied:${gate.reason ?? "unknown"} (eval=${gate.gate_evaluation_id})`,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", state.id);
+      return;
+    }
   }
 
   switch (step.action_type) {
