@@ -1,0 +1,42 @@
+{
+  "timeline": {
+    "heading": "Vakten din",
+    "aria": {
+      "step_list": "Faser i vakten"
+    },
+    "phase": {
+      "planlegges": "Planlegges",
+      "pagar": "Pågår",
+      "oppgjor": "Oppgjør",
+      "avsluttet": "Avsluttet"
+    },
+    "metric": {
+      "planned_hours": "Planlagt {hours} t",
+      "not_started": "Ikke stemplet inn",
+      "in_progress": "Pågår · {hours} t planlagt",
+      "interpreted_hours": "Tolket {hours} t",
+      "approved_hours": "Godkjent {hours} t"
+    },
+    "badge": {
+      "deviation": "Avvik",
+      "blocking": "Krever handling"
+    },
+    "explainer": {
+      "planlegges": "Vakten er publisert og venter på at du stempler inn.",
+      "pagar": "Vakten pågår. Tiden din registreres mens du jobber.",
+      "oppgjor": "Arbeidet er registrert. Timer tolkes mot regelverket før godkjenning.",
+      "avsluttet": "Vakten er godkjent og lukket."
+    },
+    "offline": {
+      "pill": "Oppdatert {time}",
+      "deviation_disabled": "Du er offline. Kobles opp igjen for å melde avvik."
+    },
+    "voice": {
+      "end_first": "Avslutt talesesjon først."
+    },
+    "fallback": {
+      "loading": "Laster vakten din…",
+      "error": "Vi fikk ikke hentet vakten din."
+    }
+  }
+}

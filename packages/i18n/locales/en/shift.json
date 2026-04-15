@@ -1,0 +1,42 @@
+{
+  "timeline": {
+    "heading": "Your shift",
+    "aria": {
+      "step_list": "Shift phases"
+    },
+    "phase": {
+      "planlegges": "Scheduled",
+      "pagar": "In progress",
+      "oppgjor": "Settlement",
+      "avsluttet": "Closed"
+    },
+    "metric": {
+      "planned_hours": "Planned {hours} h",
+      "not_started": "Not punched in",
+      "in_progress": "Active · {hours} h planned",
+      "interpreted_hours": "Interpreted {hours} h",
+      "approved_hours": "Approved {hours} h"
+    },
+    "badge": {
+      "deviation": "Deviation",
+      "blocking": "Action needed"
+    },
+    "explainer": {
+      "planlegges": "Your shift is published and waiting for you to clock in.",
+      "pagar": "Your shift is active. Your time is being recorded while you work.",
+      "oppgjor": "Work is recorded. Hours are interpreted against the rulebook before approval.",
+      "avsluttet": "Your shift has been approved and closed."
+    },
+    "offline": {
+      "pill": "Updated {time}",
+      "deviation_disabled": "You are offline. Reconnect to report a deviation."
+    },
+    "voice": {
+      "end_first": "End voice session first."
+    },
+    "fallback": {
+      "loading": "Loading your shift…",
+      "error": "We could not load your shift."
+    }
+  }
+}
