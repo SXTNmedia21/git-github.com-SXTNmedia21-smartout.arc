@@ -26,6 +26,11 @@ tags: [decisions, adr, index]
 
 | ADR | Date | Title | Status |
 |-----|------|-------|--------|
+| [ADR-0111](0111-employment-contract-detail-versioning.md) | 2026-04-15 | Employment Contract Detail — Append-Only Versioning of Tripletex-Canonical Fields (surrogate PK + UNIQUE; 5-column scope; deferred runtime mechanism) | accepted |
+| [ADR-0110](0110-payroll-ledger-archive-semantics.md) | 2026-04-15 | Payroll Ledger Archive — Read-Only Bubble Historical Semantics (lean typed columns + raw_json; RLS USING(false) UPDATE/DELETE; operational table deferred) | accepted |
+| [ADR-0109](0109-migrated-contract-shell-block-and-supersede.md) | 2026-04-15 | Migrated Contract Shell — Block-and-Supersede Rule (UPDATE on source='bubble_migration' blocked; admin must issue new contract via composition; 'migration_incomplete' enum value) | accepted |
+| [ADR-0108](0108-source-discriminator-trigger-filters.md) | 2026-04-15 | Source Discriminator Pattern + Trigger Filters (CHECK enum operational/bubble_migration/v3_engine on 12 tables; 5-trigger whitelist enumeration appendix) | accepted |
+| [ADR-0107](0107-strike-mcp-telemetry-boundary.md) | 2026-04-15 | Strike-MCP Telemetry Boundary (4 forbidden side-channels incl schedule_audit_log; INSERT-only invariant; observability via repo-local log; extends ADR-0083) | accepted |
 | [ADR-0106](0106-effective-dating-governance-content.md) | 2026-04-15 | Effective-Dating Strategy for Governance Content (valid_from/valid_to on protocol/procedure/knowledge_test/confirmation; no *_version tables) | accepted |
 | [ADR-0105](0105-inspection-link-public-access-pattern.md) | 2026-04-15 | inspection_link Public-Access Pattern (hashed token, scope JSONB, justification, default anonymization; MVP schema, UI deferred to Phase 4) | accepted |
 | [ADR-0104](0104-notification-consolidation-roadmap.md) | 2026-04-15 | Notification Consolidation Roadmap (notification_policy + notification_sent_log with domain column; consolidation M+3/M+6/M+12) | accepted |
@@ -135,7 +140,7 @@ tags: [decisions, adr, index]
 
 ## Integrity
 
-- **93 ADRs** (0001-0094 with 0092 reserved, ADR-0000 is this index)
+- **98 ADRs** (0001-0111 with 0092 reserved, ADR-0000 is this index)
 - **0 number collisions** (verified 2026-04-13 — ADR-0068 entity-drawer collision resolved by renumbering to 0086)
 - **1 reserved slot:** 0092 — Monitor Mode Graduation Criteria (Phase E / WP6), to be written when WP6 lands
 - **0 number gaps** (0052/0053/0054 previously gaps, now occupied by renumbered collision resolvers)
