@@ -110,6 +110,14 @@
       "types": "./dist/capabilities/guardian/index.d.ts",
       "default": "./dist/capabilities/guardian/index.js"
     },
+    "./capabilities/shift-lifecycle": {
+      "types": "./dist/capabilities/shift-lifecycle/index.d.ts",
+      "default": "./dist/capabilities/shift-lifecycle/index.js"
+    },
+    "./capabilities/governance": {
+      "types": "./dist/capabilities/governance/index.d.ts",
+      "default": "./dist/capabilities/governance/index.js"
+    },
     "./router/intent-classifier": {
       "types": "./dist/router/intent-classifier.d.ts",
       "default": "./dist/router/intent-classifier.js"
