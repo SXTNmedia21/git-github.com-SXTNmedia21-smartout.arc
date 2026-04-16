@@ -9,11 +9,14 @@
 import { serve } from "@hono/node-server";
 import { createNodeWebSocket } from "@hono/node-ws";
 import { Hono } from "hono";
-import { logger } from "hono/logger";
 import { config } from "./config.js";
 import { loadSecrets } from "./secrets.js";
 import { authMiddleware } from "./middleware/auth.js";
 import { onError } from "./middleware/error-handler.js";
+import { initSentry } from "./lib/sentry.js";
+import { requestIdMiddleware } from "./middleware/request-id.js";
+import { baseLogger } from "./lib/logger.js";
+import type { AppEnv } from "./types/app-env.js";
 import { health } from "./routes/health.js";
 import { sessions } from "./routes/sessions.js";
 import { store } from "./routes/store.js";
@@ -34,16 +37,20 @@ import { SessionLane } from "./core/session-lane.js";
 // Load external API keys from Vault before starting the server
 await loadSecrets();
 
+// Initialize Sentry (fails open if DSN missing) — must be after loadSecrets
+initSentry();
+
 // Agent Harness — session serialization
 const sessionLane = new SessionLane();
 
-const app = new Hono();
+const app = new Hono<AppEnv>();
 
 // WebSocket support via @hono/node-ws
 const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
 
 // Global middleware
-app.use(logger());
+// Request ID must run first so every request (including auth-skipped routes) gets a UUID + x-request-id header
+app.use(requestIdMiddleware);
 // Skip auth for WebSocket upgrade — WS auth is handled in the route handler itself
 app.use("/ws/*", async (_c, next) => next());
 // Skip auth for Telegram webhook — Telegram does not send our API keys;
@@ -54,7 +61,7 @@ app.use("*", authMiddleware);
 
 // Inject harness components into Hono context for route handlers
 app.use("*", async (c, next) => {
-  c.set("sessionLane" as never, sessionLane);
+  c.set("sessionLane", sessionLane);
   await next();
 });
 
@@ -77,7 +84,7 @@ app.route("/", createGuardianRoute(upgradeWebSocket));
 const port = config.PORT;
 
 const server = serve({ fetch: app.fetch, port }, (info) => {
-  console.log(`Stage Engine running on port ${info.port}`);
+  baseLogger.info({ port: info.port }, "Stage Engine running");
 });
 
 // Inject Hono WebSocket handler for /ws/:sessionId

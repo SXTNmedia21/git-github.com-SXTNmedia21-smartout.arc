@@ -2,9 +2,12 @@
 // Shared Hono context types for stage-engine.
 // Augment `Variables` when adding new per-request context fields.
 
+import type { SessionLane } from "../core/session-lane.js";
+
 export type AppVariables = {
   requestId: string;
-  // Future: auth?: AuthContext; sessionLane?: SessionLane; etc.
+  sessionLane: SessionLane;
+  // Future: auth?: AuthContext; etc.
 };
 
 export type AppEnv = {
