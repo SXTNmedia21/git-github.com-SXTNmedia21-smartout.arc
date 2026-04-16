@@ -27,7 +27,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { EmailRichEditor } from "@/app/platform-admin/communications/compose/_components/email-rich-editor";
+import dynamic from "next/dynamic";
+import { withEntrance } from "@smartout/ui";
+import { EditorSkeleton } from "@/components/ui/editor-skeleton";
+
+const EmailRichEditor = dynamic(
+  () =>
+    import("@/app/platform-admin/communications/compose/_components/email-rich-editor").then(
+      (m) => ({ default: withEntrance(m.EmailRichEditor) }),
+    ),
+  { ssr: false, loading: () => <EditorSkeleton /> },
+);
 import type { EmailTemplateSection } from "../[id]/edit/save-action";
 
 type SectionBlockProps = {

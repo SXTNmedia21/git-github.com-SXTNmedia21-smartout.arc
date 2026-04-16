@@ -663,3 +663,86 @@ Phase 3: Agent wiring (after C merges)
 - engine_state lifespan must match coordination need (per-transition, not per-entity-lifetime) to avoid scale blowup
 - Mobile punch DOES emit telemetry (deep dive overstated this gap); real telemetry hole is admin_action paths in approval/reconciliation
 **Notes:** Phase 1 (authority-gate + channel-guard in engine-dispatch) ships independently as security fix regardless of consolidation cadence. Phase 3 (Derivation migrations) blocks payroll work.
+
+---
+
+## 2026-04-16 — Web Performance Optimization Plan
+**Type:** plan
+**Verdict:** APPROVE WITH CHANGES
+**Agents consulted:** system-steward (chair), supervisor (code-tracer), system-agent-coordinator, frontend-designer
+**Prior verdict held?** n/a — first council on web performance
+**Key decision:** Sprint 1 ships after REJECT items pulled + NordicSkeleton primitive lands. Sprint 2 RSC-migrates 4 routes (people, handbook, hms, reports) with `/dashboard/schedule` explicitly excluded (ADR-0032 local-state + cross-route state push to header). Sprint 3 blocked on 3 ADRs being `accepted`.
+**ADRs created:** 0113 (DashboardContext decomposition completion, facade hook + ThemeContext hoist + BotssonProvider placement), 0114 (Server Actions canonical mutation primitive + capability authority relation, explicit emit contract + shared gate RPC), 0115 (RSC migration pattern — streaming boundary, NordicSkeleton pairing, ambience invariant, first-chunk heading rule). All `proposed`.
+**Learnings created:**
+- **Audit inflation pattern** (`learning_audit_inflation_pattern.md`) — 4 false claims caught by code-trace: LiveKit NOT eager (statically imported in CallRoom.tsx), 28 TipTap files inflated 6× (real scope ~5 parents), middleware queries on DIFFERENT code paths (never coexist), Upstash migration would be NET SLOWER. Pattern 3rd occurrence across councils.
+- **Trust Gate for mutation plans** (`feedback_trust_gate_mutation_plans.md`) — three concurrent write paths (TanStack / Server Action / capability tool) can silently diverge. Agent Coordinator caught `emit()` contract gap + authority divergence + gate bypass risk. Without ADR-0114 migration would silently drop telemetry.
+- **Perceived performance = design system concern** (embedded in ADR-0115) — skeleton cold-pulse against Nordic Split warm OKLCH, TipTap dynamic pop-in, Instrument Serif FOUT would make optimized app FEEL slower.
+- **"Complete ongoing decomposition" ≠ "split monolith"** (embedded in ADR-0113) — framing changes risk profile. EntityDrawer/VoiceTools/ChatPanel already split; audit understated decomposition in progress.
+
+### Critical findings
+1. **Audit was inflated.** 4 false claims caught. Shipping REJECTs would have been 4 wasted PRs — one (Upstash) would have been a user-facing perf regression.
+2. **Memory 2026-03-28 about WalkAiProvider is STALE.** `useEntityDrawerOptional` exists, BotssonProvider degrades. Memory rewritten. Stale code-behavior memories are a real risk.
+3. **Agent Trust Gate blockers for Sprint 3** — emit contract, authority divergence, gate bypass. Without ADR-0114 capability trust silently degrades.
+4. **Schedule route is architecturally special** — ADR-0032 + cross-route state push to header. Naive RSC migration breaks the header. Parked.
+5. **Design prerequisites are hard prerequisites** — NordicSkeleton primitive, Framer entrance wrapper, synchronous `data-theme` flip, first-chunk heading rule.
+
+### Implementation sequence
+```
+Sprint 1 (this week)
+  ├─ Bundle analysis baseline
+  ├─ Pull REJECTs (LiveKit dynamic claim, middleware parallelize, Upstash, createClient hoist)
+  ├─ Delete dead: apps/web/src/components/providers/posthog-provider.tsx
+  ├─ NordicSkeleton primitive (design blocker for loading.tsx)
+  ├─ TipTap: 5 parent dynamic() + Framer entrance wrapper
+  ├─ loading.tsx for HMS + handbook (3/5 already exist)
+  ├─ Geist Mono audit before removing
+  └─ sonner → optimizePackageImports (the one meaningful addition)
+
+Sprint 2 (next week)
+  ├─ ADRs 0113/0114/0115 MOVED to accepted
+  ├─ RSC migration: people, handbook, hms, reports
+  └─ Schedule EXCLUDED (ADR-0032)
+
+Sprint 3 (after ADRs accepted)
+  ├─ Facade useDashboard() + new contexts
+  ├─ Server Actions migration per ADR-0114
+  └─ Perf budgets warn → fail transition
+```
+
+### ADR numbering note
+Decision log shows active collision: ADR-0107 has two entries (Botsson channel derivation + Strike-MCP telemetry boundary). Used 0113/0114/0115 to avoid further collision. Verify against open branches before merge — per council_meta 2026-04-15 tripletex learning on ADR-numbering reservation protocol.
+
+### Agent effectiveness
+- **Steward (chair):** HIGH — semantic conflict resolution, Agent Trust Gate verdict, ADR reference correction (0007 not 0021 for dashboard shell), revised own 1→3 ADR split after Agent Coordinator's input
+- **Supervisor (code-tracer):** HIGH — 4 false audit claims caught surgically with file:line. LiveKit + TipTap count + Upstash perf + middleware paths were each verified against code, not assumed.
+- **Agent Coordinator:** HIGH — stale memory flagged, three write paths diagnosed, Trust Gate blockers enumerated, "finishing decomposition" reframe, BotssonProvider placement rule, proposed the 3-ADR split
+- **Frontend Designer:** HIGH — NordicSkeleton design blocker flagged (would have shipped cold shadcn), TipTap pop-in risk, Instrument Serif FOUT streaming rule, motion eager-load list, scope-exclusion of Onboarding + Botsson
+
+### Sprint Delivery Status (rolling)
+
+**Sprint 1 — DONE 2026-04-16**
+- 1A (#211 merged): cleanup + 3 ADRs in `proposed`
+- 1B (#212 merged): Skeleton primitive (replaces shadcn), SkeletonEntrance, 7 variants
+- 1C (#214 merged): 8 dynamic-imports (4 TipTap + 4 Recharts), Entrance + withEntrance HOC, 2 new + 1 upgraded loading.tsx
+
+**Sprint 2 — DONE 2026-04-16**
+- 4 routes RSC-migrated: `/dashboard/people` (full server-fetch + map → initialData), `/dashboard/handbook` (HydrationBoundary pattern with TanStack v5 cache pre-population), `/dashboard/hms` (minimal — children own data), `/dashboard/reports` (minimal — already lazy from 1C)
+- New shared `_data/resolve-page-context.ts` resolver
+- Schedule explicitly excluded per ADR-0032 (deferred to separate ADR)
+- ADR-0113 + ADR-0115 moved `proposed` → `accepted` (pattern proven by Sprint 2)
+- ADR-0114 stays `proposed` — `gate-client.ts` (ADR-0091 WP3) does not yet exist
+
+**Sprint 3 — DEFERRED**
+- Server Actions migration: BLOCKED on `gate-client.ts`. Sprint cannot start until ADR-0091 WP3 lands.
+- DashboardContext decomposition: feasible but 155 consumers + careful theme cascade work. Recommended as separate dedicated effort with its own pre-flight audit (per ADR-0113 step 1: introduce facade hook + ESLint rule before any consumer migration).
+- Perf budgets warn → fail: deferred. Activate after Sprint 2 baseline metrics captured.
+
+### Sprint 2 post-implementation review (2-agent degraded mode)
+Supervisor code-tracer + autonomous Designer scope review. Verdict: APPROVE FOR MERGE.
+- Type preservation across server/client boundary ✓
+- No Set/Map serialization bugs (Map/Set used only server-side during mapping) ✓
+- HydrationBoundary cache-key match verified ✓
+- No additional DB hits (cache() decorators dedupe layout's prior calls) ✓
+- Mobile parity preserved (data layer in `packages/utils/`) ✓
+- Skeleton CLS-safe (people min-h-[104px] matches real card height)
+- One drift documented: resolver-vs-layout fallback semantics on wsParam failure (added clarifying comment per Supervisor recommendation)

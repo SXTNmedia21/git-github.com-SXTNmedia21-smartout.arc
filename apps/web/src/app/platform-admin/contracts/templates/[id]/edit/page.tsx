@@ -1,7 +1,7 @@
 import { createAdminClient } from "@smartout/supabase/admin";
 import { getSuperAdminId } from "@/lib/platform-admin";
 import { redirect, notFound } from "next/navigation";
-import { TemplateEditor } from "@/components/contract-editor/template-editor";
+import { TemplateEditor } from "@/components/contract-editor/template-editor-dynamic";
 import { saveTemplate } from "./save-action";
 import type { PlaceholderItem } from "@/components/contract-editor/placeholder-panel";
 import type { TemplateAttachment } from "./save-action";

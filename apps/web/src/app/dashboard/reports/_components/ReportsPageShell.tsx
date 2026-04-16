@@ -21,15 +21,48 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import { OverviewSection } from "./OverviewSection";
-import { PeopleSection } from "./PeopleSection";
-import { StaffingSection } from "./StaffingSection";
-import { TrainingSection } from "./TrainingSection";
+import dynamic from "next/dynamic";
+import { SkeletonChart, withEntrance } from "@smartout/ui";
 import { SavedReportsGrid } from "./SavedReportsGrid";
 import { ReportViewer } from "./ReportViewer";
 import { AiReportDrawer } from "./AiReportDrawer";
 import { ReportInsightDrawer } from "./ReportInsightDrawer";
 import type { ReportInsightCard } from "./report-insight-types";
+
+// Recharts (~90KB) is heavy. Each tab is only needed when the user clicks it,
+// so we defer loading until the TabsContent renders. Skeleton matches chart
+// geometry so the swap-in is visually contained. `withEntrance` adds the
+// canonical springSnappy entrance so the chunk-resolve doesn't pop in.
+const sectionLoading = () => <SkeletonChart className="min-h-[28rem]" />;
+
+const OverviewSection = dynamic(
+  () =>
+    import("./OverviewSection").then((m) => ({
+      default: withEntrance(m.OverviewSection),
+    })),
+  { ssr: false, loading: sectionLoading },
+);
+const PeopleSection = dynamic(
+  () =>
+    import("./PeopleSection").then((m) => ({
+      default: withEntrance(m.PeopleSection),
+    })),
+  { ssr: false, loading: sectionLoading },
+);
+const StaffingSection = dynamic(
+  () =>
+    import("./StaffingSection").then((m) => ({
+      default: withEntrance(m.StaffingSection),
+    })),
+  { ssr: false, loading: sectionLoading },
+);
+const TrainingSection = dynamic(
+  () =>
+    import("./TrainingSection").then((m) => ({
+      default: withEntrance(m.TrainingSection),
+    })),
+  { ssr: false, loading: sectionLoading },
+);
 
 type ReportData = {
   summary: Record<string, unknown>[];

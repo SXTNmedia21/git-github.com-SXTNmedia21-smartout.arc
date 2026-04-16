@@ -1,17 +1,27 @@
+import { SkeletonCard, SkeletonHeading, SkeletonTableRow } from "@smartout/ui";
+
 export default function PeopleLoading() {
   return (
-    <div className="flex flex-col gap-6 p-6">
-      <div className="flex items-center justify-between">
-        <div className="bg-muted h-8 w-32 animate-pulse rounded-lg" />
-        <div className="bg-muted h-10 w-28 animate-pulse rounded-lg" />
+    <div
+      className="flex flex-col gap-6 p-6"
+      role="status"
+      aria-live="polite"
+      aria-label="Laster ansatte"
+    >
+      <div className="grid gap-4 md:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <SkeletonCard key={i} className="min-h-[104px]" />
+        ))}
       </div>
-      <div className="flex flex-col gap-3">
-        <div className="bg-muted h-14 animate-pulse rounded-lg" />
-        <div className="bg-muted h-14 animate-pulse rounded-lg" />
-        <div className="bg-muted h-14 animate-pulse rounded-lg" />
-        <div className="bg-muted h-14 animate-pulse rounded-lg" />
-        <div className="bg-muted h-14 animate-pulse rounded-lg" />
-      </div>
+
+      <SkeletonCard className="min-h-96">
+        <SkeletonHeading className="mb-4 h-6 w-1/4" />
+        <div className="space-y-2">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <SkeletonTableRow key={i} />
+          ))}
+        </div>
+      </SkeletonCard>
     </div>
   );
 }
