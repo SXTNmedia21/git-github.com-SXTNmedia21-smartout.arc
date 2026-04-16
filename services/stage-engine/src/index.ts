@@ -9,6 +9,7 @@
 import { serve } from "@hono/node-server";
 import { createNodeWebSocket } from "@hono/node-ws";
 import { Hono } from "hono";
+import * as Sentry from "@sentry/node";
 import { config } from "./config.js";
 import { loadSecrets } from "./secrets.js";
 import { authMiddleware } from "./middleware/auth.js";
@@ -42,6 +43,13 @@ initSentry();
 
 // Agent Harness — session serialization
 const sessionLane = new SessionLane();
+
+// Module-scoped handles so graceful shutdown can close/clear them.
+// pgNotifyClient is typed via dynamic import in setupPgNotifyListener().
+let pgNotifyClient: import("pg").Client | null = null;
+let cleanupInterval: NodeJS.Timeout | null = null;
+let guardianInterval: NodeJS.Timeout | null = null;
+let calendarInterval: NodeJS.Timeout | null = null;
 
 const app = new Hono<AppEnv>();
 
@@ -104,6 +112,7 @@ async function setupPgNotifyListener() {
     }
     const { Client } = await import("pg");
     const client = new Client({ connectionString: dbUrl });
+    pgNotifyClient = client;
     await client.connect();
     await client.query("LISTEN telegram_bridge");
     console.log("[telegram] PG NOTIFY listener active for chat bridge relay");
@@ -135,6 +144,7 @@ async function setupPgNotifyListener() {
     // Reconnect automatically if the pg connection drops
     client.on("error", (err: Error) => {
       console.error("[telegram] PG NOTIFY connection error:", err);
+      pgNotifyClient = null;
       setTimeout(setupPgNotifyListener, 5000);
     });
   } catch (err) {
@@ -148,7 +158,7 @@ setupPgNotifyListener();
 
 // Session expiry + memory cleanup — runs on a configurable interval
 const cleanupMs = config.CLEANUP_INTERVAL_MINUTES * 60 * 1000;
-setInterval(async () => {
+cleanupInterval = setInterval(async () => {
   const sessionCount = await expireStaleSession();
   if (sessionCount > 0) {
     console.log(`[cleanup] Expired ${sessionCount} stale session(s)`);
@@ -165,7 +175,7 @@ console.log(
 );
 
 // Guardian evaluation loop — checks all active sessions every 30s
-setInterval(async () => {
+guardianInterval = setInterval(async () => {
   try {
     await evaluateAllActiveSessions();
   } catch (err) {
@@ -175,7 +185,7 @@ setInterval(async () => {
 console.log("[guardian] Evaluation loop running every 30 seconds");
 
 // Calendar guardian — checks season-lifecycle sessions against time-based rules every 60s
-setInterval(async () => {
+calendarInterval = setInterval(async () => {
   try {
     await evaluateCalendarTriggers();
   } catch (err) {
@@ -183,5 +193,45 @@ setInterval(async () => {
   }
 }, 60_000);
 console.log("[calendar-guardian] Season calendar check running every 60 seconds");
+
+// Graceful shutdown: flush Sentry queue, close HTTP server, close pg NOTIFY client,
+// clear intervals. Prevents event loss on Docker/droplet redeploy (SIGTERM) or
+// local Ctrl+C (SIGINT). Must call process.exit(0) so Docker doesn't force-kill.
+async function gracefulShutdown(signal: string): Promise<void> {
+  baseLogger.info({ signal }, "Graceful shutdown started");
+
+  if (cleanupInterval) clearInterval(cleanupInterval);
+  if (guardianInterval) clearInterval(guardianInterval);
+  if (calendarInterval) clearInterval(calendarInterval);
+
+  try {
+    if (pgNotifyClient) {
+      await pgNotifyClient.end();
+      baseLogger.info("pg NOTIFY client closed");
+    }
+  } catch (err) {
+    baseLogger.warn({ err }, "pg client close failed");
+  }
+
+  try {
+    server.close();
+    baseLogger.info("HTTP server closed");
+  } catch (err) {
+    baseLogger.warn({ err }, "HTTP server close failed");
+  }
+
+  try {
+    await Sentry.close(2000);
+    baseLogger.info("Sentry flushed");
+  } catch (err) {
+    baseLogger.warn({ err }, "Sentry flush failed");
+  }
+
+  baseLogger.info("Graceful shutdown complete");
+  process.exit(0);
+}
+
+process.on("SIGTERM", () => void gracefulShutdown("SIGTERM"));
+process.on("SIGINT", () => void gracefulShutdown("SIGINT"));
 
 export { app };
