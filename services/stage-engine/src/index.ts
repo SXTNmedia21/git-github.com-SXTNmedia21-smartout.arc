@@ -108,7 +108,7 @@ async function setupPgNotifyListener() {
   try {
     const dbUrl = process.env.DATABASE_URL;
     if (!dbUrl) {
-      console.warn("[telegram] DATABASE_URL not set — bridge relay unavailable");
+      baseLogger.warn("[telegram] DATABASE_URL not set — bridge relay unavailable");
       return;
     }
     const { Client } = await import("pg");
@@ -116,7 +116,7 @@ async function setupPgNotifyListener() {
     pgNotifyClient = client;
     await client.connect();
     await client.query("LISTEN telegram_bridge");
-    console.log("[telegram] PG NOTIFY listener active for chat bridge relay");
+    baseLogger.info("[telegram] PG NOTIFY listener active for chat bridge relay");
 
     client.on("notification", async (msg: { channel: string; payload?: string }) => {
       if (msg.channel !== "telegram_bridge" || !msg.payload) return;
@@ -138,7 +138,7 @@ async function setupPgNotifyListener() {
           payload.content,
         );
       } catch (err) {
-        console.error("[telegram] Bridge relay error:", err);
+        baseLogger.error({ err }, "[telegram] Bridge relay error");
       }
     });
 
@@ -151,7 +151,10 @@ async function setupPgNotifyListener() {
       }
     });
   } catch (err) {
-    console.warn("[telegram] PG NOTIFY listener setup failed (bridge relay unavailable):", err);
+    baseLogger.warn(
+      { err },
+      "[telegram] PG NOTIFY listener setup failed (bridge relay unavailable)",
+    );
   }
 }
 
