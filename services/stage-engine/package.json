@@ -23,6 +23,7 @@
     "@sentry/node": "^10.48.0",
     "@smartout/ai": "workspace:*",
     "@smartout/supabase": "workspace:*",
+    "@smartout/telemetry": "workspace:*",
     "@smartout/types": "workspace:^",
     "@supabase/supabase-js": "2.49.4",
     "ai": "^6.0.103",
