@@ -42,3 +42,13 @@ Applies to all services under `services/` — `stage-engine`, `contract-service`
 - Builds on: ADR-0084 (Telemetry Conditional Exports — the `@smartout/telemetry` package this ADR mandates every service import)
 - Closes observability gaps identified in Council 2026-04-16
 - Learning 0034 (docs/learnings/0034-capability-without-emit-invisible-to-cascade.md)
+
+## Addendum 2026-04-16 — activity_trail Entity Contract for Agent Events
+
+Council R2 review discovered that `packages/telemetry/src/providers/activity-trail.ts` rejects any event without `properties.entity`. The 6 `botsson.*` events registered in Phase 3 did not declare an entity → every activity_trail write was silently dropped.
+
+**Rule:** Any event routing to `activity_trail` MUST declare `properties.entity` with `entity_type` (from EntityType union in registry.ts) + `entity_id` + optional `entity_label`.
+
+For agent-originated events, the canonical entity is the engine session itself (`entity_type: "agent_session"` or the existing valid equivalent). This ties the activity row to the agent's session scope for compliance auditing.
+
+**Registry must not declare `activity_trail` routing without an entity contract.** A pre-merge fix landed to add `entity` to the 6 `botsson.*` emit sites and updated their types. See commit [fix SHA] for reference.

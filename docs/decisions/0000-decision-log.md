@@ -26,6 +26,7 @@ tags: [decisions, adr, index]
 
 | ADR | Date | Title | Status |
 |-----|------|-------|--------|
+| [ADR-0114](0114-authority-model-after-phase-4.md) | 2026-04-16 | Authority Model after Phase 4 (gate_action as single source) | accepted |
 | [ADR-0113](0113-runtime-telemetry-standard.md) | 2026-04-16 | Runtime Telemetry Standard for services/ (pino logger, requestId middleware, typed errors, mandatory emit() via toVercelTools adapter) | accepted |
 | [ADR-0106](0106-effective-dating-governance-content.md) | 2026-04-15 | Effective-Dating Strategy for Governance Content (valid_from/valid_to on protocol/procedure/knowledge_test/confirmation; no *_version tables) | accepted |
 | [ADR-0105](0105-inspection-link-public-access-pattern.md) | 2026-04-15 | inspection_link Public-Access Pattern (hashed token, scope JSONB, justification, default anonymization; MVP schema, UI deferred to Phase 4) | accepted |
