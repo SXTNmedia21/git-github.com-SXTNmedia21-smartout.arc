@@ -9,6 +9,7 @@ import { getQueryEmbedding } from "../../embedding.js";
 export const getConversations = defineTool({
   name: "get_conversations",
   description: "List the employee's active communication channels with latest message preview",
+  capability: "communication",
   schema: z.object({
     limit: z
       .number()
@@ -63,6 +64,7 @@ export const getConversations = defineTool({
 export const getUnreadCount = defineTool({
   name: "get_unread_count",
   description: "Get the total number of unread messages across all channels",
+  capability: "communication",
   schema: z.object({}),
   execute: async (_params, ctx: AgentToolContext) => {
     const supabase = ctx.supabaseAdmin;
@@ -123,6 +125,7 @@ export const getUnreadCount = defineTool({
 export const sendMessage = defineTool({
   name: "send_message",
   description: "Send a text message to a communication channel",
+  capability: "communication",
   schema: z.object({
     channel_id: z.string().uuid().describe("The channel ID to send the message to"),
     content: z.string().min(1).max(2000).describe("The message text to send"),
@@ -184,6 +187,7 @@ export const getChannelContext = defineTool({
   name: "get_channel_context",
   description:
     "Get context about a communication channel: recent messages, members, and channel metadata. Use this to understand the conversation context before responding in a channel.",
+  capability: "communication",
   schema: z.object({
     channel_id: z.string().uuid().describe("The channel UUID"),
     message_limit: z
@@ -251,6 +255,7 @@ export const searchKnowledge = defineTool({
   name: "search_knowledge",
   description:
     "Search for procedures, manuals, training modules, and quizzes in the workspace knowledge base. Use this to find relevant content to share with employees in channels.",
+  capability: "communication",
   schema: z.object({
     query: z.string().describe("Natural language search query"),
     content_types: z

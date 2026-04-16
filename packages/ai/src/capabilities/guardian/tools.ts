@@ -8,6 +8,7 @@ export const getSignals = defineTool({
   name: "get_signals",
   description:
     "Get active guardian signals (health alerts) for the workspace. Can filter by domain, severity, or status.",
+  capability: "guardian",
   schema: z.object({
     domain: z
       .enum(["readiness", "workspace_maturity", "agent_behavior", "journey_health"])
@@ -49,6 +50,7 @@ export const getSignals = defineTool({
 export const acknowledgeSignal = defineTool({
   name: "acknowledge_signal",
   description: "Acknowledge a guardian signal, indicating it has been seen and is being handled.",
+  capability: "guardian",
   schema: z.object({
     signal_id: z.string().uuid().describe("The ID of the signal to acknowledge"),
     note: z.string().optional().describe("Optional note about why it was acknowledged"),
@@ -94,6 +96,7 @@ export const getWorkspaceHealth = defineTool({
   name: "get_workspace_health",
   description:
     "Get a summary of the workspace's health across all domains: readiness, workspace maturity, and agent behavior.",
+  capability: "guardian",
   schema: z.object({}),
   execute: async (_params, ctx: AgentToolContext) => {
     const supabase = ctx.supabaseAdmin as SupabaseClient;

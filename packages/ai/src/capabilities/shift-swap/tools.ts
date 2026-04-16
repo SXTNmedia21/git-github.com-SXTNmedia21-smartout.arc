@@ -19,6 +19,7 @@ export const getSwapRequests = defineTool({
   name: "get_swap_requests",
   description:
     "Get pending shift swap requests for the current workspace. Shows all active swaps with their status.",
+  capability: "shift_swap",
   schema: z.object({
     status_filter: z
       .enum(["all", "pending_recipient", "pending_manager"])
@@ -66,6 +67,7 @@ export const getSwapEligibility = defineTool({
   name: "get_swap_eligibility",
   description:
     "Check which colleagues are eligible for a shift swap with the specified shift. Returns eligible profiles and their compatible shifts.",
+  capability: "shift_swap",
   schema: z.object({
     shift_id: z.string().uuid().describe("The shift ID to check swap eligibility for"),
   }),
@@ -129,6 +131,7 @@ export const requestSwap = defineTool({
   name: "request_swap",
   description:
     "Initiate a shift swap request between the current employee and a colleague. Chat-only.",
+  capability: "shift_swap",
   schema: z.object({
     requester_shift_id: z.string().uuid().describe("The shift ID being offered for swap"),
     target_profile_id: z.string().uuid().describe("The colleague's profile ID"),
@@ -163,6 +166,7 @@ export const requestSwap = defineTool({
 export const respondToSwap = defineTool({
   name: "respond_to_swap",
   description: "Accept or reject a shift swap request as the target employee. Chat-only.",
+  capability: "shift_swap",
   schema: z.object({
     swap_id: z.string().uuid().describe("The swap request ID (engine_state.id)"),
     accepted: z.boolean().describe("True to accept, false to reject"),

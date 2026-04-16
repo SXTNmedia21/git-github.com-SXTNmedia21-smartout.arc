@@ -14,6 +14,7 @@ export const queryPatterns = defineTool({
   name: "query_patterns",
   description:
     "Query learned operational patterns from the workspace knowledge base (K1b engine_memory). Returns patterns grouped by type, filtered by importance and retention policy. Useful for surfacing recurring staffing trends, deviation correlations, and task duration baselines.",
+  capability: "operations_intelligence",
   schema: z.object({
     pattern_type: z
       .enum(["task_duration", "staffing", "deviation_correlation"])

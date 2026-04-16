@@ -19,11 +19,12 @@ import {
   getConversationHistory,
 } from "../../core/agent-session.js";
 import { emitGuardianEvent } from "../../core/guardian-bus.js";
-import type { SessionLane } from "../../core/session-lane.js";
+import { emit } from "@smartout/telemetry";
+import type { AppVariables } from "../../types/app-env.js";
 import type { AuthContext } from "../../types/auth.js";
 import type { ConversationTurn } from "../../types/agent.js";
 
-const agentChat = new Hono<{ Variables: { auth: AuthContext; sessionLane: SessionLane } }>();
+const agentChat = new Hono<{ Variables: AppVariables & { auth: AuthContext } }>();
 
 // -- Schema --
 
@@ -124,6 +125,33 @@ agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
       data: { text: body.message, channel: body.channel },
     });
 
+    await emit({
+      event: "botsson.turn_started",
+      workspace_id: workspaceId,
+      actor_id: body.profile_id,
+      correlation_id: c.get("requestId"),
+      properties: {
+        entity: {
+          entity_type: "agent_session",
+          entity_id: sessionId,
+          entity_label: body.profile_id,
+        },
+        data: {
+          session_id: sessionId,
+          // ADR-0077: voice channel carries transcribed PII (personnummer,
+          // bank, address). Preview is chat-only; voice is redacted before
+          // it reaches PostHog / activity_trail.
+          message_preview:
+            body.channel === "chat"
+              ? body.message.length > 100
+                ? body.message.slice(0, 100) + "\u2026"
+                : body.message
+              : "[voice \u2014 transcript redacted]",
+          channel: body.channel,
+        },
+      },
+    });
+
     // Route message through agent pipeline
     const response = await routeAgentMessage({
       message: body.message,
@@ -155,6 +183,29 @@ agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
           ? response.response.slice(0, 100) + "\u2026"
           : response.response,
       data: { text: response.response, intent: response.intent },
+    });
+
+    await emit({
+      event: "botsson.turn_completed",
+      workspace_id: workspaceId,
+      actor_id: body.profile_id,
+      correlation_id: c.get("requestId"),
+      properties: {
+        entity: {
+          entity_type: "agent_session",
+          entity_id: sessionId,
+          entity_label: body.profile_id,
+        },
+        data: {
+          session_id: sessionId,
+          intent_capability: response.intent?.capability ?? "unknown",
+          intent_confidence: response.intent?.confidence ?? 0,
+          response_preview:
+            response.response.length > 100
+              ? response.response.slice(0, 100) + "\u2026"
+              : response.response,
+        },
+      },
     });
 
     return c.json(response, 200);

@@ -10,8 +10,7 @@ import { generateText, stepCountIs } from "ai";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { classifyIntent } from "@smartout/ai/router/intent-classifier";
 import { selectTools } from "@smartout/ai/router/tool-selector";
-import { applyMinRoleDowngrade } from "@smartout/ai/router/min-role";
-import type { AuthorityLevel, ProfileRole } from "@smartout/ai/capabilities/types";
+import type { AuthorityLevel } from "@smartout/ai/capabilities/types";
 import { buildBotssonPromptFromContext } from "@smartout/ai/prompts/mr-botsson";
 import { toVercelTools } from "@smartout/ai/adapters/vercel-ai";
 import { collectContext } from "@smartout/ai/context/collector";
@@ -19,6 +18,7 @@ import type { AgentContext } from "@smartout/ai/context/types";
 import type { Situation } from "@smartout/ai/capabilities/types";
 import { loadAuthorityConfig } from "./authority.js";
 import { loadOnboardingContext } from "./session-manager.js";
+import { GateActionFailed, SchemaCacheStale } from "../lib/errors.js";
 import { supabaseAdmin, createUserClient } from "../lib/supabase.js";
 import { broadcastToSession } from "../ws/connection-manager.js";
 import { getBufferedActions } from "../routes/ws.js";
@@ -94,7 +94,16 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
     p_action_type: "agent_chat",
   });
   if (gateError) {
-    throw new Error(`gate_action RPC failed: ${gateError.message}`);
+    if (gateError.code === "PGRST002" || /schema cache/i.test(gateError.message)) {
+      throw new SchemaCacheStale(`gate_action: ${gateError.message}`, {
+        capability: intent.capability,
+        workspaceId,
+      });
+    }
+    throw new GateActionFailed(`gate_action RPC failed: ${gateError.message}`, {
+      capability: intent.capability,
+      workspaceId,
+    });
   }
   const gate = gateResult as {
     allow: boolean;
@@ -113,23 +122,15 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
     };
   }
 
-  // Tool selection still needs per-capability authority for filtering;
-  // apply min-role downgrade on the advisory map for the caller's role.
-  const { data: profileRow } = await supabaseAdmin
-    .from("profile")
-    .select("role")
-    .eq("id", profileId)
-    .maybeSingle<{ role: ProfileRole }>();
-  const callerRole: ProfileRole = profileRow?.role ?? "employee";
-  const authorityConfig = applyMinRoleDowngrade(
-    rawAuthority.levels,
-    rawAuthority.minRoles,
-    callerRole,
-  );
-  // Honour RPC downgrade verdict for the matched capability.
-  if (gate.downgrade_to) {
-    authorityConfig[intent.capability] = gate.downgrade_to as AuthorityLevel;
-  }
+  // Authority for the matched capability = what gate_action decided.
+  // The advisory authority map is no longer re-derived post-gate (Council 2026-04-16).
+  const authority = (gate.downgrade_to ??
+    rawAuthority.levels[intent.capability] ??
+    "read_only") as AuthorityLevel;
+  const authorityConfig: Record<string, AuthorityLevel> = {
+    ...rawAuthority.levels,
+    [intent.capability]: authority,
+  };
 
   // Determine situation from intent if not explicitly provided
   const resolvedSituation: Situation =
@@ -142,9 +143,6 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
           : intent.capability === "operations"
             ? "operations"
             : "general";
-
-  // Determine authority for the matched capability
-  const authority = authorityConfig[intent.capability] ?? "read_only";
 
   // Step 3: Collect full context (parallel fetch)
   const ctx = await collectContext({

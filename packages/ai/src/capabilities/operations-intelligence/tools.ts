@@ -14,6 +14,7 @@ export const triageEvent = defineTool({
   name: "triage_event",
   description:
     "Classify an operational event by type, urgency, and relevance, then route to the appropriate person or channel",
+  capability: "operations_intelligence",
   schema: z.object({
     event_type: z
       .string()

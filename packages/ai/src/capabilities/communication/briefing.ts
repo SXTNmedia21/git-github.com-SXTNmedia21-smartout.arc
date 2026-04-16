@@ -13,6 +13,7 @@ export const composeShiftBriefing = defineTool({
   name: "compose_shift_briefing",
   description:
     "Compose a context-aware shift briefing for an employee. Reads schedule, team, session context, and relevant knowledge to create a concise briefing.",
+  capability: "communication",
   schema: z.object({
     shift_id: z
       .string()

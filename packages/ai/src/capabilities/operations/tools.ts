@@ -7,6 +7,7 @@ export const getMyTasks = defineTool({
   name: "get_my_tasks",
   description:
     "Get pending tasks assigned to the current employee for the active or upcoming session",
+  capability: "operations",
   schema: z.object({
     status: z
       .enum(["pending", "in_progress", "completed", "overdue"])
@@ -36,6 +37,7 @@ export const getMyTasks = defineTool({
 export const getSessionInfo = defineTool({
   name: "get_session_info",
   description: "Get the current department session status (today's operating session)",
+  capability: "operations",
   schema: z.object({
     department_id: z
       .string()
@@ -81,6 +83,7 @@ export const getDepartmentStatus = defineTool({
   name: "get_department_status",
   description:
     "Get department operational status: session state, active staff count, and pending task count",
+  capability: "operations",
   schema: z.object({
     department_id: z
       .string()
@@ -155,6 +158,7 @@ export const getDepartmentStatus = defineTool({
 export const createDeviation = defineTool({
   name: "create_deviation",
   description: "Report a work deviation (quality issue, safety concern, process violation)",
+  capability: "operations",
   schema: z.object({
     title: z.string().min(3).describe("Short title describing the deviation"),
     description: z.string().optional().describe("Detailed description of what happened"),
@@ -224,6 +228,7 @@ export const createDeviation = defineTool({
 export const completeTask = defineTool({
   name: "complete_task",
   description: "Mark a session task as completed",
+  capability: "operations",
   schema: z.object({
     task_id: z.string().uuid().describe("The task ID to mark as completed"),
   }),

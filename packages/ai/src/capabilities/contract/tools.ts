@@ -15,6 +15,7 @@ export const listEmployeeTemplates = defineTool({
   name: "list_employee_templates",
   description:
     "List active employee contract templates available in this workspace (including platform-level templates).",
+  capability: "contract",
   schema: z.object({}),
   execute: async (_params, ctx: AgentToolContext) => {
     const supabase = ctx.supabaseAdmin;
@@ -37,6 +38,7 @@ export const listEmployeeTemplates = defineTool({
 export const listEmployeeContracts = defineTool({
   name: "list_employee_contracts",
   description: "List employee contracts in this workspace, optionally filtered by status.",
+  capability: "contract",
   schema: z.object({
     status: z
       .enum(["draft", "sent", "viewed", "signed", "expired"])
@@ -68,6 +70,7 @@ export const listEmployeeContracts = defineTool({
 export const checkContractStatus = defineTool({
   name: "check_contract_status",
   description: "Check the current status and details of a specific contract by ID.",
+  capability: "contract",
   schema: z.object({
     contract_id: z.string().uuid().describe("The contract ID to look up"),
   }),
@@ -93,6 +96,7 @@ export const explainContractClause = defineTool({
   name: "explain_contract_clause",
   description:
     "Explain a specific clause from a contract's regulatory framework snapshot. Returns the rule verbatim — read-only, no interpretation.",
+  capability: "contract",
   schema: z.object({
     contract_id: z.string().uuid().describe("The contract ID to look up"),
     clause_index: z
@@ -138,6 +142,7 @@ export const getComplianceDriftForContract = defineTool({
   name: "get_compliance_drift_for_contract",
   description:
     "Check whether a contract has compliance drift — differences between the contract's snapshot and the current framework. Read-only.",
+  capability: "contract",
   schema: z.object({
     contract_id: z.string().uuid().describe("The contract ID to check for drift"),
   }),
@@ -190,6 +195,7 @@ export const createEmployeeContract = defineTool({
   name: "create_employee_contract",
   description:
     "Create a draft employee contract from a template for a given employee. Admin or owner only.",
+  capability: "contract",
   schema: z.object({
     template_id: z.string().uuid().describe("The contract template ID to use"),
     profile_id: z.string().uuid().describe("The profile ID of the employee to contract"),
@@ -290,6 +296,7 @@ export const sendEmployeeContract = defineTool({
   name: "send_employee_contract",
   description:
     "Send a draft contract for employee signing. IRREVERSIBLE — once sent, it cannot be recalled. Admin or owner only.",
+  capability: "contract",
   schema: z.object({
     contract_id: z.string().uuid().describe("The draft contract ID to send for signing"),
   }),

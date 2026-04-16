@@ -1,7 +1,7 @@
 ---
 title: Decision Log
 status: canonical
-updated: 2026-04-15
+updated: 2026-04-16
 created: 2026-02-27
 module: meta
 tags: [decisions, adr, index]
@@ -26,6 +26,8 @@ tags: [decisions, adr, index]
 
 | ADR | Date | Title | Status |
 |-----|------|-------|--------|
+| [ADR-0117](0117-authority-model-after-phase-4.md) | 2026-04-16 | Authority Model after Phase 4 (gate_action as single source) | accepted |
+| [ADR-0116](0116-runtime-telemetry-standard.md) | 2026-04-16 | Runtime Telemetry Standard for services/ (pino logger, requestId middleware, typed errors, mandatory emit() via toVercelTools adapter) | accepted |
 | [ADR-0115](0115-rsc-migration-pattern-dashboard-routes.md) | 2026-04-16 | RSC Migration Pattern for Dashboard Routes — streaming boundary, NordicSkeleton pairing, ambience invariant, first-chunk heading rule, schedule excluded. **Pattern proven** by Sprint 2 migration (people, handbook, hms, reports). | accepted |
 | [ADR-0114](0114-server-actions-canonical-mutation-primitive.md) | 2026-04-16 | Server Actions as Canonical User-Initiated Mutation Primitive + Capability Authority Relation — three-path divergence closed via shared gate RPC + explicit emit contract. **Stays proposed** pending ADR-0091 WP3 (`gate-client.ts`) prerequisite — file does not yet exist. | proposed |
 | [ADR-0113](0113-dashboard-context-decomposition-completion.md) | 2026-04-16 | DashboardContext Decomposition Completion — facade `useDashboard()` hook, ThemeContext hoist with synchronous data-theme flip, BotssonProvider above shell split. | accepted |
