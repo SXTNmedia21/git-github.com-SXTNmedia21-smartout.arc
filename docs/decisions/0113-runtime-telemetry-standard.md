@@ -1,13 +1,13 @@
 ---
-title: ADR-0087 — Runtime Telemetry Standard for services/
+title: ADR-0113 — Runtime Telemetry Standard for services/
 status: accepted
 created: 2026-04-16
 updated: 2026-04-16
-module: observability
+module: ai
 tags: [adr, telemetry, logging, runtime]
 ---
 
-# ADR-0087 — Runtime Telemetry Standard for services/
+# ADR-0113 — Runtime Telemetry Standard for services/
 
 ## Context
 
@@ -21,7 +21,7 @@ Every service under `services/` MUST adopt the following four primitives:
 
 2. **requestId middleware** — UUID generated at request entry, set on Hono context, propagated to every supabase call, every `emit()` payload (via `correlation_id` field already in `BaseEvent`), and every log line. Response header `x-request-id` returned to clients.
 
-3. **Typed errors** — `StageEngineError` base with `code`, `httpStatus`, `context`. Concrete subclasses: `AuthorityDenied`, `ToolFailure`, `ClassifierTimeout`, `SchemaCacheStale`, `GateActionFailed`. Error handler maps `code` → `httpStatus`, logs with full context, reports to Sentry for `>=500`.
+3. **Typed errors** — `StageEngineError` base with `code`, `httpStatus`, `context`. Concrete subclasses: `AuthorityDenied`, `ToolFailure`, `ClassifierTimeout`, `SchemaCacheStale`, `GateActionFailed`. Error handler maps `code` → `httpStatus`, logs with full context, reports to Sentry for HTTP status >= 500.
 
 4. **Mandatory `emit()`** — every capability tool invocation emits `botsson.tool_invoked` with `{ capability, tool, latency_ms, success, requestId }`. Auto-emitted via `toVercelTools` adapter. Individual capabilities never call `emit()` manually for tool-invocation telemetry — only for domain events.
 
@@ -31,7 +31,7 @@ Every service under `services/` MUST adopt the following four primitives:
 
 **Negative:** 4-5× write volume to `activity_trail` in the first month. Must verify partitioning and retention before Phase 3 of the Botsson Observability Foundation plan lands.
 
-**Neutral:** `emitGuardianEvent()` deprecated but not removed in P0. Removed in P2 when `engine_session_event` projection ships (see ADR-0085 when written).
+**Neutral:** `emitGuardianEvent()` deprecated but not removed in P0. Removed in P2 when `engine_session_event` projection ships.
 
 ## Scope
 
@@ -39,6 +39,6 @@ Applies to all services under `services/` — `stage-engine`, `contract-service`
 
 ## Related
 
-- Supersedes in spirit parts of ADR-0083 (engine_session_event as own emitter — see ADR-0085 when written)
+- Builds on: ADR-0084 (Telemetry Conditional Exports — the `@smartout/telemetry` package this ADR mandates every service import)
 - Closes observability gaps identified in Council 2026-04-16
-- Learning 0034: "A capability without emit() is invisible to the cascade"
+- Learning 0034 (forward reference — to be written in Phase 8 of the Botsson Observability Foundation plan)
