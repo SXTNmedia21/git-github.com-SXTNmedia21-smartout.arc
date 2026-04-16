@@ -1,6 +1,6 @@
 /**
  * logger.ts
- * Pino logger substrate for stage-engine (ADR-0113 Runtime Telemetry Standard).
+ * Pino logger substrate for stage-engine (ADR-0116 Runtime Telemetry Standard).
  *
  * - baseLogger: service-wide root, tagged with { service: "stage-engine" }
  * - childLogger: per-request/session/workspace child with bound context fields

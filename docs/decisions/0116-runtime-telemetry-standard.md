@@ -1,5 +1,5 @@
 ---
-title: ADR-0113 — Runtime Telemetry Standard for services/
+title: ADR-0116 — Runtime Telemetry Standard for services/
 status: accepted
 created: 2026-04-16
 updated: 2026-04-16
@@ -7,7 +7,7 @@ module: ai
 tags: [adr, telemetry, logging, runtime]
 ---
 
-# ADR-0113 — Runtime Telemetry Standard for services/
+# ADR-0116 — Runtime Telemetry Standard for services/
 
 ## Context
 

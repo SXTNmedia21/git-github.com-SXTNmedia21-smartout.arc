@@ -36,10 +36,10 @@ CLAUDE.md mandates: *"No mutation without emit. No second event system."* A capa
 
 ## How to fix
 
-Do not fix per-capability by hand. The council-approved approach is to auto-emit from `packages/ai/src/adapters/vercel-ai.ts` (the `toVercelTools` adapter): every tool invocation emits `botsson.tool_invoked` with `{ capability, tool, latency_ms, success }`. This closes 14 capabilities in one adapter change rather than 14 capability edits. Per ADR-0113 (Runtime Telemetry Standard) Phase 3.
+Do not fix per-capability by hand. The council-approved approach is to auto-emit from `packages/ai/src/adapters/vercel-ai.ts` (the `toVercelTools` adapter): every tool invocation emits `botsson.tool_invoked` with `{ capability, tool, latency_ms, success }`. This closes 14 capabilities in one adapter change rather than 14 capability edits. Per ADR-0116 (Runtime Telemetry Standard) Phase 3.
 
 ## Related
 
-- ADR-0113 — Runtime Telemetry Standard (the canonical statement of the rule)
+- ADR-0116 — Runtime Telemetry Standard (the canonical statement of the rule)
 - Council session 2026-04-16 — Botsson Runtime Review
 - CLAUDE.md — "No mutation without emit"

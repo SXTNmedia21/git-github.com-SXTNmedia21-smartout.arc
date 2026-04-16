@@ -1,6 +1,6 @@
 // ============================================
 // sentry.ts — Sentry error-reporting init + context helper
-// Per ADR-0113 (Runtime Telemetry Standard).
+// Per ADR-0116 (Runtime Telemetry Standard).
 // Errors with httpStatus >= 500 are forwarded here by error-handler.ts.
 // ============================================
 

@@ -13,7 +13,7 @@ export type SmartoutTool<TCtx = unknown, TSchema extends z.ZodType = z.ZodType> 
   description: string;
   /**
    * Capability category this tool belongs to. Populated by each capability's tool registry.
-   * Used by toVercelTools adapter for auto-emit telemetry routing (ADR-0113).
+   * Used by toVercelTools adapter for auto-emit telemetry routing (ADR-0116).
    */
   capability?: string;
   schema: TSchema;

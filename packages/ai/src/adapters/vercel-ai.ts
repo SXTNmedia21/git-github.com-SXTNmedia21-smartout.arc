@@ -15,7 +15,7 @@ type EmitContext = {
  * Uses `inputSchema` (Vercel AI SDK convention) from the tool's Zod schema.
  *
  * Auto-emits `botsson.tool_invoked` / `botsson.tool_failed` per invocation
- * (ADR-0113). Context fields (workspaceId, profileId, sessionId) are read
+ * (ADR-0116). Context fields (workspaceId, profileId, sessionId) are read
  * best-effort from `ctx`; missing fields fall back to "unknown" so legacy
  * agent contexts that predate the observability contract still emit — the
  * signal is that it's unattributed, not silent.

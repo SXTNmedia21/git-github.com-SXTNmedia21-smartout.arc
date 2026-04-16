@@ -1,7 +1,7 @@
 // services/stage-engine/src/lib/errors.ts
 // ============================================
 // errors.ts — Typed error hierarchy for stage-engine.
-// Per ADR-0113 (Runtime Telemetry Standard).
+// Per ADR-0116 (Runtime Telemetry Standard).
 // Error-handler maps `code` → `httpStatus`, forwards >= 500 to Sentry.
 // ============================================
 

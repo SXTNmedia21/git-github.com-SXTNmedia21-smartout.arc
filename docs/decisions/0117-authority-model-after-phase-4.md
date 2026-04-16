@@ -1,5 +1,5 @@
 ---
-title: ADR-0114 — Authority Model after Phase 4 (Single Source via gate_action)
+title: ADR-0117 — Authority Model after Phase 4 (Single Source via gate_action)
 status: accepted
 created: 2026-04-16
 updated: 2026-04-16
@@ -7,7 +7,7 @@ module: ai-agent
 tags: [adr, authority, governance, gate-action, agent-router]
 ---
 
-# ADR-0114 — Authority Model after Phase 4 (Single Source via gate_action)
+# ADR-0117 — Authority Model after Phase 4 (Single Source via gate_action)
 
 ## Context
 
@@ -40,10 +40,10 @@ Phase 4 (commit `b4857384`) removed step 2. `gate.downgrade_to` is now applied O
 
 ## Scope
 
-Affects `services/stage-engine/src/core/agent-router.ts` authority resolution. Does NOT affect `gate_action` RPC itself (ADR-0099 authoritative) or per-capability emit paths (ADR-0113).
+Affects `services/stage-engine/src/core/agent-router.ts` authority resolution. Does NOT affect `gate_action` RPC itself (ADR-0099 authoritative) or per-capability emit paths (ADR-0116).
 
 ## Related
 
 - Builds on: ADR-0099 (Unified Authority Gate — gate_action RPC)
-- Amends: ADR-0113 (Runtime Telemetry Standard — Phase 4 clarifies C4 authority flow)
+- Amends: ADR-0116 (Runtime Telemetry Standard — Phase 4 clarifies C4 authority flow)
 - Follow-up: remove unread `minRoles` field in agent-router.ts authority config, and either restrict low-confidence fallback to `read_only` OR run `gate_action` per capability in the fallback branch

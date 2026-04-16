@@ -2973,7 +2973,7 @@ export interface AgentTokensUsed extends BaseEvent {
   };
 }
 
-// ─── Botsson Runtime Events (Phase 3, ADR-0113) ────
+// ─── Botsson Runtime Events (Phase 3, ADR-0116) ────
 // Emitted by stage-engine per-turn to observe the full agent loop:
 // envelope (turn_started/completed), intent classifier, tool adapter
 // (invoked/failed), and stepCountIs(5) truncation signal.
@@ -5106,7 +5106,7 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "agent",
   },
 
-  // Botsson runtime events (Phase 3, ADR-0113)
+  // Botsson runtime events (Phase 3, ADR-0116)
   "botsson.turn_started": {
     destinations: ["logger", "activity_trail"],
     category: "agent",

@@ -1,7 +1,7 @@
 // services/stage-engine/src/middleware/error-handler.ts
 // ============================================
 // error-handler.ts — Global error handler for stage-engine.
-// Per ADR-0113: structured logging with requestId, typed-error
+// Per ADR-0116: structured logging with requestId, typed-error
 // HTTP mapping, Sentry forwarding for 5xx.
 // ============================================
 

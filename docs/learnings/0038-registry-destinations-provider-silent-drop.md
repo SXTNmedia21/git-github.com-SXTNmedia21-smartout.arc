@@ -45,7 +45,7 @@ For the class of bug:
 
 ## Related
 
-- ADR-0113 — Runtime Telemetry Standard
-- Addendum ADR-0113 2026-04-16 — activity_trail entity contract
+- ADR-0116 — Runtime Telemetry Standard
+- Addendum ADR-0116 2026-04-16 — activity_trail entity contract
 - Learning 0034 — capability-without-emit-invisible-to-cascade (sibling pattern: this is emit-without-persistence)
 - Council 2026-04-16 R2 review (PR #213)

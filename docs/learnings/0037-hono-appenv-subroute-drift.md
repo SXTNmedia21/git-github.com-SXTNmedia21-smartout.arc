@@ -11,7 +11,7 @@ tags: [learning, hono, typescript, middleware, observability]
 
 ## Context
 
-In `services/stage-engine/`, the root Hono app was migrated to `new Hono<AppEnv>()` where `AppEnv.Variables = { requestId, sessionLane }` (2026-04-16, ADR-0113 / Phase 1 Task 1.5). Sub-routes under `src/routes/` (chat.ts, sessions.ts, store.ts, fetch.ts, advance.ts, ultravox.ts, telegram.ts) were already using their own narrower generics like `new Hono<{ Variables: { auth: AuthContext } }>()`. After the root migration, `requestId` is set at runtime on the shared context object but is compile-time invisible inside sub-routes — forcing `c.get("requestId" as never) as string` escape hatches at any sub-route call site that wants to log with requestId.
+In `services/stage-engine/`, the root Hono app was migrated to `new Hono<AppEnv>()` where `AppEnv.Variables = { requestId, sessionLane }` (2026-04-16, ADR-0116 / Phase 1 Task 1.5). Sub-routes under `src/routes/` (chat.ts, sessions.ts, store.ts, fetch.ts, advance.ts, ultravox.ts, telegram.ts) were already using their own narrower generics like `new Hono<{ Variables: { auth: AuthContext } }>()`. After the root migration, `requestId` is set at runtime on the shared context object but is compile-time invisible inside sub-routes — forcing `c.get("requestId" as never) as string` escape hatches at any sub-route call site that wants to log with requestId.
 
 ## What we learned
 
@@ -25,7 +25,7 @@ Option 3 is the only one that scales. The cost is one import line per sub-route 
 
 ## Why this matters
 
-`requestId` is the keystone of structured logging in ADR-0113. Every log line, every Sentry tag, every emit() call downstream depends on it. An escape-hatch cast at the first use site becomes a copy-paste pattern, and the middleware's type contract degrades to a runtime hope.
+`requestId` is the keystone of structured logging in ADR-0116. Every log line, every Sentry tag, every emit() call downstream depends on it. An escape-hatch cast at the first use site becomes a copy-paste pattern, and the middleware's type contract degrades to a runtime hope.
 
 ## How to detect
 
@@ -42,5 +42,5 @@ Then remove any `c.get("requestId" as never)` casts in the sub-route.
 
 ## Related
 
-- ADR-0113 — Runtime Telemetry Standard
+- ADR-0116 — Runtime Telemetry Standard
 - Council session 2026-04-16 — Botsson Runtime Review Phase 5 flagged this as a merge blocker
