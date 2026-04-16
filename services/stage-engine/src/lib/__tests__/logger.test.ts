@@ -27,13 +27,14 @@ describe("logger", () => {
     expect(typeof baseLogger.error).toBe("function");
   });
 
-  it("childLogger binds requestId to every log line", async () => {
+  it("childLogger binds requestId AND inherits base service tag", async () => {
     const { childLogger } = await import("../logger.js");
     const spy = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
     const log = childLogger({ requestId: "req_abc123" });
     log.info("hello");
     const output = spy.mock.calls.map((c) => String(c[0])).join("");
     expect(output).toContain("req_abc123");
+    expect(output).toContain("stage-engine"); // base tag must carry into children
     expect(output).toContain("hello");
     spy.mockRestore();
   });

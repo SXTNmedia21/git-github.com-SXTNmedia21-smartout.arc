@@ -11,9 +11,14 @@ import pino from "pino";
 
 const isDev = process.env.NODE_ENV !== "production";
 
+// NOTE: explicit `process.stdout` destination is required so tests can spy
+// via vi.spyOn(process.stdout, "write"). pino v10's default sonic-boom
+// bypasses process.stdout via fs.writeSync(1, ...). See pino-pretty v13
+// transport docs — the worker thread also escapes standard stdout spying,
+// which is why tests stub NODE_ENV=production + resetModules.
 export const baseLogger = isDev
   ? pino({
-      level: process.env.LOG_LEVEL ?? "info",
+      level: process.env.LOG_LEVEL ?? (isDev ? "debug" : "info"),
       base: { service: "stage-engine" },
       transport: {
         target: "pino-pretty",
@@ -22,7 +27,7 @@ export const baseLogger = isDev
     })
   : pino(
       {
-        level: process.env.LOG_LEVEL ?? "info",
+        level: process.env.LOG_LEVEL ?? (isDev ? "debug" : "info"),
         base: { service: "stage-engine" },
       },
       process.stdout,
