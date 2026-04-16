@@ -19,11 +19,11 @@ import {
   getConversationHistory,
 } from "../../core/agent-session.js";
 import { emitGuardianEvent } from "../../core/guardian-bus.js";
-import type { SessionLane } from "../../core/session-lane.js";
+import type { AppVariables } from "../../types/app-env.js";
 import type { AuthContext } from "../../types/auth.js";
 import type { ConversationTurn } from "../../types/agent.js";
 
-const agentChat = new Hono<{ Variables: { auth: AuthContext; sessionLane: SessionLane } }>();
+const agentChat = new Hono<{ Variables: AppVariables & { auth: AuthContext } }>();
 
 // -- Schema --
 

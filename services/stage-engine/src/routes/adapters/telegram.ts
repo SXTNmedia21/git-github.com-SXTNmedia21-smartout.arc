@@ -27,6 +27,7 @@ import { emitGuardianEvent } from "../../core/guardian-bus.js";
 import { hasActiveBridge, closeBridge, relayToSmartout } from "../../core/telegram-bridge.js";
 import { supabaseAdmin } from "../../lib/supabase.js";
 import { getSecrets } from "../../secrets.js";
+import type { AppVariables } from "../../types/app-env.js";
 import type { AuthContext } from "../../types/auth.js";
 import type { ConversationTurn } from "../../types/agent.js";
 import type { TelegramUpdate, TelegramMessage } from "../../types/telegram.js";
@@ -448,7 +449,7 @@ async function processPollAnswer(pollAnswer: {
 // Hono route
 // ---------------------------------------------------------------------------
 
-const telegram = new Hono<{ Variables: { auth: AuthContext } }>();
+const telegram = new Hono<{ Variables: AppVariables & { auth: AuthContext } }>();
 
 /**
  * POST /adapters/telegram/webhook

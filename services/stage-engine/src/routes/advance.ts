@@ -10,9 +10,10 @@ import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { loadAuthorizedSession } from "../core/session-manager.js";
 import { advanceStage } from "../core/stage-manager.js";
+import type { AppVariables } from "../types/app-env.js";
 import type { AuthContext } from "../types/auth.js";
 
-const advance = new Hono<{ Variables: { auth: AuthContext } }>();
+const advance = new Hono<{ Variables: AppVariables & { auth: AuthContext } }>();
 
 const advanceSchema = z.object({
   result: z.record(z.unknown()).optional(),

@@ -20,10 +20,11 @@ import { createUltravoxCall, buildUltravoxTools } from "../../lib/ultravox.js";
 import { config } from "../../config.js";
 import { emitGuardianEvent } from "../../core/guardian-bus.js";
 import { evaluateSession } from "../../core/guardian-evaluator.js";
+import type { AppVariables } from "../../types/app-env.js";
 import type { AuthContext } from "../../types/auth.js";
 import type { UltravoxNewStageResponse, UltravoxTool } from "../../types/ultravox.js";
 
-const ultravox = new Hono<{ Variables: { auth: AuthContext } }>();
+const ultravox = new Hono<{ Variables: AppVariables & { auth: AuthContext } }>();
 
 // -- Create Call --
 
