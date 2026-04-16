@@ -7,6 +7,7 @@ export const getMyTrainingStatus = defineTool({
   name: "get_my_training_status",
   description:
     "Get the training status for the current employee. Returns total, completed, pending, and expired protocol assignments with overall readiness percentage.",
+  capability: "training",
   schema: z.object({}),
   execute: async (_params, ctx: AgentToolContext) => {
     const { data, error } = await ctx.supabaseAdmin
@@ -41,6 +42,7 @@ export const getNextProtocol = defineTool({
   name: "get_next_protocol",
   description:
     "Get the next recommended protocol for the employee to work on. Returns the most recently assigned incomplete protocol.",
+  capability: "training",
   schema: z.object({}),
   execute: async (_params, ctx: AgentToolContext) => {
     const { data, error } = await ctx.supabaseAdmin
@@ -73,6 +75,7 @@ export const getTeamReadiness = defineTool({
   name: "get_team_readiness",
   description:
     "Get the training readiness overview for the workspace. Shows per-employee readiness percentages. Requires manager or admin role.",
+  capability: "training",
   schema: z.object({
     departmentId: z.string().uuid().optional().describe("Filter by department ID"),
   }),

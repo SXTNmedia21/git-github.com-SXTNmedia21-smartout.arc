@@ -110,6 +110,7 @@ export const publishShift = defineTool({
   name: "publish_shift",
   description:
     "Publish a shift so the assigned employee can see it and punch in. Blocks when the assigned employee is not ready (missing policies/protocols) and when authority/four-eyes denies (ADR-0101). Chat + system only — not allowed over voice (ADR-0078).",
+  capability: "shift_lifecycle",
   schema: z.object({
     shift_id: z.string().uuid().describe("The shift to publish (schedule_shift_id)"),
   }),
@@ -221,6 +222,7 @@ export const approveShift = defineTool({
   name: "approve_shift",
   description:
     "Approve a shift's interpreted hours, transitioning shift_approval from pending to approved. Blocks when the assigned employee is not ready, when authority denies, or when four-eyes requires a second distinct approver on this shift (ADR-0101). Chat-only (ADR-0078).",
+  capability: "shift_lifecycle",
   schema: z.object({
     shift_id: z.string().uuid().describe("The shift being approved (schedule_shift_id)"),
     approved_hours: z
@@ -404,6 +406,7 @@ export const interpretShift = defineTool({
   name: "interpret_shift",
   description:
     "Re-derive interpretation hours for a shift by calling derive_shift_hours. Produces an append-only shift_hour_interpretation row. System-only channel.",
+  capability: "shift_lifecycle",
   schema: z.object({
     shift_id: z.string().uuid().describe("The shift to interpret (schedule_shift_id)"),
   }),
@@ -461,6 +464,7 @@ export const settleShift = defineTool({
   name: "settle_shift",
   description:
     "Snapshot cost for a shift's latest interpretation via snapshot_shift_cost. Idempotent. Emits shift.settled for daily_close. System-only channel.",
+  capability: "shift_lifecycle",
   schema: z.object({
     shift_id: z.string().uuid().describe("The shift to settle (schedule_shift_id)"),
   }),

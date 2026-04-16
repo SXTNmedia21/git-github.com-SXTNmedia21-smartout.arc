@@ -8,6 +8,7 @@ export const getProfile = defineTool({
   name: "get_profile",
   description:
     "Get the current employee's profile information including name, role, department, team, and status.",
+  capability: "profile",
   schema: z.object({}),
   execute: async (_params, ctx: AgentToolContext) => {
     const supabase = ctx.supabaseAdmin as SupabaseClient;
@@ -27,6 +28,7 @@ export const getProfile = defineTool({
 export const getTeam = defineTool({
   name: "get_team",
   description: "Get information about the employee's team including team members and team leader.",
+  capability: "profile",
   schema: z.object({}),
   execute: async (_params, ctx: AgentToolContext) => {
     const supabase = ctx.supabaseAdmin as SupabaseClient;
@@ -60,6 +62,7 @@ export const getTeam = defineTool({
 export const getContractStatus = defineTool({
   name: "get_contract_status",
   description: "Get the current status of the employee's employment contract.",
+  capability: "profile",
   schema: z.object({}),
   execute: async (_params, ctx: AgentToolContext) => {
     const supabase = ctx.supabaseAdmin as SupabaseClient;
@@ -82,6 +85,7 @@ export const searchProfilesByName = defineTool({
     "Search for employees by name (partial match). Returns profile IDs, display names, roles, " +
     "statuses, and department names. Use to resolve a human name to a profile UUID before " +
     "opening entity drawers or creating contracts. Max 10 results. No PII returned.",
+  capability: "profile",
   schema: z.object({
     query: z
       .string()

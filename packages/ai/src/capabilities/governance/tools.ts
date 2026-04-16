@@ -31,6 +31,7 @@ export const checkReadiness = defineTool({
   name: "check_readiness",
   description:
     "Check whether a profile is ready (all assigned protocols completed). Returns missing policy/protocol IDs and the most recent attempt timestamp. Read-only — does not mutate.",
+  capability: "governance",
   schema: z.object({
     profile_id: z.string().uuid().describe("Profile to check readiness for"),
     requirement_set_id: z

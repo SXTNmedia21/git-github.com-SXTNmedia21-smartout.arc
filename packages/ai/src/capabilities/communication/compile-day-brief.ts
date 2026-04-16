@@ -14,6 +14,7 @@ export const compileDayBrief = defineTool({
   name: "compile_day_brief",
   description:
     "Compile a Day Brief for a department — previous handoff, today's schedule, pending tasks, open deviations, and announcements",
+  capability: "communication",
   schema: z.object({
     department_id: z.string().uuid().describe("Department to compile brief for"),
     date: z.string().optional().describe("Date in YYYY-MM-DD format. Defaults to today."),

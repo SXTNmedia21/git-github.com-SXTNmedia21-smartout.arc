@@ -14,6 +14,7 @@ export const queryMonitorAlerts = defineTool({
   name: "query_monitor_alerts",
   description:
     "Query recent operational anomalies and monitor alerts for a department or session. Returns alerts from the last N hours including late punch-ins, no-shows, overdue tasks, and understaffing.",
+  capability: "operations_intelligence",
   schema: z.object({
     department_id: z
       .string()
@@ -117,6 +118,7 @@ export const getSessionIntelligence = defineTool({
   name: "get_session_intelligence",
   description:
     "Get comprehensive intelligence for a department session: task progress, staff status, recent alerts, deviations, and operational health score. Provides a complete picture for manager decision-making.",
+  capability: "operations_intelligence",
   schema: z.object({
     department_id: z.string().uuid().describe("Department to analyze"),
     date: z.string().optional().describe("Date in YYYY-MM-DD format. Defaults to today."),

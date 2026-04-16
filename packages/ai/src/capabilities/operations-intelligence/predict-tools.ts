@@ -14,6 +14,7 @@ export const predictCoverage = defineTool({
   name: "predict_coverage",
   description:
     "Predict staffing coverage gaps for a department over the next N days by comparing scheduled shifts against minimum staff requirements. Returns per-day analysis and any cached predictions from engine_memory.",
+  capability: "operations_intelligence",
   schema: z.object({
     department_id: z.string().uuid().describe("Department to analyze for coverage gaps"),
     days_ahead: z
@@ -157,6 +158,7 @@ export const predictCompliance = defineTool({
   name: "predict_compliance",
   description:
     "Analyze recent HACCP, temperature, and hygiene task completion rates to predict compliance risk. Returns overall compliance rate, risk level, per-task-type breakdown, and cached risk predictions.",
+  capability: "operations_intelligence",
   schema: z.object({
     department_id: z
       .string()

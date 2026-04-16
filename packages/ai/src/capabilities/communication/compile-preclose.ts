@@ -12,6 +12,7 @@ export const compilePreclose = defineTool({
   name: "compile_preclose_summary",
   description:
     "Compile a pre-close summary for a department session — tasks done, tasks remaining, open deviations, items needing sign-off",
+  capability: "communication",
   schema: z.object({
     department_id: z.string().uuid().describe("Department to compile pre-close for"),
   }),

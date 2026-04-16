@@ -21,6 +21,7 @@ export const submitFieldGroup = defineTool({
     "Submit a group of PII fields (identity or banking) for the employee's contract intake. " +
     "Identity includes personal_number and address fields. Banking includes bank_account. " +
     "Chat-only — refuses on any other channel.",
+  capability: "contract_intake",
   schema: z.object({
     group: fieldGroupEnum.describe("Which field group to submit"),
     values: z.record(z.string()).describe("Key-value pairs for the field group"),
@@ -141,6 +142,7 @@ export const declineIntake = defineTool({
   name: "decline_intake",
   description:
     "Employee declines to provide PII for contract intake. Records the refusal and notifies the admin for follow-up.",
+  capability: "contract_intake",
   schema: z.object({
     reason_code: z
       .enum(["privacy_concern", "incorrect_request", "will_do_later", "other"])
@@ -195,6 +197,7 @@ export const getIntakeProgress = defineTool({
   description:
     "Check which PII field groups the employee has completed vs still pending. " +
     "Returns contract_id and engine_state_id for context. Never returns actual PII values.",
+  capability: "contract_intake",
   schema: z.object({}),
   execute: async (_params, ctx: AgentToolContext) => {
     const { data, error } = await ctx.supabaseAdmin
