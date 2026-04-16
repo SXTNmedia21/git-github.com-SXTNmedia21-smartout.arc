@@ -1,7 +1,7 @@
 ---
 title: Learning Log
 status: in_progress
-updated: 2026-04-10
+updated: 2026-04-16
 created: 2026-03-26
 module: schedule
 tags: [learnings]
@@ -48,3 +48,6 @@ tags: [learnings]
 | 30  | 2026-04-08 | "contract" word overloaded across two unrelated systems — `employment_contract` (HR) vs `contract` (ADR-0024 platform legal) ([0030](0030-contract-word-overloaded-across-two-systems.md)) | Migrations must always use `public.contract_status` explicitly. Variable naming must mirror the table, not the concept. UI-text uses "Arbeidsavtale" vs "Brukeravtale". |
 | 31  | 2026-04-10 | Clickable row actions need explicit propagation + a11y contract in row-click tables ([0031](0031-clickable-row-action-propagation-contract.md)) | Prevents double-trigger UX bugs (row open + inline action), especially for external handoff actions like PostHog links. |
 | 32  | 2026-04-10 | App Router directory renames are safer than they appear — relative imports survive, only string references break ([0032](0032-app-router-rename-blast-radius.md)) | Prefer clean renames + redirects over rewrites that create permanent URL/filesystem discrepancy. Count actual broken references, don't estimate from file count. |
+| 34  | 2026-04-16 | A capability without emit() is invisible to the cascade — 11/14 Botsson capabilities silent on PostHog, activity_trail, engine_event, logger ([0034](0034-capability-without-emit-invisible-to-cascade.md)) | Fix centrally in `toVercelTools` adapter (one emit covers 14 capabilities) rather than per-capability. CLAUDE.md "No mutation without emit" is a cascade invariant, not a style rule. |
+| 36  | 2026-04-16 | Worktree Edit Hygiene — edits made in the wrong tree silently split docs from code ([0036](0036-worktree-edit-hygiene.md)) | Before any feature-scoped Edit: `pwd` + `git branch --show-current` + `git worktree list`. Planning docs belong in the feature PR, not stranded on development. |
+| 37  | 2026-04-16 | Hono `app.route()` merges runtime context but not compile-time generics — sub-routes lose parent-set variables ([0037](0037-hono-appenv-subroute-drift.md)) | Share a single `AppEnv` type across root and sub-apps. `c.get("requestId" as never)` casts are rot — they replicate and erase middleware's type contract. |

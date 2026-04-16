@@ -1,7 +1,7 @@
 ---
 title: Agent Harness Foundation — Design Spec
-status: ready-for-plan
-updated: 2026-04-09
+status: partially-superseded
+updated: 2026-04-16
 created: 2026-04-09
 module: ai-agent
 tags: [agent-harness, hooks, context-view, subagent, durability, botsson, stage-engine, token-tracking]
@@ -13,6 +13,74 @@ tags: [agent-harness, hooks, context-view, subagent, durability, botsson, stage-
 > agent-orkestreringsplattform — med hooks, context management, session
 > durability, og subagent-delegering. Inspirert av Anthropic's Brain/Hands/Session
 > arkitektur og OpenClaw's plugin/hook-modell.
+
+---
+
+## ⚠️ Status-oppdatering 2026-04-16 — Council Review
+
+Council (2026-04-16) gjennomgikk Botsson-runtime (harness, inference, logging) 7 dager etter denne specen ble skrevet. **Kun SessionLane har shippet.** Resten av Fase 1/2/3 er ikke bygget. Council reviderte design-intensjonen på ett sentralt punkt og parkerte flere andre.
+
+### Status per leveranse
+
+**Fase 1 Foundation**
+
+| Leveranse | Status | Hvor |
+|---|---|---|
+| SessionLane | ✅ SHIPPED | `services/stage-engine/src/core/session-lane.ts` |
+| Model Provider (`resolveModel()`) | 🟢 IN NEW ROADMAP | Council P1 + **ADR-0086** (model policy under C4 governance, `engine_authority_config`) |
+| Context View (window over event log) | 🟡 SIMPLIFIED IN NEW ROADMAP | Council P1 — erstattes av `loadRecentMemories()` wiring + Haiku-summarizer ved turn N-5 boundary. Enklere form, samme prinsipp (ingen irreversibel compaction). |
+| Session event log | 🔄 DESIGN REVISED | Council P2 #13 + **ADR-0085** — `engine_session_event` blir en **projeksjon over `activity_trail`**, IKKE en egen emitter-tabell. Begrunnelse under. |
+| Token tracking | 🔄 DESIGN REVISED | Council P0 #3 — tokens/latency logges via `emit()` payload inn i `activity_trail` istedenfor dedikert `engine_token_log`-tabell. Ingen second event system. |
+| Hook Registry (7 hook-punkter) | ⏸️ PARKED | Council foretrekker lettere mønster (requestId middleware + typed errors + `emit()` + Sentry) som løser samme observability-problem uten hook-infrastruktur. Kan gjenopptas hvis reelt behov dukker opp. |
+| `get_session_events` tool | ⏸️ PARKED | Delvis dekket av Diagnostic Drawer (Council P2 #15). Aktiveres hvis Botsson faktisk trenger historisk spolling via tool. |
+
+**Fase 2 Subagent**
+
+| Leveranse | Status |
+|---|---|
+| `parent_session_id` + `depth` + `delegation_status` | ⏸️ PARKED — blokkert av **Agent Trust Gate FAIL** (Council 2026-04-16) |
+| `delegate_task` / `poll_subagent` tools | ⏸️ PARKED — samme grunn |
+| `run_subagent` action i engine-dispatch | ⏸️ PARKED — samme grunn |
+
+**Agent Trust Gate-begrunnelse:** 11 av 14 capabilities mangler `emit()`. Memory-loop er død (`loadRecentMemories()` ikke wired). Å delegere til subagenter som ingen kan audite bryter C1 (belief) og C4 (permission). **Blokkert til Council P0 #3 (emit i alle capabilities) har shippet.**
+
+**Fase 3 Arena UI**
+
+| Leveranse | Status |
+|---|---|
+| AgentsView | ⏸️ PARKED — venter på Fase 2 |
+| Orb "working" glyph (konsentriske pulse-ringer) | ⏸️ PARKED — venter på Fase 2 |
+| Tab badge for aktive subagenter | ⏸️ PARKED — venter på Fase 2 |
+| Frontend-alternativ (Health Ribbon, Thinking Rows, Diagnostic Drawer) | 🟢 IN NEW ROADMAP | Council Frontend P1/P2 — dekker observability-behovet før subagenter |
+
+### Sentral design-revisjon: ADR-0083 → ADR-0085
+
+**Spec (ADR-0083):** `guardian_log` (ekstern audit) og `engine_session_event` (intern replay) skal være **to separate skrivepath-er og to tabeller**.
+
+**Council (ADR-0085 foreslått):** Én emitter (`emit()` fra `@smartout/telemetry`), én tabell (`activity_trail`), og `engine_session_event` blir en **materialisert projeksjon** over `activity_trail`. Begrunnelse:
+
+> *"Do not write engine_session_event as a new emitter — that re-introduces the second event system we are killing."*
+> — Council 2026-04-16
+
+CLAUDE.md sier "No mutation without emit. No second event system." Dagens `guardian-bus` er allerede en de-facto second event system. Å legge til en tredje (`engine_session_event` som egen emitter) ville forsterket problemet. Projeksjon-mønsteret bevarer **semantikken** ADR-0083 mandaterte (separation of audit vs runtime replay) uten å bygge et parallelt write-system.
+
+### Forhold til ADR-er
+
+- **ADR-0083** (denne specen) — skal oppdateres eller supersedes av **ADR-0085** før Fase 1 gjenopptas.
+- **ADR-0084** (foreslått av council) — erstatter `guardian-bus` in-process EventEmitter med pg `LISTEN/NOTIFY`. Løser Learning 0025.
+- **ADR-0086** (foreslått) — Model Provider-konseptet fra denne specen, men lagret i `engine_authority_config` istedenfor som ren TypeScript-funksjon.
+- **ADR-0087** (foreslått) — Runtime telemetry-standard for `services/` (requestId, typed errors, structured log, obligatorisk `emit()`). **Blocker for alt annet i denne specen.**
+
+### Når denne specen gjenopptas
+
+Denne specen bør revideres mot ADR-0085/0087 før implementering. Spesielt:
+
+1. Fjern dobbel-emitter-intensjonen (Section 1.5 "engine_session_event" må refereres som projeksjon)
+2. Fjern `engine_token_log` som egen tabell (erstatt med emit-payload)
+3. Avgjør om Hook Registry fortsatt er nødvendig etter at P0 #1-#4 har shippet. Sannsynligvis nei.
+4. Fase 2/3 reaktiveres kun etter Agent Trust Gate PASS.
+
+**Referanse:** `docs/council/COUNCIL-LOG.md` (entry 2026-04-16 — Botsson Runtime Review).
 
 ## Source Material
 

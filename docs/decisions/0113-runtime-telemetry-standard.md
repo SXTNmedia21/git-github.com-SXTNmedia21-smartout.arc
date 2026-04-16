@@ -41,4 +41,4 @@ Applies to all services under `services/` — `stage-engine`, `contract-service`
 
 - Builds on: ADR-0084 (Telemetry Conditional Exports — the `@smartout/telemetry` package this ADR mandates every service import)
 - Closes observability gaps identified in Council 2026-04-16
-- Learning 0034 (forward reference — to be written in Phase 8 of the Botsson Observability Foundation plan)
+- Learning 0034 (docs/learnings/0034-capability-without-emit-invisible-to-cascade.md)
