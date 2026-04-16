@@ -16,6 +16,7 @@ export {
   SkeletonChart,
 } from "./components/skeleton";
 export { SkeletonEntrance } from "./components/skeleton-entrance";
+export { Entrance, withEntrance } from "./components/entrance";
 export * from "./components/separator";
 export { StatusBadge } from "./components/status-badge";
 export { ReadinessBadge, type ReadinessBadgeProps, type ReadinessState } from "./readiness-badge";
