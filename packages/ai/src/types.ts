@@ -11,6 +11,11 @@ import type { z } from "zod";
 export type SmartoutTool<TCtx = unknown, TSchema extends z.ZodType = z.ZodType> = {
   name: string;
   description: string;
+  /**
+   * Capability category this tool belongs to. Populated by each capability's tool registry.
+   * Used by toVercelTools adapter for auto-emit telemetry routing (ADR-0113).
+   */
+  capability?: string;
   schema: TSchema;
   execute: (params: z.infer<TSchema>, ctx: TCtx) => Promise<string>;
 };
