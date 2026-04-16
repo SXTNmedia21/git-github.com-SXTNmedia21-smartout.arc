@@ -15,18 +15,15 @@ import { cn } from "../lib/utils";
  * helper variants (SkeletonLine, SkeletonHeading, SkeletonCard, SkeletonAvatar,
  * SkeletonBadge, SkeletonTableRow, SkeletonChart).
  */
-export function Skeleton({
-  className,
-  "aria-label": ariaLabel,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>) {
+export function Skeleton({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
       data-slot="skeleton"
-      role="status"
-      aria-live="polite"
-      aria-label={ariaLabel}
-      className={cn("bg-muted relative overflow-hidden rounded-md", className)}
+      aria-hidden
+      className={cn(
+        "bg-muted border-border/40 relative overflow-hidden rounded-md border",
+        className,
+      )}
       {...props}
     >
       <div
@@ -87,12 +84,7 @@ export function SkeletonBadge({ className, ...props }: React.HTMLAttributes<HTML
  */
 export function SkeletonTableRow({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div
-      className={cn("flex items-center gap-4 py-3", className)}
-      role="status"
-      aria-live="polite"
-      {...props}
-    >
+    <div className={cn("flex items-center gap-4 py-3", className)} aria-hidden {...props}>
       <SkeletonAvatar className="h-8 w-8" />
       <SkeletonLine className="w-1/4" />
       <SkeletonLine className="w-1/3" />

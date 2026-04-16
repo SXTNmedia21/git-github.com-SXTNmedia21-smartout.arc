@@ -16,7 +16,17 @@ import { toast } from "sonner";
 import { CheckCircle2, ChevronRight, FileText, Loader2, Send } from "lucide-react";
 import { useTranslation } from "@smartout/i18n";
 
-import { ContractPreviewEditor } from "./contract-preview-editor";
+import dynamic from "next/dynamic";
+import { withEntrance } from "@smartout/ui";
+import { EditorSkeleton } from "@/components/ui/editor-skeleton";
+
+const ContractPreviewEditor = dynamic(
+  () =>
+    import("./contract-preview-editor").then((m) => ({
+      default: withEntrance(m.ContractPreviewEditor),
+    })),
+  { ssr: false, loading: () => <EditorSkeleton /> },
+);
 import { resolvePlaceholders } from "@smartout/utils";
 import type { PlaceholderDef } from "@smartout/utils";
 

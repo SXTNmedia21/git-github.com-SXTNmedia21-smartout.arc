@@ -1,7 +1,17 @@
 "use client";
 
-import { DocumentModeCanvas } from "./document-mode-canvas";
+import dynamic from "next/dynamic";
+import { withEntrance } from "@smartout/ui";
+import { EditorSkeleton } from "@/components/ui/editor-skeleton";
 import { DocumentModePanel } from "./document-mode-panel";
+
+const DocumentModeCanvas = dynamic(
+  () =>
+    import("./document-mode-canvas").then((m) => ({
+      default: withEntrance(m.DocumentModeCanvas),
+    })),
+  { ssr: false, loading: () => <EditorSkeleton className="flex-1 p-6" /> },
+);
 
 export function DocumentModeShell({ isDark }: { isDark: boolean }) {
   return (
