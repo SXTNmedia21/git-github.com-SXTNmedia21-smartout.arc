@@ -661,3 +661,20 @@ Phase 3: Agent wiring (after C merges)
 - engine_state lifespan must match coordination need (per-transition, not per-entity-lifetime) to avoid scale blowup
 - Mobile punch DOES emit telemetry (deep dive overstated this gap); real telemetry hole is admin_action paths in approval/reconciliation
 **Notes:** Phase 1 (authority-gate + channel-guard in engine-dispatch) ships independently as security fix regardless of consolidation cadence. Phase 3 (Derivation migrations) blocks payroll work.
+
+## 2026-04-16 — Tier 1 Wrightegaarden migration via strike-mcp (post-implementation review)
+**Type:** post-implementation
+**Verdict:** APPROVE WITH CHANGES
+**Agents consulted:** system-steward (chair), supervisor (code-tracer), system-agent-coordinator (auth-bridge architect); frontend-designer skipped (no UI surface)
+**Prior verdict held?** n/a — first council on strike-mcp tooling
+**Key decision:** 11 mappings + 2 drops + 2 manual SQL files + 3 ADRs (strike-mcp 0004/0005/0006) are architecturally sound and code-correct. APPROVED to land. BLOCKED from production apply pending 4 must-fix operational items (invitations source constant, bridge-tool buildout, apply-script SAVEPOINT pattern, cutover communication drafts).
+**Critical findings:**
+- C1 invitations.json missing `constant_columns.source = 'bubble_migration'` — fixed in strike-mcp commit a7b3f16 + re-attest eaf5f59
+- Bridge tool referenced in ADR-0006 is vapor (no scope, owner, deadline) — apply blocked until built (1-2 days estimated)
+- "Fail loud" auth-bridge collision semantics underspecified — needs row-level SAVEPOINT, failure CSV, halt threshold (added as ADR-0006 amendment d04e97c)
+- Cutover artifacts missing — drafted CUTOVER-USER-NOTICE.md + CUTOVER-SWAP-NOTICE.md (NO + EN) + gen_pending_swaps_csv.ts stub (commit d04e97c)
+**Cross-reviewer agreement:** Manual SQL files (employment_contracts_synthesis.sql, records_aggregation.sql) are clean — Steward suspected source-tagging gaps; Supervisor verified explicit source='bubble_migration' literals on every INSERT (resolved in supervisor's favor).
+**Semantic conflict resolution:** Steward Q1+Q2 worried manual SQLs missed source tagging; Supervisor's code-trace verified the literals exist. Same concern, different evidence sources — Supervisor's direct line:N citation wins.
+**Boundary insight:** Migration "attestation complete" ≠ "apply ready". Attestation lives on the LEFT (strike-mcp emit-time correctness); apply-readiness lives on the RIGHT (operational wrappers). Captured as Learning 0033.
+**ADR amendments:** strike-mcp ADR-0006 amended with required apply-script behaviors + login-flow gate + cutover artifacts requirement + bridge timeline + auth-method homogeneity check. No new smartout.ai ADR.
+**Learning created:** 0033 — Migration attestation completeness ≠ apply-readiness

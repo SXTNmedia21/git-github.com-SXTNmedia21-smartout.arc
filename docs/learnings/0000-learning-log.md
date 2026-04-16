@@ -48,3 +48,16 @@ tags: [learnings]
 | 30  | 2026-04-08 | "contract" word overloaded across two unrelated systems — `employment_contract` (HR) vs `contract` (ADR-0024 platform legal) ([0030](0030-contract-word-overloaded-across-two-systems.md)) | Migrations must always use `public.contract_status` explicitly. Variable naming must mirror the table, not the concept. UI-text uses "Arbeidsavtale" vs "Brukeravtale". |
 | 31  | 2026-04-10 | Clickable row actions need explicit propagation + a11y contract in row-click tables ([0031](0031-clickable-row-action-propagation-contract.md)) | Prevents double-trigger UX bugs (row open + inline action), especially for external handoff actions like PostHog links. |
 | 32  | 2026-04-10 | App Router directory renames are safer than they appear — relative imports survive, only string references break ([0032](0032-app-router-rename-blast-radius.md)) | Prefer clean renames + redirects over rewrites that create permanent URL/filesystem discrepancy. Count actual broken references, don't estimate from file count. |
+
+---
+
+module: strike-mcp
+tags: [learnings, migration, operations]
+
+---
+
+# Learning Log — strike-mcp / Bubble→v3 migration
+
+| #   | Date       | Learning                                                                                                                                                                                                              | Impact                                                                                                                                                                                                                                                          |
+| --- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 33  | 2026-04-16 | Migration "attestation complete" does not equal "apply ready" — operational wrappers (bridge tool, cutover docs, apply-script error handling) are first-class deliverables ([0033](0033-migration-attestation-not-apply-ready.md)) | Pair every migration ADR with an "Operations" section. Reference promises like "future ADR in another package" are warnings, not architecture. Cutover communication artifacts must exist as drafts before any production apply. Surfaced by council 2026-04-16. |
