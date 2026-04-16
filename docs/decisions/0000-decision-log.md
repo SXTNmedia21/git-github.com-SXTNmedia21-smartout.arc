@@ -26,6 +26,9 @@ tags: [decisions, adr, index]
 
 | ADR | Date | Title | Status |
 |-----|------|-------|--------|
+| [ADR-0115](0115-rsc-migration-pattern-dashboard-routes.md) | 2026-04-16 | RSC Migration Pattern for Dashboard Routes — streaming boundary, NordicSkeleton pairing, ambience invariant, first-chunk heading rule, schedule excluded (Web Perf Council) | proposed |
+| [ADR-0114](0114-server-actions-canonical-mutation-primitive.md) | 2026-04-16 | Server Actions as Canonical User-Initiated Mutation Primitive + Capability Authority Relation — three-path divergence closed via shared gate RPC + explicit emit contract (Web Perf Council) | proposed |
+| [ADR-0113](0113-dashboard-context-decomposition-completion.md) | 2026-04-16 | DashboardContext Decomposition Completion — facade `useDashboard()` hook, ThemeContext hoist with synchronous data-theme flip, BotssonProvider above shell split (Web Perf Council) | proposed |
 | [ADR-0106](0106-effective-dating-governance-content.md) | 2026-04-15 | Effective-Dating Strategy for Governance Content (valid_from/valid_to on protocol/procedure/knowledge_test/confirmation; no *_version tables) | accepted |
 | [ADR-0105](0105-inspection-link-public-access-pattern.md) | 2026-04-15 | inspection_link Public-Access Pattern (hashed token, scope JSONB, justification, default anonymization; MVP schema, UI deferred to Phase 4) | accepted |
 | [ADR-0104](0104-notification-consolidation-roadmap.md) | 2026-04-15 | Notification Consolidation Roadmap (notification_policy + notification_sent_log with domain column; consolidation M+3/M+6/M+12) | accepted |

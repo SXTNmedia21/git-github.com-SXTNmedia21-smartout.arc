@@ -34,6 +34,7 @@ const nextConfig: NextConfig = {
       "posthog-js",
       "@tiptap/react",
       "@tiptap/starter-kit",
+      "sonner",
     ],
   },
   serverExternalPackages: ["posthog-node"],
