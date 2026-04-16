@@ -2973,6 +2973,82 @@ export interface AgentTokensUsed extends BaseEvent {
   };
 }
 
+// ─── Botsson Runtime Events (Phase 3, ADR-0113) ────
+// Emitted by stage-engine per-turn to observe the full agent loop:
+// envelope (turn_started/completed), intent classifier, tool adapter
+// (invoked/failed), and stepCountIs(5) truncation signal.
+export interface BotssonTurnStarted extends BaseEvent {
+  event: "botsson.turn_started";
+  properties: {
+    data: {
+      session_id: string;
+      message_preview: string;
+      channel: "chat" | "voice";
+    };
+  };
+}
+
+export interface BotssonTurnCompleted extends BaseEvent {
+  event: "botsson.turn_completed";
+  properties: {
+    data: {
+      session_id: string;
+      intent_capability: string;
+      intent_confidence: number;
+      response_preview: string;
+    };
+  };
+}
+
+export interface BotssonIntentClassified extends BaseEvent {
+  event: "botsson.intent_classified";
+  properties: {
+    data: {
+      session_id: string;
+      capability: string;
+      confidence: number;
+      latency_ms: number;
+    };
+  };
+}
+
+export interface BotssonToolInvoked extends BaseEvent {
+  event: "botsson.tool_invoked";
+  properties: {
+    data: {
+      session_id: string;
+      capability: string;
+      tool: string;
+      latency_ms: number;
+      success: boolean;
+    };
+  };
+}
+
+export interface BotssonToolFailed extends BaseEvent {
+  event: "botsson.tool_failed";
+  properties: {
+    data: {
+      session_id: string;
+      capability: string;
+      tool: string;
+      latency_ms: number;
+      error_message: string;
+    };
+  };
+}
+
+export interface BotssonStepCapHit extends BaseEvent {
+  event: "botsson.step_cap_hit";
+  properties: {
+    data: {
+      session_id: string;
+      step_count: number;
+      finish_reason: string;
+    };
+  };
+}
+
 // ─── Emma Task Events ──────────────────────────
 export interface EmmaTaskScheduled extends BaseEvent {
   event: "emma_task scheduled";
@@ -3842,6 +3918,12 @@ export type SmartoutEvent =
   | AgentContextWindowTruncated
   | AgentBudgetExhausted
   | AgentTokensUsed
+  | BotssonTurnStarted
+  | BotssonTurnCompleted
+  | BotssonIntentClassified
+  | BotssonToolInvoked
+  | BotssonToolFailed
+  | BotssonStepCapHit
   | EmmaTaskScheduled
   | EmmaTaskCompleted
   | NotificationDeepLinkFollowed
@@ -5017,6 +5099,33 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog"],
     category: "agent",
   },
+
+  // Botsson runtime events (Phase 3, ADR-0113)
+  "botsson.turn_started": {
+    destinations: ["logger", "activity_trail"],
+    category: "agent",
+  },
+  "botsson.turn_completed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "botsson.intent_classified": {
+    destinations: ["posthog", "activity_trail"],
+    category: "agent",
+  },
+  "botsson.tool_invoked": {
+    destinations: ["posthog", "activity_trail"],
+    category: "agent",
+  },
+  "botsson.tool_failed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "botsson.step_cap_hit": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+
   "emma_task scheduled": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "agent",
