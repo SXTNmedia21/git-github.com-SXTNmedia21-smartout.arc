@@ -205,3 +205,21 @@
     color-scheme: dark;
   }
 }
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+/* Nordic Split — Skeleton Sweep            */
+/* Warm gradient sweep for loading states.  */
+/* Opt-in via animate-nordic-sweep utility. */
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+@keyframes nordic-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@utility animate-nordic-sweep {
+  animation: nordic-sweep 1.2s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
