@@ -19,6 +19,7 @@ import type { AgentContext } from "@smartout/ai/context/types";
 import type { Situation } from "@smartout/ai/capabilities/types";
 import { loadAuthorityConfig } from "./authority.js";
 import { loadOnboardingContext } from "./session-manager.js";
+import { GateActionFailed, SchemaCacheStale } from "../lib/errors.js";
 import { supabaseAdmin, createUserClient } from "../lib/supabase.js";
 import { broadcastToSession } from "../ws/connection-manager.js";
 import { getBufferedActions } from "../routes/ws.js";
@@ -94,7 +95,16 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
     p_action_type: "agent_chat",
   });
   if (gateError) {
-    throw new Error(`gate_action RPC failed: ${gateError.message}`);
+    if (gateError.code === "PGRST002" || /schema cache/i.test(gateError.message)) {
+      throw new SchemaCacheStale(`gate_action: ${gateError.message}`, {
+        capability: intent.capability,
+        workspaceId,
+      });
+    }
+    throw new GateActionFailed(`gate_action RPC failed: ${gateError.message}`, {
+      capability: intent.capability,
+      workspaceId,
+    });
   }
   const gate = gateResult as {
     allow: boolean;
