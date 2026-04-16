@@ -131,10 +131,22 @@ agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
       actor_id: body.profile_id,
       correlation_id: c.get("requestId"),
       properties: {
+        entity: {
+          entity_type: "agent_session",
+          entity_id: sessionId,
+          entity_label: body.profile_id,
+        },
         data: {
           session_id: sessionId,
+          // ADR-0077: voice channel carries transcribed PII (personnummer,
+          // bank, address). Preview is chat-only; voice is redacted before
+          // it reaches PostHog / activity_trail.
           message_preview:
-            body.message.length > 100 ? body.message.slice(0, 100) + "\u2026" : body.message,
+            body.channel === "chat"
+              ? body.message.length > 100
+                ? body.message.slice(0, 100) + "\u2026"
+                : body.message
+              : "[voice \u2014 transcript redacted]",
           channel: body.channel,
         },
       },
@@ -179,6 +191,11 @@ agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
       actor_id: body.profile_id,
       correlation_id: c.get("requestId"),
       properties: {
+        entity: {
+          entity_type: "agent_session",
+          entity_id: sessionId,
+          entity_label: body.profile_id,
+        },
         data: {
           session_id: sessionId,
           intent_capability: response.intent?.capability ?? "unknown",

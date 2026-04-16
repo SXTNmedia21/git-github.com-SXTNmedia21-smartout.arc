@@ -42,6 +42,11 @@ export function toVercelTools<TCtx>(tools: ReadonlyArray<SmartoutTool<TCtx>>, ct
               actor_id: emitCtx.profileId ?? "unknown",
               correlation_id: emitCtx.requestId,
               properties: {
+                entity: {
+                  entity_type: "agent_session",
+                  entity_id: emitCtx.sessionId ?? "unknown",
+                  entity_label: `${t.capability ?? "unknown"}:${t.name}`,
+                },
                 data: {
                   session_id: emitCtx.sessionId ?? "unknown",
                   capability: t.capability ?? "unknown",
@@ -59,6 +64,11 @@ export function toVercelTools<TCtx>(tools: ReadonlyArray<SmartoutTool<TCtx>>, ct
               actor_id: emitCtx.profileId ?? "unknown",
               correlation_id: emitCtx.requestId,
               properties: {
+                entity: {
+                  entity_type: "agent_session",
+                  entity_id: emitCtx.sessionId ?? "unknown",
+                  entity_label: `${t.capability ?? "unknown"}:${t.name}`,
+                },
                 data: {
                   session_id: emitCtx.sessionId ?? "unknown",
                   capability: t.capability ?? "unknown",

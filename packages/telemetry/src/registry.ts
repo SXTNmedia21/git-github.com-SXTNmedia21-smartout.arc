@@ -2980,6 +2980,7 @@ export interface AgentTokensUsed extends BaseEvent {
 export interface BotssonTurnStarted extends BaseEvent {
   event: "botsson.turn_started";
   properties: {
+    entity: EntityRef;
     data: {
       session_id: string;
       message_preview: string;
@@ -2991,6 +2992,7 @@ export interface BotssonTurnStarted extends BaseEvent {
 export interface BotssonTurnCompleted extends BaseEvent {
   event: "botsson.turn_completed";
   properties: {
+    entity: EntityRef;
     data: {
       session_id: string;
       intent_capability: string;
@@ -3003,6 +3005,7 @@ export interface BotssonTurnCompleted extends BaseEvent {
 export interface BotssonIntentClassified extends BaseEvent {
   event: "botsson.intent_classified";
   properties: {
+    entity: EntityRef;
     data: {
       session_id: string;
       capability: string;
@@ -3015,6 +3018,7 @@ export interface BotssonIntentClassified extends BaseEvent {
 export interface BotssonToolInvoked extends BaseEvent {
   event: "botsson.tool_invoked";
   properties: {
+    entity: EntityRef;
     data: {
       session_id: string;
       capability: string;
@@ -3028,6 +3032,7 @@ export interface BotssonToolInvoked extends BaseEvent {
 export interface BotssonToolFailed extends BaseEvent {
   event: "botsson.tool_failed";
   properties: {
+    entity: EntityRef;
     data: {
       session_id: string;
       capability: string;
@@ -3041,6 +3046,7 @@ export interface BotssonToolFailed extends BaseEvent {
 export interface BotssonStepCapHit extends BaseEvent {
   event: "botsson.step_cap_hit";
   properties: {
+    entity: EntityRef;
     data: {
       session_id: string;
       step_count: number;
