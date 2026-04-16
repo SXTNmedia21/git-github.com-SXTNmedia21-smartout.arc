@@ -1,7 +1,7 @@
 ---
 title: "DashboardContext Decomposition Completion"
 id: ADR_0113
-status: proposed
+status: accepted
 layer: decision
 created: 2026-04-16
 updated: 2026-04-16
