@@ -50,6 +50,7 @@ let pgNotifyClient: import("pg").Client | null = null;
 let cleanupInterval: NodeJS.Timeout | null = null;
 let guardianInterval: NodeJS.Timeout | null = null;
 let calendarInterval: NodeJS.Timeout | null = null;
+let isShuttingDown = false;
 
 const app = new Hono<AppEnv>();
 
@@ -141,11 +142,13 @@ async function setupPgNotifyListener() {
       }
     });
 
-    // Reconnect automatically if the pg connection drops
+    // Reconnect automatically if the pg connection drops (unless shutting down)
     client.on("error", (err: Error) => {
-      console.error("[telegram] PG NOTIFY connection error:", err);
+      baseLogger.warn({ err }, "pg NOTIFY error");
       pgNotifyClient = null;
-      setTimeout(setupPgNotifyListener, 5000);
+      if (!isShuttingDown) {
+        setTimeout(() => void setupPgNotifyListener(), 5000);
+      }
     });
   } catch (err) {
     console.warn("[telegram] PG NOTIFY listener setup failed (bridge relay unavailable):", err);
@@ -198,11 +201,28 @@ console.log("[calendar-guardian] Season calendar check running every 60 seconds"
 // clear intervals. Prevents event loss on Docker/droplet redeploy (SIGTERM) or
 // local Ctrl+C (SIGINT). Must call process.exit(0) so Docker doesn't force-kill.
 async function gracefulShutdown(signal: string): Promise<void> {
+  if (isShuttingDown) {
+    baseLogger.info({ signal }, "Shutdown already in progress, ignoring duplicate signal");
+    return;
+  }
+  isShuttingDown = true;
+
   baseLogger.info({ signal }, "Graceful shutdown started");
 
+  // Order matters: intervals → HTTP server (drain in-flight) → pg client → Sentry.
+  // pg resources must outlive HTTP requests that hold pg references.
   if (cleanupInterval) clearInterval(cleanupInterval);
   if (guardianInterval) clearInterval(guardianInterval);
   if (calendarInterval) clearInterval(calendarInterval);
+
+  try {
+    await new Promise<void>((resolve, reject) => {
+      server.close((err) => (err ? reject(err) : resolve()));
+    });
+    baseLogger.info("HTTP server closed");
+  } catch (err) {
+    baseLogger.warn({ err }, "HTTP server close failed");
+  }
 
   try {
     if (pgNotifyClient) {
@@ -211,13 +231,6 @@ async function gracefulShutdown(signal: string): Promise<void> {
     }
   } catch (err) {
     baseLogger.warn({ err }, "pg client close failed");
-  }
-
-  try {
-    server.close();
-    baseLogger.info("HTTP server closed");
-  } catch (err) {
-    baseLogger.warn({ err }, "HTTP server close failed");
   }
 
   try {
@@ -231,7 +244,17 @@ async function gracefulShutdown(signal: string): Promise<void> {
   process.exit(0);
 }
 
-process.on("SIGTERM", () => void gracefulShutdown("SIGTERM"));
-process.on("SIGINT", () => void gracefulShutdown("SIGINT"));
+process.on("SIGTERM", () => {
+  gracefulShutdown("SIGTERM").catch((err) => {
+    baseLogger.error({ err }, "graceful shutdown failed");
+    process.exit(1);
+  });
+});
+process.on("SIGINT", () => {
+  gracefulShutdown("SIGINT").catch((err) => {
+    baseLogger.error({ err }, "graceful shutdown failed");
+    process.exit(1);
+  });
+});
 
 export { app };
