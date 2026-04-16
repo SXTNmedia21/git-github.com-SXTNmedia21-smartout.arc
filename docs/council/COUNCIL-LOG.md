@@ -715,3 +715,32 @@ Decision log shows active collision: ADR-0107 has two entries (Botsson channel d
 - **Supervisor (code-tracer):** HIGH — 4 false audit claims caught surgically with file:line. LiveKit + TipTap count + Upstash perf + middleware paths were each verified against code, not assumed.
 - **Agent Coordinator:** HIGH — stale memory flagged, three write paths diagnosed, Trust Gate blockers enumerated, "finishing decomposition" reframe, BotssonProvider placement rule, proposed the 3-ADR split
 - **Frontend Designer:** HIGH — NordicSkeleton design blocker flagged (would have shipped cold shadcn), TipTap pop-in risk, Instrument Serif FOUT streaming rule, motion eager-load list, scope-exclusion of Onboarding + Botsson
+
+### Sprint Delivery Status (rolling)
+
+**Sprint 1 — DONE 2026-04-16**
+- 1A (#211 merged): cleanup + 3 ADRs in `proposed`
+- 1B (#212 merged): Skeleton primitive (replaces shadcn), SkeletonEntrance, 7 variants
+- 1C (#214 merged): 8 dynamic-imports (4 TipTap + 4 Recharts), Entrance + withEntrance HOC, 2 new + 1 upgraded loading.tsx
+
+**Sprint 2 — DONE 2026-04-16**
+- 4 routes RSC-migrated: `/dashboard/people` (full server-fetch + map → initialData), `/dashboard/handbook` (HydrationBoundary pattern with TanStack v5 cache pre-population), `/dashboard/hms` (minimal — children own data), `/dashboard/reports` (minimal — already lazy from 1C)
+- New shared `_data/resolve-page-context.ts` resolver
+- Schedule explicitly excluded per ADR-0032 (deferred to separate ADR)
+- ADR-0113 + ADR-0115 moved `proposed` → `accepted` (pattern proven by Sprint 2)
+- ADR-0114 stays `proposed` — `gate-client.ts` (ADR-0091 WP3) does not yet exist
+
+**Sprint 3 — DEFERRED**
+- Server Actions migration: BLOCKED on `gate-client.ts`. Sprint cannot start until ADR-0091 WP3 lands.
+- DashboardContext decomposition: feasible but 155 consumers + careful theme cascade work. Recommended as separate dedicated effort with its own pre-flight audit (per ADR-0113 step 1: introduce facade hook + ESLint rule before any consumer migration).
+- Perf budgets warn → fail: deferred. Activate after Sprint 2 baseline metrics captured.
+
+### Sprint 2 post-implementation review (2-agent degraded mode)
+Supervisor code-tracer + autonomous Designer scope review. Verdict: APPROVE FOR MERGE.
+- Type preservation across server/client boundary ✓
+- No Set/Map serialization bugs (Map/Set used only server-side during mapping) ✓
+- HydrationBoundary cache-key match verified ✓
+- No additional DB hits (cache() decorators dedupe layout's prior calls) ✓
+- Mobile parity preserved (data layer in `packages/utils/`) ✓
+- Skeleton CLS-safe (people min-h-[104px] matches real card height)
+- One drift documented: resolver-vs-layout fallback semantics on wsParam failure (added clarifying comment per Supervisor recommendation)
