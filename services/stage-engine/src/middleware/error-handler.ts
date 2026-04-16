@@ -7,14 +7,15 @@
 
 import type { Context } from "hono";
 import type { ErrorResponse } from "../types/api.js";
+import type { AppEnv } from "../types/app-env.js";
 import { StageEngineError } from "../lib/errors.js";
 import { childLogger } from "../lib/logger.js";
 import { captureWithContext } from "../lib/sentry.js";
 
 type StatusCode = 400 | 401 | 403 | 404 | 409 | 422 | 429 | 500 | 502 | 503 | 504;
 
-export function onError(err: Error, c: Context): Response {
-  const requestId = (c.get("requestId" as never) as string | undefined) ?? "unknown";
+export function onError(err: Error, c: Context<AppEnv>): Response {
+  const requestId = c.get("requestId") ?? "unknown";
   const log = childLogger({ requestId });
 
   if (err instanceof StageEngineError) {
