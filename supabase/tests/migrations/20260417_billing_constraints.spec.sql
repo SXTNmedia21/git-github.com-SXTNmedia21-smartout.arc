@@ -5,7 +5,7 @@
 -- reject the illegal states documented in ADR-0120.
 
 BEGIN;
-SELECT plan(7);
+SELECT plan(8);
 
 -- Skip unrelated triggers + FK checks during fixture setup.
 SET session_replication_role = 'replica';
@@ -212,6 +212,19 @@ SELECT lives_ok(
 SELECT has_column(
   'public', 'invoice', 'pricing_terms_id',
   'invoice has pricing_terms_id FK column for Phase 1.5 pricing snapshot'
+);
+
+-- ── Test 8: UPDATE trigger WHEN clause includes invoice_number IS NULL guard ──
+-- Structural assertion for Phase 1.5 Fix #3 (code-reviewer important #3).
+-- pg_get_triggerdef exposes the WHEN clause verbatim; absence of the guard
+-- re-admits the wasted-sequence race the migration was written to close.
+SELECT ok(
+  (SELECT pg_get_triggerdef(oid)
+     FROM pg_trigger
+    WHERE tgname = 'trg_invoice_assign_number_update'
+      AND tgrelid = 'public.invoice'::regclass)
+  LIKE '%invoice_number IS NULL%',
+  'trg_invoice_assign_number_update WHEN clause includes invoice_number IS NULL (Phase 1.5 idempotency guard)'
 );
 
 SELECT * FROM finish();

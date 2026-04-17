@@ -71,20 +71,21 @@ A credit note MUST NOT credit another credit note. This is enforced by an `BEFOR
 
 ### 5. Legal `(status, dunning_status)` combinations constrained via CHECK
 
-The `invoice` table carries both a `status` column (7 values) and a `dunning_status` column (4 values). Not all 28 combinations are legal. The Phase 1.4 migration will add a `CHECK` constraint encoding the ~8 legal combinations:
+The `invoice` table carries both a `status` column (7 values — `draft`, `issued`, `sent`, `paid`, `overdue`, `void`, `uncollectible`) and a `dunning_status` column (4 values — `none`, `in_negotiation`, `reminder_sent`, `escalated`). Not all 28 combinations are legal. The `invoice_status_dunning_legal` CHECK constraint splits the states into terminal and active groups:
 
-| status | dunning_status |
+| status | Allowed dunning_status values |
 |---|---|
-| `draft` | `none` |
-| `issued` | `none` |
-| `issued` | `overdue` |
-| `issued` | `dunning_1` |
-| `issued` | `dunning_final` |
-| `paid` | `none` |
-| `void` | `none` |
-| `uncollectible` | `none` |
+| `draft` | NULL only |
+| `paid` | NULL only |
+| `void` | NULL only |
+| `uncollectible` | NULL only |
+| `issued` | any of `{NULL, none, in_negotiation, reminder_sent, escalated}` |
+| `sent` | any of `{NULL, none, in_negotiation, reminder_sent, escalated}` |
+| `overdue` | any of `{NULL, none, in_negotiation, reminder_sent, escalated}` |
 
-All other combinations are rejected at the database level.
+Terminal invoice states require `dunning_status IS NULL` — dunning is meaningless on closed invoices. Active invoice states accept any `dunning_status` value (including NULL); the dunning state machine progresses orthogonally to `invoice_status` so that e.g. `sent + reminder_sent` and `sent + escalated` are legal during customer follow-up. The enum itself bounds the set of dunning_status values; no arbitrary text can slip in.
+
+**Amendment (Phase 1.5, 2026-04-17, commit `af8dd7dc`):** this table replaces the original Phase 0 draft matrix, which enumerated combinations using pre-Task-1.3 enum names (`dunning_1`, `dunning_final`) and predated both the `sent` invoice_status value and the recognition that dunning progresses orthogonally to invoice_status. The Phase 0 matrix was too tight — it blocked the standard Fase 2 dunning flow (`sent + reminder_sent`). The relaxed form above is now the authoritative contract; code-reviewer important #4 from the B1 council drove the relaxation. Rationale also captured in the CHECK constraint's `COMMENT ON CONSTRAINT`.
 
 ### 6. Invoice identity contract: `invoice_id` vs `invoice_number`
 
