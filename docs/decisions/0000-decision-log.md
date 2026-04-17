@@ -26,6 +26,7 @@ tags: [decisions, adr, index]
 
 | ADR | Date | Title | Status |
 |-----|------|-------|--------|
+| [ADR-0119](0119-usage-snapshot-reproducibility.md) | 2026-04-17 | Usage Snapshot Reproducibility + active-user = `shift_status = 'completed'`; `counted_profile_ids` + `source_query_hash` on snapshot; drift detection emits `invoice.basis_drift_detected`; platform-admin resolves via ignore/credit-note/reinvoice | accepted |
 | [ADR-0118](0118-invoice-engine-as-c3-commercial-consumer.md) | 2026-04-17 | Invoice Engine as C3 Commercial Consumer (reads D6 + K1b, writes invoice/invoice_line_item/usage_snapshot, dunning via activity_trail) | accepted |
 | [ADR-0117](0117-authority-model-after-phase-4.md) | 2026-04-16 | Authority Model after Phase 4 (gate_action as single source) | accepted |
 | [ADR-0116](0116-runtime-telemetry-standard.md) | 2026-04-16 | Runtime Telemetry Standard for services/ (pino logger, requestId middleware, typed errors, mandatory emit() via toVercelTools adapter) | accepted |
