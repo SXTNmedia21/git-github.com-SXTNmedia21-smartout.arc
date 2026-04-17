@@ -1,6 +1,19 @@
 ---
 name: secrets-protocol
-description: Mandatory secrets management protocol. THE LAW for credentials. Use when creating, modifying, or discussing any secrets, API keys, tokens, passwords, connection strings, or environment variables. Also triggers when working on .env files, vault configuration, 1Password, or any security-sensitive credentials. Enforces two-vault architecture, classification, storage rules, rotation schedules, and AI exposure prevention.
+description: |
+  THE LAW for credentials. MUST be loaded before creating, rotating, classifying, committing, or discussing any secret, credential, or environment variable.
+
+  Triggers (English): secret, credential, password, API key, access token, bearer token, refresh token, JWT, service role, anon key, publishable key, signing secret, webhook secret, connection string, .env, env var, environment variable, rotate, leak, exposure, 1Password, op://, vault, classification, hardcoded key, commit key.
+
+  Triggers (Norwegian): hemmelighet, legitimasjon, passord, nøkkel, rotere, lekket, sikkerhet.
+
+  Triggers (files/paths): .env*, .env.template, apps/web/src/env.ts, supabase/.env, packages/supabase/.env, scripts/*env*sync*.sh, any file adding a `process.env.X` or `Deno.env.get`.
+
+  Triggers (patterns): literal API-key values pasted by user, `Bearer ` tokens in source, `console.log` of credentials, raw values in commits, AI prompts containing secret values.
+
+  Traps to remember: two-vault architecture (`smartout_ai` dev/shared + `smartout_ai_prod` prod) — never mix. Secrets NEVER enter AI context — if a user pastes one, suggest op:// replacement and do not quote the value back. Rotate immediately on suspected exposure.
+
+  ALWAYS load when editing .env*, apps/web/src/env.ts, 1Password config, any auth flow, any sync script, or when a user mentions a credential by name.
 ---
 
 # Secrets Protocol

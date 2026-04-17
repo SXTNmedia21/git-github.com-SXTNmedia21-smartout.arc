@@ -1,6 +1,21 @@
 ---
 name: linear-protocol
-description: Mandatory logging and reference protocol for Linear. THE LAW. Use when Linear MCP is invoked, when referencing Linear issues, or when working on any development task tied to Linear. Enforces comment logging for decisions, blockers, errors, discoveries, and product insights. Comments become a storytelling product journal with selling points and elevator pitches captured at creation time.
+description: |
+  THE LAW for Linear. MUST be loaded when touching Linear issues, creating tickets, logging development work, or invoking any Linear MCP tool.
+
+  Triggers (English): Linear, issue, ticket, backlog, sprint, epic, story, project (in Linear sense), assign, reopen, close, comment, /stack, storytelling journal, elevator pitch, selling point, product insight, blocker comment, discovery comment, decision comment.
+
+  Triggers (Norwegian): sak, oppgave, backlog.
+
+  Triggers (issue IDs): any `SMA-<digits>` reference — e.g. SMA-123, SMA-1234.
+
+  Triggers (MCP tools): any `mcp__plugin_linear_linear__*` call — authenticate, create_issue, update_issue, get_issue, list_issues, etc.
+
+  Triggers (files/paths): any file mentioning `linear.app`, Linear webhooks, ops/* files that index tickets.
+
+  Traps to remember: comments must be self-contained — reader has no prior session context. Every meaningful action (decision, blocker, error, discovery, product insight) gets a comment. Capture selling points and elevator pitches at creation time, not retroactively. Pair with `project-lifecycle` for epic/story hierarchy and `task-stacking` for file-level indexing.
+
+  ALWAYS load when invoking a Linear MCP tool, referencing an SMA-<id>, or doing development work tied to an existing Linear task.
 ---
 
 # Linear Protocol
