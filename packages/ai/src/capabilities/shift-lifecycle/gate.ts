@@ -81,7 +81,7 @@ export async function callGateAction(
     channelAllowed: row.channel_allowed !== false,
     downgradeTo: (row.downgrade_to as string) ?? null,
     minRoleRequired: (row.min_role_required as string) ?? null,
-    requiresFourEyes: row.requires_four_eyes === true,
+    requiresFourEyes: row.four_eyes_required === true,
     approversNeeded: Number(row.approvers_needed ?? 0),
     approversPresent,
     gateEvaluationId: (row.gate_evaluation_id as string) ?? null,

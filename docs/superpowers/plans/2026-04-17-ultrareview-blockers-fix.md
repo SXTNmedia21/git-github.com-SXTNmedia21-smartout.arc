@@ -129,13 +129,13 @@ EOF
 ## Task 2 — Fix merged_bug_006: gate_action signature + response key
 
 **Files:**
-- Create: `supabase/migrations/20260417130000_gate_action_accept_entity_id.sql`
+- Create: `supabase/migrations/20260506120000_gate_action_accept_entity_id.sql`
 - Modify: `packages/ai/src/capabilities/shift-lifecycle/gate.ts`
 - Modify: `packages/ai/src/capabilities/shift-lifecycle/__tests__/tools.test.ts` (mock key)
 
 - [ ] **Step 2.1 — Write migration to extend gate_action signature**
 
-Create `supabase/migrations/20260417130000_gate_action_accept_entity_id.sql`:
+Create `supabase/migrations/20260506120000_gate_action_accept_entity_id.sql`:
 
 ```sql
 -- Extend public.gate_action to accept an optional p_entity_id parameter.
@@ -308,7 +308,7 @@ cd /home/sxtnl/dev/smartout.ai-wt-6
 npx supabase db reset
 ```
 
-Expected: all migrations apply including the new `20260417130000`.
+Expected: all migrations apply including the new `20260506120000`.
 
 - [ ] **Step 2.5 — Verify 9-param signature exists**
 
@@ -348,7 +348,7 @@ Expected: 0 errors.
 - [ ] **Step 2.9 — Commit**
 
 ```bash
-git add supabase/migrations/20260417130000_gate_action_accept_entity_id.sql \
+git add supabase/migrations/20260506120000_gate_action_accept_entity_id.sql \
         packages/supabase/src/database.types.ts \
         packages/ai/src/capabilities/shift-lifecycle/gate.ts \
         packages/ai/src/capabilities/shift-lifecycle/__tests__/tools.test.ts
@@ -372,7 +372,7 @@ Two related bugs, one commit:
    GateActionResult.requiresFourEyes would silently bypass four-eyes.
 
 Fix:
-- Migration 20260417130000 extends gate_action signature with
+- Migration 20260506120000 extends gate_action signature with
   p_entity_id UUID DEFAULT NULL (backward-compatible), threads it
   into gate_evaluation.entity_id for ADR-0101 per-entity scoping.
 - gate.ts:84 reads row.four_eyes_required.

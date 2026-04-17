@@ -342,7 +342,7 @@ describe("approve_shift", () => {
             data: {
               allow: false,
               reason: "four_eyes_required",
-              requires_four_eyes: true,
+              four_eyes_required: true,
               approvers_needed: 2,
               approvers_present: ["profile-1"],
             },

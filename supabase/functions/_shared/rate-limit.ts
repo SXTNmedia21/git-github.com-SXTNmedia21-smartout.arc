@@ -22,7 +22,12 @@ export async function checkRateLimit(
   _customLimit?: number,
 ): Promise<{ allowed: boolean; remaining: number; resetAt: number }> {
   const rl = getRateLimiter();
-  if (!rl) return { allowed: true, remaining: -1, resetAt: 0 };
+  if (!rl) {
+    console.error(
+      "[rate-limit] Upstash env vars missing — failing CLOSED. Check UPSTASH_REDIS_REST_URL/_TOKEN.",
+    );
+    return { allowed: false, remaining: 0, resetAt: 0 };
+  }
 
   const { success, remaining, reset } = await rl.limit(identifier);
   return { allowed: success, remaining, resetAt: reset };
