@@ -64,10 +64,11 @@ Disse fire er Fase 1-motorens eksistensgrunnlag og må kunne besvares når Fase 
 
 **Fase 1 svar:** `usage_snapshot` er **reproduserbart og revisjonssikkert**:
 
-1. **Input deterministisk:** query over `schedule_shift` filtrert på `status ∈ {worked, settled}` + `workspace_id` + `period_from/to`
+1. **Input deterministisk:** query over `schedule_shift` filtrert på `status = 'completed'` + `workspace_id` + `shift_date BETWEEN period_from AND period_to`. "Completed" er den lifecycle-tilstanden som betyr "vakten ble gjennomført" (enum verdier: `created | assigned | published | active | completed | unpublished` per migration `20260301300000_schedule_shift_table.sql`). Shifts med status `completed` er den strengeste, kunde-vennlige tolkningen av "aktiv bruker" (Blocker 3, beslutning C).
 2. **Provenance lagres:** `counted_profile_ids` (jsonb array) + `source_query_hash` (SHA-256 av query + input-parametere)
 3. **Materialized view:** `v_invoice_basis` presenterer data deterministisk for både generering og AI-forklaring (LLM leser view, aldri beregner beløp selv)
 4. **Re-derivering ved audit:** kjøring av samme query på historisk data må gi samme resultat eller en eksplisitt grunn til avvik (retroaktive shift-endringer → logget som `basis_drift_event`)
+5. **Valgfri ekstra stramming:** kryss-referer mot `daily_reconciliation.settled_at IS NOT NULL` for dagen shiften tilhører — sikrer at kun shifts i økonomisk "låst" dag telles. Påkrevd? Avklares i Open Questions §18.
 
 Platform-admin UI viser på fakturadetaljer: liste over profiler talt, total antall, `billable_users = max(0, active - free_users)`, `source_query_hash` for reproduksjon.
 
@@ -196,7 +197,71 @@ CREATE TABLE public.invoice (
 );
 
 CREATE SEQUENCE public.invoice_number_seq START 1001;
--- trigger assigns invoice_number from sequence on INSERT if NULL
+
+-- Trigger: assigns invoice_number from sequence ONLY when invoice transitions
+-- draft → issued. Drafts have NULL invoice_number; numbering is reserved until
+-- the invoice is committed to bokføringslov-compliant immutability. Sequences
+-- advance even on transaction rollback (Postgres default), which is acceptable
+-- for bokføring ("gaps are allowed if documented"). Void invoices keep their
+-- number; credit notes get a new number.
+CREATE OR REPLACE FUNCTION public.assign_invoice_number() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.status = 'issued' AND NEW.invoice_number IS NULL THEN
+    NEW.invoice_number := nextval('public.invoice_number_seq');
+    NEW.issued_at := COALESCE(NEW.issued_at, now());
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER trg_invoice_assign_number
+  BEFORE UPDATE OF status ON public.invoice
+  FOR EACH ROW
+  WHEN (NEW.status = 'issued' AND OLD.status IS DISTINCT FROM NEW.status)
+  EXECUTE FUNCTION public.assign_invoice_number();
+
+-- CHECK: credit note cannot credit another credit note (no nesting)
+ALTER TABLE public.invoice
+  ADD CONSTRAINT invoice_no_nested_credit_notes
+  CHECK (
+    credits_invoice_id IS NULL
+    OR invoice_type = 'credit_note'
+  );
+
+-- CHECK: credit_note must have credits_invoice_id, others must not
+ALTER TABLE public.invoice
+  ADD CONSTRAINT invoice_credit_note_linkage
+  CHECK (
+    (invoice_type = 'credit_note' AND credits_invoice_id IS NOT NULL)
+    OR (invoice_type <> 'credit_note' AND credits_invoice_id IS NULL)
+  );
+```
+
+**Nested credit note prohibition:** Enforced via trigger on INSERT/UPDATE — `credits_invoice_id` must reference an invoice where `invoice_type != 'credit_note'`. Implemented as a separate trigger (can't be CHECK constraint since it references another row). See §5.8.
+
+**Legal `status` × `dunning_status` combinations:**
+
+| status | dunning_status allowed | Why |
+|---|---|---|
+| draft | `none` only | not issued yet |
+| issued | `none`, `in_negotiation` | just sent, payment pending |
+| sent | `none`, `in_negotiation` | delivery confirmed, payment pending |
+| paid | `none` | settled, no dunning |
+| overdue | `none`, `in_negotiation`, `reminder_sent`, `escalated` | all dunning states apply |
+| void | `none` | cancelled, dunning irrelevant |
+| uncollectible | `none` | written off, dunning stopped |
+
+Enforced via CHECK constraint:
+
+```sql
+ALTER TABLE public.invoice
+  ADD CONSTRAINT invoice_status_dunning_legal
+  CHECK (
+    (status IN ('draft','paid','void','uncollectible') AND dunning_status IS NULL)
+    OR (status IN ('issued','sent') AND dunning_status IN ('none','in_negotiation'))
+    OR (status = 'overdue')
+  );
 ```
 
 ### 5.3 `invoice_line_item` — new table
@@ -226,11 +291,13 @@ CREATE TABLE public.invoice_line_item (
 
 ### 5.4 `usage_snapshot` — new table
 
+**Decision (council H6 fix):** `workspace_id` is **NOT NULL**. One row per workspace per period. Company-level aggregate is computed via SUM at read time, not stored as a separate row. This eliminates the unique-constraint NULL ambiguity that existed in v1 of the spec.
+
 ```sql
 CREATE TABLE public.usage_snapshot (
   usage_snapshot_id       uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id              uuid NOT NULL REFERENCES public.company(company_id),
-  workspace_id            uuid REFERENCES public.workspace(workspace_id),  -- nullable: per-company aggregate
+  workspace_id            uuid NOT NULL REFERENCES public.workspace(workspace_id),
   period_from             date NOT NULL,
   period_to               date NOT NULL,
 
@@ -250,22 +317,61 @@ CREATE TABLE public.usage_snapshot (
 );
 ```
 
-### 5.5 `dunning_note` — new table (Fase 1 lightweight audit)
+### 5.5 Dunning notes — via `activity_trail`, no new table
+
+**Decision (council 2026-04-17):** No dedicated `dunning_note` table. Operator notes are emitted to `activity_trail` via `emit({ event: 'dunning_note.added', invoice_id, note, actor_user_id })`. Single source of truth (cascade invariant preserved). Notes are immutable (activity_trail is append-only) — sufficient for Fase 1 operator workflow (add note + view history). If Fase 2 needs editing/threading/deletion, promote to dedicated table at that time.
+
+UI reads notes via view:
 
 ```sql
-CREATE TABLE public.dunning_note (
-  dunning_note_id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  invoice_id              uuid NOT NULL REFERENCES public.invoice(invoice_id),
-  note                    text NOT NULL,
-  created_by              uuid NOT NULL REFERENCES public.user_identity(user_id),
-  created_at              timestamptz NOT NULL DEFAULT now()
-);
+CREATE VIEW public.v_invoice_dunning_notes AS
+SELECT
+  at.activity_trail_id,
+  at.payload->>'invoice_id' AS invoice_id,
+  at.payload->>'note' AS note,
+  at.actor_user_id,
+  at.created_at
+FROM public.activity_trail at
+WHERE at.event = 'dunning_note.added';
 ```
 
-### 5.6 `v_invoice_basis` — materialized view (for AI-tools + audit)
+### 5.6 `basis_drift_event` — new table (Fase 1, H8 decision)
+
+Per H8 decision (council): active-user counting uses `shift_status = 'completed'` alone. If a shift is retroactively modified (reassignment, status changed) after the invoice for that period is issued, drift must be logged for platform-admin review. Detection via trigger on `schedule_shift` UPDATE/DELETE when a matching `usage_snapshot` exists for the shift's period.
 
 ```sql
-CREATE VIEW public.v_invoice_basis AS
+CREATE TABLE public.basis_drift_event (
+  drift_event_id       uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  usage_snapshot_id    uuid NOT NULL REFERENCES public.usage_snapshot(usage_snapshot_id),
+  invoice_id           uuid REFERENCES public.invoice(invoice_id),
+  shift_id             uuid,  -- no FK (shift may be deleted)
+  drift_type           text NOT NULL CHECK (drift_type IN ('status_reversed','employee_changed','shift_deleted','other')),
+  old_value            jsonb,
+  new_value            jsonb,
+  detected_at          timestamptz NOT NULL DEFAULT now(),
+  reviewed_at          timestamptz,
+  reviewed_by          uuid REFERENCES public.user_identity(user_id),
+  resolution           text CHECK (resolution IN (NULL, 'ignored','credit_note_issued','reinvoiced'))
+);
+
+-- Trigger: when schedule_shift UPDATE/DELETE changes status OR employee_id
+-- AND a usage_snapshot exists covering that shift_date for that workspace
+-- → insert basis_drift_event + emit('invoice.basis_drift_detected')
+```
+
+Platform-admin UI surfaces these in a dedicated panel under billing hub.
+
+### 5.7 `v_invoice_basis` — **replaced by two views** (H1 fix)
+
+Original single `v_invoice_basis` view conflated "current plan preview" (for pricing config UI) with "historical invoice basis" (for AI-tool explanation). Replaced by:
+
+**`v_current_plan_preview`** — current month snapshot for pricing config UI:
+
+```sql
+-- Non-materialized view: reads live schedule_shift each call.
+-- Used only by platform-admin billing config UI to preview "what would next
+-- invoice look like" — never by the AI explain_invoice_basis tool.
+CREATE VIEW public.v_current_plan_preview AS
 SELECT
   c.company_id,
   c.name AS company_name,
@@ -279,13 +385,16 @@ SELECT
   pt.billing_interval,
   pt.delivery_channel,
   pt.invoice_format,
-  -- Current period active users (for preview)
-  (SELECT count(DISTINCT profile_id)
+  -- Uses employee_id (FK to profile.profile_id) — column is named employee_id on schedule_shift
+  -- Filters on shift_date (DATE column); start_time + end_time are separate TIME columns
+  -- Status 'completed' = shift was performed (per shift_status enum, migration 20260301300000)
+  (SELECT count(DISTINCT employee_id)
    FROM public.schedule_shift
    WHERE workspace_id = w.workspace_id
-     AND status IN ('worked','settled')
-     AND shift_start >= date_trunc('month', now())
-     AND shift_start < date_trunc('month', now()) + interval '1 month'
+     AND status = 'completed'
+     AND employee_id IS NOT NULL
+     AND shift_date >= date_trunc('month', now())::date
+     AND shift_date < (date_trunc('month', now()) + interval '1 month')::date
   ) AS active_users_current_month
 FROM public.company c
 JOIN public.workspace w ON w.company_id = c.company_id
@@ -294,7 +403,72 @@ LEFT JOIN public.pricing_terms pt ON pt.company_id = c.company_id
   AND pt.effective_from <= CURRENT_DATE;
 ```
 
-### 5.7 Enums
+**`get_invoice_basis(invoice_id)`** — table-valued function, historical + complete basis for AI-tool explanation:
+
+```sql
+-- Table-valued function (not VIEW) because it takes a parameter.
+-- Returns EVERYTHING explain_invoice_basis needs in one shape:
+-- invoice header + line items + usage snapshot + pricing terms at time of issue.
+-- LLM reads this verbatim — never recomputes amounts.
+CREATE OR REPLACE FUNCTION public.get_invoice_basis(p_invoice_id uuid)
+RETURNS TABLE (
+  invoice_id uuid,
+  invoice_number int,
+  company_id uuid,
+  company_name text,
+  period_from date,
+  period_to date,
+  issued_at timestamptz,
+  status text,
+  amount_excl_vat decimal,
+  vat_rate decimal,
+  vat_amount decimal,
+  amount_incl_vat decimal,
+  currency text,
+  line_items jsonb,  -- array of {line_type, description, quantity, unit_price, amount_incl_vat, addon_key}
+  usage_snapshot jsonb,  -- {period_from, period_to, active_users, free_users_applied, billable_users, counted_profile_ids}
+  pricing_terms_at_issue jsonb  -- {monthly_cost, price_per_employee, free_users, overage_price_per_user}
+)
+LANGUAGE sql STABLE
+AS $$
+  SELECT
+    i.invoice_id,
+    i.invoice_number,
+    i.company_id,
+    c.name,
+    i.period_from,
+    i.period_to,
+    i.issued_at,
+    i.status::text,
+    i.amount_excl_vat,
+    i.vat_rate,
+    i.vat_amount,
+    i.amount_incl_vat,
+    i.currency::text,
+    (SELECT jsonb_agg(jsonb_build_object(
+      'line_type', li.line_type,
+      'description', li.description,
+      'quantity', li.quantity,
+      'unit_price', li.unit_price,
+      'amount_incl_vat', li.amount_incl_vat,
+      'addon_key', li.addon_key))
+     FROM invoice_line_item li WHERE li.invoice_id = i.invoice_id) AS line_items,
+    (SELECT to_jsonb(us.*) FROM usage_snapshot us
+     WHERE us.company_id = i.company_id
+       AND us.period_from = i.period_from AND us.period_to = i.period_to
+     LIMIT 1) AS usage_snapshot,
+    (SELECT to_jsonb(pt.*) FROM pricing_terms pt
+     WHERE pt.company_id = i.company_id
+       AND pt.effective_from <= i.issued_at::date
+       AND (pt.effective_until IS NULL OR pt.effective_until >= i.issued_at::date)
+     ORDER BY pt.effective_from DESC LIMIT 1) AS pricing_terms_at_issue
+  FROM invoice i
+  JOIN company c ON c.company_id = i.company_id
+  WHERE i.invoice_id = p_invoice_id;
+$$;
+```
+
+### 5.8 Enums
 
 ```sql
 CREATE TYPE public.invoice_type AS ENUM (
@@ -310,17 +484,36 @@ CREATE TYPE public.dunning_status AS ENUM (
 );
 ```
 
-### 5.8 RLS posture
+### 5.9 RLS posture
 
-| Table | Platform admin | Company admin (workspace_admin) | Service role |
+**Prerequisite helper** — does not exist today, must be added in first billing migration:
+
+```sql
+-- Mirrors existing is_admin_in_workspace() pattern from supabase/migrations/00004_rls_policies.sql
+CREATE OR REPLACE FUNCTION public.is_admin_in_company(p_user_id uuid, p_company_id uuid)
+RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.company_member
+    WHERE user_id = p_user_id
+      AND company_id = p_company_id
+      AND role IN ('admin','owner')
+  );
+$$;
+```
+
+| Table | Platform admin | Company admin | Service role |
 |---|---|---|---|
-| `invoice` | full | SELECT own company_id | full |
-| `invoice_line_item` | full | SELECT via invoice_id join | full |
-| `usage_snapshot` | full | SELECT own company_id | full |
-| `dunning_note` | full | none | full |
-| `pricing_terms` | full (existing) | none (existing) | full (existing) |
+| `invoice` | full | SELECT if `is_admin_in_company(auth.uid(), company_id)` | full |
+| `invoice_line_item` | full | SELECT via invoice join | full |
+| `usage_snapshot` | full | SELECT if `is_admin_in_company(auth.uid(), company_id)` | full |
+| `basis_drift_event` | full | none (platform-admin internal only) | full |
+| `pricing_terms` | full (existing, service-role only) | none (existing) | full (existing) |
 
-Writes always go via Edge Functions / Server Actions with service role. No direct client mutations.
+**Write posture:** platform-admin mutations run via Server Actions with service-role client after `getSuperAdminId()` gate. Workspace-admin-read is via Server Components (no Edge Function — per H7 decision). No direct client mutations from browser.
+
+**Test requirement:** pgTAP tests must verify "company A admin cannot read company B invoice" — added to Definition of Done §17.
 
 ---
 
@@ -334,7 +527,7 @@ Writes always go via Edge Functions / Server Actions with service role. No direc
 
 ### 6.2 Generation as pure transaction
 
-Pseudocode for generator (Deno Edge Function):
+Pseudocode for generator (Deno Edge Function). Note: `emit()` takes a single `SmartoutEvent` object with `event` field per `packages/telemetry/src/emit.ts:12`, not positional args.
 
 ```
 for each company in active companies:
@@ -342,6 +535,12 @@ for each company in active companies:
   if pt is null: skip + log
 
   for each workspace in company.workspaces:
+    // compute_usage_snapshot runs:
+    //   SELECT count(DISTINCT employee_id) FROM schedule_shift
+    //   WHERE workspace_id = $1
+    //     AND status = 'completed'
+    //     AND employee_id IS NOT NULL
+    //     AND shift_date BETWEEN $period_from AND $period_to
     snapshot = compute_usage_snapshot(workspace, previous_month)
     usage_snapshot_id = insert snapshot into usage_snapshot
 
@@ -355,14 +554,14 @@ for each company in active companies:
     update invoice.status = 'issued', invoice.issued_at = now(), invoice.due_at = now() + 14 days
   COMMIT
 
-  emit('usage_snapshot.created', { workspace_id, period, billable_users })
-  emit('invoice.generated', { invoice_id, company_id, amount })
-  emit('invoice.issued', { invoice_id, company_id, amount })
+  await emit({ event: 'usage_snapshot.created', workspace_id, company_id, period_from, period_to, billable_users })
+  await emit({ event: 'invoice.generated', invoice_id, company_id, amount_incl_vat })
+  await emit({ event: 'invoice.issued', invoice_id, company_id, amount_incl_vat })
 
   -- Overdue scan (part of same cron run, or separate hourly cron)
   for each invoice where status='issued' and due_at < today:
     update invoice.status = 'overdue'
-    emit('invoice.overdue_detected', { invoice_id, days_overdue })
+    await emit({ event: 'invoice.overdue_detected', invoice_id, days_overdue })
 ```
 
 **Design principles:**
@@ -373,12 +572,11 @@ for each company in active companies:
 
 ### 6.3 Lifecycle as `engine_process`
 
-Onboarding invoices (ADR pattern) and future payment-webhook-driven transitions (Fase 2) wrap as `engine_process` blueprints:
+**`invoice_lifecycle` blueprint** (Fase 1): `draft → issued → paid|overdue|void`. Step types: `wait_for_event` (`manual_mark_paid` in Fase 1, `payment_succeeded` in Fase 2), `schedule_control` (overdue check).
 
-- **Blueprint `invoice_lifecycle`:** `draft → issued → paid|overdue|void`. Step types: `wait_for_event` (payment_succeeded/manual_mark_paid), `schedule_control` (overdue check).
-- **Blueprint `onboarding_billing`:** triggered by `workspace_activation_completed`. Step types: `assign_task` (platform admin review onboarding package), `update_entity` (insert invoice + line_item).
+**Onboarding invoice:** Deferred from Fase 1 engine_process to **manual platform-admin action** via Server Action `createOnboardingInvoice(company_id, onboarding_package)`. Rationale: spec-level investigation showed `workspace_activation_completed` event does not exist in the codebase (would require creating it + wiring it into the onboarding wizard completion — scope creep). Fase 2 can promote this to an `engine_process` blueprint once the onboarding trigger event exists elsewhere.
 
-Both defined under `supabase/migrations/<date>_billing_engine_processes.sql` as `engine_process` seed rows.
+Engine processes defined under `supabase/migrations/<date>_billing_engine_processes.sql` as `engine_process` seed rows.
 
 ---
 
@@ -389,6 +587,8 @@ Add to `packages/telemetry/src/registry.ts`:
 **New category:** `billing`
 
 **New entity types:** `invoice`, `invoice_line_item`, `usage_snapshot`, `billing_agreement`, `dunning_note`
+
+**Call shape:** `emit()` takes a single `SmartoutEvent` object per `packages/telemetry/src/emit.ts:12`. Shape: `emit({ event: 'invoice.issued', invoice_id, company_id, amount_incl_vat, ... })`. Events must be registered in `EVENT_ROUTING` in `packages/telemetry/src/registry.ts` — unregistered events are logged and dropped.
 
 **New events:**
 
@@ -406,6 +606,8 @@ Add to `packages/telemetry/src/registry.ts`:
 | `dunning_note.added` | logger, activity_trail | Internal trail |
 
 **CI assertion:** new test `packages/telemetry/__tests__/billing-emit.spec.ts` asserts that each billing mutation in the codebase calls `emit()` with the expected event. This is enforcement, not aspiration.
+
+**Naming collision note:** `pricing_terms.delivery_channel` (singular, this spec) is distinct from `notification_policy.delivery_channels` (plural array, existing table at migration `20260422300000`). Different domains (billing dispatch vs notification fanout) — no column collision, but reviewers should be aware.
 
 ---
 
@@ -435,15 +637,15 @@ Existing pattern: `apps/web/src/app/platform-admin/billing/page.tsx` → extends
 
 ### 8.2 Workspace-admin (company owner viewing own invoices)
 
-New Edge Function `billing-api` (standalone, not `workspace-api` — different scope model: company-scoped):
+**No new Edge Function** (H7 council decision). Workspace-admin reads happen via **Server Components** at `apps/web/src/app/dashboard/billing/page.tsx` + Server Actions at `apps/web/src/app/dashboard/billing/_actions/`:
 
-```
-GET  /billing-api/invoices?company_id=X        → list own company's invoices
-GET  /billing-api/invoices/:id                 → own invoice detail
-GET  /billing-api/usage-snapshots?workspace_id → own workspace snapshots
-```
+- `getMyCompanyInvoices()` — Server Action, uses service-role client + `is_admin_in_company(auth.uid(), company_id)` gate, returns own company's invoices
+- `getMyInvoiceDetail(invoice_id)` — same pattern, single invoice + line items
+- `getMyUsageSnapshots(workspace_id)` — own workspace snapshots
 
-Auth: JWT from user, verifies `company_member.role IN ('admin','owner') AND company_id = X`.
+**Rationale:** ADR-0029 (workspace-api gateway) targets workspace-scoped data; billing is company-scoped. Rather than creating a second gateway with its own ADR, reuse Server Components + Server Actions (canonical per ADR-0114). Mobile hooks in `packages/billing/hooks/` call these Server Actions via the shared API surface. No Edge Function deployment needed.
+
+**Cache invalidation:** Every mutation Server Action (§8.1) ends with `revalidatePath('/platform-admin/billing')` and `revalidatePath('/dashboard/billing')` as appropriate.
 
 ### 8.3 CSV export
 
@@ -469,11 +671,32 @@ New capability: `billing_query` in `packages/ai/src/capabilities/billing-query/`
 |---|---|---|
 | `list_my_invoices` | own company | last N invoices with status/amount/period |
 | `get_my_invoice` | own company | full invoice + line items |
-| `explain_invoice_basis` | own company, own invoice | reads `v_invoice_basis`, explains in NL — **never computes amounts** |
+| `explain_invoice_basis` | own company, own invoice | reads `get_invoice_basis(invoice_id)` function (§5.7), explains in NL — **never computes amounts** |
 | `list_overdue` | own company | overdue subset |
 | `get_usage_snapshot` | own workspace | snapshot for period |
 
-**Context:** existing `AgentToolContext` (workspace-scoped). Company derived from `workspace_id → company_id`.
+**Context:** existing `AgentToolContext` (workspace-scoped). Company derived via shared helper (no need to widen `AgentToolContext`):
+
+```ts
+// packages/ai/src/lib/resolveCompanyId.ts
+export async function resolveCompanyId(ctx: AgentToolContext): Promise<string> {
+  const { data } = await ctx.supabaseAdmin
+    .from('workspace')
+    .select('company_id')
+    .eq('workspace_id', ctx.workspaceId)
+    .single();
+  if (!data?.company_id) throw new Error('Workspace not linked to a company');
+  return data.company_id;
+}
+```
+
+All 5 tools call `resolveCompanyId(ctx)` at start. Future refactor (Fase 2) can promote `companyId` to `AgentToolContext` resolved at session creation if perf matters.
+
+**Capability registration checklist** (mechanical — all 4 touchpoints required):
+1. Add `"billing_query"` to `CapabilityName` union at `packages/ai/src/capabilities/types.ts`
+2. Add entry to `packages/ai/src/capabilities/registry.ts`
+3. Add `"billing_query"` enum value + intent description block to `packages/ai/src/router/intent-classifier.ts`
+4. Seed authority config rows: `engine_authority_config` row per workspace with `capability='billing_query'`, `level='read_only'`
 
 ### 9.2 Fase 2 deferral: platform-admin AI-tools
 
@@ -493,50 +716,99 @@ All AI-tools that reference money:
 
 ### 10.1 Design system requirements
 
-**Prerequisite** (must exist before implementation):
-- `--success` (warm green OKLCH hue 140-160)
-- `--warning` (warm amber OKLCH hue 70-80)
-- `--destructive` (warm coral OKLCH hue 15-25, NOT red)
-- `--info` (warm sky OKLCH hue 220-230)
+**Prerequisite PR** (must merge before any billing UI code): add these semantic tokens to `packages/design-tokens/src/tokens.ts` + `tokens.css` + `native.ts`. Exact OKLCH values (warm Nordic Split palette, aligned with existing hue 50-60 foundation):
 
-If absent from `packages/design-tokens/src/tokens.ts`, migration tokens are a blocking prerequisite.
+| Token | Light | Dark | Usage |
+|---|---|---|---|
+| `--success` | `oklch(0.68 0.15 145)` | `oklch(0.72 0.14 145)` | Paid status, "alt er betalt" celebratory states |
+| `--success-foreground` | `oklch(0.18 0.04 145)` | `oklch(0.96 0.02 145)` | Text on success backgrounds |
+| `--warning` | `oklch(0.75 0.15 75)` | `oklch(0.78 0.14 75)` | Overdue 1-14d, in-negotiation states |
+| `--warning-foreground` | `oklch(0.20 0.04 75)` | `oklch(0.96 0.02 75)` | Text on warning |
+| `--destructive` | `oklch(0.60 0.20 25)` | `oklch(0.65 0.19 25)` | Warm coral — Void actions, 30+d overdue, uncollectible (NOT pure red) |
+| `--destructive-foreground` | `oklch(0.98 0.01 25)` | `oklch(0.98 0.01 25)` | Text on destructive |
+| `--info` | `oklch(0.65 0.13 225)` | `oklch(0.70 0.12 225)` | Info callouts, neutral system messages |
+| `--info-foreground` | `oklch(0.18 0.04 225)` | `oklch(0.96 0.02 225)` | Text on info |
+
+Use via Tailwind utility classes: `bg-success`, `text-success-foreground`, `border-destructive`, etc. **Never** hardcode OKLCH or use `bg-red-500`.
 
 ### 10.2 Component inventory
 
-- **`<InvoiceStatusBadge>`** — lives in `packages/ui/`. Props: `status`, `size`, `withIcon`. Enforces token mapping. **Forbids inline color styling across billing UI.**
-- **`<DataTable>`** — shadcn Table + custom wrapper for sort/filter/select state.
-- **`<InvoiceDetailSheet>`** + **`<InvoiceDetailPage>`** — same `<InvoiceDetail>` inner component, two surfaces.
-- **`<DunningKanban>`** — age-tier column layout (1-7d, 8-14d, 15-30d, 30+d).
-- **`<UsageSnapshotAccordion>`** — expandable profile list with counted IDs.
+- **`<InvoiceStatusBadge>`** — lives in `packages/ui/src/InvoiceStatusBadge.tsx`. Props: `{ status: InvoiceStatus, size?: 'sm'|'md', withIcon?: boolean }`. Internally maps status → token (`--success`/`--warning`/`--destructive`/`--muted`) + Lucide icon (`FileText`, `Send`, `CheckCircle2`, `AlertTriangle`, `Ban`). **Enforcement:** ESLint custom rule blocks hex/tailwind color classes inside `apps/web/src/app/platform-admin/billing/**` and `apps/web/src/app/dashboard/billing/**` — must use the badge component or CSS var utilities. Rule added to `packages/eslint-config`.
+- **`<DataTable>`** — shadcn `<Table>` + wrapper adding sort/filter/select state via URL params (sort via `?sort=col:asc`, filter via `?status=overdue`). Cmd+K command palette deferred to Fase 2.
+- **`<InvoiceDetailSheet>`** + **`<InvoiceDetailPage>`** — same inner component `<InvoiceDetail>`. Query-param contract: list row click opens Sheet via `?preview=<invoice_id>`; direct/bookmark link uses route `/platform-admin/billing/invoices/[id]`. Escape closes Sheet, clicking outside closes, scroll-lock engaged while open.
+- **`<InvoiceDetail>` tabs** — three tabs:
+  1. **Oversikt** — header (number, company, amount, status), line items table, usage snapshot accordion, metadata sidebar
+  2. **Historikk** — vertical timeline of `activity_trail` entries for this invoice (status changes, payments, void, dunning notes). Timestamp + actor + event description + Lucide icon per event type. This is the Q-audit surface.
+  3. **Handlinger** — mutation buttons (mark paid, void, credit note, regenerate if draft)
+- **`<DunningKanban>`** — 4 age-tier columns (0-7d / 8-14d / 15-29d / 30+d). Column header: count + sum-of-amounts, severity tint (warm amber → warm coral gradient via `--warning` → `--destructive` tokens). Cards: company name (Geist 14 semibold) + invoice number (Geist Mono) + amount (tabular-nums) + days overdue + popover action menu. Empty column: muted "Ingen fakturaer i denne kategorien" centered. 30+d cards pulse opacity (see §10.3). No drag-drop (age is time-driven).
+- **`<UsageSnapshotAccordion>`** — collapsed: "N profiler talt". Expanded: table with profile_id, display_name, count of completed shifts in period, link to profile detail.
+- **`<BulkActionBar>`** — fixed bottom panel, slides up when table selection > 0. Glassmorphic `bg-background/80 backdrop-blur-xl backdrop-saturate-150`. Actions: "Eksporter valgte til CSV" (always), "Marker betalt" (if all selected are `issued|overdue|sent`), overflow menu for void (requires AlertDialog per-invoice, no bulk void). Slide motion per §10.3.
+- **`<BasisDriftPanel>`** — platform-admin-only panel showing pending `basis_drift_event` rows. Shows: invoice affected, shift changed, old → new value diff, actions (Ignore / Issue credit note / Reinvoice). Lives in `/platform-admin/billing/drift`.
 
 ### 10.3 Motion tier per surface (Frontend design lock D-1)
 
-| Surface | Tier | Springs (s/d/m) |
-|---|---|---|
-| Page heroes, orbs | Signature | 35/22/2.2 |
-| Sheet/Drawer open | Medium | 45/24/1.8 |
-| AlertDialog (void) | Medium + 50ms delay | 45/24/1.8 |
-| Dialog (mark paid, filters) | Snap | 250/28/1 |
-| Table row hover/sort | Snap | 250/28/1 |
-| Status badge morph | `layout` + `layoutId`, Snap | — |
-| Dunning 30+d glow breathing | Heavy, 4s cycle | 30/20/2.5 |
-| Toast (sonner) | Default | — |
+Concrete Framer Motion `transition` values per surface. Implementers copy verbatim.
 
-All respect `useReducedMotion()`.
+| Surface | Transition spec |
+|---|---|
+| Page heroes, orbs (first paint) | `{ type: 'spring', stiffness: 35, damping: 22, mass: 2.2 }` |
+| Sheet/Drawer slide-in (detail panel) | `{ type: 'spring', stiffness: 45, damping: 24, mass: 1.8 }` |
+| AlertDialog (void, uncollectible, credit note) | `{ type: 'spring', stiffness: 45, damping: 24, mass: 1.8, delay: 0.05 }` |
+| Dialog (mark paid, filter popovers) | `{ type: 'spring', stiffness: 250, damping: 28, mass: 1 }` |
+| Table row hover, sort click, filter apply | `{ type: 'spring', stiffness: 250, damping: 28, mass: 1 }` |
+| Status badge morph on state change | `layout + layoutId` with `{ type: 'spring', stiffness: 250, damping: 28 }` |
+| Dunning 30+d glow breathing | `animate={{ opacity: [0.5, 0.75, 0.5] }}`, `transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}` — **opacity only, never scale** (avoids layout thrash) |
+| Bulk action bar slide-up | `{ type: 'spring', stiffness: 45, damping: 24, mass: 1.8 }`, y: 40 → 0 |
+| Toast (sonner default) | sonner defaults — do not override |
 
-### 10.4 Destructive actions
+**Reduced-motion:** All surfaces wrap animations in `useReducedMotion()` check. If true: disable glow breathing, reduce spring stiffness to 400+ (near-instant), keep layout animations for accessibility.
 
-- **Void** — `<AlertDialog>`, typed confirmation (user types invoice_number), `--destructive` variant, reason required (min 10 chars, enum: Issued in error / Customer disputed / Duplicate / Other). No undo.
-- **Mark uncollectible** — `<AlertDialog>`, reason code from enum (Bankruptcy / Disputed-unresolved / Statute-of-limitations / Written-off).
-- **Mark paid** — `<Dialog>` (not AlertDialog), soft confirmation, recoverable via void.
-- **Issue credit note** — `<AlertDialog>`, requires original invoice link.
+### 10.4 Destructive actions — explicit enums
 
-### 10.5 Empty / loading / error states (mandatory)
+**Void** (`<AlertDialog>`, `--destructive` variant):
+- Typed confirmation: user must type the invoice's `invoice_number` (e.g., `1042`) to enable submit button
+- Reason required, min 10 chars
+- Reason enum (matches Stripe void reasons for Fase 2 parity):
+  ```ts
+  type VoidReason = 'duplicate' | 'fraudulent' | 'order_change' | 'product_unsatisfactory' | 'issued_in_error' | 'other'
+  ```
+- No undo — once voided, new credit note must be issued to correct
 
-- **Empty list:** Instrument Serif headline "Ingen fakturaer enda", muted orb, outline action if relevant.
-- **Empty dunning:** "Alt er betalt." with checkmark — celebratory, NOT alarmist.
-- **Loading:** `<Skeleton>` rows × 5-7. No spinners.
-- **Error:** inline callout with Lucide `AlertTriangle`, warning token, retry button. Never silent fail.
+**Mark uncollectible** (`<AlertDialog>`):
+- Reason code from enum:
+  ```ts
+  type UncollectibleReason = 'bankruptcy' | 'disputed_unresolved' | 'statute_of_limitations' | 'customer_ghosted' | 'written_off' | 'other'
+  ```
+- Free-text note optional for enum=`other`
+
+**Mark paid** (`<Dialog>`, recoverable):
+- Reason/channel from enum:
+  ```ts
+  type PaymentChannel = 'bank_transfer' | 'cash' | 'stripe_manual_capture' | 'out_of_band' | 'partial_write_off' | 'other'
+  ```
+- Amount field (default full invoice amount, editable for partial)
+- Payment reference free-text (bank ref, Stripe capture-id, etc.)
+- Payment date (default today)
+
+**Issue credit note** (`<AlertDialog>`):
+- Requires original invoice link (auto-populated from context)
+- Reason (same enum as Void)
+- Amount (default full credit, editable for partial)
+- Preview of new credit note before issuing (non-reversible once issued)
+
+### 10.5 Empty / loading / error states (per-surface, mandatory)
+
+| Surface | Empty | Loading | Error |
+|---|---|---|---|
+| Invoice list | Instrument Serif "Ingen fakturaer enda" (i18n key), muted orb background, no CTA (invoices are generated by cron) | `<Skeleton>` table rows × 7 (new shadcn Skeleton variant matching row height) | `<AlertTriangle>` inline callout, `--warning` token, retry button |
+| Invoice detail | N/A (404 route if invoice_id invalid) | Skeleton of full inner shell (header + line-items + snapshot accordion) — NOT a blanking spinner | Inline error inside Sheet/Page, sheet stays open for retry |
+| Dunning dashboard (all columns empty) | Instrument Serif "Alt er betalt." + `<CheckCircle2>` + calmer orb — celebratory | 4 column skeletons, 2 card skeletons per column | Full-page callout with retry |
+| Dunning column (single column empty) | Muted text "Ingen fakturaer i denne kategorien" centered, no icon | Skeleton cards × 2 | Per-column inline error |
+| CSV export | N/A (always form) | Spinner on submit button only; when generating async: progress indicator with job status | Inline form error with specific message |
+| Basis drift panel | "Ingen drift-hendelser" muted, small `<CheckCircle2>` | Skeleton rows × 3 | Inline callout with retry |
+| Usage snapshot accordion | Never empty if invoice has line items; otherwise "Ingen aktivitet i perioden" | Lazy-loaded on expand with inline spinner | Inline error, collapse-to-retry |
+
+No spinners on list pages. Every error state has retry action — no silent failure on financial data.
 
 ### 10.6 Accessibility
 
@@ -585,10 +857,10 @@ No hooks in `apps/web/src/app/` — enforces mobile parity rule.
 
 | ADR | Topic | Status |
 |---|---|---|
-| **0118** | Invoice engine as C3 Commercial consumer | To write |
-| **0119** | Usage snapshot reproducibility contract (active-user = `{worked,settled}`, source_query_hash provenance) | To write |
-| **0120** | Invoice immutability + credit note policy (bokføringslov) | To write |
-| **0121** | `pricing_terms` extension for billing engine (5 new fields) | To write, amends ADR-0027 |
+| **0118** | Invoice engine as C3 Commercial consumer (+ company-scoped workspace_id exception justification + dunning_note-via-activity_trail decision) | To write |
+| **0119** | Usage snapshot reproducibility contract: active-user = `shift_status = 'completed'` alone (H8 decision A), `source_query_hash` provenance, `basis_drift_event` trigger on retroactive shift changes | To write |
+| **0120** | Invoice immutability + credit note policy (bokføringslov): continuous numbering via sequence on `draft→issued`, no delete, credit notes (no nesting, enforced), invoice identity contract (UUID for system, int for humans), legal `status`×`dunning_status` combinations | To write |
+| **0121** | `pricing_terms` extension for billing engine (5 new fields); resolves `agreement_period` vs `effective_from/until` (agreement_period = contract duration for display, effective_from/until = price validity for computation) | To write, amends ADR-0027 |
 | **0012** | Amendment deferred to Fase 2 (no `stripe_customer_id` needed yet) | Hold |
 | **Future** | `PlatformAdminToolContext` + authority model (blocks Fase 2 AI-tools) | Write before Fase 2 |
 
@@ -640,37 +912,91 @@ No schema migration required to enable Fase 2 delivery — only backend wiring.
 
 ## 17. Definition of Done (Fase 1)
 
-- [ ] Migration: `pricing_terms` + 5 new columns deployed
-- [ ] Migrations: `invoice`, `invoice_line_item`, `usage_snapshot`, `dunning_note` + enums + sequence deployed
-- [ ] Migration: `v_invoice_basis` view deployed
-- [ ] Edge Function `generate-monthly-invoices` deployed with `WATCHDOG_CRON_SECRET`
-- [ ] n8n trigger scheduled (day 5 of month, 00:01 CET)
-- [ ] Telemetry registry updated with `billing` category + 10 new events
-- [ ] CI assertion passing: every billing mutation calls `emit()` with correct event
-- [ ] `packages/billing/` package created with types + hooks + Zod schemas
-- [ ] Edge Function `billing-api` deployed (workspace-admin read endpoints)
-- [ ] Platform-admin UI: `/platform-admin/billing/{invoices,dunning,export}` routes + company billing tab
-- [ ] `<InvoiceStatusBadge>` shipped in `packages/ui`
-- [ ] Semantic tokens (`--success/--warning/--destructive/--info`) in design-tokens
-- [ ] AI capability `billing_query` registered with 5 read-only tools (chat-only)
-- [ ] ADR-0118, 0119, 0120, 0121 merged as `accepted`
-- [ ] Handoff + user journeys + E2E tests per feature closure protocol
-- [ ] Norwegian bokføringslov compliance documented in `docs/modules/MODULE_13_BILLING.md` (new module doc)
+### Prerequisites (must merge first)
+
+- [ ] Semantic tokens (`--success`/`--warning`/`--destructive`/`--info` + foreground variants) added to `packages/design-tokens/src/tokens.ts` + `tokens.css` + `native.ts` with exact OKLCH values per §10.1
+- [ ] ADR-0118, 0119, 0120, 0121 written and merged as `accepted`
+- [ ] `is_admin_in_company()` RLS helper migration deployed (§5.9)
+
+### Data model
+
+- [ ] Migration: `pricing_terms` + 5 new columns
+- [ ] Migrations: `invoice`, `invoice_line_item`, `usage_snapshot`, `basis_drift_event` + enums + sequence + triggers (assign_invoice_number, nested credit note prohibition, state×dunning CHECK)
+- [ ] Migration: `v_current_plan_preview` view + `get_invoice_basis(invoice_id)` function + `v_invoice_dunning_notes` view
+- [ ] Migration: `basis_drift_event` trigger on `schedule_shift` UPDATE/DELETE for periods with issued invoice
+- [ ] Migration: `engine_process` seed row for `invoice_lifecycle` blueprint
+- [ ] Migration up/down tested on Supabase Local
+
+### Infrastructure
+
+- [ ] Edge Function `generate-monthly-invoices` deployed with `WATCHDOG_CRON_SECRET` auth
+- [ ] n8n workflow `billing-monthly-trigger` configured — POST to `/functions/v1/generate-monthly-invoices` on day 5 at 00:01 CET with bearer header
+- [ ] Idempotency proven: re-run on same period skips via `UNIQUE (company_id, workspace_id, period_from, period_to)` on usage_snapshot
+- [ ] Rate limiting on destructive Server Actions (`voidInvoice`, `issueCreditNote`) via Upstash Redis — 10/min per user
+
+### Telemetry
+
+- [ ] `EVENT_ROUTING` in `packages/telemetry/src/registry.ts` updated with 10 new events + `billing` category
+- [ ] CI assertion (`packages/telemetry/__tests__/billing-emit.spec.ts`) — **Vitest**, mocks `emit()`, asserts each billing mutation site (Edge Function generator + 7 Server Actions from §8.1) calls with expected event shape
+
+### Data layer
+
+- [ ] `packages/billing/` package: types, Zod schemas, Server Action client wrappers, query hooks (`useInvoices`, `useInvoice`, `useUsageSnapshot`)
+- [ ] No billing hooks in `apps/web/src/app/billing*` (CI lint rule)
+
+### UI
+
+- [ ] `<InvoiceStatusBadge>` in `packages/ui/src/` with enforced token mapping
+- [ ] ESLint rule: hex/tailwind color classes forbidden inside `apps/web/src/app/**/billing/**`
+- [ ] Platform-admin routes: `/platform-admin/billing/{invoices,invoices/[id],dunning,export,drift}` + company billing tab at `/platform-admin/companies/[id]?tab=billing`
+- [ ] Workspace-admin route: `/dashboard/billing` (Server Component, read-only)
+- [ ] All UI strings via i18n keys in `packages/i18n/` — no hardcoded Norwegian (CLAUDE.md rule)
+- [ ] Empty/loading/error states per surface (list, detail, dunning, export, drift) per §10.5
+- [ ] Accessibility audit: `aria-sort`, tabular-nums on amounts, typed confirmation for void, Lucide icons paired with color, `useReducedMotion()` honored
+
+### AI
+
+- [ ] Capability `billing_query` registered at 4 touchpoints (§9.1): `CapabilityName` union, `registry.ts`, `intent-classifier.ts`, `engine_authority_config` seed
+- [ ] `resolveCompanyId(ctx)` helper in `packages/ai/src/lib/`
+- [ ] 5 read-only tools, `allowedChannels: ["chat"]`, never compute amounts
+
+### Tests
+
+- [ ] pgTAP tests: company A admin cannot read company B invoice
+- [ ] pgTAP tests: nested credit note CHECK rejects
+- [ ] pgTAP tests: state × dunning_status CHECK rejects illegal combos
+- [ ] Vitest tests: telemetry emit assertions (above)
+- [ ] Playwright E2E: one journey per user role (platform-admin mark paid / void / credit note; workspace-admin view own invoices)
+
+### Documentation
+
+- [ ] New module doc `docs/modules/MODULE_BILLING.md` (number TBD — verify free in `docs/INDEX.md`)
+- [ ] Norwegian bokføringslov compliance documented in module doc
+- [ ] Handoff `docs/HANDOFF-billing-engine-fase-1.md` with decisions + learnings + next steps
+- [ ] User journeys `docs/journeys/JOURNEY-billing-engine-fase-1.md` covering platform-admin + workspace-admin flows
 
 ---
 
-## 18. Open questions (non-blockers, resolve in implementation plan)
+## 18. Open questions (non-blockers, resolve in implementation plan or ADRs)
 
-1. **`agreement_period` vs `effective_from/until`** — pricing_terms already has `effective_from/until`. Is `agreement_period` redundant? Or does it represent something different (contract duration vs price validity)?
-2. **Two-pass generation** — should day-5 generate `draft` invoices, then day-10 issue them (giving admin 5-day review window)? Or single-pass draft→issued?
-3. **Partial payment UX** — allow incremental payments (paid = running sum), or require single-transaction full settlement?
-4. **Credit note amounts** — positive or negative line items? (Accounting convention varies.)
-5. **Add-on source** — Fase 1 skeleton line type exists (`addon`); what feeds it? Separate `addon_usage_ledger` table Fase 2? Empty in Fase 1?
-6. **Onboarding invoice trigger** — workspace activation, DocuSeal signature, or manual platform-admin action?
-7. **CSV export format specifics** — column names, date format, decimal separator (Norwegian uses comma), encoding (UTF-8 BOM for Excel compatibility)?
-8. **Dunning age calculation** — from `due_at` or from `issued_at + payment_terms_days`?
-9. **Reminder email templates (Fase 2)** — 3 templates, 5 templates? Escalation tone curve?
-10. **EHF provider selection (Fase 2)** — Sproom / Nets / Pagero / Visma Addo? Separate spec.
+**Resolved by council (2026-04-17 round 2):**
+- ~~Settle gate~~ → H8 decision A: `completed` alone + `basis_drift_event` trigger. Locked in ADR-0119.
+- ~~billing-api gateway~~ → H7 decision C: Server Components + Server Actions, no new Edge Function.
+- ~~dunning_note table vs activity_trail~~ → activity_trail only, no dedicated table.
+- ~~agreement_period vs effective_from/until~~ → agreement_period = contract duration (display), effective_from/until = price validity (computation). Locked in ADR-0121.
+- ~~Onboarding trigger~~ → manual platform-admin Server Action in Fase 1; blueprint deferred to Fase 2.
+
+**Still open (resolve during plan-writing):**
+
+1. **Two-pass generation** — day-5 generate `draft` + day-10 auto-issue (5-day admin review window)? Or single-pass draft→issued immediately? **Recommendation: two-pass**, gives manual correction window before `invoice_number` is assigned (bokføringslov: once numbered, immutable).
+2. **Partial payment UX** — allow incremental payments (`paid_at` = running sum, status transitions when full)? Or require single-transaction full settlement? If incremental: need `payment` child table, not just invoice fields.
+3. **Credit note amounts** — positive or negative line items? Norwegian accounting convention typically shows credit notes as positive numbers with explicit `credit_note` type; line totals subtract from original. Lock in ADR-0120.
+4. **Add-on source** — Fase 1 skeleton only. Actual source (`addon_usage_ledger` table? event stream aggregation?) deferred to Fase 2 when SMS/AI-token usage tracking is wired.
+5. **CSV export format** — column names (Norwegian or English?), date format (ISO 8601 or Norwegian `DD.MM.YYYY`?), decimal separator (`,` for Norwegian Excel, `.` for international), encoding (UTF-8 BOM for Excel compat). Decide in plan phase with accountant input.
+6. **Dunning age calculation** — from `due_at` directly, or `issued_at + payment_terms_days`? `due_at` is set at generation, so "days overdue = today - due_at" is simplest. Lock in ADR-0120.
+7. **Reminder email templates (Fase 2)** — 3 templates (friendly/firm/final) or 5-step escalation curve? Separate Fase 2 spec.
+8. **EHF provider selection (Fase 2)** — Sproom / Nets / Pagero / Visma Addo? Separate Fase 2 spec.
+9. **Module doc number** — CLAUDE.md references modules 1-15, 17-20, 4.5. Module 13 was historically the billing/multi-tenant module (referenced in stale docs). Recommendation: name new doc `docs/modules/MODULE_BILLING.md` without a number, avoiding collision.
 
 ---
 
@@ -691,3 +1017,53 @@ No schema migration required to enable Fase 2 delivery — only backend wiring.
 2. If approved: invoke `writing-plans` skill to produce implementation plan with tasks + sequencing
 3. Write ADR-0118 through 0121 before first migration
 4. Spec any sub-decisions from Open Questions (§18) during plan writing
+
+---
+
+## 21. DO NOT TOUCH list
+
+Build-agents executing this spec must **not** modify the following files/tables/ADRs:
+
+### Files — extend only, do not replace
+
+- `apps/web/src/app/platform-admin/billing/page.tsx` — **preserve** existing MRR dashboard. Becomes the "Overview" tab of the billing hub. Do not rewrite or replace the MRR query logic.
+- `apps/web/src/app/platform-admin/billing/_components/billing-client.tsx` — **preserve**. Add new tab components alongside, don't rewrite this one.
+- `apps/landing/src/app/pricing/page.tsx` — **out of scope**. Billing engine does not touch pricing landing page.
+
+### Tables — do not modify schema
+
+- `company` — **do not add `stripe_customer_id`** in Fase 1 (deferred to Fase 2 with ADR-0012 amendment). `subscription_plan`/`subscription_status`/`trial_ends_at`/`billing_email` remain unchanged.
+- `pricing_terms` — extend additively only (5 new columns per §5.1). Do not rename, do not drop, do not change existing columns.
+- `engine_process`, `engine_state`, `engine_state_step`, `engine_authority_config`, `engine_memory` — seed new rows for `invoice_lifecycle` blueprint and `billing_query` capability; do **not** alter schema.
+- `activity_trail` — emit new events (`dunning_note.added`, `invoice.basis_drift_detected`, etc.); do **not** alter schema.
+- `schedule_shift`, `daily_reconciliation`, `profile`, `workspace`, `company_member`, `user_identity` — **read-only** from billing engine. No writes, no schema changes.
+- `notification_policy` — untouched. `notification_policy.delivery_channels` (plural) is an unrelated column; billing uses `pricing_terms.delivery_channel` (singular).
+
+### ADRs — do not amend
+
+- **ADR-0012** (subscription on company) — defer amendment to Fase 2. Fase 1 does not need `stripe_customer_id`.
+- **ADR-0027** (pricing_terms) — preserve via additive extension (ADR-0121 amendment). Do not supersede.
+- **ADR-0029** (workspace-api gateway) — billing reads use Server Components instead of creating a second gateway (H7 decision).
+- **ADR-0045** (SendGrid canonical) — Fase 1 does not send emails. Fase 2 dunning reminders will go via SendGrid.
+- **ADR-0114** (Server Actions canonical) — follow, do not amend.
+
+### Routes — do not occupy
+
+- `/dashboard/billing/*` on mobile — scoped for workspace-admin read-only; do not add mutations.
+- `/platform-admin/companies/*` — extend with `?tab=billing` query param; do not replace existing company detail pages.
+
+### Packages — do not restructure
+
+- `packages/ai/src/capabilities/*` — add `billing-query/` subdirectory; do not refactor existing capabilities (`operations`, `guardian`, etc.) even though they have emit() debt (out of scope; separate cleanup task).
+- `packages/telemetry/src/*` — add to registry; do not change `emit()` signature or routing logic.
+- `packages/ui/src/*` — add `InvoiceStatusBadge.tsx`; do not modify existing exports.
+
+### Out of scope entirely (Fase 2+)
+
+- Stripe Invoice API integration, customer portal, webhooks, `stripe_customer_id` storage
+- EHF / PEPPOL BIS Billing 3.0 XML generation, Sproom/Nets/Pagero integration
+- PDF invoice generation, hosted invoice URLs
+- SendGrid reminder templates, auto-dunning escalation
+- Platform-admin cross-workspace AI-tools (blocked on `PlatformAdminToolContext` ADR)
+- Bank-feed reconciliation automation
+- Multi-currency support beyond NOK column-carry
