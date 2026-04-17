@@ -1,4 +1,5 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { handleSyncIntegration } from "./handlers/sync-integration.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -1982,6 +1983,26 @@ async function executeStep(
       }
 
       await handleDispatchInvoice(supabase, state, step, invoiceDispatchId);
+      break;
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // sync_integration — Billing Fase 2 Spor B (B4/B6).
+    //
+    // Runs outbound sync to a billing_integration row (customer, invoice,
+    // contract, product, plan). Handler is in handlers/sync-integration.ts
+    // — kept separate because B4 shipped it ahead of the switch wiring.
+    //
+    // Expects state.context to carry integration_id + entity_type +
+    // entity_id_synced. Fan-out pre-populates these when the parent process
+    // (e.g. 'integration_sync') spawns a child state per integration row.
+    //
+    // ADR-0126: engine-orchestrated sync state (no parallel motor).
+    // ADR-0129: is_placeholder gates audit semantics — PlaceholderAdapter
+    //           reports 'mocked', real adapters report 'succeeded'.
+    // ──────────────────────────────────────────────────────────
+    case "sync_integration": {
+      await handleSyncIntegration(supabase, state, step);
       break;
     }
 
