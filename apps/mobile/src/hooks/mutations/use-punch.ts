@@ -13,37 +13,9 @@ import { randomUUID } from "expo-crypto";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { enqueue } from "@/lib/sync/queue";
-import { supabase } from "@/lib/supabase";
+import { getProfileContext } from "@/lib/profile-context";
 import { emit } from "@smartout/telemetry";
 import type { TimeEntry } from "@/types/time-entry";
-
-/**
- * Fetches profile_id and workspace_id for the current user.
- * Reuses the same pattern as use-my-shifts and use-active-time-entry.
- */
-async function getProfileContext(): Promise<{
-  profileId: string;
-  workspaceId: string;
-}> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
-
-  const { data: profile, error } = await supabase
-    .from("profile")
-    .select("profile_id, workspace_id")
-    .eq("user_id", user.id)
-    .limit(1)
-    .single();
-
-  if (error || !profile) throw error ?? new Error("Profile not found");
-
-  return {
-    profileId: profile.profile_id,
-    workspaceId: profile.workspace_id,
-  };
-}
 
 /**
  * Hook that returns punchIn and punchOut functions.
@@ -123,6 +95,12 @@ export function usePunch() {
    */
   const punchOut = useCallback(
     async (timeEntryId: string) => {
+      // Resolve BEFORE enqueue so broken attribution fails fast (ADR-0134)
+      const { profileId, workspaceId } = await getProfileContext();
+      // Capture shift_id from the cache BEFORE we clear it — needed for
+      // engine_event downstream routing that keys on shift identity.
+      const activeEntry = queryClient.getQueryData<TimeEntry | null>(["active-time-entry"]);
+      const shiftId = activeEntry?.shift_id ?? "";
       const now = new Date().toISOString();
 
       const payload = {
@@ -138,13 +116,13 @@ export function usePunch() {
 
       void emit({
         event: "shift punched_out",
-        workspace_id: null,
-        actor_id: "",
+        workspace_id: workspaceId,
+        actor_id: profileId,
         properties: {
           entity_type: "shift",
           entity_id: timeEntryId,
           data: {
-            shift_id: "",
+            shift_id: shiftId,
             time_entry_id: timeEntryId,
             punch_time: now,
             work_minutes: 0,

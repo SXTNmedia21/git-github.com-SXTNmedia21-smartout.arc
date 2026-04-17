@@ -60,10 +60,13 @@ async function fetchMyTasks(): Promise<SessionTask[]> {
   const today = new Date().toISOString().split("T")[0];
 
   // Query session_task joined through department_session for today's date.
+  // Also pull procedure name via session_hook → procedure for checklist labels.
   // Filter by assigned_to = current profile.
   const { data, error } = await supabase
     .from("session_task")
-    .select("*, department_session!inner(session_date)")
+    .select(
+      "*, department_session!inner(session_date), session_hook(procedure:linked_procedure_id(name))",
+    )
     .eq("department_session.session_date", today)
     .eq("assigned_to", profile.profile_id)
     .order("is_compliance_required", { ascending: false })
@@ -71,8 +74,16 @@ async function fetchMyTasks(): Promise<SessionTask[]> {
 
   if (error) throw error;
 
-  // Strip the nested join data — return flat session_task rows
-  const tasks = (data ?? []).map(({ department_session: _, ...task }) => task) as SessionTask[];
+  // Flatten: strip the join intermediates, surface procedure_name on the row.
+  const tasks = (data ?? []).map((row) => {
+    const { department_session: _ds, session_hook, ...task } = row as typeof row & {
+      session_hook?: { procedure?: { name?: string | null } | null } | null;
+    };
+    return {
+      ...task,
+      procedure_name: session_hook?.procedure?.name ?? null,
+    };
+  }) as SessionTask[];
 
   persistToCache(tasks);
   return tasks;

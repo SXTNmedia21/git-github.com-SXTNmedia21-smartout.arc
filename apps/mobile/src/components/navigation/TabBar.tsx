@@ -46,7 +46,7 @@ export function TabBar({
 }: TabBarProps) {
   const theme = useTheme();
 
-  const hiddenTabs = new Set(["(home)", "(payroll)"]);
+  const hiddenTabs = new Set(["(home)"]);
   const visibleRoutes = state.routes.filter((r) => {
     if (hiddenTabs.has(r.name)) return false;
     const options = descriptors[r.key]?.options;

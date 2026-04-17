@@ -28,6 +28,8 @@ export type SessionTask = TaskWithHook & {
   assigned_to: string | null;
   /** CCP reference for HACCP tasks — populated from task description or hook metadata */
   ccp_reference?: string;
+  /** Procedure name resolved via session_hook → procedure join. Null when task is ad-hoc (no linked procedure). */
+  procedure_name?: string | null;
 };
 
 type TaskModalProps = {

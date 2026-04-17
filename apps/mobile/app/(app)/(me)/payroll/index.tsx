@@ -176,7 +176,7 @@ export default function PayrollHomeScreen() {
           <Pressable
             onPress={() => {
               Haptics.selectionAsync();
-              router.push("./payroll-supplements");
+              router.push("./supplements");
             }}
             style={({ pressed }) => [styles.bentoCard, pressed && styles.cardPressed]}
           >

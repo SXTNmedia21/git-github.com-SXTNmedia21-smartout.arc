@@ -14,7 +14,7 @@ const ACTION_BAR_ITEMS = [
   { key: "tasks", icon: CheckSquare, label: "Oppgaver", route: "/(app)/(home)/operations" },
   { key: "training", icon: GraduationCap, label: "Opplæring", route: "/(app)/(home)/training" },
   { key: "safety", icon: Shield, label: "Sikkerhet", route: "/(app)/(home)/hms" },
-  { key: "payroll", icon: Wallet, label: "Lønn", route: "/(app)/(payroll)" },
+  { key: "payroll", icon: Wallet, label: "Lønn", route: "/(app)/(me)/payroll" },
 ] as const;
 
 export function ActionBar() {

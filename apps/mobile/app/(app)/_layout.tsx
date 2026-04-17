@@ -70,7 +70,6 @@ export default function AppLayout() {
           <Tabs.Screen name="(shifts)" options={{ title: "Kalender" }} />
           <Tabs.Screen name="(chat)" options={{ title: strings.tabs.chat }} />
           <Tabs.Screen name="(me)" options={{ title: "Min side" }} />
-          <Tabs.Screen name="(payroll)" options={{ href: null }} />
         </Tabs>
 
         <BotssonSheet ref={botssonSheetRef} onDismiss={handleBotssonDismiss} />
