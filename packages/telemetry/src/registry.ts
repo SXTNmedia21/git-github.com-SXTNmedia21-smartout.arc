@@ -123,10 +123,12 @@ export type EntityType =
   | "inspection_link"
   | "notification_policy"
   | "invoice"
-  | "invoice_line_item"
   | "usage_snapshot"
   | "pricing_terms"
   | "basis_drift_event";
+// Note: `invoice_line_item` is scoped via its parent `invoice` FK and has
+// no direct event surface in Fase 1/2. Add to this union when a line-item
+// lifecycle event ships.
 
 export type ActionVerb =
   | "created"
@@ -2185,6 +2187,11 @@ export interface ContractRetentionArchived extends BaseEvent {
 }
 
 // ─── Pricing Terms Events ──────────────────────────
+// NOTE: legacy event for contract-level pricing edits. The billing engine
+// (ADR-0118 / ADR-0122) emits a SIBLING event `pricing_terms updated` with
+// an underscore — see `BillingPricingTermsUpdated` near the Billing Events
+// block. Two distinct events, two distinct routing destinations. Do not
+// consolidate without a migration plan for both call-sites.
 export interface PricingTermsUpdated extends BaseEvent {
   event: "pricing terms updated";
   properties: {

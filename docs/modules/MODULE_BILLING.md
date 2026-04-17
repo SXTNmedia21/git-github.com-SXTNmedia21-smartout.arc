@@ -233,13 +233,17 @@ An event can have multiple destinations — `invoice issued` routes to posthog +
 
 | Event Name | Trigger | Destinations |
 |------------|---------|--------------|
+| `invoice generated` | Cron writes draft invoice | posthog, logger, billing_activity_log, engine_event |
 | `invoice issued` | draft → issued status transition | posthog, logger, billing_activity_log, engine_event |
-| `invoice sent` | Delivery confirmation | posthog, logger, billing_activity_log |
+| `invoice sent` | Delivery confirmation | logger, billing_activity_log, engine_event |
 | `invoice marked_paid` | Payment reconciled | posthog, logger, billing_activity_log, engine_event |
-| `invoice voided` | Status → void | posthog, logger, billing_activity_log |
-| `dunning_note added` | Manual dunning note from platform-admin | posthog, logger, billing_activity_log |
-| `credit_note issued` | Credit note created against original | posthog, logger, billing_activity_log |
-| `basis_drift detected` | Trigger on schedule_shift UPDATE/DELETE after snapshot | logger, billing_activity_log |
+| `invoice voided` | Status → void | logger, billing_activity_log, engine_event |
+| `invoice overdue_detected` | Cron flips issued/sent → overdue past due_at | logger, billing_activity_log, engine_event |
+| `invoice credit_note_issued` | Credit note created against original | logger, billing_activity_log, engine_event |
+| `invoice basis_drift_detected` | `detect_billing_basis_drift` trigger fires on `schedule_shift` UPDATE/DELETE after snapshot | logger, billing_activity_log, engine_event |
+| `usage_snapshot created` | Cron freezes per-workspace billable users | logger, billing_activity_log |
+| `pricing_terms updated` | Admin edits pricing via Phase 4 UI | posthog, logger, billing_activity_log |
+| `dunning_note added` | Manual dunning note from platform-admin | logger, billing_activity_log |
 
 ### Rule
 
