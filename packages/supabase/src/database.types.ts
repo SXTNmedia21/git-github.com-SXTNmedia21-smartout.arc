@@ -7698,6 +7698,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_line_item_usage_snapshot"
+            columns: ["usage_snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "usage_snapshot"
+            referencedColumns: ["usage_snapshot_id"]
+          },
+          {
             foreignKeyName: "invoice_line_item_invoice_id_fkey"
             columns: ["invoice_id"]
             isOneToOne: false
@@ -14396,6 +14403,66 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "engine_sessions"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      usage_snapshot: {
+        Row: {
+          active_users: number
+          billable_users: number
+          company_id: string
+          computed_at: string
+          computed_by: string | null
+          counted_profile_ids: Json
+          free_users_applied: number
+          period_from: string
+          period_to: string
+          source_query_hash: string
+          usage_snapshot_id: string
+          workspace_id: string
+        }
+        Insert: {
+          active_users: number
+          billable_users: number
+          company_id: string
+          computed_at?: string
+          computed_by?: string | null
+          counted_profile_ids: Json
+          free_users_applied: number
+          period_from: string
+          period_to: string
+          source_query_hash: string
+          usage_snapshot_id?: string
+          workspace_id: string
+        }
+        Update: {
+          active_users?: number
+          billable_users?: number
+          company_id?: string
+          computed_at?: string
+          computed_by?: string | null
+          counted_profile_ids?: Json
+          free_users_applied?: number
+          period_from?: string
+          period_to?: string
+          source_query_hash?: string
+          usage_snapshot_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_snapshot_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "usage_snapshot_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
           },
         ]
       }
