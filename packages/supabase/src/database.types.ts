@@ -7647,6 +7647,65 @@ export type Database = {
           },
         ]
       }
+      invoice_line_item: {
+        Row: {
+          addon_key: string | null
+          amount_excl_vat: number
+          amount_incl_vat: number
+          created_at: string
+          description: string
+          invoice_id: string
+          line_item_id: string
+          line_type: Database["public"]["Enums"]["invoice_line_type"]
+          period_reference: string | null
+          quantity: number
+          unit_price: number
+          usage_snapshot_id: string | null
+          vat_amount: number
+          vat_rate: number
+        }
+        Insert: {
+          addon_key?: string | null
+          amount_excl_vat: number
+          amount_incl_vat: number
+          created_at?: string
+          description: string
+          invoice_id: string
+          line_item_id?: string
+          line_type: Database["public"]["Enums"]["invoice_line_type"]
+          period_reference?: string | null
+          quantity?: number
+          unit_price: number
+          usage_snapshot_id?: string | null
+          vat_amount: number
+          vat_rate?: number
+        }
+        Update: {
+          addon_key?: string | null
+          amount_excl_vat?: number
+          amount_incl_vat?: number
+          created_at?: string
+          description?: string
+          invoice_id?: string
+          line_item_id?: string
+          line_type?: Database["public"]["Enums"]["invoice_line_type"]
+          period_reference?: string | null
+          quantity?: number
+          unit_price?: number
+          usage_snapshot_id?: string | null
+          vat_amount?: number
+          vat_rate?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_line_item_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoice"
+            referencedColumns: ["invoice_id"]
+          },
+        ]
+      }
       journey: {
         Row: {
           actor: Database["public"]["Enums"]["journey_actor"]
