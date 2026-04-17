@@ -114,8 +114,10 @@ Copy template from `docs/templates/decision.md`. Content:
 - **Title:** Invoice engine as C3 Commercial consumer
 - **Context:** Fase 1 billing spec introduces invoice + usage_snapshot tables. Placement question: new dimension? New control plane? Existing plane?
 - **Decision:** Invoice engine is a C3 Commercial *consumer* — reads D6 `schedule_shift` + K1b `pricing_terms`, writes its own tables, never mutates cascade sources. Invoice is a derived, period-bounded attribution of platform value to a billable entity (company).
-- **Rationale:** Matches cascade spec §2.3 ("C3 Commercial: What value was created? What does it cost?"). Billing is company-scoped not workspace-scoped — justifies workspace_id exception for `invoice`, `invoice_line_item` tables (`usage_snapshot` carries workspace_id per H6). Dunning notes via `activity_trail` (no `dunning_note` table) preserves cascade invariant #2.
-- **Consequences:** New ADR-0119 for usage reproducibility contract. New ADR-0120 for immutability. Module doc `MODULE_BILLING.md` to be written. Workspace_id exception documented.
+- **Rationale:** Matches cascade spec §2.3 ("C3 Commercial: What value was created? What does it cost?"). Billing is company-scoped not workspace-scoped — justifies workspace_id exception for `invoice`, `invoice_line_item` tables (`usage_snapshot` carries workspace_id per H6). Dunning notes via `billing_activity_log` (ADR-0122 supersedes the original "via activity_trail" call — activity_trail's `actor_id → profile` FK can't admit platform-admin actors) preserves cascade invariant #2.
+- **Consequences:** New ADR-0119 for usage reproducibility contract. New ADR-0120 for immutability. ADR-0122 supersedes the dunning routing. Module doc `MODULE_BILLING.md` to be written. Workspace_id exception documented.
+
+> **Note:** Task 0.1 was completed (commit `c9ef5aa4`) before ADR-0122 was drafted. The ADR-0118 file in `docs/decisions/0118-invoice-engine-as-c3-commercial-consumer.md` was amended in commit `087c9510` to reflect the supersession. This plan block retains the original rationale for historical reference but the live ADR is authoritative.
 
 - [ ] **Step 3: Register in decision log**
 
@@ -1062,14 +1064,17 @@ INSERT INTO public.engine_process (id, name, description, workspace_id, is_activ
 ON CONFLICT (id) DO NOTHING;
 
 -- Steps:
--- 1. Wait for invoice.issued (draft → issued transition)
+-- 1. Wait for "invoice issued" (draft → issued transition)
 -- 2. Wait for terminal event: paid | voided | overdue_detected
+--
+-- Event names use space-separator per telemetry convention (§Critical
+-- Corrections). Dot notation would silently miss the emit() dispatch.
 INSERT INTO public.engine_step
   (process_id, step_order, step_group, action_type, action_payload, assignee_rule) VALUES
 ('invoice_lifecycle', 1, NULL, 'wait_for_event',
-  '{"event": "invoice.issued"}'::jsonb, NULL),
+  '{"event": "invoice issued"}'::jsonb, NULL),
 ('invoice_lifecycle', 2, NULL, 'wait_for_event',
-  '{"events": ["invoice.marked_paid", "invoice.voided", "invoice.overdue_detected"]}'::jsonb, NULL)
+  '{"events": ["invoice marked_paid", "invoice voided", "invoice overdue_detected"]}'::jsonb, NULL)
 ON CONFLICT (process_id, step_order) DO NOTHING;
 ```
 
@@ -3981,7 +3986,7 @@ Before declaring plan complete, verify each spec section has at least one task:
 | §5.2 invoice table | Task 1.4 |
 | §5.3 invoice_line_item | Task 1.5 |
 | §5.4 usage_snapshot | Task 1.6 |
-| §5.5 dunning via activity_trail | Task 1.8 (view) + Task 7.3 addDunningNote |
+| §5.5 dunning via billing_activity_log (ADR-0122 supersedes §5.5's activity_trail call) | Task 1.7.5 (table) + Task 1.8 (view) + Task 7.3 addDunningNote |
 | §5.6 basis_drift_event | Task 1.7 |
 | §5.7 v_current_plan_preview + get_invoice_basis | Task 1.8 |
 | §5.8 enums | Task 1.3 |
