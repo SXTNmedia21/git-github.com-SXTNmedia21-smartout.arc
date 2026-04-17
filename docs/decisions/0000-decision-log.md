@@ -26,6 +26,7 @@ tags: [decisions, adr, index]
 
 | ADR | Date | Title | Status |
 |-----|------|-------|--------|
+| [ADR-0120](0120-invoice-immutability-credit-note-policy.md) | 2026-04-17 | Invoice Immutability + Credit Note Policy — continuous numbering via `invoice_number_seq` (assigned on `draft → issued`); no DELETE on issued invoices; corrections via credit notes only (`invoice_type = 'credit_note'` + `credits_invoice_id` FK); no nested credit notes; `(status, dunning_status)` CHECK (~8 legal combos); `invoice_id` vs `invoice_number` identity contract; dunning age from `due_at`; credit note amounts positive with explicit type | accepted |
 | [ADR-0119](0119-usage-snapshot-reproducibility.md) | 2026-04-17 | Usage Snapshot Reproducibility + active-user = `shift_status = 'completed'`; `counted_profile_ids` + `source_query_hash` on snapshot; drift detection emits `invoice.basis_drift_detected`; platform-admin resolves via ignore/credit-note/reinvoice | accepted |
 | [ADR-0118](0118-invoice-engine-as-c3-commercial-consumer.md) | 2026-04-17 | Invoice Engine as C3 Commercial Consumer (reads D6 + K1b, writes invoice/invoice_line_item/usage_snapshot, dunning via activity_trail) | accepted |
 | [ADR-0117](0117-authority-model-after-phase-4.md) | 2026-04-16 | Authority Model after Phase 4 (gate_action as single source) | accepted |
