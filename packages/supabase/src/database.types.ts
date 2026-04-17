@@ -5973,6 +5973,38 @@ export type Database = {
           },
         ]
       }
+      dunning_escalation_log: {
+        Row: {
+          escalated_at: string
+          from_stage: string | null
+          invoice_id: string
+          log_id: number
+          to_stage: string
+        }
+        Insert: {
+          escalated_at?: string
+          from_stage?: string | null
+          invoice_id: string
+          log_id?: number
+          to_stage: string
+        }
+        Update: {
+          escalated_at?: string
+          from_stage?: string | null
+          invoice_id?: string
+          log_id?: number
+          to_stage?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dunning_escalation_log_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoice"
+            referencedColumns: ["invoice_id"]
+          },
+        ]
+      }
       emma_conversation: {
         Row: {
           created_at: string
@@ -10527,6 +10559,117 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "workspace"
             referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      payment: {
+        Row: {
+          amount: number
+          company_id: string
+          created_at: string
+          currency: Database["public"]["Enums"]["currency"]
+          external_id: string | null
+          invoice_id: string
+          paid_at: string | null
+          payment_id: string
+          payment_method: Database["public"]["Enums"]["payment_method_type"]
+          refunded_amount: number | null
+          status: Database["public"]["Enums"]["payment_status"]
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          company_id: string
+          created_at?: string
+          currency: Database["public"]["Enums"]["currency"]
+          external_id?: string | null
+          invoice_id: string
+          paid_at?: string | null
+          payment_id?: string
+          payment_method: Database["public"]["Enums"]["payment_method_type"]
+          refunded_amount?: number | null
+          status?: Database["public"]["Enums"]["payment_status"]
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          company_id?: string
+          created_at?: string
+          currency?: Database["public"]["Enums"]["currency"]
+          external_id?: string | null
+          invoice_id?: string
+          paid_at?: string | null
+          payment_id?: string
+          payment_method?: Database["public"]["Enums"]["payment_method_type"]
+          refunded_amount?: number | null
+          status?: Database["public"]["Enums"]["payment_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "payment_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "payment_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoice"
+            referencedColumns: ["invoice_id"]
+          },
+        ]
+      }
+      payment_attempt: {
+        Row: {
+          attempt_number: number
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          payment_attempt_id: string
+          payment_id: string
+          redacted_payload: Json
+          status: string
+          stripe_event_id: string
+        }
+        Insert: {
+          attempt_number: number
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          payment_attempt_id?: string
+          payment_id: string
+          redacted_payload?: Json
+          status: string
+          stripe_event_id: string
+        }
+        Update: {
+          attempt_number?: number
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          payment_attempt_id?: string
+          payment_id?: string
+          redacted_payload?: Json
+          status?: string
+          stripe_event_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_attempt_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payment"
+            referencedColumns: ["payment_id"]
           },
         ]
       }
@@ -17803,6 +17946,7 @@ export type Database = {
         | "email_internal"
         | "http_api"
         | "peppol_ehf"
+        | "stripe_invoice"
       billing_integration_type: "fiken" | "tripletex" | "stripe" | "placeholder"
       booking_status: "confirmed" | "pending" | "cancelled"
       budget_period_type: "monthly" | "weekly" | "daily" | "hourly"
@@ -18069,6 +18213,18 @@ export type Database = {
         | "approved"
         | "rejected"
         | "expired"
+      payment_method_type:
+        | "stripe_card"
+        | "stripe_bank"
+        | "bank_transfer"
+        | "manual_adjustment"
+      payment_status:
+        | "pending"
+        | "processing"
+        | "succeeded"
+        | "failed"
+        | "refunded"
+        | "partially_refunded"
       planning_cycle_status: "draft" | "active" | "archived"
       planning_event_category:
         | "external_scraped"
@@ -19264,6 +19420,7 @@ export const Constants = {
         "email_internal",
         "http_api",
         "peppol_ehf",
+        "stripe_invoice",
       ],
       billing_integration_type: ["fiken", "tripletex", "stripe", "placeholder"],
       booking_status: ["confirmed", "pending", "cancelled"],
@@ -19558,6 +19715,20 @@ export const Constants = {
         "approved",
         "rejected",
         "expired",
+      ],
+      payment_method_type: [
+        "stripe_card",
+        "stripe_bank",
+        "bank_transfer",
+        "manual_adjustment",
+      ],
+      payment_status: [
+        "pending",
+        "processing",
+        "succeeded",
+        "failed",
+        "refunded",
+        "partially_refunded",
       ],
       planning_cycle_status: ["draft", "active", "archived"],
       planning_event_category: [
