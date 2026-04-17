@@ -88,6 +88,31 @@ ALDRI kjør ALTER TABLE direkte. ALLTID lag migrasjonsfil først.
 2. Run: `docker exec -i $(docker ps -q -f name=supabase_db) psql -U postgres < supabase/migrations/<file>.sql`
 3. Regenerate: `npx supabase gen types typescript --local > packages/supabase/src/database.types.ts`
 
+## Migration Timestamp Ordering (CRITICAL — L-0042)
+
+**Migration timestamps are CAUSAL order in a dependency DAG, not chronological markers.** `supabase db reset` applies migrations in lexicographic timestamp order. A migration dated `20260417120000` runs **before** a migration dated `20260421100200`, regardless of when each file was written.
+
+**Before choosing a timestamp, always run:**
+
+```bash
+# 1. Find the current repo tip (max timestamp)
+ls supabase/migrations/ | tail -1
+
+# 2. For EVERY table/column/enum/function your migration references,
+#    find its creation migration
+grep -l "<referenced_identifier>" supabase/migrations/ | tail -1
+```
+
+**Your new migration's timestamp MUST be strictly greater than:**
+- The current repo tip (from step 1), AND
+- Every dependency's creation timestamp (from step 2).
+
+**Common trap:** The repo routinely has future-dated migrations (e.g. `20260421*`, `20260510*`). Picking "today's wall-clock date" is WRONG if the tip is already in the future. Pick at least one HHMM slot after the tip.
+
+**Do NOT use runtime guards** (`DO $$ IF NOT EXISTS ...`) to mask ordering bugs — retimestamp the file instead. Runtime guards are for production backfill anomalies, not developer-time ordering discipline.
+
+**See L-0042** for empirical basis (two occurrences on 2026-04-17: PR #216 gate_action_accept_entity_id, and Audit Remediation Week 1 Task 1 — both caught by Supabase Preview failure or council review).
+
 ## Common Joins
 
 - Profile → Identity: `profile!inner(user_identity(first_name, last_name))`

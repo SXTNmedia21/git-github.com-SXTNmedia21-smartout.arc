@@ -2,6 +2,7 @@
 title: Learning Log
 status: in_progress
 updated: 2026-04-17
+last-reconciled: 2026-04-17
 created: 2026-03-26
 module: schedule
 tags: [learnings]
@@ -55,3 +56,4 @@ tags: [learnings]
 | 39  | 2026-04-16 | Voice `message_preview` in analytics is a PII vector — transcripts leak to PostHog beyond ADR-0077's reach ([0039](0039-voice-message-preview-pii-vector.md)) | Any telemetry field carrying raw user content must be gated by channel. Gate preview on `channel === "chat"` and redact on voice. Prefer emitting derived signal (length, intent) over raw text. |
 | 40  | 2026-04-17 | Identity-boundary ontology — pre-workspace flows are a distinct class that cannot pass through `workspace-api` because `resolveAuth` hard-requires `auth.workspaceId`. Invitation token IS the auth surface, not an absence of auth. ([0040](0040-identity-boundary-ontology-pre-workspace-flows.md)) | ADR-0123 amends ADR-0029 with explicit exceptions list + tripwire clause: on 3rd pre-workspace endpoint, open `identity-api` gateway ADR. `smartout-edge-function-guide` skill gains pre-workspace checklist item. |
 | 41  | 2026-04-17 | `emit()` called ≠ mutation audit-covered — governance mutations all emit `"button clicked"` which registry routes to PostHog-only; activity_trail + engine_event receive nothing. Three distinct partial-routing failure modes: registry-declaration gap (this), provider silent drop (L-0038), event-name typo. ([0041](0041-registry-declaration-gap-partial-routing.md)) | PR-review checklist: when touching emit(), verify event name exists in registry AND destination set matches event classification (mutation→quad, UI→posthog-only). Audit guidance: grep both emit() invocations AND registry entries. ADR-0122 closes this for 7 governance events. |
+| 42  | 2026-04-17 | Plan documents are not ground truth for migration dependencies — migration timestamps are CAUSAL order in a dependency DAG, not chronological markers. Plans chose "today's wall-clock" timestamps twice in one session; referenced tables/columns that don't exist at that timestamp; CLAUDE.md/skills silent on the rule; Phase 2.5 fact-check didn't cover temporal claims. Four failure modes on Task 1 alone: 2 missing tables, 1 missing column, 1 wrong schema qualifier. ([0042](0042-plan-documents-not-ground-truth-migration-deps.md)) | smartout-database-guide skill gains migration-timestamp-ordering rule; writing-plans skill gains migration-dependency checklist; council Phase 2.5 gains migration-dependency fact-check step. No ADR yet — escalate on 3rd occurrence. |

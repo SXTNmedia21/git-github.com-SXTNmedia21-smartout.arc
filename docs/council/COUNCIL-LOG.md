@@ -887,3 +887,53 @@ Week 4 — buffer / E2E stabilization / deferred debt triage
 - daily-briefing.tsx (1618 LOC) + shift-modal.tsx (1420 LOC) decomposition
 - CLAUDE.md module-count drift (23 claimed, 2 `MODULE_*.md` files; INDEX references 23 — reconcile in dedicated doc-regen task)
 
+
+---
+
+## 2026-04-17 — Task 1 Migration Dependency Review
+
+**Type:** plan (follow-up council after first post-audit remediation council)
+**Verdict:** APPROVE WITH CHANGES
+**Agents consulted:** system-steward (chair), supervisor (code-tracer)
+**Prior verdict held?** Yes — first 2026-04-17 council's plan verdict held. This session reviews a previously-uncaught bug in Task 1's migration timestamps. First council's Phase 2.5 fact-check did not cover migration dependency ordering.
+
+### Key decision
+
+Task 1 migration (`20260417120000_orphan_fk_fixes_and_polymorphic_comments.sql`) fails to apply due to four bugs. Retimestamp to `20260511100000` and fix schema qualifier `payroll.*` → `public.*` for `employee_payroll_profile`. Process hardening ships as a SEPARATE PR outside Week 1 (skill updates + learning L-0042).
+
+### Failure modes caught
+
+1. Referenced table `workspace_framework_binding` created at `20260421200100:135` — after proposed timestamp
+2. Referenced table `employee_payroll_profile` created at `20260421100200:317` — after proposed timestamp
+3. Referenced column `seeded_from_framework_binding_id` added at `20260422400000:151` — after proposed timestamp (Supervisor code-trace caught this; Steward Phase 3 missed)
+4. Schema qualifier `payroll.*` wrong; actual schema is `public` (Supervisor caught; Steward missed)
+
+### Semantic conflict resolution
+
+Supervisor's Phase 3 code-trace strictly dominated Steward's Phase 3 on technical depth: caught 2 additional bugs + explicit bundling-scope discipline. Steward's surviving contribution: Phase 2.5 council process addition + ADR-escalation threshold (3rd occurrence = ADR). Chair adopted Supervisor's tactical fix verbatim and merged Steward's process additions.
+
+### Agent Trust Gate
+
+Not applicable. Pure DB migration — no Server Actions, mutations, capability tools, or emit routing changes.
+
+### ADRs created
+
+None. Decision: skill rules + learning doc are right weight. Escalate to ADR on 3rd occurrence.
+
+### Learnings created
+
+- **L-0042** Plan documents are not ground truth for migration dependencies — migration timestamps are causal order in a dependency DAG. Four failure modes caught on Task 1 alone. PR #216 retimestamp (commit `603ea951`) is empirical twin.
+
+### Skill updates (separate PR)
+
+- `.claude/skills/smartout-database-guide/SKILL.md` — new "Migration Timestamp Ordering (CRITICAL — L-0042)" section
+- `~/.claude/skills/run-council/SKILL.md` Phase 2.5 — new migration-dependency fact-check step
+
+### Agent effectiveness
+
+- **Steward (chair):** MEDIUM — Caught tactical timestamp failures, missed column dependency + schema qualifier. Phase 5 synthesis had cosmetic "Billing Engine" mislabeling (caught in user review) but substantive content correct.
+- **Supervisor (code-tracer):** HIGH — Code-traced plan DDL end-to-end; caught 2 bugs Steward missed. Explicit bundling-scope discipline. File:line citations throughout.
+
+### Process discipline fail-then-fix
+
+First council's Phase 2.5 fact-check verified WHAT (columns exist, tables exist, files exist) but not WHEN (at proposed timestamp). This gap is now closed in run-council skill Phase 2.5 with a new migration-dependency fact-check step.
