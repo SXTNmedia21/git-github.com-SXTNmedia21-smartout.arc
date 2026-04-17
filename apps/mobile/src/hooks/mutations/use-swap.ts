@@ -12,7 +12,7 @@ import { useCallback, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { supabase } from "@/lib/supabase";
-import { useWorkspaceStore } from "@/hooks/stores/use-workspace-store";
+import { getProfileContext } from "@/lib/profile-context";
 import { emit } from "@smartout/telemetry";
 
 // ── Initiate Swap ──────────────────────────────────────────────────────────
@@ -32,13 +32,15 @@ type UseInitiateSwapReturn = {
 export function useInitiateSwap(): UseInitiateSwapReturn {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const queryClient = useQueryClient();
-  const selectedProfileId = useWorkspaceStore((s) => s.selectedProfileId);
 
   const initiateSwap = useCallback(
     async (payload: InitiateSwapPayload): Promise<void> => {
       setIsSubmitting(true);
 
       try {
+        // Resolve BEFORE RPC so broken attribution fails fast (ADR-0134)
+        const { profileId, workspaceId } = await getProfileContext();
+
         const { error } = await supabase.rpc(
           "initiate_shift_swap" as never,
           {
@@ -56,8 +58,8 @@ export function useInitiateSwap(): UseInitiateSwapReturn {
 
         void emit({
           event: "shift swap_requested",
-          workspace_id: "",
-          actor_id: selectedProfileId ?? "",
+          workspace_id: workspaceId,
+          actor_id: profileId,
           properties: {
             entity_type: "shift",
             entity_id: payload.requester_shift_id,
@@ -73,7 +75,7 @@ export function useInitiateSwap(): UseInitiateSwapReturn {
         setIsSubmitting(false);
       }
     },
-    [queryClient, selectedProfileId],
+    [queryClient],
   );
 
   return { initiateSwap, isSubmitting };
@@ -95,13 +97,15 @@ type UseRespondToSwapReturn = {
 export function useRespondToSwap(): UseRespondToSwapReturn {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const queryClient = useQueryClient();
-  const selectedProfileId = useWorkspaceStore((s) => s.selectedProfileId);
 
   const respondToSwap = useCallback(
     async (payload: RespondToSwapPayload): Promise<void> => {
       setIsSubmitting(true);
 
       try {
+        // Resolve BEFORE RPC so broken attribution fails fast (ADR-0134)
+        const { profileId, workspaceId } = await getProfileContext();
+
         const { error } = await supabase.rpc(
           "respond_to_shift_swap" as never,
           {
@@ -119,8 +123,8 @@ export function useRespondToSwap(): UseRespondToSwapReturn {
         if (payload.accepted) {
           void emit({
             event: "shift swap_accepted",
-            workspace_id: "",
-            actor_id: selectedProfileId ?? "",
+            workspace_id: workspaceId,
+            actor_id: profileId,
             properties: {
               entity_type: "shift",
               entity_id: payload.engine_state_id,
@@ -130,12 +134,12 @@ export function useRespondToSwap(): UseRespondToSwapReturn {
         } else {
           void emit({
             event: "shift swap_rejected",
-            workspace_id: "",
-            actor_id: selectedProfileId ?? "",
+            workspace_id: workspaceId,
+            actor_id: profileId,
             properties: {
               entity_type: "shift",
               entity_id: payload.engine_state_id,
-              data: { swap_id: payload.engine_state_id, rejected_by: selectedProfileId ?? "" },
+              data: { swap_id: payload.engine_state_id, rejected_by: profileId },
             },
           });
         }
@@ -143,7 +147,7 @@ export function useRespondToSwap(): UseRespondToSwapReturn {
         setIsSubmitting(false);
       }
     },
-    [queryClient, selectedProfileId],
+    [queryClient],
   );
 
   return { respondToSwap, isSubmitting };
@@ -163,13 +167,15 @@ type UseCancelSwapReturn = {
 export function useCancelSwap(): UseCancelSwapReturn {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const queryClient = useQueryClient();
-  const selectedProfileId = useWorkspaceStore((s) => s.selectedProfileId);
 
   const cancelSwap = useCallback(
     async (payload: CancelSwapPayload): Promise<void> => {
       setIsSubmitting(true);
 
       try {
+        // Resolve BEFORE RPC so broken attribution fails fast (ADR-0134)
+        const { profileId, workspaceId } = await getProfileContext();
+
         const { error } = await supabase.rpc(
           "cancel_shift_swap" as never,
           {
@@ -184,8 +190,8 @@ export function useCancelSwap(): UseCancelSwapReturn {
 
         void emit({
           event: "shift swap_cancelled",
-          workspace_id: "",
-          actor_id: selectedProfileId ?? "",
+          workspace_id: workspaceId,
+          actor_id: profileId,
           properties: {
             entity_type: "shift",
             entity_id: payload.engine_state_id,
@@ -196,7 +202,7 @@ export function useCancelSwap(): UseCancelSwapReturn {
         setIsSubmitting(false);
       }
     },
-    [queryClient, selectedProfileId],
+    [queryClient],
   );
 
   return { cancelSwap, isSubmitting };
