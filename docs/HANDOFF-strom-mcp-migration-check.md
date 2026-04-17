@@ -105,18 +105,43 @@ in activities; 683 of 935 activities are soft-deleted in Bubble (`Active 🚫 = 
 
 ## Next steps (in priority order)
 
-1. **Tier 2 v2** — activity tree → procedure_step nesting; route by
-   `_activityType` to specialized v3 entities (control_list/routine/etc.)
-2. **Tier 1 attestation patch** — `handbooks → runbook` mapping is invalid
-   (runbook has NOT NULL trigger_event/escalation_chain/control_list_id
-   that handbooks lack). Re-attest to `handbooks → protocol`. Blocker for
-   Tier 2 apply.
-3. **Live bug fix** — `knowledge_test.workspace_id` write in
-   `apps/web/src/.../use-governance-mutations.ts:332` references a column
-   that doesn't exist.
-4. **Build strike-auth-bridge** — separate workstream, 1-2 days, blocks all
-   production apply (Tier 1 + Tier 2).
-5. **Production cutover** — only after auth-bridge + Tier 1 patch + Tier 2 v2.
+**Closed since last handoff update (2026-04-17 second session):**
+- [x] Tier 2 v2 (activity tree → procedure_step nesting) — strike-mcp
+      commit `2d4d373`. 52 live activities → 31 roots + 21 nested steps.
+- [x] strike-auth-bridge — strike-mcp commit `c3677e8`. Pre-creates
+      auth.users from `07_user_identity.sql` with force-password-reset
+      metadata. `07_user_identity.sql` now applies cleanly.
+- [x] Login-flow gate — wt-2 commit `403edb6b`. Middleware §4b + flag
+      clearing in reset-password page.
+- [x] Strike-mcp typecheck debt + workspace-constants parameterization —
+      strike-mcp commit `889856c`. `pnpm typecheck` now green.
+
+**Open (priority order):**
+
+1. **Tier 1 `handbooks → runbook` attestation patch** — strike-mcp
+      `mappings/handbooks.json` targets `public.runbook` which has NOT NULL
+      trigger_event/escalation_chain/control_list_id that handbooks lack.
+      Re-attest to `handbooks → protocol` (the content-extraction
+      approach already handles this in Tier 2 — Tier 1 mapping just needs
+      the status stamp). Partial fix landed as supersession marker in
+      commit `2d4d373`; formal re-attestation still pending.
+2. **Live bug fix** — `knowledge_test.workspace_id` write in
+      `apps/web/src/app/dashboard/governance/_hooks/use-governance-mutations.ts:332`
+      references a column that doesn't exist on the table. Separate from
+      Tier 2 migration; must land before Tier 2 hits the live workspace.
+3. **Source-tagging ADR** — decide `source text` column on governance tables
+      vs sidecar JSONL for migration provenance. Per Cascade Invariant 8
+      (every output carries provenance). Flagged by council 2026-04-17.
+4. **Full Wrightegaarden Tier 1 dataset** — current
+      `07_user_identity.sql` has only 3 users (sample from an earlier
+      limited run). Re-emit without `--limit` to get the full workspace
+      user list before production apply. Same for other Tier 1 entities.
+5. **Distribute recovery links** — admin operational task. Audit CSV at
+      `~/dev/strike-mcp/scripts/auth-bridge/.audit/bridge-audit-*.csv`
+      contains the links; decide distribution channel (personal email,
+      Tripletex, direct message) per user.
+6. **Production cutover** — only after items 1-5 + wt-3 schema migrations
+      applied to target Postgres.
 
 ## Boot sources for next session
 

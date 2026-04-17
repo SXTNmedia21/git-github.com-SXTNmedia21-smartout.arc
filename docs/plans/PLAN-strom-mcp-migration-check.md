@@ -84,10 +84,20 @@ Open items (post-pivot):
 
 ### Production apply blockers (out of attestation scope)
 
-- [ ] Build `strike-auth-bridge` package (1-2 days, separate package)
-- [ ] v3 login-flow gate enforces force-password-reset for migrated users
+- [x] Build `strike-auth-bridge` — DONE 2026-04-17 (strike-mcp commit `c3677e8`).
+      Scripts at `~/dev/strike-mcp/scripts/auth-bridge/`. Verified against
+      local Supabase: 3 Wrightegaarden auth.users created with deterministic
+      uuidv5, `07_user_identity.sql` then applies cleanly.
+- [x] v3 login-flow gate enforces force-password-reset for migrated users —
+      DONE 2026-04-17 (wt-2 commit `403edb6b`). Middleware §4b redirects
+      `force_password_reset=true` users to `/reset-password`; flag cleared
+      atomically on successful password update.
 - [ ] wt-3 schema migrations applied to target Postgres (wt-3 owns this)
 - [ ] Bubble CSV exports for swaprecords (14) + records aggregation (5,434)
+- [ ] Distribute recovery links from audit CSV to migrated users (admin
+      operational task, out of tooling scope)
+- [ ] Source-tagging decision for v3 governance tables — ADR pending
+      (sidecar JSONL vs `source text` column per Cascade Invariant 8)
 
 ## Acceptance Criteria
 
