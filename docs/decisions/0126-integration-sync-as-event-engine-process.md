@@ -1,7 +1,7 @@
 ---
 title: "Integration Sync as Event Engine Process, Not Parallel Motor"
 id: ADR-0126
-status: proposed
+status: accepted
 layer: decision
 module: billing
 created: 2026-04-17

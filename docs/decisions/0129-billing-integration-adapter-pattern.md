@@ -1,7 +1,7 @@
 ---
 title: "Billing Integration Adapter Pattern + Placeholder Audit-Safety"
 id: ADR-0129
-status: proposed
+status: accepted
 layer: decision
 module: billing
 created: 2026-04-17

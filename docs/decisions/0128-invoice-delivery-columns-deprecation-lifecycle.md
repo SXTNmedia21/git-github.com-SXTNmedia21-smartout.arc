@@ -1,7 +1,7 @@
 ---
 title: "invoice.delivery_* Columns Deprecation Lifecycle"
 id: ADR-0128
-status: proposed
+status: accepted
 layer: decision
 module: billing
 created: 2026-04-17

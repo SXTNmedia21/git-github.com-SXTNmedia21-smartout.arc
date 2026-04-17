@@ -1,7 +1,7 @@
 ---
 title: "Billing Dispatch Rule 2-Level Evaluation with Suppress Semantics"
 id: ADR-0127
-status: proposed
+status: accepted
 layer: decision
 module: billing
 created: 2026-04-17

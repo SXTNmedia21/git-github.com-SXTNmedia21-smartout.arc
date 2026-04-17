@@ -1,7 +1,7 @@
 ---
 title: "Fase 2 Scope Exclusion — Contract Onboarding Extracted to Fase 2.5"
 id: ADR-0130
-status: proposed
+status: accepted
 layer: decision
 module: billing
 created: 2026-04-17
