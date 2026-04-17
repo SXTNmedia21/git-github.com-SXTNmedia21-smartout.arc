@@ -5,3 +5,9 @@
 // what's considered part of the stable adapter contract.
 
 export * from "./types";
+export { renderTemplate } from "./template";
+export { ADAPTER_REGISTRY, getAdapter } from "./registry";
+export { EmailCustomerAdapter } from "./adapters/email-customer";
+export { EmailInternalAdapter } from "./adapters/email-internal";
+export { HttpApiAdapter } from "./adapters/http-api";
+export { sendViaSendGrid } from "./adapters/sendgrid";
