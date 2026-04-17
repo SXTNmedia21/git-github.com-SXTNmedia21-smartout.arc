@@ -19,6 +19,7 @@ export { SkeletonEntrance } from "./components/skeleton-entrance";
 export { Entrance, withEntrance } from "./components/entrance";
 export * from "./components/separator";
 export { StatusBadge } from "./components/status-badge";
+export { InvoiceStatusBadge, type InvoiceStatus } from "./components/invoice-status-badge";
 export { ReadinessBadge, type ReadinessBadgeProps, type ReadinessState } from "./readiness-badge";
 export { ContractTimeline } from "./components/contract-timeline";
 export {
