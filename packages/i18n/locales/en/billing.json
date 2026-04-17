@@ -1,0 +1,21 @@
+{
+  "mark_paid": {
+    "button": "Mark as paid",
+    "dialog_title": "Mark invoice #{invoice_number} as paid",
+    "confirmation": "This marks invoice #{invoice_number} as paid. If incorrect, contact Smartout for a credit note. You cannot undo this.",
+    "payment_date_label": "Payment date",
+    "payment_reference_label": "Reference (KID / voucher)",
+    "note_label": "Note (optional)",
+    "cancel": "Cancel",
+    "submit": "Register payment",
+    "submitting": "Registering…",
+    "success_toast": "Invoice marked as paid",
+    "error_toast": "Could not register payment: {error}"
+  },
+  "invoice_detail": {
+    "payment_section_title": "Payment",
+    "paid_at": "Paid {date}",
+    "reference": "Reference",
+    "channel": "Channel"
+  }
+}

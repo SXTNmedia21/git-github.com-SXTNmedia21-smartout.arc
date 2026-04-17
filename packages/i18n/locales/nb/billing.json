@@ -1,0 +1,21 @@
+{
+  "mark_paid": {
+    "button": "Marker som betalt",
+    "dialog_title": "Marker faktura #{invoice_number} som betalt",
+    "confirmation": "Dette markerer faktura #{invoice_number} som betalt. Hvis feil — kontakt Smartout for kreditnota. Kan ikke angres av deg.",
+    "payment_date_label": "Betalingsdato",
+    "payment_reference_label": "Referanse (KID / bilagsnummer)",
+    "note_label": "Notat (valgfritt)",
+    "cancel": "Avbryt",
+    "submit": "Registrer betaling",
+    "submitting": "Registrerer…",
+    "success_toast": "Faktura markert som betalt",
+    "error_toast": "Kunne ikke registrere betaling: {error}"
+  },
+  "invoice_detail": {
+    "payment_section_title": "Betaling",
+    "paid_at": "Betalt {date}",
+    "reference": "Referanse",
+    "channel": "Kanal"
+  }
+}
