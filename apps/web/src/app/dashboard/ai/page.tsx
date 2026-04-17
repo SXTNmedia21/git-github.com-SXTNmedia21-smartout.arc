@@ -2,6 +2,16 @@ import { Bot, Settings, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import { FEATURE_FLAGS } from "@/lib/feature-flags";
 
+/**
+ * /dashboard/ai — Server Component shell.
+ *
+ * Pure static index for Mr. Botsson with no client island: server-rendered
+ * links + a feature-flagged "coming soon" card. Per ADR-0115 the RSC
+ * migration pattern here is a no-op — the page is already a server
+ * component. Loading.tsx uses @smartout/ui Skeleton primitives consistent
+ * with the people/ reference. BotssonProvider/voice are intentionally
+ * not wired here; those live further down the tree in dedicated surfaces.
+ */
 export default function AiPage() {
   return (
     <>

@@ -1,5 +1,9 @@
 /**
- * MySalaryDashboard — main layout for the Min Lønn page.
+ * MySalaryPageClient — client boundary for /dashboard/my-salary.
+ *
+ * Per ADR-0115 RSC migration pattern: the route's `page.tsx` is a Server
+ * Component that wraps this single client boundary in `<Suspense>`. All
+ * interactive state + data fetching for the Min Lønn surface lives here.
  *
  * Three-column layout on desktop:
  *   Left (w-72):  PeriodList — settled payslip periods
@@ -8,8 +12,9 @@
  *
  * On smaller screens the columns stack vertically: detail → periods → balances.
  *
- * All data is fetched once via useMySalary. Payslip line items load lazily
- * inside PayslipDetail when a calculation ID becomes available.
+ * Data is fetched client-side via `useMySalary` (user-scoped — resolves
+ * profile from `auth.getUser()`). Payslip line items load lazily inside
+ * PayslipDetail when a calculation ID becomes available.
  */
 
 "use client";
@@ -24,7 +29,7 @@ import { BalancesSidebar } from "./BalancesSidebar";
 // - action: setSelectedPeriodId(id) — period row click triggers detail refresh
 // - color-regime: emerald for paid/positive, amber for warning, red for depleted balances
 
-export function MySalaryDashboard() {
+export function MySalaryPageClient() {
   const { data, isLoading } = useMySalary();
 
   const payslips = data?.payslips ?? [];

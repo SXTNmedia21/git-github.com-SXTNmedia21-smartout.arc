@@ -2,10 +2,20 @@
 import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
+import smartout from "./plugins/smartout/index.mjs";
 
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+  // Smartout custom rules (ADR-0091 WP3 / ADR-0114 R3).
+  // Kept at `warn` severity until call-site migration completes.
+  {
+    files: ["**/*.{ts,tsx}"],
+    plugins: { smartout },
+    rules: {
+      "smartout/no-direct-supabase-write": "warn",
+    },
+  },
   // public-site uses [host] dynamic route which ESLint treats as a glob
   // character class, causing "rule definition not found" errors in lint-staged.
   // These are server-rendered public pages — Next.js link rules don't apply.

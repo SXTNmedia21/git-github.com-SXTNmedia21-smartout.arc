@@ -1,9 +1,22 @@
+import { SkeletonCard, SkeletonHeading, SkeletonEntrance } from "@smartout/ui";
+
 export default function OnboardingAssistantLoading() {
   return (
-    <div className="flex flex-col gap-6 p-6">
-      <div className="bg-muted h-8 w-56 animate-pulse rounded-lg" />
-      <div className="bg-muted h-32 animate-pulse rounded-lg" />
-      <div className="bg-muted h-48 animate-pulse rounded-lg" />
-    </div>
+    <SkeletonEntrance
+      isLoading
+      skeleton={
+        <div
+          className="flex-1 space-y-4 p-4 pt-6 md:p-8"
+          role="status"
+          aria-live="polite"
+          aria-label="Laster onboarding-assistent"
+        >
+          <SkeletonHeading className="h-9 w-72" />
+          <SkeletonCard className="min-h-48" />
+        </div>
+      }
+    >
+      {null}
+    </SkeletonEntrance>
   );
 }

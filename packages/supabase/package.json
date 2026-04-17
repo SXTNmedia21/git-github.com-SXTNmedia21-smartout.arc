@@ -36,6 +36,10 @@
     "./service-config": {
       "types": "./src/service-config.ts",
       "default": "./src/service-config.ts"
+    },
+    "./gate-client": {
+      "types": "./src/gate-client.ts",
+      "default": "./src/gate-client.ts"
     }
   },
   "scripts": {

@@ -1,10 +1,11 @@
 ---
 title: "Server Actions as Canonical User-Initiated Mutation Primitive"
 id: ADR_0114
-status: proposed
+status: accepted
 layer: decision
 created: 2026-04-16
-updated: 2026-04-16
+updated: 2026-04-17
+accepted_on: 2026-04-17
 ---
 
 # ADR-0114: Server Actions as Canonical User-Initiated Mutation Primitive (with Capability Authority Relation)
@@ -88,6 +89,26 @@ Performance audit (2026-04-16) proposed migrating UI mutations to Next.js Server
 - ADR-0099 — Unified authority-gate across agent-router and engine-dispatch — this ADR aligns Server Actions with the unified gate
 - ADR-0076, ADR-0093 — Contract/cascade drafts through unified `apply_cascade` — Server Actions writing to cascade-gated tables route through these
 - ADR-0113 — DashboardContext decomposition — no direct dependency but shared Sprint 3 scope
+
+## Acceptance — 2026-04-17 (scope-corrected 2026-04-18)
+
+Promoted to `accepted` for the contract layer (R1–R2, R4–R5). R3 (write-path governance via `gatedInsert/Update/Delete`) is scaffolded but NOT YET ENFORCEABLE because ADR-0091 WP2 has not shipped:
+
+- **Shipped (R1, R2, R4, R5):**
+  - Server Actions as canonical mutation primitive (established pattern in `apps/web/src/app/**/_actions/*.ts`)
+  - `emit()` telemetry contract per `packages/telemetry/src/registry.ts`
+  - Telemetry registry audit at `docs/reports/telemetry-registry-audit-2026-04-17.md` (398 events registered, 186 unique emitted, 213 phantom entries flagged for cleanup)
+  - ESLint rule `smartout/no-direct-supabase-write` at `warn` severity in `packages/eslint-config/` (commit `b90dc1f5`) — currently advisory only
+
+- **Scaffolded but blocked (R3):**
+  - `packages/supabase/src/gate-client.ts` exports `gatedInsert`/`gatedUpdate`/`gatedDelete` (commit `b90dc1f5`)
+  - These call `public.cascade_gate_write(...)` which has not been shipped — see ADR-0091 Implementation Status
+  - Call-site migration is deferred until ADR-0091 WP2 lands
+
+- **Next steps (blockers for full enforcement):**
+  1. Ship ADR-0091 WP2 — Postgres migration creating `public.cascade_gate_write` with signature + body per ADR-0091 decision drivers
+  2. Add a smoke test that invokes `gatedInsert` against local Supabase and asserts the RPC resolves
+  3. Migrate first call sites, then escalate ESLint rule from `warn` → `error`
 
 ---
 

@@ -11,6 +11,15 @@ import { useCascadeTaskCount } from "@/app/dashboard/_hooks/use-cascade-task-cou
 import { EntityDrawerProvider } from "./entity-drawer/EntityDrawerContext";
 import { EntityDrawer } from "./entity-drawer/EntityDrawer";
 import { ChatPanelProvider } from "./ChatPanel";
+import {
+  AdminProvider,
+  ScheduleCoordinationProvider,
+  ThemeProvider,
+  WorkspaceProvider,
+  useDashboard,
+  useThemeContext,
+  type WorkspaceSlice,
+} from "./contexts";
 
 const GlobalCallAlert = dynamic(
   () => import("./GlobalCallAlert").then((m) => ({ default: m.GlobalCallAlert })),
@@ -203,6 +212,16 @@ function buildVoiceSessionContext(pathname: string, adminView: AdminViewType): V
   };
 }
 
+/**
+ * @deprecated Per ADR-0113, this monolithic context has been split into
+ * four focused providers (`ThemeProvider`, `WorkspaceProvider`,
+ * `AdminProvider`, `ScheduleCoordinationProvider`) exported from
+ * `./contexts`. New code MUST use the targeted slice hooks
+ * (`useThemeContext`, `useWorkspaceContext`, `useAdminContext`,
+ * `useScheduleCoordinationContext`). This export is retained only so
+ * the 155 existing `useContext(DashboardContext)` consumer sites keep
+ * working during their staged migration.
+ */
 export const DashboardContext = createContext({
   isAdminMode: true,
   setIsAdminMode: (_val: boolean) => {
@@ -345,75 +364,59 @@ function VoiceAssistantWithTools({
   );
 }
 
-export function DashboardShell({
+/**
+ * Inner shell — runs inside the four split providers introduced by
+ * ADR-0113. Reads its slice state via the deprecated `useDashboard()`
+ * facade so this large component body did not need to be rewritten as
+ * part of the split PR. New code should migrate call sites to targeted
+ * slice hooks (see `./contexts/index.ts`).
+ */
+function DashboardShellInner({
   children,
   profileId = null,
 }: {
   children: React.ReactNode;
   profileId?: string | null;
 }) {
-  const [isDark, setIsDarkRaw] = useState(false); // SSR-safe default
-  const [themeReady, setThemeReady] = useState(false);
-  useEffect(() => {
-    const stored = localStorage.getItem("smartout-theme");
-    if (stored === "dark") setIsDarkRaw(true);
-    setThemeReady(true);
-  }, []);
-  const setIsDark = useCallback((val: boolean) => {
-    setIsDarkRaw(val);
-    localStorage.setItem("smartout-theme", val ? "dark" : "light");
-  }, []);
+  // Theme-ready flag is only needed here (not part of the facade shape).
+  const { themeReady } = useThemeContext();
+
+  // All previously-local, now-provider-owned state is read via the
+  // compatibility facade. The destructured names match the pre-split
+  // locals so the rest of this component body works unchanged.
+  const {
+    isDark,
+    setIsDark,
+    isAdminMode,
+    setIsAdminMode,
+    adminView,
+    setAdminView,
+    scheduleLayout,
+    setScheduleLayout: switchScheduleLayout,
+    scheduleView,
+    setScheduleView,
+    activeDepartment,
+    setActiveDepartment,
+    isSidebarCollapsed,
+    setIsSidebarCollapsed,
+    weeklyPeriodCount,
+    setWeeklyPeriodCount,
+    scheduleDateOffset,
+    setScheduleDateOffset,
+    onPublishAll: onPublishAllStable,
+    setOnPublishAll,
+    scheduleDraftCount: scheduleDraftCountDisplay,
+    setScheduleDraftCount,
+    scheduleCompactMode,
+    setScheduleCompactMode,
+    workspaceData,
+    isSetupMode,
+    isSetupLoading,
+    dismissSetup,
+  } = useDashboard();
+
   const [isDemoMode, setIsDemoMode] = useState(false);
-  const [isAdminMode, setIsAdminMode] = useState(true);
-  const [adminView, setAdminView] = useState<AdminViewType>("tactical");
-  const [scheduleLayout, setScheduleLayout] = useState<ScheduleLayoutMode>("daily");
-  const [scheduleView, setScheduleView] = useState<ScheduleViewMode>("ansatt");
-  const [activeDepartment, setActiveDepartment] = useState("Alle avdelinger");
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [weeklyPeriodCount, setWeeklyPeriodCount] = useState(4);
-  const [scheduleDateOffset, setScheduleDateOffset] = useState(0);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-
-  /**
-   * Converts scheduleDateOffset when switching between week-based and month-based views.
-   * Without this, an offset of 4 (= 4 weeks ahead in Ukeplan) would be
-   * misinterpreted as 4 months ahead in Måned — jumping from April to August.
-   */
-  const switchScheduleLayout = useCallback(
-    (newLayout: ScheduleLayoutMode) => {
-      const isWeekBased = (l: ScheduleLayoutMode) =>
-        l === "daily" || l === "list" || l === "grid" || l === "weekly";
-
-      if (isWeekBased(scheduleLayout) && newLayout === "monthly") {
-        const now = new Date();
-        const targetMonday = new Date(now);
-        targetMonday.setDate(now.getDate() - ((now.getDay() + 6) % 7) + scheduleDateOffset * 7);
-        const today = new Date();
-        const monthDiff =
-          (targetMonday.getFullYear() - today.getFullYear()) * 12 +
-          (targetMonday.getMonth() - today.getMonth());
-        setScheduleDateOffset(monthDiff);
-      } else if (scheduleLayout === "monthly" && isWeekBased(newLayout)) {
-        const target = new Date();
-        target.setMonth(target.getMonth() + scheduleDateOffset, 1);
-        target.setHours(0, 0, 0, 0);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const startOfCurrentWeek = new Date(today);
-        startOfCurrentWeek.setDate(today.getDate() - ((today.getDay() + 6) % 7));
-        const diffMs = target.getTime() - startOfCurrentWeek.getTime();
-        const weekDiff = Math.round(diffMs / (1000 * 60 * 60 * 24 * 7));
-        setScheduleDateOffset(weekDiff);
-      }
-
-      setScheduleLayout(newLayout);
-    },
-    [scheduleLayout, scheduleDateOffset],
-  );
-  const onPublishAllRef = useRef<(() => void) | null>(null);
-  const scheduleDraftCountRef = useRef(0);
-  const [scheduleDraftCountDisplay, setScheduleDraftCountDisplay] = useState(0);
-  const [scheduleCompactMode, setScheduleCompactMode] = useState(false);
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
   const [voiceSessionOverride, setVoiceSessionOverride] = useState<VoiceSessionContext | null>(
     null,
@@ -433,14 +436,6 @@ export function DashboardShell({
     isSettling: false,
     notices: [],
   });
-  const [setupDismissed, setSetupDismissed] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return sessionStorage.getItem("setup_dismissed") === "1";
-  });
-  const dismissSetup = useCallback(() => {
-    setSetupDismissed(true);
-    sessionStorage.setItem("setup_dismissed", "1");
-  }, []);
   const [isDocumentMode, setIsDocumentMode] = useState(false);
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -449,22 +444,12 @@ export function DashboardShell({
   const hasShowcaseQuery = searchParams?.get("showcase") === "1";
   const autoplayStartedRef = useRef(false);
   const noticeIdRef = useRef(0);
+  // The setup-redirect effect below still needs to distinguish "not
+  // completed" from "dismissed-for-session". WorkspaceProvider merges
+  // those two into `isSetupMode`, so here we rederive the raw flag
+  // from the root workspace context.
   const workspaceCtx = useWorkspaceOptional();
-  // Derive setup mode from the DB flag rather than cascade task count.
-  // Defaults to true (no redirect) when workspace context is not yet available.
   const setupGuideCompleted = workspaceCtx?.workspace.setup_guide_completed ?? true;
-  const isSetupMode = !setupGuideCompleted && !setupDismissed;
-  const workspaceData = useMemo(
-    () =>
-      workspaceCtx
-        ? {
-            workspace_id: workspaceCtx.workspace.workspace_id,
-            company_id: workspaceCtx.workspace.company_id,
-            name: workspaceCtx.workspace.name,
-          }
-        : null,
-    [workspaceCtx],
-  );
 
   // Live inbound join request count for the Ansatte nav badge
   const [inboundRequestCount, setInboundRequestCount] = useState(0);
@@ -504,21 +489,9 @@ export function DashboardShell({
     };
   }, [workspaceData?.workspace_id]);
 
-  /** Stable setter that schedule page calls to register the publish callback */
-  const setOnPublishAll = useCallback((fn: (() => void) | null) => {
-    onPublishAllRef.current = fn;
-  }, []);
-  /** Stable callback that reads ref at call-time (event handler), not render-time */
-  const onPublishAllStable = useCallback(() => {
-    onPublishAllRef.current?.();
-  }, []);
-  /** Stable setter — writes to ref + state, avoids infinite loops via guard */
-  const setScheduleDraftCount = useCallback((count: number) => {
-    if (scheduleDraftCountRef.current !== count) {
-      scheduleDraftCountRef.current = count;
-      setScheduleDraftCountDisplay(count);
-    }
-  }, []);
+  // Rebuild the old `DashboardContext` value from the facade slice so
+  // the 155 existing `useContext(DashboardContext)` call sites continue
+  // to work without modification (ADR-0113 stage-1 compatibility).
   const dashboardContextValue = useMemo(
     () => ({
       isAdminMode,
@@ -548,30 +521,38 @@ export function DashboardShell({
       workspaceData,
       profileId,
       isSetupMode,
-      // isSetupLoading is no longer used — setup is now flag-driven, not
-      // cascade-task-driven. Kept as false for context shape compatibility.
-      isSetupLoading: false,
+      isSetupLoading,
       dismissSetup,
     }),
     [
       isAdminMode,
+      setIsAdminMode,
       isDark,
+      setIsDark,
       adminView,
+      setAdminView,
       scheduleLayout,
       switchScheduleLayout,
       scheduleView,
+      setScheduleView,
       activeDepartment,
+      setActiveDepartment,
       isSidebarCollapsed,
+      setIsSidebarCollapsed,
       weeklyPeriodCount,
+      setWeeklyPeriodCount,
       scheduleDateOffset,
+      setScheduleDateOffset,
       onPublishAllStable,
       setOnPublishAll,
-      setScheduleDraftCount,
       scheduleDraftCountDisplay,
+      setScheduleDraftCount,
       scheduleCompactMode,
+      setScheduleCompactMode,
       workspaceData,
       profileId,
       isSetupMode,
+      isSetupLoading,
       dismissSetup,
     ],
   );
@@ -1021,13 +1002,14 @@ export function DashboardShell({
   // Redirect to setup guide on page load when setup is incomplete.
   // Only fires once per mount (not on in-app navigation) via ref guard.
   // Uses window.location.href for hard navigation to force server layout re-fetch.
+  // `isSetupMode` = !setupGuideCompleted && !setupDismissed (derived in WorkspaceProvider).
   const setupRedirectFired = useRef(false);
   useEffect(() => {
     if (setupRedirectFired.current) return;
-    if (isSetupPage || setupGuideCompleted || setupDismissed) return;
+    if (isSetupPage || !isSetupMode) return;
     setupRedirectFired.current = true;
     window.location.href = "/dashboard/setup";
-  }, [isSetupPage, setupGuideCompleted, setupDismissed]);
+  }, [isSetupPage, isSetupMode]);
 
   // Helper to determine if a link is active
   const isActive = (path: string) => {
@@ -2145,6 +2127,55 @@ export function DashboardShell({
         </EntityDrawerProvider>
       </VoiceToolsProvider>
     </DocumentModeProvider>
+  );
+}
+
+/**
+ * DashboardShell — root wrapper for every authenticated dashboard route.
+ *
+ * Per ADR-0113, this component hoists the four focused context providers
+ * (Theme, Workspace, Admin, ScheduleCoordination) above the inner shell
+ * so that state mutations in one slice no longer re-render consumers of
+ * the others. The inner shell still publishes a combined value to the
+ * legacy `DashboardContext` so existing `useContext(DashboardContext)`
+ * call sites continue to work while they are migrated one-by-one.
+ */
+export function DashboardShell({
+  children,
+  profileId = null,
+}: {
+  children: React.ReactNode;
+  profileId?: string | null;
+}) {
+  const workspaceCtx = useWorkspaceOptional();
+  const setupGuideCompleted = workspaceCtx?.workspace.setup_guide_completed ?? true;
+
+  const workspaceData = useMemo<WorkspaceSlice>(
+    () =>
+      workspaceCtx
+        ? {
+            workspace_id: workspaceCtx.workspace.workspace_id,
+            company_id: workspaceCtx.workspace.company_id,
+            name: workspaceCtx.workspace.name,
+          }
+        : null,
+    [workspaceCtx],
+  );
+
+  return (
+    <ThemeProvider>
+      <WorkspaceProvider
+        workspaceData={workspaceData}
+        profileId={profileId}
+        isSetupMode={!setupGuideCompleted}
+      >
+        <AdminProvider>
+          <ScheduleCoordinationProvider>
+            <DashboardShellInner profileId={profileId}>{children}</DashboardShellInner>
+          </ScheduleCoordinationProvider>
+        </AdminProvider>
+      </WorkspaceProvider>
+    </ThemeProvider>
   );
 }
 
