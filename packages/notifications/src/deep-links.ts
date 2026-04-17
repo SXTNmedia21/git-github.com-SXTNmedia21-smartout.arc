@@ -48,7 +48,7 @@ export const DEEP_LINK_MAP: Record<NotificationType | "notification_tap", DeepLi
   task_assigned: () => "/(app)/(home)",
   deviation_reported: (data) => (data.deviation_id ? "/(app)/(home)/deviation" : "/(app)/(home)"),
   hours_confirmation: (data) => `/(app)/(shifts)/${data.shift_id}`,
-  absence_approved: () => "/(app)/(me)/absence-balance",
+  absence_approved: () => "/(app)/(me)/payroll/absence-balance",
   komm_message: (data) => `/(app)/(komm)/${data.channel_id}`,
   join_request: () => "/(app)/(home)",
   // Contract deep links
