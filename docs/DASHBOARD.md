@@ -18,15 +18,12 @@ tags: [dashboard, worktrees, git-state]
 
 | # | Branch | Module | Last Commit | Dirty | Journey |
 |---|--------|--------|-------------|-------|---------|
-| — | `development` | — | 5092d9cd | clean | — |
-| wt-4 | `feat/billing-engine-fase-1` | billing | d1fd39b1 | clean | `docs/journeys/JOURNEY-billing-engine-fase-1.md` (missing) |
+| — | `development` | — | 353948ee | clean | — |
 
 ## Free Slots
 
-wt-1, wt-2, wt-3, wt-5, wt-6, wt-7, wt-8, wt-9, wt-10, wt-11, wt-12, wt-13, wt-15, wt-20
+wt-1, wt-2, wt-3, wt-4, wt-5, wt-6, wt-7, wt-8, wt-9, wt-10, wt-11, wt-12, wt-13, wt-15, wt-20
 
 ## Pending Journeys
 
-| # | Feature | Journey | Status |
-|---|---------|---------|--------|
-| wt-4 | billing-engine-fase-1 | `docs/journeys/JOURNEY-billing-engine-fase-1.md` | missing |
+_none_
