@@ -163,6 +163,75 @@ export const CreateAdHocDispatchInputSchema = z.object({
 });
 export type CreateAdHocDispatchInput = z.infer<typeof CreateAdHocDispatchInputSchema>;
 
+// ─── Fase 2 B3 — Dispatch rule CRUD (platform + workspace) ─────────
+// Mirrors billing_dispatch_rule table columns. Server Actions validate
+// these at the RPC boundary; React Native callers call parse() before
+// invoking the pure action. Platform vs workspace scope is expressed
+// via workspace_id (NULL = platform-baseline per ADR-0127).
+export const DispatchRuleActionSchema = z.enum(["send", "suppress"]);
+
+// trigger_event uses telemetry space-separator (see DB CHECK constraint
+// in 20260511200001_billing_dispatch_rule_table.sql). Reject dot-
+// separator early so the UI surfaces a clean message instead of the
+// Postgres CHECK failure.
+const TriggerEventString = z
+  .string()
+  .min(1)
+  .max(200)
+  .refine((v) => !v.includes("."), "Trigger event must use space-separator (no dots)");
+
+export const CreateDispatchRuleInputSchema = z
+  .object({
+    workspace_id: z.string().uuid().nullable().optional(),
+    company_id: z.string().uuid().nullable().optional(),
+    channel: BillingDispatchChannelSchema,
+    trigger_event: TriggerEventString,
+    target: z.record(z.string(), z.unknown()),
+    template_id: z.string().uuid().nullable().optional(),
+    action: DispatchRuleActionSchema.optional(),
+    is_enabled: z.boolean().optional(),
+  })
+  .refine(
+    // ADR-0127: platform-baseline rules (workspace_id NULL) must be
+    // 'send' AND cannot be company-scoped. Matches the DB CHECK
+    // constraint billing_dispatch_rule_platform_constraints.
+    (v) => {
+      const isPlatform = !v.workspace_id; // null or undefined
+      if (!isPlatform) return true;
+      if (v.action && v.action !== "send") return false;
+      if (v.company_id) return false;
+      return true;
+    },
+    {
+      message:
+        "Platform rules (workspace_id NULL) must use action=send and cannot be company-scoped",
+    },
+  );
+export type CreateDispatchRuleInputParsed = z.infer<typeof CreateDispatchRuleInputSchema>;
+
+export const UpdateDispatchRuleInputSchema = z.object({
+  dispatch_rule_id: z.string().uuid(),
+  channel: BillingDispatchChannelSchema.optional(),
+  trigger_event: TriggerEventString.optional(),
+  target: z.record(z.string(), z.unknown()).optional(),
+  template_id: z.string().uuid().nullable().optional(),
+  company_id: z.string().uuid().nullable().optional(),
+  action: DispatchRuleActionSchema.optional(),
+  is_enabled: z.boolean().optional(),
+});
+export type UpdateDispatchRuleInputParsed = z.infer<typeof UpdateDispatchRuleInputSchema>;
+
+export const DeleteDispatchRuleInputSchema = z.object({
+  dispatch_rule_id: z.string().uuid(),
+});
+export type DeleteDispatchRuleInputParsed = z.infer<typeof DeleteDispatchRuleInputSchema>;
+
+export const ToggleDispatchRuleInputSchema = z.object({
+  dispatch_rule_id: z.string().uuid(),
+  is_enabled: z.boolean(),
+});
+export type ToggleDispatchRuleInputParsed = z.infer<typeof ToggleDispatchRuleInputSchema>;
+
 // ─── Fase 2 integration action inputs ──────────────────────────────
 // Mirrors the DB enum so Zod catches integration_type drift before the
 // RPC boundary.

@@ -19,6 +19,7 @@ export * from "./hooks";
 export * from "./dispatch";
 export * from "./integrations";
 export * from "./actions/dispatch";
+export * from "./actions/dispatch-rules";
 export * from "./actions/integrations";
 export * from "./actions/invoice-editing";
 export * from "./actions/workspace-mark-paid";
