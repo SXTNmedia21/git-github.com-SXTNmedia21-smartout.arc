@@ -162,3 +162,66 @@ export const CreateAdHocDispatchInputSchema = z.object({
   target: z.record(z.string(), z.unknown()),
 });
 export type CreateAdHocDispatchInput = z.infer<typeof CreateAdHocDispatchInputSchema>;
+
+// ─── Fase 2 integration action inputs ──────────────────────────────
+// Mirrors the DB enum so Zod catches integration_type drift before the
+// RPC boundary.
+export const BillingIntegrationTypeSchema = z.enum(["fiken", "tripletex", "stripe", "placeholder"]);
+
+export const IntegrationEntitySchema = z.enum([
+  "customer",
+  "invoice",
+  "contract",
+  "product",
+  "plan",
+]);
+
+export const IntegrationOperationSchema = z.enum(["create", "update", "delete"]);
+
+export const CreateIntegrationInputSchema = z.object({
+  integration_type: BillingIntegrationTypeSchema,
+  display_name: z.string().min(1).max(200),
+  config: z.record(z.string(), z.unknown()).optional(),
+  is_enabled: z.boolean().optional(),
+  is_placeholder: z.boolean().optional(),
+  // Platform-level integrations have workspace_id NULL. Explicit null
+  // lets the schema accept both platform and workspace scopes without
+  // forcing the UI to pass undefined.
+  workspace_id: z.string().uuid().nullable().optional(),
+});
+export type CreateIntegrationInputParsed = z.infer<typeof CreateIntegrationInputSchema>;
+
+export const UpdateIntegrationInputSchema = z.object({
+  integration_id: z.string().uuid(),
+  display_name: z.string().min(1).max(200).optional(),
+  config: z.record(z.string(), z.unknown()).optional(),
+  is_enabled: z.boolean().optional(),
+  is_placeholder: z.boolean().optional(),
+});
+export type UpdateIntegrationInputParsed = z.infer<typeof UpdateIntegrationInputSchema>;
+
+export const DeleteIntegrationInputSchema = z.object({
+  integration_id: z.string().uuid(),
+});
+export type DeleteIntegrationInputParsed = z.infer<typeof DeleteIntegrationInputSchema>;
+
+export const ToggleIntegrationInputSchema = z.object({
+  integration_id: z.string().uuid(),
+  enabled: z.boolean(),
+});
+export type ToggleIntegrationInputParsed = z.infer<typeof ToggleIntegrationInputSchema>;
+
+export const TestConnectionInputSchema = z.object({
+  integration_id: z.string().uuid(),
+});
+export type TestConnectionInputParsed = z.infer<typeof TestConnectionInputSchema>;
+
+export const RetriggerIntegrationSyncInputSchema = z.object({
+  integration_id: z.string().uuid(),
+  entity_type: IntegrationEntitySchema,
+  entity_id: z.string().uuid(),
+  operation: IntegrationOperationSchema,
+});
+export type RetriggerIntegrationSyncInputParsed = z.infer<
+  typeof RetriggerIntegrationSyncInputSchema
+>;

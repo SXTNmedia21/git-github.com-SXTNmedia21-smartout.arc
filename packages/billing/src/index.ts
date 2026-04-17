@@ -19,4 +19,4 @@ export * from "./hooks";
 export * from "./dispatch";
 export * from "./integrations";
 export * from "./actions/dispatch";
-// actions/integrations exported once B4 Step 4 lands it.
+export * from "./actions/integrations";
