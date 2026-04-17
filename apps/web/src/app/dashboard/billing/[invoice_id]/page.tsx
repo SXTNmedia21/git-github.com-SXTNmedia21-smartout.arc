@@ -3,6 +3,7 @@ import { InvoiceStatusBadge } from "@smartout/ui";
 
 import { getMyInvoiceDetail } from "../_actions/queries";
 import { MarkPaidButton } from "../_components/MarkPaidButton";
+import { WorkspaceInvoiceDispatches } from "../_components/WorkspaceInvoiceDispatches";
 
 // Fase 2 Spor C — workspace-admin invoice detail.
 //
@@ -116,6 +117,10 @@ export default async function WorkspaceInvoiceDetailPage({
         />
         {/* /B5: workspace mark-paid */}
       </section>
+
+      {/* B3: workspace dispatches read-only — DO NOT REMOVE */}
+      <WorkspaceInvoiceDispatches invoiceId={invoice.invoice_id} />
+      {/* /B3: workspace dispatches read-only */}
     </div>
   );
 }
