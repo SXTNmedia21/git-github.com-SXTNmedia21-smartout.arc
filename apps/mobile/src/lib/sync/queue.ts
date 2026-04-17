@@ -15,6 +15,7 @@ import { randomUUID } from "expo-crypto";
 
 import type { PendingWrite, WriteAction } from "./types";
 import { actionMap } from "./action-map";
+import { validatePayload, type WriteActionPayload } from "./schemas";
 
 /**
  * Lazily loads the SQLite database. Returns null on web where expo-sqlite
@@ -30,18 +31,32 @@ async function tryGetDb() {
   }
 }
 
-/** Adds a new write to the queue. Returns the client-generated row UUID. */
+/**
+ * Adds a new write to the queue. Returns the client-generated row UUID.
+ *
+ * Payload is validated against the action's Zod schema BEFORE write
+ * (ADR-0134 / Trust Freeze gate 2). A malformed payload throws ZodError
+ * at the call site instead of sitting in SQLite until sync time.
+ *
+ * Surface accepts `Record<string, unknown>` so callers can pass full
+ * row payloads (including columns the schema doesn't enumerate); the
+ * schema gate enforces required-key presence + type at runtime, then
+ * passes through unknown extras to the handler.
+ */
 export async function enqueue(
   action: WriteAction,
   payload: Record<string, unknown>,
 ): Promise<string> {
+  // Throws ZodError if payload doesn't match the schema for this action.
+  const validated = validatePayload(action, payload) as WriteActionPayload<typeof action>;
+
   const rowId = randomUUID();
   const db = await tryGetDb();
 
   if (!db) {
     // Web fallback: execute directly via Supabase (no offline queue)
-    const handler = actionMap[action];
-    await handler(payload);
+    const handler = actionMap[action] as (p: typeof validated) => Promise<void>;
+    await handler(validated);
     return rowId;
   }
 
@@ -50,7 +65,7 @@ export async function enqueue(
   await db.runAsync(
     `INSERT INTO pending_writes (action, payload, row_id, status, retry_count, created_at)
      VALUES (?, ?, ?, 'pending', 0, ?)`,
-    [action, JSON.stringify(payload), rowId, now],
+    [action, JSON.stringify(validated), rowId, now],
   );
 
   return rowId;
