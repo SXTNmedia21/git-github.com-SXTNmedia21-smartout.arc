@@ -4,6 +4,7 @@ import type { InvoiceStatus } from "@smartout/ui";
 import { getSuperAdminId } from "@/lib/platform-admin";
 import { InvoiceDetail } from "../_components/invoice-detail";
 import { InvoiceLineItemEditor } from "./_components/InvoiceLineItemEditor";
+import { InvoiceDispatchesList } from "./_components/InvoiceDispatchesList";
 
 export default async function InvoiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const [adminId, { id }] = await Promise.all([getSuperAdminId(), params]);
@@ -27,6 +28,9 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
       {/* B5: invoice editing — DO NOT REMOVE */}
       {status === "draft" ? <InvoiceLineItemEditor invoiceId={id} invoiceStatus={status} /> : null}
       {/* /B5: invoice editing */}
+      {/* B3: dispatches — DO NOT REMOVE */}
+      <InvoiceDispatchesList invoiceId={id} />
+      {/* /B3: dispatches */}
     </div>
   );
 }
