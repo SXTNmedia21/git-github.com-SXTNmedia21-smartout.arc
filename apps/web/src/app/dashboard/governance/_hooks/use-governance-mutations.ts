@@ -266,10 +266,14 @@ export function useCreateProcedure() {
       const supabase = createClient();
       const { steps, ...procedureData } = input;
 
-      // Create procedure
+      // Create procedure. Note: procedure has NO workspace_id column
+      // (00003_governance_tables.sql:61-73). Tenancy is inherited via
+      // protocol_id FK → protocol.workspace_id. Same bug class as the
+      // knowledge_test fix earlier today (2026-04-17 Tier 2 v1.5 council,
+      // Agent Coordinator code-trace finding #6).
       const { data: proc, error: procError } = await supabase
         .from("procedure")
-        .insert({ ...procedureData, workspace_id: workspace.workspace_id })
+        .insert({ ...procedureData })
         .select()
         .single();
 
@@ -377,9 +381,12 @@ export function useCreateConfirmation() {
   return useMutation({
     mutationFn: async (input: ConfirmationInput) => {
       const supabase = createClient();
+      // confirmation has NO workspace_id column
+      // (00003_governance_tables.sql:179-190). Tenancy via protocol_id FK →
+      // protocol.workspace_id. Same bug class as knowledge_test + procedure.
       const { data, error } = await supabase
         .from("confirmation")
-        .insert({ ...input, workspace_id: workspace.workspace_id })
+        .insert({ ...input })
         .select()
         .single();
 
