@@ -1,3 +1,7 @@
+npm warn Unknown project config "public-hoist-pattern". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+WARN: environment variable is unset: SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID
+WARN: environment variable is unset: SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET
+Connecting to db 5432
 export type Json =
   | string
   | number
@@ -10517,20 +10521,25 @@ export type Database = {
       }
       pricing_terms: {
         Row: {
+          agreement_period: unknown
           billing_interval: string
           company_id: string
           contract_id: string | null
           created_at: string
           created_by: string | null
           currency: Database["public"]["Enums"]["currency"]
+          delivery_channel: string
           discount_label: string | null
           discount_percent: number | null
           effective_from: string
           effective_until: string | null
+          free_users: number
+          invoice_format: string
           monthly_cost: number | null
           notes: string | null
           onboarding_cost: number | null
           onboarding_package: string | null
+          overage_price_per_user: number | null
           price_per_employee: number
           pricing_terms_id: string
           trial_days: number | null
@@ -10538,20 +10547,25 @@ export type Database = {
           workspace_id: string | null
         }
         Insert: {
+          agreement_period?: unknown
           billing_interval?: string
           company_id: string
           contract_id?: string | null
           created_at?: string
           created_by?: string | null
           currency?: Database["public"]["Enums"]["currency"]
+          delivery_channel?: string
           discount_label?: string | null
           discount_percent?: number | null
           effective_from: string
           effective_until?: string | null
+          free_users?: number
+          invoice_format?: string
           monthly_cost?: number | null
           notes?: string | null
           onboarding_cost?: number | null
           onboarding_package?: string | null
+          overage_price_per_user?: number | null
           price_per_employee: number
           pricing_terms_id?: string
           trial_days?: number | null
@@ -10559,20 +10573,25 @@ export type Database = {
           workspace_id?: string | null
         }
         Update: {
+          agreement_period?: unknown
           billing_interval?: string
           company_id?: string
           contract_id?: string | null
           created_at?: string
           created_by?: string | null
           currency?: Database["public"]["Enums"]["currency"]
+          delivery_channel?: string
           discount_label?: string | null
           discount_percent?: number | null
           effective_from?: string
           effective_until?: string | null
+          free_users?: number
+          invoice_format?: string
           monthly_cost?: number | null
           notes?: string | null
           onboarding_cost?: number | null
           onboarding_package?: string | null
+          overage_price_per_user?: number | null
           price_per_employee?: number
           pricing_terms_id?: string
           trial_days?: number | null
@@ -15518,7 +15537,7 @@ export type Database = {
         Returns: Json
       }
       delete_vault_secret: { Args: { secret_name: string }; Returns: boolean }
-      derive_shift_hours: { Args: { p_shift_id: string }; Returns: string }
+      derive_shift_hours: { Args: { p_shift_id: string }; Returns: Json }
       dispatch_push_notification: {
         Args: {
           p_body: string
@@ -15689,6 +15708,10 @@ export type Database = {
         }
         Returns: string
       }
+      is_admin_in_company: {
+        Args: { p_company_id: string; p_user_id: string }
+        Returns: boolean
+      }
       is_admin_in_workspace: {
         Args: { uid: string; wid: string }
         Returns: boolean
@@ -15845,7 +15868,7 @@ export type Database = {
       }
       snapshot_shift_cost: {
         Args: { p_interpretation_id: string }
-        Returns: string
+        Returns: Json
       }
       submit_own_pii: {
         Args: { p_field_group: string; p_values: Json; p_workspace_id: string }
