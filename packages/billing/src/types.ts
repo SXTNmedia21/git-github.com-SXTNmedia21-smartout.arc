@@ -41,6 +41,10 @@ export type InvoiceDispatchInsert = Database["public"]["Tables"]["invoice_dispat
 export type InvoiceDispatchUpdate = Database["public"]["Tables"]["invoice_dispatch"]["Update"];
 
 export type BillingIntegration = Database["public"]["Tables"]["billing_integration"]["Row"];
+export type BillingIntegrationInsert =
+  Database["public"]["Tables"]["billing_integration"]["Insert"];
+export type BillingIntegrationUpdate =
+  Database["public"]["Tables"]["billing_integration"]["Update"];
 
 // Enum aliases — direct re-exports from Database.Enums for consistency
 // across Server Actions, hooks, and UI.

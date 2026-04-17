@@ -7,13 +7,16 @@
 // the query layer; React Query hooks live in ./hooks and accept a
 // caller-supplied fetcher.
 //
-// Fase 2 adds dispatch adapters + Server Action building blocks. The
-// integration framework (Spor B / B4) is NOT exported yet — it ships
-// in a follow-up batch.
+// Fase 2 adds dispatch adapters + Server Action building blocks, plus
+// the integration adapter framework (Spor B / B4). The integration
+// layer is PlaceholderAdapter-only for Fase 2 per ADR-0129; Fase 3
+// replaces fiken/tripletex/stripe entries with real adapters.
 
 export * from "./types";
 export * from "./schemas";
 export * from "./queries";
 export * from "./hooks";
 export * from "./dispatch";
+export * from "./integrations";
 export * from "./actions/dispatch";
+// actions/integrations exported once B4 Step 4 lands it.
