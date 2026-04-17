@@ -12,7 +12,7 @@ export type EventDestination =
   | "logger"
   | "activity_trail"
   | "engine_event"
-  | "billing_activity_log"; // ADR-0122 — platform-scoped audit for billing events
+  | "billing_activity_log"; // ADR-0125 — platform-scoped audit for billing events
 
 export interface EventMeta {
   destinations: EventDestination[];
@@ -38,7 +38,7 @@ export type EventCategory =
   | "security"
   | "enrichment"
   | "ops_intelligence" // ADR-0088
-  | "billing"; // ADR-0118 / ADR-0122
+  | "billing"; // ADR-0118 / ADR-0125
 
 // ─── Entity Reference (for robust UI audit trails) ─
 export interface EntityRef {
@@ -2188,7 +2188,7 @@ export interface ContractRetentionArchived extends BaseEvent {
 
 // ─── Pricing Terms Events ──────────────────────────
 // NOTE: legacy event for contract-level pricing edits. The billing engine
-// (ADR-0118 / ADR-0122) emits a SIBLING event `pricing_terms updated` with
+// (ADR-0118 / ADR-0125) emits a SIBLING event `pricing_terms updated` with
 // an underscore — see `BillingPricingTermsUpdated` near the Billing Events
 // block. Two distinct events, two distinct routing destinations. Do not
 // consolidate without a migration plan for both call-sites.
@@ -3654,7 +3654,7 @@ export interface ReminderConverted extends BaseEvent {
 }
 
 // ─── Billing Events ──────────────────────────────
-// ADR-0118: C3 Commercial consumer. ADR-0122: route via billing_activity_log.
+// ADR-0118: C3 Commercial consumer. ADR-0125: route via billing_activity_log.
 // BaseEvent.actor_id is profile_id for most events; for billing it is a
 // user_identity.user_id (the billing_activity_log provider interprets it as
 // such). activity_trail is never a destination for billing events.
@@ -3779,7 +3779,7 @@ export interface UsageSnapshotCreated extends BaseEvent {
 // Separate interface from the legacy `PricingTermsUpdated` (event name
 // "pricing terms updated", contracts category) — both events coexist. The
 // billing event uses the underscore form `pricing_terms updated` and routes
-// to `billing_activity_log` per ADR-0122.
+// to `billing_activity_log` per ADR-0125.
 export interface BillingPricingTermsUpdated extends BaseEvent {
   event: "pricing_terms updated";
   properties: {
@@ -5680,7 +5680,7 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "training",
   },
 
-  // ─── Billing (ADR-0118 / ADR-0122) ───
+  // ─── Billing (ADR-0118 / ADR-0125) ───
   // Route via billing_activity_log, never activity_trail (profile-scoped actor
   // model can't admit platform-admin writers). engine_event drives the
   // invoice_lifecycle state machine seeded in Phase 1.10.

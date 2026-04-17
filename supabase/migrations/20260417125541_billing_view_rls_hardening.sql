@@ -40,4 +40,4 @@ COMMENT ON VIEW public.v_current_plan_preview IS
 SECURITY: service_role + postgres only (no anon/authenticated SELECT). Callers must go through Server Actions that use createAdminClient() and apply explicit company_id filters. Revoked 2026-04-17 per B1 council code-reviewer critical #2.';
 
 COMMENT ON VIEW public.v_invoice_dunning_notes IS
-  'Dunning notes sourced from billing_activity_log (ADR-0122). Direct authenticated access revoked — read via Server Actions that resolve company_id from request context. The underlying table has RLS scoped to is_admin_in_company, but view-level access restriction is belt-and-suspenders.';
+  'Dunning notes sourced from billing_activity_log (ADR-0125). Direct authenticated access revoked — read via Server Actions that resolve company_id from request context. The underlying table has RLS scoped to is_admin_in_company, but view-level access restriction is belt-and-suspenders.';

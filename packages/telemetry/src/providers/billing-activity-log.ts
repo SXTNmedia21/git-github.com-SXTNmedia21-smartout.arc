@@ -10,7 +10,7 @@ const getSupabaseClient = () =>
   );
 
 /**
- * Writes billing events to `billing_activity_log` (ADR-0122).
+ * Writes billing events to `billing_activity_log` (ADR-0125).
  *
  * Differences from `writeActivityTrail`:
  *

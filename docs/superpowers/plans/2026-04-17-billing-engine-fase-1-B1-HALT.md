@@ -7,7 +7,7 @@ module: billing
 tags: [billing, halt, schema-drift, resolved, phase-1]
 ---
 
-> **RESOLVED 2026-04-17 (Path C).** ADR-0122 written + registered + ADR-0118 amended. Plan updated with:
+> **RESOLVED 2026-04-17 (Path C).** ADR-0125 written + registered + ADR-0118 amended. Plan updated with:
 >
 > - Task 1.7 trigger: `schedule_shift.shift_id` → `schedule_shift_id`
 > - **Task 1.7.5 (NEW):** `billing_activity_log` table + RLS
@@ -132,14 +132,14 @@ Pick one of these paths:
 
 ### Path B — Author a "plan drift patch" commit, then resume B1
 
-Commit a single file `docs/superpowers/plans/2026-04-17-billing-engine-fase-1-drift-patch.md` with corrected SQL for Tasks 1.7, 1.8, 1.10 and an updated view definition that doesn't read non-existent columns. Decide activity_trail actor model inline (probably option c: new `dunning_note` table, reverses ADR-0118 decision) and write ADR-0122 to supersede that part of 0118.
+Commit a single file `docs/superpowers/plans/2026-04-17-billing-engine-fase-1-drift-patch.md` with corrected SQL for Tasks 1.7, 1.8, 1.10 and an updated view definition that doesn't read non-existent columns. Decide activity_trail actor model inline (probably option c: new `dunning_note` table, reverses ADR-0118 decision) and write ADR-0125 to supersede that part of 0118.
 
 **Pros:** Fast, keeps B1 momentum.
 **Cons:** Two-layer plan-overlay is fragile for future agents.
 
-### Path C — Let me draft fixed SQL + ADR-0122 as a proposal, you review before resuming
+### Path C — Let me draft fixed SQL + ADR-0125 as a proposal, you review before resuming
 
-I'll write the corrected migrations + the ADR-0122 (activity_trail reversal for billing) as a proposal. You read, approve or revise. Then I resume B1.
+I'll write the corrected migrations + the ADR-0125 (activity_trail reversal for billing) as a proposal. You read, approve or revise. Then I resume B1.
 
 **Pros:** Gives you the semantic decision explicitly, keeps you in the loop on the one load-bearing call without blocking on plan rewrite.
 **Cons:** One extra round-trip.

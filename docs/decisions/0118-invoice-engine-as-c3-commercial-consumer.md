@@ -38,7 +38,7 @@ The invoice engine:
 - Reads `schedule_shift` (D6) and pricing terms from `workspace_doc_chunk` / K1b config
 - Writes `invoice`, `invoice_line_item`, and `usage_snapshot` — tables it owns exclusively
 - Never writes back to any D1–D6 table or K1a/K1b source
-- Records dunning and collection notes via `billing_activity_log` (see ADR-0122; originally specified as `activity_trail` here — superseded because the profile-scoped actor model in `activity_trail` cannot admit platform-admin actors)
+- Records dunning and collection notes via `billing_activity_log` (see ADR-0125; originally specified as `activity_trail` here — superseded because the profile-scoped actor model in `activity_trail` cannot admit platform-admin actors)
 
 `invoice` and `invoice_line_item` carry `company_id` rather than `workspace_id` — a documented exception to the workspace-scoped rule (workspace isolation is still enforced at the `usage_snapshot` level per H6).
 
@@ -46,13 +46,13 @@ The invoice engine:
 
 - **Good, because** C3 already owns the "value → cost" attribution contract; no new architectural primitive needed
 - **Good, because** the workspace_id exception is bounded to company-scoped billing tables — not a general precedent
-- **Good, because** dunning notes via a dedicated `billing_activity_log` (ADR-0122) preserve cascade invariant #2 by routing through the shared `emit()` primitive (the persistence destination is billing-specific; the emit contract is not)
+- **Good, because** dunning notes via a dedicated `billing_activity_log` (ADR-0125) preserve cascade invariant #2 by routing through the shared `emit()` primitive (the persistence destination is billing-specific; the emit contract is not)
 - **Bad, because** company-scoped tables require explicit RLS policies referencing `company_member` rather than the standard `workspace_id` helper — developers must not copy standard workspace RLS boilerplate onto `invoice`/`invoice_line_item`
-- **Agent Impact:** any agent or developer adding invoice-related tables must place them under C3, never D6. Any audit trail for dunning/collection/platform-admin billing events goes to `billing_activity_log` (ADR-0122), **not** `activity_trail`. The workspace_id exception must be called out in `MODULE_BILLING.md` (to be written).
+- **Agent Impact:** any agent or developer adding invoice-related tables must place them under C3, never D6. Any audit trail for dunning/collection/platform-admin billing events goes to `billing_activity_log` (ADR-0125), **not** `activity_trail`. The workspace_id exception must be called out in `MODULE_BILLING.md` (to be written).
 
 ## Related
 
 - Cascade spec: `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md` §2.3
 - Billing Fase 1 spec: `docs/superpowers/specs/2026-04-17-billing-engine-fase-1-design.md`
-- Follow-up: ADR-0119 (usage reproducibility contract), ADR-0120 (invoice immutability), ADR-0121 (pricing_terms extension), **ADR-0122 (supersedes the activity_trail dunning claim in this ADR — dunning moves to `billing_activity_log`)**
+- Follow-up: ADR-0119 (usage reproducibility contract), ADR-0120 (invoice immutability), ADR-0121 (pricing_terms extension), **ADR-0125 (supersedes the activity_trail dunning claim in this ADR — dunning moves to `billing_activity_log`)**
 - Requires: `MODULE_BILLING.md` to document workspace_id exception and C3 placement

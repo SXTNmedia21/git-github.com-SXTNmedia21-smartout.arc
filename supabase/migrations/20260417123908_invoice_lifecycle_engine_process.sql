@@ -8,7 +8,7 @@ SET search_path TO public, extensions;
 -- Two-table pattern (engine_process + engine_step) matches
 -- 20260304300000_seed_daily_close_process.sql — NOT the plan's original
 -- single-row jsonb "definition" shape, which didn't match the real schema
--- (ADR-0122 drift resolution).
+-- (ADR-0125 drift resolution).
 --
 -- Event names use space-separator per telemetry convention (not dots)
 -- so engine_dispatch matches literal emit() event strings.

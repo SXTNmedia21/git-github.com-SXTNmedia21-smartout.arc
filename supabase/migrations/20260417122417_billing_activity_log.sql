@@ -2,7 +2,7 @@ SET search_path TO public, extensions;
 
 -- ============================================
 -- 20260417122417_billing_activity_log.sql
--- Billing Engine Fase 1 — Task 1.7.5 (ADR-0122)
+-- Billing Engine Fase 1 — Task 1.7.5 (ADR-0125)
 -- Platform-scoped audit trail for billing actions.
 -- Supersedes the activity_trail dunning routing from ADR-0118 (which
 -- required a profile FK that platform admins don't have).
@@ -23,7 +23,7 @@ CREATE TABLE public.billing_activity_log (
   changes         jsonb NOT NULL DEFAULT '{}'::jsonb,
 
   -- user_identity FK (not profile). NULL for cron/system writers.
-  -- Per ADR-0122: platform admins write as themselves; cron writes with NULL.
+  -- Per ADR-0125: platform admins write as themselves; cron writes with NULL.
   actor_user_id   uuid REFERENCES public.user_identity(user_id),
 
   source          text NOT NULL DEFAULT 'web'
@@ -51,7 +51,7 @@ CREATE POLICY billing_log_company_admin_read ON public.billing_activity_log
 -- Actions + cron). Append-only: no UPDATE or DELETE policies.
 
 COMMENT ON TABLE public.billing_activity_log IS
-  'Platform-scoped audit trail for billing (ADR-0122). Supersedes the activity_trail dunning claim in ADR-0118. Immutable; service role writes, company admins read their own company.';
+  'Platform-scoped audit trail for billing (ADR-0125). Supersedes the activity_trail dunning claim in ADR-0118. Immutable; service role writes, company admins read their own company.';
 
 COMMENT ON COLUMN public.billing_activity_log.actor_user_id IS
   'user_identity FK. NULL for cron/system writers (monthly invoice generator). Platform admins write as themselves. NEVER a profile_id.';

@@ -33,7 +33,7 @@ describe("billing emit coverage (Phase 2)", () => {
     expect(EVENT_ROUTING[event]).toBeDefined();
   });
 
-  test.each(BILLING_EVENTS)("'%s' routes to billing_activity_log (ADR-0122)", (event) => {
+  test.each(BILLING_EVENTS)("'%s' routes to billing_activity_log (ADR-0125)", (event) => {
     expect(EVENT_ROUTING[event].destinations).toContain("billing_activity_log");
   });
 

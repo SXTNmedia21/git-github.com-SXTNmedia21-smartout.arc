@@ -46,7 +46,7 @@ None of the three reviewers named a true blocker for merge. The code-reviewer's 
 
 4. **`pricing_terms_id` not snapshotted on invoice** (code-reviewer important #5). `get_invoice_basis` date-range-searches pricing_terms at read time. Add `pricing_terms_id uuid REFERENCES pricing_terms(pricing_terms_id)` to `invoice` and populate at generation (Phase 4). Until then, `get_invoice_basis` returns "effective today's terms" for drafts, not "terms at draft creation".
 
-5. **Decision log inline summary for ADR-0118** (steward gap #1). Update `docs/decisions/0000-decision-log.md` line 33 to replace "dunning via activity_trail" with "dunning via billing_activity_log (superseded by ADR-0122)". The ADR file body is already correct; only the index summary is stale.
+5. **Decision log inline summary for ADR-0118** (steward gap #1). Update `docs/decisions/0000-decision-log.md` line 33 to replace "dunning via activity_trail" with "dunning via billing_activity_log (superseded by ADR-0125)". The ADR file body is already correct; only the index summary is stale.
 
 6. **Plan frontmatter `status: draft`** (steward gap #2). Bump to `status: in_progress` or similar so future subagents don't treat Phase 0/1 as pending.
 
@@ -77,7 +77,7 @@ Note: the non-billing legacy tests (`api-key-lifecycle.sql`, `derivation.sql`, e
 
 ## Deviations from Plan
 
-1. **Schema drift resolution** (Path C). Mid-preflight discovery caught 3 column-name drifts vs actual DB schema. ADR-0122 written, plan amended, Task 1.7.5 inserted. See `2026-04-17-billing-engine-fase-1-B1-HALT.md` for the full log.
+1. **Schema drift resolution** (Path C). Mid-preflight discovery caught 3 column-name drifts vs actual DB schema. ADR-0125 written, plan amended, Task 1.7.5 inserted. See `2026-04-17-billing-engine-fase-1-B1-HALT.md` for the full log.
 2. **Task 1.10 rewritten** to use the actual `engine_process` + `engine_step` two-table seed pattern (matching `20260304300000_seed_daily_close_process.sql`). Original plan's single-row `definition jsonb` shape didn't match schema reality.
 3. **Task 1.11 pgTAP location** placed in `supabase/tests/migrations/` with `SELECT plan()` format (per Supervisor recommendation at mid-B1) rather than the plan's original `supabase/tests/billing_*.sql` path, to match the governance-training precedent and get the tests into `npx supabase db test`'s scope.
 4. **Mid-B1 hardening migration** (`3abe305a`) added to bring `assign_invoice_number` and `prevent_nested_credit_notes` into the same SECURITY DEFINER + search_path posture as the other three billing functions. Supervisor-requested at mid-B1.

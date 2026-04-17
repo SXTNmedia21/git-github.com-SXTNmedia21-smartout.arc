@@ -66,7 +66,7 @@ SELECT policies_are('public', 'basis_drift_event', ARRAY[]::text[],
   'basis_drift_event has RLS enabled with NO policies (platform-admin only)');
 
 SELECT policies_are('public', 'billing_activity_log', ARRAY['billing_log_company_admin_read'],
-  'billing_activity_log has exactly one named policy (ADR-0122)');
+  'billing_activity_log has exactly one named policy (ADR-0125)');
 
 SELECT * FROM finish();
 ROLLBACK;

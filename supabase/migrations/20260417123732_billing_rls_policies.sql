@@ -19,7 +19,7 @@ SET search_path TO public, extensions;
 --   - No authenticated write policies — all mutations via Server Actions
 --     using createAdminClient() (service role).
 --
--- Per ADR-0118 (C3 Commercial consumer) and ADR-0122 (actor model).
+-- Per ADR-0118 (C3 Commercial consumer) and ADR-0125 (actor model).
 -- ============================================
 
 -- ── invoice ──────────────────────────────────────────────────

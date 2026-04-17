@@ -66,7 +66,7 @@ Each event needs an interface in `registry.ts` extending `BaseEvent` with its `p
 
 ### EVENT_ROUTING shape
 
-**Billing carve-out (ADR-0122):** billing events route to `billing_activity_log`, NOT `activity_trail`. See Task 2.1 for the full list and Task 2.1.5 for the new provider.
+**Billing carve-out (ADR-0125):** billing events route to `billing_activity_log`, NOT `activity_trail`. See Task 2.1 for the full list and Task 2.1.5 for the new provider.
 
 ```ts
 "invoice issued": {
@@ -114,10 +114,10 @@ Copy template from `docs/templates/decision.md`. Content:
 - **Title:** Invoice engine as C3 Commercial consumer
 - **Context:** Fase 1 billing spec introduces invoice + usage_snapshot tables. Placement question: new dimension? New control plane? Existing plane?
 - **Decision:** Invoice engine is a C3 Commercial *consumer* — reads D6 `schedule_shift` + K1b `pricing_terms`, writes its own tables, never mutates cascade sources. Invoice is a derived, period-bounded attribution of platform value to a billable entity (company).
-- **Rationale:** Matches cascade spec §2.3 ("C3 Commercial: What value was created? What does it cost?"). Billing is company-scoped not workspace-scoped — justifies workspace_id exception for `invoice`, `invoice_line_item` tables (`usage_snapshot` carries workspace_id per H6). Dunning notes via `billing_activity_log` (ADR-0122 supersedes the original "via activity_trail" call — activity_trail's `actor_id → profile` FK can't admit platform-admin actors) preserves cascade invariant #2.
-- **Consequences:** New ADR-0119 for usage reproducibility contract. New ADR-0120 for immutability. ADR-0122 supersedes the dunning routing. Module doc `MODULE_BILLING.md` to be written. Workspace_id exception documented.
+- **Rationale:** Matches cascade spec §2.3 ("C3 Commercial: What value was created? What does it cost?"). Billing is company-scoped not workspace-scoped — justifies workspace_id exception for `invoice`, `invoice_line_item` tables (`usage_snapshot` carries workspace_id per H6). Dunning notes via `billing_activity_log` (ADR-0125 supersedes the original "via activity_trail" call — activity_trail's `actor_id → profile` FK can't admit platform-admin actors) preserves cascade invariant #2.
+- **Consequences:** New ADR-0119 for usage reproducibility contract. New ADR-0120 for immutability. ADR-0125 supersedes the dunning routing. Module doc `MODULE_BILLING.md` to be written. Workspace_id exception documented.
 
-> **Note:** Task 0.1 was completed (commit `c9ef5aa4`) before ADR-0122 was drafted. The ADR-0118 file in `docs/decisions/0118-invoice-engine-as-c3-commercial-consumer.md` was amended in commit `087c9510` to reflect the supersession. This plan block retains the original rationale for historical reference but the live ADR is authoritative.
+> **Note:** Task 0.1 was completed (commit `c9ef5aa4`) before ADR-0125 was drafted. The ADR-0118 file in `docs/decisions/0118-invoice-engine-as-c3-commercial-consumer.md` was amended in commit `087c9510` to reflect the supersession. This plan block retains the original rationale for historical reference but the live ADR is authoritative.
 
 - [ ] **Step 3: Register in decision log**
 
@@ -793,9 +793,9 @@ Per ADR-0119. Detects retroactive shift modifications after invoice
 for the period was issued. Platform admin reviews + resolves."
 ```
 
-### Task 1.7.5: `billing_activity_log` table (ADR-0122)
+### Task 1.7.5: `billing_activity_log` table (ADR-0125)
 
-**Added after B1 drift review 2026-04-17.** The original plan routed dunning notes and platform-admin billing audit through `activity_trail`. That table's `actor_id` FK references `profile(profile_id)` (workspace-scoped) and is `NOT NULL`, so it cannot admit platform-admin actors. ADR-0122 introduces a dedicated company-scoped audit table; this task creates it.
+**Added after B1 drift review 2026-04-17.** The original plan routed dunning notes and platform-admin billing audit through `activity_trail`. That table's `actor_id` FK references `profile(profile_id)` (workspace-scoped) and is `NOT NULL`, so it cannot admit platform-admin actors. ADR-0125 introduces a dedicated company-scoped audit table; this task creates it.
 
 **Files:**
 - Create: `supabase/migrations/<ts>_billing_activity_log.sql`
@@ -835,7 +835,7 @@ CREATE POLICY billing_log_company_admin_read ON public.billing_activity_log
 -- No UPDATE or DELETE policies — append-only per bokføringslov §5.
 
 COMMENT ON TABLE public.billing_activity_log IS
-  'Platform-scoped audit trail for billing (ADR-0122). Supersedes the activity_trail dunning claim in ADR-0118. Immutable; service role writes, company admins read own company.';
+  'Platform-scoped audit trail for billing (ADR-0125). Supersedes the activity_trail dunning claim in ADR-0118. Immutable; service role writes, company admins read own company.';
 
 COMMENT ON COLUMN public.billing_activity_log.actor_user_id IS
   'user_identity FK. NULL for cron/system writers (monthly invoice generator). Platform admins write as themselves.';
@@ -848,7 +848,7 @@ npx supabase db reset
 psql $SUPABASE_DB_URL -c "\d+ public.billing_activity_log"
 # Expected: table + 3 indexes + 1 RLS policy visible
 git add supabase/migrations/*billing_activity_log.sql
-git commit -m "feat(billing-engine): add billing_activity_log table (ADR-0122)
+git commit -m "feat(billing-engine): add billing_activity_log table (ADR-0125)
 
 Company-scoped audit for platform-admin billing actions.
 Supersedes ADR-0118's activity_trail routing for billing events.
@@ -894,7 +894,7 @@ LEFT JOIN public.pricing_terms pt ON pt.company_id = c.company_id
   AND (pt.effective_until IS NULL OR pt.effective_until >= CURRENT_DATE)
   AND pt.effective_from <= CURRENT_DATE;
 
--- ADR-0122: dunning notes live in billing_activity_log (not activity_trail).
+-- ADR-0125: dunning notes live in billing_activity_log (not activity_trail).
 -- View is RLS-transparent — callers see only their own company's rows.
 CREATE VIEW public.v_invoice_dunning_notes AS
 SELECT
@@ -1189,7 +1189,7 @@ git commit -m "test(billing-engine): pgTAP tests for RLS + CHECK constraints"
 
 ### Task 2.1: Register billing events in telemetry registry
 
-**Drift patch 2026-04-17 (ADR-0122):** Billing events route to `billing_activity_log`, NOT `activity_trail`. This requires:
+**Drift patch 2026-04-17 (ADR-0125):** Billing events route to `billing_activity_log`, NOT `activity_trail`. This requires:
 1. Add `"billing_activity_log"` to the `EventDestination` union in `registry.ts` (Step 2.5 below).
 2. Create provider `packages/telemetry/src/providers/billing-activity-log.ts` (new Task 2.1.5 below).
 3. Wire the new destination into the emit() routing dispatcher (also Task 2.1.5).
@@ -1219,7 +1219,7 @@ export type EventCategory =
 
 - [ ] **Step 2.5: Add `billing_activity_log` to `EventDestination` union** (line ~10)
 
-Per ADR-0122, billing events route to a dedicated destination. Add the literal to the union so routing entries compile:
+Per ADR-0125, billing events route to a dedicated destination. Add the literal to the union so routing entries compile:
 
 ```ts
 export type EventDestination =
@@ -1227,7 +1227,7 @@ export type EventDestination =
   | "logger"
   | "activity_trail"
   | "engine_event"
-  | "billing_activity_log";  // ADR-0122
+  | "billing_activity_log";  // ADR-0125
 ```
 
 - [ ] **Step 3: Add entity types to `EntityType` union** (line ~44)
@@ -1408,9 +1408,9 @@ export type SmartoutEvent =
   },
 ```
 
-- [ ] **Step 7: ~~Add GIN index on activity_trail.properties~~ — obsolete per ADR-0122**
+- [ ] **Step 7: ~~Add GIN index on activity_trail.properties~~ — obsolete per ADR-0125**
 
-**Removed 2026-04-17.** The original G8 fix added a GIN index on `activity_trail.properties` for InvoiceTimeline lookups. With ADR-0122, billing audit lives in `billing_activity_log`, which is already indexed on `(invoice_id, created_at DESC)` and `(company_id, created_at DESC)` at creation time (see Task 1.7.5). No additional index needed.
+**Removed 2026-04-17.** The original G8 fix added a GIN index on `activity_trail.properties` for InvoiceTimeline lookups. With ADR-0125, billing audit lives in `billing_activity_log`, which is already indexed on `(invoice_id, created_at DESC)` and `(company_id, created_at DESC)` at creation time (see Task 1.7.5). No additional index needed.
 
 - [ ] **Step 8: Typecheck + commit**
 
@@ -1421,10 +1421,10 @@ git commit -m "feat(billing-engine): register 11 billing events with flat entity
 
 Space-separated event names per convention. Flat entity_type/entity_id
 contract per L-0038. Billing events route to billing_activity_log
-(ADR-0122), not activity_trail."
+(ADR-0125), not activity_trail."
 ```
 
-### Task 2.1.5: `billing_activity_log` provider + emit() wiring (ADR-0122)
+### Task 2.1.5: `billing_activity_log` provider + emit() wiring (ADR-0125)
 
 **Added 2026-04-17.** Registering the destination name without a provider yields silent drops. This task implements the provider and wires it into the emit dispatcher.
 
@@ -1446,7 +1446,7 @@ const getSupabaseClient = () =>
   );
 
 /**
- * Writes billing events to billing_activity_log (ADR-0122).
+ * Writes billing events to billing_activity_log (ADR-0125).
  *
  * Semantics that differ from writeActivityTrail:
  * - event.actor_id is interpreted as user_identity.user_id, NOT profile_id.
@@ -1546,7 +1546,7 @@ Preserve the Promise.all / parallel pattern the existing dispatcher uses.
 ```bash
 pnpm turbo typecheck --filter=@smartout/telemetry
 git add packages/telemetry/src/providers/billing-activity-log.ts packages/telemetry/src/emit.ts
-git commit -m "feat(billing-engine): add billing_activity_log provider (ADR-0122)
+git commit -m "feat(billing-engine): add billing_activity_log provider (ADR-0125)
 
 Routes billing events to billing_activity_log instead of activity_trail.
 actor_id interpreted as user_identity.user_id (not profile_id).
@@ -2853,7 +2853,7 @@ const EVENT_ICONS = {
   'dunning_note added': MessageSquare,
 };
 
-// ADR-0122: billing audit lives in billing_activity_log (not activity_trail).
+// ADR-0125: billing audit lives in billing_activity_log (not activity_trail).
 // Query uses the invoice_id FK directly — no properties->entity indirection.
 export async function InvoiceTimeline({ invoiceId }: { invoiceId: string }) {
   const supabase = createAdminClient();
@@ -3178,7 +3178,7 @@ git commit -m "feat(billing-engine): add issueCreditNote Server Action"
 
 ### Task 7.5: `addDunningNote` Server Action
 
-- [ ] **Step 1: Write action** — writes to `billing_activity_log` via `emit({ event: 'dunning_note added', ... })` (ADR-0122, supersedes the dunning_note-via-activity_trail call in ADR-0118). Updates `invoice.dunning_status = 'in_negotiation'` if was `'none'`.
+- [ ] **Step 1: Write action** — writes to `billing_activity_log` via `emit({ event: 'dunning_note added', ... })` (ADR-0125, supersedes the dunning_note-via-activity_trail call in ADR-0118). Updates `invoice.dunning_status = 'in_negotiation'` if was `'none'`.
 
 - [ ] **Step 2: Commit**
 
@@ -3495,7 +3495,7 @@ UTF-8 BOM for Excel compatibility. Norwegian decimal separator."
 
 - [ ] **Step 3: Wire to `updatePricingTerms` Server Action (Task 7.3).**
 
-- [ ] **Step 4: Config change history below form** — read `billing_activity_log` for `pricing_terms updated` events (ADR-0122).
+- [ ] **Step 4: Config change history below form** — read `billing_activity_log` for `pricing_terms updated` events (ADR-0125).
 
 - [ ] **Step 5: Commit**
 
@@ -3986,7 +3986,7 @@ Before declaring plan complete, verify each spec section has at least one task:
 | §5.2 invoice table | Task 1.4 |
 | §5.3 invoice_line_item | Task 1.5 |
 | §5.4 usage_snapshot | Task 1.6 |
-| §5.5 dunning via billing_activity_log (ADR-0122 supersedes §5.5's activity_trail call) | Task 1.7.5 (table) + Task 1.8 (view) + Task 7.3 addDunningNote |
+| §5.5 dunning via billing_activity_log (ADR-0125 supersedes §5.5's activity_trail call) | Task 1.7.5 (table) + Task 1.8 (view) + Task 7.3 addDunningNote |
 | §5.6 basis_drift_event | Task 1.7 |
 | §5.7 v_current_plan_preview + get_invoice_basis | Task 1.8 |
 | §5.8 enums | Task 1.3 |

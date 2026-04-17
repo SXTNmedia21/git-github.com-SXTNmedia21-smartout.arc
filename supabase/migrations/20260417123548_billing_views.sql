@@ -5,7 +5,7 @@ SET search_path TO public, extensions;
 -- Billing Engine Fase 1 — Task 1.8
 -- Two views + one function for the billing engine:
 --   - v_current_plan_preview  — company/workspace/pricing snapshot + current-month usage
---   - v_invoice_dunning_notes — dunning notes from billing_activity_log (ADR-0122)
+--   - v_invoice_dunning_notes — dunning notes from billing_activity_log (ADR-0125)
 --   - get_invoice_basis()     — full invoice basis for AI-tool + audit read
 -- ============================================
 
@@ -45,8 +45,8 @@ LEFT JOIN public.pricing_terms pt
 COMMENT ON VIEW public.v_current_plan_preview IS
   'Company + workspace + currently-effective pricing_terms + current-month active-user count. Active users counted per ADR-0119 predicate (completed shifts with employee_id).';
 
--- ── v_invoice_dunning_notes (ADR-0122) ───────────────────────
--- Dunning notes live in billing_activity_log (ADR-0122 supersedes the
+-- ── v_invoice_dunning_notes (ADR-0125) ───────────────────────
+-- Dunning notes live in billing_activity_log (ADR-0125 supersedes the
 -- original activity_trail routing from ADR-0118). View is RLS-transparent:
 -- company admin sees only their own company's rows via is_admin_in_company
 -- policy on billing_activity_log (Task 1.7.5).
@@ -65,7 +65,7 @@ WHERE bal.event = 'dunning_note added'
   AND bal.entity_type = 'invoice';
 
 COMMENT ON VIEW public.v_invoice_dunning_notes IS
-  'Dunning notes sourced from billing_activity_log (ADR-0122). RLS-transparent via billing_activity_log.billing_log_company_admin_read.';
+  'Dunning notes sourced from billing_activity_log (ADR-0125). RLS-transparent via billing_activity_log.billing_log_company_admin_read.';
 
 -- ── get_invoice_basis(p_invoice_id) ──────────────────────────
 -- Returns the complete basis for an invoice: line items, usage snapshots,

@@ -6,7 +6,7 @@ SET search_path TO public, extensions;
 -- RLS helper for company-scoped billing tables (invoice, invoice_line_item,
 -- usage_snapshot, billing_activity_log). Mirrors is_admin_in_workspace()
 -- pattern but scoped to company instead of workspace.
--- Referenced by ADR-0118 (C3 Commercial consumer) and ADR-0122.
+-- Referenced by ADR-0118 (C3 Commercial consumer) and ADR-0125.
 -- ============================================
 
 CREATE OR REPLACE FUNCTION public.is_admin_in_company(p_user_id uuid, p_company_id uuid)
@@ -26,4 +26,4 @@ $$;
 GRANT EXECUTE ON FUNCTION public.is_admin_in_company(uuid, uuid) TO authenticated;
 
 COMMENT ON FUNCTION public.is_admin_in_company IS
-  'Returns true if user is an active admin/owner in the given company. Used by billing engine RLS (ADR-0118, ADR-0122).';
+  'Returns true if user is an active admin/owner in the given company. Used by billing engine RLS (ADR-0118, ADR-0125).';

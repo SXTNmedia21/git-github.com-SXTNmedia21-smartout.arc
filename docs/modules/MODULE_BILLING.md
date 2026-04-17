@@ -100,7 +100,7 @@ Per ADR-0119:
 
 ## 5. Activity Log — Why Billing Has Its Own Audit Table
 
-`billing_activity_log` (created in Task 1.7.5 per ADR-0122) is the billing domain's audit and event-recording surface. It exists because neither `activity_trail` nor `telemetry.event_log` can host billing events without semantic compromise.
+`billing_activity_log` (created in Task 1.7.5 per ADR-0125) is the billing domain's audit and event-recording surface. It exists because neither `activity_trail` nor `telemetry.event_log` can host billing events without semantic compromise.
 
 ### The Gap in activity_trail
 
@@ -109,7 +109,7 @@ Per ADR-0119:
 1. Force fake "system" profiles per workspace (schema lie, authority confusion), OR
 2. Leave `actor_id` NULL for all platform-admin-driven events (breaks the audit contract).
 
-ADR-0118 originally proposed activity_trail; **ADR-0122 supersedes that** with a dedicated table.
+ADR-0118 originally proposed activity_trail; **ADR-0125 supersedes that** with a dedicated table.
 
 ### billing_activity_log Schema
 
@@ -296,7 +296,7 @@ Billing tables do NOT have API key RLS policies. Billing is an internal platform
 
 ## 10. Reference Files
 
-- **ADRs:** `docs/decisions/0118-invoice-engine-as-c3-commercial-consumer.md`, `0119-usage-snapshot-reproducibility.md`, `0120-invoice-immutability-credit-note-policy.md`, `0121-pricing-terms-billing-engine-extension.md`, `0122-billing-activity-log-as-platform-scoped-audit.md`
+- **ADRs:** `docs/decisions/0118-invoice-engine-as-c3-commercial-consumer.md`, `0119-usage-snapshot-reproducibility.md`, `0120-invoice-immutability-credit-note-policy.md`, `0121-pricing-terms-billing-engine-extension.md`, `0125-billing-activity-log-as-platform-scoped-audit.md`
 - **Spec:** `docs/superpowers/specs/2026-04-17-billing-engine-fase-1-design.md`
 - **Plan:** `docs/superpowers/plans/2026-04-17-billing-engine-fase-1.md`
 - **B1 verdict:** `docs/superpowers/plans/2026-04-17-billing-engine-fase-1-B1-COUNCIL-VERDICT.md`

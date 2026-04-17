@@ -1,6 +1,6 @@
 ---
 title: "billing_activity_log as platform-scoped audit trail for billing"
-id: ADR_0122
+id: ADR_0125
 status: accepted
 layer: decision
 created: 2026-04-17
@@ -9,7 +9,13 @@ module: billing
 tags: [adr, billing, audit, activity-trail, platform-admin, supersedes]
 ---
 
-# ADR-0122: billing_activity_log as platform-scoped audit trail for billing
+# ADR-0125: billing_activity_log as platform-scoped audit trail for billing
+
+> **Renumbered 2026-04-17 from ADR-0122 → ADR-0125.** The branch
+> `feat/billing-engine-fase-1` assigned 0122 locally before `development`
+> landed an unrelated ADR-0122 (governance telemetry quad-destination)
+> at commit `45720af1`. Renumbered preemptively to avoid churn at merge.
+> Content unchanged.
 
 ## Context and Problem Statement
 
@@ -117,7 +123,7 @@ This ADR **supersedes the specific claim in ADR-0118 §Rationale**:
 
 > "Dunning notes via activity_trail (no dunning_note table) preserves cascade invariant #2."
 
-Replace with: "Dunning notes and all platform-admin billing audit via `billing_activity_log` (ADR-0122). Cascade invariant #2 is preserved by routing through the shared `emit()` primitive; the persistence destination is billing-specific."
+Replace with: "Dunning notes and all platform-admin billing audit via `billing_activity_log` (ADR-0125). Cascade invariant #2 is preserved by routing through the shared `emit()` primitive; the persistence destination is billing-specific."
 
 ADR-0118 otherwise remains `accepted`. The C3 Commercial consumer framing, the workspace_id exception, the reads-from-D6+K1b architecture, and the consequences on ADR-0119/0120/MODULE_BILLING stand unchanged.
 

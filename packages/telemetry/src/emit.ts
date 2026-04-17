@@ -45,7 +45,7 @@ export async function emit(event: SmartoutEvent): Promise<void> {
     promises.push(sendToEngine(event));
   }
 
-  // 5. Billing Activity Log (platform-scoped billing audit per ADR-0122)
+  // 5. Billing Activity Log (platform-scoped billing audit per ADR-0125)
   if (routing.destinations.includes("billing_activity_log")) {
     const { writeBillingActivityLog } = await import("./providers/billing-activity-log");
     promises.push(writeBillingActivityLog(event, routing));
