@@ -18,6 +18,7 @@ export * from "./queries";
 export * from "./hooks";
 export * from "./dispatch";
 export * from "./integrations";
+export * from "./actions/_shared";
 export * from "./actions/dispatch";
 export * from "./actions/dispatch-rules";
 export * from "./actions/integrations";
