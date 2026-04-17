@@ -2090,6 +2090,70 @@ export type Database = {
           },
         ]
       }
+      billing_activity_log: {
+        Row: {
+          actor_user_id: string | null
+          changes: Json
+          company_id: string
+          created_at: string
+          data: Json
+          entity_id: string
+          entity_type: string
+          event: string
+          id: number
+          invoice_id: string | null
+          source: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          changes?: Json
+          company_id: string
+          created_at?: string
+          data?: Json
+          entity_id: string
+          entity_type: string
+          event: string
+          id?: number
+          invoice_id?: string | null
+          source?: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          changes?: Json
+          company_id?: string
+          created_at?: string
+          data?: Json
+          entity_id?: string
+          entity_type?: string
+          event?: string
+          id?: number
+          invoice_id?: string | null
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_activity_log_actor_user_id_fkey"
+            columns: ["actor_user_id"]
+            isOneToOne: false
+            referencedRelation: "user_identity"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "billing_activity_log_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "billing_activity_log_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoice"
+            referencedColumns: ["invoice_id"]
+          },
+        ]
+      }
       call_log: {
         Row: {
           call_session_id: string
