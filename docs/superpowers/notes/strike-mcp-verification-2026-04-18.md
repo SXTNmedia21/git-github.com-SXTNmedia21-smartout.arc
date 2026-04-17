@@ -40,6 +40,17 @@ Companion to `docs/plans/PLAN-strike-mcp-verification.md`. Append results as eac
 
 ## Phase B — Live MCP smoke per tool
 
+**2026-04-18 first attempt: BLOCKED on prereqs.** Attempted inside the original Claude Code session (launched before `.mcp.json` was fixed). Results:
+
+| Prereq | Status |
+|---|---|
+| `BUBBLE_API_TOKEN` exported | ❌ unset |
+| `BUBBLE_APP_URL` exported | ❌ unset |
+| Local Supabase running | ✅ `http://127.0.0.1:54321` (Studio 54323, Mailpit 54324) |
+| strike-mcp MCP registered | ❌ `ToolSearch` returned no `mcp__strike-mcp__*` — `.mcp.json` change took effect after session start |
+
+**Resolution:** Must launch a fresh Claude Code session with `BUBBLE_API_TOKEN` in the environment. Per secrets-protocol, the token is never read into AI context — it travels through shell env or `op run` wrapper only.
+
 _Populated as each tool runs. Format: tool → input → excerpt of output → pass/fail._
 
 ### 1. list_workspaces
