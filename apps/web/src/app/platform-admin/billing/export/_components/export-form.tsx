@@ -30,7 +30,7 @@ export function ExportForm() {
     }
     // Navigate in-place triggers the download. `window.location.assign`
     // rather than a fetch preserves the browser's native file-save UX.
-    window.location.assign(`/platform-admin/billing/export?${params.toString()}`);
+    window.location.assign(`/platform-admin/billing/export/csv?${params.toString()}`);
   };
 
   const disabled = !periodFrom || !periodTo || periodFrom > periodTo;

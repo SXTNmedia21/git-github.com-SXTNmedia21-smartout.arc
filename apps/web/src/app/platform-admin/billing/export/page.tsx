@@ -7,7 +7,7 @@ import { ExportForm } from "./_components/export-form";
 //
 // Platform-admin picks period_from / period_to (and optionally a
 // specific company_id) and submits to the Route Handler at
-// `/platform-admin/billing/export` which streams the CSV back.
+// `/platform-admin/billing/export/csv` which streams the CSV back.
 
 export default async function ExportPage() {
   const adminId = await getSuperAdminId();

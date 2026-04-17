@@ -4,7 +4,7 @@ import { getSuperAdminId } from "@/lib/platform-admin";
 
 // Phase 8.3 — CSV export Route Handler.
 //
-// GET /platform-admin/billing/export?period_from=YYYY-MM-DD&period_to=YYYY-MM-DD
+// GET /platform-admin/billing/export/csv?period_from=YYYY-MM-DD&period_to=YYYY-MM-DD
 // -> text/csv (UTF-8 BOM for Excel, semicolon delimiter, Norwegian
 //    decimal separator).
 //
