@@ -7519,6 +7519,134 @@ export type Database = {
           },
         ]
       }
+      invoice: {
+        Row: {
+          amount_excl_vat: number
+          amount_incl_vat: number
+          company_id: string
+          created_at: string
+          created_by: string | null
+          credits_invoice_id: string | null
+          currency: Database["public"]["Enums"]["currency"]
+          delivery_channel: string
+          delivery_status: string | null
+          due_at: string | null
+          dunning_status: Database["public"]["Enums"]["dunning_status"] | null
+          external_reference: string | null
+          invoice_id: string
+          invoice_number: number | null
+          invoice_type: Database["public"]["Enums"]["invoice_type"]
+          issued_at: string | null
+          paid_at: string | null
+          payment_channel: string | null
+          payment_date: string | null
+          payment_reference: string | null
+          period_from: string
+          period_to: string
+          sent_at: string | null
+          status: Database["public"]["Enums"]["invoice_status"]
+          updated_at: string
+          vat_amount: number
+          vat_rate: number
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
+        }
+        Insert: {
+          amount_excl_vat: number
+          amount_incl_vat: number
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          credits_invoice_id?: string | null
+          currency?: Database["public"]["Enums"]["currency"]
+          delivery_channel?: string
+          delivery_status?: string | null
+          due_at?: string | null
+          dunning_status?: Database["public"]["Enums"]["dunning_status"] | null
+          external_reference?: string | null
+          invoice_id?: string
+          invoice_number?: number | null
+          invoice_type: Database["public"]["Enums"]["invoice_type"]
+          issued_at?: string | null
+          paid_at?: string | null
+          payment_channel?: string | null
+          payment_date?: string | null
+          payment_reference?: string | null
+          period_from: string
+          period_to: string
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["invoice_status"]
+          updated_at?: string
+          vat_amount: number
+          vat_rate?: number
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Update: {
+          amount_excl_vat?: number
+          amount_incl_vat?: number
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          credits_invoice_id?: string | null
+          currency?: Database["public"]["Enums"]["currency"]
+          delivery_channel?: string
+          delivery_status?: string | null
+          due_at?: string | null
+          dunning_status?: Database["public"]["Enums"]["dunning_status"] | null
+          external_reference?: string | null
+          invoice_id?: string
+          invoice_number?: number | null
+          invoice_type?: Database["public"]["Enums"]["invoice_type"]
+          issued_at?: string | null
+          paid_at?: string | null
+          payment_channel?: string | null
+          payment_date?: string | null
+          payment_reference?: string | null
+          period_from?: string
+          period_to?: string
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["invoice_status"]
+          updated_at?: string
+          vat_amount?: number
+          vat_rate?: number
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "invoice_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_identity"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "invoice_credits_invoice_id_fkey"
+            columns: ["credits_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoice"
+            referencedColumns: ["invoice_id"]
+          },
+          {
+            foreignKeyName: "invoice_voided_by_fkey"
+            columns: ["voided_by"]
+            isOneToOne: false
+            referencedRelation: "user_identity"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       journey: {
         Row: {
           actor: Database["public"]["Enums"]["journey_actor"]
@@ -16021,6 +16149,7 @@ export type Database = {
         | "research"
         | "roadmap"
         | "other"
+      dunning_status: "none" | "in_negotiation" | "reminder_sent" | "escalated"
       enforcement_status: "aspirational" | "enforced"
       evaluation_outcome:
         | "allowed"
@@ -16050,6 +16179,21 @@ export type Database = {
       industry: "restaurant" | "hotel" | "cafe" | "bar" | "catering" | "other"
       invite_status: "pending" | "accepted" | "expired" | "cancelled"
       invite_type: "email" | "sms" | "link"
+      invoice_line_type:
+        | "base_plan"
+        | "user_overage"
+        | "addon"
+        | "onboarding"
+        | "adjustment"
+      invoice_status:
+        | "draft"
+        | "issued"
+        | "sent"
+        | "paid"
+        | "overdue"
+        | "void"
+        | "uncollectible"
+      invoice_type: "recurring" | "onboarding" | "credit_note" | "one_off"
       journey_actor:
         | "employee"
         | "trainee"
@@ -17466,6 +17610,7 @@ export const Constants = {
         "roadmap",
         "other",
       ],
+      dunning_status: ["none", "in_negotiation", "reminder_sent", "escalated"],
       enforcement_status: ["aspirational", "enforced"],
       evaluation_outcome: [
         "allowed",
@@ -17499,6 +17644,23 @@ export const Constants = {
       industry: ["restaurant", "hotel", "cafe", "bar", "catering", "other"],
       invite_status: ["pending", "accepted", "expired", "cancelled"],
       invite_type: ["email", "sms", "link"],
+      invoice_line_type: [
+        "base_plan",
+        "user_overage",
+        "addon",
+        "onboarding",
+        "adjustment",
+      ],
+      invoice_status: [
+        "draft",
+        "issued",
+        "sent",
+        "paid",
+        "overdue",
+        "void",
+        "uncollectible",
+      ],
+      invoice_type: ["recurring", "onboarding", "credit_note", "one_off"],
       journey_actor: [
         "employee",
         "trainee",
