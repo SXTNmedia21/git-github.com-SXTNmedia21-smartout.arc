@@ -2,7 +2,7 @@
   "mcpServers": {
     "strike-mcp": {
       "command": "node",
-      "args": ["/home/sxtnl/dev/strike-mcp/dist/index.js"],
+      "args": ["/home/sxtnl/dev/smartout.ai/services/strike-mcp/dist/index.js"],
       "env": {
         "BUBBLE_APP_URL": "https://smartout.io",
         "BUBBLE_API_TOKEN": "${BUBBLE_API_TOKEN}"

@@ -28,6 +28,15 @@ A second structural question must be answered alongside this one: the existing R
 - **No platform-specific code in `@smartout/data`:** the gate is called from Next.js server code, Edge Functions, Hono services, and React Native — it cannot require a Node-only library or a Next-specific runtime.
 - **Rollback is mandatory:** if the gate misfires on a fresh workspace, we need a feature flag to degrade to legacy behaviour per workspace without shipping a revert.
 
+## Implementation Status — 2026-04-18
+
+- **WP1 (evaluate_framework_rules helpers):** status unchanged from original ADR.
+- **WP2 (Postgres function `public.cascade_gate_write`):** **NOT SHIPPED.** No migration exists in `supabase/migrations/` that creates this function. Grep confirms zero SQL definitions.
+- **WP3 (TypeScript wrapper `gatedInsert` / `gatedUpdate` / `gatedDelete`):** scaffold shipped 2026-04-17 (commit `b90dc1f5`) at `packages/supabase/src/gate-client.ts`. **The wrapper calls `cascade_gate_write` which does not yet exist.** Calling any `gated*` helper today will throw `42883 function does not exist`. The scaffold is present so WP2 can ship without downstream refactoring; it is NOT to be used by call sites until WP2 lands.
+- **WP4+ (call-site migration, ESLint rule escalation):** blocked on WP2.
+
+Related: ADR-0099 (unified authority gate, `public.gate_action`) is a separate RPC solving authority/capability checks for the agent router + engine dispatch. It is NOT a substitute for `cascade_gate_write` — different semantics (capability gate vs diff-based write gate).
+
 ## Considered Options
 
 1. **Postgres RPC with `SECURITY DEFINER` (chosen)** — a single SQL function `cascade_gate_write(entity_type, entity_id, action, proposed_data, context)` called by every write path. Internally validates the caller (app role or JWT), evaluates framework rules via `evaluate_framework_rules()` (WP1, invoked from the RPC body), resolves `engine_authority_config`, wraps `checkPermission()` logic, and returns a single structured outcome. Writes that pass proceed; writes that don't either raise a typed SQLSTATE or auto-create a `change_proposal` and raise a gate-deferred error.

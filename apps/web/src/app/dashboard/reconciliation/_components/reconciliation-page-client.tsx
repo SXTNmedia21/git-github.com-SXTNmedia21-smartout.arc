@@ -1,3 +1,16 @@
+/**
+ * ReconciliationPageClient — client boundary for /dashboard/reconciliation.
+ *
+ * Per ADR-0115 RSC migration pattern: the route's `page.tsx` is a Server
+ * Component that wraps this single client boundary in `<Suspense>`. All
+ * interactive state + data fetching for the daily reconciliation surface
+ * lives here.
+ *
+ * Two-panel layout:
+ *   Left (w-80):  DayList — all reconciliations for the workspace
+ *   Right (flex-1): DayApproval — detail + approval controls for selected day
+ */
+
 "use client";
 
 import { useState } from "react";
@@ -5,7 +18,7 @@ import { DayList } from "./DayList";
 import { DayApproval } from "./DayApproval";
 import { useReconciliationList } from "../_hooks/useReconciliation";
 
-export function ReconciliationDashboard() {
+export function ReconciliationPageClient() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const { data: reconciliations, isLoading } = useReconciliationList();
 
