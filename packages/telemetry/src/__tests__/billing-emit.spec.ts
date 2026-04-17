@@ -38,6 +38,7 @@ const BILLING_EVENTS: EventName[] = [
   "integration sync mocked",
   "integration test_connection succeeded",
   "integration test_connection failed",
+  "integration audit violation",
   "invoice line_item added",
   "invoice line_item edited",
   "invoice line_item removed",
@@ -127,6 +128,7 @@ describe("billing emit coverage (Phase 2)", () => {
     "integration sync mocked": ["logger"],
     "integration test_connection succeeded": ["logger", "billing_activity_log"],
     "integration test_connection failed": ["logger", "billing_activity_log"],
+    "integration audit violation": ["posthog", "logger", "billing_activity_log", "engine_event"],
     // Invoice editing
     "invoice line_item added": ["posthog", "logger", "billing_activity_log"],
     "invoice line_item edited": ["posthog", "logger", "billing_activity_log"],

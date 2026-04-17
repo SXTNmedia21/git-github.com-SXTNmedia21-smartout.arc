@@ -3953,6 +3953,26 @@ export interface IntegrationTestConnectionFailed extends BaseEvent {
   };
 }
 
+// ADR-0129 fail-safe: fired when a real adapter returns `succeeded` on an
+// integration row flagged `is_placeholder=true`, OR when the
+// PlaceholderAdapter reports `succeeded` instead of `mocked`. Either case
+// corrupts the audit trail, so we emit LOUD and abort the engine step.
+export interface IntegrationAuditViolation extends BaseEvent {
+  event: "integration audit violation";
+  properties: {
+    entity_type: "billing_integration";
+    entity_id: string;
+    data: {
+      integration_type: string;
+      is_placeholder: boolean;
+      reported_status: string;
+      violation_kind: "placeholder_reported_succeeded" | "real_adapter_on_placeholder_row";
+      entity_type_synced: string;
+      entity_id_synced: string;
+    };
+  };
+}
+
 // ─── Billing Fase 2 — Invoice editing ───────────────
 
 export interface InvoiceLineItemAdded extends BaseEvent {
@@ -4513,6 +4533,7 @@ export type SmartoutEvent =
   | IntegrationSyncMocked
   | IntegrationTestConnectionSucceeded
   | IntegrationTestConnectionFailed
+  | IntegrationAuditViolation
   | InvoiceLineItemAdded
   | InvoiceLineItemEdited
   | InvoiceLineItemRemoved
@@ -6096,6 +6117,14 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "integration test_connection failed": {
     destinations: ["logger", "billing_activity_log"],
+    category: "billing",
+  },
+
+  // ADR-0129 audit-safety: adapter violated the placeholder contract.
+  // High-severity — PostHog + billing_activity_log + engine_event so both
+  // PostHog alerts and the admin audit queries catch the anomaly.
+  "integration audit violation": {
+    destinations: ["posthog", "logger", "billing_activity_log", "engine_event"],
     category: "billing",
   },
 
