@@ -154,11 +154,15 @@ SELECT is(
   'last_sync_status accepts ok value'
 );
 
--- Reject invalid value
+-- Reject invalid value — target the seeded row via current_setting.
+-- Static UUID in earlier revision affected zero rows and never fired CHECK.
 SELECT throws_ok(
-  $$UPDATE public.billing_integration
-      SET last_sync_status = 'bogus'
-    WHERE integration_id = '00000000-0000-0000-0000-000000000001'$$,
+  format(
+    $fmt$UPDATE public.billing_integration
+           SET last_sync_status = 'bogus'
+         WHERE integration_id = %L$fmt$,
+    current_setting('test.int_status')
+  ),
   '23514',
   NULL,
   'last_sync_status rejects values outside ok/error/partial/NULL (CHECK)'
