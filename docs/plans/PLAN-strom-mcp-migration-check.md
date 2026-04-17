@@ -45,17 +45,37 @@ This branch is the **integration boundary** between two independent codebases:
 - [x] ADR-0006 amended with apply-script SAVEPOINT + force-password-reset +
       cutover artifacts requirement (in strike-mcp)
 
-### Tier 2 — governance content layer — IN PROGRESS
+### Tier 2 — content extraction (approach pivoted 2026-04-17) — IN PROGRESS
+
+**Reframe (Pontus, 2026-04-17):** "Vi behøver ikke hente information table by
+table — vi henter kunnskapen fra workspacen og implementerer den i version 3."
+Tier 2 is no longer a structural schema-mapping problem; it's a content
+extraction + v3-native re-creation problem.
 
 - [x] Discovery doc captured 2026-04-17 — `~/dev/strike-mcp/docs/source/DISCOVERED-bubble-content-model.md`
-      (7-entity content stack from Genesis bubble-mcp source)
-- [ ] Run discovery for 5 missing Bubble entities (`activity`,
-      `handbook.challenge`, `question`, `🎖️handbook.log`, `🎖️ badge`)
-- [ ] Council review on Bubble → v3 governance hierarchy mapping
-      (4 open questions — see DISCOVERED doc)
-- [ ] Patch + attest Tier 2 entities
-- [ ] Re-verify training + handbooks attestations (Tier 1 mappings need
-      revisit now we know they're per-employee summary + container respectively)
+- [x] Live meta verification of 6 Tier 2 entities (strike-mcp commit bc5d70b)
+- [x] Run discovery for 5 live entities (`🎖️ badge` confirmed non-existent)
+- [x] Council ran 2026-04-17, produced APPROVE WITH CHANGES verdict, then
+      Pontus superseded with knowledge-extraction reframe. See Learning 0034.
+- [x] **Tier 2 v1 extraction pipeline (strike-mcp commits e52358b + 026ea7f):**
+      `scripts/tier2_extract.ts` — handbook → protocol + challenge →
+      confirmation + live activity → procedure. Produces DRY-RUN SQL at
+      `~/dev/strike-mcp/supabase/migration-staging-tier2/`.
+- [x] **Spec:** `~/dev/strike-mcp/docs/superpowers/specs/2026-04-17-tier2-content-extraction.md`
+
+Open items (post-pivot):
+
+- [ ] Tier 2 v2: activity tree → procedure_step nesting (preserve children + 🚀 Parant)
+- [ ] Tier 2 v2: route live activities by `_activityType` to specialized v3
+      entities (control_list, routine, knowledge_test) vs flat procedure
+- [ ] Tier 1 `handbooks → runbook` attestation hole (surfaced by Supervisor
+      in 2026-04-17 council — runbook has NOT NULL trigger_event etc. that
+      handbooks don't have). Requires Tier 1 re-attestation → protocol.
+- [ ] Live `knowledge_test.workspace_id` writer bug in
+      `apps/web/src/.../use-governance-mutations.ts:332` (surfaced by Agent
+      Coordinator code-trace)
+- [ ] Decide Tier 2 quiz scope (deferred — depends on whether Wrightegaarden
+      will author its own questions or reference global ones)
 
 ### Tier 3 — salary/time rules — DEFERRED
 

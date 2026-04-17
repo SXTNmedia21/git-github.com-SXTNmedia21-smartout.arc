@@ -76,18 +76,47 @@ See `~/dev/strike-mcp/` for full history. Highlights:
   company UUID. Multi-tenant requires cross-entity lookup framework
   (future strike-mcp ADR).
 
+## Tier 2 status (2026-04-17 updated)
+
+**Discovery:** done (commit bc5d70b in strike-mcp). 6 entities verified
+against live Bubble meta; `🎖️ badge` confirmed non-existent; `handbook.stage`
+and `question.option` added (missed in Genesis scan).
+
+**Council:** ran 2026-04-17 (APPROVE WITH CHANGES verdict), then superseded
+by Pontus reframe: *"Vi behøver ikke hente information table by table —
+vi henter kunnskapen fra workspacen og implementerer den i version 3."*
+See Learning 0034.
+
+**Pipeline (strike-mcp commits e52358b + 026ea7f):**
+- `scripts/tier2_extract.ts` — content-extraction pipeline
+- Spec: `~/dev/strike-mcp/docs/superpowers/specs/2026-04-17-tier2-content-extraction.md`
+- Live DRY-RUN output for Wrightegaarden at
+  `~/dev/strike-mcp/supabase/migration-staging-tier2/`:
+  - 01_policy.sql (1 bookkeeping policy)
+  - 02_protocol.sql (3 protocols: 2 handbooks + 1 operational-procedures container)
+  - 03_procedure.sql (52 live procedures, filtered from 935 activities)
+  - 04_confirmation.sql (2 challenges linked to handbooks)
+  - MANIFEST.json
+
+**Surprise finding:** Wrightegaarden has only 2 handbooks (the "26" in early
+discovery was the global total across all Bubble workspaces). Most content is
+in activities; 683 of 935 activities are soft-deleted in Bubble (`Active 🚫 = false`);
+52 are live (Published + Active).
+
 ## Next steps (in priority order)
 
-1. **Tier 2 discovery** — run strike-mcp `run_discovery.ts` for the 5
-   missing Bubble content entities. Inputs needed in
-   `~/dev/strike-mcp/docs/source/`:
-   - Pontus's content model overview (Norwegian or English) — already
-     captured indirectly via Genesis bubble-mcp scan
-   - Live API discovery output for each entity
-2. **Council on Tier 2 mapping** — 4 open design questions in
-   `~/dev/strike-mcp/docs/source/DISCOVERED-bubble-content-model.md`
-3. **Build strike-auth-bridge** — separate workstream, 1-2 days
-4. **Production cutover** — only after auth-bridge + Tier 2 land
+1. **Tier 2 v2** — activity tree → procedure_step nesting; route by
+   `_activityType` to specialized v3 entities (control_list/routine/etc.)
+2. **Tier 1 attestation patch** — `handbooks → runbook` mapping is invalid
+   (runbook has NOT NULL trigger_event/escalation_chain/control_list_id
+   that handbooks lack). Re-attest to `handbooks → protocol`. Blocker for
+   Tier 2 apply.
+3. **Live bug fix** — `knowledge_test.workspace_id` write in
+   `apps/web/src/.../use-governance-mutations.ts:332` references a column
+   that doesn't exist.
+4. **Build strike-auth-bridge** — separate workstream, 1-2 days, blocks all
+   production apply (Tier 1 + Tier 2).
+5. **Production cutover** — only after auth-bridge + Tier 1 patch + Tier 2 v2.
 
 ## Boot sources for next session
 

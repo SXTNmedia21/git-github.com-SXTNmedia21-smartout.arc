@@ -678,3 +678,20 @@ Phase 3: Agent wiring (after C merges)
 **Boundary insight:** Migration "attestation complete" ≠ "apply ready". Attestation lives on the LEFT (strike-mcp emit-time correctness); apply-readiness lives on the RIGHT (operational wrappers). Captured as Learning 0033.
 **ADR amendments:** strike-mcp ADR-0006 amended with required apply-script behaviors + login-flow gate + cutover artifacts requirement + bridge timeline + auth-method homogeneity check. No new smartout.ai ADR.
 **Learning created:** 0033 — Migration attestation completeness ≠ apply-readiness
+
+## 2026-04-17 — Tier 2 Bubble→v3 governance mapping (VERDICT SUPERSEDED MID-SESSION)
+**Type:** architecture
+**Verdict:** APPROVE WITH CHANGES (Steward synthesis) — **SUPERSEDED by user reframe same day**
+**Agents consulted:** system-steward (chair), supervisor (quality gate), system-agent-coordinator (code-tracer), frontend-designer, narrator
+**Prior verdict held?** n/a — first Tier 2 council; Tier 1 verdict from 2026-04-16 inherited (Learning 0033 applies)
+**Key decision from council (SUPERSEDED):** Split Tier 2 into 2A/2B/2C with 7 ADRs, 3 product decisions, 3 discovery passes, Tier 1 runbook remap as blocker
+**Superseding message:** Pontus — "Vi behøver ikke hente information table by table — vi henter kunnskapen fra workspacen og implementerer den i version 3." Council collapsed 7 ADRs to 1 (Tier 1 runbook patch retained; others dissolved).
+**What survives from council:** (1) Tier 1 `handbooks → runbook` attestation hole — Supervisor's finding, real. (2) Strike-mcp zero-emit() observation — documented debt, non-blocking for DRY-RUN. (3) `knowledge_test.workspace_id` writer bug — Agent Coordinator code-trace, standalone v3 fix. (4) `auto_assign_protocols` trigger order constraint — folded into apply step. (5) `confirmation.name` NOT NULL — folded into row builder.
+**What this produced (post-reframe):**
+- Spec: `~/dev/strike-mcp/docs/superpowers/specs/2026-04-17-tier2-content-extraction.md`
+- Code: `scripts/tier2_extract.ts` (strike-mcp commits e52358b + 026ea7f)
+- DRY-RUN SQL: `supabase/migration-staging-tier2/` — 1 policy + 3 protocols + 52 procedures + 2 confirmations for Wrightegaarden
+**Semantic conflict seen:** Council had 6 pairs of semantic disagreement (Q1/Q3/Q8/Q9/Q10/Q11). Steward synthesis resolved most by leaning on code-traced v3 schema truth. User reframe rendered 5 of the 6 moot.
+**ADR created:** none (all 7 proposed ADRs dissolved by reframe)
+**Learning created:** 0034 — Migration is knowledge extraction, not table-by-table transfer
+**Meta-observation:** The council produced a valid verdict, but the VERDICT OPTIMIZED FOR THE WRONG PROBLEM. Future migration councils should include a "is the framing correct?" gate before Phase 3 dispatch — Frontend Designer hinted at this ("Bubble data model encoded workarounds for Bubble UX limitations") but the signal wasn't strong enough to halt the council. Pontus's single-sentence reframe at Phase 6 was the actual synthesis.
