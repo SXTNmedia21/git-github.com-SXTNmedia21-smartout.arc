@@ -1,8 +1,8 @@
 {
-  "!(apps/web/src/app/public-site/**)*.{ts,tsx}": [
+  "!(apps/web/src/app/public-site/**|services/strike-mcp/**)*.{ts,tsx}": [
     "eslint --fix --no-warn-ignored",
     "prettier --write"
   ],
   "apps/web/src/app/public-site/**/*.{ts,tsx}": ["prettier --write"],
-  "*.{md,json,css}": ["prettier --write"]
+  "!(services/strike-mcp/**)*.{md,json,css}": ["prettier --write"]
 }

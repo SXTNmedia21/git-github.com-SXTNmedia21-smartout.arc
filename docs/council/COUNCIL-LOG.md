@@ -1,7 +1,7 @@
 ---
 title: Council Session Log
 status: live
-updated: 2026-04-16
+updated: 2026-04-17
 created: 2026-03-26
 module: governance
 tags: [council, decisions, multi-agent, review, governance]
@@ -13,9 +13,10 @@ Tracks all System Council sessions — multi-agent review meetings where specs, 
 
 ## Sessions
 
-| Date       | Topic                                 | Type         | Verdict                  | Agents Consulted                                          | ADR                                                                               | Learning                                                                                                                                                                                                                                                                                                                               |
-| ---------- | ------------------------------------- | ------------ | ------------------------ | --------------------------------------------------------- | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2026-03-26 | Mobile Production Readiness v1.0      | spec         | APPROVE WITH CHANGES     | steward, supervisor, agent-coordinator, frontend-designer | None (per-role authority ADR deferred to v1.1)                                    | Authority default mismatch: tool-selector.ts=read_only vs agent-router.ts=suggest. Ultravox client tools cannot be wrapped as SmartoutTools.                                                                                                                                                                                           |
+| Date       | Topic                                 | Type         | Verdict                  | Agents Consulted                                          | Prior verdict held? | ADR                                                                               | Learning                                                                                                                                                                                                                                                                                                                               |
+| ---------- | ------------------------------------- | ------------ | ------------------------ | --------------------------------------------------------- | ------------------- | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-04-17 | Mobile Strategy Brainstorm            | architecture | **REJECT** (parity framing) — APPROVE remediation path | steward, supervisor (re-dispatched), agent-coordinator, frontend-designer | Yes (6 prior councils) — "mobile = Phase 2" stance refined into "mobile = D6+C4 execution surface, not parity surface" | ADR-0127 (mobile thin client via BFF), ADR-0128 (web composes, mobile executes), ADR-0129 (mobile telemetry contract), ADR-0130 (LiveKit voice), ADR-0131 (witness-with-camera) | L-0044 parity framing creates graveyards. L-0045 emit() exists but payload broken (telemetry corruption in 6 mutation sites). L-0046 no theatre providers (Botsson startVoiceSession is no-op). L-0047 ADR-0078 channel guard vacuous without tool execution path. L-0048 two-reviewer cross-lens convergence = high signal. L-0049 hidden Expo Router groups (href: null) are dead-but-loaded code. Trust Gate REJECTED for new mobile mutations until 3 gates pass (telemetry contract test, Zod at enqueue, Botsson bridge ADR + stub). 12-week remediation plan: weeks 1-2 stop the bleeding, weeks 3-6 build bridge + data layer, weeks 7-12 execution surface. Out of scope on mobile: schedule editor, onboarding wizard, contract authoring, governance authoring, organization settings, year-wheel, cost/billing. |
+| 2026-03-26 | Mobile Production Readiness v1.0      | spec         | APPROVE WITH CHANGES     | steward, supervisor, agent-coordinator, frontend-designer | n/a | None (per-role authority ADR deferred to v1.1)                                    | Authority default mismatch: tool-selector.ts=read_only vs agent-router.ts=suggest. Ultravox client tools cannot be wrapped as SmartoutTools.                                                                                                                                                                                           |
 | 2026-03-27 | Onboarding Route Code Review          | architecture | APPROVE WITH CHANGES     | steward, supervisor, agent-coordinator, frontend-designer | ADR 13-18 in decision log                                                         | See decision log for full list. Key learning: pre-auth API calls fail silently.                                                                                                                                                                                                                                                        |
 | 2026-03-27 | Invitation Flow E2E Audit             | feature      | APPROVE WITH CHANGES     | steward, supervisor, agent-coordinator, frontend-designer | Pending: RLS policy ADR, existing-user acceptance ADR                             | `USING (true)` RLS is never safe for PII tables. Trainee status was a no-op. Batch mode silent on dispatch.                                                                                                                                                                                                                            |
 | 2026-03-27 | Invitation Core Fixes Spec Review     | spec         | APPROVE WITH CHANGES     | steward, supervisor                                       | None                                                                              | RPC must limit PII to pending invitations. Simplify existing-user to password-only (defer magic link). Migration+page must deploy together.                                                                                                                                                                                            |
@@ -937,3 +938,90 @@ None. Decision: skill rules + learning doc are right weight. Escalate to ADR on 
 ### Process discipline fail-then-fix
 
 First council's Phase 2.5 fact-check verified WHAT (columns exist, tables exist, files exist) but not WHEN (at proposed timestamp). This gap is now closed in run-council skill Phase 2.5 with a new migration-dependency fact-check step.
+## 2026-04-16 — Tier 1 Wrightegaarden migration via strike-mcp (post-implementation review)
+**Type:** post-implementation
+**Verdict:** APPROVE WITH CHANGES
+**Agents consulted:** system-steward (chair), supervisor (code-tracer), system-agent-coordinator (auth-bridge architect); frontend-designer skipped (no UI surface)
+**Prior verdict held?** n/a — first council on strike-mcp tooling
+**Key decision:** 11 mappings + 2 drops + 2 manual SQL files + 3 ADRs (strike-mcp 0004/0005/0006) are architecturally sound and code-correct. APPROVED to land. BLOCKED from production apply pending 4 must-fix operational items (invitations source constant, bridge-tool buildout, apply-script SAVEPOINT pattern, cutover communication drafts).
+**Critical findings:**
+- C1 invitations.json missing `constant_columns.source = 'bubble_migration'` — fixed in strike-mcp commit a7b3f16 + re-attest eaf5f59
+- Bridge tool referenced in ADR-0006 is vapor (no scope, owner, deadline) — apply blocked until built (1-2 days estimated)
+- "Fail loud" auth-bridge collision semantics underspecified — needs row-level SAVEPOINT, failure CSV, halt threshold (added as ADR-0006 amendment d04e97c)
+- Cutover artifacts missing — drafted CUTOVER-USER-NOTICE.md + CUTOVER-SWAP-NOTICE.md (NO + EN) + gen_pending_swaps_csv.ts stub (commit d04e97c)
+**Cross-reviewer agreement:** Manual SQL files (employment_contracts_synthesis.sql, records_aggregation.sql) are clean — Steward suspected source-tagging gaps; Supervisor verified explicit source='bubble_migration' literals on every INSERT (resolved in supervisor's favor).
+**Semantic conflict resolution:** Steward Q1+Q2 worried manual SQLs missed source tagging; Supervisor's code-trace verified the literals exist. Same concern, different evidence sources — Supervisor's direct line:N citation wins.
+**Boundary insight:** Migration "attestation complete" ≠ "apply ready". Attestation lives on the LEFT (strike-mcp emit-time correctness); apply-readiness lives on the RIGHT (operational wrappers). Captured as Learning 0033.
+**ADR amendments:** strike-mcp ADR-0006 amended with required apply-script behaviors + login-flow gate + cutover artifacts requirement + bridge timeline + auth-method homogeneity check. No new smartout.ai ADR.
+**Learning created:** 0033 — Migration attestation completeness ≠ apply-readiness
+
+## 2026-04-17 — Tier 2 Bubble→v3 governance mapping (VERDICT SUPERSEDED MID-SESSION)
+**Type:** architecture
+**Verdict:** APPROVE WITH CHANGES (Steward synthesis) — **SUPERSEDED by user reframe same day**
+**Agents consulted:** system-steward (chair), supervisor (quality gate), system-agent-coordinator (code-tracer), frontend-designer, narrator
+**Prior verdict held?** n/a — first Tier 2 council; Tier 1 verdict from 2026-04-16 inherited (Learning 0033 applies)
+**Key decision from council (SUPERSEDED):** Split Tier 2 into 2A/2B/2C with 7 ADRs, 3 product decisions, 3 discovery passes, Tier 1 runbook remap as blocker
+**Superseding message:** Pontus — "Vi behøver ikke hente information table by table — vi henter kunnskapen fra workspacen og implementerer den i version 3." Council collapsed 7 ADRs to 1 (Tier 1 runbook patch retained; others dissolved).
+**What survives from council:** (1) Tier 1 `handbooks → runbook` attestation hole — Supervisor's finding, real. (2) Strike-mcp zero-emit() observation — documented debt, non-blocking for DRY-RUN. (3) `knowledge_test.workspace_id` writer bug — Agent Coordinator code-trace, standalone v3 fix. (4) `auto_assign_protocols` trigger order constraint — folded into apply step. (5) `confirmation.name` NOT NULL — folded into row builder.
+**What this produced (post-reframe):**
+- Spec: `services/strike-mcp/docs/superpowers/specs/2026-04-17-tier2-content-extraction.md`
+- Code: `scripts/tier2_extract.ts` (strike-mcp commits e52358b + 026ea7f)
+- DRY-RUN SQL: `supabase/migration-staging-tier2/` — 1 policy + 3 protocols + 52 procedures + 2 confirmations for Wrightegaarden
+**Semantic conflict seen:** Council had 6 pairs of semantic disagreement (Q1/Q3/Q8/Q9/Q10/Q11). Steward synthesis resolved most by leaning on code-traced v3 schema truth. User reframe rendered 5 of the 6 moot.
+**ADR created:** none (all 7 proposed ADRs dissolved by reframe)
+**Learning created:** 0034 — Migration is knowledge extraction, not table-by-table transfer
+**Meta-observation:** The council produced a valid verdict, but the VERDICT OPTIMIZED FOR THE WRONG PROBLEM. Future migration councils should include a "is the framing correct?" gate before Phase 3 dispatch — Frontend Designer hinted at this ("Bubble data model encoded workarounds for Bubble UX limitations") but the signal wasn't strong enough to halt the council. Pontus's single-sentence reframe at Phase 6 was the actual synthesis.
+
+## 2026-04-17 — Tier 2 v1.5 post-implementation review (caught latent UNIQUE violation)
+**Type:** post-implementation
+**Verdict:** APPROVE WITH CHANGES (8 must-fixes applied same session)
+**Agents consulted:** system-steward (chair), supervisor (quality gate), system-agent-coordinator (code-tracer), frontend-designer (UI + mobile), narrator (external channels)
+**Prior verdict held?** n/a — Tier 2 v1.5 is the implementation that replaced the earlier (same-day, superseded) Tier 2 mapping council verdict.
+**Code under review:** strike-mcp commits `e52358b` + `026ea7f`; script `scripts/tier2_extract.ts`; DRY-RUN SQL in `supabase/migration-staging-tier2/`.
+**Key finding (caught by code-trace, missed by per-file review):** v3 schema `unique_policy_protocol UNIQUE(policy_id)` at `00003_governance_tables.sql:56` would cause Postgres 23505 on row 2 of 02_protocol.sql. 3 protocols shared 1 policy_id. Entire transaction would abort. Files 03 + 04 would cascade-fail on FK.
+**Other findings worth capturing:**
+- Frontend: `[IMPORT]` prefix on protocol names + NULL-description audit for admin curation layer.
+- Supervisor: `auto_assign_protocols` trigger fires only on profile INSERT, not protocol INSERT — existing Tier 1 profiles would silently miss new protocols without backfill.
+- Steward: Handbook draft-filter asymmetry ("Hvorfor" Bubble `_status='Draft'` was emitted regardless) — now filtered at extraction.
+- Agent-Coord: `ON CONFLICT DO NOTHING` missing — idempotency manifest claim was FALSE.
+- Agent-Coord: MANIFEST did not state `service_role ONLY` apply requirement — JWT apply would error 42501.
+- Supervisor: strike-mcp has ZERO telemetry infrastructure — DRY-RUN acceptable since apply bypasses smartout.ai code; "every-mutation-emits" rule doesn't apply to psql-driven apply.
+- Agent-Coord: 46/52 procedures have NULL description (now surfaced as warning).
+**Semantic conflict resolved:** Agent-Coord said FAIL (literal "would this SQL apply?"); 3 others said APPROVE WITH CHANGES (design soundness). Steward ruled PARTIAL OVERLAP — same reality, different frames. Correct label: APPROVE WITH CHANGES.
+**Trust Gate:** DOES NOT PASS as-is (missing backfill = authority divergence; broken UNIQUE = apply fails; placeholder names leak to capability output). PASSES after the 8 fixes applied in strike-mcp commit `1627556`.
+**Must-fixes applied (commit 1627556):**
+1. 1 policy per protocol (1:1) — UNIQUE(policy_id) honored ✓
+2. `[IMPORT]` prefix on protocol/policy names ✓
+3. `ON CONFLICT (pk) DO NOTHING` on all INSERTs ✓
+4. Handbook draft filter at extraction ✓
+5. `apply_auth: "service_role ONLY"` in MANIFEST ✓
+6. NULL-description audit in MANIFEST ✓
+7. `mappings/handbooks.json` marked superseded ✓
+8. Backfill RPC requirement documented in pre_apply_checklist (RPC itself deferred — wt-2 migration work)
+**Deferred to follow-up:**
+- Backfill migration (wt-2)
+- Source-tagging ADR (wt-2): v3 `source text` column vs sidecar JSONL
+- Activity tree → procedure_step nesting (v2)
+- Parameterize workspace constants (v1.6)
+- Fix pre-existing strike-mcp typecheck debt in `patch_fix_live_api_fields.ts`
+**ADRs created:** none (architectural decisions deferred — schema column decision still pending)
+**ADRs proposed for later:** Content provenance column on governance tables (Cascade Invariant 8: every output must have provenance).
+**Learnings created:** 0035, 0036, 0037
+**Meta-observation for council process:** This second council on the same day (post-impl mode on the implementation that replaced the earlier-superseded verdict) produced its highest-value finding (the UNIQUE 23505) via code-tracer layer 2. Per-file review in the morning approved the same pattern. The 4-layer model (Learning 0051) is the generalization: migration councils must assign reviewers per layer, not just per domain.
+
+## 2026-04-17 — Source-tagging for v3 governance tables
+**Type:** architecture
+**Verdict:** APPROVE HYBRID — `provenance JSONB` on 5 tables (not `source text` on 10)
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator (frontend skipped — pure schema/backend)
+**Prior verdict held?** n/a — this is the follow-up to the 2026-04-17 Tier 2 v1.5 post-impl council which flagged source-tagging as ADR-pending.
+**Key decision:** Add `provenance JSONB NOT NULL DEFAULT '{}'` to policy/protocol/procedure/procedure_step/confirmation. Reject `source text` (collides with `channel_event.source` domain classifier). Reject sidecar JSONL (violates Cascade Invariant 8 co-location). YAGNI-scope to 5 tables strike-mcp writes.
+**Semantic conflict resolved:** Steward Phase 3 claimed `channel_event.source` was provenance precedent. Supervisor proved it's a DOMAIN classifier (event-origin type: user/system/ai/webhook — sits beside event_type/correlation_id). Real provenance convention is `provenance JSONB` with 5 cascade-table precedents. Steward reversed own stance in Phase 5 synthesis.
+**Trust Gate:** PASS — both admin-UI insert path and strike-mcp insert path honor same DEFAULT + RLS. No authority divergence.
+**ADR created:** ADR-0126 (governance-provenance-jsonb)
+**Learning created:** 0038 (`source` is an overloaded term — verify semantics before citing convention)
+**Implementation landed:** 
+- `supabase/migrations/20260506100000_governance_provenance.sql` applied to local Supabase — 5 ALTER TABLE + 5 CHECK constraints + 5 partial indexes + 5 column comments
+- Strike-mcp `scripts/tier2_extract.ts` updated — `makeProvenance()` helper + provenance key on every row (policies, protocols, procedures, procedure_steps, confirmations)
+- Verified end-to-end: 2 policies + 2 protocols + 31 procedures + 21 procedure_steps all carry origin=bubble-import + bubble_id + tenant + batch
+**Side finding:** ADR-0108 numbering collision flagged by Agent-Coord — two branches both use 0108 for different ADRs. Whichever lands second must renumber. Not this council's problem but logged.
+**Side finding:** `useCreateProcedure` + `useCreateConfirmation` in `use-governance-mutations.ts` pass `workspace_id` to tables that don't have the column (same class as knowledge_test bug fixed earlier today). Separate chore, not bundled.

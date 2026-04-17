@@ -1,0 +1,15 @@
+{
+  "entity": "time_rules",
+  "bubble_type": "🕹️timerule",
+  "target_table": null,
+  "field_map": {},
+  "required_source_fields": [],
+  "skip_if_missing": [],
+  "known_quirks": [],
+  "last_verified": "2026-04-08",
+  "sample_record_count": 0,
+  "total_record_count": 0,
+  "v3_schema_hash": null,
+  "known_empty_source": true,
+  "approval_hash": "ea98b9e1772d158f07f82debde214e11041ae7cc3b3ca363ae323cb761f21d41"
+}

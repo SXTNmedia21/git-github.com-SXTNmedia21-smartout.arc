@@ -1,0 +1,140 @@
+{
+  "entity": "teams",
+  "bubble_type": "🎎team",
+  "target_table": "public.team",
+  "field_map": {
+    "Modified Date": {
+      "target": "updated_at",
+      "transform": "bubble_date_to_tstz",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 22,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "🏰 Workspace": {
+      "target": "workspace_id",
+      "transform": "fk_uuid:workspace",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 22,
+      "sample_values": [
+        "string<32>"
+      ]
+    },
+    "Title": {
+      "target": "name",
+      "transform": "trim",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 22,
+      "sample_values": [
+        "string<8>",
+        "string<9>",
+        "string<15>"
+      ]
+    },
+    "🎨_pallet": {
+      "target": "color",
+      "transform": "trim",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 8,
+      "sample_values": [
+        "string<9>",
+        "string<12>",
+        "string<11>"
+      ]
+    },
+    "_id": {
+      "target": "team_id",
+      "transform": "fk_uuid:team",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 22,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "Created Date": {
+      "target": "created_at",
+      "transform": "bubble_date_to_tstz",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 22,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "🏠 Department": {
+      "target": "department_id",
+      "transform": "fk_uuid:department",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 22,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "Description": {
+      "target": "description",
+      "transform": "trim",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 1,
+      "sample_values": [
+        "string<112>"
+      ]
+    }
+  },
+  "required_source_fields": [],
+  "skip_if_missing": [],
+  "known_quirks": [
+    "slug derived via slugify(Title) per ADR-0004.",
+    "source = 'bubble_migration' constant per ADR-0108.",
+    "leader_profile_id left null; depends on profiles migration. Post-migration cleanup can wire from 🎎 Manager Bubble field.",
+    "team_type uses v3 DEFAULT 'operational'; Bubble has no equivalent.",
+    "season_id always null; Wrightegaarden teams are not season-scoped.",
+    "Sweep 2026-04-16: 5 fields locked needs_review=false (target+transform already set by prior patch); 0 unmapped+unreviewed fields silently dropped (auto-sweeper consensus). Triggered by emit-SQL verification surfacing align.ts/engine.ts attestation gap. See align.ts buildAlignedFieldMap fix (preserves human approval).",
+    "Sweep 2026-04-16: 5 fields locked needs_review=false (target+transform already set by prior patch); 0 unmapped+unreviewed fields silently dropped (auto-sweeper consensus). Triggered by emit-SQL verification surfacing align.ts/engine.ts attestation gap. See align.ts buildAlignedFieldMap fix (preserves human approval)."
+  ],
+  "last_verified": "2026-04-16T13:12:40.374Z",
+  "sample_record_count": 22,
+  "total_record_count": 22,
+  "v3_schema_hash": null,
+  "derived_columns": {
+    "slug": {
+      "from": "Title",
+      "transform": "slugify"
+    }
+  },
+  "constant_columns": {
+    "source": "bubble_migration"
+  },
+  "approval_hash": "a5593b2b2ebae242fd25e6dbbb40406a389795390f143a2abceb735661c33236"
+}

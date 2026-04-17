@@ -204,6 +204,24 @@ export async function middleware(request: NextRequest): Promise<Response> {
     request as unknown as Parameters<typeof updateSession>[0], // SAFETY: Supabase join returns union type; runtime shape matches the cast
   );
 
+  // ── 4b. Force-password-reset gate for migrated users ──
+  // Users pre-created by strike-auth-bridge (Bubble→v3 migration) land here
+  // with `user_metadata.force_password_reset = true` and an unknown random
+  // password. They must reset via /reset-password before accessing any
+  // protected route. The flag is cleared in the password-update handler
+  // (apps/web/src/app/reset-password/page.tsx).
+  //
+  // /reset-password itself is public (skipped at §3), so this gate only fires
+  // on OTHER authenticated routes — which is exactly what we want.
+  if (
+    sessionUser?.user_metadata?.force_password_reset === true &&
+    !pathname.startsWith("/api/auth/")
+  ) {
+    const redir = NextResponse.redirect(new URL("/reset-password", request.url));
+    copySessionCookies(response, redir);
+    return redir;
+  }
+
   // ── 5. Portal (app.smartout.ai) ──
   if (subdomain.type === "portal") {
     const showcaseRequested =

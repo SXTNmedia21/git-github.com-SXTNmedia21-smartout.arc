@@ -1,0 +1,544 @@
+{
+  "entity": "employment_profiles",
+  "bubble_type": "⏱️employment_profile",
+  "target_table": "public.employee_payroll_profile",
+  "field_map": {
+    "employment.Json": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 64,
+      "sample_values": [
+        "string<506>",
+        "string<557>",
+        "string<577>"
+      ]
+    },
+    "primeDepartment": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 71,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "Accounting_Account_Code": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "number"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "number",
+        "number",
+        "number"
+      ]
+    },
+    "Modified Date": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "system_Id": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "number"
+      ],
+      "occurrence_count": 67,
+      "sample_values": [
+        "number",
+        "number",
+        "number"
+      ]
+    },
+    "🎎 profile": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "_id": {
+      "target": "id",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "effectiveFrom": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 93,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "Created By": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<20>"
+      ]
+    },
+    "🏰 workspace": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<32>"
+      ]
+    },
+    "Created Date": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "User": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "info.bankAccount": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 57,
+      "sample_values": [
+        "string<3>",
+        "string<11>",
+        "string<24>"
+      ]
+    },
+    "info_social_security": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 56,
+      "sample_values": [
+        "string<3>",
+        "string<11>",
+        "string<11>"
+      ]
+    },
+    "validated_date": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "info.fullName": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 99,
+      "sample_values": [
+        "string<18>",
+        "string<25>",
+        "string<17>"
+      ]
+    },
+    "profile.Json": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 59,
+      "sample_values": [
+        "string<655>",
+        "string<679>",
+        "string<684>"
+      ]
+    },
+    "info_position_size": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "number"
+      ],
+      "occurrence_count": 5,
+      "sample_values": [
+        "number",
+        "number",
+        "number"
+      ]
+    },
+    "🎎_status": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 1,
+      "sample_values": [
+        "string<9>"
+      ]
+    },
+    "⏱️ emplyee_Type": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 92,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "_employmentCategory": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 49,
+      "sample_values": [
+        "string<9>",
+        "string<9>"
+      ]
+    },
+    "info.adress": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 45,
+      "sample_values": [
+        "string<38>",
+        "string<35>",
+        "string<33>"
+      ]
+    },
+    "primePosition": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 29,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "rate_hourly_default": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "number"
+      ],
+      "occurrence_count": 63,
+      "sample_values": [
+        "number",
+        "number",
+        "number"
+      ]
+    },
+    "shiftplan Active departments": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "array"
+      ],
+      "occurrence_count": 78,
+      "sample_values": [
+        "array<2>",
+        "array<1>",
+        "array<1>"
+      ]
+    },
+    "On hire?": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "boolean"
+      ],
+      "occurrence_count": 45,
+      "sample_values": [
+        "boolean"
+      ]
+    },
+    "Fixed salar?": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "boolean"
+      ],
+      "occurrence_count": 66,
+      "sample_values": [
+        "boolean",
+        "boolean"
+      ]
+    },
+    "🗓️ baseSalary": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "array"
+      ],
+      "occurrence_count": 1,
+      "sample_values": [
+        "array<1>"
+      ]
+    },
+    "monthly_Contracted_hours ": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "number"
+      ],
+      "occurrence_count": 30,
+      "sample_values": [
+        "number",
+        "number",
+        "number"
+      ]
+    },
+    "fixed 🗓️ salaryDetail": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 1,
+      "sample_values": [
+        "string<32>"
+      ]
+    },
+    "list of fixed 🗓️ salaryDetails": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "array"
+      ],
+      "occurrence_count": 1,
+      "sample_values": [
+        "array<1>"
+      ]
+    },
+    "shiftPlan: tinyProfile": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "boolean"
+      ],
+      "occurrence_count": 12,
+      "sample_values": [
+        "boolean",
+        "boolean"
+      ]
+    },
+    "rate_fixed": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "number"
+      ],
+      "occurrence_count": 27,
+      "sample_values": [
+        "number",
+        "number",
+        "number"
+      ]
+    },
+    "list of 🗓️ mealDeal.supplements": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "array"
+      ],
+      "occurrence_count": 40,
+      "sample_values": [
+        "array<1>"
+      ]
+    },
+    "contract_start_date": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 3,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "info_id_image": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 11,
+      "sample_values": [
+        "string<79>",
+        "string<74>",
+        "string<77>"
+      ]
+    },
+    "info_position_title": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 5,
+      "sample_values": [
+        "string<9>",
+        "string<8>",
+        "string<11>"
+      ]
+    },
+    "⏱️ baseRates": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "array"
+      ],
+      "occurrence_count": 25,
+      "sample_values": [
+        "array<1>",
+        "array<3>",
+        "array<1>"
+      ]
+    },
+    "effectiveTo": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 5,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    }
+  },
+  "required_source_fields": [],
+  "skip_if_missing": [],
+  "known_quirks": [],
+  "last_verified": "2026-04-15",
+  "sample_record_count": 100,
+  "total_record_count": 135,
+  "v3_schema_hash": null,
+  "approval_hash": "27cba29eaebe7c30389e34fb30f4600778a01bf235c5d778ae63b7c8c74cd88b"
+}

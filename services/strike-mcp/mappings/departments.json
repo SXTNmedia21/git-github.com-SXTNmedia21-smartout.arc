@@ -1,0 +1,98 @@
+{
+  "entity": "departments",
+  "bubble_type": "department",
+  "target_table": "public.department",
+  "field_map": {
+    "Modified Date": {
+      "target": "updated_at",
+      "transform": "bubble_date_to_tstz",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 6,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "Created Date": {
+      "target": "created_at",
+      "transform": "bubble_date_to_tstz",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 6,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "Titel": {
+      "target": "name",
+      "transform": "trim",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 6,
+      "sample_values": [
+        "string<10>",
+        "string<5>",
+        "string<14>"
+      ]
+    },
+    "_id": {
+      "target": "department_id",
+      "transform": "fk_uuid:department",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 6,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "🏰 Workspace": {
+      "target": "workspace_id",
+      "transform": "fk_uuid:workspace",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 6,
+      "sample_values": [
+        "string<32>"
+      ]
+    }
+  },
+  "required_source_fields": [],
+  "skip_if_missing": [],
+  "known_quirks": [
+    "slug derived via slugify(Titel) per ADR-0004.",
+    "source = 'bubble_migration' constant per ADR-0108.",
+    "v3 department.description, color, icon left null; Bubble has no equivalent fields.",
+    "Sweep 2026-04-16: 4 fields locked needs_review=false (target+transform already set by prior patch); 0 unmapped+unreviewed fields silently dropped (auto-sweeper consensus). Triggered by emit-SQL verification surfacing align.ts/engine.ts attestation gap. See align.ts buildAlignedFieldMap fix (preserves human approval).",
+    "Sweep 2026-04-16: 4 fields locked needs_review=false (target+transform already set by prior patch); 0 unmapped+unreviewed fields silently dropped (auto-sweeper consensus). Triggered by emit-SQL verification surfacing align.ts/engine.ts attestation gap. See align.ts buildAlignedFieldMap fix (preserves human approval)."
+  ],
+  "last_verified": "2026-04-16T13:12:40.371Z",
+  "sample_record_count": 6,
+  "total_record_count": 6,
+  "v3_schema_hash": null,
+  "derived_columns": {
+    "slug": {
+      "from": "Titel",
+      "transform": "slugify"
+    }
+  },
+  "constant_columns": {
+    "source": "bubble_migration"
+  },
+  "approval_hash": "52781fc68523084cb256ab24cc3b3d594b85b10975a8c78db14308bc9e937a7b"
+}

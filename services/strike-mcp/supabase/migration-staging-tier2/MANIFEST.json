@@ -1,0 +1,81 @@
+{
+  "workspace_slug": "wrightegaarden",
+  "workspace_uuid": "65532a8c-9571-5e8f-8890-f551ed242795",
+  "generated_at": "2026-04-17T18:23:31.793Z",
+  "approach": "content-extraction (per Pontus 2026-04-17 reframe)",
+  "apply_auth": "service_role ONLY — governance tables have RLS enabled; JWT-scoped apply throws 42501",
+  "apply_order": [
+    {
+      "file": "01_policy.sql",
+      "entity": "policy",
+      "rows": 2
+    },
+    {
+      "file": "02_protocol.sql",
+      "entity": "protocol",
+      "rows": 2
+    },
+    {
+      "file": "03_procedure.sql",
+      "entity": "procedure",
+      "rows": 31
+    },
+    {
+      "file": "04_procedure_step.sql",
+      "entity": "procedure_step",
+      "rows": 21
+    },
+    {
+      "file": "05_confirmation.sql",
+      "entity": "confirmation",
+      "rows": 2
+    },
+    {
+      "file": "06_backfill_assignments.sql",
+      "entity": "protocol_assignment",
+      "rows": "computed at apply time",
+      "note": "Hand-authored (not emitted). Apply AFTER admin promotes protocols to status='active'."
+    }
+  ],
+  "stats": {
+    "handbooks": 2,
+    "handbooksDraftSkipped": 1,
+    "challengesLinked": 2,
+    "challengesUnlinked": 88,
+    "multilingualHandbooks": 0,
+    "activitiesTotal": 935,
+    "activitiesLive": 52,
+    "proceduresEmitted": 31,
+    "procedureStepsEmitted": 21,
+    "activityTreeRoots": 31,
+    "protocolsWithNullDescription": 1,
+    "proceduresWithNullDescription": 26
+  },
+  "warnings": [
+    "88 challenges had no handbook link to a Wrightegaarden handbook (skipped).",
+    "1 handbooks had Bubble _status='Draft' and were skipped (not migrated).",
+    "1/2 protocols have NULL description — admin curation recommended before publishing.",
+    "26/31 procedures have NULL description — renders as title-only on mobile, admin review recommended."
+  ],
+  "notes": [
+    "DRY-RUN only — production apply blocked on Tier 1 strike-auth-bridge gate.",
+    "Policy:protocol is 1:1 (UNIQUE(policy_id) enforced by v3 schema). Each migrated protocol gets its own bookkeeping policy.",
+    "All protocol `name` values prefixed with `[IMPORT] ` for admin visibility until curation. Status='draft' on all — admin must review+activate.",
+    "All INSERTs use `ON CONFLICT (pk) DO NOTHING` for idempotent re-apply.",
+    "Handbooks with Bubble _status='Draft' are skipped (see stats.handbooksDraftSkipped).",
+    "Activities → procedure_step nesting (preserve tree) deferred to Tier 2 v2.",
+    "Quizzes → knowledge_test deferred (Q6 product decision pending).",
+    "Multilingual content lossy-mapped to Norwegian (no_no) with en_us fallback.",
+    "Strike-mcp emits no telemetry — migration apply bypasses smartout.ai code; `every-mutation-emits` rule does not apply to psql-driven apply."
+  ],
+  "pre_apply_checklist": [
+    "Verify wt-3 v3 schema migrations are applied to target Postgres",
+    "Apply via service_role connection string (RLS bypass required)",
+    "Mark services/strike-mcp/mappings/handbooks.json as superseded — Tier 1 never emitted handbook rows, target_table: public.runbook is stale",
+    "Write backfill step: after protocol INSERTs, create protocol_assignment rows for existing Tier 1 profiles — `auto_assign_protocols` trigger fires only on profile INSERT, not protocol INSERT, so existing trainees miss new protocols without backfill",
+    "Resolve knowledge_test.workspace_id writer bug in apps/web/src/app/dashboard/governance/_hooks/use-governance-mutations.ts:332 (unrelated to Tier 2 but must land before Tier 2 applies to live workspace)",
+    "Decide source-tagging approach: add `source text` column to governance tables (requires ADR) vs sidecar JSONL preserving Bubble source IDs",
+    "Review protocols with NULL description — admin may want to fill before publishing to employees",
+    "Admin promotes protocols from status='draft' to 'active' explicitly; do not auto-activate"
+  ]
+}

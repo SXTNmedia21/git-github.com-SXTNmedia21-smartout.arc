@@ -1,0 +1,80 @@
+{
+  "workspace_slug": "wrightegaarden",
+  "workspace_uuid": "65532a8c-9571-5e8f-8890-f551ed242795",
+  "generated_at": "2026-04-17T08:19:42.600Z",
+  "apply_order": [
+    {
+      "file": "01_workspace.sql",
+      "entity": "workspace",
+      "rows": 0,
+      "auth_bridge_gated": false
+    },
+    {
+      "file": "02_company.sql",
+      "entity": "company",
+      "rows": 0,
+      "auth_bridge_gated": false
+    },
+    {
+      "file": "03_employee_type.sql",
+      "entity": "employee_types",
+      "rows": 0,
+      "auth_bridge_gated": false
+    },
+    {
+      "file": "04_location.sql",
+      "entity": "locations",
+      "rows": 0,
+      "auth_bridge_gated": false
+    },
+    {
+      "file": "05_department.sql",
+      "entity": "departments",
+      "rows": 0,
+      "auth_bridge_gated": false
+    },
+    {
+      "file": "06_team.sql",
+      "entity": "teams",
+      "rows": 0,
+      "auth_bridge_gated": false
+    },
+    {
+      "file": "07_user_identity.sql",
+      "entity": "users",
+      "rows": 0,
+      "auth_bridge_gated": true
+    },
+    {
+      "file": "08_profile.sql",
+      "entity": "profiles",
+      "rows": 0,
+      "auth_bridge_gated": false
+    },
+    {
+      "file": "09_schedule_shift.sql",
+      "entity": "shifts",
+      "rows": 5,
+      "auth_bridge_gated": false
+    },
+    {
+      "file": "10_payroll_ledger_archive.sql",
+      "entity": "salary_transactions",
+      "rows": 5,
+      "auth_bridge_gated": false
+    },
+    {
+      "file": "90_employment_contracts_synthesis.sql",
+      "manual": true
+    },
+    {
+      "file": "91_records_aggregation.sql",
+      "manual": true
+    }
+  ],
+  "pre_apply_checklist": [
+    "Verify wt-3 v3 schema migrations are applied to target Postgres (npx supabase db reset from wt-3)",
+    "If 07_user_identity.sql is in apply_order: run strike-auth-bridge package first to pre-create auth.users entries",
+    "For 91_records_aggregation.sql: load bubble_record_staging table from operator's Bubble CSV export (see file header)"
+  ]
+}

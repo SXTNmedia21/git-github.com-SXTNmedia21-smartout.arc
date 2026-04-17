@@ -1,0 +1,162 @@
+{
+  "entity": "workspace",
+  "bubble_type": "workspace",
+  "target_table": "public.workspace",
+  "field_map": {
+    "🏰 Company": {
+      "target": "company_id",
+      "transform": "fk_uuid:company",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 40,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "Created Date": {
+      "target": "created_at",
+      "transform": "bubble_date_to_tstz",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 40,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "Titel": {
+      "target": "name",
+      "transform": "trim",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 40,
+      "sample_values": [
+        "string<15>",
+        "string<11>",
+        "string<14>"
+      ]
+    },
+    "round_logo": {
+      "target": "logo_url",
+      "transform": null,
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 16,
+      "sample_values": [
+        "string<95>",
+        "string<120>",
+        "string<81>"
+      ]
+    },
+    "_id": {
+      "target": "workspace_id",
+      "transform": "fk_uuid:workspace",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 40,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "Modified Date": {
+      "target": "updated_at",
+      "transform": "bubble_date_to_tstz",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 40,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "Default_language": {
+      "target": "language",
+      "transform": null,
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 31,
+      "sample_values": [
+        "string<9>"
+      ]
+    },
+    "brandColor": {
+      "target": "brand_color",
+      "transform": null,
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 40,
+      "sample_values": [
+        "string<7>"
+      ]
+    },
+    "phoneNumber": {
+      "target": "phone",
+      "transform": "trim",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 1,
+      "sample_values": [
+        "string<8>"
+      ]
+    },
+    "adress": {
+      "target": "address_line_1",
+      "transform": "trim",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 1,
+      "sample_values": [
+        "string<18>"
+      ]
+    }
+  },
+  "required_source_fields": [],
+  "skip_if_missing": [],
+  "known_quirks": [
+    "slug column derived at SQL-emit time via slugify(Titel); no Bubble source field.",
+    "source column has DEFAULT 'operational' in M7; engine MUST override to 'bubble_migration' for this migration (ADR-0108).",
+    "status + slogan deferred pending enum/array-coerce transforms (future ADR-0004 strike-mcp).",
+    "Sweep 2026-04-16: 5 fields locked needs_review=false (target+transform already set by prior patch); 31 unmapped+unreviewed fields silently dropped (auto-sweeper consensus). Triggered by emit-SQL verification surfacing align.ts/engine.ts attestation gap. See align.ts buildAlignedFieldMap fix (preserves human approval).",
+    "Sweep 2026-04-16: 5 fields locked needs_review=false (target+transform already set by prior patch); 0 unmapped+unreviewed fields silently dropped (auto-sweeper consensus). Triggered by emit-SQL verification surfacing align.ts/engine.ts attestation gap. See align.ts buildAlignedFieldMap fix (preserves human approval)."
+  ],
+  "last_verified": "2026-04-16T13:12:40.365Z",
+  "sample_record_count": 40,
+  "total_record_count": 40,
+  "v3_schema_hash": null,
+  "approval_hash": "3bffcbe5dcde969c4375df19aeefdf767c4b2fd712a97e9ce42c1758f4df4917",
+  "derived_columns": {
+    "slug": {
+      "from": "Titel",
+      "transform": "slugify"
+    }
+  },
+  "constant_columns": {
+    "source": "bubble_migration"
+  }
+}

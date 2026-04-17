@@ -26,6 +26,11 @@ tags: [decisions, adr, index]
 
 | ADR | Date | Title | Status |
 |-----|------|-------|--------|
+| [ADR-0131](0131-witness-with-camera-evidence-model.md) | 2026-04-17 | Witness-with-Camera Evidence Model — `evidence_storage_path` + `evidence_kind` on completion entities; Supabase Storage workspace-scoped RLS; PII guidance baked into capture UI; optional by default. (Council 2026-04-17 mobile strategy) | proposed |
+| [ADR-0130](0130-mobile-voice-via-livekit-not-ultravox.md) | 2026-04-17 | Mobile Voice via LiveKit (Not Ultravox) — Ultravox lacks RN build path; LiveKit already installed; `packages/agent-sdk/src/providers/livekit.ts` exists. Voice transport = LiveKit; agent control plane = BFF (ADR-0127). (Council 2026-04-17) | proposed |
+| [ADR-0129](0129-mobile-telemetry-contract-enforcement.md) | 2026-04-17 | Mobile Telemetry Contract Enforcement — runtime assertion in `emit()` blocks empty-string `workspace_id`/`actor_id`; lint rule + unit tests; backfills 6 broken sites in `use-punch.ts`, `use-swap.ts`, `use-create-shift.ts`. Companions ADR-0116. (Council 2026-04-17) | proposed |
+| [ADR-0128](0128-web-composes-mobile-executes.md) | 2026-04-17 | Web Composes, Mobile Executes — Cascade Surface Boundary. Web owns D1–D5 authoring; mobile owns D6 production + C4 acceptance. Verb table codifies in/out-of-scope per surface. Drives MOBILE_IA_CONTRACT.md. (Council 2026-04-17 — two-reviewer convergence) | proposed |
+| [ADR-0127](0127-mobile-thin-client-via-web-bff.md) | 2026-04-17 | Mobile is a Thin Client; AI/Capabilities Route Through Web BFF — mobile POSTs to `/api/emma/chat` with JWT; BFF forwards to stage-engine; channel pinning server-side. Companions ADR-0114. Deprecates legacy `chat_message`-direct Botsson by week 6. (Council 2026-04-17) | proposed |
 | [ADR-0124](0124-polymorphic-fk-documentation-convention.md) | 2026-04-17 | Polymorphic FK Documentation Convention (SQL COMMENT ON for intentional no-FK refs) | proposed |
 | [ADR-0123](0123-adr-0029-amendment-pre-workspace-exceptions.md) | 2026-04-17 | ADR-0029 Amendment — Pre-Workspace Edge Function Exceptions + Identity-Boundary Tripwire | proposed |
 | [ADR-0122](0122-governance-telemetry-quad-destination.md) | 2026-04-17 | Governance Telemetry Quad-Destination Routing (7 domain events replace "button clicked") | proposed |
@@ -52,6 +57,7 @@ tags: [decisions, adr, index]
 | [ADR-0108](0108-use-shift-lifecycle-platform-neutral.md) | 2026-04-15 | useShiftLifecycle Platform-Neutral Contract (web wrapper + DI, closes Council 6.4 audit) | accepted |
 | [ADR-0107](0107-botsson-provider-channel-derivation.md) | 2026-04-15 | BotssonProvider Channel Derivation (closes ADR-0078 mobile gap — derive from session mode, never platform label) | accepted |
 | [ADR-0108](0108-use-shift-lifecycle-platform-neutral.md) | 2026-04-15 | useShiftLifecycle Platform-Neutral Contract (web wrapper + DI, closes Council 6.4 audit) | accepted |
+| [ADR-0126](0126-governance-provenance-jsonb.md) | 2026-04-17 | Governance table provenance convention via `provenance JSONB` — adds column to 5 governance tables (policy/protocol/procedure/procedure_step/confirmation). Rejects `source text` as semantic collision with domain-classifier columns. Extends cascade convention (ADR-0039 trail). Renumbered from 0101 during /close-feature to avoid cross-branch collision with sma-3 (docs/adrs-0101-0106-governance-training). | accepted |
 | [ADR-0100](0100-daily-close-as-aggregate-consumer.md) | 2026-04-15 | daily_close as Department-Aggregate Consumer of Settled Shifts | accepted |
 | [ADR-0099](0099-unified-authority-gate.md) | 2026-04-15 | Unified Authority-Gate Across agent-router and engine-dispatch (closes ADR-0077/0078 violation) | accepted |
 | [ADR-0098](0098-engine-state-as-coordination-spor.md) | 2026-04-15 | engine_state as Coordination Spor, Not Truth Owner | accepted |

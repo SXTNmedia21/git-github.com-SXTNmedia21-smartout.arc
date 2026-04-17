@@ -1,0 +1,130 @@
+{
+  "entity": "users",
+  "bubble_type": "User",
+  "target_table": "public.user_identity",
+  "field_map": {
+    "authentication": {
+      "target": "email",
+      "transform": "email_from_auth",
+      "needs_review": false,
+      "source_value_types": [
+        "object"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "object",
+        "object",
+        "object"
+      ]
+    },
+    "_id": {
+      "target": "user_id",
+      "transform": "fk_uuid:user_identity",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "First name": {
+      "target": "first_name",
+      "transform": "trim",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<6>",
+        "string<7>",
+        "string<4>"
+      ]
+    },
+    "Mobile": {
+      "target": "phone",
+      "transform": "trim",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 88,
+      "sample_values": [
+        "string<11>",
+        "string<8>",
+        "string<11>"
+      ]
+    },
+    "Modified Date": {
+      "target": "updated_at",
+      "transform": "bubble_date_to_tstz",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "Created Date": {
+      "target": "created_at",
+      "transform": "bubble_date_to_tstz",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "Last Name": {
+      "target": "last_name",
+      "transform": "trim",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 94,
+      "sample_values": [
+        "string<17>",
+        "string<17>",
+        "string<12>"
+      ]
+    }
+  },
+  "required_source_fields": [
+    "_id",
+    "authentication",
+    "First name",
+    "Last Name"
+  ],
+  "skip_if_missing": [],
+  "known_quirks": [
+    "user_id is a hard FK to auth.users(id). Apply order: auth-bridge step (out of strike-mcp scope) must pre-create auth.users entries with the SAME deterministic UUIDs before this SQL is applied. Per ADR-0006.",
+    "email_from_auth transform extracts authentication.email.email (Bubble's nested auth shape). Returns null for any missing-key case — null email rows will fail user_identity NOT NULL constraint at apply time, surfacing as explicit failures the auth-bridge must triage.",
+    "phone column carries Mobile as-is (no normalization). Some Wrightegaarden values include +47, some don't. Phone format normalization deferred to apply-time post-fix.",
+    "preferred_language uses v3 DEFAULT 'no' — Q4 enum coercion deferred. Norwegian-language users map correctly by default; English users will need post-migration update.",
+    "is_active uses v3 DEFAULT true — Q4 enum coercion of _userStatus deferred. Bubble 'inActive' users will land as is_active=true; manual cleanup required.",
+    "auth_provider uses v3 DEFAULT 'supabase'. All migrated users go through the email auth provider; no SSO migration in Tier 1.",
+    "timezone uses v3 DEFAULT 'Europe/Oslo'. All Wrightegaarden users are in Norway; no override needed.",
+    "user_identity has NO source column (unlike profile + payroll_ledger_archive). No source='bubble_migration' constant needed — auth-bridge user_metadata.migrated_from_bubble carries the discriminator at the auth.users level.",
+    "Bubble users without email are real edge cases (rare). They will surface as auth-bridge failures, not silently land as broken user_identity rows. Manual decision required per missing-email user (fabricate, drop, defer).",
+    "Sweep 2026-04-16: 4 fields locked needs_review=false (target+transform already set by prior patch); 0 unmapped+unreviewed fields silently dropped (auto-sweeper consensus). Triggered by emit-SQL verification surfacing align.ts/engine.ts attestation gap. See align.ts buildAlignedFieldMap fix (preserves human approval).",
+    "Sweep 2026-04-16: 4 fields locked needs_review=false (target+transform already set by prior patch); 0 unmapped+unreviewed fields silently dropped (auto-sweeper consensus). Triggered by emit-SQL verification surfacing align.ts/engine.ts attestation gap. See align.ts buildAlignedFieldMap fix (preserves human approval)."
+  ],
+  "last_verified": "2026-04-16T13:12:40.375Z",
+  "sample_record_count": 100,
+  "total_record_count": 127,
+  "v3_schema_hash": null,
+  "approval_hash": "534459d6b2a59f8e48aaa904d3be54ab8c5ead35e85589abc44da9eef1292f65"
+}

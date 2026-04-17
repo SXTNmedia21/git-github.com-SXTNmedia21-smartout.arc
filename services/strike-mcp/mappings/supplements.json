@@ -1,0 +1,468 @@
+{
+  "entity": "supplements",
+  "bubble_type": "⏱️salary_type(supplement)",
+  "target_table": "public.supplier",
+  "field_map": {
+    "🏰workspace": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "supplement.json": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 90,
+      "sample_values": [
+        "string<330>",
+        "string<330>",
+        "string<315>"
+      ]
+    },
+    "⏱️ _rateAdjustment": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<6>",
+        "string<5>",
+        "string<7>"
+      ]
+    },
+    "ID": {
+      "target": "id",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "number"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "number",
+        "number",
+        "number"
+      ]
+    },
+    "Amount / Procent": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "number"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "number",
+        "number",
+        "number"
+      ]
+    },
+    "⏱️ _rateAdjustmentType": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<3>",
+        "string<10>",
+        "string<3>"
+      ]
+    },
+    "Color": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 44,
+      "sample_values": [
+        "string<7>",
+        "string<7>",
+        "string<7>"
+      ]
+    },
+    "- Allow over midnight": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "boolean"
+      ],
+      "occurrence_count": 96,
+      "sample_values": [
+        "boolean",
+        "boolean"
+      ]
+    },
+    "access ⚔️ teams": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "array"
+      ],
+      "occurrence_count": 58,
+      "sample_values": [
+        "array<16>",
+        "array<15>",
+        "array<17>"
+      ]
+    },
+    "name": {
+      "target": "name",
+      "transform": null,
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<14>",
+        "string<13>",
+        "string<6>"
+      ]
+    },
+    "effective_to": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "- Affected by Breaks?": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "boolean"
+      ],
+      "occurrence_count": 94,
+      "sample_values": [
+        "boolean",
+        "boolean"
+      ]
+    },
+    "Accounting_Account_Code": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "number"
+      ],
+      "occurrence_count": 92,
+      "sample_values": [
+        "number",
+        "number",
+        "number"
+      ]
+    },
+    "_id": {
+      "target": "id",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "Duration min": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "number"
+      ],
+      "occurrence_count": 79,
+      "sample_values": [
+        "number",
+        "number",
+        "number"
+      ]
+    },
+    "access⏱️employment_type": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "array"
+      ],
+      "occurrence_count": 83,
+      "sample_values": [
+        "array<1>",
+        "array<2>",
+        "array<2>"
+      ]
+    },
+    "effective_from": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "apply_after_minutes": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "number"
+      ],
+      "occurrence_count": 78,
+      "sample_values": [
+        "number",
+        "number",
+        "number"
+      ]
+    },
+    "access _weekDays": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "array"
+      ],
+      "occurrence_count": 99,
+      "sample_values": [
+        "array<5>",
+        "array<7>",
+        "array<1>"
+      ]
+    },
+    "a_melding_code": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 68,
+      "sample_values": [
+        "string<4>",
+        "string<4>"
+      ]
+    },
+    "- EnforcedPayment": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "boolean"
+      ],
+      "occurrence_count": 91,
+      "sample_values": [
+        "boolean",
+        "boolean"
+      ]
+    },
+    "Stop time": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 93,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "Created Date": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "Modified Date": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "Created By": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "- activeOnHolyday": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "boolean"
+      ],
+      "occurrence_count": 35,
+      "sample_values": [
+        "boolean",
+        "boolean"
+      ]
+    },
+    "Start time": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 94,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "🗓️ _shiftFlags": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "array"
+      ],
+      "occurrence_count": 4,
+      "sample_values": [
+        "array<1>",
+        "array<1>"
+      ]
+    },
+    "Description": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 59,
+      "sample_values": [
+        "string<4>",
+        "string<20>",
+        "string<29>"
+      ]
+    },
+    "minimum leangth": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "number"
+      ],
+      "occurrence_count": 2,
+      "sample_values": [
+        "number",
+        "number"
+      ]
+    },
+    "duration hour": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "number"
+      ],
+      "occurrence_count": 10,
+      "sample_values": [
+        "number",
+        "number",
+        "number"
+      ]
+    },
+    "⏱️ _rateType": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 16,
+      "sample_values": [
+        "string<10>",
+        "string<6>"
+      ]
+    },
+    "PK ⏱️ _salaryCategory": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 16,
+      "sample_values": [
+        "string<8>",
+        "string<10>"
+      ]
+    }
+  },
+  "required_source_fields": [],
+  "skip_if_missing": [],
+  "known_quirks": [],
+  "last_verified": "2026-04-08",
+  "sample_record_count": 100,
+  "total_record_count": 117,
+  "v3_schema_hash": null,
+  "approval_hash": "31cc277e414a94b8ddff77f4768822c49061233f13af990dd68212616f4f7328"
+}

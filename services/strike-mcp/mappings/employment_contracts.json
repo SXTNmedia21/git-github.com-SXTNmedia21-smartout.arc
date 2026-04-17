@@ -1,0 +1,451 @@
+{
+  "entity": "employment_contracts",
+  "bubble_type": "⏱️employment_contract",
+  "target_table": "public.employment_contract",
+  "field_map": {
+    "Title": {
+      "target": "title",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<21>",
+        "string<26>",
+        "string<25>"
+      ]
+    },
+    "signee_monthly hours to work": {
+      "target": "signee_monthly_hours_to_work",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "number"
+      ],
+      "occurrence_count": 1,
+      "sample_values": [
+        "number"
+      ]
+    },
+    "parties": {
+      "target": "parties",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "array"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "array<2>",
+        "array<2>",
+        "array<2>"
+      ]
+    },
+    "Part 2 - signee": {
+      "target": "part_2_signee",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 72,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "Part 1 - Signature Date/Time": {
+      "target": "part_1_signature_date_time",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 58,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "signee_BankAccountDetails": {
+      "target": "signee_bankaccountdetails",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 1,
+      "sample_values": [
+        "string<3>"
+      ]
+    },
+    "_id": {
+      "target": "id",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "Part 1 - verification": {
+      "target": "part_1_verification",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 49,
+      "sample_values": [
+        "string<5>",
+        "string<6>",
+        "string<6>"
+      ]
+    },
+    "Created By": {
+      "target": "created_by",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "Status": {
+      "target": "status",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<17>",
+        "string<6>",
+        "string<7>"
+      ]
+    },
+    "Effective To": {
+      "target": "effective_to",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 22,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "Part 1 - Signature Text": {
+      "target": "part_1_signature_text",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 58,
+      "sample_values": [
+        "string<11>",
+        "string<16>",
+        "string<15>"
+      ]
+    },
+    "signee_Hired in postion": {
+      "target": "signee_hired_in_postion",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 62,
+      "sample_values": [
+        "string<8>",
+        "string<19>",
+        "string<6>"
+      ]
+    },
+    "Contract Text": {
+      "target": "contract_text",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 94,
+      "sample_values": [
+        "string<2426>",
+        "string<5332>",
+        "string<5597>"
+      ]
+    },
+    "workspace": {
+      "target": "workspace",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "signee_fullName": {
+      "target": "signee_fullname",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 1,
+      "sample_values": [
+        "string<11>"
+      ]
+    },
+    "signee_Date of Birth": {
+      "target": "signee_date_of_birth",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 1,
+      "sample_values": [
+        "string<24>"
+      ]
+    },
+    "Part 1 - signee": {
+      "target": "part_1_signee",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "⏱️ employment_types": {
+      "target": "employment_types",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 64,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "signee_salaryAmount": {
+      "target": "signee_salaryamount",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "number"
+      ],
+      "occurrence_count": 63,
+      "sample_values": [
+        "number",
+        "number",
+        "number"
+      ]
+    },
+    "Created Date": {
+      "target": "created_date",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "_contractCategory": {
+      "target": "contractcategory",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 45,
+      "sample_values": [
+        "string<17>",
+        "string<17>"
+      ]
+    },
+    "signee_Telephone": {
+      "target": "signee_telephone",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 1,
+      "sample_values": [
+        "string<8>"
+      ]
+    },
+    "Modified Date": {
+      "target": "modified_date",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "🧾contractTemplate": {
+      "target": "contracttemplate",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 92,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "Effective From": {
+      "target": "effective_from",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 45,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "Part 2 - Signature Text": {
+      "target": "part_2_signature_text",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 62,
+      "sample_values": [
+        "string<17>",
+        "string<16>",
+        "string<13>"
+      ]
+    },
+    "Part 2 - Signature Date/Time": {
+      "target": "part_2_signature_date_time",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 70,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "Part 1 - IP": {
+      "target": "part_1_ip",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 3,
+      "sample_values": [
+        "string<29>",
+        "string<38>",
+        "string<22>"
+      ]
+    },
+    "_contractType": {
+      "target": "contracttype",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 44,
+      "sample_values": [
+        "string<13>",
+        "string<13>"
+      ]
+    },
+    "Content": {
+      "target": "content",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 15,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "Employer-first": {
+      "target": "employer_first",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "boolean"
+      ],
+      "occurrence_count": 8,
+      "sample_values": [
+        "boolean",
+        "boolean"
+      ]
+    }
+  },
+  "required_source_fields": [],
+  "skip_if_missing": [],
+  "known_quirks": [],
+  "last_verified": "2026-04-15",
+  "sample_record_count": 0,
+  "total_record_count": 0,
+  "v3_schema_hash": null,
+  "known_empty_source": true,
+  "approval_hash": "cb2164b374942e6f0b2f780d898eb8b8bec5fc582873e557043e3db2926db2d4"
+}
