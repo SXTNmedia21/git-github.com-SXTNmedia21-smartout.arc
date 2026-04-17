@@ -1,0 +1,71 @@
+import { redirect } from "next/navigation";
+import { createAdminClient } from "@smartout/supabase/admin";
+import { getSuperAdminId } from "@/lib/platform-admin";
+import type { Invoice } from "@smartout/billing";
+
+import { InvoiceFilterBar } from "./_components/invoice-filter-bar";
+import { InvoiceTable, type InvoiceListRow } from "./_components/invoice-table";
+import { InvoiceDetailSheet } from "./_components/invoice-detail-sheet";
+
+// Phase 6.2 — platform-admin invoice list.
+//
+// Filters via searchParams (?status=paid, ?company=<uuid>). A row click
+// adds ?preview=<invoice_id> which renders <InvoiceDetailSheet/> as a
+// side panel without navigating away. Cache: no-cache (fresh read every
+// time — billing admin views short-lived).
+
+type SearchParams = {
+  status?: string;
+  company?: string;
+  preview?: string;
+};
+
+export default async function InvoicesPage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
+  const [adminId, params] = await Promise.all([getSuperAdminId(), searchParams]);
+  if (!adminId) redirect("/");
+
+  const supabase = createAdminClient();
+
+  let query = supabase
+    .from("invoice")
+    .select(
+      "invoice_id, invoice_number, company_id, company:company(name), invoice_type, status, dunning_status, period_from, period_to, due_at, amount_incl_vat, delivery_channel",
+    )
+    .order("created_at", { ascending: false })
+    .limit(100);
+
+  const allowedStatuses: Array<Invoice["status"]> = [
+    "draft",
+    "issued",
+    "sent",
+    "paid",
+    "overdue",
+    "void",
+    "uncollectible",
+  ];
+  if (params.status && allowedStatuses.includes(params.status as Invoice["status"])) {
+    query = query.eq("status", params.status as Invoice["status"]);
+  }
+  if (params.company) {
+    query = query.eq("company_id", params.company);
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    console.error("[billing/invoices] list query failed:", error);
+  }
+
+  const invoices = (data ?? []) as InvoiceListRow[];
+
+  return (
+    <div className="space-y-4">
+      <InvoiceFilterBar />
+      <InvoiceTable invoices={invoices} />
+      {params.preview ? <InvoiceDetailSheet invoiceId={params.preview} /> : null}
+    </div>
+  );
+}
