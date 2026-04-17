@@ -1,108 +1,111 @@
 ---
-title: "Billing Engine Fase 3 — Payments + EHF + Automated Dunning (Spec)"
+title: "Billing Engine Fase 3A — Stripe Payments + Dunning + delivery_* Drop (Spec rev 2)"
 status: draft
 updated: 2026-04-17
 created: 2026-04-17
 module: billing
-tags: [billing, invoice, faktura, stripe, stripe-connect, ehf, peppol, dunning, n8n, fiken, tripletex, platform-admin, cascade-c3]
+tags: [billing, invoice, faktura, stripe, stripe-connect, dunning, platform-admin, cascade-c3]
 depends_on:
   - docs/superpowers/specs/2026-04-17-billing-engine-fase-2-design.md
 related:
+  - docs/superpowers/specs/2026-XX-XX-billing-engine-fase-3b-design.md
   - docs/superpowers/specs/2026-XX-XX-billing-contract-onboarding-design.md
 ---
 
-# Billing Engine Fase 3 — Payments + EHF + Automated Dunning
+# Billing Engine Fase 3A — Stripe Payments + Dunning + delivery_* Drop
 
-> **Status:** Draft spec, to be council-reviewed.
-> **Authors:** Pontus Lindroth + Claude Opus 4.7.
-> **Bygger på:** Fase 2 (dispatch + integration framework, merget til development 2026-04-XX commit `ceef4a9e`+).
+> **Status:** Draft spec rev 2. Council-reviewed 2026-04-17 (APPROVE WITH CHANGES: split into 3A/3B, 5 blocker ADRs).
+> **Authors:** Pontus Lindroth + Claude Opus 4.7 + System Council.
+> **Bygger på:** Fase 2 (ceef4a9e+ på `feat/billing-engine-fase-2`). Fase 2 er pushet; må merges til development før Fase 3A B1 starter.
+
+> **Rev 2-endringer fra rev 1:** (1) Split i 3A/3B — 3A = Spor A + C + F, 3B = EHF + bidirectional sync + workspace OAuth. (2) n8n for dunning → erstattet av `engine_process` (ADR-0126 compliance). (3) `peppol_ap` enum-addition fjernet (galt ontologisk). (4) `integration_poll_payments` utsatt til 3B. (5) Stripe Connect-model → dedikert ADR pre-B1. (6) PII redaction for `payment_attempt.raw_event` → dedikert ADR pre-B1. (7) ADR-0120 refund-flow → dedikert ADR pre-B1. (8) CTA-hierarchy matrix i §5.1. (9) PaymentStatusBadge som ny sibling.
 
 ---
 
 ## 1. Kjerneprinsipp
 
-Fase 1 bygde fakturamotoren. Fase 2 bygde utsendelsen (dispatch) + rammeverket (integration framework). Fase 3 bygger **betaling + offentlig sektor + automatisering + opprydding**.
+Fase 3A bygger **betaling + automatisk påminnelse + opprydding**. Tre spor:
 
-Konkret:
-- **Stripe Connect** — kort/bankbetaling via Stripe Checkout. Fullfører "Stream 2" fra Fase 2-handoff. Inkluderer nytt `payment` + `payment_attempt` skjema som Fase 2 advarte om at kunne trenges (§17).
-- **EHF/Peppol XML** — implementasjon av `PeppolEhfAdapter`-klassen (Fase 2 reserverte enum + interface). Inkluderer Digdir-sertifiseringsløp.
-- **Automatisert dunning** — n8n-workflow som leser `invoice.dunning_status` og oppretter `invoice_dispatch` på email-kanal med dunning-template. Eskaleringsregler.
-- **Bidirectional integration sync** — les inn kundebetalinger fra Fiken/Tripletex via eksisterende integration adapter-pattern. Auto mark-paid.
-- **Workspace integration config** — self-serve "Koble til Min Fiken" for workspace-admin.
-- **`invoice.delivery_*` DROP COLUMN** — hard drop per ADR-0128 (dato: 2026-07-01 eller Fase 3-close).
+- **Spor A — Stripe Connect payments:** Stripe Checkout flow + webhook → auto mark-paid. Ny `payment` + `payment_attempt` tabeller. `StripeDispatchAdapter` som ny dispatch-adapter.
+- **Spor C — Automatisert dunning via engine_process:** *IKKE n8n* (rev 2). Ny `engine_process` `dunning_escalation_scan` kjørt via `engine_delayed_trigger` + eksisterende `fire-delayed-triggers` Edge Function. Genererer `invoice_dispatch` rows med dunning-template basert på `days_overdue`.
+- **Spor F — `invoice.delivery_*` DROP COLUMN:** Per ADR-0128, hard drop før 2026-07-01 eller Fase 3A-close. Dual-write fjernes. Alle readere verifisert migrert.
 
-**Ikke i Fase 3:** Multi-currency invoicing (behold NOK/EUR som Fase 1), forhåndsbetaling/deposits, reversering av credit notes.
+**Arkitektonisk plassering:** C3 Commercial utvidelser. Ingen nye cascade-dimensjoner. Gjenbruker Fase 2's engine_process-orkestrering + dispatch-adapter-pattern + `billing_activity_log` audit.
 
-**Arkitektonisk plassering:** C3 Commercial utvidelser. Påvirker ikke cascade-dimensjoner. Gjenbruker Fase 2's engine_process-orkestrering og dispatch-adapter-pattern.
+**Ikke i Fase 3A:** EHF/Peppol (Fase 3B), Fiken/Tripletex ekte adapters (Fase 3B), workspace-admin integration OAuth (Fase 3B), contract onboarding (Fase 2.5).
 
 ---
 
-## 2. Fase-scope
+## 2. Scope
 
-### In scope (Fase 3)
+### In scope (Fase 3A)
 
 **Spor A — Stripe Connect payments:**
-1. `payment` + `payment_attempt` skjema (nye tabeller)
-2. Stripe Connect onboarding for platform (Smartout) + workspace (hvis workspace vil motta betalinger direkte — likely Smartout mottar + fordeler internt, avgjøres i council)
-3. `StripeDispatchAdapter` — ny dispatch-adapter som sender faktura til Stripe Invoice API og returnerer Checkout URL
-4. `stripe-webhook` Edge Function — mottar `payment_intent.succeeded`, `charge.refunded` etc. → auto mark-paid
-5. Kunde-e-post inneholder "Betal nå"-lenke → Stripe Checkout → webhook → status flip
-6. Platform-admin payment-dashboard — list payments, se status, manuelt refunder
-7. `mark_paid` Server Action utvides: `stripe_payment_intent_id` branch auto-verifiserer payment før status flip
+1. `payment` + `payment_attempt` tabeller (per ADR-0131 Stripe Connect model)
+2. Stripe Connect onboarding — **Smartout-owned model** per ADR-0131 (Smartout er merchant-of-record, workspaces får ikke egne Stripe-kontoer i 3A)
+3. `StripeDispatchAdapter` — ny `DispatchAdapter`-implementasjon (channel `stripe_invoice`)
+4. `stripe-webhook` Edge Function — verifiserer signature, håndterer `payment_intent.succeeded`, `payment_intent.payment_failed`, `charge.refunded`. Idempotent via `payment_attempt.stripe_event_id` UNIQUE.
+5. Auto mark-paid via webhook: `payment_intent.succeeded` → `payment.status='succeeded'` → hvis sum(payment.amount) >= invoice.amount_incl_vat, set `invoice.status='paid'` (guard: kun hvis invoice.status IN ('issued','sent','overdue'))
+6. Auto credit-note via webhook: `charge.refunded` full → opprett credit-note (per ADR-0132). Partial refund → credit-note på refunded amount, invoice.status forblir 'paid'.
+7. "Betal nå"-knapp (workspace) + Stripe Checkout redirect med trust-anchor interstitial
+8. Platform-admin payments-dashboard + refund-flyt
 
-**Spor B — EHF/Peppol XML:**
-1. `PeppolEhfAdapter`-klasseimplementasjon (erstatter Fase 2's skjelett)
-2. XML-generering: EHF Billing 3.0 format (UBL 2.1 subset) via bibliotek eller in-house (`packages/billing/src/dispatch/adapters/peppol-ehf/`)
-3. Sertifisering mot Digdir Peppol test-access point
-4. `billing_dispatch_rule` for `peppol_ehf`-kanal — target = `{peppol_participant_id}` (0192:<orgnr>)
-5. Validation — `Peppol BIS Billing 3.0` schematron-kjøring før dispatch
-6. `billing_integration` av type `peppol_ap` — valgfri, for kunder som vil motta EHF bunnet til eget access point
+**Spor C — Automatisk dunning (engine_process, IKKE n8n):**
+1. Ny `engine_process` `dunning_escalation_scan` — trigger_events `['dunning_daily_tick']`, allowed_channels `['autonomous']`
+2. Steg: scan `invoice WHERE status IN ('issued','sent','overdue') AND due_at < now()`, per invoice beregn `days_overdue`, match eskaleringsregel, oppdater `dunning_status`, opprett `invoice_dispatch` med dunning-template
+3. Eskaleringsmatrise:
+   - +3 dager + `dunning_status NULL` → `reminder_1` (vennlig påminnelse, nb-NO)
+   - +7 dager + `dunning_status = 'reminder_1'` → `reminder_2` (formell)
+   - +14 dager + `dunning_status = 'reminder_2'` → `collection_notice` (siste varsel før inkasso)
+4. pg_cron eller `engine_delayed_trigger` schedulerer daglig 08:00 Oslo
+5. Idempotens: ny tabell `dunning_escalation_log(invoice_id, from_stage, to_stage, escalated_at)` UNIQUE på (invoice_id, to_stage)
+6. Workspace opt-out: eksisterende `billing_dispatch_rule` med `action='suppress'` + `trigger_event='invoice dunning_escalated'` (Fase 2 mekanisme)
+7. 3 dunning-template rows seeded (nb-NO) — engelsk copy i 3B
 
-**Spor C — Automatisert dunning:**
-1. n8n-workflow (ekstern) — leser fra Supabase via API-nøkkel, ser `invoice WHERE dunning_status IS NOT NULL AND days_overdue >= threshold`
-2. Oppretter `invoice_dispatch` på `email_customer`-kanal med `dunning-template` (dunning_stage_1 / stage_2 / stage_3 templates)
-3. Eskalering: +7 dager → stage_1 (påminnelse), +14 → stage_2 (varsel om inkasso), +30 → stage_3 (sendt til inkasso, `invoice.dunning_status = 'collection'`)
-4. Platform-admin kan overstyre/utsette per faktura
-5. Workspace-admin kan deaktivere auto-dunning for egen workspace (workspace-level dispatch rule `action='suppress'` på dunning-events)
+**Spor F — `invoice.delivery_*` DROP (siste batch):**
+1. Grep-gate: `apps/`, `packages/`, `supabase/functions/` må returnere 0 treff for `delivery_channel | delivery_status | external_reference` i app-kode + string literals (inkl. AI tool descriptions)
+2. Migration DROP COLUMN
+3. Fjern dual-write kode fra B2's `dispatch_invoice` handler (Fase 2)
+4. Regenerer `database.types.ts`
+5. CI gate: type compile check
 
-**Spor D — Bidirectional integration sync:**
-1. Fiken-adapter + Tripletex-adapter — ekte implementasjoner av `IntegrationAdapter` (erstatter Fase 2's Placeholder)
-2. Utgående sync (allerede i Fase 2 framework): customer/invoice/product ut
-3. **Nytt i Fase 3: inngående sync** — en ny `engine_process` `integration_poll_payments` som poller Fiken/Tripletex for nye betalinger på Smartout-fakturaer og auto mark-paid
-4. Credential management via 1Password + per-integrasjon `config.auth_ref = op://...`
-5. Error handling: hvis Fiken svarer at kunde ikke finnes, opprett kunde automatisk
+### Out of scope (Fase 3B)
 
-**Spor E — Workspace integration config:**
-1. `/dashboard/billing/settings/integrations` — ny fane for workspace-admin
-2. "Koble til Fiken"-flyt: OAuth redirect → lagrer refresh_token som 1Password-ref eller kryptert jsonb
-3. RLS på `billing_integration` utvides: workspace_admin kan CRUD egne rader (workspace_id = any_user_workspace)
-4. Platform-admin kan fortsatt se alle
-
-**Spor F — `invoice.delivery_*` drop:**
-1. Migration drop `invoice.delivery_channel`, `invoice.delivery_status`, `invoice.external_reference`
-2. Dual-write-koden (B2) fjernes
-3. `billing_query` AI-tool oppdateres hvis noen tools fortsatt leser kolonnene (verifisert i Fase 2 — ingen, men re-verifiser)
-4. Drop skal skje FØR 2026-07-01 eller ved Fase 3-close (ADR-0128 bindende)
+| Element | Hvorfor utsatt |
+|---------|---------------|
+| EHF/Peppol XML implementasjon | Digdir-sertifisering 3 uker; blokker for 3A-revenue |
+| Fiken/Tripletex real adapters | Bidirectional sync + OAuth + per-vendor-API = mye overflate |
+| Workspace integration OAuth | Krever Fase 2.5 onboarding pre-req + per-workspace credential model |
+| `peppol_participant_id` + `ehf_enabled` på company | Hører til Fase 3B med EHF |
+| `integration_poll_payments` engine_process | Inbound payment-sync = Fase 3B scope |
 
 ### Out of scope (Fase 4+)
 
 | Element | Hvorfor utsatt |
 |---------|---------------|
-| Multi-currency per invoice (beyond NOK+EUR) | Lav prioritet; markedet er nordisk |
-| Deposits / prepayments | Ikke etterspurt; kommer ved behov |
-| Reversering av credit note (re-open faktura) | Bokføringsrisiko — må utredes separat |
-| Stripe Tax calculation | Bruker Smartouts egen MVA-logikk for nå |
-| Apple Pay / Google Pay explicitly | Stripe Checkout støtter dem automatisk |
-| Direct debit (AvtaleGiro) | Norsk spesifikk; separat fase hvis kunder ber |
-| Split payments / marketplace model | Ikke i vårt bruksområde |
+| Multi-currency utover NOK/EUR | Markedet er nordisk |
+| Deposits / prepayments | Ikke etterspurt |
+| Stripe Tax automation | Bruker Smartouts MVA-logikk |
+| Apple/Google Pay eksplisitt konfig | Stripe Checkout støtter automatisk |
+| Direct debit (AvtaleGiro) | Separat fase |
+| AI-tools for payments (list_my_payments) | Defer til Fase 4 når mønster stabiliserer |
 
 ---
 
-## 3. Spor A — Stripe Connect Payments
+## 3. Spor A — Stripe Payments
 
-### 3.1 Problem
+### 3.1 Stripe Connect platform model (ADR-0131)
 
-Fase 2 leverer faktura via email med PDF + link. Kunden må manuelt overføre til bank. Vi ønsker **"Betal nå"-knapp** som tar dem rett til Stripe Checkout, og når de betaler skal fakturaen auto-merkes betalt uten manuell intervensjon.
+**Valgt:** Smartout-owned Stripe account. Smartout er merchant-of-record. Workspaces får IKKE egne Stripe Connect Accounts i 3A.
+
+**Konsekvens:**
+- `payment.company_id` = Smartout platform company (ikke workspace's company)
+- Penger lander i Smartouts bank → Smartout viderefakturerer til workspaces internt (egen intern payout-flyt, IKKE i 3A scope)
+- Ingen KYC/PSD2-kompleksitet for workspaces
+- Enklere FK-modell: `invoice.company_id` er customer, `payment.invoice_id` er påstand, ingen workspace-payout-tabell trengs
+- `billing_integration.integration_type='stripe'` forblir platform-level (workspace_id NULL) i Fase 3A
+
+**Revurderes** i Fase 3B+ når workspaces etterspør direkte payouts.
 
 ### 3.2 Datamodell
 
@@ -112,371 +115,418 @@ Fase 2 leverer faktura via email med PDF + link. Kunden må manuelt overføre ti
 |------|------|------|
 | `payment_id` | uuid PK | |
 | `invoice_id` | uuid FK NOT NULL | |
-| `company_id` | uuid FK NOT NULL | snapshot ved oppretting |
+| `company_id` | uuid FK NOT NULL | Snapshot fra invoice ved oppretting |
 | `payment_method` | `payment_method_type` enum | `stripe_card`, `stripe_bank`, `bank_transfer`, `manual_adjustment` |
-| `amount` | decimal(12,2) | |
-| `currency` | `currency` enum | |
+| `amount` | decimal(12,2) NOT NULL | |
+| `currency` | `currency` enum NOT NULL | |
 | `status` | `payment_status` enum | `pending`, `processing`, `succeeded`, `failed`, `refunded`, `partially_refunded` |
-| `external_id` | text | Stripe payment_intent_id, etc. |
+| `external_id` | text | Stripe payment_intent_id |
 | `paid_at` | timestamptz NULL | |
-| `refunded_amount` | decimal(12,2) NULL | |
-| `created_at`, `updated_at` | timestamptz | |
+| `refunded_amount` | decimal(12,2) NULL | Aggregert refund for denne payment |
+| `created_at`, `updated_at` | timestamptz + trigger | |
 
 **Ny tabell: `payment_attempt`**
 
-Logg over hver forsøk (for debugging + audit):
+Logger hver Stripe-event for audit (per ADR-0132 PII-redaction):
 
 | Felt | Type | Note |
 |------|------|------|
 | `payment_attempt_id` | uuid PK | |
 | `payment_id` | uuid FK | |
-| `attempt_number` | int | |
-| `status` | text | Stripe event navn e.g. `payment_intent.created`, `payment_intent.succeeded` |
-| `raw_event` | jsonb | Full Stripe webhook payload (redacted for PCI) |
+| `attempt_number` | int NOT NULL | |
+| `stripe_event_id` | text UNIQUE NOT NULL | Idempotens-nøkkel |
+| `status` | text | Stripe event-navn e.g. `payment_intent.succeeded` |
+| `redacted_payload` | jsonb | Kun PCI-safe subset per ADR-0132 (event.id, amount, currency, status, last_payment_error.code, outcome.network_status). IKKE billing_details, customer, source, receipt_url |
 | `error_code` | text NULL | |
 | `error_message` | text NULL | |
 | `created_at` | timestamptz | |
 
-**`invoice`-utvidelse:** ingen nye kolonner. `invoice.status = 'paid'` + `payment` rad er kilde-av-sannhet. `payment_reference` kan holde `payment.payment_id` for referanse.
+**Retention:** `payment_attempt` rader beholdes permanent (audit-trail). `redacted_payload` feltet er allerede PII-fjernet; ingen ekstra retention-policy trengs.
+
+**Ny tabell: `dunning_escalation_log`**
+
+| Felt | Type | Note |
+|------|------|------|
+| `log_id` | bigserial PK | |
+| `invoice_id` | uuid FK | |
+| `from_stage` | text NULL | NULL = initial escalation |
+| `to_stage` | text NOT NULL | `reminder_1` | `reminder_2` | `collection_notice` |
+| `escalated_at` | timestamptz | |
+| UNIQUE | `(invoice_id, to_stage)` | Idempotens |
+
+**Utvidelser:**
+- `billing_dispatch_channel` enum + `'stripe_invoice'`
+- `payment_method_type` enum (ny): `stripe_card | stripe_bank | bank_transfer | manual_adjustment`
+- `payment_status` enum (ny): `pending | processing | succeeded | failed | refunded | partially_refunded`
 
 ### 3.3 StripeDispatchAdapter
 
-Ny adapter i `packages/billing/src/dispatch/adapters/stripe.ts`:
+Ny adapter `packages/billing/src/dispatch/adapters/stripe.ts` (implementerer `DispatchAdapter`-interface fra Fase 2):
 
 ```ts
 export const StripeDispatchAdapter: DispatchAdapter = {
-  channel: 'stripe_invoice',  // ny enum-verdi i billing_dispatch_channel
+  channel: 'stripe_invoice',
   async send({ invoice, target, template }) {
-    // 1. Opprett Stripe Invoice (eller PaymentIntent hvis vi går forbi Invoice API)
-    // 2. Returner Checkout URL som external_reference
-    // 3. Email adapter får så injisert Checkout URL i email-template
+    // 1. Opprett Stripe PaymentIntent via Stripe SDK
+    // 2. Opprett Stripe Checkout Session → Checkout URL
+    // 3. INSERT payment row (status='pending')
+    // 4. Return { status: 'in_flight', external_reference: payment_intent_id, check_back_at: +24h }
+    //    Webhook flipper til 'delivered' senere
   },
 };
 ```
 
-**Beslutningspunkt (council):** bruker vi Stripe Invoice API (Stripe lager sin egen faktura-side) eller Stripe PaymentIntent (vi holder egen faktura-UI)? Anbefaling: PaymentIntent + Checkout Session — Smartout er source-of-truth, Stripe er bare betalingskanal.
+**Stripe SDK:** `stripe` npm package (Node). Edge Function bruker `stripe` via Deno compat eller fetch direkte.
 
-### 3.4 Webhook Edge Function
+### 3.4 stripe-webhook Edge Function
 
 `supabase/functions/stripe-webhook/index.ts`:
-- Verifiserer Stripe webhook signature
-- Events å håndtere: `payment_intent.succeeded`, `payment_intent.payment_failed`, `charge.refunded`, `payout.paid`
-- På `payment_intent.succeeded` → opprett `payment_attempt` → oppdater `payment.status = 'succeeded'` → trigger Fase 2 engine_process `invoice_dispatch_delivery` til `email_customer` med receipt-template → set `invoice.status = 'paid'` + `invoice.paid_at` (hvis dette er full amount)
-- Partial payments: `invoice` kan ha flere `payment` rows; flipper til `paid` når sum(payment.amount) >= invoice.amount_incl_vat
 
-### 3.5 UI
+- `verify_jwt = false` + manuell Stripe signature verifikasjon
+- Events håndtert: `payment_intent.succeeded`, `payment_intent.payment_failed`, `charge.refunded`
+- Idempotens: UPSERT på `payment_attempt.stripe_event_id`
+- Event-ordering: sortér etter `event.created` timestamp, latest-wins for status
 
-**Platform-admin:**
-- `/platform-admin/billing/payments` — ny liste over alle payments + status filter
-- Per payment: refund-knapp med confirm dialog
-- Per invoice på eksisterende detail-side: payment-historikk-seksjon
+**Flow per event:**
 
-**Workspace-admin:**
-- `/dashboard/billing/[invoice_id]` viser "Betal nå"-knapp hvis `invoice.status = 'issued'` og Stripe Connect er aktiv
-- Klikk → navigerer til Stripe Checkout → return til Smartout etter betaling → status oppdatert
+1. **`payment_intent.succeeded`:**
+   - Opprett `payment_attempt` (ON CONFLICT DO NOTHING)
+   - Oppdater `payment.status = 'succeeded'`, `payment.paid_at = event.created`
+   - Hvis sum(successful payments) >= invoice.amount_incl_vat AND invoice.status IN ('issued','sent','overdue') → set invoice.status='paid', invoice.paid_at=now. **Guard:** ikke overwrite hvis allerede 'paid' (workspace-admin kan ha markert manuelt).
+   - Emit `payment succeeded`
 
----
+2. **`payment_intent.payment_failed`:**
+   - payment.status = 'failed'
+   - Emit `payment failed` + alert
 
-## 4. Spor B — EHF/Peppol XML
+3. **`charge.refunded`:**
+   - Opprett `payment_attempt` (idempotent)
+   - Update payment.refunded_amount + status
+   - **Per ADR-0132:** hvis refund.amount == payment.amount (full) → auto-opprett credit-note med `invoice_type='credit_note'`, `credits_invoice_id=original_invoice_id`, én linje = refunded amount. Invoice.status forblir 'paid' (credit-note balanserer).
+   - **Partial refund:** opprett credit-note med samme line-items delvis. payment.status = 'partially_refunded'.
+   - Emit `payment refunded` + `invoice credit_note_created`
 
-### 4.1 Problem
+**Emit bridge:** gjenbruk `/api/internal/emit` fra Fase 1/2.
 
-Norske B2B-kunder (spesielt offentlig sektor) krever EHF-faktura levert via Peppol-nettverket. Fase 2 reserverte enum-verdi `peppol_ehf` men shipper ingen adapter-klasse. Fase 3 implementerer XML-generering + Peppol sending.
+### 3.5 UI — CTA hierarchy matrix
 
-### 4.2 Implementasjon
+Per Frontend-council R1:
 
-**Bibliotek-valg (council):**
-- `@pepol/ehf-node` (hypotetisk)
-- Egen XML-generator med UBL 2.1-template + Handlebars
-- Tredjeparts webservice (f.eks. Tickstar, Pagero) som håndterer både generering og sending
+| Invoice state | Workspace-admin ser | Platform-admin ser |
+|---------------|---------------------|---------------------|
+| `draft` | — | "Utsted faktura" (primary) |
+| `issued` + Stripe aktiv | **"Betal nå"** (primary, glow halo) | "Marker som betalt" (ghost variant) |
+| `issued` + ingen Stripe | "Bankoverføring info" (secondary) | **"Marker som betalt"** (primary) |
+| `paid` | Kvittering-nedlasting (tertiary link) | Kvittering + "Start refusjon" (ghost) |
+| `overdue` | **"Betal nå"** (primary, warning halo) | "Send purring" + "Marker som betalt" (begge ghost) |
 
-**Anbefaling:** start med egen XML-generator for minimum leverbar + bruk Tickstar eller tilsvarende som access point i production. Reduserer vendor-lock-in på generator, men utnytter eksisterende infrastruktur for transport.
+Visual weight via variant, ikke farge. Nordic Split: varselbusser har `border-destructive/20`, ikke `bg-destructive`.
 
-### 4.3 Datamodell
+**Ny komponent `PaymentStatusBadge.tsx`** (sibling til `InvoiceStatusBadge` + `DispatchStatusBadge`):
+- States: pending, processing, succeeded, failed, refunded, partially_refunded
+- Motion: `processing` har pulse-dot (spring stiffness 35, damping 22, mass 2.2)
+- `role="status"` + `aria-live="polite"` (WCAG 4.1.3 for financial UI)
 
-**Ny kolonne på `company`:** `peppol_participant_id text` — format `0192:<orgnr>`. Settes av platform-admin eller via bedriftsregister-oppslag.
+**Stripe Checkout redirect interstitial** (600ms):
+- Card morpher (layoutId) til "Sender deg til Stripe for sikker betaling..."
+- Lock-ikon (Lucide), noise-overlay progress bar
+- Etter 600ms: `window.location.href = checkout_url`
 
-**Ny kolonne på `company`:** `ehf_enabled bool default false` — workspace kan toggle dette når de har konfigurert seg som EHF-sender.
+### 3.6 Platform-admin payments dashboard
 
-### 4.4 Dispatch flow
-
-1. `billing_dispatch_rule` med `channel='peppol_ehf'` + `target={peppol_participant_id: company.peppol_participant_id}` matcher
-2. `PeppolEhfAdapter.send()` genererer XML fra invoice + line_items + company + tariff + VAT
-3. Schematron-validering (Peppol BIS Billing 3.0)
-4. POST XML til access point endpoint
-5. `external_reference` = Peppol message-ID
-
-### 4.5 Certification
-
-Digdir-sertifisering krever:
-- Test-sending til Digdir test-AP (2-3 uker, pair-review mot reference messages)
-- Produksjons-registrering av Smartout som sending Peppol-deltaker (dette er Pontus sitt ansvar — eksisterer allerede eller må søkes)
-
-**Handoff-element:** Fase 3-close inkluderer completed Peppol-sertifisering eller eksplisitt deferral til Fase 4.
-
----
-
-## 5. Spor C — Automatisert Dunning
-
-### 5.1 Problem
-
-Fase 1 gav platform-admin mulighet til å markere faktura som overdue og legge til dunning-notat manuelt. Fase 3 automatiserer eskalerings-kjeden.
-
-### 5.2 n8n-workflow
-
-**Workflow:** `smartout-billing-dunning-scan`
-- Trigger: pg_cron daglig 08:00 Oslo
-- Query Supabase via API-nøkkel: fakturaer hvor `status='overdue'` AND `(dunning_status IS NULL OR dunning_status IN ('reminder_1', 'reminder_2'))`
-- Per faktura: beregn `days_overdue`. Matrix:
-  - +7 dager + `dunning_status = NULL` → skriv `dunning_status = 'reminder_1'`, opprette `invoice_dispatch` med email_customer + dunning_reminder_1_template
-  - +14 dager + `dunning_status = 'reminder_1'` → `'reminder_2'`, tilsvarende dispatch
-  - +30 dager + `dunning_status = 'reminder_2'` → `'collection'`, send final varsel + trigger intern eskalering (email til Pontus)
-
-**Workspace opt-out:** workspace-admin kan opprette `billing_dispatch_rule` med `action='suppress'` + `trigger_event='invoice dunning_escalated'` → disables dunning for deres workspace.
-
-### 5.3 Templates
-
-Nye `billing_dispatch_template` rader:
-- `dunning_reminder_1` (nb-NO, en-US): vennlig påminnelse
-- `dunning_reminder_2` (nb-NO, en-US): formelt varsel
-- `dunning_collection_notice` (nb-NO, en-US): inkassovarsel
-
-### 5.4 Audit trail
-
-Hvert eskaleringssteg emitter `invoice dunning_escalated` event med data.from_stage + data.to_stage. Event registrert i telemetry.
+`/platform-admin/billing/payments`:
+- Liste med filter (status, dato, company)
+- Per row: refund-knapp → `RefundDialog` (Frontend R3: "grave but not destructive" — RotateCcw-ikon, `variant="outline"` med focus-ring amber, tydelig "irreversibelt etter 90 dager" copy)
+- Payment history per-invoice på eksisterende detail-side: accordion-in-list, 1 attempt = flat row, flere attempts = expandable
 
 ---
 
-## 6. Spor D — Bidirectional Integration Sync
+## 4. Spor C — Automatisk Dunning (engine_process)
 
-### 6.1 Problem
+### 4.1 Hvorfor IKKE n8n (rev 2-endring)
 
-Fase 2 gjør outbound sync (Smartout → Fiken). Fase 3 legger til inbound: leser betalinger fra Fiken/Tripletex og auto mark-paid i Smartout.
+Council Agent Coordinator + Steward + Supervisor konvergerte:
+- Smartout har allerede `engine_process` + `engine_delayed_trigger` + `fire-delayed-triggers` (universell workflow-runtime)
+- n8n = parallell motor, brudd på CLAUDE.md "no second event system"
+- Idempotens + RLS + telemetry + CI coverage mye renere i monorepo
+- n8n beholdes for andre bruksområder; billing-logikken bor her
 
-### 6.2 Fiken-adapter
+### 4.2 engine_process blueprint
 
-`packages/billing/src/integrations/adapters/fiken.ts` — implementerer `IntegrationAdapter`:
+Seed i B1-migrasjon:
 
-```ts
-export const FikenAdapter: IntegrationAdapter = {
-  type: 'fiken',
-  supports: ['customer', 'invoice', 'contract', 'product', 'plan'],
-  async sync(input) {
-    // Outbound (som i Fase 2 placeholder, nå ekte):
-    // Bruker Fiken REST API: POST /companies/{id}/invoices
-    // Credentials fra 1Password via config.auth_ref
-  },
-  async testConnection(integration) {
-    // GET /me
-  },
-};
+```
+engine_process:
+  - name: 'dunning_escalation_scan'
+  - allowed_channels: ['autonomous']
+  - trigger_events: ['dunning_daily_tick']
+  - steps:
+    1. action_type: 'scan_overdue_invoices'
+       action_payload: { stages: [{ days: 3, from: null, to: 'reminder_1' }, ...] }
+       on_failure: retry max 3, backoff 5m
 ```
 
-### 6.3 Inbound poll
+**Trigger source:** `pg_cron` scheduler jobs `smartout-dunning-daily-08:00` emit `dunning_daily_tick` event. Dette matcher engine_trigger, spawner engine_state.
 
-Ny `engine_process`: `integration_poll_payments`
-- trigger_events: `['hourly_poll']` (kron-utløst)
-- Steg 1: List Fiken-invoices med `paid=true` siden sist poll (`billing_integration.last_poll_at`)
-- Steg 2: Match på `external_reference` → finn Smartout-invoice
-- Steg 3: Hvis Smartout-invoice har status != 'paid', opprett `payment` rad + flip status
-- Steg 4: Oppdater `billing_integration.last_poll_at`
+**Ny action_type handler** i `engine-dispatch/index.ts`: `scan_overdue_invoices`:
+- Leser eskaleringsmatrise fra action_payload
+- For hver regel: SELECT invoices matchende `days_overdue >= rule.days AND dunning_status = rule.from`
+- Per invoice:
+  - INSERT `dunning_escalation_log (invoice_id, from_stage, to_stage)` ON CONFLICT DO NOTHING (idempotens)
+  - Hvis INSERT lyktes (ingen konflikt): UPDATE `invoice.dunning_status = to_stage`
+  - Opprett `invoice_dispatch` row med channel `email_customer`, template = `dunning_<to_stage>`
+  - Emit `invoice dunning_escalated` event (data.from_stage, data.to_stage, data.invoice_id)
+- Return step_status based on success
 
-### 6.4 Credential management
+### 4.3 Dunning templates
 
-Per `billing_integration.config`:
-```jsonb
-{
-  "api_base": "https://api.fiken.no/api/v2",
-  "auth_ref": "op://smartout_ai/fiken_workspace_xyz/access_token"
-}
+Seed som `billing_dispatch_template` rows:
+
+| Template name | Locale | Subject | Body tone |
+|---------------|--------|---------|-----------|
+| `dunning_reminder_1` | nb-NO | "Påminnelse: Faktura {invoice_number}" | Vennlig |
+| `dunning_reminder_2` | nb-NO | "Forfalt: Faktura {invoice_number}" | Formell |
+| `dunning_collection_notice` | nb-NO | "Siste purring før inkasso — {invoice_number}" | Alvorlig |
+
+English versjoner seeded i Fase 3B (Frontend R10 flagger tone-critical copy — må forfattes av designer i 3B).
+
+### 4.4 Workspace opt-out
+
+Workspace-admin oppretter `billing_dispatch_rule`:
+- `workspace_id = <their_workspace>`
+- `channel = 'email_customer'`
+- `trigger_event = 'invoice dunning_escalated'`
+- `action = 'suppress'`
+- `is_enabled = true`
+
+Evaluert via Fase 2's `effective_dispatch_rules()` (ADR-0127): suppress-regelen matcher dunning-events og disabler dispatch. engine_process fortsetter å oppdatere `dunning_status` (interne audit), men ingen email går ut.
+
+### 4.5 UI — workspace opt-out placement
+
+Per Frontend R8: `/dashboard/billing/settings` → ny seksjon "Automatiske påminnelser":
+- Toggle: "Send e-post når fakturaer blir forfalt (3, 7, 14 dager)"
+- Når av: hjelpetekst "Du må sende påminnelser manuelt."
+- Mekanikk: toggle ON = ingen suppress-regel, toggle OFF = opprett/slett suppress-regel
+
+---
+
+## 5. Spor F — `invoice.delivery_*` DROP
+
+### 5.1 Pre-flight grep-gate
+
+**I B1 (foran B8):** CI-script som grep-er alle `.ts`, `.tsx`, `.sql`, `.md` for `delivery_channel | delivery_status | external_reference` i:
+- `apps/web/src/**`
+- `packages/**/src/**`
+- `supabase/functions/**`
+- `packages/ai/src/capabilities/billing-query/tools.ts` — **spesielt viktig:** Fase 2's `list_invoice_dispatches` tool-beskrivelse inneholder string "sjekk `invoice.delivery_status` for historikk" (Agent Coord finding). Må oppdateres før B8.
+
+Hvis > 0 treff: B8 blokkert. Treff migreres til `invoice_dispatch`-spørringer.
+
+### 5.2 DROP migration
+
+Migration `YYYYMMDDHHMMSS_drop_invoice_delivery_columns.sql`:
+
+```sql
+ALTER TABLE public.invoice
+  DROP COLUMN delivery_channel,
+  DROP COLUMN delivery_status,
+  DROP COLUMN external_reference;
+
+-- Drop tilhørende CHECK constraint hvis eksisterer
+ALTER TABLE public.invoice DROP CONSTRAINT IF EXISTS invoice_delivery_channel_check;
 ```
 
-`op://` resolved runtime ved bruk — aldri i logger/DB.
+### 5.3 Dual-write fjerning
+
+`supabase/functions/engine-dispatch/index.ts` — Fase 2 B2's `dispatch_invoice` handler dual-skriver linjer 2532-2541. Fjern dem.
+
+### 5.4 Regenerer typer + CI gate
+
+- `pnpm --filter @smartout/supabase run db:types` regenererer `database.types.ts`
+- `pnpm turbo typecheck` må fortsatt være grønn
+- Hvis noen ikke-fangede `select("*")`-kallere fortsatt ser de slettede kolonnene, blir type-inference korrekt uten dem; runtime-kall feiler kun hvis kode eksplisitt casts til forventet shape
+
+### 5.5 Deadline
+
+ADR-0128 spesifiserer 2026-07-01 eller Fase 3-close. **Fase 3A-close er hard deadline for B8.** Hvis Fase 3A slipper etter 2026-07-01 → separat hotfix migration.
 
 ---
 
-## 7. Spor E — Workspace Integration Config
+## 6. Datamodell-oppsummering (Fase 3A)
 
-### 7.1 Problem
+| Tabell/endring | Type | Timestamp-start |
+|---------------|------|-----------------|
+| `payment` | NY | 20260512000000 |
+| `payment_attempt` | NY | 20260512000001 |
+| `dunning_escalation_log` | NY | 20260512000002 |
+| `payment_method_type` enum | NY | 20260512000003 |
+| `payment_status` enum | NY | 20260512000004 |
+| `billing_dispatch_channel` enum | + `'stripe_invoice'` | 20260512000005 |
+| `engine_process` + `engine_trigger` | Seed `dunning_escalation_scan` | 20260512000006 |
+| `billing_dispatch_template` | Seed 3 dunning-templates (nb-NO) | 20260512000007 |
+| `dispatch_invoice` handler dual-write | Fjernes i B8 | 20260512000099 (sist) |
+| `invoice.delivery_*` kolonner | DROP (B8) | 20260512000100 |
 
-Fase 2 la integration CRUD være platform-admin-only. Workspaces som vil koble til Fiken eller Tripletex må self-serve.
-
-### 7.2 UI
-
-`/dashboard/billing/settings/integrations`:
-- Ny fane "Integrasjoner"
-- "Koble til Fiken" / "Koble til Tripletex" / "Koble til Stripe" knapper
-- OAuth flow for Fiken/Tripletex; Stripe Connect onboarding for Stripe
-- Gallerivisning av tilkoblede integrasjoner + status (healthy/error)
-
-### 7.3 RLS utvidelse
-
-`billing_integration` RLS fra Fase 2:
-- `platform_admin_all`: unchanged
-- **NY:** `workspace_admin_own_crud`: `workspace_id IN (SELECT workspace_id FROM company_member WHERE user_id = auth.uid() AND role IN ('admin', 'owner'))`
-
-### 7.4 OAuth infrastructure
-
-Ny Edge Function `integration-oauth-callback` — felles callback for Fiken/Tripletex/Stripe Connect. Verifiserer state-nonce, utveksler code for token, lagrer 1Password-ref.
+**Estimat:** 9-10 migrasjoner totalt.
 
 ---
 
-## 8. Spor F — `invoice.delivery_*` DROP
+## 7. RLS-matrise
 
-### 8.1 Gjennomføring
+| Tabell | Platform-admin | Workspace-admin | Anon/employee |
+|--------|---------------|-----------------|---------------|
+| `payment` | ALL | SELECT for egen workspace sine invoices (join via invoice → company → `get_workspace_ids_for_user()`) | — |
+| `payment_attempt` | SELECT (via `is_platform_admin()`) | **Ingen tilgang** (PII i redacted_payload — platform-only) | — |
+| `dunning_escalation_log` | ALL | SELECT for egen workspace sine invoices | — |
 
-**Migration `YYYYMMDDHHMMSS_drop_invoice_delivery_columns.sql`:**
-- Pre-flight: grep `rg 'delivery_channel|delivery_status|external_reference' apps/ packages/` → forvent zero matches in app code. Hvis noe fortsatt leser → B2/B3-reversion.
-- ALTER TABLE `invoice` DROP COLUMN `delivery_channel`, DROP COLUMN `delivery_status`, DROP COLUMN `external_reference`
-- Drop tilhørende CHECK constraint
-- Fjern dual-write kode fra B2's `dispatch_invoice` handler
+**Helpers:** `get_workspace_ids_for_user(auth.uid())`, `is_admin_in_workspace(auth.uid(), workspace_id)`, `is_platform_admin()`. Pattern-navn følger Fase 2 konvensjon.
 
-**Deadline:** Migration landet før 2026-07-01 (ADR-0128).
-
----
-
-## 9. Datamodell-oppsummering
-
-| Tabell/kolonne | Endring | Migrasjonstype |
-|---------------|---------|---------------|
-| `payment` | NY | CREATE |
-| `payment_attempt` | NY | CREATE |
-| `payment_method_type` enum | NY | CREATE TYPE |
-| `payment_status` enum | NY | CREATE TYPE |
-| `company.peppol_participant_id` | NY kolonne | ALTER |
-| `company.ehf_enabled` | NY kolonne | ALTER |
-| `billing_dispatch_channel` enum | + `'stripe_invoice'` | ALTER TYPE |
-| `billing_integration_type` enum | + `'peppol_ap'` hvis gateway-integration | ALTER TYPE (valgfri) |
-| `billing_dispatch_template` seed | + dunning templates (3x) | INSERT |
-| `engine_process` seed | + `integration_poll_payments` | INSERT |
-| `engine_trigger` seeds | + hourly_poll → integration_poll_payments | INSERT |
-| `invoice.delivery_channel` etc. | DROP (Spor F) | ALTER DROP COLUMN |
-| `billing_integration` RLS | utvides med workspace_admin | DROP POLICY + CREATE POLICY |
-
-**Estimat:** 7-10 nye migrasjoner.
+**Audit** (per ADR-0132): alle SELECT mot `payment_attempt` logges via `billing_activity_log` (platform_admin_pii_read event).
 
 ---
 
-## 10. ADR-kandidater
+## 8. Mobile parity (per Frontend R9)
 
-| ADR | Tittel | Hvorfor |
-|-----|--------|---------|
-| **ADR-next** | Stripe Connect vs direct Stripe (platform model) | Hvem eier Stripe-kontoen? Smartout mottar + viderefakturerer, eller workspaces mottar direkte via Connect? |
-| **ADR-next** | Payment reconciliation — invoice → payment(s) vs payment → invoice | Multi-payment single invoice (partial payments), eller 1:1? |
-| **ADR-next** | EHF XML library vs in-house generator | Bygge egen eller bruke 3rd-party (Tickstar, Pagero)? |
-| **ADR-next** | n8n vs Supabase cron for dunning | n8n for flyt-fleksibilitet; Supabase cron for enkelhet. |
-| **ADR-next** | `invoice.delivery_*` DROP migration gjennomføring | Når? Hvordan? Rollback-plan? |
-| **ADR-next** | Workspace-admin integration OAuth flow (Fiken/Tripletex token storage) | 1Password vs kryptert jsonb vs Supabase Vault? |
+| Surface | Desktop | Mobile | Begrunnelse |
+|---------|---------|--------|-------------|
+| Platform-admin payments-liste | ✅ | ❌ | Admin-verktøy |
+| Platform-admin refund-dialog | ✅ | ❌ | Admin-verktøy |
+| **Workspace "Betal nå"-knapp** | ✅ | ✅ **kritisk** | Kunder betaler fra mobil |
+| Stripe Checkout redirect | ✅ | ✅ | Stripe er mobilvennlig native |
+| Return-side etter betaling | ✅ | ✅ | 360px-kompatibel |
+| Workspace dunning opt-out toggle | ✅ | ✅ | Fast workspace-settings-fane |
+
+**Pure functions i `packages/billing/src/actions/payments/`:**
+- `initiatePayment(client, invoice_id): Promise<{ checkout_url, client_secret, payment_id }>` — mobile + web
+- `getPaymentStatus(client, payment_id): Promise<PaymentWithAttempts>`
+- `refundPayment(client, payment_id, amount?, reason?): Promise<RefundResult>` (platform-admin)
+
+Web Server Actions = tynne wrappers.
 
 ---
 
-## 11. Telemetry
+## 9. i18n
 
-Nye events i `packages/telemetry/src/registry.ts`:
+Nye strings i `packages/i18n/locales/{nb,en}/billing.json`:
+- `payments` namespace (~20 keys: betal_nå, marker_betalt, prosesserer, feilet, refunder, ...)
+- `dunning` namespace (~15 keys: opt-out toggle, email templates, escalation stages)
+- `refund` namespace (~10 keys: dialog copy, reason dropdown, confirmation)
+
+Engelsk templates for dunning-emails seedes i Fase 3B (tone-kritisk, krever designer).
+
+---
+
+## 10. ADRs som MÅ skrives FØR B1 (5 stk)
+
+| ADR | Tittel | Påvirkning |
+|-----|--------|------------|
+| **ADR-0131** | Stripe Connect platform model — Smartout-owned | Låser `payment.company_id` semantikk + at workspaces ikke får Stripe Connect Accounts i 3A |
+| **ADR-0132** | payment_attempt PII redaction + retention | Definerer redacted_payload-subset + retention-policy |
+| **ADR-0133** | Invoice refund flow + ADR-0120 amendment | Full refund → auto credit-note. Partial refund → credit-note linje. invoice.status forblir 'paid'. |
+| **ADR-0134** | Dunning via engine_process (no n8n) | Låser engine_process som orkestreringspunkt + idempotens via dunning_escalation_log |
+| **ADR-0135** | `invoice.delivery_*` DROP lifecycle (amendment av ADR-0128) | Spesifiserer grep-gate + Fase 3A-close deadline |
+
+Numrene 0131-0135 er reservert. Verifiser mot `0000-decision-log.md` ved writing-tid.
+
+---
+
+## 11. Telemetry (Fase 3A events)
+
+Nye events i `packages/telemetry/src/registry.ts`, alle mellomrom-separert:
 
 | Event | Trigger | Destinations |
 |-------|---------|--------------|
 | `payment initiated` | Stripe Checkout session opprettet | posthog, logger, billing_activity_log |
 | `payment succeeded` | Stripe webhook payment_intent.succeeded | posthog, logger, billing_activity_log, engine_event |
-| `payment failed` | Stripe webhook | posthog, logger, billing_activity_log, *alert* |
+| `payment failed` | Stripe webhook payment_intent.payment_failed | posthog, logger, billing_activity_log, *alert* |
 | `payment refunded` | Stripe webhook charge.refunded | posthog, logger, billing_activity_log |
-| `invoice dunning_escalated` | n8n dunning-workflow | posthog, logger, billing_activity_log, engine_event |
-| `integration poll_started` | Fiken/Tripletex scheduled poll | logger only |
-| `integration poll_found_payment` | inbound payment fra integration | posthog, logger, billing_activity_log, engine_event |
-| `integration oauth_connected` | workspace konfigurerer Fiken/Stripe | posthog, logger, billing_activity_log |
-| `ehf submission_sent` | Peppol XML sendt | posthog, logger, billing_activity_log |
-| `ehf submission_accepted` | Peppol message receipt | posthog, logger, billing_activity_log |
+| `invoice dunning_escalated` | dunning_escalation_scan | posthog, logger, billing_activity_log, engine_event |
+| `invoice credit_note_auto_created` | ADR-0133 refund flow | posthog, logger, billing_activity_log, engine_event |
+| `platform_admin_pii_read` | SELECT `payment_attempt` (trigger-basert audit) | logger, billing_activity_log |
 
 ---
 
-## 12. RLS utvidelser
+## 12. Tests per batch
 
-| Tabell | Endring |
-|--------|---------|
-| `payment` | RLS: platform_admin_all + workspace_admin_read (own workspace) |
-| `payment_attempt` | RLS: platform_admin_all (ingen workspace-read — kan inneholde raw Stripe events med PII) |
-| `billing_integration` | Utvid: workspace_admin_own_crud (workspace_id = any_user_workspace) |
-
----
-
-## 13. Mobile parity
-
-| Surface | Desktop | Mobile | Begrunnelse |
-|---------|---------|--------|-------------|
-| Platform-admin payments-liste | ✅ | ❌ | Admin-verktøy |
-| Platform-admin refund-knapp | ✅ | ❌ | Admin-verktøy |
-| Workspace "Betal nå"-knapp | ✅ | ✅ | Kunde-flow — mobil kritisk |
-| Workspace Stripe Checkout | ✅ | ✅ | Stripe er mobilvennlig per default |
-| Workspace "Integrasjoner"-fane | ✅ | ✅ | Workspace-admin kan koble til fra mobil |
-| n8n dunning-workflow | N/A | N/A | Backend (n8n server-side) |
-| EHF-generering | N/A | N/A | Backend |
-
-Pure functions i `packages/billing/src/actions/payments/` + `integrations-oauth/` — gjenbrukbare for mobile.
+| Batch | Tester |
+|-------|--------|
+| B1 | pgTAP: RLS per ny tabell, CHECK constraints, UNIQUE idempotens (dunning_escalation_log), allowed_channels non-empty |
+| B2 | vitest: StripeDispatchAdapter contract (mock Stripe SDK), idempotens (dobbel invoke = én payment), Stripe webhook signature verifikasjon, credit-note auto-creation on refund |
+| B3 | Playwright: workspace "Betal nå" flow (happy path + timeout), platform refund flow |
+| B4 | vitest: scan_overdue_invoices handler (alle 3 stages + idempotens via UNIQUE), dunning-template rendering |
+| B5 | Playwright: workspace opt-out toggle, dunning email blocked via suppress |
+| B6 | Grep-gate runs zero delivery_* hits, type-check green after DROP |
 
 ---
 
-## 14. i18n
+## 13. Batching (B1-B6, rev 2)
 
-Workspace-UI MUST bruke nb-NO + en-US via `@smartout/i18n`. Nye strings i `packages/i18n/locales/{nb,en}/billing.json`:
-- `payments` namespace
-- `integrations` namespace (utvides fra Fase 2)
+| Batch | Scope | Estimert |
+|-------|-------|----------|
+| **B0** | Refaktor: innfør `withPlatformAdmin()` + `withWorkspaceAdmin()` wrappers i `packages/billing/src/actions/`. Migrer eksisterende Fase 2 actions. | 0.5 uker |
+| **B1** | 5 ADRs + migrasjoner (9-10 stk) + RLS + engine_process seeds + telemetry registry + pgTAP gates | 1.5 uker |
+| **B2** | Stripe backend: `StripeDispatchAdapter`, `stripe-webhook` Edge Function, payments pure functions, Server Actions | 2 uker |
+| **B3** | Stripe UI: "Betal nå" (workspace, mobile-first), payments dashboard (platform), `PaymentStatusBadge`, refund dialog, trust-anchor interstitial | 1.5 uker |
+| **B4** | Dunning engine_process handler: `scan_overdue_invoices` action_type, `dunning_escalation_log` idempotens, template seeds | 1 uke |
+| **B5** | Dunning UI: workspace opt-out toggle i `/dashboard/billing/settings`, pg_cron schedule | 0.5 uker |
+| **B6** | Spor F: grep-gate + DROP migration + dual-write fjerning + type regen | 0.5 uker |
 
-Dunning-email-templates: lagres i `billing_dispatch_template.body_template` med Mustache-variabler. Bygges per locale (`locale` kolonne).
-
----
-
-## 15. Batching (B1-B8)
-
-| Batch | Scope | Estimert | Parallelt med |
-|-------|-------|----------|---------------|
-| **B1** | ADRs (6) + schema (payment/payment_attempt + RLS + dispatch_channel/integration_type enum extensions) + telemetry registry | 1.5 uker | serial (blokker) |
-| **B2** | Stripe Connect backend: StripeDispatchAdapter, stripe-webhook Edge Function, PaymentIntent flow, dual-write handling | 2 uker | parallelt med B5 |
-| **B3** | Stripe UI: "Betal nå"-knapp (workspace), payments-dashboard (platform), refund flow | 1.5 uker | parallelt med B4 |
-| **B4** | PeppolEhfAdapter + XML-generering + schematron + Digdir test-sending | 2 uker | parallelt med B3 |
-| **B5** | n8n dunning workflow + dunning templates + escalation rules + workspace opt-out | 1 uke | parallelt med B2 |
-| **B6** | Fiken/Tripletex adapters (real implementation) + inbound payment poll | 1.5 uker | parallelt med B7 |
-| **B7** | Workspace integration config UI + OAuth callback Edge Function | 1 uke | parallelt med B6 |
-| **B8** | Spor F: DROP invoice.delivery_*, cleanup dual-write, migrate readers | 0.5 uker | sist (etter alle andre batcher merget) |
-
-**Total:** ~9-10 uker med 2 agenter i parallell.
+**Total:** 7.5 uker med 1 agent. Parallellisering: B2+B4 kan kjøres parallelt (forskjellige filer), B3+B5 likeså. Med 2 agenter: ~5 uker.
 
 ---
 
-## 16. Risiko-register
+## 14. Risiko-register
 
 | Risiko | Sannsynlighet | Impact | Mitigering |
 |--------|---------------|--------|-----------|
-| Stripe Connect onboarding delay (Stripe review tar 3-10 dager) | Høy | Medium — blokker B2 sluttfase | Søk Connect tidlig i Fase 3, parallell-utvikle mot Stripe testmode |
-| Peppol-sertifisering tar lenger enn estimert | Høy | Høy — blokker B4 close | Søk tidlig; ha fallback plan for å shippe EHF som "coming soon" |
-| PCI compliance — håndtere kortdata i payment_attempt.raw_event | Medium | Kritisk — PCI-brudd | Redact kortdata før skrive til DB; konsulter 1Password på hvor Stripe webhook payloads lagres |
-| Fiken/Tripletex API rate-limit under poll | Lav | Medium | Exponential backoff + respect Retry-After headers; poll frekvens konfigurerbar |
-| `invoice.delivery_*` DROP feiler fordi noen leser kolonnen | Medium | Høy | B1 grep-gate + CI-check; B8 gjør dry-run i staging først |
-| n8n workflow timing — duplicate dunning-emails hvis cron kjører flere ganger | Lav | Medium | Idempotens-nøkkel per dunning-escalation (fra_stage + to_stage + invoice_id); tabell `dunning_escalation_log` hindrer duplikater |
+| Stripe Connect onboarding review 3-10 dager | Høy | Medium | Søk Connect NÅ (pre-B1); parallell-bygg mot Stripe testmode |
+| PCI compliance — `payment_attempt.raw_event` lekker PII | Medium | Kritisk | ADR-0132 enumerer explicit allowed-fields; B1 pgTAP-test asserter at `redacted_payload` ikke inneholder forbudte nøkler |
+| ADR-0128 deadline slip (2026-07-01) | Medium | Høy | B6 gjør grep-gate allerede i B1 som monitor; Spor F = siste batch men prioriteres |
+| Stripe webhook duplicate processing | Lav | Medium | UNIQUE på `payment_attempt.stripe_event_id` |
+| Workspace markerer betalt samtidig som Stripe webhook | Lav | Medium | Status-guard i webhook handler (kun flip hvis `status IN ('issued','sent','overdue')`) |
+| Dunning-email sendes to ganger samme dag | Lav | Medium | UNIQUE `(invoice_id, to_stage)` på dunning_escalation_log |
+| `billing_query` AI tool description refererer droppet kolonne | Medium | Lav | B1 grep-gate inkluderer `.ts` string literals; Agent Coord fanget dette |
+| Refund trigger ADR-0120 immutability-konflikt | Lav | Kritisk | ADR-0133 spesifiserer credit-note-flow eksplisitt |
 
 ---
 
-## 17. Fase 4 forward compat
+## 15. Fase 3B forward compat
 
-Fase 4 plukker opp:
-- Multi-currency per invoice
-- Prepayments / deposits / escrow
-- Direct debit (AvtaleGiro)
-- Advanced split/payout (marketplace)
-- Reopen invoice after credit note
-- Stripe Tax automation
-- MVA-rapport automatisering
+Fase 3B plukker opp:
+- **EHF/Peppol** XML + Digdir-sertifisering + Tickstar access point
+- **Fiken/Tripletex real adapters** (erstatter Placeholder)
+- **Bidirectional integration sync** — nytt `engine_process` `integration_poll_payments` + `poll_integration_payments` action_type
+- **Workspace-admin integration config UI** + OAuth callback Edge Function (`integration-oauth-callback`)
+- **`peppol_participant_id` + `ehf_enabled`** på company
+- **Engelsk copy for dunning-templates**
 
----
-
-## 18. Åpne spørsmål (council agenda)
-
-1. **Stripe Connect platform model** — Smartout eier Stripe-konto + viderebetaler workspace, eller workspace har egen Stripe Connect Account? (Avgjør compliance + payout-flow)
-2. **Payment reconciliation** — multi-payment per invoice (partial payments lovlig?) eller 1:1?
-3. **EHF sending transport** — egen Peppol AP via Tickstar-API eller bygge egen AP? (Tickstar anbefalt for MVP)
-4. **Fiken/Tripletex inbound poll-frekvens** — hver time, hver 15. min, eller event-driven webhook (hvis de støtter det)?
-5. **`peppol_participant_id` lookup** — manuell input i workspace-settings eller automatisk via Bedriftsregister-API?
-6. **Dunning-eskaleringsregler — konfigurerbar per workspace?** Eller Smartout-sentral default?
+**Fase 4+:**
+- Multi-currency utover NOK/EUR, prepayments, direct debit
+- AI-tools for payments (`list_my_payments` etc.)
+- Stripe Tax
 
 ---
 
-**Neste steg:** Council-review → skriv 6 ADRs (accepted) → B1-B8 dispatch. Council agenda driven av §18 åpne spørsmål.
+## 16. Spec coverage self-check
+
+| Council-blocker | Dekket av |
+|-----------------|-----------|
+| Split i 3A/3B | §1, §2 out-of-scope til 3B |
+| Stripe Connect model bestemt pre-B1 | §3.1 + ADR-0131 |
+| PII redaction for payment_attempt | §3.2 + ADR-0132 |
+| ADR-0120 refund flow eksplisitt | §3.4 + ADR-0133 |
+| n8n erstattet av engine_process | §4 + ADR-0134 |
+| `peppol_ap` enum fjernet | Ikke i §6 datamodell |
+| `integration_poll_payments` utsatt til 3B | §15 |
+| `list_invoice_dispatches` tool-description fix i grep-gate | §5.1 |
+| CTA hierarchy matrix | §3.5 |
+| PaymentStatusBadge som sibling | §3.5 |
+| RLS bruker `get_workspace_ids_for_user()` (ikke ikke-eksisterende `company_member.workspace_id`) | §7 |
+| Mobile parity explicit | §8 |
+| Migration timestamps fra 20260512000000 | §6 |
+| `withPlatformAdmin()` refaktor | §13 B0 |
+| Grep-gate inkluderer string literals | §5.1 |
+
+---
+
+**Neste steg:** Skriv 5 ADRs (0131-0135) → flipp accepted → commit → dispatch B0+B1 (serial).

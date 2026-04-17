@@ -26,6 +26,11 @@ tags: [decisions, adr, index]
 
 | ADR | Date | Title | Status |
 |-----|------|-------|--------|
+| [ADR-0135](0135-invoice-delivery-columns-drop-gate.md) | 2026-04-17 | invoice.delivery_* DROP COLUMN Lifecycle Gate (amends ADR-0128; grep-gate covers `.ts|.tsx|.sql|.md` incl. AI tool-description strings; audit-liste + CI script; hard deadline 2026-07-01) | accepted |
+| [ADR-0134](0134-dunning-via-engine-process.md) | 2026-04-17 | Automated Dunning via engine_process, Not n8n (ADR-0126 presedens applied to dunning; pg_cron emits trigger event; dunning_escalation_log idempotens; workspace opt-out via Fase 2 suppress-rule) | accepted |
+| [ADR-0133](0133-invoice-refund-flow-adr-0120-amendment.md) | 2026-04-17 | Invoice Refund Flow — ADR-0120 Amendment for Stripe Refunds (full/partial refund = auto credit-note; invoice.status forblir 'paid' for begge; ingen direct paid→issued flip tillatt) | accepted |
+| [ADR-0132](0132-payment-attempt-pii-redaction-retention.md) | 2026-04-17 | payment_attempt PII Redaction + Retention Policy (whitelist-subset i redacted_payload; PCI-safe card.last4/brand + event metadata only; permanent retention; platform-admin-only RLS + audit-trigger) | accepted |
+| [ADR-0131](0131-stripe-connect-platform-model.md) | 2026-04-17 | Stripe Connect Platform Model — Smartout-Owned (merchant-of-record for 3A; ingen workspace Connect Accounts; revurderes 3B+ om workspaces etterspør direkte payouts) | accepted |
 | [ADR-0130](0130-fase-2-scope-exclusion-contract-onboarding.md) | 2026-04-17 | Fase 2 Scope Exclusion — Contract Onboarding Extracted to Fase 2.5 (billing Fase 2 ships without automatic onboarding provisioning; manual flow in Fase 2, automated flow in Fase 2.5 mini-spec) | accepted |
 | [ADR-0129](0129-billing-integration-adapter-pattern.md) | 2026-04-17 | Billing Integration Adapter Pattern + Placeholder Audit-Safety (`IntegrationAdapter` interface + `is_placeholder` column + `integration sync mocked` event gate) | accepted |
 | [ADR-0128](0128-invoice-delivery-columns-deprecation-lifecycle.md) | 2026-04-17 | invoice.delivery_* Columns Deprecation Lifecycle (dual-write in B2, read from invoice_dispatch from B3, DROP COLUMN by 2026-07-01 or Fase 3 close) | accepted |
