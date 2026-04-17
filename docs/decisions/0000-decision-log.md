@@ -26,6 +26,11 @@ tags: [decisions, adr, index]
 
 | ADR | Date | Title | Status |
 |-----|------|-------|--------|
+| [ADR-0130](0130-fase-2-scope-exclusion-contract-onboarding.md) | 2026-04-17 | Fase 2 Scope Exclusion — Contract Onboarding Extracted to Fase 2.5 (billing Fase 2 ships without automatic onboarding provisioning; manual flow in Fase 2, automated flow in Fase 2.5 mini-spec) | proposed |
+| [ADR-0129](0129-billing-integration-adapter-pattern.md) | 2026-04-17 | Billing Integration Adapter Pattern + Placeholder Audit-Safety (`IntegrationAdapter` interface + `is_placeholder` column + `integration sync mocked` event gate) | proposed |
+| [ADR-0128](0128-invoice-delivery-columns-deprecation-lifecycle.md) | 2026-04-17 | invoice.delivery_* Columns Deprecation Lifecycle (dual-write in B2, read from invoice_dispatch from B3, DROP COLUMN by 2026-07-01 or Fase 3 close) | proposed |
+| [ADR-0127](0127-billing-dispatch-rule-2-level-evaluation.md) | 2026-04-17 | Billing Dispatch Rule 2-Level Evaluation with Suppress Semantics (platform ∪ workspace with canonical_json dedup key + `action='suppress'` override primitive) | proposed |
+| [ADR-0126](0126-integration-sync-as-event-engine-process.md) | 2026-04-17 | Integration Sync as Event Engine Process, Not Parallel Motor (subsumes proposed billing_integration_sync into engine_process; retry via engine_delayed_trigger; no new Edge Function) | proposed |
 | [ADR-0124](0124-polymorphic-fk-documentation-convention.md) | 2026-04-17 | Polymorphic FK Documentation Convention (SQL COMMENT ON for intentional no-FK refs) | proposed |
 | [ADR-0123](0123-adr-0029-amendment-pre-workspace-exceptions.md) | 2026-04-17 | ADR-0029 Amendment — Pre-Workspace Edge Function Exceptions + Identity-Boundary Tripwire | proposed |
 | [ADR-0122](0122-governance-telemetry-quad-destination.md) | 2026-04-17 | Governance Telemetry Quad-Destination Routing (7 domain events replace "button clicked") | proposed |
