@@ -40,6 +40,13 @@ BEGIN
     VALUES (v_actor_id,
             'cgw-actor-' || substr(v_actor_id::text, 1, 8),
             v_user_id, v_workspace_id, 'admin', true, 'CGW Actor');
+
+  -- Simulate an authenticated JWT so assert_gate_caller() sees auth.uid() = v_user_id.
+  -- `is_local=false` so the claim survives across subsequent DO blocks in this transaction.
+  PERFORM set_config('request.jwt.claim.sub', v_user_id::text, false);
+  PERFORM set_config('request.jwt.claims',
+                     json_build_object('sub', v_user_id::text, 'role', 'authenticated')::text,
+                     false);
 END $$;
 
 -- ── 1. No active framework → applied ──
@@ -255,6 +262,110 @@ BEGIN
     RAISE EXCEPTION 'FAIL (5): expected >=4 gate_evaluation rows, got %', v_count;
   END IF;
   RAISE NOTICE 'PASS (5): gate_evaluation audit rows persisted (% rows)', v_count;
+END $$;
+
+-- ── 6. assert_gate_caller: unauthenticated + not service_role → 42501 ──
+DO $$
+DECLARE
+  v_workspace_id UUID := current_setting('test.workspace_id')::uuid;
+  v_actor_id     UUID := current_setting('test.actor_id')::uuid;
+  v_sqlstate     TEXT;
+BEGIN
+  -- Clear the JWT claim set up in fixtures so auth.uid() returns NULL.
+  PERFORM set_config('request.jwt.claim.sub', '',     false);
+  PERFORM set_config('request.jwt.claims',    '{}',   false);
+  PERFORM set_config('request.jwt.claim.role', '',    false);
+
+  BEGIN
+    PERFORM public.cascade_gate_write(
+      p_entity_type      => 'schedule_shift',
+      p_entity_id        => gen_random_uuid(),
+      p_action           => 'create',
+      p_workspace_id     => v_workspace_id,
+      p_proposed_data    => '{}'::jsonb,
+      p_current_data     => '{}'::jsonb,
+      p_actor_profile_id => v_actor_id,
+      p_capability       => 'scheduling'
+    );
+    RAISE EXCEPTION 'FAIL (6): expected 42501, call succeeded';
+  EXCEPTION WHEN insufficient_privilege THEN
+    GET STACKED DIAGNOSTICS v_sqlstate = RETURNED_SQLSTATE;
+    IF v_sqlstate != '42501' THEN
+      RAISE EXCEPTION 'FAIL (6): expected SQLSTATE 42501, got %', v_sqlstate;
+    END IF;
+    RAISE NOTICE 'PASS (6): unauthenticated + no service_role → 42501';
+  END;
+END $$;
+
+-- ── 7. assert_gate_caller: JWT sub mismatch → 42501 ──
+DO $$
+DECLARE
+  v_workspace_id UUID := current_setting('test.workspace_id')::uuid;
+  v_actor_id     UUID := current_setting('test.actor_id')::uuid;
+  v_other_uid    UUID := gen_random_uuid();
+  v_sqlstate     TEXT;
+BEGIN
+  -- Set JWT sub to a DIFFERENT user than the one that owns the profile.
+  PERFORM set_config('request.jwt.claim.sub', v_other_uid::text, false);
+  PERFORM set_config('request.jwt.claims',
+                     json_build_object('sub', v_other_uid::text, 'role', 'authenticated')::text,
+                     false);
+  PERFORM set_config('request.jwt.claim.role', 'authenticated', false);
+
+  BEGIN
+    PERFORM public.cascade_gate_write(
+      p_entity_type      => 'schedule_shift',
+      p_entity_id        => gen_random_uuid(),
+      p_action           => 'create',
+      p_workspace_id     => v_workspace_id,
+      p_proposed_data    => '{}'::jsonb,
+      p_current_data     => '{}'::jsonb,
+      p_actor_profile_id => v_actor_id,  -- belongs to a different auth user
+      p_capability       => 'scheduling'
+    );
+    RAISE EXCEPTION 'FAIL (7): expected 42501 (actor mismatch), call succeeded';
+  EXCEPTION WHEN insufficient_privilege THEN
+    GET STACKED DIAGNOSTICS v_sqlstate = RETURNED_SQLSTATE;
+    IF v_sqlstate != '42501' THEN
+      RAISE EXCEPTION 'FAIL (7): expected SQLSTATE 42501, got %', v_sqlstate;
+    END IF;
+    RAISE NOTICE 'PASS (7): JWT sub mismatch → 42501';
+  END;
+END $$;
+
+-- ── 8. assert_gate_caller: valid auth.uid() + matching profile → gate continues ──
+DO $$
+DECLARE
+  v_result       JSONB;
+  v_workspace_id UUID := current_setting('test.workspace_id')::uuid;
+  v_actor_id     UUID := current_setting('test.actor_id')::uuid;
+  v_user_id      UUID := current_setting('test.user_id')::uuid;
+BEGIN
+  -- Restore a matching JWT sub.
+  PERFORM set_config('request.jwt.claim.sub', v_user_id::text, false);
+  PERFORM set_config('request.jwt.claims',
+                     json_build_object('sub', v_user_id::text, 'role', 'authenticated')::text,
+                     false);
+  PERFORM set_config('request.jwt.claim.role', 'authenticated', false);
+
+  v_result := public.cascade_gate_write(
+    p_entity_type      => 'protocol',  -- no trigger match → applied
+    p_entity_id        => gen_random_uuid(),
+    p_action           => 'create',
+    p_workspace_id     => v_workspace_id,
+    p_proposed_data    => '{}'::jsonb,
+    p_current_data     => '{}'::jsonb,
+    p_actor_profile_id => v_actor_id,
+    p_capability       => 'governance'
+  );
+
+  IF NOT (v_result->>'allowed')::boolean THEN
+    RAISE EXCEPTION 'FAIL (8): expected allowed=true, got %', v_result;
+  END IF;
+  IF v_result->>'outcome' != 'applied' THEN
+    RAISE EXCEPTION 'FAIL (8): expected outcome=applied, got %', v_result->>'outcome';
+  END IF;
+  RAISE NOTICE 'PASS (8): valid auth.uid() + matching profile → gate continues';
 END $$;
 
 ROLLBACK;
