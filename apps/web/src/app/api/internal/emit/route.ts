@@ -24,10 +24,13 @@ export const dynamic = "force-dynamic";
 export async function POST(request: NextRequest) {
   const expected = process.env.WATCHDOG_CRON_SECRET;
   if (!expected) {
+    // Log server-side so operators see the misconfiguration, but surface
+    // the same opaque 401 as a wrong-secret attempt. Never leak "reachable
+    // but misconfigured" to external probes (security-review follow-up).
     console.error(
       "[api/internal/emit] WATCHDOG_CRON_SECRET is not configured on this deployment. Refusing to accept events.",
     );
-    return NextResponse.json({ error: "server_not_configured" }, { status: 500 });
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
   const authHeader = request.headers.get("authorization");

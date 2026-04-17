@@ -42,9 +42,21 @@ export const BillingIntervalSchema = z.enum(["monthly", "quarterly", "yearly"]);
 
 // ─── Server Action input schemas ───────────────────────────────────
 
-// Strict ISO-8601 date (YYYY-MM-DD). Refines so UI pickers can't emit
-// Date.toString() blobs.
-const IsoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Expected YYYY-MM-DD date string");
+// Strict ISO-8601 date (YYYY-MM-DD). The regex gates UI pickers from
+// emitting Date.toString() blobs; the .refine() guard rejects
+// calendar-invalid shapes (2024-02-30, 2024-13-01, 2024-00-00) that
+// the regex alone admits. Billing period boundaries use these as FK
+// equivalents into pricing_terms date ranges — an off-by-one or bogus
+// date silently miscalculates entire invoice periods.
+const IsoDate = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Expected YYYY-MM-DD date string")
+  .refine((value) => {
+    const [y, m, d] = value.split("-").map(Number);
+    if (!y || !m || !d) return false;
+    const date = new Date(Date.UTC(y, m - 1, d));
+    return date.getUTCFullYear() === y && date.getUTCMonth() === m - 1 && date.getUTCDate() === d;
+  }, "Invalid calendar date (month or day out of range)");
 
 export const MarkInvoicePaidInputSchema = z.object({
   invoice_id: z.string().uuid(),

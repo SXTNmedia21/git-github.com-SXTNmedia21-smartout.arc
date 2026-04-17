@@ -54,7 +54,7 @@ export async function writeBillingActivityLog(
 
   const supabase = getSupabaseClient();
 
-  // Resolve invoice_id (used for denormalisation + company_id fallback).
+  // Resolve invoice_id (used for denormalisation + company_id resolution).
   let invoiceId: string | null = null;
   if (entityType === "invoice") {
     invoiceId = entityId;
@@ -62,22 +62,79 @@ export async function writeBillingActivityLog(
     invoiceId = data.invoice_id;
   }
 
-  // Resolve company_id.
-  let companyId: string | null = typeof data.company_id === "string" ? data.company_id : null;
+  // Resolve company_id. SECURITY: always verify against the DB — the
+  // caller-supplied `data.company_id` from an emit() payload cannot be
+  // trusted on its own (WATCHDOG_CRON_SECRET is shared across multiple
+  // cron Edge Functions; any of them could spoof a company_id). Priority:
+  //
+  //   1. invoice_id present (most common billing events) -> look up
+  //      invoice.company_id. If data.company_id was also supplied and
+  //      disagrees with the DB value, reject the event (loud).
+  //
+  //   2. No invoice_id but data.company_id present -> verify the company
+  //      exists (defends against typos + bogus UUIDs; doesn't defend
+  //      against full spoofing of a real company_id from a compromised
+  //      caller, but that's an authorization question outside the
+  //      provider's remit — see MODULE_BILLING §7 "Rule" block).
+  //
+  //   3. Neither -> reject.
+  const declaredCompanyId: string | null =
+    typeof data.company_id === "string" ? data.company_id : null;
+  let companyId: string | null = null;
 
-  if (!companyId && invoiceId) {
+  if (invoiceId) {
     const { data: inv, error } = await supabase
       .from("invoice")
       .select("company_id")
       .eq("invoice_id", invoiceId)
       .maybeSingle();
+
     if (error) {
       console.warn(
         `[telemetry.billing_activity_log] invoice lookup failed for "${event.event}":`,
         error.message,
       );
+      return;
     }
-    companyId = inv?.company_id ?? null;
+
+    if (!inv) {
+      console.warn(
+        `[telemetry.billing_activity_log] invoice ${invoiceId} not found for "${event.event}". Rejected.`,
+      );
+      return;
+    }
+
+    if (declaredCompanyId && declaredCompanyId !== inv.company_id) {
+      console.error(
+        `[telemetry.billing_activity_log] company_id mismatch for "${event.event}": caller declared ${declaredCompanyId}, invoice ${invoiceId} belongs to ${inv.company_id}. Rejected (possible cross-tenant spoof).`,
+      );
+      return;
+    }
+
+    companyId = inv.company_id;
+  } else if (declaredCompanyId) {
+    const { data: company, error } = await supabase
+      .from("company")
+      .select("company_id")
+      .eq("company_id", declaredCompanyId)
+      .maybeSingle();
+
+    if (error) {
+      console.warn(
+        `[telemetry.billing_activity_log] company lookup failed for "${event.event}":`,
+        error.message,
+      );
+      return;
+    }
+
+    if (!company) {
+      console.warn(
+        `[telemetry.billing_activity_log] company ${declaredCompanyId} not found for "${event.event}". Rejected.`,
+      );
+      return;
+    }
+
+    companyId = company.company_id;
   }
 
   if (!companyId) {
