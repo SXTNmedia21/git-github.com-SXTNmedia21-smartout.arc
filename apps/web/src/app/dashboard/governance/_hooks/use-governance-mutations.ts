@@ -324,12 +324,17 @@ export function useCreateKnowledgeTest() {
   return useMutation({
     mutationFn: async (input: KnowledgeTestInput) => {
       const supabase = createClient();
+      // knowledge_test has NO workspace_id column (verified via
+      // 00003_governance_tables.sql:163-176). Tenancy is inherited via
+      // protocol_id FK → protocol.workspace_id. Previously the insert
+      // included workspace_id, which Supabase silently dropped in some
+      // environments and rejected in others. Caught by Agent Coordinator
+      // code-trace in the 2026-04-17 Tier 2 v1.5 council review.
       const { data, error } = await supabase
         .from("knowledge_test")
         .insert({
           ...input,
           questions: input.questions as unknown as Json,
-          workspace_id: workspace.workspace_id,
         })
         .select()
         .single();

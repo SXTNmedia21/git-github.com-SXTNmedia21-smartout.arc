@@ -732,3 +732,20 @@ Phase 3: Agent wiring (after C merges)
 **ADRs proposed for later:** Content provenance column on governance tables (Cascade Invariant 8: every output must have provenance).
 **Learnings created:** 0035, 0036, 0037
 **Meta-observation for council process:** This second council on the same day (post-impl mode on the implementation that replaced the earlier-superseded verdict) produced its highest-value finding (the UNIQUE 23505) via code-tracer layer 2. Per-file review in the morning approved the same pattern. The 4-layer model (Learning 0036) is the generalization: migration councils must assign reviewers per layer, not just per domain.
+
+## 2026-04-17 — Source-tagging for v3 governance tables
+**Type:** architecture
+**Verdict:** APPROVE HYBRID — `provenance JSONB` on 5 tables (not `source text` on 10)
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator (frontend skipped — pure schema/backend)
+**Prior verdict held?** n/a — this is the follow-up to the 2026-04-17 Tier 2 v1.5 post-impl council which flagged source-tagging as ADR-pending.
+**Key decision:** Add `provenance JSONB NOT NULL DEFAULT '{}'` to policy/protocol/procedure/procedure_step/confirmation. Reject `source text` (collides with `channel_event.source` domain classifier). Reject sidecar JSONL (violates Cascade Invariant 8 co-location). YAGNI-scope to 5 tables strike-mcp writes.
+**Semantic conflict resolved:** Steward Phase 3 claimed `channel_event.source` was provenance precedent. Supervisor proved it's a DOMAIN classifier (event-origin type: user/system/ai/webhook — sits beside event_type/correlation_id). Real provenance convention is `provenance JSONB` with 5 cascade-table precedents. Steward reversed own stance in Phase 5 synthesis.
+**Trust Gate:** PASS — both admin-UI insert path and strike-mcp insert path honor same DEFAULT + RLS. No authority divergence.
+**ADR created:** ADR-0101 (governance-provenance-jsonb)
+**Learning created:** 0038 (`source` is an overloaded term — verify semantics before citing convention)
+**Implementation landed:** 
+- `supabase/migrations/20260506100000_governance_provenance.sql` applied to local Supabase — 5 ALTER TABLE + 5 CHECK constraints + 5 partial indexes + 5 column comments
+- Strike-mcp `scripts/tier2_extract.ts` updated — `makeProvenance()` helper + provenance key on every row (policies, protocols, procedures, procedure_steps, confirmations)
+- Verified end-to-end: 2 policies + 2 protocols + 31 procedures + 21 procedure_steps all carry origin=bubble-import + bubble_id + tenant + batch
+**Side finding:** ADR-0108 numbering collision flagged by Agent-Coord — two branches both use 0108 for different ADRs. Whichever lands second must renumber. Not this council's problem but logged.
+**Side finding:** `useCreateProcedure` + `useCreateConfirmation` in `use-governance-mutations.ts` pass `workspace_id` to tables that don't have the column (same class as knowledge_test bug fixed earlier today). Separate chore, not bundled.
