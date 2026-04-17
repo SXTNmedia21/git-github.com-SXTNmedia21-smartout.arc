@@ -131,7 +131,11 @@ export type EntityType =
   | "invoice_dispatch"
   | "billing_dispatch_rule"
   | "billing_dispatch_template"
-  | "billing_integration";
+  | "billing_integration"
+  // ─── Billing Fase 3A ────────────────────────────
+  | "payment"
+  | "payment_attempt"
+  | "dunning_escalation_log";
 
 export type ActionVerb =
   | "created"
@@ -4125,6 +4129,139 @@ export interface DispatchRuleEvaluated extends BaseEvent {
   };
 }
 
+// ─── Billing Fase 3A — Stripe Payments + Dunning ───
+//
+// Payment lifecycle events drive the platform-admin /billing/payments
+// dashboard + trigger dunning suppression when an overdue invoice
+// settles mid-cycle. All seven events route through billing_activity_log
+// per ADR-0125 (platform audit stream). payment_attempt PII-read is a
+// trigger-based audit that fires when platform-admin SELECTs the
+// redacted_payload column (ADR-0132 sensitivity tagging).
+
+export interface PaymentInitiated extends BaseEvent {
+  event: "payment initiated";
+  properties: {
+    entity_type: "payment";
+    entity_id: string;
+    data: {
+      invoice_id: string;
+      company_id: string;
+      amount: number;
+      currency: string;
+      payment_method: string;
+    };
+  };
+}
+
+export interface PaymentSucceeded extends BaseEvent {
+  event: "payment succeeded";
+  properties: {
+    entity_type: "payment";
+    entity_id: string;
+    data: {
+      invoice_id: string;
+      company_id: string;
+      amount: number;
+      currency: string;
+      external_id: string | null;
+      // true when this payment brought sum(payments) >= invoice.amount_incl_vat
+      // and the webhook flipped invoice.status → paid.
+      invoice_settled: boolean;
+    };
+  };
+}
+
+// Routed to posthog (surfaces in alerting) + billing_activity_log. Treat
+// this as the "alert" destination noted in spec §11 — Smartout's PostHog
+// has alerting hooks for this event via saved-insight trigger.
+export interface PaymentFailed extends BaseEvent {
+  event: "payment failed";
+  properties: {
+    entity_type: "payment";
+    entity_id: string;
+    data: {
+      invoice_id: string;
+      company_id: string;
+      amount: number;
+      currency: string;
+      external_id: string | null;
+      error_code: string;
+      error_message: string;
+    };
+  };
+}
+
+export interface PaymentRefunded extends BaseEvent {
+  event: "payment refunded";
+  properties: {
+    entity_type: "payment";
+    entity_id: string;
+    data: {
+      invoice_id: string;
+      company_id: string;
+      refunded_amount: number;
+      currency: string;
+      // "full" when refunded_amount == payment.amount, "partial" otherwise.
+      // ADR-0133: full refund → auto credit-note; partial → credit-note
+      // line only. Downstream credit-note auto-creation emits a separate
+      // InvoiceCreditNoteAutoCreated event.
+      refund_type: "full" | "partial";
+    };
+  };
+}
+
+export interface InvoiceDunningEscalated extends BaseEvent {
+  event: "invoice dunning_escalated";
+  properties: {
+    entity_type: "invoice";
+    entity_id: string;
+    data: {
+      // NULL on the very first escalation (e.g. issued → reminder_1).
+      from_stage: string | null;
+      to_stage: string;
+      days_overdue: number;
+      company_id: string;
+    };
+  };
+}
+
+// ADR-0133: distinct from the manual "invoice credit_note_issued" event.
+// The _auto_created variant is emitted only when charge.refunded webhook
+// triggers the automatic credit-note creation path.
+export interface InvoiceCreditNoteAutoCreated extends BaseEvent {
+  event: "invoice credit_note_auto_created";
+  properties: {
+    entity_type: "invoice";
+    entity_id: string;
+    data: {
+      original_invoice_id: string;
+      payment_id: string;
+      amount_incl_vat: number;
+      currency: string;
+      trigger_type: "full_refund" | "partial_refund";
+    };
+  };
+}
+
+// ADR-0132: fires when a platform-admin reads payment_attempt.redacted_payload.
+// Logger + billing_activity_log only — the audit stream IS the alert. No
+// PostHog routing (these reads are normal support traffic and would
+// overwhelm the dashboard).
+export interface PlatformAdminPiiRead extends BaseEvent {
+  event: "platform_admin_pii_read";
+  properties: {
+    entity_type: "payment_attempt";
+    entity_id: string;
+    data: {
+      // Reason code from the platform-admin UI ("refund_investigation",
+      // "dispute_response", "compliance_audit", "other"). Captured at
+      // read-time so the audit trail shows WHY the PII was accessed.
+      reason: string;
+      payment_id: string;
+    };
+  };
+}
+
 // ─── The Single Truth Union ─────────────────────
 // Add every feature's events here. If it isn't here, it can't be emitted.
 export type SmartoutEvent =
@@ -4551,7 +4688,15 @@ export type SmartoutEvent =
   | IntegrationCreated
   | IntegrationUpdated
   | IntegrationDeleted
-  | DispatchRuleEvaluated;
+  | DispatchRuleEvaluated
+  // ─── Billing Fase 3A (ADR-0131 to ADR-0135) ───
+  | PaymentInitiated
+  | PaymentSucceeded
+  | PaymentFailed
+  | PaymentRefunded
+  | InvoiceDunningEscalated
+  | InvoiceCreditNoteAutoCreated
+  | PlatformAdminPiiRead;
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -6190,6 +6335,48 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   // Debug-only: rule-evaluation summary per dispatch cycle.
   "dispatch_rule evaluated": {
     destinations: ["logger"],
+    category: "billing",
+  },
+
+  // ─── Billing Fase 3A (ADR-0131 to ADR-0135) ───
+  // payment lifecycle. `payment succeeded` routes to engine_event so the
+  // dunning suppressor + any downstream workflow can react. `payment
+  // failed` surfaces to posthog for alerting (ADR-0131 ops visibility).
+  "payment initiated": {
+    destinations: ["posthog", "logger", "billing_activity_log"],
+    category: "billing",
+  },
+  "payment succeeded": {
+    destinations: ["posthog", "logger", "billing_activity_log", "engine_event"],
+    category: "billing",
+  },
+  "payment failed": {
+    destinations: ["posthog", "logger", "billing_activity_log"],
+    category: "billing",
+  },
+  "payment refunded": {
+    destinations: ["posthog", "logger", "billing_activity_log"],
+    category: "billing",
+  },
+
+  // Dunning escalation — engine_event so the state machine can react
+  // (e.g. future automatic collection-notice handover).
+  "invoice dunning_escalated": {
+    destinations: ["posthog", "logger", "billing_activity_log", "engine_event"],
+    category: "billing",
+  },
+
+  // ADR-0133 automatic credit-note. engine_event so settlement audit
+  // correctly pairs the credit-note with the refund that triggered it.
+  "invoice credit_note_auto_created": {
+    destinations: ["posthog", "logger", "billing_activity_log", "engine_event"],
+    category: "billing",
+  },
+
+  // ADR-0132 PII read audit. Logger + billing_activity_log only —
+  // intentionally NOT in PostHog (support traffic would flood).
+  platform_admin_pii_read: {
+    destinations: ["logger", "billing_activity_log"],
     category: "billing",
   },
 };
