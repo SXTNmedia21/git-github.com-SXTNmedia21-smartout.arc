@@ -217,11 +217,18 @@ async function generateForCompany(
 
   // Invoice amounts. Base plan = monthly_cost (flat), overage = sum of
   // per-workspace billable_users × overage_price_per_user. VAT 25% (NO).
+  //
+  // Rounding contract: accumulate the exact products, round ONCE at the
+  // end. Rounding on every reduce iteration bleeds ±0.01 per workspace
+  // into the header and diverges from the per-line-item totals (which
+  // round each line independently). Header must agree with Σ(lines).
   const base_plan_amount = toMoney(pt.monthly_cost ?? 0);
   const overage_unit_price = toMoney(pt.overage_price_per_user ?? 0);
-  const overage_amount = snapshots.reduce(
-    (sum, s) => toMoney(sum + s.billable_users * overage_unit_price),
-    0,
+  const overage_amount = toMoney(
+    snapshots.reduce(
+      (sum, s) => sum + s.billable_users * overage_unit_price,
+      0,
+    ),
   );
   const amount_excl_vat = toMoney(base_plan_amount + overage_amount);
   const vat_rate = 25.0;

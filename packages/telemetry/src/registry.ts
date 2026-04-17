@@ -3733,6 +3733,11 @@ export interface InvoiceOverdueDetected extends BaseEvent {
     entity_id: string;
     data: {
       days_overdue: number;
+      /** Denormalised for audit joins; cron writer sets this. */
+      company_id?: string;
+      /** Emit origin tag (cron|web|api). Provider reads this into
+       *  billing_activity_log.source. */
+      source?: string;
     };
   };
 }
