@@ -11,4 +11,5 @@
 // schemas. Task 3.3 adds queries + hooks. Task 3.4 adds
 // resolveCompanyId helper in @smartout/ai (separate package).
 
-export {};
+export * from "./types";
+export * from "./schemas";
