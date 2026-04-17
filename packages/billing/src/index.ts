@@ -20,3 +20,4 @@ export * from "./dispatch";
 export * from "./integrations";
 export * from "./actions/dispatch";
 export * from "./actions/integrations";
+export * from "./actions/invoice-editing";

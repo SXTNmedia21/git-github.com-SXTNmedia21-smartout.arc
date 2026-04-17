@@ -225,3 +225,69 @@ export const RetriggerIntegrationSyncInputSchema = z.object({
 export type RetriggerIntegrationSyncInputParsed = z.infer<
   typeof RetriggerIntegrationSyncInputSchema
 >;
+
+// ─── Fase 2 Spor C — Invoice editing + workspace mark-paid ─────────
+// Spec §5.2: platform-admin can add/edit/delete manual lines on draft
+// invoices, plus create ad-hoc one_off invoices via Sheet drawer. Only
+// lines with usage_snapshot_id IS NULL are mutable here — derived
+// (usage-backed) lines are locked by the B1 trigger per ADR-0119.
+
+// Reusable line-item draft shape. Used both for manual additions on
+// existing invoices AND ad-hoc invoice composition. Quantity is
+// unconstrained (decimals allowed for pro-rata billing).
+const ManualLineInput = z.object({
+  description: z.string().min(1).max(500),
+  quantity: z.number().positive(),
+  unit_price: z.number().nonnegative(),
+  vat_rate: z.number().nonnegative().max(100),
+});
+
+export const AddManualLineItemInputSchema = z.object({
+  invoice_id: z.string().uuid(),
+  description: z.string().min(1).max(500),
+  quantity: z.number().positive(),
+  unit_price: z.number().nonnegative(),
+  vat_rate: z.number().nonnegative().max(100),
+});
+export type AddManualLineItemInput = z.infer<typeof AddManualLineItemInputSchema>;
+
+export const UpdateManualLineItemInputSchema = z.object({
+  line_item_id: z.string().uuid(),
+  description: z.string().min(1).max(500).optional(),
+  quantity: z.number().positive().optional(),
+  unit_price: z.number().nonnegative().optional(),
+  vat_rate: z.number().nonnegative().max(100).optional(),
+});
+export type UpdateManualLineItemInput = z.infer<typeof UpdateManualLineItemInputSchema>;
+
+export const DeleteManualLineItemInputSchema = z.object({
+  line_item_id: z.string().uuid(),
+});
+export type DeleteManualLineItemInput = z.infer<typeof DeleteManualLineItemInputSchema>;
+
+// Mirrors the DB `currency` enum. Keep this narrow to what Postgres
+// accepts — a mismatch would surface as a late runtime reject.
+export const CurrencySchema = z.enum(["NOK", "SEK", "DKK", "EUR"]);
+
+export const CreateAdHocInvoiceInputSchema = z.object({
+  company_id: z.string().uuid(),
+  period_from: IsoDate,
+  period_to: IsoDate,
+  currency: CurrencySchema.optional(),
+  line_items: z.array(ManualLineInput).min(1, "At least one line item is required"),
+});
+export type CreateAdHocInvoiceInput = z.infer<typeof CreateAdHocInvoiceInputSchema>;
+
+// Workspace-admin mark-paid (Spor C). Narrower than platform-admin
+// MarkInvoicePaidInputSchema — workspace-admin only books bank_transfer,
+// there is no channel picker. Reversal goes through credit-note only
+// (ADR-0120), so no un-pay primitive exists here.
+export const MarkInvoicePaidByWorkspaceAdminInputSchema = z.object({
+  invoice_id: z.string().uuid(),
+  payment_date: IsoDate,
+  payment_reference: z.string().min(1).max(500),
+  note: z.string().max(1000).optional(),
+});
+export type MarkInvoicePaidByWorkspaceAdminInput = z.infer<
+  typeof MarkInvoicePaidByWorkspaceAdminInputSchema
+>;

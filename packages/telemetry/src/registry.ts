@@ -3994,6 +3994,12 @@ export interface InvoiceLineItemEdited extends BaseEvent {
     entity_type: "invoice_line_item";
     entity_id: string;
     changes: Record<string, { before: unknown; after: unknown }>;
+    // Required for billing_activity_log company_id resolution — the
+    // provider walks from invoice_id → company_id. Without this the row
+    // is rejected (see providers/billing-activity-log.ts).
+    data: {
+      invoice_id: string;
+    };
   };
 }
 
