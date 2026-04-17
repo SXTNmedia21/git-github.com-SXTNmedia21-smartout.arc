@@ -10,7 +10,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@smartout/supabase";
-import type { Invoice, InvoiceLineItem, UsageSnapshot } from "./types";
+import type { BillingIntegration, Invoice, InvoiceLineItem, UsageSnapshot } from "./types";
 import type { InvoiceListFilters } from "./schemas";
 
 type BillingClient = SupabaseClient<Database>;
@@ -115,4 +115,19 @@ export async function fetchUsageSnapshotsForCompany(
 
   if (error) throw error;
   return data ?? [];
+}
+
+/**
+ * List billing integrations for the platform-admin UI. Returns newest
+ * first (created_at DESC) so freshly added rows surface at the top of
+ * the table. Used by page.tsx in the Integrations tab.
+ */
+export async function listIntegrations(supabase: BillingClient): Promise<BillingIntegration[]> {
+  const { data, error } = await supabase
+    .from("billing_integration")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []) as BillingIntegration[];
 }

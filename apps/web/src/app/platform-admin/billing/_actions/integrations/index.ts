@@ -8,3 +8,4 @@ export { deleteIntegrationAction } from "./deleteIntegrationAction";
 export { toggleIntegrationAction } from "./toggleIntegrationAction";
 export { testConnectionActionServer } from "./testConnectionActionServer";
 export { retriggerIntegrationSyncAction } from "./retriggerIntegrationSyncAction";
+export { loadIntegrationSyncHistory } from "./loadIntegrationSyncHistory";
