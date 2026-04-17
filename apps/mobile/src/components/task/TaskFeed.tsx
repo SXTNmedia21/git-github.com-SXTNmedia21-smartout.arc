@@ -102,11 +102,9 @@ export function TaskFeed({ tasks, profileId }: TaskFeedProps) {
     for (const [hookId, pendingTasks] of hookGroups) {
       if (pendingTasks.length > 0) {
         const allTasks = fullHookGroups.get(hookId) ?? pendingTasks;
-        /* TODO: derive from session_hook.procedure.name when join available.
-           Currently the join only includes hook_linked_procedure_id (UUID),
-           not the procedure name. Falls back to generic checklist title. */
         const firstTask = allTasks[0];
-        const derivedName = firstTask?.title ?? strings.cleaning.title;
+        const derivedName =
+          firstTask?.procedure_name ?? firstTask?.title ?? strings.cleaning.title;
 
         items.push({
           type: "checklist",
