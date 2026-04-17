@@ -695,3 +695,40 @@ Phase 3: Agent wiring (after C merges)
 **ADR created:** none (all 7 proposed ADRs dissolved by reframe)
 **Learning created:** 0034 — Migration is knowledge extraction, not table-by-table transfer
 **Meta-observation:** The council produced a valid verdict, but the VERDICT OPTIMIZED FOR THE WRONG PROBLEM. Future migration councils should include a "is the framing correct?" gate before Phase 3 dispatch — Frontend Designer hinted at this ("Bubble data model encoded workarounds for Bubble UX limitations") but the signal wasn't strong enough to halt the council. Pontus's single-sentence reframe at Phase 6 was the actual synthesis.
+
+## 2026-04-17 — Tier 2 v1.5 post-implementation review (caught latent UNIQUE violation)
+**Type:** post-implementation
+**Verdict:** APPROVE WITH CHANGES (8 must-fixes applied same session)
+**Agents consulted:** system-steward (chair), supervisor (quality gate), system-agent-coordinator (code-tracer), frontend-designer (UI + mobile), narrator (external channels)
+**Prior verdict held?** n/a — Tier 2 v1.5 is the implementation that replaced the earlier (same-day, superseded) Tier 2 mapping council verdict.
+**Code under review:** strike-mcp commits `e52358b` + `026ea7f`; script `scripts/tier2_extract.ts`; DRY-RUN SQL in `supabase/migration-staging-tier2/`.
+**Key finding (caught by code-trace, missed by per-file review):** v3 schema `unique_policy_protocol UNIQUE(policy_id)` at `00003_governance_tables.sql:56` would cause Postgres 23505 on row 2 of 02_protocol.sql. 3 protocols shared 1 policy_id. Entire transaction would abort. Files 03 + 04 would cascade-fail on FK.
+**Other findings worth capturing:**
+- Frontend: `[IMPORT]` prefix on protocol names + NULL-description audit for admin curation layer.
+- Supervisor: `auto_assign_protocols` trigger fires only on profile INSERT, not protocol INSERT — existing Tier 1 profiles would silently miss new protocols without backfill.
+- Steward: Handbook draft-filter asymmetry ("Hvorfor" Bubble `_status='Draft'` was emitted regardless) — now filtered at extraction.
+- Agent-Coord: `ON CONFLICT DO NOTHING` missing — idempotency manifest claim was FALSE.
+- Agent-Coord: MANIFEST did not state `service_role ONLY` apply requirement — JWT apply would error 42501.
+- Supervisor: strike-mcp has ZERO telemetry infrastructure — DRY-RUN acceptable since apply bypasses smartout.ai code; "every-mutation-emits" rule doesn't apply to psql-driven apply.
+- Agent-Coord: 46/52 procedures have NULL description (now surfaced as warning).
+**Semantic conflict resolved:** Agent-Coord said FAIL (literal "would this SQL apply?"); 3 others said APPROVE WITH CHANGES (design soundness). Steward ruled PARTIAL OVERLAP — same reality, different frames. Correct label: APPROVE WITH CHANGES.
+**Trust Gate:** DOES NOT PASS as-is (missing backfill = authority divergence; broken UNIQUE = apply fails; placeholder names leak to capability output). PASSES after the 8 fixes applied in strike-mcp commit `1627556`.
+**Must-fixes applied (commit 1627556):**
+1. 1 policy per protocol (1:1) — UNIQUE(policy_id) honored ✓
+2. `[IMPORT]` prefix on protocol/policy names ✓
+3. `ON CONFLICT (pk) DO NOTHING` on all INSERTs ✓
+4. Handbook draft filter at extraction ✓
+5. `apply_auth: "service_role ONLY"` in MANIFEST ✓
+6. NULL-description audit in MANIFEST ✓
+7. `mappings/handbooks.json` marked superseded ✓
+8. Backfill RPC requirement documented in pre_apply_checklist (RPC itself deferred — wt-2 migration work)
+**Deferred to follow-up:**
+- Backfill migration (wt-2)
+- Source-tagging ADR (wt-2): v3 `source text` column vs sidecar JSONL
+- Activity tree → procedure_step nesting (v2)
+- Parameterize workspace constants (v1.6)
+- Fix pre-existing strike-mcp typecheck debt in `patch_fix_live_api_fields.ts`
+**ADRs created:** none (architectural decisions deferred — schema column decision still pending)
+**ADRs proposed for later:** Content provenance column on governance tables (Cascade Invariant 8: every output must have provenance).
+**Learnings created:** 0035, 0036, 0037
+**Meta-observation for council process:** This second council on the same day (post-impl mode on the implementation that replaced the earlier-superseded verdict) produced its highest-value finding (the UNIQUE 23505) via code-tracer layer 2. Per-file review in the morning approved the same pattern. The 4-layer model (Learning 0036) is the generalization: migration councils must assign reviewers per layer, not just per domain.
