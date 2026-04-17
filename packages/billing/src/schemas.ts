@@ -139,3 +139,26 @@ export const InvoiceListFiltersSchema = z.object({
   limit: z.number().int().min(1).max(500).optional(),
 });
 export type InvoiceListFilters = z.infer<typeof InvoiceListFiltersSchema>;
+
+// ─── Fase 2 dispatch action inputs ─────────────────────────────────
+// Mirror the DB enum so Zod catches channel drift before the RPC boundary.
+export const BillingDispatchChannelSchema = z.enum([
+  "email_customer",
+  "email_internal",
+  "http_api",
+  "peppol_ehf",
+]);
+
+export const RetryDispatchInputSchema = z.object({
+  invoice_dispatch_id: z.string().uuid(),
+});
+export type RetryDispatchInput = z.infer<typeof RetryDispatchInputSchema>;
+
+export const CreateAdHocDispatchInputSchema = z.object({
+  invoice_id: z.string().uuid(),
+  channel: BillingDispatchChannelSchema,
+  // Target shape varies per channel; adapters validate at send-time.
+  // Zod guard stops obvious misuse (non-object, missing required keys).
+  target: z.record(z.string(), z.unknown()),
+});
+export type CreateAdHocDispatchInput = z.infer<typeof CreateAdHocDispatchInputSchema>;

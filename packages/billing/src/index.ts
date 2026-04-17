@@ -7,15 +7,13 @@
 // the query layer; React Query hooks live in ./hooks and accept a
 // caller-supplied fetcher.
 //
-// Task 3.1 (scaffold): empty public surface. Task 3.2 adds types +
-// schemas. Task 3.3 adds queries + hooks. Task 3.4 adds
-// resolveCompanyId helper in @smartout/ai (separate package).
+// Fase 2 adds dispatch adapters + Server Action building blocks. The
+// integration framework (Spor B / B4) is NOT exported yet — it ships
+// in a follow-up batch.
 
 export * from "./types";
 export * from "./schemas";
 export * from "./queries";
 export * from "./hooks";
-// Fase 2 — dispatch adapters + types. Kept under a sub-path too
-// (`@smartout/billing/dispatch`) via the explicit barrel, but the root
-// export surface is the canonical one for now.
 export * from "./dispatch";
+export * from "./actions/dispatch";
