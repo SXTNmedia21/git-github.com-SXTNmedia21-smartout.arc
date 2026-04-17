@@ -97,6 +97,8 @@ builds on.)
 
 ## Known issues / debt
 
+- **BLOCKER for any `gatedInsert/Update/Delete` call-site migration** — the TS wrapper in `packages/supabase/src/gate-client.ts` targets RPC `cascade_gate_write` which is not yet shipped as SQL (ADR-0091 WP2 pending). Calling any `gated*` helper today throws `42883 function does not exist`. The ESLint rule stays `warn`-only until WP2 migration lands.
+
 1. **Four `useMutation` sites missing `emit()`** — `ReconciliationView`,
    `DailyNoteSheet`, `ReservationSheet`, and `use-notifications` all
    perform writes without a telemetry emit in `onSuccess`. Captured in
@@ -123,17 +125,18 @@ builds on.)
 
 ## Next steps
 
-1. **Sprint 2 — consumer-site migration.** Migrate 155 `useDashboard()`
+1. **Ship ADR-0091 WP2 Postgres migration** — create `public.cascade_gate_write` function per ADR-0091 canonical shape; add smoke test that invokes it from gate-client; only then escalate ESLint rule severity and begin call-site migration.
+2. **Sprint 2 — consumer-site migration.** Migrate 155 `useDashboard()`
    call sites to slice-specific hooks (`useWorkspace`, `useAdmin`,
    `useScheduleCoordination`, `useTheme`). Unlocks the perf win from
    ADR-0113.
-2. **Escalate `smartout/no-direct-supabase-write` from `warn` to `error`**
+3. **Escalate `smartout/no-direct-supabase-write` from `warn` to `error`**
    once call-site migration is done. Gate merges on zero direct writes
    outside `gate-client.ts` itself.
-3. **Phantom event cleanup per A2 audit.** Remove the 213 unused
+4. **Phantom event cleanup per A2 audit.** Remove the 213 unused
    registry entries and add the 4 missing emits flagged above. One
    commit, one clean-up PR; no functional change.
-4. **Sprint 3 — remaining RSC routes.** Apply ADR-0115 pattern to the
+5. **Sprint 3 — remaining RSC routes.** Apply ADR-0115 pattern to the
    11 remaining client-only dashboard routes. Re-verify the route
    list first — several may be scheduled for deletion per the mobile
    strategy freeze (ADR-0133).

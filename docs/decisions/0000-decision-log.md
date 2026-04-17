@@ -42,7 +42,7 @@ tags: [decisions, adr, index]
 | [ADR-0117](0117-authority-model-after-phase-4.md) | 2026-04-16 | Authority Model after Phase 4 (gate_action as single source) | accepted |
 | [ADR-0116](0116-runtime-telemetry-standard.md) | 2026-04-16 | Runtime Telemetry Standard for services/ (pino logger, requestId middleware, typed errors, mandatory emit() via toVercelTools adapter) | accepted |
 | [ADR-0115](0115-rsc-migration-pattern-dashboard-routes.md) | 2026-04-16 | RSC Migration Pattern for Dashboard Routes — streaming boundary, NordicSkeleton pairing, ambience invariant, first-chunk heading rule, schedule excluded. **Pattern proven** by Sprint 2 migration (people, handbook, hms, reports). | accepted |
-| [ADR-0114](0114-server-actions-canonical-mutation-primitive.md) | 2026-04-16 | Server Actions as Canonical User-Initiated Mutation Primitive + Capability Authority Relation — three-path divergence closed via shared gate RPC + explicit emit contract. **Accepted 2026-04-17** — WP3 prerequisite (`gate-client.ts` + ESLint rule) shipped in `b90dc1f5`. | accepted |
+| [ADR-0114](0114-server-actions-canonical-mutation-primitive.md) | 2026-04-16 | Server Actions as Canonical User-Initiated Mutation Primitive + Capability Authority Relation — three-path divergence closed via shared gate RPC + explicit emit contract. **Accepted 2026-04-17** — WP3 prerequisite (`gate-client.ts` + ESLint rule) shipped in `b90dc1f5`. R3 gated on ADR-0091 WP2. | accepted |
 | [ADR-0113](0113-dashboard-context-decomposition-completion.md) | 2026-04-16 | DashboardContext Decomposition Completion — facade `useDashboard()` hook, ThemeContext hoist with synchronous data-theme flip, BotssonProvider above shell split. | accepted |
 | [ADR-0106](0106-effective-dating-governance-content.md) | 2026-04-15 | Effective-Dating Strategy for Governance Content (valid_from/valid_to on protocol/procedure/knowledge_test/confirmation; no *_version tables) | accepted |
 | [ADR-0105](0105-inspection-link-public-access-pattern.md) | 2026-04-15 | inspection_link Public-Access Pattern (hashed token, scope JSONB, justification, default anonymization; MVP schema, UI deferred to Phase 4) | accepted |
@@ -67,7 +67,7 @@ tags: [decisions, adr, index]
 | [ADR-0094](0094-framework-rule-severity-enum.md) | 2026-04-14 | Framework Rule Severity as Enum (info/warning/hard_block, WP1 retrofit) | accepted |
 | [ADR-0093](0093-contract-draft-proposals-unified-cascade.md) | 2026-04-14 | Contract Draft Proposals Flow Through Unified apply_cascade() (amends ADR-0076) | accepted |
 | ADR-0092 | — | *reserved — Monitor Mode Graduation Criteria (Phase E / WP6)* | reserved |
-| [ADR-0091](0091-governance-gate-placement-postgres-rpc.md) | 2026-04-14 | Governance Gate Placement — Postgres RPC (SECURITY DEFINER), covers service-role | accepted |
+| [ADR-0091](0091-governance-gate-placement-postgres-rpc.md) | 2026-04-14 | Governance Gate Placement — Postgres RPC (SECURITY DEFINER), covers service-role. WP2 SQL function pending; WP3 TS scaffold shipped 2026-04-17 (non-functional until WP2). | accepted |
 | [ADR-0090](0090-framework-rule-evaluation-config-schema.md) | 2026-04-14 | Framework Rule Evaluation Config JSON Schema (Phase E / WP1 foundation) | accepted |
 | [ADR-0089](0089-walkai-bridge-architecture.md) | 2026-04-14 | WalkAi Bridge Architecture — Client vs Server Tools | accepted |
 | [ADR-0088](0088-ai-operations-intelligence-capability.md) | 2026-04-14 | AI Operations Intelligence as Capability, Not Daemon | accepted |
