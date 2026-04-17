@@ -505,6 +505,9 @@ importers:
       '@smartout/ai':
         specifier: workspace:*
         version: link:../../packages/ai
+      '@smartout/billing':
+        specifier: workspace:*
+        version: link:../../packages/billing
       '@smartout/design-tokens':
         specifier: workspace:^
         version: link:../../packages/design-tokens
