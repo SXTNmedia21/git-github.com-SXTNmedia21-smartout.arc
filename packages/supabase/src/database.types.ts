@@ -8185,6 +8185,7 @@ export type Database = {
           payment_reference: string | null
           period_from: string
           period_to: string
+          pricing_terms_id: string | null
           sent_at: string | null
           status: Database["public"]["Enums"]["invoice_status"]
           updated_at: string
@@ -8217,6 +8218,7 @@ export type Database = {
           payment_reference?: string | null
           period_from: string
           period_to: string
+          pricing_terms_id?: string | null
           sent_at?: string | null
           status?: Database["public"]["Enums"]["invoice_status"]
           updated_at?: string
@@ -8249,6 +8251,7 @@ export type Database = {
           payment_reference?: string | null
           period_from?: string
           period_to?: string
+          pricing_terms_id?: string | null
           sent_at?: string | null
           status?: Database["public"]["Enums"]["invoice_status"]
           updated_at?: string
@@ -8286,6 +8289,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "invoice"
             referencedColumns: ["invoice_id"]
+          },
+          {
+            foreignKeyName: "invoice_pricing_terms_id_fkey"
+            columns: ["pricing_terms_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_terms"
+            referencedColumns: ["pricing_terms_id"]
+          },
+          {
+            foreignKeyName: "invoice_pricing_terms_id_fkey"
+            columns: ["pricing_terms_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["pricing_terms_id"]
           },
           {
             foreignKeyName: "invoice_voided_by_fkey"
