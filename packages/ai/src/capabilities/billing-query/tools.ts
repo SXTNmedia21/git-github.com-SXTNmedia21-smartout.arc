@@ -172,6 +172,80 @@ export const listOverdue = defineTool({
   },
 });
 
+/**
+ * Sanitise an email to "a***@example.com" for LLM narration. Fase 2 Trust
+ * Gate: dispatch rows carry the full recipient in `target` (audit fidelity),
+ * but the LLM only needs enough to say "yes, we sent it to you (a***@…)."
+ * Non-email targets are passed through unchanged — platform-admin UI is
+ * the place for full PII.
+ */
+function maskEmail(email: string): string {
+  const at = email.indexOf("@");
+  if (at <= 0) return email;
+  const local = email.slice(0, at);
+  const domain = email.slice(at);
+  const masked = local.length <= 1 ? "***" : `${local[0]}***`;
+  return `${masked}${domain}`;
+}
+
+function sanitiseTarget(target: unknown): unknown {
+  if (!target || typeof target !== "object") return target;
+  const t = target as Record<string, unknown>;
+  const clone: Record<string, unknown> = { ...t };
+  if (typeof clone.email === "string") clone.email = maskEmail(clone.email);
+  if (typeof clone.to === "string") clone.to = maskEmail(clone.to);
+  return clone;
+}
+
+export const listInvoiceDispatches = defineTool({
+  name: "list_invoice_dispatches",
+  description:
+    "Se hvilke kanaler en faktura ble sendt på (email, API, etc.) og om leveringen lyktes. Returnerer leveranser fra Fase 2 (2026-04-17+). Fakturaer fra før dette kan vise tom liste — sjekk `invoice.delivery_status` for historikk.",
+  capability: "billing_query",
+  schema: z.object({
+    invoice_id: z.string().uuid(),
+  }),
+  execute: async (params, ctx: AgentToolContext) => {
+    const channelError = requireChatChannel(ctx);
+    if (channelError) return channelError;
+
+    const companyId = await resolveCompanyId(ctx);
+    const supabase = ctx.supabaseAdmin as SupabaseClient;
+
+    // Scope check first — never leak "exists but not yours".
+    const { data: invoice, error: invErr } = await supabase
+      .from("invoice")
+      .select("invoice_id, company_id")
+      .eq("invoice_id", params.invoice_id)
+      .maybeSingle();
+
+    if (invErr) return `Error: ${invErr.message}`;
+    if (!invoice) return "Invoice not found.";
+    if (invoice.company_id !== companyId) {
+      return "Invoice does not belong to your company.";
+    }
+
+    const { data, error } = await supabase
+      .from("invoice_dispatch")
+      .select(
+        "channel, target, status, attempts, last_attempt_at, delivered_at, error_code, error_message, external_reference, created_at",
+      )
+      .eq("invoice_id", params.invoice_id)
+      .order("created_at", { ascending: false });
+
+    if (error) return `Error: ${error.message}`;
+
+    // Mask recipient PII before handing to the LLM. Audit UI keeps the full
+    // target; the agent only narrates "sent to a***@example.com".
+    const sanitised = (data ?? []).map((row) => ({
+      ...row,
+      target: sanitiseTarget(row.target),
+    }));
+
+    return JSON.stringify(sanitised);
+  },
+});
+
 export const getUsageSnapshot = defineTool({
   name: "get_usage_snapshot",
   description:

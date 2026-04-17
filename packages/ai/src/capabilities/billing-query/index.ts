@@ -16,6 +16,7 @@ import {
   explainInvoiceBasis,
   getMyInvoice,
   getUsageSnapshot,
+  listInvoiceDispatches,
   listMyInvoices,
   listOverdue,
 } from "./tools.js";
@@ -26,6 +27,7 @@ const tools = [
   explainInvoiceBasis,
   listOverdue,
   getUsageSnapshot,
+  listInvoiceDispatches,
 ] as unknown as ReadonlyArray<SmartoutTool<AgentToolContext>>;
 
 export const billingQueryCapability: CapabilityDefinition = {
