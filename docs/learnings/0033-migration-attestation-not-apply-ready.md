@@ -107,8 +107,8 @@ You're in this trap when:
 
 ## References
 
-- `~/dev/strike-mcp/docs/superpowers/decisions/0006-auth-bridge-orchestration.md` — amended 2026-04-16 with required apply-script behaviors, login-flow gate, cutover artifacts, bridge timeline
-- `~/dev/strike-mcp/docs/migration/CUTOVER-USER-NOTICE.md` — drafted post-council
-- `~/dev/strike-mcp/docs/migration/CUTOVER-SWAP-NOTICE.md` — drafted post-council
+- `services/strike-mcp/docs/superpowers/decisions/0006-auth-bridge-orchestration.md` — amended 2026-04-16 with required apply-script behaviors, login-flow gate, cutover artifacts, bridge timeline
+- `services/strike-mcp/docs/migration/CUTOVER-USER-NOTICE.md` — drafted post-council
+- `services/strike-mcp/docs/migration/CUTOVER-SWAP-NOTICE.md` — drafted post-council
 - `docs/council/COUNCIL-LOG.md` 2026-04-16 entry — full verdict + reviewer findings
 - ADR-0107..0111 (wt-3) — the v3 schema-side companions to strike-mcp 0004/0005/0006

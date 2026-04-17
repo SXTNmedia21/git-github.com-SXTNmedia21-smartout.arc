@@ -1,0 +1,15 @@
+{
+  "entity": "rule_templates",
+  "bubble_type": "🕹️ruletemplate",
+  "target_table": "public.schedule_template",
+  "field_map": {},
+  "required_source_fields": [],
+  "skip_if_missing": [],
+  "known_quirks": [],
+  "last_verified": "2026-04-08",
+  "sample_record_count": 0,
+  "total_record_count": 0,
+  "v3_schema_hash": null,
+  "known_empty_source": true,
+  "approval_hash": "4925de59d9f18fd10b4df5269221ca1aa4d5aecfa8d3dfb3639d1c6bc27a3cc6"
+}

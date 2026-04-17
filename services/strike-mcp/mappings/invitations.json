@@ -1,0 +1,347 @@
+{
+  "entity": "invitations",
+  "bubble_type": "🎎invitation",
+  "target_table": "public.invitation",
+  "field_map": {
+    "🔔_channel's": {
+      "target": "channel_s",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "array"
+      ],
+      "occurrence_count": 36,
+      "sample_values": [
+        "array<1>"
+      ]
+    },
+    "_id": {
+      "target": "id",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 39,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "Modified Date": {
+      "target": "modified_date",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 39,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "invitationDate": {
+      "target": "invitationdate",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 39,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "Created by 🎎 profile": {
+      "target": "created_by_profile",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 38,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "Assigned to 🎎 Profile": {
+      "target": "assigned_to_profile",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 39,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "🎎 _invitationStatus": {
+      "target": "invitationstatus",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 39,
+      "sample_values": [
+        "string<8>",
+        "string<10>",
+        "string<7>"
+      ]
+    },
+    "valid_until": {
+      "target": "valid_until",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 38,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "nps_value": {
+      "target": "nps_value",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "number"
+      ],
+      "occurrence_count": 33,
+      "sample_values": [
+        "number"
+      ]
+    },
+    "prompPopup?": {
+      "target": "promppopup",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "boolean"
+      ],
+      "occurrence_count": 33,
+      "sample_values": [
+        "boolean"
+      ]
+    },
+    "host_uid": {
+      "target": "host_uid",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 22,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "Created Date": {
+      "target": "created_date",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 39,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "enrollDate": {
+      "target": "enrolldate",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 21,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "💾 _dataType": {
+      "target": "datatype",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 24,
+      "sample_values": [
+        "string<10>",
+        "string<24>",
+        "string<8>"
+      ]
+    },
+    "Created By": {
+      "target": "created_by",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 39,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "🏰 Workspace": {
+      "target": "workspace",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 39,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "imageUrl": {
+      "target": "imageurl",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 18,
+      "sample_values": [
+        "string<96>",
+        "string<2>",
+        "string<2>"
+      ]
+    },
+    "Title": {
+      "target": "title",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 33,
+      "sample_values": [
+        "string<25>"
+      ]
+    },
+    "Message": {
+      "target": "message",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 33,
+      "sample_values": [
+        "string<57>"
+      ]
+    },
+    "Description": {
+      "target": "description",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 18,
+      "sample_values": [
+        "string<10>",
+        "string<3>",
+        "string<8>"
+      ]
+    },
+    "🔔 notification v.2": {
+      "target": "notification_v_2",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 8,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "🏳️‍🌈 message": {
+      "target": "message",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "array"
+      ],
+      "occurrence_count": 5,
+      "sample_values": [
+        "array<8>",
+        "array<8>",
+        "array<1>"
+      ]
+    },
+    "🏳️‍🌈 title": {
+      "target": "title",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "array"
+      ],
+      "occurrence_count": 3,
+      "sample_values": [
+        "array<1>",
+        "array<1>",
+        "array<2>"
+      ]
+    },
+    "🏳️‍🌈 description": {
+      "target": "description",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "array"
+      ],
+      "occurrence_count": 2,
+      "sample_values": [
+        "array<1>",
+        "array<2>"
+      ]
+    }
+  },
+  "required_source_fields": [],
+  "skip_if_missing": [],
+  "known_quirks": [
+    "Wrightegaarden has 0 active invitations. known_empty_source=true; no SQL emitted. Cutover notice: post-migration invitations created in Bubble must be manually re-created in v3.",
+    "constant_columns.source='bubble_migration' added 2026-04-16 per council Steward C1: public.invitation IS in ADR-0108 source-tagged list. With 0 rows today this is dormant, but the mapping is the long-lived contract."
+  ],
+  "last_verified": "2026-04-16T12:40:05.055Z",
+  "sample_record_count": 0,
+  "total_record_count": 0,
+  "v3_schema_hash": null,
+  "known_empty_source": true,
+  "approval_hash": "8eb3af67ca26bc2ece75f26bc4db82321c48ba4c026b88bdaf0b0834c762817c",
+  "constant_columns": {
+    "source": "bubble_migration"
+  }
+}

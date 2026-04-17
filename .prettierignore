@@ -18,3 +18,7 @@ supabase/templates/
 
 # Infra scripts
 infra/
+
+# Strike-mcp (migration tool) — integrated 2026-04-17 from separate repo.
+# Has its own historical formatting; not subject to monorepo prettier rules.
+services/strike-mcp/

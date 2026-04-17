@@ -1,0 +1,135 @@
+{
+  "entity": "locations",
+  "bubble_type": "location",
+  "target_table": "public.location",
+  "field_map": {
+    "Active": {
+      "target": "is_active",
+      "transform": null,
+      "needs_review": false,
+      "source_value_types": [
+        "boolean"
+      ],
+      "occurrence_count": 19,
+      "sample_values": [
+        "boolean"
+      ]
+    },
+    "Title": {
+      "target": "name",
+      "transform": "trim",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 19,
+      "sample_values": [
+        "string<13>",
+        "string<13>",
+        "string<10>"
+      ]
+    },
+    "Modified Date": {
+      "target": "updated_at",
+      "transform": "bubble_date_to_tstz",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 19,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "🏰 Workspace": {
+      "target": "workspace_id",
+      "transform": "fk_uuid:workspace",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 19,
+      "sample_values": [
+        "string<32>"
+      ]
+    },
+    "Created Date": {
+      "target": "created_at",
+      "transform": "bubble_date_to_tstz",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 19,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "_id": {
+      "target": "location_id",
+      "transform": "fk_uuid:location",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 19,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "Sort": {
+      "target": "sort_order",
+      "transform": null,
+      "needs_review": false,
+      "source_value_types": [
+        "number"
+      ],
+      "occurrence_count": 3,
+      "sample_values": [
+        "number"
+      ]
+    },
+    "Description": {
+      "target": "description",
+      "transform": "trim",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 1,
+      "sample_values": [
+        "string<25>"
+      ]
+    }
+  },
+  "required_source_fields": [],
+  "skip_if_missing": [],
+  "known_quirks": [
+    "slug derived via slugify(Title) per ADR-0004 derived_columns.",
+    "source = 'bubble_migration' constant per ADR-0108 (M8 trigger filter).",
+    "_locationType not coerced to v3 location_type enum; using v3 DEFAULT 'main'.",
+    "Bubble parent/sub-location hierarchy flattened; v3 has no parent_location_id.",
+    "Sweep 2026-04-16: 4 fields locked needs_review=false (target+transform already set by prior patch); 0 unmapped+unreviewed fields silently dropped (auto-sweeper consensus). Triggered by emit-SQL verification surfacing align.ts/engine.ts attestation gap. See align.ts buildAlignedFieldMap fix (preserves human approval).",
+    "Sweep 2026-04-16: 4 fields locked needs_review=false (target+transform already set by prior patch); 0 unmapped+unreviewed fields silently dropped (auto-sweeper consensus). Triggered by emit-SQL verification surfacing align.ts/engine.ts attestation gap. See align.ts buildAlignedFieldMap fix (preserves human approval)."
+  ],
+  "last_verified": "2026-04-16T13:12:40.369Z",
+  "sample_record_count": 19,
+  "total_record_count": 19,
+  "v3_schema_hash": null,
+  "derived_columns": {
+    "slug": {
+      "from": "Title",
+      "transform": "slugify"
+    }
+  },
+  "constant_columns": {
+    "source": "bubble_migration"
+  },
+  "approval_hash": "68ceb4b4ef6cd2bd2b4ee3f9a461169fba7cbbe70dea7dbf81166de02fda7487"
+}

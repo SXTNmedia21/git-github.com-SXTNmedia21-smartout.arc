@@ -73,8 +73,8 @@ before Phase 3 dispatch.
 ## References
 
 - Council session: `docs/council/COUNCIL-LOG.md` 2026-04-17 entry
-- Strike-mcp Tier 2 discovery: `~/dev/strike-mcp/docs/source/DISCOVERED-bubble-content-model.md`
-- New Tier 2 spec: `~/dev/strike-mcp/docs/superpowers/specs/2026-04-17-tier2-content-extraction.md`
+- Strike-mcp Tier 2 discovery: `services/strike-mcp/docs/source/DISCOVERED-bubble-content-model.md`
+- New Tier 2 spec: `services/strike-mcp/docs/superpowers/specs/2026-04-17-tier2-content-extraction.md`
 - Related: Learning 0033 — Migration attestation completeness ≠ apply-readiness
 - Related: Tier 1 council verdict 2026-04-16
 

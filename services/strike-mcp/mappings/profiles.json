@@ -1,0 +1,169 @@
+{
+  "entity": "profiles",
+  "bubble_type": "profile",
+  "target_table": "public.profile",
+  "field_map": {
+    "Profile Image": {
+      "target": "avatar_url",
+      "transform": "trim",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<97>",
+        "string<123>",
+        "string<110>"
+      ]
+    },
+    "_id": {
+      "target": "profile_id",
+      "transform": "fk_uuid:profile",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "User": {
+      "target": "user_id",
+      "transform": "fk_uuid:user_identity",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "🏡 Department": {
+      "target": "department_id",
+      "transform": "fk_uuid:department",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 67,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "Modified Date": {
+      "target": "updated_at",
+      "transform": "bubble_date_to_tstz",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "🏰 Workspace": {
+      "target": "workspace_id",
+      "transform": "fk_uuid:workspace",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<32>"
+      ]
+    },
+    "Created Date": {
+      "target": "created_at",
+      "transform": "bubble_date_to_tstz",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "Profile Name": {
+      "target": "display_name",
+      "transform": "trim",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<17>",
+        "string<13>",
+        "string<11>"
+      ]
+    },
+    "kioskCode": {
+      "target": "external_employee_number",
+      "transform": "trim",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 5,
+      "sample_values": [
+        "string<4>",
+        "string<4>",
+        "string<4>"
+      ]
+    }
+  },
+  "required_source_fields": [
+    "_id",
+    "User",
+    "🏰 Workspace",
+    "Profile Name"
+  ],
+  "skip_if_missing": [],
+  "known_quirks": [
+    "company_id constant '8d22ac74-1813-510e-81b1-e742e5aaf813' is HARDCODED to Wrightegaarden's company. v3 profile.company_id is NOT NULL FK→company but Bubble has no per-profile company link (company is per-workspace). For multi-workspace tenants, a future ADR-0007 must add cross-entity lookup framework support; this script will fail-fast if STRIKE_WORKSPACE_SLUG != wrightegaarden.",
+    "profile_code derived via profile_code_from_id transform: 'EMP-' + first 8 chars of uuidv5('profile', _id). Q3 verdict 2026-04-16. Deterministic, readable, sortable, ~4.3B suffix space for ~135 profiles (collision-resistant).",
+    "source constant 'bubble_migration' per ADR-0108 — overrides v3 DEFAULT 'operational'.",
+    "role uses v3 DEFAULT 'employee' — Q4 enum coercion deferred. Bubble Admin users land as 'employee' and need post-migration role bump (only ~3-5 admins typically).",
+    "status uses v3 DEFAULT 'trainee' — Q4 enum coercion deferred. All profiles initially flagged trainee; post-migration status backfill from Bubble _status values per ADR-0082.",
+    "is_active uses v3 DEFAULT true — Bubble Deactivated date? value dropped; manual cleanup if specific profiles must land inactive.",
+    "joined_at uses v3 DEFAULT now() — captures migration event, not original Bubble Created Date (which is preserved in created_at).",
+    "departments array left as DEFAULT '{}' — single-department case covered via department_id; multi-dept array case (🏡 Department's) deferred per ADR-0007 framework.",
+    "notification_pref uses v3 DEFAULT (push-only); Bubble 🎎 notifyMe preferences not migrated.",
+    "Email + Phone are dropped from profile and live ONLY on user_identity (single source of truth). v3 derives via JOIN profile.user_id → user_identity.email/phone.",
+    "external_employee_number stores Bubble kioskCode (4-digit shared-tablet login). Used for v3 kiosk auth flow; do not confuse with employee_number which is for HR records.",
+    "Apply order strict: auth-bridge (creates auth.users) → user_identity (this requires those to exist) → profile (this requires user_identity + workspace + company + department to exist).",
+    "Sweep 2026-04-16: 6 fields locked needs_review=false (target+transform already set by prior patch); 0 unmapped+unreviewed fields silently dropped (auto-sweeper consensus). Triggered by emit-SQL verification surfacing align.ts/engine.ts attestation gap. See align.ts buildAlignedFieldMap fix (preserves human approval).",
+    "Sweep 2026-04-16: 6 fields locked needs_review=false (target+transform already set by prior patch); 0 unmapped+unreviewed fields silently dropped (auto-sweeper consensus). Triggered by emit-SQL verification surfacing align.ts/engine.ts attestation gap. See align.ts buildAlignedFieldMap fix (preserves human approval)."
+  ],
+  "last_verified": "2026-04-16T13:12:40.376Z",
+  "sample_record_count": 100,
+  "total_record_count": 135,
+  "v3_schema_hash": null,
+  "derived_columns": {
+    "profile_code": {
+      "from": "_id",
+      "transform": "profile_code_from_id"
+    }
+  },
+  "constant_columns": {
+    "company_id": "8d22ac74-1813-510e-81b1-e742e5aaf813",
+    "source": "bubble_migration"
+  },
+  "approval_hash": "c884a09a8635889f97c94e4b162b088fde8192eed522bed834c5a280ea06532a"
+}

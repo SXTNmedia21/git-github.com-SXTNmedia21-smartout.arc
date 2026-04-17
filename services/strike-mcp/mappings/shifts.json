@@ -1,0 +1,148 @@
+{
+  "entity": "shifts",
+  "bubble_type": "shift",
+  "target_table": "public.schedule_shift",
+  "field_map": {
+    "_id": {
+      "target": "schedule_shift_id",
+      "transform": "fk_uuid:shift",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": []
+    },
+    "workspace": {
+      "target": "workspace_id",
+      "transform": "fk_uuid:workspace",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": []
+    },
+    "*🎎 Profile": {
+      "target": "employee_id",
+      "transform": "fk_uuid:profile",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": []
+    },
+    "tean": {
+      "target": "team_id",
+      "transform": "fk_uuid:team",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": []
+    },
+    "department": {
+      "target": "department_id",
+      "transform": "fk_uuid:department",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": []
+    },
+    "*Live": {
+      "target": "is_published",
+      "transform": null,
+      "needs_review": false,
+      "source_value_types": [
+        "boolean"
+      ],
+      "occurrence_count": 100,
+      "sample_values": []
+    },
+    "shift.durationSeconds": {
+      "target": "work_hours",
+      "transform": "seconds_to_hours",
+      "needs_review": false,
+      "source_value_types": [
+        "number"
+      ],
+      "occurrence_count": 100,
+      "sample_values": []
+    },
+    "Created Date": {
+      "target": "created_at",
+      "transform": "bubble_date_to_tstz",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": []
+    },
+    "Modified Date": {
+      "target": "updated_at",
+      "transform": "bubble_date_to_tstz",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": []
+    }
+  },
+  "required_source_fields": [
+    "_id",
+    "workspace",
+    "*dateStart",
+    "*dateEnd",
+    "shift.durationSeconds"
+  ],
+  "skip_if_missing": [],
+  "known_quirks": [
+    "day_category constant 'weekday' per Q5 verdict — post-migration backfill via public_holiday + dow lookup. Cannot derive at transform time without holiday data already in v3.",
+    "source constant 'bubble_migration' per ADR-0108 — overrides v3 DEFAULT 'operational' so M8 reconciliation triggers don't fire on imported rows.",
+    "Status defaults to 'created' per v3 — Bubble _shiftStatus enum coercion deferred per Q4. May need post-migration cleanup if _shiftStatus held meaningful state.",
+    "Indicator defaults to 'blue' per v3 — Bubble _shiftType_color was a UI hint only.",
+    "Breaks defaults to 0 — Bubble has no break-minutes field on shift entity itself (break records live in 🗓️record where _recordType ∈ {break, meal}).",
+    "shift_date / start_time / end_time derived from date.start / date.end via iso_to_date / iso_to_time (transforms registered Day 1 commit d68f245).",
+    "work_hours derived from durationsSeconds via seconds_to_hours; v3 work_hours is numeric NOT NULL default 0.",
+    "FK to employee_id is nullable in v3 schema BUT FK constraint to public.profile is enforced. Apply order: profiles must land before shifts.",
+    "swapRecord field dropped — v3 models swaps as engine_process per council 2026-04-15.",
+    "Archived rows: 'Archived ' boolean (note trailing space) is dropped here. Apply step should optionally filter out archived rows or migrate them as status='cancelled'.",
+    "position_id always null on migrated rows — Bubble has no position concept; v3 position is per-shift but optional, derived elsewhere.",
+    "Task #21 fix 2026-04-17: live Bubble API returns starred variants (*dateStart, *dateEnd, *Live, *🎎 Profile, *_shiftStatus) + different bare names (shift.durationSeconds, tean, department) — NOT the names discovery sidecar showed (date.start, durationsSeconds, teamId, etc.). All field_map keys rewritten to match live API.",
+    "role constant 'Vakt' (Norwegian for 'shift/duty') — shiftType field does not exist in live API; 🗓️ shiftType is a sparse FK (1/50 records). Post-migration backfill: UPDATE schedule_shift SET role = t.name FROM public.team t WHERE t.team_id = schedule_shift.team_id;",
+    "day_category constant 'weekday' per Q5 — post-migration backfill via public_holiday + dow lookup.",
+    "source constant 'bubble_migration' per ADR-0108.",
+    "FK to employee_id via *🎎 Profile (Bubble starred computed field returning Bubble profile ID).",
+    "tean is Bubble's typo for 'team' — live field name, not our error."
+  ],
+  "last_verified": "2026-04-17T08:19:04.684Z",
+  "sample_record_count": 100,
+  "total_record_count": 2750,
+  "v3_schema_hash": null,
+  "derived_columns": {
+    "shift_date": {
+      "from": "*dateStart",
+      "transform": "iso_to_date"
+    },
+    "start_time": {
+      "from": "*dateStart",
+      "transform": "iso_to_time"
+    },
+    "end_time": {
+      "from": "*dateEnd",
+      "transform": "iso_to_time"
+    }
+  },
+  "constant_columns": {
+    "source": "bubble_migration",
+    "day_category": "weekday",
+    "role": "Vakt"
+  },
+  "approval_hash": "700e1fd1675eddbad3ae1bd865e089a63b57917d1b668ee4c2b3be2bea56695c"
+}

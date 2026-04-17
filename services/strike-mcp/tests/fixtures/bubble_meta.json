@@ -1,0 +1,18 @@
+{
+  "get": {
+    "workspace": {
+      "fields": {
+        "name_text": { "display": "Name", "type": "text" },
+        "created_date": { "display": "Created Date", "type": "date" }
+      }
+    },
+    "shift_satellite": {
+      "fields": {
+        "workspace": { "display": "workspace", "type": "custom.workspace" },
+        "date_start_date": { "display": "date.start 🟢", "type": "date" },
+        "titel_text": { "display": "Titel", "type": "text" }
+      }
+    }
+  },
+  "post": {}
+}

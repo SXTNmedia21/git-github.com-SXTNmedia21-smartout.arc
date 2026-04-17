@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.env
+.env.local
+*.log
+.DS_Store
+coverage/
+.vitest-cache/
+
+# PII sidecar files — raw sample values from Bubble research (GDPR)
+mappings/.local/
+
+mappings/.aligned/

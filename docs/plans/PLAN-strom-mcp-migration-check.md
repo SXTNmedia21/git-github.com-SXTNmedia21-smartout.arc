@@ -16,20 +16,23 @@ tags: [plan, migration, bubble, tier1, tier2]
 
 Smartout.ai-side worktree for the strike-mcp Bubble→v3 migration:
 land ADRs, learnings, council reviews, and amendments that the strike-mcp
-tool work depends on. The migration tool itself lives in `~/dev/strike-mcp/`
+tool work depends on. The migration tool itself lives in `services/strike-mcp/`
 (separate repo); this branch holds the smartout.ai documentation +
 governance integration boundary.
 
 ## Scope
 
-This branch is the **integration boundary** between two independent codebases:
+This branch lands BOTH the smartout.ai-side migration infrastructure AND
+the strike-mcp tool itself. Previously strike-mcp was a separate local-only
+repo at `~/dev/strike-mcp/`; during /close-feature (2026-04-17) it was
+integrated into the monorepo as `services/strike-mcp/` to unify:
 
-- **`~/dev/strike-mcp/`** (separate repo) — the migration tool (engine,
-  transforms, mappings, ADRs 0001-0006, patch scripts, manual SQL templates,
-  emit orchestrator).
-- **`~/dev/smartout.ai-wt-2/`** (this branch) — smartout.ai-side ADRs that
-  shape the v3 schema strike-mcp targets, council records of cross-system
-  decisions, and learnings that emerge from the migration work.
+- **`services/strike-mcp/`** — the migration tool (engine, transforms,
+  mappings, ADRs 0001-0006, patch scripts, manual SQL templates, emit
+  orchestrator, auth-bridge).
+- **smartout.ai-wt-2 branch** — v3-side ADRs, migration SQL (governance
+  provenance), middleware force-password-reset gate, council records,
+  learnings, JOURNEY.
 
 ## Tasks
 
@@ -52,7 +55,7 @@ table — vi henter kunnskapen fra workspacen og implementerer den i version 3."
 Tier 2 is no longer a structural schema-mapping problem; it's a content
 extraction + v3-native re-creation problem.
 
-- [x] Discovery doc captured 2026-04-17 — `~/dev/strike-mcp/docs/source/DISCOVERED-bubble-content-model.md`
+- [x] Discovery doc captured 2026-04-17 — `services/strike-mcp/docs/source/DISCOVERED-bubble-content-model.md`
 - [x] Live meta verification of 6 Tier 2 entities (strike-mcp commit bc5d70b)
 - [x] Run discovery for 5 live entities (`🎖️ badge` confirmed non-existent)
 - [x] Council ran 2026-04-17, produced APPROVE WITH CHANGES verdict, then
@@ -60,8 +63,8 @@ extraction + v3-native re-creation problem.
 - [x] **Tier 2 v1 extraction pipeline (strike-mcp commits e52358b + 026ea7f):**
       `scripts/tier2_extract.ts` — handbook → protocol + challenge →
       confirmation + live activity → procedure. Produces DRY-RUN SQL at
-      `~/dev/strike-mcp/supabase/migration-staging-tier2/`.
-- [x] **Spec:** `~/dev/strike-mcp/docs/superpowers/specs/2026-04-17-tier2-content-extraction.md`
+      `services/strike-mcp/supabase/migration-staging-tier2/`.
+- [x] **Spec:** `services/strike-mcp/docs/superpowers/specs/2026-04-17-tier2-content-extraction.md`
 
 Open items (post-pivot):
 
@@ -85,7 +88,7 @@ Open items (post-pivot):
 ### Production apply blockers (out of attestation scope)
 
 - [x] Build `strike-auth-bridge` — DONE 2026-04-17 (strike-mcp commit `c3677e8`).
-      Scripts at `~/dev/strike-mcp/scripts/auth-bridge/`. Verified against
+      Scripts at `services/strike-mcp/scripts/auth-bridge/`. Verified against
       local Supabase: 3 Wrightegaarden auth.users created with deterministic
       uuidv5, `07_user_identity.sql` then applies cleanly.
 - [x] v3 login-flow gate enforces force-password-reset for migrated users —

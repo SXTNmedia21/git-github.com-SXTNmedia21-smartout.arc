@@ -1,0 +1,192 @@
+{
+  "entity": "company",
+  "bubble_type": "🏰company",
+  "target_table": "public.company",
+  "field_map": {
+    "Company : Email": {
+      "target": "email",
+      "transform": "trim",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 1,
+      "sample_values": [
+        "string<22>"
+      ]
+    },
+    "Company : Round Logo": {
+      "target": "logo_url",
+      "transform": null,
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 1,
+      "sample_values": [
+        "string<101>"
+      ]
+    },
+    "Modified Date": {
+      "target": "updated_at",
+      "transform": "bubble_date_to_tstz",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 1,
+      "sample_values": [
+        "string<24>"
+      ]
+    },
+    "Company : VAT": {
+      "target": "org_number",
+      "transform": "trim",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 1,
+      "sample_values": [
+        "string<9>"
+      ]
+    },
+    "legalAgent: Legal name": {
+      "target": "legal_name",
+      "transform": "trim",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 19,
+      "sample_values": [
+        "string<20>",
+        "string<18>",
+        "string<13>"
+      ]
+    },
+    "_id": {
+      "target": "company_id",
+      "transform": "fk_uuid:company",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 1,
+      "sample_values": [
+        "string<32>"
+      ]
+    },
+    "Created Date": {
+      "target": "created_at",
+      "transform": "bubble_date_to_tstz",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 1,
+      "sample_values": [
+        "string<24>"
+      ]
+    },
+    "Company : Name": {
+      "target": "name",
+      "transform": "trim",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 1,
+      "sample_values": [
+        "string<27>"
+      ]
+    },
+    "Company | Phone": {
+      "target": "phone",
+      "transform": "trim",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 22,
+      "sample_values": [
+        "string<15>",
+        "string<8>",
+        "string<11>"
+      ]
+    },
+    "Adresse: City": {
+      "target": "city",
+      "transform": "trim",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 1,
+      "sample_values": [
+        "string<9>"
+      ]
+    },
+    "Adresse: Zip": {
+      "target": "postal_code",
+      "transform": "trim",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 14,
+      "sample_values": [
+        "string<4>",
+        "string<3>",
+        "string<4>"
+      ]
+    },
+    "Accounting : Contact email": {
+      "target": "billing_email",
+      "transform": "trim",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 12,
+      "sample_values": [
+        "string<19>",
+        "string<13>",
+        "string<15>"
+      ]
+    },
+    "Adresse: Street": {
+      "target": "address_line_1",
+      "transform": "trim",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 14,
+      "sample_values": [
+        "string<17>",
+        "string<4>",
+        "string<12>"
+      ]
+    }
+  },
+  "required_source_fields": [],
+  "skip_if_missing": [],
+  "known_quirks": [
+    "source column has DEFAULT 'operational' in M7; engine MUST override to 'bubble_migration' (ADR-0108).",
+    "v3 enum columns (country, industry, default_language, default_currency) use safe DEFAULTs ('NO', 'restaurant', 'no', 'NOK'); Bubble values dropped pending enum_coerce transform.",
+    "legal_name optional in v3; mapped from legalAgent:Legal name when present, else null.",
+    "website populated by Brønnøysund scraper post-migration; Bubble Webpager sample data was garbage.",
+    "subscription_*, trial_ends_at, stripe_customer fields driven by Stripe webhooks in v3, not migrated from Bubble.",
+    "Sweep 2026-04-16: 3 fields locked needs_review=false (target+transform already set by prior patch); 0 unmapped+unreviewed fields silently dropped (auto-sweeper consensus). Triggered by emit-SQL verification surfacing align.ts/engine.ts attestation gap. See align.ts buildAlignedFieldMap fix (preserves human approval).",
+    "Sweep 2026-04-16: 3 fields locked needs_review=false (target+transform already set by prior patch); 0 unmapped+unreviewed fields silently dropped (auto-sweeper consensus). Triggered by emit-SQL verification surfacing align.ts/engine.ts attestation gap. See align.ts buildAlignedFieldMap fix (preserves human approval)."
+  ],
+  "last_verified": "2026-04-16T13:12:40.368Z",
+  "sample_record_count": 1,
+  "total_record_count": 1,
+  "v3_schema_hash": null,
+  "approval_hash": "faf81bfb572f0ac7b8f06c8e56d8ffcc1c04ecdb16de0bde546fe7234f32f7b3",
+  "constant_columns": {
+    "source": "bubble_migration"
+  }
+}

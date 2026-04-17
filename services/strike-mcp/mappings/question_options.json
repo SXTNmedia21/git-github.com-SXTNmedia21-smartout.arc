@@ -1,0 +1,215 @@
+{
+  "entity": "question_options",
+  "bubble_type": "question.option",
+  "target_table": null,
+  "field_map": {
+    "Modified Date": {
+      "target": "modified_date",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "Created By": {
+      "target": "created_by",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<32>"
+      ]
+    },
+    "isRight": {
+      "target": "isright",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "boolean"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "boolean",
+        "boolean"
+      ]
+    },
+    "Created Date": {
+      "target": "created_date",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "title": {
+      "target": "title",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 94,
+      "sample_values": [
+        "string<27>",
+        "string<18>",
+        "string<22>"
+      ]
+    },
+    "❓Question": {
+      "target": "question",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 97,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "🏳️‍🌈 titles": {
+      "target": "titles",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "array"
+      ],
+      "occurrence_count": 97,
+      "sample_values": [
+        "array<8>",
+        "array<8>",
+        "array<8>"
+      ]
+    },
+    "_id": {
+      "target": "id",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "sequence": {
+      "target": "sequence",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "number"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "number",
+        "number",
+        "number"
+      ]
+    },
+    "Ai created?": {
+      "target": "ai_created",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "boolean"
+      ],
+      "occurrence_count": 44,
+      "sample_values": [
+        "boolean"
+      ]
+    },
+    "icon_phosphoreicon": {
+      "target": "icon_phosphoreicon",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 6,
+      "sample_values": [
+        "string<18>"
+      ]
+    },
+    "❓_optionType": {
+      "target": "optiontype",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 6,
+      "sample_values": [
+        "string<10>",
+        "string<12>",
+        "string<13>"
+      ]
+    },
+    "numberRange": {
+      "target": "numberrange",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "array"
+      ],
+      "occurrence_count": 6,
+      "sample_values": [
+        "array<2>",
+        "array<2>",
+        "array<2>"
+      ]
+    },
+    "host_uid": {
+      "target": "host_uid",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 6,
+      "sample_values": [
+        "string<32>"
+      ]
+    },
+    "❓_npsRange": {
+      "target": "npsrange",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 6,
+      "sample_values": [
+        "string<10>",
+        "string<12>",
+        "string<8>"
+      ]
+    }
+  },
+  "required_source_fields": [],
+  "skip_if_missing": [],
+  "known_quirks": [],
+  "last_verified": "2026-04-17",
+  "sample_record_count": 100,
+  "total_record_count": 1409,
+  "v3_schema_hash": null
+}

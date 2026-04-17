@@ -15,10 +15,10 @@ the force-password-reset flow on first login.
 
 ## Journey 1: Admin runs Tier 1 + Tier 2 migration for a workspace
 
-**Role:** Admin (Pontus, via terminal in `~/dev/strike-mcp/`)
+**Role:** Admin (Pontus, via terminal in `services/strike-mcp/`)
 **Precondition:**
 - wt-3 v3 schema migrations applied to target Postgres
-- Bubble API token in `~/dev/strike-mcp/.env.local`
+- Bubble API token in `services/strike-mcp/.env.local`
 - Workspace constants entry in `src/workspace_constants.ts` (wrightegaarden pre-registered)
 
 1. **User:** `STRIKE_WORKSPACE_SLUG=wrightegaarden pnpm tsx scripts/emit_migration_sql.ts`

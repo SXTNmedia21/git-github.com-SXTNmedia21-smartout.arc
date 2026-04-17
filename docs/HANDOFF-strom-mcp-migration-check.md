@@ -11,11 +11,16 @@ tags: [handoff, migration, bubble, tier1, tier2]
 
 ## Summary
 
-This worktree (`feat/strom-mcp-migration-check`, wt-2) is the smartout.ai-side
-coordination point for the strike-mcp Bubble→v3 migration. The actual
-migration tool lives in a separate repo (`~/dev/strike-mcp/`); this branch
-holds smartout.ai documentation that the migration depends on or that
-emerges from migration work (ADRs, learnings, council logs).
+This worktree (`feat/strom-mcp-migration-check`, wt-2) lands:
+1. v3 schema + middleware + governance-mutation fixes to support the
+   Bubble→v3 migration (smartout.ai product code)
+2. The strike-mcp migration tool itself, integrated as `services/strike-mcp/`
+   (previously a separate local-only repo at `~/dev/strike-mcp/`,
+   consolidated into the monorepo during /close-feature 2026-04-17).
+
+Both sides now live in one repo with one commit history, one CI, one
+typecheck. The separation was illusory — ADRs on each side already
+referenced the other's scripts by path.
 
 ## What was built — Tier 1 arc (2026-04-15 → 2026-04-17)
 
@@ -25,7 +30,7 @@ emerges from migration work (ADRs, learnings, council logs).
 - `6c5801d3` — Tier 1 strike-mcp council verdict + Learning 0033
 
 ### Strike-mcp changes (separate repo, ~30 commits this arc)
-See `~/dev/strike-mcp/` for full history. Highlights:
+See `services/strike-mcp/` for full history. Highlights:
 - 4 strike-mcp ADRs (0003-0006: conflict strategy, derived/constant columns,
   raw_json_target, auth-bridge orchestration)
 - Engine framework: derived_columns + constant_columns + raw_json_target
@@ -89,9 +94,9 @@ See Learning 0034.
 
 **Pipeline (strike-mcp commits e52358b + 026ea7f):**
 - `scripts/tier2_extract.ts` — content-extraction pipeline
-- Spec: `~/dev/strike-mcp/docs/superpowers/specs/2026-04-17-tier2-content-extraction.md`
+- Spec: `services/strike-mcp/docs/superpowers/specs/2026-04-17-tier2-content-extraction.md`
 - Live DRY-RUN output for Wrightegaarden at
-  `~/dev/strike-mcp/supabase/migration-staging-tier2/`:
+  `services/strike-mcp/supabase/migration-staging-tier2/`:
   - 01_policy.sql (1 bookkeeping policy)
   - 02_protocol.sql (3 protocols: 2 handbooks + 1 operational-procedures container)
   - 03_procedure.sql (52 live procedures, filtered from 935 activities)
@@ -137,7 +142,7 @@ in activities; 683 of 935 activities are soft-deleted in Bubble (`Active 🚫 = 
       limited run). Re-emit without `--limit` to get the full workspace
       user list before production apply. Same for other Tier 1 entities.
 5. **Distribute recovery links** — admin operational task. Audit CSV at
-      `~/dev/strike-mcp/scripts/auth-bridge/.audit/bridge-audit-*.csv`
+      `services/strike-mcp/scripts/auth-bridge/.audit/bridge-audit-*.csv`
       contains the links; decide distribution channel (personal email,
       Tripletex, direct message) per user.
 6. **Production cutover** — only after items 1-5 + wt-3 schema migrations
@@ -147,14 +152,14 @@ in activities; 683 of 935 activities are soft-deleted in Bubble (`Active 🚫 = 
 
 1. `docs/DASHBOARD.md` — live git state
 2. `docs/plans/PLAN-strom-mcp-migration-check.md` — full task list
-3. `~/dev/strike-mcp/docs/source/DISCOVERED-bubble-content-model.md` —
+3. `services/strike-mcp/docs/source/DISCOVERED-bubble-content-model.md` —
    Tier 2 content model discovery
 4. `~/dev/second-brain-v2/ops/activity-log.md` — narrative continuity
 5. claude-mem MCP — cross-session memory
 
 ## Cross-references
 
-- Strike-mcp repo: `~/dev/strike-mcp/` (branch `main`, ~30 commits this arc)
+- Strike-mcp repo: `services/strike-mcp/` (branch `main`, ~30 commits this arc)
 - wt-3 worktree: `~/dev/smartout.ai-wt-3/` (owns v3 schema migrations
   M1-M9 + ADRs 0107-0111 referenced by strike-mcp)
 - Genesis bubble-mcp: `/mnt/c/Users/sxtnl/Dev/Genesis/mcp-servers/bubble-mcp/`

@@ -1,0 +1,126 @@
+{
+  "entity": "handbook_stages",
+  "bubble_type": "handbook.stage",
+  "target_table": null,
+  "field_map": {
+    "Created Date": {
+      "target": "created_date",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 21,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "title": {
+      "target": "title",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 21,
+      "sample_values": [
+        "string<7>",
+        "string<7>",
+        "string<7>"
+      ]
+    },
+    "handbook.challanges": {
+      "target": "handbook_challanges",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "array"
+      ],
+      "occurrence_count": 16,
+      "sample_values": [
+        "array<2>",
+        "array<1>",
+        "array<2>"
+      ]
+    },
+    "_id": {
+      "target": "id",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 21,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "Modified Date": {
+      "target": "modified_date",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 21,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "Created By": {
+      "target": "created_by",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 21,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "handbook": {
+      "target": "handbook",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 20,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "stage_number": {
+      "target": "stage_number",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "number"
+      ],
+      "occurrence_count": 18,
+      "sample_values": [
+        "number",
+        "number",
+        "number"
+      ]
+    }
+  },
+  "required_source_fields": [],
+  "skip_if_missing": [],
+  "known_quirks": [],
+  "last_verified": "2026-04-17",
+  "sample_record_count": 21,
+  "total_record_count": 21,
+  "v3_schema_hash": null
+}

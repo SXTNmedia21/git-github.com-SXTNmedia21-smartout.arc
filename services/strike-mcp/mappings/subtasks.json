@@ -1,0 +1,180 @@
+{
+  "entity": "subtasks",
+  "bubble_type": "subtask",
+  "target_table": null,
+  "field_map": {
+    "Title": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 97,
+      "sample_values": [
+        "string<11>",
+        "string<11>",
+        "string<9>"
+      ]
+    },
+    "_id": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "Created By": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "💾 _dataType": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<6>"
+      ]
+    },
+    "Created Date": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "doneUntilDate": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 49,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "Sort": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "number"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "number",
+        "number",
+        "number"
+      ]
+    },
+    "🏰 workspace": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "Modified Date": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "✅ task": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 97,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "timesDone": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "number"
+      ],
+      "occurrence_count": 26,
+      "sample_values": [
+        "number",
+        "number",
+        "number"
+      ]
+    },
+    "images": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "array"
+      ],
+      "occurrence_count": 2,
+      "sample_values": [
+        "array<1>",
+        "array<1>"
+      ]
+    }
+  },
+  "required_source_fields": [],
+  "skip_if_missing": [],
+  "known_quirks": [],
+  "last_verified": "2026-04-08",
+  "sample_record_count": 100,
+  "total_record_count": 265,
+  "v3_schema_hash": null,
+  "approval_hash": "afa7c52aff36f8a8ac385147d026c9dc422f1322549d57a3e5c54f8dbf517c97"
+}

@@ -14,7 +14,7 @@ updated: 2026-04-08
 
 ## Context and Problem Statement
 
-The Bubble → Supabase migration is being executed entity-by-entity under Claude Code control via a local MCP server (`~/dev/strike-mcp`). For Claude Code sessions inside the `smartout.ai` repo to reach the Bubble Data API (list workspaces, inspect entity shapes, generate staging SQL), strike-mcp must be registered at the repo level.
+The Bubble → Supabase migration is being executed entity-by-entity under Claude Code control via a local MCP server (`services/strike-mcp`). For Claude Code sessions inside the `smartout.ai` repo to reach the Bubble Data API (list workspaces, inspect entity shapes, generate staging SQL), strike-mcp must be registered at the repo level.
 
 An existing `bubble-mcp` already runs for Pontus from `~/.claude.json` with a plaintext `BUBBLE_API_TOKEN`. Strike MCP needs the same token but should be scoped to the `smartout.ai` repo rather than the global Claude Code config.
 
@@ -53,7 +53,7 @@ Or fold the source step into a shell alias / tmux startup hook.
 - **Good, because** strike-mcp stays outside the agent runtime layer (`packages/ai`) — no cascade/ontology impact, no Stage Engine coupling
 - **Bad, because** developer must remember to source `.env.local` before launching Claude Code in this repo, or nothing works
 - **Bad, because** absolute path to `/home/sxtnl/dev/strike-mcp/dist/index.js` means a second developer on this repo would need to relocate strike-mcp to the same path or override locally. Acceptable while Pontus is sole operator; revisit if a second dev joins.
-- **Bad, because** strike-mcp must be rebuilt (`pnpm build` inside `~/dev/strike-mcp`) whenever its source changes — no auto-build hook
+- **Bad, because** strike-mcp must be rebuilt (`pnpm build` inside `services/strike-mcp`) whenever its source changes — no auto-build hook
 - **Bad, because** 1Password is explicitly skipped for this capability. Accepted debt. Revisit when the migration work settles.
 - **Agent Impact:**
   - Claude Code sessions in `smartout.ai` can invoke strike-mcp tools directly (list workspaces, research entity shapes, generate migration SQL)
@@ -63,5 +63,5 @@ Or fold the source step into a shell alias / tmux startup hook.
 ## Follow-ups
 
 - **(debt)** Move `BUBBLE_API_TOKEN` to 1Password and update both `smartout.ai/.mcp.json` + `~/.claude.json` bubble-mcp entry
-- **(bug)** `~/dev/strike-mcp/.mcp.json.example` and design docs reference `https://smartout.bubbleapps.io` — the working URL is `https://smartout.io` (custom domain). Fix upstream.
+- **(bug)** `services/strike-mcp/.mcp.json.example` and design docs reference `https://smartout.bubbleapps.io` — the working URL is `https://smartout.io` (custom domain). Fix upstream.
 - **(portability)** If a second dev joins, parameterize the `args` path in `.mcp.json` via env var (e.g. `${STRIKE_MCP_DIST}`) and document

@@ -1,0 +1,215 @@
+{
+  "entity": "salary_transactions",
+  "bubble_type": "⏱️salary_transaction(salary_detail)",
+  "target_table": "public.payroll_ledger_archive",
+  "field_map": {
+    "🏰 workspace": {
+      "target": "workspace_id",
+      "transform": "fk_uuid:workspace",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<32>"
+      ]
+    },
+    "10. Base Salary": {
+      "target": "base_salary",
+      "transform": null,
+      "needs_review": false,
+      "source_value_types": [
+        "number"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "number",
+        "number",
+        "number"
+      ]
+    },
+    "Accounting_Account_Code": {
+      "target": "accounting_account_code",
+      "transform": "trim",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<4>",
+        "string<4>",
+        "string<4>"
+      ]
+    },
+    "_id": {
+      "target": "payroll_ledger_id",
+      "transform": "fk_uuid:payroll_ledger",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "Related_Shift": {
+      "target": "schedule_shift_id",
+      "transform": "fk_uuid:shift",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "11. Total Salary": {
+      "target": "total_salary",
+      "transform": null,
+      "needs_review": false,
+      "source_value_types": [
+        "number"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "number",
+        "number",
+        "number"
+      ]
+    },
+    "4. Date": {
+      "target": "transaction_date",
+      "transform": "iso_to_date",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<10>",
+        "string<10>",
+        "string<10>"
+      ]
+    },
+    "9. Hours": {
+      "target": "hours",
+      "transform": null,
+      "needs_review": false,
+      "source_value_types": [
+        "number"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "number",
+        "number",
+        "number"
+      ]
+    },
+    "🎎 Profile": {
+      "target": "profile_id",
+      "transform": "fk_uuid:profile",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "a_melding_code": {
+      "target": "a_melding_code",
+      "transform": "trim",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 50,
+      "sample_values": [
+        "string<22>",
+        "string<18>",
+        "string<20>"
+      ]
+    },
+    "🎎 team": {
+      "target": "team_id",
+      "transform": "fk_uuid:team",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 50,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "🏠 department": {
+      "target": "department_id",
+      "transform": "fk_uuid:department",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 50,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    }
+  },
+  "required_source_fields": [
+    "_id",
+    "🏰 workspace",
+    "🎎 Profile",
+    "4. Date"
+  ],
+  "skip_if_missing": [],
+  "known_quirks": [
+    "raw_json captures the entire Bubble source record (28 fields × 17,607 rows ≈ several MB JSON inline in emitted SQL). Per ADR-0005 + ADR-0110 (smartout.ai).",
+    "bubble_record_id derived from _id via trim (identity transform on string). v3 column is text NOT NULL — preserves the original Bubble ID alongside the deterministic v5 UUID for traceability.",
+    "source constant 'bubble_migration' per ADR-0108 (matches v3 column DEFAULT but explicit override is safer than relying on default propagation).",
+    "archived_at uses v3 DEFAULT now() — captures the migration event, not the original Bubble creation date. Original creation lives in raw_json.Created Date.",
+    "Profile-level data (salaryIdentifyer, employmentProfile snapshot) intentionally not extracted — recoverable from raw_json + JOIN to current profile state.",
+    "FK to profile_id is NOT NULL in v3 — profiles must apply before salary_transactions. FK to schedule_shift_id is nullable but constrained.",
+    "17,607 rows is the largest single-entity migration in Tier 1. Apply in single transaction (single emitted SQL file per ADR-0002 dry-run model).",
+    "a_melding_code values (fastloenn, timeloenn, etc.) are per-row Norwegian payroll classification — must be preserved for Tripletex sync; not derivable post-migration.",
+    "Task #21 fix 2026-04-17: 🏠 department + 🎎 team removed from required_source_fields — sparse on live API (most salary_transaction rows lack them). FK transforms return null for absent fields, which is fine (both columns nullable in v3).",
+    "4. Date field uses YYYY.MM.DD (dot-separated, not ISO). iso_to_date transform extended 2026-04-17 to accept dot format: '2024.06.12' → '2024-06-12'.",
+    "raw_json captures the entire Bubble source record (28 fields × 17,607 rows ≈ several MB JSON inline in emitted SQL). Per ADR-0005 + ADR-0110 (smartout.ai).",
+    "bubble_record_id derived from _id via trim (identity transform on string). v3 column is text NOT NULL — preserves the original Bubble ID alongside the deterministic v5 UUID for traceability.",
+    "source constant 'bubble_migration' per ADR-0108 (matches v3 column DEFAULT but explicit override is safer than relying on default propagation).",
+    "archived_at uses v3 DEFAULT now() — captures the migration event, not the original Bubble creation date. Original creation lives in raw_json.Created Date.",
+    "Profile-level data (salaryIdentifyer, employmentProfile snapshot) intentionally not extracted — recoverable from raw_json + JOIN to current profile state.",
+    "FK to profile_id is NOT NULL in v3 — profiles must apply before salary_transactions. FK to schedule_shift_id is nullable but constrained.",
+    "17,607 rows is the largest single-entity migration in Tier 1. Apply in single transaction (single emitted SQL file per ADR-0002 dry-run model).",
+    "a_melding_code values (fastloenn, timeloenn, etc.) are per-row Norwegian payroll classification — must be preserved for Tripletex sync; not derivable post-migration."
+  ],
+  "last_verified": "2026-04-17T08:19:04.689Z",
+  "sample_record_count": 100,
+  "total_record_count": 17607,
+  "v3_schema_hash": null,
+  "derived_columns": {
+    "bubble_record_id": {
+      "from": "_id",
+      "transform": "trim"
+    }
+  },
+  "constant_columns": {
+    "source": "bubble_migration"
+  },
+  "raw_json_target": "raw_json",
+  "approval_hash": "840aafcdc0c3f1d6bf06b5e1087f061c23bd75653aa20042ff63db4a22ea8689"
+}

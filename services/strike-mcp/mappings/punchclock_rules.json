@@ -1,0 +1,111 @@
+{
+  "entity": "punchclock_rules",
+  "bubble_type": "🕹️⏱️punchclock_rules",
+  "target_table": null,
+  "field_map": {
+    "Modified Date": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "Created Date": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "Created By": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<20>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "⏱️ punchClock_rulesTypes": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<19>",
+        "string<18>",
+        "string<20>"
+      ]
+    },
+    "Value": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "number"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "number"
+      ]
+    },
+    "🏰 Workspace": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "_id": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    }
+  },
+  "required_source_fields": [],
+  "skip_if_missing": [],
+  "known_quirks": [],
+  "last_verified": "2026-04-08",
+  "sample_record_count": 100,
+  "total_record_count": 128,
+  "v3_schema_hash": null,
+  "approval_hash": "c9710a2368a0fc45c186943a376427e7c2d3892c02be38c5ded7e16261823b29"
+}

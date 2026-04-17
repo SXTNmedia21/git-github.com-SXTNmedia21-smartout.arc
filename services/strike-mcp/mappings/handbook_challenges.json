@@ -1,0 +1,252 @@
+{
+  "entity": "handbook_challenges",
+  "bubble_type": "handbook.challenge",
+  "target_table": null,
+  "field_map": {
+    "order": {
+      "target": "order",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "number"
+      ],
+      "occurrence_count": 90,
+      "sample_values": [
+        "number",
+        "number",
+        "number"
+      ]
+    },
+    "_id": {
+      "target": "id",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 90,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "_dataType": {
+      "target": "datatype",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 90,
+      "sample_values": [
+        "string<10>",
+        "string<9>",
+        "string<9>"
+      ]
+    },
+    "hostId": {
+      "target": "hostid",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 89,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "Created By": {
+      "target": "created_by",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 90,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "description": {
+      "target": "description",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 86,
+      "sample_values": [
+        "string<137>",
+        "string<111>",
+        "string<93>"
+      ]
+    },
+    "Modified Date": {
+      "target": "modified_date",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 90,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "Title": {
+      "target": "title",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 89,
+      "sample_values": [
+        "string<12>",
+        "string<13>",
+        "string<36>"
+      ]
+    },
+    "stage_number": {
+      "target": "stage_number",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "number"
+      ],
+      "occurrence_count": 86,
+      "sample_values": [
+        "number",
+        "number",
+        "number"
+      ]
+    },
+    "Created Date": {
+      "target": "created_date",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 90,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "handbook": {
+      "target": "handbook",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 69,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "_handbookType": {
+      "target": "handbooktype",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 52,
+      "sample_values": [
+        "string<3>",
+        "string<9>",
+        "string<9>"
+      ]
+    },
+    "🚀 activity": {
+      "target": "activity",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 53,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "est. time_min": {
+      "target": "est_time_min",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "number"
+      ],
+      "occurrence_count": 10,
+      "sample_values": [
+        "number",
+        "number",
+        "number"
+      ]
+    },
+    "handbook.stage": {
+      "target": "handbook_stage",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 10,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "🏳️‍🌈 titles": {
+      "target": "titles",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "array"
+      ],
+      "occurrence_count": 37,
+      "sample_values": [
+        "array<8>",
+        "array<15>",
+        "array<8>"
+      ]
+    },
+    "🏳️‍🌈 descriptions": {
+      "target": "descriptions",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "array"
+      ],
+      "occurrence_count": 37,
+      "sample_values": [
+        "array<8>",
+        "array<15>",
+        "array<8>"
+      ]
+    }
+  },
+  "required_source_fields": [],
+  "skip_if_missing": [],
+  "known_quirks": [],
+  "last_verified": "2026-04-17",
+  "sample_record_count": 90,
+  "total_record_count": 90,
+  "v3_schema_hash": null
+}
