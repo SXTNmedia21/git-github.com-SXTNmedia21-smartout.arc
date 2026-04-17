@@ -110,8 +110,20 @@ export type UpdatePricingTermsInput = z.infer<typeof UpdatePricingTermsInputSche
 
 // ─── Filter schemas (used by pure queries + hooks) ─────────────────
 
+// Mirrors the invoice_status enum. Kept in sync with
+// Database["public"]["Enums"]["invoice_status"] — see types.ts.
+export const InvoiceStatusSchema = z.enum([
+  "draft",
+  "issued",
+  "sent",
+  "paid",
+  "overdue",
+  "void",
+  "uncollectible",
+]);
+
 export const InvoiceListFiltersSchema = z.object({
-  status: z.string().optional(),
+  status: InvoiceStatusSchema.optional(),
   limit: z.number().int().min(1).max(500).optional(),
 });
 export type InvoiceListFilters = z.infer<typeof InvoiceListFiltersSchema>;
