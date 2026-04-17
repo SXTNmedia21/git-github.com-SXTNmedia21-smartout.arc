@@ -2,7 +2,7 @@
 title: Development Dashboard
 status: live
 updated: 2026-04-17
-last-reconciled: 2026-04-15
+last-reconciled: 2026-04-17
 module: meta
 tags: [dashboard, worktrees, git-state]
 ---
@@ -20,13 +20,15 @@ tags: [dashboard, worktrees, git-state]
 |---|--------|--------|-------------|-------|---------|
 | — | `development` | — | 4e6f221d | dirty | — |
 | wt-4 | `feat/billing-engine-fase-1` | billing | 4e6f221d | clean | `docs/journeys/JOURNEY-billing-engine-fase-1.md` (missing) |
+| wt-5 | `feat/audit-remediation-week-1` | meta | 376117f5 | clean | `docs/journeys/JOURNEY-audit-remediation-week-1.md` (missing) |
 
 ## Free Slots
 
-wt-1, wt-2, wt-3, wt-5, wt-6, wt-7, wt-8, wt-9, wt-10, wt-11, wt-12, wt-13, wt-15, wt-20
+wt-1, wt-2, wt-3, wt-6, wt-7, wt-8, wt-9, wt-10, wt-11, wt-12, wt-13, wt-15, wt-20
 
 ## Pending Journeys
 
 | # | Feature | Journey | Status |
 |---|---------|---------|--------|
 | wt-4 | billing-engine-fase-1 | `docs/journeys/JOURNEY-billing-engine-fase-1.md` | missing |
+| wt-5 | audit-remediation-week-1 | `docs/journeys/JOURNEY-audit-remediation-week-1.md` | missing |
