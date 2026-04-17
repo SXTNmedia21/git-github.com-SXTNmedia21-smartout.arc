@@ -26,6 +26,7 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -55,9 +56,11 @@
   --color-status-offboarding: var(--status-offboarding);
   --color-brand-orange: var(--brand-orange);
   --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
   --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
   /* Komm — Communication semantic colors */
   --color-komm-announcement: var(--komm-announcement);
   --color-komm-brief: var(--komm-brief);

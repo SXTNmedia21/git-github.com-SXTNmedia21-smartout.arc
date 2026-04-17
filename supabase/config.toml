@@ -526,6 +526,9 @@ verify_jwt = false
 [functions.daily-session-replenish]
 verify_jwt = false
 
+[functions.generate-monthly-invoices]
+verify_jwt = false
+
 [functions.session-lifecycle]
 verify_jwt = false
 

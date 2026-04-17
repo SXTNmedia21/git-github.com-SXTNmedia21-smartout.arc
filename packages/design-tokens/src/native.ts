@@ -15,10 +15,14 @@ export const nativeTheme = {
     muted: "#f5f3f0",
     mutedForeground: "#7a756e", // oklch(0.52 0.01 52)
     border: "#e8e5e1", // oklch(0.91 0.006 55)
-    destructive: "#e7000b",
-    success: "#11ad32",
-    warning: "#c18200",
-    info: "#2784d5",
+    destructive: "#de3b3d", // oklch(0.60 0.20 25) — warm coral
+    destructiveForeground: "#fff6f5", // oklch(0.98 0.01 25)
+    success: "#54b05a", // oklch(0.68 0.15 145)
+    successForeground: "#051606", // oklch(0.18 0.04 145)
+    warning: "#e49e22", // oklch(0.75 0.15 75)
+    warningForeground: "#201301", // oklch(0.20 0.04 75)
+    info: "#009eca", // oklch(0.65 0.13 225)
+    infoForeground: "#00151f", // oklch(0.18 0.04 225)
     brandOrange: "#f97316",
     brandPurple: "#8b5cf6",
     brandCyan: "#06b6d4",
@@ -35,10 +39,14 @@ export const nativeTheme = {
     muted: "#262626",
     mutedForeground: "#908a82", // oklch(0.6 0.01 52)
     border: "rgba(255,255,255,0.08)",
-    destructive: "#ff6467",
-    success: "#11ad32",
-    warning: "#c18200",
-    info: "#2784d5",
+    destructive: "#ed5350", // oklch(0.65 0.19 25) — warm coral dark
+    destructiveForeground: "#fff6f5", // oklch(0.98 0.01 25)
+    success: "#67bb6b", // oklch(0.72 0.14 145)
+    successForeground: "#eaf6ea", // oklch(0.96 0.02 145)
+    warning: "#eba941", // oklch(0.78 0.14 75)
+    warningForeground: "#faf0e3", // oklch(0.96 0.02 75)
+    info: "#30add6", // oklch(0.70 0.12 225)
+    infoForeground: "#e4f5fc", // oklch(0.96 0.02 225)
     brandOrange: "#f97316",
     brandPurple: "#a78bfa",
     brandCyan: "#22d3ee",

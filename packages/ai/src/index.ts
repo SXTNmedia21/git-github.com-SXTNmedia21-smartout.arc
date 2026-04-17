@@ -4,6 +4,11 @@
 export type { SmartoutTool } from "./types";
 export { defineTool } from "./types";
 
+// Cross-tool helpers. Added Phase 3.4 of Billing Engine Fase 1 — any
+// billing-tool or cross-tenant helper that needs workspace → company
+// resolution uses this.
+export { resolveCompanyId } from "./lib/resolveCompanyId";
+
 // Session memory
 export { SessionContext } from "./session-context";
 

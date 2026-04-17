@@ -17,14 +17,14 @@ export const brand = {
 
 // ─── Semantic Colors ───────────────────────────────────
 export const semantic = {
-  success: "oklch(0.65 0.2 145)",
-  successForeground: "oklch(0.98 0 0)",
-  warning: "oklch(0.75 0.18 85)",
-  warningForeground: "oklch(0.15 0 0)",
-  error: "oklch(0.577 0.245 27.325)",
-  errorForeground: "oklch(0.98 0 0)",
-  info: "oklch(0.6 0.15 250)",
-  infoForeground: "oklch(0.98 0 0)",
+  success: "oklch(0.68 0.15 145)",
+  successForeground: "oklch(0.18 0.04 145)",
+  warning: "oklch(0.75 0.15 75)",
+  warningForeground: "oklch(0.20 0.04 75)",
+  error: "oklch(0.60 0.20 25)", // maps to --destructive / warm coral (hue 25)
+  errorForeground: "oklch(0.98 0.01 25)",
+  info: "oklch(0.65 0.13 225)",
+  infoForeground: "oklch(0.18 0.04 225)",
 } as const;
 
 // ─── Surface Colors (Light Mode) ──────────────────────
@@ -43,7 +43,7 @@ export const light = {
   mutedForeground: "oklch(0.52 0.01 52)",
   accent: "oklch(0.965 0.005 58)",
   accentForeground: "oklch(0.205 0.01 50)",
-  destructive: "oklch(0.577 0.245 27.325)",
+  destructive: "oklch(0.60 0.20 25)",
   border: "oklch(0.91 0.006 55)",
   input: "oklch(0.91 0.006 55)",
   ring: "oklch(0.65 0.22 40)",
@@ -80,7 +80,7 @@ export const dark = {
   mutedForeground: "oklch(0.6 0.01 52)",
   accent: "oklch(0.269 0 0)",
   accentForeground: "oklch(0.95 0.005 55)",
-  destructive: "oklch(0.704 0.191 22.216)",
+  destructive: "oklch(0.65 0.19 25)",
   border: "oklch(1 0 0 / 8%)",
   input: "oklch(1 0 0 / 10%)",
   ring: "oklch(0.556 0 0)",

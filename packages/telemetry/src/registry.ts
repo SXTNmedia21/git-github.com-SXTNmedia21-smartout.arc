@@ -7,7 +7,12 @@ export interface BaseEvent {
 }
 
 // ─── Routing Metadata ───────────────────────────
-export type EventDestination = "posthog" | "logger" | "activity_trail" | "engine_event";
+export type EventDestination =
+  | "posthog"
+  | "logger"
+  | "activity_trail"
+  | "engine_event"
+  | "billing_activity_log"; // ADR-0125 — platform-scoped audit for billing events
 
 export interface EventMeta {
   destinations: EventDestination[];
@@ -32,7 +37,8 @@ export type EventCategory =
   | "wizard"
   | "security"
   | "enrichment"
-  | "ops_intelligence"; // ADR-0088
+  | "ops_intelligence" // ADR-0088
+  | "billing"; // ADR-0118 / ADR-0125
 
 // ─── Entity Reference (for robust UI audit trails) ─
 export interface EntityRef {
@@ -115,7 +121,14 @@ export type EntityType =
   | "contract_template_binding"
   | "observer_request"
   | "inspection_link"
-  | "notification_policy";
+  | "notification_policy"
+  | "invoice"
+  | "usage_snapshot"
+  | "pricing_terms"
+  | "basis_drift_event";
+// Note: `invoice_line_item` is scoped via its parent `invoice` FK and has
+// no direct event surface in Fase 1/2. Add to this union when a line-item
+// lifecycle event ships.
 
 export type ActionVerb =
   | "created"
@@ -2174,6 +2187,11 @@ export interface ContractRetentionArchived extends BaseEvent {
 }
 
 // ─── Pricing Terms Events ──────────────────────────
+// NOTE: legacy event for contract-level pricing edits. The billing engine
+// (ADR-0118 / ADR-0125) emits a SIBLING event `pricing_terms updated` with
+// an underscore — see `BillingPricingTermsUpdated` near the Billing Events
+// block. Two distinct events, two distinct routing destinations. Do not
+// consolidate without a migration plan for both call-sites.
 export interface PricingTermsUpdated extends BaseEvent {
   event: "pricing terms updated";
   properties: {
@@ -3635,6 +3653,171 @@ export interface ReminderConverted extends BaseEvent {
   };
 }
 
+// ─── Billing Events ──────────────────────────────
+// ADR-0118: C3 Commercial consumer. ADR-0125: route via billing_activity_log.
+// BaseEvent.actor_id is profile_id for most events; for billing it is a
+// user_identity.user_id (the billing_activity_log provider interprets it as
+// such). activity_trail is never a destination for billing events.
+
+export interface InvoiceGenerated extends BaseEvent {
+  event: "invoice generated";
+  properties: {
+    entity_type: "invoice";
+    entity_id: string;
+    data: {
+      company_id: string;
+      amount_incl_vat: number;
+      period_from: string;
+      period_to: string;
+    };
+  };
+}
+
+export interface InvoiceIssued extends BaseEvent {
+  event: "invoice issued";
+  properties: {
+    entity_type: "invoice";
+    entity_id: string;
+    data: {
+      company_id: string;
+      invoice_number: number;
+      amount_incl_vat: number;
+    };
+  };
+}
+
+export interface InvoiceSent extends BaseEvent {
+  event: "invoice sent";
+  properties: {
+    entity_type: "invoice";
+    entity_id: string;
+    data: {
+      delivery_channel: string;
+      external_reference?: string;
+    };
+  };
+}
+
+export interface InvoiceMarkedPaid extends BaseEvent {
+  event: "invoice marked_paid";
+  properties: {
+    entity_type: "invoice";
+    entity_id: string;
+    data: {
+      company_id: string;
+      amount_incl_vat: number;
+      payment_channel: string;
+      payment_date: string;
+      payment_reference: string;
+    };
+  };
+}
+
+export interface InvoiceVoided extends BaseEvent {
+  event: "invoice voided";
+  properties: {
+    entity_type: "invoice";
+    entity_id: string;
+    data: {
+      company_id: string;
+      reason: string;
+      reason_detail: string;
+    };
+  };
+}
+
+export interface InvoiceMarkedUncollectible extends BaseEvent {
+  event: "invoice marked_uncollectible";
+  properties: {
+    entity_type: "invoice";
+    entity_id: string;
+    data: {
+      company_id: string;
+      reason: string;
+      reason_detail: string;
+    };
+  };
+}
+
+export interface InvoiceOverdueDetected extends BaseEvent {
+  event: "invoice overdue_detected";
+  properties: {
+    entity_type: "invoice";
+    entity_id: string;
+    data: {
+      days_overdue: number;
+      /** Denormalised for audit joins; cron writer sets this. */
+      company_id?: string;
+      /** Emit origin tag (cron|web|api). Provider reads this into
+       *  billing_activity_log.source. */
+      source?: string;
+    };
+  };
+}
+
+export interface InvoiceCreditNoteIssued extends BaseEvent {
+  event: "invoice credit_note_issued";
+  properties: {
+    entity_type: "invoice";
+    entity_id: string;
+    data: {
+      original_invoice_id: string;
+      amount_incl_vat: number;
+      reason: string;
+    };
+  };
+}
+
+export interface InvoiceBasisDriftDetected extends BaseEvent {
+  event: "invoice basis_drift_detected";
+  properties: {
+    entity_type: "basis_drift_event";
+    entity_id: string;
+    data: {
+      invoice_id: string | null;
+      shift_id: string | null;
+      drift_type: string;
+    };
+  };
+}
+
+export interface UsageSnapshotCreated extends BaseEvent {
+  event: "usage_snapshot created";
+  properties: {
+    entity_type: "usage_snapshot";
+    entity_id: string;
+    data: {
+      workspace_id: string;
+      company_id: string;
+      billable_users: number;
+    };
+  };
+}
+
+// Separate interface from the legacy `PricingTermsUpdated` (event name
+// "pricing terms updated", contracts category) — both events coexist. The
+// billing event uses the underscore form `pricing_terms updated` and routes
+// to `billing_activity_log` per ADR-0125.
+export interface BillingPricingTermsUpdated extends BaseEvent {
+  event: "pricing_terms updated";
+  properties: {
+    entity_type: "pricing_terms";
+    entity_id: string;
+    changes: Record<string, { before: unknown; after: unknown }>;
+  };
+}
+
+export interface DunningNoteAdded extends BaseEvent {
+  event: "dunning_note added";
+  properties: {
+    entity_type: "invoice";
+    entity_id: string;
+    data: {
+      note: string;
+    };
+  };
+}
+
 // ─── The Single Truth Union ─────────────────────
 // Add every feature's events here. If it isn't here, it can't be emitted.
 export type SmartoutEvent =
@@ -4025,7 +4208,20 @@ export type SmartoutEvent =
   | ApprovalResolved
   | ReminderSent
   | ReminderOpened
-  | ReminderConverted;
+  | ReminderConverted
+  // ─── Billing (ADR-0118) ───
+  | InvoiceGenerated
+  | InvoiceIssued
+  | InvoiceSent
+  | InvoiceMarkedPaid
+  | InvoiceVoided
+  | InvoiceMarkedUncollectible
+  | InvoiceOverdueDetected
+  | InvoiceCreditNoteIssued
+  | InvoiceBasisDriftDetected
+  | UsageSnapshotCreated
+  | BillingPricingTermsUpdated
+  | DunningNoteAdded;
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -5501,5 +5697,58 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "reminder converted": {
     destinations: ["posthog", "activity_trail"],
     category: "training",
+  },
+
+  // ─── Billing (ADR-0118 / ADR-0125) ───
+  // Route via billing_activity_log, never activity_trail (profile-scoped actor
+  // model can't admit platform-admin writers). engine_event drives the
+  // invoice_lifecycle state machine seeded in Phase 1.10.
+  "invoice generated": {
+    destinations: ["posthog", "logger", "billing_activity_log", "engine_event"],
+    category: "billing",
+  },
+  "invoice issued": {
+    destinations: ["posthog", "logger", "billing_activity_log", "engine_event"],
+    category: "billing",
+  },
+  "invoice sent": {
+    destinations: ["logger", "billing_activity_log", "engine_event"],
+    category: "billing",
+  },
+  "invoice marked_paid": {
+    destinations: ["posthog", "logger", "billing_activity_log", "engine_event"],
+    category: "billing",
+  },
+  "invoice voided": {
+    destinations: ["logger", "billing_activity_log", "engine_event"],
+    category: "billing",
+  },
+  "invoice marked_uncollectible": {
+    destinations: ["logger", "billing_activity_log", "engine_event"],
+    category: "billing",
+  },
+  "invoice overdue_detected": {
+    destinations: ["logger", "billing_activity_log", "engine_event"],
+    category: "billing",
+  },
+  "invoice credit_note_issued": {
+    destinations: ["logger", "billing_activity_log", "engine_event"],
+    category: "billing",
+  },
+  "invoice basis_drift_detected": {
+    destinations: ["logger", "billing_activity_log", "engine_event"],
+    category: "billing",
+  },
+  "usage_snapshot created": {
+    destinations: ["logger", "billing_activity_log"],
+    category: "billing",
+  },
+  "pricing_terms updated": {
+    destinations: ["posthog", "logger", "billing_activity_log"],
+    category: "billing",
+  },
+  "dunning_note added": {
+    destinations: ["logger", "billing_activity_log"],
+    category: "billing",
   },
 };
