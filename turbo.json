@@ -9,7 +9,15 @@
     },
     "typecheck": {
       "dependsOn": ["^build"],
-      "outputs": []
+      "outputs": [],
+      "inputs": [
+        "src/**/*.ts",
+        "src/**/*.tsx",
+        "src/**/*.d.ts",
+        "tsconfig.json",
+        "tsconfig.*.json",
+        "package.json"
+      ]
     },
     "lint": {
       "outputs": []
