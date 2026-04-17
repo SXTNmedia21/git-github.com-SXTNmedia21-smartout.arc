@@ -17,8 +17,10 @@ import { getSuperAdminId } from "@/lib/platform-admin";
 // prevent_nested_credit_notes trigger (Task 1.4). We also guard here
 // for a clean error message instead of a trigger exception bubbling
 // up as a generic 500.
-
-const VAT_RATE = 25.0;
+//
+// VAT rate is mirrored from the original invoice (not a hardcoded
+// constant) so historical rates + future rate changes propagate
+// correctly to credit notes.
 
 export async function issueCreditNote(rawInput: unknown): Promise<
   | {
@@ -42,7 +44,7 @@ export async function issueCreditNote(rawInput: unknown): Promise<
   const { data: original, error: loadErr } = await supabase
     .from("invoice")
     .select(
-      "invoice_id, company_id, invoice_type, status, period_from, period_to, currency, delivery_channel",
+      "invoice_id, company_id, invoice_type, status, period_from, period_to, currency, delivery_channel, vat_rate",
     )
     .eq("invoice_id", input.original_invoice_id)
     .maybeSingle();
@@ -66,9 +68,12 @@ export async function issueCreditNote(rawInput: unknown): Promise<
   }
 
   // Inclusive amount -> split into excl_vat + vat_amount components
-  // consistent with invoice.amount_* columns. Round once per component.
+  // consistent with invoice.amount_* columns. VAT rate mirrors the
+  // original invoice (NOT a hardcoded constant — historical rates
+  // carry through; future rate changes stay consistent per invoice).
+  const vat_rate = Number(original.vat_rate);
   const amount_incl_vat = round2(input.amount);
-  const amount_excl_vat = round2(amount_incl_vat / (1 + VAT_RATE / 100));
+  const amount_excl_vat = round2(amount_incl_vat / (1 + vat_rate / 100));
   const vat_amount = round2(amount_incl_vat - amount_excl_vat);
 
   const { data: creditNote, error: insErr } = await supabase
@@ -81,7 +86,7 @@ export async function issueCreditNote(rawInput: unknown): Promise<
       period_from: original.period_from,
       period_to: original.period_to,
       amount_excl_vat,
-      vat_rate: VAT_RATE,
+      vat_rate,
       vat_amount,
       amount_incl_vat,
       currency: original.currency,

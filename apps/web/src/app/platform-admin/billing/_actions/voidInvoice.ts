@@ -43,7 +43,16 @@ export async function voidInvoice(
   if (!existing) {
     return { ok: false, error: "invoice_not_found" };
   }
-  if (String(existing.invoice_number ?? "") !== input.typed_confirmation) {
+  // Explicit null-number reject — a draft invoice has
+  // invoice_number = NULL, and String(null ?? "") === "". If we only
+  // used the string comparison below, an empty typed_confirmation
+  // would pass for draft invoices, relying on the status guard as
+  // sole defence. Make both guards independent so the confirmation
+  // story is "AND status" not "OR status".
+  if (existing.invoice_number === null) {
+    return { ok: false, error: "invoice_not_voidable_no_number" };
+  }
+  if (String(existing.invoice_number) !== input.typed_confirmation) {
     return { ok: false, error: "typed_confirmation_mismatch" };
   }
 

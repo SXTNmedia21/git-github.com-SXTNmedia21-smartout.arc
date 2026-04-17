@@ -7,6 +7,10 @@ import { InvoiceFilterBar } from "./_components/invoice-filter-bar";
 import { InvoiceTable, type InvoiceListRow } from "./_components/invoice-table";
 import { InvoiceDetailSheet } from "./_components/invoice-detail-sheet";
 
+// RFC-4122 UUID format. Strict enough to reject probe strings without
+// pulling Zod into a Server Component for one field.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 // Phase 6.2 — platform-admin invoice list.
 //
 // Filters via searchParams (?status=paid, ?company=<uuid>). A row click
@@ -50,7 +54,10 @@ export default async function InvoicesPage({
   if (params.status && allowedStatuses.includes(params.status as Invoice["status"])) {
     query = query.eq("status", params.status as Invoice["status"]);
   }
-  if (params.company) {
+  // Validate company_id as UUID before filter — a probe string would
+  // otherwise reach the Postgres cast and surface as a 500. Invalid
+  // UUID -> ignore filter silently; the user sees an unfiltered list.
+  if (params.company && UUID_RE.test(params.company)) {
     query = query.eq("company_id", params.company);
   }
 
