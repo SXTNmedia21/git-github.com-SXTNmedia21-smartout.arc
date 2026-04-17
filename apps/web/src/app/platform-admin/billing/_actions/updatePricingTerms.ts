@@ -51,6 +51,17 @@ export async function updatePricingTerms(
   }
   const input = parsed.data;
 
+  // effective_from guard: reject past dates. A past effective_from
+  // would retroactively reprice already-issued invoices in the
+  // current window (although invoices with pricing_terms_id
+  // snapshot at issue time — P1.5 FK — are protected, in-flight
+  // drafts or cron runs would still see the new row as the active
+  // one for yesterday).
+  const today = toIsoDate(new Date());
+  if (input.effective_from < today) {
+    return { ok: false, error: "effective_from_cannot_be_in_the_past" };
+  }
+
   const supabase = createAdminClient();
 
   // Find the currently-active row for this (company, workspace?)
@@ -78,12 +89,19 @@ export async function updatePricingTerms(
     return { ok: false, error: loadErr.message };
   }
 
-  const yesterday = toIsoDate(new Date(Date.now() - 24 * 60 * 60 * 1000));
+  // Close the active row with effective_until = effective_from - 1.
+  // Dovetails exactly with the new row's effective_from so there is
+  // no zero-coverage gap even when the admin schedules a future
+  // effective_from (e.g. next Monday). If input.effective_from is
+  // today, the old row closes as of yesterday — same behaviour as
+  // the original implementation.
+  const effFrom = new Date(input.effective_from + "T00:00:00Z");
+  const priorDay = toIsoDate(new Date(effFrom.getTime() - 24 * 60 * 60 * 1000));
 
   if (active) {
     const { error: closeErr } = await supabase
       .from("pricing_terms")
-      .update({ effective_until: yesterday })
+      .update({ effective_until: priorDay })
       .eq("pricing_terms_id", active.pricing_terms_id);
     if (closeErr) {
       console.error("[updatePricingTerms] close failed:", closeErr);

@@ -41,7 +41,7 @@ export async function resolveDriftEvent(
 
   const supabase = createAdminClient();
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("basis_drift_event")
     .update({
       resolution: input.resolution,
@@ -49,11 +49,22 @@ export async function resolveDriftEvent(
       reviewed_by: adminId,
     })
     .eq("drift_event_id", input.drift_event_id)
-    .is("resolution", null);
+    .is("resolution", null)
+    .select("drift_event_id")
+    .maybeSingle();
 
   if (error) {
     console.error("[resolveDriftEvent] update failed:", error);
     return { ok: false, error: error.message };
+  }
+
+  // The .is("resolution", null) guard means a double-submit (second
+  // admin racing the first) updates 0 rows. Without the select-check
+  // below we'd silently tell the second caller "ok: true" and they'd
+  // think their resolution choice won — when in fact the first caller
+  // already resolved with a different value.
+  if (!data) {
+    return { ok: false, error: "already_resolved_or_missing" };
   }
 
   revalidatePath("/platform-admin/billing/drift");
