@@ -46,7 +46,7 @@ describe("loadConfig research fields", () => {
 
   it("defaults mappingsDir to the strike-mcp mappings path", () => {
     const config = loadConfig({ ...baseEnv });
-    expect(config.mappingsDir).toBe("/home/sxtnl/dev/strike-mcp/mappings");
+    expect(config.mappingsDir).toMatch(/services\/strike-mcp\/mappings$/);
   });
 
   it("defaults vaultBubbleShapesDir to the second-brain bubble-shapes path", () => {
