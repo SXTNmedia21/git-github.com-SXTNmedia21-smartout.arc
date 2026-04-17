@@ -3726,6 +3726,19 @@ export interface InvoiceVoided extends BaseEvent {
   };
 }
 
+export interface InvoiceMarkedUncollectible extends BaseEvent {
+  event: "invoice marked_uncollectible";
+  properties: {
+    entity_type: "invoice";
+    entity_id: string;
+    data: {
+      company_id: string;
+      reason: string;
+      reason_detail: string;
+    };
+  };
+}
+
 export interface InvoiceOverdueDetected extends BaseEvent {
   event: "invoice overdue_detected";
   properties: {
@@ -4202,6 +4215,7 @@ export type SmartoutEvent =
   | InvoiceSent
   | InvoiceMarkedPaid
   | InvoiceVoided
+  | InvoiceMarkedUncollectible
   | InvoiceOverdueDetected
   | InvoiceCreditNoteIssued
   | InvoiceBasisDriftDetected
@@ -5706,6 +5720,10 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "billing",
   },
   "invoice voided": {
+    destinations: ["logger", "billing_activity_log", "engine_event"],
+    category: "billing",
+  },
+  "invoice marked_uncollectible": {
     destinations: ["logger", "billing_activity_log", "engine_event"],
     category: "billing",
   },

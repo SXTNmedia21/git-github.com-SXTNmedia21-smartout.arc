@@ -20,6 +20,7 @@ const BILLING_EVENTS: EventName[] = [
   "invoice sent",
   "invoice marked_paid",
   "invoice voided",
+  "invoice marked_uncollectible",
   "invoice overdue_detected",
   "invoice credit_note_issued",
   "invoice basis_drift_detected",
