@@ -26,7 +26,7 @@ tags: [decisions, adr, index]
 
 | ADR | Date | Title | Status |
 |-----|------|-------|--------|
-| [ADR-0101](0101-governance-provenance-jsonb.md) | 2026-04-17 | Governance table provenance convention via `provenance JSONB` — adds column to 5 governance tables (policy/protocol/procedure/procedure_step/confirmation). Rejects `source text` as semantic collision with domain-classifier columns. Extends cascade convention (ADR-0039 trail). | accepted |
+| [ADR-0126](0126-governance-provenance-jsonb.md) | 2026-04-17 | Governance table provenance convention via `provenance JSONB` — adds column to 5 governance tables (policy/protocol/procedure/procedure_step/confirmation). Rejects `source text` as semantic collision with domain-classifier columns. Extends cascade convention (ADR-0039 trail). Renumbered from 0101 during /close-feature to avoid cross-branch collision with sma-3 (docs/adrs-0101-0106-governance-training). | accepted |
 | [ADR-0100](0100-daily-close-as-aggregate-consumer.md) | 2026-04-15 | daily_close as Department-Aggregate Consumer of Settled Shifts | accepted |
 | [ADR-0099](0099-unified-authority-gate.md) | 2026-04-15 | Unified Authority-Gate Across agent-router and engine-dispatch (closes ADR-0077/0078 violation) | accepted |
 | [ADR-0098](0098-engine-state-as-coordination-spor.md) | 2026-04-15 | engine_state as Coordination Spor, Not Truth Owner | accepted |

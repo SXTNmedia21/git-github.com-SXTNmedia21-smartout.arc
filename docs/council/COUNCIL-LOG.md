@@ -741,7 +741,7 @@ Phase 3: Agent wiring (after C merges)
 **Key decision:** Add `provenance JSONB NOT NULL DEFAULT '{}'` to policy/protocol/procedure/procedure_step/confirmation. Reject `source text` (collides with `channel_event.source` domain classifier). Reject sidecar JSONL (violates Cascade Invariant 8 co-location). YAGNI-scope to 5 tables strike-mcp writes.
 **Semantic conflict resolved:** Steward Phase 3 claimed `channel_event.source` was provenance precedent. Supervisor proved it's a DOMAIN classifier (event-origin type: user/system/ai/webhook — sits beside event_type/correlation_id). Real provenance convention is `provenance JSONB` with 5 cascade-table precedents. Steward reversed own stance in Phase 5 synthesis.
 **Trust Gate:** PASS — both admin-UI insert path and strike-mcp insert path honor same DEFAULT + RLS. No authority divergence.
-**ADR created:** ADR-0101 (governance-provenance-jsonb)
+**ADR created:** ADR-0126 (governance-provenance-jsonb)
 **Learning created:** 0038 (`source` is an overloaded term — verify semantics before citing convention)
 **Implementation landed:** 
 - `supabase/migrations/20260506100000_governance_provenance.sql` applied to local Supabase — 5 ALTER TABLE + 5 CHECK constraints + 5 partial indexes + 5 column comments

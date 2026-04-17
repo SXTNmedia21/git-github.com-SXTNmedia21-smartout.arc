@@ -76,7 +76,7 @@ mean in THIS codebase, and what are the 2-3 other things it might mean?"
 ## References
 
 - Council session: `docs/council/COUNCIL-LOG.md` 2026-04-17 (source-tagging)
-- ADR-0101: decided outcome of the above council
+- ADR-0126: decided outcome of the above council
 - Related: Learning 0036 (4-layer post-impl review model — Layer 3 = Supervisor's code-trace caught this)
 - Related: Cascade Core Foundation spec (Invariant 8)
 - Cascade `provenance JSONB` precedents: `supabase/migrations/20260421100200_cascade_a1_domain_tables.sql:81,151,270`
