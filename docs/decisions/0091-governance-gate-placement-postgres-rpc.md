@@ -4,7 +4,7 @@ id: ADR_0091
 status: accepted
 layer: decision
 created: 2026-04-14
-updated: 2026-04-14
+updated: 2026-04-18
 module: cascade
 tags: [adr, cascade, c4-governance, phase-e, rpc, security-definer, rbac]
 ---
@@ -30,10 +30,12 @@ A second structural question must be answered alongside this one: the existing R
 
 ## Implementation Status — 2026-04-18
 
-- **WP1 (evaluate_framework_rules helpers):** status unchanged from original ADR.
-- **WP2 (Postgres function `public.cascade_gate_write`):** **NOT SHIPPED.** No migration exists in `supabase/migrations/` that creates this function. Grep confirms zero SQL definitions.
-- **WP3 (TypeScript wrapper `gatedInsert` / `gatedUpdate` / `gatedDelete`):** scaffold shipped 2026-04-17 (commit `b90dc1f5`) at `packages/supabase/src/gate-client.ts`. **The wrapper calls `cascade_gate_write` which does not yet exist.** Calling any `gated*` helper today will throw `42883 function does not exist`. The scaffold is present so WP2 can ship without downstream refactoring; it is NOT to be used by call sites until WP2 lands.
-- **WP4+ (call-site migration, ESLint rule escalation):** blocked on WP2.
+- **WP1 (evaluate_framework_rules helpers):** status unchanged from original ADR — still pending. WP2 (below) uses `framework_trigger` match as a coarse proxy for "a rule would fire here" until WP1 ships per-rule predicate evaluation.
+- **WP2 (Postgres function `public.cascade_gate_write`):** **SHIPPED 2026-04-18 as Option B Smart Trigger Check** — see commits `2278ef52` (initial ship) + `6a431ce2` (council review fix: caller identity via `assert_gate_caller`, pgTAP wired into CI, `GateOutcome` JSDoc clarified). Migrations live at `supabase/migrations/20260512100000_cascade_gate_write.sql`, `20260512100100_assert_gate_caller.sql`, `20260512100200_cascade_gate_write_assert.sql`. Today the SQL emits `applied | proposed`; `blocked` and `applied_with_exception` are reserved for WP1.
+- **WP3 (TypeScript wrapper `gatedInsert` / `gatedUpdate` / `gatedDelete`):** wrapper now functional end-to-end. Scaffold shipped 2026-04-17 (commit `b90dc1f5`) at `packages/supabase/src/gate-client.ts`; WP2 unblocks its use. Call sites can now migrate from direct `supabase.from().insert()` on governance-gated tables to the `gated*` helpers.
+- **WP4+ (call-site migration, ESLint rule escalation):** unblocked. First-wave call-site migration and escalation of `smartout/no-direct-supabase-write` from `warn` → `error` follow next.
+
+> **Note:** WP1 (`evaluate_framework_rules`) still pending — WP2 uses framework_trigger match as a coarse proxy. This is deliberately over-inclusive (errs on the side of creating proposals) until WP1 lands per-rule evaluation.
 
 Related: ADR-0099 (unified authority gate, `public.gate_action`) is a separate RPC solving authority/capability checks for the agent router + engine dispatch. It is NOT a substitute for `cascade_gate_write` — different semantics (capability gate vs diff-based write gate).
 

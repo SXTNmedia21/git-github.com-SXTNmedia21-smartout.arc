@@ -58,7 +58,19 @@ export type GateContext = {
   currentData?: Record<string, unknown> | null;
 };
 
-/** Canonical outcome — mirrors the `GateResponse` shape from ADR-0091. */
+/**
+ * Canonical outcome — mirrors the `GateResponse` shape from ADR-0091.
+ *
+ * The SQL function (`cascade_gate_write`, migration 20260512100000 + the
+ * assert-caller patch in 20260512100200) currently emits only `"applied"`
+ * or `"proposed"`. `"blocked"` and `"applied_with_exception"` are reserved
+ * for future RPC iterations — specifically WP1's deep rule evaluation
+ * (`evaluate_framework_rules`), which will introduce hard blocks and
+ * exception-carrying allows.
+ *
+ * The client is tolerant of all four values so callers can begin handling
+ * them today; callers MAY start receiving `"blocked"` once WP1 ships.
+ */
 export type GateOutcome = "applied" | "applied_with_exception" | "proposed" | "blocked";
 
 /**

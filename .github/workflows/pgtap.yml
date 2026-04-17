@@ -56,6 +56,9 @@ jobs:
       - name: Run pgTAP — lifecycle-capability
         run: psql "$DATABASE_URL" --set ON_ERROR_STOP=1 -f supabase/tests/lifecycle-capability.sql
 
+      - name: Run pgTAP — cascade-gate-write
+        run: psql "$DATABASE_URL" --set ON_ERROR_STOP=1 -f supabase/tests/cascade-gate-write.sql
+
       - name: Capture Supabase logs on failure
         if: failure()
         run: |

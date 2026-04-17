@@ -4,7 +4,7 @@ id: ADR_0114
 status: accepted
 layer: decision
 created: 2026-04-16
-updated: 2026-04-17
+updated: 2026-04-18
 accepted_on: 2026-04-17
 ---
 
@@ -92,23 +92,22 @@ Performance audit (2026-04-16) proposed migrating UI mutations to Next.js Server
 
 ## Acceptance — 2026-04-17 (scope-corrected 2026-04-18)
 
-Promoted to `accepted` for the contract layer (R1–R2, R4–R5). R3 (write-path governance via `gatedInsert/Update/Delete`) is scaffolded but NOT YET ENFORCEABLE because ADR-0091 WP2 has not shipped:
+Promoted to `accepted` for the full contract layer (R1–R5). R3 (write-path governance via `gatedInsert/Update/Delete`) moved from Scaffolded to Shipped on 2026-04-18 when ADR-0091 WP2 landed.
 
-- **Shipped (R1, R2, R4, R5):**
+- **Shipped (R1, R2, R3, R4, R5):**
   - Server Actions as canonical mutation primitive (established pattern in `apps/web/src/app/**/_actions/*.ts`)
   - `emit()` telemetry contract per `packages/telemetry/src/registry.ts`
   - Telemetry registry audit at `docs/reports/telemetry-registry-audit-2026-04-17.md` (398 events registered, 186 unique emitted, 213 phantom entries flagged for cleanup)
-  - ESLint rule `smartout/no-direct-supabase-write` at `warn` severity in `packages/eslint-config/` (commit `b90dc1f5`) — currently advisory only
+  - ESLint rule `smartout/no-direct-supabase-write` at `warn` severity in `packages/eslint-config/` (commit `b90dc1f5`) — currently advisory; escalation path is unblocked now that WP2 ships
+  - `packages/supabase/src/gate-client.ts` exports `gatedInsert`/`gatedUpdate`/`gatedDelete` (commit `b90dc1f5`) — now functional end-to-end after ADR-0091 WP2 shipped on `feat/cascade-gate-write` (commits `2278ef52` + `6a431ce2`)
 
-- **Scaffolded but blocked (R3):**
-  - `packages/supabase/src/gate-client.ts` exports `gatedInsert`/`gatedUpdate`/`gatedDelete` (commit `b90dc1f5`)
-  - These call `public.cascade_gate_write(...)` which has not been shipped — see ADR-0091 Implementation Status
-  - Call-site migration is deferred until ADR-0091 WP2 lands
+- **Prerequisites:**
+  1. ~~Ship ADR-0091 WP2 — Postgres migration creating `public.cascade_gate_write` with signature + body per ADR-0091 decision drivers~~ **DONE 2026-04-18** (see ADR-0091 Implementation Status; commits `2278ef52` + `6a431ce2`)
+  2. Add a smoke test that invokes `gatedInsert` against local Supabase and asserts the RPC resolves — pgTAP suite at `supabase/tests/cascade-gate-write.sql` now covers the RPC end-to-end per commit `6a431ce2`; a TS-side smoke in `@smartout/supabase` follows with the first call-site migration
 
-- **Next steps (blockers for full enforcement):**
-  1. Ship ADR-0091 WP2 — Postgres migration creating `public.cascade_gate_write` with signature + body per ADR-0091 decision drivers
-  2. Add a smoke test that invokes `gatedInsert` against local Supabase and asserts the RPC resolves
-  3. Migrate first call sites, then escalate ESLint rule from `warn` → `error`
+- **Next steps (now unblocked):**
+  1. Migrate first call sites from direct `.from().insert/update/delete()` on governance-gated tables to the `gated*` helpers — the ESLint rule's warning list is the worklist
+  2. Once migration covers the governance-gated surface, escalate the `smartout/no-direct-supabase-write` ESLint rule from `warn` → `error` to make direct writes on gated tables a CI-blocking error
 
 ---
 
