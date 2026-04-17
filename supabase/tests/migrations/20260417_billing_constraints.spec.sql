@@ -5,7 +5,7 @@
 -- reject the illegal states documented in ADR-0120.
 
 BEGIN;
-SELECT plan(5);
+SELECT plan(7);
 
 -- Skip unrelated triggers + FK checks during fixture setup.
 SET session_replication_role = 'replica';
@@ -174,6 +174,44 @@ SELECT throws_ok(
   '23505',   -- unique_violation
   NULL,
   'Second non-void recurring invoice for same (company, period) is rejected by idx_invoice_one_recurring_per_period'
+);
+
+-- ── Test 6: sent + reminder_sent is legal (Phase 1.5 CHECK relaxation) ──
+-- Reinstates the dunning flow described in ADR-0120 intent: invoice_status
+-- stays at 'sent' while dunning_status progresses through reminder_sent
+-- and escalated. Pre-Phase-1.5 CHECK rejected this combo.
+DO $$
+DECLARE
+  v_comp UUID := gen_random_uuid();
+BEGIN
+  PERFORM set_config('test.dunning_company', v_comp::text, false);
+  SET session_replication_role = 'replica';
+  INSERT INTO public.company (company_id, name, org_number, default_currency)
+  VALUES (v_comp, 'Dunning Co', NULL, 'NOK');
+  SET session_replication_role = 'origin';
+END $$;
+
+SELECT lives_ok(
+  format($sql$
+    INSERT INTO public.invoice (
+      company_id, invoice_type, status, dunning_status,
+      period_from, period_to,
+      amount_excl_vat, vat_rate, vat_amount, amount_incl_vat
+    ) VALUES (
+      %L::uuid, 'recurring', 'sent', 'reminder_sent',
+      '2026-06-01', '2026-06-30',
+      100, 25, 25, 125
+    )
+  $sql$,
+    current_setting('test.dunning_company')
+  ),
+  'sent + reminder_sent is legal under relaxed invoice_status_dunning_legal CHECK (Phase 1.5)'
+);
+
+-- ── Test 7: invoice.pricing_terms_id column exists (Phase 1.5 snapshot) ──
+SELECT has_column(
+  'public', 'invoice', 'pricing_terms_id',
+  'invoice has pricing_terms_id FK column for Phase 1.5 pricing snapshot'
 );
 
 SELECT * FROM finish();
