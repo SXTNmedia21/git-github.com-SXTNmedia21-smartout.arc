@@ -104,18 +104,7 @@ smartout_v3/
 
 **Mobile AI Routing (ADR-0132):** Mobile is a thin client. AI/capability traffic routes through web BFF (`/api/emma/chat` → stage-engine), never direct to capabilities. Mobile voice uses LiveKit (ADR-0135), not Ultravox. Channel pinning happens server-side; mobile sends a `channel` hint, BFF enforces ADR-0078.
 
-**Mobile Telemetry Contract (ADR-0134):** Every mobile mutation MUST resolve `workspace_id` (non-null, non-empty) and `actor_id` (non-empty) BEFORE calling `emit()`. Pattern: copy `getProfileContext()` from `apps/mobile/src/hooks/mutations/use-punch.ts:24-46`. Empty-string fallbacks are forbidden (silently corrupts `activity_trail` + `engine_event` routing).
-
-> ⛔ **MOBILE MUTATION TRUST FREEZE — ACTIVE 2026-04-17 → ~2026-05-01**
-> Authorized by Pontus following Council 2026-04-17 (mobile strategy). NO new mobile mutation work merges until three gates pass:
->
-> 1. Telemetry contract fixed in `use-punch.ts:141-142`, `use-swap.ts` (4 sites), `use-create-shift.ts:69` + unit tests asserting `workspace_id !== null && actor_id !== ""`
-> 2. Zod schemas at `apps/mobile/src/lib/sync/action-map.ts` enqueue (no `as any`)
-> 3. ADR-0132 + ADR-0133 + ADR-0134 promoted to `accepted`
->
-> **Allowed during freeze:** telemetry fixes, Zod-at-enqueue, deletion of `apps/mobile/app/(app)/(payroll)/`, data-layer extraction to `packages/data/`, `TaskFeed.tsx:105` 1-line procedure-join fix, ADR work.
-> **Blocked during freeze:** new mobile mutations, voice on mobile (any entry point), onboarding-on-mobile UI, schedule-edit-on-mobile UI, any new BotssonProvider features.
-> **Lift condition:** all 3 gates green + Pontus confirms.
+**Mobile Telemetry Contract (ADR-0134):** Every mobile mutation MUST resolve `workspace_id` (non-null, non-empty) and `actor_id` (non-empty) BEFORE calling `emit()`. Use `getProfileContext()` from `apps/mobile/src/lib/profile-context.ts` (the helper throws on missing/empty IDs — fail fast, no corrupt telemetry). Empty-string fallbacks are forbidden (silently corrupts `activity_trail` + `engine_event` routing). Offline queue payloads are Zod-validated at enqueue (`apps/mobile/src/lib/sync/schemas.ts`) — malformed payloads throw at the call site.
 
 **Telemetry:** Every mutation emits. `emit()` from `@smartout/telemetry` drives four destinations: PostHog (analytics), Logger (stdout), activity_trail (audit), engine_event (workflow automation). No mutation without emit. No second event system.
 
