@@ -806,3 +806,84 @@ Supervisor code-tracer + autonomous Designer scope review. Verdict: APPROVE FOR 
 **Key decision:** Spec approved for `writing-plans` after all inline fixes. Build-agent's path is now mechanical.
 **ADR created:** 4 planned (0118-0121); pending
 **Learning created:** L-pending — see §9 below
+
+
+---
+
+## 2026-04-17 — Post-Audit Remediation Plan
+
+**Type:** post-implementation (repo-wide audit synthesis)
+**Verdict:** APPROVE WITH CHANGES
+**Agents consulted:** system-steward (chair), supervisor (code-tracer), system-agent-coordinator, frontend-designer
+**Prior verdict held?** n/a — first council on repo-wide audit remediation; references 2026-04-16 Web Perf verdict (Sprint 2 merged) and 2026-04-17 Billing R2 (ADRs 0118-0121 reserved, not yet written)
+
+### Context
+User requested "review this repo and tell what could be better" with /effort max. 7 parallel audit agents produced findings across code quality, database, testing, dependencies, architecture, performance, docs. User then requested a council for a complete actionable remediation report.
+
+### Phase 2.5 fact-check caught 5 FALSE audit claims (4th audit-inflation occurrence)
+1. Barrel importers "45" → actual **16** (dashboard `_hooks/index.ts`)
+2. "4 orphan FK UUIDs" → actual **2 genuine + 2 intentional polymorphic** (both polymorphic cases dispatch via enum column; `chat_conversation.source_id` already SQL-commented as intentional)
+3. "Governance mutations missing emit()" → actual **emit present; routing partial** (`"button clicked"` → PostHog-only; 7 TODO comments self-documented the gap)
+4. "121 waitForTimeout in E2E" → actual **75**
+5. CLAUDE.md "31 Edge Functions" → actual **54**
+
+### Semantic conflict resolved
+**Steward Phase 3:** build new `identity-api` gateway tier for pre-workspace flows (`accept-invitation`, `create-invitation`).
+**Supervisor Phase 3 (code-trace):** workspace-api `resolveAuth` hard-requires `auth.workspaceId` (line 102); invitee has none; forcing through gateway = L effort, high regression risk, currently only 2 consumers.
+**Resolution (Supervisor wins):** ADR-0029 amendment with exceptions list + tripwire clause. YAGNI until 3rd pre-workspace endpoint. Steward reversed Phase 3 position on cost-to-payoff grounds. Captured as Learning 0040 (identity-boundary ontology) + ADR-0123.
+
+### Agent Trust Gate: PASS on all 7 PRs
+- PR1 (FK fixes + polymorphic comments), PR2 (barrel removal), PR3 (raw `<img>` → `next/image`), PR4 (i18n LeaderPulseCard + 10 siblings), PR5 (BotssonArena split), PR6 (governance telemetry quad-destination), PR7 (5 named hooks to `packages/dashboard-data/`), PR8 (ADR-0029 amendment docs)
+- No new capabilities, no new emit() events introduced. PR6 routes existing events per ADR-0122 — contract unchanged from capability perspective.
+- BotssonArena split must stop at `VIEW_COMPONENTS` boundary (line 2413); do NOT touch BotssonProvider / persona-engine / BotssonTools / tool-registry.
+
+### Critical findings
+1. **Audit inflation, 4th occurrence.** Phase 2.5 fact-check + Supervisor code-trace again earned their keep. Governance "missing emit()" was the highest-stakes false-positive — shipping PR6 without the registry trace would have fixed the wrong thing.
+2. **Governance telemetry IS partially broken** — not deferred debt. `"button clicked"` routes to PostHog only; `activity_trail` + `engine_event` receive nothing for 7 policy/protocol/procedure mutations. Elevated from "Phase 2 debt" to "Phase 1 telemetry fix." ADR-0122 blocker for PR6.
+3. **Identity-boundary is a real ontology class** — not ADR-0029 drift. Two pre-workspace endpoints today; ADR-0123 defines exceptions + tripwire at 3rd endpoint.
+4. **ADR-numbering collision risk persists.** Billing council 2026-04-17 reserved 0118-0121 (not yet written). Web Perf 0113-0115 accepted/proposed. This council used 0122-0124 to avoid collisions. ADR reservation protocol from 2026-04-15 meta still not implemented.
+5. **Mobile-parity extraction (PR7) must name specific hooks** — `use-live-shifts`, `use-active-season`, `use-action-items`, `use-my-dashboard`, `use-cascade-tasks` (Agent Coordinator's list; overlap with future Botsson tool reads). Not "5 of the 35".
+6. **DashboardShell.tsx (2320 LOC) is NOT a split candidate.** ADR-0021 explicitly blesses it. Audit's C9 entry must exclude it.
+
+### Implementation sequence
+```
+Week 1 — S-PRs parallel:
+  ├─ PR1: FK fixes (active_contract_id, seeded_from_framework_binding_id) + COMMENT ON (assigned_ref_id, source_id)
+  ├─ PR2: rewrite 16 imports off `_hooks/index.ts` + delete barrel
+  ├─ PR3: raw <img> → next/image (7 sites); GiveSlide.tsx injected-Image prop (RN-safe)
+  └─ PR8: ADR-0029 amendment (docs only)
+
+Week 2:
+  ├─ ADR-0122 merged → PR6 telemetry routing (7 governance events quad-destination + CI assertion)
+  └─ PR4 i18n externalization (next-intl domain namespaces; Lucide Loader2 for submit states)
+
+Week 3:
+  ├─ PR5 BotssonArena split at VIEW_COMPONENTS boundary (Orb stays monolithic per motion.md)
+  └─ PR7 named hooks extract to packages/dashboard-data/ (data/UI split; toasts in web wrapper)
+
+Week 4 — buffer / E2E stabilization / deferred debt triage
+```
+
+### ADRs created
+- **0122** Governance Telemetry Quad-Destination Routing (proposed) — blocks PR6
+- **0123** ADR-0029 Amendment: Pre-Workspace Exceptions + Identity-Boundary Tripwire (proposed) — ships with PR8
+- **0124** Polymorphic FK Documentation Convention (proposed) — applies retroactively in PR1
+
+### Learnings created
+- **L-0040** Identity-Boundary Ontology: Pre-Workspace Flows Are a Distinct Class
+- **L-0041** Registry Declaration Gap: emit() Called ≠ Mutation Audit-Covered (sister to L-0038 provider-side drop)
+- **Memory update:** `learning_audit_inflation_pattern.md` → 4th occurrence + 3 new sub-patterns (grep-without-context, polymorphic-FK conflation, audit-says-violation-might-mean-doc-only-fix)
+
+### Agent effectiveness
+- **Steward (chair):** HIGH — ADR impact classification, cascade integrity triage, semantic-conflict forcing, reversed own Phase 3 position on identity-api gateway based on Supervisor's code-trace (principled concession, not capitulation)
+- **Supervisor (code-tracer):** HIGHEST — 5 audit inflations caught with file:line; FK trace distinguished genuine orphan from intentional polymorphic; registry-trace proved governance routing is partial not missing; ADR-0029 gateway-routing infeasibility proven with `resolveAuth` line 102 citation
+- **Agent Coordinator:** HIGH — Trust Gate PASS verification for all 7 PRs; BotssonArena split boundary identified at VIEW_COMPONENTS line 2413; named the 5 PR7 hooks to prevent "5 of 35" scope drift; flagged audit miss of in-flight `TODO(plan-phase-2)` self-documentation
+- **Frontend Designer:** HIGH — pre-loaded context worked; i18n via next-intl domain namespaces (not per-component); Orb-must-stay-monolithic signature element rule; ConfirmBusiness motion wrapper constraint; UX-visible priority ranking (CLS > i18n > input lag)
+
+### Tracked debt (not this council)
+- 140 files with hardcoded zinc/gray
+- Remaining 29 skipped E2Es + 75 waitForTimeout calls
+- 16 packages with zero tests (including critical `packages/supabase`)
+- daily-briefing.tsx (1618 LOC) + shift-modal.tsx (1420 LOC) decomposition
+- CLAUDE.md module-count drift (23 claimed, 2 `MODULE_*.md` files; INDEX references 23 — reconcile in dedicated doc-regen task)
+
