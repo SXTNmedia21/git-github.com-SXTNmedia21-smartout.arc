@@ -83,7 +83,9 @@ BEGIN
      TIME '09:00', TIME '17:00', 8.0, 'morning'::day_category, 'published', true);
 
   -- A cost snapshot in each workspace so gross_cost is non-NULL for the admin view.
-  -- `gross_cost` column was added in 20260506100000_shift_derivation_layer.sql.
+  -- `gross_cost` column was added in 20260506100001_shift_derivation_layer.sql
+  -- (renamed from 20260506100000_* to resolve a same-timestamp collision with
+  -- 20260506100000_governance_provenance.sql introduced via the strom-mcp merge).
   INSERT INTO shift_cost_snapshot (
     workspace_id, schedule_shift_id, profile_id,
     base_hours, base_rate, base_cost, supplements, overtime_cost, total_cost, gross_cost

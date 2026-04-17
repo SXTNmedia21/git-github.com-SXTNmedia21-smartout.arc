@@ -1,4 +1,4 @@
--- 20260506100000_shift_derivation_layer.sql
+-- 20260506100001_shift_derivation_layer.sql
 -- ADR-0095 Phase 3: Shift Lifecycle Derivation Layer.
 -- ADR-0097: time_entry is immutable after Interpretation consumes it.
 -- ADR-0100: daily_close aggregates settled shifts (depends on this layer).
