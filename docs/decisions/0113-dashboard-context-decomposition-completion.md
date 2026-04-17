@@ -4,7 +4,8 @@ id: ADR_0113
 status: accepted
 layer: decision
 created: 2026-04-16
-updated: 2026-04-16
+updated: 2026-04-17
+implementation_status: "split-done — 4 contexts + useDashboard facade landed on feat/perf-sprint-wave-1 2026-04-17. 155 consumer-site migration to targeted slice hooks is a follow-up PR."
 ---
 
 # ADR-0113: DashboardContext Decomposition Completion — Facade Hook, Theme Hoist, Botsson Placement
