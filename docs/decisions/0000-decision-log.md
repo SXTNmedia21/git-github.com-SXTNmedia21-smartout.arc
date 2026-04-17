@@ -1,7 +1,7 @@
 ---
 title: Decision Log
 status: canonical
-updated: 2026-04-16
+updated: 2026-04-17
 created: 2026-02-27
 module: meta
 tags: [decisions, adr, index]
@@ -26,6 +26,7 @@ tags: [decisions, adr, index]
 
 | ADR | Date | Title | Status |
 |-----|------|-------|--------|
+| [ADR-0118](0118-invoice-engine-as-c3-commercial-consumer.md) | 2026-04-17 | Invoice Engine as C3 Commercial Consumer (reads D6 + K1b, writes invoice/invoice_line_item/usage_snapshot, dunning via activity_trail) | accepted |
 | [ADR-0117](0117-authority-model-after-phase-4.md) | 2026-04-16 | Authority Model after Phase 4 (gate_action as single source) | accepted |
 | [ADR-0116](0116-runtime-telemetry-standard.md) | 2026-04-16 | Runtime Telemetry Standard for services/ (pino logger, requestId middleware, typed errors, mandatory emit() via toVercelTools adapter) | accepted |
 | [ADR-0115](0115-rsc-migration-pattern-dashboard-routes.md) | 2026-04-16 | RSC Migration Pattern for Dashboard Routes — streaming boundary, NordicSkeleton pairing, ambience invariant, first-chunk heading rule, schedule excluded. **Pattern proven** by Sprint 2 migration (people, handbook, hms, reports). | accepted |
