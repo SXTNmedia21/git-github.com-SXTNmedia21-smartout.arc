@@ -1,10 +1,11 @@
 ---
 title: "Web Composes, Mobile Executes — Cascade Surface Boundary"
 id: ADR_0133
-status: proposed
+status: accepted
 layer: decision
 created: 2026-04-17
-updated: 2026-04-17
+updated: 2026-04-18
+accepted: 2026-04-18
 ---
 
 # ADR-0133: Web Composes, Mobile Executes — Cascade Surface Boundary

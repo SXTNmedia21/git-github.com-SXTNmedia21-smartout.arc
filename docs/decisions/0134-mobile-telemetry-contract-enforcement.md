@@ -1,10 +1,11 @@
 ---
 title: "Mobile Telemetry Contract Enforcement — workspace_id and actor_id Required"
 id: ADR_0134
-status: proposed
+status: accepted
 layer: decision
 created: 2026-04-17
-updated: 2026-04-17
+updated: 2026-04-18
+accepted: 2026-04-18
 ---
 
 # ADR-0134: Mobile Telemetry Contract Enforcement
