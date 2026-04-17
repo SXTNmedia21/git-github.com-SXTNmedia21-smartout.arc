@@ -48,8 +48,8 @@ When a feature is requested for mobile:
 3. **Ask "why mobile?".** If the answer is "parity," reject. If the answer is "in-venue moment," approve.
 4. **Watch for two-reviewer convergence.** When cascade-aware and design-aware reviewers agree on a boundary, treat it as an axiom.
 
-ADR-0128 (Web Composes, Mobile Executes) codifies this learning. Future councils invoking "mobile parity" framing should be redirected to that ADR.
+ADR-0133 (Web Composes, Mobile Executes) codifies this learning. Future councils invoking "mobile parity" framing should be redirected to that ADR.
 
 ## Repeat-learning watch
 
-If a future council surfaces the same "mobile parity" framing without referencing ADR-0128, that is a process gap — the ADR isn't reaching the right place. Promote into CLAUDE.md if it recurs.
+If a future council surfaces the same "mobile parity" framing without referencing ADR-0133, that is a process gap — the ADR isn't reaching the right place. Promote into CLAUDE.md if it recurs.

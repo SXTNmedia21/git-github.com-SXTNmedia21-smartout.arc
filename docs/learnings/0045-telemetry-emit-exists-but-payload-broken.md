@@ -43,11 +43,11 @@ Audit checks must validate the contract, not the call.
 
 ## Application
 
-- ADR-0129 codifies the runtime contract (dev-mode assertion, prod-mode rate-limited warning) and lint rule
+- ADR-0134 codifies the runtime contract (dev-mode assertion, prod-mode rate-limited warning) and lint rule
 - Mobile mutation PRs require unit test asserting `workspace_id` and `actor_id` are non-empty in the emit payload
 - Future telemetry audits don't ask "does emit() get called" — they ask "does the contract hold for every emit() site"
 - This pattern likely exists in other surfaces (web, edge functions) — separate audit warranted
 
 ## Repeat-learning watch
 
-If future councils find new sites with empty-string telemetry attribution, escalate to a hard lint rule (already proposed in ADR-0129 R4).
+If future councils find new sites with empty-string telemetry attribution, escalate to a hard lint rule (already proposed in ADR-0134 R4).

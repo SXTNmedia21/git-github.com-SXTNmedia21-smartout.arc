@@ -1,13 +1,13 @@
 ---
 title: "Mobile Voice via LiveKit (Not Ultravox)"
-id: ADR_0130
+id: ADR_0135
 status: proposed
 layer: decision
 created: 2026-04-17
 updated: 2026-04-17
 ---
 
-# ADR-0130: Mobile Voice via LiveKit (Not Ultravox)
+# ADR-0135: Mobile Voice via LiveKit (Not Ultravox)
 
 ## Context and Problem Statement
 
@@ -21,7 +21,7 @@ Meanwhile, mobile already ships `@livekit/react-native` + `@livekit/react-native
 - LiveKit is already installed on mobile and has a working RN integration
 - A LiveKit voice provider already exists in agent-sdk
 - Maintaining two voice providers per platform doubles maintenance and divergence risk
-- Voice on mobile is gated by ADR-0127 (BFF routing) and ADR-0078 (channel restrictions) — provider choice is independent of those concerns
+- Voice on mobile is gated by ADR-0132 (BFF routing) and ADR-0078 (channel restrictions) — provider choice is independent of those concerns
 
 ## Considered Options
 
@@ -40,7 +40,7 @@ Meanwhile, mobile already ships `@livekit/react-native` + `@livekit/react-native
 - Web continues to use `packages/agent-sdk/src/providers/ultravox.ts`.
 - Capability code does not know about the provider — it talks to the agent-sdk provider abstraction.
 
-### R2. Voice traffic still routes through BFF (ADR-0127)
+### R2. Voice traffic still routes through BFF (ADR-0132)
 - The voice provider connects directly to LiveKit's media plane (audio).
 - The agent reasoning + tool calls + transcript still flow through the web BFF → stage-engine path.
 - LiveKit is the audio transport; BFF is the agent control plane.
@@ -49,7 +49,7 @@ Meanwhile, mobile already ships `@livekit/react-native` + `@livekit/react-native
 - Voice on mobile, like voice on web, MUST be rejected by capabilities marked `allowedChannels: ["chat"]`.
 - The `tool ctx.channel` guard fires server-side regardless of voice provider.
 
-### R4. Voice on mobile requires ADR-0127 to ship first
+### R4. Voice on mobile requires ADR-0132 to ship first
 - The BFF route must exist before voice is wired.
 - The channel guard test must pass before voice is exposed in UI.
 - Voice on mobile is week 7+ work, not week 1-2.
@@ -66,4 +66,4 @@ Meanwhile, mobile already ships `@livekit/react-native` + `@livekit/react-native
 
 ---
 
-> Registered in `docs/decisions/0000-decision-log.md`. Depends on ADR-0127. Cross-references ADR-0078, ADR-0107.
+> Registered in `docs/decisions/0000-decision-log.md`. Depends on ADR-0132. Cross-references ADR-0078, ADR-0107.

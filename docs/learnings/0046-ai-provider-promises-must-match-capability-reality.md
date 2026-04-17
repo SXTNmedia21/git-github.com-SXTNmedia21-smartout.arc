@@ -47,7 +47,7 @@ This applies to:
 
 ## Application
 
-- ADR-0127 forces mobile Botsson to route through web BFF — eliminates the theatre by making the implementation real
+- ADR-0132 forces mobile Botsson to route through web BFF — eliminates the theatre by making the implementation real
 - New providers must include an integration test that asserts the documented behavior happens (network call sent, session started, etc.)
 - Code review checklist: any provider method that exposes "session start," "send," or "play/record" must have a wired implementation OR throw a `NotImplementedError` with a tracking issue link
 - TODO comments inside a no-op are not acceptable — convert to throw-with-tracking-issue

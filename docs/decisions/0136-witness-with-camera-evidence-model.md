@@ -1,17 +1,17 @@
 ---
 title: "Witness-with-Camera Evidence Model for Control_List and Protocol Completion"
-id: ADR_0131
+id: ADR_0136
 status: proposed
 layer: decision
 created: 2026-04-17
 updated: 2026-04-17
 ---
 
-# ADR-0131: Witness-with-Camera Evidence Model
+# ADR-0136: Witness-with-Camera Evidence Model
 
 ## Context and Problem Statement
 
-ADR-0128 establishes mobile as the in-venue execution surface that web cannot replicate. One mobile-native superpower is the camera — physical-world evidence at the moment of action. Today, governance protocol completion (control_list_item, knowledge_test, confirmation) records "completed: true/false" with no evidence artifact. Compliance audits and C1 calibration loops have to trust the user's tap.
+ADR-0133 establishes mobile as the in-venue execution surface that web cannot replicate. One mobile-native superpower is the camera — physical-world evidence at the moment of action. Today, governance protocol completion (control_list_item, knowledge_test, confirmation) records "completed: true/false" with no evidence artifact. Compliance audits and C1 calibration loops have to trust the user's tap.
 
 A bartender completing a HACCP temperature check on mobile should be able to attach a photo of the thermometer reading. A trainee completing a uniform check should be able to attach a photo of themselves in uniform. A manager witnessing a deviation should be able to capture the scene.
 
@@ -73,4 +73,4 @@ A bartender completing a HACCP temperature check on mobile should be able to att
 
 ---
 
-> Registered in `docs/decisions/0000-decision-log.md`. Cross-references ADR-0128 (mobile execution surface). Depends on Supabase Storage being correctly RLS-policied (verify before implementation).
+> Registered in `docs/decisions/0000-decision-log.md`. Cross-references ADR-0133 (mobile execution surface). Depends on Supabase Storage being correctly RLS-policied (verify before implementation).

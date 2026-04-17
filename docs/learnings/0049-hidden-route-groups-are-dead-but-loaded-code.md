@@ -43,7 +43,7 @@ For the duplicate-route case: two paths to the same screen breaks deep linking (
 
 ## Application
 
-- Mobile remediation week 1-2 deletes the `(payroll)/` group (per ADR-0128 + frontend-designer recommendation: Lønn becomes a Hjem card)
+- Mobile remediation week 1-2 deletes the `(payroll)/` group (per ADR-0133 + frontend-designer recommendation: Lønn becomes a Hjem card)
 - Code review checklist: any new route group with `href: null` requires a comment explaining the in-flight reason and a follow-up issue link
 - Bundle size monitoring: when bundle grows unexpectedly, audit `app/` for orphans first
 - Naming convention: experimental routes go under `app/_experiments/` (Expo Router convention treats `_` prefix as ignored)

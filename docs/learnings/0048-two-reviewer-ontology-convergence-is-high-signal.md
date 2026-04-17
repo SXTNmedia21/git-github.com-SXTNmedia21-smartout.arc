@@ -44,7 +44,7 @@ Council process should treat:
 
 - Phase 5 conflict resolution should explicitly call out cross-lens convergence (not just classify same/different/partial)
 - Council log entries should note when convergence happened, so future councils can pattern-match
-- ADRs born from cross-lens convergence are more likely to age well (e.g. ADR-0128)
+- ADRs born from cross-lens convergence are more likely to age well (e.g. ADR-0133)
 - If reviewers from different lenses *disagree*, that's also high signal — it usually means a hidden distinction needs surfacing
 
 ## Repeat-learning watch

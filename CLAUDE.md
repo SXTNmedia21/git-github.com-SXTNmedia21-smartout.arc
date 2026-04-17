@@ -100,6 +100,23 @@ smartout_v3/
 
 **Mobile Parity:** Every dashboard feature must be designed for mobile from the start. Data hooks, API endpoints, and business logic must support both web and mobile surfaces. Shared logic goes in `packages/` (not `apps/web/`). Mobile UI can ship in a follow-up PR, but the architecture must never be web-only. When building a new feature: (1) data layer in packages, (2) web UI in apps/web, (3) mobile UI in apps/mobile — steps 2 and 3 can be separate PRs but step 1 must enable both.
 
+**Mobile Surface Boundary (ADR-0133):** "Web composes, mobile executes." Web owns Author/Compose/Plan verbs (D1–D5). Mobile owns Approve/Execute/Witness verbs (D6 production + C4 acceptance). NEVER build authoring UIs on mobile (schedule drag-drop editor, onboarding wizard, contract authoring, governance authoring, organization settings, year-wheel, cost/billing — all stay web-only). Mobile-native superpowers (camera evidence per ADR-0136, biometric C4 confirmation, GPS clock-in, push-driven D6 hooks) are cascade extensions, not "mobile features."
+
+**Mobile AI Routing (ADR-0132):** Mobile is a thin client. AI/capability traffic routes through web BFF (`/api/emma/chat` → stage-engine), never direct to capabilities. Mobile voice uses LiveKit (ADR-0135), not Ultravox. Channel pinning happens server-side; mobile sends a `channel` hint, BFF enforces ADR-0078.
+
+**Mobile Telemetry Contract (ADR-0134):** Every mobile mutation MUST resolve `workspace_id` (non-null, non-empty) and `actor_id` (non-empty) BEFORE calling `emit()`. Pattern: copy `getProfileContext()` from `apps/mobile/src/hooks/mutations/use-punch.ts:24-46`. Empty-string fallbacks are forbidden (silently corrupts `activity_trail` + `engine_event` routing).
+
+> ⛔ **MOBILE MUTATION TRUST FREEZE — ACTIVE 2026-04-17 → ~2026-05-01**
+> Authorized by Pontus following Council 2026-04-17 (mobile strategy). NO new mobile mutation work merges until three gates pass:
+>
+> 1. Telemetry contract fixed in `use-punch.ts:141-142`, `use-swap.ts` (4 sites), `use-create-shift.ts:69` + unit tests asserting `workspace_id !== null && actor_id !== ""`
+> 2. Zod schemas at `apps/mobile/src/lib/sync/action-map.ts` enqueue (no `as any`)
+> 3. ADR-0132 + ADR-0133 + ADR-0134 promoted to `accepted`
+>
+> **Allowed during freeze:** telemetry fixes, Zod-at-enqueue, deletion of `apps/mobile/app/(app)/(payroll)/`, data-layer extraction to `packages/data/`, `TaskFeed.tsx:105` 1-line procedure-join fix, ADR work.
+> **Blocked during freeze:** new mobile mutations, voice on mobile (any entry point), onboarding-on-mobile UI, schedule-edit-on-mobile UI, any new BotssonProvider features.
+> **Lift condition:** all 3 gates green + Pontus confirms.
+
 **Telemetry:** Every mutation emits. `emit()` from `@smartout/telemetry` drives four destinations: PostHog (analytics), Logger (stdout), activity_trail (audit), engine_event (workflow automation). No mutation without emit. No second event system.
 
 **Performance:** `Promise.all()` for independent async ops | Direct imports (no barrel re-exports in app code) | `next/dynamic` for heavy components | Suspense boundaries for streaming | `React.cache()` for request dedup

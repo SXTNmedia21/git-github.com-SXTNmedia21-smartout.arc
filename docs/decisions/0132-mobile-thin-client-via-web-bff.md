@@ -1,13 +1,13 @@
 ---
 title: "Mobile is a Thin Client; AI/Capabilities Route Through Web BFF"
-id: ADR_0127
+id: ADR_0132
 status: proposed
 layer: decision
 created: 2026-04-17
 updated: 2026-04-17
 ---
 
-# ADR-0127: Mobile is a Thin Client; AI/Capabilities Route Through Web BFF
+# ADR-0132: Mobile is a Thin Client; AI/Capabilities Route Through Web BFF
 
 > Companion to ADR-0114 (Server Actions canonical mutation primitive — web-only).
 
@@ -66,7 +66,7 @@ ADR-0114 established Server Actions as the canonical user-initiated mutation pri
 
 - **Good:** mobile inherits all web channel security + authority gating for free; one capability codebase serves both surfaces
 - **Bad:** adds one network hop; mobile depends on web-app availability for AI features
-- **Migration cost:** ~2 days to wire the BFF route + replace mobile chat sender; gates ADR-0130 (LiveKit voice) work
+- **Migration cost:** ~2 days to wire the BFF route + replace mobile chat sender; gates ADR-0135 (LiveKit voice) work
 
 ---
 

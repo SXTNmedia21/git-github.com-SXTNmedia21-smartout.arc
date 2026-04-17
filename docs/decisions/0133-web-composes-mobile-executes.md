@@ -1,13 +1,13 @@
 ---
 title: "Web Composes, Mobile Executes — Cascade Surface Boundary"
-id: ADR_0128
+id: ADR_0133
 status: proposed
 layer: decision
 created: 2026-04-17
 updated: 2026-04-17
 ---
 
-# ADR-0128: Web Composes, Mobile Executes — Cascade Surface Boundary
+# ADR-0133: Web Composes, Mobile Executes — Cascade Surface Boundary
 
 ## Context and Problem Statement
 
@@ -62,7 +62,7 @@ The recurring product framing "make mobile reach parity with web" was tested in 
 ### R3. Mobile-native superpowers map to cascade dimensions, not "mobile features"
 - Push reminders → D6 production hooks
 - GPS clock-in → D6 session_hook with location truth
-- Camera evidence → governance protocol completion artifact (see ADR-0131)
+- Camera evidence → governance protocol completion artifact (see ADR-0136)
 - Biometric → C4 authority gate confirmation
 - NFC ID badge → identity layer
 
@@ -89,4 +89,4 @@ The recurring product framing "make mobile reach parity with web" was tested in 
 
 ---
 
-> Registered in `docs/decisions/0000-decision-log.md`. Cross-references ADR-0127, ADR-0078, ADR-0114. Drives the MOBILE_IA_CONTRACT.md document (to be written).
+> Registered in `docs/decisions/0000-decision-log.md`. Cross-references ADR-0132, ADR-0078, ADR-0114. Drives the MOBILE_IA_CONTRACT.md document (to be written).

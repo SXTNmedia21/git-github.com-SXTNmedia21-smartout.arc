@@ -40,7 +40,7 @@ For ADR-0078 specifically: every client surface that can submit user input to AI
 
 ## Application
 
-- ADR-0127 routes mobile AI through web BFF → stage-engine, restoring all 3 layers for mobile
+- ADR-0132 routes mobile AI through web BFF → stage-engine, restoring all 3 layers for mobile
 - Future security ADRs require an "enforcement test plan" section listing how each layer will be proven to fire
 - Council reviewers ask "what test proves this enforcement?" not "is the code in the right place?"
 - A surface that bypasses an enforced pipeline is a security finding by itself — not a feature gap

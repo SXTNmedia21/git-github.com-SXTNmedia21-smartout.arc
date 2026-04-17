@@ -53,3 +53,15 @@
 - When reviewing cascade agent output: verify D1↔D4 bridge exists (season activation → department_operating_hours).
 - When reviewing AI capability output: verify tools registered in capability registry AND intent classifier.
 - When reviewing komm/comms agent output: verify AI tool column names match `database.types.ts`, check `channel_ai_policy` enforcement, verify `channel_event` wiring.
+- When reviewing mobile agent output: (1) emit() calls must have non-empty workspace_id AND actor_id, (2) no `as any` in offline queue action handlers without Zod validation at enqueue, (3) new query hooks should live in `packages/data/` not `apps/mobile/src/hooks/`, (4) mutation pattern should be `useMutation` or documented exception.
+
+## Mobile Convention Debt (verified 2026-04-17)
+- 30 query hooks + 18 mutation hooks in `apps/mobile/src/hooks/`. 12-18 duplicate web hooks with parallel but divergent implementations.
+- `apps/mobile/src/hooks/mutations/use-punch.ts:142-143` — emits with `workspace_id: null, actor_id: ""` on punch_out despite fetching both successfully on punch_in (line 98). Attribution bug.
+- `apps/mobile/src/hooks/mutations/use-swap.ts:60,124-138,187-192` — emits with `workspace_id: ""` (empty string). Passes TS but breaks activity_trail attribution.
+- `apps/mobile/src/lib/sync/action-map.ts` — every handler uses `as any` casts. No Zod validation at enqueue. Malformed payloads fail silently at sync time.
+- Mobile uses `useCallback` + `useState` pattern, NOT `useMutation`. Convention drift vs web.
+- Zero Zod schemas in mobile hooks. Web uses Zod for mutations.
+- `(payroll)` and `(me)/payroll.tsx` parallel IA — route duplication, not yet collapsed.
+- Workspace-API gateway is ADR-**0029**, not 0039. ADR-0039 is infra consolidation. Mobile consistent with ADR-0029 (direct RLS-gated reads OK for first-party).
+- `packages/data/src/` has only cascade/permissions/validators/telemetry — no domain query hooks yet.
