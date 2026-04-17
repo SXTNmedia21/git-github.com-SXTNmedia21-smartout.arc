@@ -1,10 +1,11 @@
 ---
 title: "Server Actions as Canonical User-Initiated Mutation Primitive"
 id: ADR_0114
-status: proposed
+status: accepted
 layer: decision
 created: 2026-04-16
-updated: 2026-04-16
+updated: 2026-04-17
+accepted_on: 2026-04-17
 ---
 
 # ADR-0114: Server Actions as Canonical User-Initiated Mutation Primitive (with Capability Authority Relation)
@@ -88,6 +89,16 @@ Performance audit (2026-04-16) proposed migrating UI mutations to Next.js Server
 - ADR-0099 — Unified authority-gate across agent-router and engine-dispatch — this ADR aligns Server Actions with the unified gate
 - ADR-0076, ADR-0093 — Contract/cascade drafts through unified `apply_cascade` — Server Actions writing to cascade-gated tables route through these
 - ADR-0113 — DashboardContext decomposition — no direct dependency but shared Sprint 3 scope
+
+## Acceptance — 2026-04-17
+
+Promoted to accepted. WP3 prerequisite (ADR-0091) shipped as commit `b90dc1f5`:
+
+- `packages/supabase/src/gate-client.ts` — `gatedInsert`/`gatedUpdate`/`gatedDelete` routing through `cascade_gate_write()` RPC
+- `packages/eslint-config/plugins/smartout/rules/no-direct-supabase-write.mjs` — AST rule at `warn` severity
+- Telemetry registry audit — `docs/reports/telemetry-registry-audit-2026-04-17.md` (see ADR-0114 R2)
+
+Call-site migration to `gatedInsert`/`gatedUpdate`/`gatedDelete` is follow-up work.
 
 ---
 
