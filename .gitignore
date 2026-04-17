@@ -54,7 +54,6 @@ artifacts/
 !.claude/learnings/
 !.claude/workflow-state.yaml
 !.claude/decisions.yaml
-!.claude/metadata-updater.sh
 
 .env*.local
 supabase/.env

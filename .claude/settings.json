@@ -24,16 +24,6 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "/home/sxtnl/dev/smartout.ai/.claude/metadata-updater.sh",
-            "timeout": 5
-          }
-        ]
-      },
-      {
         "matcher": "Edit|Write|MultiEdit",
         "hooks": [
           {
