@@ -13,6 +13,7 @@ import { operationsIntelligenceCapability } from "./operations-intelligence/inde
 import { trainingCapability } from "./training/index.js";
 import { shiftLifecycleCapability } from "./shift-lifecycle/index.js";
 import { governanceCapability } from "./governance/index.js";
+import { billingQueryCapability } from "./billing-query/index.js";
 
 const capabilities: Record<string, CapabilityDefinition> = {
   profile: profileCapability,
@@ -28,6 +29,7 @@ const capabilities: Record<string, CapabilityDefinition> = {
   training: trainingCapability,
   shift_lifecycle: shiftLifecycleCapability,
   governance: governanceCapability,
+  billing_query: billingQueryCapability,
 };
 
 export function getCapability(name: CapabilityName): CapabilityDefinition | undefined {

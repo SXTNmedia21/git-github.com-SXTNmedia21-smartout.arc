@@ -18,7 +18,8 @@ export type CapabilityName =
   | "contract_intake"
   | "shift_swap"
   | "shift_lifecycle"
-  | "governance";
+  | "governance"
+  | "billing_query"; // ADR-0118 — read-only billing surface, chat-only
 
 export type AuthorityLevel = "autonomous" | "confirm" | "suggest" | "read_only" | "disabled";
 
