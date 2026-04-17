@@ -1,6 +1,6 @@
 ---
 title: "Billing Engine Fase 1 — Implementation Plan"
-status: draft
+status: in_progress
 updated: 2026-04-17
 created: 2026-04-17
 module: billing
