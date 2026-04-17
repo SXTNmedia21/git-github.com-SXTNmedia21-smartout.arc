@@ -105,13 +105,15 @@ export const actionMap: ActionMap = {
   // Insert a new absence request row — `id` is the client-generated UUID PK
   request_absence: (p) => assertOk(supabase.from("schedule_absence").insert(p as never)),
 
-  // Flip status to a new value on an existing pending absence request
+  // Flip status to a new value on an existing pending absence request.
+  // PK column is `schedule_absence_id` (NOT `id`) — silent no-op pre-fix
+  // (reviewer-caught regression from the original `as any` era).
   cancel_absence: (p) =>
     assertOk(
       supabase
         .from("schedule_absence")
         .update({ status: p.status })
-        .eq("id", p.schedule_absence_id),
+        .eq("schedule_absence_id", p.schedule_absence_id),
     ),
 
   // Update the breaks JSONB column on the active time_entry (start of break)

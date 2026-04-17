@@ -97,6 +97,10 @@ export function usePunch() {
     async (timeEntryId: string) => {
       // Resolve BEFORE enqueue so broken attribution fails fast (ADR-0134)
       const { profileId, workspaceId } = await getProfileContext();
+      // Capture shift_id from the cache BEFORE we clear it — needed for
+      // engine_event downstream routing that keys on shift identity.
+      const activeEntry = queryClient.getQueryData<TimeEntry | null>(["active-time-entry"]);
+      const shiftId = activeEntry?.shift_id ?? "";
       const now = new Date().toISOString();
 
       const payload = {
@@ -118,7 +122,7 @@ export function usePunch() {
           entity_type: "shift",
           entity_id: timeEntryId,
           data: {
-            shift_id: "",
+            shift_id: shiftId,
             time_entry_id: timeEntryId,
             punch_time: now,
             work_minutes: 0,
