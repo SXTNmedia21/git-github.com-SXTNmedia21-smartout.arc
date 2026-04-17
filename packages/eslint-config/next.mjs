@@ -39,6 +39,28 @@ const eslintConfig = defineConfig([
       "react-hooks/immutability": "warn",
     },
   },
+  // Billing UI: forbid raw Tailwind color scales so status rendering goes
+  // through <InvoiceStatusBadge/> (Phase 5.1) + Nordic Split semantic
+  // tokens (bg-success / bg-warning / bg-destructive / bg-info / bg-muted).
+  // Billing spec §10.1 (ESLint fence). Applies to platform-admin + self-
+  // serve dashboard billing surfaces.
+  {
+    files: [
+      "**/app/platform-admin/billing/**/*.{ts,tsx}",
+      "**/app/dashboard/billing/**/*.{ts,tsx}",
+    ],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector:
+            "Literal[value=/\\b(bg|text|border)-(red|blue|green|yellow|zinc|gray|slate)-[0-9]+\\b/]",
+          message:
+            "Billing UI forbids raw Tailwind color scales. Use <InvoiceStatusBadge/> or Nordic Split semantic tokens (bg-success, bg-warning, bg-destructive, bg-info, bg-muted) + the matching text-*-foreground variants. Billing spec §10.1.",
+        },
+      ],
+    },
+  },
 ]);
 
 export default eslintConfig;
