@@ -66,9 +66,11 @@ Each event needs an interface in `registry.ts` extending `BaseEvent` with its `p
 
 ### EVENT_ROUTING shape
 
+**Billing carve-out (ADR-0122):** billing events route to `billing_activity_log`, NOT `activity_trail`. See Task 2.1 for the full list and Task 2.1.5 for the new provider.
+
 ```ts
 "invoice issued": {
-  destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+  destinations: ["posthog", "logger", "billing_activity_log", "engine_event"],
   category: "billing",
 }
 ```
@@ -760,7 +762,9 @@ BEGIN
   INSERT INTO public.basis_drift_event (
     usage_snapshot_id, invoice_id, shift_id, drift_type, old_value, new_value
   ) VALUES (
-    v_snapshot_id, v_invoice_id, COALESCE(NEW.shift_id, OLD.shift_id), v_drift_type,
+    -- NOTE: schedule_shift's PK column is schedule_shift_id (not shift_id).
+    -- basis_drift_event.shift_id is just a uuid holder (no FK — shift may be deleted).
+    v_snapshot_id, v_invoice_id, COALESCE(NEW.schedule_shift_id, OLD.schedule_shift_id), v_drift_type,
     to_jsonb(OLD.*), CASE WHEN TG_OP = 'DELETE' THEN NULL ELSE to_jsonb(NEW.*) END
   );
 
@@ -785,6 +789,69 @@ git commit -m "feat(billing-engine): add basis_drift_event table + schedule_shif
 
 Per ADR-0119. Detects retroactive shift modifications after invoice
 for the period was issued. Platform admin reviews + resolves."
+```
+
+### Task 1.7.5: `billing_activity_log` table (ADR-0122)
+
+**Added after B1 drift review 2026-04-17.** The original plan routed dunning notes and platform-admin billing audit through `activity_trail`. That table's `actor_id` FK references `profile(profile_id)` (workspace-scoped) and is `NOT NULL`, so it cannot admit platform-admin actors. ADR-0122 introduces a dedicated company-scoped audit table; this task creates it.
+
+**Files:**
+- Create: `supabase/migrations/<ts>_billing_activity_log.sql`
+
+- [ ] **Step 1: Write schema + RLS**
+
+```sql
+SET search_path TO public, extensions;
+
+CREATE TABLE public.billing_activity_log (
+  id              bigserial PRIMARY KEY,
+  company_id      uuid NOT NULL REFERENCES public.company(company_id),
+  invoice_id      uuid REFERENCES public.invoice(invoice_id),
+  event           text NOT NULL,
+  entity_type     text NOT NULL,
+  entity_id       uuid NOT NULL,
+  data            jsonb NOT NULL DEFAULT '{}'::jsonb,
+  changes         jsonb NOT NULL DEFAULT '{}'::jsonb,
+  actor_user_id   uuid REFERENCES public.user_identity(user_id),  -- NULL for cron/system
+  source          text NOT NULL DEFAULT 'web'
+    CHECK (source IN ('web','mobile','api','cron','system')),
+  created_at      timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_billing_log_invoice ON public.billing_activity_log(invoice_id, created_at DESC);
+CREATE INDEX idx_billing_log_company ON public.billing_activity_log(company_id, created_at DESC);
+CREATE INDEX idx_billing_log_event ON public.billing_activity_log(event, created_at DESC);
+
+ALTER TABLE public.billing_activity_log ENABLE ROW LEVEL SECURITY;
+
+-- Company admin reads own company's billing audit
+CREATE POLICY billing_log_company_admin_read ON public.billing_activity_log
+  FOR SELECT TO authenticated
+  USING (public.is_admin_in_company(auth.uid(), company_id));
+
+-- Writes via service role only (Server Actions + cron). No authenticated write policy.
+-- No UPDATE or DELETE policies — append-only per bokføringslov §5.
+
+COMMENT ON TABLE public.billing_activity_log IS
+  'Platform-scoped audit trail for billing (ADR-0122). Supersedes the activity_trail dunning claim in ADR-0118. Immutable; service role writes, company admins read own company.';
+
+COMMENT ON COLUMN public.billing_activity_log.actor_user_id IS
+  'user_identity FK. NULL for cron/system writers (monthly invoice generator). Platform admins write as themselves.';
+```
+
+- [ ] **Step 2: Test + commit**
+
+```bash
+npx supabase db reset
+psql $SUPABASE_DB_URL -c "\d+ public.billing_activity_log"
+# Expected: table + 3 indexes + 1 RLS policy visible
+git add supabase/migrations/*billing_activity_log.sql
+git commit -m "feat(billing-engine): add billing_activity_log table (ADR-0122)
+
+Company-scoped audit for platform-admin billing actions.
+Supersedes ADR-0118's activity_trail routing for billing events.
+actor_user_id -> user_identity (nullable for cron/system).
+Append-only; company admins read own; service role writes."
 ```
 
 ### Task 1.8: Views (`v_current_plan_preview`, `v_invoice_dunning_notes`) + function (`get_invoice_basis`)
@@ -825,15 +892,21 @@ LEFT JOIN public.pricing_terms pt ON pt.company_id = c.company_id
   AND (pt.effective_until IS NULL OR pt.effective_until >= CURRENT_DATE)
   AND pt.effective_from <= CURRENT_DATE;
 
+-- ADR-0122: dunning notes live in billing_activity_log (not activity_trail).
+-- View is RLS-transparent — callers see only their own company's rows.
 CREATE VIEW public.v_invoice_dunning_notes AS
 SELECT
-  at.activity_trail_id,
-  (at.properties->>'invoice_id')::uuid AS invoice_id,
-  at.properties->>'note' AS note,
-  at.actor_user_id,
-  at.created_at
-FROM public.activity_trail at
-WHERE at.event = 'dunning_note.added';
+  bal.id               AS billing_log_id,
+  bal.invoice_id,
+  bal.company_id,
+  bal.data->>'note'    AS note,
+  bal.data->>'contact_channel' AS contact_channel,
+  bal.actor_user_id,
+  bal.source,
+  bal.created_at
+FROM public.billing_activity_log bal
+WHERE bal.event = 'dunning_note added'
+  AND bal.entity_type = 'invoice';
 
 CREATE OR REPLACE FUNCTION public.get_invoice_basis(p_invoice_id uuid)
 RETURNS TABLE (
@@ -971,53 +1044,45 @@ is_admin_in_company. All writes via service role (Server Actions)."
 
 - [ ] **Step 1: Write seed**
 
+**Schema correction 2026-04-17:** `engine_process` PK is `id TEXT` (not `process_key`), has no `definition jsonb` column. Steps live in a separate `engine_step` table. Seed pattern follows `supabase/migrations/20260304300000_seed_daily_close_process.sql`.
+
 ```sql
 SET search_path TO public, extensions;
 
 -- Blueprint: invoice_lifecycle
 -- States: draft → issued → paid | overdue | void | uncollectible
--- Steps wait for mark_paid event or overdue time trigger.
-INSERT INTO public.engine_process (
-  process_key,
-  name,
-  description,
-  definition,
-  is_active,
-  created_at
-) VALUES (
-  'invoice_lifecycle',
-  'Invoice Lifecycle',
-  'Fase 1: tracks invoice from draft → issued → paid|overdue|void. Fase 2 will wire payment webhooks.',
-  jsonb_build_object(
-    'steps', jsonb_build_array(
-      jsonb_build_object(
-        'step_key', 'await_issue',
-        'action_type', 'wait_for_event',
-        'config', jsonb_build_object('event', 'invoice.issued')
-      ),
-      jsonb_build_object(
-        'step_key', 'await_settlement',
-        'action_type', 'wait_for_event',
-        'config', jsonb_build_object(
-          'events', jsonb_build_array('invoice.marked_paid', 'invoice.voided', 'invoice.overdue_detected')
-        )
-      )
-    )
-  ),
-  true,
-  now()
-)
-ON CONFLICT (process_key) DO NOTHING;
+-- Fase 1: Steps observe lifecycle events. Fase 2 will add payment webhook actions.
+
+INSERT INTO public.engine_process (id, name, description, workspace_id, is_active) VALUES
+('invoice_lifecycle',
+ 'Invoice Lifecycle',
+ 'Fase 1: tracks invoice draft → issued → paid|overdue|void. Fase 2 wires payment webhooks.',
+ NULL,  -- global (platform-level, not workspace-scoped)
+ true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Steps:
+-- 1. Wait for invoice.issued (draft → issued transition)
+-- 2. Wait for terminal event: paid | voided | overdue_detected
+INSERT INTO public.engine_step
+  (process_id, step_order, step_group, action_type, action_payload, assignee_rule) VALUES
+('invoice_lifecycle', 1, NULL, 'wait_for_event',
+  '{"event": "invoice.issued"}'::jsonb, NULL),
+('invoice_lifecycle', 2, NULL, 'wait_for_event',
+  '{"events": ["invoice.marked_paid", "invoice.voided", "invoice.overdue_detected"]}'::jsonb, NULL)
+ON CONFLICT (process_id, step_order) DO NOTHING;
 ```
 
 - [ ] **Step 2: Test + commit**
 
 ```bash
 npx supabase db reset
-psql $SUPABASE_DB_URL -c "SELECT process_key, is_active FROM public.engine_process WHERE process_key = 'invoice_lifecycle';"
+psql $SUPABASE_DB_URL -c "SELECT id, is_active FROM public.engine_process WHERE id = 'invoice_lifecycle';"
 # Expected: 1 row returned
+psql $SUPABASE_DB_URL -c "SELECT process_id, step_order, action_type FROM public.engine_step WHERE process_id = 'invoice_lifecycle' ORDER BY step_order;"
+# Expected: 2 rows (wait_for_event × 2)
 git add supabase/migrations/*invoice_lifecycle_engine_process.sql
-git commit -m "feat(billing-engine): seed invoice_lifecycle engine_process blueprint"
+git commit -m "feat(billing-engine): seed invoice_lifecycle engine_process + engine_step blueprint"
 ```
 
 ### Task 1.11: pgTAP tests for RLS + CHECK constraints
@@ -1119,6 +1184,15 @@ git commit -m "test(billing-engine): pgTAP tests for RLS + CHECK constraints"
 
 ### Task 2.1: Register billing events in telemetry registry
 
+**Drift patch 2026-04-17 (ADR-0122):** Billing events route to `billing_activity_log`, NOT `activity_trail`. This requires:
+1. Add `"billing_activity_log"` to the `EventDestination` union in `registry.ts` (Step 2.5 below).
+2. Create provider `packages/telemetry/src/providers/billing-activity-log.ts` (new Task 2.1.5 below).
+3. Wire the new destination into the emit() routing dispatcher (also Task 2.1.5).
+
+In the 11 billing event `EVENT_ROUTING` entries, use `destinations: ["posthog", "logger", "billing_activity_log", "engine_event"]` (replacing `activity_trail`).
+
+**Note on actor_id semantics:** `BaseEvent.actor_id` is defined as `profile_id` (see `registry.ts` line 4 and `activity-trail.ts` provider). For billing events, callers populate `actor_id` with a **`user_identity.user_id`**. The `billing_activity_log` provider interprets it as such and writes it to `billing_activity_log.actor_user_id`. The `activity_trail` provider is never invoked for billing events (guarded by destination list), so no type conflict arises. Future task (Phase 7): add a type-level distinction or validation to prevent mis-routing.
+
 **Files:**
 - Modify: `packages/telemetry/src/registry.ts`
 
@@ -1136,6 +1210,19 @@ Study one existing example (e.g., `ShiftCreated`) to match interface shape.
 export type EventCategory =
   // ... existing
   | 'billing';
+```
+
+- [ ] **Step 2.5: Add `billing_activity_log` to `EventDestination` union** (line ~10)
+
+Per ADR-0122, billing events route to a dedicated destination. Add the literal to the union so routing entries compile:
+
+```ts
+export type EventDestination =
+  | "posthog"
+  | "logger"
+  | "activity_trail"
+  | "engine_event"
+  | "billing_activity_log";  // ADR-0122
 ```
 
 - [ ] **Step 3: Add entity types to `EntityType` union** (line ~44)
@@ -1271,70 +1358,194 @@ export type SmartoutEvent =
 
 ```ts
   "invoice generated": {
-    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    destinations: ["posthog", "logger", "billing_activity_log", "engine_event"],
     category: "billing",
   },
   "invoice issued": {
-    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    destinations: ["posthog", "logger", "billing_activity_log", "engine_event"],
     category: "billing",
   },
   "invoice sent": {
-    destinations: ["logger", "activity_trail", "engine_event"],
+    destinations: ["logger", "billing_activity_log", "engine_event"],
     category: "billing",
   },
   "invoice marked_paid": {
-    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    destinations: ["posthog", "logger", "billing_activity_log", "engine_event"],
     category: "billing",
   },
   "invoice voided": {
-    destinations: ["logger", "activity_trail", "engine_event"],
+    destinations: ["logger", "billing_activity_log", "engine_event"],
     category: "billing",
   },
   "invoice overdue_detected": {
-    destinations: ["logger", "activity_trail", "engine_event"],
+    destinations: ["logger", "billing_activity_log", "engine_event"],
     category: "billing",
   },
   "invoice credit_note_issued": {
-    destinations: ["logger", "activity_trail", "engine_event"],
+    destinations: ["logger", "billing_activity_log", "engine_event"],
     category: "billing",
   },
   "invoice basis_drift_detected": {
-    destinations: ["logger", "activity_trail", "engine_event"],
+    destinations: ["logger", "billing_activity_log", "engine_event"],
     category: "billing",
   },
   "usage_snapshot created": {
-    destinations: ["logger", "activity_trail"],
+    destinations: ["logger", "billing_activity_log"],
     category: "billing",
   },
   "pricing_terms updated": {
-    destinations: ["posthog", "logger", "activity_trail"],
+    destinations: ["posthog", "logger", "billing_activity_log"],
     category: "billing",
   },
   "dunning_note added": {
-    destinations: ["logger", "activity_trail"],
+    destinations: ["logger", "billing_activity_log"],
     category: "billing",
   },
 ```
 
-- [ ] **Step 7: Add GIN index on `activity_trail.properties` for `entity_id` lookups**
+- [ ] **Step 7: ~~Add GIN index on activity_trail.properties~~ — obsolete per ADR-0122**
 
-Fix for G8 (InvoiceTimeline full-scan): add migration `<ts>_activity_trail_billing_indexes.sql`:
-
-```sql
--- Speeds up lookups like "all activity_trail rows for this invoice_id"
-CREATE INDEX IF NOT EXISTS idx_activity_trail_entity_id
-  ON public.activity_trail((properties->>'entity_id'));
-```
+**Removed 2026-04-17.** The original G8 fix added a GIN index on `activity_trail.properties` for InvoiceTimeline lookups. With ADR-0122, billing audit lives in `billing_activity_log`, which is already indexed on `(invoice_id, created_at DESC)` and `(company_id, created_at DESC)` at creation time (see Task 1.7.5). No additional index needed.
 
 - [ ] **Step 8: Typecheck + commit**
 
 ```bash
 pnpm turbo typecheck --filter=@smartout/telemetry
-git add packages/telemetry/src/registry.ts supabase/migrations/*activity_trail_billing_indexes.sql
+git add packages/telemetry/src/registry.ts
 git commit -m "feat(billing-engine): register 11 billing events with flat entity contract
 
 Space-separated event names per convention. Flat entity_type/entity_id
-contract per L-0038 (activity_trail provider rejects nested entity)."
+contract per L-0038. Billing events route to billing_activity_log
+(ADR-0122), not activity_trail."
+```
+
+### Task 2.1.5: `billing_activity_log` provider + emit() wiring (ADR-0122)
+
+**Added 2026-04-17.** Registering the destination name without a provider yields silent drops. This task implements the provider and wires it into the emit dispatcher.
+
+**Files:**
+- Create: `packages/telemetry/src/providers/billing-activity-log.ts`
+- Modify: `packages/telemetry/src/emit.ts` (or wherever destinations are dispatched)
+
+- [ ] **Step 1: Create provider**
+
+```ts
+// packages/telemetry/src/providers/billing-activity-log.ts
+import { createClient } from "@supabase/supabase-js";
+import type { SmartoutEvent, EventMeta } from "../registry";
+
+const getSupabaseClient = () =>
+  createClient(
+    process.env.SUPABASE_URL || (process.env.NEXT_PUBLIC_SUPABASE_URL as string),
+    process.env.SUPABASE_SERVICE_ROLE_KEY as string,
+  );
+
+/**
+ * Writes billing events to billing_activity_log (ADR-0122).
+ *
+ * Semantics that differ from writeActivityTrail:
+ * - event.actor_id is interpreted as user_identity.user_id, NOT profile_id.
+ *   Billing callers populate this via getSuperAdminId() or similar.
+ *   Null actor_id is allowed (cron / system writers).
+ * - Rows are company-scoped (company_id from properties.data.company_id
+ *   or resolved via invoice_id → invoice.company_id).
+ * - invoice_id is denormalized onto the row when the event targets an invoice
+ *   (entity_type === 'invoice' OR properties.data.invoice_id present) to speed
+ *   up invoice-timeline queries.
+ */
+export async function writeBillingActivityLog(
+  event: SmartoutEvent,
+  _meta: EventMeta,
+): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const props = event.properties as any;
+  const entityType: string | undefined = props?.entity_type;
+  const entityId: string | undefined = props?.entity_id;
+  const data = props?.data ?? {};
+  const changes = props?.changes ?? {};
+
+  if (!entityType || !entityId) {
+    console.warn(
+      `[telemetry] billing_activity_log: missing entity_type/entity_id for "${event.event}". Rejected.`,
+    );
+    return;
+  }
+
+  const supabase = getSupabaseClient();
+
+  // Resolve company_id.
+  // Priority: explicit data.company_id → invoice_id lookup → reject.
+  let companyId: string | null = data.company_id ?? null;
+  let invoiceId: string | null = null;
+
+  if (entityType === "invoice") {
+    invoiceId = entityId;
+  } else if (typeof data.invoice_id === "string") {
+    invoiceId = data.invoice_id;
+  }
+
+  if (!companyId && invoiceId) {
+    const { data: inv } = await supabase
+      .from("invoice")
+      .select("company_id")
+      .eq("invoice_id", invoiceId)
+      .maybeSingle();
+    companyId = inv?.company_id ?? null;
+  }
+
+  if (!companyId) {
+    console.warn(
+      `[telemetry] billing_activity_log: could not resolve company_id for "${event.event}". Rejected.`,
+    );
+    return;
+  }
+
+  const { error } = await supabase.from("billing_activity_log").insert({
+    company_id: companyId,
+    invoice_id: invoiceId,
+    event: event.event,
+    entity_type: entityType,
+    entity_id: entityId,
+    data,
+    changes,
+    actor_user_id: event.actor_id || null,
+    source: "web", // emit() callers from Edge Functions should override via properties.data.source
+  });
+
+  if (error) {
+    console.warn(
+      `[telemetry] billing_activity_log insert failed for "${event.event}":`,
+      error.message,
+    );
+  }
+}
+```
+
+- [ ] **Step 2: Wire destination in emit dispatcher**
+
+Open `packages/telemetry/src/emit.ts` (or the file that maps `destinations[]` to provider calls — find via `grep -rn "writeActivityTrail" packages/telemetry/src/`). Add a branch for `"billing_activity_log"`:
+
+```ts
+import { writeBillingActivityLog } from "./providers/billing-activity-log";
+
+// ... inside the destination dispatch switch/map:
+if (meta.destinations.includes("billing_activity_log")) {
+  await writeBillingActivityLog(event, meta);
+}
+```
+
+Preserve the Promise.all / parallel pattern the existing dispatcher uses.
+
+- [ ] **Step 3: Typecheck + commit**
+
+```bash
+pnpm turbo typecheck --filter=@smartout/telemetry
+git add packages/telemetry/src/providers/billing-activity-log.ts packages/telemetry/src/emit.ts
+git commit -m "feat(billing-engine): add billing_activity_log provider (ADR-0122)
+
+Routes billing events to billing_activity_log instead of activity_trail.
+actor_id interpreted as user_identity.user_id (not profile_id).
+Resolves company_id via explicit data.company_id or invoice_id lookup."
 ```
 
 ### Task 2.2: Internal emit HTTP endpoint (for Edge Functions)
@@ -2628,19 +2839,23 @@ const EVENT_ICONS = {
   'invoice.generated': FileText,
   'invoice.issued': Send,
   'invoice.sent': Send,
-  'invoice.marked_paid': CheckCircle2,
-  'invoice.overdue_detected': AlertTriangle,
-  'invoice.voided': Ban,
-  'invoice.credit_note_issued': XCircle,
-  'dunning_note.added': MessageSquare,
+  // Note: event names use space-separator (not dots) per telemetry convention.
+  // Keys here mirror the space-separated shape stored in billing_activity_log.event.
+  'invoice marked_paid': CheckCircle2,
+  'invoice overdue_detected': AlertTriangle,
+  'invoice voided': Ban,
+  'invoice credit_note_issued': XCircle,
+  'dunning_note added': MessageSquare,
 };
 
+// ADR-0122: billing audit lives in billing_activity_log (not activity_trail).
+// Query uses the invoice_id FK directly — no properties->entity indirection.
 export async function InvoiceTimeline({ invoiceId }: { invoiceId: string }) {
   const supabase = createAdminClient();
   const { data: events } = await supabase
-    .from('activity_trail')
-    .select('activity_trail_id, event, properties, actor_user_id, actor:actor_user_id(email), created_at')
-    .eq('properties->entity->>id', invoiceId)
+    .from('billing_activity_log')
+    .select('id, event, data, actor_user_id, actor:actor_user_id(email), created_at')
+    .eq('invoice_id', invoiceId)
     .order('created_at', { ascending: true });
 
   if (!events || events.length === 0) {
@@ -2652,12 +2867,12 @@ export async function InvoiceTimeline({ invoiceId }: { invoiceId: string }) {
       {events.map((e) => {
         const Icon = EVENT_ICONS[e.event] ?? FileText;
         return (
-          <li key={e.activity_trail_id} className="pl-6 relative">
+          <li key={e.id} className="pl-6 relative">
             <span className="absolute -left-3 top-0 bg-background border border-border/60 rounded-full p-1">
               <Icon className="h-3 w-3" aria-hidden />
             </span>
             <time className="text-xs text-muted-foreground">{new Date(e.created_at).toLocaleString('nb-NO')}</time>
-            <p className="font-medium">{formatEvent(e.event, e.properties)}</p>
+            <p className="font-medium">{formatEvent(e.event, e.data)}</p>
             {e.actor && <p className="text-xs text-muted-foreground">{e.actor.email}</p>}
           </li>
         );
@@ -2666,14 +2881,14 @@ export async function InvoiceTimeline({ invoiceId }: { invoiceId: string }) {
   );
 }
 
-function formatEvent(event: string, props: any): string {
+function formatEvent(event: string, data: any): string {
   switch (event) {
-    case 'invoice.generated': return 'Fakturagrunnlag generert';
-    case 'invoice.issued': return `Faktura utstedt (kr ${props.amount_incl_vat})`;
-    case 'invoice.marked_paid': return `Merket som betalt (${props.payment_channel})`;
-    case 'invoice.voided': return `Annullert: ${props.reason_detail}`;
-    case 'invoice.overdue_detected': return `Forfalt (${props.days_overdue} dager)`;
-    case 'dunning_note.added': return `Notat: ${props.note}`;
+    case 'invoice generated': return 'Fakturagrunnlag generert';
+    case 'invoice issued': return `Faktura utstedt (kr ${data.amount_incl_vat})`;
+    case 'invoice marked_paid': return `Merket som betalt (${data.payment_channel})`;
+    case 'invoice voided': return `Annullert: ${data.reason_detail}`;
+    case 'invoice overdue_detected': return `Forfalt (${data.days_overdue} dager)`;
+    case 'dunning_note added': return `Notat: ${data.note}`;
     default: return event;
   }
 }
@@ -2683,7 +2898,7 @@ function formatEvent(event: string, props: any): string {
 
 ```bash
 git add apps/web/src/app/platform-admin/billing/invoices/_components/invoice-timeline.tsx
-git commit -m "feat(billing-engine): add InvoiceTimeline (activity_trail history) for detail tab"
+git commit -m "feat(billing-engine): add InvoiceTimeline (billing_activity_log history) for detail tab"
 ```
 
 ---
@@ -2952,13 +3167,13 @@ git commit -m "feat(billing-engine): add issueCreditNote Server Action"
 
 - [ ] **Step 1: Write action** — AlertDialog-gated, reason code from `UncollectibleReason` enum, updates `invoice.status = 'uncollectible'` from `overdue`. Only transitions from overdue allowed.
 
-- [ ] **Step 2: Emit `invoice marked_paid`? No — no existing event.** Add a new event `invoice marked_uncollectible` to Task 2.1 registry (destinations: `logger, activity_trail, engine_event`, category: `billing`).
+- [ ] **Step 2: Emit `invoice marked_paid`? No — no existing event.** Add a new event `invoice marked_uncollectible` to Task 2.1 registry (destinations: `logger, billing_activity_log, engine_event`, category: `billing`).
 
 - [ ] **Step 3: Commit**
 
 ### Task 7.5: `addDunningNote` Server Action
 
-- [ ] **Step 1: Write action** — writes to `activity_trail` via `emit({ event: 'dunning_note added', ... })`. No separate table (dunning_note decision A from council). Updates `invoice.dunning_status = 'in_negotiation'` if was `'none'`.
+- [ ] **Step 1: Write action** — writes to `billing_activity_log` via `emit({ event: 'dunning_note added', ... })` (ADR-0122, supersedes the dunning_note-via-activity_trail call in ADR-0118). Updates `invoice.dunning_status = 'in_negotiation'` if was `'none'`.
 
 - [ ] **Step 2: Commit**
 
@@ -3275,7 +3490,7 @@ UTF-8 BOM for Excel compatibility. Norwegian decimal separator."
 
 - [ ] **Step 3: Wire to `updatePricingTerms` Server Action (Task 7.3).**
 
-- [ ] **Step 4: Config change history below form** — read `activity_trail` for `pricing_terms.updated` events.
+- [ ] **Step 4: Config change history below form** — read `billing_activity_log` for `pricing_terms updated` events (ADR-0122).
 
 - [ ] **Step 5: Commit**
 

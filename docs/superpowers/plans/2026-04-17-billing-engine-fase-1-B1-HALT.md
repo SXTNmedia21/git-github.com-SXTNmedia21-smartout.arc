@@ -1,11 +1,24 @@
 ---
 title: "B1 Halt Report — Schema drift discovered in plan Tasks 1.7, 1.8, 1.10"
-status: blocker
+status: resolved
 created: 2026-04-17
 updated: 2026-04-17
 module: billing
-tags: [billing, halt, schema-drift, blocker, phase-1]
+tags: [billing, halt, schema-drift, resolved, phase-1]
 ---
+
+> **RESOLVED 2026-04-17 (Path C).** ADR-0122 written + registered + ADR-0118 amended. Plan updated with:
+>
+> - Task 1.7 trigger: `schedule_shift.shift_id` → `schedule_shift_id`
+> - **Task 1.7.5 (NEW):** `billing_activity_log` table + RLS
+> - Task 1.8: `v_invoice_dunning_notes` rewritten to source from `billing_activity_log`
+> - Task 1.10: rewritten to use `engine_process` + `engine_step` pattern (two-table seed)
+> - Task 2.1: `EventDestination` union gains `"billing_activity_log"`; 11 billing events route to new destination
+> - **Task 2.1.5 (NEW):** `writeBillingActivityLog` provider + emit() dispatcher wiring
+> - Phase 6 InvoiceTimeline query redirected to `billing_activity_log`
+> - Phase 7 dunning/pricing Server Actions redirected accordingly
+>
+> B1 execution resumes after this amendment lands.
 
 # B1 Halt Report — Billing Engine Fase 1
 
