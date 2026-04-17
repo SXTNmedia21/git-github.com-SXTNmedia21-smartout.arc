@@ -15,3 +15,7 @@ export * from "./types";
 export * from "./schemas";
 export * from "./queries";
 export * from "./hooks";
+// Fase 2 — dispatch adapters + types. Kept under a sub-path too
+// (`@smartout/billing/dispatch`) via the explicit barrel, but the root
+// export surface is the canonical one for now.
+export * from "./dispatch";
