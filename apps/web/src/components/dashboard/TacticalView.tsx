@@ -23,17 +23,18 @@ import { ShiftStatusWidget } from "./ShiftStatusWidget";
 import {
   useStaffingCoverage,
   getCurrentWeekStart,
-  useTrainingReadiness,
-  useActionItems,
-  useGovernanceOverview,
-  useWorkforcePipeline,
-  useActiveSeason,
-  type DayCoverage,
-  type ActionCounts,
-  type ProtocolOverviewItem,
-  type PipelineData,
-  type ActiveSeasonData,
-} from "@/app/dashboard/_hooks";
+} from "@/app/dashboard/_hooks/use-staffing-coverage";
+import { useTrainingReadiness } from "@/app/dashboard/_hooks/use-training-readiness";
+import { useActionItems } from "@/app/dashboard/_hooks/use-action-items";
+import { useGovernanceOverview } from "@/app/dashboard/_hooks/use-governance-overview";
+import { useWorkforcePipeline } from "@/app/dashboard/_hooks/use-workforce-pipeline";
+import { useActiveSeason, type ActiveSeasonData } from "@/app/dashboard/_hooks/use-active-season";
+import type {
+  DayCoverage,
+  ActionCounts,
+  ProtocolOverviewItem,
+  PipelineData,
+} from "@/app/dashboard/_hooks/dashboard-types";
 
 // UI Events:
 // - nav: onDateClick(date) — opens DayControlSheet via parent

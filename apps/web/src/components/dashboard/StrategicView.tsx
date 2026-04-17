@@ -13,16 +13,13 @@ import {
   BarChart3,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@smartout/ui";
-import {
-  useWorkforcePipeline,
-  useTrainingReadiness,
-  useKpiTargets,
-  useKpiCopy,
-  useActiveSeason,
-  useAbsenceRate,
-  useStaffTurnover,
-} from "@/app/dashboard/_hooks";
-import type { KpiMetric } from "@/app/dashboard/_hooks";
+import { useWorkforcePipeline } from "@/app/dashboard/_hooks/use-workforce-pipeline";
+import { useTrainingReadiness } from "@/app/dashboard/_hooks/use-training-readiness";
+import { useKpiTargets, type KpiMetric } from "@/app/dashboard/_hooks/use-kpi-targets";
+import { useKpiCopy } from "@/app/dashboard/_hooks/use-kpi-copy";
+import { useActiveSeason } from "@/app/dashboard/_hooks/use-active-season";
+import { useAbsenceRate } from "@/app/dashboard/_hooks/use-absence-rate";
+import { useStaffTurnover } from "@/app/dashboard/_hooks/use-staff-turnover";
 import { useTaskCompletion } from "@/app/dashboard/_hooks/use-task-completion";
 import { useTimeToJobReady } from "@/app/dashboard/_hooks/use-time-to-job-ready";
 import { BudgetSettingsPanel } from "./BudgetSettingsPanel";

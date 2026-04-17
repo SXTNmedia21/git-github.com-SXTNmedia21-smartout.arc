@@ -23,18 +23,22 @@ adrs: [ADR-0122, ADR-0123, ADR-0124]
 
 **Council context:** See `docs/council/COUNCIL-LOG.md#2026-04-17`. Phase 2.5 fact-check corrected 5 audit inflations before this plan was drafted — every claim below is verified against code as of 2026-04-17.
 
+**2026-04-17 amendment (second council — migration dependency review):** Task 1 migration originally timestamped `20260417120000` was retimestamped to `20260511100000` because three referenced dependencies (`employee_payroll_profile` table at `20260421100200`, `workspace_framework_binding` table at `20260421200100`, `seeded_from_framework_binding_id` column at `20260422400000`) did not exist at the original timestamp. Schema qualifier also corrected from `payroll.*` to `public.*` (actual schema is `public`). See L-0042 and `docs/council/COUNCIL-LOG.md#2026-04-17-task-1-migration-dependency-review`.
+
 ---
 
 ## Verified Facts (as of 2026-04-17)
 
-### PR1 targets — FK status
+### PR1 targets — FK status (corrected 2026-04-17 after 3rd council fact-check)
 
 | Column | Current state | Target | Migration |
 |---|---|---|---|
-| `profile.active_contract_id` | `uuid` no REFERENCES (migration `20260228140000_contract_system_foundation.sql:181`) | FK → `employment_contract(contract_id)` | PR1 migration |
-| `employee_payroll_profile.seeded_from_framework_binding_id` | `UUID` no REFERENCES (migration `20260422400000_cascade_b_schema.sql:151`) | FK → `workspace_framework_binding(id)` | PR1 migration |
-| `protocol_assignment.assigned_ref_id` | `UUID` no REFERENCES, polymorphic by `assigned_via` enum | **Keep unconstrained**, add `COMMENT ON` per ADR-0124 | PR1 migration |
-| `chat_conversation.source_id` | `UUID` no REFERENCES, already commented as intentional polymorphic (`20260418100300_mobile_schema_additions.sql:32-33`) | Already documented; verify comment exists in production schema | PR1 migration (idempotent re-apply if needed) |
+| `tariff_rate_table.seeded_from_framework_binding_id` | `UUID` no REFERENCES (migration `20260422400000_cascade_b_schema.sql:150-152`) | FK → `workspace_framework_binding(id)` | **PR1 migration** ✓ shipped |
+| `workspace.active_contract_id` | `uuid` no REFERENCES (migration `20260228140000_contract_system_foundation.sql:181`) | semantic target unclear (candidates: `contract`, `employment_contract`) | **Deferred** to dedicated audit ticket |
+| `protocol_assignment.assigned_ref_id` | `UUID` no REFERENCES, polymorphic by `assigned_via` enum | **Keep unconstrained**, add `COMMENT ON` per ADR-0124 | **PR1 migration** ✓ shipped |
+| `chat_conversation.source_id` | `UUID` no REFERENCES, already has polymorphic COMMENT (`20260418100300:41`) | Upgrade existing COMMENT to cite ADR-0124 | **PR1 migration** ✓ shipped |
+
+> **Errata 2026-04-17 (3rd council):** The original "Verified Facts" table named wrong source tables for both FK candidates. `active_contract_id` lives on `workspace`, not `profile` (fact-checked via `information_schema.columns`). `seeded_from_framework_binding_id` lives on `tariff_rate_table`, not `employee_payroll_profile` (cascade_b_schema section 7 adds `seeded_from_template_id` to employee_payroll_profile; section 8 adds `seeded_from_framework_binding_id` to tariff_rate_table). ADR-0124 has been amended with the same correction. See L-0042 and L-0043 for process discipline updates.
 
 ### PR2 targets — barrel importers (verified 2026-04-17: 16 files)
 
@@ -82,8 +86,8 @@ apps/web/src/app/dashboard/governance/_hooks/use-governance-filtered.ts
 ## Task 1 — PR1: Orphan FK fixes + polymorphic documentation (database)
 
 **Files:**
-- Create: `supabase/migrations/20260417120000_orphan_fk_fixes_and_polymorphic_comments.sql`
-- Create: `supabase/tests/migrations/20260417120000_orphan_fk_fixes_test.sql` (pgTAP)
+- Create: `supabase/migrations/20260511100000_orphan_fk_fixes_and_polymorphic_comments.sql`
+- Create: `supabase/tests/migrations/20260511100000_orphan_fk_fixes_test.sql` (pgTAP)
 - No app code modifications.
 
 **Preconditions:**
@@ -102,7 +106,7 @@ SELECT 'active_contract_id orphans' AS check, COUNT(*) AS cnt
     AND NOT EXISTS (SELECT 1 FROM public.employment_contract ec WHERE ec.contract_id = p.active_contract_id)
 UNION ALL
 SELECT 'seeded_from_framework_binding_id orphans' AS check, COUNT(*) AS cnt
-  FROM payroll.employee_payroll_profile epp
+  FROM public.employee_payroll_profile epp
   WHERE epp.seeded_from_framework_binding_id IS NOT NULL
     AND NOT EXISTS (SELECT 1 FROM public.workspace_framework_binding wfb WHERE wfb.id = epp.seeded_from_framework_binding_id);
 EOF
@@ -112,7 +116,7 @@ Expected output (fresh dev DB): both counts = 0. If either > 0, the migration mu
 
 - [ ] **Step 1.2 — Write the pgTAP test (failing)**
 
-Create `supabase/tests/migrations/20260417120000_orphan_fk_fixes_test.sql`:
+Create `supabase/tests/migrations/20260511100000_orphan_fk_fixes_test.sql`:
 
 ```sql
 BEGIN;
@@ -126,9 +130,9 @@ SELECT fk_ok('public', 'profile', 'active_contract_id',
   'profile.active_contract_id FK should target employment_contract.contract_id');
 
 -- FK 2: employee_payroll_profile.seeded_from_framework_binding_id → workspace_framework_binding(id)
-SELECT has_fk('payroll', 'employee_payroll_profile', 'seeded_from_framework_binding_id',
+SELECT has_fk('public', 'employee_payroll_profile', 'seeded_from_framework_binding_id',
   'employee_payroll_profile.seeded_from_framework_binding_id should have FK');
-SELECT fk_ok('payroll', 'employee_payroll_profile', 'seeded_from_framework_binding_id',
+SELECT fk_ok('public', 'employee_payroll_profile', 'seeded_from_framework_binding_id',
   'public', 'workspace_framework_binding', 'id',
   'seeded_from_framework_binding_id FK target');
 
@@ -154,14 +158,14 @@ ROLLBACK;
 
 ```bash
 cd /home/sxtnl/dev/smartout.ai
-npx supabase test db --file supabase/tests/migrations/20260417120000_orphan_fk_fixes_test.sql
+npx supabase test db --file supabase/tests/migrations/20260511100000_orphan_fk_fixes_test.sql
 ```
 
 Expected: 6 failures (2 `has_fk` not found, 2 `fk_ok` not found, 2 `COMMENT ON` missing or not matching pattern). If `chat_conversation.source_id` comment already exists in DB, that one passes — documented expected.
 
 - [ ] **Step 1.4 — Write the migration**
 
-Create `supabase/migrations/20260417120000_orphan_fk_fixes_and_polymorphic_comments.sql`:
+Create `supabase/migrations/20260511100000_orphan_fk_fixes_and_polymorphic_comments.sql`:
 
 ```sql
 -- Migration: orphan FK fixes + polymorphic documentation per ADR-0124
@@ -182,7 +186,7 @@ WHERE p.active_contract_id IS NOT NULL
     WHERE ec.contract_id = p.active_contract_id
   );
 
-UPDATE payroll.employee_payroll_profile epp
+UPDATE public.employee_payroll_profile epp
 SET seeded_from_framework_binding_id = NULL
 WHERE epp.seeded_from_framework_binding_id IS NOT NULL
   AND NOT EXISTS (
@@ -200,7 +204,7 @@ ALTER TABLE public.profile
   REFERENCES public.employment_contract(contract_id)
   ON DELETE SET NULL;
 
-ALTER TABLE payroll.employee_payroll_profile
+ALTER TABLE public.employee_payroll_profile
   ADD CONSTRAINT employee_payroll_profile_seeded_from_framework_binding_id_fkey
   FOREIGN KEY (seeded_from_framework_binding_id)
   REFERENCES public.workspace_framework_binding(id)
@@ -237,7 +241,7 @@ Expected: migration applies without error, `db reset` completes with final line 
 - [ ] **Step 1.6 — Run pgTAP test to verify it PASSES**
 
 ```bash
-npx supabase test db --file supabase/tests/migrations/20260417120000_orphan_fk_fixes_test.sql
+npx supabase test db --file supabase/tests/migrations/20260511100000_orphan_fk_fixes_test.sql
 ```
 
 Expected: `ok 1..6` — all 6 assertions pass.
@@ -261,8 +265,8 @@ Expected: 0 errors across all workspaces.
 - [ ] **Step 1.9 — Commit**
 
 ```bash
-git add supabase/migrations/20260417120000_orphan_fk_fixes_and_polymorphic_comments.sql \
-        supabase/tests/migrations/20260417120000_orphan_fk_fixes_test.sql \
+git add supabase/migrations/20260511100000_orphan_fk_fixes_and_polymorphic_comments.sql \
+        supabase/tests/migrations/20260511100000_orphan_fk_fixes_test.sql \
         packages/supabase/src/database.types.ts
 
 git commit -m "$(cat <<'EOF'
@@ -818,6 +822,6 @@ Not in this plan — separate plans will cover:
 
 **Placeholder scan:** No TODO/TBD/fill-in-later patterns. All code blocks contain full content an engineer can execute. ✓
 
-**Type consistency:** `ImageComponent` prop type is defined once in Task 3 Step 3.5 and used consistently. Migration filename `20260417120000_orphan_fk_fixes_and_polymorphic_comments.sql` is used verbatim in Step 1.4 and referenced in pgTAP path in Step 1.2. Verification scripts (`no-hooks-barrel.sh`, `no-raw-img-targets.sh`) are created and invoked in the same task. ✓
+**Type consistency:** `ImageComponent` prop type is defined once in Task 3 Step 3.5 and used consistently. Migration filename `20260511100000_orphan_fk_fixes_and_polymorphic_comments.sql` is used verbatim in Step 1.4 and referenced in pgTAP path in Step 1.2. Verification scripts (`no-hooks-barrel.sh`, `no-raw-img-targets.sh`) are created and invoked in the same task. ✓
 
 **Known plan-time gap:** Step 2.3 "Name-to-file mapping" requires the worker to first read `apps/web/src/app/dashboard/_hooks/index.ts` to confirm every symbol's source file — the table provides the common cases; a few rarely-used exports (e.g. `getCurrentWeekStart`) need the worker to verify the re-export line. This is an acceptable plan-level indirection; the alternative (inlining all 40 exports verbatim) would add 200 lines without increasing reliability.

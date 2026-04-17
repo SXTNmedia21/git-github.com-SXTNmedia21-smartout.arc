@@ -83,6 +83,29 @@ External consumers get one API key → validated by Edge Functions → services 
 4. Add scope to canonical list above
 5. Update preset bundles
 
+## Pre-workspace check (ADR-0123)
+
+When creating a new Edge Function, ask: does the caller have an active workspace at call time?
+
+- **Yes** → must route through `workspace-api` gateway per ADR-0029.
+- **No (pre-workspace flow — invite tokens, signup, identity-link callbacks)** → MAY stay standalone per ADR-0123.
+
+If the answer is "no", count the current set of pre-workspace endpoints before proceeding:
+
+```bash
+# Current pre-workspace exceptions (as of 2026-04-17): accept-invitation, create-invitation
+ls supabase/functions/ | grep -E 'invitation'
+```
+
+If this would be the **3rd** pre-workspace endpoint, **stop** and open an `identity-api` gateway ADR before implementation. Two endpoints is an exception; three is a pattern that deserves its own gateway tier.
+
+Document the new endpoint's pre-workspace status in its `config.toml` entry with a comment:
+
+```toml
+[functions.<name>]
+verify_jwt = false  # Pre-workspace — auth via token per ADR-0123.
+```
+
 ## New Table Checklist (workspace-scoped)
 
 1. `ALTER TABLE ... ENABLE ROW LEVEL SECURITY;`

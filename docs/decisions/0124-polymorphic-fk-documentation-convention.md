@@ -11,13 +11,15 @@ tags: [adr, database, foreign-keys, polymorphism, documentation]
 
 # ADR-0124 — Polymorphic FK Documentation Convention
 
+> **Errata 2026-04-17:** This ADR's original "Genuine orphans" list named wrong source tables for both FK candidates. Fact-check during PR1 execution confirmed: `active_contract_id` is on `public.workspace` (not `public.profile`); `seeded_from_framework_binding_id` is on `public.tariff_rate_table` (not `public.employee_payroll_profile`). The column→table errors were inherited from the 2026-04-17 audit. See L-0042 and L-0043 for the systemic pattern. Lists below are corrected.
+
 ## Context and Problem Statement
 
-A 2026-04-17 audit flagged four `*_id` columns as "orphan FKs" — present on the table, no `REFERENCES` constraint. Supervisor's migration-trace split them into two groups:
+A 2026-04-17 audit flagged four `*_id` columns as "orphan FKs" — present on the table, no `REFERENCES` constraint. After PR1 fact-check corrected column→table mappings, the classification stands:
 
 **Genuine orphans (should have FK):**
-- `profile.active_contract_id` (migration `20260228140000_contract_system_foundation.sql:181`) — should reference `employment_contract(contract_id)`.
-- `employee_payroll_profile.seeded_from_framework_binding_id` (migration `20260422400000_cascade_b_schema.sql:151`) — should reference `workspace_framework_binding(id)`.
+- `tariff_rate_table.seeded_from_framework_binding_id` (migration `20260422400000_cascade_b_schema.sql:150-152`) — should reference `workspace_framework_binding(id)`. **Applied in PR1 migration `20260511100000_orphan_fk_fixes_and_polymorphic_comments.sql`.**
+- `workspace.active_contract_id` (migration `20260228140000_contract_system_foundation.sql:181`) — semantic target unclear (candidates: `public.contract`, `public.employment_contract`). **Deferred to dedicated audit ticket.** Not applied in PR1.
 
 **Intentional polymorphic references (FK is structurally impossible):**
 - `protocol_assignment.assigned_ref_id` (migration `20260414014856_training_schema_foundation.sql:23`) — points to `policy`, `department`, or `team` depending on `assigned_via` enum. Classic polymorphic association.
@@ -81,4 +83,4 @@ This ADR covers documentation convention only. It does NOT require:
 
 ---
 
-> Registered in `docs/decisions/0000-decision-log.md`. Applied retroactively to `protocol_assignment.assigned_ref_id` and `chat_conversation.source_id` in the PR1 migration.
+> Registered in `docs/decisions/0000-decision-log.md`. Applied retroactively to `protocol_assignment.assigned_ref_id` and `chat_conversation.source_id` in the PR1 migration `20260511100000_orphan_fk_fixes_and_polymorphic_comments.sql`. Errata 2026-04-17 — column→table mappings corrected (see header).

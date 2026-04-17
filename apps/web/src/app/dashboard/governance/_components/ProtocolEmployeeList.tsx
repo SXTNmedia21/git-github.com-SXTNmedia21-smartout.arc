@@ -10,8 +10,8 @@ import {
   ShieldOff,
   Trash2,
 } from "lucide-react";
-import { useProtocolAssignees } from "@/app/dashboard/_hooks";
-import type { ProtocolAssignee } from "@/app/dashboard/_hooks";
+import { useProtocolAssignees } from "@/app/dashboard/_hooks/use-protocol-assignees";
+import type { ProtocolAssignee } from "@/app/dashboard/_hooks/dashboard-types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {

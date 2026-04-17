@@ -6885,6 +6885,7 @@ export type Database = {
           downgrade_to: string | null
           engine_process_id: string | null
           engine_state_id: string | null
+          entity_id: string | null
           evaluated_at: string
           id: string
           min_role_required: string | null
@@ -6901,6 +6902,7 @@ export type Database = {
           downgrade_to?: string | null
           engine_process_id?: string | null
           engine_state_id?: string | null
+          entity_id?: string | null
           evaluated_at?: string
           id?: string
           min_role_required?: string | null
@@ -6917,6 +6919,7 @@ export type Database = {
           downgrade_to?: string | null
           engine_process_id?: string | null
           engine_state_id?: string | null
+          entity_id?: string | null
           evaluated_at?: string
           id?: string
           min_role_required?: string | null
@@ -13942,6 +13945,13 @@ export type Database = {
             referencedRelation: "profession"
             referencedColumns: ["profession_id"]
           },
+          {
+            foreignKeyName: "tariff_rate_table_seeded_from_framework_binding_id_fkey"
+            columns: ["seeded_from_framework_binding_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_framework_binding"
+            referencedColumns: ["id"]
+          },
         ]
       }
       team: {
@@ -15518,7 +15528,7 @@ export type Database = {
         Returns: Json
       }
       delete_vault_secret: { Args: { secret_name: string }; Returns: boolean }
-      derive_shift_hours: { Args: { p_shift_id: string }; Returns: string }
+      derive_shift_hours: { Args: { p_shift_id: string }; Returns: Json }
       dispatch_push_notification: {
         Args: {
           p_body: string
@@ -15585,6 +15595,7 @@ export type Database = {
           p_channel: string
           p_engine_process_id?: string
           p_engine_state_id?: string
+          p_entity_id?: string
           p_workspace_id: string
         }
         Returns: Json
@@ -15845,7 +15856,7 @@ export type Database = {
       }
       snapshot_shift_cost: {
         Args: { p_interpretation_id: string }
-        Returns: string
+        Returns: Json
       }
       submit_own_pii: {
         Args: { p_field_group: string; p_values: Json; p_workspace_id: string }

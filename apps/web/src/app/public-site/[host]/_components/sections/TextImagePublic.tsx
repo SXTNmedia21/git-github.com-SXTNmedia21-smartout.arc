@@ -1,3 +1,4 @@
+import Image from "next/image";
 import type { PublicSectionProps } from "./types";
 
 export function TextImagePublic({ content, assets }: PublicSectionProps) {
@@ -28,13 +29,14 @@ export function TextImagePublic({ content, assets }: PublicSectionProps) {
         </div>
         {image && (
           <div className={imagePosition === "left" ? "md:[direction:ltr]" : ""}>
-            <img
+            <Image
               src={`${assets.storageBaseUrl}/${image.storagePath}`}
               alt={image.alt}
+              width={image.width ?? 900}
+              height={image.height ?? 600}
+              sizes="(max-width: 768px) 100vw, 50vw"
               className="h-auto w-full object-cover"
               style={{ borderRadius: "var(--site-radius)" }}
-              width={image.width ?? undefined}
-              height={image.height ?? undefined}
             />
           </div>
         )}

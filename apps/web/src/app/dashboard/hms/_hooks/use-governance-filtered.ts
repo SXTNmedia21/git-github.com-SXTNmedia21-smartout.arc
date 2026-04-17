@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { useGovernanceOverview } from "@/app/dashboard/_hooks";
+import { useGovernanceOverview } from "@/app/dashboard/_hooks/use-governance-overview";
 
 type Domain = "all" | "haccp" | "safety" | "hr" | "operational";
 

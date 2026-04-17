@@ -14,7 +14,7 @@ import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { emit } from "@smartout/telemetry";
-import { dashboardKeys } from "@/app/dashboard/_hooks";
+import { dashboardKeys } from "@/app/dashboard/_hooks/dashboard-keys";
 
 // ══════════════════════════════════════════════════════════════
 // Types

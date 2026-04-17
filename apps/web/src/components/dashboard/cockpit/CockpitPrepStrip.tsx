@@ -10,7 +10,10 @@
 
 import { useMemo } from "react";
 import { Users, Utensils, Target } from "lucide-react";
-import { useStaffingCoverage, getCurrentWeekStart } from "@/app/dashboard/_hooks";
+import {
+  useStaffingCoverage,
+  getCurrentWeekStart,
+} from "@/app/dashboard/_hooks/use-staffing-coverage";
 import { useBudget } from "@/app/dashboard/_hooks/use-budget";
 import { useQuery } from "@tanstack/react-query";
 import { useWorkspaceOptional } from "@/lib/workspace-context";

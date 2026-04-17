@@ -20,6 +20,25 @@ if (existsSync(rootEnvPath)) {
 
 const nextConfig: NextConfig = {
   ...(process.env.NEXT_DIST_DIR ? { distDir: process.env.NEXT_DIST_DIR } : {}),
+  images: {
+    remotePatterns: [
+      // Supabase Storage (public-site assets, avatars)
+      {
+        protocol: "https",
+        hostname: "*.supabase.co",
+        pathname: "/storage/v1/object/**",
+      },
+      // External host-provided URLs (onboarding scraped logos, public-site
+      // operator-controlled images). Wide by design — public-site is
+      // operator-controlled, not user-submitted; onboarding logos come from
+      // the prospect's own website scrape.
+      {
+        protocol: "https",
+        hostname: "**",
+        pathname: "/**",
+      },
+    ],
+  },
   experimental: {
     optimizePackageImports: [
       "lucide-react",

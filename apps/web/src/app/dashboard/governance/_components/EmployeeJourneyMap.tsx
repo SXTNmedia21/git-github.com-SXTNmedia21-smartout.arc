@@ -9,8 +9,8 @@ import {
   Loader2,
   Clock,
 } from "lucide-react";
-import { useProtocolJourney } from "@/app/dashboard/_hooks";
-import type { JourneyPhase } from "@/app/dashboard/_hooks";
+import { useProtocolJourney } from "@/app/dashboard/_hooks/use-protocol-journey";
+import type { JourneyPhase } from "@/app/dashboard/_hooks/dashboard-types";
 
 // UI Events:
 // - visual: horizontal 3-phase progress map with connector lines

@@ -12,10 +12,10 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   useStaffingCoverage,
-  useActionItems,
-  useTrainingReadiness,
   getCurrentWeekStart,
-} from "@/app/dashboard/_hooks";
+} from "@/app/dashboard/_hooks/use-staffing-coverage";
+import { useActionItems } from "@/app/dashboard/_hooks/use-action-items";
+import { useTrainingReadiness } from "@/app/dashboard/_hooks/use-training-readiness";
 import { InlineTaskCreator } from "./InlineTaskCreator";
 
 // Ambient spring — Nordic Split spec

@@ -3,9 +3,14 @@ id: ADR-0029
 title: Workspace API Gateway
 status: Accepted
 date: 2026-03-01
+updated: 2026-04-17
 ---
 
 # ADR-0029: Workspace API Gateway
+
+> **Amended 2026-04-17 by [ADR-0123](0123-adr-0029-amendment-pre-workspace-exceptions.md).**
+> Pre-workspace Edge Functions (`accept-invitation`, `create-invitation`) are explicit exceptions
+> to the gateway rule. A 3rd pre-workspace endpoint triggers an identity-api gateway ADR.
 
 ## Context and Problem Statement
 

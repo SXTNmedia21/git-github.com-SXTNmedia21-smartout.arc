@@ -13,7 +13,7 @@ import {
   ClipboardList,
   UserPlus,
 } from "lucide-react";
-import type { ProtocolOverviewItem } from "@/app/dashboard/_hooks";
+import type { ProtocolOverviewItem } from "@/app/dashboard/_hooks/dashboard-types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ProtocolEmployeeList } from "./ProtocolEmployeeList";

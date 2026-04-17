@@ -1,3 +1,4 @@
+import Image from "next/image";
 import type { SnapshotNavPage, SnapshotAsset } from "@smartout/website";
 import { MobileNavToggle } from "./MobileNavToggle";
 
@@ -22,9 +23,11 @@ export function SiteNavigation({
           {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- public site uses native anchor for customer domain routing */}
           <a href="/" className="flex shrink-0 items-center gap-3">
             {logoAsset && (
-              <img
+              <Image
                 src={`${storageBaseUrl}/${logoAsset.storagePath}`}
                 alt={logoAsset.alt || siteName}
+                width={120}
+                height={32}
                 className="h-8 w-auto"
               />
             )}
