@@ -2026,6 +2026,70 @@ export type Database = {
           },
         ]
       }
+      basis_drift_event: {
+        Row: {
+          detected_at: string
+          drift_event_id: string
+          drift_type: string
+          invoice_id: string | null
+          new_value: Json | null
+          old_value: Json | null
+          resolution: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          shift_id: string | null
+          usage_snapshot_id: string
+        }
+        Insert: {
+          detected_at?: string
+          drift_event_id?: string
+          drift_type: string
+          invoice_id?: string | null
+          new_value?: Json | null
+          old_value?: Json | null
+          resolution?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          shift_id?: string | null
+          usage_snapshot_id: string
+        }
+        Update: {
+          detected_at?: string
+          drift_event_id?: string
+          drift_type?: string
+          invoice_id?: string | null
+          new_value?: Json | null
+          old_value?: Json | null
+          resolution?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          shift_id?: string | null
+          usage_snapshot_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "basis_drift_event_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoice"
+            referencedColumns: ["invoice_id"]
+          },
+          {
+            foreignKeyName: "basis_drift_event_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "user_identity"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "basis_drift_event_usage_snapshot_id_fkey"
+            columns: ["usage_snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "usage_snapshot"
+            referencedColumns: ["usage_snapshot_id"]
+          },
+        ]
+      }
       call_log: {
         Row: {
           call_session_id: string
