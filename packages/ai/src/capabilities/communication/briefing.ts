@@ -67,7 +67,14 @@ export const composeShiftBriefing = defineTool({
 
     const departmentId = shift.department_id;
     const shiftDate = shift.shift_date;
-    const dayOfWeek = new Date(shiftDate).getDay(); // 0=Sun, 6=Sat
+    // department_operating_hours.day_of_week is ISO (0=Mon..6=Sun per migration
+    // 20260422400000:15). JS getDay() uses 0=Sun..6=Sat and is local-TZ sensitive
+    // on bare YYYY-MM-DD strings. Mirror the engine-dispatch pattern at
+    // supabase/functions/engine-dispatch/index.ts:524-526 — pin UTC noon to
+    // avoid rollover, then convert Sun=0 to 6 and shift others down by 1.
+    // Refs: ultrareview rp6ofqyfv bug_017.
+    const jsDay = new Date(shiftDate + "T12:00:00Z").getUTCDay();
+    const dayOfWeek = jsDay === 0 ? 6 : jsDay - 1; // 0=Mon..6=Sun (ISO)
 
     // ── 2. Parallel fetches: colleagues, session, memories, hours ────────
     const [colleaguesResult, sessionResult, memoriesResult, hoursResult] = await Promise.all([

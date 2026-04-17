@@ -494,6 +494,10 @@ const ENTITY_PK: Record<string, string> = {
   department_session: "department_session_id",
   profile: "profile_id",
   protocol_assignment: "assignment_id",
+  // Added 2026-04-17 to match allowlist — both tables use domain PK columns.
+  // Refs: ultrareview rp6ofqyfv bug_013, migrations 20260421100200 + 20260415120300.
+  change_proposal: "change_proposal_id",
+  observer_request: "observer_request_id",
 };
 
 /**
@@ -721,13 +725,28 @@ async function executeStep(
       ];
       if (allowed.includes(entity) && state.entity_id) {
         const pkColumn = ENTITY_PK[entity] ?? "id";
-        await supabase
+        const { error: updateError } = await supabase
           .from(entity)
           .update({
             ...setValues,
             updated_at: new Date().toISOString(),
           })
           .eq(pkColumn, state.entity_id);
+
+        // Silent no-op is the worst failure mode — block the engine run on
+        // update error so the domain row and engine_state don't diverge.
+        // Mirrors the gate_action error-handling pattern earlier in this file.
+        // Refs: ultrareview rp6ofqyfv bug_013.
+        if (updateError) {
+          await supabase
+            .from("engine_state")
+            .update({
+              status: "blocked",
+              last_error: updateError.message,
+            })
+            .eq("id", state.id);
+          return;
+        }
       }
       await advanceToNextStep(supabase, state, step);
       break;
