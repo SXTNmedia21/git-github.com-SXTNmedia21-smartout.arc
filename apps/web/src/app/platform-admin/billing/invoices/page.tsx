@@ -6,6 +6,7 @@ import type { Invoice } from "@smartout/billing";
 import { InvoiceFilterBar } from "./_components/invoice-filter-bar";
 import { InvoiceTable, type InvoiceListRow } from "./_components/invoice-table";
 import { InvoiceDetailSheet } from "./_components/invoice-detail-sheet";
+import { AdHocInvoiceDrawer } from "./_components/ad-hoc-invoice-drawer";
 
 // RFC-4122 UUID format. Strict enough to reject probe strings without
 // pulling Zod into a Server Component for one field.
@@ -68,9 +69,23 @@ export default async function InvoicesPage({
 
   const invoices = (data ?? []) as InvoiceListRow[];
 
+  // Company options for the ad-hoc invoice drawer. Fetched server-side
+  // so the client never exposes the full company roster as a prop
+  // blob larger than needed; ordering by name for the picker.
+  const { data: companyRows } = await supabase
+    .from("company")
+    .select("company_id, name")
+    .order("name", { ascending: true })
+    .limit(500);
+  const companies = (companyRows ?? []).map((c) => ({ company_id: c.company_id, name: c.name }));
+
   return (
     <div className="space-y-4">
-      <InvoiceFilterBar />
+      <div className="flex items-start justify-between gap-3">
+        <InvoiceFilterBar />
+        {/* B5: ad-hoc invoice drawer */}
+        <AdHocInvoiceDrawer companies={companies} />
+      </div>
       <InvoiceTable invoices={invoices} />
       {params.preview ? <InvoiceDetailSheet invoiceId={params.preview} /> : null}
     </div>
