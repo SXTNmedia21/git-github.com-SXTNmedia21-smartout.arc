@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash /home/sxtnl/dev/smartout.ai/.claude/hooks/skill-trigger-reminder.sh",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/skill-trigger-reminder.sh\"",
             "timeout": 3
           }
         ]
@@ -38,7 +38,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash /home/sxtnl/dev/smartout.ai/.claude/hooks/typecheck.sh",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/typecheck.sh\"",
             "asyncRewake": true,
             "timeout": 180,
             "statusMessage": "typecheck (turbo-cached)"
