@@ -746,3 +746,63 @@ Supervisor code-tracer + autonomous Designer scope review. Verdict: APPROVE FOR 
 - Mobile parity preserved (data layer in `packages/utils/`) ✓
 - Skeleton CLS-safe (people min-h-[104px] matches real card height)
 - One drift documented: resolver-vs-layout fallback semantics on wsParam failure (added clarifying comment per Supervisor recommendation)
+
+---
+
+## 2026-04-17 — Billing Engine Fase 1 (2 rounds)
+
+**Type:** pre-spec scoping (R1) + spec review (R2)
+**Agents consulted:** steward, supervisor, agent-coordinator, frontend-designer (all 4 rounds)
+**Prior verdict held?** R1 → R2: YES. R1 verdict (APPROVE WITH CHANGES, 3 blockers) guided spec writing. R2 verified blockers resolved and caught 8 new issues from writing phase.
+
+### Round 1 — Pre-spec scoping
+**Verdict:** APPROVE WITH CHANGES — NOT READY FOR SPEC. 3 blockers must resolve first.
+**Key decisions:**
+- B1: archive `docs/invoice-engine/breakdown.md` (Fase-2 language)
+- B2: extend `pricing_terms` with 5 new fields (free_users, overage_price_per_user, delivery_channel, invoice_format, agreement_period) — preserves ADR-0027
+- B3: active user = strictest interpretation (initially "actually worked")
+- AI-tools trimmed to workspace-admin read-only (platform-admin deferred to Fase 2 pending PlatformAdminToolContext ADR)
+- Trust Gate FAIL on verify-basis (no materialized view existed)
+- emit() contract is aspirational (4 of 13 capabilities); billing must enforce
+
+### Round 2 — Written spec review
+**Verdict:** APPROVE WITH CHANGES (all 4 agents) — resolved inline by orchestrator.
+**Phase 2.5 fact-check caught 4 FALSE claims:**
+- `schedule_shift.shift_start` (no such column — actual: `shift_date` + `start_time`)
+- `schedule_shift.profile_id` (actual: `employee_id`, FK to profile)
+- shift_status enum `{worked, settled}` (don't exist — actual: `completed`)
+- `emit()` positional call (actual: single SmartoutEvent object)
+
+**8 hard blockers resolved by user + orchestrator:**
+- H1 `v_invoice_basis` split into view + table-valued function (Trust Gate now passes)
+- H2 `is_admin_in_company()` RLS helper added to prerequisites
+- H3 `workspace_activation_completed` event didn't exist — onboarding deferred to Server Action
+- H4 `basis_drift_event` table defined (was undefined reference)
+- H5 §21 DO NOT TOUCH list added
+- H6 `usage_snapshot.workspace_id` made NOT NULL (was broken NULL-in-UNIQUE)
+- H7 (user decision C): no `billing-api` Edge Function — workspace-admin reads via Server Components + Server Actions
+- H8 (user decision A): active user = `shift_status = 'completed'` alone + drift detection (not cross-referenced to daily_reconciliation)
+
+**Semantic tightening (Steward):**
+- Nested credit note CHECK constraint
+- `status` × `dunning_status` legal combinations CHECK
+- Invoice number trigger SQL explicit (draft→issued transition)
+- `dunning_note` table dropped (user decision A) — notes via `activity_trail` to preserve cascade invariant
+
+**Frontend (Designer):**
+- Concrete OKLCH values for `--success/--warning/--destructive/--info` (light+dark+foreground)
+- Exact Framer Motion transition specs per surface (9 rows)
+- Reason-code enums explicit (void, uncollectible, payment channel)
+- Added: Historikk tab (activity_trail timeline), BulkActionBar, BasisDriftPanel
+- Per-surface empty/loading/error states (7 surfaces × 3 states)
+
+**AI-tools (Agent-coord):**
+- `resolveCompanyId(ctx)` helper (no AgentToolContext widening)
+- Capability registration checklist (4 touchpoints)
+- CI assertion mechanism pinned (Vitest + mocked emit)
+
+**ADRs planned:** 0118 (invoice as C3), 0119 (usage reproducibility + completed-alone + basis_drift), 0120 (immutability + credit notes + state combos), 0121 (pricing_terms extension, amends 0027)
+
+**Key decision:** Spec approved for `writing-plans` after all inline fixes. Build-agent's path is now mechanical.
+**ADR created:** 4 planned (0118-0121); pending
+**Learning created:** L-pending — see §9 below
