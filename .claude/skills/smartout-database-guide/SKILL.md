@@ -1,6 +1,21 @@
 ---
 name: smartout-database-guide
-description: Authoritative guide for Smartout database work — schemas, tables, enums, RLS, migrations, traps. Use when touching any database table, schema, enum, RLS policy, or migration.
+description: |
+  AUTHORITATIVE guide for Smartout database work. MUST be loaded before any SQL, migration, schema, table, enum, RLS, Supabase, or type-regen work.
+
+  Triggers (English): database, db, SQL, Supabase, Postgres, schema, table, column, enum, RLS, row-level security, policy, migration, workspace_id, auth.uid, service role, anon key, pgvector, btree_gist, types, database.types.ts, seed, fixture, JWT, foreign key, trigger, constraint, index.
+
+  Triggers (Norwegian): skjema, tabell, kolonne, migrasjon, database, regel, policy, nøkkel.
+
+  Triggers (files/paths): supabase/migrations/**, supabase/seed.sql, supabase/functions/**, packages/supabase/src/**, packages/supabase/src/database.types.ts.
+
+  Triggers (specific tables to watch): user_identity, company, company_member, workspace, profile, employment_contract, employee_payroll_profile, schedule_shift, schedule_absence, department, department_operating_hours, department_session, session_hook, session_task, regulatory_framework, framework_rule, tariff_rate_table, team, planning_cycle, policy, protocol, engine_process, engine_state, engine_authority_config, engine_memory, workspace_doc_chunk, activity_trail.
+
+  Triggers (schemas): public (169 tables), payroll (23), websites (13), timesheet (1).
+
+  Traps to remember: table is user_identity NOT user; profile has display_name only; 72 enums exist — ALWAYS check database.types.ts before creating new ones; subscription on company table; contract_status enum is taken.
+
+  ALWAYS load when writing SQL, editing a file under supabase/, changing a table, or regenerating types.
 tools: Read, Grep, Glob, Bash
 ---
 

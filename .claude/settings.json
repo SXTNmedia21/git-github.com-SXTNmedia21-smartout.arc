@@ -11,6 +11,17 @@
         ]
       }
     ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /home/sxtnl/dev/smartout.ai/.claude/hooks/skill-trigger-reminder.sh",
+            "timeout": 3
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Bash",
@@ -19,6 +30,18 @@
             "type": "command",
             "command": "/home/sxtnl/dev/smartout.ai/.claude/metadata-updater.sh",
             "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /home/sxtnl/dev/smartout.ai/.claude/hooks/typecheck.sh",
+            "asyncRewake": true,
+            "timeout": 180,
+            "statusMessage": "typecheck (turbo-cached)"
           }
         ]
       }

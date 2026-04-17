@@ -1,6 +1,23 @@
 ---
 name: smartout-cascade-developer
-description: Authoritative guide for cascade scheduling system — I1+6D+4C+K1a/K1b model, dimensions, control planes, bootstrap. Use when touching cascade tables, dimensions, scheduling, season planning, or control planes.
+description: |
+  AUTHORITATIVE guide for Smartout's Cascade Core Model (I1 + 6D + 4C + K1a/K1b). MUST be loaded before any schedule, shift, season, year-wheel, framework, tariff, or cascade work.
+
+  Triggers (English): cascade, dimension, control plane, scheduling, schedule, shift, season, year-wheel, framework, tariff, Riksavtalen, bootstrap, industry intelligence, hospitality, department session, session hook, session task, deviation, readiness, trainee, planning cycle, day factor, hour factor, absence, operating hours, regulatory.
+
+  Triggers (Norwegian): sesong, vakt, skift, vaktplan, vaktplanlegging, year-wheel, årshjul, sjikt, ramme, fravær, åpningstider, tariff, overenskomst.
+
+  Triggers (model codes): I1, D1, D2, D3, D4, D5, D6, C1, C2, C3, C4, K1a, K1b.
+
+  Triggers (specific tables): schedule_shift, schedule_absence, department, department_operating_hours, department_hours_override, department_session, session_hook, session_task, deviation, regulatory_framework, framework_rule, framework_trigger, tariff_rate_table, day_factor, hour_factor, planning_cycle, planning_event, season_budget, workspace_budget, public_holiday, daily_reconciliation, workspace_kpi_target, planning_factors, adjustment_factors, shift_cost_snapshot, engine_authority_config, change_proposal.
+
+  Triggers (files/paths): apps/web/src/lib/cascade/**, apps/web/src/app/dashboard/year-wheel/**, apps/web/src/app/dashboard/schedule/**, apps/web/src/app/dashboard/season/**, apps/web/src/lib/season-calculations.ts, packages/ai/src/industry/**, supabase/templates/restaurant/**, docs/engines/**, docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md.
+
+  Triggers (phrases from Pontus): "fiks shift", "legg til vakt", "sesong mangler", "year-wheel er feil", "framework resolve", "tariff feil", "Riksavtalen", "trainee", "readiness score", "compliance".
+
+  Core principle: "Confident != Authorized" — C1 determines belief, C4 determines permission. Cascade produces, Event Engine consumes — never conflate the two.
+
+  ALWAYS load when editing anything under apps/web/src/lib/cascade/, the year-wheel/schedule/season routes, or industry packages.
 tools: Read, Grep, Glob
 ---
 
