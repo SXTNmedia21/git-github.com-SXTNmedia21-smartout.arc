@@ -24,6 +24,69 @@ spec: docs/superpowers/specs/2026-04-17-billing-engine-fase-1-design.md
 
 ---
 
+## Critical Corrections (verified against codebase 2026-04-17)
+
+These patterns were wrong in an earlier plan draft. **Every task below uses the corrected forms:**
+
+### Import paths (verified via grep)
+
+```ts
+// CORRECT
+import { createAdminClient } from "@smartout/supabase/admin";      // package import, not @/lib
+import { getSuperAdminId } from "@/lib/platform-admin";            // apps/web/src/lib/platform-admin.ts
+import { cn } from "./lib/utils";                                   // packages/ui/src/lib/utils.ts (not ./utils)
+import { emit } from "@smartout/telemetry";
+```
+
+### Event naming (verified in `packages/telemetry/src/registry.ts`)
+
+Events use **space-separated** names, NOT dots:
+
+```ts
+// WRONG: "invoice.generated"
+// CORRECT: "invoice generated"
+```
+
+### Event payload shape — flat entity contract (L-0038)
+
+The activity_trail provider **rejects** events without `entity_type` + `entity_id` (Botsson R2 learning). Use the flat contract like `ShiftCreated`:
+
+```ts
+await emit({
+  event: "invoice issued",
+  properties: {
+    entity_type: "invoice",
+    entity_id: invoiceId,
+    data: { company_id, amount_incl_vat },
+  },
+});
+```
+
+Each event needs an interface in `registry.ts` extending `BaseEvent` with its `properties` shape.
+
+### EVENT_ROUTING shape
+
+```ts
+"invoice issued": {
+  destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+  category: "billing",
+}
+```
+
+Only `destinations` + `category` on routing meta. No `entity` field there.
+
+### Edge Function emit (Deno, no @smartout/telemetry import)
+
+**Decision (required before Phase 4):** Edge Function cron runs on Deno — cannot import `@smartout/telemetry` (Node-only). Three options:
+
+- **Option A (recommended):** Create a thin HTTP emit endpoint at `apps/web/src/app/api/internal/emit/route.ts` guarded by `WATCHDOG_CRON_SECRET`. Edge Function POSTs events to it. Route calls real `emit()`.
+- Option B: Duplicate routing logic in Deno-compatible shim at `packages/telemetry/src/emit.deno.ts`.
+- Option C: CI assertion carves out Edge Functions explicitly.
+
+**Plan assumes Option A.** A new task in Phase 2 builds the endpoint.
+
+---
+
 ## Phase 0 — Prerequisites (MUST merge first, blocks all other work)
 
 ### Task 0.1: Write ADR-0118 — Invoice engine as C3 Commercial consumer
@@ -155,7 +218,9 @@ grep -E '(--success|--warning|--destructive|--info)' packages/design-tokens/src/
 # Expected: --destructive may already exist (shadcn default); others likely missing
 ```
 
-- [ ] **Step 2: Add exact OKLCH values per spec §10.1**
+- [ ] **Step 2: Add-or-update exact OKLCH values per spec §10.1**
+
+**S3 fix:** `--destructive` likely already exists from shadcn default (pure red hue ~0). Replace with warm coral (hue 25), not add. Success/warning/info are new.
 
 Add to `tokens.css` under `:root` and `.dark` sections:
 
@@ -405,6 +470,8 @@ CREATE TABLE public.invoice (
   vat_rate                decimal(5,2) NOT NULL DEFAULT 25.00,
   vat_amount              decimal(12,2) NOT NULL,
   amount_incl_vat         decimal(12,2) NOT NULL,
+  -- T5: currency inherited from company.default_currency at generation (see §6.2 generator).
+  -- Default 'NOK' here is fallback for direct inserts (credit notes, tests).
   currency                currency NOT NULL DEFAULT 'NOK',
 
   payment_date            date,
@@ -441,7 +508,15 @@ BEGIN
 END;
 $$;
 
-CREATE TRIGGER trg_invoice_assign_number
+-- G4 fix: fire on INSERT too — for credit notes + onboarding invoices
+-- that skip draft state and insert directly as 'issued'.
+CREATE TRIGGER trg_invoice_assign_number_insert
+  BEFORE INSERT ON public.invoice
+  FOR EACH ROW
+  WHEN (NEW.status = 'issued' AND NEW.invoice_number IS NULL)
+  EXECUTE FUNCTION public.assign_invoice_number();
+
+CREATE TRIGGER trg_invoice_assign_number_update
   BEFORE UPDATE OF status ON public.invoice
   FOR EACH ROW
   WHEN (NEW.status = 'issued' AND OLD.status IS DISTINCT FROM NEW.status)
@@ -489,6 +564,13 @@ CREATE INDEX idx_invoice_company ON public.invoice(company_id);
 CREATE INDEX idx_invoice_status ON public.invoice(status) WHERE status IN ('issued','sent','overdue');
 CREATE INDEX idx_invoice_period ON public.invoice(period_from, period_to);
 CREATE INDEX idx_invoice_due_at ON public.invoice(due_at) WHERE status IN ('issued','sent');
+
+-- C4 FIX (council round 3): invoice idempotency. One recurring invoice per
+-- company × period. Prevents double-generation on cron retry after partial
+-- failure. Void invoices are excluded so a void+reissue is possible.
+CREATE UNIQUE INDEX idx_invoice_one_recurring_per_period
+  ON public.invoice(company_id, period_from, period_to)
+  WHERE invoice_type = 'recurring' AND status <> 'void';
 
 COMMENT ON TABLE public.invoice IS
   'Smartout internal fakturamotor. C3 Commercial consumer (ADR-0118). Immutable once issued (ADR-0120).';
@@ -1040,96 +1122,280 @@ git commit -m "test(billing-engine): pgTAP tests for RLS + CHECK constraints"
 **Files:**
 - Modify: `packages/telemetry/src/registry.ts`
 
-- [ ] **Step 1: Read current registry shape**
+- [ ] **Step 1: Read current registry shape to match patterns exactly**
 
 ```bash
-grep -n "EVENT_ROUTING\|EventCategory\|EntityType" packages/telemetry/src/registry.ts | head -20
+grep -n "EVENT_ROUTING\|EventCategory\|EntityType\|^export interface Shift" packages/telemetry/src/registry.ts | head -20
 ```
 
-- [ ] **Step 2: Add billing category + entity types + 10 events**
+Study one existing example (e.g., `ShiftCreated`) to match interface shape.
 
-In `packages/telemetry/src/registry.ts`, add to the existing unions:
+- [ ] **Step 2: Add `billing` to `EventCategory` union** (line ~17)
 
 ```ts
-// Add to EventCategory union:
-| 'billing'
-
-// Add to EntityType union:
-| 'invoice' | 'invoice_line_item' | 'usage_snapshot' | 'pricing_terms' | 'basis_drift_event' | 'dunning_note'
-
-// Add to EVENT_ROUTING object:
-'invoice.generated': {
-  category: 'billing',
-  destinations: ['posthog', 'logger', 'activity_trail', 'engine_event'],
-  entity: 'invoice',
-},
-'invoice.issued': {
-  category: 'billing',
-  destinations: ['posthog', 'logger', 'activity_trail', 'engine_event'],
-  entity: 'invoice',
-},
-'invoice.sent': {
-  category: 'billing',
-  destinations: ['logger', 'activity_trail', 'engine_event'],
-  entity: 'invoice',
-},
-'invoice.marked_paid': {
-  category: 'billing',
-  destinations: ['posthog', 'logger', 'activity_trail', 'engine_event'],
-  entity: 'invoice',
-},
-'invoice.voided': {
-  category: 'billing',
-  destinations: ['logger', 'activity_trail', 'engine_event'],
-  entity: 'invoice',
-},
-'invoice.overdue_detected': {
-  category: 'billing',
-  destinations: ['logger', 'activity_trail', 'engine_event'],
-  entity: 'invoice',
-},
-'invoice.credit_note_issued': {
-  category: 'billing',
-  destinations: ['logger', 'activity_trail', 'engine_event'],
-  entity: 'invoice',
-},
-'invoice.basis_drift_detected': {
-  category: 'billing',
-  destinations: ['logger', 'activity_trail', 'engine_event'],
-  entity: 'basis_drift_event',
-},
-'usage_snapshot.created': {
-  category: 'billing',
-  destinations: ['logger', 'activity_trail'],
-  entity: 'usage_snapshot',
-},
-'pricing_terms.updated': {
-  category: 'billing',
-  destinations: ['posthog', 'logger', 'activity_trail'],
-  entity: 'pricing_terms',
-},
-'dunning_note.added': {
-  category: 'billing',
-  destinations: ['logger', 'activity_trail'],
-  entity: 'invoice',  // note lives on invoice in activity_trail payload
-},
+export type EventCategory =
+  // ... existing
+  | 'billing';
 ```
 
-Also add each event name to the `SmartoutEvent` discriminated union type.
+- [ ] **Step 3: Add entity types to `EntityType` union** (line ~44)
 
-- [ ] **Step 3: Typecheck + commit**
+```ts
+export type EntityType =
+  // ... existing
+  | 'invoice'
+  | 'invoice_line_item'
+  | 'usage_snapshot'
+  | 'pricing_terms'
+  | 'basis_drift_event';
+```
+
+- [ ] **Step 4: Define 11 event interfaces extending `BaseEvent`**
+
+**CRITICAL:** use space-separated event names (not dots) per existing convention, and flat `entity_type` + `entity_id` contract (not `entity: EntityRef`) per L-0038.
+
+```ts
+// ─── Billing Events ──────────────────────────────
+export interface InvoiceGenerated extends BaseEvent {
+  event: "invoice generated";
+  properties: {
+    entity_type: "invoice";
+    entity_id: string;
+    data: { company_id: string; amount_incl_vat: number; period_from: string; period_to: string };
+  };
+}
+
+export interface InvoiceIssued extends BaseEvent {
+  event: "invoice issued";
+  properties: {
+    entity_type: "invoice";
+    entity_id: string;
+    data: { company_id: string; invoice_number: number; amount_incl_vat: number };
+  };
+}
+
+export interface InvoiceSent extends BaseEvent {
+  event: "invoice sent";
+  properties: {
+    entity_type: "invoice";
+    entity_id: string;
+    data: { delivery_channel: string; external_reference?: string };
+  };
+}
+
+export interface InvoiceMarkedPaid extends BaseEvent {
+  event: "invoice marked_paid";
+  properties: {
+    entity_type: "invoice";
+    entity_id: string;
+    data: { company_id: string; amount_incl_vat: number; payment_channel: string; payment_date: string; payment_reference: string };
+  };
+}
+
+export interface InvoiceVoided extends BaseEvent {
+  event: "invoice voided";
+  properties: {
+    entity_type: "invoice";
+    entity_id: string;
+    data: { company_id: string; reason: string; reason_detail: string };
+  };
+}
+
+export interface InvoiceOverdueDetected extends BaseEvent {
+  event: "invoice overdue_detected";
+  properties: {
+    entity_type: "invoice";
+    entity_id: string;
+    data: { days_overdue: number };
+  };
+}
+
+export interface InvoiceCreditNoteIssued extends BaseEvent {
+  event: "invoice credit_note_issued";
+  properties: {
+    entity_type: "invoice";
+    entity_id: string;
+    data: { original_invoice_id: string; amount_incl_vat: number; reason: string };
+  };
+}
+
+export interface InvoiceBasisDriftDetected extends BaseEvent {
+  event: "invoice basis_drift_detected";
+  properties: {
+    entity_type: "basis_drift_event";
+    entity_id: string;
+    data: { invoice_id: string | null; shift_id: string | null; drift_type: string };
+  };
+}
+
+export interface UsageSnapshotCreated extends BaseEvent {
+  event: "usage_snapshot created";
+  properties: {
+    entity_type: "usage_snapshot";
+    entity_id: string;
+    data: { workspace_id: string; company_id: string; billable_users: number };
+  };
+}
+
+export interface PricingTermsUpdated extends BaseEvent {
+  event: "pricing_terms updated";
+  properties: {
+    entity_type: "pricing_terms";
+    entity_id: string;
+    changes: Record<string, { before: unknown; after: unknown }>;
+  };
+}
+
+export interface DunningNoteAdded extends BaseEvent {
+  event: "dunning_note added";
+  properties: {
+    entity_type: "invoice";
+    entity_id: string;
+    data: { note: string };
+  };
+}
+```
+
+- [ ] **Step 5: Add all 11 to `SmartoutEvent` union** (line ~3640)
+
+```ts
+export type SmartoutEvent =
+  // ... existing
+  | InvoiceGenerated | InvoiceIssued | InvoiceSent | InvoiceMarkedPaid
+  | InvoiceVoided | InvoiceOverdueDetected | InvoiceCreditNoteIssued
+  | InvoiceBasisDriftDetected | UsageSnapshotCreated | PricingTermsUpdated
+  | DunningNoteAdded;
+```
+
+- [ ] **Step 6: Add 11 routing entries to `EVENT_ROUTING`**
+
+```ts
+  "invoice generated": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "billing",
+  },
+  "invoice issued": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "billing",
+  },
+  "invoice sent": {
+    destinations: ["logger", "activity_trail", "engine_event"],
+    category: "billing",
+  },
+  "invoice marked_paid": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "billing",
+  },
+  "invoice voided": {
+    destinations: ["logger", "activity_trail", "engine_event"],
+    category: "billing",
+  },
+  "invoice overdue_detected": {
+    destinations: ["logger", "activity_trail", "engine_event"],
+    category: "billing",
+  },
+  "invoice credit_note_issued": {
+    destinations: ["logger", "activity_trail", "engine_event"],
+    category: "billing",
+  },
+  "invoice basis_drift_detected": {
+    destinations: ["logger", "activity_trail", "engine_event"],
+    category: "billing",
+  },
+  "usage_snapshot created": {
+    destinations: ["logger", "activity_trail"],
+    category: "billing",
+  },
+  "pricing_terms updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "billing",
+  },
+  "dunning_note added": {
+    destinations: ["logger", "activity_trail"],
+    category: "billing",
+  },
+```
+
+- [ ] **Step 7: Add GIN index on `activity_trail.properties` for `entity_id` lookups**
+
+Fix for G8 (InvoiceTimeline full-scan): add migration `<ts>_activity_trail_billing_indexes.sql`:
+
+```sql
+-- Speeds up lookups like "all activity_trail rows for this invoice_id"
+CREATE INDEX IF NOT EXISTS idx_activity_trail_entity_id
+  ON public.activity_trail((properties->>'entity_id'));
+```
+
+- [ ] **Step 8: Typecheck + commit**
 
 ```bash
 pnpm turbo typecheck --filter=@smartout/telemetry
-# Expected: 0 errors
-git add packages/telemetry/src/registry.ts
-git commit -m "feat(billing-engine): register 11 billing events in telemetry registry
+git add packages/telemetry/src/registry.ts supabase/migrations/*activity_trail_billing_indexes.sql
+git commit -m "feat(billing-engine): register 11 billing events with flat entity contract
 
-New billing category. Entity types: invoice, invoice_line_item, usage_snapshot,
-pricing_terms, basis_drift_event. Per spec §7."
+Space-separated event names per convention. Flat entity_type/entity_id
+contract per L-0038 (activity_trail provider rejects nested entity)."
 ```
 
-### Task 2.2: CI assertion test for emit() coverage
+### Task 2.2: Internal emit HTTP endpoint (for Edge Functions)
+
+**Files:**
+- Create: `apps/web/src/app/api/internal/emit/route.ts`
+
+**Rationale (C3 fix):** Edge Function cron runs on Deno — cannot import `@smartout/telemetry` Node package. This endpoint exposes `emit()` via HTTP, guarded by `WATCHDOG_CRON_SECRET`. Edge Function POSTs events, Next.js route calls real `emit()`.
+
+- [ ] **Step 1: Write Route Handler**
+
+```ts
+// apps/web/src/app/api/internal/emit/route.ts
+import { NextRequest } from 'next/server';
+import { emit } from '@smartout/telemetry';
+
+export async function POST(req: NextRequest) {
+  const authHeader = req.headers.get('authorization');
+  if (authHeader !== `Bearer ${process.env.WATCHDOG_CRON_SECRET}`) {
+    return new Response('Unauthorized', { status: 401 });
+  }
+
+  const event = await req.json();
+
+  // Minimal validation — reject if no event name
+  if (!event?.event || typeof event.event !== 'string') {
+    return new Response('Invalid event', { status: 400 });
+  }
+
+  try {
+    await emit(event);
+    return new Response(JSON.stringify({ ok: true }), { status: 200 });
+  } catch (e) {
+    return new Response(JSON.stringify({ ok: false, error: String(e) }), { status: 500 });
+  }
+}
+```
+
+- [ ] **Step 2: Test**
+
+```bash
+pnpm dev
+curl -X POST http://localhost:3060/api/internal/emit \
+  -H "Authorization: Bearer $WATCHDOG_CRON_SECRET" \
+  -H "Content-Type: application/json" \
+  -d '{"event":"invoice generated","properties":{"entity_type":"invoice","entity_id":"00000000-0000-0000-0000-000000000000","data":{"company_id":"x","amount_incl_vat":100,"period_from":"2026-03-01","period_to":"2026-03-31"}}}'
+# Expected: {"ok":true}
+```
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add apps/web/src/app/api/internal/emit/route.ts
+git commit -m "feat(billing-engine): add internal /api/internal/emit endpoint
+
+Edge Functions (Deno) cannot import @smartout/telemetry directly.
+This endpoint bridges cron-generated events into the emit() pipeline.
+Guarded by WATCHDOG_CRON_SECRET."
+```
+
+### Task 2.3: CI assertion test for emit() coverage
 
 **Files:**
 - Create: `packages/telemetry/__tests__/billing-emit.spec.ts`
@@ -1358,43 +1624,128 @@ git add packages/billing/src/types.ts packages/billing/src/schemas.ts
 git commit -m "feat(billing-engine): add billing types + Zod schemas"
 ```
 
-### Task 3.3: Query hooks (workspace-admin read-only)
+### Task 3.3: Pure query functions (called by web Server Actions + mobile directly)
 
 **Files:**
-- Create: `packages/billing/src/hooks/useInvoices.ts`
-- Create: `packages/billing/src/hooks/useInvoice.ts`
-- Create: `packages/billing/src/hooks/useUsageSnapshot.ts`
-- Create: `packages/billing/src/hooks/index.ts`
+- Create: `packages/billing/src/queries.ts`
+- Create: `packages/billing/src/hooks.ts`
 
-- [ ] **Step 1: Write hooks (thin wrappers around Server Actions)**
+**C5 fix:** Previous plan had hooks in `packages/billing/` importing Server Actions from `apps/web/` — that's a circular dependency (packages cannot depend on apps). Corrected pattern:
 
-Each hook calls its corresponding Server Action (implemented in Phase 10.2). For now, write the hook signature + query key pattern:
+- **`packages/billing/src/queries.ts`** — pure async functions that take a Supabase client. No React, no Next.js, no fetch — works in Node, Deno, RN.
+- **Web Server Actions** (Phase 10) wrap these for web (`'use server'` + auth gate).
+- **Mobile hooks** (future) call these directly with their own Supabase client.
+- **`packages/billing/src/hooks.ts`** — thin React Query hooks that accept an injectable fetcher. Web provides a Server-Action-backed fetcher; mobile provides a direct-Supabase fetcher.
+
+- [ ] **Step 1: Write pure queries**
 
 ```ts
-// packages/billing/src/hooks/useInvoices.ts
-'use client';
-import { useQuery } from '@tanstack/react-query';
-import { getMyCompanyInvoices } from '@smartout/web/app/dashboard/billing/_actions/queries';
-import type { Invoice } from '../types';
+// packages/billing/src/queries.ts
+import type { SupabaseClient } from '@smartout/supabase';
+import type { Invoice, UsageSnapshot } from './types';
 
-export function useInvoices(filters?: { status?: string }): ReturnType<typeof useQuery<Invoice[]>> {
-  return useQuery({
-    queryKey: ['billing', 'invoices', filters],
-    queryFn: () => getMyCompanyInvoices(filters),
-    staleTime: 30_000,
-  });
+export async function fetchInvoicesForCompany(
+  supabase: SupabaseClient,
+  companyId: string,
+  filters?: { status?: string; limit?: number },
+): Promise<Invoice[]> {
+  let query = supabase
+    .from('invoice')
+    .select('*')
+    .eq('company_id', companyId)
+    .order('issued_at', { ascending: false, nullsFirst: true })
+    .limit(filters?.limit ?? 50);
+  if (filters?.status) query = query.eq('status', filters.status);
+  const { data, error } = await query;
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function fetchInvoiceDetail(
+  supabase: SupabaseClient,
+  invoiceId: string,
+): Promise<{ invoice: Invoice; line_items: unknown[] } | null> {
+  const { data: invoice } = await supabase
+    .from('invoice').select('*').eq('invoice_id', invoiceId).single();
+  if (!invoice) return null;
+  const { data: lines } = await supabase
+    .from('invoice_line_item').select('*').eq('invoice_id', invoiceId);
+  return { invoice, line_items: lines ?? [] };
+}
+
+export async function fetchUsageSnapshot(
+  supabase: SupabaseClient,
+  workspaceId: string,
+  periodFrom: string,
+  periodTo: string,
+): Promise<UsageSnapshot | null> {
+  const { data } = await supabase
+    .from('usage_snapshot').select('*')
+    .eq('workspace_id', workspaceId)
+    .eq('period_from', periodFrom)
+    .eq('period_to', periodTo)
+    .maybeSingle();
+  return data;
 }
 ```
 
-Similar for `useInvoice(id)` and `useUsageSnapshot(workspace_id, period)`.
+- [ ] **Step 2: Write fetcher-injectable hooks (for web + mobile reuse)**
 
-- [ ] **Step 2: Commit**
+```ts
+// packages/billing/src/hooks.ts
+'use client';
+import { useQuery } from '@tanstack/react-query';
+import type { Invoice } from './types';
+
+export type InvoiceFetcher = (filters?: { status?: string }) => Promise<Invoice[]>;
+
+export function useInvoices(fetcher: InvoiceFetcher, filters?: { status?: string }) {
+  return useQuery({
+    queryKey: ['billing', 'invoices', filters],
+    queryFn: () => fetcher(filters),
+    staleTime: 30_000,
+  });
+}
+
+// Similar: useInvoice(fetcher, id), useUsageSnapshot(fetcher, wsId, period)
+```
+
+**Web usage (Phase 10):**
+```ts
+// apps/web/src/app/dashboard/billing/_hooks/useMyInvoices.ts
+'use client';
+import { useInvoices } from '@smartout/billing';
+import { getMyCompanyInvoicesAction } from '../_actions/queries';
+
+export function useMyInvoices(filters?) {
+  return useInvoices(getMyCompanyInvoicesAction, filters);
+}
+```
+
+**Mobile usage (future):**
+```ts
+// apps/mobile/src/features/billing/hooks.ts
+import { useInvoices } from '@smartout/billing';
+import { supabase } from '../../lib/supabase';
+import { fetchInvoicesForCompany } from '@smartout/billing';
+
+export function useMyInvoices(companyId: string, filters?) {
+  return useInvoices(
+    (f) => fetchInvoicesForCompany(supabase, companyId, f),
+    filters,
+  );
+}
+```
+
+- [ ] **Step 3: Commit**
 
 ```bash
-git add packages/billing/src/hooks/
-git commit -m "feat(billing-engine): add useInvoices, useInvoice, useUsageSnapshot hooks
+git add packages/billing/src/queries.ts packages/billing/src/hooks.ts packages/billing/src/index.ts
+git commit -m "feat(billing-engine): add pure queries + fetcher-injectable hooks
 
-Workspace-admin read-only data layer. Server Actions implemented in Phase 10."
+C5 fix: no circular deps. Pure functions in packages/billing work in
+Node/Deno/RN; web + mobile inject their own auth layer via Server Actions
+or direct Supabase client."
 ```
 
 ### Task 3.4: `resolveCompanyId` helper
@@ -1522,6 +1873,29 @@ export async function generateMonthlyInvoicesForAllCompanies(
   return result;
 }
 
+async function emitViaEndpoint(event: unknown): Promise<void> {
+  // C3 fix: Edge Functions can't import @smartout/telemetry.
+  // POST to internal HTTP endpoint that wraps emit().
+  const url = Deno.env.get('INTERNAL_EMIT_URL');  // e.g., https://app.smartout.ai/api/internal/emit
+  const secret = Deno.env.get('WATCHDOG_CRON_SECRET');
+  if (!url || !secret) throw new Error('Missing INTERNAL_EMIT_URL or WATCHDOG_CRON_SECRET');
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${secret}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(event),
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    console.error(`[generator] emit failed: ${res.status} ${body}`);
+    // Don't throw — telemetry failure shouldn't abort invoice generation
+  }
+}
+
 async function generateForCompany(
   supabase: SupabaseClient,
   company: { company_id: string; workspace: Array<{ workspace_id: string }> },
@@ -1530,6 +1904,24 @@ async function generateForCompany(
 ): Promise<boolean> {
   const periodFromStr = periodStart.toISOString().split('T')[0];
   const periodToStr = periodEnd.toISOString().split('T')[0];
+
+  // C4 fix: idempotency check. If invoice already exists for this period
+  // (not void), skip. The UNIQUE INDEX idx_invoice_one_recurring_per_period
+  // also prevents this at DB level, but early-exit avoids wasted work.
+  const { data: existing } = await supabase
+    .from('invoice')
+    .select('invoice_id')
+    .eq('company_id', company.company_id)
+    .eq('period_from', periodFromStr)
+    .eq('period_to', periodToStr)
+    .eq('invoice_type', 'recurring')
+    .neq('status', 'void')
+    .maybeSingle();
+
+  if (existing) {
+    console.log(`[generator] skip company ${company.company_id}: invoice already exists`);
+    return false;
+  }
 
   // Get active pricing terms
   const { data: pt } = await supabase
@@ -1658,18 +2050,42 @@ async function generateForCompany(
     .eq('invoice_id', invoice.invoice_id);
   if (issueErr) throw issueErr;
 
-  // Emit events (direct insert to activity_trail since Edge Function can't import @smartout/telemetry)
-  // Alternative: call an internal RPC that wraps emit(). For now, direct insert:
+  // C3 fix: route telemetry through internal emit endpoint (full 4-destination contract)
   for (const snap of workspaceSnapshots) {
-    await supabase.from('activity_trail').insert({
-      event: 'usage_snapshot.created',
-      properties: { entity: { type: 'usage_snapshot', id: snap.usage_snapshot_id }, workspace_id: snap.workspace_id, billable_users: snap.billable_users },
+    await emitViaEndpoint({
+      event: 'usage_snapshot created',
+      properties: {
+        entity_type: 'usage_snapshot',
+        entity_id: snap.usage_snapshot_id,
+        data: { workspace_id: snap.workspace_id, company_id: company.company_id, billable_users: snap.billable_users },
+      },
     });
   }
-  await supabase.from('activity_trail').insert([
-    { event: 'invoice.generated', properties: { entity: { type: 'invoice', id: invoice.invoice_id }, company_id: company.company_id, amount_incl_vat } },
-    { event: 'invoice.issued', properties: { entity: { type: 'invoice', id: invoice.invoice_id }, company_id: company.company_id, amount_incl_vat } },
-  ]);
+
+  await emitViaEndpoint({
+    event: 'invoice generated',
+    properties: {
+      entity_type: 'invoice',
+      entity_id: invoice.invoice_id,
+      data: { company_id: company.company_id, amount_incl_vat, period_from: periodFromStr, period_to: periodToStr },
+    },
+  });
+
+  // After transition to 'issued', the invoice_number trigger fires — fetch updated row
+  const { data: issuedInvoice } = await supabase
+    .from('invoice')
+    .select('invoice_number')
+    .eq('invoice_id', invoice.invoice_id)
+    .single();
+
+  await emitViaEndpoint({
+    event: 'invoice issued',
+    properties: {
+      entity_type: 'invoice',
+      entity_id: invoice.invoice_id,
+      data: { company_id: company.company_id, invoice_number: issuedInvoice?.invoice_number ?? 0, amount_incl_vat },
+    },
+  });
 
   return true;
 }
@@ -1686,9 +2102,13 @@ async function markOverdueInvoices(supabase: SupabaseClient) {
   if (data) {
     for (const inv of data) {
       const days_overdue = Math.floor((Date.now() - new Date(inv.due_at).getTime()) / (24 * 60 * 60 * 1000));
-      await supabase.from('activity_trail').insert({
-        event: 'invoice.overdue_detected',
-        properties: { entity: { type: 'invoice', id: inv.invoice_id }, days_overdue },
+      await emitViaEndpoint({
+        event: 'invoice overdue_detected',
+        properties: {
+          entity_type: 'invoice',
+          entity_id: inv.invoice_id,
+          data: { days_overdue },
+        },
       });
     }
   }
@@ -1790,9 +2210,10 @@ git commit -m "docs(billing-engine): n8n workflow config for billing-monthly-tri
 - [ ] **Step 1: Write component**
 
 ```tsx
-// packages/ui/src/InvoiceStatusBadge.tsx
-import { FileText, Send, CheckCircle2, AlertTriangle, Ban, Clock, XCircle } from 'lucide-react';
-import { cn } from './utils';
+// packages/ui/src/components/InvoiceStatusBadge.tsx
+// (goes under components/, following existing convention — packages/ui/src/components/ is where new components live)
+import { FileText, Send, CheckCircle2, AlertTriangle, Ban, XCircle } from 'lucide-react';
+import { cn } from '../lib/utils';  // CORRECTED: was './utils', actual is './lib/utils'
 
 export type InvoiceStatus = 'draft' | 'issued' | 'sent' | 'paid' | 'overdue' | 'void' | 'uncollectible';
 
@@ -1990,7 +2411,15 @@ import Link from 'next/link';
 import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 // Types imported from @smartout/billing
 
-export function InvoiceTable({ invoices }: { invoices: any[] }) {
+// C6 fix: typed props, no `any`. Uses the list-row projection shape from the query.
+import type { Invoice } from '@smartout/billing';
+type InvoiceListRow = Pick<
+  Invoice,
+  'invoice_id' | 'invoice_number' | 'company_id' | 'invoice_type' | 'status' | 'dunning_status'
+  | 'period_from' | 'period_to' | 'due_at' | 'amount_incl_vat' | 'delivery_channel'
+> & { company: { name: string } | null };
+
+export function InvoiceTable({ invoices }: { invoices: InvoiceListRow[] }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -2427,17 +2856,131 @@ git add apps/web/src/app/platform-admin/billing/_actions/voidInvoice.ts packages
 git commit -m "feat(billing-engine): add voidInvoice Server Action with typed confirmation"
 ```
 
-### Task 7.3: `issueCreditNote`, `markInvoiceUncollectible`, `addDunningNote`, `updatePricingTerms`, `regenerateInvoiceDraft`, `createOnboardingInvoice`
+### Task 7.3: `issueCreditNote` Server Action
 
-Each follows same pattern as 7.1/7.2. For brevity, plan batches these:
+**Files:**
+- Create: `apps/web/src/app/platform-admin/billing/_actions/issueCreditNote.ts`
 
-- [ ] **Step 1: Implement each Server Action** — one per file in `_actions/` directory. See spec §8.1 for exact behaviors.
+**Non-trivial:** creates a NEW invoice row with `invoice_type='credit_note'` + `credits_invoice_id` link. Nested credit note prevention is DB-enforced via trigger (Task 1.4).
 
-- [ ] **Step 2: Register each in CI assertion list**
+- [ ] **Step 1: Write action**
 
-- [ ] **Step 3: Commit** (one commit per action, 6 commits)
+```ts
+// apps/web/src/app/platform-admin/billing/_actions/issueCreditNote.ts
+'use server';
+import { createAdminClient } from '@smartout/supabase/admin';
+import { getSuperAdminId } from '@/lib/platform-admin';
+import { revalidatePath } from 'next/cache';
+import { emit } from '@smartout/telemetry';
+import { IssueCreditNoteInput } from '@smartout/billing';
+import { checkRateLimit } from '@/lib/rate-limit';
 
-### Task 7.4: Dialog + AlertDialog components for mutations
+export async function issueCreditNote(rawInput: unknown) {
+  const adminId = await getSuperAdminId();
+  if (!adminId) throw new Error('Unauthorized');
+
+  const input = IssueCreditNoteInput.parse(rawInput);
+  await checkRateLimit(`credit-note:${adminId}`, 10, 60);
+
+  const supabase = createAdminClient();
+
+  // Load original
+  const { data: original } = await supabase
+    .from('invoice')
+    .select('*')
+    .eq('invoice_id', input.original_invoice_id)
+    .single();
+  if (!original) throw new Error('Original invoice not found');
+  if (original.invoice_type === 'credit_note') throw new Error('Cannot credit a credit note');
+  if (!['issued','sent','paid','overdue'].includes(original.status)) {
+    throw new Error(`Cannot credit invoice in status ${original.status}`);
+  }
+
+  // Create credit note invoice (amount negative from business perspective but stored positive per ADR-0120)
+  const vatRate = 25.00;
+  const amountExclVat = input.amount / 1.25;
+  const vatAmount = input.amount - amountExclVat;
+
+  const { data: creditNote, error } = await supabase
+    .from('invoice')
+    .insert({
+      company_id: original.company_id,
+      invoice_type: 'credit_note',
+      credits_invoice_id: original.invoice_id,
+      status: 'issued',  // credit notes issue immediately
+      period_from: original.period_from,
+      period_to: original.period_to,
+      amount_excl_vat: amountExclVat,
+      vat_rate: vatRate,
+      vat_amount: vatAmount,
+      amount_incl_vat: input.amount,
+      currency: original.currency,
+      delivery_channel: original.delivery_channel,
+      void_reason: `${input.reason}: ${input.reason_detail}`,
+      created_by: adminId,
+    })
+    .select('invoice_id, invoice_number')
+    .single();
+
+  if (error) throw error;
+
+  await emit({
+    event: 'invoice credit_note_issued',
+    properties: {
+      entity_type: 'invoice',
+      entity_id: creditNote.invoice_id,
+      data: { original_invoice_id: original.invoice_id, amount_incl_vat: input.amount, reason: input.reason },
+    },
+  });
+
+  revalidatePath('/platform-admin/billing/invoices');
+  revalidatePath(`/platform-admin/billing/invoices/${original.invoice_id}`);
+  revalidatePath(`/platform-admin/billing/invoices/${creditNote.invoice_id}`);
+
+  return { success: true, credit_note_id: creditNote.invoice_id, invoice_number: creditNote.invoice_number };
+}
+```
+
+- [ ] **Step 2: Add to CI assertion list + commit**
+
+```bash
+git add apps/web/src/app/platform-admin/billing/_actions/issueCreditNote.ts packages/telemetry/__tests__/billing-emit.spec.ts
+git commit -m "feat(billing-engine): add issueCreditNote Server Action"
+```
+
+### Task 7.4: `markInvoiceUncollectible` Server Action
+
+- [ ] **Step 1: Write action** — AlertDialog-gated, reason code from `UncollectibleReason` enum, updates `invoice.status = 'uncollectible'` from `overdue`. Only transitions from overdue allowed.
+
+- [ ] **Step 2: Emit `invoice marked_paid`? No — no existing event.** Add a new event `invoice marked_uncollectible` to Task 2.1 registry (destinations: `logger, activity_trail, engine_event`, category: `billing`).
+
+- [ ] **Step 3: Commit**
+
+### Task 7.5: `addDunningNote` Server Action
+
+- [ ] **Step 1: Write action** — writes to `activity_trail` via `emit({ event: 'dunning_note added', ... })`. No separate table (dunning_note decision A from council). Updates `invoice.dunning_status = 'in_negotiation'` if was `'none'`.
+
+- [ ] **Step 2: Commit**
+
+### Task 7.6: `updatePricingTerms` Server Action
+
+- [ ] **Step 1: Write action** — upserts a new `pricing_terms` row with `effective_from = today`. If existing row has `effective_until IS NULL`, sets it to yesterday. Creates audit trail via `pricing_terms updated` event with `changes` payload capturing field-level diff.
+
+- [ ] **Step 2: Commit**
+
+### Task 7.7: `regenerateInvoiceDraft` Server Action
+
+- [ ] **Step 1: Write action** — ONLY for `status='draft'` invoices. Deletes existing line items (ON DELETE RESTRICT blocks issued, so this is safe for drafts), recomputes usage_snapshot + line items, reinserts. No `emit()` for regenerate — the original `invoice generated` event remains (draft pre-issue is mutable by design).
+
+- [ ] **Step 2: Commit**
+
+### Task 7.8: `createOnboardingInvoice` Server Action
+
+- [ ] **Step 1: Write action** — creates invoice with `invoice_type='onboarding'`. Line items from `pricing_terms.onboarding_cost` + `onboarding_package`. Different period semantics (not monthly; `period_from = period_to = today`). Status → 'issued' directly (not draft).
+
+- [ ] **Step 2: Commit**
+
+### Task 7.9: Four mutation dialog components
 
 **Files:**
 - Create: `apps/web/src/app/platform-admin/billing/invoices/_components/mark-paid-dialog.tsx`
@@ -2445,11 +2988,129 @@ Each follows same pattern as 7.1/7.2. For brevity, plan batches these:
 - Create: `apps/web/src/app/platform-admin/billing/invoices/_components/credit-note-alert-dialog.tsx`
 - Create: `apps/web/src/app/platform-admin/billing/invoices/_components/uncollectible-alert-dialog.tsx`
 
-- [ ] **Step 1: Write each dialog** — use shadcn `<Dialog>` for recoverable, `<AlertDialog>` for destructive. See spec §10.4 for reason enums + typed confirmation pattern.
+- [ ] **Step 1: `<MarkPaidDialog>`**
 
-- [ ] **Step 2: Wire dialogs into `<InvoiceActions>` component** — buttons open dialogs, dialogs call Server Actions, toast on success via `sonner`.
+```tsx
+'use client';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { useTransition } from 'react';
+import { toast } from 'sonner';
+import { markInvoicePaid } from '../../_actions/markInvoicePaid';
+import { useTranslations } from 'next-intl';
+import { v4 as uuidv4 } from 'uuid';
 
-- [ ] **Step 3: Commit** (one commit per dialog)
+export function MarkPaidDialog({ invoice, open, onClose }: {
+  invoice: { invoice_id: string; invoice_number: number; amount_incl_vat: number };
+  open: boolean;
+  onClose: () => void;
+}) {
+  const t = useTranslations('billing');
+  const [pending, start] = useTransition();
+
+  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = new FormData(e.currentTarget);
+    start(async () => {
+      try {
+        await markInvoicePaid({
+          invoice_id: invoice.invoice_id,
+          payment_date: String(form.get('payment_date')),
+          payment_reference: String(form.get('payment_reference')),
+          payment_channel: String(form.get('payment_channel')),
+          amount: Number(form.get('amount')),
+          notes: String(form.get('notes') ?? ''),
+          idempotency_key: uuidv4(),
+        });
+        toast.success(t('actions.markPaidSuccess'));
+        onClose();
+      } catch (err) {
+        toast.error(String(err));
+      }
+    });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>{t('actions.markPaid')} #{invoice.invoice_number}</DialogTitle></DialogHeader>
+        <form onSubmit={onSubmit} className="space-y-4">
+          <div>
+            <Label htmlFor="payment_date">{t('fields.paymentDate')}</Label>
+            <Input id="payment_date" name="payment_date" type="date" defaultValue={new Date().toISOString().split('T')[0]} required />
+          </div>
+          <div>
+            <Label htmlFor="amount">{t('fields.amount')}</Label>
+            <Input id="amount" name="amount" type="number" step="0.01" defaultValue={invoice.amount_incl_vat} required />
+          </div>
+          <div>
+            <Label htmlFor="payment_channel">{t('fields.channel')}</Label>
+            <Select name="payment_channel" defaultValue="bank_transfer">
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="bank_transfer">{t('channels.bank')}</SelectItem>
+                <SelectItem value="cash">{t('channels.cash')}</SelectItem>
+                <SelectItem value="stripe_manual_capture">{t('channels.stripe')}</SelectItem>
+                <SelectItem value="out_of_band">{t('channels.outOfBand')}</SelectItem>
+                <SelectItem value="partial_write_off">{t('channels.partial')}</SelectItem>
+                <SelectItem value="other">{t('channels.other')}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label htmlFor="payment_reference">{t('fields.reference')}</Label>
+            <Input id="payment_reference" name="payment_reference" required />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>{t('actions.cancel')}</Button>
+            <Button type="submit" disabled={pending}>{pending ? '...' : t('actions.register')}</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+```
+
+- [ ] **Step 2: `<VoidAlertDialog>`** — same pattern but `<AlertDialog>`, typed-confirmation input that must exactly match `invoice_number` to enable submit button, reason select + textarea, `--destructive` variant on submit button.
+
+- [ ] **Step 3: `<CreditNoteAlertDialog>`** — requires original invoice link (auto-populated), amount (defaults to full, editable), reason select, preview panel showing new credit note before issuing.
+
+- [ ] **Step 4: `<UncollectibleAlertDialog>`** — reason code from `UncollectibleReason` enum, optional note for `other`.
+
+- [ ] **Step 5: Wire dialogs into `<InvoiceActions>` component**
+
+```tsx
+// apps/web/src/app/platform-admin/billing/invoices/_components/invoice-actions.tsx
+'use client';
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { MarkPaidDialog } from './mark-paid-dialog';
+import { VoidAlertDialog } from './void-alert-dialog';
+// ... etc
+
+export function InvoiceActions({ invoice }) {
+  const [dialog, setDialog] = useState<'markPaid' | 'void' | 'credit' | 'uncollectible' | null>(null);
+  return (
+    <div className="flex gap-2">
+      {['issued','sent','overdue'].includes(invoice.status) && (
+        <Button onClick={() => setDialog('markPaid')}>Merk som betalt</Button>
+      )}
+      {['issued','sent','overdue'].includes(invoice.status) && (
+        <Button variant="destructive" onClick={() => setDialog('void')}>Annuller</Button>
+      )}
+      {/* ... */}
+      <MarkPaidDialog invoice={invoice} open={dialog === 'markPaid'} onClose={() => setDialog(null)} />
+      <VoidAlertDialog invoice={invoice} open={dialog === 'void'} onClose={() => setDialog(null)} />
+    </div>
+  );
+}
+```
+
+- [ ] **Step 6: Commit each dialog** (4 commits)
 
 ---
 
@@ -2774,6 +3435,39 @@ export const listMyInvoices = defineTool({
 
 - [ ] **Step 2: `getMyInvoice`, `explainInvoiceBasis`, `listOverdue`, `getUsageSnapshot`** — follow same pattern. `explainInvoiceBasis` calls `supabase.rpc('get_invoice_basis', { p_invoice_id: id })` and returns verbatim JSON for LLM to narrate (never computes).
 
+**T2 fix (explain_invoice_basis draft rejection):**
+
+```ts
+export const explainInvoiceBasis = defineTool({
+  name: 'explain_invoice_basis',
+  description: 'Explain what makes up an invoice amount. Reads from get_invoice_basis. Only for issued invoices, never drafts.',
+  capability: 'billing_query',
+  schema: z.object({ invoice_id: z.string().uuid() }),
+  execute: async (params, ctx: AgentToolContext) => {
+    // G7 fix: channel assertion runtime check (defense in depth — also at selector)
+    if (ctx.channel && ctx.channel !== 'chat') {
+      return 'Error: billing tools are chat-only';
+    }
+
+    const companyId = await resolveCompanyId(ctx);
+
+    // Verify invoice belongs to viewer's company
+    const { data: invoice } = await ctx.supabaseAdmin
+      .from('invoice')
+      .select('invoice_id, company_id, status')
+      .eq('invoice_id', params.invoice_id)
+      .single();
+    if (!invoice) return 'Error: invoice not found';
+    if (invoice.company_id !== companyId) return 'Error: invoice does not belong to your company';
+    if (invoice.status === 'draft') return 'This invoice is still a draft — no final basis yet.';
+
+    const { data, error } = await ctx.supabaseAdmin.rpc('get_invoice_basis', { p_invoice_id: params.invoice_id });
+    if (error) return `Error: ${error.message}`;
+    return JSON.stringify(data);
+  },
+});
+```
+
 - [ ] **Step 3: Commit each tool**
 
 ### Task 11.7: Register capability at 4 touchpoints
@@ -2850,6 +3544,19 @@ Workspace-admin scope, chat-only. Intent classifier + authority config seeded."
 ---
 
 ## Phase 12 — i18n
+
+### Task 12.0: Enumerate hardcoded strings
+
+**G5 fix:** before extraction, list every string to move. Run:
+
+```bash
+grep -rnE "['\"]([A-ZÆØÅ][a-zæøåA-ZÆØÅ' ]+)['\"]" \
+  apps/web/src/app/platform-admin/billing/ \
+  apps/web/src/app/dashboard/billing/ \
+  | grep -v "^.*://.*" | head -100
+```
+
+Expected: ~30-50 strings across 10+ files. Cross-check against the `nb.json` structure below — any string not mapped needs a new key.
 
 ### Task 12.1: Extract all billing UI strings
 
@@ -2949,6 +3656,46 @@ git commit -m "test(billing-engine): Playwright E2E for platform-admin mark-paid
 
 - [ ] **Step 2: Commit**
 
+### Task 13.4: Playwright E2E — credit note issuance
+
+**Files:**
+- Create: `apps/e2e/tests/billing-engine/credit-note-flow.spec.ts`
+
+- [ ] **Step 1: Test** — from paid/issued invoice, issue credit note with full amount, verify new row with `invoice_type='credit_note'` + `credits_invoice_id` link, verify both rows appear in list with correct visual treatment.
+
+### Task 13.5: Playwright E2E — CSV export
+
+**Files:**
+- Create: `apps/e2e/tests/billing-engine/csv-export.spec.ts`
+
+- [ ] **Step 1: Test** — fill period picker, submit, verify download triggers with `Content-Disposition: attachment` + filename pattern `smartout-invoices-*.csv`. Validate CSV content: BOM present, Norwegian decimal separators, correct column headers.
+
+### Task 13.6: Playwright E2E — drift resolution
+
+**Files:**
+- Create: `apps/e2e/tests/billing-engine/drift-resolution.spec.ts`
+
+- [ ] **Step 1: Test** — seed a shift modification that triggers `basis_drift_event`, verify it appears in drift panel, resolve it via "Ignore" action, verify `resolution = 'ignored'` + row removed from unreviewed list.
+
+### Task 13.7: AI tool invocation test
+
+**Files:**
+- Create: `packages/ai/src/capabilities/billing-query/__tests__/explain-invoice-basis.spec.ts`
+
+- [ ] **Step 1: Vitest test** — mock `ctx.supabaseAdmin`, call `explainInvoiceBasis` tool with a fake invoice_id, assert:
+  - Tool returns stringified JSON containing `line_items` + `usage_snapshots` fields
+  - Tool DOES NOT compute or modify any amounts (pure read)
+  - If `ctx.channel === 'voice'`, tool rejects with error
+
+### Task 13.8: Workspace isolation pgTAP test (dedicated)
+
+Beyond generic RLS tests in Task 1.11, add focused test:
+
+**Files:**
+- Create: `supabase/tests/billing_workspace_isolation.sql`
+
+- [ ] **Step 1: Test** — company A admin + company B admin seeded with overlapping workspaces (edge case where one user belongs to multiple companies). Verify each sees only their own.
+
 ---
 
 ## Phase 14 — Docs + closure
@@ -2957,6 +3704,14 @@ git commit -m "test(billing-engine): Playwright E2E for platform-admin mark-paid
 
 **Files:**
 - Create: `docs/modules/MODULE_BILLING.md`
+
+- [ ] **Step 0: Verify module filename doesn't collide (T1 fix)**
+
+```bash
+grep -n "MODULE_13\|MODULE_BILLING" /home/sxtnl/dev/smartout.ai/docs/INDEX.md
+ls /home/sxtnl/dev/smartout.ai/docs/modules/ | grep -iE "(billing|module_13)"
+# Pick a free filename. Recommendation: docs/modules/MODULE_BILLING.md (no number).
+```
 
 - [ ] **Step 1: Write module doc** — cover: purpose, data model, generation flow, AI-tools, Fase 2 roadmap, bokføringslov compliance statement.
 
@@ -3038,22 +3793,47 @@ All spec sections covered. ✓
 
 ## Parallelism hints
 
-After Phase 0 merges, these phases can run in parallel:
+### Hard dependencies (cannot parallelize)
 
-- Phase 1 (migrations) — sequential internally, but blocks all downstream
-- Phase 3 (data layer) — can start once Phase 1 tasks 1.2-1.7 done
-- Phase 5 (shared UI) — independent, can start after Phase 0
+- **Phase 0 → all** — ADRs + tokens + helper must merge first
+- **Phase 1 → 3, 4, 6, 7, 8, 9, 10, 11** — schema must exist
+- **Phase 2 (telemetry) → 4, 7** — emit events + internal endpoint must exist before cron or Server Actions use them
+- **Phase 3 (data layer) → 6, 10, 11** — types consumed by UI + AI
+- **Phase 5 (shared UI) → 6, 7, 8, 10** — `<InvoiceStatusBadge>` used everywhere
 
-Parallel opportunities:
-- Phase 3 + Phase 5 + Phase 2 (once Phase 1 ~50% done)
-- Phase 6 + Phase 10 (both consume Phase 3 types)
-- Phase 8 (independent UI) with Phase 9 (config tab)
-- Phase 11 (AI) independent from all UI work
+### Safe parallel streams (after Phase 1 completes)
 
-Serial dependencies:
-- Phase 0 → 1 → 2 → 3/4/5 → 6/7/8/9/10 → 11 → 12 → 13 → 14
-- Phase 4 (cron) requires Phase 1 complete
-- Phase 7 (mutations) requires Phase 2 (telemetry) and Phase 3 (schemas)
+**Stream A (backend):**
+- Phase 2 (telemetry)
+- Phase 4 (cron generator, BLOCKED on Phase 2.2 internal emit endpoint)
+
+**Stream B (package):**
+- Phase 3 (@smartout/billing)
+- Phase 5 (packages/ui components)
+
+**Stream C (parallel AI track, after Phase 3):**
+- Phase 11 (AI capability)
+
+**Stream D (parallel UI track, after Phases 3+5):**
+- Phase 6 → Phase 7 (list+detail then mutations)
+- Phase 8 (dunning/drift/export, independent surfaces)
+- Phase 9 (per-company config, independent)
+- Phase 10 (workspace-admin read, independent)
+
+### Minimum critical path
+
+```
+Phase 0 (1-2 days) →
+Phase 1 (3-5 days sequential migrations) →
+Phase 2 (1 day) →
+Phase 4 + Stream D simultaneously (5-8 days with parallel agents) →
+Phase 11 (2-3 days) →
+Phase 12 (1 day) →
+Phase 13 (2-3 days) →
+Phase 14 closure (1 day)
+```
+
+**Estimate with 3 parallel subagents:** 3-4 weeks calendar. **With 1 agent:** 5-6 weeks.
 
 ---
 
