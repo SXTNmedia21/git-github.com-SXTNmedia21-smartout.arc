@@ -21,7 +21,7 @@ function createMockClient(opts: {
     from(table: string) {
       if (table === "payment") {
         return {
-          select(cols: string) {
+          select(_cols: string) {
             return {
               eq(_col: string, _val: unknown) {
                 return {
