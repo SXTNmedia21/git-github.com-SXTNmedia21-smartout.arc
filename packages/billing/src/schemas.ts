@@ -147,6 +147,7 @@ export const BillingDispatchChannelSchema = z.enum([
   "email_internal",
   "http_api",
   "peppol_ehf",
+  "stripe_invoice",
 ]);
 
 export const RetryDispatchInputSchema = z.object({

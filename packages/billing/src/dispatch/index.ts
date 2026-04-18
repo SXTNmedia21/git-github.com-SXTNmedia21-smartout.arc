@@ -11,3 +11,4 @@ export { EmailCustomerAdapter } from "./adapters/email-customer";
 export { EmailInternalAdapter } from "./adapters/email-internal";
 export { HttpApiAdapter } from "./adapters/http-api";
 export { sendViaSendGrid } from "./adapters/sendgrid";
+export { StripeDispatchAdapter, getStripe, STRIPE_API_VERSION } from "./adapters/stripe";
