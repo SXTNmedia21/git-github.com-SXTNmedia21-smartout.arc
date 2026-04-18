@@ -1025,3 +1025,13 @@ First council's Phase 2.5 fact-check verified WHAT (columns exist, tables exist,
 - Verified end-to-end: 2 policies + 2 protocols + 31 procedures + 21 procedure_steps all carry origin=bubble-import + bubble_id + tenant + batch
 **Side finding:** ADR-0108 numbering collision flagged by Agent-Coord — two branches both use 0108 for different ADRs. Whichever lands second must renumber. Not this council's problem but logged.
 **Side finding:** `useCreateProcedure` + `useCreateConfirmation` in `use-governance-mutations.ts` pass `workspace_id` to tables that don't have the column (same class as knowledge_test bug fixed earlier today). Separate chore, not bundled.
+
+## 2026-04-18 — Gate-Client Migration Wave 2 (Schedule + Season + Capability)
+**Type:** plan
+**Verdict:** APPROVE WITH CHANGES (rescoped)
+**Agents consulted:** system-steward, supervisor, system-agent-coordinator, frontend-designer, general-purpose (fact-check)
+**Prior verdict held?** Partially — gatedwrite-pilot (2026-04-17) APPROVE WITH CHANGES held for Server Action pattern; extended here to client hooks + capability layer where different rules apply (ADR-0114 R5 realtime exemption + capability dual-gate).
+**Key decision:** Rescope Wave 2 from 18 web sites + capability to Wave 2A = Season wizard only (2 sites). Wave 2B (capability) blocked on 3 ADRs (gate stacking + tool result contract + agent-router security). Wave 2C (schedule TanStack) blocked on 3 prereqs (--color-proposed token + pendingProposalId type field + realtime reconciliation contract).
+**ADR created:** 3 drafts — gate-action-stacking-semantics, agent-tool-result-gate-outcome, color-proposed-pending-state-ux (see docs/decisions/)
+**Learning created:** 5 — see task 2 below
+**Agent Trust Gate:** REJECTED for original 18-site scope. PASSES for Wave 2A only.
