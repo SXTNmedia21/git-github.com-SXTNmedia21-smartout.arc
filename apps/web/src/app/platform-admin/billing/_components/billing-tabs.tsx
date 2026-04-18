@@ -22,6 +22,11 @@ const TABS: Array<{ href: string; label: string; match: (p: string) => boolean }
     match: (p) => p.startsWith("/platform-admin/billing/invoices"),
   },
   {
+    href: "/platform-admin/billing/payments",
+    label: "Betalinger",
+    match: (p) => p.startsWith("/platform-admin/billing/payments"),
+  },
+  {
     href: "/platform-admin/billing/dunning",
     label: "Purring",
     match: (p) => p.startsWith("/platform-admin/billing/dunning"),
