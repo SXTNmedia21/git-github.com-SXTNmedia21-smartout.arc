@@ -60,6 +60,17 @@ export type DispatchStatus = Database["public"]["Enums"]["dispatch_status"];
 export type DispatchRuleAction = Database["public"]["Enums"]["dispatch_rule_action"];
 export type BillingIntegrationType = Database["public"]["Enums"]["billing_integration_type"];
 
+// ─── Fase 3A — payment row shapes ─────────────────────────────────
+export type Payment = Database["public"]["Tables"]["payment"]["Row"];
+export type PaymentInsert = Database["public"]["Tables"]["payment"]["Insert"];
+export type PaymentUpdate = Database["public"]["Tables"]["payment"]["Update"];
+
+export type PaymentAttempt = Database["public"]["Tables"]["payment_attempt"]["Row"];
+export type PaymentAttemptInsert = Database["public"]["Tables"]["payment_attempt"]["Insert"];
+
+export type PaymentStatusEnum = Database["public"]["Enums"]["payment_status"];
+export type PaymentMethodTypeEnum = Database["public"]["Enums"]["payment_method_type"];
+
 // Application-level string unions (NOT in DB enums — stored as text).
 // Kept here so Server Actions + UI use the same literal set.
 
