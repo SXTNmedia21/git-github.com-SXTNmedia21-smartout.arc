@@ -16,11 +16,32 @@ export type MissingProtocol = {
   protocol_id: string;
   name: string;
   steps_remaining: number;
+  /** When all steps are done but the knowledge test is not passed. */
+  test_pending?: boolean;
+  /** When procedures are done but a formal confirmation (e.g. sign-off) is still required. */
+  confirmation_pending?: boolean;
 };
 
 export type ShiftUnlockHintProps = {
   missingProtocols: MissingProtocol[];
 };
+
+/**
+ * What to show after "mangler —" for a protocol that is not yet complete.
+ * When step count is zero, test or confirmation state still blocks readiness.
+ */
+function getProtocolStatusLine(protocol: MissingProtocol): string {
+  if (protocol.steps_remaining > 0) {
+    return `${protocol.steps_remaining} steg igjen`;
+  }
+  if (protocol.test_pending) {
+    return "test gjenstår";
+  }
+  if (protocol.confirmation_pending) {
+    return "signering gjenstår";
+  }
+  return `${protocol.steps_remaining} steg igjen`;
+}
 
 export function ShiftUnlockHint({ missingProtocols }: ShiftUnlockHintProps) {
   if (!missingProtocols || missingProtocols.length === 0) return null;
@@ -36,7 +57,7 @@ export function ShiftUnlockHint({ missingProtocols }: ShiftUnlockHintProps) {
           <span className="text-muted-foreground">
             <span className="text-foreground font-semibold">{protocol.name}</span>
             {" mangler — "}
-            {protocol.steps_remaining} steg igjen
+            {getProtocolStatusLine(protocol)}
           </span>
           <Link
             href={`/dashboard/my-training/${protocol.protocol_id}`}

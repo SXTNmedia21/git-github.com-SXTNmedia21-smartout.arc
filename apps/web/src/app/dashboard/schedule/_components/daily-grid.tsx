@@ -19,11 +19,23 @@ import { GhostShiftCard } from "./ghost-shift-card";
 import type { DayColumn } from "./schedule-data";
 import { useScheduleUI } from "./schedule-ui-context";
 import type { ScheduleEmployee } from "../_hooks/use-employees";
+import type { ShiftReadinessEntry } from "../_hooks/use-shift-readiness-check";
 import { DayContextMenu } from "./day-context-menu";
 import type { Shift as ScheduleShift, Absence, ShiftProposal } from "./schedule-types";
 import { SCHEDULE_LAYERS } from "./schedule-layers";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ShiftUnlockHint, type MissingProtocol } from "./ShiftUnlockHint";
+
+/** Maps hook rows into the slimmer `MissingProtocol` list for the unlock hint. */
+function pendingToMissing(entry: ShiftReadinessEntry | undefined): MissingProtocol[] {
+  return (entry?.pendingProtocols ?? []).map((p) => ({
+    protocol_id: p.protocol_id,
+    name: p.name,
+    steps_remaining: p.steps_remaining,
+    test_pending: p.test_pending,
+    confirmation_pending: p.confirmation_pending,
+  }));
+}
 
 // ---------------------------------------------------------------------------
 // GridContent — daily schedule grid (the perf-critical DnD subtree)
@@ -63,7 +75,7 @@ export function GridContent({
   onApproveProposal?: (id: string) => Promise<void>;
   onRejectProposal?: (id: string) => void;
   conflictedShiftIds?: Set<string>;
-  readinessMap?: Map<string, { readinessPercent: number; pendingProtocols?: string[] }>;
+  readinessMap?: Map<string, ShiftReadinessEntry>;
 }) {
   const { isDark, scheduleView, scheduleCompactMode } = useContext(DashboardContext);
   const { active } = useDndContext();
@@ -351,9 +363,7 @@ export function GridContent({
                       enableDroppable={enableDroppable}
                       conflictedShiftIds={conflictedShiftIds}
                       readinessPercent={readinessMap?.get(employee.id)?.readinessPercent}
-                      missingProtocols={(
-                        readinessMap?.get(employee.id)?.pendingProtocols ?? []
-                      ).map((name) => ({ protocol_id: name, name, steps_remaining: 1 }))}
+                      missingProtocols={pendingToMissing(readinessMap?.get(employee.id))}
                     />
                   </div>
                 );
@@ -410,9 +420,7 @@ export function GridContent({
                       enableDroppable={enableDroppable}
                       subtitle={emp.team}
                       readinessPercent={readinessMap?.get(emp.id)?.readinessPercent}
-                      missingProtocols={(readinessMap?.get(emp.id)?.pendingProtocols ?? []).map(
-                        (name) => ({ protocol_id: name, name, steps_remaining: 1 }),
-                      )}
+                      missingProtocols={pendingToMissing(readinessMap?.get(emp.id))}
                     />
                   ))}
                 </React.Fragment>
@@ -446,9 +454,7 @@ export function GridContent({
                       enableDroppable={enableDroppable}
                       subtitle={emp.jobTitle || emp.role}
                       readinessPercent={readinessMap?.get(emp.id)?.readinessPercent}
-                      missingProtocols={(readinessMap?.get(emp.id)?.pendingProtocols ?? []).map(
-                        (name) => ({ protocol_id: name, name, steps_remaining: 1 }),
-                      )}
+                      missingProtocols={pendingToMissing(readinessMap?.get(emp.id))}
                     />
                   ))}
                 </React.Fragment>
@@ -486,9 +492,7 @@ export function GridContent({
                       enableDroppable={enableDroppable}
                       subtitle={emp.departmentName}
                       readinessPercent={readinessMap?.get(emp.id)?.readinessPercent}
-                      missingProtocols={(readinessMap?.get(emp.id)?.pendingProtocols ?? []).map(
-                        (name) => ({ protocol_id: name, name, steps_remaining: 1 }),
-                      )}
+                      missingProtocols={pendingToMissing(readinessMap?.get(emp.id))}
                     />
                   ))}
                 </React.Fragment>
