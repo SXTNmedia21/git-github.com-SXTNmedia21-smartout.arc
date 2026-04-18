@@ -1,7 +1,7 @@
 ---
 title: Decision Log
 status: canonical
-updated: 2026-04-17
+updated: 2026-04-18
 created: 2026-02-27
 module: meta
 tags: [decisions, adr, index]
@@ -26,6 +26,9 @@ tags: [decisions, adr, index]
 
 | ADR | Date | Title | Status |
 |-----|------|-------|--------|
+| [ADR-0139](0139-color-proposed-pending-state-ux.md) | 2026-04-18 | `--color-proposed` Token + Pending-State UX Contract — amber OKLCH (hue ~90) outside brand chroma, mandatory `<PendingBadge />` ("Venter") for WCAG AA + color-blind safety, three-motion contract (commit/hover/lava-lamp retreat), `pendingProposalId: string \| null` on optimistic rows, toast suppression for visual-primary surfaces. Blocks Wave 2C schedule TanStack migration. (Council 2026-04-18 gate-client wave 2) | draft |
+| [ADR-0138](0138-agent-tool-result-gate-outcome.md) | 2026-04-18 | Agent Tool Result Contract with Gate Outcomes — discriminated union `ToolGateResult<T>` with four variants (applied / applied_with_exception / proposed / blocked), mandatory Norwegian `user_message` as authoritative LLM copy, `allowed: boolean` for fast branching, prompt-template contract for all four cases. Blocks Wave 2B capability migration. (Council 2026-04-18 gate-client wave 2) | draft |
+| [ADR-0137](0137-gate-action-stacking-semantics.md) | 2026-04-18 | Gate Action Stacking Semantics — `gate_action` (ADR-0099) × `cascade_gate_write` (ADR-0091) sequential stacking for capability tool writes to governance-gated entities. Authority deny short-circuits; both gates fire on success; distinct failure semantics per axis. Blocks Wave 2B capability migration. (Council 2026-04-18 gate-client wave 2) | draft |
 | [ADR-0136](0136-witness-with-camera-evidence-model.md) | 2026-04-17 | Witness-with-Camera Evidence Model — `evidence_storage_path` + `evidence_kind` on completion entities; Supabase Storage workspace-scoped RLS; PII guidance baked into capture UI; optional by default. (Council 2026-04-17 mobile strategy) | proposed |
 | [ADR-0135](0135-mobile-voice-via-livekit-not-ultravox.md) | 2026-04-17 | Mobile Voice via LiveKit (Not Ultravox) — Ultravox lacks RN build path; LiveKit already installed; `packages/agent-sdk/src/providers/livekit.ts` exists. Voice transport = LiveKit; agent control plane = BFF (ADR-0132). (Council 2026-04-17) | proposed |
 | [ADR-0134](0134-mobile-telemetry-contract-enforcement.md) | 2026-04-17 | Mobile Telemetry Contract Enforcement — runtime assertion in `emit()` blocks empty-string `workspace_id`/`actor_id`; lint rule + unit tests; backfills 6 broken sites in `use-punch.ts`, `use-swap.ts`, `use-create-shift.ts`. Companions ADR-0116. (Council 2026-04-17) | accepted |
@@ -161,7 +164,7 @@ tags: [decisions, adr, index]
 
 ## Integrity
 
-- **93 ADRs** (0001-0094 with 0092 reserved, ADR-0000 is this index)
+- **96 ADRs** (0001-0139 with 0092 reserved, ADR-0000 is this index) — 2026-04-18 added ADR-0137/0138/0139 (gate-client wave 2 prereqs, status: draft)
 - **0 number collisions** (verified 2026-04-13 — ADR-0068 entity-drawer collision resolved by renumbering to 0086)
 - **1 reserved slot:** 0092 — Monitor Mode Graduation Criteria (Phase E / WP6), to be written when WP6 lands
 - **0 number gaps** (0052/0053/0054 previously gaps, now occupied by renumbered collision resolvers)
