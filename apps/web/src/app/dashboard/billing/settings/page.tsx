@@ -8,6 +8,7 @@ import type { BillingDispatchRule } from "@smartout/billing";
 import { WorkspaceDispatchRulesPanelSkeleton } from "./_components/WorkspaceDispatchRulesPanelSkeleton";
 import { WorkspaceDispatchRulesPanel } from "./_components/WorkspaceDispatchRulesPanel";
 import { DunningOptOutSection } from "./_components/DunningOptOutSection";
+import { EhfSettingsSection } from "./_components/EhfSettingsSection";
 import {
   DUNNING_OPTOUT_CHANNEL,
   DUNNING_OPTOUT_TRIGGER_EVENT,
@@ -46,6 +47,13 @@ export default async function WorkspaceBillingSettingsPage() {
     .select("workspace_id, name")
     .eq("company_id", member.company_id);
 
+  // B6-fase3b: last EHF-innstillinger for selskapet så toggle viser riktig startverdi.
+  const { data: companyRow } = await admin
+    .from("company")
+    .select("ehf_enabled, peppol_participant_id")
+    .eq("company_id", member.company_id)
+    .maybeSingle();
+
   const workspaceIds = (workspaces ?? []).map((w) => w.workspace_id);
   const workspaceNames = new Map<string, string>(
     (workspaces ?? []).map((w) => [w.workspace_id, w.name ?? w.workspace_id]),
@@ -69,6 +77,12 @@ export default async function WorkspaceBillingSettingsPage() {
       <Suspense fallback={null}>
         <DunningOptOutLoader workspaces={workspaceList} />
       </Suspense>
+
+      {/* B6-fase3b: EHF-innstillinger — ADR-0139 */}
+      <EhfSettingsSection
+        initialEhfEnabled={companyRow?.ehf_enabled ?? false}
+        initialPeppolParticipantId={companyRow?.peppol_participant_id ?? null}
+      />
     </div>
   );
 }
