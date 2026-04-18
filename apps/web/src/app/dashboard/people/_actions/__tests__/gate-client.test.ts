@@ -2,13 +2,22 @@
  * gate-client.test.ts
  *
  * Unit tests for `gatedUpdate` / `gatedDelete` PK-column behaviour
- * (ADR-0091 WP3, PK-column override fix).
+ * (ADR-0091 WP3 + Wave 2A `entityIdColumn`-required flip).
  *
  * These tests exercise the REAL `gatedUpdate` / `gatedDelete` (not a
  * wholesale mock) against a hand-rolled `SupabaseGateClient` stub so we
  * can observe which column was passed to `.eq(...)`. This is the only
  * layer that proves the blocker fix — `people-actions.test.ts` mocks
  * `gatedUpdate` itself and cannot see the column.
+ *
+ * Wave 2A (2026-04-18) flipped `GateContext.entityIdColumn` from
+ * optional-with-`"id"`-default to required. The "defaults to 'id'"
+ * codepath no longer exists, so the prior tests asserting that default
+ * have been rewritten as:
+ *   1. Positive tests that verify the supplied `entityIdColumn` is used
+ *      correctly (both generic `"id"` and Smartout `"{table}_id"`).
+ *   2. Type-level `@ts-expect-error` assertions that constructing a
+ *      `GateContext` without `entityIdColumn` is a compile-time error.
  *
  * Co-located with the pilot tests because `packages/supabase` does not
  * yet have its own vitest wiring; the gate-client unit contract can move
@@ -62,21 +71,25 @@ describe("gatedUpdate PK column", () => {
     workspaceId: "ws-1",
     capability: "profile:update:role",
     currentData: { profile_id: "prof-1", role: "employee" },
+    // NOTE: entityIdColumn is REQUIRED post-Wave-2A. Each test sets it
+    // explicitly; the compile-time enforcement is asserted below.
+    entityIdColumn: "profile_id",
   };
 
-  it("defaults to `.eq('id', entityId)` when entityIdColumn is not provided", async () => {
+  it("uses `.eq('id', entityId)` when entityIdColumn is 'id' — generic table path", async () => {
     const { client, eqCalls } = buildClientStub({
       rpcResponse: { data: { allowed: true, outcome: "applied" }, error: null },
       writeResponse: { data: [{ id: "x" }], error: null },
     });
 
-    await gatedUpdate(client, "generic_table", { role: "manager" }, baseCtx);
+    const ctx: GateContext = { ...baseCtx, entityIdColumn: "id" };
+    await gatedUpdate(client, "generic_table", { role: "manager" }, ctx);
 
     expect(eqCalls).toHaveLength(1);
     expect(eqCalls[0]).toEqual({ column: "id", value: "prof-1" });
   });
 
-  it("uses entityIdColumn when provided — fixes the profile_id blocker", async () => {
+  it("uses entityIdColumn when provided — Smartout `{table}_id` convention", async () => {
     const { client, eqCalls } = buildClientStub({
       rpcResponse: { data: { allowed: true, outcome: "applied" }, error: null },
       writeResponse: { data: [{ profile_id: "prof-1" }], error: null },
@@ -88,6 +101,19 @@ describe("gatedUpdate PK column", () => {
     expect(eqCalls).toHaveLength(1);
     expect(eqCalls[0]).toEqual({ column: "profile_id", value: "prof-1" });
   });
+
+  it("requires entityIdColumn at compile time — omitting it is a TS error", () => {
+    // @ts-expect-error — entityIdColumn is required; omitting it must fail typecheck.
+    const _bad: GateContext = {
+      entityType: "profile",
+      entityId: "prof-1",
+      workspaceId: "ws-1",
+      capability: "profile:update:role",
+      currentData: { profile_id: "prof-1" },
+    };
+    // Reference `_bad` so TS doesn't elide the block before the ts-expect-error fires.
+    expect(_bad).toBeDefined();
+  });
 });
 
 describe("gatedDelete PK column", () => {
@@ -97,21 +123,23 @@ describe("gatedDelete PK column", () => {
     workspaceId: "ws-1",
     capability: "profile:delete",
     currentData: { profile_id: "prof-1" },
+    entityIdColumn: "profile_id",
   };
 
-  it("defaults to `.eq('id', entityId)` when entityIdColumn is not provided", async () => {
+  it("uses `.eq('id', entityId)` when entityIdColumn is 'id' — generic table path", async () => {
     const { client, eqCalls } = buildClientStub({
       rpcResponse: { data: { allowed: true, outcome: "applied" }, error: null },
       writeResponse: { data: [{ id: "x" }], error: null },
     });
 
-    await gatedDelete(client, "generic_table", baseCtx);
+    const ctx: GateContext = { ...baseCtx, entityIdColumn: "id" };
+    await gatedDelete(client, "generic_table", ctx);
 
     expect(eqCalls).toHaveLength(1);
     expect(eqCalls[0]).toEqual({ column: "id", value: "prof-1" });
   });
 
-  it("uses entityIdColumn when provided", async () => {
+  it("uses entityIdColumn when provided — Smartout `{table}_id` convention", async () => {
     const { client, eqCalls } = buildClientStub({
       rpcResponse: { data: { allowed: true, outcome: "applied" }, error: null },
       writeResponse: { data: [{ profile_id: "prof-1" }], error: null },
@@ -122,5 +150,17 @@ describe("gatedDelete PK column", () => {
 
     expect(eqCalls).toHaveLength(1);
     expect(eqCalls[0]).toEqual({ column: "profile_id", value: "prof-1" });
+  });
+
+  it("requires entityIdColumn at compile time — omitting it is a TS error", () => {
+    // @ts-expect-error — entityIdColumn is required; omitting it must fail typecheck.
+    const _bad: GateContext = {
+      entityType: "profile",
+      entityId: "prof-1",
+      workspaceId: "ws-1",
+      capability: "profile:delete",
+      currentData: { profile_id: "prof-1" },
+    };
+    expect(_bad).toBeDefined();
   });
 });
