@@ -93,7 +93,7 @@ describe("/api/emma/chat — auth paths (ADR-0132)", () => {
     // Token validated via admin
     expect(adminGetUserMock).toHaveBeenCalledWith("token-abc");
     // Stage-engine receives the raw token as user_jwt
-    const stageEngineCall = fetchMock.mock.calls[0];
+    const stageEngineCall = fetchMock.mock.calls[0]!;
     const stageEngineBody = JSON.parse(stageEngineCall[1].body);
     expect(stageEngineBody.user_jwt).toBe("token-abc");
     expect(stageEngineBody.channel).toBe("chat"); // forced server-side
@@ -129,7 +129,7 @@ describe("/api/emma/chat — auth paths (ADR-0132)", () => {
     const res = await POST(makeRequest({ authHeader: undefined }));
 
     expect(createClientMock).toHaveBeenCalledOnce();
-    const stageEngineBody = JSON.parse(fetchMock.mock.calls[0][1].body);
+    const stageEngineBody = JSON.parse(fetchMock.mock.calls[0]![1].body);
     expect(stageEngineBody.user_jwt).toBe("cookie-jwt-xyz");
     expect(res.status).toBe(200);
     const data = await res.json();
@@ -220,7 +220,7 @@ describe("/api/emma/chat — auth paths (ADR-0132)", () => {
     // field in RequestSchema) — this test verifies the forced value reaches engine.
     await POST(makeRequest({ authHeader: "Bearer t" }));
 
-    const stageEngineBody = JSON.parse(fetchMock.mock.calls[0][1].body);
+    const stageEngineBody = JSON.parse(fetchMock.mock.calls[0]![1].body);
     expect(stageEngineBody.channel).toBe("chat");
   });
 });

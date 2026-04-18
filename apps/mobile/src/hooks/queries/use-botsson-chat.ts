@@ -7,15 +7,30 @@
  * (shift phase, role, department, trainee status) so Stage Engine can
  * personalize its responses.
  *
- * NOTE: Botsson still uses the legacy chat_conversation/chat_message schema.
- * BotssonMessage is a separate, simpler type — do NOT import MessageWithSender
- * from use-messages (that type is for the new channel schema only).
+ * Per ADR-0132 (mobile thin client): user messages are POSTed to the web
+ * BFF (`/api/emma/chat`) which proxies to stage-engine. The BFF response
+ * carries the assistant turn; this hook then writes BOTH turns to
+ * `chat_message` for UI history persistence.
+ *
+ * Channel security (ADR-0078): we never send a `channel` field — the BFF
+ * forces `channel: "chat"` server-side. Voice traffic gets its own
+ * endpoint (Week 7+, LiveKit per ADR-0135).
+ *
+ * Session continuity: stage-engine `session_id` is persisted in MMKV
+ * keyed by profileId. On 401/403/404/409 from the BFF the cached id
+ * is cleared so the next turn starts a fresh session.
+ *
+ * NOTE: `chat_message` remains the UI history source while stage-engine
+ * owns agent state in `engine_sessions`. Dual persistence is acknowledged
+ * debt per Council 2026-04-17 — collapsing to a single store is Phase B.
  */
 
 import { useQuery, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import { useCallback, useMemo } from "react";
 import { randomUUID } from "expo-crypto";
 import { supabase } from "@/lib/supabase";
+import { storage } from "@/lib/cache/mmkv";
+import { getEmmaChatUrl } from "@/lib/web-api";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
 import { useMyTasks } from "@/hooks/queries/use-my-tasks";
 import { useShiftPhase } from "@/hooks/stores/use-shift-phase";
@@ -62,6 +77,43 @@ export type BotssonContext = {
 
 const PAGE_SIZE = 50;
 const STALE_TIME_MS = 60 * 1000;
+
+/**
+ * MMKV-backed stage-engine session_id, scoped by profileId.
+ *
+ * Cleared on:
+ * - workspace switch (a different profileId reads a different key)
+ * - sign-out (handled by app-level MMKV reset)
+ * - BFF response 401/403/404/409 (caller invalidates explicitly)
+ */
+const SESSION_KEY_PREFIX = "cache:botsson-session-id";
+const sessionKey = (profileId: string) => `${SESSION_KEY_PREFIX}:${profileId}`;
+
+function loadStoredSessionId(profileId: string): string | null {
+  try {
+    return storage.getString(sessionKey(profileId)) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function persistSessionId(profileId: string, sessionId: string | null) {
+  try {
+    if (sessionId) storage.set(sessionKey(profileId), sessionId);
+    else storage.delete(sessionKey(profileId));
+  } catch {
+    /* MMKV unavailable — non-fatal, session restarts each turn */
+  }
+}
+
+/** Botsson "system" sender — placeholder until stage-engine writes its own bot identity. */
+const BOTSSON_SENDER_ID = "00000000-0000-0000-0000-000000000000";
+
+type BffChatResponse = {
+  text: string;
+  sessionId: string;
+  intent?: { capability: string; confidence: number };
+};
 
 /**
  * Finds the AI conversation for the current profile.
@@ -234,8 +286,15 @@ export function useBotssonChat() {
   }, [profileId, workspaceId, profile, phase, activeShift, pendingTasksCount]);
 
   /**
-   * Send a message to Botsson. Creates the conversation if it doesn't exist yet.
-   * Attaches full context payload as message metadata for Stage Engine.
+   * Send a message to Botsson via the web BFF (ADR-0132).
+   *
+   * Flow:
+   * 1. Create conversation if needed (UI history persistence)
+   * 2. Optimistically render user message
+   * 3. POST to BFF emma/chat with Bearer token (no `channel` — server forces "chat")
+   * 4. On 401/403/404/409: clear stored session_id, surface error
+   * 5. On 200: persist returned session_id; write BOTH turns to chat_message
+   *    AFTER successful response (avoids orphan user-message-without-reply)
    */
   const sendMessage = useCallback(
     async (content: string) => {
@@ -247,17 +306,15 @@ export function useBotssonChat() {
       if (!targetConversationId) {
         const newConversation = await createAiConversation(profileId, workspaceId);
         targetConversationId = newConversation.id;
-
-        // Update the conversation query cache
         queryClient.setQueryData(["botsson-conversation", profileId], newConversation);
       }
 
-      const messageId = randomUUID();
+      const userMessageId = randomUUID();
       const now = new Date().toISOString();
 
-      // Optimistic update: show message immediately
+      // Optimistic UI update — render the user turn immediately
       const optimisticMessage: BotssonMessage = {
-        id: messageId,
+        id: userMessageId,
         conversation_id: targetConversationId,
         content,
         sender_id: profileId,
@@ -276,32 +333,123 @@ export function useBotssonChat() {
       queryClient.setQueryData(
         ["botsson-messages", targetConversationId],
         (old: { pages: BotssonMessage[][]; pageParams: number[] } | undefined) => {
-          if (!old) {
-            return { pages: [[optimisticMessage]], pageParams: [0] };
-          }
+          if (!old) return { pages: [[optimisticMessage]], pageParams: [0] };
           const newPages = [...old.pages];
           newPages[0] = [optimisticMessage, ...(newPages[0] ?? [])];
           return { ...old, pages: newPages };
         },
       );
 
-      // Insert the message with context metadata in attachments field
-      // Stage Engine reads context from attachments JSON
-      const { error } = await supabase.from("chat_message").insert({
-        id: messageId,
-        conversation_id: targetConversationId,
-        content,
-        sender_id: profileId,
-        is_system: false,
-        attachments: [{ type: "botsson_context", ...context }],
-        reactions: [],
-      });
-
-      if (error) {
-        // Revert optimistic update on failure
+      // Resolve auth — Bearer token from the active Supabase session
+      const { data: sessionData, error: sessionErr } = await supabase.auth.getSession();
+      if (sessionErr || !sessionData.session?.access_token) {
         queryClient.invalidateQueries({ queryKey: ["botsson-messages", targetConversationId] });
-        throw error;
+        throw new Error("Ikke pålogget");
       }
+
+      // POST to web BFF — proxies to stage-engine, forces channel: "chat"
+      let res: Response;
+      try {
+        res = await fetch(getEmmaChatUrl(), {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${sessionData.session.access_token}`,
+          },
+          body: JSON.stringify({
+            workspaceId,
+            userMessage: content,
+            sessionId: loadStoredSessionId(profileId) ?? undefined,
+            pageContext: "(app)/(home)",
+          }),
+        });
+      } catch (networkErr) {
+        // Network failure — revert optimistic update so user can retry
+        queryClient.invalidateQueries({ queryKey: ["botsson-messages", targetConversationId] });
+        throw networkErr;
+      }
+
+      // Status-code passthrough per agent-coord council R1, hop 7:
+      // - 401: re-login needed
+      // - 403/404/409: stale session_id — clear cache so next turn creates fresh session
+      if (!res.ok) {
+        if (res.status === 403 || res.status === 404 || res.status === 409) {
+          persistSessionId(profileId, null);
+        }
+        queryClient.invalidateQueries({ queryKey: ["botsson-messages", targetConversationId] });
+        const errBody = (await res.json().catch(() => ({}))) as { message?: string };
+        throw new Error(errBody.message ?? `Botsson feilet (${res.status})`);
+      }
+
+      const data = (await res.json()) as BffChatResponse;
+      persistSessionId(profileId, data.sessionId);
+
+      // Write BOTH turns to chat_message AFTER successful BFF round-trip.
+      // This avoids the orphan-user-message problem if BFF fails between
+      // optimistic render and chat_message insert (per agent-coord hop 6).
+      const assistantMessageId = randomUUID();
+      const responseTime = new Date().toISOString();
+
+      const { error: insertErr } = await supabase.from("chat_message").insert([
+        {
+          id: userMessageId,
+          conversation_id: targetConversationId,
+          content,
+          sender_id: profileId,
+          is_system: false,
+          attachments: [{ type: "botsson_context", ...context }],
+          reactions: [],
+        },
+        {
+          id: assistantMessageId,
+          conversation_id: targetConversationId,
+          content: data.text,
+          sender_id: BOTSSON_SENDER_ID,
+          is_system: true,
+          attachments: data.intent
+            ? [{ type: "botsson_intent", capability: data.intent.capability }]
+            : [],
+          reactions: [],
+        },
+      ]);
+
+      if (insertErr) {
+        // History write failed — the agent turn happened (engine_sessions has
+        // the truth) but UI persistence missed. Refetch to reconcile.
+        queryClient.invalidateQueries({ queryKey: ["botsson-messages", targetConversationId] });
+        throw insertErr;
+      }
+
+      // Append the assistant turn into the optimistic cache so UI shows it
+      // without waiting for refetch.
+      const assistantMessage: BotssonMessage = {
+        id: assistantMessageId,
+        conversation_id: targetConversationId,
+        content: data.text,
+        sender_id: BOTSSON_SENDER_ID,
+        reply_to_id: null,
+        is_system: true,
+        attachments: data.intent
+          ? [{ type: "botsson_intent", capability: data.intent.capability }]
+          : [],
+        reactions: [],
+        created_at: responseTime,
+        updated_at: responseTime,
+        edited_at: null,
+        deleted_at: null,
+        senderName: "Mr. Botsson",
+        senderAvatarUrl: null,
+      };
+
+      queryClient.setQueryData(
+        ["botsson-messages", targetConversationId],
+        (old: { pages: BotssonMessage[][]; pageParams: number[] } | undefined) => {
+          if (!old) return { pages: [[assistantMessage]], pageParams: [0] };
+          const newPages = [...old.pages];
+          newPages[0] = [assistantMessage, ...(newPages[0] ?? [])];
+          return { ...old, pages: newPages };
+        },
+      );
     },
     [profileId, workspaceId, conversationId, context, queryClient],
   );
