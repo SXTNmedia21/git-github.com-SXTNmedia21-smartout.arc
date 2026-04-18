@@ -1,5 +1,6 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { handleSyncIntegration } from "./handlers/sync-integration.ts";
+import { handleScanOverdueInvoices } from "./handlers/scan-overdue-invoices.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -2003,6 +2004,28 @@ async function executeStep(
     // ──────────────────────────────────────────────────────────
     case "sync_integration": {
       await handleSyncIntegration(supabase, state, step);
+      break;
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // scan_overdue_invoices — Billing Fase 3A Spor C (B4).
+    //
+    // Daily dunning scan. Walks action_payload.stages and escalates any
+    // overdue invoice that crossed the boundary. Uses
+    // dunning_escalation_log UNIQUE(invoice_id, to_stage) for
+    // idempotency so the daily cron can re-fire harmlessly. Handler is
+    // in handlers/scan-overdue-invoices.ts — the same split pattern as
+    // sync_integration (Fase 2 B4).
+    //
+    // Trigger source: pg_cron 'smartout-dunning-daily' emits a
+    // 'dunning_daily_tick' engine_event at 07:00 UTC; the platform-
+    // scoped engine_trigger spawns this state.
+    //
+    // Ref: ADR-0134 (dunning via engine_process), ADR-0127
+    //      (workspace opt-out via suppress rule), spec §4.2.
+    // ──────────────────────────────────────────────────────────
+    case "scan_overdue_invoices": {
+      await handleScanOverdueInvoices(supabase, state, step);
       break;
     }
 
