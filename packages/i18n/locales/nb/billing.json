@@ -149,6 +149,19 @@
     "detail_no_attempts": "Ingen forsøk registrert.",
     "detail_error_code": "Feilkode"
   },
+  "dunning": {
+    "optout": {
+      "section_title": "Automatiske påminnelser",
+      "section_description": "Send e-post til kunden når fakturaer er forfalt (3, 7, 14 dager).",
+      "toggle_label": "Automatiske betalingspåminnelser",
+      "helper_on": "Smartout sender automatisk påminnelse.",
+      "helper_off": "Du må sende påminnelser manuelt.",
+      "toggle_aria_label": "Slå automatiske betalingspåminnelser av eller på",
+      "workspace_heading": "{name}",
+      "success_toast": "Innstillingen er lagret",
+      "error_toast": "Kunne ikke lagre: {error}"
+    }
+  },
   "refund": {
     "dialog_title": "Refunder betaling",
     "dialog_description": "Refusjonen utføres av Stripe. Kreditnotaen opprettes automatisk når refusjonen bekreftes.",

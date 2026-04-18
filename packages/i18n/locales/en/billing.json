@@ -71,6 +71,19 @@
     "detail_no_attempts": "No attempts recorded.",
     "detail_error_code": "Error code"
   },
+  "dunning": {
+    "optout": {
+      "section_title": "Automatic payment reminders",
+      "section_description": "Email the customer when invoices are overdue (3, 7, 14 days).",
+      "toggle_label": "Automatic payment reminders",
+      "helper_on": "Smartout sends reminders automatically.",
+      "helper_off": "You must send reminders manually.",
+      "toggle_aria_label": "Toggle automatic payment reminders on or off",
+      "workspace_heading": "{name}",
+      "success_toast": "Setting saved",
+      "error_toast": "Could not save: {error}"
+    }
+  },
   "refund": {
     "dialog_title": "Refund payment",
     "dialog_description": "The refund is executed by Stripe. A credit note is created automatically once the refund is confirmed.",
