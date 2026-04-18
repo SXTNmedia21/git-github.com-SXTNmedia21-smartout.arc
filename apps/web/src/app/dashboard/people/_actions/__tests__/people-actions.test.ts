@@ -126,7 +126,8 @@ describe("updateProfileRole (gated)", () => {
 
     expect(result).toEqual({ ok: true });
     expect(gatedUpdateMock).toHaveBeenCalledTimes(1);
-    const [, table, patch, ctx] = gatedUpdateMock.mock.calls[0];
+    const call = gatedUpdateMock.mock.calls[0] ?? [];
+    const [, table, patch, ctx] = call;
     expect(table).toBe("profile");
     expect(patch).toEqual({ role: "manager" });
     expect(ctx).toMatchObject({
@@ -212,8 +213,9 @@ describe("deactivateProfile / reactivateProfile (gated)", () => {
     const result = await deactivateProfile("prof-1", "ws-1");
 
     expect(result).toEqual({ ok: true });
-    const [, , patch] = gatedUpdateMock.mock.calls[0];
-    expect(patch).toEqual({ status: "offboarding", is_active: false });
+    const deactivateCall = gatedUpdateMock.mock.calls[0] ?? [];
+    const [, , deactivatePatch] = deactivateCall;
+    expect(deactivatePatch).toEqual({ status: "offboarding", is_active: false });
   });
 
   it("reactivateProfile passes status=active + is_active=true and surfaces proposal id", async () => {
@@ -231,7 +233,8 @@ describe("deactivateProfile / reactivateProfile (gated)", () => {
     const result = await reactivateProfile("prof-1", "ws-1");
 
     expect(result).toEqual({ ok: true, pendingProposal: "prop-456" });
-    const [, , patch] = gatedUpdateMock.mock.calls[0];
-    expect(patch).toEqual({ status: "active", is_active: true });
+    const reactivateCall = gatedUpdateMock.mock.calls[0] ?? [];
+    const [, , reactivatePatch] = reactivateCall;
+    expect(reactivatePatch).toEqual({ status: "active", is_active: true });
   });
 });
