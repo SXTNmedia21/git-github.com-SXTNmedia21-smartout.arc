@@ -63,7 +63,7 @@ export function GridContent({
   onApproveProposal?: (id: string) => Promise<void>;
   onRejectProposal?: (id: string) => void;
   conflictedShiftIds?: Set<string>;
-  readinessMap?: Map<string, { readinessPercent: number; pendingProtocols?: MissingProtocol[] }>;
+  readinessMap?: Map<string, { readinessPercent: number; pendingProtocols?: string[] }>;
 }) {
   const { isDark, scheduleView, scheduleCompactMode } = useContext(DashboardContext);
   const { active } = useDndContext();
@@ -351,7 +351,9 @@ export function GridContent({
                       enableDroppable={enableDroppable}
                       conflictedShiftIds={conflictedShiftIds}
                       readinessPercent={readinessMap?.get(employee.id)?.readinessPercent}
-                      missingProtocols={readinessMap?.get(employee.id)?.pendingProtocols ?? []}
+                      missingProtocols={(
+                        readinessMap?.get(employee.id)?.pendingProtocols ?? []
+                      ).map((name) => ({ protocol_id: name, name, steps_remaining: 1 }))}
                     />
                   </div>
                 );
@@ -408,7 +410,9 @@ export function GridContent({
                       enableDroppable={enableDroppable}
                       subtitle={emp.team}
                       readinessPercent={readinessMap?.get(emp.id)?.readinessPercent}
-                      missingProtocols={readinessMap?.get(emp.id)?.pendingProtocols ?? []}
+                      missingProtocols={(readinessMap?.get(emp.id)?.pendingProtocols ?? []).map(
+                        (name) => ({ protocol_id: name, name, steps_remaining: 1 }),
+                      )}
                     />
                   ))}
                 </React.Fragment>
@@ -442,7 +446,9 @@ export function GridContent({
                       enableDroppable={enableDroppable}
                       subtitle={emp.jobTitle || emp.role}
                       readinessPercent={readinessMap?.get(emp.id)?.readinessPercent}
-                      missingProtocols={readinessMap?.get(emp.id)?.pendingProtocols ?? []}
+                      missingProtocols={(readinessMap?.get(emp.id)?.pendingProtocols ?? []).map(
+                        (name) => ({ protocol_id: name, name, steps_remaining: 1 }),
+                      )}
                     />
                   ))}
                 </React.Fragment>
@@ -480,7 +486,9 @@ export function GridContent({
                       enableDroppable={enableDroppable}
                       subtitle={emp.departmentName}
                       readinessPercent={readinessMap?.get(emp.id)?.readinessPercent}
-                      missingProtocols={readinessMap?.get(emp.id)?.pendingProtocols ?? []}
+                      missingProtocols={(readinessMap?.get(emp.id)?.pendingProtocols ?? []).map(
+                        (name) => ({ protocol_id: name, name, steps_remaining: 1 }),
+                      )}
                     />
                   ))}
                 </React.Fragment>
@@ -786,7 +794,7 @@ export const EmployeeRow = React.memo(function EmployeeRow({
   else if (percentage >= 70) barColor = "bg-zinc-500";
 
   return (
-    <>
+    <div className="flex w-full flex-col">
       <div className="group/row flex w-full">
         {/* Sticky employee info panel — clickable to open drawer */}
         <div
@@ -938,7 +946,7 @@ export const EmployeeRow = React.memo(function EmployeeRow({
       {missingProtocols && missingProtocols.length > 0 && (
         <ShiftUnlockHint missingProtocols={missingProtocols} />
       )}
-    </>
+    </div>
   );
 });
 
