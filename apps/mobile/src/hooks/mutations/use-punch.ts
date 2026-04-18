@@ -98,24 +98,11 @@ export function usePunch() {
       // Resolve BEFORE enqueue so broken attribution fails fast (ADR-0134)
       const { profileId, workspaceId } = await getProfileContext();
       // Capture shift_id from the cache BEFORE we clear it — needed for
-      // engine_event downstream routing that keys on shift identity.
+      // engine_event / entity_id (schedule_shift) routing.
       const activeEntry = queryClient.getQueryData<TimeEntry | null>(["active-time-entry"]);
       const shiftId = activeEntry?.shift_id ?? "";
       const now = new Date().toISOString();
 
-      // Read the active time entry from cache to capture shift_id + actor/
-      // workspace identifiers and compute work_minutes for the telemetry
-      // payload. The cache row was populated by punchIn (or by
-      // useActiveTimeEntry on app open), so it is the cheapest authoritative
-      // source without a network round-trip. If the cache is cold we still
-      // emit with shift_id unknown — the engine trigger will record the
-      // event but the orchestrator cannot match an entity. The server-side
-      // sync worker can re-emit a canonical event when needed.
-      const activeEntry = queryClient.getQueryData<TimeEntry | null>(["active-time-entry"]);
-
-      const shiftId = activeEntry?.shift_id ?? "";
-      const profileId = activeEntry?.profile_id ?? "";
-      const workspaceId = activeEntry?.workspace_id ?? null;
       const punchInMs = activeEntry?.punch_in ? new Date(activeEntry.punch_in).getTime() : null;
       const workMinutes =
         punchInMs !== null ? Math.max(0, Math.round((Date.now() - punchInMs) / 60_000)) : 0;

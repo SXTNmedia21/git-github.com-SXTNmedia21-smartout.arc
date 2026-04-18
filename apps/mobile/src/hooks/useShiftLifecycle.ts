@@ -13,16 +13,17 @@ import {
   type UseShiftLifecycleOptions,
 } from "@smartout/schedule";
 
-import { supabase } from "@/lib/supabase";
+export type UseShiftLifecycleMobileOptions = UseShiftLifecycleOptions;
 
-export type UseShiftLifecycleMobileOptions = Omit<UseShiftLifecycleOptions, "supabase">;
-
+/**
+ * useShiftLifecycle — re-exports the platform-neutral @smartout/schedule hook
+ * (uses `@smartout/supabase/client` which resolves to the RN client here).
+ */
 export function useShiftLifecycle(
   shiftId: string | null | undefined,
   opts: UseShiftLifecycleMobileOptions = {},
 ) {
-  return baseUseShiftLifecycle(shiftId, { ...opts, supabase });
+  return baseUseShiftLifecycle(shiftId, opts);
 }
 
 export type { ShiftLifecycleRow };
-export { shiftLifecycleQueryKey } from "@smartout/schedule";

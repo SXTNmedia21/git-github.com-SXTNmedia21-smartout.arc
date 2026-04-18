@@ -27,8 +27,8 @@ function formatDate(iso: string): string {
   });
 }
 
-function statusLabel(status: Contract["status"]): string {
-  const map: Record<Contract["status"], string> = {
+function statusLabel(status: string): string {
+  const map: Record<string, string> = {
     draft: "Utkast",
     sent: "Sendt",
     viewed: "Sett",
