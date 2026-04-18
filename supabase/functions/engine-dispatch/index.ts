@@ -1,5 +1,6 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { handleSyncIntegration } from "./handlers/sync-integration.ts";
+import { handleScanOverdueInvoices } from "./handlers/scan-overdue-invoices.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -2006,6 +2007,28 @@ async function executeStep(
       break;
     }
 
+    // ──────────────────────────────────────────────────────────
+    // scan_overdue_invoices — Billing Fase 3A Spor C (B4).
+    //
+    // Daily dunning scan. Walks action_payload.stages and escalates any
+    // overdue invoice that crossed the boundary. Uses
+    // dunning_escalation_log UNIQUE(invoice_id, to_stage) for
+    // idempotency so the daily cron can re-fire harmlessly. Handler is
+    // in handlers/scan-overdue-invoices.ts — the same split pattern as
+    // sync_integration (Fase 2 B4).
+    //
+    // Trigger source: pg_cron 'smartout-dunning-daily' emits a
+    // 'dunning_daily_tick' engine_event at 07:00 UTC; the platform-
+    // scoped engine_trigger spawns this state.
+    //
+    // Ref: ADR-0143 (dunning via engine_process), ADR-0127
+    //      (workspace opt-out via suppress rule), spec §4.2.
+    // ──────────────────────────────────────────────────────────
+    case "scan_overdue_invoices": {
+      await handleScanOverdueInvoices(supabase, state, step);
+      break;
+    }
+
     default:
       // Unknown action type — fail
       await supabase
@@ -2520,25 +2543,8 @@ async function handleDispatchInvoice(
       })
       .eq("invoice_dispatch_id", invoiceDispatchId);
 
-    // 5. ADR-0128 dual-write backstop — only on first successful dispatch.
-    //    "First" = no prior delivered dispatch for this invoice.
-    const { count: priorDelivered } = await supabase
-      .from("invoice_dispatch")
-      .select("invoice_dispatch_id", { count: "exact", head: true })
-      .eq("invoice_id", dispatch.invoice_id)
-      .eq("status", "delivered")
-      .neq("invoice_dispatch_id", invoiceDispatchId);
-
-    if ((priorDelivered ?? 0) === 0) {
-      await supabase
-        .from("invoice")
-        .update({
-          delivery_channel: dispatch.channel,
-          delivery_status: "delivered",
-          external_reference: result.external_reference,
-        })
-        .eq("invoice_id", dispatch.invoice_id);
-    }
+    // 5. ADR-0128 dual-write block REMOVED in Fase 3A B6 — invoice.delivery_*
+    //    columns were DROPped. invoice_dispatch is now the sole source of truth.
 
     // 6. Emit 'invoice dispatched' via HTTP bridge (Deno → Node).
     await emitViaBridge({

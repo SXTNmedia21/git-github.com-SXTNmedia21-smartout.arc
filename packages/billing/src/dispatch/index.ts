@@ -11,3 +11,8 @@ export { EmailCustomerAdapter } from "./adapters/email-customer";
 export { EmailInternalAdapter } from "./adapters/email-internal";
 export { HttpApiAdapter } from "./adapters/http-api";
 export { sendViaSendGrid } from "./adapters/sendgrid";
+export { StripeDispatchAdapter, getStripe, STRIPE_API_VERSION } from "./adapters/stripe";
+export { redactStripeEvent, FORBIDDEN_KEYS } from "./adapters/stripe-redact";
+export type { RedactedStripeEvent } from "./adapters/stripe-redact";
+export { validateDunningStages } from "./dunning-stages";
+export type { DunningStage, ValidateStagesResult } from "./dunning-stages";

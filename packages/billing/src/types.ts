@@ -60,6 +60,17 @@ export type DispatchStatus = Database["public"]["Enums"]["dispatch_status"];
 export type DispatchRuleAction = Database["public"]["Enums"]["dispatch_rule_action"];
 export type BillingIntegrationType = Database["public"]["Enums"]["billing_integration_type"];
 
+// ─── Fase 3A — payment row shapes ─────────────────────────────────
+export type Payment = Database["public"]["Tables"]["payment"]["Row"];
+export type PaymentInsert = Database["public"]["Tables"]["payment"]["Insert"];
+export type PaymentUpdate = Database["public"]["Tables"]["payment"]["Update"];
+
+export type PaymentAttempt = Database["public"]["Tables"]["payment_attempt"]["Row"];
+export type PaymentAttemptInsert = Database["public"]["Tables"]["payment_attempt"]["Insert"];
+
+export type PaymentStatusEnum = Database["public"]["Enums"]["payment_status"];
+export type PaymentMethodTypeEnum = Database["public"]["Enums"]["payment_method_type"];
+
 // Application-level string unions (NOT in DB enums — stored as text).
 // Kept here so Server Actions + UI use the same literal set.
 
@@ -90,7 +101,9 @@ export type PaymentChannel =
   | "partial_write_off"
   | "other";
 
-/** Delivery channel on invoice.delivery_channel (matches DB CHECK constraint). */
+/** Delivery channel on pricing_terms.delivery_channel (matches DB CHECK constraint).
+ *  Previously also on invoice.delivery_channel — that column was DROPPED in
+ *  Fase 3A B6 per ADR-0128 + ADR-0135. Delivery-state lives on invoice_dispatch. */
 export type DeliveryChannel = "manual" | "stripe" | "ehf";
 
 /** Invoice format for delivery (matches pricing_terms.invoice_format CHECK). */

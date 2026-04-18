@@ -18,6 +18,9 @@ import type {
   Invoice,
   InvoiceDispatch,
   InvoiceLineItem,
+  Payment,
+  PaymentAttempt,
+  PaymentStatusEnum,
   UsageSnapshot,
 } from "./types";
 import type { InvoiceListFilters } from "./schemas";
@@ -263,4 +266,109 @@ export async function getEffectiveDispatchRules(
   // explicit. rule_source is widened to string by the generator — we
   // trust the SQL which only emits 'platform' | 'workspace'.
   return (data ?? []) as unknown as EffectiveDispatchRule[];
+}
+
+// ─── Fase 3A B3 — Payment queries (platform-admin + per-invoice) ────
+// The payments dashboard lists every payment row across companies with
+// optional status/company filters. Per-invoice payment history reuses
+// the same `fetchPaymentsByInvoice` pure query.
+//
+// Mobile parity: React Native callers supply their own Supabase client
+// (workspace-scoped JWT) and RLS limits visibility. Web wraps these in
+// Server Components / Actions.
+
+/** Row shape returned by listPayments — Payment + optional company join. */
+export type PaymentWithCompany = Payment & {
+  company: { company_id: string; name: string | null } | null;
+};
+
+export type PaymentListFilters = {
+  /** Match payment.status exactly. Omit to see all statuses. */
+  status?: PaymentStatusEnum;
+  /** Match payment.company_id exactly. Omit for all companies. */
+  company_id?: string;
+  /** ISO-8601 — paid_at >= date. Omit for no lower bound. */
+  paid_from?: string;
+  /** ISO-8601 — paid_at <= date. Omit for no upper bound. */
+  paid_to?: string;
+  /** Default 50, max 500. */
+  limit?: number;
+};
+
+/**
+ * List payments across all companies (platform-admin) or a single
+ * company (workspace surface + tests). Ordering: created_at DESC
+ * because paid_at is NULL for pending/processing rows.
+ *
+ * Joins company for display name so the dashboard doesn't round-trip
+ * per row. If the RLS context can't see a given company, the join
+ * resolves to null and the row still surfaces — callers render an
+ * em-dash for the name.
+ */
+export async function listPayments(
+  supabase: BillingClient,
+  filters: PaymentListFilters = {},
+): Promise<PaymentWithCompany[]> {
+  const limit = Math.min(filters.limit ?? 50, 500);
+
+  let query = supabase
+    .from("payment")
+    .select("*, company:company(company_id, name)")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (filters.status) {
+    query = query.eq("status", filters.status);
+  }
+  if (filters.company_id) {
+    query = query.eq("company_id", filters.company_id);
+  }
+  if (filters.paid_from) {
+    query = query.gte("paid_at", filters.paid_from);
+  }
+  if (filters.paid_to) {
+    query = query.lte("paid_at", filters.paid_to);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []) as unknown as PaymentWithCompany[];
+}
+
+/**
+ * Fetch all payments for a single invoice. Used by both platform-admin
+ * (invoice detail accordion) and workspace-admin (payment history on
+ * the workspace invoice page). Ordered newest-first.
+ */
+export async function fetchPaymentsByInvoice(
+  supabase: BillingClient,
+  invoiceId: string,
+): Promise<Payment[]> {
+  const { data, error } = await supabase
+    .from("payment")
+    .select("*")
+    .eq("invoice_id", invoiceId)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []) as Payment[];
+}
+
+/**
+ * Load every payment_attempt for a payment. Platform-admin only per
+ * ADR-0141 (payment_attempt RLS rejects non-platform reads). Ordered
+ * by attempt_number ASC so the UI renders oldest → newest left-to-right.
+ */
+export async function fetchPaymentAttempts(
+  supabase: BillingClient,
+  paymentId: string,
+): Promise<PaymentAttempt[]> {
+  const { data, error } = await supabase
+    .from("payment_attempt")
+    .select("*")
+    .eq("payment_id", paymentId)
+    .order("attempt_number", { ascending: true });
+
+  if (error) throw error;
+  return (data ?? []) as PaymentAttempt[];
 }

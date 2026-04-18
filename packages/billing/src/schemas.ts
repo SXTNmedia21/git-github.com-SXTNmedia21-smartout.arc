@@ -147,6 +147,7 @@ export const BillingDispatchChannelSchema = z.enum([
   "email_internal",
   "http_api",
   "peppol_ehf",
+  "stripe_invoice",
 ]);
 
 export const RetryDispatchInputSchema = z.object({
@@ -360,3 +361,47 @@ export const MarkInvoicePaidByWorkspaceAdminInputSchema = z.object({
 export type MarkInvoicePaidByWorkspaceAdminInput = z.infer<
   typeof MarkInvoicePaidByWorkspaceAdminInputSchema
 >;
+
+// ─── Fase 3A — Stripe payment inputs ───────────────────────────────
+// Spec §3.2-§3.4 + ADR-0131 + ADR-0142. Server Actions validate these
+// at the RPC boundary; pure actions assume data already parsed.
+
+export const PaymentMethodTypeSchema = z.enum([
+  "stripe_card",
+  "stripe_bank",
+  "bank_transfer",
+  "manual_adjustment",
+]);
+export type PaymentMethodType = z.infer<typeof PaymentMethodTypeSchema>;
+
+// Workspace "Betal nå" entrypoint — only the invoice_id is supplied; the
+// action resolves the invoice + company + amount server-side to prevent
+// tampering. stripe_card is implied for Checkout flows; stripe_bank is
+// Stripe's Swish/Bancontact etc. which we enable later.
+export const InitiatePaymentInputSchema = z.object({
+  invoice_id: z.string().uuid(),
+});
+export type InitiatePaymentInput = z.infer<typeof InitiatePaymentInputSchema>;
+
+// ADR-0120 void reasons overlap but refunds use a narrower set —
+// bankruptcy / write-off don't belong here. Keep it short + aligned to
+// Stripe's allowed reasons (duplicate / fraudulent / requested_by_customer).
+export const RefundReasonSchema = z.enum([
+  "duplicate",
+  "fraudulent",
+  "requested_by_customer",
+  "other",
+]);
+export type RefundReason = z.infer<typeof RefundReasonSchema>;
+
+// Platform-admin initiates a Stripe refund. amount omitted = full refund.
+// Webhook charge.refunded then drives the DB state + credit-note creation
+// per ADR-0142. We DO NOT write payment.refunded_amount directly here.
+export const RefundPaymentInputSchema = z.object({
+  payment_id: z.string().uuid(),
+  amount: z.number().positive().optional(),
+  reason: RefundReasonSchema,
+  reason_detail: z.string().min(10).max(1000),
+  idempotency_key: z.string().uuid(),
+});
+export type RefundPaymentInput = z.infer<typeof RefundPaymentInputSchema>;

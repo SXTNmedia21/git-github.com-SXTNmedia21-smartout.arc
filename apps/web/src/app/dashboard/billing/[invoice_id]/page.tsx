@@ -3,6 +3,9 @@ import { InvoiceStatusBadge } from "@smartout/ui";
 
 import { getMyInvoiceDetail } from "../_actions/queries";
 import { MarkPaidButton } from "../_components/MarkPaidButton";
+import { PayNowButton } from "../_components/PayNowButton";
+import { PostPaymentCancelled } from "../_components/PostPaymentCancelled";
+import { PostPaymentConfirmation } from "../_components/PostPaymentConfirmation";
 import { WorkspaceInvoiceDispatches } from "../_components/WorkspaceInvoiceDispatches";
 
 // Fase 2 Spor C — workspace-admin invoice detail.
@@ -26,15 +29,18 @@ type LineItem = {
 
 export default async function WorkspaceInvoiceDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ invoice_id: string }>;
+  searchParams: Promise<{ payment?: string }>;
 }) {
-  const { invoice_id } = await params;
+  const [{ invoice_id }, search] = await Promise.all([params, searchParams]);
   const detail = await getMyInvoiceDetail(invoice_id);
   if (!detail) redirect("/dashboard/billing");
 
   const { invoice, line_items } = detail;
   const lines = line_items as LineItem[];
+  const paymentReturn = search.payment;
 
   return (
     <div className="space-y-6">
@@ -106,6 +112,22 @@ export default async function WorkspaceInvoiceDetailPage({
               <p className="text-muted-foreground">Kanal: {invoice.payment_channel}</p>
             ) : null}
           </div>
+        ) : null}
+        {/* B3-fase3a: workspace betal-nå — DO NOT REMOVE */}
+        <PayNowButton
+          invoice={{
+            invoice_id: invoice.invoice_id,
+            status: invoice.status,
+            amount_incl_vat: invoice.amount_incl_vat,
+            currency: invoice.currency,
+          }}
+        />
+        {/* /B3-fase3a: workspace betal-nå */}
+        {paymentReturn === "success" ? (
+          <PostPaymentConfirmation invoiceId={invoice.invoice_id} />
+        ) : null}
+        {paymentReturn === "cancelled" ? (
+          <PostPaymentCancelled invoiceId={invoice.invoice_id} />
         ) : null}
         {/* B5: workspace mark-paid — DO NOT REMOVE */}
         <MarkPaidButton

@@ -10,12 +10,14 @@ import type { BillingDispatchChannel, DispatchAdapter } from "../";
 import { EmailCustomerAdapter } from "./adapters/email-customer";
 import { EmailInternalAdapter } from "./adapters/email-internal";
 import { HttpApiAdapter } from "./adapters/http-api";
+import { StripeDispatchAdapter } from "./adapters/stripe";
 
 export const ADAPTER_REGISTRY: Partial<Record<BillingDispatchChannel, DispatchAdapter>> = {
   email_customer: EmailCustomerAdapter,
   email_internal: EmailInternalAdapter,
   http_api: HttpApiAdapter,
-  // peppol_ehf: intentionally absent — Fase 3 (ADR-0129).
+  stripe_invoice: StripeDispatchAdapter,
+  // peppol_ehf: intentionally absent — Fase 3B (ADR-0129).
 };
 
 export function getAdapter(channel: BillingDispatchChannel): DispatchAdapter | null {
