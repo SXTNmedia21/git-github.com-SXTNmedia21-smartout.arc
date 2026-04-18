@@ -27,6 +27,8 @@ tags: [decisions, adr, index]
 | ADR | Date | Title | Status |
 |-----|------|-------|--------|
 | [ADR-0140](0140-governance-provenance-jsonb.md) | 2026-04-18 | Governance table provenance convention via `provenance JSONB` — five governance tables; renumbered from 0126 to avoid collision with ADR-0126 (billing integration sync). | accepted |
+| [ADR-0150](0150-source-discriminator-trigger-filters.md) | 2026-04-18 | Source Discriminator Pattern + Trigger Filters (renumbered from 0108) | accepted |
+| [ADR-0149](0149-strike-mcp-telemetry-boundary.md) | 2026-04-18 | Strike-MCP Telemetry Boundary (renumbered from 0107) | accepted |
 | [ADR-0144](0144-invoice-delivery-columns-drop-gate.md) | 2026-04-18 | invoice.delivery_* DROP COLUMN Lifecycle Gate (amends ADR-0128; renumbered from 0135 to avoid collision with mobile ADR-0135) | accepted |
 | [ADR-0143](0143-dunning-via-engine-process.md) | 2026-04-18 | Automated Dunning via engine_process, Not n8n (renumbered from 0134 to avoid collision with mobile ADR-0134) | accepted |
 | [ADR-0142](0142-invoice-refund-flow-adr-0120-amendment.md) | 2026-04-18 | Invoice Refund Flow — ADR-0120 Amendment for Stripe Refunds (renumbered from 0133 to avoid collision with mobile ADR-0133) | accepted |
@@ -62,6 +64,9 @@ tags: [decisions, adr, index]
 | [ADR-0115](0115-rsc-migration-pattern-dashboard-routes.md) | 2026-04-16 | RSC Migration Pattern for Dashboard Routes — streaming boundary, NordicSkeleton pairing, ambience invariant, first-chunk heading rule, schedule excluded. **Pattern proven** by Sprint 2 migration (people, handbook, hms, reports). | accepted |
 | [ADR-0114](0114-server-actions-canonical-mutation-primitive.md) | 2026-04-16 | Server Actions as Canonical User-Initiated Mutation Primitive + Capability Authority Relation — three-path divergence closed via shared gate RPC + explicit emit contract. **Accepted 2026-04-17** — WP3 prerequisite (`gate-client.ts` + ESLint rule) shipped in `b90dc1f5`. R3 unblocked 2026-04-18 (ADR-0091 WP2 shipped); call-site migration follows. | accepted |
 | [ADR-0113](0113-dashboard-context-decomposition-completion.md) | 2026-04-16 | DashboardContext Decomposition Completion — facade `useDashboard()` hook, ThemeContext hoist with synchronous data-theme flip, BotssonProvider above shell split. | accepted |
+| [ADR-0111](0111-employment-contract-detail-versioning.md) | 2026-04-15 | Employment Contract Detail — Append-Only Versioning of Tripletex-Canonical Fields (surrogate PK + UNIQUE; 5-column scope; deferred runtime mechanism) | accepted |
+| [ADR-0110](0110-payroll-ledger-archive-semantics.md) | 2026-04-15 | Payroll Ledger Archive — Read-Only Bubble Historical Semantics (lean typed columns + raw_json; RLS USING(false) UPDATE/DELETE; operational table deferred) | accepted |
+| [ADR-0109](0109-migrated-contract-shell-block-and-supersede.md) | 2026-04-15 | Migrated Contract Shell — Block-and-Supersede Rule (UPDATE on source='bubble_migration' blocked; admin must issue new contract via composition; 'migration_incomplete' enum value) | accepted |
 | [ADR-0106](0106-effective-dating-governance-content.md) | 2026-04-15 | Effective-Dating Strategy for Governance Content (valid_from/valid_to on protocol/procedure/knowledge_test/confirmation; no *_version tables) | accepted |
 | [ADR-0105](0105-inspection-link-public-access-pattern.md) | 2026-04-15 | inspection_link Public-Access Pattern (hashed token, scope JSONB, justification, default anonymization; MVP schema, UI deferred to Phase 4) | accepted |
 | [ADR-0104](0104-notification-consolidation-roadmap.md) | 2026-04-15 | Notification Consolidation Roadmap (notification_policy + notification_sent_log with domain column; consolidation M+3/M+6/M+12) | accepted |
@@ -180,6 +185,7 @@ tags: [decisions, adr, index]
 ## Integrity
 
 - **96 ADRs** (0001-0139 with 0092 reserved, ADR-0000 is this index) — 2026-04-18 added ADR-0137/0138/0139 (gate-client wave 2 prereqs, status: draft)
+- **98 ADRs** (0001-0111 with 0092 reserved, ADR-0000 is this index)
 - **0 number collisions** (verified 2026-04-13 — ADR-0068 entity-drawer collision resolved by renumbering to 0086)
 - **1 reserved slot:** 0092 — Monitor Mode Graduation Criteria (Phase E / WP6), to be written when WP6 lands
 - **0 number gaps** (0052/0053/0054 previously gaps, now occupied by renumbered collision resolvers)

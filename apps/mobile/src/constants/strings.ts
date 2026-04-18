@@ -265,6 +265,7 @@ export const strings = {
     statusTerminated: "Oppsagt",
     statusPendingData: "Venter på data",
     statusDeclined: "Avslått",
+    statusMigrationIncomplete: "Importert — mangler data",
 
     // Info row labels
     labelPosition: "Stilling",
