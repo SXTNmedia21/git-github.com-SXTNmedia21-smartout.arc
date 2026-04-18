@@ -261,7 +261,7 @@ async function issueCreditNoteForRefund(
   const { data: original } = await supabase
     .from("invoice")
     .select(
-      "invoice_id, company_id, invoice_type, period_from, period_to, currency, delivery_channel, vat_rate, amount_excl_vat, vat_amount, amount_incl_vat",
+      "invoice_id, company_id, invoice_type, period_from, period_to, currency, vat_rate, amount_excl_vat, vat_amount, amount_incl_vat",
     )
     .eq("invoice_id", args.original_invoice_id)
     .maybeSingle();
@@ -305,7 +305,6 @@ async function issueCreditNoteForRefund(
       vat_amount,
       amount_incl_vat,
       currency: original.currency,
-      delivery_channel: original.delivery_channel,
       void_reason: `${reasonTag}: ${args.stripe_refund_id}`,
       created_by: null,
     })

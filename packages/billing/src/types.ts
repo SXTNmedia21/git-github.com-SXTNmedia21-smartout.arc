@@ -101,7 +101,9 @@ export type PaymentChannel =
   | "partial_write_off"
   | "other";
 
-/** Delivery channel on invoice.delivery_channel (matches DB CHECK constraint). */
+/** Delivery channel on pricing_terms.delivery_channel (matches DB CHECK constraint).
+ *  Previously also on invoice.delivery_channel — that column was DROPPED in
+ *  Fase 3A B6 per ADR-0128 + ADR-0135. Delivery-state lives on invoice_dispatch. */
 export type DeliveryChannel = "manual" | "stripe" | "ehf";
 
 /** Invoice format for delivery (matches pricing_terms.invoice_format CHECK). */

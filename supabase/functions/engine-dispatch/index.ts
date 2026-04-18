@@ -2543,25 +2543,8 @@ async function handleDispatchInvoice(
       })
       .eq("invoice_dispatch_id", invoiceDispatchId);
 
-    // 5. ADR-0128 dual-write backstop — only on first successful dispatch.
-    //    "First" = no prior delivered dispatch for this invoice.
-    const { count: priorDelivered } = await supabase
-      .from("invoice_dispatch")
-      .select("invoice_dispatch_id", { count: "exact", head: true })
-      .eq("invoice_id", dispatch.invoice_id)
-      .eq("status", "delivered")
-      .neq("invoice_dispatch_id", invoiceDispatchId);
-
-    if ((priorDelivered ?? 0) === 0) {
-      await supabase
-        .from("invoice")
-        .update({
-          delivery_channel: dispatch.channel,
-          delivery_status: "delivered",
-          external_reference: result.external_reference,
-        })
-        .eq("invoice_id", dispatch.invoice_id);
-    }
+    // 5. ADR-0128 dual-write block REMOVED in Fase 3A B6 — invoice.delivery_*
+    //    columns were DROPped. invoice_dispatch is now the sole source of truth.
 
     // 6. Emit 'invoice dispatched' via HTTP bridge (Deno → Node).
     await emitViaBridge({

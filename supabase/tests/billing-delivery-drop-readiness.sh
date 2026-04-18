@@ -46,6 +46,18 @@ MATCHES=$(
     supabase/migrations/ \
     2>/dev/null \
   | grep -vE '(\.next/|node_modules/|/dist/|/\.turbo/|/test/|/tests/|__tests__|\.spec\.|/docs/|/archive/)' \
+  `# Legitimate references on OTHER tables/runtime fields — not invoice.*:` \
+  | grep -vE 'packages/billing/src/dispatch/types\.ts' \
+  | grep -vE 'packages/billing/src/dispatch/adapters/' \
+  | grep -vE 'packages/billing/src/integrations/types\.ts' \
+  | grep -vE 'packages/billing/src/integrations/adapters/' \
+  `# invoice_dispatch.external_reference is a NEW Fase 2 column, legitimate:` \
+  | grep -vE 'InvoiceDispatches' \
+  | grep -vE 'invoice_dispatch' \
+  `# pricing_terms.delivery_channel + updatePricingTerms action — different column:` \
+  | grep -vE 'updatePricingTerms|pricing_terms|DeliveryChannel|PricingTerms' \
+  `# Runtime emit-bridge return field from adapters (not DB column):` \
+  | grep -vE 'sync-integration\.ts|sync_integration' \
   || true
 )
 

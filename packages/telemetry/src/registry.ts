@@ -3698,10 +3698,9 @@ export interface InvoiceSent extends BaseEvent {
   properties: {
     entity_type: "invoice";
     entity_id: string;
-    data: {
-      delivery_channel: string;
-      external_reference?: string;
-    };
+    // Per ADR-0128 + ADR-0135: delivery_channel + external_reference fields
+    // removed in Fase 3A B6. Delivery-state lives on invoice_dispatch now.
+    data: Record<string, never>;
   };
 }
 

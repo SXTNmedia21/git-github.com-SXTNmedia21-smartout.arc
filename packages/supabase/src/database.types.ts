@@ -8401,11 +8401,8 @@ export type Database = {
           created_by: string | null
           credits_invoice_id: string | null
           currency: Database["public"]["Enums"]["currency"]
-          delivery_channel: string
-          delivery_status: string | null
           due_at: string | null
           dunning_status: Database["public"]["Enums"]["dunning_status"] | null
-          external_reference: string | null
           invoice_id: string
           invoice_number: number | null
           invoice_type: Database["public"]["Enums"]["invoice_type"]
@@ -8434,11 +8431,8 @@ export type Database = {
           created_by?: string | null
           credits_invoice_id?: string | null
           currency?: Database["public"]["Enums"]["currency"]
-          delivery_channel?: string
-          delivery_status?: string | null
           due_at?: string | null
           dunning_status?: Database["public"]["Enums"]["dunning_status"] | null
-          external_reference?: string | null
           invoice_id?: string
           invoice_number?: number | null
           invoice_type: Database["public"]["Enums"]["invoice_type"]
@@ -8467,11 +8461,8 @@ export type Database = {
           created_by?: string | null
           credits_invoice_id?: string | null
           currency?: Database["public"]["Enums"]["currency"]
-          delivery_channel?: string
-          delivery_status?: string | null
           due_at?: string | null
           dunning_status?: Database["public"]["Enums"]["dunning_status"] | null
-          external_reference?: string | null
           invoice_id?: string
           invoice_number?: number | null
           invoice_type?: Database["public"]["Enums"]["invoice_type"]
@@ -18079,7 +18070,14 @@ export type Database = {
         | "research"
         | "roadmap"
         | "other"
-      dunning_status: "none" | "in_negotiation" | "reminder_sent" | "escalated"
+      dunning_status:
+        | "none"
+        | "in_negotiation"
+        | "reminder_sent"
+        | "escalated"
+        | "reminder_1"
+        | "reminder_2"
+        | "collection_notice"
       enforcement_status: "aspirational" | "enforced"
       evaluation_outcome:
         | "allowed"
@@ -19568,7 +19566,15 @@ export const Constants = {
         "roadmap",
         "other",
       ],
-      dunning_status: ["none", "in_negotiation", "reminder_sent", "escalated"],
+      dunning_status: [
+        "none",
+        "in_negotiation",
+        "reminder_sent",
+        "escalated",
+        "reminder_1",
+        "reminder_2",
+        "collection_notice",
+      ],
       enforcement_status: ["aspirational", "enforced"],
       evaluation_outcome: [
         "allowed",

@@ -38,7 +38,7 @@ export default async function InvoicesPage({
   let query = supabase
     .from("invoice")
     .select(
-      "invoice_id, invoice_number, company_id, company:company(name), invoice_type, status, dunning_status, period_from, period_to, due_at, amount_incl_vat, delivery_channel",
+      "invoice_id, invoice_number, company_id, company:company(name), invoice_type, status, dunning_status, period_from, period_to, due_at, amount_incl_vat",
     )
     .order("created_at", { ascending: false })
     .limit(100);

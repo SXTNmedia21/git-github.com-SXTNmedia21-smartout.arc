@@ -252,7 +252,6 @@ async function generateForCompany(
       vat_amount,
       amount_incl_vat,
       currency: "NOK",
-      delivery_channel: pt.delivery_channel ?? "manual",
       due_at,
       // ADR-0121 Phase 1.5: snapshot the exact pricing_terms row that
       // governed this invoice. get_invoice_basis() prefers this FK over

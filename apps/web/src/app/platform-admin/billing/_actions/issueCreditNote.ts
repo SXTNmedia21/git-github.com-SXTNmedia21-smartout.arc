@@ -44,7 +44,7 @@ export async function issueCreditNote(rawInput: unknown): Promise<
   const { data: original, error: loadErr } = await supabase
     .from("invoice")
     .select(
-      "invoice_id, company_id, invoice_type, status, period_from, period_to, currency, delivery_channel, vat_rate",
+      "invoice_id, company_id, invoice_type, status, period_from, period_to, currency, vat_rate",
     )
     .eq("invoice_id", input.original_invoice_id)
     .maybeSingle();
@@ -90,7 +90,6 @@ export async function issueCreditNote(rawInput: unknown): Promise<
       vat_amount,
       amount_incl_vat,
       currency: original.currency,
-      delivery_channel: original.delivery_channel,
       void_reason: `${input.reason}: ${input.reason_detail}`,
       created_by: adminId,
     })

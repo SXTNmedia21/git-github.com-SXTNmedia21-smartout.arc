@@ -27,7 +27,6 @@ export type InvoiceListRow = Pick<
   | "period_to"
   | "due_at"
   | "amount_incl_vat"
-  | "delivery_channel"
 > & { company: { name: string } | null };
 
 export function InvoiceTable({ invoices }: { invoices: InvoiceListRow[] }) {
@@ -60,7 +59,6 @@ export function InvoiceTable({ invoices }: { invoices: InvoiceListRow[] }) {
           <TableHead className="text-right">Beløp (inkl. mva)</TableHead>
           <TableHead>Status</TableHead>
           <TableHead>Forfall</TableHead>
-          <TableHead>Kanal</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -82,7 +80,6 @@ export function InvoiceTable({ invoices }: { invoices: InvoiceListRow[] }) {
               <InvoiceStatusBadge status={inv.status} />
             </TableCell>
             <TableCell>{inv.due_at ?? "—"}</TableCell>
-            <TableCell>{inv.delivery_channel}</TableCell>
           </TableRow>
         ))}
       </TableBody>
