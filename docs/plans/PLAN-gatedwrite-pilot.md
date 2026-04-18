@@ -240,6 +240,29 @@ describe("updateProfileRole (gated)", () => {
 4. **Land the pilot** → collect feedback, then mechanize remaining migrations
 5. **Create follow-up issues** — for each non-gated table (scope, sequence, owner)
 
+## Consumer Migration Contract
+
+Every Server Action migrated to `gatedInsert/Update/Delete` returns a three-branch result:
+
+- `{ ok: true }` — applied, write succeeded
+- `{ ok: true, pendingProposal: <uuid> }` — proposed, a `change_proposal` was created
+- `{ ok: false, error: <string> }` — denied, the gate blocked the write (or a non-gate error surfaced)
+
+**Every consumer MUST handle all three.** Use `handleGatedResult` from `@/lib/gated-result` (shipped post-pilot) or manually destructure `{ ok, pendingProposal, error }`. Do NOT wrap a gated action in a plain `try/catch` with a success toast — blocked writes do NOT throw (they return `{ ok: false }`), and the proposal branch MUST NOT render a success toast (proposal is not the same as applied).
+
+Reference consumer: `apps/web/src/app/dashboard/people/_components/people-data-table.tsx` (8 call sites, mix of single and bulk actions).
+
+### Code review checklist for future migrations
+
+- [ ] Server Action return type is `Promise<GatedActionResult>` (or the bulk variant with `proposalIds: string[]`)
+- [ ] Consumer uses `handleGatedResult` OR manually destructures `{ ok, pendingProposal, error }`
+- [ ] Applied path shows success toast
+- [ ] Proposed path shows info toast (NOT success) with "needs approval" copy
+- [ ] Denied path shows error toast (NOT success)
+- [ ] Bulk actions aggregate and surface proposal IDs (use `result.proposalIds.length` for count copy)
+- [ ] No raw `try { await action(); toast.success(...) } catch { toast.error(...) }` around migrated actions
+- [ ] Unit test covers all three branches (see `apps/web/src/lib/__tests__/gated-result.test.ts`)
+
 ---
 
 **Document prepared:** 2026-04-18  
