@@ -14,7 +14,7 @@ SET search_path TO public, extensions;
 -- Dette gjør platform-admin-queries + billing_activity_log-audit mer
 -- presise (vi kan skille "ret-ting" fra "rapportert inn").
 --
--- Ref: ADR-0139 §Accountant mark-paid, Fase 3B-v2 spec §8.
+-- Ref: ADR-0148 §Accountant mark-paid, Fase 3B-v2 spec §8.
 -- ============================================
 
 -- ADD VALUE må kjøres UTENFOR transaction-block i Postgres 14+, men

@@ -4374,6 +4374,7 @@ export type Database = {
           is_active: boolean
           name: string
           protocol_id: string
+          provenance: Json
           requires_signature: boolean
           updated_at: string
           valid_from: string | null
@@ -4386,6 +4387,7 @@ export type Database = {
           is_active?: boolean
           name: string
           protocol_id: string
+          provenance?: Json
           requires_signature?: boolean
           updated_at?: string
           valid_from?: string | null
@@ -4398,6 +4400,7 @@ export type Database = {
           is_active?: boolean
           name?: string
           protocol_id?: string
+          provenance?: Json
           requires_signature?: boolean
           updated_at?: string
           valid_from?: string | null
@@ -11806,6 +11809,7 @@ export type Database = {
           policy_scope: Database["public"]["Enums"]["policy_scope"]
           policy_type: Database["public"]["Enums"]["policy_type"]
           priority: number | null
+          provenance: Json
           rules_json: Json | null
           scope_ref_id: string | null
           season_id: string | null
@@ -11826,6 +11830,7 @@ export type Database = {
           policy_scope: Database["public"]["Enums"]["policy_scope"]
           policy_type: Database["public"]["Enums"]["policy_type"]
           priority?: number | null
+          provenance?: Json
           rules_json?: Json | null
           scope_ref_id?: string | null
           season_id?: string | null
@@ -11846,6 +11851,7 @@ export type Database = {
           policy_scope?: Database["public"]["Enums"]["policy_scope"]
           policy_type?: Database["public"]["Enums"]["policy_type"]
           priority?: number | null
+          provenance?: Json
           rules_json?: Json | null
           scope_ref_id?: string | null
           season_id?: string | null
@@ -12112,6 +12118,7 @@ export type Database = {
           procedure_id: string
           procedure_type: Database["public"]["Enums"]["procedure_type"]
           protocol_id: string
+          provenance: Json
           skill_requirements: Json | null
           sort_order: number | null
           updated_at: string
@@ -12126,6 +12133,7 @@ export type Database = {
           procedure_id?: string
           procedure_type?: Database["public"]["Enums"]["procedure_type"]
           protocol_id: string
+          provenance?: Json
           skill_requirements?: Json | null
           sort_order?: number | null
           updated_at?: string
@@ -12140,6 +12148,7 @@ export type Database = {
           procedure_id?: string
           procedure_type?: Database["public"]["Enums"]["procedure_type"]
           protocol_id?: string
+          provenance?: Json
           skill_requirements?: Json | null
           sort_order?: number | null
           updated_at?: string
@@ -12164,6 +12173,7 @@ export type Database = {
           is_required: boolean
           media_urls: Json | null
           procedure_id: string
+          provenance: Json
           step_id: string
           step_order: number
           title: string
@@ -12177,6 +12187,7 @@ export type Database = {
           is_required?: boolean
           media_urls?: Json | null
           procedure_id: string
+          provenance?: Json
           step_id?: string
           step_order?: number
           title: string
@@ -12190,6 +12201,7 @@ export type Database = {
           is_required?: boolean
           media_urls?: Json | null
           procedure_id?: string
+          provenance?: Json
           step_id?: string
           step_order?: number
           title?: string
@@ -12721,6 +12733,7 @@ export type Database = {
           owner_profile_id: string
           policy_id: string
           protocol_id: string
+          provenance: Json
           status: Database["public"]["Enums"]["protocol_status"]
           updated_at: string
           valid_from: string | null
@@ -12737,6 +12750,7 @@ export type Database = {
           owner_profile_id: string
           policy_id: string
           protocol_id?: string
+          provenance?: Json
           status?: Database["public"]["Enums"]["protocol_status"]
           updated_at?: string
           valid_from?: string | null
@@ -12753,6 +12767,7 @@ export type Database = {
           owner_profile_id?: string
           policy_id?: string
           protocol_id?: string
+          provenance?: Json
           status?: Database["public"]["Enums"]["protocol_status"]
           updated_at?: string
           valid_from?: string | null
@@ -17442,6 +17457,10 @@ export type Database = {
         Args: { p_workspace_ids: string[] }
         Returns: undefined
       }
+      assert_gate_caller: {
+        Args: { p_actor_profile_id: string }
+        Returns: undefined
+      }
       can_override_schedule_shift_lock: {
         Args: { p_workspace_id: string }
         Returns: boolean
@@ -17478,6 +17497,19 @@ export type Database = {
         }
       }
       canonical_json: { Args: { input: Json }; Returns: Json }
+      cascade_gate_write: {
+        Args: {
+          p_action: string
+          p_actor_profile_id: string
+          p_capability: string
+          p_current_data: Json
+          p_entity_id: string
+          p_entity_type: string
+          p_proposed_data: Json
+          p_workspace_id: string
+        }
+        Returns: Json
+      }
       check_assignment_completion_fn_direct: {
         Args: { p_assignment_id: string }
         Returns: undefined

@@ -1,19 +1,19 @@
 ---
 title: "EHF-leveranse via månedlig CSV/PDF-eksport fra platform-admin"
-id: ADR-0139
+id: ADR-0148
 status: accepted
 layer: decision
 module: billing
 created: 2026-04-18
 updated: 2026-04-18
-supersedes: ADR-0136, ADR-0137, ADR-0138
+supersedes: ADR-0145, ADR-0146, ADR-0147
 ---
 
-# ADR-0139: EHF-leveranse via månedlig CSV/PDF-eksport fra platform-admin
+# ADR-0148: EHF-leveranse via månedlig CSV/PDF-eksport fra platform-admin
 
 ## Context and Problem Statement
 
-Fase 3B's opprinnelige scope (ADR-0136/-0137/-0138) forutsatte at Smartout selv
+Fase 3B's opprinnelige scope (ADR-0145/0146/0147) forutsatte at Smartout selv
 genererer og leverer EHF-fakturaer: PeppolEhfAdapter → Tickstar SaaS AP → Peppol-
 nettverk, pluss OAuth-integrasjoner mot Fiken/Tripletex for inbound-poll. Ved
 rescope 2026-04-18 ble den reelle workflowen konkretisert: Smartout lager

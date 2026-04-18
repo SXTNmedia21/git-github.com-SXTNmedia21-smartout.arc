@@ -1,16 +1,16 @@
 ---
 title: "integration_poll_payments as Separate engine_process from integration_sync"
-id: ADR-0138
+id: ADR-0147
 status: superseded
 layer: decision
 module: billing
 created: 2026-04-17
 updated: 2026-04-18
-superseded_by: ADR-0139
+superseded_by: ADR-0148
 superseded_reason: Fase 3B rescoped — ingen inbound-poll. Betalinger som kommer via regnskapsfører markeres manuelt i Smartout (platform-admin eller accountant-rolle). Stripe-betalinger dekkes av Fase 3A webhook. Automatisert poll av Fiken/Tripletex er ikke nødvendig i CSV-scope.
 ---
 
-# ADR-0138: integration_poll_payments as Separate engine_process from integration_sync
+# ADR-0147: integration_poll_payments as Separate engine_process from integration_sync
 
 ## Context and Problem Statement
 
@@ -64,7 +64,7 @@ Chosen option: **"Full separasjon"**, fordi det respekterer trigger + direction 
 
 **Delte primitiver:**
 - Samme `billing_integration` row
-- Samme Supabase Vault auth_ref (per ADR-0136)
+- Samme Supabase Vault auth_ref (per ADR-0145)
 - Samme retry/backoff-pattern via `engine_delayed_trigger`
 - Samme emit bridge
 

@@ -1,16 +1,16 @@
 ---
 title: "Peppol EHF Transport via Tickstar SaaS Access Point"
-id: ADR-0137
+id: ADR-0146
 status: superseded
 layer: decision
 module: billing
 created: 2026-04-17
 updated: 2026-04-18
-superseded_by: ADR-0139
+superseded_by: ADR-0148
 superseded_reason: Fase 3B rescoped — EHF-transport skjer UTENFOR Smartout. Regnskapsfører genererer EHF fra månedlig CSV/PDF-eksport og sender via sitt eget Peppol Access Point. Smartout eier bare grunnlaget + viser peppol_participant_id i eksporten. Tickstar-kontrakt er ikke inngått og kan droppes.
 ---
 
-# ADR-0137: Peppol EHF Transport via Tickstar SaaS Access Point
+# ADR-0146: Peppol EHF Transport via Tickstar SaaS Access Point
 
 ## Context and Problem Statement
 

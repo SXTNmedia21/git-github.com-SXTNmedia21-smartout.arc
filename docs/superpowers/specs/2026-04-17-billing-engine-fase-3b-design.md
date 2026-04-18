@@ -9,18 +9,18 @@ depends_on:
   - docs/superpowers/specs/2026-04-17-billing-engine-fase-3-design.md
 related:
   - docs/superpowers/specs/2026-04-17-billing-engine-fase-2-design.md
-  - docs/decisions/0139-ehf-export-csv-pdf-platform-admin.md
+  - docs/decisions/0148-ehf-export-csv-pdf-platform-admin.md
 supersedes:
-  - docs/decisions/0136-workspace-oauth-token-storage-supabase-vault.md
-  - docs/decisions/0137-peppol-ehf-transport-via-tickstar.md
-  - docs/decisions/0138-integration-poll-payments-separate-engine-process.md
+  - docs/decisions/0145-workspace-oauth-token-storage-supabase-vault.md
+  - docs/decisions/0146-peppol-ehf-transport-via-tickstar.md
+  - docs/decisions/0147-integration-poll-payments-separate-engine-process.md
 ---
 
 # Billing Engine Fase 3B — EHF CSV/PDF-eksport (Spec v2)
 
 > **Status:** Draft spec (v2, rescoped 2026-04-18).
 > **Bygger på:** Fase 3A (`feat/billing-engine-fase-3`) og Fase 2.
-> **Supersederer:** ADR-0136 Vault OAuth, ADR-0137 Tickstar Peppol, ADR-0138 poll.
+> **Supersederer:** ADR-0145 Vault OAuth, ADR-0146 Tickstar Peppol, ADR-0147 poll.
 
 ## 0. Bakgrunn + rescope
 
@@ -194,7 +194,7 @@ Events (allerede commited i B1-revert):
 ## 11. Build-rekkefølge (rest av Fase 3B)
 
 B1 er allerede commitet (company-kolonner + revert + 2 telemetry-events +
-ADR-0139).
+ADR-0148).
 
 - **B2:** Migrasjon `invoice.ehf_exported_at` + `payment_source` enum-tillegg + pgTAP.
 - **B3:** `generateEhfExport` server-action (CSV-builder først).

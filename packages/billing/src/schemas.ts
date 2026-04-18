@@ -34,7 +34,7 @@ export const PaymentChannelSchema = z.enum([
   "out_of_band",
   "partial_write_off",
   "other",
-  // Fase 3B (ADR-0139): regnskapsfører-rapportert mark-paid etter EHF-
+  // Fase 3B (ADR-0148): regnskapsfører-rapportert mark-paid etter EHF-
   // leveranse eksternt. Platform-admin velger denne når melding kommer
   // fra regnskapsfører. Utløser billing accountant_marked_paid event i
   // tillegg til standard invoice marked_paid.

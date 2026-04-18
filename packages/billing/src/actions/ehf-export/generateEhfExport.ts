@@ -1,6 +1,6 @@
 // generateEhfExport — Fase 3B B3 platform-admin CSV export builder.
 //
-// Background (ADR-0139 + Fase 3B-v2 spec):
+// Background (ADR-0148 + Fase 3B-v2 spec):
 //   Smartout sender IKKE EHF direkte. Platform-admin genererer en
 //   månedlig CSV/PDF-eksport som ekstern regnskapsfører bruker til å
 //   produsere EHF-fakturaer i sitt eget system (Fiken / Tripletex).
@@ -135,7 +135,7 @@ export async function generateEhfExport(
 
   // 2) Hent eligible fakturaer. Filteret matcher spec §5.
   //    invoice_type = alt unntatt credit_note — credit notes blir ikke
-  //    EHF'd direkte (spec §5 + ADR-0139). Enum: recurring | onboarding
+  //    EHF'd direkte (spec §5 + ADR-0148). Enum: recurring | onboarding
   //    | one_off | credit_note.
   const invoicesRes = await client
     .from("invoice")

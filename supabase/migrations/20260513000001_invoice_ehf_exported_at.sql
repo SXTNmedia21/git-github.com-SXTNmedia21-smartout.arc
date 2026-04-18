@@ -17,7 +17,7 @@ SET search_path TO public, extensions;
 -- er den dominerende filter-path (default-toggle i UI). Full index ville
 -- duplisert primær-b-tree uten å raske opp den dominerende queryen.
 --
--- Ref: ADR-0139, Fase 3B-v2 spec §6.
+-- Ref: ADR-0148, Fase 3B-v2 spec §6.
 -- ============================================
 
 ALTER TABLE public.invoice

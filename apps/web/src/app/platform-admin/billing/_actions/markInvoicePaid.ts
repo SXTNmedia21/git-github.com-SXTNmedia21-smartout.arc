@@ -76,7 +76,7 @@ export async function markInvoicePaid(
       },
     });
 
-    // B7-fase3b (ADR-0139): ekstra event for accountant-rapportert mark-paid
+    // B7-fase3b (ADR-0148): ekstra event for accountant-rapportert mark-paid
     // så billing_activity_log kan skille regnskapsfører-rapportert fra
     // platform-admin korreksjon. Mark-paid-flyten forblir lik.
     if (input.payment_channel === "accountant_manual") {

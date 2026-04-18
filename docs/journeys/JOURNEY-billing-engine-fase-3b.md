@@ -9,9 +9,9 @@ tags: [journey, billing, ehf, csv, pdf, regnskapsfører, fase-3b]
 
 # User Journeys — Billing Engine Fase 3B
 
-Fase 3B leverer et månedlig eksport-pakke som platform-admin genererer og sender til en ekstern regnskapsfører. Regnskapsfører lager EHF-fakturaene i sitt eget system og markerer betalinger mottatt i Smartout på melding tilbake. Se `ADR-0139` for full kontekst + `docs/superpowers/specs/2026-04-17-billing-engine-fase-3b-design.md` for implementasjons-detaljer.
+Fase 3B leverer et månedlig eksport-pakke som platform-admin genererer og sender til en ekstern regnskapsfører. Regnskapsfører lager EHF-fakturaene i sitt eget system og markerer betalinger mottatt i Smartout på melding tilbake. Se `ADR-0148` for full kontekst + `docs/superpowers/specs/2026-04-17-billing-engine-fase-3b-design.md` for implementasjons-detaljer.
 
-**Scope er eksplisitt utenfor:** Peppol-transport, OAuth mot Fiken/Tripletex, automatisk inbound-poll, accountant-login. Alt dette er avvist i ADR-0139.
+**Scope er eksplisitt utenfor:** Peppol-transport, OAuth mot Fiken/Tripletex, automatisk inbound-poll, accountant-login. Alt dette er avvist i ADR-0148.
 
 ---
 

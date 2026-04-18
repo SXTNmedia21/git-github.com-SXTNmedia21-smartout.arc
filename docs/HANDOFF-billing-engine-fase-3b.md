@@ -11,7 +11,7 @@ tags: [handoff, billing, fase-3b, csv, pdf, regnskapsfører]
 
 ## Sammendrag
 
-Fase 3B ble opprinnelig speccet som Peppol/Tickstar/OAuth/poll-stack (ADR-0136, ADR-0137, ADR-0138). Ved en rescope-samtale 2026-04-18 ble den reelle workflowen avklart: Smartout lager fakturagrunnlaget, ekstern regnskapsfører lager EHF-fakturaer og markerer betalinger i Smartout på melding tilbake. Dette fjerner behovet for Peppol-transport, OAuth, Vault-tokens og inbound-poll.
+Fase 3B ble opprinnelig speccet som Peppol/Tickstar/OAuth/poll-stack (ADR-0145, ADR-0146, ADR-0147). Ved en rescope-samtale 2026-04-18 ble den reelle workflowen avklart: Smartout lager fakturagrunnlaget, ekstern regnskapsfører lager EHF-fakturaer og markerer betalinger i Smartout på melding tilbake. Dette fjerner behovet for Peppol-transport, OAuth, Vault-tokens og inbound-poll.
 
 Fase 3B-v2 leverer i stedet:
 
@@ -26,10 +26,10 @@ Fase 3B-v2 leverer i stedet:
 
 | ADR | Status | Resultat |
 |-----|--------|----------|
-| **ADR-0139** | accepted | EHF-leveranse via månedlig CSV/PDF-eksport fra platform-admin (ny) |
-| ADR-0136 | superseded by 0139 | Workspace OAuth Vault — droppet, ingen OAuth i Fase 3B-v2 |
-| ADR-0137 | superseded by 0139 | Tickstar Peppol-transport — droppet, regnskapsfører transporterer |
-| ADR-0138 | superseded by 0139 | integration_poll_payments — droppet, ingen inbound poll |
+| **ADR-0148** | accepted | EHF-leveranse via månedlig CSV/PDF-eksport fra platform-admin (ny) |
+| ADR-0145 | superseded by 0148 | Workspace OAuth Vault — droppet, ingen OAuth i Fase 3B-v2 |
+| ADR-0146 | superseded by 0148 | Tickstar Peppol-transport — droppet, regnskapsfører transporterer |
+| ADR-0147 | superseded by 0148 | integration_poll_payments — droppet, ingen inbound poll |
 
 ## Læringer
 
@@ -84,7 +84,7 @@ Kjør manuelt:
 
 ## Referanser
 
-- ADR-0139 — EHF-leveranse via CSV/PDF-eksport
+- ADR-0148 — EHF-leveranse via CSV/PDF-eksport
 - Spec: `docs/superpowers/specs/2026-04-17-billing-engine-fase-3b-design.md`
 - Journey: `docs/journeys/JOURNEY-billing-engine-fase-3b.md`
 - Handoff Fase 2: `docs/HANDOFF-billing-engine-fase-2.md`
