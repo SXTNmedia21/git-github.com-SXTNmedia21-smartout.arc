@@ -3,9 +3,15 @@ import { redirect } from "next/navigation";
 import { createClient } from "@smartout/supabase/server";
 import { createAdminClient } from "@smartout/supabase/admin";
 import { listDispatchRules } from "@smartout/billing";
+import type { BillingDispatchRule } from "@smartout/billing";
 
 import { WorkspaceDispatchRulesPanelSkeleton } from "./_components/WorkspaceDispatchRulesPanelSkeleton";
 import { WorkspaceDispatchRulesPanel } from "./_components/WorkspaceDispatchRulesPanel";
+import { DunningOptOutSection } from "./_components/DunningOptOutSection";
+import {
+  DUNNING_OPTOUT_CHANNEL,
+  DUNNING_OPTOUT_TRIGGER_EVENT,
+} from "./_components/DunningOptOutToggle";
 
 // Workspace-admin billing settings — dispatch rules tab (Fase 2 B3).
 //
@@ -45,13 +51,69 @@ export default async function WorkspaceBillingSettingsPage() {
     (workspaces ?? []).map((w) => [w.workspace_id, w.name ?? w.workspace_id]),
   );
 
+  const workspaceList = (workspaces ?? []).map((w) => ({
+    workspace_id: w.workspace_id,
+    name: w.name ?? w.workspace_id,
+  }));
+
   return (
-    <Suspense fallback={<WorkspaceDispatchRulesPanelSkeleton />}>
-      <WorkspaceDispatchRulesPanelLoader
-        workspaceIds={workspaceIds}
-        workspaceNames={workspaceNames}
-      />
-    </Suspense>
+    <div className="space-y-12">
+      <Suspense fallback={<WorkspaceDispatchRulesPanelSkeleton />}>
+        <WorkspaceDispatchRulesPanelLoader
+          workspaceIds={workspaceIds}
+          workspaceNames={workspaceNames}
+        />
+      </Suspense>
+
+      {/* B5-fase3a: dunning opt-out — spec §4.5 */}
+      <Suspense fallback={null}>
+        <DunningOptOutLoader workspaces={workspaceList} />
+      </Suspense>
+    </div>
+  );
+}
+
+// Loads the current suppress rule (if any) per workspace for the
+// "Automatiske påminnelser" section. A single row matching
+// (channel=email_customer, trigger_event='invoice dunning_escalated',
+// action='suppress') means auto-dunning is OFF for that workspace
+// (spec §4.4).
+async function DunningOptOutLoader({
+  workspaces,
+}: {
+  workspaces: Array<{ workspace_id: string; name: string }>;
+}) {
+  const admin = createAdminClient();
+  const workspaceIds = workspaces.map((w) => w.workspace_id);
+
+  const rules =
+    workspaceIds.length > 0
+      ? await listDispatchRules(admin, {
+          scope: "workspace",
+          workspace_ids: workspaceIds,
+          channel: DUNNING_OPTOUT_CHANNEL,
+          trigger_event: DUNNING_OPTOUT_TRIGGER_EVENT,
+        })
+      : [];
+
+  // Index by workspace_id. We only care about enabled suppress rules;
+  // disabled rows mean the opt-out has been paused (treated as ON).
+  const suppressRulesByWorkspace: Record<string, BillingDispatchRule | null> = {};
+  for (const ws of workspaces) {
+    suppressRulesByWorkspace[ws.workspace_id] = null;
+  }
+  for (const rule of rules) {
+    if (!rule.workspace_id) continue;
+    if (rule.action !== "suppress") continue;
+    if (!rule.is_enabled) continue;
+    suppressRulesByWorkspace[rule.workspace_id] = rule;
+  }
+
+  return (
+    <DunningOptOutSection
+      workspaces={workspaces}
+      suppressRulesByWorkspace={suppressRulesByWorkspace}
+    />
   );
 }
 
