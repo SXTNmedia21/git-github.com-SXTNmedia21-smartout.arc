@@ -139,3 +139,224 @@ export const InvoiceListFiltersSchema = z.object({
   limit: z.number().int().min(1).max(500).optional(),
 });
 export type InvoiceListFilters = z.infer<typeof InvoiceListFiltersSchema>;
+
+// ─── Fase 2 dispatch action inputs ─────────────────────────────────
+// Mirror the DB enum so Zod catches channel drift before the RPC boundary.
+export const BillingDispatchChannelSchema = z.enum([
+  "email_customer",
+  "email_internal",
+  "http_api",
+  "peppol_ehf",
+]);
+
+export const RetryDispatchInputSchema = z.object({
+  invoice_dispatch_id: z.string().uuid(),
+});
+export type RetryDispatchInput = z.infer<typeof RetryDispatchInputSchema>;
+
+export const CreateAdHocDispatchInputSchema = z.object({
+  invoice_id: z.string().uuid(),
+  channel: BillingDispatchChannelSchema,
+  // Target shape varies per channel; adapters validate at send-time.
+  // Zod guard stops obvious misuse (non-object, missing required keys).
+  target: z.record(z.string(), z.unknown()),
+});
+export type CreateAdHocDispatchInput = z.infer<typeof CreateAdHocDispatchInputSchema>;
+
+// ─── Fase 2 B3 — Dispatch rule CRUD (platform + workspace) ─────────
+// Mirrors billing_dispatch_rule table columns. Server Actions validate
+// these at the RPC boundary; React Native callers call parse() before
+// invoking the pure action. Platform vs workspace scope is expressed
+// via workspace_id (NULL = platform-baseline per ADR-0127).
+export const DispatchRuleActionSchema = z.enum(["send", "suppress"]);
+
+// trigger_event uses telemetry space-separator (see DB CHECK constraint
+// in 20260511200001_billing_dispatch_rule_table.sql). Reject dot-
+// separator early so the UI surfaces a clean message instead of the
+// Postgres CHECK failure.
+const TriggerEventString = z
+  .string()
+  .min(1)
+  .max(200)
+  .refine((v) => !v.includes("."), "Trigger event must use space-separator (no dots)");
+
+export const CreateDispatchRuleInputSchema = z
+  .object({
+    workspace_id: z.string().uuid().nullable().optional(),
+    company_id: z.string().uuid().nullable().optional(),
+    channel: BillingDispatchChannelSchema,
+    trigger_event: TriggerEventString,
+    target: z.record(z.string(), z.unknown()),
+    template_id: z.string().uuid().nullable().optional(),
+    action: DispatchRuleActionSchema.optional(),
+    is_enabled: z.boolean().optional(),
+  })
+  .refine(
+    // ADR-0127: platform-baseline rules (workspace_id NULL) must be
+    // 'send' AND cannot be company-scoped. Matches the DB CHECK
+    // constraint billing_dispatch_rule_platform_constraints.
+    (v) => {
+      const isPlatform = !v.workspace_id; // null or undefined
+      if (!isPlatform) return true;
+      if (v.action && v.action !== "send") return false;
+      if (v.company_id) return false;
+      return true;
+    },
+    {
+      message:
+        "Platform rules (workspace_id NULL) must use action=send and cannot be company-scoped",
+    },
+  );
+export type CreateDispatchRuleInputParsed = z.infer<typeof CreateDispatchRuleInputSchema>;
+
+export const UpdateDispatchRuleInputSchema = z.object({
+  dispatch_rule_id: z.string().uuid(),
+  channel: BillingDispatchChannelSchema.optional(),
+  trigger_event: TriggerEventString.optional(),
+  target: z.record(z.string(), z.unknown()).optional(),
+  template_id: z.string().uuid().nullable().optional(),
+  company_id: z.string().uuid().nullable().optional(),
+  action: DispatchRuleActionSchema.optional(),
+  is_enabled: z.boolean().optional(),
+});
+export type UpdateDispatchRuleInputParsed = z.infer<typeof UpdateDispatchRuleInputSchema>;
+
+export const DeleteDispatchRuleInputSchema = z.object({
+  dispatch_rule_id: z.string().uuid(),
+});
+export type DeleteDispatchRuleInputParsed = z.infer<typeof DeleteDispatchRuleInputSchema>;
+
+export const ToggleDispatchRuleInputSchema = z.object({
+  dispatch_rule_id: z.string().uuid(),
+  is_enabled: z.boolean(),
+});
+export type ToggleDispatchRuleInputParsed = z.infer<typeof ToggleDispatchRuleInputSchema>;
+
+// ─── Fase 2 integration action inputs ──────────────────────────────
+// Mirrors the DB enum so Zod catches integration_type drift before the
+// RPC boundary.
+export const BillingIntegrationTypeSchema = z.enum(["fiken", "tripletex", "stripe", "placeholder"]);
+
+export const IntegrationEntitySchema = z.enum([
+  "customer",
+  "invoice",
+  "contract",
+  "product",
+  "plan",
+]);
+
+export const IntegrationOperationSchema = z.enum(["create", "update", "delete"]);
+
+export const CreateIntegrationInputSchema = z.object({
+  integration_type: BillingIntegrationTypeSchema,
+  display_name: z.string().min(1).max(200),
+  config: z.record(z.string(), z.unknown()).optional(),
+  is_enabled: z.boolean().optional(),
+  is_placeholder: z.boolean().optional(),
+  // Platform-level integrations have workspace_id NULL. Explicit null
+  // lets the schema accept both platform and workspace scopes without
+  // forcing the UI to pass undefined.
+  workspace_id: z.string().uuid().nullable().optional(),
+});
+export type CreateIntegrationInputParsed = z.infer<typeof CreateIntegrationInputSchema>;
+
+export const UpdateIntegrationInputSchema = z.object({
+  integration_id: z.string().uuid(),
+  display_name: z.string().min(1).max(200).optional(),
+  config: z.record(z.string(), z.unknown()).optional(),
+  is_enabled: z.boolean().optional(),
+  is_placeholder: z.boolean().optional(),
+});
+export type UpdateIntegrationInputParsed = z.infer<typeof UpdateIntegrationInputSchema>;
+
+export const DeleteIntegrationInputSchema = z.object({
+  integration_id: z.string().uuid(),
+});
+export type DeleteIntegrationInputParsed = z.infer<typeof DeleteIntegrationInputSchema>;
+
+export const ToggleIntegrationInputSchema = z.object({
+  integration_id: z.string().uuid(),
+  enabled: z.boolean(),
+});
+export type ToggleIntegrationInputParsed = z.infer<typeof ToggleIntegrationInputSchema>;
+
+export const TestConnectionInputSchema = z.object({
+  integration_id: z.string().uuid(),
+});
+export type TestConnectionInputParsed = z.infer<typeof TestConnectionInputSchema>;
+
+export const RetriggerIntegrationSyncInputSchema = z.object({
+  integration_id: z.string().uuid(),
+  entity_type: IntegrationEntitySchema,
+  entity_id: z.string().uuid(),
+  operation: IntegrationOperationSchema,
+});
+export type RetriggerIntegrationSyncInputParsed = z.infer<
+  typeof RetriggerIntegrationSyncInputSchema
+>;
+
+// ─── Fase 2 Spor C — Invoice editing + workspace mark-paid ─────────
+// Spec §5.2: platform-admin can add/edit/delete manual lines on draft
+// invoices, plus create ad-hoc one_off invoices via Sheet drawer. Only
+// lines with usage_snapshot_id IS NULL are mutable here — derived
+// (usage-backed) lines are locked by the B1 trigger per ADR-0119.
+
+// Reusable line-item draft shape. Used both for manual additions on
+// existing invoices AND ad-hoc invoice composition. Quantity is
+// unconstrained (decimals allowed for pro-rata billing).
+const ManualLineInput = z.object({
+  description: z.string().min(1).max(500),
+  quantity: z.number().positive(),
+  unit_price: z.number().nonnegative(),
+  vat_rate: z.number().nonnegative().max(100),
+});
+
+export const AddManualLineItemInputSchema = z.object({
+  invoice_id: z.string().uuid(),
+  description: z.string().min(1).max(500),
+  quantity: z.number().positive(),
+  unit_price: z.number().nonnegative(),
+  vat_rate: z.number().nonnegative().max(100),
+});
+export type AddManualLineItemInput = z.infer<typeof AddManualLineItemInputSchema>;
+
+export const UpdateManualLineItemInputSchema = z.object({
+  line_item_id: z.string().uuid(),
+  description: z.string().min(1).max(500).optional(),
+  quantity: z.number().positive().optional(),
+  unit_price: z.number().nonnegative().optional(),
+  vat_rate: z.number().nonnegative().max(100).optional(),
+});
+export type UpdateManualLineItemInput = z.infer<typeof UpdateManualLineItemInputSchema>;
+
+export const DeleteManualLineItemInputSchema = z.object({
+  line_item_id: z.string().uuid(),
+});
+export type DeleteManualLineItemInput = z.infer<typeof DeleteManualLineItemInputSchema>;
+
+// Mirrors the DB `currency` enum. Keep this narrow to what Postgres
+// accepts — a mismatch would surface as a late runtime reject.
+export const CurrencySchema = z.enum(["NOK", "SEK", "DKK", "EUR"]);
+
+export const CreateAdHocInvoiceInputSchema = z.object({
+  company_id: z.string().uuid(),
+  period_from: IsoDate,
+  period_to: IsoDate,
+  currency: CurrencySchema.optional(),
+  line_items: z.array(ManualLineInput).min(1, "At least one line item is required"),
+});
+export type CreateAdHocInvoiceInput = z.infer<typeof CreateAdHocInvoiceInputSchema>;
+
+// Workspace-admin mark-paid (Spor C). Narrower than platform-admin
+// MarkInvoicePaidInputSchema — workspace-admin only books bank_transfer,
+// there is no channel picker. Reversal goes through credit-note only
+// (ADR-0120), so no un-pay primitive exists here.
+export const MarkInvoicePaidByWorkspaceAdminInputSchema = z.object({
+  invoice_id: z.string().uuid(),
+  payment_date: IsoDate,
+  payment_reference: z.string().min(1).max(500),
+  note: z.string().max(1000).optional(),
+});
+export type MarkInvoicePaidByWorkspaceAdminInput = z.infer<
+  typeof MarkInvoicePaidByWorkspaceAdminInputSchema
+>;

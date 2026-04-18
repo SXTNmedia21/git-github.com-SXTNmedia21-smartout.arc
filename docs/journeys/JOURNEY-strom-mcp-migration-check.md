@@ -35,7 +35,7 @@ the force-password-reset flow on first login.
    **System:** applies all Tier 1 SQL files. `07_user_identity.sql` now FKs resolve cleanly because auth.users exist (step 3 created them).
 
 5. **User:** `STRIKE_WORKSPACE_SLUG=wrightegaarden pnpm tsx scripts/tier2_extract.ts`
-   **System:** fetches handbooks + handbook_challenges + activities from Bubble; extracts content via content-extraction approach (per Learning 0034); emits 5 SQL files + MANIFEST to `supabase/migration-staging-tier2/` — policy, protocol, procedure, procedure_step, confirmation. Provenance JSONB populated per ADR-0126.
+   **System:** fetches handbooks + handbook_challenges + activities from Bubble; extracts content via content-extraction approach (per Learning 0034); emits 5 SQL files + MANIFEST to `supabase/migration-staging-tier2/` — policy, protocol, procedure, procedure_step, confirmation. Provenance JSONB populated per ADR-0140.
    **User sees:** summary with row counts (e.g. "2 policies + 2 protocols + 31 procedures + 21 procedure_steps + 2 confirmations"); warnings about NULL descriptions or skipped drafts
 
 6. **User:** reviews `02_protocol.sql` etc. for admin curation of `[IMPORT]`-prefixed names + NULL descriptions

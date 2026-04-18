@@ -7,11 +7,19 @@
 // the query layer; React Query hooks live in ./hooks and accept a
 // caller-supplied fetcher.
 //
-// Task 3.1 (scaffold): empty public surface. Task 3.2 adds types +
-// schemas. Task 3.3 adds queries + hooks. Task 3.4 adds
-// resolveCompanyId helper in @smartout/ai (separate package).
+// Fase 2 adds dispatch adapters + Server Action building blocks, plus
+// the integration adapter framework (Spor B / B4). The integration
+// layer is PlaceholderAdapter-only for Fase 2 per ADR-0129; Fase 3
+// replaces fiken/tripletex/stripe entries with real adapters.
 
 export * from "./types";
 export * from "./schemas";
 export * from "./queries";
 export * from "./hooks";
+export * from "./dispatch";
+export * from "./integrations";
+export * from "./actions/dispatch";
+export * from "./actions/dispatch-rules";
+export * from "./actions/integrations";
+export * from "./actions/invoice-editing";
+export * from "./actions/workspace-mark-paid";

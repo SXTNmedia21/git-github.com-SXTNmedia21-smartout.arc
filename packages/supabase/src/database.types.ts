@@ -2206,6 +2206,202 @@ export type Database = {
           },
         ]
       }
+      billing_dispatch_rule: {
+        Row: {
+          action: Database["public"]["Enums"]["dispatch_rule_action"]
+          channel: Database["public"]["Enums"]["billing_dispatch_channel"]
+          company_id: string | null
+          created_at: string
+          created_by: string | null
+          dispatch_rule_id: string
+          is_enabled: boolean
+          target: Json
+          template_id: string | null
+          trigger_event: string
+          updated_at: string
+          workspace_id: string | null
+        }
+        Insert: {
+          action?: Database["public"]["Enums"]["dispatch_rule_action"]
+          channel: Database["public"]["Enums"]["billing_dispatch_channel"]
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          dispatch_rule_id?: string
+          is_enabled?: boolean
+          target: Json
+          template_id?: string | null
+          trigger_event: string
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["dispatch_rule_action"]
+          channel?: Database["public"]["Enums"]["billing_dispatch_channel"]
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          dispatch_rule_id?: string
+          is_enabled?: boolean
+          target?: Json
+          template_id?: string | null
+          trigger_event?: string
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_dispatch_rule_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "billing_dispatch_rule_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "billing_dispatch_rule_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_identity"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "billing_dispatch_rule_template_fk"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "billing_dispatch_template"
+            referencedColumns: ["template_id"]
+          },
+          {
+            foreignKeyName: "billing_dispatch_rule_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "billing_dispatch_rule_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      billing_dispatch_template: {
+        Row: {
+          body_template: string
+          channel: Database["public"]["Enums"]["billing_dispatch_channel"]
+          created_at: string
+          locale: string
+          name: string
+          subject_template: string | null
+          template_id: string
+          updated_at: string
+          workspace_id: string | null
+        }
+        Insert: {
+          body_template: string
+          channel: Database["public"]["Enums"]["billing_dispatch_channel"]
+          created_at?: string
+          locale?: string
+          name: string
+          subject_template?: string | null
+          template_id?: string
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          body_template?: string
+          channel?: Database["public"]["Enums"]["billing_dispatch_channel"]
+          created_at?: string
+          locale?: string
+          name?: string
+          subject_template?: string | null
+          template_id?: string
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_dispatch_template_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "billing_dispatch_template_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      billing_integration: {
+        Row: {
+          config: Json
+          created_at: string
+          display_name: string
+          integration_id: string
+          integration_type: Database["public"]["Enums"]["billing_integration_type"]
+          is_enabled: boolean
+          is_placeholder: boolean
+          last_sync_at: string | null
+          last_sync_status: string | null
+          updated_at: string
+          workspace_id: string | null
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          display_name: string
+          integration_id?: string
+          integration_type: Database["public"]["Enums"]["billing_integration_type"]
+          is_enabled?: boolean
+          is_placeholder?: boolean
+          last_sync_at?: string | null
+          last_sync_status?: string | null
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          display_name?: string
+          integration_id?: string
+          integration_type?: Database["public"]["Enums"]["billing_integration_type"]
+          is_enabled?: boolean
+          is_placeholder?: boolean
+          last_sync_at?: string | null
+          last_sync_status?: string | null
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_integration_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "billing_integration_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       call_log: {
         Row: {
           call_session_id: string
@@ -8313,6 +8509,82 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "user_identity"
             referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      invoice_dispatch: {
+        Row: {
+          attempts: number
+          channel: Database["public"]["Enums"]["billing_dispatch_channel"]
+          created_at: string
+          delivered_at: string | null
+          dispatch_rule_id: string | null
+          engine_state_id: string | null
+          error_code: string | null
+          error_message: string | null
+          external_reference: string | null
+          invoice_dispatch_id: string
+          invoice_id: string
+          last_attempt_at: string | null
+          status: Database["public"]["Enums"]["dispatch_status"]
+          target: Json
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          channel: Database["public"]["Enums"]["billing_dispatch_channel"]
+          created_at?: string
+          delivered_at?: string | null
+          dispatch_rule_id?: string | null
+          engine_state_id?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          external_reference?: string | null
+          invoice_dispatch_id?: string
+          invoice_id: string
+          last_attempt_at?: string | null
+          status?: Database["public"]["Enums"]["dispatch_status"]
+          target: Json
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          channel?: Database["public"]["Enums"]["billing_dispatch_channel"]
+          created_at?: string
+          delivered_at?: string | null
+          dispatch_rule_id?: string | null
+          engine_state_id?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          external_reference?: string | null
+          invoice_dispatch_id?: string
+          invoice_id?: string
+          last_attempt_at?: string | null
+          status?: Database["public"]["Enums"]["dispatch_status"]
+          target?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_dispatch_dispatch_rule_id_fkey"
+            columns: ["dispatch_rule_id"]
+            isOneToOne: false
+            referencedRelation: "billing_dispatch_rule"
+            referencedColumns: ["dispatch_rule_id"]
+          },
+          {
+            foreignKeyName: "invoice_dispatch_engine_state_id_fkey"
+            columns: ["engine_state_id"]
+            isOneToOne: false
+            referencedRelation: "engine_state"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_dispatch_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoice"
+            referencedColumns: ["invoice_id"]
           },
         ]
       }
@@ -17062,6 +17334,7 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      canonical_json: { Args: { input: Json }; Returns: Json }
       check_assignment_completion_fn_direct: {
         Args: { p_assignment_id: string }
         Returns: undefined
@@ -17150,6 +17423,21 @@ export type Database = {
           p_workspace_id: string
         }
         Returns: undefined
+      }
+      effective_dispatch_rules: {
+        Args: { p_invoice_id: string; p_trigger_event: string }
+        Returns: {
+          action: Database["public"]["Enums"]["dispatch_rule_action"]
+          channel: Database["public"]["Enums"]["billing_dispatch_channel"]
+          company_id: string
+          dispatch_rule_id: string
+          is_enabled: boolean
+          rule_source: string
+          target: Json
+          template_id: string
+          trigger_event: string
+          workspace_id: string
+        }[]
       }
       expire_stale_invitations: { Args: never; Returns: number }
       fetch_pending_outbox: {
@@ -17510,6 +17798,12 @@ export type Database = {
       audit_operation: "INSERT" | "UPDATE" | "DELETE"
       auth_provider: "supabase" | "google" | "microsoft"
       authority_level: "duty" | "deputy" | "leader"
+      billing_dispatch_channel:
+        | "email_customer"
+        | "email_internal"
+        | "http_api"
+        | "peppol_ehf"
+      billing_integration_type: "fiken" | "tripletex" | "stripe" | "placeholder"
       booking_status: "confirmed" | "pending" | "cancelled"
       budget_period_type: "monthly" | "weekly" | "daily" | "hourly"
       budget_status: "draft" | "active" | "locked"
@@ -17625,6 +17919,13 @@ export type Database = {
         | "material"
       deviation_severity: "low" | "medium" | "high" | "critical"
       deviation_status: "open" | "acknowledged" | "resolved" | "escalated"
+      dispatch_rule_action: "send" | "suppress"
+      dispatch_status:
+        | "pending"
+        | "in_flight"
+        | "delivered"
+        | "failed"
+        | "bounced"
       doc_type:
         | "adr"
         | "module"
@@ -18958,6 +19259,13 @@ export const Constants = {
       audit_operation: ["INSERT", "UPDATE", "DELETE"],
       auth_provider: ["supabase", "google", "microsoft"],
       authority_level: ["duty", "deputy", "leader"],
+      billing_dispatch_channel: [
+        "email_customer",
+        "email_internal",
+        "http_api",
+        "peppol_ehf",
+      ],
+      billing_integration_type: ["fiken", "tripletex", "stripe", "placeholder"],
       booking_status: ["confirmed", "pending", "cancelled"],
       budget_period_type: ["monthly", "weekly", "daily", "hourly"],
       budget_status: ["draft", "active", "locked"],
@@ -19085,6 +19393,14 @@ export const Constants = {
       ],
       deviation_severity: ["low", "medium", "high", "critical"],
       deviation_status: ["open", "acknowledged", "resolved", "escalated"],
+      dispatch_rule_action: ["send", "suppress"],
+      dispatch_status: [
+        "pending",
+        "in_flight",
+        "delivered",
+        "failed",
+        "bounced",
+      ],
       doc_type: [
         "adr",
         "module",

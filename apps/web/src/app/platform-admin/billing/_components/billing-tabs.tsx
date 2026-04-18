@@ -36,6 +36,16 @@ const TABS: Array<{ href: string; label: string; match: (p: string) => boolean }
     label: "Drift",
     match: (p) => p.startsWith("/platform-admin/billing/drift"),
   },
+  {
+    href: "/platform-admin/billing/integrations",
+    label: "Integrasjoner",
+    match: (p) => p.startsWith("/platform-admin/billing/integrations"),
+  },
+  {
+    href: "/platform-admin/billing/settings/dispatch",
+    label: "Utsendelsesregler",
+    match: (p) => p.startsWith("/platform-admin/billing/settings/dispatch"),
+  },
 ];
 
 export function BillingTabs() {

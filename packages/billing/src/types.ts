@@ -23,12 +23,42 @@ export type PricingTermsUpdate = Database["public"]["Tables"]["pricing_terms"]["
 
 export type BillingActivityLog = Database["public"]["Tables"]["billing_activity_log"]["Row"];
 
+// ─── Fase 2 — Dispatch + Integration row shapes ──────────────────
+// Row types for the Fase 2 schema. Imported by dispatch adapters +
+// Server Actions so every site uses the same generated shape.
+
+export type BillingDispatchRule = Database["public"]["Tables"]["billing_dispatch_rule"]["Row"];
+export type BillingDispatchRuleInsert =
+  Database["public"]["Tables"]["billing_dispatch_rule"]["Insert"];
+export type BillingDispatchRuleUpdate =
+  Database["public"]["Tables"]["billing_dispatch_rule"]["Update"];
+
+export type BillingDispatchTemplate =
+  Database["public"]["Tables"]["billing_dispatch_template"]["Row"];
+
+export type InvoiceDispatch = Database["public"]["Tables"]["invoice_dispatch"]["Row"];
+export type InvoiceDispatchInsert = Database["public"]["Tables"]["invoice_dispatch"]["Insert"];
+export type InvoiceDispatchUpdate = Database["public"]["Tables"]["invoice_dispatch"]["Update"];
+
+export type BillingIntegration = Database["public"]["Tables"]["billing_integration"]["Row"];
+export type BillingIntegrationInsert =
+  Database["public"]["Tables"]["billing_integration"]["Insert"];
+export type BillingIntegrationUpdate =
+  Database["public"]["Tables"]["billing_integration"]["Update"];
+
 // Enum aliases — direct re-exports from Database.Enums for consistency
 // across Server Actions, hooks, and UI.
 export type InvoiceStatus = Database["public"]["Enums"]["invoice_status"];
 export type InvoiceType = Database["public"]["Enums"]["invoice_type"];
 export type DunningStatus = Database["public"]["Enums"]["dunning_status"];
 export type InvoiceLineType = Database["public"]["Enums"]["invoice_line_type"];
+
+// Fase 2 enum aliases. Kept narrow so adapters / UI never string-type
+// against raw text — widens only if the DB enum widens.
+export type BillingDispatchChannel = Database["public"]["Enums"]["billing_dispatch_channel"];
+export type DispatchStatus = Database["public"]["Enums"]["dispatch_status"];
+export type DispatchRuleAction = Database["public"]["Enums"]["dispatch_rule_action"];
+export type BillingIntegrationType = Database["public"]["Enums"]["billing_integration_type"];
 
 // Application-level string unions (NOT in DB enums — stored as text).
 // Kept here so Server Actions + UI use the same literal set.

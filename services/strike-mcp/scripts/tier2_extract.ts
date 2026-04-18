@@ -236,7 +236,7 @@ interface BuildResult {
  * — a bookkeeping wrapper that stamps migration provenance.
  */
 /**
- * Builds the provenance JSONB payload for a migrated row. Per ADR-0126
+ * Builds the provenance JSONB payload for a migrated row. Per ADR-0140
  * (smartout.ai-wt-2): governance tables use `provenance JSONB` with
  * origin ∈ {bubble-import, platform-seed, admin-ui, api, ai}. Strike-mcp
  * always emits `origin: 'bubble-import'` plus the source Bubble ID, migration
@@ -422,7 +422,7 @@ function buildRows(
         confirmation_id: confirmationId,
         protocol_id: protocolId,
         name: chTitle,
-        // Per ADR-0126 — provenance JSONB per row for reverse-lookup.
+        // Per ADR-0140 — provenance JSONB per row for reverse-lookup.
         provenance: makeProvenance(chId, workspaceSlug, batchId),
         confirmation_text: chBody,
         requires_signature: false,

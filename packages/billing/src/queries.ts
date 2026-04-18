@@ -10,7 +10,16 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@smartout/supabase";
-import type { Invoice, InvoiceLineItem, UsageSnapshot } from "./types";
+import type {
+  BillingDispatchChannel,
+  BillingDispatchRule,
+  BillingIntegration,
+  DispatchRuleAction,
+  Invoice,
+  InvoiceDispatch,
+  InvoiceLineItem,
+  UsageSnapshot,
+} from "./types";
 import type { InvoiceListFilters } from "./schemas";
 
 type BillingClient = SupabaseClient<Database>;
@@ -115,4 +124,143 @@ export async function fetchUsageSnapshotsForCompany(
 
   if (error) throw error;
   return data ?? [];
+}
+
+/**
+ * List billing integrations for the platform-admin UI. Returns newest
+ * first (created_at DESC) so freshly added rows surface at the top of
+ * the table. Used by page.tsx in the Integrations tab.
+ */
+export async function listIntegrations(supabase: BillingClient): Promise<BillingIntegration[]> {
+  const { data, error } = await supabase
+    .from("billing_integration")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []) as BillingIntegration[];
+}
+
+// ─── Fase 2 B3 — Dispatch rule + invoice_dispatch queries ─────────
+// Shared between platform-admin settings page and workspace-admin
+// dispatch settings tab. Scope filtering is the caller's responsibility
+// (RLS + explicit .eq('workspace_id', ...) in the Server Action).
+
+/** Scope of dispatch rules to return. */
+export type DispatchRuleScope = "platform" | "workspace" | "all";
+
+/**
+ * List dispatch rules. Default returns newest-first. Scope selects
+ * between platform baseline (workspace_id IS NULL), a specific
+ * workspace set, or all (platform-admin settings view).
+ *
+ * When opts.scope === 'workspace', opts.workspace_ids is required —
+ * caller is expected to have resolved the authorised set.
+ */
+export async function listDispatchRules(
+  supabase: BillingClient,
+  opts: {
+    scope?: DispatchRuleScope;
+    workspace_ids?: string[];
+    /** Optional channel filter for tab-scoped views. */
+    channel?: BillingDispatchChannel;
+    /** Optional trigger_event filter. */
+    trigger_event?: string;
+  } = {},
+): Promise<BillingDispatchRule[]> {
+  const scope: DispatchRuleScope = opts.scope ?? "all";
+  let query = supabase
+    .from("billing_dispatch_rule")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (scope === "platform") {
+    query = query.is("workspace_id", null);
+  } else if (scope === "workspace") {
+    const ids = opts.workspace_ids ?? [];
+    if (ids.length === 0) return [];
+    query = query.in("workspace_id", ids);
+  }
+  // scope === 'all' → no workspace filter; RLS + caller auth decide visibility.
+
+  if (opts.channel) query = query.eq("channel", opts.channel);
+  if (opts.trigger_event) query = query.eq("trigger_event", opts.trigger_event);
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []) as BillingDispatchRule[];
+}
+
+/**
+ * Row shape returned by getDispatchesByInvoice. The rule join is
+ * LEFT so ad-hoc dispatches (dispatch_rule_id NULL) still surface.
+ */
+export type InvoiceDispatchWithRule = InvoiceDispatch & {
+  rule: Pick<
+    BillingDispatchRule,
+    "dispatch_rule_id" | "workspace_id" | "channel" | "trigger_event" | "action"
+  > | null;
+};
+
+/**
+ * List all dispatches for an invoice, with a LEFT join on the owning
+ * rule so the UI can tell "ad-hoc" rows apart. Order: newest first
+ * so retries float to the top of the list.
+ */
+export async function getDispatchesByInvoice(
+  supabase: BillingClient,
+  invoiceId: string,
+): Promise<InvoiceDispatchWithRule[]> {
+  const { data, error } = await supabase
+    .from("invoice_dispatch")
+    .select(
+      "*, rule:billing_dispatch_rule(dispatch_rule_id, workspace_id, channel, trigger_event, action)",
+    )
+    .eq("invoice_id", invoiceId)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []) as unknown as InvoiceDispatchWithRule[];
+}
+
+/**
+ * Row shape returned by the `effective_dispatch_rules` RPC. Mirrors
+ * the RETURNS TABLE declaration in
+ * supabase/migrations/20260511200007_billing_dispatch_rule_evaluation.sql.
+ */
+export type EffectiveDispatchRule = {
+  dispatch_rule_id: string;
+  workspace_id: string | null;
+  company_id: string | null;
+  channel: BillingDispatchChannel;
+  trigger_event: string;
+  target: Record<string, unknown>;
+  template_id: string | null;
+  action: DispatchRuleAction;
+  is_enabled: boolean;
+  rule_source: "platform" | "workspace";
+};
+
+/**
+ * Call the `effective_dispatch_rules(invoice_id, trigger_event)` SQL
+ * function from ADR-0127. Server Actions + the engine use this — never
+ * hand-roll a UNION query against billing_dispatch_rule because the
+ * workspace suppress/override semantics live inside the function.
+ */
+export async function getEffectiveDispatchRules(
+  supabase: BillingClient,
+  invoiceId: string,
+  triggerEvent: string,
+): Promise<EffectiveDispatchRule[]> {
+  const { data, error } = await supabase.rpc("effective_dispatch_rules", {
+    p_invoice_id: invoiceId,
+    p_trigger_event: triggerEvent,
+  });
+
+  if (error) throw error;
+  // Cast through unknown: the DB function returns nullable columns on
+  // workspace_id/company_id/template_id which our narrowed shape makes
+  // explicit. rule_source is widened to string by the generator — we
+  // trust the SQL which only emits 'platform' | 'workspace'.
+  return (data ?? []) as unknown as EffectiveDispatchRule[];
 }

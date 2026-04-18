@@ -1,17 +1,17 @@
 ---
 title: "Governance table provenance convention via `provenance JSONB`"
-id: ADR-0126
-collision_note: "Originally numbered 0101 before discovering development was on 0125+. Renumbered during /close-feature 2026-04-17 to avoid collision with sma-3 branch (docs/adrs-0101-0106-governance-training)."
+id: ADR-0140
+collision_note: "Originally 0101 → 0126; renumbered 2026-04-18 to ADR-0140 — 0126 reserved for billing (integration sync, ADR-0126 integration-sync file)."
 status: accepted
 layer: decision
 module: governance
 created: 2026-04-17
-updated: 2026-04-17
+updated: 2026-04-18
 decided_by: system-council
 tags: [schema, provenance, governance, strike-mcp, cascade-invariant-8]
 ---
 
-# ADR-0126: Governance table provenance convention via `provenance JSONB`
+# ADR-0140: Governance table provenance convention via `provenance JSONB`
 
 ## Context
 

@@ -83,14 +83,14 @@ CREATE INDEX IF NOT EXISTS idx_confirmation_prov_origin
 -- ─── 4. Column comments (document the convention at the column) ───────────
 
 COMMENT ON COLUMN public.policy.provenance IS
-  'Origin receipt. When non-empty, SHOULD include origin ∈ {bubble-import, platform-seed, admin-ui, api, ai}. Strike-mcp migrations: { origin, bubble_id, migrated_at, tenant, batch }. See ADR-0126.';
+  'Origin receipt. When non-empty, SHOULD include origin ∈ {bubble-import, platform-seed, admin-ui, api, ai}. Strike-mcp migrations: { origin, bubble_id, migrated_at, tenant, batch }. See ADR-0140.';
 COMMENT ON COLUMN public.protocol.provenance IS
-  'Origin receipt. See ADR-0126.';
+  'Origin receipt. See ADR-0140.';
 COMMENT ON COLUMN public.procedure.provenance IS
-  'Origin receipt. See ADR-0126.';
+  'Origin receipt. See ADR-0140.';
 COMMENT ON COLUMN public.procedure_step.provenance IS
-  'Origin receipt. See ADR-0126.';
+  'Origin receipt. See ADR-0140.';
 COMMENT ON COLUMN public.confirmation.provenance IS
-  'Origin receipt. See ADR-0126.';
+  'Origin receipt. See ADR-0140.';
 
 COMMIT;

@@ -1,4 +1,5 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { handleSyncIntegration } from "./handlers/sync-integration.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -1941,6 +1942,70 @@ async function executeStep(
       break;
     }
 
+    // ──────────────────────────────────────────────────────────
+    // dispatch_invoice — Billing Fase 2 Spor A (B2).
+    //
+    // Expects state.context to carry invoice_dispatch_id (child mode).
+    // Fan-out (reading effective_dispatch_rules + creating invoice_dispatch
+    // rows + spawning child states) is done on the Node side by the
+    // Server Action enqueueDispatchesForInvoice — see
+    // packages/billing/src/actions/dispatch/. This keeps Deno code narrow
+    // and reuses the canonical adapter contract on the web/mobile side.
+    //
+    // Retry: on retryable failure, inserts an engine_delayed_trigger
+    // pointing at the 'invoice dispatch retry_requested' trigger with
+    // backoff per action_payload.retry.backoff_seconds. The subsequent
+    // fire re-enters engine-dispatch and spawns a fresh engine_state for
+    // the SAME invoice_dispatch_id — attempts column on the row records
+    // the total, independent of engine_state.retry_count.
+    //
+    // Ref: ADR-0126 (engine-orchestrated), ADR-0128 (dual-write bridge).
+    // ──────────────────────────────────────────────────────────
+    case "dispatch_invoice": {
+      const ctx = state.context as Record<string, unknown>;
+      const invoiceDispatchId =
+        (ctx.invoice_dispatch_id as string | undefined) ??
+        ((step.action_payload as Record<string, unknown>).invoice_dispatch_id as
+          | string
+          | undefined);
+
+      if (!invoiceDispatchId) {
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "failed",
+            last_error:
+              "dispatch_invoice: invoice_dispatch_id missing from context. Fan-out must run enqueueDispatchesForInvoice first.",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+        break;
+      }
+
+      await handleDispatchInvoice(supabase, state, step, invoiceDispatchId);
+      break;
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // sync_integration — Billing Fase 2 Spor B (B4/B6).
+    //
+    // Runs outbound sync to a billing_integration row (customer, invoice,
+    // contract, product, plan). Handler is in handlers/sync-integration.ts
+    // — kept separate because B4 shipped it ahead of the switch wiring.
+    //
+    // Expects state.context to carry integration_id + entity_type +
+    // entity_id_synced. Fan-out pre-populates these when the parent process
+    // (e.g. 'integration_sync') spawns a child state per integration row.
+    //
+    // ADR-0126: engine-orchestrated sync state (no parallel motor).
+    // ADR-0129: is_placeholder gates audit semantics — PlaceholderAdapter
+    //           reports 'mocked', real adapters report 'succeeded'.
+    // ──────────────────────────────────────────────────────────
+    case "sync_integration": {
+      await handleSyncIntegration(supabase, state, step);
+      break;
+    }
+
     default:
       // Unknown action type — fail
       await supabase
@@ -1952,4 +2017,669 @@ async function executeStep(
         })
         .eq("id", state.id);
   }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// Billing Fase 2 Spor A — dispatch_invoice action handler
+// ══════════════════════════════════════════════════════════════════
+//
+// Lives outside executeStep so the switch stays readable. Deno can't
+// import @smartout/billing — the adapter logic below is a minimal
+// inline mirror of the Node-side adapters. If we ever need to share
+// implementation, the path is to extract a shared `_shared/` module
+// with no package-manager dependencies.
+
+// Minimal invoice + template shape the inline adapters rely on. Kept
+// narrow so drift between Node and Deno surfaces as a type error on
+// the Server Action side (which reads the canonical billing types).
+interface MinimalInvoice {
+  invoice_id: string;
+  invoice_number: number | null;
+  company_id: string;
+  status: string;
+  invoice_type: string;
+  period_from: string;
+  period_to: string;
+  issued_at: string | null;
+  due_at: string | null;
+  amount_excl_vat: number | string;
+  vat_amount: number | string;
+  amount_incl_vat: number | string;
+  currency: string;
+}
+
+interface MinimalTemplate {
+  subject_template: string | null;
+  body_template: string;
+}
+
+type InlineDispatchResult =
+  | { status: "delivered"; external_reference: string }
+  | {
+      status: "failed";
+      error_code: string;
+      error_message: string;
+      retryable: boolean;
+    };
+
+const HTML_ESCAPES: Record<string, string> = {
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  '"': "&quot;",
+  "'": "&#39;",
+};
+
+function escapeHtml(input: string): string {
+  return input.replace(/[&<>"']/g, (ch) => HTML_ESCAPES[ch] ?? ch);
+}
+
+function renderTemplate(
+  template: string,
+  context: Record<string, unknown>,
+  options: { escape?: boolean } = {},
+): string {
+  const escape = options.escape ?? true;
+  return template.replace(/\{\{\s*([^}\s]+)\s*\}\}/g, (_, path: string) => {
+    const parts = path.split(".");
+    let cursor: unknown = context;
+    for (const part of parts) {
+      if (cursor === null || cursor === undefined || typeof cursor !== "object") {
+        return "";
+      }
+      cursor = (cursor as Record<string, unknown>)[part];
+    }
+    if (cursor === null || cursor === undefined) return "";
+    const raw = String(cursor);
+    return escape ? escapeHtml(raw) : raw;
+  });
+}
+
+function buildTemplateContext(invoice: MinimalInvoice): Record<string, unknown> {
+  return {
+    invoice: {
+      number: invoice.invoice_number,
+      invoice_id: invoice.invoice_id,
+      amount_incl_vat: invoice.amount_incl_vat,
+      amount_excl_vat: invoice.amount_excl_vat,
+      vat_amount: invoice.vat_amount,
+      period_from: invoice.period_from,
+      period_to: invoice.period_to,
+      due_at: invoice.due_at,
+      status: invoice.status,
+    },
+  };
+}
+
+const DEFAULT_EMAIL_CUSTOMER_SUBJECT = "Faktura {{invoice.number}} fra Smartout";
+const DEFAULT_EMAIL_CUSTOMER_BODY = `
+<div style="font-family: system-ui, sans-serif; max-width: 560px; margin: 0 auto; padding: 24px;">
+  <h2 style="color: #1a1a1a;">Faktura {{invoice.number}}</h2>
+  <p style="color: #444; line-height: 1.5;">Hei! Her er fakturaen din fra Smartout.</p>
+  <p style="color: #666; font-size: 14px;">
+    Periode: {{invoice.period_from}} – {{invoice.period_to}}. Forfall: {{invoice.due_at}}.
+  </p>
+</div>`;
+
+const DEFAULT_EMAIL_INTERNAL_SUBJECT = "[Smartout audit] Faktura {{invoice.number}}";
+const DEFAULT_EMAIL_INTERNAL_BODY = `
+<div style="font-family: system-ui, sans-serif; max-width: 520px; margin: 0 auto; padding: 20px;">
+  <h3>Faktura {{invoice.number}}</h3>
+  <p>Invoice ID: {{invoice.invoice_id}} | Status: {{invoice.status}}</p>
+  <p>Periode: {{invoice.period_from}} – {{invoice.period_to}} | Beløp: {{invoice.amount_incl_vat}} NOK</p>
+</div>`;
+
+async function sendViaSendGrid(params: {
+  to: string;
+  subject: string;
+  html: string;
+  invoiceDispatchId: string;
+}): Promise<InlineDispatchResult> {
+  const apiKey = Deno.env.get("SENDGRID_API_KEY");
+  if (!apiKey) {
+    return {
+      status: "failed",
+      error_code: "sendgrid_not_configured",
+      error_message: "SENDGRID_API_KEY is not set.",
+      retryable: false,
+    };
+  }
+  const sender = Deno.env.get("SENDGRID_SENDER_EMAIL") ?? "hello@smartout.no";
+
+  let response: Response;
+  try {
+    response = await fetch("https://api.sendgrid.com/v3/mail/send", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        personalizations: [{ to: [{ email: params.to }] }],
+        from: { email: sender, name: "Smartout" },
+        subject: params.subject,
+        content: [{ type: "text/html", value: params.html }],
+        custom_args: { invoice_dispatch_id: params.invoiceDispatchId },
+      }),
+    });
+  } catch (error) {
+    return {
+      status: "failed",
+      error_code: "network_error",
+      error_message: error instanceof Error ? error.message : String(error),
+      retryable: true,
+    };
+  }
+
+  if (response.status >= 200 && response.status < 300) {
+    const messageId =
+      response.headers.get("x-message-id") ??
+      response.headers.get("X-Message-Id") ??
+      `sendgrid-${params.invoiceDispatchId}`;
+    return { status: "delivered", external_reference: messageId };
+  }
+
+  let detail = "";
+  try {
+    detail = await response.text();
+  } catch {
+    detail = "";
+  }
+  return {
+    status: "failed",
+    error_code: `sendgrid_${response.status}`,
+    error_message: detail.slice(0, 500) || `SendGrid HTTP ${response.status}`,
+    retryable: response.status === 429 || response.status >= 500,
+  };
+}
+
+async function hmacSha256Hex(secret: string, message: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(message));
+  return Array.from(new Uint8Array(sig))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+async function sendViaHttpApi(params: {
+  invoice: MinimalInvoice;
+  target: Record<string, unknown>;
+  invoiceDispatchId: string;
+}): Promise<InlineDispatchResult> {
+  const endpoint = params.target.endpoint;
+  if (typeof endpoint !== "string" || !endpoint.startsWith("https://")) {
+    return {
+      status: "failed",
+      error_code: "invalid_target",
+      error_message: "http_api target.endpoint must be an https:// URL.",
+      retryable: false,
+    };
+  }
+  const envName =
+    typeof params.target.signing_key_env === "string"
+      ? (params.target.signing_key_env as string)
+      : "HTTP_DISPATCH_SIGNING_KEY";
+  const secret = Deno.env.get(envName);
+  if (!secret) {
+    return {
+      status: "failed",
+      error_code: "signing_key_missing",
+      error_message: `Signing key env ${envName} not configured.`,
+      retryable: false,
+    };
+  }
+
+  const payload = {
+    version: 1,
+    invoice_dispatch_id: params.invoiceDispatchId,
+    invoice: {
+      invoice_id: params.invoice.invoice_id,
+      invoice_number: params.invoice.invoice_number,
+      company_id: params.invoice.company_id,
+      status: params.invoice.status,
+      invoice_type: params.invoice.invoice_type,
+      period_from: params.invoice.period_from,
+      period_to: params.invoice.period_to,
+      issued_at: params.invoice.issued_at,
+      due_at: params.invoice.due_at,
+      amount_excl_vat: params.invoice.amount_excl_vat,
+      vat_amount: params.invoice.vat_amount,
+      amount_incl_vat: params.invoice.amount_incl_vat,
+      currency: params.invoice.currency,
+    },
+  };
+  const body = JSON.stringify(payload);
+  const signature = await hmacSha256Hex(secret, body);
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10_000);
+
+  let response: Response;
+  try {
+    response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Smartout-Signature": `sha256=${signature}`,
+        "X-Smartout-Invoice-Dispatch-Id": params.invoiceDispatchId,
+      },
+      body,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    clearTimeout(timer);
+    const name = error instanceof Error ? error.name : "";
+    return {
+      status: "failed",
+      error_code: name === "AbortError" ? "timeout" : "network_error",
+      error_message: error instanceof Error ? error.message : String(error),
+      retryable: true,
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+
+  if (response.status >= 200 && response.status < 300) {
+    let externalId = params.invoiceDispatchId;
+    try {
+      const json = (await response.json()) as Record<string, unknown>;
+      if (typeof json.id === "string") externalId = json.id;
+    } catch {
+      // non-JSON body is fine
+    }
+    return { status: "delivered", external_reference: externalId };
+  }
+
+  let detail = "";
+  try {
+    detail = await response.text();
+  } catch {
+    detail = "";
+  }
+  return {
+    status: "failed",
+    error_code: `http_${response.status}`,
+    error_message: detail.slice(0, 500) || `Remote HTTP ${response.status}`,
+    retryable: response.status === 429 || response.status >= 500,
+  };
+}
+
+async function runAdapter(
+  channel: string,
+  target: Record<string, unknown>,
+  template: MinimalTemplate | null,
+  invoice: MinimalInvoice,
+  invoiceDispatchId: string,
+): Promise<InlineDispatchResult> {
+  const context = buildTemplateContext(invoice);
+
+  switch (channel) {
+    case "email_customer":
+    case "email_internal": {
+      const to = target.email;
+      if (typeof to !== "string" || !to.includes("@")) {
+        return {
+          status: "failed",
+          error_code: "invalid_target",
+          error_message: `${channel} target.email must be a valid email string.`,
+          retryable: false,
+        };
+      }
+      const defaults =
+        channel === "email_customer"
+          ? { subject: DEFAULT_EMAIL_CUSTOMER_SUBJECT, body: DEFAULT_EMAIL_CUSTOMER_BODY }
+          : { subject: DEFAULT_EMAIL_INTERNAL_SUBJECT, body: DEFAULT_EMAIL_INTERNAL_BODY };
+      const subject = renderTemplate(
+        template?.subject_template ?? defaults.subject,
+        context,
+        { escape: false },
+      );
+      const html = renderTemplate(template?.body_template ?? defaults.body, context, {
+        escape: true,
+      });
+      return sendViaSendGrid({
+        to,
+        subject,
+        html,
+        invoiceDispatchId,
+      });
+    }
+    case "http_api":
+      return sendViaHttpApi({ invoice, target, invoiceDispatchId });
+    case "peppol_ehf":
+      return {
+        status: "failed",
+        error_code: "unsupported_channel",
+        error_message:
+          "peppol_ehf adapter is not implemented in Fase 2 (ADR-0129 — Fase 3 carry-over).",
+        retryable: false,
+      };
+    default:
+      return {
+        status: "failed",
+        error_code: "unknown_channel",
+        error_message: `No adapter registered for channel '${channel}'.`,
+        retryable: false,
+      };
+  }
+}
+
+async function emitViaBridge(event: {
+  event: string;
+  actor_id: string | null;
+  workspace_id: string | null;
+  properties: Record<string, unknown>;
+}): Promise<void> {
+  const url = Deno.env.get("INTERNAL_EMIT_URL");
+  const secret = Deno.env.get("WATCHDOG_CRON_SECRET");
+  if (!url || !secret) {
+    console.error(
+      `[dispatch_invoice] emit bridge not configured — skipping '${event.event}'`,
+    );
+    return;
+  }
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${secret}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(event),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      console.error(
+        `[dispatch_invoice] emit bridge returned ${res.status} for '${event.event}': ${body}`,
+      );
+    }
+  } catch (error) {
+    console.error(
+      `[dispatch_invoice] emit bridge failed for '${event.event}':`,
+      error instanceof Error ? error.message : String(error),
+    );
+  }
+}
+
+async function handleDispatchInvoice(
+  supabase: ReturnType<typeof createClient>,
+  state: EngineState,
+  step: EngineStep,
+  invoiceDispatchId: string,
+): Promise<void> {
+  // 1. Load the invoice_dispatch row + associated invoice + optional template.
+  const { data: dispatch, error: dispatchErr } = await supabase
+    .from("invoice_dispatch")
+    .select("*")
+    .eq("invoice_dispatch_id", invoiceDispatchId)
+    .maybeSingle();
+
+  if (dispatchErr || !dispatch) {
+    await supabase
+      .from("engine_state")
+      .update({
+        status: "failed",
+        last_error: `dispatch_invoice: invoice_dispatch ${invoiceDispatchId} not found: ${dispatchErr?.message ?? "missing"}`,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", state.id);
+    return;
+  }
+
+  // If the dispatch has already been delivered, this is a late re-run from
+  // the engine retry loop — complete the state without touching anything.
+  if (dispatch.status === "delivered") {
+    await supabase
+      .from("engine_state")
+      .update({
+        status: "complete",
+        completed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", state.id);
+    return;
+  }
+
+  const { data: invoice, error: invoiceErr } = await supabase
+    .from("invoice")
+    .select(
+      "invoice_id, invoice_number, company_id, status, invoice_type, period_from, period_to, issued_at, due_at, amount_excl_vat, vat_amount, amount_incl_vat, currency",
+    )
+    .eq("invoice_id", dispatch.invoice_id)
+    .single();
+
+  if (invoiceErr || !invoice) {
+    await supabase
+      .from("engine_state")
+      .update({
+        status: "failed",
+        last_error: `dispatch_invoice: invoice ${dispatch.invoice_id} not found`,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", state.id);
+    return;
+  }
+
+  let template: MinimalTemplate | null = null;
+  // Resolve template via dispatch_rule → template_id (snapshot not stored
+  // on invoice_dispatch; rules are stable enough for Fase 2).
+  if (dispatch.dispatch_rule_id) {
+    const { data: rule } = await supabase
+      .from("billing_dispatch_rule")
+      .select("template_id")
+      .eq("dispatch_rule_id", dispatch.dispatch_rule_id)
+      .maybeSingle();
+    if (rule?.template_id) {
+      const { data: tmpl } = await supabase
+        .from("billing_dispatch_template")
+        .select("subject_template, body_template")
+        .eq("template_id", rule.template_id)
+        .maybeSingle();
+      if (tmpl) template = tmpl;
+    }
+  }
+
+  // 2. Mark in_flight + bump attempts BEFORE calling the adapter so a
+  //    double-invocation collision is visible in the row.
+  const attempt = (dispatch.attempts as number) + 1;
+  await supabase
+    .from("invoice_dispatch")
+    .update({
+      status: "in_flight",
+      attempts: attempt,
+      engine_state_id: state.id,
+      last_attempt_at: new Date().toISOString(),
+    })
+    .eq("invoice_dispatch_id", invoiceDispatchId);
+
+  // 3. Run the adapter.
+  const result = await runAdapter(
+    dispatch.channel,
+    (dispatch.target ?? {}) as Record<string, unknown>,
+    template,
+    invoice as MinimalInvoice,
+    invoiceDispatchId,
+  );
+
+  // 4. Persist result to invoice_dispatch.
+  if (result.status === "delivered") {
+    await supabase
+      .from("invoice_dispatch")
+      .update({
+        status: "delivered",
+        delivered_at: new Date().toISOString(),
+        external_reference: result.external_reference,
+        error_code: null,
+        error_message: null,
+      })
+      .eq("invoice_dispatch_id", invoiceDispatchId);
+
+    // 5. ADR-0128 dual-write backstop — only on first successful dispatch.
+    //    "First" = no prior delivered dispatch for this invoice.
+    const { count: priorDelivered } = await supabase
+      .from("invoice_dispatch")
+      .select("invoice_dispatch_id", { count: "exact", head: true })
+      .eq("invoice_id", dispatch.invoice_id)
+      .eq("status", "delivered")
+      .neq("invoice_dispatch_id", invoiceDispatchId);
+
+    if ((priorDelivered ?? 0) === 0) {
+      await supabase
+        .from("invoice")
+        .update({
+          delivery_channel: dispatch.channel,
+          delivery_status: "delivered",
+          external_reference: result.external_reference,
+        })
+        .eq("invoice_id", dispatch.invoice_id);
+    }
+
+    // 6. Emit 'invoice dispatched' via HTTP bridge (Deno → Node).
+    await emitViaBridge({
+      event: "invoice dispatched",
+      actor_id: null,
+      workspace_id: state.workspace_id,
+      properties: {
+        entity_type: "invoice_dispatch",
+        entity_id: invoiceDispatchId,
+        data: {
+          invoice_id: dispatch.invoice_id,
+          channel: dispatch.channel,
+          external_reference: result.external_reference,
+        },
+      },
+    });
+
+    await supabase
+      .from("engine_state")
+      .update({
+        status: "complete",
+        completed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", state.id);
+    return;
+  }
+
+  // Failure path — check retry policy.
+  const retryConfig = ((step.action_payload as Record<string, unknown>).retry ??
+    {}) as {
+    max_attempts?: number;
+    backoff_seconds?: number[];
+  };
+  const maxAttempts = retryConfig.max_attempts ?? 5;
+  const backoff = retryConfig.backoff_seconds ?? [60, 300, 900, 3600, 21600];
+
+  const isFinal = !result.retryable || attempt >= maxAttempts;
+
+  await supabase
+    .from("invoice_dispatch")
+    .update({
+      status: isFinal ? "failed" : "pending",
+      error_code: result.error_code,
+      error_message: result.error_message,
+    })
+    .eq("invoice_dispatch_id", invoiceDispatchId);
+
+  if (isFinal) {
+    await emitViaBridge({
+      event: "invoice dispatch failed",
+      actor_id: null,
+      workspace_id: state.workspace_id,
+      properties: {
+        entity_type: "invoice_dispatch",
+        entity_id: invoiceDispatchId,
+        data: {
+          invoice_id: dispatch.invoice_id,
+          channel: dispatch.channel,
+          error_code: result.error_code,
+          error_message: result.error_message,
+          attempts: attempt,
+        },
+      },
+    });
+
+    await supabase
+      .from("engine_state")
+      .update({
+        status: "failed",
+        last_error: `${result.error_code}: ${result.error_message}`,
+        completed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", state.id);
+    return;
+  }
+
+  // Retryable — schedule a delayed re-fire via engine_delayed_trigger.
+  const backoffSeconds = backoff[Math.min(attempt - 1, backoff.length - 1)];
+
+  // Find the retry trigger row (seeded in B1 migration 20260511200008).
+  const { data: retryTrigger } = await supabase
+    .from("engine_trigger")
+    .select("id")
+    .eq("event_type", "invoice dispatch retry_requested")
+    .eq("process_id", "invoice_dispatch_delivery")
+    .is("workspace_id", null)
+    .maybeSingle();
+
+  // Record the retry event so engine_delayed_trigger has something to
+  // reference (engine_delayed_trigger.event_id FK is required).
+  const { data: retryEvent } = await supabase
+    .from("engine_event")
+    .insert({
+      event_type: "invoice dispatch retry_requested",
+      workspace_id: state.workspace_id,
+      payload: {
+        entity_type: "invoice_dispatch",
+        entity_id: invoiceDispatchId,
+        invoice_dispatch_id: invoiceDispatchId,
+        invoice_id: dispatch.invoice_id,
+        attempt,
+      },
+    })
+    .select("id")
+    .single();
+
+  if (retryTrigger && retryEvent) {
+    await supabase.from("engine_delayed_trigger").insert({
+      trigger_id: retryTrigger.id,
+      event_id: retryEvent.id,
+      workspace_id: state.workspace_id,
+      fire_at: new Date(Date.now() + backoffSeconds * 1000).toISOString(),
+    });
+  }
+
+  // Low-volume debug-only emit — helps reconstruct retry cycles.
+  await emitViaBridge({
+    event: "invoice dispatch retried",
+    actor_id: null,
+    workspace_id: state.workspace_id,
+    properties: {
+      entity_type: "invoice_dispatch",
+      entity_id: invoiceDispatchId,
+      data: {
+        invoice_id: dispatch.invoice_id,
+        channel: dispatch.channel,
+        attempt,
+      },
+    },
+  });
+
+  // Mark this engine_state complete — a fresh state will spin up when the
+  // delayed trigger fires. attempts lives on invoice_dispatch.
+  await supabase
+    .from("engine_state")
+    .update({
+      status: "complete",
+      completed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", state.id);
 }

@@ -123,12 +123,15 @@ export type EntityType =
   | "inspection_link"
   | "notification_policy"
   | "invoice"
+  | "invoice_line_item"
   | "usage_snapshot"
   | "pricing_terms"
-  | "basis_drift_event";
-// Note: `invoice_line_item` is scoped via its parent `invoice` FK and has
-// no direct event surface in Fase 1/2. Add to this union when a line-item
-// lifecycle event ships.
+  | "basis_drift_event"
+  // ─── Billing Fase 2 ─────────────────────────────
+  | "invoice_dispatch"
+  | "billing_dispatch_rule"
+  | "billing_dispatch_template"
+  | "billing_integration";
 
 export type ActionVerb =
   | "created"
@@ -3818,6 +3821,310 @@ export interface DunningNoteAdded extends BaseEvent {
   };
 }
 
+// ─── Billing Fase 2 — Dispatch ─────────────────────
+// Dispatch-related events. "channel" uses billing_dispatch_channel enum
+// values. `integration_sync mocked` is the audit-honest mock-adapter emit
+// per ADR-0129; readers must NOT treat it as `succeeded`.
+
+export interface InvoiceDispatched extends BaseEvent {
+  event: "invoice dispatched";
+  properties: {
+    entity_type: "invoice_dispatch";
+    entity_id: string;
+    data: {
+      invoice_id: string;
+      channel: string;
+      external_reference: string | null;
+    };
+  };
+}
+
+export interface InvoiceDispatchFailed extends BaseEvent {
+  event: "invoice dispatch failed";
+  properties: {
+    entity_type: "invoice_dispatch";
+    entity_id: string;
+    data: {
+      invoice_id: string;
+      channel: string;
+      error_code: string;
+      error_message: string;
+      attempts: number;
+    };
+  };
+}
+
+export interface InvoiceDispatchRetried extends BaseEvent {
+  event: "invoice dispatch retried";
+  properties: {
+    entity_type: "invoice_dispatch";
+    entity_id: string;
+    data: {
+      invoice_id: string;
+      channel: string;
+      attempt: number;
+    };
+  };
+}
+
+export interface InvoiceDispatchRetryRequested extends BaseEvent {
+  event: "invoice dispatch retry_requested";
+  properties: {
+    entity_type: "invoice_dispatch";
+    entity_id: string;
+    data: {
+      invoice_id: string;
+      requested_by: string;
+    };
+  };
+}
+
+// ─── Billing Fase 2 — Integration ───────────────────
+
+export interface IntegrationSyncSucceeded extends BaseEvent {
+  event: "integration sync succeeded";
+  properties: {
+    entity_type: "billing_integration";
+    entity_id: string;
+    data: {
+      integration_type: string;
+      entity_type_synced: string;
+      entity_id_synced: string;
+      operation: "create" | "update" | "delete";
+      external_reference: string | null;
+    };
+  };
+}
+
+export interface IntegrationSyncFailed extends BaseEvent {
+  event: "integration sync failed";
+  properties: {
+    entity_type: "billing_integration";
+    entity_id: string;
+    data: {
+      integration_type: string;
+      entity_type_synced: string;
+      entity_id_synced: string;
+      operation: "create" | "update" | "delete";
+      error_code: string;
+      error_message: string;
+    };
+  };
+}
+
+// ADR-0129: PlaceholderAdapter emits `mocked`, NOT `succeeded`. Audit
+// readers must keep both paths distinct to preserve truth in the log.
+export interface IntegrationSyncMocked extends BaseEvent {
+  event: "integration sync mocked";
+  properties: {
+    entity_type: "billing_integration";
+    entity_id: string;
+    data: {
+      integration_type: "placeholder";
+      entity_type_synced: string;
+      entity_id_synced: string;
+      operation: "create" | "update" | "delete";
+    };
+  };
+}
+
+export interface IntegrationTestConnectionSucceeded extends BaseEvent {
+  event: "integration test_connection succeeded";
+  properties: {
+    entity_type: "billing_integration";
+    entity_id: string;
+    data: {
+      integration_type: string;
+      is_placeholder: boolean;
+    };
+  };
+}
+
+export interface IntegrationTestConnectionFailed extends BaseEvent {
+  event: "integration test_connection failed";
+  properties: {
+    entity_type: "billing_integration";
+    entity_id: string;
+    data: {
+      integration_type: string;
+      error_code: string;
+      error_message: string;
+    };
+  };
+}
+
+// ADR-0129 fail-safe: fired when a real adapter returns `succeeded` on an
+// integration row flagged `is_placeholder=true`, OR when the
+// PlaceholderAdapter reports `succeeded` instead of `mocked`. Either case
+// corrupts the audit trail, so we emit LOUD and abort the engine step.
+export interface IntegrationAuditViolation extends BaseEvent {
+  event: "integration audit violation";
+  properties: {
+    entity_type: "billing_integration";
+    entity_id: string;
+    data: {
+      integration_type: string;
+      is_placeholder: boolean;
+      reported_status: string;
+      violation_kind: "placeholder_reported_succeeded" | "real_adapter_on_placeholder_row";
+      entity_type_synced: string;
+      entity_id_synced: string;
+    };
+  };
+}
+
+// ─── Billing Fase 2 — Invoice editing ───────────────
+
+export interface InvoiceLineItemAdded extends BaseEvent {
+  event: "invoice line_item added";
+  properties: {
+    entity_type: "invoice_line_item";
+    entity_id: string;
+    data: {
+      invoice_id: string;
+      line_type: string;
+      amount_incl_vat: number;
+    };
+  };
+}
+
+export interface InvoiceLineItemEdited extends BaseEvent {
+  event: "invoice line_item edited";
+  properties: {
+    entity_type: "invoice_line_item";
+    entity_id: string;
+    changes: Record<string, { before: unknown; after: unknown }>;
+    // Required for billing_activity_log company_id resolution — the
+    // provider walks from invoice_id → company_id. Without this the row
+    // is rejected (see providers/billing-activity-log.ts).
+    data: {
+      invoice_id: string;
+    };
+  };
+}
+
+export interface InvoiceLineItemRemoved extends BaseEvent {
+  event: "invoice line_item removed";
+  properties: {
+    entity_type: "invoice_line_item";
+    entity_id: string;
+    data: {
+      invoice_id: string;
+    };
+  };
+}
+
+export interface InvoiceAdhocCreated extends BaseEvent {
+  event: "invoice adhoc_created";
+  properties: {
+    entity_type: "invoice";
+    entity_id: string;
+    data: {
+      company_id: string;
+      amount_incl_vat: number;
+    };
+  };
+}
+
+export interface WorkspaceMarkedPaid extends BaseEvent {
+  event: "workspace marked_paid";
+  properties: {
+    entity_type: "invoice";
+    entity_id: string;
+    data: {
+      invoice_id: string;
+      payment_date: string;
+      payment_reference: string;
+    };
+  };
+}
+
+// ─── Billing Fase 2 — Rule / Integration CRUD ───────
+
+export interface DispatchRuleCreated extends BaseEvent {
+  event: "dispatch_rule created";
+  properties: {
+    entity_type: "billing_dispatch_rule";
+    entity_id: string;
+    data: {
+      workspace_id: string | null;
+      channel: string;
+      trigger_event: string;
+      action: "send" | "suppress";
+    };
+  };
+}
+
+export interface DispatchRuleUpdated extends BaseEvent {
+  event: "dispatch_rule updated";
+  properties: {
+    entity_type: "billing_dispatch_rule";
+    entity_id: string;
+    changes: Record<string, { before: unknown; after: unknown }>;
+  };
+}
+
+export interface DispatchRuleDeleted extends BaseEvent {
+  event: "dispatch_rule deleted";
+  properties: {
+    entity_type: "billing_dispatch_rule";
+    entity_id: string;
+    data: {
+      workspace_id: string | null;
+    };
+  };
+}
+
+export interface IntegrationCreated extends BaseEvent {
+  event: "integration created";
+  properties: {
+    entity_type: "billing_integration";
+    entity_id: string;
+    data: {
+      integration_type: string;
+      is_placeholder: boolean;
+      workspace_id: string | null;
+    };
+  };
+}
+
+export interface IntegrationUpdated extends BaseEvent {
+  event: "integration updated";
+  properties: {
+    entity_type: "billing_integration";
+    entity_id: string;
+    changes: Record<string, { before: unknown; after: unknown }>;
+  };
+}
+
+export interface IntegrationDeleted extends BaseEvent {
+  event: "integration deleted";
+  properties: {
+    entity_type: "billing_integration";
+    entity_id: string;
+    data: {
+      integration_type: string;
+    };
+  };
+}
+
+// Debug-only: per-invoice rule-evaluation summary. Logger-only destination
+// helps reconstruct "why didn't the invoice go to X?" in production.
+export interface DispatchRuleEvaluated extends BaseEvent {
+  event: "dispatch_rule evaluated";
+  properties: {
+    entity_type: "invoice";
+    entity_id: string;
+    data: {
+      trigger_event: string;
+      platform_rule_count: number;
+      workspace_rule_count: number;
+      suppressed_count: number;
+      final_dispatch_count: number;
+    };
+  };
+}
+
 // ─── The Single Truth Union ─────────────────────
 // Add every feature's events here. If it isn't here, it can't be emitted.
 export type SmartoutEvent =
@@ -4221,7 +4528,30 @@ export type SmartoutEvent =
   | InvoiceBasisDriftDetected
   | UsageSnapshotCreated
   | BillingPricingTermsUpdated
-  | DunningNoteAdded;
+  | DunningNoteAdded
+  // ─── Billing Fase 2 (dispatch + integration + editing) ───
+  | InvoiceDispatched
+  | InvoiceDispatchFailed
+  | InvoiceDispatchRetried
+  | InvoiceDispatchRetryRequested
+  | IntegrationSyncSucceeded
+  | IntegrationSyncFailed
+  | IntegrationSyncMocked
+  | IntegrationTestConnectionSucceeded
+  | IntegrationTestConnectionFailed
+  | IntegrationAuditViolation
+  | InvoiceLineItemAdded
+  | InvoiceLineItemEdited
+  | InvoiceLineItemRemoved
+  | InvoiceAdhocCreated
+  | WorkspaceMarkedPaid
+  | DispatchRuleCreated
+  | DispatchRuleUpdated
+  | DispatchRuleDeleted
+  | IntegrationCreated
+  | IntegrationUpdated
+  | IntegrationDeleted
+  | DispatchRuleEvaluated;
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -5749,6 +6079,117 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "dunning_note added": {
     destinations: ["logger", "billing_activity_log"],
+    category: "billing",
+  },
+
+  // ─── Billing Fase 2 (ADR-0126 to ADR-0130) ───
+  // Dispatch lifecycle. `dispatch failed` surfaces to posthog + alerting
+  // per spec §11; `retried` is logger-only (high-volume debug).
+  "invoice dispatched": {
+    destinations: ["posthog", "logger", "billing_activity_log", "engine_event"],
+    category: "billing",
+  },
+  "invoice dispatch failed": {
+    destinations: ["posthog", "logger", "billing_activity_log", "engine_event"],
+    category: "billing",
+  },
+  "invoice dispatch retried": {
+    destinations: ["logger"],
+    category: "billing",
+  },
+  "invoice dispatch retry_requested": {
+    destinations: ["logger", "billing_activity_log"],
+    category: "billing",
+  },
+
+  // Integration sync. `mocked` is the PlaceholderAdapter emit per ADR-0129
+  // and stays logger-only so audit readers do not conflate it with real
+  // adapter success.
+  "integration sync succeeded": {
+    destinations: ["posthog", "logger", "billing_activity_log", "engine_event"],
+    category: "billing",
+  },
+  "integration sync failed": {
+    destinations: ["posthog", "logger", "billing_activity_log", "engine_event"],
+    category: "billing",
+  },
+  "integration sync mocked": {
+    destinations: ["logger"],
+    category: "billing",
+  },
+  "integration test_connection succeeded": {
+    destinations: ["logger", "billing_activity_log"],
+    category: "billing",
+  },
+  "integration test_connection failed": {
+    destinations: ["logger", "billing_activity_log"],
+    category: "billing",
+  },
+
+  // ADR-0129 audit-safety: adapter violated the placeholder contract.
+  // High-severity — PostHog + billing_activity_log + engine_event so both
+  // PostHog alerts and the admin audit queries catch the anomaly.
+  "integration audit violation": {
+    destinations: ["posthog", "logger", "billing_activity_log", "engine_event"],
+    category: "billing",
+  },
+
+  // Invoice editing (platform-admin manual lines + ad-hoc drawer).
+  "invoice line_item added": {
+    destinations: ["posthog", "logger", "billing_activity_log"],
+    category: "billing",
+  },
+  "invoice line_item edited": {
+    destinations: ["posthog", "logger", "billing_activity_log"],
+    category: "billing",
+  },
+  "invoice line_item removed": {
+    destinations: ["posthog", "logger", "billing_activity_log"],
+    category: "billing",
+  },
+  "invoice adhoc_created": {
+    destinations: ["posthog", "logger", "billing_activity_log"],
+    category: "billing",
+  },
+
+  // Workspace-admin manual "mark paid". engine_event so the state machine
+  // treats it as a settlement event (parity with invoice marked_paid).
+  "workspace marked_paid": {
+    destinations: ["posthog", "logger", "billing_activity_log", "engine_event"],
+    category: "billing",
+  },
+
+  // Rule CRUD — audit trail in billing_activity_log for who changed what.
+  "dispatch_rule created": {
+    destinations: ["posthog", "logger", "billing_activity_log"],
+    category: "billing",
+  },
+  "dispatch_rule updated": {
+    destinations: ["posthog", "logger", "billing_activity_log"],
+    category: "billing",
+  },
+  "dispatch_rule deleted": {
+    destinations: ["posthog", "logger", "billing_activity_log"],
+    category: "billing",
+  },
+
+  // Integration CRUD — same pattern.
+  "integration created": {
+    destinations: ["posthog", "logger", "billing_activity_log"],
+    category: "billing",
+  },
+  "integration updated": {
+    destinations: ["posthog", "logger", "billing_activity_log"],
+    category: "billing",
+  },
+  "integration deleted": {
+    destinations: ["posthog", "logger", "billing_activity_log"],
+    category: "billing",
+  },
+
+  // Debug-only: rule-evaluation summary per dispatch cycle.
+  "dispatch_rule evaluated": {
+    destinations: ["logger"],
     category: "billing",
   },
 };
