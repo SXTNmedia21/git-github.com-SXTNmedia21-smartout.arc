@@ -110,6 +110,7 @@ export function MarkPaidDialog({
                 <SelectItem value="bank_transfer">Bankoverføring</SelectItem>
                 <SelectItem value="cash">Kontant</SelectItem>
                 <SelectItem value="stripe_manual_capture">Stripe (manuell)</SelectItem>
+                <SelectItem value="accountant_manual">Regnskapsfører (EHF)</SelectItem>
                 <SelectItem value="out_of_band">Utenom system</SelectItem>
                 <SelectItem value="partial_write_off">Delvis ettergivelse</SelectItem>
                 <SelectItem value="other">Annet</SelectItem>
