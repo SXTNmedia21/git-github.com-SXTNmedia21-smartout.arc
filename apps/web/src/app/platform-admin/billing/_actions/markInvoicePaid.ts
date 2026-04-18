@@ -76,6 +76,27 @@ export async function markInvoicePaid(
       },
     });
 
+    // B7-fase3b (ADR-0139): ekstra event for accountant-rapportert mark-paid
+    // så billing_activity_log kan skille regnskapsfører-rapportert fra
+    // platform-admin korreksjon. Mark-paid-flyten forblir lik.
+    if (input.payment_channel === "accountant_manual") {
+      await emit({
+        event: "billing accountant_marked_paid",
+        actor_id: adminId,
+        workspace_id: null,
+        properties: {
+          entity_type: "invoice",
+          entity_id: invoice.invoice_id,
+          data: {
+            workspace_id: invoice.company_id, // company_id; telemetry-event aksepterer string
+            payment_reference: input.payment_reference,
+            amount: Number(invoice.amount_incl_vat),
+            currency: "NOK",
+          },
+        },
+      });
+    }
+
     revalidatePath("/platform-admin/billing/invoices");
     revalidatePath(`/platform-admin/billing/invoices/${invoice.invoice_id}`);
 

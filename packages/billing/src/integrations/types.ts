@@ -17,8 +17,9 @@
 // dependencies here.
 //
 // Fase 3 replaces PlaceholderAdapter entries in the registry with real
-// Fiken / Tripletex / Stripe / PeppolEhfAdapter implementations. The
-// enum already covers those types so the registry signature is stable.
+// Fiken / Tripletex / Stripe implementations. EHF-transport er UTENFOR
+// Smartout i Fase 3B-scope — regnskapsfører genererer EHF fra CSV/PDF-
+// eksport. Se docs/superpowers/specs/2026-04-17-billing-engine-fase-3b-design.md.
 
 import type { BillingIntegration, BillingIntegrationType } from "../types";
 

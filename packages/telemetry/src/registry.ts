@@ -3976,6 +3976,55 @@ export interface IntegrationAuditViolation extends BaseEvent {
   };
 }
 
+// ─── Billing Fase 3B — EHF CSV/PDF export (platform-admin) ──
+// Fase 3B leverer månedlig eksport-pakke som regnskapsfører bruker til
+// å sende EHF-fakturaer eksternt (utenfor Smartout). Regnskapsfører
+// markerer deretter fakturaer betalt manuelt via eksisterende Fase 2
+// mark-paid-flyt.
+//
+// Eksporten bundler det platform-admin velger: CSV og/eller PDF,
+// samlet og/eller per-workspace. Event firer én gang per eksport-
+// generering med data.format[] + data.grouping[] + fakturaliste for
+// audit. Logger + billing_activity_log er nok — ingen PostHog-metric
+// fordi volumet er lavt (månedlig manuell click).
+
+export interface BillingEhfExportGenerated extends BaseEvent {
+  event: "billing ehf_export_generated";
+  properties: {
+    entity_type: "company"; // Smartouts egen company_id (platform-scope)
+    entity_id: string;
+    data: {
+      period_start: string; // ISO date, month-start
+      period_end: string; // ISO date, month-end (inclusive)
+      format: ReadonlyArray<"csv" | "pdf">;
+      grouping: ReadonlyArray<"bundled" | "per_workspace">;
+      invoice_count: number;
+      workspace_count: number;
+      total_amount_incl_vat: number;
+      currency: string;
+    };
+  };
+}
+
+// Firer når platform-admin markerer en faktura betalt manuelt på
+// regnskapsførerens melding. Fase 2's mark-paid allerede eksisterer —
+// dette eventet er det eksplisitte "accountant reported paid" sporet
+// slik at vi kan skille accountant-manual fra workspace-admin-manual i
+// billing_activity_log.
+export interface BillingAccountantMarkedPaid extends BaseEvent {
+  event: "billing accountant_marked_paid";
+  properties: {
+    entity_type: "invoice";
+    entity_id: string;
+    data: {
+      workspace_id: string;
+      payment_reference: string | null; // fritext: "Melding fra regnskapsfører 2026-04"
+      amount: number;
+      currency: string;
+    };
+  };
+}
+
 // ─── Billing Fase 2 — Invoice editing ───────────────
 
 export interface InvoiceLineItemAdded extends BaseEvent {
@@ -4695,7 +4744,10 @@ export type SmartoutEvent =
   | PaymentRefunded
   | InvoiceDunningEscalated
   | InvoiceCreditNoteAutoCreated
-  | PlatformAdminPiiRead;
+  | PlatformAdminPiiRead
+  // ─── Billing Fase 3B — CSV/PDF-eksport ───
+  | BillingEhfExportGenerated
+  | BillingAccountantMarkedPaid;
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -6376,6 +6428,19 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   // intentionally NOT in PostHog (support traffic would flood).
   platform_admin_pii_read: {
     destinations: ["logger", "billing_activity_log"],
+    category: "billing",
+  },
+
+  // ─── Billing Fase 3B — CSV/PDF-eksport (platform-admin) ───
+  // Lav-volum (månedlig). Logger + billing_activity_log dekker audit +
+  // drift. Ingen PostHog fordi det er et platform-admin-click, ikke
+  // produkt-metric.
+  "billing ehf_export_generated": {
+    destinations: ["logger", "billing_activity_log"],
+    category: "billing",
+  },
+  "billing accountant_marked_paid": {
+    destinations: ["logger", "billing_activity_log", "engine_event"],
     category: "billing",
   },
 };

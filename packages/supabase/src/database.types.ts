@@ -4006,6 +4006,7 @@ export type Database = {
           daglig_leder: string | null
           default_currency: Database["public"]["Enums"]["currency"]
           default_language: Database["public"]["Enums"]["preferred_language"]
+          ehf_enabled: boolean
           email: string | null
           industry: Database["public"]["Enums"]["industry"]
           is_active: boolean
@@ -4016,6 +4017,7 @@ export type Database = {
           name: string
           onboarding_status: string | null
           org_number: string | null
+          peppol_participant_id: string | null
           phone: string | null
           postal_code: string | null
           raw_scraped_data: Json | null
@@ -4038,6 +4040,7 @@ export type Database = {
           daglig_leder?: string | null
           default_currency?: Database["public"]["Enums"]["currency"]
           default_language?: Database["public"]["Enums"]["preferred_language"]
+          ehf_enabled?: boolean
           email?: string | null
           industry?: Database["public"]["Enums"]["industry"]
           is_active?: boolean
@@ -4048,6 +4051,7 @@ export type Database = {
           name: string
           onboarding_status?: string | null
           org_number?: string | null
+          peppol_participant_id?: string | null
           phone?: string | null
           postal_code?: string | null
           raw_scraped_data?: Json | null
@@ -4070,6 +4074,7 @@ export type Database = {
           daglig_leder?: string | null
           default_currency?: Database["public"]["Enums"]["currency"]
           default_language?: Database["public"]["Enums"]["preferred_language"]
+          ehf_enabled?: boolean
           email?: string | null
           industry?: Database["public"]["Enums"]["industry"]
           is_active?: boolean
@@ -4080,6 +4085,7 @@ export type Database = {
           name?: string
           onboarding_status?: string | null
           org_number?: string | null
+          peppol_participant_id?: string | null
           phone?: string | null
           postal_code?: string | null
           raw_scraped_data?: Json | null
@@ -8403,6 +8409,7 @@ export type Database = {
           currency: Database["public"]["Enums"]["currency"]
           due_at: string | null
           dunning_status: Database["public"]["Enums"]["dunning_status"] | null
+          ehf_exported_at: string | null
           invoice_id: string
           invoice_number: number | null
           invoice_type: Database["public"]["Enums"]["invoice_type"]
@@ -8433,6 +8440,7 @@ export type Database = {
           currency?: Database["public"]["Enums"]["currency"]
           due_at?: string | null
           dunning_status?: Database["public"]["Enums"]["dunning_status"] | null
+          ehf_exported_at?: string | null
           invoice_id?: string
           invoice_number?: number | null
           invoice_type: Database["public"]["Enums"]["invoice_type"]
@@ -8463,6 +8471,7 @@ export type Database = {
           currency?: Database["public"]["Enums"]["currency"]
           due_at?: string | null
           dunning_status?: Database["public"]["Enums"]["dunning_status"] | null
+          ehf_exported_at?: string | null
           invoice_id?: string
           invoice_number?: number | null
           invoice_type?: Database["public"]["Enums"]["invoice_type"]
@@ -18216,6 +18225,7 @@ export type Database = {
         | "stripe_bank"
         | "bank_transfer"
         | "manual_adjustment"
+        | "accountant_manual"
       payment_status:
         | "pending"
         | "processing"
@@ -19727,6 +19737,7 @@ export const Constants = {
         "stripe_bank",
         "bank_transfer",
         "manual_adjustment",
+        "accountant_manual",
       ],
       payment_status: [
         "pending",
