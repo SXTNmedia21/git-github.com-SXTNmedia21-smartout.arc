@@ -10,6 +10,18 @@
  * - Passes the user's JWT to stage-engine for RLS-enforced PII writes
  * - Always channel: "chat" (enforced — PII never via voice, ADR-0078)
  * - Detects active pending_data contracts and prepends prime context
+ *
+ * Auth (per ADR-0132 — mobile thin client):
+ * - Web (cookie): standard Supabase SSR cookie session
+ * - Mobile (Bearer): Authorization: Bearer <supabase_access_token> header.
+ *   Bearer path validates via admin.auth.getUser(token); the raw token IS
+ *   the access_token forwarded to stage-engine for RLS-enforced PII writes.
+ *   Bearer path MUST NOT call getSession() — there is no session in
+ *   stateless mode and a null session would silently break PII writes.
+ *
+ * NOTE: `channel` is forced to "chat" server-side. The endpoint never
+ * accepts a `channel` field from the client — voice traffic gets its own
+ * endpoint (Week 7+, LiveKit per ADR-0135).
  */
 
 import type { NextRequest } from "next/server";
@@ -24,6 +36,7 @@ const STAGE_ENGINE_URL = env.STAGE_ENGINE_URL ?? "http://localhost:5010";
 const STAGE_ENGINE_API_KEY = env.STAGE_ENGINE_API_KEY;
 
 // ── Request schema ──────────────────────────────────────────────────────────
+// Notably absent: `channel`. Server forces "chat". See ADR-0078.
 const RequestSchema = z.object({
   workspaceId: z.string().uuid(),
   userMessage: z.string().min(1).max(10000),
@@ -34,23 +47,49 @@ const RequestSchema = z.object({
   missionContext: z.record(z.unknown()).optional(),
 });
 
-export async function POST(request: NextRequest) {
-  // 1. Auth — any authenticated user (not admin-only)
-  const supabase = await createClient();
-  const {
-    data: { user, session },
-    error: authError,
-  } = await supabase.auth.getUser().then(async (userResult) => {
-    const sessionResult = await supabase.auth.getSession();
-    return {
-      data: { user: userResult.data.user, session: sessionResult.data.session },
-      error: userResult.error ?? sessionResult.error,
-    };
-  });
+type AuthResult = {
+  user: { id: string };
+  accessToken: string | undefined;
+  authMethod: "bearer" | "cookie";
+};
 
-  if (authError || !user) {
+/**
+ * Resolves auth from either the cookie session (web) or a Bearer header (mobile).
+ * Bearer path uses admin client to validate the JWT — does NOT call getSession()
+ * (which would return null in stateless mode and corrupt downstream PII writes).
+ */
+async function resolveAuth(request: NextRequest): Promise<AuthResult | null> {
+  const authHeader = request.headers.get("authorization");
+  const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+
+  if (bearerToken) {
+    // Bearer path (mobile per ADR-0132). Validate via admin client.
+    // The raw token IS the access_token to forward downstream — stateless mode.
+    const admin = createAdminClient();
+    const { data, error } = await admin.auth.getUser(bearerToken);
+    if (error || !data.user) return null;
+    return { user: data.user, accessToken: bearerToken, authMethod: "bearer" };
+  }
+
+  // Cookie path (web). Standard SSR session.
+  const supabase = await createClient();
+  const [{ data: userData, error: userErr }, { data: sessionData, error: sessionErr }] =
+    await Promise.all([supabase.auth.getUser(), supabase.auth.getSession()]);
+  if (userErr || sessionErr || !userData.user) return null;
+  return {
+    user: userData.user,
+    accessToken: sessionData.session?.access_token,
+    authMethod: "cookie",
+  };
+}
+
+export async function POST(request: NextRequest) {
+  // 1. Auth — cookie OR Bearer. Mobile clients send Bearer per ADR-0132.
+  const auth = await resolveAuth(request);
+  if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const { user, accessToken, authMethod } = auth;
 
   // 2. Parse body
   let body: z.infer<typeof RequestSchema>;
@@ -118,13 +157,31 @@ export async function POST(request: NextRequest) {
         profile_id: profile.profile_id,
         channel: "chat", // Always chat — PII never via voice (ADR-0078)
         page_context: body.pageContext,
-        user_jwt: session?.access_token, // Pass JWT for user-scoped PII writes
+        user_jwt: accessToken, // Pass JWT for user-scoped PII writes
       }),
     });
 
+    // Preserve stage-engine status codes (401/403/404/409) so mobile can
+    // distinguish "session expired" from "not allowed" from "internal error"
+    // (per agent-coord council R1, hop 7).
     if (!res.ok) {
-      const errBody = (await res.json().catch(() => ({}))) as { message?: string };
-      throw new Error(errBody.message ?? `Stage engine returned ${res.status}`);
+      const errBody = (await res.json().catch(() => ({}))) as {
+        message?: string;
+        error?: string;
+      };
+      const passthroughStatuses = new Set([401, 403, 404, 409]);
+      const status = passthroughStatuses.has(res.status) ? res.status : 500;
+      console.error(
+        `[/api/emma/chat] stage-engine error ${res.status}:`,
+        errBody.error ?? errBody.message,
+      );
+      return NextResponse.json(
+        {
+          error: errBody.error ?? "STAGE_ENGINE_ERROR",
+          message: errBody.message ?? `Stage engine returned ${res.status}`,
+        },
+        { status },
+      );
     }
 
     const data = (await res.json()) as {
@@ -137,10 +194,12 @@ export async function POST(request: NextRequest) {
       text: data.response,
       sessionId: data.session_id,
       intent: data.intent,
+      // authMethod surfaced for mobile telemetry observability
+      authMethod,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Emma chat failed";
     console.error("[/api/emma/chat] stage-engine proxy error:", err);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: "INTERNAL_ERROR", message }, { status: 500 });
   }
 }
