@@ -8409,6 +8409,7 @@ export type Database = {
           currency: Database["public"]["Enums"]["currency"]
           due_at: string | null
           dunning_status: Database["public"]["Enums"]["dunning_status"] | null
+          ehf_exported_at: string | null
           invoice_id: string
           invoice_number: number | null
           invoice_type: Database["public"]["Enums"]["invoice_type"]
@@ -8439,6 +8440,7 @@ export type Database = {
           currency?: Database["public"]["Enums"]["currency"]
           due_at?: string | null
           dunning_status?: Database["public"]["Enums"]["dunning_status"] | null
+          ehf_exported_at?: string | null
           invoice_id?: string
           invoice_number?: number | null
           invoice_type: Database["public"]["Enums"]["invoice_type"]
@@ -8469,6 +8471,7 @@ export type Database = {
           currency?: Database["public"]["Enums"]["currency"]
           due_at?: string | null
           dunning_status?: Database["public"]["Enums"]["dunning_status"] | null
+          ehf_exported_at?: string | null
           invoice_id?: string
           invoice_number?: number | null
           invoice_type?: Database["public"]["Enums"]["invoice_type"]
@@ -18222,6 +18225,7 @@ export type Database = {
         | "stripe_bank"
         | "bank_transfer"
         | "manual_adjustment"
+        | "accountant_manual"
       payment_status:
         | "pending"
         | "processing"
@@ -19733,6 +19737,7 @@ export const Constants = {
         "stripe_bank",
         "bank_transfer",
         "manual_adjustment",
+        "accountant_manual",
       ],
       payment_status: [
         "pending",
