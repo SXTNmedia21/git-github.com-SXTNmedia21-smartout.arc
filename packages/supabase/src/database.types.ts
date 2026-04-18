@@ -2402,6 +2402,64 @@ export type Database = {
           },
         ]
       }
+      billing_integration_oauth_state: {
+        Row: {
+          consumed_at: string | null
+          created_at: string
+          expires_at: string
+          integration_type: string
+          redirect_uri: string
+          state_id: string
+          state_nonce: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          integration_type: string
+          redirect_uri: string
+          state_id?: string
+          state_nonce: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          integration_type?: string
+          redirect_uri?: string
+          state_id?: string
+          state_nonce?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_integration_oauth_state_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_identity"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "billing_integration_oauth_state_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "billing_integration_oauth_state_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       call_log: {
         Row: {
           call_session_id: string
@@ -4006,6 +4064,7 @@ export type Database = {
           daglig_leder: string | null
           default_currency: Database["public"]["Enums"]["currency"]
           default_language: Database["public"]["Enums"]["preferred_language"]
+          ehf_enabled: boolean
           email: string | null
           industry: Database["public"]["Enums"]["industry"]
           is_active: boolean
@@ -4016,6 +4075,7 @@ export type Database = {
           name: string
           onboarding_status: string | null
           org_number: string | null
+          peppol_participant_id: string | null
           phone: string | null
           postal_code: string | null
           raw_scraped_data: Json | null
@@ -4038,6 +4098,7 @@ export type Database = {
           daglig_leder?: string | null
           default_currency?: Database["public"]["Enums"]["currency"]
           default_language?: Database["public"]["Enums"]["preferred_language"]
+          ehf_enabled?: boolean
           email?: string | null
           industry?: Database["public"]["Enums"]["industry"]
           is_active?: boolean
@@ -4048,6 +4109,7 @@ export type Database = {
           name: string
           onboarding_status?: string | null
           org_number?: string | null
+          peppol_participant_id?: string | null
           phone?: string | null
           postal_code?: string | null
           raw_scraped_data?: Json | null
@@ -4070,6 +4132,7 @@ export type Database = {
           daglig_leder?: string | null
           default_currency?: Database["public"]["Enums"]["currency"]
           default_language?: Database["public"]["Enums"]["preferred_language"]
+          ehf_enabled?: boolean
           email?: string | null
           industry?: Database["public"]["Enums"]["industry"]
           is_active?: boolean
@@ -4080,6 +4143,7 @@ export type Database = {
           name?: string
           onboarding_status?: string | null
           org_number?: string | null
+          peppol_participant_id?: string | null
           phone?: string | null
           postal_code?: string | null
           raw_scraped_data?: Json | null
