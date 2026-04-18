@@ -1,11 +1,13 @@
 ---
 title: "integration_poll_payments as Separate engine_process from integration_sync"
 id: ADR-0138
-status: accepted
+status: superseded
 layer: decision
 module: billing
 created: 2026-04-17
-updated: 2026-04-17
+updated: 2026-04-18
+superseded_by: ADR-0139
+superseded_reason: Fase 3B rescoped — ingen inbound-poll. Betalinger som kommer via regnskapsfører markeres manuelt i Smartout (platform-admin eller accountant-rolle). Stripe-betalinger dekkes av Fase 3A webhook. Automatisert poll av Fiken/Tripletex er ikke nødvendig i CSV-scope.
 ---
 
 # ADR-0138: integration_poll_payments as Separate engine_process from integration_sync

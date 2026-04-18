@@ -1,11 +1,13 @@
 ---
 title: "Workspace Integration OAuth Token Storage — Supabase Vault"
 id: ADR-0136
-status: accepted
+status: superseded
 layer: decision
 module: billing
 created: 2026-04-17
-updated: 2026-04-17
+updated: 2026-04-18
+superseded_by: ADR-0139
+superseded_reason: Fase 3B rescoped — EHF skjer via regnskapsfører-CSV/PDF-eksport, ikke via workspace-OAuth til Fiken/Tripletex. Ingen workspace-tokens trengs i Fase 3B. ADR beholdes som historikk for eventuell senere OAuth-fase.
 ---
 
 # ADR-0136: Workspace Integration OAuth Token Storage — Supabase Vault
