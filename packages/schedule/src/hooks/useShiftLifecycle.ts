@@ -1,3 +1,5 @@
+"use client";
+
 /**
  * useShiftLifecycle — single source of truth for the shift timeline UI.
  *
@@ -9,18 +11,13 @@
  * Workspace scope is enforced by RLS on the view's underlying tables
  * (`security_invoker = true`). The hook does not need to pass workspace_id.
  *
- * Platform-neutral (ADR-0108): this hook never imports browser-only APIs
- * (no window, no document, no env reads, no browser-client factory) and
- * carries no client directive. Callers must inject a
- * `SupabaseClient`. On web, use the thin wrapper in
- * `apps/web/src/hooks/useShiftLifecycle.ts`. On mobile, inject an RN
- * Supabase client. This keeps `packages/schedule` importable from both
- * Next.js (web) and React Native (Expo) surfaces per the Mobile Parity
- * rule in CLAUDE.md.
+ * Platform-agnostic: uses `@smartout/supabase` which works in both
+ * Next.js and React Native (Expo) via conditional exports. Safe to
+ * re-export from `packages/schedule/src/index.ts` and import from apps/mobile.
  */
 
 import { useQuery } from "@tanstack/react-query";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { createClient } from "@smartout/supabase/client";
 
 export type ShiftLifecyclePhase = "planlegges" | "pagar" | "oppgjor" | "avsluttet";
 
@@ -46,8 +43,6 @@ export type ShiftLifecycleRow = {
 };
 
 export type UseShiftLifecycleOptions = {
-  /** Platform-specific Supabase client. Required — no implicit client creation. */
-  supabase: SupabaseClient;
   /** Enable Suspense integration — defaults to `false` for safety on older React trees. */
   suspense?: boolean;
   /** Stable override for tests/storybook. When provided, no network call is made. */
@@ -56,19 +51,15 @@ export type UseShiftLifecycleOptions = {
   enabled?: boolean;
 };
 
-/** Stable query key factory — consumers may use this for invalidation. */
-export const shiftLifecycleQueryKey = (shiftId: string | null | undefined) =>
-  ["shift-lifecycle", shiftId] as const;
-
 export function useShiftLifecycle(
   shiftId: string | null | undefined,
-  opts: UseShiftLifecycleOptions,
+  opts: UseShiftLifecycleOptions = {},
 ) {
-  const { supabase } = opts;
+  const supabase = createClient();
   const enabled = (opts.enabled ?? true) && !!shiftId;
 
   return useQuery<ShiftLifecycleRow | null>({
-    queryKey: shiftLifecycleQueryKey(shiftId),
+    queryKey: ["shift-lifecycle", shiftId],
     queryFn: async () => {
       if (!shiftId) return null;
       // The generated database.types.ts does not yet include

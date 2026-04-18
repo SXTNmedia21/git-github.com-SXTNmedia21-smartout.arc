@@ -9,8 +9,7 @@
   "scripts": {
     "lint": "eslint src/",
     "typecheck": "npx tsc --noEmit",
-    "test": "vitest run --passWithNoTests",
-    "test:watch": "vitest",
+    "test": "vitest run",
     "clean": "rimraf dist .turbo"
   },
   "dependencies": {

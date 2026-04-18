@@ -17,13 +17,9 @@ export {
   useReassignShiftType,
 } from "./use-grid-mutations";
 
-// Shift lifecycle (Phase 6 / ADR-0095, platform-neutral per ADR-0108) —
-// platform-agnostic read hook. Web consumers should prefer the thin wrapper
-// at `apps/web/src/hooks/useShiftLifecycle.ts`, which injects the browser
-// Supabase client. Mobile consumers inject an RN Supabase client directly.
+// Shift lifecycle (Phase 6 / ADR-0095) — cross-platform read hook.
 export {
   useShiftLifecycle,
-  shiftLifecycleQueryKey,
   type ShiftLifecycleRow,
   type ShiftLifecyclePhase,
   type UseShiftLifecycleOptions,

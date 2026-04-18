@@ -1,9 +1,7 @@
 {
   "timeline": {
-    "heading": "Vakten din",
-    "aria": {
-      "step_list": "Faser i vakten"
-    },
+    "heading": "Din vakt",
+    "heading_admin": "Vakten",
     "phase": {
       "planlegges": "Planlegges",
       "pagar": "Pågår",
@@ -11,32 +9,79 @@
       "avsluttet": "Avsluttet"
     },
     "metric": {
-      "planned_hours": "Planlagt {hours} t",
-      "not_started": "Ikke stemplet inn",
-      "in_progress": "Pågår · {hours} t planlagt",
-      "interpreted_hours": "Tolket {hours} t",
-      "approved_hours": "Godkjent {hours} t"
+      "planned_hours": "Planlagt: {hours} t",
+      "not_started": "Ikke startet",
+      "in_progress": "Pågår nå · {hours} t",
+      "interpreted_hours": "Tolket: {hours} t",
+      "approved_hours": "Godkjent: {hours} t"
     },
     "badge": {
       "deviation": "Avvik",
-      "blocking": "Krever handling"
+      "blocking": "Blokkerer",
+      "pending_approval": "Venter godkjenning",
+      "punched_in": "Stemplet inn",
+      "punched_out": "Stemplet ut",
+      "locked": "Låst"
     },
-    "explainer": {
-      "planlegges": "Vakten er publisert og venter på at du stempler inn.",
-      "pagar": "Vakten pågår. Tiden din registreres mens du jobber.",
-      "oppgjor": "Arbeidet er registrert. Timer tolkes mot regelverket før godkjenning.",
-      "avsluttet": "Vakten er godkjent og lukket."
+    "aria": {
+      "phase_change": "Vakten din har gått fra {from} til {to}",
+      "step_list": "Vaktens steg"
     },
-    "offline": {
-      "pill": "Oppdatert {time}",
-      "deviation_disabled": "Du er offline. Kobles opp igjen for å melde avvik."
-    },
-    "voice": {
-      "end_first": "Avslutt talesesjon først."
+    "action": {
+      "open_botsson": "Snakk med Botsson",
+      "open_deviation": "Se avvik",
+      "understand": "Jeg forstår",
+      "contact_manager": "Kontakt leder",
+      "approve": "Godkjenn",
+      "request_interpretation": "Be om ny tolkning",
+      "open_in_botsson": "Åpne i Botsson"
     },
     "fallback": {
-      "loading": "Laster vakten din…",
-      "error": "Vi fikk ikke hentet vakten din."
+      "error": "Kunne ikke laste vakten",
+      "loading": "Laster vakten…",
+      "empty": "Fant ikke vakten"
+    }
+  },
+  "notification": {
+    "published": {
+      "title": "Vakt publisert",
+      "body": "En ny vakt er publisert for deg."
+    },
+    "reminder": {
+      "title": "Vaktpåminnelse",
+      "body": "Din vakt starter snart."
+    },
+    "punched_in": {
+      "title": "Stemplet inn",
+      "body": "Du er stemplet inn."
+    },
+    "punched_out": {
+      "title": "Stemplet ut",
+      "body": "Du er stemplet ut."
+    },
+    "interpretation_ready": {
+      "title": "Tolkning klar",
+      "body": "Timene er tolket og klare til godkjenning."
+    },
+    "approval_needed": {
+      "title": "Godkjenning trengs",
+      "body": "En vakt venter på godkjenning."
+    },
+    "approved": {
+      "title": "Godkjent",
+      "body": "Vakten er godkjent."
+    },
+    "deviation_raised": {
+      "title": "Nytt avvik",
+      "body": "Et avvik er registrert på vakten."
+    },
+    "deviation_blocking": {
+      "title": "Avvik blokkerer",
+      "body": "Et avvik må løses før vakten kan lukkes."
+    },
+    "closed": {
+      "title": "Avsluttet",
+      "body": "Vakten er avsluttet."
     }
   }
 }
