@@ -34,7 +34,14 @@ const TABS: Array<{ href: string; label: string; match: (p: string) => boolean }
   {
     href: "/platform-admin/billing/export",
     label: "Eksport",
-    match: (p) => p.startsWith("/platform-admin/billing/export"),
+    match: (p) =>
+      p.startsWith("/platform-admin/billing/export") &&
+      !p.startsWith("/platform-admin/billing/ehf-export"),
+  },
+  {
+    href: "/platform-admin/billing/ehf-export",
+    label: "EHF-eksport",
+    match: (p) => p.startsWith("/platform-admin/billing/ehf-export"),
   },
   {
     href: "/platform-admin/billing/drift",

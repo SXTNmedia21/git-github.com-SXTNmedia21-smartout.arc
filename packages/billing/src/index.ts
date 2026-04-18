@@ -25,3 +25,4 @@ export * from "./actions/integrations";
 export * from "./actions/invoice-editing";
 export * from "./actions/workspace-mark-paid";
 export * from "./actions/payments";
+export * from "./actions/ehf-export";
