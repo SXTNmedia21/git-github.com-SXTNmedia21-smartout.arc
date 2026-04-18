@@ -32,11 +32,34 @@
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyBuilder = any;
 
+/**
+ * Structural type for the `cascade_gate_write` RPC overload.
+ *
+ * The generated `Database` types in `database.types.ts` have not been
+ * regenerated since the RPC migration shipped, so the typed
+ * `SupabaseClient<Database>.rpc()` signature (which whitelists names from
+ * `Database["public"]["Functions"]`) rejects `"cascade_gate_write"`. We
+ * widen the signature here so any client whose `.rpc()` can accept both
+ * known RPCs AND our RPC name is structurally assignable to
+ * `SupabaseGateClient`. Remove once `db:gen-types` regenerates the types
+ * and `cascade_gate_write` appears in the generated `Functions` map.
+ *
+ * The overload union is intentional: it preserves callability from callers
+ * that still have the strict generated type (they satisfy the first overload
+ * via structural assignability on the arg shape) while permitting us to
+ * invoke with the literal `"cascade_gate_write"` in this file.
+ */
 export type SupabaseGateClient = {
-  rpc: (
-    fn: "cascade_gate_write",
-    args: CascadeGateRpcArgs,
-  ) => PromiseLike<{ data: unknown; error: { message: string } | null }>;
+  rpc: {
+    (
+      fn: "cascade_gate_write",
+      args: CascadeGateRpcArgs,
+    ): PromiseLike<{ data: unknown; error: { message: string } | null }>;
+    (
+      fn: string,
+      args?: Record<string, unknown>,
+    ): PromiseLike<{ data: unknown; error: { message: string } | null }>;
+  };
   from: (table: string) => AnyBuilder;
 };
 
@@ -56,6 +79,13 @@ export type GateContext = {
   actorProfileId?: string | null;
   /** Current row data — required for UPDATE/DELETE so the gate can diff. */
   currentData?: Record<string, unknown> | null;
+  /**
+   * Column name for the WHERE clause on update/delete. Defaults to `"id"`.
+   * Use `"{table}_id"` for Smartout convention tables (e.g. `"profile_id"`,
+   * `"schedule_shift_id"`). Without this, `gatedUpdate`/`gatedDelete` will
+   * silently match zero rows on tables whose PK is not literally `id`.
+   */
+  entityIdColumn?: string;
 };
 
 /**
@@ -180,6 +210,13 @@ async function callGate(
  * Gated INSERT. Calls the gate first; if allowed, executes the insert and
  * returns the inserted rows alongside the gate outcome.
  *
+ * NOTE: `ctx.entityId` (when supplied) is forwarded to the gate RPC only —
+ * this helper does NOT filter inserted rows by PK. The write always inserts
+ * exactly `rows` and returns the resulting rows via `.select()`. Callers
+ * that pre-generate PKs client-side should still pass `ctx.entityId` so the
+ * gate can audit the intended key. `ctx.entityIdColumn` is ignored for
+ * inserts.
+ *
  * @throws GateDeniedError when the gate returns `{ allowed: false }`.
  */
 export async function gatedInsert<T = unknown>(
@@ -207,7 +244,10 @@ export async function gatedInsert<T = unknown>(
  * Gated UPDATE. The caller must supply `ctx.entityId` so the gate can diff
  * old vs proposed state. Pass matching filters via the returned builder is
  * NOT supported — this wrapper assumes you're updating by primary key and
- * applies `.eq('id', ctx.entityId)` for you.
+ * applies `.eq(ctx.entityIdColumn ?? 'id', ctx.entityId)` for you.
+ *
+ * PK column default is `'id'` for back-compat. Set `ctx.entityIdColumn` to
+ * `'{table}_id'` for Smartout convention tables (e.g. `'profile_id'`).
  *
  * For more complex updates, use the RPC directly and bypass this helper.
  *
@@ -227,7 +267,12 @@ export async function gatedUpdate<T = unknown>(
 
   const gateResult = await callGate(client, "update", patch, ctx);
 
-  const { data, error } = await client.from(table).update(patch).eq("id", ctx.entityId).select();
+  const pkColumn = ctx.entityIdColumn ?? "id";
+  const { data, error } = await client
+    .from(table)
+    .update(patch)
+    .eq(pkColumn, ctx.entityId)
+    .select();
 
   if (error) {
     throw new Error(`gatedUpdate(${table}) write failed after gate allowed: ${error.message}`);
@@ -245,6 +290,9 @@ export async function gatedUpdate<T = unknown>(
  * current row (via `ctx.currentData` if supplied) and can convert the delete
  * into a `change_proposal` when policy requires review.
  *
+ * PK column resolution mirrors `gatedUpdate`: defaults to `'id'`, override
+ * via `ctx.entityIdColumn` for Smartout-convention tables.
+ *
  * @throws GateDeniedError when the gate returns `{ allowed: false }`.
  */
 export async function gatedDelete<T = unknown>(
@@ -260,7 +308,8 @@ export async function gatedDelete<T = unknown>(
 
   const gateResult = await callGate(client, "delete", null, ctx);
 
-  const { data, error } = await client.from(table).delete().eq("id", ctx.entityId).select();
+  const pkColumn = ctx.entityIdColumn ?? "id";
+  const { data, error } = await client.from(table).delete().eq(pkColumn, ctx.entityId).select();
 
   if (error) {
     throw new Error(`gatedDelete(${table}) write failed after gate allowed: ${error.message}`);
