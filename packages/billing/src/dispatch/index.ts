@@ -14,3 +14,5 @@ export { sendViaSendGrid } from "./adapters/sendgrid";
 export { StripeDispatchAdapter, getStripe, STRIPE_API_VERSION } from "./adapters/stripe";
 export { redactStripeEvent, FORBIDDEN_KEYS } from "./adapters/stripe-redact";
 export type { RedactedStripeEvent } from "./adapters/stripe-redact";
+export { validateDunningStages } from "./dunning-stages";
+export type { DunningStage, ValidateStagesResult } from "./dunning-stages";

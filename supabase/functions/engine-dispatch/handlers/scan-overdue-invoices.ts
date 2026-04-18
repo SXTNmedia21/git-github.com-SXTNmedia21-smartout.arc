@@ -112,10 +112,16 @@ async function emitViaBridge(event: {
   }
 }
 
-// ─── Public pure validator (exported for tests) ─────────────────
+// ─── Public pure validator ──────────────────────────────────────
 // Stage config validation — keeps the ordering contract explicit
 // and bubbles bad payloads up with a clear error. The handler calls
 // this before touching the DB.
+//
+// CANONICAL COPY lives in packages/billing/src/dispatch/dunning-stages.ts
+// and is the unit-tested surface. Deno cannot import from the billing
+// package, so this inline copy MUST stay byte-for-byte equivalent on
+// validation semantics. If you change one, change the other and rerun
+// the dunning-stages.spec.ts suite.
 
 export function validateStages(raw: unknown): {
   ok: true;
