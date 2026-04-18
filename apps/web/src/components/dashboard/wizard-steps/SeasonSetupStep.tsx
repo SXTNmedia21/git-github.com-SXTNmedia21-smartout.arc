@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useCallback, useContext, useMemo, useEffect, useRef } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
-import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import { emit } from "@smartout/telemetry";
+import { createSeason, updateSeason } from "@/app/dashboard/setup/_actions/season-actions";
+import { handleGatedResult } from "@/lib/gated-result";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, CheckCircle2, CalendarRange } from "lucide-react";
@@ -52,7 +52,6 @@ export function SeasonSetupStep({
   suggestedSeasons?: IndustrySeasonTemplate[];
 }) {
   const { workspace } = useWorkspace();
-  const { profileId } = useContext(DashboardContext);
   const queryClient = useQueryClient();
 
   const { data: existingSeason } = useQuery({
@@ -93,6 +92,9 @@ export function SeasonSetupStep({
   const seasonWeeks = useMemo(() => Math.round(seasonDays / 7), [seasonDays]);
 
   const handleSave = useCallback(async () => {
+    // Client-side guards mirror the Server Action's validation so the
+    // user gets an instant toast on obvious input errors without a
+    // round-trip. The Server Action re-validates server-side.
     if (!name.trim()) {
       toast.error("Sesongen trenger et navn");
       return;
@@ -107,49 +109,34 @@ export function SeasonSetupStep({
     }
 
     setIsSaving(true);
-    const supabase = createClient();
-    const slug = name
-      .trim()
-      .toLowerCase()
-      .replace(/\s+/g, "-")
-      .replace(/[^a-z0-9-\u00e6\u00f8\u00e5]/g, "");
-
     try {
-      if (existingSeason) {
-        const { error } = await supabase
-          .from("season")
-          .update({ name: name.trim(), slug, start_date: startDate, end_date: endDate })
-          .eq("season_id", existingSeason.season_id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("season").insert({
-          name: name.trim(),
-          slug,
-          start_date: startDate,
-          end_date: endDate,
-          status: "draft" as const,
-          workspace_id: workspace.workspace_id,
-          created_by: profileId,
-        });
-        if (error) throw error;
-      }
+      const result = existingSeason
+        ? await updateSeason(existingSeason.season_id, workspace.workspace_id, {
+            name: name.trim(),
+            start_date: startDate,
+            end_date: endDate,
+          })
+        : await createSeason({
+            workspaceId: workspace.workspace_id,
+            name: name.trim(),
+            startDate,
+            endDate,
+          });
 
-      void emit({
-        event: "button clicked",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
-        properties: { trackingId: existingSeason ? "season-updated" : "season-created" },
+      handleGatedResult(result, {
+        appliedMessage: existingSeason ? "Sesong oppdatert" : "Sesong opprettet",
+        // `proposedMessage` intentionally omitted — falls back to the
+        // shared "Krever godkjenning" copy from `handleGatedResult`.
+        onApplied: () => {
+          void queryClient.invalidateQueries({
+            queryKey: ["seasons", workspace.workspace_id],
+          });
+        },
       });
-
-      toast.success(existingSeason ? "Sesong oppdatert" : "Sesong opprettet");
-      await queryClient.invalidateQueries({ queryKey: ["seasons", workspace.workspace_id] });
-    } catch (err) {
-      const pgErr = err as { message?: string };
-      toast.error(pgErr.message ?? "Kunne ikke opprette sesong");
     } finally {
       setIsSaving(false);
     }
-  }, [existingSeason, name, startDate, endDate, workspace.workspace_id, profileId, queryClient]);
+  }, [existingSeason, name, startDate, endDate, workspace.workspace_id, queryClient]);
 
   const seasonTools = useSeasonTools(
     name,

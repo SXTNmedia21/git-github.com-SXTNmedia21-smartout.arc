@@ -80,12 +80,22 @@ export type GateContext = {
   /** Current row data — required for UPDATE/DELETE so the gate can diff. */
   currentData?: Record<string, unknown> | null;
   /**
-   * Column name for the WHERE clause on update/delete. Defaults to `"id"`.
-   * Use `"{table}_id"` for Smartout convention tables (e.g. `"profile_id"`,
-   * `"schedule_shift_id"`). Without this, `gatedUpdate`/`gatedDelete` will
-   * silently match zero rows on tables whose PK is not literally `id`.
+   * Column name for the WHERE clause on update/delete. REQUIRED — no default.
+   *
+   * Historically this was optional and fell back to `"id"`. That default was a
+   * zero-row-match trap: tables whose PK does not literally equal `id` (every
+   * Smartout convention table uses `"{table}_id"` — `profile_id`,
+   * `schedule_shift_id`, `season_id`) would silently match zero rows while the
+   * gate telemetry reported a successful mutation. Provenance claiming writes
+   * that didn't happen is a canonical cascade integrity violation (ADR-0091
+   * WP3, Wave 2A council 2026-04-18). Callers MUST therefore declare the PK
+   * column explicitly so TypeScript enforces the choice at compile time.
+   *
+   * Pass `"id"` for generic tables and `"{table}_id"` for Smartout convention
+   * tables (e.g. `"profile_id"`, `"season_id"`). For inserts this is ignored
+   * (PK is assigned by the DB) but still required for type consistency.
    */
-  entityIdColumn?: string;
+  entityIdColumn: string;
 };
 
 /**
@@ -242,12 +252,14 @@ export async function gatedInsert<T = unknown>(
 
 /**
  * Gated UPDATE. The caller must supply `ctx.entityId` so the gate can diff
- * old vs proposed state. Pass matching filters via the returned builder is
- * NOT supported — this wrapper assumes you're updating by primary key and
- * applies `.eq(ctx.entityIdColumn ?? 'id', ctx.entityId)` for you.
+ * old vs proposed state, and `ctx.entityIdColumn` so the WHERE clause targets
+ * the correct PK. This wrapper assumes you're updating by primary key and
+ * applies `.eq(ctx.entityIdColumn, ctx.entityId)` for you.
  *
- * PK column default is `'id'` for back-compat. Set `ctx.entityIdColumn` to
- * `'{table}_id'` for Smartout convention tables (e.g. `'profile_id'`).
+ * `ctx.entityIdColumn` is required (TS enforced). Pass `"id"` for generic
+ * tables and `"{table}_id"` for Smartout convention tables (`"profile_id"`,
+ * `"season_id"`, etc.). See `GateContext.entityIdColumn` JSDoc for why the
+ * default was removed.
  *
  * For more complex updates, use the RPC directly and bypass this helper.
  *
@@ -267,11 +279,10 @@ export async function gatedUpdate<T = unknown>(
 
   const gateResult = await callGate(client, "update", patch, ctx);
 
-  const pkColumn = ctx.entityIdColumn ?? "id";
   const { data, error } = await client
     .from(table)
     .update(patch)
-    .eq(pkColumn, ctx.entityId)
+    .eq(ctx.entityIdColumn, ctx.entityId)
     .select();
 
   if (error) {
@@ -286,12 +297,13 @@ export async function gatedUpdate<T = unknown>(
 }
 
 /**
- * Gated DELETE. The caller must supply `ctx.entityId`. The gate sees the
- * current row (via `ctx.currentData` if supplied) and can convert the delete
- * into a `change_proposal` when policy requires review.
+ * Gated DELETE. The caller must supply `ctx.entityId` and `ctx.entityIdColumn`.
+ * The gate sees the current row (via `ctx.currentData` if supplied) and can
+ * convert the delete into a `change_proposal` when policy requires review.
  *
- * PK column resolution mirrors `gatedUpdate`: defaults to `'id'`, override
- * via `ctx.entityIdColumn` for Smartout-convention tables.
+ * PK column resolution mirrors `gatedUpdate`: `ctx.entityIdColumn` is required
+ * (TS enforced) — pass `"id"` for generic tables, `"{table}_id"` for Smartout
+ * convention tables.
  *
  * @throws GateDeniedError when the gate returns `{ allowed: false }`.
  */
@@ -308,8 +320,11 @@ export async function gatedDelete<T = unknown>(
 
   const gateResult = await callGate(client, "delete", null, ctx);
 
-  const pkColumn = ctx.entityIdColumn ?? "id";
-  const { data, error } = await client.from(table).delete().eq(pkColumn, ctx.entityId).select();
+  const { data, error } = await client
+    .from(table)
+    .delete()
+    .eq(ctx.entityIdColumn, ctx.entityId)
+    .select();
 
   if (error) {
     throw new Error(`gatedDelete(${table}) write failed after gate allowed: ${error.message}`);
