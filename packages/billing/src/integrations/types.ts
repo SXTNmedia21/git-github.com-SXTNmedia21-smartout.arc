@@ -17,8 +17,9 @@
 // dependencies here.
 //
 // Fase 3 replaces PlaceholderAdapter entries in the registry with real
-// Fiken / Tripletex / Stripe / PeppolEhfAdapter implementations. The
-// enum already covers those types so the registry signature is stable.
+// Fiken / Tripletex / Stripe implementations. EHF-transport er UTENFOR
+// Smartout i Fase 3B-scope — regnskapsfører genererer EHF fra CSV/PDF-
+// eksport. Se docs/superpowers/specs/2026-04-17-billing-engine-fase-3b-design.md.
 
 import type { BillingIntegration, BillingIntegrationType } from "../types";
 
@@ -93,37 +94,6 @@ export type IntegrationTestConnectionResult =
   | { status: "timeout" };
 
 /**
- * Result of an inbound-poll cycle for Fase 3B Spor D (ADR-0138).
- *
- * `payments` lists everything the vendor returned since `since`. The
- * handler matches each entry against Smartout invoices by
- * `invoice_reference` (= invoice_number or invoice.external_reference)
- * plus amount + currency. Unmatched entries fire
- * `integration poll_no_match`; matched entries fire
- * `integration poll_found_payment` and create a `payment` row.
- *
- * Adapter guarantees: all timestamps are ISO-8601 UTC strings; amounts
- * are positive decimals in the integration's currency; external_id is
- * stable across re-polls (idempotens key for the UNIQUE partial index
- * `payment_external_id_company_unique`).
- */
-export type PollResult =
-  | {
-      status: "ok";
-      payments: ReadonlyArray<{
-        external_id: string; // vendor's payment id (Fiken: bet-id, Tripletex: voucher-id)
-        invoice_reference: string; // their reference matching Smartout invoice_number or invoice.external_reference
-        amount: number;
-        currency: string;
-        paid_at: string; // ISO-8601 UTC
-      }>;
-    }
-  | {
-      status: "error";
-      error_message: string;
-    };
-
-/**
  * The contract every integration adapter implements.
  *
  * sync() MUST be idempotent on (integration_id, entity_type, entity_id):
@@ -131,12 +101,6 @@ export type PollResult =
  * with the remote external_reference rather than creating a duplicate.
  * The PlaceholderAdapter trivially satisfies this by returning `mocked`
  * on every call.
- *
- * pollPayments() is OPTIONAL (ADR-0138): only Fiken + Tripletex
- * implement it in Fase 3B. PlaceholderAdapter + Stripe leave it
- * undefined — the `poll_integration_payments` handler filters via
- * `include_types` in its action_payload plus a runtime `typeof
- * adapter.pollPayments === 'function'` check.
  */
 export type IntegrationAdapter = {
   type: BillingIntegrationType;
@@ -144,10 +108,4 @@ export type IntegrationAdapter = {
   supports: readonly IntegrationEntity[];
   sync(input: SyncInput): Promise<SyncResult>;
   testConnection(integration: BillingIntegration): Promise<IntegrationTestConnectionResult>;
-  /**
-   * Inbound-poll of vendor payments since `since`. Fiken + Tripletex
-   * implement this in Fase 3B B2; PlaceholderAdapter + StripeAdapter
-   * leave it undefined (Stripe payments arrive via webhook, not poll).
-   */
-  pollPayments?(integration: BillingIntegration, since: Date): Promise<PollResult>;
 };

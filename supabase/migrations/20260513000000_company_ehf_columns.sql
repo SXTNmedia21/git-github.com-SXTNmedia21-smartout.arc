@@ -2,29 +2,26 @@ SET search_path TO public, extensions;
 
 -- ============================================
 -- 20260513000000_company_ehf_columns.sql
--- Billing Engine Fase 3B — B1 Migration A
+-- Billing Engine Fase 3B (CSV-eksport-scope)
 --
--- Prepare `company` for EHF/Peppol invoice dispatch (Spor B). The
--- PeppolEhfAdapter reads `peppol_participant_id` when building the UBL
--- 2.1 <cac:AccountingSupplierParty> block; `ehf_enabled` is the
--- feature-flag gate the adapter checks before it calls Tickstar.
+-- EHF-leveransen skjer UTENFOR Smartout: regnskapsfører genererer EHF
+-- fra CSV-eksport + markerer fakturaer betalt manuelt. Disse kolonnene
+-- beskriver workspacets EHF-deltakelse, ikke Smartout-transport.
 --
--- Columns are added NULL / DEFAULT false so existing rows remain valid.
--- The CHECK constraint enforces the invariant: a company cannot claim
--- `ehf_enabled = true` without a registered Peppol participant id. This
--- prevents silent "looks enabled, produces malformed XML" failures.
+--   peppol_participant_id — Peppol participant identifier,
+--     typisk '0192:<orgnr>' for norske avsendere. Regnskapsfører bruker
+--     verdien når han sender EHF fra sitt eget system. Smartout viser
+--     verdien i CSV-eksporten + lar platform-admin filtrere på den.
 --
--- peppol_participant_id format: '0192:<orgnr>' for Norwegian senders.
--- The '0192:' prefix is the Peppol scheme code for NO:ORG (Norwegian
--- organisation numbers). The column is `text` — validation of the full
--- format lives in the adapter, not in the constraint, so we can accept
--- other schemes (e.g. '9908:' legacy EHF) without a schema change.
+--   ehf_enabled — Feature-flag: kun workspaces med ehf_enabled=true er
+--     inkludert i platform-admin CSV-/PDF-eksport. CHECK sikrer at
+--     flagget ikke kan settes uten at participant_id finnes.
 --
--- Vault availability confirmed in supabase_db_smartout.ai at B1 start:
---   supabase_vault 0.3.1 installed, `vault.secrets` table present.
--- This unblocks ADR-0136 (OAuth token storage in Vault) for B4.
+-- Kolonnene er NULL / DEFAULT false slik at eksisterende rader er
+-- gyldige. CHECK-constrainten håndheves på rad-nivå så service-role-
+-- skriv ikke kan omgå gaten.
 --
--- Ref: Fase 3B spec §3.1, ADR-0137 (Tickstar transport).
+-- Ref: Fase 3B CSV-eksport-spec (supercedes ADR-0137 Tickstar).
 -- ============================================
 
 ALTER TABLE public.company
@@ -33,20 +30,15 @@ ALTER TABLE public.company
 ALTER TABLE public.company
   ADD COLUMN ehf_enabled boolean NOT NULL DEFAULT false;
 
--- Invariant: can only enable EHF once a participant id is registered.
--- Prevents the UI from flipping the flag without Peppol-onboarding the
--- org first. Enforced at the row level so bypass-RLS service writes
--- still hit the gate.
 ALTER TABLE public.company
   ADD CONSTRAINT company_ehf_requires_participant
   CHECK (ehf_enabled = false OR peppol_participant_id IS NOT NULL);
 
--- ── Comments ────────────────────────────────────────────────
 COMMENT ON COLUMN public.company.peppol_participant_id IS
-  'Peppol participant identifier, format "0192:<orgnr>" for Norwegian senders. Used by PeppolEhfAdapter when building UBL 2.1 AccountingSupplierParty. See ADR-0137.';
+  'Peppol participant identifier, format "0192:<orgnr>" for norske avsendere. Vist i platform-admin EHF-eksport (CSV/PDF) slik at regnskapsfører har identifikatoren når han lager EHF-levering eksternt.';
 
 COMMENT ON COLUMN public.company.ehf_enabled IS
-  'Feature-flag gating EHF/Peppol dispatch for this company. PeppolEhfAdapter returns {status:"failed", error_code:"ehf_not_enabled"} when false. CHECK enforces participant_id presence when true. See ADR-0137 + Fase 3B spec §3.4.';
+  'Feature-flag: workspaces med ehf_enabled=true inkluderes i platform-admin EHF-eksport (månedlig CSV/PDF til regnskapsfører). CHECK krever peppol_participant_id.';
 
 COMMENT ON CONSTRAINT company_ehf_requires_participant ON public.company IS
-  'Fase 3B invariant: ehf_enabled=true requires peppol_participant_id. Enforced at row level so service-role writes cannot bypass.';
+  'Fase 3B invariant: ehf_enabled=true krever peppol_participant_id. Håndheves på rad-nivå.';

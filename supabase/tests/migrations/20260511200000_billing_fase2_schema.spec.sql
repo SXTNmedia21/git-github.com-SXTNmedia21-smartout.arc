@@ -131,16 +131,11 @@ SELECT policies_are('public', 'invoice_dispatch',
   'invoice_dispatch has expected policy set'
 );
 
--- Fase 3B migration D (20260513000003_billing_integration_workspace_rls.sql)
--- adds billing_integration_workspace_admin_own_crud to give workspace-admins
--- self-serve OAuth-integration CRUD. The Fase 2 platform-admin-only policy
--- stays; the updated set is the superset below.
 SELECT policies_are('public', 'billing_integration',
   ARRAY[
-    'billing_integration_platform_admin_all',
-    'billing_integration_workspace_admin_own_crud'
+    'billing_integration_platform_admin_all'
   ],
-  'billing_integration has platform-admin policy + Fase 3B workspace-admin CRUD'
+  'billing_integration has platform-admin-only policy (Fase 2 spec §7)'
 );
 
 -- ═══════════════════════════════════════════════════════════════

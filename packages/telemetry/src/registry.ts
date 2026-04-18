@@ -135,14 +135,7 @@ export type EntityType =
   // ─── Billing Fase 3A ────────────────────────────
   | "payment"
   | "payment_attempt"
-  | "dunning_escalation_log"
-  // ─── Billing Fase 3B ────────────────────────────
-  // OAuth state-nonce rows for workspace integration connect flows.
-  // Emit source for 'integration oauth_initiated' and 'oauth_failed'
-  // before a billing_integration row exists. Once the callback succeeds
-  // and creates the integration, subsequent events carry entity_type=
-  // 'billing_integration'.
-  | "billing_integration_oauth_state";
+  | "dunning_escalation_log";
 
 export type ActionVerb =
   | "created"
@@ -3983,167 +3976,51 @@ export interface IntegrationAuditViolation extends BaseEvent {
   };
 }
 
-// ─── Billing Fase 3B — Workspace OAuth (Spor E) ──────
-// State-nonce lifecycle emits. `entity_id` points at the oauth_state row
-// until the callback creates the billing_integration; integration
-// created events continue under the Fase 2 taxonomy above.
+// ─── Billing Fase 3B — EHF CSV/PDF export (platform-admin) ──
+// Fase 3B leverer månedlig eksport-pakke som regnskapsfører bruker til
+// å sende EHF-fakturaer eksternt (utenfor Smartout). Regnskapsfører
+// markerer deretter fakturaer betalt manuelt via eksisterende Fase 2
+// mark-paid-flyt.
+//
+// Eksporten bundler det platform-admin velger: CSV og/eller PDF,
+// samlet og/eller per-workspace. Event firer én gang per eksport-
+// generering med data.format[] + data.grouping[] + fakturaliste for
+// audit. Logger + billing_activity_log er nok — ingen PostHog-metric
+// fordi volumet er lavt (månedlig manuell click).
 
-// User clicked "Koble til <provider>". state_nonce written, TTL 10 min.
-export interface IntegrationOauthInitiated extends BaseEvent {
-  event: "integration oauth_initiated";
+export interface BillingEhfExportGenerated extends BaseEvent {
+  event: "billing ehf_export_generated";
   properties: {
-    entity_type: "billing_integration_oauth_state";
+    entity_type: "company"; // Smartouts egen company_id (platform-scope)
     entity_id: string;
     data: {
-      integration_type: "fiken" | "tripletex";
-      workspace_id: string;
-    };
-  };
-}
-
-// OAuth callback verified state + exchanged tokens + inserted
-// billing_integration. entity_id is the new billing_integration row.
-export interface IntegrationOauthConnected extends BaseEvent {
-  event: "integration oauth_connected";
-  properties: {
-    entity_type: "billing_integration";
-    entity_id: string;
-    data: {
-      integration_type: "fiken" | "tripletex";
-      workspace_id: string;
-    };
-  };
-}
-
-// OAuth callback refused the exchange. entity_id is the oauth_state row
-// (if the nonce was parseable) so operators can trace the failing flow.
-export interface IntegrationOauthFailed extends BaseEvent {
-  event: "integration oauth_failed";
-  properties: {
-    entity_type: "billing_integration_oauth_state";
-    entity_id: string;
-    data: {
-      integration_type: "fiken" | "tripletex" | "unknown";
-      workspace_id: string | null;
-      error_code:
-        | "state_expired"
-        | "state_consumed"
-        | "state_not_found"
-        | "token_exchange_failed"
-        | "vault_write_failed"
-        | "unknown";
-      error_message: string;
-    };
-  };
-}
-
-// ─── Billing Fase 3B — Integration poll (Spor D) ─────
-// ADR-0138: inbound-poll flow fires per-cycle start, per-match, and
-// per-no-match. `poll_started` + `poll_no_match` stay logger-only —
-// high-cardinality audit noise without direct value to PostHog.
-
-// Handler entered for a specific integration row at cycle start.
-export interface IntegrationPollStarted extends BaseEvent {
-  event: "integration poll_started";
-  properties: {
-    entity_type: "billing_integration";
-    entity_id: string;
-    data: {
-      integration_type: "fiken" | "tripletex";
-      since: string; // ISO timestamp of last_poll_at (or start-of-month on first poll)
-    };
-  };
-}
-
-// A vendor payment matched a Smartout invoice. Drives mark-paid via
-// Fase 3A's reconcileInvoiceOnPayment. `entity_id` = new payment row.
-export interface IntegrationPollFoundPayment extends BaseEvent {
-  event: "integration poll_found_payment";
-  properties: {
-    entity_type: "payment";
-    entity_id: string;
-    data: {
-      integration_type: "fiken" | "tripletex";
-      integration_id: string;
-      invoice_id: string;
-      external_id: string;
-      amount: number;
+      period_start: string; // ISO date, month-start
+      period_end: string; // ISO date, month-end (inclusive)
+      format: ReadonlyArray<"csv" | "pdf">;
+      grouping: ReadonlyArray<"bundled" | "per_workspace">;
+      invoice_count: number;
+      workspace_count: number;
+      total_amount_incl_vat: number;
       currency: string;
     };
   };
 }
 
-// Vendor payment returned no match. Platform-admin reviews these.
-// Logger-only: unmatched-payment volume is normal background noise;
-// PostHog would drown.
-export interface IntegrationPollNoMatch extends BaseEvent {
-  event: "integration poll_no_match";
+// Firer når platform-admin markerer en faktura betalt manuelt på
+// regnskapsførerens melding. Fase 2's mark-paid allerede eksisterer —
+// dette eventet er det eksplisitte "accountant reported paid" sporet
+// slik at vi kan skille accountant-manual fra workspace-admin-manual i
+// billing_activity_log.
+export interface BillingAccountantMarkedPaid extends BaseEvent {
+  event: "billing accountant_marked_paid";
   properties: {
-    entity_type: "billing_integration";
+    entity_type: "invoice";
     entity_id: string;
     data: {
-      integration_type: "fiken" | "tripletex";
-      external_id: string;
-      invoice_reference: string | null;
+      workspace_id: string;
+      payment_reference: string | null; // fritext: "Melding fra regnskapsfører 2026-04"
       amount: number;
       currency: string;
-    };
-  };
-}
-
-// ─── Billing Fase 3B — EHF / Peppol (Spor B) ─────────
-// ADR-0137: PeppolEhfAdapter emits at submission time (success / fail)
-// and separately at schematron validation time. `validation_error` is
-// logger + alert; `submission_failed` is logger + alert + PostHog.
-
-// PeppolEhfAdapter.send() returned {status: 'in_flight'} — Tickstar
-// accepted the submission. Peppol delivery confirmation arrives later
-// (webhook in B5+).
-export interface EhfSubmissionSent extends BaseEvent {
-  event: "ehf submission_sent";
-  properties: {
-    entity_type: "invoice_dispatch";
-    entity_id: string;
-    data: {
-      invoice_id: string;
-      peppol_participant_id: string;
-      external_reference: string; // Tickstar message id
-    };
-  };
-}
-
-// Tickstar POST failed OR schematron pre-flight failed after retries.
-// Posthog + billing_activity_log for alerting (bill delivery outage).
-export interface EhfSubmissionFailed extends BaseEvent {
-  event: "ehf submission_failed";
-  properties: {
-    entity_type: "invoice_dispatch";
-    entity_id: string;
-    data: {
-      invoice_id: string;
-      error_code:
-        | "schematron_invalid"
-        | "tickstar_error"
-        | "ehf_not_enabled"
-        | "missing_participant_id"
-        | "unknown";
-      error_message: string;
-    };
-  };
-}
-
-// Schematron validation detail. Fires BEFORE submission attempt so
-// platform-admin can inspect validation failures per invoice. Distinct
-// from 'ehf submission_failed' which is the terminal transport outcome.
-export interface EhfValidationError extends BaseEvent {
-  event: "ehf validation_error";
-  properties: {
-    entity_type: "invoice_dispatch";
-    entity_id: string;
-    data: {
-      invoice_id: string;
-      rule_id: string; // Peppol BIS Billing 3.0 rule identifier, e.g. 'BR-CO-10'
-      message: string;
     };
   };
 }
@@ -4868,16 +4745,9 @@ export type SmartoutEvent =
   | InvoiceDunningEscalated
   | InvoiceCreditNoteAutoCreated
   | PlatformAdminPiiRead
-  // ─── Billing Fase 3B (ADR-0136 to ADR-0138) ───
-  | IntegrationOauthInitiated
-  | IntegrationOauthConnected
-  | IntegrationOauthFailed
-  | IntegrationPollStarted
-  | IntegrationPollFoundPayment
-  | IntegrationPollNoMatch
-  | EhfSubmissionSent
-  | EhfSubmissionFailed
-  | EhfValidationError;
+  // ─── Billing Fase 3B — CSV/PDF-eksport ───
+  | BillingEhfExportGenerated
+  | BillingAccountantMarkedPaid;
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -6561,58 +6431,16 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "billing",
   },
 
-  // ─── Billing Fase 3B (ADR-0136 to ADR-0138) ───
-
-  // Workspace OAuth lifecycle. `initiated` + `connected` go to PostHog +
-  // billing_activity_log so product can measure adoption + support can
-  // diagnose stalled connections. `failed` also hits PostHog as an
-  // alert surface for OAuth outages.
-  "integration oauth_initiated": {
-    destinations: ["posthog", "logger", "billing_activity_log"],
-    category: "billing",
-  },
-  "integration oauth_connected": {
-    destinations: ["posthog", "logger", "billing_activity_log", "engine_event"],
-    category: "billing",
-  },
-  "integration oauth_failed": {
-    destinations: ["posthog", "logger", "billing_activity_log"],
-    category: "billing",
-  },
-
-  // Integration poll cycle. `poll_started` + `poll_no_match` are
-  // logger-only per ADR-0138 spec §9 — high-volume noise without
-  // direct value elsewhere. `poll_found_payment` routes to engine_event
-  // so the reconcile path treats it as a settlement-equivalent event.
-  "integration poll_started": {
-    destinations: ["logger"],
-    category: "billing",
-  },
-  "integration poll_found_payment": {
-    destinations: ["posthog", "logger", "billing_activity_log", "engine_event"],
-    category: "billing",
-  },
-  "integration poll_no_match": {
-    destinations: ["logger"],
-    category: "billing",
-  },
-
-  // EHF/Peppol submission. `submission_sent` tracks per-message
-  // throughput; `submission_failed` is an alert surface for delivery
-  // outage (Tickstar down, schematron regression). `validation_error`
-  // is logger + alert — schematron surfaces detail that operators need
-  // to diagnose rule failures, but does NOT need PostHog (per-rule
-  // cardinality would be too high).
-  "ehf submission_sent": {
-    destinations: ["posthog", "logger", "billing_activity_log", "engine_event"],
-    category: "billing",
-  },
-  "ehf submission_failed": {
-    destinations: ["posthog", "logger", "billing_activity_log", "engine_event"],
-    category: "billing",
-  },
-  "ehf validation_error": {
+  // ─── Billing Fase 3B — CSV/PDF-eksport (platform-admin) ───
+  // Lav-volum (månedlig). Logger + billing_activity_log dekker audit +
+  // drift. Ingen PostHog fordi det er et platform-admin-click, ikke
+  // produkt-metric.
+  "billing ehf_export_generated": {
     destinations: ["logger", "billing_activity_log"],
+    category: "billing",
+  },
+  "billing accountant_marked_paid": {
+    destinations: ["logger", "billing_activity_log", "engine_event"],
     category: "billing",
   },
 };

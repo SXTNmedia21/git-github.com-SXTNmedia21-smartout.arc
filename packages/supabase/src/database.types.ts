@@ -2402,64 +2402,6 @@ export type Database = {
           },
         ]
       }
-      billing_integration_oauth_state: {
-        Row: {
-          consumed_at: string | null
-          created_at: string
-          expires_at: string
-          integration_type: string
-          redirect_uri: string
-          state_id: string
-          state_nonce: string
-          user_id: string
-          workspace_id: string
-        }
-        Insert: {
-          consumed_at?: string | null
-          created_at?: string
-          expires_at?: string
-          integration_type: string
-          redirect_uri: string
-          state_id?: string
-          state_nonce: string
-          user_id: string
-          workspace_id: string
-        }
-        Update: {
-          consumed_at?: string | null
-          created_at?: string
-          expires_at?: string
-          integration_type?: string
-          redirect_uri?: string
-          state_id?: string
-          state_nonce?: string
-          user_id?: string
-          workspace_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "billing_integration_oauth_state_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_identity"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "billing_integration_oauth_state_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "v_current_plan_preview"
-            referencedColumns: ["workspace_id"]
-          },
-          {
-            foreignKeyName: "billing_integration_oauth_state_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspace"
-            referencedColumns: ["workspace_id"]
-          },
-        ]
-      }
       call_log: {
         Row: {
           call_session_id: string
