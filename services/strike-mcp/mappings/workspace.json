@@ -132,7 +132,419 @@
       ],
       "occurrence_count": 1,
       "sample_values": [
-        "string<18>"
+        "string<34>"
+      ]
+    },
+    "list admin 🔑 keys": {
+      "target": "list_admin_keys",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "array"
+      ],
+      "occurrence_count": 33,
+      "sample_values": [
+        "array<5>",
+        "array<12>",
+        "array<4>"
+      ]
+    },
+    "status": {
+      "target": "status",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 16,
+      "sample_values": [
+        "string<6>",
+        "string<8>",
+        "string<7>"
+      ]
+    },
+    " ℹ️channel": {
+      "target": "channel",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 34,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "📏_modules v.2": {
+      "target": "modules_v_2",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "array"
+      ],
+      "occurrence_count": 40,
+      "sample_values": [
+        "array<5>",
+        "array<1>"
+      ]
+    },
+    "_modules": {
+      "target": "modules",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "array"
+      ],
+      "occurrence_count": 27,
+      "sample_values": [
+        "array<6>",
+        "array<6>",
+        "array<5>"
+      ]
+    },
+    "Free users 🚫": {
+      "target": "free_users",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "boolean"
+      ],
+      "occurrence_count": 23,
+      "sample_values": [
+        "boolean",
+        "boolean"
+      ]
+    },
+    "Members": {
+      "target": "members",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "number"
+      ],
+      "occurrence_count": 40,
+      "sample_values": [
+        "number",
+        "number",
+        "number"
+      ]
+    },
+    "✨AI Workspace": {
+      "target": "ai_workspace",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 40,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "🏰 Preferences": {
+      "target": "preferences",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 40,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "access🔑key": {
+      "target": "access_key",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 40,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "departments": {
+      "target": "departments",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "array"
+      ],
+      "occurrence_count": 15,
+      "sample_values": [
+        "array<3>",
+        "array<6>",
+        "array<1>"
+      ]
+    },
+    "📏 features": {
+      "target": "features",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "array"
+      ],
+      "occurrence_count": 40,
+      "sample_values": [
+        "array<16>",
+        "array<16>",
+        "array<18>"
+      ]
+    },
+    "ID": {
+      "target": "id",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "number"
+      ],
+      "occurrence_count": 32,
+      "sample_values": [
+        "number",
+        "number",
+        "number"
+      ]
+    },
+    "🎎 Manager": {
+      "target": "manager",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 34,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "🏰 Shiftplan": {
+      "target": "shiftplan",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 36,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "workspace.Json": {
+      "target": "workspace_json",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 40,
+      "sample_values": [
+        "string<291>",
+        "string<565>",
+        "string<209>"
+      ]
+    },
+    "Reset Time": {
+      "target": "reset_time",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 40,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "Created By": {
+      "target": "created_by",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 36,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "list of _language": {
+      "target": "list_of_language",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "array"
+      ],
+      "occurrence_count": 31,
+      "sample_values": [
+        "array<19>",
+        "array<8>",
+        "array<15>"
+      ]
+    },
+    "- enable contract": {
+      "target": "enable_contract",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "boolean"
+      ],
+      "occurrence_count": 13,
+      "sample_values": [
+        "boolean",
+        "boolean"
+      ]
+    },
+    "list of ℹ️ contents": {
+      "target": "list_of_contents",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "array"
+      ],
+      "occurrence_count": 1,
+      "sample_values": [
+        "array<1>"
+      ]
+    },
+    "User/Platform Contract": {
+      "target": "user_platform_contract",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 11,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "Onboarding_workspace": {
+      "target": "onboarding_workspace",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 7,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "dateArchived": {
+      "target": "datearchived",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 22,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "Contract Template": {
+      "target": "contract_template",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 8,
+      "sample_values": [
+        "string<32>"
+      ]
+    },
+    "🏰 inventory": {
+      "target": "inventory",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 13,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "list master🔑keys": {
+      "target": "list_master_keys",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "array"
+      ],
+      "occurrence_count": 2,
+      "sample_values": [
+        "array<1>",
+        "array<1>"
+      ]
+    },
+    "🕹️ gameplan": {
+      "target": "gameplan",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 13,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "handbook_workspace": {
+      "target": "handbook_workspace",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 4,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "dateStart": {
+      "target": "datestart",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 9,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
       ]
     }
   },
@@ -145,7 +557,7 @@
     "Sweep 2026-04-16: 5 fields locked needs_review=false (target+transform already set by prior patch); 31 unmapped+unreviewed fields silently dropped (auto-sweeper consensus). Triggered by emit-SQL verification surfacing align.ts/engine.ts attestation gap. See align.ts buildAlignedFieldMap fix (preserves human approval).",
     "Sweep 2026-04-16: 5 fields locked needs_review=false (target+transform already set by prior patch); 0 unmapped+unreviewed fields silently dropped (auto-sweeper consensus). Triggered by emit-SQL verification surfacing align.ts/engine.ts attestation gap. See align.ts buildAlignedFieldMap fix (preserves human approval)."
   ],
-  "last_verified": "2026-04-16T13:12:40.365Z",
+  "last_verified": "2026-04-18",
   "sample_record_count": 40,
   "total_record_count": 40,
   "v3_schema_hash": null,
