@@ -135,6 +135,9 @@ describe("updateProfileRole (gated)", () => {
       entityId: "prof-1",
       workspaceId: "ws-1",
       capability: "profile:update:role",
+      // PK column override — profile uses `profile_id`, not `id`.
+      // Without this the post-gate write would silently match 0 rows.
+      entityIdColumn: "profile_id",
     });
     // case 5: no-regress — legacy "profile role updated" still fires on applied path
     expect(emitMock).toHaveBeenCalledWith(

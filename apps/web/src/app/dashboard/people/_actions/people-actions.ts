@@ -21,42 +21,18 @@
  * follow-up PR — reviewers can surface the proposal from `activity_trail`
  * via the `profile update proposed` event until then.
  *
- * KNOWN PILOT DIVERGENCE (tracked for WP3 follow-up):
- *   `gatedUpdate` in `packages/supabase/src/gate-client.ts` applies
- *   `.eq("id", ctx.entityId)` on the underlying `.update()`. The `profile`
- *   table's PK is `profile_id`, not `id`, so the post-gate write will match
- *   zero rows at runtime. The gate decision + audit row + change_proposal
- *   path still works (those happen inside the RPC, not the TS wrapper).
- *   Fix lives in the next PR that extends `gatedUpdate` to accept a
- *   PK-column hint (or switch to `.match({ [pkColumn]: entityId })`).
- *   This file is still the canonical reference for the CALL-SITE pattern.
+ * PK column: `profile` uses the Smartout `{table}_id` convention, so every
+ * `GateContext` below sets `entityIdColumn: "profile_id"`. Without this,
+ * `gatedUpdate` would silently match zero rows (see `gate-client.ts` JSDoc).
  */
 
 import { createClient } from "@smartout/supabase/server";
 import type { Database, TablesUpdate } from "@smartout/supabase";
-import {
-  gatedUpdate,
-  GateDeniedError,
-  type GateContext,
-  type SupabaseGateClient,
-} from "@smartout/supabase/gate-client";
+import { gatedUpdate, GateDeniedError, type GateContext } from "@smartout/supabase/gate-client";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isValidTransition } from "@smartout/utils";
 import type { ProfileStatus } from "@smartout/utils";
 import { emit } from "@smartout/telemetry";
-
-/**
- * `SupabaseGateClient` declares `rpc("cascade_gate_write", args)` as a strict
- * literal-typed signature. The generated `Database` types don't include the
- * `cascade_gate_write` RPC name in their function whitelist yet (types are
- * regenerated out-of-band), so the typed `SupabaseClient<Database>.rpc()`
- * reports the narrower name set as incompatible. This helper narrows once,
- * at the call site, via a safe structural cast. Remove after the next
- * `db:gen-types` run adds the RPC to `database.types.ts`.
- */
-function asGateClient(client: SupabaseClient<Database>): SupabaseGateClient {
-  return client as unknown as SupabaseGateClient;
-}
 
 /** Shared return shape for gated profile mutations. */
 type GatedResult = { ok: true; pendingProposal?: string } | { ok: false; error: string };
@@ -142,10 +118,11 @@ export async function updateProfileRole(
     capability: "profile:update:role",
     actorProfileId: actorId,
     currentData: currentProfile,
+    entityIdColumn: "profile_id",
   };
 
   try {
-    await gatedUpdate(asGateClient(supabase), "profile", patch, ctx);
+    await gatedUpdate(supabase, "profile", patch, ctx);
     void emit({
       event: "profile role updated",
       workspace_id: workspaceId,
@@ -194,10 +171,11 @@ export async function updateProfileDepartment(
     capability: "profile:update:department",
     actorProfileId: actorId,
     currentData: currentProfile,
+    entityIdColumn: "profile_id",
   };
 
   try {
-    await gatedUpdate(asGateClient(supabase), "profile", patch, ctx);
+    await gatedUpdate(supabase, "profile", patch, ctx);
     void emit({
       event: "profile department updated",
       workspace_id: workspaceId,
@@ -237,10 +215,11 @@ export async function deactivateProfile(
     capability: "profile:update:status",
     actorProfileId: actorId,
     currentData: currentProfile,
+    entityIdColumn: "profile_id",
   };
 
   try {
-    await gatedUpdate(asGateClient(supabase), "profile", patch as Record<string, unknown>, ctx);
+    await gatedUpdate(supabase, "profile", patch as Record<string, unknown>, ctx);
     void emit({
       event: "profile deactivated",
       workspace_id: workspaceId,
@@ -430,10 +409,11 @@ export async function updateProfileStatus(
     capability: "profile:update:status",
     actorProfileId: actorId,
     currentData: currentProfile,
+    entityIdColumn: "profile_id",
   };
 
   try {
-    await gatedUpdate(asGateClient(supabase), "profile", patch as Record<string, unknown>, ctx);
+    await gatedUpdate(supabase, "profile", patch as Record<string, unknown>, ctx);
     void emit({
       event: "profile status updated",
       workspace_id: workspaceId,
@@ -473,10 +453,11 @@ export async function reactivateProfile(
     capability: "profile:update:status",
     actorProfileId: actorId,
     currentData: currentProfile,
+    entityIdColumn: "profile_id",
   };
 
   try {
-    await gatedUpdate(asGateClient(supabase), "profile", patch as Record<string, unknown>, ctx);
+    await gatedUpdate(supabase, "profile", patch as Record<string, unknown>, ctx);
     void emit({
       event: "profile reactivated",
       workspace_id: workspaceId,
@@ -556,10 +537,11 @@ export async function bulkUpdateProfiles(
       capability: "profile:update:bulk",
       actorProfileId: actorId,
       currentData: currentProfile,
+      entityIdColumn: "profile_id",
     };
 
     try {
-      await gatedUpdate(asGateClient(supabase), "profile", updates, ctx);
+      await gatedUpdate(supabase, "profile", updates, ctx);
     } catch (err) {
       if (err instanceof GateDeniedError) {
         if (err.outcome === "proposed") {
