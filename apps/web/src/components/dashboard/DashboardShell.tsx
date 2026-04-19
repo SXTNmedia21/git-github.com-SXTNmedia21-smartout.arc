@@ -15,6 +15,7 @@ import { EntityDrawerProvider } from "./entity-drawer/EntityDrawerContext";
 import { EntityDrawer } from "./entity-drawer/EntityDrawer";
 import { ChatPanelProvider } from "./ChatPanel";
 import { ActiveCallProvider } from "./ActiveCallProvider";
+import { NavBadgePill, NavBadgeDot, type NavBadgeVariant } from "./NavBadge";
 import {
   AdminProvider,
   ScheduleCoordinationProvider,
@@ -1427,9 +1428,15 @@ function DashboardShellInner({
                               icon={Users}
                               label="Ansatte"
                               isDark={isDark}
-                              badge={
+                              indicators={
                                 inboundRequestCount > 0
-                                  ? `${inboundRequestCount} Forespørsler`
+                                  ? [
+                                      {
+                                        type: "warning",
+                                        value: inboundRequestCount,
+                                        label: `${inboundRequestCount} Forespørsler`,
+                                      },
+                                    ]
                                   : undefined
                               }
                               active={
@@ -1600,7 +1607,7 @@ function DashboardShellInner({
                             icon={GraduationCap}
                             label="Min opplæring"
                             isDark={isDark}
-                            badge="1 forfalt"
+                            indicators={[{ type: "warning", label: "1 forfalt" }]}
                             active={isActive("/dashboard/my-training")}
                             isCollapsed={isSidebarCollapsed}
                           />
@@ -1660,14 +1667,12 @@ function DashboardShellInner({
                             isDark={isDark}
                             active={pathname === "/dashboard/komm"}
                             isCollapsed={isSidebarCollapsed}
-                            badge={
-                              kanalerUnread > 0
-                                ? kanalerUnread > 99
-                                  ? "99+"
-                                  : String(kanalerUnread)
-                                : undefined
-                            }
-                            liveIndicator={hasKanalerCall}
+                            indicators={[
+                              ...(hasKanalerCall ? ([{ type: "live" }] as NavBadgeVariant[]) : []),
+                              ...(kanalerUnread > 0
+                                ? ([{ type: "count", value: kanalerUnread }] as NavBadgeVariant[])
+                                : []),
+                            ]}
                           />
                           <NavItem
                             href="/dashboard/komm/chat"
@@ -1676,14 +1681,12 @@ function DashboardShellInner({
                             isDark={isDark}
                             active={isActive("/dashboard/komm/chat")}
                             isCollapsed={isSidebarCollapsed}
-                            badge={
-                              chatUnread > 0
-                                ? chatUnread > 99
-                                  ? "99+"
-                                  : String(chatUnread)
-                                : undefined
-                            }
-                            liveIndicator={hasChatCall}
+                            indicators={[
+                              ...(hasChatCall ? ([{ type: "live" }] as NavBadgeVariant[]) : []),
+                              ...(chatUnread > 0
+                                ? ([{ type: "count", value: chatUnread }] as NavBadgeVariant[])
+                                : []),
+                            ]}
                           />
                           <NavItem
                             href="/dashboard/komm/nyheter"
@@ -2283,7 +2286,12 @@ interface NavItemProps {
   label: string;
   href: string;
   active?: boolean;
+  /** Stackable right-aligned badges (NavBadge variants). First item wins
+   *  priority for the collapsed-mode dot overlay. */
+  indicators?: NavBadgeVariant[];
+  /** @deprecated pass `{ type: "text", label }` via `indicators` instead */
   badge?: string;
+  /** @deprecated pass `{ type: "live" }` via `indicators` instead */
   liveIndicator?: boolean;
   isDark?: boolean;
   ai?: boolean;
@@ -2297,6 +2305,7 @@ function NavItem({
   label,
   href,
   active,
+  indicators,
   badge,
   liveIndicator,
   isDark,
@@ -2305,6 +2314,15 @@ function NavItem({
   onClick,
   useButton,
 }: NavItemProps) {
+  // Fold legacy props into the indicators array so rendering has a
+  // single source of truth. Live ranks first so it wins the collapsed dot.
+  const resolvedIndicators: NavBadgeVariant[] = [
+    ...(liveIndicator ? ([{ type: "live" }] as NavBadgeVariant[]) : []),
+    ...(indicators ?? []),
+    ...(badge ? ([{ type: "text", label: badge }] as NavBadgeVariant[]) : []),
+  ];
+  const hasIndicators = resolvedIndicators.length > 0;
+  const topIndicator = resolvedIndicators[0];
   const normalizedLabel = label.toLowerCase().replace(/\s+/g, "-");
   const navAutoplayId = `nav-${href}`;
   const navButtonAutoplayId = `navbtn-${normalizedLabel}`;
@@ -2341,20 +2359,17 @@ function NavItem({
             {label}
           </span>
         )}
-        {liveIndicator && !isCollapsed && (
-          <span className="relative ml-1.5 flex h-2 w-2" aria-label="Live">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
-          </span>
-        )}
       </div>
-      {liveIndicator && isCollapsed && (
-        <span className="absolute top-0.5 right-0.5 flex h-2 w-2" aria-label="Live">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
-        </span>
+      {/* Expanded: right-aligned stack of badges. Active-route dot is
+       *  suppressed when indicators are present so the row stays clean. */}
+      {!isCollapsed && hasIndicators && (
+        <div className="flex shrink-0 items-center gap-1">
+          {resolvedIndicators.map((variant, i) => (
+            <NavBadgePill key={`${variant.type}-${i}`} variant={variant} />
+          ))}
+        </div>
       )}
-      {!isCollapsed && active && !badge && (
+      {!isCollapsed && !hasIndicators && active && (
         <div
           className={`h-1.5 w-1.5 rounded-full ${
             isDark
@@ -2363,18 +2378,11 @@ function NavItem({
           }`}
         />
       )}
-      {isCollapsed && badge && (
-        <div className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-orange-500" />
-      )}
-      {!isCollapsed && badge && (
-        <span
-          className={`rounded border px-1.5 py-0.5 text-[8px] font-bold ${
-            isDark
-              ? "border-orange-500/20 bg-orange-500/10 text-orange-400"
-              : "border-orange-200 bg-orange-50 text-orange-600"
-          }`}
-        >
-          {badge}
+      {/* Collapsed: single dot overlay on the icon corner using the
+       *  highest-priority indicator (live > warning > count/text). */}
+      {isCollapsed && topIndicator && (
+        <span className="absolute top-0.5 right-0.5">
+          <NavBadgeDot variant={topIndicator} />
         </span>
       )}
     </>
