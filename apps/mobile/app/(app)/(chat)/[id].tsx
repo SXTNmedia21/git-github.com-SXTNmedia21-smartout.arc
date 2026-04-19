@@ -68,6 +68,8 @@ export default function ConversationScreen() {
   const [lkServerUrl, setLkServerUrl] = useState<string | null>(null);
   const [isCallSheetOpen, setIsCallSheetOpen] = useState(false);
   const [isCameraEnabled, setIsCameraEnabled] = useState(false);
+  // 'user' = front / 'environment' = rear. Default to front when video starts.
+  const [cameraFacing, setCameraFacing] = useState<"user" | "environment">("user");
 
   const {
     room,
@@ -147,13 +149,18 @@ export default function ConversationScreen() {
     }
   }, [lkToken, lkServerUrl, isConnected, connect]);
 
-  // Publish camera once the room is connected if the user started with video
+  // Publish camera once the room is connected if the user started with video,
+  // and re-publish with the selected facingMode whenever the user flips camera.
   useEffect(() => {
     if (!isConnected || !room || !isCameraEnabled) return;
-    void room.localParticipant.setCameraEnabled(true).catch((err) => {
+    void room.localParticipant.setCameraEnabled(true, { facingMode: cameraFacing }).catch((err) => {
       console.error("[CallStart] setCameraEnabled failed:", err);
     });
-  }, [isConnected, room, isCameraEnabled]);
+  }, [isConnected, room, isCameraEnabled, cameraFacing]);
+
+  const handleFlipCamera = useCallback(() => {
+    setCameraFacing((prev) => (prev === "user" ? "environment" : "user"));
+  }, []);
 
   const handleEndCall = useCallback(async () => {
     await disconnect();
@@ -162,9 +169,12 @@ export default function ConversationScreen() {
   const handleToggleCamera = useCallback(async () => {
     if (!room) return;
     const next = !isCameraEnabled;
-    await room.localParticipant.setCameraEnabled(next);
+    await room.localParticipant.setCameraEnabled(
+      next,
+      next ? { facingMode: cameraFacing } : undefined,
+    );
     setIsCameraEnabled(next);
-  }, [room, isCameraEnabled]);
+  }, [room, isCameraEnabled, cameraFacing]);
 
   const listRef = useRef<FlatList>(null);
 
@@ -516,6 +526,7 @@ export default function ConversationScreen() {
           callStartedAt={callSession.startedAt}
           onToggleMic={toggleMic}
           onToggleCamera={handleToggleCamera}
+          onFlipCamera={handleFlipCamera}
           onEndCall={handleEndCall}
           onClose={() => setIsCallSheetOpen(false)}
         />

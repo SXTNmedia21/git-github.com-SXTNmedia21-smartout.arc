@@ -15,7 +15,7 @@
  */
 import React from "react";
 import { View, Text, Pressable } from "react-native";
-import { Mic, MicOff, Camera, CameraOff, PhoneOff } from "lucide-react-native";
+import { Mic, MicOff, Camera, CameraOff, PhoneOff, SwitchCamera } from "lucide-react-native";
 import { createStyles } from "@/theme";
 import { strings } from "@/constants/strings";
 import { PTTButton } from "./PTTButton";
@@ -30,6 +30,7 @@ type Props = {
   isTalking?: boolean;
   onToggleMic: () => void;
   onToggleCamera: () => void;
+  onFlipCamera?: () => void;
   onPttPressIn?: () => void;
   onPttPressOut?: () => void;
   onEndCall: () => void;
@@ -44,6 +45,7 @@ export function CallControls({
   isTalking = false,
   onToggleMic,
   onToggleCamera,
+  onFlipCamera,
   onPttPressIn,
   onPttPressOut,
   onEndCall,
@@ -86,6 +88,17 @@ export function CallControls({
           }
           variant={isCameraEnabled ? "default" : "muted"}
           disabled={cameraDisabled}
+          styles={styles}
+        />
+      )}
+
+      {/* Flip front/back camera — shown only when camera is live and a flip handler is wired */}
+      {showCameraButton && isCameraEnabled && onFlipCamera && (
+        <ControlButton
+          onPress={onFlipCamera}
+          label={strings.call.flipCamera ?? "Snu"}
+          icon={<SwitchCamera size={22} color="#fff" />}
+          variant="default"
           styles={styles}
         />
       )}

@@ -6,28 +6,55 @@
  *
  * Supports small/large sizes, mic-off badge, AI badge, and accessibility labels.
  */
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { View, Text, Platform } from "react-native";
 import { MicOff } from "lucide-react-native";
 import { createStyles } from "@/theme";
 import Animated, { useAnimatedStyle, withSpring } from "react-native-reanimated";
 import type { ParticipantTrackInfo } from "@/hooks/use-call-tracks";
+import type { VideoTrack as LiveKitVideoTrack } from "livekit-client";
 import { strings } from "@/constants/strings";
 
-// VideoView uses native WebRTC — only available on iOS/Android
+// Native uses @livekit/react-native's VideoView (native WebRTC). Web attaches
+// the VideoTrack directly to an HTMLVideoElement — browsers ship WebRTC natively.
 const VideoView =
   Platform.OS !== "web"
     ? require("@livekit/react-native").VideoView
-    : ({ style }: { style?: object }) => (
-        <View
-          style={[
-            { backgroundColor: "#1a1a1a", alignItems: "center", justifyContent: "center" },
-            style,
-          ]}
-        >
-          <Text style={{ color: "#666", fontSize: 14 }}>Video ikke tilgjengelig</Text>
-        </View>
-      );
+    : function WebVideoView({
+        videoTrack,
+        style,
+        mirror,
+      }: {
+        videoTrack: LiveKitVideoTrack;
+        style?: object;
+        mirror?: boolean;
+      }) {
+        const videoRef = useRef<HTMLVideoElement | null>(null);
+
+        useEffect(() => {
+          const el = videoRef.current;
+          if (!el || !videoTrack) return;
+          videoTrack.attach(el);
+          return () => {
+            videoTrack.detach(el);
+          };
+        }, [videoTrack]);
+
+        return React.createElement("video", {
+          ref: videoRef,
+          autoPlay: true,
+          playsInline: true,
+          // Muted avoids local-echo feedback on the caller's own tile
+          muted: mirror,
+          style: {
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            transform: mirror ? "scaleX(-1)" : undefined,
+            ...(style as object),
+          },
+        });
+      };
 
 type Props = {
   participant: ParticipantTrackInfo;

@@ -40,6 +40,7 @@ type Props = {
   isTalking?: boolean;
   onToggleMic: () => void;
   onToggleCamera: () => void;
+  onFlipCamera?: () => void;
   onPttPressIn?: () => void;
   onPttPressOut?: () => void;
   onEndCall: () => void;
@@ -59,6 +60,7 @@ export function CallSheet({
   isTalking,
   onToggleMic,
   onToggleCamera,
+  onFlipCamera,
   onPttPressIn,
   onPttPressOut,
   onEndCall,
@@ -155,6 +157,7 @@ export function CallSheet({
           isTalking={isTalking}
           onToggleMic={onToggleMic}
           onToggleCamera={onToggleCamera}
+          onFlipCamera={onFlipCamera}
           onPttPressIn={onPttPressIn}
           onPttPressOut={onPttPressOut}
           onEndCall={onEndCall}
