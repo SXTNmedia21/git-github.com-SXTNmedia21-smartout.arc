@@ -17,7 +17,6 @@ import { createContext, useContext, useMemo, useState, type ReactNode } from "re
 
 export type AdminViewType =
   | "oversikt"
-  | "oversikt-mockup"
   | "oversikt-interactive"
   | "oversikt-pipeline"
   | "strategic"

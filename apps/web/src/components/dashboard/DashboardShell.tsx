@@ -85,7 +85,6 @@ function resolveMissionForRoute(pathname: string): MissionId {
 
 export type AdminViewType =
   | "oversikt"
-  | "oversikt-mockup"
   | "oversikt-interactive"
   | "oversikt-pipeline"
   | "strategic"
@@ -2010,7 +2009,6 @@ function DashboardShellInner({
                           {(
                             [
                               { id: "oversikt", label: "Oversikt" },
-                              { id: "oversikt-mockup", label: "Mockup v1" },
                               { id: "oversikt-interactive", label: "Interactive" },
                               { id: "oversikt-pipeline", label: "Pipeline" },
                               { id: "strategic", label: "Strategic" },
