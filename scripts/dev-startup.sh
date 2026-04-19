@@ -1,13 +1,28 @@
 #!/usr/bin/env bash
 # dev-startup.sh — Signs into 1Password, starts Docker, Supabase, web (3060),
 #                  landing (3055), and mobile (Expo).
-# Usage: ./scripts/dev-startup.sh
+# Usage: ./scripts/dev-startup.sh [--restart|-r]
+#   --restart / -r   Kill any process holding a dev-server port before starting.
+#                    Use after lockfile/dep changes so the new bundler picks them up.
 # Alias: dev start
 
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$PROJECT_ROOT"
+
+# ── Args ────────────────────────────────────────────────────
+RESTART=0
+for arg in "$@"; do
+  case "$arg" in
+    --restart|-r) RESTART=1 ;;
+    -h|--help)
+      grep -E '^#( |$)' "$0" | sed 's/^# \{0,1\}//'
+      exit 0
+      ;;
+    *) echo "Unknown argument: $arg" >&2; exit 2 ;;
+  esac
+done
 
 # ── Colors ──────────────────────────────────────────────────
 RED='\033[0;31m'
@@ -97,13 +112,62 @@ check_port() {
   return 1
 }
 
+# Resolves PIDs bound to $port. Uses ss first (sees all users), falls back to lsof.
+# Without this, lsof alone can miss listeners owned by other shells/sessions.
+pids_on_port() {
+  local port=$1
+  local pids
+  pids=$(ss -tlnpH 2>/dev/null \
+    | awk -v p=":${port}" '$4 ~ p {print $0}' \
+    | grep -oE 'pid=[0-9]+' | cut -d= -f2 | sort -u | tr '\n' ' ')
+  if [ -z "$pids" ]; then
+    pids=$(lsof -ti ":${port}" 2>/dev/null | sort -u | tr '\n' ' ')
+  fi
+  echo "$pids"
+}
+
+# Kills whatever owns $port. TERM first, KILL after 3s if still alive.
+# Only called when --restart is passed.
+kill_port() {
+  local port=$1
+  local name=$2
+  local pids
+  pids=$(pids_on_port "$port")
+  if [ -z "${pids// /}" ]; then
+    return 0
+  fi
+  warn "${name} port ${port} occupied by PID(s) ${pids}— sending SIGTERM"
+  # shellcheck disable=SC2086
+  kill -TERM $pids 2>/dev/null || true
+  for i in 1 2 3; do
+    sleep 1
+    if ! check_port "$port"; then
+      ok "${name} port ${port} freed"
+      return 0
+    fi
+  done
+  warn "${name} port ${port} still busy — sending SIGKILL"
+  # shellcheck disable=SC2086
+  kill -KILL $pids 2>/dev/null || true
+  sleep 1
+  if check_port "$port"; then
+    fail "Could not free ${name} port ${port} (PIDs ${pids})"
+  fi
+  ok "${name} port ${port} freed"
+}
+
 start_dev_server() {
   local name=$1
   local port=$2
   local filter=$3
   local logfile="${PROJECT_ROOT}/.dev-${name}.log"
 
-  if check_port "$port"; then
+  if [ "$RESTART" -eq 1 ]; then
+    # Always attempt to kill; kill_port is a no-op if nothing is bound.
+    # Running this unconditionally avoids the check_port/lsof visibility race
+    # that made stale listeners survive --restart.
+    kill_port "$port" "$name"
+  elif check_port "$port"; then
     ok "${name} is already running on port ${port}"
     return
   fi
@@ -112,11 +176,33 @@ start_dev_server() {
   nohup op run --env-file=.env.template -- pnpm --filter "${filter}" dev > "$logfile" 2>&1 &
   local pid=$!
 
-  # Wait up to 30s for the port to become available
+  # Wait up to 30s for the port to be bound by OUR process tree.
+  # Without the pgroup check, a surviving old listener would make this
+  # loop report false success while our new process just crashed with EADDRINUSE.
+  local pgid
+  pgid=$(ps -o pgid= -p "$pid" 2>/dev/null | tr -d ' ')
   for i in $(seq 1 30); do
     if check_port "$port"; then
-      ok "${name} started on port ${port} (pid ${pid}, log: ${logfile})"
-      return
+      local owner_pids
+      owner_pids=$(pids_on_port "$port")
+      local matched=0
+      for opid in $owner_pids; do
+        local opgid
+        opgid=$(ps -o pgid= -p "$opid" 2>/dev/null | tr -d ' ')
+        if [ -n "$opgid" ] && [ "$opgid" = "$pgid" ]; then
+          matched=1
+          break
+        fi
+      done
+      if [ "$matched" -eq 1 ]; then
+        ok "${name} started on port ${port} (pid ${pid}, log: ${logfile})"
+        return
+      fi
+      # Port is bound but not by us — almost certainly a stale listener
+      # the kill didn't catch. Surface it loudly instead of faking success.
+      if ! kill -0 "$pid" 2>/dev/null; then
+        fail "${name} failed to start — port ${port} is held by foreign PID(s) ${owner_pids}. Check ${logfile}"
+      fi
     fi
     sleep 1
   done
@@ -131,13 +217,20 @@ start_dev_server "landing" 3055 "landing"
 start_expo() {
   local logfile="${PROJECT_ROOT}/.dev-mobile.log"
 
-  if check_port 8081; then
+  if [ "$RESTART" -eq 1 ]; then
+    kill_port 8081 "Mobile (Expo)"
+  elif check_port 8081; then
     ok "Mobile (Expo) is already running on port 8081"
     return
   fi
 
   log "Starting Mobile (Expo)..."
-  nohup op run --env-file=.env.template -- pnpm --filter mobile start > "$logfile" 2>&1 &
+  # On --restart, also wipe Metro's transform cache so dep/lockfile changes are picked up.
+  local expo_args=()
+  if [ "$RESTART" -eq 1 ]; then
+    expo_args+=(-- --clear)
+  fi
+  nohup op run --env-file=.env.template -- pnpm --filter mobile start "${expo_args[@]}" > "$logfile" 2>&1 &
   local pid=$!
 
   for i in $(seq 1 30); do
