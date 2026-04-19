@@ -34,7 +34,8 @@ const webAliases = {
   "expo-sqlite": path.resolve(projectRoot, "src/platform/sqlite.web.ts"),
   "expo-image-picker": path.resolve(projectRoot, "src/platform/image-picker.web.ts"),
   "react-native-mmkv": path.resolve(projectRoot, "src/platform/mmkv.web.ts"),
-  "@smartout/walkie-talkie": path.resolve(projectRoot, "src/platform/walkie-talkie.web.ts"),
+  // @smartout/walkie-talkie resolves to the real package on web too — it only
+  // uses supabase-js (works in browsers). Call/PTT UI now works in Expo Web.
 };
 
 // Stub Node.js built-ins that server-only packages (ws, posthog-node) import.

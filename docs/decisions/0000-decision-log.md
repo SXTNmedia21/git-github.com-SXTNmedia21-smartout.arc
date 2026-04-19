@@ -26,6 +26,7 @@ tags: [decisions, adr, index]
 
 | ADR | Date | Title | Status |
 |-----|------|-------|--------|
+| [ADR-0155](0155-livekit-calls-in-expo-web.md) | 2026-04-19 | LiveKit calls are supported in Expo-web via shared `livekit-client` Room lifecycle. Supersedes the "LiveKit voice calls" incapacity clause of ADR-0153. Background Web Push for closed-tab alerts is a follow-up. | proposed |
 | [ADR-0153](0153-expo-web-surface-classification.md) | 2026-04-19 | Expo-web classified as third surface; mobile verb boundary applies, native-only features require `isSupported()` capability checks, SDK bumps must be isolated commits. (Council 2026-04-19 null.dispatchEvent audit) | proposed |
 | [ADR-0152](0152-activity-trail-fail-fast-contract.md) | 2026-04-19 | activity-trail provider must fail-fast on missing IDs (close L-0038 recurrence) | proposed |
 | [ADR-0151](0151-stage-engine-profile-id-server-derivation.md) | 2026-04-19 | Stage-engine must re-derive profile_id server-side (no trust in request body) | proposed |

@@ -8,6 +8,7 @@ import { useCallSignaling } from "../_hooks/use-call-signaling";
 import { useCallRealtime } from "../_hooks/use-call-realtime";
 import { useCallInvite } from "../_hooks/use-call-invite";
 import { useMuteParticipant } from "../_hooks/use-mute-participant";
+import { useWorkspaceCallAlerts } from "../_hooks/use-workspace-call-alerts";
 import { getLiveKitToken } from "@smartout/walkie-talkie";
 import { createClient } from "@smartout/supabase/client";
 import { ChannelList } from "./ChannelList";
@@ -48,6 +49,7 @@ export function KanalerClient({ profileId }: { profileId: string }) {
   // Voice call hooks
   const { incomingCall, dismissIncoming } = useCallSignaling(profileId, activeChannelId);
   useCallRealtime(activeChannelId);
+  useWorkspaceCallAlerts(profileId);
   const callInvite = useCallInvite();
   const muteParticipant = useMuteParticipant(profileId);
 
@@ -178,12 +180,13 @@ export function KanalerClient({ profileId }: { profileId: string }) {
               />
             )}
 
-            {/* LiveKit Call Room */}
+            {/* LiveKit Call Room — renders as a fixed overlay */}
             {livekitConnection && (
               <CallRoom
                 serverUrl={livekitConnection.serverUrl}
                 token={livekitConnection.token}
                 channelId={activeChannelId!}
+                channelName={activeChannel.name ?? activeChannel.other_member_name ?? undefined}
                 profileId={profileId}
                 audioPolicy={activeChannel.audio_policy}
                 onDisconnect={handleDisconnect}

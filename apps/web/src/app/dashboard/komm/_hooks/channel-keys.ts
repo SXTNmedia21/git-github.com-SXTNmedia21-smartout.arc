@@ -12,4 +12,6 @@ export const channelKeys = {
     ["channels", "call-status", workspaceId, channelId] as const,
   callHistory: (workspaceId: string, channelId: string) =>
     ["channels", "call-history", workspaceId, channelId] as const,
+  workspaceActiveCalls: (workspaceId: string) =>
+    ["channels", "workspace-active-calls", workspaceId] as const,
 };

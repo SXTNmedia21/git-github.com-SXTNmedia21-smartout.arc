@@ -11,7 +11,7 @@
  * onClose, which the parent uses to hide the sheet without ending the call.
  */
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { View, Text, Pressable, Platform } from "react-native";
+import { View, Text, Pressable } from "react-native";
 import type GorhomBottomSheet from "@gorhom/bottom-sheet";
 import { ChevronDown } from "lucide-react-native";
 import { BottomSheet } from "@/components/ui/BottomSheet";
@@ -94,19 +94,6 @@ export function CallSheet({
   const handleClose = useCallback(() => {
     onClose();
   }, [onClose]);
-
-  // Calls require native WebRTC — not supported in the web/PWA beta.
-  // All hooks above have already run unconditionally (Rules of Hooks compliant).
-  if (Platform.OS === "web") {
-    return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24 }}>
-        <Text style={{ fontSize: 16, color: "#666", textAlign: "center" }}>
-          Samtaler er ikke tilgjengelig i nettleseren.{"\n"}
-          Bruk Smartout-appen for video og walkie-talkie.
-        </Text>
-      </View>
-    );
-  }
 
   return (
     <BottomSheet ref={sheetRef} index={0} snapPoints={SNAP_POINTS} onClose={handleClose}>
