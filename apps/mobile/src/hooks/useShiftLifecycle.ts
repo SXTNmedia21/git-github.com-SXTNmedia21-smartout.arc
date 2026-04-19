@@ -1,29 +1,31 @@
 /**
- * useShiftLifecycle (mobile wrapper) — injects the RN Supabase client into
- * the platform-neutral hook from @smartout/schedule (ADR-0108).
+ * useShiftLifecycle (mobile wrapper) — injects the React Native Supabase
+ * client into the platform-neutral base hook from @smartout/schedule
+ * (ADR-0108).
  *
- * Callers pass only the shift id; the mobile-specific client is wired here
- * so feature code stays platform-agnostic. Returns the same shape as the
- * base hook.
+ * The RN client (apps/mobile/src/lib/supabase.ts) uses
+ * @supabase/supabase-js directly with expo-secure-store on native and
+ * localStorage on web-via-Expo, never @supabase/ssr. This keeps the
+ * mobile bundle free of browser-cookie and NEXT_PUBLIC_* dependencies.
  */
 
+import { supabase } from "@/lib/supabase";
 import {
   useShiftLifecycle as baseUseShiftLifecycle,
+  shiftLifecycleQueryKey,
   type ShiftLifecycleRow,
-  type UseShiftLifecycleOptions,
+  type ShiftLifecyclePhase,
+  type UseShiftLifecycleOptions as BaseOptions,
 } from "@smartout/schedule";
 
-export type UseShiftLifecycleMobileOptions = UseShiftLifecycleOptions;
+export type UseShiftLifecycleMobileOptions = Omit<BaseOptions, "supabase">;
 
-/**
- * useShiftLifecycle — re-exports the platform-neutral @smartout/schedule hook
- * (uses `@smartout/supabase/client` which resolves to the RN client here).
- */
 export function useShiftLifecycle(
   shiftId: string | null | undefined,
   opts: UseShiftLifecycleMobileOptions = {},
 ) {
-  return baseUseShiftLifecycle(shiftId, opts);
+  return baseUseShiftLifecycle(shiftId, { ...opts, supabase });
 }
 
-export type { ShiftLifecycleRow };
+export { shiftLifecycleQueryKey };
+export type { ShiftLifecycleRow, ShiftLifecyclePhase };
