@@ -133,8 +133,11 @@ export function AdHocInvoiceDrawer({ companies }: { companies: CompanyOption[] }
 
       if (result.ok) {
         toast.success("Ad-hoc faktura opprettet");
-        setOpen(false);
         reset();
+        // Navigation unmounts the drawer — skipping setOpen(false)
+        // avoids Radix starting a close animation while the route is
+        // being torn down (same null.dispatchEvent race as invoice
+        // detail sheet).
         router.push(`/platform-admin/billing/invoices/${result.invoice.invoice_id}`);
       } else {
         toast.error(`Kunne ikke opprette faktura: ${result.error}`);

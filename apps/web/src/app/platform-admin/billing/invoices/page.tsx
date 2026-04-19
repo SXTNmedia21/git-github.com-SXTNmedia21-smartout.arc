@@ -87,7 +87,10 @@ export default async function InvoicesPage({
         <AdHocInvoiceDrawer companies={companies} />
       </div>
       <InvoiceTable invoices={invoices} />
-      {params.preview ? <InvoiceDetailSheet invoiceId={params.preview} /> : null}
+      {/* Always mounted — open derives from ?preview in searchParams.
+          Conditional mount caused Radix to tear down mid-close, racing
+          Next's router.push and surfacing as null.dispatchEvent. */}
+      <InvoiceDetailSheet />
     </div>
   );
 }
