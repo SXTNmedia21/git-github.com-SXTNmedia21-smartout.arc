@@ -13,6 +13,12 @@ import { useAdminContext } from "@/components/dashboard/contexts";
 const OversiktView = dynamic(() => import("@/components/dashboard/OversiktView"), {
   ssr: false,
 });
+// WebDayControl replaces OversiktView behind NEXT_PUBLIC_DAY_CONTROL_V2 (ADR-0156).
+// Flag removed in PR 4 when OversiktView is deleted. See docs/plans/PLAN-overview-v2.md.
+const WebDayControl = dynamic(
+  () => import("@/components/day/WebDayControl").then((m) => ({ default: m.WebDayControl })),
+  { ssr: false },
+);
 const InteractiveDashboard = dynamic(
   () =>
     import("@/components/dashboard/interactive").then((m) => ({
@@ -65,7 +71,10 @@ export default function DashboardPage() {
   return <div className="relative flex h-full min-h-0 flex-1 flex-col">{renderView()}</div>;
 
   function renderView() {
-    if (adminView === "oversikt") return <OversiktView />;
+    if (adminView === "oversikt") {
+      if (process.env.NEXT_PUBLIC_DAY_CONTROL_V2 === "true") return <WebDayControl />;
+      return <OversiktView />;
+    }
     // "Interactive" renders the feature-flagged InteractiveDashboard (normally
     // gated on NEXT_PUBLIC_INTERACTIVE_DASHBOARD=true) so Pontus can preview it
     // directly from the variant tab bar.

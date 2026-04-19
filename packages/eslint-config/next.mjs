@@ -49,6 +49,31 @@ const eslintConfig = defineConfig([
       "react-hooks/immutability": "warn",
     },
   },
+  // WebDayControl widgets (ADR-0156): enforce portability discipline for
+  // future `packages/ui/day-control/` extraction when mobile consumer lands.
+  // Widgets must NOT depend on Next-specific modules or direct Supabase access.
+  {
+    files: ["**/src/components/day/widgets/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["next/*", "next"],
+              message:
+                "WebDayControl widgets must be portable to packages/ui when mobile consumer lands (ADR-0156). No next/* imports in widgets.",
+            },
+            {
+              group: ["@smartout/supabase/*", "@/lib/supabase/*"],
+              message:
+                "WebDayControl widgets must receive data via props, not via direct Supabase access (ADR-0156 portability discipline).",
+            },
+          ],
+        },
+      ],
+    },
+  },
   // Billing UI: forbid raw Tailwind color scales so status rendering goes
   // through <InvoiceStatusBadge/> (Phase 5.1) + Nordic Split semantic
   // tokens (bg-success / bg-warning / bg-destructive / bg-info / bg-muted).

@@ -50,6 +50,8 @@
   --color-dept-kitchen: var(--dept-kitchen);
   --color-dept-floor: var(--dept-floor);
   --color-dept-bar: var(--dept-bar);
+  --color-dept-event: var(--dept-event);
+  --color-dept-storage: var(--dept-storage);
   --color-status-trainee: var(--status-trainee);
   --color-status-active: var(--status-active);
   --color-status-inactive: var(--status-inactive);
