@@ -29,6 +29,7 @@ tags: [decisions, adr, index]
 | [ADR-0153](0153-expo-web-surface-classification.md) | 2026-04-19 | Expo-web classified as third surface; mobile verb boundary applies, native-only features require `isSupported()` capability checks, SDK bumps must be isolated commits. (Council 2026-04-19 null.dispatchEvent audit) | proposed |
 | [ADR-0152](0152-activity-trail-fail-fast-contract.md) | 2026-04-19 | activity-trail provider must fail-fast on missing IDs (close L-0038 recurrence) | proposed |
 | [ADR-0151](0151-stage-engine-profile-id-server-derivation.md) | 2026-04-19 | Stage-engine must re-derive profile_id server-side (no trust in request body) | proposed |
+| [ADR-0154](0154-unified-overlay-system.md) | 2026-04-19 | Unified Overlay System — EntityDrawer (inspect) + EntityFormDialog (write), with Sheet / AlertDialog / WizardForm as narrow-purpose supplements. Five-primitive decision matrix; reviewer-enforceable; ADR-gated against new bespoke overlays. Blocks page-by-page UX pass on `apps/web/`. | proposed |
 | [ADR-0140](0140-governance-provenance-jsonb.md) | 2026-04-18 | Governance table provenance convention via `provenance JSONB` — five governance tables; renumbered from 0126 to avoid collision with ADR-0126 (billing integration sync). | accepted |
 | [ADR-0150](0150-source-discriminator-trigger-filters.md) | 2026-04-18 | Source Discriminator Pattern + Trigger Filters (renumbered from 0108) | accepted |
 | [ADR-0149](0149-strike-mcp-telemetry-boundary.md) | 2026-04-18 | Strike-MCP Telemetry Boundary (renumbered from 0107) | accepted |

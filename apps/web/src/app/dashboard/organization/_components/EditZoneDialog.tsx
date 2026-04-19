@@ -1,163 +1,152 @@
-import { useState } from "react";
-import { createClient } from "@smartout/supabase/client";
+"use client";
+
+import { useContext, useEffect } from "react";
+import { FormProvider, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { z } from "zod";
+
+import { createClient } from "@smartout/supabase/client";
+import { emit } from "@smartout/telemetry";
+import { EntityFormDialog } from "@smartout/ui";
+
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
+import { useWorkspace } from "@/lib/workspace-context";
+import { FormField } from "@/components/forms/FormField";
+import { FormNumberField } from "@/components/forms/FormNumberField";
+import { FormTextarea } from "@/components/forms/FormTextarea";
+import { FormColorPicker } from "@/components/forms/FormColorPicker";
+
 import type { ZoneRow } from "./types";
 import { COLOR_PRESETS, toSlug } from "./types";
 
+const zoneFormSchema = z.object({
+  name: z.string().trim().min(1, "Zone name is required"),
+  description: z.string(),
+  capacity: z.number().int().min(0).nullable(),
+  color: z.string().nullable(),
+});
+
+type ZoneFormValues = z.infer<typeof zoneFormSchema>;
+
+function buildChanges(
+  initial: ZoneFormValues,
+  next: ZoneFormValues,
+): Record<string, { before: unknown; after: unknown }> {
+  const changes: Record<string, { before: unknown; after: unknown }> = {};
+  (Object.keys(next) as Array<keyof ZoneFormValues>).forEach((key) => {
+    if (initial[key] !== next[key]) {
+      changes[key] = { before: initial[key], after: next[key] };
+    }
+  });
+  return changes;
+}
+
 type EditZoneDialogProps = {
   zone: ZoneRow;
-  isDark: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: () => Promise<void>;
 };
 
-export function EditZoneDialog({ zone, isDark, open, onOpenChange, onSave }: EditZoneDialogProps) {
-  const [name, setName] = useState(zone.name);
-  const [description, setDescription] = useState(zone.description ?? "");
-  const [capacity, setCapacity] = useState(zone.capacity?.toString() ?? "");
-  const [selectedColor, setSelectedColor] = useState<string | null>(zone.color);
-  const [saving, setSaving] = useState(false);
+export function EditZoneDialog({ zone, open, onOpenChange, onSave }: EditZoneDialogProps) {
+  const { profileId } = useContext(DashboardContext);
+  const { workspace } = useWorkspace();
+  const workspaceId = workspace.workspace_id;
 
-  const inputClass = `w-full rounded-lg border px-4 py-2.5 text-sm transition-all focus:outline-none focus:ring-1 ${
-    isDark
-      ? "border-zinc-800 bg-zinc-950 text-white placeholder:text-zinc-600 focus:border-orange-500/50 focus:ring-orange-500/50"
-      : "border-zinc-200 bg-white text-zinc-900 placeholder:text-zinc-400 focus:border-orange-500/50 focus:ring-orange-500/50"
-  }`;
+  const initialValues: ZoneFormValues = {
+    name: zone.name,
+    description: zone.description ?? "",
+    capacity: zone.capacity,
+    color: zone.color,
+  };
 
-  const labelClass = `mb-1.5 block text-xs font-semibold tracking-wider uppercase ${
-    isDark ? "text-zinc-400" : "text-zinc-500"
-  }`;
+  const form = useForm<ZoneFormValues>({
+    resolver: zodResolver(zoneFormSchema),
+    defaultValues: initialValues,
+    mode: "onChange",
+  });
 
-  async function handleSave() {
-    if (!name.trim()) {
-      toast.error("Zone name is required");
-      return;
-    }
+  // Re-sync defaults if the user opens the dialog on a different zone.
+  useEffect(() => {
+    form.reset(initialValues);
+  }, [zone.zone_id]);
 
-    setSaving(true);
-    const supabase = createClient();
-    const { error } = await supabase
-      .from("zone")
-      .update({
-        name: name.trim(),
-        slug: toSlug(name),
-        description: description.trim() || null,
-        capacity: capacity ? parseInt(capacity, 10) : null,
-        color: selectedColor,
-      })
-      .eq("zone_id", zone.zone_id);
+  const mutation = useMutation({
+    mutationFn: async (values: ZoneFormValues) => {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from("zone")
+        .update({
+          name: values.name,
+          slug: toSlug(values.name),
+          description: values.description.trim() || null,
+          capacity: values.capacity,
+          color: values.color,
+        })
+        .eq("zone_id", zone.zone_id);
 
-    if (error) {
-      toast.error(error.message);
-    } else {
-      toast.success(`Zone "${name.trim()}" updated`);
+      if (error) throw error;
+      return { name: values.name };
+    },
+    onSuccess: async (_data, values) => {
+      const changes = buildChanges(initialValues, values);
+      void emit({
+        event: "zone updated",
+        workspace_id: workspaceId,
+        actor_id: profileId ?? "",
+        properties: {
+          entity: {
+            entity_type: "zone",
+            entity_id: zone.zone_id,
+            entity_label: values.name,
+          },
+          changes,
+        },
+      });
+      toast.success(`Zone "${values.name}" updated`);
       onOpenChange(false);
       await onSave();
-    }
-    setSaving(false);
-  }
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : "Failed to update zone");
+    },
+  });
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className={
-          isDark
-            ? "border-zinc-800 bg-zinc-950 text-white"
-            : "border-zinc-200 bg-white text-zinc-900"
-        }
+    <FormProvider {...form}>
+      <EntityFormDialog
+        open={open}
+        onOpenChange={onOpenChange}
+        mode="edit"
+        title="Edit Zone"
+        description="Update zone details."
+        onSubmit={form.handleSubmit((values) => mutation.mutateAsync(values))}
+        canSubmit={form.formState.isValid && form.formState.isDirty}
+        saving={mutation.isPending}
       >
-        <DialogHeader>
-          <DialogTitle>Edit Zone</DialogTitle>
-          <DialogDescription className={isDark ? "text-zinc-400" : "text-zinc-500"}>
-            Update zone details.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-4 py-2">
-          <div>
-            <label className={labelClass}>Name *</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Section A, Patio, VIP Area"
-              className={inputClass}
-              autoFocus
-            />
-          </div>
-
-          <div>
-            <label className={labelClass}>Description</label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="What is this zone used for?"
-              rows={2}
-              className={inputClass}
-            />
-          </div>
-
-          <div>
-            <label className={labelClass}>Capacity</label>
-            <input
-              type="number"
-              value={capacity}
-              onChange={(e) => setCapacity(e.target.value)}
-              placeholder="Max people"
-              min={0}
-              className={inputClass}
-            />
-          </div>
-
-          <div>
-            <label className={labelClass}>Color</label>
-            <div className="flex gap-2">
-              {COLOR_PRESETS.map((color) => (
-                <button
-                  key={color}
-                  onClick={() => setSelectedColor(selectedColor === color ? null : color)}
-                  className={`h-7 w-7 rounded-full transition-all ${
-                    selectedColor === color ? "ring-2 ring-white ring-offset-2" : "hover:scale-110"
-                  }`}
-                  style={{
-                    backgroundColor: color,
-                    ["--tw-ring-offset-color" as string]: isDark ? "#09090b" : "#ffffff",
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <DialogFooter>
-          <button
-            onClick={() => onOpenChange(false)}
-            className={`rounded-lg border px-4 py-2 text-sm font-semibold transition-colors ${
-              isDark
-                ? "border-zinc-700 bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
-                : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
-            }`}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={saving || !name.trim()}
-            className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-orange-500 disabled:opacity-50"
-          >
-            {saving ? "Saving..." : "Save"}
-          </button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        <FormField<ZoneFormValues>
+          name="name"
+          label="Name"
+          placeholder="e.g. Section A, Patio, VIP Area"
+          required
+          autoFocus
+        />
+        <FormTextarea<ZoneFormValues>
+          name="description"
+          label="Description"
+          placeholder="What is this zone used for?"
+        />
+        <FormNumberField<ZoneFormValues>
+          name="capacity"
+          label="Capacity"
+          min={0}
+          placeholder="Max people"
+          helperText="Leave empty if no fixed capacity."
+        />
+        <FormColorPicker<ZoneFormValues> name="color" label="Color" presets={COLOR_PRESETS} />
+      </EntityFormDialog>
+    </FormProvider>
   );
 }

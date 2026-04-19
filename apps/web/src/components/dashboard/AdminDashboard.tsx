@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useContext, useState } from "react";
+import { useCallback, useState } from "react";
 import dynamic from "next/dynamic";
-import { DashboardContext } from "@/components/dashboard/DashboardShell";
+import { useAdminContext } from "@/components/dashboard/contexts";
 import { ScheduleUIProvider } from "@/app/dashboard/schedule/_components/schedule-ui-context";
 import { DayControlSheet, DayControlPanel } from "@/app/dashboard/schedule/_components/day-control";
 import { TodoTaskView } from "@/app/dashboard/_components/todo/TodoTaskView";
@@ -32,32 +32,31 @@ interface AdminDashboardProps {
 }
 
 export default function AdminDashboard({ isDark }: AdminDashboardProps) {
-  const { adminView } = useContext(DashboardContext);
+  const { adminView } = useAdminContext();
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   const handleCloseSheet = useCallback(() => {
     setSelectedDate(null);
   }, []);
 
+  // The oversikt* variants are rendered directly from /dashboard/page.tsx.
+  // AdminDashboard is kept as a thin fallback for the legacy admin views so
+  // other entry points that still delegate here keep working.
+  const legacyView = (() => {
+    if (adminView === "todo") return <TodoTaskView />;
+    if (adminView === "strategic") {
+      return useInteractiveDashboard ? <InteractiveDashboard /> : <StrategicView />;
+    }
+    if (adminView === "reconciliation") return <ReconciliationView isDark={isDark} />;
+    if (adminView === "activity") return <ActivityView />;
+    // Oversikt variants are handled upstream — render the legacy cockpit as a
+    // safety net when someone mounts AdminDashboard outside the dashboard page.
+    return useInteractiveDashboard ? <InteractiveDashboard /> : <HospitalityOperationsCockpit />;
+  })();
+
   return (
     <ScheduleUIProvider>
-      <div className="flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden">
-        {adminView === "todo" ? (
-          <TodoTaskView />
-        ) : adminView === "tactical" || adminView === "strategic" ? (
-          useInteractiveDashboard ? (
-            <InteractiveDashboard />
-          ) : adminView === "tactical" ? (
-            <HospitalityOperationsCockpit />
-          ) : (
-            <StrategicView />
-          )
-        ) : adminView === "reconciliation" ? (
-          <ReconciliationView isDark={isDark} />
-        ) : adminView === "activity" ? (
-          <ActivityView />
-        ) : null}
-      </div>
+      <div className="flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden">{legacyView}</div>
 
       <DayControlSheet selectedDate={selectedDate} onClose={handleCloseSheet}>
         <DayControlPanel date={selectedDate} onClose={handleCloseSheet} />

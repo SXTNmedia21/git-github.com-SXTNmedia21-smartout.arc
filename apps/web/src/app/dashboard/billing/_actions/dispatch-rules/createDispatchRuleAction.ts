@@ -8,7 +8,8 @@ import {
   type CreateDispatchRuleResult,
 } from "@smartout/billing";
 import { emit } from "@smartout/telemetry";
-import { resolveWorkspaceAdminContext, isWorkspaceAuthorised } from "./_shared";
+import { resolveWorkspaceAdminContext } from "./_shared";
+import { isWorkspaceAuthorised } from "./_helpers";
 
 // Workspace-admin createDispatchRuleAction.
 //

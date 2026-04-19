@@ -2,17 +2,14 @@
 
 import { createClient } from "@smartout/supabase/server";
 import { createAdminClient } from "@smartout/supabase/admin";
+import type { WorkspaceAdminContext } from "./_helpers";
+
+export type { WorkspaceAdminContext } from "./_helpers";
 
 // Shared workspace-admin auth helpers for the dispatch-rules CRUD
 // wrappers. Mirrors the company-scoped pattern from
 // _actions/queries.ts + markInvoicePaidAction — billing is a
 // company-admin surface, so workspaces are resolved via company_id.
-
-export type WorkspaceAdminContext = {
-  user_id: string;
-  company_id: string;
-  workspace_ids: string[];
-};
 
 /**
  * Resolve the caller's company + authorised workspace IDs. Only
@@ -49,18 +46,4 @@ export async function resolveWorkspaceAdminContext(): Promise<WorkspaceAdminCont
   if (workspace_ids.length === 0) return null;
 
   return { user_id: user.id, company_id: member.company_id, workspace_ids };
-}
-
-/**
- * True when the given workspace_id is in the caller's admin-scope.
- * Workspace-admin dispatch rules always scope to one of these IDs —
- * platform baseline (workspace_id NULL) is never creatable from the
- * workspace UI.
- */
-export function isWorkspaceAuthorised(
-  ctx: WorkspaceAdminContext,
-  workspaceId: string | null | undefined,
-): boolean {
-  if (!workspaceId) return false;
-  return ctx.workspace_ids.includes(workspaceId);
 }

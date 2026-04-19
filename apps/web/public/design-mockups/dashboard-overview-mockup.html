@@ -1,0 +1,1280 @@
+<!doctype html>
+<html lang="nb">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Smartout · Dashboard overview · mockup</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        /* Nordic Split — OKLCH warm palette, hue range 40–60 */
+        --bg: oklch(97% 0.012 65);
+        --fg: oklch(20% 0.02 50);
+        --muted: oklch(93% 0.014 60);
+        --muted-fg: oklch(48% 0.022 52);
+        --border: oklch(88% 0.018 58);
+        --card: oklch(99% 0.008 62);
+        --card-glass: oklch(99% 0.008 62 / 0.78);
+
+        --brand: oklch(64% 0.18 42);
+        --brand-soft: oklch(92% 0.07 52);
+        --brand-fg: oklch(98% 0.01 60);
+
+        --danger: oklch(55% 0.22 25);
+        --danger-soft: oklch(94% 0.055 30);
+        --warning: oklch(72% 0.16 75);
+        --warning-soft: oklch(95% 0.06 78);
+        --success: oklch(58% 0.14 150);
+        --success-soft: oklch(94% 0.06 150);
+        --info: oklch(63% 0.12 235);
+        --info-soft: oklch(94% 0.04 235);
+
+        --orb-1: oklch(75% 0.18 40 / 0.35);
+        --orb-2: oklch(78% 0.14 70 / 0.22);
+
+        --radius-xs: 6px;
+        --radius-sm: 10px;
+        --radius-md: 14px;
+        --radius-lg: 20px;
+
+        --shadow-glow: 0 1px 0 oklch(100% 0 0 / 0.8) inset,
+          0 24px 48px -24px oklch(40% 0.08 50 / 0.18);
+
+        --font-heading: "Instrument Serif", ui-serif, Georgia, serif;
+        --font-body: "Geist", ui-sans-serif, system-ui, sans-serif;
+        --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, monospace;
+
+        --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      :root[data-theme="dark"] {
+        --bg: oklch(15% 0.016 50);
+        --fg: oklch(95% 0.012 62);
+        --muted: oklch(20% 0.018 52);
+        --muted-fg: oklch(68% 0.022 56);
+        --border: oklch(26% 0.022 55);
+        --card: oklch(18% 0.02 50);
+        --card-glass: oklch(18% 0.02 50 / 0.7);
+
+        --brand: oklch(72% 0.17 42);
+        --brand-soft: oklch(30% 0.12 45);
+        --brand-fg: oklch(14% 0.02 50);
+
+        --danger: oklch(68% 0.2 25);
+        --danger-soft: oklch(28% 0.12 25);
+        --warning: oklch(78% 0.15 75);
+        --warning-soft: oklch(30% 0.1 75);
+        --success: oklch(70% 0.15 150);
+        --success-soft: oklch(26% 0.1 150);
+        --info: oklch(72% 0.12 235);
+        --info-soft: oklch(28% 0.08 235);
+
+        --orb-1: oklch(70% 0.2 40 / 0.28);
+        --orb-2: oklch(60% 0.15 70 / 0.2);
+
+        --shadow-glow: 0 1px 0 oklch(100% 0 0 / 0.06) inset,
+          0 30px 60px -30px oklch(0% 0 0 / 0.6);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font-family: var(--font-body);
+        font-size: 14px;
+        line-height: 1.5;
+        font-feature-settings: "ss01", "cv11";
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+      }
+
+      body {
+        min-height: 100vh;
+        position: relative;
+        overflow-x: hidden;
+      }
+
+      /* Ambient orbs — radial gradients, never blur blobs */
+      .orb {
+        position: fixed;
+        pointer-events: none;
+        z-index: 0;
+        filter: saturate(1.1);
+      }
+      .orb.one {
+        top: -240px;
+        right: -180px;
+        width: 720px;
+        height: 720px;
+        background: radial-gradient(
+          circle at 50% 50%,
+          var(--orb-1) 0%,
+          transparent 62%
+        );
+      }
+      .orb.two {
+        bottom: -320px;
+        left: -200px;
+        width: 640px;
+        height: 640px;
+        background: radial-gradient(
+          circle at 50% 50%,
+          var(--orb-2) 0%,
+          transparent 65%
+        );
+      }
+
+      .grain {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 1;
+        opacity: 0.04;
+        mix-blend-mode: overlay;
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.8'/></svg>");
+      }
+
+      .app {
+        position: relative;
+        z-index: 2;
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 40px 48px 80px;
+      }
+
+      /* ─── Header ─────────────────────────────────── */
+      header.shell-header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 32px;
+        margin-bottom: 36px;
+        animation: fade-up 700ms var(--ease-spring) both;
+      }
+
+      .greeting h1 {
+        font-family: var(--font-heading);
+        font-weight: 400;
+        font-size: 44px;
+        line-height: 1;
+        margin: 0 0 8px;
+        letter-spacing: -0.01em;
+      }
+      .greeting h1 em {
+        font-style: italic;
+        color: var(--brand);
+        font-weight: 400;
+      }
+      .greeting .sub {
+        display: flex;
+        gap: 14px;
+        align-items: center;
+        color: var(--muted-fg);
+        font-size: 13px;
+      }
+      .greeting .sub .dot {
+        width: 3px;
+        height: 3px;
+        border-radius: 999px;
+        background: var(--muted-fg);
+        opacity: 0.6;
+      }
+      .workspace-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 500;
+        color: var(--fg);
+      }
+      .workspace-chip::before {
+        content: "";
+        width: 8px;
+        height: 8px;
+        border-radius: 2px;
+        background: var(--brand);
+      }
+
+      .header-tools {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .tool-btn {
+        appearance: none;
+        border: none;
+        background: var(--card);
+        color: var(--fg);
+        width: 40px;
+        height: 40px;
+        border-radius: var(--radius-sm);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition:
+          background 400ms var(--ease-spring),
+          transform 500ms var(--ease-spring);
+        border: 1px solid var(--border);
+      }
+      .tool-btn:hover {
+        background: var(--muted);
+        transform: translateY(-1px);
+      }
+      .tool-btn:focus-visible {
+        outline: 2px solid var(--brand);
+        outline-offset: 2px;
+      }
+
+      /* ─── Alert stripe ────────────────────────────── */
+      .alert-stripe {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 14px 18px;
+        border-radius: var(--radius-md);
+        background: var(--danger-soft);
+        color: var(--danger);
+        margin-bottom: 28px;
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        border: 1px solid color-mix(in oklch, var(--danger) 18%, transparent);
+        box-shadow: 0 1px 0 oklch(100% 0 0 / 0.5) inset;
+        animation: fade-up 800ms 100ms var(--ease-spring) both;
+      }
+      :root[data-theme="dark"] .alert-stripe {
+        color: oklch(88% 0.12 25);
+        background: color-mix(in oklch, var(--danger) 18%, var(--bg));
+        box-shadow: 0 1px 0 oklch(100% 0 0 / 0.05) inset;
+      }
+      .alert-pulse {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: var(--danger);
+        position: relative;
+        flex-shrink: 0;
+      }
+      .alert-pulse::after {
+        content: "";
+        position: absolute;
+        inset: -4px;
+        border-radius: 999px;
+        background: var(--danger);
+        opacity: 0.4;
+        animation: pulse 2.4s ease-out infinite;
+      }
+      .alert-lead {
+        font-weight: 500;
+        letter-spacing: -0.005em;
+      }
+      .alert-chips {
+        display: flex;
+        gap: 6px;
+        margin-left: auto;
+        flex-wrap: wrap;
+      }
+      .alert-chip {
+        padding: 4px 10px;
+        font-size: 12px;
+        border-radius: 999px;
+        background: color-mix(in oklch, var(--danger) 16%, transparent);
+        color: inherit;
+        border: 1px solid color-mix(in oklch, var(--danger) 22%, transparent);
+        cursor: pointer;
+        transition: background 400ms var(--ease-spring);
+      }
+      .alert-chip:hover {
+        background: color-mix(in oklch, var(--danger) 28%, transparent);
+      }
+      .alert-chip.more {
+        background: transparent;
+        border-style: dashed;
+      }
+
+      /* ─── Grid: action queue + KPI ────────────────── */
+      .main-grid {
+        display: grid;
+        grid-template-columns: 1.3fr 1fr;
+        gap: 28px;
+        margin-bottom: 32px;
+      }
+      @media (max-width: 1024px) {
+        .main-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* Panels with 40% reduction — lean on space + type */
+      .panel {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 28px 28px 20px;
+        box-shadow: var(--shadow-glow);
+        animation: fade-up 900ms 200ms var(--ease-spring) both;
+      }
+
+      .panel-heading {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        margin-bottom: 20px;
+      }
+      .panel-heading h2 {
+        font-family: var(--font-heading);
+        font-weight: 400;
+        font-size: 24px;
+        line-height: 1;
+        margin: 0;
+        letter-spacing: -0.01em;
+      }
+      .panel-heading .count {
+        font-family: var(--font-mono);
+        font-size: 12px;
+        color: var(--muted-fg);
+        letter-spacing: 0.04em;
+      }
+
+      /* ─── Action row ──────────────────────────────── */
+      .action-list {
+        display: flex;
+        flex-direction: column;
+      }
+      .action {
+        display: grid;
+        grid-template-columns: 4px 1fr auto;
+        gap: 16px;
+        padding: 14px 0;
+        border-top: 1px solid var(--border);
+        align-items: center;
+      }
+      .action:first-child {
+        border-top: none;
+      }
+      .action .prio {
+        align-self: stretch;
+        border-radius: 2px;
+        background: var(--muted-fg);
+        opacity: 0.35;
+      }
+      .action.p1 .prio {
+        background: var(--danger);
+        opacity: 1;
+      }
+      .action.p2 .prio {
+        background: var(--warning);
+        opacity: 1;
+      }
+
+      .action .body {
+        min-width: 0;
+      }
+      .action .title {
+        font-weight: 500;
+        letter-spacing: -0.005em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .action .title .glyph {
+        display: inline-flex;
+        width: 18px;
+        height: 18px;
+        margin-right: 8px;
+        vertical-align: -4px;
+        color: var(--muted-fg);
+      }
+      .action .sub {
+        color: var(--muted-fg);
+        font-size: 12.5px;
+        margin-top: 3px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .action .sub .sep {
+        margin: 0 8px;
+        opacity: 0.5;
+      }
+      .action .due {
+        font-family: var(--font-mono);
+      }
+      .action .due.overdue {
+        color: var(--danger);
+      }
+
+      .inline-btn {
+        appearance: none;
+        border: 1px solid var(--border);
+        background: var(--card);
+        color: var(--fg);
+        padding: 7px 14px;
+        border-radius: var(--radius-xs);
+        font-family: var(--font-body);
+        font-size: 12.5px;
+        font-weight: 500;
+        letter-spacing: 0.005em;
+        cursor: pointer;
+        transition:
+          background 400ms var(--ease-spring),
+          transform 500ms var(--ease-spring),
+          border-color 400ms var(--ease-spring);
+      }
+      .inline-btn:hover {
+        background: var(--muted);
+        transform: translateY(-1px);
+      }
+      .inline-btn:focus-visible {
+        outline: 2px solid var(--brand);
+        outline-offset: 2px;
+      }
+      .inline-btn.primary {
+        background: var(--fg);
+        color: var(--bg);
+        border-color: var(--fg);
+      }
+      .inline-btn.primary:hover {
+        background: color-mix(in oklch, var(--fg) 85%, var(--brand));
+      }
+      .inline-btn.danger {
+        border-color: color-mix(in oklch, var(--danger) 45%, transparent);
+        color: var(--danger);
+      }
+      .inline-btn.danger:hover {
+        background: var(--danger-soft);
+      }
+
+      .show-all {
+        margin-top: 18px;
+        padding-top: 14px;
+        border-top: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .show-all a {
+        color: var(--muted-fg);
+        text-decoration: none;
+        font-size: 13px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .show-all a:hover {
+        color: var(--fg);
+      }
+
+      /* ─── KPI grid ────────────────────────────────── */
+      .kpi-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+      .kpi {
+        padding: 20px;
+        border-radius: var(--radius-md);
+        background: var(--card);
+        border: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        cursor: pointer;
+        transition:
+          border-color 400ms var(--ease-spring),
+          transform 500ms var(--ease-spring);
+        position: relative;
+        overflow: hidden;
+      }
+      .kpi:hover {
+        border-color: color-mix(in oklch, var(--brand) 35%, var(--border));
+        transform: translateY(-1px);
+      }
+      .kpi::after {
+        /* subtle gradient edge top-left — Nordic Split glass recipe */
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        border-top: 1px solid oklch(100% 0 0 / 0.08);
+        border-left: 1px solid oklch(100% 0 0 / 0.04);
+        pointer-events: none;
+      }
+      .kpi .label {
+        font-size: 11.5px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted-fg);
+        font-weight: 500;
+      }
+      .kpi .value {
+        font-family: var(--font-mono);
+        font-size: 34px;
+        font-weight: 500;
+        line-height: 1;
+        letter-spacing: -0.02em;
+        display: flex;
+        align-items: baseline;
+        gap: 4px;
+      }
+      .kpi .value .unit {
+        font-size: 16px;
+        color: var(--muted-fg);
+        font-weight: 400;
+      }
+      .kpi .trend {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--muted-fg);
+      }
+      .kpi .trend .delta {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-family: var(--font-mono);
+        font-weight: 500;
+      }
+      .trend.up .delta {
+        background: var(--success-soft);
+        color: var(--success);
+      }
+      .trend.down .delta {
+        background: var(--danger-soft);
+        color: var(--danger);
+      }
+      .trend.flat .delta {
+        background: var(--muted);
+        color: var(--muted-fg);
+      }
+      :root[data-theme="dark"] .trend.up .delta {
+        color: oklch(82% 0.16 150);
+      }
+      :root[data-theme="dark"] .trend.down .delta {
+        color: oklch(82% 0.2 25);
+      }
+
+      /* ─── Pipeline ───────────────────────────────── */
+      .pipelines {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+      .pipeline {
+        display: grid;
+        grid-template-columns: 180px 1fr auto;
+        gap: 20px;
+        align-items: center;
+      }
+      @media (max-width: 768px) {
+        .pipeline {
+          grid-template-columns: 1fr;
+          gap: 8px;
+        }
+      }
+
+      .pipeline .label {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .pipeline .label .name {
+        font-family: var(--font-heading);
+        font-size: 18px;
+        line-height: 1;
+      }
+      .pipeline .label .hint {
+        font-size: 12px;
+        color: var(--muted-fg);
+      }
+
+      .stages {
+        display: flex;
+        gap: 4px;
+        height: 42px;
+        border-radius: var(--radius-sm);
+        overflow: hidden;
+      }
+      .stage {
+        display: flex;
+        align-items: center;
+        padding: 0 12px;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--fg);
+        cursor: pointer;
+        position: relative;
+        transition: filter 300ms var(--ease-spring);
+        gap: 8px;
+        white-space: nowrap;
+        min-width: 70px;
+      }
+      .stage:hover {
+        filter: brightness(0.96);
+      }
+      :root[data-theme="dark"] .stage:hover {
+        filter: brightness(1.12);
+      }
+      .stage .count {
+        font-family: var(--font-mono);
+        opacity: 0.9;
+      }
+      .stage.info {
+        background: var(--info-soft);
+        color: color-mix(in oklch, var(--info) 70%, var(--fg));
+      }
+      .stage.warning {
+        background: var(--warning-soft);
+        color: color-mix(in oklch, var(--warning) 60%, var(--fg));
+      }
+      .stage.danger {
+        background: var(--danger-soft);
+        color: color-mix(in oklch, var(--danger) 70%, var(--fg));
+      }
+      .stage.success {
+        background: var(--success-soft);
+        color: color-mix(in oklch, var(--success) 60%, var(--fg));
+      }
+      .stage.muted {
+        background: var(--muted);
+        color: var(--muted-fg);
+      }
+
+      .pipeline .total {
+        font-family: var(--font-mono);
+        font-size: 18px;
+        color: var(--muted-fg);
+        text-align: right;
+      }
+
+      /* ─── Animations ─────────────────────────────── */
+      @keyframes fade-up {
+        from {
+          opacity: 0;
+          transform: translateY(14px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      @keyframes pulse {
+        0% {
+          transform: scale(1);
+          opacity: 0.5;
+        }
+        70% {
+          transform: scale(1.8);
+          opacity: 0;
+        }
+        100% {
+          transform: scale(1.8);
+          opacity: 0;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation: none !important;
+          transition: none !important;
+        }
+      }
+
+      /* ─── Caption for mockup ─────────────────────── */
+      .mockup-caption {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 0 48px 32px;
+        font-size: 12px;
+        color: var(--muted-fg);
+        position: relative;
+        z-index: 2;
+        font-family: var(--font-mono);
+        letter-spacing: 0.02em;
+      }
+      .mockup-caption b {
+        color: var(--fg);
+        font-weight: 500;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="orb one" aria-hidden="true"></div>
+    <div class="orb two" aria-hidden="true"></div>
+    <div class="grain" aria-hidden="true"></div>
+
+    <div class="mockup-caption">
+      <b>MOCKUP</b> · docs/design/dashboard-overview-mockup.html · Nordic Split
+      · static data · toggle theme top right
+    </div>
+
+    <main class="app">
+      <!-- HEADER -->
+      <header class="shell-header">
+        <div class="greeting">
+          <h1>God morgen, <em>Pontus</em></h1>
+          <div class="sub">
+            <span class="workspace-chip">Spåtind Sport Hotell</span>
+            <span class="dot"></span>
+            <span>torsdag 18. april</span>
+            <span class="dot"></span>
+            <span>sist oppdatert 07:42</span>
+          </div>
+        </div>
+        <div class="header-tools">
+          <button class="tool-btn" aria-label="Søk" title="Søk">
+            <!-- lucide: search -->
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.75"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.3-4.3" />
+            </svg>
+          </button>
+          <button
+            class="tool-btn"
+            aria-label="Varsler"
+            title="Varsler"
+          >
+            <!-- lucide: bell -->
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.75"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+              <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+            </svg>
+          </button>
+          <button
+            id="themeToggle"
+            class="tool-btn"
+            aria-label="Bytt tema"
+            title="Bytt tema"
+          >
+            <!-- lucide: sun-moon -->
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.75"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M12 8a2.83 2.83 0 0 0 4 4 4 4 0 1 1-4-4" />
+              <path d="M12 2v2" />
+              <path d="M12 20v2" />
+              <path d="m4.9 4.9 1.4 1.4" />
+              <path d="m17.7 17.7 1.4 1.4" />
+              <path d="M2 12h2" />
+              <path d="M20 12h2" />
+              <path d="m6.3 17.7-1.4 1.4" />
+              <path d="m19.1 4.9-1.4 1.4" />
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- SONE 1: ALERT STRIPE -->
+      <section class="alert-stripe" aria-live="polite">
+        <span class="alert-pulse" aria-hidden="true"></span>
+        <span class="alert-lead"
+          >3 kritiske ting krever deg før frokost</span
+        >
+        <span class="alert-chips">
+          <button class="alert-chip">2 vakter ubemannet i morgen</button>
+          <button class="alert-chip">HACCP-brudd kjøl 3</button>
+          <button class="alert-chip">Kasseforskjell stopper dag-godkjenning</button>
+        </span>
+      </section>
+
+      <!-- SONE 2A + 2B -->
+      <div class="main-grid">
+        <!-- 2A: ACTION QUEUE -->
+        <section class="panel" aria-label="Handlinger som krever deg">
+          <div class="panel-heading">
+            <h2>Krever deg</h2>
+            <span class="count">12 totalt · 5 viser</span>
+          </div>
+
+          <div class="action-list">
+            <!-- p1 row: approve_shift_hours -->
+            <article class="action p1">
+              <span class="prio" aria-hidden="true"></span>
+              <div class="body">
+                <div class="title">
+                  <svg
+                    class="glyph"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.75"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                    <polyline points="12 6 12 12 16 14" />
+                  </svg>
+                  Godkjenn timer for Anna Hovland
+                </div>
+                <div class="sub">
+                  Uke 15 · 41,5t<span class="sep">·</span
+                  ><span class="due overdue">forfalt 2 dager</span>
+                </div>
+              </div>
+              <button class="inline-btn primary">Godkjenn</button>
+            </article>
+
+            <!-- p1 row: resolve_blocking_deviation -->
+            <article class="action p1">
+              <span class="prio" aria-hidden="true"></span>
+              <div class="body">
+                <div class="title">
+                  <svg
+                    class="glyph"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.75"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path
+                      d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+                    />
+                    <line x1="12" y1="9" x2="12" y2="13" />
+                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                  </svg>
+                  Løs avvik: kasseforskjell −340 kr
+                </div>
+                <div class="sub">
+                  Bar<span class="sep">·</span>onsdag kveld<span class="sep"
+                    >·</span
+                  >blokkerer dag-godkjenning
+                </div>
+              </div>
+              <button class="inline-btn danger">Løs</button>
+            </article>
+
+            <!-- p1 row: acknowledge_haccp_breach -->
+            <article class="action p1">
+              <span class="prio" aria-hidden="true"></span>
+              <div class="body">
+                <div class="title">
+                  <svg
+                    class="glyph"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.75"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path
+                      d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"
+                    />
+                  </svg>
+                  HACCP-brudd: kjøl 3 — 9,2 °C
+                </div>
+                <div class="sub">
+                  Over grense i 47 min<span class="sep">·</span>korrigering
+                  ikke logget
+                </div>
+              </div>
+              <button class="inline-btn danger">Bekreft</button>
+            </article>
+
+            <!-- p2 row: confirm_published_shift -->
+            <article class="action p2">
+              <span class="prio" aria-hidden="true"></span>
+              <div class="body">
+                <div class="title">
+                  <svg
+                    class="glyph"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.75"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                    <line x1="16" y1="2" x2="16" y2="6" />
+                    <line x1="8" y1="2" x2="8" y2="6" />
+                    <line x1="3" y1="10" x2="21" y2="10" />
+                  </svg>
+                  Bekreft vakt lørdag 20. april
+                </div>
+                <div class="sub">
+                  Kjøkken<span class="sep">·</span>16:00–23:00 · 7t<span
+                    class="sep"
+                    >·</span
+                  >ubekreftet av deg
+                </div>
+              </div>
+              <button class="inline-btn">Bekreft</button>
+            </article>
+
+            <!-- p2 row: accept_join_request -->
+            <article class="action p2">
+              <span class="prio" aria-hidden="true"></span>
+              <div class="body">
+                <div class="title">
+                  <svg
+                    class="glyph"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.75"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                    <circle cx="8.5" cy="7" r="4" />
+                    <line x1="20" y1="8" x2="20" y2="14" />
+                    <line x1="23" y1="11" x2="17" y2="11" />
+                  </svg>
+                  Søknad fra Marcus Lien — servitør
+                </div>
+                <div class="sub">
+                  Referanse: Emma Aas<span class="sep">·</span>innkommet i går
+                  14:02
+                </div>
+              </div>
+              <button class="inline-btn">Tildel</button>
+            </article>
+          </div>
+
+          <div class="show-all">
+            <a href="#"
+              >Vis alle 12 handlinger
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M5 12h14" />
+                <path d="m12 5 7 7-7 7" />
+              </svg>
+            </a>
+            <span class="count" style="font-family: var(--font-mono)"
+              >filter: priority ≤ 2</span
+            >
+          </div>
+        </section>
+
+        <!-- 2B: KPI GRID -->
+        <section class="panel" aria-label="Nøkkeltall">
+          <div class="panel-heading">
+            <h2>Denne uken</h2>
+            <span class="count">uke 16</span>
+          </div>
+          <div class="kpi-grid">
+            <!-- staffing_coverage -->
+            <article class="kpi">
+              <span class="label">Bemanning</span>
+              <div class="value"
+                >94<span class="unit">%</span></div
+              >
+              <span class="trend up">
+                <span class="delta">
+                  <svg
+                    width="10"
+                    height="10"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="m18 15-6-6-6 6" />
+                  </svg>
+                  +3 pp
+                </span>
+                vs forrige uke
+              </span>
+            </article>
+
+            <!-- onboarding_completion -->
+            <article class="kpi">
+              <span class="label">Onboarding 30d</span>
+              <div class="value"
+                >87<span class="unit">%</span></div
+              >
+              <span class="trend down">
+                <span class="delta">
+                  <svg
+                    width="10"
+                    height="10"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="m6 9 6 6 6-6" />
+                  </svg>
+                  −2 pp
+                </span>
+                vs forrige 30d
+              </span>
+            </article>
+
+            <!-- certifications_valid -->
+            <article class="kpi">
+              <span class="label">Sertifiseringer</span>
+              <div class="value"
+                >100<span class="unit">%</span></div
+              >
+              <span class="trend flat">
+                <span class="delta">
+                  <svg
+                    width="10"
+                    height="10"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M5 12h14" />
+                  </svg>
+                  0
+                </span>
+                ingen utløper &lt;30d
+              </span>
+            </article>
+
+            <!-- hms_checklists -->
+            <article class="kpi">
+              <span class="label">HMS-sjekklister</span>
+              <div class="value"
+                >82<span class="unit">%</span></div
+              >
+              <span class="trend up">
+                <span class="delta">
+                  <svg
+                    width="10"
+                    height="10"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="m18 15-6-6-6 6" />
+                  </svg>
+                  +5 pp
+                </span>
+                mål: 90%
+              </span>
+            </article>
+          </div>
+        </section>
+      </div>
+
+      <!-- SONE 3: PIPELINE -->
+      <section class="panel" aria-label="Pipelines">
+        <div class="panel-heading">
+          <h2>Strømmer</h2>
+          <span class="count">live fra cascade</span>
+        </div>
+
+        <div class="pipelines">
+          <!-- Onboarding pipeline -->
+          <div class="pipeline">
+            <div class="label">
+              <span class="name">Onboarding</span>
+              <span class="hint">protocol_assignment · 12 ansatte</span>
+            </div>
+            <div class="stages">
+              <div
+                class="stage muted"
+                style="flex: 1"
+                title="Ikke startet"
+              >
+                <span>Ikke startet</span>
+                <span class="count">1</span>
+              </div>
+              <div
+                class="stage warning"
+                style="flex: 0.1"
+                title="Venter"
+              >
+                <span>Venter</span>
+                <span class="count">0</span>
+              </div>
+              <div
+                class="stage info"
+                style="flex: 3"
+                title="Pågår"
+              >
+                <span>Pågår</span>
+                <span class="count">3</span>
+              </div>
+              <div
+                class="stage success"
+                style="flex: 8"
+                title="Fullført"
+              >
+                <span>Fullført</span>
+                <span class="count">8</span>
+              </div>
+            </div>
+            <span class="total">12</span>
+          </div>
+
+          <!-- Vaktliste pipeline -->
+          <div class="pipeline">
+            <div class="label">
+              <span class="name">Vaktliste</span>
+              <span class="hint">schedule_shift · uke 16</span>
+            </div>
+            <div class="stages">
+              <div
+                class="stage muted"
+                style="flex: 12"
+                title="Opprettet"
+              >
+                <span>Opprettet</span>
+                <span class="count">12</span>
+              </div>
+              <div
+                class="stage info"
+                style="flex: 45"
+                title="Tildelt"
+              >
+                <span>Tildelt</span>
+                <span class="count">45</span>
+              </div>
+              <div
+                class="stage warning"
+                style="flex: 60"
+                title="Publisert"
+              >
+                <span>Publisert</span>
+                <span class="count">60</span>
+              </div>
+              <div
+                class="stage success"
+                style="flex: 15"
+                title="Aktiv"
+              >
+                <span>Aktiv</span>
+                <span class="count">15</span>
+              </div>
+              <div
+                class="stage success"
+                style="flex: 10; opacity: 0.7"
+                title="Fullført"
+              >
+                <span>Fullført</span>
+                <span class="count">10</span>
+              </div>
+            </div>
+            <span class="total">142</span>
+          </div>
+
+          <!-- HACCP pipeline -->
+          <div class="pipeline">
+            <div class="label">
+              <span class="name">HACCP</span>
+              <span class="hint">haccp_log · siste 24t</span>
+            </div>
+            <div class="stages">
+              <div
+                class="stage success"
+                style="flex: 47"
+                title="Innenfor"
+              >
+                <span>Innenfor</span>
+                <span class="count">47</span>
+              </div>
+              <div
+                class="stage danger"
+                style="flex: 3"
+                title="Brudd"
+              >
+                <span>Brudd</span>
+                <span class="count">3</span>
+              </div>
+              <div
+                class="stage warning"
+                style="flex: 2"
+                title="Korrigert"
+              >
+                <span>Korrigert</span>
+                <span class="count">2</span>
+              </div>
+            </div>
+            <span class="total">52</span>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      // Theme toggle — respects initial OS preference then user choice
+      (function () {
+        const root = document.documentElement;
+        const key = "smartout-mockup-theme";
+        const stored = localStorage.getItem(key);
+        const prefersDark = window.matchMedia(
+          "(prefers-color-scheme: dark)"
+        ).matches;
+        const initial = stored ?? (prefersDark ? "dark" : "light");
+        if (initial === "dark") root.setAttribute("data-theme", "dark");
+
+        document
+          .getElementById("themeToggle")
+          .addEventListener("click", () => {
+            const isDark =
+              root.getAttribute("data-theme") === "dark";
+            if (isDark) {
+              root.removeAttribute("data-theme");
+              localStorage.setItem(key, "light");
+            } else {
+              root.setAttribute("data-theme", "dark");
+              localStorage.setItem(key, "dark");
+            }
+          });
+      })();
+    </script>
+  </body>
+</html>
