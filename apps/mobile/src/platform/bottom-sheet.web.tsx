@@ -63,15 +63,25 @@ const BottomSheet = forwardRef<BottomSheetRef, BottomSheetProps>(function Bottom
 ) {
   const [visible, setVisible] = useState(index >= 0);
 
+  // Callbacks only fire on real open↔close transitions. Native
+  // @gorhom/bottom-sheet is idempotent; matching that prevents a
+  // re-entrant close() → onClose → onDismiss → close() loop that
+  // blows the stack in BotssonSheet.
   const open = useCallback(() => {
-    setVisible(true);
-    onChange?.(0);
+    setVisible((wasVisible) => {
+      if (wasVisible) return wasVisible;
+      onChange?.(0);
+      return true;
+    });
   }, [onChange]);
 
   const close = useCallback(() => {
-    setVisible(false);
-    onChange?.(-1);
-    onClose?.();
+    setVisible((wasVisible) => {
+      if (!wasVisible) return wasVisible;
+      onChange?.(-1);
+      onClose?.();
+      return false;
+    });
   }, [onChange, onClose]);
 
   useImperativeHandle(ref, () => ({
