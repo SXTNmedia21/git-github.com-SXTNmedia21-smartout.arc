@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import { toast } from "sonner";
 import type { UiPhase } from "@smartout/utils";
 import type { DepartmentSessionRow } from "@/app/dashboard/hms/_hooks/use-department-sessions";
 import { useSessionHooksWithTasks } from "@/app/dashboard/_hooks/use-session-hooks-with-tasks";
@@ -50,7 +51,8 @@ export function TimelineTab({
     const nextDone = !task.done;
     setOptimisticIds((prev) => ({ ...prev, [task.id]: nextDone }));
     startTransition(async () => {
-      await toggleSessionTaskAction({ taskId: task.id, done: nextDone });
+      const res = await toggleSessionTaskAction({ taskId: task.id, done: nextDone });
+      if (!res.ok) toast.error(res.error);
       await q.refetch();
       setOptimisticIds((prev) => {
         const next = { ...prev };

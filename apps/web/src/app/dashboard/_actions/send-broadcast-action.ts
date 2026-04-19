@@ -12,6 +12,7 @@ const BroadcastSchema = z.object({
   body: z.string().min(1).max(4000),
   recipientIds: z.array(z.string().uuid()).optional(),
   departmentId: z.string().uuid().optional(),
+  sessionId: z.string().uuid().optional(),
 });
 
 export type SendBroadcastInput = z.infer<typeof BroadcastSchema>;
@@ -23,9 +24,16 @@ export type SendBroadcastResult =
  * Server Action for WebDayControl Melding tab.
  *
  * Resolves-or-creates the workspace-scoped `news` channel, inserts an
- * `announcement` message, encodes broadcast type into `metadata.broadcast_type`
- * JSONB (ADR-0156 §broadcast-type-encoding — no new column, no silent schema
- * drift), runs PII guardrail per ADR-0077, and emits via telemetry registry.
+ * `announcement` message, encodes broadcast metadata (type, title,
+ * department_id, session_id) into `channel_message.system_data` JSONB per
+ * ADR-0156 § broadcast-type-encoding — no new column, no silent schema drift.
+ * `session_id` links the broadcast to the D6 session so daily audit trails
+ * can reconstruct "what was broadcast during this day" (Steward Gate 3
+ * provenance completeness).
+ *
+ * Runs PII guardrail per ADR-0077, and emits `communication.broadcast_sent`
+ * via the telemetry registry (`properties.metadata` shape — registry-defined
+ * for communication category).
  */
 export async function sendBroadcastAction(input: SendBroadcastInput): Promise<SendBroadcastResult> {
   const parsed = BroadcastSchema.safeParse(input);
@@ -97,6 +105,7 @@ export async function sendBroadcastAction(input: SendBroadcastInput): Promise<Se
         broadcast_type: parsed.data.type,
         title: parsed.data.title,
         department_id: parsed.data.departmentId ?? null,
+        session_id: parsed.data.sessionId ?? null,
       },
     })
     .select("id")

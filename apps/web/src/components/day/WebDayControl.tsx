@@ -210,7 +210,9 @@ export function WebDayControl({ initialTab = "overview" }: { initialTab?: TabKey
         )}
         {tab === "tasks" && <TasksTab session={session} />}
         {tab === "deviations" && <DeviationsTab sessionId={session.sessionId} />}
-        {tab === "broadcast" && <BroadcastTab />}
+        {tab === "broadcast" && (
+          <BroadcastTab sessionId={session.sessionId} departmentId={currentDept.departmentId} />
+        )}
         {tab === "signoff" && <SignoffTab session={session} phase={phase} />}
       </div>
     </div>

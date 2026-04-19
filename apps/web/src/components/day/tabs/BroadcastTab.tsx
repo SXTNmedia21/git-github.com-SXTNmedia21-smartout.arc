@@ -6,7 +6,13 @@ import { sendBroadcastAction } from "@/app/dashboard/_actions/send-broadcast-act
 import { BroadcastComposer } from "../widgets";
 import type { BroadcastType } from "../widgets";
 
-export function BroadcastTab() {
+export function BroadcastTab({
+  sessionId,
+  departmentId,
+}: {
+  sessionId?: string;
+  departmentId?: string;
+}) {
   const [busy, startTransition] = useTransition();
   const [recentBroadcasts, setRecentBroadcasts] = useState<
     Array<{ id: string; type: BroadcastType; title: string; body: string; time: string }>
@@ -19,6 +25,8 @@ export function BroadcastTab() {
         type,
         title,
         body: text,
+        sessionId,
+        departmentId,
       });
       if (!res.ok) {
         toast.error(res.error);
