@@ -1,15 +1,23 @@
-// Stub: pins the current session into engine_memory so Botsson has context
-// when the leder/admin asks questions from within WebDayControl.
-// Real implementation lands in PR 3 (Server Action + engine_memory insert with
-// 24h TTL, source="web.day-control"). See spec §7.
+// Re-export of the Server Action so the client-side WebDayControl mount
+// effect can call `pinDayControlContext(...)` from a thin wrapper.
+// Real implementation lives in apps/web/src/app/dashboard/_actions/pin-day-control-context.ts.
 
-// TODO(live-data): PR 3 — implement engine_memory insert.
-export async function pinDayControlContext(_args: {
+import { pinDayControlContextAction } from "@/app/dashboard/_actions/pin-day-control-context";
+
+export async function pinDayControlContext(args: {
   sessionId: string;
   departmentName: string;
   date: string;
   profileId: string;
   workspaceId: string;
 }): Promise<void> {
-  // no-op until PR 3
+  // profileId and workspaceId are re-derived server-side (ADR-0151) — the
+  // args here are only used for the memory content text.
+  void args.profileId;
+  void args.workspaceId;
+  await pinDayControlContextAction({
+    sessionId: args.sessionId,
+    departmentName: args.departmentName,
+    date: args.date,
+  });
 }
