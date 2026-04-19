@@ -8,13 +8,13 @@ import type { Mapping } from "../../src/research/mapping.js";
 
 function makeReadyMapping(): Mapping {
   return {
-    entity: "workspaces",
+    entity: "workspace",
     bubble_type: "workspace",
-    target_table: "workspaces",
+    target_table: "public.workspace",
     field_map: {
       _id: {
         target: "id",
-        transform: "fk_uuid:workspaces",
+        transform: "fk_uuid:workspace",
         needs_review: false,
         source_value_types: ["string"],
         occurrence_count: 1,
@@ -48,7 +48,7 @@ describe("migrate_workspace tool", () => {
     stagingDir = mkdtempSync(join(tmpdir(), "strike-m-staging-"));
     vaultDir = mkdtempSync(join(tmpdir(), "strike-m-vault-"));
     writeFileSync(
-      join(mappingsDir, "workspaces.json"),
+      join(mappingsDir, "workspace.json"),
       JSON.stringify(makeReadyMapping(), null, 2),
     );
   });
@@ -92,19 +92,19 @@ describe("migrate_workspace tool", () => {
     expect(existsSync(result.reportFilePath)).toBe(true);
     expect(result.workspaceSlug).toBe("strom-mat-bar");
     expect(result.sqlFilePath).toContain("/strom-mat-bar/");
-    expect(result.sqlFilePath).toMatch(/01_workspaces\.sql$/);
+    expect(result.sqlFilePath).toMatch(/01_workspace\.sql$/);
 
     const sql = readFileSync(result.sqlFilePath, "utf-8");
     expect(sql).toContain("BEGIN;");
     expect(sql).toContain("COMMIT;");
-    expect(sql).toContain("INSERT INTO workspaces");
+    expect(sql).toContain("INSERT INTO public.workspace");
     expect(sql).toContain("'Strøm Mat & Bar'");
   });
 
   it("throws if mapping has any unreviewed fields", async () => {
     const m = makeReadyMapping();
     m.field_map.name_text.needs_review = true;
-    writeFileSync(join(mappingsDir, "workspaces.json"), JSON.stringify(m, null, 2));
+    writeFileSync(join(mappingsDir, "workspace.json"), JSON.stringify(m, null, 2));
 
     const client = makeClient({ _id: "x", name_text: "y" });
     await expect(
@@ -115,8 +115,8 @@ describe("migrate_workspace tool", () => {
     ).rejects.toThrow(/needs_review/i);
   });
 
-  it("throws if mappings/workspaces.json does not exist", async () => {
-    rmSync(join(mappingsDir, "workspaces.json"));
+  it("throws if mappings/workspace.json does not exist", async () => {
+    rmSync(join(mappingsDir, "workspace.json"));
     const client = makeClient({ _id: "x", name_text: "y" });
     await expect(
       migrateWorkspaceTool.execute(

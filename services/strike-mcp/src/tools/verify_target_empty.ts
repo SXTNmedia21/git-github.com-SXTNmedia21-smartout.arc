@@ -25,12 +25,12 @@ export const verifyTargetEmptyTool = {
       );
     }
 
-    const wsCount = await ctx.supabase.count("workspaces", { slug: input.workspaceSlug });
-    const counts = { workspaces: wsCount };
+    const wsCount = await ctx.supabase.count("workspace", { slug: input.workspaceSlug });
+    const counts = { workspace: wsCount };
     const empty = wsCount === 0;
     const message = empty
       ? `Target workspace "${input.workspaceSlug}" is empty. Safe to proceed with bundle_migration.`
-      : `Target workspace "${input.workspaceSlug}" already exists in v3 (${wsCount} row(s) in workspaces). bundle_migration will refuse without --acknowledge-target-has-data.`;
+      : `Target workspace "${input.workspaceSlug}" already exists in v3 (${wsCount} row(s) in public.workspace). bundle_migration will refuse without --acknowledge-target-has-data.`;
 
     return { workspaceSlug: input.workspaceSlug, empty, counts, message };
   },

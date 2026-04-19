@@ -30,7 +30,7 @@ describe("verify_target_empty tool", () => {
     );
 
     expect(result.empty).toBe(true);
-    expect(result.counts.workspaces).toBe(0);
+    expect(result.counts.workspace).toBe(0);
   });
 
   it("returns empty: false when a workspace with the slug exists", async () => {
@@ -46,7 +46,7 @@ describe("verify_target_empty tool", () => {
     );
 
     expect(result.empty).toBe(false);
-    expect(result.counts.workspaces).toBe(1);
+    expect(result.counts.workspace).toBe(1);
     expect(result.message).toMatch(/already exists/i);
   });
 

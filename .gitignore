@@ -71,3 +71,10 @@ supabase/.env.local
 # Archived/showcase assets (moved out of git)
 docs/archive/
 docs/showcase/
+
+# Strike-MCP staged Bubble → Supabase migrations
+# SQL bodies contain PII (names, emails, salary) and can be 10MB+ per tenant.
+# Manifests + reports are small, PII-free, and form the audit trail (see Learning 0033).
+supabase/bubble-data/**/*.sql
+!supabase/bubble-data/**/MANIFEST.json
+!supabase/bubble-data/**/*.report.md

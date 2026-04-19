@@ -10,7 +10,8 @@
   },
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
-    "playwright"
+    "playwright",
+    "strike-mcp"
   ],
   "mcpServers": {
     "playwright": {

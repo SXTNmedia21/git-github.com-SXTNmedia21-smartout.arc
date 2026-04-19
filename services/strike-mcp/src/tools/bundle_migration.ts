@@ -27,7 +27,7 @@ export const bundleMigrationTool = {
 
     // Verify target empty (if Supabase configured)
     if (ctx.supabase !== null) {
-      const wsCount = await ctx.supabase.count("workspaces", { slug: input.workspaceSlug });
+      const wsCount = await ctx.supabase.count("workspace", { slug: input.workspaceSlug });
       if (wsCount > 0 && !input.acknowledgeTargetHasData) {
         throw new Error(
           `Target workspace "${input.workspaceSlug}" already exists in v3 (${wsCount} row(s)). Pass acknowledgeTargetHasData: true to override.`,

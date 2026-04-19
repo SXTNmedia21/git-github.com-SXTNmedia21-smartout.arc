@@ -48,9 +48,24 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
     // Vault is a user-owned second-brain path; still absolute if the user
     // keeps it. Override via STRIKE_VAULT_SHAPES_DIR for other installs.
     `${process.env.HOME ?? "/home/sxtnl"}/dev/second-brain-v2/wiki/migration/bubble-shapes`;
+  // Fallback for non-Claude-Code environments (tests, CI). Production writes
+  // MUST land in <repo>/supabase/bubble-data/ via STRIKE_STAGING_DIR set in
+  // .mcp.json. See README "Output layout" and strike-mcp ADR-0007.
   const stagingDir =
     env.STRIKE_STAGING_DIR ??
     join(SERVICE_ROOT, "supabase", "migration-staging");
+
+  // Safety: catch unresolved ${CLAUDE_PROJECT_DIR} or similar literal ${...}
+  // reaching the path layer. A failed interpolation would silently write to a
+  // directory literally named "${CLAUDE_PROJECT_DIR}", which is almost never
+  // what the operator intended.
+  if (stagingDir.includes("${")) {
+    throw new ConfigError(
+      `STRIKE_STAGING_DIR contains an unresolved variable: "${stagingDir}". ` +
+        `Check your .mcp.json and ensure the MCP runtime interpolates it.`,
+    );
+  }
+
   const supabaseUrl = env.SUPABASE_URL ?? null;
   const supabaseAnonKey = env.SUPABASE_ANON_KEY ?? null;
   return {

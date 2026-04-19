@@ -15,10 +15,10 @@ export function slugify(input: string): string {
 }
 
 export interface WriteStagedFilesOptions {
-  stagingDir: string;       // base staging directory (e.g. supabase/migration-staging)
-  workspaceSlug: string;    // subdirectory under stagingDir
-  orderIndex: number;       // 1-99 — used as zero-padded prefix
-  entity: string;           // e.g. "workspaces", "locations"
+  stagingDir: string;       // base staging directory (canonical: supabase/bubble-data)
+  workspaceSlug: string;    // subdirectory under stagingDir (one per Bubble workspace)
+  orderIndex: number;       // 1-99 — used as zero-padded prefix for causal order
+  entity: string;           // e.g. "workspace", "locations"
   sql: string;
   report: string;
 }

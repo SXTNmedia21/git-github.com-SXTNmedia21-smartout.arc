@@ -61,10 +61,10 @@ export const migrateWorkspaceTool = {
     input: { workspaceId: string },
     ctx: ToolContext,
   ): Promise<MigrationReport> => {
-    const mapping = await loadMapping(ctx.mappingsDir, "workspaces");
+    const mapping = await loadMapping(ctx.mappingsDir, "workspace");
     if (!mapping) {
       throw new Error(
-        `mapping for "workspaces" not found at ${ctx.mappingsDir}/workspaces.json. Run research_entity first.`,
+        `mapping for "workspace" not found at ${ctx.mappingsDir}/workspace.json. Run research_entity first.`,
       );
     }
 
@@ -85,25 +85,25 @@ export const migrateWorkspaceTool = {
     });
 
     const sql = emitSql(result.rows, {
-      entity: "workspaces",
+      entity: "workspace",
       workspaceId: input.workspaceId,
       workspaceSlug,
       generatedAt,
     });
 
-    const report = buildReport("workspaces", input.workspaceId, workspaceSlug, result, generatedAt);
+    const report = buildReport("workspace", input.workspaceId, workspaceSlug, result, generatedAt);
 
     const staged = await writeStagedFiles({
       stagingDir: ctx.stagingDir,
       workspaceSlug,
       orderIndex: 1,
-      entity: "workspaces",
+      entity: "workspace",
       sql,
       report,
     });
 
     return {
-      entity: "workspaces",
+      entity: "workspace",
       workspaceId: input.workspaceId,
       workspaceSlug,
       recordsProcessed: 1,
