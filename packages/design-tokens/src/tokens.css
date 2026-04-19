@@ -171,6 +171,25 @@
     --info: oklch(0.7 0.12 225);
     --info-foreground: oklch(0.96 0.02 225);
 
+    /* Domain: Departments — Dark (brightened for warm dark bg contrast) */
+    --dept-kitchen: oklch(0.72 0.18 40);
+    --dept-floor: oklch(0.72 0.14 180);
+    --dept-bar: oklch(0.65 0.22 300);
+    --dept-event: oklch(0.75 0.16 85);
+    --dept-storage: oklch(0.65 0.1 200);
+
+    /* Domain: Profile Status — Dark */
+    --status-trainee: oklch(0.7 0.15 250);
+    --status-active: oklch(0.72 0.18 145);
+    --status-inactive: oklch(0.7 0 0);
+    --status-offboarding: oklch(0.75 0.16 85);
+
+    /* Domain: Priority — Dark */
+    --priority-urgent: oklch(0.65 0.22 27.325);
+    --priority-high: oklch(0.7 0.2 40);
+    --priority-normal: oklch(0.7 0.15 250);
+    --priority-low: oklch(0.7 0 0);
+
     /* Scrollbar — Dark */
     --scrollbar-thumb: oklch(0.35 0 0);
     --scrollbar-thumb-hover: oklch(0.45 0 0);
