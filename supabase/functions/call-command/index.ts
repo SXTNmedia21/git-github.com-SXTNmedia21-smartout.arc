@@ -154,6 +154,29 @@ async function handleStart(
 
   const roomName = `${workspaceId}:${channelId}`;
 
+  // Create the LiveKit room with auto-close policy before handing out tokens.
+  // emptyTimeout fires room_finished ~30s after the last participant leaves,
+  // which cleans up the DB session via the webhook. maxParticipants caps the
+  // room to sane limits. Idempotent — re-creating an existing room is a no-op
+  // and retains its existing config.
+  const livekitUrl = Deno.env.get("LIVEKIT_URL") ?? Deno.env.get("NEXT_PUBLIC_LIVEKIT_URL");
+  const livekitKey = Deno.env.get("LIVEKIT_API_KEY");
+  const livekitSecret = Deno.env.get("LIVEKIT_API_SECRET");
+  if (livekitUrl && livekitKey && livekitSecret) {
+    try {
+      const roomService = new RoomServiceClient(livekitUrl, livekitKey, livekitSecret);
+      await roomService.createRoom({
+        name: roomName,
+        emptyTimeout: 30,
+        maxParticipants: 50,
+      });
+    } catch (err) {
+      // Non-fatal — room will be created implicitly on first join, just without
+      // our configured timeouts. Log so we notice if it happens often.
+      console.error("[call-command] roomService.createRoom failed:", err);
+    }
+  }
+
   // Create call session (service role for insert reliability)
   const serviceSupabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
