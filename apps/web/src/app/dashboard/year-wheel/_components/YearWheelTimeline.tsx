@@ -7,7 +7,7 @@
 
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { useTranslation } from "@smartout/i18n";
 import type { Season } from "../_hooks";
@@ -104,8 +104,14 @@ export function YearWheelTimeline({
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLDivElement | null>(null);
 
-  const today = new Date();
-  const isCurrentYear = today.getFullYear() === year;
+  // "Today" is time-dependent: computing it during SSR drifts from the client pass
+  // by milliseconds and produces hydration mismatches on the today-marker position.
+  // Defer to after mount so SSR renders no marker, then the client fills it in.
+  const [today, setToday] = useState<Date | null>(null);
+  useEffect(() => {
+    setToday(new Date());
+  }, []);
+  const isCurrentYear = today !== null && today.getFullYear() === year;
 
   const daysInZoomMonth = useMemo(
     () => new Date(year, zoomMonth + 1, 0).getDate(),
@@ -126,7 +132,7 @@ export function YearWheelTimeline({
   );
 
   const todayPositionPercent = useMemo(() => {
-    if (!isCurrentYear) return null;
+    if (today === null || !isCurrentYear) return null;
     if (viewMode === "year") {
       const yearStart = new Date(year, 0, 1);
       const days = getDaysInYear(year);
@@ -137,7 +143,7 @@ export function YearWheelTimeline({
     const dim = daysInZoomMonth;
     const day = today.getDate();
     return ((day - 0.5) / dim) * 100;
-  }, [year, isCurrentYear, viewMode, zoomMonth, daysInZoomMonth]);
+  }, [today, year, isCurrentYear, viewMode, zoomMonth, daysInZoomMonth]);
 
   const focusedDatePositionPercent = useMemo(() => {
     if (!focusedDate) return null;
