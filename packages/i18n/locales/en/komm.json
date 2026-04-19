@@ -60,6 +60,8 @@
     "reply_to": "Replying to {{name}}",
     "empty_state": "No messages yet. Start the conversation!",
     "send_error": "Could not send message",
+    "send": "Send",
+    "draft_placeholder": "Write your first message...",
     "attachment_coming_soon": "{{key}} — coming soon!"
   },
   "member": {
@@ -73,7 +75,12 @@
   },
   "chat": {
     "active_conversations": "Active conversations",
-    "empty_state": "Select a conversation or start a new one"
+    "empty_state": "Select a conversation or start a new one",
+    "draft_prompt": "Start a conversation with {{name}} — type a message and hit send.",
+    "menu": "Menu",
+    "new_dm": "New conversation",
+    "shared_conversations": "Shared conversations",
+    "no_shared": "No shared conversations yet"
   },
   "chat_list": {
     "filter_placeholder": "Filter by name...",

@@ -60,6 +60,8 @@
     "reply_to": "Svarer {{name}}",
     "empty_state": "Ingen meldinger ennå. Start samtalen!",
     "send_error": "Kunne ikke sende melding",
+    "send": "Send",
+    "draft_placeholder": "Skriv første melding...",
     "attachment_coming_soon": "{{key}} — kommer snart!"
   },
   "member": {
@@ -73,7 +75,12 @@
   },
   "chat": {
     "active_conversations": "Aktive samtaler",
-    "empty_state": "Velg en samtale eller start en ny"
+    "empty_state": "Velg en samtale eller start en ny",
+    "draft_prompt": "Start en samtale med {{name}} — skriv en melding og trykk send.",
+    "menu": "Meny",
+    "new_dm": "Ny samtale",
+    "shared_conversations": "Felles samtaler",
+    "no_shared": "Ingen felles samtaler ennå"
   },
   "chat_list": {
     "filter_placeholder": "Filtrer etter navn...",
