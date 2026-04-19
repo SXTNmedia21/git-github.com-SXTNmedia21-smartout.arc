@@ -1,6 +1,7 @@
 "use client";
 
 import { useContext, useEffect, useState, type ReactNode } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -88,6 +89,7 @@ export function WebDayControl({ initialTab = "overview" }: { initialTab?: TabKey
   const wsCtx = useWorkspaceOptional();
   const profileId = ctx.profileId;
   const workspaceId = wsCtx?.workspace.workspace_id ?? null;
+  const reduceMotion = useReducedMotion();
 
   const dateISO = today();
   const dateLabels = formatDateLabels(dateISO);
@@ -147,8 +149,22 @@ export function WebDayControl({ initialTab = "overview" }: { initialTab?: TabKey
 
   return (
     <div className="bg-muted/30 relative flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+      {/* Ambient orb — one, phase-reactive hue (Nordic Split ambient lighting) */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-56 -bottom-64 h-[720px] w-[720px]"
+        style={{
+          background:
+            phase === "active"
+              ? "radial-gradient(circle at 50% 50%, color-mix(in oklch, var(--brand-orange) 18%, transparent) 0%, transparent 65%)"
+              : phase === "pending_signoff"
+                ? "radial-gradient(circle at 50% 50%, color-mix(in oklch, var(--warning) 16%, transparent) 0%, transparent 65%)"
+                : "radial-gradient(circle at 50% 50%, color-mix(in oklch, var(--brand-orange) 8%, transparent) 0%, transparent 65%)",
+        }}
+      />
+
       {/* Session header */}
-      <div className="border-border bg-background border-b px-7 pt-5 pb-4">
+      <div className="border-border bg-background relative z-[1] border-b px-7 pt-5 pb-4">
         <SessionHeader
           session={headerSession}
           phase={phase}
@@ -195,25 +211,43 @@ export function WebDayControl({ initialTab = "overview" }: { initialTab?: TabKey
         </div>
       </div>
 
-      {/* Body */}
+      {/* Body — spring transition between tabs, respects prefers-reduced-motion */}
       <div
         id={`tab-panel-${tab}`}
         role="tabpanel"
-        className="scrollbar-thin flex-1 overflow-y-auto p-7"
+        className="scrollbar-thin relative z-[1] flex-1 overflow-y-auto p-7"
       >
-        {tab === "overview" && (
-          <OverviewTab session={session} phase={phase} departmentId={currentDept.departmentId} />
-        )}
-        {tab === "timeline" && <TimelineTab session={session} phase={phase} />}
-        {tab === "roster" && (
-          <RosterTab departmentId={currentDept.departmentId} dateISO={dateISO} />
-        )}
-        {tab === "tasks" && <TasksTab session={session} />}
-        {tab === "deviations" && <DeviationsTab sessionId={session.sessionId} />}
-        {tab === "broadcast" && (
-          <BroadcastTab sessionId={session.sessionId} departmentId={currentDept.departmentId} />
-        )}
-        {tab === "signoff" && <SignoffTab session={session} phase={phase} />}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={tab}
+            initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -8 }}
+            transition={
+              reduceMotion
+                ? { duration: 0.15 }
+                : { type: "spring", stiffness: 35, damping: 22, mass: 2.2 }
+            }
+          >
+            {tab === "overview" && (
+              <OverviewTab
+                session={session}
+                phase={phase}
+                departmentId={currentDept.departmentId}
+              />
+            )}
+            {tab === "timeline" && <TimelineTab session={session} phase={phase} />}
+            {tab === "roster" && (
+              <RosterTab departmentId={currentDept.departmentId} dateISO={dateISO} />
+            )}
+            {tab === "tasks" && <TasksTab session={session} />}
+            {tab === "deviations" && <DeviationsTab sessionId={session.sessionId} />}
+            {tab === "broadcast" && (
+              <BroadcastTab sessionId={session.sessionId} departmentId={currentDept.departmentId} />
+            )}
+            {tab === "signoff" && <SignoffTab session={session} phase={phase} />}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );

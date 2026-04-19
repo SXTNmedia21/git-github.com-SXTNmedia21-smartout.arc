@@ -26,8 +26,8 @@ tags: [decisions, adr, index]
 
 | ADR | Date | Title | Status |
 |-----|------|-------|--------|
-| [ADR-0157](0157-server-actions-scope-amendment-adr-0114.md) | 2026-04-19 | Server Actions Scope — Amendment to ADR-0114: new mutations only, existing TanStack mutations grandfathered until scheduled migration. (Council 2026-04-19) | proposed |
-| [ADR-0156](0156-day-control-panel-canonical-admin-surface.md) | 2026-04-19 | Day-Control Panel as Canonical D6 Admin Surface — replace `OversiktView` with `WebDayControl`, staged widget placement (apps/web → packages/ui when mobile lands), `locked` phase derived via helper, broadcast type in komm `channel_message.metadata`. (Council 2026-04-19) | proposed |
+| [ADR-0157](0157-server-actions-scope-amendment-adr-0114.md) | 2026-04-19 | Server Actions Scope — Amendment to ADR-0114: new mutations only, existing TanStack mutations grandfathered until scheduled migration. (Council 2026-04-19) | accepted |
+| [ADR-0156](0156-day-control-panel-canonical-admin-surface.md) | 2026-04-19 | Day-Control Panel as Canonical D6 Admin Surface — replace `OversiktView` with `WebDayControl`, staged widget placement (apps/web → packages/ui when mobile lands), `locked` phase derived via helper, broadcast type in komm `channel_message.system_data`. (Council 2026-04-19) | accepted |
 | [ADR-0155](0155-livekit-calls-in-expo-web.md) | 2026-04-19 | LiveKit calls are supported in Expo-web via shared `livekit-client` Room lifecycle. Supersedes the "LiveKit voice calls" incapacity clause of ADR-0153. Background Web Push for closed-tab alerts is a follow-up. | proposed |
 | [ADR-0153](0153-expo-web-surface-classification.md) | 2026-04-19 | Expo-web classified as third surface; mobile verb boundary applies, native-only features require `isSupported()` capability checks, SDK bumps must be isolated commits. (Council 2026-04-19 null.dispatchEvent audit) | proposed |
 | [ADR-0152](0152-activity-trail-fail-fast-contract.md) | 2026-04-19 | activity-trail provider must fail-fast on missing IDs (close L-0038 recurrence) | proposed |

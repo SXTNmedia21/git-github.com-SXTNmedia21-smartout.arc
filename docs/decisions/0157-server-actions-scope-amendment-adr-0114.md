@@ -1,17 +1,19 @@
 ---
 title: "Server Actions Scope — Amendment to ADR-0114"
 id: ADR_0157
-status: proposed
+status: accepted
 layer: decision
 created: 2026-04-19
 updated: 2026-04-19
+accepted: 2026-04-19
 ---
 
 # ADR-0157: Server Actions Scope — Amendment to ADR-0114
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-04-19
 **Council:** 2026-04-19 (semantic conflict between Steward and Supervisor required explicit resolution)
+**First consumer:** ADR-0156 WebDayControl (3 new Server Actions landed)
 
 ## Context and Problem Statement
 

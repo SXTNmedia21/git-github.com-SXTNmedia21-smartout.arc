@@ -1,6 +1,6 @@
 ---
 title: "Plan — overview-v2 (WebDayControl replaces OversiktView)"
-status: in_progress
+status: done
 updated: 2026-04-19
 created: 2026-04-19
 module: Dashboard

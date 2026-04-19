@@ -1,17 +1,19 @@
 ---
 title: "Day-Control Panel as Canonical D6 Admin Surface"
 id: ADR_0156
-status: proposed
+status: accepted
 layer: decision
 created: 2026-04-19
 updated: 2026-04-19
+accepted: 2026-04-19
 ---
 
 # ADR-0156: Day-Control Panel as Canonical D6 Admin Surface
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-04-19
 **Council:** 2026-04-19 (APPROVE WITH CHANGES, unanimous)
+**Gates cleared:** Gate 1 (tokens), Gate 2 (scaffold), Gate 3 (Trust Gate — all 15 conditions met)
 
 ## Context and Problem Statement
 
