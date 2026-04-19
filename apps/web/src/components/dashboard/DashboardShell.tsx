@@ -11,6 +11,7 @@ import { useCascadeTaskCount } from "@/app/dashboard/_hooks/use-cascade-task-cou
 import { EntityDrawerProvider } from "./entity-drawer/EntityDrawerContext";
 import { EntityDrawer } from "./entity-drawer/EntityDrawer";
 import { ChatPanelProvider } from "./ChatPanel";
+import { ActiveCallProvider } from "./ActiveCallProvider";
 import {
   AdminProvider,
   ScheduleCoordinationProvider,
@@ -2172,7 +2173,9 @@ export function DashboardShell({
       >
         <AdminProvider>
           <ScheduleCoordinationProvider>
-            <DashboardShellInner profileId={profileId}>{children}</DashboardShellInner>
+            <ActiveCallProvider profileId={profileId}>
+              <DashboardShellInner profileId={profileId}>{children}</DashboardShellInner>
+            </ActiveCallProvider>
           </ScheduleCoordinationProvider>
         </AdminProvider>
       </WorkspaceProvider>

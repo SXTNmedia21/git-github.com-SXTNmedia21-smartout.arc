@@ -23,8 +23,8 @@ import { useWorkspaceCallAlerts } from "../_hooks/use-workspace-call-alerts";
 import { getLiveKitToken } from "@smartout/walkie-talkie";
 import { MessageTimeline } from "./MessageTimeline";
 import { MessageInput } from "./MessageInput";
-import { CallRoom } from "./CallRoom";
 import { IncomingCallOverlay } from "./IncomingCallOverlay";
+import { useActiveCall } from "@/components/dashboard/ActiveCallProvider";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -33,11 +33,6 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import type { ChannelWithPreview } from "../_hooks/channel-types";
-
-type LiveKitConnection = {
-  serverUrl: string;
-  token: string;
-};
 
 /* ─── Types ─── */
 
@@ -153,9 +148,7 @@ export function ChatClient({ profileId }: { profileId: string }) {
   const [replyToId, setReplyToId] = useState<string | null>(null);
   const [filter, setFilter] = useState("");
 
-  // Call state — LiveKit connection + video intent
-  const [livekitConnection, setLivekitConnection] = useState<LiveKitConnection | null>(null);
-  const [startWithVideo, setStartWithVideo] = useState(false);
+  const { joinCall } = useActiveCall();
 
   // All channels — filter down to direct messages
   const { data: channelGroups } = useChannels();
@@ -190,20 +183,26 @@ export function ChatClient({ profileId }: { profileId: string }) {
 
   const handleJoinCall = useCallback(
     async (opts?: { withVideo?: boolean }) => {
-      if (!activeChannelId) return;
+      if (!activeChannelId || !activeChannel) return;
       try {
         const supabase = createClient();
         const { token, serverUrl } = await getLiveKitToken(supabase, {
           channelId: activeChannelId,
           workspaceId,
         });
-        setStartWithVideo(opts?.withVideo ?? false);
-        setLivekitConnection({ serverUrl, token });
+        joinCall({
+          channelId: activeChannelId,
+          channelName: activeChannel.other_member_name ?? "",
+          serverUrl,
+          token,
+          audioPolicy: activeChannel.audio_policy,
+          startWithVideo: opts?.withVideo ?? false,
+        });
       } catch {
         toast.error(t("shell.connection_error"));
       }
     },
-    [activeChannelId, workspaceId, t],
+    [activeChannelId, activeChannel, workspaceId, joinCall, t],
   );
 
   const handleStartCall = useCallback(
@@ -243,12 +242,19 @@ export function ChatClient({ profileId }: { profileId: string }) {
         channelId: incomingCall.channelId,
         workspaceId,
       });
-      setStartWithVideo(false);
-      setLivekitConnection({ serverUrl, token });
+      const incomingChannel = dmChannels.find((c) => c.channel_id === incomingCall.channelId);
+      joinCall({
+        channelId: incomingCall.channelId,
+        channelName: incomingChannel?.other_member_name ?? incomingCall.callerName ?? "",
+        serverUrl,
+        token,
+        audioPolicy: incomingChannel?.audio_policy ?? "open_mic",
+        startWithVideo: false,
+      });
     } catch {
       toast.error(t("shell.connection_error"));
     }
-  }, [incomingCall, callInvite, profileId, dismissIncoming, workspaceId, t]);
+  }, [incomingCall, callInvite, profileId, dismissIncoming, workspaceId, dmChannels, joinCall, t]);
 
   const handleRejectCall = useCallback(() => {
     if (!incomingCall) return;
@@ -260,11 +266,6 @@ export function ChatClient({ profileId }: { profileId: string }) {
     });
     dismissIncoming();
   }, [incomingCall, callInvite, profileId, dismissIncoming]);
-
-  const handleDisconnect = useCallback(() => {
-    setLivekitConnection(null);
-    setStartWithVideo(false);
-  }, []);
 
   // Filter logic — applies to both DM list and member directory
   const lowerFilter = filter.toLowerCase();
@@ -466,20 +467,6 @@ export function ChatClient({ profileId }: { profileId: string }) {
                 onCancelReply={() => setReplyToId(null)}
                 audioPolicy={activeChannel.audio_policy}
                 pttProps={undefined}
-              />
-            )}
-
-            {/* LiveKit Call Room — renders as a fixed overlay */}
-            {livekitConnection && (
-              <CallRoom
-                serverUrl={livekitConnection.serverUrl}
-                token={livekitConnection.token}
-                channelId={activeChannelId!}
-                channelName={otherName}
-                profileId={profileId}
-                audioPolicy={activeChannel.audio_policy}
-                onDisconnect={handleDisconnect}
-                startWithVideo={startWithVideo}
               />
             )}
           </>
