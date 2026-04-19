@@ -33,7 +33,7 @@ export function PhaseTimeline({
       <div className="relative h-11" role="group" aria-label="Dagens forløp tidslinje">
         <div className="bg-muted absolute top-5 right-0 left-0 h-1 rounded-full" />
         <div
-          className="bg-brand-orange absolute top-5 left-0 h-1 rounded-full transition-[width] duration-700"
+          className="bg-brand-orange absolute top-5 left-0 h-1 rounded-full transition-[width] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
           style={{ width: `${nowPct}%` }}
         />
         {hooks.map((hook, i) => {

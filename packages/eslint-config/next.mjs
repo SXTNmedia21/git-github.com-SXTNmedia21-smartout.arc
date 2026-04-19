@@ -65,7 +65,7 @@ const eslintConfig = defineConfig([
                 "WebDayControl widgets must be portable to packages/ui when mobile consumer lands (ADR-0156). No next/* imports in widgets.",
             },
             {
-              group: ["@smartout/supabase/*", "@/lib/supabase/*"],
+              group: ["@smartout/supabase", "@smartout/supabase/*", "@/lib/supabase/*"],
               message:
                 "WebDayControl widgets must receive data via props, not via direct Supabase access (ADR-0156 portability discipline).",
             },

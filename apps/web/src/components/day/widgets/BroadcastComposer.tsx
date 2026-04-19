@@ -43,18 +43,19 @@ export function BroadcastComposer({
 
   return (
     <div className="bg-card border-border rounded-[14px] border p-3.5">
-      <div className="mb-2.5 flex gap-1.5" role="tablist" aria-label="Meldingstype">
+      {/* Radiogroup (not tablist) — pills toggle message type, no panel assoc (Gate 2 designer fix). */}
+      <div className="mb-2.5 flex gap-1.5" role="radiogroup" aria-label="Meldingstype">
         {TYPES.map((t) => {
           const active = type === t.key;
           return (
             <button
               key={t.key}
               type="button"
-              role="tab"
-              aria-selected={active}
+              role="radio"
+              aria-checked={active}
               onClick={() => setType(t.key)}
               className={cn(
-                "h-7 rounded-full border px-3 text-[11px] font-semibold tracking-[0.04em] transition-all",
+                "focus-visible:ring-brand-orange h-7 rounded-full border px-3 text-[11px] font-semibold tracking-[0.04em] transition-all focus-visible:ring-2 focus-visible:outline-none",
                 active
                   ? `${TYPE_BORDER[t.key]} ${TYPE_BG[t.key]} ${t.colorClass}`
                   : "border-border text-muted-foreground hover:text-foreground",

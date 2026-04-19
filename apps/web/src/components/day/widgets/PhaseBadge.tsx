@@ -32,7 +32,13 @@ export function PhaseBadge({
     >
       <span
         aria-hidden
-        className={cn("h-1.5 w-1.5 rounded-full", style.dotClass, style.pulse && "animate-pulse")}
+        className={cn(
+          "h-1.5 w-1.5 rounded-full",
+          style.dotClass,
+          // Only the dot pulses — text stays crisp (Gate 2 designer fix).
+          // motion-safe gate respects prefers-reduced-motion.
+          style.pulse && "motion-safe:animate-pulse",
+        )}
       />
       {style.label}
     </span>
