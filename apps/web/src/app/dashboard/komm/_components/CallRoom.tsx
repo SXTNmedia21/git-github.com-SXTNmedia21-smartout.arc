@@ -29,6 +29,7 @@ type Props = {
   audioPolicy: string;
   onDisconnect: () => void;
   onParticipantCountChange?: (count: number) => void;
+  startWithVideo?: boolean;
 };
 
 export function CallRoom({
@@ -39,8 +40,9 @@ export function CallRoom({
   audioPolicy,
   onDisconnect,
   onParticipantCountChange,
+  startWithVideo = false,
 }: Props) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(startWithVideo);
   const [showChat, setShowChat] = useState(true);
 
   return (
@@ -50,7 +52,7 @@ export function CallRoom({
       connect={true}
       onDisconnected={onDisconnect}
       audio={true}
-      video={false}
+      video={startWithVideo}
       onConnected={() => onParticipantCountChange?.(1)}
     >
       <CallRoomInner

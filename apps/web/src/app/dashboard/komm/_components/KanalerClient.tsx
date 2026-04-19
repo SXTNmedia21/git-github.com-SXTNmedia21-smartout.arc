@@ -40,6 +40,7 @@ export function KanalerClient({ profileId }: { profileId: string }) {
   // LiveKit connection state — set when joining a call, cleared on disconnect
   const [livekitConnection, setLivekitConnection] = useState<LiveKitConnection | null>(null);
   const [liveParticipantCount, setLiveParticipantCount] = useState(0);
+  const [startWithVideo, setStartWithVideo] = useState(false);
 
   const { data: channelGroups, isLoading } = useChannels();
   useChannelRealtime(workspaceId, activeChannelId);
@@ -50,19 +51,23 @@ export function KanalerClient({ profileId }: { profileId: string }) {
   const callInvite = useCallInvite();
   const muteParticipant = useMuteParticipant(profileId);
 
-  const handleJoinCall = useCallback(async () => {
-    if (!activeChannelId) return;
-    try {
-      const supabase = createClient();
-      const { token, serverUrl } = await getLiveKitToken(supabase, {
-        channelId: activeChannelId,
-        workspaceId,
-      });
-      setLivekitConnection({ serverUrl, token });
-    } catch {
-      toast.error(t("shell.connection_error"));
-    }
-  }, [activeChannelId, workspaceId, t]);
+  const handleJoinCall = useCallback(
+    async (opts?: { withVideo?: boolean }) => {
+      if (!activeChannelId) return;
+      try {
+        const supabase = createClient();
+        const { token, serverUrl } = await getLiveKitToken(supabase, {
+          channelId: activeChannelId,
+          workspaceId,
+        });
+        setStartWithVideo(opts?.withVideo ?? false);
+        setLivekitConnection({ serverUrl, token });
+      } catch {
+        toast.error(t("shell.connection_error"));
+      }
+    },
+    [activeChannelId, workspaceId, t],
+  );
 
   const handleAcceptCall = useCallback(async () => {
     if (!incomingCall) return;
@@ -103,6 +108,7 @@ export function KanalerClient({ profileId }: { profileId: string }) {
 
   const handleDisconnect = useCallback(() => {
     setLivekitConnection(null);
+    setStartWithVideo(false);
   }, []);
 
   const handleMuteParticipant = useCallback(
@@ -182,6 +188,7 @@ export function KanalerClient({ profileId }: { profileId: string }) {
                 audioPolicy={activeChannel.audio_policy}
                 onDisconnect={handleDisconnect}
                 onParticipantCountChange={setLiveParticipantCount}
+                startWithVideo={startWithVideo}
               />
             )}
           </>

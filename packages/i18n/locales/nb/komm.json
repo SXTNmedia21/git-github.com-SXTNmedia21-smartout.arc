@@ -93,6 +93,8 @@
     "participant_left": "{{name}} forlot samtalen",
     "join_call": "Bli med i samtale",
     "start_call": "Start samtale",
+    "start_video_call": "Start videosamtale",
+    "join_video_call": "Bli med i videosamtale",
     "active_call": "Pågående samtale ({{count}} deltakere)",
     "join": "Bli med",
     "start_error": "Kunne ikke starte samtale",

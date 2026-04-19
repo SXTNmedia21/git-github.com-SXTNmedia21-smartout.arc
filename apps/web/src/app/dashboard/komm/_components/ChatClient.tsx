@@ -14,15 +14,29 @@ import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
 import { useChannels } from "../_hooks/use-channels";
 import { useChannelRealtime } from "../_hooks/use-channel-realtime";
+import { useCallSignaling } from "../_hooks/use-call-signaling";
+import { useCallRealtime } from "../_hooks/use-call-realtime";
+import { useCallInvite } from "../_hooks/use-call-invite";
+import { useCallState } from "../_hooks/use-call-state";
+import { useStartCall } from "../_hooks/use-start-call";
+import { getLiveKitToken } from "@smartout/walkie-talkie";
 import { MessageTimeline } from "./MessageTimeline";
 import { MessageInput } from "./MessageInput";
+import { CallRoom } from "./CallRoom";
+import { IncomingCallOverlay } from "./IncomingCallOverlay";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { MessageCircle, Phone, Info, Search } from "lucide-react";
+import { MessageCircle, Phone, Video, Info, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import type { ChannelWithPreview } from "../_hooks/channel-types";
+
+type LiveKitConnection = {
+  serverUrl: string;
+  token: string;
+};
 
 /* ─── Types ─── */
 
@@ -138,6 +152,10 @@ export function ChatClient({ profileId }: { profileId: string }) {
   const [replyToId, setReplyToId] = useState<string | null>(null);
   const [filter, setFilter] = useState("");
 
+  // Call state — LiveKit connection + video intent
+  const [livekitConnection, setLivekitConnection] = useState<LiveKitConnection | null>(null);
+  const [startWithVideo, setStartWithVideo] = useState(false);
+
   // All channels — filter down to direct messages
   const { data: channelGroups } = useChannels();
   const dmChannels = useMemo(
@@ -158,8 +176,93 @@ export function ChatClient({ profileId }: { profileId: string }) {
   // Realtime subscription for active channel
   useChannelRealtime(workspaceId, activeChannelId);
 
+  // Voice/video call hooks — mirror KanalerClient
+  const { incomingCall, dismissIncoming } = useCallSignaling(profileId, activeChannelId);
+  useCallRealtime(activeChannelId);
+  const callInvite = useCallInvite();
+  const startCall = useStartCall();
+  const { data: callSession } = useCallState(activeChannelId);
+
   // Derive active channel object
   const activeChannel = dmChannels.find((ch) => ch.channel_id === activeChannelId);
+
+  const handleJoinCall = useCallback(
+    async (opts?: { withVideo?: boolean }) => {
+      if (!activeChannelId) return;
+      try {
+        const supabase = createClient();
+        const { token, serverUrl } = await getLiveKitToken(supabase, {
+          channelId: activeChannelId,
+          workspaceId,
+        });
+        setStartWithVideo(opts?.withVideo ?? false);
+        setLivekitConnection({ serverUrl, token });
+      } catch {
+        toast.error(t("shell.connection_error"));
+      }
+    },
+    [activeChannelId, workspaceId, t],
+  );
+
+  const handleStartCall = useCallback(
+    (withVideo: boolean) => {
+      if (!activeChannel || !activeChannelId) return;
+      if (callSession) {
+        void handleJoinCall({ withVideo });
+        return;
+      }
+      startCall.mutate(
+        {
+          channelId: activeChannelId,
+          callType: "direct",
+          profileId,
+          calleeProfileId: activeChannel.other_member_profile_id ?? undefined,
+        },
+        {
+          onSuccess: () => handleJoinCall({ withVideo }),
+        },
+      );
+    },
+    [activeChannel, activeChannelId, callSession, startCall, profileId, handleJoinCall],
+  );
+
+  const handleAcceptCall = useCallback(async () => {
+    if (!incomingCall) return;
+    callInvite.mutate({
+      callSessionId: incomingCall.callSessionId,
+      channelId: incomingCall.channelId,
+      responseAction: "accept",
+      profileId,
+    });
+    dismissIncoming();
+    try {
+      const supabase = createClient();
+      const { token, serverUrl } = await getLiveKitToken(supabase, {
+        channelId: incomingCall.channelId,
+        workspaceId,
+      });
+      setStartWithVideo(false);
+      setLivekitConnection({ serverUrl, token });
+    } catch {
+      toast.error(t("shell.connection_error"));
+    }
+  }, [incomingCall, callInvite, profileId, dismissIncoming, workspaceId, t]);
+
+  const handleRejectCall = useCallback(() => {
+    if (!incomingCall) return;
+    callInvite.mutate({
+      callSessionId: incomingCall.callSessionId,
+      channelId: incomingCall.channelId,
+      responseAction: "reject",
+      profileId,
+    });
+    dismissIncoming();
+  }, [incomingCall, callInvite, profileId, dismissIncoming]);
+
+  const handleDisconnect = useCallback(() => {
+    setLivekitConnection(null);
+    setStartWithVideo(false);
+  }, []);
 
   // Filter logic — applies to both DM list and member directory
   const lowerFilter = filter.toLowerCase();
@@ -314,10 +417,32 @@ export function ChatClient({ profileId }: { profileId: string }) {
                 )}
               </div>
               <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <Phone className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
+                {activeChannel.audio_policy !== "disabled" && (
+                  <>
+                    <Button
+                      size="icon"
+                      className="bg-komm-call-active hover:bg-komm-call-active/90 h-8 w-8 rounded-full text-white"
+                      onClick={() => (callSession ? handleJoinCall() : handleStartCall(false))}
+                      disabled={startCall.isPending}
+                      title={callSession ? t("call.join_call") : t("call.start_call")}
+                    >
+                      <Phone className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 rounded-full"
+                      onClick={() =>
+                        callSession ? handleJoinCall({ withVideo: true }) : handleStartCall(true)
+                      }
+                      disabled={startCall.isPending}
+                      title={callSession ? t("call.join_video_call") : t("call.start_video_call")}
+                    >
+                      <Video className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
+                <Button variant="ghost" size="icon" className="h-8 w-8" disabled>
                   <Info className="h-4 w-4" />
                 </Button>
               </div>
@@ -341,6 +466,19 @@ export function ChatClient({ profileId }: { profileId: string }) {
                 pttProps={undefined}
               />
             )}
+
+            {/* LiveKit Call Room */}
+            {livekitConnection && (
+              <CallRoom
+                serverUrl={livekitConnection.serverUrl}
+                token={livekitConnection.token}
+                channelId={activeChannelId!}
+                profileId={profileId}
+                audioPolicy={activeChannel.audio_policy}
+                onDisconnect={handleDisconnect}
+                startWithVideo={startWithVideo}
+              />
+            )}
           </>
         ) : (
           /* Empty state */
@@ -350,6 +488,15 @@ export function ChatClient({ profileId }: { profileId: string }) {
           </div>
         )}
       </div>
+
+      {/* Incoming call overlay */}
+      {incomingCall && (
+        <IncomingCallOverlay
+          call={incomingCall}
+          onAccept={handleAcceptCall}
+          onReject={handleRejectCall}
+        />
+      )}
     </div>
   );
 }

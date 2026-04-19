@@ -93,6 +93,8 @@
     "participant_left": "{{name}} left the call",
     "join_call": "Join call",
     "start_call": "Start call",
+    "start_video_call": "Start video call",
+    "join_video_call": "Join video call",
     "active_call": "Active call ({{count}} participants)",
     "join": "Join",
     "start_error": "Could not start call",

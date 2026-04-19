@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import {
   Users,
   Phone,
+  Video,
   MoreHorizontal,
   Hash,
   Building2,
@@ -44,7 +45,7 @@ type Props = {
   profileId: string;
   showMembers: boolean;
   onToggleMembers: () => void;
-  onJoinCall: () => void;
+  onJoinCall: (opts?: { withVideo?: boolean }) => void;
   liveParticipantCount?: number;
 };
 
@@ -69,7 +70,7 @@ export function ChannelHeader({
   const startCall = useStartCall();
   const hasActiveCall = !!callSession;
 
-  const handleStartCall = () => {
+  const handleStartCall = (withVideo: boolean) => {
     const callType = channel.channel_type === "direct" ? "direct" : "group";
     startCall.mutate(
       {
@@ -80,8 +81,7 @@ export function ChannelHeader({
           callType === "direct" ? (channel.other_member_profile_id ?? undefined) : undefined,
       },
       {
-        // Auto-join after creating the call session
-        onSuccess: () => onJoinCall(),
+        onSuccess: () => onJoinCall({ withVideo }),
       },
     );
   };
@@ -105,15 +105,29 @@ export function ChannelHeader({
         </div>
         <div className="flex items-center gap-1">
           {voiceEnabled && (
-            <Button
-              size="icon"
-              className="bg-komm-call-active hover:bg-komm-call-active/90 h-8 w-8 rounded-full text-white"
-              onClick={hasActiveCall ? onJoinCall : handleStartCall}
-              disabled={startCall.isPending}
-              title={hasActiveCall ? t("call.join_call") : t("call.start_call")}
-            >
-              <Phone className="h-4 w-4" />
-            </Button>
+            <>
+              <Button
+                size="icon"
+                className="bg-komm-call-active hover:bg-komm-call-active/90 h-8 w-8 rounded-full text-white"
+                onClick={() => (hasActiveCall ? onJoinCall() : handleStartCall(false))}
+                disabled={startCall.isPending}
+                title={hasActiveCall ? t("call.join_call") : t("call.start_call")}
+              >
+                <Phone className="h-4 w-4" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 rounded-full"
+                onClick={() =>
+                  hasActiveCall ? onJoinCall({ withVideo: true }) : handleStartCall(true)
+                }
+                disabled={startCall.isPending}
+                title={hasActiveCall ? t("call.join_video_call") : t("call.start_video_call")}
+              >
+                <Video className="h-4 w-4" />
+              </Button>
+            </>
           )}
           <Button
             variant={showMembers ? "secondary" : "ghost"}
@@ -133,7 +147,7 @@ export function ChannelHeader({
           <Users className="mr-1.5 h-3.5 w-3.5" />
           {t("call.active_call", { count: liveParticipantCount || callSession.maxParticipants })}
           {liveParticipantCount === 0 && (
-            <Button size="sm" onClick={onJoinCall} className="ml-4">
+            <Button size="sm" onClick={() => onJoinCall()} className="ml-4">
               {t("call.join")}
             </Button>
           )}
