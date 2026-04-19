@@ -60,6 +60,8 @@ module: dashboard
 - New `department_session` row creation from UI (engine's job via `session-lifecycle`)
 - POS/revenue integration (revenue stays post-reconciliation only)
 - ReconciliationView replacement (lives independently; Oppgjør tab deep-links)
+- **Compose drawers** from current OversiktView (Nyhet / Dagsnotat / Vakt / Invitasjon). These are executive-admin composition verbs, not day-control. They are **deleted** with OversiktView. Follow-up: surface "Invitér ansatt" in `DashboardShell` global action menu; "Ny vakt" moves to schedule module; "Dagsnotat" and "Nyhet" → day-control's Melding tab (broadcast type covers "note" already; dagsnotat = broadcast scoped to session).
+- **Admin without department** fallback UX: falls back to first workspace department (by `created_at ASC`). Workspace picker in top bar is out of scope — admins who manage multiple depts use existing `DashboardShell` workspace switcher.
 
 ---
 
@@ -111,7 +113,7 @@ Three new mutations. Each: Server Action file in `apps/web/src/app/dashboard/_ac
 ### 4.1 `signoffSessionAction`
 - Input: `{ sessionId: uuid, notes?: string, confirm: "pending" | "close" }`
 - Authority: `session.signoff` (min_role=manager, level=confirm, dept-RLS scoped)
-- Writes: `department_session.status` transition + (on close) `daily_reconciliation` row insert/update
+- Writes: `department_session.status` transition only. `active → pending_signoff` (leder) or `pending_signoff → closed` (admin). Does NOT write `daily_reconciliation` — that row is created by the existing day-close workflow / ReconciliationView; Server Action only transitions session status.
 - Emits: `session pending_signoff` (step 1) + `session closed` (step 2) — both via registry fan-out
 - Gap fix: existing `useSignoffSession` skips step-1 emit (registry has it; hook never calls it). Server Action fixes this.
 
@@ -145,13 +147,10 @@ Follow-up issue: add trigger OR deprecate columns. Out of scope here.
 
 New SQL seed migration: `supabase/migrations/YYYYMMDDHHMMSS_seed_day_control_authority.sql`
 
-```sql
-INSERT INTO engine_authority_config (capability_key, min_role, level, allowed_channels, workspace_id)
-VALUES
-  ('session.signoff',   'manager', 'confirm', ARRAY['chat']::text[], NULL),
-  ('broadcast.send',    'manager', 'confirm', ARRAY['chat']::text[], NULL)
-ON CONFLICT (capability_key, workspace_id) DO NOTHING;
-```
+Verify the actual unique constraint on `engine_authority_config` before emitting `ON CONFLICT` clause (existing migrations use `(capability_key, workspace_id)` but must be confirmed via `grep "UNIQUE\|CREATE UNIQUE\|unique" supabase/migrations/*engine_authority*` in PR 3). Seeds:
+
+- `session.signoff`   — `min_role=manager`, `level=confirm`, `allowed_channels=['chat']`, `workspace_id=NULL`
+- `broadcast.send`    — `min_role=manager`, `level=confirm`, `allowed_channels=['chat']`, `workspace_id=NULL`
 
 `workspace_id = NULL` → platform default. Per-workspace overrides via existing `engine_authority_config` UI.
 
@@ -187,11 +186,12 @@ Called from Server Component wrapper on panel route. Botsson's `loadRecentMemori
   - `widgets/` — 10 widget files
   - `WebDayControl.tsx` — shell
   - `tabs/{OverviewTab,TimelineTab,RosterTab,TasksTab,DeviationsTab,BroadcastTab,SignoffTab}.tsx`
-- **Portability discipline (MANDATORY):**
+- **Portability discipline (MANDATORY — enforced via ESLint):**
   - No `next/image`, no `next/link`, no Next-specific hooks in widget files
   - No direct Supabase client access in widgets — data via props only
   - Lucide icons allowed (react-native-compatible via expo-symbols later)
   - CSS via CSS variables (no CSS modules, no styled-components)
+  - **Enforcement:** ESLint rule added in PR 2 — `no-restricted-imports` override for pattern `apps/web/src/components/day/widgets/**` forbidding imports of `next/*` and `@/lib/supabase/**`. CI must fail if violated.
 - **Phase 2 (future PR, out of scope now):** Extract to `packages/ui/day-control/` when mobile consumer is ready.
 
 ---
@@ -231,9 +231,10 @@ Verify existing `--success`, `--warning`, `--info` tokens exist in both modes; a
 - Port all widgets with Nordic Split CSS variables (no hex)
 - Write `derivePhase` helper + `pinDayControlContext`
 - Wire Overview tab fully to live data using existing hooks (plus dept-filter wrapper)
-- Feature flag `NEXT_PUBLIC_DAY_CONTROL_V2` guards route — OversiktView stays accessible
-- Dept filter: `profile.department_id` fallback to first workspace dept
+- **Feature flag branch point:** `apps/web/src/app/dashboard/page.tsx:68` — the existing `adminView === "oversikt"` branch. Gated with `process.env.NEXT_PUBLIC_DAY_CONTROL_V2 === "true"` → `<WebDayControl />`; else `<OversiktView />`. Both imported via `dynamic()`.
+- Dept filter: `profile.department_id` → fallback `first workspace department by created_at ASC`
 - Empty state: "Ingen sesjon registrert for i dag — venter på åpningsrutine"
+- ESLint rule for portability discipline (§8) added
 - **~1 day**
 
 ### PR 3 — Remaining 6 tabs live + Server Actions + authority (Phase 2)
