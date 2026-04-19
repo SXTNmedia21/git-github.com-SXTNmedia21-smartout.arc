@@ -83,7 +83,15 @@ function resolveMissionForRoute(pathname: string): MissionId {
   return (match !== undefined ? ROUTE_MISSION_MAP[match] : undefined) ?? "mr-botsson";
 }
 
-export type AdminViewType = "tactical" | "strategic" | "reconciliation" | "activity" | "todo";
+export type AdminViewType =
+  | "oversikt"
+  | "oversikt-mockup"
+  | "oversikt-interactive"
+  | "oversikt-pipeline"
+  | "strategic"
+  | "reconciliation"
+  | "activity"
+  | "todo";
 export type ScheduleLayoutMode = "daily" | "weekly" | "monthly" | "list" | "grid";
 export type ScheduleViewMode = "ansatt" | "jobb" | "team" | "lokasjon";
 type VoiceSessionContext = {
@@ -231,7 +239,7 @@ export const DashboardContext = createContext({
   setIsDark: (_val: boolean) => {
     void _val;
   },
-  adminView: "tactical" as AdminViewType,
+  adminView: "oversikt" as AdminViewType,
   setAdminView: (_val: AdminViewType) => {
     void _val;
   },
@@ -1991,53 +1999,46 @@ function DashboardShellInner({
                         </>
                       )}
 
-                      {/* Dashboard view switcher: Cockpit / Avstemming / Aktivitet */}
+                      {/* Dashboard variant switcher — flat 8-tab bar per Pontus 2026-04-19.
+                          First four tabs swap the Cockpit experience between the live
+                          OversiktView and three HTML mockups served from /design-mockups/.
+                          Last four tabs retain the original admin views. */}
                       {!isDocumentMode && isDashboardPage && isAdminMode && (
                         <div
-                          className={`hidden rounded-xl border p-1 shadow-sm md:flex ${isDark ? "border-zinc-800 bg-[#0a0a0c]" : "border-zinc-200 bg-zinc-100"} mr-2`}
+                          className={`hidden flex-wrap rounded-xl border p-1 shadow-sm md:flex ${isDark ? "border-zinc-800 bg-[#0a0a0c]" : "border-zinc-200 bg-zinc-100"} mr-2`}
                         >
-                          <button
-                            onClick={() => setAdminView("tactical")}
-                            className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
-                              adminView === "tactical" || adminView === "strategic"
-                                ? isDark
-                                  ? "bg-zinc-800 text-white shadow-sm"
-                                  : "bg-white text-zinc-900 shadow-sm"
-                                : isDark
-                                  ? "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200"
-                                  : "text-zinc-500 hover:bg-zinc-200/50 hover:text-zinc-700"
-                            }`}
-                          >
-                            Cockpit
-                          </button>
-                          <button
-                            onClick={() => setAdminView("reconciliation")}
-                            className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
-                              adminView === "reconciliation"
-                                ? isDark
-                                  ? "bg-zinc-800 text-white shadow-sm"
-                                  : "bg-white text-zinc-900 shadow-sm"
-                                : isDark
-                                  ? "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200"
-                                  : "text-zinc-500 hover:bg-zinc-200/50 hover:text-zinc-700"
-                            }`}
-                          >
-                            Avstemming
-                          </button>
-                          <button
-                            onClick={() => setAdminView("activity")}
-                            className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
-                              adminView === "activity"
-                                ? isDark
-                                  ? "bg-zinc-800 text-white shadow-sm"
-                                  : "bg-white text-zinc-900 shadow-sm"
-                                : isDark
-                                  ? "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200"
-                                  : "text-zinc-500 hover:bg-zinc-200/50 hover:text-zinc-700"
-                            }`}
-                          >
-                            Aktivitet
-                          </button>
+                          {(
+                            [
+                              { id: "oversikt", label: "Oversikt" },
+                              { id: "oversikt-mockup", label: "Mockup v1" },
+                              { id: "oversikt-interactive", label: "Interactive" },
+                              { id: "oversikt-pipeline", label: "Pipeline" },
+                              { id: "strategic", label: "Strategic" },
+                              { id: "reconciliation", label: "Avstemming" },
+                              { id: "activity", label: "Aktivitet" },
+                            ] as const
+                          ).map((tab) => {
+                            const isActive = adminView === tab.id;
+                            return (
+                              <button
+                                key={tab.id}
+                                type="button"
+                                onClick={() => setAdminView(tab.id)}
+                                aria-pressed={isActive}
+                                className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+                                  isActive
+                                    ? isDark
+                                      ? "bg-zinc-800 text-white shadow-sm"
+                                      : "bg-white text-zinc-900 shadow-sm"
+                                    : isDark
+                                      ? "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200"
+                                      : "text-zinc-500 hover:bg-zinc-200/50 hover:text-zinc-700"
+                                }`}
+                              >
+                                {tab.label}
+                              </button>
+                            );
+                          })}
                           <TodoTabButton
                             adminView={adminView}
                             isDark={isDark}
