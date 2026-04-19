@@ -1038,3 +1038,22 @@ First council's Phase 2.5 fact-check verified WHAT (columns exist, tables exist,
 **ADR created:** 3 drafts — gate-action-stacking-semantics, agent-tool-result-gate-outcome, color-proposed-pending-state-ux (see docs/decisions/)
 **Learning created:** 5 — see task 2 below
 **Agent Trust Gate:** REJECTED for original 18-site scope. PASSES for Wave 2A only.
+
+## 2026-04-19 — WebDayControl replaces OversiktView (session-centric D6 admin surface)
+**Type:** feature (spec-stage, pre-implementation)
+**Verdict:** APPROVE WITH CHANGES (unanimous across 4 reviewers)
+**Agents consulted:** system-steward (chair), supervisor (code-tracer), system-agent-coordinator (Trust Gate), frontend-designer (Nordic Split), general-purpose (Phase 2.5 fact-check)
+**Prior verdict held?** Yes — Web Performance Council 2026-04-16 (ADR-0114 Server Actions), Mobile Strategy Council 2026-04-17 (ADR-0133 web composes / mobile executes), Gate-Client Wave 2 Council 2026-04-18 (Trust Gate) all held and constrained the verdict.
+**Key decision:** Replace `apps/web/src/components/dashboard/OversiktView.tsx` (1070 LOC executive-summary mock) with `WebDayControl` (7-tab session-centric panel, 10 canonical widgets). Staged widget placement: `apps/web/src/components/day/` with portability discipline → extract to `packages/ui/day-control/` when mobile lands. `locked` phase derived via `derivePhase(session, recon)` helper (no migration). 3 new mutations via Server Actions (ADR-0114 scope clarified in ADR-0157 amendment). Broadcast type encoded in `channel_message.metadata.broadcast_type` JSONB. 4-PR rollout (~5 days).
+**Semantic conflicts resolved:**
+- **Steward vs Supervisor on ADR-0114 scope.** Different. Steward: mandatory Server Actions for all mutations. Supervisor: wholesale switch out of scope. Resolution → ADR-0157 grandfathering amendment: new mutations only, existing TanStack grandfathered.
+- **Steward vs Designer on widget placement.** Different. Steward: `packages/ui/` mandatory now. Designer: stage (portability discipline in apps/web Phase 1 → extract Phase 2). Resolution → Designer's staging accepted with strict portability rules enforced.
+- **Steward broadcast persistence concern vs Agent Coord factual note.** Same once clarified. Komm `channel_message` IS persistent, not ephemeral. Keep komm news pattern.
+**Agent Trust Gate:** APPROVE WITH CHANGES. Conditions (must land in same PR as mutations): Server Actions for signoff/broadcast/task-toggle; seed `engine_authority_config` for `session.signoff` + `broadcast.send`; fix registry emit gap on signoff step-1; task toggle via `emit()` not direct engine_event insert; PII guardrail on broadcast (ADR-0077).
+**ADR created:** ADR-0156 (Day-Control Panel canonical admin surface), ADR-0157 (Server Actions scope amendment to ADR-0114)
+**Learning created:** L-0064 (Phase enum UI-vs-DB drift — use named derivation helpers)
+**Follow-up items (not blocking this PR):**
+- Audit: `operations/tools.ts:254` agent tool `complete_task` bypasses `emit()` registry (direct engine_event insert). Separate PR.
+- Trigger: `department_session.tasks_total/tasks_completed` not auto-maintained. This PR derives client-side; long-term add trigger or deprecate columns.
+- Extraction: `apps/web/src/components/day/` → `packages/ui/day-control/` when mobile consumer lands.
+**Implementation spec:** `docs/superpowers/specs/2026-04-19-web-day-control-implementation-spec.md`
