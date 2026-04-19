@@ -6,29 +6,27 @@ import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
 import { useTranslation } from "@smartout/i18n";
 import { toast } from "sonner";
+import { getLiveKitToken } from "@smartout/walkie-talkie";
+import { useActiveCallOptional } from "@/components/dashboard/ActiveCallProvider";
 import { channelKeys } from "./channel-keys";
-
-type CallStartedPayload = {
-  channel_id: string;
-  call_session_id: string;
-  channel_name: string | null;
-  started_by_name: string | null;
-};
 
 /**
  * Workspace-wide watcher — fires a toast + Browser Notification whenever a
  * new channel_call_session is inserted in a channel the signed-in user is a
  * member of. Keeps the user aware of incoming calls even when they're on a
- * different channel in the komm view.
+ * different route.
  *
- * Wants an RPC `notify_call_members(channel_id)` that returns the enriched
- * payload above. Falls back to a client-side join if the RPC isn't there.
+ * Clicking "Bli med" on the toast calls joinCall(...) on the shell-level
+ * ActiveCallProvider so the floating overlay opens in place — no route
+ * change, no full reload.
  */
 export function useWorkspaceCallAlerts(profileId: string) {
   const { workspace } = useWorkspace();
   const workspaceId = workspace.workspace_id;
   const { t } = useTranslation("komm");
   const queryClient = useQueryClient();
+  const activeCallCtx = useActiveCallOptional();
+  const joinCall = activeCallCtx?.joinCall;
   const shownRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
@@ -72,7 +70,11 @@ export function useWorkspaceCallAlerts(profileId: string) {
 
           // Enrich with channel name + caller name for the toast body
           const [{ data: ch }, { data: caller }] = await Promise.all([
-            supabase.from("channel").select("name, channel_type").eq("id", row.channel_id).single(),
+            supabase
+              .from("channel")
+              .select("name, channel_type, audio_policy")
+              .eq("id", row.channel_id)
+              .single(),
             row.started_by
               ? supabase
                   .from("profile")
@@ -85,24 +87,42 @@ export function useWorkspaceCallAlerts(profileId: string) {
           const channelLabel =
             ch?.name ?? (ch?.channel_type === "direct" ? t("channel.direct_message") : "");
           const callerName = caller?.display_name ?? t("chat_list.unknown");
-
           const message = t("call.alert_body", { caller: callerName, channel: channelLabel });
 
-          // In-app toast with join button
+          // Open the overlay in place — no navigation, no reload
+          const handleJoin = async () => {
+            if (!joinCall) return;
+            try {
+              const { token, serverUrl } = await getLiveKitToken(supabase, {
+                channelId: row.channel_id,
+                workspaceId,
+              });
+              joinCall({
+                channelId: row.channel_id,
+                channelName: channelLabel || callerName,
+                serverUrl,
+                token,
+                audioPolicy: ch?.audio_policy ?? "open_mic",
+                startWithVideo: false,
+              });
+            } catch {
+              toast.error(t("shell.connection_error"));
+            }
+          };
+
           toast.info(t("call.alert_title"), {
             description: message,
             duration: 15_000,
-            action: {
-              label: t("call.join"),
-              onClick: () => {
-                const url = new URL(window.location.href);
-                url.searchParams.set("channel", row.channel_id);
-                window.location.href = url.toString();
-              },
-            },
+            action: joinCall
+              ? {
+                  label: t("call.join"),
+                  onClick: () => {
+                    void handleJoin();
+                  },
+                }
+              : undefined,
           });
 
-          // Browser notification (best-effort, needs user permission)
           if (typeof window !== "undefined" && "Notification" in window) {
             if (Notification.permission === "granted") {
               new Notification(t("call.alert_title"), { body: message, tag: row.id });
@@ -115,7 +135,6 @@ export function useWorkspaceCallAlerts(profileId: string) {
             }
           }
 
-          // Invalidate active-calls query so channel list updates
           queryClient.invalidateQueries({
             queryKey: channelKeys.workspaceActiveCalls(workspaceId),
           });
@@ -140,5 +159,5 @@ export function useWorkspaceCallAlerts(profileId: string) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [workspaceId, profileId, t, queryClient]);
+  }, [workspaceId, profileId, t, queryClient, joinCall]);
 }

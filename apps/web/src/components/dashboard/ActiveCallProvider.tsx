@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import { CallRoom } from "@/app/dashboard/komm/_components/CallRoom";
+import { useWorkspaceCallAlerts } from "@/app/dashboard/komm/_hooks/use-workspace-call-alerts";
 
 type ActiveCallInfo = {
   channelId: string;
@@ -50,6 +51,7 @@ export function ActiveCallProvider({
 
   return (
     <ActiveCallContext.Provider value={value}>
+      {profileId && <WorkspaceCallWatcher profileId={profileId} />}
       {children}
       {activeCall && profileId && (
         <CallRoom
@@ -65,6 +67,16 @@ export function ActiveCallProvider({
       )}
     </ActiveCallContext.Provider>
   );
+}
+
+/**
+ * Renders nothing — just subscribes to workspace-wide call inserts and fires
+ * the toast + browser notification from the shell so alerts reach the user
+ * on any dashboard route.
+ */
+function WorkspaceCallWatcher({ profileId }: { profileId: string }) {
+  useWorkspaceCallAlerts(profileId);
+  return null;
 }
 
 export function useActiveCall() {

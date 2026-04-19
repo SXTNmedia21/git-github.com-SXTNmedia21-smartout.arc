@@ -8,7 +8,6 @@ import { useCallSignaling } from "../_hooks/use-call-signaling";
 import { useCallRealtime } from "../_hooks/use-call-realtime";
 import { useCallInvite } from "../_hooks/use-call-invite";
 import { useMuteParticipant } from "../_hooks/use-mute-participant";
-import { useWorkspaceCallAlerts } from "../_hooks/use-workspace-call-alerts";
 import { getLiveKitToken } from "@smartout/walkie-talkie";
 import { createClient } from "@smartout/supabase/client";
 import { ChannelList } from "./ChannelList";
@@ -44,7 +43,6 @@ export function KanalerClient({ profileId }: { profileId: string }) {
 
   const { incomingCall, dismissIncoming } = useCallSignaling(profileId, activeChannelId);
   useCallRealtime(activeChannelId);
-  useWorkspaceCallAlerts(profileId);
   const callInvite = useCallInvite();
   const muteParticipant = useMuteParticipant(profileId);
 

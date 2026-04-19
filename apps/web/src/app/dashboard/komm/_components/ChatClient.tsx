@@ -19,7 +19,6 @@ import { useCallRealtime } from "../_hooks/use-call-realtime";
 import { useCallInvite } from "../_hooks/use-call-invite";
 import { useCallState } from "../_hooks/use-call-state";
 import { useStartCall } from "../_hooks/use-start-call";
-import { useWorkspaceCallAlerts } from "../_hooks/use-workspace-call-alerts";
 import { getLiveKitToken } from "@smartout/walkie-talkie";
 import { MessageTimeline } from "./MessageTimeline";
 import { MessageInput } from "./MessageInput";
@@ -173,7 +172,6 @@ export function ChatClient({ profileId }: { profileId: string }) {
   // Voice/video call hooks — mirror KanalerClient
   const { incomingCall, dismissIncoming } = useCallSignaling(profileId, activeChannelId);
   useCallRealtime(activeChannelId);
-  useWorkspaceCallAlerts(profileId);
   const callInvite = useCallInvite();
   const startCall = useStartCall();
   const { data: callSession } = useCallState(activeChannelId);
