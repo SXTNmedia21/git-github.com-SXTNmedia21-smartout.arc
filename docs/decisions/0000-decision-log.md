@@ -26,6 +26,7 @@ tags: [decisions, adr, index]
 
 | ADR | Date | Title | Status |
 |-----|------|-------|--------|
+| [ADR-0154](0154-unified-overlay-system.md) | 2026-04-19 | Unified Overlay System — EntityDrawer (inspect) + EntityFormDialog (write), with Sheet / AlertDialog / WizardForm as narrow-purpose supplements. Five-primitive decision matrix; reviewer-enforceable; ADR-gated against new bespoke overlays. Blocks page-by-page UX pass on `apps/web/`. | proposed |
 | [ADR-0140](0140-governance-provenance-jsonb.md) | 2026-04-18 | Governance table provenance convention via `provenance JSONB` — five governance tables; renumbered from 0126 to avoid collision with ADR-0126 (billing integration sync). | accepted |
 | [ADR-0150](0150-source-discriminator-trigger-filters.md) | 2026-04-18 | Source Discriminator Pattern + Trigger Filters (renumbered from 0108) | accepted |
 | [ADR-0149](0149-strike-mcp-telemetry-boundary.md) | 2026-04-18 | Strike-MCP Telemetry Boundary (renumbered from 0107) | accepted |

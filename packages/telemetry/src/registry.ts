@@ -315,11 +315,79 @@ export interface PositionCreated extends BaseEvent {
   };
 }
 
-export interface PositionAuthorityChanged extends BaseEvent {
+export interface PositionUpdated extends BaseEvent {
   event: "position updated";
   properties: {
     entity: EntityRef;
-    changes: { authority_level: { before: string | null; after: string } };
+    changes: Record<string, { before: unknown; after: unknown }>;
+  };
+}
+
+// ─── Zone / Asset / Location / Team Events ──────
+// Generic create/update events for admin-authored org entities. Shape mirrors
+// DepartmentCreated / DepartmentUpdated — `data` on create (initial values),
+// `changes` on update (before/after per field). `entity.entity_type` carries
+// the specific table so consumers can discriminate without a new event name.
+
+export interface ZoneCreated extends BaseEvent {
+  event: "zone created";
+  properties: {
+    entity: EntityRef;
+    data: { name: string; location_id: string; capacity?: number; color?: string };
+  };
+}
+
+export interface ZoneUpdated extends BaseEvent {
+  event: "zone updated";
+  properties: {
+    entity: EntityRef;
+    changes: Record<string, { before: unknown; after: unknown }>;
+  };
+}
+
+export interface AssetCreated extends BaseEvent {
+  event: "asset created";
+  properties: {
+    entity: EntityRef;
+    data: {
+      name: string;
+      location_id: string;
+      asset_type: string;
+      requires_training: boolean;
+      requires_routine: boolean;
+    };
+  };
+}
+
+export interface AssetUpdated extends BaseEvent {
+  event: "asset updated";
+  properties: {
+    entity: EntityRef;
+    changes: Record<string, { before: unknown; after: unknown }>;
+  };
+}
+
+export interface LocationCreated extends BaseEvent {
+  event: "location created";
+  properties: {
+    entity: EntityRef;
+    data: { name: string; location_type: string; capacity?: number };
+  };
+}
+
+export interface LocationUpdated extends BaseEvent {
+  event: "location updated";
+  properties: {
+    entity: EntityRef;
+    changes: Record<string, { before: unknown; after: unknown }>;
+  };
+}
+
+export interface TeamUpdated extends BaseEvent {
+  event: "team updated";
+  properties: {
+    entity: EntityRef;
+    changes: Record<string, { before: unknown; after: unknown }>;
   };
 }
 
@@ -1718,6 +1786,8 @@ export interface TeamCreated extends BaseEvent {
     data: {
       team_id: string;
       name: string;
+      team_type?: string;
+      department_id?: string | null;
     };
   };
 }
@@ -4618,7 +4688,14 @@ export type SmartoutEvent =
   | EntityDrawerTabSwitched
   | ProfessionCreated
   | PositionCreated
-  | PositionAuthorityChanged
+  | PositionUpdated
+  | ZoneCreated
+  | ZoneUpdated
+  | AssetCreated
+  | AssetUpdated
+  | LocationCreated
+  | LocationUpdated
+  | TeamUpdated
   | LegalFunctionAssigned
   | ProfileAccessGranted
   | ProfileAccessRevoked
@@ -5912,6 +5989,34 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "org_structure",
   },
   "position updated": {
+    destinations: ["logger", "activity_trail"],
+    category: "org_structure",
+  },
+  "zone created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "org_structure",
+  },
+  "zone updated": {
+    destinations: ["logger", "activity_trail"],
+    category: "org_structure",
+  },
+  "asset created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "org_structure",
+  },
+  "asset updated": {
+    destinations: ["logger", "activity_trail"],
+    category: "org_structure",
+  },
+  "location created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "org_structure",
+  },
+  "location updated": {
+    destinations: ["logger", "activity_trail"],
+    category: "org_structure",
+  },
+  "team updated": {
     destinations: ["logger", "activity_trail"],
     category: "org_structure",
   },

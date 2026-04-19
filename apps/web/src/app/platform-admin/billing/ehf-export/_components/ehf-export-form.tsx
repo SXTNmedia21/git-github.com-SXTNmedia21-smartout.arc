@@ -73,7 +73,7 @@ export function EhfExportForm() {
       toast.info("Leverer samlet CSV i v1. Per-workspace og PDF ruller ut i neste versjon.");
     }
 
-    window.location.assign(`/platform-admin/billing/ehf-export?${params.toString()}`);
+    window.location.assign(`/platform-admin/billing/ehf-export/download?${params.toString()}`);
   };
 
   const disabled = !periodFrom || !periodTo || periodFrom > periodTo;

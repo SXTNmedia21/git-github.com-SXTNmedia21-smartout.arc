@@ -695,7 +695,6 @@ export function DepartmentsTab({
           departmentName={createPosDept.name}
           workspaceId={workspaceId}
           existingCount={(positionsByDept[createPosDept.department_id] ?? []).length}
-          isDark={isDark}
           open={!!createPosDeptId}
           onOpenChange={(open) => {
             if (!open) setCreatePosDeptId(null);

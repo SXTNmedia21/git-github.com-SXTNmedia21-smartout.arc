@@ -1333,7 +1333,6 @@ function DashboardShellInner({
                               active={isDashboardPage && adminView === "todo"}
                               isCollapsed={isSidebarCollapsed}
                               onClick={() => setAdminView("todo")}
-                              useButton
                             />
                             <NavItem
                               href="/dashboard/schedule"

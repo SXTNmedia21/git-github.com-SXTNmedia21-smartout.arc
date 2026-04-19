@@ -700,7 +700,6 @@ export default function DepartmentDetailPage() {
           departmentName={department.name}
           workspaceId={workspaceId}
           existingCount={positions.length}
-          isDark={isDark}
           open={createPosOpen}
           onOpenChange={setCreatePosOpen}
           onSave={fetchData}

@@ -6,7 +6,7 @@ import { getSuperAdminId } from "@/lib/platform-admin";
 
 // Fase 3B B5 — EHF CSV-eksport (platform-admin).
 //
-// GET /platform-admin/billing/ehf-export?period_from=YYYY-MM-DD&period_to=YYYY-MM-DD
+// GET /platform-admin/billing/ehf-export/download?period_from=YYYY-MM-DD&period_to=YYYY-MM-DD
 //    [&grouping=bundled|per_workspace&format=csv|pdf&include_exported=1]
 //
 // MVP: bare grouping=bundled + format=csv støttes for nedlasting. Per-

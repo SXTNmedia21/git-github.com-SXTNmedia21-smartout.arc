@@ -8,7 +8,8 @@ import {
   type UpdateDispatchRuleResult,
 } from "@smartout/billing";
 import { emit } from "@smartout/telemetry";
-import { resolveWorkspaceAdminContext, isWorkspaceAuthorised } from "./_shared";
+import { resolveWorkspaceAdminContext } from "./_shared";
+import { isWorkspaceAuthorised } from "./_helpers";
 
 type ChangeSet = Record<string, { before: unknown; after: unknown }>;
 

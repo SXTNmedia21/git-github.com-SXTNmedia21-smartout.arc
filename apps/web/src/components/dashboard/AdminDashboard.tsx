@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useContext, useState } from "react";
+import { useCallback, useState } from "react";
 import dynamic from "next/dynamic";
-import { DashboardContext } from "@/components/dashboard/DashboardShell";
+import { useAdminContext } from "@/components/dashboard/contexts";
 import { ScheduleUIProvider } from "@/app/dashboard/schedule/_components/schedule-ui-context";
 import { DayControlSheet, DayControlPanel } from "@/app/dashboard/schedule/_components/day-control";
 import { TodoTaskView } from "@/app/dashboard/_components/todo/TodoTaskView";
@@ -32,7 +32,7 @@ interface AdminDashboardProps {
 }
 
 export default function AdminDashboard({ isDark }: AdminDashboardProps) {
-  const { adminView } = useContext(DashboardContext);
+  const { adminView } = useAdminContext();
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   const handleCloseSheet = useCallback(() => {

@@ -4,9 +4,10 @@ import { useContext } from "react";
 import dynamic from "next/dynamic";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 
-const AdminDashboard = dynamic(() => import("@/components/dashboard/AdminDashboard"), {
-  ssr: false,
-});
+const OversiktVariantSwitcher = dynamic(
+  () => import("@/components/dashboard/OversiktVariantSwitcher"),
+  { ssr: false },
+);
 const EmployeeDashboard = dynamic(() => import("@/components/dashboard/EmployeeDashboard"), {
   ssr: false,
 });
@@ -16,7 +17,7 @@ export default function DashboardPage() {
 
   return (
     <div className="relative flex h-full flex-col">
-      {isAdminMode ? <AdminDashboard isDark={isDark} /> : <EmployeeDashboard isDark={isDark} />}
+      {isAdminMode ? <OversiktVariantSwitcher /> : <EmployeeDashboard isDark={isDark} />}
     </div>
   );
 }

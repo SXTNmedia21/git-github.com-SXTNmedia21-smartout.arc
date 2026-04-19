@@ -24,7 +24,7 @@ import {
   type StageState,
 } from "@smartout/ui";
 import { useTranslation } from "@smartout/i18n";
-import { useShiftLifecycle, type ShiftLifecycleRow } from "@smartout/schedule";
+import { useShiftLifecycle, type ShiftLifecycleRow } from "@/hooks/useShiftLifecycle";
 
 const PHASE_ORDER: ShiftPhase[] = ["planlegges", "pagar", "oppgjor", "avsluttet"];
 
