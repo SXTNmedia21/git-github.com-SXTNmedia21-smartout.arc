@@ -13,6 +13,13 @@ import { useAdminContext } from "@/components/dashboard/contexts";
 const OversiktView = dynamic(() => import("@/components/dashboard/OversiktView"), {
   ssr: false,
 });
+const InteractiveDashboard = dynamic(
+  () =>
+    import("@/components/dashboard/interactive").then((m) => ({
+      default: m.InteractiveDashboard,
+    })),
+  { ssr: false },
+);
 const StrategicView = dynamic(
   () => import("@/components/dashboard/StrategicView").then((m) => ({ default: m.StrategicView })),
   { ssr: false },
@@ -39,12 +46,9 @@ const EmployeeDashboard = dynamic(() => import("@/components/dashboard/EmployeeD
   ssr: false,
 });
 
-const MOCKUP_SRC: Record<"oversikt-mockup" | "oversikt-interactive" | "oversikt-pipeline", string> =
-  {
-    "oversikt-mockup": "/design-mockups/dashboard-overview-mockup.html",
-    "oversikt-interactive": "/design-mockups/dashboard-overview-mockup-v2.html",
-    "oversikt-pipeline": "/design-mockups/dashboard-pipeline-variants.html",
-  };
+const MOCKUP_SRC: Record<"oversikt-pipeline", string> = {
+  "oversikt-pipeline": "/design-mockups/dashboard-pipeline-variants.html",
+};
 
 export default function DashboardPage() {
   const { isAdminMode, isDark } = useContext(DashboardContext);
@@ -62,11 +66,15 @@ export default function DashboardPage() {
 
   function renderView() {
     if (adminView === "oversikt") return <OversiktView />;
+    // "Interactive" renders the feature-flagged InteractiveDashboard (normally
+    // gated on NEXT_PUBLIC_INTERACTIVE_DASHBOARD=true) so Pontus can preview it
+    // directly from the variant tab bar.
+    if (adminView === "oversikt-interactive") return <InteractiveDashboard />;
     if (adminView === "strategic") return <StrategicView />;
     if (adminView === "reconciliation") return <ReconciliationView isDark={isDark} />;
     if (adminView === "activity") return <ActivityView />;
     if (adminView === "todo") return <TodoTaskView />;
-    // Remaining values are iframe-backed mockups.
+    // Remaining value is the iframe-backed pipeline mockup.
     const src = MOCKUP_SRC[adminView];
     return (
       <iframe

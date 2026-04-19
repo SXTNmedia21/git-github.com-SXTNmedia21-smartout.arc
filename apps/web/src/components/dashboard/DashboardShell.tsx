@@ -85,7 +85,6 @@ function resolveMissionForRoute(pathname: string): MissionId {
 
 export type AdminViewType =
   | "oversikt"
-  | "oversikt-mockup"
   | "oversikt-interactive"
   | "oversikt-pipeline"
   | "strategic"
@@ -1999,10 +1998,11 @@ function DashboardShellInner({
                         </>
                       )}
 
-                      {/* Dashboard variant switcher — flat 8-tab bar per Pontus 2026-04-19.
-                          First four tabs swap the Cockpit experience between the live
-                          OversiktView and three HTML mockups served from /design-mockups/.
-                          Last four tabs retain the original admin views. */}
+                      {/* Dashboard variant switcher — flat tab bar per Pontus 2026-04-19.
+                          The Interactive tab is gated on
+                          NEXT_PUBLIC_INTERACTIVE_DASHBOARD=true so it only shows up
+                          for developers who have opted in; in all other builds it
+                          is invisible and unreachable. */}
                       {!isDocumentMode && isDashboardPage && isAdminMode && (
                         <div
                           className={`hidden flex-wrap rounded-xl border p-1 shadow-sm md:flex ${isDark ? "border-zinc-800 bg-[#0a0a0c]" : "border-zinc-200 bg-zinc-100"} mr-2`}
@@ -2010,8 +2010,9 @@ function DashboardShellInner({
                           {(
                             [
                               { id: "oversikt", label: "Oversikt" },
-                              { id: "oversikt-mockup", label: "Mockup v1" },
-                              { id: "oversikt-interactive", label: "Interactive" },
+                              ...(process.env.NEXT_PUBLIC_INTERACTIVE_DASHBOARD === "true"
+                                ? ([{ id: "oversikt-interactive", label: "Interactive" }] as const)
+                                : ([] as const)),
                               { id: "oversikt-pipeline", label: "Pipeline" },
                               { id: "strategic", label: "Strategic" },
                               { id: "reconciliation", label: "Avstemming" },
