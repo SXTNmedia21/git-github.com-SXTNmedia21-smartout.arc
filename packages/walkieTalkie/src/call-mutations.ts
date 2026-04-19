@@ -59,6 +59,25 @@ export async function getLiveKitToken(
   return data as TokenResult;
 }
 
+/**
+ * Explicitly end a call from the client. Primary cleanup in dev where
+ * LiveKit webhooks can't reach localhost; redundant safety net in prod.
+ * Marks the caller as left and flips the session to 'ended' when the
+ * starter hangs up or no one else is left.
+ */
+export async function endCall(
+  supabase: SupabaseClient,
+  params: { channelId: string; workspaceId: string },
+): Promise<void> {
+  const { error } = await supabase.functions.invoke("call-command", {
+    body: { action: "end", ...params },
+  });
+  if (error) {
+    // Don't throw — leaving should feel instant even if the bookkeeping fails
+    console.error("[walkie-talkie] endCall failed:", error);
+  }
+}
+
 export async function muteParticipant(
   supabase: SupabaseClient,
   params: {

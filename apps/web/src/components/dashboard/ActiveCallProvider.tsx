@@ -3,6 +3,9 @@
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import { CallRoom } from "@/app/dashboard/komm/_components/CallRoom";
 import { useWorkspaceCallAlerts } from "@/app/dashboard/komm/_hooks/use-workspace-call-alerts";
+import { useWorkspace } from "@/lib/workspace-context";
+import { createClient } from "@smartout/supabase/client";
+import { endCall } from "@smartout/walkie-talkie";
 
 type ActiveCallInfo = {
   channelId: string;
@@ -35,14 +38,26 @@ export function ActiveCallProvider({
   children: React.ReactNode;
 }) {
   const [activeCall, setActiveCall] = useState<ActiveCallInfo | null>(null);
+  const { workspace } = useWorkspace();
+  const workspaceId = workspace.workspace_id;
 
   const joinCall = useCallback((info: ActiveCallInfo) => {
     setActiveCall(info);
   }, []);
 
   const leaveCall = useCallback(() => {
+    const leaving = activeCall;
     setActiveCall(null);
-  }, []);
+    // Fire-and-forget so leave feels instant. Primary cleanup path in dev
+    // (no LiveKit webhook reaches localhost); redundant safety in prod.
+    if (leaving && workspaceId) {
+      const supabase = createClient();
+      void endCall(supabase, {
+        channelId: leaving.channelId,
+        workspaceId,
+      });
+    }
+  }, [activeCall, workspaceId]);
 
   const value = useMemo<ActiveCallContextValue>(
     () => ({ activeCall, joinCall, leaveCall }),
