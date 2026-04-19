@@ -46,7 +46,9 @@ export function KanalerClient({ profileId }: { profileId: string }) {
   const callInvite = useCallInvite();
   const muteParticipant = useMuteParticipant(profileId);
 
-  const allChannels = channelGroups?.flatMap((g) => g.channels) ?? [];
+  // Kanaler view covers groups only — DMs live under /dashboard/komm/chat
+  const groupChannelGroups = (channelGroups ?? []).filter((g) => g.type !== "direct");
+  const allChannels = groupChannelGroups.flatMap((g) => g.channels);
   const activeChannel = allChannels.find((ch) => ch.channel_id === activeChannelId);
 
   const handleJoinCall = useCallback(
@@ -159,7 +161,7 @@ export function KanalerClient({ profileId }: { profileId: string }) {
         </div>
         <div className="flex-1 overflow-y-auto">
           <ChannelList
-            channelGroups={channelGroups ?? []}
+            channelGroups={groupChannelGroups}
             isLoading={isLoading}
             activeChannelId={activeChannelId}
             onSelectChannel={handleSelectChannel}
