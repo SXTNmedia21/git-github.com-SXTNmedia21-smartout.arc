@@ -265,19 +265,48 @@ export function ChatClient({ profileId }: { profileId: string }) {
     dismissIncoming();
   }, [incomingCall, callInvite, profileId, dismissIncoming]);
 
-  // Filter logic — applies to both DM list and member directory
+  // Unified conversation list — every workspace member gets one row. If we
+  // already have a DM with them the row shows last-message preview + unread;
+  // otherwise it shows role + department and starts a new DM on click.
+  // Sort: existing DMs by last-message desc, then the rest alphabetically.
   const lowerFilter = filter.toLowerCase();
 
-  const filteredDMs = useMemo(() => {
-    if (!lowerFilter) return dmChannels;
-    return dmChannels.filter((ch) => ch.other_member_name?.toLowerCase().includes(lowerFilter));
-  }, [dmChannels, lowerFilter]);
-
-  const filteredMembers = useMemo(() => {
+  const conversationList = useMemo<ConversationEntry[]>(() => {
     if (!members) return [];
-    if (!lowerFilter) return members;
-    return members.filter((m) => m.display_name?.toLowerCase().includes(lowerFilter));
-  }, [members, lowerFilter]);
+
+    const dmByMember = new Map<string, ChannelWithPreview>();
+    for (const ch of dmChannels) {
+      if (ch.other_member_profile_id) {
+        dmByMember.set(ch.other_member_profile_id, ch);
+      }
+    }
+
+    const entries: ConversationEntry[] = members.map((member) => {
+      const ch = dmByMember.get(member.profile_id) ?? null;
+      return {
+        key: ch?.channel_id ?? `member:${member.profile_id}`,
+        name: member.display_name ?? t("chat_list.unknown"),
+        avatarUrl: ch?.other_member_avatar ?? member.avatar_url,
+        role: member.role,
+        departmentName: member.department_name,
+        profileId: member.profile_id,
+        channel: ch,
+      };
+    });
+
+    entries.sort((a, b) => {
+      const aActive = !!a.channel;
+      const bActive = !!b.channel;
+      if (aActive !== bActive) return aActive ? -1 : 1;
+      if (aActive && bActive) {
+        return (b.channel?.last_message_at ?? "").localeCompare(a.channel?.last_message_at ?? "");
+      }
+      return a.name.localeCompare(b.name);
+    });
+
+    if (!lowerFilter) return entries;
+    return entries.filter((e) => e.name.toLowerCase().includes(lowerFilter));
+  }, [members, dmChannels, lowerFilter, t]);
 
   // Select a channel
   const handleSelectChannel = useCallback((channelId: string) => {
@@ -338,60 +367,42 @@ export function ChatClient({ profileId }: { profileId: string }) {
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {/* Active conversations */}
-          {filteredDMs.length > 0 && (
-            <div className="py-1">
-              <div className="font-heading text-muted-foreground px-3 pt-2 pb-1 text-xs tracking-wider">
-                {t("chat.active_conversations")}
-              </div>
-              <AnimatePresence mode="wait">
-                <motion.div
-                  variants={listContainer}
-                  initial="hidden"
-                  animate="visible"
-                  key="dm-list"
-                >
-                  {filteredDMs.map((ch) => (
-                    <motion.div key={ch.channel_id} variants={listItem}>
-                      <ConversationRow
-                        channel={ch}
-                        isActive={ch.channel_id === activeChannelId}
-                        onClick={() => handleSelectChannel(ch.channel_id)}
-                        t={t}
-                      />
-                    </motion.div>
-                  ))}
-                </motion.div>
-              </AnimatePresence>
+          {/* Single unified list — active DMs on top, then the rest of
+           *  the workspace sorted alphabetically. One row style so the
+           *  surface feels like a standard chat app. */}
+          {conversationList.length === 0 ? (
+            <div className="flex h-full items-center justify-center px-6 py-8">
+              <p className="text-muted-foreground text-xs">{t("chat_list.empty")}</p>
             </div>
-          )}
-
-          {/* Dashed separator */}
-          {filteredDMs.length > 0 && filteredMembers.length > 0 && (
-            <div className="border-border/40 mx-3 my-2 border-t border-dashed" />
-          )}
-
-          {/* All people directory */}
-          {filteredMembers.length > 0 && (
-            <div className="py-1">
-              <div className="font-heading text-muted-foreground px-3 pt-2 pb-1 text-xs tracking-wider">
-                {t("chat_list.all_members")}
-              </div>
-              <AnimatePresence mode="wait">
-                <motion.div
-                  variants={listContainer}
-                  initial="hidden"
-                  animate="visible"
-                  key="member-list"
-                >
-                  {filteredMembers.map((member) => (
-                    <motion.div key={member.profile_id} variants={listItem}>
-                      <MemberRow member={member} onClick={() => handleStartDM(member.profile_id)} />
-                    </motion.div>
-                  ))}
-                </motion.div>
-              </AnimatePresence>
-            </div>
+          ) : (
+            <AnimatePresence mode="wait">
+              <motion.div
+                variants={listContainer}
+                initial="hidden"
+                animate="visible"
+                key="unified-list"
+                className="py-1"
+              >
+                {conversationList.map((entry) => (
+                  <motion.div key={entry.key} variants={listItem}>
+                    <ConversationRow
+                      entry={entry}
+                      isActive={
+                        entry.channel !== null && entry.channel.channel_id === activeChannelId
+                      }
+                      onClick={() => {
+                        if (entry.channel) {
+                          handleSelectChannel(entry.channel.channel_id);
+                        } else {
+                          void handleStartDM(entry.profileId);
+                        }
+                      }}
+                      t={t}
+                    />
+                  </motion.div>
+                ))}
+              </motion.div>
+            </AnimatePresence>
           )}
         </div>
       </div>
@@ -491,20 +502,36 @@ export function ChatClient({ profileId }: { profileId: string }) {
 
 /* ─── Sub-components ─── */
 
-/** A single DM conversation row in the left panel. */
+type ConversationEntry = {
+  key: string;
+  name: string;
+  avatarUrl: string | null;
+  role: string;
+  departmentName: string | null;
+  profileId: string;
+  channel: ChannelWithPreview | null;
+};
+
+/**
+ * One row for every workspace member. If the entry has an existing DM
+ * (`channel !== null`) it shows last-message preview + unread count, else
+ * falls back to role + department — the row still opens/starts a DM on
+ * click, so interaction is identical across both states.
+ */
 function ConversationRow({
-  channel,
+  entry,
   isActive,
   onClick,
   t,
 }: {
-  channel: ChannelWithPreview;
+  entry: ConversationEntry;
   isActive: boolean;
   onClick: () => void;
   t: (key: string, params?: Record<string, string | number>) => string;
 }) {
-  const name = channel.other_member_name ?? t("chat_list.unknown");
-  const hasUnread = channel.unread_count > 0;
+  const { name, channel } = entry;
+  const hasUnread = channel ? channel.unread_count > 0 : false;
+  const isProspective = channel === null;
 
   return (
     <button
@@ -512,10 +539,11 @@ function ConversationRow({
       className={cn(
         "flex w-full items-center gap-3 px-3 py-2 text-left transition-colors",
         isActive ? "bg-accent/50" : "hover:bg-accent/30",
+        isProspective && "opacity-70 hover:opacity-100",
       )}
     >
       <Avatar className="h-8 w-8 flex-shrink-0">
-        {channel.other_member_avatar && <AvatarImage src={channel.other_member_avatar} />}
+        {entry.avatarUrl && <AvatarImage src={entry.avatarUrl} />}
         <AvatarFallback className={cn("text-[10px] font-semibold", getColorClass(name))}>
           {getInitials(name)}
         </AvatarFallback>
@@ -526,42 +554,24 @@ function ConversationRow({
           <p className={cn("truncate text-sm", hasUnread ? "font-semibold" : "font-medium")}>
             {name}
           </p>
-          <span className="text-muted-foreground flex-shrink-0 text-[10px]">
-            {relativeTime(channel.last_message_at, t)}
-          </span>
+          {channel?.last_message_at && (
+            <span className="text-muted-foreground flex-shrink-0 text-[10px]">
+              {relativeTime(channel.last_message_at, t)}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-1.5">
           <p className="text-muted-foreground min-w-0 flex-1 truncate text-xs">
-            {channel.last_message_content ?? ""}
+            {channel?.last_message_content
+              ? channel.last_message_content
+              : [entry.departmentName, entry.role].filter(Boolean).join(" · ")}
           </p>
-          {hasUnread && <span className="bg-komm-accent h-2 w-2 flex-shrink-0 rounded-full" />}
+          {hasUnread && channel && (
+            <span className="bg-komm-accent text-komm-accent-foreground ml-1 flex h-4 min-w-4 flex-shrink-0 items-center justify-center rounded-full px-1 text-[10px] font-bold">
+              {channel.unread_count > 99 ? "99+" : channel.unread_count}
+            </span>
+          )}
         </div>
-      </div>
-    </button>
-  );
-}
-
-/** A single workspace member row in the directory section. */
-function MemberRow({ member, onClick }: { member: WorkspaceMember; onClick: () => void }) {
-  const name = member.display_name ?? "?";
-  return (
-    <button
-      onClick={onClick}
-      className="hover:bg-accent/50 flex w-full items-center gap-3 px-3 py-2 text-left opacity-60 transition-all hover:opacity-100"
-    >
-      <Avatar className="h-8 w-8">
-        {member.avatar_url && <AvatarImage src={member.avatar_url} />}
-        <AvatarFallback className={cn("text-[10px] font-semibold", getColorClass(name))}>
-          {getInitials(name)}
-        </AvatarFallback>
-      </Avatar>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium">{name}</p>
-        <p className="text-muted-foreground text-xs">
-          {member.department_name ?? ""}
-          {member.department_name ? " · " : ""}
-          {member.role}
-        </p>
       </div>
     </button>
   );

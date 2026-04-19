@@ -78,6 +78,7 @@
   "chat_list": {
     "filter_placeholder": "Filter by name...",
     "all_members": "All people",
+    "empty": "No people to show",
     "unknown": "Unknown"
   },
   "call": {

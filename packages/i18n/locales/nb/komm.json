@@ -78,6 +78,7 @@
   "chat_list": {
     "filter_placeholder": "Filtrer etter navn...",
     "all_members": "Alle personer",
+    "empty": "Ingen personer å vise",
     "unknown": "Ukjent"
   },
   "call": {
