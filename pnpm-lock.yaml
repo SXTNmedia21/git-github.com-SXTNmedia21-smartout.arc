@@ -1004,6 +1004,9 @@ importers:
       '@supabase/supabase-js':
         specifier: 2.49.4
         version: 2.49.4
+      '@tanstack/react-query':
+        specifier: ^5
+        version: 5.99.0(react@19.2.4)
       react:
         specifier: 19.2.4
         version: 19.2.4
@@ -1014,9 +1017,6 @@ importers:
       '@smartout/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
-      '@tanstack/react-query':
-        specifier: ^5.90.2
-        version: 5.99.0(react@19.2.4)
       typescript:
         specifier: ^5.9.0
         version: 5.9.3
