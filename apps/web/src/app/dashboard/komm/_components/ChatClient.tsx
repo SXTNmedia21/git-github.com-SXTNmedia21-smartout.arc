@@ -53,9 +53,15 @@ function useWorkspaceMembers(profileId: string) {
     staleTime: 60_000,
     queryFn: async (): Promise<WorkspaceMember[]> => {
       const supabase = createClient();
+      // Disambiguate the department join — profile has TWO FKs to
+      // department (its own department_id and department.manager_profile_id
+      // pointing back). Without !fk_profile_department PostgREST errors
+      // PGRST201 and the whole member list comes back empty.
       const { data, error } = await supabase
         .from("profile")
-        .select("profile_id, display_name, avatar_url, role, department:department!inner(name)")
+        .select(
+          "profile_id, display_name, avatar_url, role, department:department!fk_profile_department(name)",
+        )
         .eq("workspace_id", workspace.workspace_id)
         .eq("is_active", true)
         .neq("profile_id", profileId)
