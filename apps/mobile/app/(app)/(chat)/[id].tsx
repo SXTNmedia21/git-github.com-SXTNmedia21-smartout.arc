@@ -10,12 +10,20 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { View, FlatList, KeyboardAvoidingView, Platform, Pressable, Text } from "react-native";
+import {
+  View,
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  Text,
+  Alert,
+} from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
-import { ArrowLeft, Search, Phone } from "lucide-react-native";
+import { ArrowLeft, Search, Phone, Video } from "lucide-react-native";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 import { createStyles, useTheme, withOpacity } from "@/theme";
@@ -29,11 +37,8 @@ import { CallSheet } from "@/features/channels/components/CallSheet";
 import { useLiveKitCall } from "@/hooks/mutations/use-livekit-call";
 import { useMessages, type MessageWithSender } from "@/hooks/queries/use-messages";
 import { useSendMessage } from "@/hooks/mutations/use-send-message";
-// walkie-talkie has native (LiveKit) dependencies — lazy load on native only
-const { startCall, getLiveKitToken } =
-  Platform.OS !== "web"
-    ? require("@smartout/walkie-talkie")
-    : { startCall: () => {}, getLiveKitToken: async () => null };
+// walkie-talkie package is pure supabase-js — works on native and web alike
+import { startCall, getLiveKitToken } from "@smartout/walkie-talkie";
 import type { CallSession } from "@smartout/walkie-talkie";
 import type { Database } from "@smartout/supabase/database.types";
 
@@ -85,50 +90,55 @@ export default function ConversationScreen() {
     },
   });
 
-  const handleStartCall = useCallback(async () => {
-    console.warn(
-      "[CallStart] conversationId:",
-      conversationId,
-      "workspaceId:",
-      workspaceId,
-      "profileId:",
-      profileId,
-    );
-    if (!conversationId || !workspaceId) {
-      console.error("[CallStart] Missing:", !conversationId ? "conversationId" : "workspaceId");
-      return;
-    }
-    try {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      const result = await startCall(supabase, {
-        channelId: conversationId,
-        workspaceId,
-        callType: "group",
-      });
-      const tokenResult = await getLiveKitToken(supabase, {
-        channelId: conversationId,
-        workspaceId,
-      });
-      setCallSession({
-        id: result.callSessionId,
-        channelId: conversationId,
-        workspaceId,
-        callType: result.callType,
-        livekitRoomName: result.roomName,
-        status: "active",
-        audioPolicy: "open_mic",
-        videoPolicy: "optional",
-        startedBy: profileId,
-        maxParticipants: 0,
-        startedAt: new Date().toISOString(),
-        endedAt: null,
-      });
-      setLkToken(tokenResult.token);
-      setLkServerUrl(tokenResult.serverUrl);
-    } catch (err) {
-      console.error("[CallStart] Failed:", err);
-    }
-  }, [conversationId, workspaceId, profileId]);
+  const handleStartCall = useCallback(
+    async (withVideo = false) => {
+      if (!conversationId || !workspaceId) {
+        console.error("[CallStart] Missing:", !conversationId ? "conversationId" : "workspaceId");
+        return;
+      }
+      try {
+        if (Platform.OS !== "web") {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        }
+        const result = await startCall(supabase, {
+          channelId: conversationId,
+          workspaceId,
+          callType: "group",
+        });
+        const tokenResult = await getLiveKitToken(supabase, {
+          channelId: conversationId,
+          workspaceId,
+        });
+        setCallSession({
+          id: result.callSessionId,
+          channelId: conversationId,
+          workspaceId,
+          callType: result.callType,
+          livekitRoomName: result.roomName,
+          status: "active",
+          audioPolicy: "open_mic",
+          videoPolicy: "optional",
+          startedBy: profileId,
+          maxParticipants: 0,
+          startedAt: new Date().toISOString(),
+          endedAt: null,
+        });
+        setLkToken(tokenResult.token);
+        setLkServerUrl(tokenResult.serverUrl);
+        setIsCameraEnabled(withVideo);
+        setIsCallSheetOpen(true);
+      } catch (err) {
+        console.error("[CallStart] Failed:", err);
+        const message = err instanceof Error ? err.message : String(err);
+        if (Platform.OS === "web") {
+          window.alert(`${strings.call.startCall}: ${message}`);
+        } else {
+          Alert.alert(strings.call.startCall, message);
+        }
+      }
+    },
+    [conversationId, workspaceId, profileId],
+  );
 
   // Auto-connect when token is available
   useEffect(() => {
@@ -136,6 +146,14 @@ export default function ConversationScreen() {
       connect();
     }
   }, [lkToken, lkServerUrl, isConnected, connect]);
+
+  // Publish camera once the room is connected if the user started with video
+  useEffect(() => {
+    if (!isConnected || !room || !isCameraEnabled) return;
+    void room.localParticipant.setCameraEnabled(true).catch((err) => {
+      console.error("[CallStart] setCameraEnabled failed:", err);
+    });
+  }, [isConnected, room, isCameraEnabled]);
 
   const handleEndCall = useCallback(async () => {
     await disconnect();
@@ -419,12 +437,20 @@ export default function ConversationScreen() {
         </View>
         <View style={styles.headerRight}>
           <Pressable
-            onPress={isConnected ? undefined : handleStartCall}
+            onPress={isConnected ? undefined : () => handleStartCall(false)}
             style={[styles.headerButton, isConnected && { opacity: 0.4 }]}
             accessibilityRole="button"
             accessibilityLabel={strings.call.startCall}
           >
             <Phone size={20} color={theme.colors.brandOrange} strokeWidth={1.6} />
+          </Pressable>
+          <Pressable
+            onPress={isConnected ? undefined : () => handleStartCall(true)}
+            style={[styles.headerButton, isConnected && { opacity: 0.4 }]}
+            accessibilityRole="button"
+            accessibilityLabel="Start videosamtale"
+          >
+            <Video size={20} color={theme.colors.brandOrange} strokeWidth={1.6} />
           </Pressable>
           <Pressable
             style={styles.headerButton}
