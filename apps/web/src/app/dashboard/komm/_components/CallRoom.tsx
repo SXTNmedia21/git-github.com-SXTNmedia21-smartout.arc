@@ -144,6 +144,83 @@ function CallRoomInner({
     prevIdentitiesRef.current = currentIdentities;
   }, [participants]);
 
+  // --- Idle auto-disconnect ---------------------------------------------
+  // 15 min of no local activity (speaking + user input) disconnects the
+  // call. A warning toast fires 1 min before the cutoff with a "Stay"
+  // action the user can click to reset the timer.
+  const IDLE_WARN_MS = 14 * 60_000;
+  const IDLE_DISCONNECT_MS = 15 * 60_000;
+  const lastActiveRef = useRef<number>(Date.now());
+  const warningToastIdRef = useRef<string | number | null>(null);
+
+  // Reset the timer when the local participant speaks
+  useEffect(() => {
+    const local = participants.find((p) => p.isLocal);
+    if (local?.isSpeaking) {
+      lastActiveRef.current = Date.now();
+      if (warningToastIdRef.current !== null) {
+        toast.dismiss(warningToastIdRef.current);
+        warningToastIdRef.current = null;
+      }
+    }
+  }, [participants]);
+
+  // Reset the timer on any user input — background tabs stop firing these,
+  // which is exactly the "forgotten call" signal we want to catch.
+  useEffect(() => {
+    const mark = () => {
+      lastActiveRef.current = Date.now();
+      if (warningToastIdRef.current !== null) {
+        toast.dismiss(warningToastIdRef.current);
+        warningToastIdRef.current = null;
+      }
+    };
+    window.addEventListener("mousemove", mark);
+    window.addEventListener("keydown", mark);
+    window.addEventListener("click", mark);
+    return () => {
+      window.removeEventListener("mousemove", mark);
+      window.removeEventListener("keydown", mark);
+      window.removeEventListener("click", mark);
+    };
+  }, []);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      const idle = Date.now() - lastActiveRef.current;
+      if (idle >= IDLE_DISCONNECT_MS) {
+        if (warningToastIdRef.current !== null) {
+          toast.dismiss(warningToastIdRef.current);
+          warningToastIdRef.current = null;
+        }
+        toast.info(t("call.idle_disconnected"));
+        onDisconnect();
+      } else if (idle >= IDLE_WARN_MS && warningToastIdRef.current === null) {
+        warningToastIdRef.current = toast.warning(t("call.idle_title"), {
+          description: t("call.idle_body"),
+          duration: IDLE_DISCONNECT_MS - IDLE_WARN_MS,
+          action: {
+            label: t("call.idle_stay"),
+            onClick: () => {
+              lastActiveRef.current = Date.now();
+              if (warningToastIdRef.current !== null) {
+                toast.dismiss(warningToastIdRef.current);
+                warningToastIdRef.current = null;
+              }
+            },
+          },
+        });
+      }
+    }, 5_000);
+    return () => {
+      clearInterval(id);
+      if (warningToastIdRef.current !== null) {
+        toast.dismiss(warningToastIdRef.current);
+        warningToastIdRef.current = null;
+      }
+    };
+  }, [IDLE_DISCONNECT_MS, IDLE_WARN_MS, t, onDisconnect]);
+
   const hasVideoTracks = tracks.some(
     (t) => t.publication?.isSubscribed && t.publication.track?.kind === Track.Kind.Video,
   );

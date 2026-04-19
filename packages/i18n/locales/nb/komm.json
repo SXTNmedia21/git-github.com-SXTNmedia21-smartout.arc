@@ -106,7 +106,11 @@
     "loading_history": "Laster samtalehistorikk...",
     "no_history": "Ingen tidligere samtaler",
     "in_call": "{{count}} i samtale",
-    "mute_error": "Kunne ikke dempe deltaker"
+    "mute_error": "Kunne ikke dempe deltaker",
+    "idle_title": "Er du fortsatt her?",
+    "idle_body": "Samtalen lukkes om 1 minutt hvis det ikke er aktivitet.",
+    "idle_stay": "Bli",
+    "idle_disconnected": "Samtale avsluttet pga inaktivitet"
   },
   "incoming_call": {
     "ringing": "Ringer deg...",
