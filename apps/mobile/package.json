@@ -30,6 +30,7 @@
     "@smartout/telemetry": "workspace:*",
     "@smartout/training": "workspace:*",
     "@smartout/types": "workspace:*",
+    "@smartout/ui": "workspace:*",
     "@smartout/utils": "workspace:*",
     "@smartout/walkie-talkie": "workspace:*",
     "@supabase/supabase-js": "2.49.4",
