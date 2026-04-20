@@ -1,9 +1,9 @@
 ---
 title: "STATE — System State of Truth"
 status: in_progress
-updated: 2026-04-07
+updated: 2026-04-20
 created: 2026-03-08
-last-verified: 2026-04-07 (light touch-up only)
+last-verified: 2026-04-20 (light touch-up only — Active Work + deltas + Recently Merged)
 last-full-audit: 2026-03-27
 module: all
 tags: [state, audit, gaps, architecture, cascade]
@@ -13,65 +13,61 @@ tags: [state, audit, gaps, architecture, cascade]
 
 > Single source of truth for what exists, what's missing, and what to build next.
 > Organized by the Cascade Core canonical model: **I1 + 6D + 4C + K1a/K1b**.
-> Last full audit: 2026-03-27. Last light touch-up: 2026-04-07.
+> Last full audit: 2026-03-27. Last light touch-up: 2026-04-20.
 > Canonical spec: `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`
 
-> **Trust hierarchy:** Active Work + ADR/Learning deltas + Recently Merged below are current as of 2026-04-07. Architecture sections (Cascade dimensions, 10 gaps, build order) were last verified 2026-03-27 — structure is still valid but specific counts and "% built" may have drifted. For worktree truth see `docs/DASHBOARD.md`. For session narrative see `~/dev/second-brain-v2/ops/activity-log.md` (per ADR-0075). See also `docs/ORIENTATION.md` for the boot-sequence cheat sheet.
+> **Trust hierarchy:** Active Work + ADR/Learning deltas + Recently Merged below are current as of 2026-04-20. Architecture sections (Cascade dimensions, 10 gaps, build order) were last verified 2026-03-27 — structure is still valid but specific counts and "% built" may have drifted. For worktree truth see `docs/DASHBOARD.md`. For session narrative see `~/dev/second-brain-v2/ops/activity-log.md` (per ADR-0075). See also `docs/ORIENTATION.md` for the boot-sequence cheat sheet.
 
 ---
 
-## Active Work (2026-04-07 — quick reconciliation, not full audit)
+## Active Work (2026-04-20 — quick reconciliation, not full audit)
 
 Authoritative source: `docs/DASHBOARD.md`. This section is a snapshot only.
 
-### Active Worktrees
+### Active Campaigns (long-lived, not closed via `/close-feature`)
 
-| WT   | Branch                       | Status      | Notes                                                |
-| ---- | ---------------------------- | ----------- | ---------------------------------------------------- |
-| wt-1 | `feat/journey-harness-poc`   | in_progress | Council-verified plan, 11 tasks, ADR-0071 inheritance |
-| wt-3 | `feat/agent-harness`         | paused      | Phase 1-5 done, ADR-0073, ready for `/close-feature` |
+| Campaign | Branch | Module | Notes |
+|---|---|---|---|
+| `campaign/helpdesk` | `campaign/helpdesk` | Helpdesk | Phase 1 UI shipped 2026-04-20 (PR #225). Active for Phase 1.1 follow-ups + Phase 2 (SLA darkening-orb, auto-assign via `engine_delayed_trigger`). |
+| `campaign/year-wheel` | `campaign/year-wheel` | year-wheel | Shell-replacement spec approved 2026-04-20 (ADR-0164); implementation in progress. |
+| `campaign/botsson-arena` | `campaign/botsson-arena` | botsson | Long-lived agent-observability stream. Latest merge 2026-04-19. |
+| `campaign/daily-operation` | `campaign/daily-operation` | D6 operations | Day-control WebDayControl surface work (ADR-0156). |
 
-All other worktrees free. See DASHBOARD for full slot map.
+### Active Sub-Sorties
+
+_None._ Helpdesk Phase 1 sub-sorties (shared-primitives, web, mobile) all merged to campaign and development via PR #225; worktrees removed 2026-04-20.
 
 ### Parked Branches (no worktree)
 
-None (all branches merged or cleaned 2026-04-07).
+- `chore/pin-tanstack-query-5-90-21` — BLOCKED until ADR written for dependency override (2026-04-19 cleanup council).
+- `fix/mobile-chat-web-stub-errors` — BLOCKED until regression test confirms crash reproduces post-SDK-revert (2026-04-19 cleanup council).
 
-### Recently Merged (since 2026-03-26, authoritative: DASHBOARD.md)
+### Recently Merged (since 2026-04-07)
 
-| Date       | Branch                               | What                                             |
+Full list below; see `docs/DASHBOARD.md` for live git state and `~/dev/second-brain-v2/ops/activity-log.md` for narrative.
+
+| Date       | PR / Branch                          | What                                             |
 | ---------- | ------------------------------------ | ------------------------------------------------ |
-| 2026-04-07 | `feat/employee-contract-management`  | Employee contract CRUD + invitation SECURITY DEFINER RPC |
-| 2026-04-07 | `feat/tooling-optimization`          | Skills authority model, CLAUDE.md slim           |
-| 2026-04-07 | `feat/invitation-rls-fix`            | Invitation RLS hardening                         |
-| 2026-04-06 | `feat/deployment-pipeline`           | 3-branch flow, ADR-0071 preview-env              |
-| 2026-04-06 | `feat/council-review-fixes`          | 6 blocking issues from council review            |
-| 2026-03-29 | `feat/interactive-dashboard`         | Dashboard interactivity phase                    |
-| 2026-03-29 | `feat/telemetry-botsson-reactive`    | Botsson reactive telemetry                       |
-| 2026-03-28 | `feat/telegram-walkai-adapter`       | Telegram admin bridge (ADR-0059)                 |
-| 2026-03-28 | `feat/profession-system`             | Profession system                                |
-| 2026-03-28 | `feat/sjohuset-simulator`            | Sjøhuset simulator                               |
-| 2026-03-28 | `feat/season-operations-loop`        | Season ops loop                                  |
-| 2026-03-28 | `feat/financial-esp-ux`              | Financial ESP UX                                 |
-| 2026-03-28 | `feat/gamification-foundation`       | Gamification foundation                          |
-| 2026-03-28 | `feat/komm-migration`                | Communication system consolidation               |
-| 2026-03-28 | `fix/comms-council-fixes`            | Council review feedback on comms                 |
-| 2026-03-28 | `feat/landing-token-migration`       | Landing page token migration                     |
-| 2026-03-28 | `feat/setup-wizard-shell-migration`  | Unified wizard shell (ADR-0060/0061)             |
-| 2026-03-27 | `feat/entity-drawer`                 | Entity detail drawer                             |
-| 2026-03-27 | `feat/notification-fixes`            | Notification system fixes                        |
-| 2026-03-27 | `feat/setup-guide-navigation`        | Setup guide routing                              |
-| 2026-03-27 | `feat/setup-flow-redesign`           | Join/setup flow redesign                         |
-| 2026-03-27 | `feat/onboarding-cleanup`            | Onboarding wizard cleanup                        |
-| 2026-03-27 | `feat/nordic-split-design-sync`      | Dark mode tokens + section comments              |
-| 2026-03-27 | `feat/mobile-wiring-fixes`           | 7 orphaned mobile features connected             |
-| 2026-03-27 | `feat/website-factory-b2`            | Security fixes — auth, RLS, N+1, telemetry       |
-
-Also shipped since last audit (see `activity-log.md` for full closure events): `feat/agent-harness` (wt-3, Phase 1-5 done, **paused awaiting /close-feature**, ADR-0073).
+| 2026-04-20 | PR #225 `campaign/helpdesk`          | **Helpdesk Phase 1 UI** — desks admin (`/dashboard/komm/desks`), ticket conversation (`/dashboard/komm/thread/[channelId]`), mobile `(queue)` tab. 4 dual-platform primitives (ResponsibilityOrb, LighthouseAvatar, OrphanBadge, StatusLabel), helpdesk i18n namespace, `nativeTheme.helpdesk` tokens. Bug fix: `engine_state.started_at` (5 call sites in `tools.ts` used wrong `created_at`). |
+| 2026-04-19 | PR #224 `feat/botsson-arena-test-verification` | Botsson-arena test verification |
+| 2026-04-19 | PR #223 `campaign/botsson-arena`     | Botsson-arena campaign milestone merge |
+| 2026-04-19 | PR #222 `feat/overview-v2`           | WebDayControl — D6 canonical admin surface (ADR-0156) |
+| 2026-04-18 | PR #221 `feat/dashboard-fix`         | Dashboard-fix merge |
+| 2026-04-17 | PR #218 `feat/week-1-audit-remediation` | FK on tariff_rate_table provenance + polymorphic COMMENTs (ADR-0124) + _hooks barrel removal + next/image in 6 public-site sites |
+| 2026-04-17 | PR #217 `feat/ultrareview-correctness` | 5 non-blocker correctness bugs (briefing day-index, engine-dispatch entity FK, swap notification gate, contract-intake engine-state filter, ops-monitor TZ) |
+| 2026-04-17 | PR #216 `feat/ultrareview-blockers`  | `gate_action` signature + rate-limit fail-closed |
+| 2026-04-17 | `feat/billing-engine-fase-3b`        | Billing engine Phase 3b (basis_drift_event, dispatch rule evaluation) |
+| 2026-04-17 | `feat/billing-engine-fase-3`         | Billing engine Phase 3 (invoice tables, usage_snapshot, billing_activity_log, RLS, triggers) |
+| 2026-04-17 | `feat/governance-training-foundation` | Governance-training MVP (evidence_tier enum, effective-dating, observer_request, authority_config four-eyes, notification_policy, inspection_link) |
+| 2026-04-14 | `feat/mobile-shift-completion`       | Mobile shift completion flow |
+| 2026-04-14 | Cascade Phase D completion           | Publish validation dialog wired |
+| 2026-04-14 | `feat/training-module-6`             | Admin assignment CRUD, mobile training wiring, readiness dashboard |
+| 2026-04-13 | Contract workspace tab + DocuSeal    | Contract workspace integration + DocuSeal + mobile signing |
+| 2026-04-13 | `feat/year-wheel-cascade`            | Year-wheel cascade resolution + season operating hours |
 
 ### Free Worktree Slots
 
-wt-2, wt-4, wt-5, wt-6, wt-7, wt-8, wt-9, wt-10, wt-11, wt-12, wt-13, wt-15, wt-20 (wt-1 and wt-3 occupied)
+All sortie-pool slots free (wt-1 through wt-20). Active campaign worktrees do not occupy the pool (per CLAUDE.md workflow).
 
 ---
 
