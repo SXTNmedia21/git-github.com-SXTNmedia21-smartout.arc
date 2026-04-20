@@ -1,3 +1,9 @@
+// WebDayControl widgets (ADR-0156 §8 — Phase 2 extraction from apps/web).
+// Portability discipline: pure-props components, no next/*, no direct
+// Supabase access. Consumed by apps/web today; apps/mobile consumption
+// gated on T4b ADR (packages/ui dual-platform strategy).
+export * from "./day-control";
+
 export { Button, buttonVariants, type ButtonProps } from "./components/button";
 export * from "./components/dialog";
 export {

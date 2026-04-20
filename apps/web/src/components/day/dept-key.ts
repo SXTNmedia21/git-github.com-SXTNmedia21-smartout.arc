@@ -1,4 +1,4 @@
-import type { DeptKey } from "./widgets";
+import type { DeptKey } from "@smartout/ui";
 
 /**
  * Name-based heuristic mapping department name → DeptKey. Falls back to

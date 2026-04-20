@@ -1,4 +1,4 @@
-import { cn } from "@smartout/ui";
+import { cn } from "../lib/utils";
 import type { UiPhase } from "./types";
 
 /**
@@ -14,7 +14,7 @@ export function PhaseBadge({
   size?: "sm" | "md";
   className?: string;
 }) {
-  const style = PHASE_STYLES[phase];
+  const style = PHASE_STYLES[phase] ?? PHASE_STYLES.upcoming;
   const padding = size === "sm" ? "px-2 py-[3px]" : "px-2.5 py-1";
   const textSize = size === "sm" ? "text-[10px]" : "text-[11px]";
 

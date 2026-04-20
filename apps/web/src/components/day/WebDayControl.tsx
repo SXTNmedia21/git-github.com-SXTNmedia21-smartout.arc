@@ -23,7 +23,7 @@ import {
 } from "@/app/dashboard/hms/_hooks/use-department-sessions";
 import { pinDayControlContextAction } from "@/app/dashboard/_actions/pin-day-control-context";
 import { resolveDeptKey } from "./dept-key";
-import { SessionHeader } from "./widgets";
+import { SessionHeader } from "@smartout/ui";
 import { OverviewTab } from "./tabs/OverviewTab";
 import { TimelineTab } from "./tabs/TimelineTab";
 import { RosterTab } from "./tabs/RosterTab";

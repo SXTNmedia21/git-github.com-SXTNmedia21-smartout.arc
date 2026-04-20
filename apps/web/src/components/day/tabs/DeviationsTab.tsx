@@ -2,8 +2,8 @@
 
 import { useMemo } from "react";
 import { useDeviations } from "@/app/dashboard/hms/_hooks/use-deviations";
-import { DeviationCard } from "../widgets";
-import type { DayDeviation } from "../widgets";
+import { DeviationCard } from "@smartout/ui";
+import type { DayDeviation } from "@smartout/ui";
 
 export function DeviationsTab({ sessionId: _sessionId }: { sessionId: string }) {
   // All workspace-scoped deviations for now; session-scoped filter wires in PR 3

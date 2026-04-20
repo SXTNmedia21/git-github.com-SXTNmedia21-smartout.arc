@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Check, ChevronDown, Clock } from "lucide-react";
-import { cn } from "@smartout/ui";
+import { cn } from "../lib/utils";
 import type { DayHook, DayTask } from "./types";
 import { TaskRow } from "./TaskRow";
 

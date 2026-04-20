@@ -1,4 +1,4 @@
-import { cn } from "@smartout/ui";
+import { cn } from "../lib/utils";
 import type { DayKpi } from "./types";
 
 const SOURCE_SUFFIX: Record<NonNullable<DayKpi["source"]>, string> = {

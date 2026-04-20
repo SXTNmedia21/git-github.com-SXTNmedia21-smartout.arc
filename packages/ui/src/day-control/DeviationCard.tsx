@@ -1,5 +1,5 @@
 import { Camera } from "lucide-react";
-import { cn } from "@smartout/ui";
+import { cn } from "../lib/utils";
 import type { DayDeviation, DeviationSeverity, DeviationStatus } from "./types";
 
 const SEVERITY_BORDER: Record<DeviationSeverity, string> = {

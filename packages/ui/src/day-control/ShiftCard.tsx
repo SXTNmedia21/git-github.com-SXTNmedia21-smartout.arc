@@ -1,4 +1,4 @@
-import { cn } from "@smartout/ui";
+import { cn } from "../lib/utils";
 import type { DayShift } from "./types";
 
 const DEPT_BORDER: Record<string, string> = {

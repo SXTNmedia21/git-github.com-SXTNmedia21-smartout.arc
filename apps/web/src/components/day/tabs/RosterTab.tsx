@@ -2,8 +2,8 @@
 
 import { useMemo } from "react";
 import { useRoster } from "@/app/dashboard/_hooks/use-roster";
-import { ShiftCard } from "../widgets";
-import type { DayShift, DeptKey } from "../widgets";
+import { ShiftCard } from "@smartout/ui";
+import type { DayShift, DeptKey } from "@smartout/ui";
 
 export function RosterTab({
   departmentId,

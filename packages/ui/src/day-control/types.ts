@@ -1,9 +1,11 @@
 // WebDayControl widget contract types.
 // Pure data shapes — no Supabase / React-Query coupling lives here.
+// UiPhase inlined to keep packages/ui free of workspace deps other than
+// design-tokens (ADR-0156 §8 portability discipline). Source of truth
+// remains `packages/utils/src/cascade/derive-phase.ts` — these types are
+// structurally compatible.
 
-import type { UiPhase } from "@smartout/utils";
-
-export type { UiPhase };
+export type UiPhase = "upcoming" | "active" | "pending_signoff" | "closed" | "missed" | "locked";
 
 export type DeptKey = "kitchen" | "floor" | "bar" | "event" | "storage";
 

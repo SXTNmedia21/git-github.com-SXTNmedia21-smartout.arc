@@ -49,11 +49,15 @@ const eslintConfig = defineConfig([
       "react-hooks/immutability": "warn",
     },
   },
-  // WebDayControl widgets (ADR-0156): enforce portability discipline for
-  // future `packages/ui/day-control/` extraction when mobile consumer lands.
-  // Widgets must NOT depend on Next-specific modules or direct Supabase access.
+  // WebDayControl widgets (ADR-0156): portability discipline for
+  // `packages/ui/src/day-control/`. Widgets must NOT depend on Next-specific
+  // modules or direct Supabase access. Enforced since Phase 1 (apps/web) and
+  // preserved post-extraction (T4a 2026-05-15).
   {
-    files: ["**/src/components/day/widgets/**/*.{ts,tsx}"],
+    files: [
+      "**/src/components/day/widgets/**/*.{ts,tsx}",
+      "**/packages/ui/src/day-control/**/*.{ts,tsx}",
+    ],
     rules: {
       "no-restricted-imports": [
         "error",

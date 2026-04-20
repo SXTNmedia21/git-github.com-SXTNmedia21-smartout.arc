@@ -5,8 +5,8 @@ import type { UiPhase } from "@smartout/utils";
 import type { DepartmentSessionRow } from "@/app/dashboard/hms/_hooks/use-department-sessions";
 import { useDeviations } from "@/app/dashboard/hms/_hooks/use-deviations";
 import { useLiveShifts } from "@/app/dashboard/_hooks/use-live-shifts";
-import { KpiTile, DeviationCard } from "../widgets";
-import type { DayKpi, DayDeviation } from "../widgets";
+import { KpiTile, DeviationCard } from "@smartout/ui";
+import type { DayKpi, DayDeviation } from "@smartout/ui";
 
 export function OverviewTab({
   session,

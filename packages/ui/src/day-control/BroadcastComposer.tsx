@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Send } from "lucide-react";
-import { cn } from "@smartout/ui";
+import { cn } from "../lib/utils";
 import type { BroadcastType } from "./types";
 
 const TYPES: Array<{ key: BroadcastType; label: string; colorClass: string }> = [

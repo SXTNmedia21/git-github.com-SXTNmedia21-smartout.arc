@@ -1,5 +1,5 @@
 import { Camera, Check, Shield } from "lucide-react";
-import { cn } from "@smartout/ui";
+import { cn } from "../lib/utils";
 import type { DayTask } from "./types";
 
 export function TaskRow({ task, onToggle }: { task: DayTask; onToggle?: () => void }) {

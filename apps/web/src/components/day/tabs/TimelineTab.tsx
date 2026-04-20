@@ -6,8 +6,8 @@ import type { UiPhase } from "@smartout/utils";
 import type { DepartmentSessionRow } from "@/app/dashboard/hms/_hooks/use-department-sessions";
 import { useSessionHooksWithTasks } from "@/app/dashboard/_hooks/use-session-hooks-with-tasks";
 import { toggleSessionTaskAction } from "@/app/dashboard/_actions/toggle-session-task-action";
-import { PhaseTimeline, HookTile } from "../widgets";
-import type { DayHook, DayTask } from "../widgets";
+import { PhaseTimeline, HookTile } from "@smartout/ui";
+import type { DayHook, DayTask } from "@smartout/ui";
 
 export function TimelineTab({
   session,

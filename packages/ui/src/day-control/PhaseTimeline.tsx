@@ -1,5 +1,5 @@
 import { Check } from "lucide-react";
-import { cn } from "@smartout/ui";
+import { cn } from "../lib/utils";
 import type { DayHook, UiPhase } from "./types";
 
 /**

@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import type { UiPhase } from "@smartout/utils";
 import type { DepartmentSessionRow } from "@/app/dashboard/hms/_hooks/use-department-sessions";
 import { signoffSessionAction } from "@/app/dashboard/_actions/signoff-session-action";
-import { SignoffPanel, ReconSummary } from "../widgets";
+import { SignoffPanel, ReconSummary } from "@smartout/ui";
 
 export function SignoffTab({ session, phase }: { session: DepartmentSessionRow; phase: UiPhase }) {
   const [busy, startTransition] = useTransition();

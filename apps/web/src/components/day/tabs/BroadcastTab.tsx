@@ -3,8 +3,8 @@
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { sendBroadcastAction } from "@/app/dashboard/_actions/send-broadcast-action";
-import { BroadcastComposer } from "../widgets";
-import type { BroadcastType } from "../widgets";
+import { BroadcastComposer } from "@smartout/ui";
+import type { BroadcastType } from "@smartout/ui";
 
 export function BroadcastTab({
   sessionId,
