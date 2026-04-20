@@ -228,7 +228,9 @@ export function Step5Menu({ state, updateState, t }: WizardStepProps<JoinState>)
     <div className="mx-auto w-full max-w-md space-y-6">
       <DevAutoFill onFill={devFill} label="Fyll steg 5" />
       <div>
-        <h2 className="text-foreground text-2xl font-bold">{t("step5.heading")}</h2>
+        <h2 className="font-heading text-foreground text-[1.75rem] leading-tight tracking-tight">
+          {t("step5.heading")}
+        </h2>
         <p className="text-muted-foreground mt-1 text-sm">{t("step5.description")}</p>
         {prePopulated && (
           <p className="text-brand-orange mt-2 flex items-center gap-1.5 text-xs">

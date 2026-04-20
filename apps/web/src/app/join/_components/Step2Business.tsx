@@ -127,7 +127,9 @@ export function Step2Business({ state, updateState, attempted, t }: WizardStepPr
     <div className="mx-auto w-full max-w-md space-y-6">
       <DevAutoFill onFill={devFill} label="Fyll steg 2" />
       <div>
-        <h2 className="text-foreground text-2xl font-bold">{t("step2.heading")}</h2>
+        <h2 className="font-heading text-foreground text-[1.75rem] leading-tight tracking-tight">
+          {t("step2.heading")}
+        </h2>
         <p className="text-muted-foreground mt-1 text-sm">{t("step2.description")}</p>
         {scrapeStatus === "scraping" && (
           <p className="text-muted-foreground mt-2 flex items-center gap-1.5 text-xs">
