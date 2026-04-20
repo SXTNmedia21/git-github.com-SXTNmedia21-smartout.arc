@@ -3,6 +3,7 @@
 // query_monitor_alerts — query recent anomalies for a department/session.
 // get_session_intelligence — comprehensive session status with AI analysis.
 import { z } from "zod";
+import { emit } from "@smartout/telemetry";
 import { defineTool } from "../../types.js";
 import type { AgentToolContext } from "../types.js";
 
@@ -92,17 +93,16 @@ export const queryMonitorAlerts = defineTool({
       })),
     };
 
-    await supabase.from("engine_event").insert({
+    await emit({
+      event: "ops.monitor alerts_queried",
       workspace_id: ctx.workspaceId,
-      event_type: "ops.monitor.alerts_queried",
-      payload: {
-        department_id: params.department_id ?? null,
-        session_id: params.session_id ?? null,
-        hours: params.hours,
-        total_alerts: result.total_alerts,
-        source: "agent_tool",
-        actor_id: ctx.profileId,
-        origin: "system",
+      actor_id: ctx.profileId,
+      properties: {
+        data: {
+          department_id: params.department_id ?? null,
+          hours: params.hours,
+          total_alerts: result.total_alerts,
+        },
       },
     });
 
@@ -268,16 +268,19 @@ export const getSessionIntelligence = defineTool({
       },
     };
 
-    await supabase.from("engine_event").insert({
+    await emit({
+      event: "ops.monitor session_intelligence_queried",
       workspace_id: ctx.workspaceId,
-      event_type: "ops.monitor.session_intelligence_queried",
-      payload: {
-        department_id: params.department_id,
-        session_id: session.department_session_id,
-        health_score: healthScore,
-        source: "agent_tool",
-        actor_id: ctx.profileId,
-        origin: "system",
+      actor_id: ctx.profileId,
+      properties: {
+        entity: {
+          entity_type: "department_session",
+          entity_id: session.department_session_id,
+        },
+        data: {
+          department_id: params.department_id,
+          health_score: healthScore,
+        },
       },
     });
 

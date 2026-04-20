@@ -2,6 +2,7 @@
 // ADR-0088: Operations Intelligence capability — manager/system-scoped tools.
 // Phase 1: triage_event. Phase 2+3 tools added later.
 import { z } from "zod";
+import { emit } from "@smartout/telemetry";
 import { defineTool } from "../../types.js";
 import type { AgentToolContext } from "../types.js";
 
@@ -66,15 +67,19 @@ export const triageEvent = defineTool({
       },
     };
 
-    // 4. Emit telemetry
-    await supabase.from("engine_event").insert({
+    // 4. T1 fix: route via emit() registry — "ops.triage classified"
+    // dispatches as "ops.triage.classified". Shape matches registry.
+    await emit({
+      event: "ops.triage classified",
       workspace_id: ctx.workspaceId,
-      event_type: "ops.triage.classified",
-      payload: {
-        ...routing,
-        source: "agent_tool",
-        actor_id: ctx.profileId,
-        origin: "system",
+      actor_id: ctx.profileId,
+      properties: {
+        data: {
+          original_event: params.event_type,
+          classification_type: classification.type,
+          urgency: String(classification.urgency),
+          tier: classification.tier,
+        },
       },
     });
 
