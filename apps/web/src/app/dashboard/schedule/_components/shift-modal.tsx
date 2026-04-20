@@ -56,6 +56,8 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 
+import { useWorkspaceOptional } from "@/lib/workspace-context";
+
 import { useScheduleUI } from "./schedule-ui-context";
 import { useShifts, useCreateShift, useUpdateShift, useDeleteShift } from "../_hooks/use-shifts";
 import { isShiftTemporallyLocked } from "../_hooks/schedule-shift-lock";
@@ -476,8 +478,13 @@ export function ShiftModal() {
   const isEditMode = selectedShiftId !== null;
   const existingShift = isEditMode ? shifts.find((s: Shift) => s.id === selectedShiftId) : null;
   // Temporal lock: shift has started or date has passed. Mirrors the
-  // database trigger so the UI can disable mutate actions upfront.
-  const isLocked = existingShift ? isShiftTemporallyLocked(existingShift) : false;
+  // database trigger in workspace timezone (fallback Europe/Oslo when no
+  // workspace context, e.g. shared storybook). Server-side is still truth.
+  const workspaceContext = useWorkspaceOptional();
+  const workspaceTimezone = workspaceContext?.workspace.timezone ?? "Europe/Oslo";
+  const isLocked = existingShift
+    ? isShiftTemporallyLocked(existingShift, workspaceTimezone)
+    : false;
 
   const [form, setForm] = useState<ShiftFormState>({
     employeeId: "",
@@ -802,10 +809,13 @@ export function ShiftModal() {
 
         {isLocked && (
           <div
+            id="shift-temporal-lock-banner"
+            role="status"
+            aria-live="polite"
             className="border-border/40 flex shrink-0 items-center gap-2 border-b bg-amber-500/10 px-6 py-2.5 text-xs font-semibold text-amber-600 dark:text-amber-400"
             data-testid="shift-temporal-lock-banner"
           >
-            <Lock className="h-3.5 w-3.5 shrink-0" />
+            <Lock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
             <span>
               Vakten er låst — den har startet eller datoen er passert. Endringer må gjøres av
               admin/eier.
@@ -1340,7 +1350,8 @@ export function ShiftModal() {
                     <Button
                       variant="outline"
                       disabled={isLocked}
-                      title={isLocked ? "Vakten er låst (har startet eller passert)" : undefined}
+                      aria-disabled={isLocked || undefined}
+                      aria-describedby={isLocked ? "shift-temporal-lock-banner" : undefined}
                       className="h-11 w-full justify-start gap-3 rounded-xl border-red-500/20 bg-red-500/5 font-bold text-red-600 backdrop-blur-sm transition-all hover:bg-red-500/10 hover:text-red-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
                       onClick={handleDelete}
                     >
@@ -1407,7 +1418,8 @@ export function ShiftModal() {
                   type="button"
                   size="sm"
                   disabled={isLocked}
-                  title={isLocked ? "Vakten er låst (har startet eller passert)" : undefined}
+                  aria-disabled={isLocked || undefined}
+                  aria-describedby={isLocked ? "shift-temporal-lock-banner" : undefined}
                   onClick={() => handleSave(false)}
                   className="h-10 rounded-xl bg-orange-500 px-5 text-xs font-bold text-white shadow-[0_2px_12px_rgba(249,115,22,0.25)] transition-all hover:bg-orange-600 hover:shadow-[0_4px_16px_rgba(249,115,22,0.3)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-orange-500"
                 >
@@ -1420,7 +1432,8 @@ export function ShiftModal() {
                     variant="outline"
                     size="sm"
                     disabled={isLocked}
-                    title={isLocked ? "Vakten er låst (har startet eller passert)" : undefined}
+                    aria-disabled={isLocked || undefined}
+                    aria-describedby={isLocked ? "shift-temporal-lock-banner" : undefined}
                     onClick={() => handleSave(false)}
                     className="bg-background/50 border-border/60 hover:bg-muted h-10 rounded-xl px-4 text-xs font-bold backdrop-blur-sm transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
                   >
@@ -1430,7 +1443,8 @@ export function ShiftModal() {
                     type="button"
                     size="sm"
                     disabled={isLocked}
-                    title={isLocked ? "Vakten er låst (har startet eller passert)" : undefined}
+                    aria-disabled={isLocked || undefined}
+                    aria-describedby={isLocked ? "shift-temporal-lock-banner" : undefined}
                     onClick={() => handleSave(true)}
                     className="h-10 rounded-xl bg-emerald-500 px-5 text-xs font-bold text-white shadow-[0_2px_12px_rgba(16,185,129,0.25)] transition-all hover:bg-emerald-600 hover:shadow-[0_4px_16px_rgba(16,185,129,0.3)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-emerald-500"
                   >
