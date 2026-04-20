@@ -2601,6 +2601,7 @@ export type Database = {
           name: string | null
           read_receipts_enabled: boolean
           recording_policy: Database["public"]["Enums"]["channel_recording_policy"]
+          responsible_profile_id: string | null
           session_id: string | null
           team_id: string | null
           updated_at: string
@@ -2624,6 +2625,7 @@ export type Database = {
           name?: string | null
           read_receipts_enabled?: boolean
           recording_policy?: Database["public"]["Enums"]["channel_recording_policy"]
+          responsible_profile_id?: string | null
           session_id?: string | null
           team_id?: string | null
           updated_at?: string
@@ -2647,6 +2649,7 @@ export type Database = {
           name?: string | null
           read_receipts_enabled?: boolean
           recording_policy?: Database["public"]["Enums"]["channel_recording_policy"]
+          responsible_profile_id?: string | null
           session_id?: string | null
           team_id?: string | null
           updated_at?: string
@@ -2667,6 +2670,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "department"
             referencedColumns: ["department_id"]
+          },
+          {
+            foreignKeyName: "channel_responsible_profile_id_fkey"
+            columns: ["responsible_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
           },
           {
             foreignKeyName: "channel_session_id_fkey"
@@ -18282,7 +18292,7 @@ export type Database = {
       channel_call_type: "direct" | "group" | "ptt"
       channel_delivery_mode: "timeline" | "silent" | "notification_only"
       channel_integration_status: "active" | "paused" | "error"
-      channel_member_role: "member" | "admin"
+      channel_member_role: "member" | "admin" | "representative"
       channel_message_type:
         | "text"
         | "image"
@@ -18322,6 +18332,7 @@ export type Database = {
         | "direct"
         | "news"
         | "skill"
+        | "desk"
       communication_channel: "email" | "sms" | "push" | "in_app"
       communication_status:
         | "pending"
@@ -19768,7 +19779,7 @@ export const Constants = {
       channel_call_type: ["direct", "group", "ptt"],
       channel_delivery_mode: ["timeline", "silent", "notification_only"],
       channel_integration_status: ["active", "paused", "error"],
-      channel_member_role: ["member", "admin"],
+      channel_member_role: ["member", "admin", "representative"],
       channel_message_type: [
         "text",
         "image",
@@ -19811,6 +19822,7 @@ export const Constants = {
         "direct",
         "news",
         "skill",
+        "desk",
       ],
       communication_channel: ["email", "sms", "push", "in_app"],
       communication_status: [
