@@ -17,8 +17,23 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Mail, Lock, ArrowRight, ArrowLeft, Send, Info, CheckCircle2 } from "lucide-react";
 import { createClient } from "@smartout/supabase/client";
+import { emit } from "@smartout/telemetry";
 import { AuthBrandPanel } from "@/components/auth/AuthBrandPanel";
 import { AuthIconInput } from "@/components/auth/AuthIconInput";
+
+/**
+ * Hash an email with SHA-256 for enumeration-safe telemetry.
+ * Registry contract: registry.ts:AuthPasswordResetRequested.properties.data.email_hash
+ * must be a hash — never the raw email. Used to dedupe/rate-limit.
+ */
+async function hashEmail(email: string): Promise<string> {
+  const normalized = email.trim().toLowerCase();
+  const bytes = new TextEncoder().encode(normalized);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
 
 type Mode = "request" | "update";
 
@@ -80,6 +95,22 @@ export default function ResetPasswordPage() {
         type: "success",
         text: "Hvis kontoen finnes, har vi sendt en lenke for å tilbakestille passordet.",
       });
+
+      // Emit auth password_reset_requested (registry:263). SHA-256 hash only — never raw email.
+      // user_exists is conservatively false here: Supabase hides account existence client-side for
+      // enumeration-safety, so we cannot determine it from this surface. Server-side enumeration
+      // check (if added later) should emit a richer event from an Edge Function or Server Action.
+      try {
+        const email_hash = await hashEmail(email);
+        void emit({
+          event: "auth password_reset_requested",
+          workspace_id: null,
+          actor_id: "",
+          properties: { data: { email_hash, user_exists: false } },
+        });
+      } catch {
+        // Non-fatal — telemetry must not break the user flow.
+      }
     }
   };
 
@@ -103,7 +134,7 @@ export default function ResetPasswordPage() {
     // Users pre-created by strike-auth-bridge carry this flag in user_metadata;
     // the middleware gate (apps/web/src/middleware.ts §4b) redirects them here
     // until the flag is false. Clearing it on successful update lifts the gate.
-    const { error } = await supabase.auth.updateUser({
+    const { data, error } = await supabase.auth.updateUser({
       password,
       data: { force_password_reset: false },
     });
@@ -114,6 +145,28 @@ export default function ResetPasswordPage() {
       setMessage({ type: "error", text: error.message });
     } else {
       setMessage({ type: "success", text: "Passordet er oppdatert! Sender deg videre..." });
+
+      // Emit auth password_reset_completed (registry:275). User is authenticated here so
+      // we have a real user_id. Context distinguishes forced migration from self-service.
+      try {
+        const userId = data.user?.id;
+        if (userId) {
+          void emit({
+            event: "auth password_reset_completed",
+            workspace_id: null,
+            actor_id: userId,
+            properties: {
+              data: {
+                user_id: userId,
+                context: forceMigration ? "migration" : "self_service",
+              },
+            },
+          });
+        }
+      } catch {
+        // Non-fatal — telemetry must not block the redirect.
+      }
+
       setTimeout(() => router.push("/login"), 2000);
     }
   };
