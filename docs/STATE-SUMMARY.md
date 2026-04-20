@@ -25,18 +25,18 @@ See `docs/DASHBOARD.md` for live git state.
 
 ### P0 — Blockers
 
-1. **Phase 0 helpdesk_query_lifecycle dispatcher mismatch** — engine_process seed at `20260515130200` uses `event_type_any_of` which the dispatcher doesn't support. State machine is dead (UI writes direct to engine_state, so UI works but no engine-driven lifecycle). Caught by agent-coord code-trace 2026-04-20.
+1. **Phase 0 helpdesk_query_lifecycle never spawns** — upgraded from dispatcher-mismatch claim by 2026-04-20 verification council (agent-coord Layer 4). Two compounding bugs in `supabase/migrations/20260515130200`: (a) both `wait_for_event` steps use `action_payload.event_type` key while `engine-dispatch/index.ts:419` matches on `action_payload.event`; (b) **no `engine_trigger` row maps `helpdesk.query.opened` → `helpdesk_query_lifecycle`** — the process blueprint is orphan. Consequence: lifecycle doesn't even spawn, let alone progress. UI writes direct to engine_state via Server Action / mobile mutation; that IS the only live path. Seed migration comments (lines 10-19) acknowledged the deferral at ship time. Fix before any Phase 2 work.
 2. **Season tools + `cascade_budget_engine_process` are orphaned** (L-0061) — tools exist in `packages/ai/src/tools/season/` but Season capability never registered in `registry.ts`. `engine_trigger` rows listen for events that nothing produces. Needs either delete or register+wire.
 3. **`workspace.active_contract_id` FK audit** — column exists, no FK enforced. Semantic target unclear (`contract` vs `employment_contract`). Migration `20260511100000_orphan_fk_fixes_and_polymorphic_comments.sql` commented on the confusion but didn't resolve.
 
 ### P1 — Active Campaign Follow-ups
 
 **Helpdesk Phase 1.1** (in `campaign/helpdesk`):
-- 15 UI telemetry events from Spec §4.3 (page/dialog/row views — only backend events registered, UI events deferred)
-- Reassign dropdown in TicketHeader (needs `helpdesk.query.reassigned` emit wiring in UI)
+- 15 UI telemetry events from Spec §4.3 (page/dialog/row views — 6 helpdesk events total registered today: 3 desk + 3 query. The 15 UI-specific events still pending.)
+- **Reassign is full-stack, not UI-only** (agent-coord 2026-04-20): `helpdesk.query.reassigned` event registered in telemetry + referenced by engine_process step 2, but has NO producer — no `reassignTicket` capability tool, no Server Action, no mobile hook. Phase 1.1 must ship capability tool + action + hook BEFORE the UI dropdown is meaningful.
 - Conditional queue-tab visibility (only show `(queue)` tab for profiles with `responsible_profile_id` on any desk)
 - Mobile ticket message embed (extract existing `(app)/(chat)/[id].tsx` body into shared component)
-- Fix Phase 0 seed dispatcher (item #1 above)
+- Fix Phase 0 seed dispatcher (item #1 above) — engine_trigger row + `event`-key rewrite
 
 **Year Wheel** (in `campaign/year-wheel`):
 - Shell-replacement implementation per ADR-0164
@@ -58,7 +58,8 @@ See `docs/DASHBOARD.md` for live git state.
 
 - **Helpdesk Phase 2** — Auto-assign + SLA via `engine_delayed_trigger` reuse. Needs Phase 1.1 cleanup first.
 - **Helpdesk Phase 3** — Call recording via LiveKit. BLOCKED on ADR-0135 (`mobile-voice-via-livekit-not-ultravox`) reaching `accepted`.
-- **Parked branches** (2): `chore/pin-tanstack-query-5-90-21` (blocked on ADR), `fix/mobile-chat-web-stub-errors` (blocked on regression test).
+- **Parked branches** — neither `chore/pin-tanstack-query-5-90-21` nor `fix/mobile-chat-web-stub-errors` exist locally or on origin as of 2026-04-20 verification. Either pruned silently or never pushed (2026-04-19 cleanup council extracted them but they seem to have been dropped). Status: **resolved/unknown**, remove from tracking.
+- **Reconciliation ADR still missing** (open since 2026-04-16 Web Perf council): capability tools call old `gate_action` RPC; Server Actions call new `cascade_gate_write` via `gatedUpdate`. Same logical mutation, two gates. No ADR yet. 8 Server Action sites vs 3+ capability sites confirmed.
 
 ## Cascade Status (~85% complete)
 
@@ -68,8 +69,8 @@ See `docs/DASHBOARD.md` for live git state.
 - **Phase D (Operational Layer):** DONE — hooks, panels, engine actions, publish validation all wired
 - **Phase E (Control Planes / C4 governance):** PARTIALLY SHIPPED (verified 2026-04-20 per L-0078)
   - WP1 `engine_authority_config` schema + pilot RPC — SHIPPED
-  - WP2 `cascade_gate_write` RPC + `gate-client.ts` wrapper — SHIPPED (migrations `20260512100000` + `20260512100200`). 63 call sites in `apps/web/src/app/dashboard/` use `gatedUpdate`/`gatedInsert`.
-  - WP3 Wave 2A Server Actions — SHIPPED (`season-actions.ts`, `people-actions.ts`)
+  - WP2 `cascade_gate_write` RPC + `gate-client.ts` wrapper — SHIPPED (migrations `20260512100000` + `20260512100200`). **14 production Server Action call sites** across 2 files (`apps/web/src/app/dashboard/setup/_actions/season-actions.ts` + `people/_actions/people-actions.ts`); 63 occurrences including test files.
+  - WP3 Wave 2A Server Actions — SHIPPED at `apps/web/src/app/dashboard/setup/_actions/season-actions.ts` + `people/_actions/people-actions.ts` (not `season/_actions/` — no such directory).
   - WP4 Wave 2B capability dual-gate — not started; no attempt yet
   - WP5 Wave 2C schedule — `/dashboard/schedule` already uses TanStack per ADR-0032; not a migration target
   - Known dual-gate risk: agent tools call old `gate_action`, Server Actions call new `cascade_gate_write` — same mutation via different paths may yield different outcomes. Needs reconciliation ADR.
@@ -78,6 +79,8 @@ See `docs/DASHBOARD.md` for live git state.
 ## Recent Merges (last 7 days)
 
 - **2026-04-20 — Helpdesk Phase 1 UI** (PR #225): desks admin + ticket conversation + mobile queue. 13 commits; 3 new learnings (L-0079/0080/0081).
+- **2026-04-17 — Mobile BFF bridge** (PR #220): Botsson chat reaches stage-engine on mobile (ADR-0132 wiring).
+- **2026-04-17 — Mobile trust-freeze gates 1-3** (PR #219): Mobile Trust Gate prereqs closed (telemetry contract, Zod at enqueue, Botsson bridge stub). Unblocks new mobile mutations per 2026-04-17 council.
 - **2026-04-19 — Botsson-arena test verification** (PR #224) + campaign milestone merge (PR #223).
 - **2026-04-19 — Overview v2** (PR #222): WebDayControl as canonical D6 admin surface (ADR-0156).
 - **2026-04-18 — Dashboard-fix** (PR #221).
@@ -101,8 +104,9 @@ See `docs/DASHBOARD.md` for live git state.
 
 ## Quick References
 
-- **164 ADRs** (accepted 0001–0164, with 0135/0151/0152/0153/0154/0155/0158 still `proposed`).
-- **82 Learnings** (L-0001 through L-0081).
+- **163 ADRs** on disk (gap at ADR-0159, renumbered mid-session to 0160 per 2026-04-19 kanaler-som-helpdesk council; slot intentionally reserved — see decision-log).
+- **12 proposed** (not yet accepted): ADR-0053, 0122, 0123, 0124, 0135, 0136, 0151, 0152, 0153, 0154, 0155, 0158.
+- **82 Learnings** (L-0001 through L-0081; L-0082/0083/0084 to be added from today's verification council).
 - Canonical cascade spec: `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`
 - Full state: `docs/STATE.md` | Worktrees: `docs/DASHBOARD.md` | Boot cheat sheet: `docs/ORIENTATION.md`
 - Council log: `docs/council/COUNCIL-LOG.md`
