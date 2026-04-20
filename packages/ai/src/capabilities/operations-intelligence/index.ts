@@ -38,6 +38,9 @@ export const operationsIntelligenceCapability: CapabilityDefinition = {
   name: "operations_intelligence",
   description:
     "Operational intelligence: event triage, anomaly monitoring, session analysis, coverage prediction, compliance prediction, and learned pattern queries. Manager and system scope.",
+  // ADR-0163 — aggregate/KPI output surfaces employee identities in drill-down.
+  // Manager-scoped but chat-only to prevent voice leakage of per-employee signals.
+  allowedChannels: ["chat"],
   tools: allTools,
   readOnlyTools,
   suggestTools,

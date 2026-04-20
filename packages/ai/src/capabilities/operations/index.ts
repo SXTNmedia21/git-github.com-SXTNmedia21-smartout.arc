@@ -30,6 +30,9 @@ export const operationsCapability: CapabilityDefinition = {
   name: "operations",
   description:
     "Daily operations: tasks, session status, department state, deviations, and task completion",
+  // ADR-0163 — task and deviation data references profile_id + session_id (actor-attributed).
+  // Not structured PII but employee-identifying in context: chat-only.
+  allowedChannels: ["chat"],
   tools: allTools,
   readOnlyTools,
   suggestTools,

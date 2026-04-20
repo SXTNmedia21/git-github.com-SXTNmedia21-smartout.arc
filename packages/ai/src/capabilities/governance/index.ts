@@ -15,6 +15,8 @@ export const governanceCapability: CapabilityDefinition = {
   name: "governance",
   description:
     "Governance readiness probes: check whether an employee has completed all assigned policies/protocols before Decision-layer mutations.",
+  // ADR-0163 — employee-identifying readiness (profile_id → missing policies): chat-only.
+  allowedChannels: ["chat"],
   tools,
   readOnlyTools: tools,
 };

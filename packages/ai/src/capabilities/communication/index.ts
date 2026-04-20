@@ -39,6 +39,10 @@ export const communicationCapability: CapabilityDefinition = {
   name: "communication",
   description:
     "Channel messaging: conversations, unread counts, message sending, channel context, and knowledge search",
+  // ADR-0163 — general-purpose messaging. Message bodies may contain PII but are
+  // user-authored, not structured PII fields. Declared all channels explicitly
+  // (reviewed 2026-04-20) rather than null-with-comment to keep the type check tight.
+  allowedChannels: ["chat", "voice", "sms", "email"],
   tools: allTools,
   readOnlyTools,
   suggestTools,

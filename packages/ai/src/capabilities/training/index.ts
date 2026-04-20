@@ -20,6 +20,8 @@ export const trainingCapability: CapabilityDefinition = {
   name: "training",
   description:
     "Employee training and competence: protocol assignments, readiness scores, knowledge test status, and next steps",
+  // ADR-0163 — per-employee readiness + certifications are PII-adjacent: chat-only.
+  allowedChannels: ["chat"],
   tools: allTools,
   readOnlyTools: employeeTools,
   suggestTools: managerTools,

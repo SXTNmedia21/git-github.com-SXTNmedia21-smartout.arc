@@ -1,10 +1,10 @@
 ---
 title: "ADR-0078 amendment — allowedChannels mandatory for PII capabilities"
 id: ADR_0163
-status: proposed
+status: accepted
 layer: decision
 created: 2026-04-19
-updated: 2026-04-19
+updated: 2026-04-20
 amends: ADR-0078
 ---
 
@@ -73,26 +73,30 @@ Rationale:
 - Does `communication` split into general + PII, or get the `allowedChannels: null` comment? Recommend: keep unified with explicit null + PII-unrestricted comment, revisit if PII-adjacent tools appear.
 - When is the follow-up ADR for agent-router Layer 1 fix? Recommend: Phase 0 Week 1 of helpdesk rollout.
 
-## Retrofit Plan (blocks status → `accepted`)
+## Retrofit Plan — COMPLETED 2026-04-20
 
-Council 2026-04-20 code-trace (agent-coordinator) found four existing capabilities that do NOT declare `allowedChannels`. Accepting this ADR as-is would cause `packages/ai/src/capabilities/registry.ts` init to throw, taking down the stage-engine at startup.
+Council 2026-04-20 code-trace (agent-coordinator) initially identified 4 PII-risk capabilities missing `allowedChannels`. Full audit of `packages/ai/src/capabilities/` found **8 capabilities** without the declaration — any of which would cause `registry.ts` init to throw under ADR-0163 enforcement. All 8 retrofitted in the same commit as ADR acceptance.
 
-**ADR stays `proposed` until the following retrofit lands:**
+**Retrofit result (all committed 2026-04-20):**
 
-| Capability | PII risk | Required declaration |
-|------------|----------|----------------------|
-| `profile` | HIGH — name, email, phone, display_name | `allowedChannels: ['chat']` |
-| `communication` | MEDIUM — message bodies, conversation history | `allowedChannels: null` with `// CHANNEL-UNRESTRICTED — general messaging, no structured PII` comment, OR split into `communication` + `communication_pii` |
-| `governance` | MEDIUM — per-employee readiness, missing policies | `allowedChannels: ['chat']` |
-| `training` | MEDIUM — per-employee readiness, certifications | `allowedChannels: ['chat']` |
+| Capability | Declaration | Rationale |
+|------------|-------------|-----------|
+| `profile` | `['chat']` | HIGH PII — name, email, phone |
+| `governance` | `['chat']` | Employee-identifying readiness (profile_id → missing policies) |
+| `training` | `['chat']` | Per-employee readiness + certifications |
+| `operations` | `['chat']` | Task/deviation data references profile_id + session_id |
+| `operations_intelligence` | `['chat']` | Aggregate/KPI drill-down exposes employee identities |
+| `communication` | `['chat', 'voice', 'sms', 'email']` | General-purpose messaging; user-authored content, not structured PII |
+| `guardian` | `['chat', 'voice', 'sms', 'email']` | System-level telemetry, no employee PII |
+| `ui` | `['chat', 'voice', 'sms', 'email']` | Presentation-only, no data exfiltration |
 
-**Acceptance gate:** before flipping status to `accepted`, each of the four must have an explicit declaration committed. PR must also verify `packages/ai/src/capabilities/registry.ts` does not throw at module load.
+**Acceptance gate cleared:** all 8 capabilities have explicit declarations; `packages/ai/src/capabilities/registry.ts` does not throw at module load.
 
-**Ordering:** the retrofit PR is the single prerequisite. It is not Phase 0 of Helpdesk — it is a gating chore that unblocks ADR-0163 acceptance, which in turn unblocks Helpdesk Phase 0 Week 2 (dead-infra wiring depends on `communication` policy being declared).
+**Downstream unblocked:** Helpdesk Phase 0 Week 2 dead-infra wiring may now proceed (depends on `communication` policy being declared).
 
-Learning captured: L-0077 — ADR fail-closed enforcement on shared registry without consumer audit = init-time break.
+Learning captured: L-0077 — ADR fail-closed enforcement on shared registry without consumer audit = init-time break. Actual scope (8) was 2x the initial estimate (4) — reinforces L-0077's "full consumer audit before acceptance" rule.
 
 ---
 
 > Amends ADR-0078. Depends on ADR-0162. Register in `0000-decision-log.md`.
-> Retrofit plan added 2026-04-20 by council; 4 capabilities must declare `allowedChannels` before acceptance.
+> Accepted 2026-04-20 after retrofit of all 8 capabilities missing `allowedChannels`.

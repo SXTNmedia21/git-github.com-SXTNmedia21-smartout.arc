@@ -19,6 +19,9 @@ export const guardianCapability: CapabilityDefinition = {
   name: "guardian",
   description:
     "Workspace health monitoring: readiness alerts, maturity signals, and agent behavior tracking",
+  // ADR-0163 — system-level telemetry (signal categories + counts), no employee PII.
+  // All channels reviewed 2026-04-20.
+  allowedChannels: ["chat", "voice", "sms", "email"],
   tools: allTools,
   readOnlyTools,
   suggestTools,
