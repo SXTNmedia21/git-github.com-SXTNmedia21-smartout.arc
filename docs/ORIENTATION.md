@@ -1,7 +1,7 @@
 ---
 title: "Orientation — Where to Look for What (ADR-0075)"
 status: canonical
-updated: 2026-04-07
+updated: 2026-04-20
 created: 2026-04-07
 module: meta
 tags: [orientation, north-star, adr-0075]
@@ -36,10 +36,14 @@ If step 4 (MCP) is unavailable: steps 2+3 are sufficient. Do not block on MCP.
 | Narrative "what was done" from past sessions | claude-mem via MCP (`mcp__plugin_claude-mem_mcp-search__search`) or tail of `activity-log.md` |
 | Persistent cross-session user/feedback facts | `~/.claude/projects/<repo>/memory/MEMORY.md` (auto-memory — NOT a session scratchpad, see anti-patterns) |
 | Current system state (architecture, gaps) | `docs/STATE.md` (trust hierarchy at top of file — top sections are live, cascade sections may lag) |
+| **Forward plan — what's next, blocking issues** | `docs/STATE-SUMMARY.md` (rewritten 2026-04-20 post-verification council; P0/P1/P2 priority sections) |
 | Database tables, routes, packages | `docs/reference/` |
 | Module business logic | `docs/modules/` |
-| Architecture decisions (ADRs) | `docs/decisions/` — code-review material, always in repo |
+| Architecture decisions (ADRs) | `docs/decisions/` — code-review material, always in repo. **163 ADRs as of 2026-04-20, gap at 0159 (reserved).** |
 | Feature closure handoffs | `docs/handoffs/` |
+| **Helpdesk surface** (Phase 1 live 2026-04-20) | Web: `/dashboard/komm/desks` (admin) + `/dashboard/komm/thread/[channelId]` (ticket). Mobile: `(app)/(queue)/` tab. Primitives: `packages/ui/src/helpdesk/`. Capability: `packages/ai/src/capabilities/helpdesk_query/`. |
+| **WebDayControl** (D6 admin canonical surface per ADR-0156) | `apps/web/src/components/day/WebDayControl.tsx`; widgets staged in `apps/web/` → `packages/ui/` (Phase 2 extraction). |
+| **Dual-platform UI primitives** (web + native via `.tsx` + `.native.tsx`) | `packages/ui/src/helpdesk/`, `packages/ui/src/shift-timeline/`. Strategy: ADR-0158 (proposed). |
 
 ## The Trust Hierarchy
 

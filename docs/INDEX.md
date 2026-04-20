@@ -1,7 +1,7 @@
 ---
 title: "Smartout Documentation Index"
-updated: 2026-04-07
-last-reconciled: 2026-04-07
+updated: 2026-04-20
+last-reconciled: 2026-04-20
 ---
 
 # Smartout Documentation Index
@@ -164,7 +164,7 @@ Reusable document templates in `docs/templates/`.
 
 ### Decisions (ADRs)
 
-See `docs/decisions/0000-decision-log.md` -- 74 ADRs (0001–0074, no gaps, no collisions as of 2026-04-07).
+See `docs/decisions/0000-decision-log.md` -- **163 ADR files** on disk as of 2026-04-20 (gap at ADR-0159; slot reserved after 2026-04-19 kanaler-som-helpdesk council renumbered 0156-0159 → 0160-0163 to resolve a mid-session collision with feat/overview-v2. Do not reuse 0159. Next number: 0165.). Latest: ADR-0164 (season-namespace-unification-telemetry, 2026-04-20). **12 ADRs** still `proposed` and not yet accepted: 0053, 0122, 0123, 0124, 0135, 0136, 0151, 0152, 0153, 0154, 0155, 0158.
 
 | id       | File                                                     | Subject                                      |
 | -------- | -------------------------------------------------------- | -------------------------------------------- |
@@ -247,7 +247,7 @@ See `docs/decisions/0000-decision-log.md` -- 74 ADRs (0001–0074, no gaps, no c
 
 ### Learnings
 
-See `docs/learnings/0000-learning-log.md` -- 28 learning records (0001–0028, no gaps, no collisions as of 2026-04-07).
+See `docs/learnings/0000-learning-log.md` -- **82 learning records** (L-0001 through L-0081 as of 2026-04-20; L-0082/0083/0084 added from 2026-04-20 verification council). Most recent capture lessons from the helpdesk Phase 1 UI merge (L-0079 terminal engine_state must stamp completed_at, L-0080 reassignment demotes prior holder, L-0081 Supabase chainable-proxy mocks echo column names — 3rd occurrence, promoted to process rule).
 
 | id         | File                                                       | Subject                          |
 | ---------- | ---------------------------------------------------------- | -------------------------------- |
