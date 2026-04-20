@@ -31,6 +31,7 @@ function makeShift(overrides: Partial<ScheduleShift> = {}): ScheduleShift {
     role: "server",
     status: "published",
     is_published: true,
+    source: "human",
     breaks: 0,
     work_hours: 7,
     day_category: "morning",
