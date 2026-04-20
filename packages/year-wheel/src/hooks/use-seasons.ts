@@ -24,8 +24,11 @@ export type Season = {
 
 export type CreateSeasonInput = {
   name: string;
-  startDate?: string | null;
-  endDate?: string | null;
+  // Required: the quick-create sheet always pre-fills both from the canvas
+  // draw. `duplicateYear` uses a direct INSERT (not this mutation) so it
+  // doesn't constrain this shape. See docs/superpowers/plans/2026-04-20-year-wheel-redesign.md §7.1.
+  startDate: string;
+  endDate: string;
   color?: string | null;
   planningCycleId?: string | null;
 };

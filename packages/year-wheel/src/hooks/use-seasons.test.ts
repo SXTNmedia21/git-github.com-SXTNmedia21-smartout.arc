@@ -16,8 +16,17 @@ describe("CreateSeasonInput", () => {
     expect(input.planningCycleId).toBe("cycle-uuid");
   });
 
-  it("remains valid without optional fields (backward compatibility)", () => {
-    const input: CreateSeasonInput = { name: "Draft" };
-    expect(input.name).toBe("Draft");
+  it("requires startDate + endDate (tightened in Phase 7)", () => {
+    // After the year-wheel redesign Phase 7 cleanup, startDate and endDate
+    // became required. The quick-create sheet always supplies both (pre-filled
+    // from the canvas draw). `duplicateYear` uses a direct INSERT and doesn't
+    // constrain this shape. See docs/superpowers/plans/2026-04-20-year-wheel-redesign.md §7.1.
+    const input: CreateSeasonInput = {
+      name: "Draft",
+      startDate: "2026-01-01",
+      endDate: "2026-12-31",
+    };
+    expect(input.startDate).toBe("2026-01-01");
+    expect(input.endDate).toBe("2026-12-31");
   });
 });
