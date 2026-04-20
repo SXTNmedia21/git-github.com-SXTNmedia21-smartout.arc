@@ -47,3 +47,4 @@ export * from "./wizard";
 export * from "./flow-player";
 export * from "./task-runner";
 export * from "./shift-timeline";
+export * from "./helpdesk";
