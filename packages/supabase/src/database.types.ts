@@ -7,6 +7,31 @@ export type Json =
   | Json[]
 
 export type Database = {
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   payroll: {
     Tables: {
       absence_ledger: {
@@ -2595,10 +2620,14 @@ export type Database = {
           department_id: string | null
           description: string | null
           direct_pair_hash: string | null
+          helpdesk_enabled: boolean
           id: string
           is_archived: boolean
           is_read_only: boolean
           name: string | null
+          privacy_mode:
+            | Database["public"]["Enums"]["channel_privacy_mode"]
+            | null
           read_receipts_enabled: boolean
           recording_policy: Database["public"]["Enums"]["channel_recording_policy"]
           responsible_profile_id: string | null
@@ -2619,10 +2648,14 @@ export type Database = {
           department_id?: string | null
           description?: string | null
           direct_pair_hash?: string | null
+          helpdesk_enabled?: boolean
           id?: string
           is_archived?: boolean
           is_read_only?: boolean
           name?: string | null
+          privacy_mode?:
+            | Database["public"]["Enums"]["channel_privacy_mode"]
+            | null
           read_receipts_enabled?: boolean
           recording_policy?: Database["public"]["Enums"]["channel_recording_policy"]
           responsible_profile_id?: string | null
@@ -2643,10 +2676,14 @@ export type Database = {
           department_id?: string | null
           description?: string | null
           direct_pair_hash?: string | null
+          helpdesk_enabled?: boolean
           id?: string
           is_archived?: boolean
           is_read_only?: boolean
           name?: string | null
+          privacy_mode?:
+            | Database["public"]["Enums"]["channel_privacy_mode"]
+            | null
           read_receipts_enabled?: boolean
           recording_policy?: Database["public"]["Enums"]["channel_recording_policy"]
           responsible_profile_id?: string | null
@@ -3157,6 +3194,7 @@ export type Database = {
       channel_message: {
         Row: {
           channel_id: string
+          classification_metadata: Json | null
           client_message_id: string | null
           content: string
           created_at: string
@@ -3169,8 +3207,10 @@ export type Database = {
           message_type: Database["public"]["Enums"]["channel_message_type"]
           origin_id: string | null
           origin_type: Database["public"]["Enums"]["channel_origin_type"]
+          original_content_hash: string | null
           pinned_at: string | null
           pinned_by: string | null
+          redacted_at: string | null
           reply_to_id: string | null
           sender_id: string
           system_data: Json | null
@@ -3181,6 +3221,7 @@ export type Database = {
         }
         Insert: {
           channel_id: string
+          classification_metadata?: Json | null
           client_message_id?: string | null
           content: string
           created_at?: string
@@ -3193,8 +3234,10 @@ export type Database = {
           message_type?: Database["public"]["Enums"]["channel_message_type"]
           origin_id?: string | null
           origin_type?: Database["public"]["Enums"]["channel_origin_type"]
+          original_content_hash?: string | null
           pinned_at?: string | null
           pinned_by?: string | null
+          redacted_at?: string | null
           reply_to_id?: string | null
           sender_id: string
           system_data?: Json | null
@@ -3205,6 +3248,7 @@ export type Database = {
         }
         Update: {
           channel_id?: string
+          classification_metadata?: Json | null
           client_message_id?: string | null
           content?: string
           created_at?: string
@@ -3217,8 +3261,10 @@ export type Database = {
           message_type?: Database["public"]["Enums"]["channel_message_type"]
           origin_id?: string | null
           origin_type?: Database["public"]["Enums"]["channel_origin_type"]
+          original_content_hash?: string | null
           pinned_at?: string | null
           pinned_by?: string | null
+          redacted_at?: string | null
           reply_to_id?: string | null
           sender_id?: string
           system_data?: Json | null
@@ -6721,7 +6767,7 @@ export type Database = {
           observer_escalation_hours: number
           requires_four_eyes: boolean
           updated_at: string
-          updated_by: string
+          updated_by: string | null
           workspace_id: string
         }
         Insert: {
@@ -6733,7 +6779,7 @@ export type Database = {
           observer_escalation_hours?: number
           requires_four_eyes?: boolean
           updated_at?: string
-          updated_by: string
+          updated_by?: string | null
           workspace_id: string
         }
         Update: {
@@ -6745,7 +6791,7 @@ export type Database = {
           observer_escalation_hours?: number
           requires_four_eyes?: boolean
           updated_at?: string
-          updated_by?: string
+          updated_by?: string | null
           workspace_id?: string
         }
         Relationships: [
@@ -8455,6 +8501,7 @@ export type Database = {
           invited_by: string | null
           last_name: string | null
           metadata: Json | null
+          opened_at: string | null
           phone: string | null
           requested_by: string | null
           role: Database["public"]["Enums"]["profile_role"]
@@ -8479,6 +8526,7 @@ export type Database = {
           invited_by?: string | null
           last_name?: string | null
           metadata?: Json | null
+          opened_at?: string | null
           phone?: string | null
           requested_by?: string | null
           role?: Database["public"]["Enums"]["profile_role"]
@@ -8503,6 +8551,7 @@ export type Database = {
           invited_by?: string | null
           last_name?: string | null
           metadata?: Json | null
+          opened_at?: string | null
           phone?: string | null
           requested_by?: string | null
           role?: Database["public"]["Enums"]["profile_role"]
@@ -18239,6 +18288,7 @@ export type Database = {
         Args: { p_field_group: string; p_values: Json; p_workspace_id: string }
         Returns: Json
       }
+      track_invitation_opened: { Args: { p_token: string }; Returns: boolean }
       trigger_due_emma_tasks: { Args: never; Returns: number }
       upsert_secret: {
         Args: { p_description?: string; p_name: string; p_secret: string }
@@ -18314,6 +18364,7 @@ export type Database = {
         | "scheduler"
         | "workflow"
       channel_presence_status: "online" | "away" | "offline"
+      channel_privacy_mode: "public" | "private_per_requester"
       channel_recording_policy: "off" | "optional" | "auto"
       channel_video_policy: "disabled" | "optional" | "default_on" | "required"
       chat_conversation_type: "group" | "dm" | "ai"
@@ -19662,6 +19713,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   payroll: {
     Enums: {
       absence_category: [
@@ -19804,6 +19858,7 @@ export const Constants = {
         "workflow",
       ],
       channel_presence_status: ["online", "away", "offline"],
+      channel_privacy_mode: ["public", "private_per_requester"],
       channel_recording_policy: ["off", "optional", "auto"],
       channel_video_policy: ["disabled", "optional", "default_on", "required"],
       chat_conversation_type: ["group", "dm", "ai"],
