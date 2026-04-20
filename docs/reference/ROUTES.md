@@ -5,7 +5,7 @@ version: "1.0"
 status: canonical
 layer: reference
 created: 2026-02-28
-updated: 2026-04-13
+updated: 2026-04-20
 author: claude
 supersedes: []
 superseded_by: null
@@ -69,6 +69,7 @@ All routes for the web dashboard (`apps/web`), landing page (`apps/landing`), an
 | `/dashboard/reports`              | Reports & KPIs               | Reports         |
 | `/dashboard/governance`           | Policy & protocol management | Governance      |
 | `/dashboard/year-wheel`           | Year wheel & season planning | Season Planning |
+| `/dashboard/season/[seasonId]?tab=<key>` | Dashboard / Planlegging | Detailed season editing. Primary submenu: Budsjett / Dag / Time / Åpningstider / Oversikt. `?tab=budget` is the default. Goals + Procedures deferred to P2 per 2026-04-20 spec. |
 | `/dashboard/organization`         | Organization settings        | Org Structure   |
 | `/dashboard/chat`                 | Team chat                    | Communication   |
 | `/dashboard/ai`                   | AI assistant (Mr. Botsson)   | AI              |
