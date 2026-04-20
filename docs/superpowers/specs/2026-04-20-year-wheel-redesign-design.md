@@ -107,7 +107,7 @@ Dimensions consumed:
 - **D5** — workspace + niche config (read-only surface info in topbar: "Seeded fra Riksavtalen")
 - **C4** — `engine_authority_config` (`activateSeason` mutation is gate-guarded as today)
 
-No cascade-produces-events wiring changes in this spec. The activation flow (`activateSeason` → engine triggers → D6 session upsert) stays as-is. If it is currently incomplete (per `2026-04-19-year-wheel-holistic-design.md` §9.2), that remains a separate follow-up; this redesign does not depend on it.
+**Activation mechanism (factual note, corrected in Phase 5):** `activateSeason` today writes directly via `supabase.from('season').update()` — it does **not** route through `cascade_gate_write`. ADR-0091 gate-client migration for `activateSeason` is tracked separately and is out of scope. On the DB side, the Postgres trigger at `supabase/migrations/20260428100001_season_activation_trigger.sql:9-38` (`AFTER UPDATE OF status ON season`) already emits `season.activated` into `engine_event` and dispatches to `department_session_lifecycle`. Activation is *not* silent today; whether the downstream `department_session_lifecycle` is complete is a separate concern (see L-0060 "theatre has layers"). This redesign does not alter the trigger or the gate-client question.
 
 ---
 
@@ -161,7 +161,7 @@ Same date math module we already have at `apps/web/src/app/dashboard/year-wheel/
 
 Visual elements (from `canvas.jsx`):
 
-1. **NORMAL DRIFT watermark** — diagonal hatched gradient + centered italic "Normal drift" text using `font-heading`. Rendered behind blocks, masked so it fades near top. Always visible; no tweak.
+1. **NORMAL DRIFT watermark** — diagonal hatched gradient + centered italic "Normal drift" text using `font-heading`. Rendered behind blocks, masked so it fades near top. Always visible; no tweak. **Dark-mode override:** the `color-mix(in oklab, var(--muted) 6%, transparent)` recipe collapses to invisible in dark because `--muted` already sits at low L*; use `color-mix(in oklab, var(--muted) 10%, transparent)` via a `:where([data-theme='dark']) &` wrapper or a CSS-var-scoped override token.
 2. **Month guides** — 12 vertical lines + uppercase month labels top-left of each column. First line transparent (canvas edge).
 3. **Today marker** — 1.5px vertical line + "I DAG" pill. Uses existing post-mount defer (the hydration fix committed earlier) — carried forward.
 4. **Pins row** (`pinsY = 28`) — event dots (12px) or multi-day range bars. Category color (internal=muted, cultural_commercial=orange, business_critical=error). AI-suggested = dashed 2px border. High-multiplier = solid ring. `hoursOverride` marker = `◷` glyph next to pin.
@@ -192,7 +192,7 @@ Revenue-actual acceptance: we render "—" and a 0%-filled bar. We do **not** bl
 ### 3.6 `LegendChip` + `AiSuggestionCard`
 
 - Legend: horizontal chip listing block-status swatches, pin-category dots, AI-suggested dashed swatch, `◷` marker. Purely visual reference, no state.
-- AI card: static hand-built placeholder matching the design ("AI foreslår: legg til «Systembytte POS» 18. juni"). Accept/Avvis buttons log a telemetry event but do not mutate. This is a scaffold for a future AI-suggestion flow (out of scope).
+- **AI card: subdued empty-state only.** Muted border, `Sparkles` icon, copy "Ingen AI-forslag ennå — kommer når forslagsmotoren er koblet på". **No Accept/Avvis buttons. No emit. No registered event.** The card exists as a reserved surface in the layout so the future AI-suggestion engine can occupy it without shell rework. When a real suggestion capability lands, a separate ADR introduces the event, the buttons, and the handler together. Per L-0046 (theatre-provider rule): stub no-ops behind real-looking interfaces are forbidden.
 
 ---
 
@@ -221,8 +221,8 @@ Buttons: **Avbryt** / **Opprett sesong**.
 
 On submit:
 
-1. Call `createSeason` mutation. **Hook extension required** — today `CreateSeasonInput` is `{ name, startDate?, endDate? }` and the INSERT omits `color` and `planning_cycle_id`. The new UX needs the sheet to pass `color` and `planning_cycle_id`, and `startDate`/`endDate` become required. Extend the type to `{ name, startDate, endDate, color, planningCycleId }` and extend the INSERT to write those columns (both already exist on `season` — verified in the current SELECT clause). No DB migration.
-2. Emit `"season created"` telemetry (space-separated — current convention in `packages/telemetry/src/registry.ts`). The hook already emits this event; extend the `properties.data` payload to include `color` and `planning_cycle_id`.
+1. Call `createSeason` mutation. **Hook extension required** — today `CreateSeasonInput` is `{ name, startDate?, endDate? }` and the INSERT omits `color` and `planning_cycle_id`. Extend the input to `{ name, startDate, endDate, color?: string | null, planningCycleId?: string | null }`. `startDate` and `endDate` become required on the sheet path (pre-filled from the drag), but remain *optional in the type* to preserve the existing `duplicateYear` callsite which passes them in a separate shape. `color` and `planningCycleId` are optional — the DB columns are nullable; a missing value INSERTs `null`. Extend the INSERT to write `color` and `planning_cycle_id` (both columns exist; verified in the current SELECT clause at `use-seasons.ts:59-61`). No DB migration.
+2. **Telemetry interface update (blocking).** Extend `SeasonCreated.properties.data` in `packages/telemetry/src/registry.ts:1120-1126` from `{ name: string; status: string }` to `{ name: string; status: string; color?: string | null; planning_cycle_id?: string | null }`. The hook's existing emit at `use-seasons.ts:104-117` adds the two new fields to `properties.data`. Event name stays `"season created"`, destinations stay `["posthog","logger","activity_trail"]`.
 3. `router.push('/dashboard/season/' + newSeasonId + '?tab=budget')` — no intermediate state, no drawer.
 
 On error: sheet stays open, inline error message. No destructive side effects.
@@ -263,9 +263,11 @@ Primary tab strip with 5 tabs, default `?tab=budget`:
 | `day` | Dag | `DayFactorsTab` | moved |
 | `hour` | Time | `HourFactorsTab` | moved |
 | `hours` | Åpningstider | `SeasonHoursTab` | moved |
-| `overview` | Oversikt | `SeasonOverviewTab` | moved, header-card stripped |
+| `overview` | Oversikt | `SeasonOverviewTab` | moved, unchanged (KPI+charts) |
 
-URL: `?tab=<key>` is canonical. Tab clicks do `router.replace` (no scroll). Default fallback = `budget`.
+URL: `?tab=<key>` is canonical. Default fallback = `budget`.
+
+**Tab-nav history behavior — `router.push`.** Tab clicks use `router.push`, not `replace`. Rationale: five tabs of editing context are meaningful steps; the user who moves Budsjett → Dag → Time and presses Back expects to return to Dag, not exit the season route entirely. The trade-off is a slightly longer history stack; acceptable for a season-planning flow where back-navigation through tabs is an explicit user task.
 
 ### 5.3 SeasonBreadcrumb
 
@@ -299,36 +301,79 @@ No changes to the event scoping fix flagged in `2026-04-19-year-wheel-holistic-d
 
 ## 7. Telemetry
 
-Convention (verified against `packages/telemetry/src/registry.ts`): event names are **space-separated**, e.g. `"season created"`, `"auth signed_up"`, `"button clicked"`. Dot-notation is not used.
+Convention (verified against `packages/telemetry/src/registry.ts`): event names are **space-separated**, domain-prefixed. Existing events in this domain use prefix `"season "` (`"season created"`, `"season activated"`, `"season archived"`, `"season updated"`, `"season block_clicked"`, `"season pin_clicked"`, `"season year_navigated"`). **All new events in this spec use the same `"season "` prefix.** The widget-context (year-wheel canvas) does not define a telemetry namespace; the domain does. See ADR-0164 for the reasoning and L-0073 for the underlying principle.
 
-Existing emit points preserved:
+### 7.1 Strongly-typed contract — dual registration
 
-- `"season created"` — extend `properties.data` to include `color` and `planning_cycle_id` (hook change from §4.2).
+Every event requires **both** (missing either causes untyped `emit()` at call sites; see L-0072):
 
-New events to register (each needs a row in `registerEvent()` with destinations + category):
+1. A TypeScript `export interface X extends BaseEvent` declaration in `registry.ts` (added to the event discriminated union).
+2. A `registerEvent()` runtime entry in the same file with `destinations` + `category`.
 
-- `"year_wheel draw_started"` — on `mousedown` begins a valid draw. Category: `scheduling`. Destinations: `["posthog","logger"]`.
-- `"year_wheel draw_completed"` — on successful `onDrawCreate`. Properties: `{ start, end, lane }`. Category: `scheduling`. Destinations: `["posthog","logger"]`.
-- `"year_wheel draw_cancelled"` — on short drag or Esc. Category: `scheduling`. Destinations: `["posthog","logger"]`.
-- `"year_wheel sidebar_filter_changed"` — `{ filter: 'all|active|draft|archived' }`. Category: `scheduling`. Destinations: `["posthog","logger"]`.
-- `"season page_viewed"` — on route enter, properties include `{ entity: { entity_type: 'season', entity_id, entity_label } }` + `data: { tab }`. Category: `scheduling`. Destinations: `["posthog","logger","activity_trail"]`.
-- `"season tab_changed"` — on submenu switch. Properties: entity + `data: { from, to }`. Category: `scheduling`. Destinations: `["posthog","logger"]`.
+### 7.2 Existing emit points — extend payload only
 
-Per ADR-0113 / L-0038: destinations that require `properties.entity` (activity_trail, engine_event) must have the entity set — verify at registration time, not at call site.
+- `"season created"` — extend `SeasonCreated.properties.data` (at `registry.ts:1120-1126`) from `{ name: string; status: string }` to `{ name: string; status: string; color?: string | null; planning_cycle_id?: string | null }`. Hook emit call updated to match (`use-seasons.ts:104-117`). No change to event name, category (`operations`), or destinations (`["posthog","logger","activity_trail"]`).
 
-Existing `year_navigated`, `block_clicked`, `pin_clicked` carry over unchanged.
+### 7.3 New events to register
+
+All new events use the `"season "` prefix and match existing category conventions (mutations → `operations`; clicks/views → `navigation`):
+
+| Event | Category | Destinations | Properties |
+|---|---|---|---|
+| `"season draw_started"` | `navigation` | `["posthog","logger"]` | `data: { year: number, lane: number }` |
+| `"season draw_completed"` | `operations` | `["posthog","logger"]` | `data: { start: string, end: string, lane: number }` |
+| `"season draw_cancelled"` | `navigation` | `["posthog","logger"]` | `data: { reason: 'short_drag' \| 'esc' \| 'mouse_exit' }` |
+| `"season sidebar_filter_changed"` | `navigation` | `["posthog","logger"]` | `data: { filter: 'all' \| 'active' \| 'draft' \| 'archived' }` |
+| `"season year_wheel_viewed"` | `navigation` | `["posthog","logger"]` | `data: { year: number, seasons_count: number }` |
+| `"season tab_changed"` | `navigation` | `["posthog","logger"]` | `entity: { entity_type: 'season', entity_id, entity_label }` + `data: { from: TabKey, to: TabKey }` |
+
+Notes:
+
+- `"season draw_completed"` is categorized as `operations` because it *will* result in a `season created` row once the sheet submits — it represents a committed user intent to mutate. The other draw events are exploratory UI gestures.
+- `"season tab_changed"` includes `entity` because tab changes happen in the context of a specific season (audit value: knowing which season a user was inspecting). It does **not** route to `activity_trail`; the entity is there for PostHog enrichment.
+- **No event routes to `activity_trail` except mutations.** The `"season year_wheel_viewed"` + sidebar filter + draw exploratory events are explicitly excluded (per Supervisor C2). View/navigation audit is not a product requirement.
+- Per ADR-0113 / L-0038 (activity_trail silent-drop): destinations that require `properties.entity` must have it set at the call site. Only `"season tab_changed"` carries entity among the new events, and it does not route to `activity_trail`. Contract preserved.
+
+Existing `"season year_navigated"`, `"season block_clicked"`, `"season pin_clicked"` carry over unchanged.
 
 All events flow through `emit()` per CLAUDE.md "no mutation without emit" rule.
 
 ---
 
-## 8. Accessibility
+## 8. Motion + Accessibility
+
+### 8.1 Two-tier motion system
+
+The canonical Nordic spring (stiffness 35 / damping 22 / mass 2.2) is correct for ambient motion but drags behind cursor input on direct-manipulation surfaces. Spec defines two tiers:
+
+- **Tier A — ambient** (page entrance, rail mount, sheet open, route transition, card animate-in): spring `{ stiffness: 35, damping: 22, mass: 2.2 }`. Entrance ≥ 500ms, exit ≥ 250ms. Default.
+- **Tier B — direct manipulation** (draw phantom tracking the cursor, block hover-ring, pin hover-scale, sidebar collapse, drag-resize handles): spring `{ stiffness: 400, damping: 30, mass: 0.8 }`. Must feel 1:1 with pointer input (< 200ms to settle).
+
+Quick-create sheet open uses Tier A (right-slide `x: 400 → 0` + opacity `0 → 1`). Draw phantom uses Tier B. Bar-chart animate-in uses Tier A.
+
+### 8.2 Canvas interactions — concrete specs
+
+- **Hour-factor editor** — replace the prototype's `prompt()` (a Nordic violation) with a shadcn `Popover` anchored to the clicked bar, containing an inline number `<Input>` + Enter-to-commit + Esc-to-cancel. Popover motion: Tier A scale+fade from 0.95.
+- **Bar-fill gradient** — the prototype's `color-mix(in oklab, var(--orange) X%, var(--border))` reads as muddy brown-grey in dark mode. Switch the base to `var(--muted)`: `color-mix(in oklab, var(--orange) X%, var(--muted))`. Verify in both themes before merge.
+- **Pin / range-bar hit areas** — visual dot is 12px (event pins) and 10px-tall (range bars), below the WCAG 24×24 target. Add a transparent 24×24 hit-area wrapper; keep the visual unchanged. Applies in `TimelinePin`.
+- **Canvas draw gestures** — `mouseleave` on the canvas cancels the in-progress draw (same effect as Esc). `mouseup` outside the canvas is treated as cancel, not commit. `draw_cancelled` telemetry fires with `reason: 'mouse_exit'` in that case.
+- **Quick-create sheet keyboard** — `<form onSubmit>` wraps the fields so Enter submits. Esc closes (shadcn Sheet default). Both trigger `season draw_cancelled` with appropriate `reason` when abandoned.
+
+### 8.3 Instrument Serif italic
+
+Spec italic h2 ("Hele året i ett blikk") and italic "Normal drift" watermark require the italic face to be loaded. Verify `apps/web/src/app/layout.tsx` `next/font` loader for Instrument Serif includes `style: ['normal', 'italic']`. Without it, Tailwind's `italic` utility falls back to synthetic oblique (visually ugly). Fix the loader config if missing — one-line change — in step 1 or 2 of the migration.
+
+### 8.4 Accessibility
 
 - Sidebar filter pills: `role="tablist"`, each pill `role="tab"` with `aria-selected`.
 - Submenu on season page: same pattern, `aria-controls` linking to the visible tab panel.
-- Draw-to-create: canvas has `aria-label` describing the year; a screen-reader-only "Add season" action points the user to an alternative create path (the Quick-create sheet opens with a "+" button on the canvas corner for keyboard users — fallback).
-- Focus management on route transition: focus lands on the submenu on first render of the season page.
-- Motion: respect `prefers-reduced-motion` — disable entrance animations, keep essential feedback (phantom visible during draw, tab-switch fade).
+- Canvas: `role="application"` with `aria-label="Årshjul for {year}"`. Season blocks are `role="button"` with `aria-label="{name}, {startDate} til {endDate}, status {status}"`.
+- Right rail: `role="complementary"` with `aria-label="Kontekst og varsler"`.
+- `aria-live="polite"` region for the draw-phantom's live date label so screen readers hear the range as it's drawn.
+- Focus management on route transition: focus lands on the active submenu tab on first render of the season page.
+- **Keyboard create path** — `N` (or `Alt+N` to avoid single-key collisions) on the year-wheel page opens `SeasonQuickCreateSheet` with `start = today`, `end = today + 7`, focus on name field. A visible "Ny sesong" button in the topbar remains the discoverable affordance for keyboard and mouse users alike.
+- Focus rings on blocks/pins use the Nordic focus-ring token, never browser default. Visible in both themes.
+- **`prefers-reduced-motion`** — disable entrance animations (opacity-only), phantom draw collapses to instant rect with no spring, block-select ring uses static outline, sidebar collapse skips width animation, bar chart fades in without per-bar stagger.
 
 ---
 
@@ -355,23 +400,47 @@ All events flow through `emit()` per CLAUDE.md "no mutation without emit" rule.
 
 ## 11. Migration sequence
 
-0. **Hook + telemetry extensions** — extend `createSeason` in `packages/year-wheel/src/hooks/use-seasons.ts` to accept `{ name, startDate, endDate, color, planningCycleId }` (all required except color which defaults to brand orange), write `color` and `planning_cycle_id` on INSERT, and extend the `"season created"` emit payload with both fields. Register the six new events listed in §7 in `packages/telemetry/src/registry.ts`. Commit.
-1. **Copy tabs to the new location** — copy (do not move) `BudgetSetupTab`, `DayFactorsTab`, `HourFactorsTab`, `SeasonHoursTab`, `SeasonOverviewTab` into `season/[seasonId]/_components/`. Originals stay in place so the old drawer remains functional during steps 2–6. No content changes — `SeasonOverviewTab` is KPI/charts and ships unchanged. Commit.
+0a. **Widen `createSeason` tolerant-first** — in `packages/year-wheel/src/hooks/use-seasons.ts`, extend `CreateSeasonInput` to `{ name, startDate?, endDate?, color?: string | null, planningCycleId?: string | null }` (all new fields optional). Extend the INSERT to write `color` and `planning_cycle_id` when provided. Existing callers (`SeasonCreateSheet.tsx`, `duplicateYear`) keep compiling unchanged. Commit.
+
+0b. **Register the six new telemetry events** — in `packages/telemetry/src/registry.ts`, add both TS `export interface X extends BaseEvent` declarations AND runtime `registerEvent()` entries for every event listed in §7.3. Extend `SeasonCreated.properties.data` signature per §7.2. Commit.
+
+1. **Copy tabs to the new location** — copy (do not move) `BudgetSetupTab`, `DayFactorsTab`, `HourFactorsTab`, `SeasonHoursTab`, `SeasonOverviewTab` into `season/[seasonId]/_components/`. Originals stay in place so the old drawer remains functional during steps 2–6. **Rewrite relative imports** inside each copied file (e.g. `../_hooks` → `../../year-wheel/_hooks` for now, or migrate to absolute `@/app/...` paths). No content changes — `SeasonOverviewTab` is KPI/charts and ships unchanged. Commit.
 2. **New season route** — create `page.tsx`, `loading.tsx`, `season-page-client.tsx`, `SeasonSubmenu.tsx`, `SeasonBreadcrumb.tsx`. Render moved tabs. Tab default = budget. Commit.
 3. **Shell rebuild (part A)** — create `YearWheelTopbar`, `SeasonSidebar`, `CompanionRail`, `LegendChip`, `AiSuggestionCard` as isolated components. Commit.
 4. **Canvas rebuild** — build `YearCanvas`, `DrawPhantom`, reworked `TimelineBlock` and `TimelinePin` under `_components/canvas/`. Commit.
 5. **Wire into page** — rewrite `year-wheel-page-client.tsx` to use the new shell and canvas; block/pin clicks `router.push` to the season route. Commit.
 6. **Quick-create sheet** — add `SeasonQuickCreateSheet`, wire to draw-to-create and to the "Ny sesong" button-as-hint. Commit.
-7. **Retire old files** — delete `YearWheelTimeline`, `TimelineBlock`, `TimelinePin`, `SeasonDrawer`, `MachineRoomSheet`, `SeasonCreateSheet`, `YearNavigation`, and the **original** copies of `BudgetSetupTab` / `DayFactorsTab` / `HourFactorsTab` / `SeasonHoursTab` / `SeasonOverviewTab` from `year-wheel/_components/`. Move `SeasonGoalsTab` + `SeasonProceduresTab` into `season/[seasonId]/_components/_deferred/`. Commit.
+6.5. **Update cascade-task hrefs** — `supabase/migrations/20260503100000_update_cascade_task_hrefs_year_wheel.sql:344,353,364,375` hardcodes `'/dashboard/year-wheel'` for budget-gap tasks. Write a new migration that updates these hrefs to `/dashboard/season/[active_season_id]?tab=budget` (or `tab=day`/`tab=hour`/`tab=hours` per gap-type). For workspaces without an active season, fall back to `/dashboard/year-wheel`. Commit.
+
+7. **Retire old files** — delete `YearWheelTimeline`, `TimelineBlock`, `TimelinePin`, `SeasonDrawer`, `MachineRoomSheet`, `SeasonCreateSheet`, `YearNavigation`, and the **original** copies of `BudgetSetupTab` / `DayFactorsTab` / `HourFactorsTab` / `SeasonHoursTab` / `SeasonOverviewTab` from `year-wheel/_components/`. Move `SeasonGoalsTab` + `SeasonProceduresTab` into `season/[seasonId]/_components/_deferred/`. Update `apps/e2e/tests/season-planning.spec.ts:39-60+` — either rewrite selectors for the new route OR mark those scenarios `test.skip` with a tracking comment pointing at the deferred P2 spec. Commit.
+
+0c. **Tighten `CreateSeasonInput`** — after step 6 lands (new quick-create sheet uses all new fields), revisit the type and make `startDate` + `endDate` non-optional on the sheet-path input while keeping `duplicateYear`'s separate input path unchanged. This step runs after step 6 but before step 7. Commit.
+
 8. **Typecheck + manual smoke on both routes.** Update `docs/reference/ROUTES.md`. Commit.
 
-Each step leaves the app in a working state. Step 1 keeps the old drawer still functional; steps 2–6 run in parallel to it; step 7 is the cutover.
+Each step leaves the app in a working state. Step 0a tolerant-widens so old callsites stay green. Step 1 keeps the old drawer still functional while rewriting imports in the copied tabs. Steps 2–6 run in parallel to the still-working drawer. Step 6.5 updates cascade task hrefs. Step 0c tightens the type before step 7 retires the old files.
+
+**Drift-window discipline.** Between step 1 (copy) and step 7 (retire originals), five tabs exist in two copies. During steps 2–6, any bug fix to a copied tab must either be applied to BOTH copies or deferred to after step 7, so that step 7 doesn't silently delete a fix. Noted in PR description.
 
 ---
 
-## 11.5. Activation / missing / seeded-from features (not this spec)
+## 11.5. Scope reset vs. 2026-04-19 holistic-design
 
-The 2026-04-19 holistic-design spec envisioned activation gates, "hva mangler" checklists, Activate/Archive/Duplicate buttons, and a Seeded-from-Riksavtalen provenance chip inside the Overview tab. **None of these are implemented today.** This redesign keeps them out of scope — the new "Oversikt" tab renders the current KPI+charts file as-is. If Pontus wants any of them before activation-engine wiring lands, it's a separate, later change on top of this redesign.
+This spec **explicitly defers** a subset of features the 2026-04-19 holistic-design spec scheduled for P1:
+
+- Activation gate card + "hva mangler" checklist
+- Activate / Archive / Duplicate action buttons
+- Seeded-from-Riksavtalen provenance chip (also — per memory `project_cascade_five_dimensions.md`: hospitality.ts rates are known-WRONG; the chip would make a false authority claim until real framework provenance lands)
+- Goals tab (moved to `_deferred/`)
+- Procedures tab (moved to `_deferred/`)
+
+None of these are implemented today. Rather than carry forward a half-finished P1 target, this spec resets them to P2 pending: (a) activation-engine wiring completeness (separate ADR-scoped work), (b) real regulatory_framework provenance persistence, (c) product clarity on activation UX after the route split lands and user behavior is observed.
+
+**This reset is logged against the 2026-04-19 holistic-design verdict** in `docs/council/COUNCIL-LOG.md` (2026-04-20 session row) per L-0074 — silent scope reduction between councils breaks the audit chain and must be surfaced.
+
+### 7.4 "Seeded fra Riksavtalen" pill — deferred
+
+Per L-0060 and the hospitality.ts rates issue, the pill claim is not load-bearing until provenance is persisted per workspace. The year-wheel topbar ships **without** the pill. A later spec introduces it once real framework binding lands.
 
 ## 12. Out of scope (explicit)
 
@@ -404,7 +473,13 @@ The 2026-04-19 holistic-design spec envisioned activation gates, "hva mangler" c
 - Dragging on the canvas creates a phantom and, on release, opens the quick-create sheet with start/end pre-filled.
 - Submitting the sheet creates the season and redirects to `/dashboard/season/[newId]?tab=budget` without intermediate drawer.
 - Clicking an existing season block on the canvas routes to the season page.
-- `pnpm turbo typecheck` passes.
+- Tab navigation within the season page uses `router.push` (Back returns to the previous tab).
+- `pnpm turbo typecheck` passes after every migration step (0a → 8), including the intermediate "both-copies" window.
 - Sidebar, rail, topbar, canvas, legend, AI-suggestion card all render and respond at 1440px and 1280px viewports.
 - Retired files no longer present in the repo.
-- New telemetry events emit (visible in PostHog + activity_trail in dev).
+- `apps/e2e/tests/season-planning.spec.ts` passes (either updated selectors or skip flags on deferred Goals/Procedures scenarios).
+- All six new telemetry events emit with typed `emit()` (no `any` shape) and land in PostHog + logger. `"season created"` continues to land in `activity_trail`.
+- `AiSuggestionCard` renders as empty-state; no buttons, no emit, no PostHog events.
+- Hour-factor editor uses Popover + Input, not `prompt()`.
+- `supabase/migrations/...` adds a new migration updating cascade-task hrefs from `/dashboard/year-wheel` to `/dashboard/season/[id]?tab=<key>` where applicable.
+- Instrument Serif italic renders correctly (no synthetic oblique) — verified by visual inspection of the h2 and watermark.
