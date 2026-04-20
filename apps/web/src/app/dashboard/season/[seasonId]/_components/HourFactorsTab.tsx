@@ -13,6 +13,9 @@ import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 function parseTimeToHour(time: string): number {
   return parseInt(time.split(":")[0] ?? "0", 10);
@@ -22,6 +25,127 @@ type Props = {
   seasonBudgetId: string;
   isReadOnly?: boolean;
 };
+
+/**
+ * Inline editor cell: the bar itself is the PopoverTrigger.
+ * Replaces the old prototype's `prompt()` (a Nordic violation per spec §8.2).
+ * Commit on Enter, cancel on Esc. Bar-fill uses `--brand-orange` mixed with
+ * `--muted` so dark-mode doesn't render muddy brown-grey (spec §8.2).
+ */
+function HourFactorCell({
+  hour,
+  value,
+  maxFactor,
+  minLimit,
+  maxLimit,
+  disabled,
+  onCommit,
+  label,
+  cancelLabel,
+  saveLabel,
+}: {
+  hour: number;
+  value: number;
+  maxFactor: number;
+  minLimit: number;
+  maxLimit: number;
+  disabled: boolean;
+  onCommit: (next: number) => void;
+  label: string;
+  cancelLabel: string;
+  saveLabel: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState<number>(value);
+
+  // Keep the draft in sync if the parent value changes (e.g. template applied).
+  useEffect(() => {
+    setDraft(value);
+  }, [value]);
+
+  const commit = () => {
+    // Clamp to the allowed factor range (spec limits). NaN collapses to current value.
+    const clamped = Math.min(maxLimit, Math.max(minLimit, Number.isFinite(draft) ? draft : value));
+    onCommit(clamped);
+    setOpen(false);
+  };
+
+  const cancel = () => {
+    setDraft(value);
+    setOpen(false);
+  };
+
+  const barWidth = Math.min(100, (value / maxFactor) * 100);
+  const intensity = Math.min(100, Math.max(20, (value / maxFactor) * 100));
+  // Bar-fill recipe per spec §8.2: warm --brand-orange mixed against --muted
+  // (NOT --border — border reads as muddy brown-grey in dark mode).
+  const barFill = `color-mix(in oklab, var(--brand-orange) ${intensity.toFixed(0)}%, var(--muted))`;
+
+  return (
+    <Popover
+      open={open}
+      onOpenChange={(next) => {
+        if (disabled) return;
+        setOpen(next);
+      }}
+    >
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          disabled={disabled}
+          aria-label={label}
+          className="focus-visible:ring-ring bg-muted flex h-7 w-full items-center rounded-md transition-opacity outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <div
+            className="flex h-full items-center rounded-md px-2 transition-all"
+            style={{ width: `${barWidth}%`, background: barFill }}
+          >
+            <span className="text-foreground text-xs font-bold tabular-nums">
+              {value.toFixed(1)}
+            </span>
+          </div>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-60" align="start">
+        <label className="text-muted-foreground text-xs" htmlFor={`hf-${hour}`}>
+          {label}
+        </label>
+        <Input
+          id={`hf-${hour}`}
+          type="number"
+          step="0.1"
+          min={minLimit}
+          max={maxLimit}
+          value={Number.isFinite(draft) ? draft : ""}
+          onChange={(e) => {
+            const parsed = parseFloat(e.target.value);
+            setDraft(Number.isFinite(parsed) ? parsed : 0);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              commit();
+            }
+            if (e.key === "Escape") {
+              e.preventDefault();
+              cancel();
+            }
+          }}
+          autoFocus
+          className="mt-1"
+        />
+        <div className="mt-2 flex justify-end gap-2">
+          <Button size="sm" variant="ghost" onClick={cancel}>
+            {cancelLabel}
+          </Button>
+          <Button size="sm" onClick={commit}>
+            {saveLabel}
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 export function HourFactorsTab({ seasonBudgetId, isReadOnly = false }: Props) {
   const { t } = useTranslation("dashboard");
@@ -96,12 +220,8 @@ export function HourFactorsTab({ seasonBudgetId, isReadOnly = false }: Props) {
 
   const maxFactor = useMemo(() => Math.max(...factors.map((f) => f.factor), 1), [factors]);
 
-  const updateFactor = (hour: number, value: string) => {
-    const num = parseFloat(value);
-    if (isNaN(num) || num <= 0) return;
-    if (num < BUDGET_SETUP_LIMITS.hourFactor.min || num > BUDGET_SETUP_LIMITS.hourFactor.max)
-      return;
-    setFactors((prev) => prev.map((f) => (f.hour === hour ? { ...f, factor: num } : f)));
+  const commitFactor = (hour: number, next: number) => {
+    setFactors((prev) => prev.map((f) => (f.hour === hour ? { ...f, factor: next } : f)));
   };
 
   const handleSave = () => {
@@ -154,40 +274,27 @@ export function HourFactorsTab({ seasonBudgetId, isReadOnly = false }: Props) {
       </div>
 
       <div className="grid gap-x-8 gap-y-2 sm:grid-cols-2">
-        {factors.map((f) => {
-          const barWidth = (f.factor / maxFactor) * 100;
-          const isPeak = f.factor >= maxFactor * 0.8;
-          const barColor = isPeak ? "bg-chart-2/30" : "bg-chart-1/20";
-          const textColor = isPeak ? "text-chart-2" : "text-chart-1";
-
-          return (
-            <div key={f.hour} className="flex items-center gap-3">
-              <span className="text-muted-foreground w-12 text-right font-mono text-sm">
-                {String(f.hour).padStart(2, "0")}:00
-              </span>
-              <div className="flex-1">
-                <div className="bg-muted h-7 rounded-md">
-                  <div
-                    className={`flex h-full items-center rounded-md px-2 transition-all ${barColor}`}
-                    style={{ width: `${barWidth}%` }}
-                  >
-                    <span className={`text-xs font-bold ${textColor}`}>{f.factor.toFixed(1)}</span>
-                  </div>
-                </div>
-              </div>
-              <input
-                type="number"
+        {factors.map((f) => (
+          <div key={f.hour} className="flex items-center gap-3">
+            <span className="text-muted-foreground w-12 text-right font-mono text-sm">
+              {String(f.hour).padStart(2, "0")}:00
+            </span>
+            <div className="flex-1">
+              <HourFactorCell
+                hour={f.hour}
                 value={f.factor}
-                onChange={(e) => updateFactor(f.hour, e.target.value)}
-                step="0.1"
-                min={BUDGET_SETUP_LIMITS.hourFactor.min}
-                max={BUDGET_SETUP_LIMITS.hourFactor.max}
+                maxFactor={maxFactor}
+                minLimit={BUDGET_SETUP_LIMITS.hourFactor.min}
+                maxLimit={BUDGET_SETUP_LIMITS.hourFactor.max}
                 disabled={isReadOnly}
-                className="border-input bg-background text-foreground focus:border-primary w-16 rounded-lg border px-2 py-1 text-center text-sm font-medium outline-none"
+                onCommit={(next) => commitFactor(f.hour, next)}
+                label={`Faktor kl ${String(f.hour).padStart(2, "0")}:00`}
+                cancelLabel={t("yearWheel.cancel")}
+                saveLabel={t("yearWheel.save")}
               />
             </div>
-          );
-        })}
+          </div>
+        ))}
       </div>
 
       <div className="mt-6 flex justify-end">
