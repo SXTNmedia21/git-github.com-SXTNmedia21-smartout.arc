@@ -163,7 +163,7 @@ export function QueueSheet({ desk, onOpenChange }: QueueSheetProps) {
                 tickets.map((ticket) => (
                   <Link
                     key={ticket.ticket_id}
-                    href={`/dashboard/komm/chat?thread=${ticket.channel_id}`}
+                    href={`/dashboard/komm/thread/${ticket.channel_id}`}
                     onClick={() => onOpenChange(false)}
                     className="group hover:bg-muted/40 flex items-start gap-3 rounded-xl p-3 transition-colors"
                   >
