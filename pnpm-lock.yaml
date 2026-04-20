@@ -288,6 +288,9 @@ importers:
       '@smartout/types':
         specifier: workspace:*
         version: link:../../packages/types
+      '@smartout/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       '@smartout/utils':
         specifier: workspace:*
         version: link:../../packages/utils
