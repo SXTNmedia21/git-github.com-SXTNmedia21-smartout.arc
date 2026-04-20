@@ -5217,8 +5217,11 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "auth",
   },
   // emit site: RPC track_invitation_opened call path from apps/web/src/app/invite/[token]/page.tsx
+  // Pre-auth visitor event (variant A: not signed in; variant B: no profile yet) — actor_id is
+  // empty at emit time. activity_trail.actor_id is NOT NULL UUID, so routing here would silently
+  // fail the insert per ADR-0134 + L-0083. PostHog + logger carry the analytics record.
   "invitation opened": {
-    destinations: ["posthog", "logger", "activity_trail"],
+    destinations: ["posthog", "logger"],
     category: "auth",
   },
   // emit site: on-read expiration check in apps/web/src/app/invite/[token]/page.tsx
@@ -6424,8 +6427,11 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "auth logged_in": { destinations: ["posthog", "logger"], category: "auth" },
   "login_code sent": { destinations: ["posthog", "logger", "activity_trail"], category: "auth" },
   // emit site: apps/web/src/app/reset-password/page.tsx submit handler (password-reset form)
+  // Pre-auth visitor event — the user has lost access and is not signed in, so actor_id is empty
+  // at emit time. activity_trail.actor_id is NOT NULL UUID, so routing here would silently fail
+  // the insert per ADR-0134 + L-0083. PostHog + logger carry the (email-hashed) analytics record.
   "auth password_reset_requested": {
-    destinations: ["posthog", "logger", "activity_trail"],
+    destinations: ["posthog", "logger"],
     category: "auth",
   },
   // emit site: apps/web/src/app/reset-password/page.tsx post-updateUser success handler
