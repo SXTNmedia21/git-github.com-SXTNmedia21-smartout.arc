@@ -52,6 +52,7 @@ artifacts/
 !.claude/agents/
 !.claude/commands/
 !.claude/learnings/
+!.claude/scripts/
 !.claude/workflow-state.yaml
 !.claude/decisions.yaml
 
