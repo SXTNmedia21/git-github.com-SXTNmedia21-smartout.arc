@@ -20,6 +20,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -77,53 +78,35 @@ export function ScheduleCoordinationProvider({ children }: { children: ReactNode
   const [scheduleView, setScheduleView] = useState<ScheduleViewMode>("ansatt");
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [weeklyPeriodCount, setWeeklyPeriodCount] = useState(4);
-  const [scheduleDateOffset, setScheduleDateOffset] = useState(0);
+  // Week-based layouts (daily/list/grid/weekly) and monthly each keep their own
+  // offset. Round-trips between modes no longer drift the viewed date.
+  const [weekBasedOffset, setWeekBasedOffset] = useState(0);
+  const [monthlyOffset, setMonthlyOffset] = useState(0);
   const [scheduleCompactMode, setScheduleCompactMode] = useState(false);
 
   const onPublishAllRef = useRef<(() => void) | null>(null);
   const scheduleDraftCountRef = useRef(0);
   const [scheduleDraftCountDisplay, setScheduleDraftCountDisplay] = useState(0);
 
-  /**
-   * Converts scheduleDateOffset when switching between week-based and
-   * month-based views. Without this, an offset of 4 (= 4 weeks ahead in
-   * Ukeplan) would be misinterpreted as 4 months ahead in Måned — jumping
-   * from April to August.
-   */
-  const setScheduleLayout = useCallback((newLayout: ScheduleLayoutMode) => {
-    const isWeekBased = (l: ScheduleLayoutMode) =>
-      l === "daily" || l === "list" || l === "grid" || l === "weekly";
+  // Layout ref lets the stable offset setter pick the right slot without being
+  // recreated every time scheduleLayout changes.
+  const scheduleLayoutRef = useRef(scheduleLayout);
+  useEffect(() => {
+    scheduleLayoutRef.current = scheduleLayout;
+  }, [scheduleLayout]);
 
-    setScheduleLayoutRaw((prevLayout) => {
-      // Read the current offset from state captured at call time via the updater pattern.
-      // We use a functional update for offset too to stay consistent.
-      if (isWeekBased(prevLayout) && newLayout === "monthly") {
-        setScheduleDateOffset((prevOffset) => {
-          const now = new Date();
-          const targetMonday = new Date(now);
-          targetMonday.setDate(now.getDate() - ((now.getDay() + 6) % 7) + prevOffset * 7);
-          const today = new Date();
-          const monthDiff =
-            (targetMonday.getFullYear() - today.getFullYear()) * 12 +
-            (targetMonday.getMonth() - today.getMonth());
-          return monthDiff;
-        });
-      } else if (prevLayout === "monthly" && isWeekBased(newLayout)) {
-        setScheduleDateOffset((prevOffset) => {
-          const target = new Date();
-          target.setMonth(target.getMonth() + prevOffset, 1);
-          target.setHours(0, 0, 0, 0);
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-          const startOfCurrentWeek = new Date(today);
-          startOfCurrentWeek.setDate(today.getDate() - ((today.getDay() + 6) % 7));
-          const diffMs = target.getTime() - startOfCurrentWeek.getTime();
-          const weekDiff = Math.round(diffMs / (1000 * 60 * 60 * 24 * 7));
-          return weekDiff;
-        });
-      }
-      return newLayout;
-    });
+  const setScheduleLayout = useCallback((newLayout: ScheduleLayoutMode) => {
+    setScheduleLayoutRaw(newLayout);
+  }, []);
+
+  const scheduleDateOffset = scheduleLayout === "monthly" ? monthlyOffset : weekBasedOffset;
+
+  const setScheduleDateOffset = useCallback<Dispatch<SetStateAction<number>>>((updater) => {
+    if (scheduleLayoutRef.current === "monthly") {
+      setMonthlyOffset(updater);
+    } else {
+      setWeekBasedOffset(updater);
+    }
   }, []);
 
   /** Stable setter that schedule page calls to register the publish callback. */
