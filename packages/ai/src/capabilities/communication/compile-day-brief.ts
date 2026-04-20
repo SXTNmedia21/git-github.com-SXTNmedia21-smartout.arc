@@ -2,6 +2,7 @@
 // ADR-0088: COMPILE function — Day Brief compilation.
 // Lives in communication capability per ADR-0088 (COMPILE stays in communication).
 import { z } from "zod";
+import { emit } from "@smartout/telemetry";
 import { defineTool } from "../../types.js";
 import type { AgentToolContext } from "../types.js";
 
@@ -142,19 +143,23 @@ export const compileDayBrief = defineTool({
       })),
     };
 
-    // Emit telemetry
-    await supabase.from("engine_event").insert({
+    // T1 fix: route via emit() registry — ADR-0156 / L-0064. Event name
+    // aligned with registry: "ops.compile day_brief" → dispatches as
+    // "ops.compile.day_brief" (toDotNotation converts space to dot).
+    await emit({
+      event: "ops.compile day_brief",
       workspace_id: ctx.workspaceId,
-      event_type: "ops.compile.day_brief",
-      payload: {
-        department_id: params.department_id,
-        date: targetDate,
-        shift_count: brief.shifts.count,
-        task_count: brief.pending_tasks.count,
-        deviation_count: brief.open_deviations.count,
-        source: "agent_tool",
-        actor_id: ctx.profileId,
-        origin: "system",
+      actor_id: ctx.profileId,
+      properties: {
+        entity: {
+          entity_type: "department_session",
+          entity_id: params.department_id,
+        },
+        data: {
+          department_id: params.department_id,
+          shift_count: brief.shifts.count,
+          critical_tasks: brief.pending_tasks.count,
+        },
       },
     });
 

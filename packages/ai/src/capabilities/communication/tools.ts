@@ -2,6 +2,7 @@
 // Migrated from legacy chat_* tables to Komm channel_* tables (2026-03-28)
 // Channel context + knowledge search tools merged from tools/channels.ts (2026-04-13)
 import { z } from "zod";
+import { emit } from "@smartout/telemetry";
 import { defineTool } from "../../types.js";
 import type { AgentToolContext } from "../types.js";
 import { getQueryEmbedding } from "../../embedding.js";
@@ -162,15 +163,21 @@ export const sendMessage = defineTool({
       return `Error sending message: ${error.message}`;
     }
 
-    // Emit engine event for audit trail (ADR-0069 — agent tools must emit)
-    await supabase.from("engine_event").insert({
+    // T1 fix: route via emit() registry — use existing "channel.message.sent"
+    // event name. ADR-0156 / L-0064.
+    await emit({
+      event: "channel.message.sent",
       workspace_id: ctx.workspaceId,
-      event_type: "channel_message.sent",
-      payload: {
+      actor_id: ctx.profileId,
+      entity: {
+        entity_type: "channel_message",
+        entity_id: data.id,
+        entity_label: params.channel_id,
+      },
+      properties: {
         channel_id: params.channel_id,
-        message_id: data.id,
-        source: "agent",
-        actor_id: ctx.profileId,
+        origin_type: "agent",
+        message_type: "text",
       },
     });
 
