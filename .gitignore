@@ -43,18 +43,9 @@ desktop.ini
 # Coverage
 coverage/
 artifacts/
-.claude/*
-!.claude/settings.json
-!.claude/settings.local.json
-!.claude/skills/
-!.claude/hooks/
-!.claude/agent-memory/
-!.claude/agents/
-!.claude/commands/
-!.claude/learnings/
-!.claude/scripts/
-!.claude/workflow-state.yaml
-!.claude/decisions.yaml
+# .claude/ is fully tracked — project-level agents, commands, scripts, skills
+# live with the repo. Runtime caches are the exception:
+.claude/worktrees/
 
 .env*.local
 supabase/.env
