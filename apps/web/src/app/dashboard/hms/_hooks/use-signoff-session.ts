@@ -53,6 +53,11 @@ export function useSignoffSession() {
         workspace_id: workspace.workspace_id,
         actor_id: profileId ?? "",
         properties: {
+          entity: {
+            entity_type: "department_session",
+            entity_id: variables.sessionId,
+            entity_label: variables.date,
+          },
           data: { department_id: variables.departmentId, date: variables.date },
         },
       });

@@ -83,10 +83,15 @@ export async function toggleSessionTaskAction(
   // session task_completed fires only on done=true; un-check doesn't emit.
   if (parsed.data.done) {
     await emit({
-      event: "session task_completed",
+      event: "session_task completed",
       workspace_id: profile.workspaceId,
       actor_id: profile.profileId,
       properties: {
+        entity: {
+          entity_type: "session_task",
+          entity_id: task.id,
+          entity_label: task.title,
+        },
         data: {
           task_id: task.id,
           profile_id: profile.profileId,

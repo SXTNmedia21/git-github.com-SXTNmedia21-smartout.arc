@@ -256,12 +256,17 @@ export const completeTask = defineTool({
     // so the event fans out to PostHog + logger + activity_trail + engine_event,
     // matching the Server Action's behaviour. Prior direct engine_event insert
     // produced non-equivalent audit trails for agent-completed vs human-
-    // completed tasks. Event name aligned with registry: "session task_completed".
+    // completed tasks. Event name aligned with registry: "session_task completed".
     await emit({
-      event: "session task_completed",
+      event: "session_task completed",
       workspace_id: ctx.workspaceId,
       actor_id: ctx.profileId,
       properties: {
+        entity: {
+          entity_type: "session_task",
+          entity_id: params.task_id,
+          entity_label: data.title,
+        },
         data: {
           task_id: params.task_id,
           profile_id: ctx.profileId,

@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { createClient } from "@smartout/supabase/server";
+import { createAdminClient } from "@smartout/supabase/admin";
 import { emit } from "@smartout/telemetry";
 import { revalidatePath } from "next/cache";
 import { resolveCurrentProfile, hasMinimumRole, detectPii } from "./_shared";
@@ -60,7 +60,13 @@ export async function sendBroadcastAction(input: SendBroadcastInput): Promise<Se
     };
   }
 
-  const supabase = await createClient();
+  // Service-role client: `channel_jwt_insert` RLS permits only
+  // `channel_type IN ('custom','direct')` — 'news' is blocked under user JWT.
+  // `channel_message_jwt_insert` requires channel_member row for sender; no
+  // auto-join for news. Post-impl R1 fix: bypass RLS after role + workspace
+  // checks (resolveCurrentProfile + hasMinimumRole above guarantee caller
+  // authority; admin client writes with workspace_id from server-derived profile).
+  const supabase = createAdminClient();
 
   // Resolve-or-create the workspace news channel (matches useSendBroadcast pattern)
   const { data: existing } = await supabase
@@ -125,6 +131,11 @@ export async function sendBroadcastAction(input: SendBroadcastInput): Promise<Se
       },
     },
   });
+  // Note: registry shape for communication.broadcast_sent uses
+  // `properties.metadata` (not `data`) and routes to activity_trail +
+  // posthog only — activity-trail provider expects entity ref which is
+  // absent by design for this event (broadcast is a channel_message whose
+  // activity belongs in channel_event audit, not activity_trail rows).
 
   revalidatePath("/dashboard");
   return { ok: true, channelId, messageId: msg.id };

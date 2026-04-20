@@ -16,6 +16,7 @@ import { derivePhase, type UiPhase } from "@smartout/utils";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { useCurrentDepartment } from "@/app/dashboard/_hooks/use-current-department";
+import { useDailyReconciliation } from "@/app/dashboard/_hooks/use-daily-reconciliation";
 import {
   useDepartmentSessions,
   type DepartmentSessionRow,
@@ -71,6 +72,21 @@ function formatDateLabels(iso: string) {
   };
 }
 
+/**
+ * Name-based heuristic mapping department name → DeptKey. Falls back to
+ * "storage" (neutral ocean token) when no match. A proper resolution via
+ * a department metadata column is follow-up work; this heuristic prevents
+ * the previous "hardcoded kitchen for every department" header lie.
+ */
+function resolveDeptKey(name: string): "kitchen" | "floor" | "bar" | "event" | "storage" {
+  const n = name.toLowerCase();
+  if (n.includes("kjøkk") || n.includes("kjokk") || n.includes("kitchen")) return "kitchen";
+  if (n.includes("sal") || n.includes("floor") || n.includes("servi")) return "floor";
+  if (n.includes("bar")) return "bar";
+  if (n.includes("event") || n.includes("selskap")) return "event";
+  return "storage";
+}
+
 function getElapsedText(phase: UiPhase, session: DepartmentSessionRow | null): string | undefined {
   if (!session) return undefined;
   if (phase === "active" && session.openedAt) {
@@ -103,8 +119,12 @@ export function WebDayControl({ initialTab = "overview" }: { initialTab?: TabKey
       ? (sessionsQuery.data.find((s) => s.departmentId === currentDept.departmentId) ?? null)
       : null;
 
-  // Derive phase — `locked` resolution depends on daily_reconciliation, wired in PR 3.
-  const phase: UiPhase = session ? derivePhase({ status: session.status }) : "upcoming";
+  // Reconciliation feeds `locked` derivation (L-0064): `locked` = `closed`
+  // session + `reconciliation.status = 'locked'`. Null recon = "not locked".
+  const reconQuery = useDailyReconciliation(currentDept?.departmentId ?? null, dateISO);
+  const phase: UiPhase = session
+    ? derivePhase({ status: session.status }, reconQuery.data ?? null)
+    : "upcoming";
 
   // Pin session context for Botsson — no-op stub in PR 2, real impl in PR 3.
   useEffect(() => {
@@ -137,7 +157,7 @@ export function WebDayControl({ initialTab = "overview" }: { initialTab?: TabKey
     month: dateLabels.month,
     relativeLabel: "I dag",
     departmentName: currentDept.departmentName,
-    departmentKey: "kitchen" as const, // TODO(live-data): PR 3 — resolve from department metadata
+    departmentKey: resolveDeptKey(currentDept.departmentName),
     location: wsCtx?.workspace.name ?? "",
     plannedOpen: session.plannedOpen ?? "—",
     plannedClose: session.plannedClose ?? "—",

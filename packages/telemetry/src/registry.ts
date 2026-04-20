@@ -737,6 +737,7 @@ export interface SessionOpened extends BaseEvent {
 export interface SessionPendingSignoff extends BaseEvent {
   event: "session pending_signoff";
   properties: {
+    entity: EntityRef;
     data: {
       department_id: string;
       date: string;
@@ -747,6 +748,7 @@ export interface SessionPendingSignoff extends BaseEvent {
 export interface SessionClosed extends BaseEvent {
   event: "session closed";
   properties: {
+    entity: EntityRef;
     data: {
       department_id: string;
       date: string;
@@ -787,8 +789,9 @@ export interface SessionHookDeleted extends BaseEvent {
 }
 
 export interface SessionTaskCompleted extends BaseEvent {
-  event: "session task_completed";
+  event: "session_task completed";
   properties: {
+    entity: EntityRef;
     data: {
       task_id: string;
       profile_id: string;
@@ -4952,7 +4955,7 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "activity_trail", "engine_event"],
     category: "operations",
   },
-  "session task_completed": {
+  "session_task completed": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "operations",
   },
