@@ -13,7 +13,7 @@ import { useState } from "react";
 import { useTranslation } from "@smartout/i18n";
 import { Loader2, ShieldCheck, ShieldAlert, ShieldOff } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
-import { useSeasonPolicyBindings } from "../_hooks";
+import { useSeasonPolicyBindings } from "@/app/dashboard/year-wheel/_hooks";
 
 type Props = {
   seasonId: string;

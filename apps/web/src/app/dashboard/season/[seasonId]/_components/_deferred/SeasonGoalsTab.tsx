@@ -13,7 +13,7 @@ import { useTranslation } from "@smartout/i18n";
 import { Plus, Check, X, Trash2, RotateCcw, Loader2, Target } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useSeasonGoals } from "../_hooks";
+import { useSeasonGoals } from "@/app/dashboard/year-wheel/_hooks";
 import type { SeasonGoalStatus } from "@/lib/cascade/types";
 
 type Props = {
