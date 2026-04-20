@@ -12,6 +12,11 @@ import { loginAsAdmin } from "../helpers/auth";
  *
  * Ref: docs/superpowers/specs/2026-04-20-year-wheel-redesign-design.md §14
  */
+// Run serially within this describe so parallel workers don't thrash
+// Turbopack dev-server first-compile. Also gives each test a 60s budget.
+// CI enforces `workers: 1` globally; this is a local-DX stabilizer.
+test.describe.configure({ mode: "serial", timeout: 60_000 });
+
 test.describe("Season Planning — Critical Flows", () => {
   test.beforeEach(async ({ page }) => {
     await loginAsAdmin(page);

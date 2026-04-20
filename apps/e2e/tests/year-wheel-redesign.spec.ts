@@ -24,6 +24,13 @@ import { loginAsAdmin } from "../helpers/auth";
  * Ref: docs/journeys/JOURNEY-year-wheel.md
  */
 
+// Run serially within this describe so parallel workers don't thrash
+// Turbopack dev-server first-compile. Also gives each test a 60s budget
+// (default 30s is tight when Turbopack is doing route compile + HMR under
+// load). CI enforces `workers: 1` globally (playwright.config.ts:24) so
+// this is a local-DX stabilizer, not a CI change.
+test.describe.configure({ mode: "serial", timeout: 60_000 });
+
 test.describe("Year Wheel Redesign — New Flows", () => {
   test.beforeEach(async ({ page }) => {
     await loginAsAdmin(page);
