@@ -116,7 +116,12 @@ export function useSeasons(workspaceId: string | null, profileId: string | null)
             entity_id: data.season_id,
             entity_label: name,
           },
-          data: { name, status: "draft" },
+          data: {
+            name,
+            status: "draft",
+            color: data.color ?? null,
+            planning_cycle_id: data.planning_cycle_id ?? null,
+          },
         },
       });
       queryClient.invalidateQueries({

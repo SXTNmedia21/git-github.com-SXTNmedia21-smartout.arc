@@ -1125,7 +1125,12 @@ export interface SeasonCreated extends BaseEvent {
   event: "season created";
   properties: {
     entity: EntityRef;
-    data: { name: string; status: string };
+    data: {
+      name: string;
+      status: string;
+      color?: string | null;
+      planning_cycle_id?: string | null;
+    };
   };
 }
 
