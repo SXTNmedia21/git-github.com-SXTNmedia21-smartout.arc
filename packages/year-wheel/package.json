@@ -12,6 +12,8 @@
   "scripts": {
     "lint": "eslint src/",
     "typecheck": "npx tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "clean": "rimraf dist .turbo"
   },
   "dependencies": {
@@ -20,7 +22,8 @@
     "@smartout/telemetry": "workspace:*"
   },
   "devDependencies": {
-    "@smartout/typescript-config": "workspace:*"
+    "@smartout/typescript-config": "workspace:*",
+    "vitest": "^4.0.18"
   },
   "peerDependencies": {
     "@tanstack/react-query": "^5",

@@ -22,10 +22,12 @@ export type Season = {
   planning_cycle_id: string | null;
 };
 
-type CreateSeasonInput = {
+export type CreateSeasonInput = {
   name: string;
   startDate?: string | null;
   endDate?: string | null;
+  color?: string | null;
+  planningCycleId?: string | null;
 };
 
 type UpdateSeasonDatesInput = {
@@ -92,6 +94,8 @@ export function useSeasons(workspaceId: string | null, profileId: string | null)
           start_date: input.startDate ?? null,
           end_date: input.endDate ?? null,
           status: "draft",
+          color: input.color ?? null,
+          planning_cycle_id: input.planningCycleId ?? null,
         })
         .select(
           "season_id, name, slug, season_type, start_date, end_date, status, is_default, color, icon, description, planning_cycle_id",
