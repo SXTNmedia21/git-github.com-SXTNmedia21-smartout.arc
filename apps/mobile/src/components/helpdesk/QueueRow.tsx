@@ -61,7 +61,12 @@ export function QueueRow({ ticket, onPress }: QueueRowProps) {
       </View>
       {ticket.status === "waiting" ? (
         <View style={styles.dot} aria-hidden>
-          <ResponsibilityOrb status="waiting" size={10} />
+          {/*
+            12pt instead of 10pt — at 10 the pulse amplitude was near-invisible
+            on common phone DPIs (Council frontend 2026-04-20). Size matches
+            the tab-badge dot so "waiting" reads consistently across surfaces.
+          */}
+          <ResponsibilityOrb status="waiting" size={12} />
         </View>
       ) : null}
     </Pressable>

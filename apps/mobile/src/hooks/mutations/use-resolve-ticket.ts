@@ -77,9 +77,18 @@ async function resolve(input: Input): Promise<Result> {
     resolved_at: new Date().toISOString(),
     resolved_by: ctx.profileId,
   };
+  // completed_at mirrors engine-dispatch/index.ts — every terminal transition
+  // to 'complete' must stamp completed_at or SLA/reporting queries drop this
+  // ticket off the timeline.
+  const nowIso = new Date().toISOString();
   const { error } = await supabase
     .from("engine_state")
-    .update({ status: "complete", context: nextContext, updated_at: new Date().toISOString() })
+    .update({
+      status: "complete",
+      context: nextContext,
+      updated_at: nowIso,
+      completed_at: nowIso,
+    })
     .eq("id", input.ticket_id);
   if (error) return { ok: false, error: error.message };
 
