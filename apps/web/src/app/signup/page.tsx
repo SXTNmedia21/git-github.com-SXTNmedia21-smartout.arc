@@ -4,7 +4,11 @@ import { useState, useEffect } from "react";
 
 import Link from "next/link";
 import Image from "next/image";
+import { Mail, Lock, Sparkles, ArrowRight, Send } from "lucide-react";
 import { createClient } from "@smartout/supabase/client";
+import { cn } from "@/lib/utils";
+import { AuthBrandPanel } from "@/components/auth/AuthBrandPanel";
+import { AuthIconInput } from "@/components/auth/AuthIconInput";
 
 // UI Events:
 // - nav: /join (form submit success, localhost)
@@ -212,314 +216,267 @@ export default function SignupPage() {
     }
   }
 
-  // --- Offline saved state ---
-  if (savedOffline) {
+  // ── Confirmation / message states — rendered inside Nordic Split ──
+  function renderConfirmation(
+    title: string,
+    body: React.ReactNode,
+    linkHref: string,
+    linkLabel: string,
+  ) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[oklch(0.985_0.005_60)] px-4">
-        <div className="pointer-events-none fixed inset-0 overflow-hidden">
-          <div className="absolute -top-[40%] left-1/2 h-[80vh] w-[80vh] -translate-x-1/2 rounded-full bg-[oklch(0.92_0.04_55)] blur-[120px]" />
+      <div className="animate-auth-in text-center" style={{ animationDelay: "100ms" }}>
+        <div className="bg-success/10 mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl">
+          <Mail className="text-success h-6 w-6" />
         </div>
-        <div className="relative z-10 w-full max-w-[400px]">
-          <div className="animate-auth-in border-border/60 bg-background/70 rounded-2xl border p-8 text-center shadow-[0_4px_24px_-4px_rgba(0,0,0,0.06)] backdrop-blur-xl">
-            <div className="bg-warning/10 mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl">
-              <span className="text-2xl">&#128203;</span>
-            </div>
-            <h2 className="font-heading text-foreground text-2xl">Registreringen er lagret</h2>
-            <p className="text-muted-foreground mt-3 text-sm leading-relaxed">
-              Vi har lagret e-postadressen din <strong className="text-foreground">{email}</strong>{" "}
-              lokalt. Registreringen fullføres automatisk neste gang du besøker denne siden.
-            </p>
-            <Link
-              href="/"
-              className="text-brand-orange hover:text-brand-orange/80 mt-6 inline-block text-sm font-medium transition-colors duration-150"
-            >
-              Tilbake til forsiden
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // --- Magic link sent confirmation ---
-  if (magicLinkSent) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[oklch(0.985_0.005_60)] px-4">
-        <div className="pointer-events-none fixed inset-0 overflow-hidden">
-          <div className="absolute -top-[40%] left-1/2 h-[80vh] w-[80vh] -translate-x-1/2 rounded-full bg-[oklch(0.92_0.04_55)] blur-[120px]" />
-        </div>
-        <div className="relative z-10 w-full max-w-[400px]">
-          <div className="animate-auth-in border-border/60 bg-background/70 rounded-2xl border p-8 text-center shadow-[0_4px_24px_-4px_rgba(0,0,0,0.06)] backdrop-blur-xl">
-            <div className="bg-success/10 mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl">
-              <span className="text-2xl">&#9993;&#65039;</span>
-            </div>
-            <h2 className="font-heading text-foreground text-2xl">Sjekk e-posten din</h2>
-            <p className="text-muted-foreground mt-3 text-sm leading-relaxed">
-              Vi har sendt en innloggingslenke til{" "}
-              <strong className="text-foreground">{email}</strong>. Klikk lenken for å komme i gang.
-            </p>
-            <Link
-              href="/login"
-              className="text-brand-orange hover:text-brand-orange/80 mt-6 inline-block text-sm font-medium transition-colors duration-150"
-            >
-              Tilbake til innlogging
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // --- Email confirmation sent (password signup) ---
-  if (success) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[oklch(0.985_0.005_60)] px-4">
-        <div className="pointer-events-none fixed inset-0 overflow-hidden">
-          <div className="absolute -top-[40%] left-1/2 h-[80vh] w-[80vh] -translate-x-1/2 rounded-full bg-[oklch(0.92_0.04_55)] blur-[120px]" />
-        </div>
-        <div className="relative z-10 w-full max-w-[400px]">
-          <div className="animate-auth-in border-border/60 bg-background/70 rounded-2xl border p-8 text-center shadow-[0_4px_24px_-4px_rgba(0,0,0,0.06)] backdrop-blur-xl">
-            <div className="bg-success/10 mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl">
-              <span className="text-2xl">&#9993;&#65039;</span>
-            </div>
-            <h2 className="font-heading text-foreground text-2xl">Sjekk e-posten din</h2>
-            <p className="text-muted-foreground mt-3 text-sm leading-relaxed">
-              Vi har sendt en bekreftelseslenke til{" "}
-              <strong className="text-foreground">{email}</strong>.
-            </p>
-            <Link
-              href="/login"
-              className="text-brand-orange hover:text-brand-orange/80 mt-6 inline-block text-sm font-medium transition-colors duration-150"
-            >
-              Tilbake til innlogging
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // --- Main signup form ---
-  return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-[oklch(0.985_0.005_60)] px-4">
-      {/* Warm ambient glow — two overlapping orbs for depth */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -top-[40%] left-1/2 h-[80vh] w-[80vh] -translate-x-1/2 rounded-full bg-[oklch(0.92_0.04_55)] blur-[120px]" />
-        <div className="absolute -right-[10%] -bottom-[20%] h-[50vh] w-[50vh] rounded-full bg-[oklch(0.95_0.02_40)] blur-[100px]" />
-      </div>
-
-      <div className="relative z-10 w-full max-w-[400px]">
-        {/* Logo — enters first */}
-        <div className="animate-auth-in mb-8 text-center" style={{ animationDelay: "0ms" }}>
-          <Image
-            src="/smartout-logo.png"
-            alt="Smartout"
-            width={140}
-            height={48}
-            className="inline-block"
-            priority
-          />
-        </div>
-
-        {/* Frosted glass card */}
-        <div
-          className="animate-auth-in border-border/60 bg-background/70 rounded-2xl border p-8 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.06)] backdrop-blur-xl"
-          style={{ animationDelay: "80ms" }}
+        <h2 className="font-heading text-foreground text-3xl tracking-tight">{title}</h2>
+        <p className="text-muted-foreground mt-3 text-sm leading-relaxed">{body}</p>
+        <Link
+          href={linkHref}
+          className="text-brand-orange hover:text-brand-orange/80 mt-6 inline-block text-sm font-medium transition-colors duration-150"
         >
-          {/* Heading */}
-          <div className="animate-auth-in mb-6 text-center" style={{ animationDelay: "140ms" }}>
-            <h1 className="font-heading text-foreground text-[1.85rem] leading-tight tracking-tight">
-              Kom i gang
-            </h1>
-            <p className="text-muted-foreground mt-1.5 text-[0.875rem]">
-              Opprett konto for å starte med Smartout.
-            </p>
-          </div>
+          {linkLabel}
+        </Link>
+      </div>
+    );
+  }
 
-          {/* Error */}
-          {error && (
-            <div className="border-destructive/20 bg-destructive/5 text-destructive mb-5 rounded-lg border px-4 py-3 text-center text-sm">
-              {error}
-            </div>
+  let formContent: React.ReactNode;
+
+  if (savedOffline) {
+    formContent = renderConfirmation(
+      "Registreringen er lagret",
+      <>
+        Vi har lagret e-postadressen din <strong className="text-foreground">{email}</strong>{" "}
+        lokalt. Registreringen fullføres automatisk neste gang du besøker denne siden.
+      </>,
+      "/",
+      "Tilbake til forsiden",
+    );
+  } else if (magicLinkSent) {
+    formContent = renderConfirmation(
+      "Sjekk e-posten din",
+      <>
+        Vi har sendt en innloggingslenke til <strong className="text-foreground">{email}</strong>.
+        Klikk lenken for å komme i gang.
+      </>,
+      "/login",
+      "Tilbake til innlogging",
+    );
+  } else if (success) {
+    formContent = renderConfirmation(
+      "Sjekk e-posten din",
+      <>
+        Vi har sendt en bekreftelseslenke til <strong className="text-foreground">{email}</strong>.
+      </>,
+      "/login",
+      "Tilbake til innlogging",
+    );
+  } else {
+    formContent = (
+      <>
+        <div className="animate-auth-in mb-8" style={{ animationDelay: "100ms" }}>
+          <h1 className="font-heading text-foreground text-[2rem] leading-[1.1] tracking-tight">
+            Opprett konto
+          </h1>
+          <p className="text-muted-foreground mt-2 text-sm">Start ny arbeidsplass i Smartout.</p>
+        </div>
+
+        {/* Tabs: Magisk lenke / Passord */}
+        <div className="animate-auth-in mb-6" style={{ animationDelay: "160ms" }}>
+          <div className="bg-muted/40 inline-flex rounded-xl p-1">
+            {(
+              [
+                { value: "magic-link", label: "Magisk lenke" },
+                { value: "password", label: "Passord" },
+              ] as const
+            ).map((t) => (
+              <button
+                key={t.value}
+                type="button"
+                onClick={() => {
+                  setEmailMethod(t.value);
+                  setError(null);
+                }}
+                className={cn(
+                  "rounded-lg px-4 py-1.5 text-[0.8125rem] font-medium transition-all duration-200",
+                  emailMethod === t.value
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {error && (
+          <div className="border-destructive/20 bg-destructive/5 text-destructive animate-auth-in mb-5 rounded-xl border px-4 py-3 text-sm">
+            {error}
+          </div>
+        )}
+
+        <div className="animate-auth-in" style={{ animationDelay: "220ms" }}>
+          {emailMethod === "magic-link" ? (
+            <form onSubmit={handleMagicLink} className="space-y-4">
+              <AuthIconInput
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="navn@bedrift.no"
+                label="E-post"
+                icon={<Mail className="h-4 w-4" />}
+              />
+              <button
+                type="submit"
+                disabled={loading}
+                className="bg-brand-orange flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-[0_2px_12px_oklch(0.65_0.22_40/0.25)] transition-all duration-200 hover:shadow-[0_4px_20px_oklch(0.65_0.22_40/0.35)] hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
+              >
+                <Send className="h-4 w-4" />
+                {loading ? "Sender lenke..." : "Send lenke"}
+              </button>
+              <p className="text-muted-foreground text-xs leading-relaxed">
+                Vi sender deg en magisk lenke. Ingen passord nødvendig.
+              </p>
+            </form>
+          ) : (
+            <form onSubmit={handlePasswordSignup} className="space-y-4">
+              <AuthIconInput
+                id="email-pw"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="navn@bedrift.no"
+                label="E-post"
+                icon={<Mail className="h-4 w-4" />}
+              />
+              <AuthIconInput
+                id="password"
+                name="password"
+                type="password"
+                autoComplete="new-password"
+                required
+                minLength={8}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Min. 8 tegn"
+                label="Passord"
+                icon={<Lock className="h-4 w-4" />}
+                withPasswordToggle
+              />
+              <AuthIconInput
+                id="confirm-password"
+                name="confirm-password"
+                type="password"
+                autoComplete="new-password"
+                required
+                minLength={8}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Bekreft passord"
+                label="Bekreft"
+                icon={<Lock className="h-4 w-4" />}
+                withPasswordToggle
+              />
+              <button
+                type="submit"
+                disabled={loading}
+                className="bg-brand-orange flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-[0_2px_12px_oklch(0.65_0.22_40/0.25)] transition-all duration-200 hover:shadow-[0_4px_20px_oklch(0.65_0.22_40/0.35)] hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
+              >
+                {loading ? "Oppretter konto..." : "Opprett konto"}
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            </form>
           )}
+        </div>
 
-          {/* Google SSO — primary option */}
-          <div className="animate-auth-in" style={{ animationDelay: "200ms" }}>
-            <button
-              type="button"
-              onClick={handleGoogleSignup}
-              disabled={googleLoading || loading}
-              className="border-border bg-background text-foreground hover:border-border/60 hover:bg-accent flex w-full items-center justify-center gap-3 rounded-xl border px-4 py-2.5 text-sm font-medium shadow-sm transition-all duration-200 hover:shadow-md active:scale-[0.98] disabled:opacity-50"
-            >
-              <GoogleIcon />
-              {googleLoading ? "Registrerer..." : "Fortsett med Google"}
-            </button>
-          </div>
-
-          {/* Divider */}
-          <div className="animate-auth-in relative my-6" style={{ animationDelay: "260ms" }}>
-            <div className="absolute inset-0 flex items-center">
-              <div className="border-border/80 w-full border-t" />
+        {/* Divider */}
+        <div className="animate-auth-in my-6" style={{ animationDelay: "280ms" }}>
+          <div className="relative">
+            <div className="border-border/80 absolute inset-0 flex items-center">
+              <div className="w-full border-t" />
             </div>
-            <div className="relative flex justify-center text-xs">
-              <span className="bg-background/70 text-muted-foreground px-3 backdrop-blur-sm">
-                eller fortsett med e-post
+            <div className="relative flex justify-center">
+              <span className="bg-background text-muted-foreground px-3 text-[0.6875rem] tracking-[0.1em] uppercase">
+                eller
               </span>
             </div>
           </div>
+        </div>
 
-          {/* Email method toggle */}
-          <div className="animate-auth-in mb-5" style={{ animationDelay: "320ms" }}>
-            <div className="border-border bg-muted/40 flex rounded-lg border p-0.5">
-              <button
-                type="button"
-                onClick={() => setEmailMethod("magic-link")}
-                className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-200 ${
-                  emailMethod === "magic-link"
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Magisk lenke
-              </button>
-              <button
-                type="button"
-                onClick={() => setEmailMethod("password")}
-                className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-200 ${
-                  emailMethod === "password"
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Passord
-              </button>
-            </div>
+        {/* Google SSO */}
+        <div className="animate-auth-in" style={{ animationDelay: "320ms" }}>
+          <button
+            type="button"
+            onClick={handleGoogleSignup}
+            disabled={googleLoading || loading}
+            className="border-border bg-background text-foreground hover:bg-accent flex w-full items-center justify-center gap-3 rounded-xl border px-4 py-2.5 text-sm font-medium shadow-sm transition-all duration-200 hover:shadow-md active:scale-[0.98] disabled:opacity-50"
+          >
+            <GoogleIcon />
+            {googleLoading ? "Registrerer..." : "Fortsett med Google"}
+          </button>
+        </div>
+
+        {/* Invitation hint */}
+        <div
+          className="animate-auth-in border-brand-orange/20 bg-brand-orange/5 mt-5 flex gap-3 rounded-xl border p-4"
+          style={{ animationDelay: "380ms" }}
+        >
+          <Sparkles className="text-brand-orange/80 mt-0.5 h-4 w-4 shrink-0" />
+          <div className="text-[0.8125rem] leading-relaxed">
+            <strong className="text-foreground font-semibold">
+              Er du invitert av en arbeidsgiver?
+            </strong>
+            <br />
+            <span className="text-muted-foreground">
+              Bruk invitasjons-lenken du fikk på e-post eller SMS.
+            </span>
           </div>
-
-          {/* Magic link form */}
-          {emailMethod === "magic-link" && (
-            <form onSubmit={handleMagicLink} className="space-y-4">
-              <div className="animate-auth-in" style={{ animationDelay: "380ms" }}>
-                <label
-                  htmlFor="email"
-                  className="text-foreground mb-1.5 block text-[0.8125rem] font-medium"
-                >
-                  E-post
-                </label>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="border-border bg-background text-foreground placeholder:text-muted-foreground/50 focus:border-brand-orange block w-full rounded-xl border px-4 py-2.5 text-sm shadow-sm transition-[border-color,box-shadow] duration-200 focus:shadow-[0_0_0_3px_oklch(0.65_0.22_40/0.1)] focus:outline-none"
-                  placeholder="din@epost.no"
-                />
-              </div>
-
-              <div className="animate-auth-in pt-1" style={{ animationDelay: "440ms" }}>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="bg-brand-orange flex w-full justify-center rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-[0_2px_12px_oklch(0.65_0.22_40/0.25)] transition-all duration-200 hover:shadow-[0_4px_20px_oklch(0.65_0.22_40/0.35)] hover:brightness-110 active:scale-[0.98] disabled:opacity-50 disabled:hover:brightness-100"
-                >
-                  {loading ? "Sender lenke..." : "Send innloggingslenke"}
-                </button>
-              </div>
-            </form>
-          )}
-
-          {/* Password form */}
-          {emailMethod === "password" && (
-            <form onSubmit={handlePasswordSignup} className="space-y-4">
-              <div className="animate-auth-in" style={{ animationDelay: "380ms" }}>
-                <label
-                  htmlFor="email-pw"
-                  className="text-foreground mb-1.5 block text-[0.8125rem] font-medium"
-                >
-                  E-post
-                </label>
-                <input
-                  id="email-pw"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="border-border bg-background text-foreground placeholder:text-muted-foreground/50 focus:border-brand-orange block w-full rounded-xl border px-4 py-2.5 text-sm shadow-sm transition-[border-color,box-shadow] duration-200 focus:shadow-[0_0_0_3px_oklch(0.65_0.22_40/0.1)] focus:outline-none"
-                  placeholder="din@epost.no"
-                />
-              </div>
-              <div className="animate-auth-in" style={{ animationDelay: "440ms" }}>
-                <label
-                  htmlFor="password"
-                  className="text-foreground mb-1.5 block text-[0.8125rem] font-medium"
-                >
-                  Passord
-                </label>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="new-password"
-                  required
-                  minLength={8}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="border-border bg-background text-foreground placeholder:text-muted-foreground/50 focus:border-brand-orange block w-full rounded-xl border px-4 py-2.5 text-sm shadow-sm transition-[border-color,box-shadow] duration-200 focus:shadow-[0_0_0_3px_oklch(0.65_0.22_40/0.1)] focus:outline-none"
-                  placeholder="Min. 8 tegn"
-                />
-              </div>
-              <div className="animate-auth-in" style={{ animationDelay: "500ms" }}>
-                <label
-                  htmlFor="confirm-password"
-                  className="text-foreground mb-1.5 block text-[0.8125rem] font-medium"
-                >
-                  Bekreft passord
-                </label>
-                <input
-                  id="confirm-password"
-                  name="confirm-password"
-                  type="password"
-                  autoComplete="new-password"
-                  required
-                  minLength={8}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="border-border bg-background text-foreground placeholder:text-muted-foreground/50 focus:border-brand-orange block w-full rounded-xl border px-4 py-2.5 text-sm shadow-sm transition-[border-color,box-shadow] duration-200 focus:shadow-[0_0_0_3px_oklch(0.65_0.22_40/0.1)] focus:outline-none"
-                  placeholder="Bekreft passord"
-                />
-              </div>
-
-              <div className="animate-auth-in pt-1" style={{ animationDelay: "560ms" }}>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="bg-brand-orange flex w-full justify-center rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-[0_2px_12px_oklch(0.65_0.22_40/0.25)] transition-all duration-200 hover:shadow-[0_4px_20px_oklch(0.65_0.22_40/0.35)] hover:brightness-110 active:scale-[0.98] disabled:opacity-50 disabled:hover:brightness-100"
-                >
-                  {loading ? "Oppretter konto..." : "Opprett konto"}
-                </button>
-              </div>
-            </form>
-          )}
         </div>
 
         {/* Footer link */}
         <p
-          className="animate-auth-in text-muted-foreground mt-8 text-center text-sm"
-          style={{ animationDelay: "620ms" }}
+          className="animate-auth-in border-border/60 text-muted-foreground mt-8 border-t pt-5 text-sm"
+          style={{ animationDelay: "440ms" }}
         >
-          Har du allerede konto?{" "}
+          Har du konto?{" "}
           <Link
             href="/login"
-            className="text-brand-orange hover:text-brand-orange/80 font-medium transition-colors duration-150"
+            className="text-foreground hover:text-brand-orange font-medium transition-colors duration-150"
           >
-            Logg inn
+            Logg inn →
           </Link>
         </p>
+      </>
+    );
+  }
+
+  return (
+    <div className="bg-background relative flex min-h-[100dvh] overflow-hidden">
+      <AuthBrandPanel
+        headline={
+          <>
+            Teamet ditt,
+            <br />
+            <span style={{ color: "oklch(0.78 0.16 45)" }}>klar</span> fra dag en.
+          </>
+        }
+      />
+
+      <div className="flex flex-1 items-center justify-center px-6 py-12">
+        {/* Mobile logo */}
+        <div className="absolute top-8 left-1/2 -translate-x-1/2 lg:hidden">
+          <Image src="/smartout-logo.png" alt="Smartout" width={120} height={42} priority />
+        </div>
+
+        <div className="w-full max-w-[400px]">{formContent}</div>
       </div>
     </div>
   );
