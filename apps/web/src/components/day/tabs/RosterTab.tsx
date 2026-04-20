@@ -5,7 +5,15 @@ import { useRoster } from "@/app/dashboard/_hooks/use-roster";
 import { ShiftCard } from "../widgets";
 import type { DayShift, DeptKey } from "../widgets";
 
-export function RosterTab({ departmentId, dateISO }: { departmentId: string; dateISO: string }) {
+export function RosterTab({
+  departmentId,
+  dateISO,
+  deptKey,
+}: {
+  departmentId: string;
+  dateISO: string;
+  deptKey: DeptKey;
+}) {
   const q = useRoster(departmentId, dateISO);
 
   const shifts: DayShift[] = useMemo(
@@ -15,7 +23,7 @@ export function RosterTab({ departmentId, dateISO }: { departmentId: string; dat
         displayName: r.employeeName,
         role: r.role,
         initials: r.initials,
-        deptKey: "kitchen" as DeptKey, // TODO(PR 4): resolve from department metadata
+        deptKey,
         start: r.startTime,
         end: r.endTime,
         status: r.status,
@@ -24,7 +32,7 @@ export function RosterTab({ departmentId, dateISO }: { departmentId: string; dat
         plannedHours: r.plannedHours,
         actualHours: r.actualHours,
       })),
-    [q.data],
+    [q.data, deptKey],
   );
 
   if (q.isLoading) {

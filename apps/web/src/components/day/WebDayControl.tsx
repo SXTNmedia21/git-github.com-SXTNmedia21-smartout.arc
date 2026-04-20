@@ -21,7 +21,8 @@ import {
   useDepartmentSessions,
   type DepartmentSessionRow,
 } from "@/app/dashboard/hms/_hooks/use-department-sessions";
-import { pinDayControlContext } from "@/app/dashboard/_lib/pin-day-control-context";
+import { pinDayControlContextAction } from "@/app/dashboard/_actions/pin-day-control-context";
+import { resolveDeptKey } from "./dept-key";
 import { SessionHeader } from "./widgets";
 import { OverviewTab } from "./tabs/OverviewTab";
 import { TimelineTab } from "./tabs/TimelineTab";
@@ -72,21 +73,6 @@ function formatDateLabels(iso: string) {
   };
 }
 
-/**
- * Name-based heuristic mapping department name → DeptKey. Falls back to
- * "storage" (neutral ocean token) when no match. A proper resolution via
- * a department metadata column is follow-up work; this heuristic prevents
- * the previous "hardcoded kitchen for every department" header lie.
- */
-function resolveDeptKey(name: string): "kitchen" | "floor" | "bar" | "event" | "storage" {
-  const n = name.toLowerCase();
-  if (n.includes("kjøkk") || n.includes("kjokk") || n.includes("kitchen")) return "kitchen";
-  if (n.includes("sal") || n.includes("floor") || n.includes("servi")) return "floor";
-  if (n.includes("bar")) return "bar";
-  if (n.includes("event") || n.includes("selskap")) return "event";
-  return "storage";
-}
-
 function getElapsedText(phase: UiPhase, session: DepartmentSessionRow | null): string | undefined {
   if (!session) return undefined;
   if (phase === "active" && session.openedAt) {
@@ -126,18 +112,17 @@ export function WebDayControl({ initialTab = "overview" }: { initialTab?: TabKey
     ? derivePhase({ status: session.status }, reconQuery.data ?? null)
     : "upcoming";
 
-  // Pin session context for Botsson — no-op stub in PR 2, real impl in PR 3.
+  // Pin session context for Botsson via engine_memory (24h TTL). Profile +
+  // workspace are re-derived server-side inside the action per ADR-0151.
   useEffect(() => {
-    if (session && currentDept && profileId && workspaceId) {
-      void pinDayControlContext({
+    if (session && currentDept) {
+      void pinDayControlContextAction({
         sessionId: session.sessionId,
         departmentName: currentDept.departmentName,
         date: dateISO,
-        profileId,
-        workspaceId,
       });
     }
-  }, [session, currentDept, profileId, workspaceId, dateISO]);
+  }, [session, currentDept, dateISO]);
 
   if (deptQuery.isLoading || sessionsQuery.isLoading) {
     return <LoadingState />;
@@ -258,7 +243,11 @@ export function WebDayControl({ initialTab = "overview" }: { initialTab?: TabKey
             )}
             {tab === "timeline" && <TimelineTab session={session} phase={phase} />}
             {tab === "roster" && (
-              <RosterTab departmentId={currentDept.departmentId} dateISO={dateISO} />
+              <RosterTab
+                departmentId={currentDept.departmentId}
+                dateISO={dateISO}
+                deptKey={resolveDeptKey(currentDept.departmentName)}
+              />
             )}
             {tab === "tasks" && <TasksTab session={session} />}
             {tab === "deviations" && <DeviationsTab sessionId={session.sessionId} />}
