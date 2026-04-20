@@ -13,7 +13,7 @@ const PUBLIC_ROUTES = new Set([
   "/join",
   "/join-complete",
   "/reset-password",
-  "/update-password",
+  "/invite",
   "/api/smoke",
   "/api/health",
   "/api/auth/callback",
