@@ -12,7 +12,14 @@ depends_on:
   - ADR_0163
 ---
 
-> **Week 1 status (2026-04-20):** All 4 ADRs accepted. Task 1.1 (acceptance council) and Task 1.2 (status flip) COMPLETE. Week 2 (dead-infra wiring) is now unblocked.
+> **Week 1 status (2026-04-20):** All 4 ADRs accepted. Task 1.1 (acceptance council) and Task 1.2 (status flip) COMPLETE.
+>
+> **Week 2 status (2026-04-20):** COMPLETE.
+> - Task 2.1 — `channel_ai_policy` read-path wired into `send_message` tool + 10 unit tests (commit `b6aa3f51`)
+> - Task 2.2 — `channel_event` projection trigger shipped (commit `21ae0ef5`, migration `20260515120000`)
+> - Task 2.3 — Dead-infra deadline 2026-07-13 satisfied; logged in council_meta.md Process Improvements.
+>
+> Week 3 (schema sequencing drafts) is now ready to start.
 
 # Helpdesk Phase 0 — Foundations
 
