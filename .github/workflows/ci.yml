@@ -1,5 +1,8 @@
 name: CI
 
+# Force re-parse 2026-04-20: GitHub stuck in startup_failure since 2026-04-09
+# after Actions quota exhausted on Free plan. Pro activated 2026-04-20.
+
 on:
   push:
     branches: [main, development, preview]
