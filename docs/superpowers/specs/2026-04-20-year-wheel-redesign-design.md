@@ -221,8 +221,8 @@ Buttons: **Avbryt** / **Opprett sesong**.
 
 On submit:
 
-1. Call existing `createSeason` mutation (no schema change). Payload: `{ name, start_date, end_date, color, planning_cycle_id, status: 'draft' }`.
-2. Emit `season.created` telemetry (already wired in the hook).
+1. Call `createSeason` mutation. **Hook extension required** — today `CreateSeasonInput` is `{ name, startDate?, endDate? }` and the INSERT omits `color` and `planning_cycle_id`. The new UX needs the sheet to pass `color` and `planning_cycle_id`, and `startDate`/`endDate` become required. Extend the type to `{ name, startDate, endDate, color, planningCycleId }` and extend the INSERT to write those columns (both already exist on `season` — verified in the current SELECT clause). No DB migration.
+2. Emit `"season created"` telemetry (space-separated — current convention in `packages/telemetry/src/registry.ts`). The hook already emits this event; extend the `properties.data` payload to include `color` and `planning_cycle_id`.
 3. `router.push('/dashboard/season/' + newSeasonId + '?tab=budget')` — no intermediate state, no drawer.
 
 On error: sheet stays open, inline error message. No destructive side effects.
@@ -271,23 +271,13 @@ URL: `?tab=<key>` is canonical. Tab clicks do `router.replace` (no scroll). Defa
 
 One line, small, muted. Format: `← Årshjul {year} / {season.name} · {status}` where status is the translated pill label. The arrow is a plain link back to `/dashboard/year-wheel?year={year}`.
 
-### 5.4 SeasonOverviewTab — header-card removal
+### 5.4 SeasonOverviewTab — no stripping needed
 
-Current file has a summary card at the top with: status badge, big name, dates-subtitle, cycle-binding selector. Those first rows duplicate what the route's breadcrumb + submenu already communicate. Strip them.
+Phase 2.5 fact-check correction: the `SeasonOverviewTab` (344 LOC) is **not** a metadata header — it is a KPI + charts dashboard (4 KPI cards, monthly/weekly/hourly chart strips, all derived from `season_budget` + `day_factor` + `hour_factor` + operating hours). The file is kept as-is and rendered under the "Oversikt" submenu tab with **zero changes**.
 
-Keep in Overview tab:
+The "little group at the top with start and end" Pontus wants removed lives on **`SeasonDrawer` (SheetHeader with SheetTitle + status pill + SheetDescription dates)**, not on Overview tab. Deleting `SeasonDrawer` in step 7 of the migration sequence is what removes that header — nothing to strip from the Overview tab itself.
 
-- Activation gate card ("Klar til aktivering" / missing checklist + Aktiver-button)
-- Summary rows (Inntektsmål, Antall dager, Labor-mål, Teams aktive, Events i periode)
-- "Seeded fra" info chip
-- Activate / Archive / Duplicate actions
-- Team summary placeholder
-
-Remove from Overview tab:
-
-- Big name heading
-- Dates subtitle
-- Cycle-binding selector at top (move into Oversikt body if still needed — defer for now)
+Activation-gate, missing checklist, activate/archive/duplicate buttons, and "Seeded fra" chip from the 2026-04-19 holistic-design spec are **not implemented** in the current codebase. Rendering the existing Overview tab means those features continue to live in the spec as P2 — this redesign does not introduce them. Flagged as an out-of-scope follow-up (§12).
 
 ### 5.5 Direct-link behavior
 
@@ -309,18 +299,26 @@ No changes to the event scoping fix flagged in `2026-04-19-year-wheel-holistic-d
 
 ## 7. Telemetry
 
-Existing emit points preserved. New events to register:
+Convention (verified against `packages/telemetry/src/registry.ts`): event names are **space-separated**, e.g. `"season created"`, `"auth signed_up"`, `"button clicked"`. Dot-notation is not used.
 
-- `year_wheel.draw_started` — on `mousedown` begins a valid draw
-- `year_wheel.draw_completed` — on successful `onDrawCreate`, includes `{ start, end, lane }`
-- `year_wheel.draw_cancelled` — on short drag or Esc
-- `year_wheel.sidebar_filter_changed` — `{ filter: 'all|active|draft|archived' }`
-- `season.page_viewed` — on route enter, includes `{ season_id, tab }`
-- `season.tab_changed` — on submenu switch, includes `{ from, to }`
+Existing emit points preserved:
+
+- `"season created"` — extend `properties.data` to include `color` and `planning_cycle_id` (hook change from §4.2).
+
+New events to register (each needs a row in `registerEvent()` with destinations + category):
+
+- `"year_wheel draw_started"` — on `mousedown` begins a valid draw. Category: `scheduling`. Destinations: `["posthog","logger"]`.
+- `"year_wheel draw_completed"` — on successful `onDrawCreate`. Properties: `{ start, end, lane }`. Category: `scheduling`. Destinations: `["posthog","logger"]`.
+- `"year_wheel draw_cancelled"` — on short drag or Esc. Category: `scheduling`. Destinations: `["posthog","logger"]`.
+- `"year_wheel sidebar_filter_changed"` — `{ filter: 'all|active|draft|archived' }`. Category: `scheduling`. Destinations: `["posthog","logger"]`.
+- `"season page_viewed"` — on route enter, properties include `{ entity: { entity_type: 'season', entity_id, entity_label } }` + `data: { tab }`. Category: `scheduling`. Destinations: `["posthog","logger","activity_trail"]`.
+- `"season tab_changed"` — on submenu switch. Properties: entity + `data: { from, to }`. Category: `scheduling`. Destinations: `["posthog","logger"]`.
+
+Per ADR-0113 / L-0038: destinations that require `properties.entity` (activity_trail, engine_event) must have the entity set — verify at registration time, not at call site.
 
 Existing `year_navigated`, `block_clicked`, `pin_clicked` carry over unchanged.
 
-All events flow through `emit()` per CLAUDE.md "no mutation without emit" rule. Navigation-only events use `emit()` too for activity-trail.
+All events flow through `emit()` per CLAUDE.md "no mutation without emit" rule.
 
 ---
 
@@ -357,7 +355,8 @@ All events flow through `emit()` per CLAUDE.md "no mutation without emit" rule. 
 
 ## 11. Migration sequence
 
-1. **Copy tabs to the new location** — copy (do not move) `BudgetSetupTab`, `DayFactorsTab`, `HourFactorsTab`, `SeasonHoursTab`, `SeasonOverviewTab` into `season/[seasonId]/_components/`. Originals stay in place so the old drawer remains functional during steps 2–6. Strip the Overview-tab header card in the **copy** only. Commit.
+0. **Hook + telemetry extensions** — extend `createSeason` in `packages/year-wheel/src/hooks/use-seasons.ts` to accept `{ name, startDate, endDate, color, planningCycleId }` (all required except color which defaults to brand orange), write `color` and `planning_cycle_id` on INSERT, and extend the `"season created"` emit payload with both fields. Register the six new events listed in §7 in `packages/telemetry/src/registry.ts`. Commit.
+1. **Copy tabs to the new location** — copy (do not move) `BudgetSetupTab`, `DayFactorsTab`, `HourFactorsTab`, `SeasonHoursTab`, `SeasonOverviewTab` into `season/[seasonId]/_components/`. Originals stay in place so the old drawer remains functional during steps 2–6. No content changes — `SeasonOverviewTab` is KPI/charts and ships unchanged. Commit.
 2. **New season route** — create `page.tsx`, `loading.tsx`, `season-page-client.tsx`, `SeasonSubmenu.tsx`, `SeasonBreadcrumb.tsx`. Render moved tabs. Tab default = budget. Commit.
 3. **Shell rebuild (part A)** — create `YearWheelTopbar`, `SeasonSidebar`, `CompanionRail`, `LegendChip`, `AiSuggestionCard` as isolated components. Commit.
 4. **Canvas rebuild** — build `YearCanvas`, `DrawPhantom`, reworked `TimelineBlock` and `TimelinePin` under `_components/canvas/`. Commit.
@@ -369,6 +368,10 @@ All events flow through `emit()` per CLAUDE.md "no mutation without emit" rule. 
 Each step leaves the app in a working state. Step 1 keeps the old drawer still functional; steps 2–6 run in parallel to it; step 7 is the cutover.
 
 ---
+
+## 11.5. Activation / missing / seeded-from features (not this spec)
+
+The 2026-04-19 holistic-design spec envisioned activation gates, "hva mangler" checklists, Activate/Archive/Duplicate buttons, and a Seeded-from-Riksavtalen provenance chip inside the Overview tab. **None of these are implemented today.** This redesign keeps them out of scope — the new "Oversikt" tab renders the current KPI+charts file as-is. If Pontus wants any of them before activation-engine wiring lands, it's a separate, later change on top of this redesign.
 
 ## 12. Out of scope (explicit)
 
@@ -389,7 +392,7 @@ Each step leaves the app in a working state. Step 1 keeps the old drawer still f
 
 - **Color swatch presets** — six OKLCH hues. Exact values to align with `packages/design-tokens/src/tokens.ts`. Needs a 10-line lookup, not a new token.
 - **Quick-create cycle picker** — default to the active `planning_cycle` for the selected year. If none exists, show an inline "Opprett planning_cycle for {year}" link to create one (reuses existing hook if present; otherwise emit a warning and disable submit).
-- **Overview-tab stripping** — the current `SeasonOverviewTab.tsx` is 344 LOC. Stripping the header card is a ~40-line diff. If the file grows unwieldy after the route split, a follow-up splits it (not this spec).
+- **No Overview-tab modification.** Phase 2.5 fact-check established that the overview tab is a KPI/charts dashboard — the drawer owns the status/name/dates header and disappears when the drawer is deleted. No stripping, no content edit.
 - **Sidebar / rail responsive behavior below 1280px** — CSS-only rules modeled on the prototype. Keyboard-only users below 1280px retain access via the topbar (Ny-sesong button is visible at all breakpoints).
 
 ---
