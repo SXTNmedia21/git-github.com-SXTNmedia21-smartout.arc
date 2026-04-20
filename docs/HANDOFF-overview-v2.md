@@ -68,7 +68,7 @@ Widgets live at `apps/web/src/components/day/widgets/` with portability rules en
 1. **`session_hook` time labels** — `useSessionHooksWithTasks` renders hook times as midnight-offset HH:MM because it doesn't know session open time. PhaseTimeline receives correct `plannedOpen/Close`; HookTile header times are approximate. Minor cosmetic gap. Follow-up: derive exact hook time from `session.plannedOpen + trigger_offset_min`.
 2. **`tasks_total/tasks_completed` columns** — still read from `department_session` row (not derived client-side). Supervisor flagged trigger gap; deferred because the columns work "well enough" for seeded sessions. Long-term: add trigger OR deprecate columns.
 3. **Revenue/labor-cost KPIs** — Overview tab shows "—" with `source: "post-reconciliation"` label. Real values land when `daily_reconciliation` is wired.
-4. **engine_authority_config integration** — Server Actions currently enforce role via `hasMinimumRole` helper. `engine_authority_config` table has no `min_role` column and no platform-default support (workspace_id NOT NULL). Table-based authority model is a separate track; when schema extends with `min_role`, `hasMinimumRole` should read from it.
+4. **engine_authority_config integration** — Server Actions currently enforce role via `hasMinimumRole` helper (hardcoded `employee < manager < admin < owner` in `_shared.ts`). **Correction (post-council 2026-04-19):** `engine_authority_config.min_role` column DOES exist (added by `supabase/migrations/20260410000001_add_min_role_to_authority_config.sql`), and `gate_action()` function already consumes it via `_role_rank()` comparator (`20260509100000_gate_action_four_eyes_history.sql`). The real follow-up is a code-only refactor to wire `hasMinimumRole` callers through `gate_action()` — see Linear ticket T3 for scope.
 5. **Deviation scoping** — `DeviationsTab` shows workspace-wide deviations; session-scoped filter can be added via existing `useDeviations({ sessionId })` option once seed data makes it meaningful.
 6. **Broadcast feed** — currently shows only in-session successful sends (local React state). Reading existing news-channel history via `useChannelMessages` is a small follow-up.
 
@@ -77,7 +77,7 @@ Widgets live at `apps/web/src/components/day/widgets/` with portability rules en
 1. **Merge to development** — feat/overview-v2 is ready for close-feature.sh.
 2. **Follow-up PR (tracked)** — session_hook time derivation (#1 above).
 3. **Mobile extraction** — when mobile consumer needs the same widgets, extract `components/day/` → `packages/ui/day-control/` per ADR-0156.
-4. **engine_authority_config min_role** — separate ADR when the table-based authority model is picked up.
+4. **engine_authority_config min_role wiring** — schema exists; wire `hasMinimumRole()` callers through the existing `gate_action()` function. Code-only refactor.
 5. **Revenue KPIs** — gated on `daily_reconciliation` wiring (ReconciliationView already reads this; WebDayControl can reuse).
 
 ## Verification
