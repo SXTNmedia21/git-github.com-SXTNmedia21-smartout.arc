@@ -6,6 +6,7 @@ import { emit } from "@smartout/telemetry";
 import { defineTool } from "../../types.js";
 import type { AgentToolContext } from "../types.js";
 import { getQueryEmbedding } from "../../embedding.js";
+import { isAiAllowedInChannel } from "./policy.js";
 
 export const getConversations = defineTool({
   name: "get_conversations",
@@ -130,6 +131,15 @@ export const sendMessage = defineTool({
   schema: z.object({
     channel_id: z.string().uuid().describe("The channel ID to send the message to"),
     content: z.string().min(1).max(2000).describe("The message text to send"),
+    is_proactive: z
+      .boolean()
+      .optional()
+      .default(false)
+      .describe(
+        "True when the agent is pushing an unprompted message (auto-reminders, auto-shift-prep). " +
+          "False (default) for responses — channel_ai_policy.mention_only channels accept defaults but " +
+          "reject proactive sends.",
+      ),
   }),
   execute: async (params, ctx: AgentToolContext) => {
     const supabase = ctx.supabaseAdmin;
@@ -144,6 +154,20 @@ export const sendMessage = defineTool({
 
     if (memberError || !member) {
       return "You are not a member of this channel.";
+    }
+
+    // ADR-0163 / policy gate: honor channel_ai_policy before writing.
+    // Layer 2 of the three-layer defense (process.allowed_channels,
+    // capability.allowedChannels, this). `is_proactive=false` acts as
+    // an implicit mention — channels in mention_only accept responses.
+    const allowed = await isAiAllowedInChannel(
+      supabase,
+      params.channel_id,
+      "text",
+      !params.is_proactive,
+    );
+    if (!allowed) {
+      return "AI participation is disabled in this channel per channel_ai_policy.";
     }
 
     // Insert the message

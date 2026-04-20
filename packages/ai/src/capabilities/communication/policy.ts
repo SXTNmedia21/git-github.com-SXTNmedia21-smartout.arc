@@ -63,12 +63,12 @@ export async function getChannelAiPolicy(
  * - voice listen_only → can listen/transcribe but not speak
  * - voice interactive → full voice participation
  *
- * TODO: Integrate this check into the agent router's response pipeline.
- * Call isAiAllowedInChannel() before generating a response when the context
- * includes a channel_id. The router should:
- *   1. Extract channel_id from the conversation/session context
- *   2. Call isAiAllowedInChannel(supabase, channelId, "text", isMentioned)
- *   3. If false, return a silent no-op or a polite "I'm not active in this channel" message
+ * Integration: the `send_message` tool (capability `communication`) calls
+ * this before every INSERT into `channel_message`. Agent-driven sends
+ * default to `isDirectlyMentioned=true` because the agent's `send_message`
+ * invocation is itself a response to an instruction. Proactive auto-push
+ * scenarios (auto-shift-prep, auto-reminders) will pass `false` explicitly
+ * once implemented — those will only succeed when policy is `proactive`.
  */
 export async function isAiAllowedInChannel(
   supabase: SupabaseClient,
