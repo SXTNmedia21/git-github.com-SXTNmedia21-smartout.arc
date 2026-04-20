@@ -3,10 +3,13 @@ id: "0021"
 title: Subdomain-Based Workspace Routing
 status: Accepted
 date: 2026-02-28
+updated: 2026-04-20
 layer: decision
 ---
 
 # ADR-0021: Subdomain-Based Workspace Routing
+
+> **Amendment 2026-04-20 (ADR-0167/0168/0169 auth council):** `app.smartout.ai` is the **canonical auth portal subdomain**. All auth routes (`/login`, `/signup`, `/join`, `/reset-password`, `/update-password`, `/invitation/[token]`, `/confirm-email`, `/select-workspace`, `/welcome`) live on the portal subdomain only — workspace subdomains (`{slug}.smartout.ai`) must redirect any auth-route request to the portal. The portal is identity-agnostic (does not know which workspace you're going to); workspace subdomains are the arbeidsflate (work surface) only. See Phase 6 of the Auth & Invitation spec for redirect rules.
 
 ## Context and Problem Statement
 
