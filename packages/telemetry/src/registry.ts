@@ -1271,6 +1271,55 @@ export interface YearWheelYearNavigated extends BaseEvent {
   };
 }
 
+// ─── Year-Wheel Canvas Events (redesign, ADR-0164) ──────────
+// Dual-registered per L-0072: interface + runtime EVENT_ROUTING entry.
+// All six use the "season " prefix (domain not widget) so any future
+// non-wheel surface that wants to observe draw/filter/view activity
+// subscribes to the same stream.
+
+export interface SeasonDrawStarted extends BaseEvent {
+  event: "season draw_started";
+  properties: {
+    data: { year: number; lane: number };
+  };
+}
+
+export interface SeasonDrawCompleted extends BaseEvent {
+  event: "season draw_completed";
+  properties: {
+    data: { start: string; end: string; lane: number };
+  };
+}
+
+export interface SeasonDrawCancelled extends BaseEvent {
+  event: "season draw_cancelled";
+  properties: {
+    data: { reason: "short_drag" | "esc" | "mouse_exit" | "sheet_abandoned" };
+  };
+}
+
+export interface SeasonSidebarFilterChanged extends BaseEvent {
+  event: "season sidebar_filter_changed";
+  properties: {
+    data: { filter: "all" | "active" | "draft" | "archived" };
+  };
+}
+
+export interface SeasonYearWheelViewed extends BaseEvent {
+  event: "season year_wheel_viewed";
+  properties: {
+    data: { year: number; seasons_count: number };
+  };
+}
+
+export interface SeasonTabChanged extends BaseEvent {
+  event: "season tab_changed";
+  properties: {
+    entity: EntityRef;
+    data: { from: string; to: string };
+  };
+}
+
 export interface HourFactorsUpdated extends BaseEvent {
   event: "hour_factors updated";
   properties: {
@@ -4552,6 +4601,12 @@ export type SmartoutEvent =
   | YearWheelBlockClicked
   | YearWheelPinClicked
   | YearWheelYearNavigated
+  | SeasonDrawStarted
+  | SeasonDrawCompleted
+  | SeasonDrawCancelled
+  | SeasonSidebarFilterChanged
+  | SeasonYearWheelViewed
+  | SeasonTabChanged
   | DayFactorsUpdated
   | HourFactorsUpdated
   | OperatingHoursUpdated
@@ -5322,6 +5377,30 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "season year_navigated": {
     destinations: ["posthog"],
+    category: "navigation",
+  },
+  "season draw_started": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+  "season draw_completed": {
+    destinations: ["posthog", "logger"],
+    category: "operations",
+  },
+  "season draw_cancelled": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+  "season sidebar_filter_changed": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+  "season year_wheel_viewed": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+  "season tab_changed": {
+    destinations: ["posthog", "logger"],
     category: "navigation",
   },
   "season_budget updated": {
