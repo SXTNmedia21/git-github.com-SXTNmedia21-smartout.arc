@@ -20,6 +20,7 @@ import { createClient } from "@smartout/supabase/client";
 import { emit } from "@smartout/telemetry";
 import { AuthBrandPanel } from "@/components/auth/AuthBrandPanel";
 import { AuthIconInput } from "@/components/auth/AuthIconInput";
+import { PasswordStrengthMeter } from "@/components/auth/PasswordStrengthMeter";
 
 /**
  * Hash an email with SHA-256 for enumeration-safe telemetry.
@@ -170,21 +171,6 @@ export default function ResetPasswordPage() {
       setTimeout(() => router.push("/login"), 2000);
     }
   };
-
-  // ── Password strength (simple heuristic, update mode only) ──
-  const pwStrength = (() => {
-    if (!password) return 0;
-    let s = 0;
-    if (password.length >= 8) s++;
-    if (password.length >= 12) s++;
-    if (/[A-Z]/.test(password)) s++;
-    if (/\d/.test(password)) s++;
-    if (/[^A-Za-z0-9]/.test(password)) s++;
-    return s;
-  })();
-  const pwStrengthLabel = (["—", "Svakt", "Svakt", "Middels", "Sterk", "Sterk"] as const)[
-    pwStrength
-  ];
 
   const panelHeadline =
     mode === "update" && forceMigration ? (
@@ -343,35 +329,7 @@ export default function ResetPasswordPage() {
                   withPasswordToggle
                 />
 
-                {/* Strength meter */}
-                <div>
-                  <div className="text-muted-foreground mb-1.5 flex justify-between text-xs">
-                    <span>Styrke</span>
-                    <span className={pwStrength >= 4 ? "text-success" : undefined}>
-                      {pwStrengthLabel}
-                    </span>
-                  </div>
-                  <div className="flex gap-1">
-                    {[1, 2, 3, 4, 5].map((i) => (
-                      <div
-                        key={i}
-                        className={
-                          "h-1 flex-1 rounded-full " +
-                          (i <= pwStrength
-                            ? pwStrength >= 4
-                              ? "bg-success"
-                              : pwStrength >= 3
-                                ? "bg-warning"
-                                : "bg-destructive"
-                            : "bg-border")
-                        }
-                      />
-                    ))}
-                  </div>
-                  <p className="text-muted-foreground mt-2 text-xs">
-                    Min. 8 tegn · inkl. stor bokstav · inkl. tall
-                  </p>
-                </div>
+                <PasswordStrengthMeter password={password} />
 
                 <button
                   type="submit"
