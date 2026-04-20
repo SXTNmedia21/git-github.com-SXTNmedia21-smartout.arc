@@ -3,7 +3,7 @@ title: Development Dashboard
 status: live
 updated: 2026-04-20
 last-reconciled: 2026-04-20
-last-event: campaign/helpdesk created 2026-04-20
+last-event: helpdesk sub-sorties wt-1 (shared-primitives) + wt-2 (web) active
 module: meta
 tags: [dashboard, worktrees, campaigns, git-state]
 ---
@@ -19,7 +19,7 @@ tags: [dashboard, worktrees, campaigns, git-state]
 
 | # | Branch | Module | Last Commit | Dirty | Journeys |
 |---|--------|--------|-------------|-------|----------|
-| — | `development` (main repo) | — | `70103fc0` — fix(helpdesk): 4 council blockers before UI | 1 (docs/DASHBOARD.md) | — |
+| — | `development` (main repo) | — | `234a06f7` — Merge pull request #225 (helpdesk Phase 1 UI) | 0 | — |
 
 _No active sorties._
 
@@ -27,13 +27,16 @@ _No active sorties._
 
 | Campaign | Branch | Module | Last Commit | Dirty | vs development | Last Sync |
 |---|---|---|---|---|---|---|
-| botsson-arena | `campaign/botsson-arena` | botsson | 30 min ago — docs(campaign): add botsson-arena roadmap | 0 | 42 behind, 1 ahead | never |
-| year-wheel | `campaign/year-wheel` | year-wheel | 10 min ago — docs(campaign): scaffold year-wheel roadmap | 0 | 1 behind, 1 ahead | never |
-| helpdesk | `campaign/helpdesk` | Helpdesk | just now — docs(campaign): scaffold helpdesk roadmap | 0 | 0 behind, 1 ahead | never |
+| botsson-arena | `campaign/botsson-arena` | botsson | 2 hours ago — docs(campaign): add botsson-arena roadmap | 0 | 49 behind, 0 ahead | never |
+| helpdesk | `campaign/helpdesk` | Helpdesk | just now — Phase 1 UI merged to development via PR #225 | 0 | 0 behind, 0 ahead | 2026-04-20 |
+| year-wheel | `campaign/year-wheel` | year-wheel | 77 min ago — docs(campaign): scaffold year-wheel roadmap | 0 | 9 behind, 1 ahead | never |
 
 ## Active Sub-Sorties
 
-_None._
+Grouped by parent campaign. Use `/sync-campaign` inside the campaign to
+pull development in when the Behind count grows.
+
+_No active sub-sorties — Phase 1 UI merged; campaign open for Phase 2 (SLA darkening orb, auto-assign, engine_delayed_trigger wiring)._
 
 ## Free Slots
 
@@ -41,8 +44,12 @@ _None._
 
 **camp:botsson-arena pool:** wt-1, wt-2, wt-3, wt-4, wt-5, wt-6, wt-7, wt-8, wt-9, wt-10, wt-11, wt-12, wt-13, wt-14, wt-15, wt-16, wt-17, wt-18, wt-19, wt-20
 
+**camp:helpdesk pool:** wt-1, wt-2, wt-3, wt-4, wt-5, wt-6, wt-7, wt-8, wt-9, wt-10, wt-11, wt-12, wt-13, wt-14, wt-15, wt-16, wt-17, wt-18, wt-19, wt-20
+
 **camp:year-wheel pool:** wt-1, wt-2, wt-3, wt-4, wt-5, wt-6, wt-7, wt-8, wt-9, wt-10, wt-11, wt-12, wt-13, wt-14, wt-15, wt-16, wt-17, wt-18, wt-19, wt-20
 
 ## Pending Journeys
 
-_None — no active sorties or sub-sorties._
+| Worktree | Feature | Journey File | Status |
+|---|---|---|---|
+_All helpdesk Phase 1 journeys merged with the feature._
