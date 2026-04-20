@@ -22,7 +22,7 @@
 
 "use client";
 
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
@@ -58,6 +58,26 @@ export function YearWheelPageClient() {
 
   const [filter, setFilter] = useState<FilterKey>("all");
   const [quickCreate, setQuickCreate] = useState<{ start: string; end: string } | null>(null);
+
+  // Alt+N shortcut: quick-open the season sheet with a 7-day range starting
+  // today. Skips if the sheet is already open so we don't stomp on an
+  // in-progress draft. Registered globally on window — the year-wheel page
+  // is the only route that mounts this handler, so there's no cross-page
+  // collision.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.altKey && e.key.toLowerCase() === "n" && !quickCreate) {
+        e.preventDefault();
+        const today = new Date();
+        const plus7 = new Date(today.getTime() + 7 * 86400000);
+        const fmt = (d: Date) =>
+          `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+        setQuickCreate({ start: fmt(today), end: fmt(plus7) });
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [quickCreate]);
 
   // Seasons returns { seasons, ... } (not { data }). Events likewise returns
   // { events, ... } — both scoped to workspace via the hook wrappers.
