@@ -11,6 +11,7 @@ import {
   Calendar,
   Check,
   Clock,
+  Lock,
   Mail,
   MessageSquare,
   Smartphone,
@@ -57,6 +58,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 import { useScheduleUI } from "./schedule-ui-context";
 import { useShifts, useCreateShift, useUpdateShift, useDeleteShift } from "../_hooks/use-shifts";
+import { isShiftTemporallyLocked } from "../_hooks/schedule-shift-lock";
 import { useWeekRange } from "../_hooks/use-week-range";
 import { useEmployees, type ScheduleEmployee } from "../_hooks/use-employees";
 import { useShiftRuleCheck } from "../_hooks/use-shift-rule-check";
@@ -473,6 +475,9 @@ export function ShiftModal() {
   const isOpen = selectedShiftId !== null || createShiftContext !== null;
   const isEditMode = selectedShiftId !== null;
   const existingShift = isEditMode ? shifts.find((s: Shift) => s.id === selectedShiftId) : null;
+  // Temporal lock: shift has started or date has passed. Mirrors the
+  // database trigger so the UI can disable mutate actions upfront.
+  const isLocked = existingShift ? isShiftTemporallyLocked(existingShift) : false;
 
   const [form, setForm] = useState<ShiftFormState>({
     employeeId: "",
@@ -781,7 +786,8 @@ export function ShiftModal() {
                       <DropdownMenuSeparator className="bg-border/40" />
                       <DropdownMenuItem
                         onClick={handleDelete}
-                        className="rounded-lg text-xs font-bold text-red-600 focus:bg-red-500/10 focus:text-red-700"
+                        disabled={isLocked}
+                        className="rounded-lg text-xs font-bold text-red-600 focus:bg-red-500/10 focus:text-red-700 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50"
                       >
                         <Trash2 className="mr-2 h-3.5 w-3.5" />
                         Slett vakt
@@ -793,6 +799,19 @@ export function ShiftModal() {
             </div>
           </DialogHeader>
         </div>
+
+        {isLocked && (
+          <div
+            className="border-border/40 flex shrink-0 items-center gap-2 border-b bg-amber-500/10 px-6 py-2.5 text-xs font-semibold text-amber-600 dark:text-amber-400"
+            data-testid="shift-temporal-lock-banner"
+          >
+            <Lock className="h-3.5 w-3.5 shrink-0" />
+            <span>
+              Vakten er låst — den har startet eller datoen er passert. Endringer må gjøres av
+              admin/eier.
+            </span>
+          </div>
+        )}
 
         {/* Content with Tabs */}
         <Tabs defaultValue="vakt" className="flex flex-1 flex-col overflow-hidden">
@@ -1320,7 +1339,9 @@ export function ShiftModal() {
                   {isEditMode && (
                     <Button
                       variant="outline"
-                      className="h-11 w-full justify-start gap-3 rounded-xl border-red-500/20 bg-red-500/5 font-bold text-red-600 backdrop-blur-sm transition-all hover:bg-red-500/10 hover:text-red-700 active:scale-[0.98]"
+                      disabled={isLocked}
+                      title={isLocked ? "Vakten er låst (har startet eller passert)" : undefined}
+                      className="h-11 w-full justify-start gap-3 rounded-xl border-red-500/20 bg-red-500/5 font-bold text-red-600 backdrop-blur-sm transition-all hover:bg-red-500/10 hover:text-red-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
                       onClick={handleDelete}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -1385,8 +1406,10 @@ export function ShiftModal() {
                 <Button
                   type="button"
                   size="sm"
+                  disabled={isLocked}
+                  title={isLocked ? "Vakten er låst (har startet eller passert)" : undefined}
                   onClick={() => handleSave(false)}
-                  className="h-10 rounded-xl bg-orange-500 px-5 text-xs font-bold text-white shadow-[0_2px_12px_rgba(249,115,22,0.25)] transition-all hover:bg-orange-600 hover:shadow-[0_4px_16px_rgba(249,115,22,0.3)] active:scale-[0.98]"
+                  className="h-10 rounded-xl bg-orange-500 px-5 text-xs font-bold text-white shadow-[0_2px_12px_rgba(249,115,22,0.25)] transition-all hover:bg-orange-600 hover:shadow-[0_4px_16px_rgba(249,115,22,0.3)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-orange-500"
                 >
                   Lagre endringer
                 </Button>
@@ -1396,16 +1419,20 @@ export function ShiftModal() {
                     type="button"
                     variant="outline"
                     size="sm"
+                    disabled={isLocked}
+                    title={isLocked ? "Vakten er låst (har startet eller passert)" : undefined}
                     onClick={() => handleSave(false)}
-                    className="bg-background/50 border-border/60 hover:bg-muted h-10 rounded-xl px-4 text-xs font-bold backdrop-blur-sm transition-all active:scale-[0.98]"
+                    className="bg-background/50 border-border/60 hover:bg-muted h-10 rounded-xl px-4 text-xs font-bold backdrop-blur-sm transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Lagre utkast
                   </Button>
                   <Button
                     type="button"
                     size="sm"
+                    disabled={isLocked}
+                    title={isLocked ? "Vakten er låst (har startet eller passert)" : undefined}
                     onClick={() => handleSave(true)}
-                    className="h-10 rounded-xl bg-emerald-500 px-5 text-xs font-bold text-white shadow-[0_2px_12px_rgba(16,185,129,0.25)] transition-all hover:bg-emerald-600 hover:shadow-[0_4px_16px_rgba(16,185,129,0.3)] active:scale-[0.98]"
+                    className="h-10 rounded-xl bg-emerald-500 px-5 text-xs font-bold text-white shadow-[0_2px_12px_rgba(16,185,129,0.25)] transition-all hover:bg-emerald-600 hover:shadow-[0_4px_16px_rgba(16,185,129,0.3)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-emerald-500"
                   >
                     Lagre og publiser
                   </Button>
