@@ -5,7 +5,7 @@ import { createClient } from "@smartout/supabase/server";
 import { createAdminClient } from "@smartout/supabase/admin";
 import { emit } from "@smartout/telemetry";
 import { revalidatePath } from "next/cache";
-import { resolveCurrentProfile, hasMinimumRole } from "./_shared";
+import { resolveCurrentProfile, hasMinimumRole, gateAction } from "./_shared";
 
 const SignoffSchema = z.object({
   sessionId: z.string().uuid(),
@@ -48,6 +48,10 @@ export async function signoffSessionAction(
   const profile = await resolveCurrentProfile();
   if (!profile) return { ok: false, error: "Not authenticated." };
 
+  // Canonical authority gate (ADR-0099 gate_action) + inline role floor
+  // as belt-and-braces fallback when no authority row exists for workspace.
+  // T3 migration: once session.signoff is seeded for all workspaces, the
+  // inline `hasMinimumRole` can be removed. For now both checks must pass.
   if (!hasMinimumRole(profile.role, "manager")) {
     return { ok: false, error: "Ikke tilstrekkelig rettigheter (krever leder eller admin)." };
   }
@@ -78,6 +82,20 @@ export async function signoffSessionAction(
         ok: false,
         error: `Kan ikke sette til pending_signoff fra status '${session.status}'.`,
       };
+    }
+
+    // ADR-0099 gate — capability-level authority + audit row.
+    const gate = await gateAction({
+      workspaceId: profile.workspaceId,
+      capability: "session.signoff",
+      channel: "chat",
+      actorProfileId: profile.profileId,
+      actionType: "pending_signoff",
+      entityId: session.department_session_id,
+    });
+    if (!gate.allow) return { ok: false, error: `Avvist: ${gate.reason ?? "forbidden"}` };
+    if (gate.downgrade_to === "suggest") {
+      return { ok: false, error: "Rollen din er under minstekravet for signoff." };
     }
 
     const { error: updateErr } = await admin
@@ -119,9 +137,22 @@ export async function signoffSessionAction(
     };
   }
 
-  // Admin-only for final close
+  // Admin-only for final close — gate + inline check (see above rationale).
   if (!hasMinimumRole(profile.role, "admin")) {
     return { ok: false, error: "Kun admin kan godkjenne og stenge dagen." };
+  }
+
+  const closeGate = await gateAction({
+    workspaceId: profile.workspaceId,
+    capability: "session.close",
+    channel: "chat",
+    actorProfileId: profile.profileId,
+    actionType: "close",
+    entityId: session.department_session_id,
+  });
+  if (!closeGate.allow) return { ok: false, error: `Avvist: ${closeGate.reason ?? "forbidden"}` };
+  if (closeGate.downgrade_to === "suggest") {
+    return { ok: false, error: "Rollen din er under admin-kravet for å stenge dagen." };
   }
 
   const { error: closeErr } = await admin

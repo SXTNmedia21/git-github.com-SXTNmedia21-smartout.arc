@@ -4,7 +4,7 @@ import { z } from "zod";
 import { createAdminClient } from "@smartout/supabase/admin";
 import { emit } from "@smartout/telemetry";
 import { revalidatePath } from "next/cache";
-import { resolveCurrentProfile, hasMinimumRole, detectPii } from "./_shared";
+import { resolveCurrentProfile, hasMinimumRole, detectPii, gateAction } from "./_shared";
 
 const BroadcastSchema = z.object({
   type: z.enum(["alert", "reminder", "note"]),
@@ -44,11 +44,25 @@ export async function sendBroadcastAction(input: SendBroadcastInput): Promise<Se
   const profile = await resolveCurrentProfile();
   if (!profile) return { ok: false, error: "Not authenticated." };
 
+  // Belt-and-braces: inline role check + canonical gate_action (ADR-0099).
+  // Once broadcast.send is seeded for all workspaces, inline check removes.
   if (!hasMinimumRole(profile.role, "manager")) {
     return {
       ok: false,
       error: "Kun ledere og admins kan sende broadcasts.",
     };
+  }
+
+  const gate = await gateAction({
+    workspaceId: profile.workspaceId,
+    capability: "broadcast.send",
+    channel: "chat",
+    actorProfileId: profile.profileId,
+    actionType: "send",
+  });
+  if (!gate.allow) return { ok: false, error: `Avvist: ${gate.reason ?? "forbidden"}` };
+  if (gate.downgrade_to === "suggest") {
+    return { ok: false, error: "Rollen din er under minstekravet for broadcast." };
   }
 
   // PII guardrail — ADR-0077 blocks Norwegian PII in broadcast channels
