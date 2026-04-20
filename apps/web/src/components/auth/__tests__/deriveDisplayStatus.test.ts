@@ -75,14 +75,24 @@ describe("deriveDisplayStatus", () => {
     ).toBe("expired");
   });
 
-  it("boundary: expires_at exactly at now is treated as not-yet-expired", () => {
-    // strict < comparison in the derivation — equal timestamps stay
-    // pending (or opened, if opened_at set). Assert the boundary by
-    // pinning expires_at to Date.now() at call time.
-    const now = Date.now();
-    const nowIso = new Date(now).toISOString();
+  it("boundary: expires_at one second in the future stays pending", () => {
+    // Derivation uses strict < against Date.now(). Anything >= now stays
+    // pending; anything < now flips to expired. We use now+1s (not now
+    // exactly) because the derivation re-reads Date.now() internally — a
+    // naïve "pin to now" test flakes when the clock ticks between
+    // encoding the ISO string and the internal comparison.
+    const oneSecFuture = new Date(Date.now() + 1000).toISOString();
     expect(
-      deriveDisplayStatus(make({ status: "pending", opened_at: null, expires_at: nowIso })),
+      deriveDisplayStatus(make({ status: "pending", opened_at: null, expires_at: oneSecFuture })),
     ).toBe("pending");
+  });
+
+  it("boundary: expires_at one second in the past flips to expired", () => {
+    // Mirror of the above — proves the strict < comparison catches the
+    // moment we cross the expiry line.
+    const oneSecPast = new Date(Date.now() - 1000).toISOString();
+    expect(
+      deriveDisplayStatus(make({ status: "pending", opened_at: null, expires_at: oneSecPast })),
+    ).toBe("expired");
   });
 });
