@@ -73,6 +73,26 @@ Rationale:
 - Does `communication` split into general + PII, or get the `allowedChannels: null` comment? Recommend: keep unified with explicit null + PII-unrestricted comment, revisit if PII-adjacent tools appear.
 - When is the follow-up ADR for agent-router Layer 1 fix? Recommend: Phase 0 Week 1 of helpdesk rollout.
 
+## Retrofit Plan (blocks status → `accepted`)
+
+Council 2026-04-20 code-trace (agent-coordinator) found four existing capabilities that do NOT declare `allowedChannels`. Accepting this ADR as-is would cause `packages/ai/src/capabilities/registry.ts` init to throw, taking down the stage-engine at startup.
+
+**ADR stays `proposed` until the following retrofit lands:**
+
+| Capability | PII risk | Required declaration |
+|------------|----------|----------------------|
+| `profile` | HIGH — name, email, phone, display_name | `allowedChannels: ['chat']` |
+| `communication` | MEDIUM — message bodies, conversation history | `allowedChannels: null` with `// CHANNEL-UNRESTRICTED — general messaging, no structured PII` comment, OR split into `communication` + `communication_pii` |
+| `governance` | MEDIUM — per-employee readiness, missing policies | `allowedChannels: ['chat']` |
+| `training` | MEDIUM — per-employee readiness, certifications | `allowedChannels: ['chat']` |
+
+**Acceptance gate:** before flipping status to `accepted`, each of the four must have an explicit declaration committed. PR must also verify `packages/ai/src/capabilities/registry.ts` does not throw at module load.
+
+**Ordering:** the retrofit PR is the single prerequisite. It is not Phase 0 of Helpdesk — it is a gating chore that unblocks ADR-0163 acceptance, which in turn unblocks Helpdesk Phase 0 Week 2 (dead-infra wiring depends on `communication` policy being declared).
+
+Learning captured: L-0077 — ADR fail-closed enforcement on shared registry without consumer audit = init-time break.
+
 ---
 
 > Amends ADR-0078. Depends on ADR-0162. Register in `0000-decision-log.md`.
+> Retrofit plan added 2026-04-20 by council; 4 capabilities must declare `allowedChannels` before acceptance.
