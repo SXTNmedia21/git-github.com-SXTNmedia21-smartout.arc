@@ -77,16 +77,20 @@ export async function uploadWebsiteAsset(
 
     if (!file) return { success: false, error: "No file provided" };
 
-    // Server-side size validation — client already validates but we must enforce here too
-    if (file.size > LIMITS.maxImageUploadBytes) {
-      return {
-        success: false,
-        error: `File too large: max ${LIMITS.maxImageUploadBytes / 1024 / 1024} MB allowed`,
-      };
+    // Server-side size + type validation — client already validates but we must enforce here too
+    const isPdf = file.type === "application/pdf";
+    const isImage = file.type.startsWith("image/");
+
+    if (!isImage && !isPdf) {
+      return { success: false, error: "Only image and PDF files are accepted" };
     }
 
-    if (!file.type.startsWith("image/")) {
-      return { success: false, error: "Only image files are accepted" };
+    const maxBytes = isPdf ? LIMITS.maxPdfUploadBytes : LIMITS.maxImageUploadBytes;
+    if (file.size > maxBytes) {
+      return {
+        success: false,
+        error: `File too large: max ${maxBytes / 1024 / 1024} MB allowed`,
+      };
     }
 
     // Stable, unique storage path scoped to workspace + website

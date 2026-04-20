@@ -26,6 +26,7 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -49,14 +50,43 @@
   --color-dept-kitchen: var(--dept-kitchen);
   --color-dept-floor: var(--dept-floor);
   --color-dept-bar: var(--dept-bar);
+  --color-dept-event: var(--dept-event);
+  --color-dept-storage: var(--dept-storage);
   --color-status-trainee: var(--status-trainee);
   --color-status-active: var(--status-active);
   --color-status-inactive: var(--status-inactive);
   --color-status-offboarding: var(--status-offboarding);
   --color-brand-orange: var(--brand-orange);
   --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
   --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
   --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  /* Komm — Communication semantic colors */
+  --color-komm-announcement: var(--komm-announcement);
+  --color-komm-brief: var(--komm-brief);
+  --color-komm-handoff: var(--komm-handoff);
+  --color-komm-reminder: var(--komm-reminder);
+  --color-komm-summary: var(--komm-summary);
+  --color-komm-planning: var(--komm-planning);
+  --color-komm-call-active: var(--komm-call-active);
+  --color-komm-call-incoming: var(--komm-call-incoming);
+  --color-komm-ptt-active: var(--komm-ptt-active);
+  --color-komm-problem: var(--komm-problem);
+  --color-komm-manual: var(--komm-manual);
+  --color-komm-training: var(--komm-training);
+  --color-komm-quiz: var(--komm-quiz);
+  --color-komm-task: var(--komm-task);
+  --color-komm-images: var(--komm-images);
+  --color-komm-link: var(--komm-link);
+  --color-komm-ai: var(--komm-ai);
+  --color-komm-department: var(--komm-department);
+  --color-komm-team: var(--komm-team);
+  --color-komm-session: var(--komm-session);
+  --color-komm-direct: var(--komm-direct);
+  --color-komm-news: var(--komm-news);
+  --color-komm-skill: var(--komm-skill);
   /* Onboarding color temperature journey */
   --color-onboarding-hero: oklch(0.13 0.01 250);
   --color-onboarding-business: oklch(0.12 0.02 60);
@@ -563,4 +593,21 @@
 }
 .scrollbar-none::-webkit-scrollbar {
   display: none;
+}
+
+/* ─── Year Wheel: Normal drift watermark (spec §3.4.1) ─────────────── */
+.yw-watermark-hatch {
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent 0 14px,
+    color-mix(in oklab, var(--muted) 6%, transparent) 14px 15px
+  );
+}
+
+.dark .yw-watermark-hatch {
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent 0 14px,
+    color-mix(in oklab, var(--muted) 10%, transparent) 14px 15px
+  );
 }

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import type { PublicSectionProps } from "./types";
 
 export function HeroPublic({ content, assets }: PublicSectionProps) {
@@ -12,12 +13,13 @@ export function HeroPublic({ content, assets }: PublicSectionProps) {
   return (
     <section className="relative flex min-h-[60vh] items-center justify-center overflow-hidden px-4 py-20 text-center">
       {image && (
-        <img
+        <Image
           src={`${assets.storageBaseUrl}/${image.storagePath}`}
           alt={image.alt}
-          className="absolute inset-0 h-full w-full object-cover"
-          width={image.width ?? undefined}
-          height={image.height ?? undefined}
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover"
         />
       )}
       {image && <div className="absolute inset-0 bg-black/40" />}

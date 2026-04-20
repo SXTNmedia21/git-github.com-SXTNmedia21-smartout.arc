@@ -13,36 +13,9 @@ import { randomUUID } from "expo-crypto";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { enqueue } from "@/lib/sync/queue";
-import { supabase } from "@/lib/supabase";
+import { getProfileContext } from "@/lib/profile-context";
+import { emit } from "@smartout/telemetry";
 import type { TimeEntry } from "@/types/time-entry";
-
-/**
- * Fetches profile_id and workspace_id for the current user.
- * Reuses the same pattern as use-my-shifts and use-active-time-entry.
- */
-async function getProfileContext(): Promise<{
-  profileId: string;
-  workspaceId: string;
-}> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
-
-  const { data: profile, error } = await supabase
-    .from("profile")
-    .select("profile_id, workspace_id")
-    .eq("user_id", user.id)
-    .limit(1)
-    .single();
-
-  if (error || !profile) throw error ?? new Error("Profile not found");
-
-  return {
-    profileId: profile.profile_id,
-    workspaceId: profile.workspace_id,
-  };
-}
 
 /**
  * Hook that returns punchIn and punchOut functions.
@@ -91,6 +64,24 @@ export function usePunch() {
         created_at: now,
         updated_at: now,
       } satisfies TimeEntry);
+
+      void emit({
+        event: "shift punched_in",
+        workspace_id: workspaceId,
+        actor_id: profileId,
+        properties: {
+          entity_type: "shift",
+          entity_id: shiftId,
+          data: {
+            shift_id: shiftId,
+            time_entry_id: timeEntryId,
+            punch_time: now,
+            is_adhoc: false,
+            gps_verified: false,
+            gps_distance_meters: null,
+          },
+        },
+      });
     },
     [queryClient],
   );
@@ -104,7 +95,17 @@ export function usePunch() {
    */
   const punchOut = useCallback(
     async (timeEntryId: string) => {
+      // Resolve BEFORE enqueue so broken attribution fails fast (ADR-0134)
+      const { profileId, workspaceId } = await getProfileContext();
+      // Capture shift_id from the cache BEFORE we clear it — needed for
+      // engine_event / entity_id (schedule_shift) routing.
+      const activeEntry = queryClient.getQueryData<TimeEntry | null>(["active-time-entry"]);
+      const shiftId = activeEntry?.shift_id ?? "";
       const now = new Date().toISOString();
+
+      const punchInMs = activeEntry?.punch_in ? new Date(activeEntry.punch_in).getTime() : null;
+      const workMinutes =
+        punchInMs !== null ? Math.max(0, Math.round((Date.now() - punchInMs) / 60_000)) : 0;
 
       const payload = {
         time_entry_id: timeEntryId,
@@ -116,6 +117,29 @@ export function usePunch() {
 
       // Optimistically clear the active time entry — employee is no longer clocked in
       queryClient.setQueryData<TimeEntry | null>(["active-time-entry"], null);
+
+      // entity_id MUST be the schedule_shift id — engine-dispatch stamps
+      // engine_state.entity_id from payload.entity_id so shift_lifecycle_v1
+      // can match subsequent steps (update_entity on schedule_shift,
+      // derive_shift_hours RPC keyed by p_shift_id). Using time_entry_id
+      // here would break the entire process chain.
+      void emit({
+        event: "shift punched_out",
+        workspace_id: workspaceId,
+        actor_id: profileId,
+        properties: {
+          entity_type: "shift",
+          entity_id: shiftId,
+          data: {
+            shift_id: shiftId,
+            time_entry_id: timeEntryId,
+            punch_time: now,
+            work_minutes: workMinutes,
+            break_minutes: 0,
+            gps_verified: false,
+          },
+        },
+      });
     },
     [queryClient],
   );

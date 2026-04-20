@@ -14,6 +14,7 @@ import type {
   ClientToolImplementation,
 } from "@smartout/agent-sdk";
 import type { ContentViewType } from "./types";
+import { emit } from "@smartout/telemetry";
 
 /* ━━━ View actions ref — set by BotssonProvider ━━━ */
 
@@ -74,6 +75,8 @@ const COLLAPSE_INSTRUCTION =
   "You are now minimized to a small orb. The arena is closed. " +
   "Do NOT call expand_arena or any show_* tool unless the user explicitly asks. " +
   "Stay silent. Wait for the user to click you or speak to you.";
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const showVisualizerDef: ClientToolDefinition = {
   temporaryTool: {
@@ -220,7 +223,7 @@ const DASHBOARD_PAGES: Record<string, { path: string; label: string }> = {
   operations: { path: "/dashboard/operations", label: "Daglig drift" },
   people: { path: "/dashboard/people", label: "Ansatte" },
   organization: { path: "/dashboard/organization", label: "Organisasjon" },
-  season: { path: "/dashboard/season", label: "Sesong" },
+  season: { path: "/dashboard/year-wheel", label: "Årshjul" },
   handbook: { path: "/dashboard/handbook", label: "Håndbok" },
   governance: { path: "/dashboard/governance", label: "Retningslinjer" },
   "my-training": { path: "/dashboard/my-training", label: "Min opplæring" },
@@ -642,6 +645,14 @@ export function buildBotssonToolKit(
       }
       if (!entityId) return "entity_id is required";
 
+      if (!UUID_RE.test(entityId)) {
+        return (
+          `entity_id "${entityId}" is not a valid UUID. ` +
+          "Use search_profiles_by_name to find the correct profile_id first, " +
+          "then call open_entity_drawer with the UUID."
+        );
+      }
+
       actions.openEntityDrawer(entityType, entityId);
 
       return (
@@ -715,6 +726,16 @@ export function buildBotssonToolKit(
         createdAt: Date.now(),
       });
 
+      // Telemetry
+      void emit({
+        event: "emma_task scheduled",
+        workspace_id: actions.getWorkspaceId?.() ?? "",
+        actor_id: "",
+        properties: {
+          data: { title, priority, has_deadline: !!dueAt },
+        },
+      });
+
       // DB persistence handled by scheduleTask in BotssonProvider
 
       const timeStr = dueAt
@@ -731,6 +752,14 @@ export function buildBotssonToolKit(
       const task = findTaskByTitle(allTasks, title);
       if (!task) return `Fant ingen ventende oppgave med "${title}".`;
       actions.completeTask(task.id);
+      void emit({
+        event: "emma_task completed",
+        workspace_id: actions.getWorkspaceId?.() ?? "",
+        actor_id: "",
+        properties: {
+          data: { task_id: task.id, title: task.title },
+        },
+      });
       return `Fullført: "${task.title}". Bekreft kort til brukeren.`;
     },
 

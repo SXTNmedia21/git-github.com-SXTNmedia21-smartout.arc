@@ -22,7 +22,7 @@ const timesheetClient = createClient(
 
 const HQ_WORKSPACE_ID = "b0000000-0000-0000-0000-000000000000";
 const ANNA_PROFILE_ID = "f0000000-0000-0000-0000-000000000001";
-const ANNA_EMAIL = "employee@smartout.local";
+const ANNA_EMAIL = "anna@smartout.local";
 const ANNA_PASSWORD = "password123";
 
 function todayISO(): string {

@@ -1,6 +1,7 @@
 // packages/eslint-config/base.mjs
 import tseslint from "@typescript-eslint/eslint-plugin";
 import tsparser from "@typescript-eslint/parser";
+import smartout from "./plugins/smartout/index.mjs";
 
 /** @type {import("eslint").Linter.Config[]} */
 export default [
@@ -15,6 +16,7 @@ export default [
     },
     plugins: {
       "@typescript-eslint": tseslint,
+      smartout,
     },
     rules: {
       "no-unused-vars": "off",
@@ -29,6 +31,9 @@ export default [
       "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/consistent-type-imports": ["warn", { prefer: "type-imports" }],
       "no-console": ["warn", { allow: ["warn", "error"] }],
+      // ADR-0091 WP3 / ADR-0114 R3 — governance writes MUST go through the
+      // gate client. Severity stays at `warn` until call-site migration lands.
+      "smartout/no-direct-supabase-write": "warn",
     },
   },
   {

@@ -15,6 +15,7 @@ export const listEmployeeTemplates = defineTool({
   name: "list_employee_templates",
   description:
     "List active employee contract templates available in this workspace (including platform-level templates).",
+  capability: "contract",
   schema: z.object({}),
   execute: async (_params, ctx: AgentToolContext) => {
     const supabase = ctx.supabaseAdmin;
@@ -37,6 +38,7 @@ export const listEmployeeTemplates = defineTool({
 export const listEmployeeContracts = defineTool({
   name: "list_employee_contracts",
   description: "List employee contracts in this workspace, optionally filtered by status.",
+  capability: "contract",
   schema: z.object({
     status: z
       .enum(["draft", "sent", "viewed", "signed", "expired"])
@@ -68,6 +70,7 @@ export const listEmployeeContracts = defineTool({
 export const checkContractStatus = defineTool({
   name: "check_contract_status",
   description: "Check the current status and details of a specific contract by ID.",
+  capability: "contract",
   schema: z.object({
     contract_id: z.string().uuid().describe("The contract ID to look up"),
   }),
@@ -86,6 +89,86 @@ export const checkContractStatus = defineTool({
     if (error) return `Error loading contract: ${error.message}`;
     if (!data) return "Contract not found in this workspace.";
     return JSON.stringify(data);
+  },
+});
+
+export const explainContractClause = defineTool({
+  name: "explain_contract_clause",
+  description:
+    "Explain a specific clause from a contract's regulatory framework snapshot. Returns the rule verbatim — read-only, no interpretation.",
+  capability: "contract",
+  schema: z.object({
+    contract_id: z.string().uuid().describe("The contract ID to look up"),
+    clause_index: z
+      .number()
+      .int()
+      .min(0)
+      .describe("Zero-based index of the rule in the snapshot's rules array"),
+  }),
+  execute: async (params, ctx: AgentToolContext) => {
+    const supabase = ctx.supabaseAdmin;
+
+    const { data, error } = await supabase
+      .from("employment_contract")
+      .select("framework_snapshot")
+      .eq("contract_id", params.contract_id)
+      .eq("workspace_id", ctx.workspaceId)
+      .single();
+
+    if (error) return `Error loading contract: ${error.message}`;
+    if (!data) return "Contract not found in this workspace.";
+
+    const snapshot = data.framework_snapshot as { rules?: unknown[] } | null;
+    if (!snapshot || !Array.isArray(snapshot.rules)) {
+      return "This contract has no framework snapshot or no rules array.";
+    }
+
+    if (params.clause_index >= snapshot.rules.length) {
+      return `Index ${params.clause_index} is out of range. The snapshot has ${snapshot.rules.length} rule(s) (0–${snapshot.rules.length - 1}).`;
+    }
+
+    const rule = snapshot.rules[params.clause_index] as Record<string, unknown>;
+    return JSON.stringify({
+      rule_id: rule.rule_id,
+      rule_type: rule.rule_type,
+      enforcement_level: rule.enforcement_level,
+      description: rule.description,
+      parameters: rule.parameters,
+    });
+  },
+});
+
+export const getComplianceDriftForContract = defineTool({
+  name: "get_compliance_drift_for_contract",
+  description:
+    "Check whether a contract has compliance drift — differences between the contract's snapshot and the current framework. Read-only.",
+  capability: "contract",
+  schema: z.object({
+    contract_id: z.string().uuid().describe("The contract ID to check for drift"),
+  }),
+  execute: async (params, ctx: AgentToolContext) => {
+    const supabase = ctx.supabaseAdmin;
+
+    const { data, error } = await supabase
+      .from("compliance_drift")
+      .select("*")
+      .eq("contract_id", params.contract_id)
+      .eq("workspace_id", ctx.workspaceId);
+
+    if (error) return `Error querying compliance drift: ${error.message}`;
+    if (!data || data.length === 0) {
+      return JSON.stringify({
+        has_drift: false,
+        drift_count: 0,
+        message: "No compliance drift detected for this contract.",
+      });
+    }
+
+    return JSON.stringify({
+      has_drift: true,
+      drift_count: data.length,
+      drifts: data,
+    });
   },
 });
 
@@ -112,6 +195,7 @@ export const createEmployeeContract = defineTool({
   name: "create_employee_contract",
   description:
     "Create a draft employee contract from a template for a given employee. Admin or owner only.",
+  capability: "contract",
   schema: z.object({
     template_id: z.string().uuid().describe("The contract template ID to use"),
     profile_id: z.string().uuid().describe("The profile ID of the employee to contract"),
@@ -212,6 +296,7 @@ export const sendEmployeeContract = defineTool({
   name: "send_employee_contract",
   description:
     "Send a draft contract for employee signing. IRREVERSIBLE — once sent, it cannot be recalled. Admin or owner only.",
+  capability: "contract",
   schema: z.object({
     contract_id: z.string().uuid().describe("The draft contract ID to send for signing"),
   }),

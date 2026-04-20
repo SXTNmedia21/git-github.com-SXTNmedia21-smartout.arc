@@ -174,17 +174,38 @@ export function usePublishWeek() {
 
       if (error) throw error;
 
-      return { shiftCount: data?.length ?? 0 };
+      const shiftIds = (data ?? []).map(
+        (row: { schedule_shift_id: string }) => row.schedule_shift_id,
+      );
+      return { shiftCount: shiftIds.length, shiftIds };
     },
 
-    onSuccess: ({ shiftCount }, { workspaceId, weekStart, templateId, actorId }) => {
+    onSuccess: (
+      { shiftCount, shiftIds },
+      { workspaceId, weekStart, templateId, actorId, departmentId },
+    ) => {
+      // Canonical event name is singular `shift published` per ADR-0095
+      // (plural alias unwound in migration 20260507100200). The singular
+      // schema expects dates/department_ids/shift_ids/shift_count, so we
+      // adapt the batch result to that shape.
+      const dates: string[] = [];
+      for (let i = 0; i < 7; i++) dates.push(addDays(weekStart, i));
+
       void emit({
-        event: "shifts published",
+        event: "shift published",
         workspace_id: workspaceId,
         actor_id: actorId,
         properties: {
-          entity: { entity_type: "template", entity_id: templateId },
-          data: { shift_count: shiftCount, week_start: weekStart },
+          // FLAT entity contract per engine-event. entity_id is the first
+          // published shift; the full list lives in data.shift_ids.
+          entity_type: "shift",
+          entity_id: shiftIds[0] ?? templateId,
+          data: {
+            dates,
+            department_ids: [departmentId],
+            shift_ids: shiftIds,
+            shift_count: shiftCount,
+          },
         },
       });
 
@@ -297,7 +318,8 @@ export function useAssignEmployee() {
         workspace_id: workspaceId,
         actor_id: actorId,
         properties: {
-          entity: { entity_type: "shift", entity_id: shiftId },
+          entity_type: "shift",
+          entity_id: shiftId,
           data: { employee_id: employeeId ?? "" },
         },
       });
@@ -387,7 +409,8 @@ export function useCreateGridShift() {
         workspace_id: params.workspaceId,
         actor_id: params.actorId,
         properties: {
-          entity: { entity_type: "shift", entity_id: shiftId },
+          entity_type: "shift",
+          entity_id: shiftId,
           data: { employee_id: params.employeeId },
         },
       });
@@ -422,6 +445,75 @@ type RemoveGridShiftParams = {
   actorId: string;
 };
 
+// ══════════════════════════════════════════════════════════════
+// Mutation: Reassign a shift's type (drag from "Ikke tildelt" to a column)
+// ══════════════════════════════════════════════════════════════
+
+type ReassignShiftTypeParams = {
+  shiftId: string;
+  shiftTypeId: string;
+  departmentId: string;
+  role: string;
+  startTime: string;
+  endTime: string;
+  breakMinutes: number;
+  workspaceId: string;
+  weekStart: string;
+  actorId: string;
+};
+
+/**
+ * Updates a shift's shift_type_id, role, and default times when dragged
+ * from the "Ikke tildelt" column to a specific shift type column.
+ */
+export function useReassignShiftType() {
+  const queryClient = useQueryClient();
+  const supabase = createClient();
+
+  return useMutation({
+    mutationFn: async (params: ReassignShiftTypeParams) => {
+      const { error } = await supabase
+        .from("schedule_shift")
+        .update({
+          shift_type_id: params.shiftTypeId,
+          department_id: params.departmentId,
+          role: params.role,
+          start_time: params.startTime,
+          end_time: params.endTime,
+          break_minutes: params.breakMinutes,
+        })
+        .eq("schedule_shift_id", params.shiftId);
+
+      if (error) throw error;
+    },
+
+    onSuccess: (_data, params) => {
+      void emit({
+        event: "shift updated",
+        workspace_id: params.workspaceId,
+        actor_id: params.actorId,
+        properties: {
+          entity_type: "shift",
+          entity_id: params.shiftId,
+          changes: {
+            shift_type_id: { before: "unassigned", after: params.shiftTypeId },
+            role: { before: "unknown", after: params.role },
+          },
+        },
+      });
+
+      void queryClient.invalidateQueries({
+        predicate: (query) => {
+          const key = query.queryKey as string[];
+          return (
+            key[0] === "schedule" && key[1] === "grid-week-shifts" && key[2] === params.workspaceId
+          );
+        },
+      });
+    },
+  });
+}
+
 /**
  * Deletes a schedule_shift row. Used when the user removes an employee from a slot.
  */
@@ -445,7 +537,8 @@ export function useRemoveGridShift() {
         workspace_id: params.workspaceId,
         actor_id: params.actorId,
         properties: {
-          entity: { entity_type: "shift", entity_id: params.shiftId },
+          entity_type: "shift",
+          entity_id: params.shiftId,
           data: { employee_id: "" },
         },
       });

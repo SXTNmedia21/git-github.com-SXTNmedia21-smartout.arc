@@ -33,9 +33,7 @@ export async function buildEmployeePlaceholderMap(
       .single(),
     supabase
       .from("workspace")
-      .select(
-        "name, address_line_1, postal_code, city, company:company_id(name, organization_number)",
-      )
+      .select("name, address_line_1, postal_code, city, company:company_id(name, org_number)")
       .eq("workspace_id", workspaceId)
       .single(),
   ]);
@@ -45,7 +43,7 @@ export async function buildEmployeePlaceholderMap(
   const workspace = workspaceResult.data;
   // Supabase returns joined relations as arrays; take the first element.
   const companyRaw = Array.isArray(workspace?.company) ? workspace.company[0] : workspace?.company;
-  const company = companyRaw as { name: string; organization_number: string } | null | undefined;
+  const company = companyRaw as { name: string; org_number: string } | null | undefined;
   const departmentRaw = Array.isArray(profile?.department)
     ? profile.department[0]
     : profile?.department;
@@ -74,7 +72,7 @@ export async function buildEmployeePlaceholderMap(
     stillingsprosent: contract?.employment_percentage?.toString() ?? "",
     avtalt_timer_uke: contract?.agreed_weekly_hours?.toString() ?? "",
     arbeidsgiver_navn: company?.name ?? "",
-    arbeidsgiver_org_nr: company?.organization_number ?? "",
+    arbeidsgiver_org_nr: company?.org_number ?? "",
     arbeidsgiver_adresse: employerAddress.join(", "),
     arbeidssted: workspace?.name ?? "",
     kontraktdato: new Date().toISOString().split("T")[0] ?? "",

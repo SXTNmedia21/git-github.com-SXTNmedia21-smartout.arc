@@ -1,67 +1,244 @@
 "use server";
 
+/**
+ * people-actions.ts — first pilot module for ADR-0091 WP3 call-site migration.
+ *
+ * All `profile` writes route through `gatedUpdate` (the thin wrapper over
+ * `cascade_gate_write` RPC). When an active framework_trigger matches `profile`
+ * (today: 1 trigger — working_time avg-hours check on hospitality.no.default.v1)
+ * the gate returns `outcome='proposed'` and throws `GateDeniedError`; the
+ * function surfaces the proposal_id back to the caller via the optional
+ * `pendingProposal` field.
+ *
+ * Return-shape contract for gated mutations:
+ *   { ok: true }                          — applied, no governance review
+ *   { ok: true, pendingProposal: <uuid> } — a change_proposal was created;
+ *                                           UI should render "waiting for review"
+ *   { ok: false, error: <reason> }        — gate blocked or write failed
+ *
+ * Callers that only destructure `ok` remain backward-compatible because
+ * `pendingProposal` is optional. UI-side toast wiring is tracked as a
+ * follow-up PR — reviewers can surface the proposal from `activity_trail`
+ * via the `profile update proposed` event until then.
+ *
+ * PK column: `profile` uses the Smartout `{table}_id` convention, so every
+ * `GateContext` below sets `entityIdColumn: "profile_id"`. Without this,
+ * `gatedUpdate` would silently match zero rows (see `gate-client.ts` JSDoc).
+ */
+
 import { createClient } from "@smartout/supabase/server";
 import type { Database, TablesUpdate } from "@smartout/supabase";
+import { gatedUpdate, GateDeniedError, type GateContext } from "@smartout/supabase/gate-client";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isValidTransition } from "@smartout/utils";
 import type { ProfileStatus } from "@smartout/utils";
+import { emit } from "@smartout/telemetry";
+
+/** Shared return shape for gated profile mutations. */
+type GatedResult = { ok: true; pendingProposal?: string } | { ok: false; error: string };
 
 /** Typed helper to get a server client with proper Database generics. */
 async function getClient(): Promise<SupabaseClient<Database>> {
   return createClient();
 }
 
+/** Resolve the current user's profile_id for telemetry actor_id. */
+async function resolveActorId(supabase: SupabaseClient<Database>): Promise<string> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return "unknown";
+  const { data } = await supabase
+    .from("profile")
+    .select("profile_id")
+    .eq("user_id", user.id)
+    .eq("is_active", true)
+    .limit(1)
+    .maybeSingle();
+  return data?.profile_id ?? "unknown";
+}
+
+/**
+ * Fetches the current profile row for gate-context diffing.
+ * Returns `null` when the profile is not found; caller should surface a
+ * `{ ok: false, error }` result.
+ */
+async function fetchCurrentProfile(
+  supabase: SupabaseClient<Database>,
+  profileId: string,
+): Promise<Record<string, unknown> | null> {
+  const { data, error } = await supabase
+    .from("profile")
+    .select("*")
+    .eq("profile_id", profileId)
+    .single();
+  if (error || !data) return null;
+  return data as unknown as Record<string, unknown>;
+}
+
+/**
+ * Telemetry for `proposed` and `denied` gate outcomes is intentionally NOT
+ * emitted in this pilot. Two reasons:
+ *
+ * 1. The gate RPC (`cascade_gate_write`) ALREADY writes a `gate_evaluation`
+ *    audit row for every call and inserts a `change_proposal` row on the
+ *    `proposed` path. Both rows carry actor + workspace + reason, so no data
+ *    is lost.
+ *
+ * 2. The `@smartout/telemetry` registry does not yet declare
+ *    `"profile update proposed"` / `"profile update denied"` event schemas.
+ *    Adding them requires touching `packages/telemetry`, which is outside
+ *    this pilot's file boundary. Follow-up PR will register both events and
+ *    route them to PostHog + activity_trail so admins see proposal toasts in
+ *    the audit feed.
+ *
+ * Caller contract in the meantime:
+ *   - `{ ok: true }`                     → write applied (existing event emitted below)
+ *   - `{ ok: true, pendingProposal }`    → gate proposed; reviewer sees the
+ *                                           change_proposal row in the inbox
+ *   - `{ ok: false, error }`             → gate blocked or non-gate error
+ */
+
 export async function updateProfileRole(
   profileId: string,
   workspaceId: string,
   newRole: NonNullable<TablesUpdate<"profile">["role"]>,
-) {
+): Promise<GatedResult> {
   const supabase = await getClient();
-  const { error } = await supabase
-    .from("profile")
-    .update({ role: newRole })
-    .eq("profile_id", profileId)
-    .eq("workspace_id", workspaceId);
+  const actorId = await resolveActorId(supabase);
 
-  if (error) throw new Error(error.message);
+  const currentProfile = await fetchCurrentProfile(supabase, profileId);
+  if (!currentProfile) return { ok: false, error: "Profile not found" };
+
+  const patch: Record<string, unknown> = { role: newRole };
+  const ctx: GateContext = {
+    entityType: "profile",
+    entityId: profileId,
+    workspaceId,
+    capability: "profile:update:role",
+    actorProfileId: actorId,
+    currentData: currentProfile,
+    entityIdColumn: "profile_id",
+  };
+
+  try {
+    await gatedUpdate(supabase, "profile", patch, ctx);
+    void emit({
+      event: "profile role updated",
+      workspace_id: workspaceId,
+      actor_id: actorId,
+      properties: {
+        entity: { entity_type: "profile", entity_id: profileId },
+        data: { new_role: newRole },
+      },
+    });
+    return { ok: true };
+  } catch (err) {
+    if (err instanceof GateDeniedError) {
+      if (err.outcome === "proposed") {
+        return { ok: true, pendingProposal: err.proposalId ?? undefined };
+      }
+      return { ok: false, error: err.reason ?? "Governance denied the update" };
+    }
+    return { ok: false, error: (err as Error).message };
+  }
 }
 
 export async function updateProfileDepartment(
   profileId: string,
   workspaceId: string,
   departmentId: string,
-) {
+): Promise<GatedResult> {
   const supabase = await getClient();
+  const actorId = await resolveActorId(supabase);
 
-  // Fetch current departments array to preserve multi-dept assignments
-  const { data: current } = await supabase
-    .from("profile")
-    .select("departments")
-    .eq("profile_id", profileId)
-    .single();
+  const currentProfile = await fetchCurrentProfile(supabase, profileId);
+  if (!currentProfile) return { ok: false, error: "Profile not found" };
 
-  const currentDepts: string[] = (current?.departments as string[]) ?? [];
+  // Preserve multi-dept assignments by re-using the existing array.
+  const currentDepts: string[] = (currentProfile["departments"] as string[] | null) ?? [];
   const updatedDepts =
     currentDepts.length > 1 ? [departmentId, ...currentDepts.slice(1)] : [departmentId];
 
-  const { error } = await supabase
-    .from("profile")
-    .update({ department_id: departmentId, departments: updatedDepts })
-    .eq("profile_id", profileId)
-    .eq("workspace_id", workspaceId);
+  const patch: Record<string, unknown> = {
+    department_id: departmentId,
+    departments: updatedDepts,
+  };
+  const ctx: GateContext = {
+    entityType: "profile",
+    entityId: profileId,
+    workspaceId,
+    capability: "profile:update:department",
+    actorProfileId: actorId,
+    currentData: currentProfile,
+    entityIdColumn: "profile_id",
+  };
 
-  if (error) throw new Error(error.message);
+  try {
+    await gatedUpdate(supabase, "profile", patch, ctx);
+    void emit({
+      event: "profile department updated",
+      workspace_id: workspaceId,
+      actor_id: actorId,
+      properties: {
+        entity: { entity_type: "profile", entity_id: profileId },
+        data: { department_id: departmentId },
+      },
+    });
+    return { ok: true };
+  } catch (err) {
+    if (err instanceof GateDeniedError) {
+      if (err.outcome === "proposed") {
+        return { ok: true, pendingProposal: err.proposalId ?? undefined };
+      }
+      return { ok: false, error: err.reason ?? "Governance denied the update" };
+    }
+    return { ok: false, error: (err as Error).message };
+  }
 }
 
-export async function deactivateProfile(profileId: string, workspaceId: string) {
+export async function deactivateProfile(
+  profileId: string,
+  workspaceId: string,
+): Promise<GatedResult> {
   const supabase = await getClient();
-  const { error } = await supabase
-    .from("profile")
-    .update({ status: "offboarding", is_active: false } satisfies TablesUpdate<"profile">)
-    .eq("profile_id", profileId)
-    .eq("workspace_id", workspaceId);
+  const actorId = await resolveActorId(supabase);
 
-  if (error) throw new Error(error.message);
+  const currentProfile = await fetchCurrentProfile(supabase, profileId);
+  if (!currentProfile) return { ok: false, error: "Profile not found" };
+
+  const patch: TablesUpdate<"profile"> = { status: "offboarding", is_active: false };
+  const ctx: GateContext = {
+    entityType: "profile",
+    entityId: profileId,
+    workspaceId,
+    capability: "profile:update:status",
+    actorProfileId: actorId,
+    currentData: currentProfile,
+    entityIdColumn: "profile_id",
+  };
+
+  try {
+    await gatedUpdate(supabase, "profile", patch as Record<string, unknown>, ctx);
+    void emit({
+      event: "profile deactivated",
+      workspace_id: workspaceId,
+      actor_id: actorId,
+      properties: {
+        entity: { entity_type: "profile", entity_id: profileId },
+        data: {},
+      },
+    });
+    return { ok: true };
+  } catch (err) {
+    if (err instanceof GateDeniedError) {
+      if (err.outcome === "proposed") {
+        return { ok: true, pendingProposal: err.proposalId ?? undefined };
+      }
+      return { ok: false, error: err.reason ?? "Governance denied the update" };
+    }
+    return { ok: false, error: (err as Error).message };
+  }
 }
 
 export async function resetUserPassword(email: string) {
@@ -78,6 +255,16 @@ export async function cancelInvitation(invitationId: string) {
     .eq("invitation_id", invitationId);
 
   if (error) throw new Error(error.message);
+
+  void emit({
+    event: "invitation cancelled",
+    workspace_id: null,
+    actor_id: await resolveActorId(supabase),
+    properties: {
+      entity: { entity_type: "invitation", entity_id: invitationId },
+      data: { invitation_id: invitationId },
+    },
+  });
 }
 
 export async function resendInvitation(workspaceId: string, invitationId: string) {
@@ -115,6 +302,17 @@ export async function resendInvitation(workspaceId: string, invitationId: string
   });
 
   if (error) throw new Error(`Failed to resend: ${error.message}`);
+
+  void emit({
+    event: "invitation resent",
+    workspace_id: workspaceId,
+    actor_id: await resolveActorId(supabase),
+    properties: {
+      entity: { entity_type: "invitation", entity_id: invitationId },
+      data: { invitation_id: invitationId },
+    },
+  });
+
   return data;
 }
 
@@ -188,44 +386,206 @@ export async function updateProfileStatus(
   workspaceId: string,
   currentStatus: ProfileStatus,
   newStatus: ProfileStatus,
-) {
+): Promise<GatedResult> {
   if (!isValidTransition(currentStatus, newStatus)) {
-    throw new Error(`Invalid status transition: ${currentStatus} → ${newStatus}`);
+    return {
+      ok: false,
+      error: `Invalid status transition: ${currentStatus} → ${newStatus}`,
+    };
   }
 
   const supabase = await getClient();
+  const actorId = await resolveActorId(supabase);
+
+  const currentProfile = await fetchCurrentProfile(supabase, profileId);
+  if (!currentProfile) return { ok: false, error: "Profile not found" };
+
   const isActive = newStatus === "active" || newStatus === "trainee";
-  const { error } = await supabase
-    .from("profile")
-    .update({ status: newStatus, is_active: isActive } satisfies TablesUpdate<"profile">)
-    .eq("profile_id", profileId)
-    .eq("workspace_id", workspaceId);
+  const patch: TablesUpdate<"profile"> = { status: newStatus, is_active: isActive };
+  const ctx: GateContext = {
+    entityType: "profile",
+    entityId: profileId,
+    workspaceId,
+    capability: "profile:update:status",
+    actorProfileId: actorId,
+    currentData: currentProfile,
+    entityIdColumn: "profile_id",
+  };
 
-  if (error) throw new Error(error.message);
+  try {
+    await gatedUpdate(supabase, "profile", patch as Record<string, unknown>, ctx);
+    void emit({
+      event: "profile status updated",
+      workspace_id: workspaceId,
+      actor_id: actorId,
+      properties: {
+        entity: { entity_type: "profile", entity_id: profileId },
+        data: { from_status: currentStatus, to_status: newStatus },
+      },
+    });
+    return { ok: true };
+  } catch (err) {
+    if (err instanceof GateDeniedError) {
+      if (err.outcome === "proposed") {
+        return { ok: true, pendingProposal: err.proposalId ?? undefined };
+      }
+      return { ok: false, error: err.reason ?? "Governance denied the update" };
+    }
+    return { ok: false, error: (err as Error).message };
+  }
 }
 
-export async function reactivateProfile(profileId: string, workspaceId: string) {
+export async function reactivateProfile(
+  profileId: string,
+  workspaceId: string,
+): Promise<GatedResult> {
   const supabase = await getClient();
-  const { error } = await supabase
+  const actorId = await resolveActorId(supabase);
+
+  const currentProfile = await fetchCurrentProfile(supabase, profileId);
+  if (!currentProfile) return { ok: false, error: "Profile not found" };
+
+  const patch: TablesUpdate<"profile"> = { status: "active", is_active: true };
+  const ctx: GateContext = {
+    entityType: "profile",
+    entityId: profileId,
+    workspaceId,
+    capability: "profile:update:status",
+    actorProfileId: actorId,
+    currentData: currentProfile,
+    entityIdColumn: "profile_id",
+  };
+
+  try {
+    await gatedUpdate(supabase, "profile", patch as Record<string, unknown>, ctx);
+    void emit({
+      event: "profile reactivated",
+      workspace_id: workspaceId,
+      actor_id: actorId,
+      properties: {
+        entity: { entity_type: "profile", entity_id: profileId },
+        data: {},
+      },
+    });
+    return { ok: true };
+  } catch (err) {
+    if (err instanceof GateDeniedError) {
+      if (err.outcome === "proposed") {
+        return { ok: true, pendingProposal: err.proposalId ?? undefined };
+      }
+      return { ok: false, error: err.reason ?? "Governance denied the update" };
+    }
+    return { ok: false, error: (err as Error).message };
+  }
+}
+
+export async function updateEmergencyContact(
+  profileId: string,
+  emergencyName: string | null,
+  emergencyPhone: string | null,
+) {
+  const supabase = await getClient();
+
+  // Look up user_id from profile to update user_identity
+  const { data: profile, error: fetchError } = await supabase
     .from("profile")
-    .update({ status: "active", is_active: true } satisfies TablesUpdate<"profile">)
+    .select("user_id")
     .eq("profile_id", profileId)
-    .eq("workspace_id", workspaceId);
+    .single();
+
+  if (fetchError || !profile) throw new Error("Profile not found");
+
+  const { error } = await supabase
+    .from("user_identity")
+    .update({
+      emergency_contact_name: emergencyName,
+      emergency_contact_phone: emergencyPhone,
+    })
+    .eq("user_id", profile.user_id);
 
   if (error) throw new Error(error.message);
 }
 
+/**
+ * Bulk-update profiles. `gatedUpdate` is per-entity (requires `ctx.entityId`),
+ * so bulk updates are fanned-out into sequential gated writes. Results are
+ * aggregated: if ANY update is proposed, the function returns the first
+ * proposal_id in `pendingProposal`; the caller can inspect `proposalIds` for
+ * the full list. Individual failures short-circuit and return { ok: false }.
+ */
 export async function bulkUpdateProfiles(
   profileIds: string[],
   workspaceId: string,
   updates: Record<string, unknown>,
+): Promise<
+  { ok: true; pendingProposal?: string; proposalIds: string[] } | { ok: false; error: string }
+> {
+  const supabase = await getClient();
+  const actorId = await resolveActorId(supabase);
+  const proposalIds: string[] = [];
+
+  for (const profileId of profileIds) {
+    const currentProfile = await fetchCurrentProfile(supabase, profileId);
+    if (!currentProfile) {
+      return { ok: false, error: `Profile not found: ${profileId}` };
+    }
+
+    const ctx: GateContext = {
+      entityType: "profile",
+      entityId: profileId,
+      workspaceId,
+      capability: "profile:update:bulk",
+      actorProfileId: actorId,
+      currentData: currentProfile,
+      entityIdColumn: "profile_id",
+    };
+
+    try {
+      await gatedUpdate(supabase, "profile", updates, ctx);
+    } catch (err) {
+      if (err instanceof GateDeniedError) {
+        if (err.outcome === "proposed") {
+          if (err.proposalId) proposalIds.push(err.proposalId);
+          continue;
+        }
+        return { ok: false, error: err.reason ?? "Governance denied the update" };
+      }
+      return { ok: false, error: (err as Error).message };
+    }
+  }
+
+  return {
+    ok: true,
+    pendingProposal: proposalIds[0],
+    proposalIds,
+  };
+}
+
+/**
+ * Send a passwordless login code to an employee via SMS or email.
+ * Invokes the send-login-code Edge Function which generates a Supabase
+ * magic link and delivers it through SendGrid (email) or Twilio (SMS).
+ */
+export async function sendLoginCode(
+  profileId: string,
+  workspaceId: string,
+  channel: "email" | "sms",
 ) {
   const supabase = await getClient();
-  const { error } = await supabase
-    .from("profile")
-    .update(updates)
-    .in("profile_id", profileIds)
-    .eq("workspace_id", workspaceId);
+  const { error } = await supabase.functions.invoke("send-login-code", {
+    body: { profile_id: profileId, channel },
+  });
 
   if (error) throw new Error(error.message);
+
+  const actorId = await resolveActorId(supabase);
+  void emit({
+    event: "profile login code sent",
+    workspace_id: workspaceId,
+    actor_id: actorId,
+    properties: {
+      entity: { entity_type: "profile", entity_id: profileId },
+      data: { channel },
+    },
+  });
 }

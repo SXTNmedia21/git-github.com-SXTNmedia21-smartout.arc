@@ -5,8 +5,38 @@
  * required by the dashboard context contract.
  */
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { buildBootstrapContext } from "../build-bootstrap-context";
+
+vi.mock("@smartout/supabase/server", () => ({
+  createClient: vi.fn().mockResolvedValue({
+    from: vi.fn().mockImplementation((table: string) => {
+      if (table === "profile") {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: { role: "admin" },
+                  error: null,
+                }),
+              }),
+            }),
+          }),
+        };
+      }
+      // protocol_assignment
+      return {
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({
+            data: [{ status: "completed" }, { status: "completed" }],
+            error: null,
+          }),
+        }),
+      };
+    }),
+  }),
+}));
 
 describe("buildBootstrapContext", () => {
   it("returns role-scoped context shape", async () => {

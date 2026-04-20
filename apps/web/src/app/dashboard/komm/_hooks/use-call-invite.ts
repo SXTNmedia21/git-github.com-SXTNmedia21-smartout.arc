@@ -3,6 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
+import { useTranslation } from "@smartout/i18n";
 import { emit } from "@smartout/telemetry";
 import { respondToInvite } from "@smartout/walkie-talkie";
 import { channelKeys } from "./channel-keys";
@@ -20,6 +21,7 @@ export function useCallInvite() {
   const queryClient = useQueryClient();
   const { workspace } = useWorkspace();
   const workspaceId = workspace.workspace_id;
+  const { t } = useTranslation("komm");
 
   return useMutation({
     mutationFn: async ({
@@ -66,7 +68,7 @@ export function useCallInvite() {
     },
 
     onError: () => {
-      toast.error("Kunne ikke svare på samtale");
+      toast.error(t("call.invite_error"));
     },
   });
 }

@@ -8,6 +8,7 @@ import {
   GraduationCap,
   FileText,
   AlertTriangle,
+  ShieldCheck,
 } from "lucide-react";
 
 const HMS_TABS = [
@@ -16,6 +17,7 @@ const HMS_TABS = [
   { id: "training", href: "/dashboard/hms/training", label: "Opplaering", icon: GraduationCap },
   { id: "documents", href: "/dashboard/hms/documents", label: "Dokumenter", icon: FileText },
   { id: "deviations", href: "/dashboard/hms/deviations", label: "Avvik", icon: AlertTriangle },
+  { id: "governance", href: "/dashboard/hms/governance", label: "Governance", icon: ShieldCheck },
 ] as const;
 
 export function HmsSubNav() {

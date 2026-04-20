@@ -68,6 +68,7 @@ import { useEmployees, type ScheduleEmployee } from "./_hooks/use-employees";
 import { ScheduleUIProvider, useScheduleUI } from "./_components/schedule-ui-context";
 import { AgentProposalsProvider, useAgentProposals } from "./_components/agent-proposals-context";
 import { ProposalBanner } from "./_components/proposal-banner";
+import { SwapApprovalSection } from "./_components/SwapApprovalSection";
 import { ScheduleVoiceToolsBridge } from "./_components/schedule-voice-tools-bridge";
 import {
   useShifts,
@@ -203,12 +204,16 @@ function SchedulePageContent() {
   const firstInteractionCapturedRef = useRef(false);
   const {
     isDark,
+    isAdminMode,
     scheduleLayout,
     setScheduleLayout,
     scheduleDateOffset,
+    setScheduleDateOffset,
     setOnPublishAll,
     setScheduleDraftCount,
     scheduleCompactMode,
+    setScheduleView,
+    setWeeklyPeriodCount,
   } = useContext(DashboardContext);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -732,7 +737,10 @@ function SchedulePageContent() {
     const emp = employees.find((e: ScheduleEmployee) => e.id === employeeId);
     const name = emp?.name ?? "Ansatt";
     toast.warning(`${name} — ${entry.readinessPercent}% klar`, {
-      description: `Mangler: ${entry.pendingProtocols.slice(0, 3).join(", ")}${entry.pendingProtocols.length > 3 ? "…" : ""}`,
+      description: `Mangler: ${entry.pendingProtocols
+        .slice(0, 3)
+        .map((p) => p.name)
+        .join(", ")}${entry.pendingProtocols.length > 3 ? "…" : ""}`,
     });
   };
 
@@ -954,6 +962,7 @@ function SchedulePageContent() {
         createShift.mutateAsync(input as Parameters<typeof createShift.mutateAsync>[0])
       }
       updateShift={(input) => updateShift.mutateAsync(input)}
+      deleteShift={(id) => deleteShift.mutateAsync(id)}
     >
       <ScheduleVoiceToolsBridge
         weekStart={weekStart}
@@ -966,10 +975,23 @@ function SchedulePageContent() {
         computed={computed}
         focusDayInUI={focusDayInUI}
         setSelectedDate={handleSetSelectedDate}
-        createShift={createShift}
-        updateShift={updateShift}
-        deleteShift={deleteShift}
-        publishShifts={publishShifts}
+        switchScheduleView={(view) =>
+          setScheduleView(view as "ansatt" | "jobb" | "team" | "lokasjon")
+        }
+        setTimePeriod={(weeks) => setWeeklyPeriodCount(weeks)}
+        setFilterSituation={setFilterSituation}
+        navigateToDate={(weekOffset) => {
+          // Relative (neste/forrige): small offset added to current position
+          // Absolute (uke 17, date): full offset from now
+          if (Math.abs(weekOffset) <= 2 && weekOffset !== 0) {
+            setScheduleDateOffset(scheduleDateOffset + weekOffset);
+          } else {
+            setScheduleDateOffset(weekOffset);
+          }
+        }}
+        switchLayout={(layout) =>
+          setScheduleLayout(layout as "daily" | "weekly" | "monthly" | "list" | "grid")
+        }
       />
       <div
         className={`bg-background border-border text-foreground relative isolate flex h-full flex-1 flex-col overflow-hidden rounded-2xl border font-sans shadow-2xl print:block print:h-auto print:overflow-visible print:border-none print:bg-white print:shadow-none`}
@@ -985,6 +1007,9 @@ function SchedulePageContent() {
 
             {/* Agent proposal banner — shows when Emma has pending shift proposals */}
             <ProposalBanner />
+
+            {/* Shift swap approval section — shows pending swaps for admin/manager */}
+            <SwapApprovalSection isAdmin={isAdminMode} />
 
             {/* VAKTGRID — single grid, columns grouped by department horizontally */}
             {scheduleLayout === "grid" && (

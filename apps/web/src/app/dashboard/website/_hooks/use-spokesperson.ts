@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { websiteKeys } from "./website-keys";
+import { emit } from "@smartout/telemetry";
 import {
   assignSpokesperson,
   revokeSpokesperson,
@@ -59,7 +60,20 @@ export function useSpokesperson(sectionId: string) {
       );
       if (!result.success) throw new Error(result.error);
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
+      void emit({
+        event: "website spokesperson_assigned",
+        workspace_id: wsId ?? null,
+        actor_id: profileId ?? "",
+        properties: {
+          entity: {
+            entity_type: "website_spokesperson",
+            entity_id: sectionId,
+            entity_label: variables.roleTitle,
+          },
+          data: { profile_id: variables.newProfileId, role_title: variables.roleTitle },
+        },
+      });
       queryClient.invalidateQueries({ queryKey: websiteKeys.spokesperson(sectionId) });
       toast.success("Talsperson tilordnet");
     },
@@ -81,7 +95,19 @@ export function useSpokesperson(sectionId: string) {
       const result = await revokeSpokesperson(websiteId, spokespersonId);
       if (!result.success) throw new Error(result.error);
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
+      void emit({
+        event: "website spokesperson_revoked",
+        workspace_id: wsId ?? null,
+        actor_id: profileId ?? "",
+        properties: {
+          entity: {
+            entity_type: "website_spokesperson",
+            entity_id: sectionId,
+          },
+          data: { spokesperson_id: variables.spokespersonId },
+        },
+      });
       queryClient.invalidateQueries({ queryKey: websiteKeys.spokesperson(sectionId) });
       toast.success("Talsperson tilbakekalt");
     },
@@ -106,6 +132,27 @@ export function useSpokesperson(sectionId: string) {
       if (!result.success) throw new Error(result.error);
     },
     onSuccess: (_data, variables) => {
+      if (variables.approve) {
+        void emit({
+          event: "website spokesperson_approved",
+          workspace_id: wsId ?? null,
+          actor_id: profileId ?? "",
+          properties: {
+            entity: { entity_type: "website_spokesperson", entity_id: sectionId },
+            data: { profile_id: profileId ?? "" },
+          },
+        });
+      } else {
+        void emit({
+          event: "website spokesperson_declined",
+          workspace_id: wsId ?? null,
+          actor_id: profileId ?? "",
+          properties: {
+            entity: { entity_type: "website_spokesperson", entity_id: sectionId },
+            data: { profile_id: profileId ?? "", reason: variables.declineReason },
+          },
+        });
+      }
       queryClient.invalidateQueries({ queryKey: websiteKeys.spokesperson(sectionId) });
       toast.success(variables.approve ? "Forespørsel godtatt" : "Forespørsel avslått");
     },

@@ -10,6 +10,7 @@ import { generateText, stepCountIs } from "ai";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { classifyIntent } from "@smartout/ai/router/intent-classifier";
 import { selectTools } from "@smartout/ai/router/tool-selector";
+import type { AuthorityLevel } from "@smartout/ai/capabilities/types";
 import { buildBotssonPromptFromContext } from "@smartout/ai/prompts/mr-botsson";
 import { toVercelTools } from "@smartout/ai/adapters/vercel-ai";
 import { collectContext } from "@smartout/ai/context/collector";
@@ -17,7 +18,8 @@ import type { AgentContext } from "@smartout/ai/context/types";
 import type { Situation } from "@smartout/ai/capabilities/types";
 import { loadAuthorityConfig } from "./authority.js";
 import { loadOnboardingContext } from "./session-manager.js";
-import { supabaseAdmin } from "../lib/supabase.js";
+import { GateActionFailed, SchemaCacheStale } from "../lib/errors.js";
+import { supabaseAdmin, createUserClient } from "../lib/supabase.js";
 import { broadcastToSession } from "../ws/connection-manager.js";
 import { getBufferedActions } from "../routes/ws.js";
 import type { MissionProtocolMessage } from "@smartout/types";
@@ -45,6 +47,9 @@ type AgentRouterInput = {
   userId?: string;
   conversationHistory: ConversationTurn[];
   situation?: Situation;
+  pageContext?: string; // current page pathname from frontend (e.g. "/dashboard/schedule")
+  channel?: "chat" | "voice"; // ADR-0078: propagated to toolContext for PII defense
+  userJwt?: string; // Employee JWT for user-scoped PII writes (contract intake)
 };
 
 /**
@@ -65,15 +70,67 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
     userId,
     conversationHistory,
     situation = "general",
+    pageContext,
+    channel,
+    userJwt,
   } = input;
 
-  // Step 1: Load authority config
-  const authorityConfig = await loadAuthorityConfig(workspaceId);
+  // Step 1: Load authority config (advisory map used for tool selection only; the authoritative
+  // per-call decision is the public.gate_action RPC invoked after intent is known — ADR-0099).
+  const rawAuthority = await loadAuthorityConfig(workspaceId);
 
   // Step 2: Classify intent
   const intent = await classifyIntent(message, "", {
     apiKey: getSecrets().openrouterApiKey ?? undefined,
   });
+
+  // Step 2b: Unified authority gate (ADR-0099). Replaces inline min-role + channel logic.
+  // Gate returns { allow, downgrade_to, reason, gate_evaluation_id } and writes a gate_evaluation audit row.
+  const { data: gateResult, error: gateError } = await supabaseAdmin.rpc("gate_action", {
+    p_workspace_id: workspaceId,
+    p_capability: intent.capability,
+    p_channel: channel ?? "chat",
+    p_actor_profile_id: profileId,
+    p_action_type: "agent_chat",
+  });
+  if (gateError) {
+    if (gateError.code === "PGRST002" || /schema cache/i.test(gateError.message)) {
+      throw new SchemaCacheStale(`gate_action: ${gateError.message}`, {
+        capability: intent.capability,
+        workspaceId,
+      });
+    }
+    throw new GateActionFailed(`gate_action RPC failed: ${gateError.message}`, {
+      capability: intent.capability,
+      workspaceId,
+    });
+  }
+  const gate = gateResult as {
+    allow: boolean;
+    downgrade_to: string | null;
+    reason: string | null;
+    gate_evaluation_id: string;
+  };
+  if (!gate.allow) {
+    return {
+      session_id: sessionId,
+      response:
+        gate.reason === "channel_not_permitted"
+          ? "Dette kan jeg ikke gjøre på denne kanalen. Prøv via chat i dashbordet."
+          : "Dette er ikke tillatt for din rolle akkurat nå.",
+      intent: { capability: intent.capability, confidence: intent.confidence },
+    };
+  }
+
+  // Authority for the matched capability = what gate_action decided.
+  // The advisory authority map is no longer re-derived post-gate (Council 2026-04-16).
+  const authority = (gate.downgrade_to ??
+    rawAuthority.levels[intent.capability] ??
+    "read_only") as AuthorityLevel;
+  const authorityConfig: Record<string, AuthorityLevel> = {
+    ...rawAuthority.levels,
+    [intent.capability]: authority,
+  };
 
   // Determine situation from intent if not explicitly provided
   const resolvedSituation: Situation =
@@ -86,9 +143,6 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
           : intent.capability === "operations"
             ? "operations"
             : "general";
-
-  // Determine authority for the matched capability
-  const authority = authorityConfig[intent.capability] ?? "read_only";
 
   // Step 3: Collect full context (parallel fetch)
   const ctx = await collectContext({
@@ -106,13 +160,19 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
   }
 
   // Step 4: Select tools based on intent + authority
-  const selectedTools = selectTools(intent, authorityConfig);
+  const selectedTools = selectTools(intent, authorityConfig, channel);
 
   // Step 5: Build posture-aware system prompt
   const systemPrompt = buildBotssonPromptFromContext(
     ctx,
     selectedTools.map((t) => `${t.name}: ${t.description}`),
   );
+
+  // Inject page context into system prompt so Emma knows where the user is
+  let finalSystemPrompt = systemPrompt;
+  if (pageContext) {
+    finalSystemPrompt += `\n\n## Brukerens skjerm\nBrukeren er pa: ${pageContext}`;
+  }
 
   // Inject buffered user actions from WebSocket into the message
   const bufferedActions = getBufferedActions(sessionId);
@@ -122,28 +182,44 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
     augmentedMessage = `[UI events since last turn: ${actionSummary}]\n\n${message}`;
   }
 
+  // Context window: send last 5 turns verbatim, pointer for older history
+  const CONTEXT_WINDOW = 5;
+  const recentHistory =
+    conversationHistory.length > CONTEXT_WINDOW
+      ? conversationHistory.slice(-CONTEXT_WINDOW)
+      : conversationHistory;
+
+  if (conversationHistory.length > CONTEXT_WINDOW) {
+    finalSystemPrompt += `\n\n## Samtalehistorikk\nDe ${conversationHistory.length - CONTEXT_WINDOW} eldste meldingene er utelatt. Du husker de siste ${CONTEXT_WINDOW} meldingene.`;
+  }
+
   // Build conversation messages for the LLM
-  const messages = conversationHistory.map((turn) => ({
+  const messages = recentHistory.map((turn) => ({
     role: turn.role as "user" | "assistant",
     content: turn.content,
   }));
   messages.push({ role: "user", content: augmentedMessage });
 
   // Step 6: Run LLM with tools
+  // Create user-scoped client when JWT is provided (needed for PII writes via submit_own_pii)
+  const supabaseUser = userJwt ? createUserClient(userJwt) : undefined;
+
   const toolContext = {
     workspaceId,
     profileId,
     userId,
     sessionId,
+    channel,
     supabaseAdmin,
+    supabaseUser,
     broadcast: (event: unknown) => broadcastToSession(sessionId, event as MissionProtocolMessage),
   };
 
   const vercelTools = toVercelTools(selectedTools, toolContext);
 
   const result = await generateText({
-    model: getOpenRouter()("anthropic/claude-sonnet-4"),
-    system: systemPrompt,
+    model: getOpenRouter()("anthropic/claude-sonnet-4.6"),
+    system: finalSystemPrompt,
     messages,
     tools: vercelTools,
     stopWhen: stepCountIs(5),

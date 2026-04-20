@@ -1,10 +1,16 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@smartout/supabase/server";
 import WebsiteOverview from "./_components/WebsiteOverview";
+import WebsiteLoading from "./loading";
 
 /**
- * Website overview page — server shell that confirms auth, then hands off to
- * the client component which handles the "no website yet" state via useWebsite.
+ * /dashboard/website — Server Component shell.
+ *
+ * Confirms auth server-side, then hands off to the client island
+ * inside a Suspense boundary. Initial "no website yet" and data-fetch
+ * states are handled by the client via `useWebsite`. Per ADR-0115
+ * RSC migration pattern.
  */
 export default async function WebsitePage() {
   const supabase = await createClient();
@@ -14,5 +20,9 @@ export default async function WebsitePage() {
 
   if (!user) redirect("/login");
 
-  return <WebsiteOverview />;
+  return (
+    <Suspense fallback={<WebsiteLoading />}>
+      <WebsiteOverview />
+    </Suspense>
+  );
 }

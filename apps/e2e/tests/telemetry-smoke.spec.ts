@@ -78,21 +78,23 @@ test.describe("journey:admin-creates-website-from-template", () => {
     await loginAsAdmin(page);
     await page.goto("/dashboard/website/setup", { waitUntil: "domcontentloaded" });
 
+    // Click the template card button itself (more reliable than targeting inner span)
     const templateCard = page.locator("button").filter({ hasText: "Restaurant Classic" }).first();
     const nextButton = page.getByRole("button", { name: "Neste" });
     await expect(templateCard).toBeVisible({ timeout: 15000 });
     await templateCard.click();
 
-    // Some local runs focus the card without toggling the selected state on first click.
-    // If that happens, press Enter on the focused card and wait for the step button to enable.
-    if (!(await nextButton.isEnabled().catch(() => false))) {
-      await templateCard.focus();
-      await templateCard.press("Enter");
+    // Retry with increasing delays if the first click didn't register (hydration race)
+    for (let attempt = 0; attempt < 3; attempt++) {
+      if (await nextButton.isEnabled().catch(() => false)) break;
+      await page.waitForTimeout(500);
+      await templateCard.click({ force: true });
     }
 
     await expect(nextButton).toBeEnabled({ timeout: 5000 });
     await nextButton.click();
-    await page.getByLabel("Navn på nettsiden").fill(`Telemetry Smoke ${Date.now()}`);
+    // Fill site name using stable id selector
+    await page.locator("#site-name").fill(`Telemetry Smoke ${Date.now()}`);
     await expect(nextButton).toBeEnabled({ timeout: 5000 });
     await nextButton.click();
     await page.getByRole("button", { name: "Opprett nettside" }).click();

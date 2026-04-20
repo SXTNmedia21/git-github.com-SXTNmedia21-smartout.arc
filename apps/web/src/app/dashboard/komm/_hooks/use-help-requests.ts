@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
+import { useTranslation } from "@smartout/i18n";
 import { emit } from "@smartout/telemetry";
 import { toast } from "sonner";
 
@@ -42,6 +43,7 @@ export function useCreateHelpRequest(profileId: string) {
   const queryClient = useQueryClient();
   const { workspace } = useWorkspace();
   const workspaceId = workspace.workspace_id;
+  const { t } = useTranslation("komm");
 
   return useMutation({
     mutationFn: async ({ title, description }: { title: string; description?: string }) => {
@@ -67,13 +69,13 @@ export function useCreateHelpRequest(profileId: string) {
         properties: { title: "" },
         entity: { entity_type: "help_request", entity_id: data.id },
       });
-      toast.success("Henvendelse opprettet");
+      toast.success(t("helpdesk.create_success"));
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["help-requests", workspaceId] });
     },
     onError: () => {
-      toast.error("Kunne ikke opprette henvendelse");
+      toast.error(t("helpdesk.create_error"));
     },
   });
 }

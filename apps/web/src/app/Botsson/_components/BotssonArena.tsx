@@ -5,8 +5,10 @@ import { useBotsson } from "./BotssonProvider";
 import { EASING } from "./types";
 import { PERSONAS } from "./persona-engine";
 import { EmmaProfile } from "./EmmaProfile";
+import { BotssonChat } from "./BotssonChat";
 import type { ContentViewType } from "./types";
 import type { ScheduledTask } from "./BotssonTools";
+import { useWorkspaceOptional } from "@/lib/workspace-context";
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 /*  Botsson Arena — Premium floating card      */
@@ -36,6 +38,7 @@ type DragHandleProps = {
 const VIEW_TITLES: Record<ContentViewType, string> = {
   visualizer: "Stemme",
   chat: "Samtale",
+  "admin-chat": "Botsson",
   notepad: "Notater",
   calculator: "Kalkulator",
   settings: "Innstillinger",
@@ -418,6 +421,21 @@ function ToolsFab() {
 type ContextDef = { id: ContentViewType; icon: React.ReactNode; label: string };
 
 const CONTEXT_ITEMS: ContextDef[] = [
+  {
+    id: "admin-chat" as ContentViewType,
+    label: "Chat",
+    icon: (
+      <svg width="17" height="17" viewBox="0 0 20 20" fill="none">
+        <path
+          d="M4 4H16C17.1 4 18 4.9 18 6V13C18 14.1 17.1 15 16 15H7L3 18V6C3 4.9 3.9 4 5 4Z"
+          stroke="currentColor"
+          strokeWidth="1.4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    ),
+  },
   {
     id: "log",
     label: "Logg",
@@ -2117,32 +2135,275 @@ function VideoView() {
   );
 }
 function LogView() {
+  const { agent, telemetryEvents } = useBotsson();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [tab, setTab] = useState<"agent" | "telemetry">("agent");
+
+  const debugLog = agent.debugLog ?? [];
+  const activeList = tab === "agent" ? debugLog : telemetryEvents;
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+  }, [activeList.length]);
+
+  const TYPE_COLORS: Record<string, string> = {
+    tool_call: "text-brand-orange",
+    tool_result: "text-emerald-400",
+    api_error: "text-red-400",
+    api_request: "text-blue-400",
+    api_response: "text-blue-300",
+    status: "text-purple-400",
+    context_push: "text-cyan-400",
+    event: "text-muted-foreground",
+    inference: "text-amber-400",
+  };
+
+  const TELE_COLORS: Record<string, string> = {
+    auth: "text-blue-400",
+    shift: "text-amber-400",
+    contract: "text-orange-400",
+    agent: "text-brand-orange",
+    session: "text-purple-400",
+    department: "text-cyan-400",
+    protocol: "text-green-400",
+    communication: "text-sky-400",
+  };
+
   return (
-    <div
-      className="text-muted-foreground/20 flex h-full items-center justify-center text-xs"
-      data-botsson-content
-    >
-      Logg
+    <div className="flex h-full flex-col" data-botsson-content>
+      <div className="border-border/20 border-b px-4 pt-3 pb-2">
+        <div className="mb-2 flex items-center justify-between">
+          <h3 className="text-foreground text-sm font-bold">Logg</h3>
+          <span className="text-muted-foreground/40 font-mono text-[10px]">
+            {activeList.length}
+          </span>
+        </div>
+        <div className="flex gap-1">
+          <button
+            onClick={() => setTab("agent")}
+            className={`rounded-md px-2 py-1 text-[10px] font-semibold transition-colors ${tab === "agent" ? "bg-brand-orange/15 text-brand-orange" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            Tool Calls
+          </button>
+          <button
+            onClick={() => setTab("telemetry")}
+            className={`rounded-md px-2 py-1 text-[10px] font-semibold transition-colors ${tab === "telemetry" ? "bg-brand-orange/15 text-brand-orange" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            Telemetri
+          </button>
+        </div>
+      </div>
+      <div
+        ref={scrollRef}
+        onPointerDown={(e) => e.stopPropagation()}
+        className="flex-1 cursor-text space-y-0.5 overflow-y-auto p-3 font-mono text-[11px] select-text"
+      >
+        {activeList.length === 0 ? (
+          <div className="text-muted-foreground/30 flex h-full items-center justify-center text-xs">
+            {tab === "agent" ? "Ingen tool-kall ennå" : "Ingen hendelser ennå"}
+          </div>
+        ) : tab === "agent" ? (
+          debugLog.map((entry, i) => {
+            const time = new Date(entry.timestamp).toLocaleTimeString("no", { hour12: false });
+            const color = TYPE_COLORS[entry.type] ?? "text-muted-foreground";
+            const isError = entry.type === "api_error";
+            return (
+              <div
+                key={i}
+                className={`flex gap-2 leading-tight ${isError ? "-mx-1 rounded bg-red-500/10 px-1" : ""}`}
+              >
+                <span className="text-muted-foreground/50 shrink-0">{time}</span>
+                <span className={`shrink-0 font-semibold ${color}`}>{entry.type}</span>
+                <span className={`break-all ${isError ? "text-red-300" : "text-foreground/80"}`}>
+                  {entry.content}
+                </span>
+              </div>
+            );
+          })
+        ) : (
+          telemetryEvents.map((entry, i) => {
+            const time = new Date(entry.timestamp).toLocaleTimeString("no", { hour12: false });
+            const color = TELE_COLORS[entry.category] ?? "text-muted-foreground";
+            return (
+              <div key={i} className="flex gap-2 leading-tight">
+                <span className="text-muted-foreground/50 shrink-0">{time}</span>
+                <span className={`shrink-0 ${color}`}>[{entry.category}]</span>
+                <span className="text-foreground/80 break-all">{entry.event}</span>
+              </div>
+            );
+          })
+        )}
+      </div>
     </div>
   );
 }
+
 function MemoryView() {
+  const [memories, setMemories] = useState<
+    Array<{ content: string; memory_type: string; importance: number; created_at: string }>
+  >([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/emma/memory")
+      .then((res) => (res.ok ? res.json() : Promise.reject()))
+      .then(
+        (data: {
+          memories?: Array<{
+            content: string;
+            memory_type: string;
+            importance: number;
+            created_at: string;
+          }>;
+        }) => {
+          setMemories(data.memories ?? []);
+        },
+      )
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const TYPE_LABELS: Record<string, string> = {
+    preference: "Preferanse",
+    fact: "Fakta",
+    instruction: "Instruks",
+    relationship: "Relasjon",
+    observation: "Observasjon",
+  };
+
+  const TYPE_COLORS: Record<string, string> = {
+    preference: "bg-blue-500/15 text-blue-400",
+    fact: "bg-emerald-500/15 text-emerald-400",
+    instruction: "bg-amber-500/15 text-amber-400",
+    relationship: "bg-purple-500/15 text-purple-400",
+    observation: "bg-cyan-500/15 text-cyan-400",
+  };
+
   return (
-    <div
-      className="text-muted-foreground/20 flex h-full items-center justify-center text-xs"
-      data-botsson-content
-    >
-      Minne
+    <div className="flex h-full flex-col" data-botsson-content>
+      <div className="border-border/20 flex items-center justify-between border-b px-4 pt-3 pb-2">
+        <div>
+          <h3 className="text-foreground text-sm font-bold">Minne</h3>
+          <p className="text-muted-foreground/40 text-[10px]">{memories.length} lagrede minner</p>
+        </div>
+      </div>
+      <div className="flex-1 space-y-2 overflow-y-auto p-3">
+        {loading ? (
+          <div className="text-muted-foreground/30 flex h-full items-center justify-center text-xs">
+            Laster...
+          </div>
+        ) : memories.length === 0 ? (
+          <div className="text-muted-foreground/30 flex h-full items-center justify-center text-xs">
+            Ingen minner ennå
+          </div>
+        ) : (
+          memories.map((m, i) => (
+            <div key={i} className="bg-muted/40 rounded-lg p-2.5">
+              <div className="mb-1 flex items-center gap-2">
+                <span
+                  className={`rounded-full px-1.5 py-0.5 text-[9px] font-medium ${TYPE_COLORS[m.memory_type] ?? "bg-muted text-muted-foreground"}`}
+                >
+                  {TYPE_LABELS[m.memory_type] ?? m.memory_type}
+                </span>
+                <span className="text-muted-foreground/40 text-[9px]">
+                  {new Date(m.created_at).toLocaleDateString("no")}
+                </span>
+              </div>
+              <p className="text-foreground/80 text-xs leading-relaxed">{m.content}</p>
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 }
+
 function HistoryView() {
+  const { agent } = useBotsson();
+  const transcript = agent.transcript ?? [];
+
   return (
-    <div
-      className="text-muted-foreground/20 flex h-full items-center justify-center text-xs"
-      data-botsson-content
-    >
-      Historikk
+    <div className="flex h-full flex-col" data-botsson-content>
+      <div className="border-border/20 flex items-center justify-between border-b px-4 pt-3 pb-2">
+        <div>
+          <h3 className="text-foreground text-sm font-bold">Historikk</h3>
+          <p className="text-muted-foreground/40 text-[10px]">Samtalelogg denne sesjonen</p>
+        </div>
+      </div>
+      <div className="flex-1 space-y-2 overflow-y-auto p-3">
+        {transcript.length === 0 ? (
+          <div className="text-muted-foreground/30 flex h-full items-center justify-center text-xs">
+            Ingen samtale ennå
+          </div>
+        ) : (
+          transcript.map((entry, i) => (
+            <div
+              key={i}
+              className={`flex gap-2.5 ${entry.role === "agent" ? "" : "flex-row-reverse"}`}
+            >
+              <div
+                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
+                  entry.role === "agent"
+                    ? "bg-brand-orange/15 text-brand-orange"
+                    : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {entry.role === "agent" ? "E" : "U"}
+              </div>
+              <div
+                className={`max-w-[85%] rounded-xl px-3 py-1.5 text-xs ${
+                  entry.role === "agent"
+                    ? "bg-muted/60 text-foreground/80"
+                    : "bg-brand-orange/10 text-foreground/80"
+                }`}
+              >
+                {entry.text}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ━━━ View: Admin Chat — typed-input chat with Botsson capability tools ━━━ */
+//
+// Wrapper view that mounts BotssonChat inside the arena. Reads workspace_id from
+// useWorkspace() and primeContext (if any) from the active content stack item's props.
+// Triggered by the 'botsson:open' event listener in BotssonProvider, which sets the
+// admin-chat view + forwards primeContext from the dispatching button.
+
+function AdminChatView() {
+  const { activeView: _av } = useBotsson(); // re-render trigger on view changes
+  const workspaceCtx = useWorkspaceOptional();
+  const workspaceId = workspaceCtx?.workspace.workspace_id ?? null;
+
+  // Read primeContext from the top of the content stack — set by the event handler.
+  const { state } = useBotsson();
+  const topItem = state.contentStack[state.contentStack.length - 1];
+  const primeContext = (topItem?.props.primeContext ?? undefined) as
+    | {
+        kind: "create_contract" | "view_employee" | "general";
+        profileId?: string;
+        profileName?: string;
+      }
+    | undefined;
+
+  if (!workspaceId) {
+    return (
+      <div
+        className="text-muted-foreground flex h-full items-center justify-center text-sm"
+        data-botsson-content
+      >
+        Ingen aktiv arbeidsplass — chat er bare tilgjengelig i en workspace-kontekst.
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-full flex-col" data-botsson-content>
+      <BotssonChat workspaceId={workspaceId} primeContext={primeContext} />
     </div>
   );
 }
@@ -2152,6 +2413,7 @@ function HistoryView() {
 const VIEW_COMPONENTS: Record<ContentViewType, React.ComponentType> = {
   visualizer: VisualizerView,
   chat: ChatView,
+  "admin-chat": AdminChatView,
   notepad: NotepadView,
   calculator: CalculatorView,
   settings: SettingsView,

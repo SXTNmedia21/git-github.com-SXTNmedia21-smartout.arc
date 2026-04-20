@@ -1613,7 +1613,28 @@ VALUES
   ('b0000000-0000-0000-0000-000000000000', 'ad000000-0000-0000-0000-000000000001', 20, 2.2),
   ('b0000000-0000-0000-0000-000000000000', 'ad000000-0000-0000-0000-000000000001', 21, 1.1);
 
--- ── 10.5 Operating Hours ────────────────────────────────────────
+-- ── 10.5 Season Goals (3 goals for Vinter 2026) ──────────────────
+INSERT INTO public.season_goal (
+  season_goal_id, workspace_id, season_id, title, description,
+  metric_key, target_value, target_unit, status, sort_order, created_by
+) VALUES
+  ('ae000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000000',
+   'ac000000-0000-0000-0000-000000000001',
+   'Lønnskostnad under 30%', 'Hold lønnskostnadene under 30% av omsetning gjennom sesongen.',
+   'labor_cost_pct', 30.00, '%', 'active', 0,
+   'f0000000-0000-0000-0000-000000000000'),
+  ('ae000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000000',
+   'ac000000-0000-0000-0000-000000000001',
+   'Full opplæring innen 14 dager', 'Alle nyansatte skal gjennomføre alle obligatoriske kurs innen 14 dager.',
+   'onboarding_completion_days', 14.00, 'dager', 'active', 1,
+   'f0000000-0000-0000-0000-000000000000'),
+  ('ae000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000',
+   'ac000000-0000-0000-0000-000000000001',
+   'Omsetning 2.5M NOK', 'Sesongens totale omsetning skal nå 2.5 millioner kroner.',
+   'total_revenue', 2500000.00, 'NOK', 'active', 2,
+   'f0000000-0000-0000-0000-000000000000');
+
+-- ── 10.7 Operating Hours ────────────────────────────────────────
 INSERT INTO public.operating_hours (workspace_id, day_of_week, open_time, close_time, is_closed)
 VALUES
   ('b0000000-0000-0000-0000-000000000000', 0, '11:00', '23:00', false),
@@ -1873,6 +1894,25 @@ INSERT INTO public.policy (
    'Alle ansatte skal kjenne til rømningsveier, brannslukker-plassering og førstehjelp.',
    'aspirational', true, 'f0000000-0000-0000-0000-000000000000');
 
+-- Season policy bindings require policies to exist first (FK policy_id).
+-- ── 11.1b Season Policy Bindings (bind 4 of 5 policies to Vinter 2026) ───
+INSERT INTO public.season_policy_binding (
+  season_policy_binding_id, workspace_id, season_id, policy_id,
+  is_active, notes, activated_by
+) VALUES
+  ('af000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000000',
+   'ac000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000001',
+   true, 'HACCP er alltid aktiv.', 'f0000000-0000-0000-0000-000000000000'),
+  ('af000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000000',
+   'ac000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000002',
+   true, NULL, 'f0000000-0000-0000-0000-000000000000'),
+  ('af000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000',
+   'ac000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000003',
+   true, 'Ekstra viktig i vintesesongen med mange nyansatte.', 'f0000000-0000-0000-0000-000000000000'),
+  ('af000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000000',
+   'ac000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000005',
+   true, NULL, 'f0000000-0000-0000-0000-000000000000');
+
 -- ── 11.2 Protocols (one per policy) ──────────────────────────────────
 INSERT INTO public.protocol (
   protocol_id, policy_id, workspace_id, name, description,
@@ -2026,34 +2066,34 @@ INSERT INTO public.confirmation (
 -- ── 11.9 Protocol Assignments ────────────────────────────────────────
 -- Active employees get assigned protocols based on department
 INSERT INTO public.protocol_assignment (
-  assignment_id, protocol_id, profile_id, status, completed_at
+  assignment_id, protocol_id, profile_id, workspace_id, status, completed_at, assigned_via
 ) VALUES
   -- Anna (Kitchen) — HACCP completed, Onboarding completed
   ('c9000000-0000-0000-0000-000000000001', 'c2000000-0000-0000-0000-000000000001',
-   'f0000000-0000-0000-0000-000000000001', 'completed', now() - interval '30 days'),
+   'f0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000000', 'completed', now() - interval '30 days', 'workspace'),
   ('c9000000-0000-0000-0000-000000000002', 'c2000000-0000-0000-0000-000000000003',
-   'f0000000-0000-0000-0000-000000000001', 'completed', now() - interval '60 days'),
+   'f0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000000', 'completed', now() - interval '60 days', 'workspace'),
   -- Erik (Kitchen, manager) — HACCP completed
   ('c9000000-0000-0000-0000-000000000003', 'c2000000-0000-0000-0000-000000000001',
-   'f0000000-0000-0000-0000-000000000002', 'completed', now() - interval '45 days'),
+   'f0000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000000', 'completed', now() - interval '45 days', 'workspace'),
   -- Ole (Bar) — Bar completed, Onboarding completed
   ('c9000000-0000-0000-0000-000000000004', 'c2000000-0000-0000-0000-000000000004',
-   'f0000000-0000-0000-0000-000000000004', 'completed', now() - interval '20 days'),
+   'f0000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000000', 'completed', now() - interval '20 days', 'workspace'),
   ('c9000000-0000-0000-0000-000000000005', 'c2000000-0000-0000-0000-000000000003',
-   'f0000000-0000-0000-0000-000000000004', 'completed', now() - interval '40 days'),
-  -- Kari (Service, trainee) — Service pending, Onboarding pending
+   'f0000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000000', 'completed', now() - interval '40 days', 'workspace'),
+  -- Kari (Service, trainee) — Service not_started, Onboarding not_started
   ('c9000000-0000-0000-0000-000000000006', 'c2000000-0000-0000-0000-000000000002',
-   'f0000000-0000-0000-0000-000000000005', 'pending', NULL),
+   'f0000000-0000-0000-0000-000000000005', 'b0000000-0000-0000-0000-000000000000', 'not_started', NULL, 'workspace'),
   ('c9000000-0000-0000-0000-000000000007', 'c2000000-0000-0000-0000-000000000003',
-   'f0000000-0000-0000-0000-000000000005', 'pending', NULL),
-  -- Jonas (Kitchen, trainee) — HACCP pending, Onboarding pending
+   'f0000000-0000-0000-0000-000000000005', 'b0000000-0000-0000-0000-000000000000', 'not_started', NULL, 'workspace'),
+  -- Jonas (Kitchen, trainee) — HACCP not_started, Onboarding not_started
   ('c9000000-0000-0000-0000-000000000008', 'c2000000-0000-0000-0000-000000000001',
-   'f0000000-0000-0000-0000-000000000008', 'pending', NULL),
+   'f0000000-0000-0000-0000-000000000008', 'b0000000-0000-0000-0000-000000000000', 'not_started', NULL, 'workspace'),
   ('c9000000-0000-0000-0000-000000000009', 'c2000000-0000-0000-0000-000000000003',
-   'f0000000-0000-0000-0000-000000000008', 'pending', NULL),
-  -- Silje (Service, trainee) — Service pending
+   'f0000000-0000-0000-0000-000000000008', 'b0000000-0000-0000-0000-000000000000', 'not_started', NULL, 'workspace'),
+  -- Silje (Service, trainee) — Service not_started
   ('c9000000-0000-0000-0000-000000000010', 'c2000000-0000-0000-0000-000000000002',
-   'f0000000-0000-0000-0000-000000000009', 'pending', NULL);
+   'f0000000-0000-0000-0000-000000000009', 'b0000000-0000-0000-0000-000000000000', 'not_started', NULL, 'workspace');
 
 
 -- ============================================================================
@@ -2105,16 +2145,63 @@ VALUES
 -- 13. SCHEDULE — Templates, Absences, Open Shifts, Day Messages/Tasks
 -- ============================================================================
 
+-- ── 13.0 Shift Types (payroll.shift_type) ──────────────────────────────
+-- Canonical shift type definitions used by department_shift_type_config and schedule_shift.
+INSERT INTO payroll.shift_type (
+  id, workspace_id, name, color, sort_order
+) VALUES
+  ('e1000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000000',
+   'Kokk', '#EF4444', 1),
+  ('e1000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000000',
+   'Sous Chef', '#F59E0B', 2),
+  ('e1000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000',
+   'Servitør', '#3B82F6', 3),
+  ('e1000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000000',
+   'Bartender', '#8B5CF6', 4);
+
+-- ── 13.0b Department Shift Type Config ─────────────────────────────────
+-- Binds shift types to departments with default scheduling parameters.
+-- These rows drive the Vaktgrid columns (one column per config row).
+INSERT INTO department_shift_type_config (
+  id, workspace_id, department_id, shift_type_id, label,
+  default_start_time, default_end_time, default_break_minutes,
+  slot_count, sort_order
+) VALUES
+  -- Kitchen: Kokk dag, Kokk kveld, Sous Chef
+  ('e2000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000000',
+   'd0000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000001',
+   'Kokk Dag', '10:00', '18:00', 30, 2, 1),
+  ('e2000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000000',
+   'd0000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000001',
+   'Kokk Kveld', '15:00', '23:00', 30, 1, 2),
+  ('e2000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000',
+   'd0000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000002',
+   'Sous Chef', '10:00', '22:00', 30, 1, 3),
+  -- Service: Servitør dag, Servitør kveld
+  ('e2000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000000',
+   'd0000000-0000-0000-0000-000000000002', 'e1000000-0000-0000-0000-000000000003',
+   'Servitør Dag', '11:00', '19:00', 30, 2, 1),
+  ('e2000000-0000-0000-0000-000000000005', 'b0000000-0000-0000-0000-000000000000',
+   'd0000000-0000-0000-0000-000000000002', 'e1000000-0000-0000-0000-000000000003',
+   'Servitør Kveld', '16:00', '23:00', 30, 1, 2),
+  -- Bar: Bartender
+  ('e2000000-0000-0000-0000-000000000006', 'b0000000-0000-0000-0000-000000000000',
+   'd0000000-0000-0000-0000-000000000003', 'e1000000-0000-0000-0000-000000000004',
+   'Bartender', '17:00', '01:00', 30, 2, 1);
+
 -- ── 13.1 Schedule Templates ──────────────────────────────────────────
 INSERT INTO public.schedule_template (
-  schedule_template_id, workspace_id, name, department, include_assignments, created_by
+  schedule_template_id, workspace_id, name, department, include_assignments, created_by, department_id
 ) VALUES
   ('d3000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000000',
-   'Standard Hverdag Kjøkken', 'Kitchen', true, 'f0000000-0000-0000-0000-000000000000'),
+   'Standard Hverdag Kjøkken', 'Kitchen', true, 'f0000000-0000-0000-0000-000000000000',
+   'd0000000-0000-0000-0000-000000000001'),
   ('d3000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000000',
-   'Standard Hverdag Service', 'Service', true, 'f0000000-0000-0000-0000-000000000000'),
+   'Standard Hverdag Service', 'Service', true, 'f0000000-0000-0000-0000-000000000000',
+   'd0000000-0000-0000-0000-000000000002'),
   ('d3000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000',
-   'Helg Full Bemanning', 'Kitchen', false, 'f0000000-0000-0000-0000-000000000000');
+   'Helg Full Bemanning', 'Kitchen', false, 'f0000000-0000-0000-0000-000000000000',
+   'd0000000-0000-0000-0000-000000000001');
 
 -- ── 13.2 Template Shifts ─────────────────────────────────────────────
 INSERT INTO public.schedule_template_shift (
@@ -2253,19 +2340,19 @@ INSERT INTO public.agent_relationship (
 -- ============================================================================
 
 INSERT INTO public.engine_authority_config (
-  workspace_id, capability, level, updated_by
+  workspace_id, capability, level, min_role, updated_by
 ) VALUES
-  ('b0000000-0000-0000-0000-000000000000', 'schedule.read', 'autonomous',
+  ('b0000000-0000-0000-0000-000000000000', 'schedule.read', 'autonomous', 'employee',
    'e0000000-0000-0000-0000-000000000000'),
-  ('b0000000-0000-0000-0000-000000000000', 'schedule.write', 'confirm',
+  ('b0000000-0000-0000-0000-000000000000', 'schedule.write', 'confirm', 'manager',
    'e0000000-0000-0000-0000-000000000000'),
-  ('b0000000-0000-0000-0000-000000000000', 'protocol.assign', 'suggest',
+  ('b0000000-0000-0000-0000-000000000000', 'protocol.assign', 'suggest', 'manager',
    'e0000000-0000-0000-0000-000000000000'),
-  ('b0000000-0000-0000-0000-000000000000', 'deviation.create', 'confirm',
+  ('b0000000-0000-0000-0000-000000000000', 'deviation.create', 'confirm', 'employee',
    'e0000000-0000-0000-0000-000000000000'),
-  ('b0000000-0000-0000-0000-000000000000', 'notification.send', 'autonomous',
+  ('b0000000-0000-0000-0000-000000000000', 'notification.send', 'autonomous', 'manager',
    'e0000000-0000-0000-0000-000000000000'),
-  ('b0000000-0000-0000-0000-000000000000', 'contract.generate', 'confirm',
+  ('b0000000-0000-0000-0000-000000000000', 'contract.generate', 'confirm', 'admin',
    'e0000000-0000-0000-0000-000000000000');
 
 
@@ -2290,7 +2377,9 @@ INSERT INTO public.engine_authority_config (
 -- UNION ALL SELECT 'deviations', count(*) FROM deviation WHERE workspace_id = 'b0000000-0000-0000-0000-000000000000'
 -- UNION ALL SELECT 'agent_profile', count(*) FROM agent_profile WHERE workspace_id = 'b0000000-0000-0000-0000-000000000000'
 -- UNION ALL SELECT 'agent_relationships', count(*) FROM agent_relationship WHERE workspace_id = 'b0000000-0000-0000-0000-000000000000'
--- UNION ALL SELECT 'authority_config', count(*) FROM engine_authority_config WHERE workspace_id = 'b0000000-0000-0000-0000-000000000000';
+-- UNION ALL SELECT 'authority_config', count(*) FROM engine_authority_config WHERE workspace_id = 'b0000000-0000-0000-0000-000000000000'
+-- UNION ALL SELECT 'season_goals', count(*) FROM season_goal WHERE workspace_id = 'b0000000-0000-0000-0000-000000000000'
+-- UNION ALL SELECT 'season_policy_bindings', count(*) FROM season_policy_binding WHERE workspace_id = 'b0000000-0000-0000-0000-000000000000';
 
 -- ── 18. Engine Missions & Stages ──────────────────────────────────────────────
 -- Global missions (workspace_id NULL) available to all workspaces.
@@ -2988,3 +3077,136 @@ INSERT INTO public.channel_message (
    'f0000000-0000-0000-0000-000000000001',
    'Sender det nå! Sjekk opplæringsmodulen også, der ligger alt.',
    'human', now() - interval '45 minutes');
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Platform API Keys — Development service keys
+-- These keys are for local development only. Production uses 1Password-managed keys.
+-- Plaintext: smo_svc_live_dev_contract_service_0000000000000000
+-- ═══════════════════════════════════════════════════════════════════════════
+INSERT INTO platform_api_key (
+  id, workspace_id, company_id, created_by, name, description,
+  key_type, environment, key_hash, key_prefix, version, rotation_number,
+  scopes, rate_limit_per_minute
+) VALUES (
+  'a0000000-0000-0000-0000-000000000001',
+  NULL,
+  NULL,
+  'e0000000-0000-0000-0000-000000000000',
+  'contract-service (dev)',
+  'Development service key for the contract-service microservice. Seeded automatically.',
+  'service',
+  'live',
+  '36f3d06a74558e440e4be9bab762fc31751454242507075080aa2a8c4adaa54c',
+  '8f6d6ca79371fe7f1338',
+  'current',
+  1,
+  ARRAY['contracts:read', 'contracts:write', 'contracts:send'],
+  120
+);
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Cleaning Checklist Seed Data — Kitchen morning cleaning procedure
+-- UUID scheme: f1... (policy f10, protocol f11, procedure f12, steps f121,
+-- session_hook f13)
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- Policy: Kitchen cleaning compliance (HACCP / Mattilsynet)
+INSERT INTO public.policy (
+  policy_id, workspace_id, policy_type, policy_scope, name, statement,
+  enforcement_status, created_by
+) VALUES (
+  'f1000000-0000-0000-0000-000000000000',
+  'b0000000-0000-0000-0000-000000000000',
+  'haccp', 'department',
+  'Kjøkkenrenhold',
+  'Kjøkkenet skal rengjøres etter Mattilsynets krav ved åpning og stenging.',
+  'enforced',
+  'f0000000-0000-0000-0000-000000000000'
+) ON CONFLICT DO NOTHING;
+
+-- Protocol: Daily kitchen cleaning
+INSERT INTO public.protocol (
+  protocol_id, policy_id, workspace_id, name, description,
+  version, status, owner_profile_id, created_by
+) VALUES (
+  'f1100000-0000-0000-0000-000000000000',
+  'f1000000-0000-0000-0000-000000000000',
+  'b0000000-0000-0000-0000-000000000000',
+  'Daglig kjøkkenrenhold',
+  'Sjekkliste for daglig renhold av kjøkken',
+  '1.0', 'active',
+  'f0000000-0000-0000-0000-000000000000',
+  'f0000000-0000-0000-0000-000000000000'
+) ON CONFLICT DO NOTHING;
+
+-- Procedure: Morning cleaning checklist (type = maintenance)
+INSERT INTO public.procedure (
+  procedure_id, protocol_id, name, description, procedure_type, is_active
+) VALUES (
+  'f1200000-0000-0000-0000-000000000000',
+  'f1100000-0000-0000-0000-000000000000',
+  'Morgenrenhold kjøkken',
+  'Sjekkliste for renhold før åpning',
+  'maintenance', true
+) ON CONFLICT DO NOTHING;
+
+-- 5 procedure steps (checkpoints) for the morning cleaning checklist
+INSERT INTO public.procedure_step (
+  step_id, procedure_id, title, description, step_order, is_required
+) VALUES
+  ('f1210000-0000-0000-0000-000000000000', 'f1200000-0000-0000-0000-000000000000',
+   'Rengjør arbeidsflater', 'Tørk av alle benker og skjærefjøler med desinfiserende middel.', 1, true),
+  ('f1210000-0000-0000-0000-000000000001', 'f1200000-0000-0000-0000-000000000000',
+   'Vask gulv', 'Feie og vaske kjøkkengulvet. Sjekk under utstyr.', 2, true),
+  ('f1210000-0000-0000-0000-000000000002', 'f1200000-0000-0000-0000-000000000000',
+   'Tøm søppel', 'Tøm alle søppelbøtter. Sett inn nye poser.', 3, true),
+  ('f1210000-0000-0000-0000-000000000003', 'f1200000-0000-0000-0000-000000000000',
+   'Sjekk håndvask', 'Kontroller at såpe og papir er fylt opp ved alle håndvasker.', 4, true),
+  ('f1210000-0000-0000-0000-000000000004', 'f1200000-0000-0000-0000-000000000000',
+   'Rengjør kjøleskap utvendig', 'Tørk av håndtak og overflater på kjøleskap og fryser.', 5, false)
+ON CONFLICT DO NOTHING;
+
+-- Session hook: fire morning cleaning at pre_open for Kitchen department
+INSERT INTO public.session_hook (
+  id, workspace_id, department_id, hook_type, trigger_offset_min,
+  linked_procedure_id, is_active
+) VALUES (
+  'f1300000-0000-0000-0000-000000000000',
+  'b0000000-0000-0000-0000-000000000000',
+  'd0000000-0000-0000-0000-000000000001',
+  'pre_open', 0,
+  'f1200000-0000-0000-0000-000000000000',
+  true
+) ON CONFLICT DO NOTHING;
+
+-- ═══════════════════════════════════════════════════════════════
+-- Contract system seed data
+-- ═══════════════════════════════════════════════════════════════
+
+-- Bind workspace to hospitality framework (required for contract composition)
+INSERT INTO public.workspace_framework_binding (
+  workspace_id, framework_id, is_active
+) SELECT
+  'b0000000-0000-0000-0000-000000000000',
+  rf.framework_id,
+  true
+FROM public.regulatory_framework rf
+WHERE rf.code = 'hospitality.no.default.v1'
+ON CONFLICT DO NOTHING;
+
+-- Employee payroll profiles (required for tariff lookup — has_fagbrev determines rate)
+INSERT INTO public.employee_payroll_profile (
+  workspace_id, profile_id, has_fagbrev, salary_type, agreed_weekly_hours,
+  tariff_category, seniority_start_date, valid_from
+) VALUES
+  ('b0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000001', false, 'hourly', 37.5, 'ufaglart', '2024-01-01', '2024-01-01'),
+  ('b0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000002', true, 'hourly', 37.5, 'faglart', '2022-06-01', '2022-06-01'),
+  ('b0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000003', false, 'hourly', 20, 'ufaglart', '2025-01-01', '2025-01-01'),
+  ('b0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000004', false, 'monthly', 37.5, 'ufaglart', '2023-03-01', '2023-03-01'),
+  ('b0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000005', true, 'hourly', 37.5, 'faglart', '2021-08-01', '2021-08-01'),
+  -- Added (WS-A6): cover remaining seeded employees so derive_shift_hours returns non-default costs
+  ('b0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000006', false, 'hourly', 30, 'ufaglart', '2023-10-01', '2023-10-01'),
+  ('b0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000007', true, 'monthly', 37.5, 'faglart', '2019-04-01', '2019-04-01'),
+  ('b0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000008', false, 'hourly', 37.5, 'ufaglart', '2026-04-14', '2026-04-14'),
+  ('b0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000009', false, 'hourly', 20, 'ufaglart', '2026-04-11', '2026-04-11')
+ON CONFLICT DO NOTHING;

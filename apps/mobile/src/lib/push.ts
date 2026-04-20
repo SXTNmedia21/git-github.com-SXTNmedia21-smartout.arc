@@ -40,6 +40,21 @@ Notifications?.setNotificationHandler({
 });
 
 /**
+ * Outcome of a push token registration attempt.
+ * - `granted`   : permission granted and token obtained
+ * - `denied`    : user declined notification permission
+ * - `unsupported`: web, simulator, or missing native module
+ * - `error`     : unexpected failure (network, supabase, etc.)
+ */
+export type PushRegistrationStatus = "granted" | "denied" | "unsupported" | "error";
+
+export type PushRegistrationResult = {
+  token: string | null;
+  status: PushRegistrationStatus;
+  error: Error | null;
+};
+
+/**
  * Register for push notifications and sync the token to the user's profile.
  *
  * Flow:
@@ -50,8 +65,10 @@ Notifications?.setNotificationHandler({
  *
  * @param profileId - The current user's profile ID in the active workspace
  */
-export async function registerPushToken(profileId: string): Promise<void> {
-  if (!Notifications) return; // Web — skip push registration
+export async function registerPushToken(profileId: string): Promise<PushRegistrationResult> {
+  if (!Notifications) {
+    return { token: null, status: "unsupported", error: null };
+  }
 
   // Push notifications only work on physical devices
   // expo-device is checked dynamically to avoid hard dependency issues
@@ -60,7 +77,7 @@ export async function registerPushToken(profileId: string): Promise<void> {
     const Device = require("expo-device") as { isDevice: boolean };
     if (!Device.isDevice) {
       console.log("Push notifications require a physical device, skipping registration");
-      return;
+      return { token: null, status: "unsupported", error: null };
     }
   } catch {
     // expo-device not available — skip device check and attempt registration
@@ -78,7 +95,7 @@ export async function registerPushToken(profileId: string): Promise<void> {
 
   if (finalStatus !== "granted") {
     console.log("Push notification permission not granted");
-    return;
+    return { token: null, status: "denied", error: null };
   }
 
   // Android requires a notification channel
@@ -115,12 +132,19 @@ export async function registerPushToken(profileId: string): Promise<void> {
 
       if (error) {
         console.error("Failed to update push token:", error.message);
-      } else {
-        console.log("Push token updated successfully");
+        return { token, status: "error", error: new Error(error.message) };
       }
+      console.log("Push token updated successfully");
     }
+
+    return { token, status: "granted", error: null };
   } catch (error) {
     console.error("Failed to register push token:", error);
+    return {
+      token: null,
+      status: "error",
+      error: error instanceof Error ? error : new Error(String(error)),
+    };
   }
 }
 

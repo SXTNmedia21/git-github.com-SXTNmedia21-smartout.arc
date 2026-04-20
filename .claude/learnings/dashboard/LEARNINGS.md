@@ -37,3 +37,11 @@
 **Finding:** Agent createShift/updateShift currently apply changes directly. No proposal/approval layer exists.
 **Implication:** Need proposal data model (ghost cards) and approval UI; agent tools should create proposals instead of mutating directly.
 **Status:** New
+
+### D-004: Settings shell bypassed locale with hardcoded labels
+
+**Found:** 2026-04-10
+**Context:** `/dashboard/settings` displayed English labels while workspace language was Norwegian.
+**Finding:** Settings page title, description, and left-nav tabs were hardcoded instead of using `useTranslation("dashboard")` keys.
+**Implication:** Shell-level settings UI must use locale keys (`settings_page.*`) to avoid mixed-language dashboards.
+**Status:** New

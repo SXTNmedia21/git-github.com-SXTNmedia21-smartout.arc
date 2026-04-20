@@ -1,0 +1,49 @@
+{
+  "name": "@smartout/billing",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./integrations": {
+      "types": "./src/integrations/index.ts",
+      "default": "./src/integrations/index.ts"
+    },
+    "./actions/integrations": {
+      "types": "./src/actions/integrations/index.ts",
+      "default": "./src/actions/integrations/index.ts"
+    }
+  },
+  "scripts": {
+    "lint": "eslint src/",
+    "typecheck": "npx tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rimraf dist .turbo"
+  },
+  "dependencies": {
+    "@smartout/supabase": "workspace:*",
+    "@smartout/telemetry": "workspace:*",
+    "@supabase/supabase-js": "2.49.4",
+    "@tanstack/react-query": "^5.95.0",
+    "stripe": "^17.5.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@smartout/eslint-config": "workspace:^",
+    "@smartout/typescript-config": "workspace:*",
+    "@types/react": "^18.3.24",
+    "eslint": "^9.0.0",
+    "react": "^18.3.1",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  },
+  "peerDependencies": {
+    "react": "^18.3.1"
+  }
+}

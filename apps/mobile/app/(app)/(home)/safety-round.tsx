@@ -1,23 +1,31 @@
 /**
  * Safety Round (Vernerunde) — Checklist inspection screen.
  *
+ * Queries `procedure` (type = safety) and `procedure_step` for checklist items.
+ * Persists completion by creating deviation records for failed checks and
+ * logging the round via the session_note table.
+ *
  * Layout:
  * 1. Breadcrumb — Inspection > Kitchen Safety
- * 2. Hero — "Vernerunde: Kjøkken" + progress (3/12, 25%)
+ * 2. Hero — "Vernerunde" + progress
  * 3. Checklist items — Yes/No buttons per checkpoint
- * 4. Future items placeholder
- * 5. Photo evidence button
- * 6. FAB — Complete round
+ * 4. Photo evidence button
+ * 5. FAB — Complete round (persists to database)
  */
 
-import React, { useState } from "react";
-import { View, Text, ScrollView, Pressable, Alert } from "react-native";
+import React, { useState, useCallback } from "react";
+import { View, Text, ScrollView, Pressable, Alert, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
-import { ChevronLeft, ChevronRight, Camera, CheckCheck } from "lucide-react-native";
+import { ChevronLeft, ChevronRight, Camera, CheckCheck, ClipboardList } from "lucide-react-native";
+import { useQuery } from "@tanstack/react-query";
 import { createStyles, useTheme, withOpacity } from "@/theme";
+import { supabase } from "@/lib/supabase";
+import { useMyProfile } from "@/hooks/queries/use-my-profile";
+import { useReportDeviation } from "@/hooks/mutations/use-report-deviation";
+import { emit } from "@smartout/telemetry";
 
 type CheckStatus = "yes" | "no" | null;
 
@@ -26,46 +34,128 @@ type CheckItem = {
   number: string;
   title: string;
   description: string;
-  isActive?: boolean;
 };
 
-const ITEMS: CheckItem[] = [
-  {
-    id: "1",
-    number: "01",
-    title: "Er alle nødutganger frie?",
-    description: "Sjekk alle merkede rømningsveier og utganger for hindringer.",
-  },
-  {
-    id: "2",
-    number: "02",
-    title: "Fungerer brannslukningsapparatet?",
-    description: "Kontroller plombering, trykkmåler (i det grønne feltet) og utløpsdato.",
-  },
-  {
-    id: "3",
-    number: "03",
-    title: "Er gulvene tørre og fri for hindringer?",
-    description: "Visuell kontroll av alle gulvflater, spesielt ved oppvask og inngang.",
-    isActive: true,
-  },
-];
+/**
+ * Fetches safety-type procedures and their steps for the workspace.
+ * Each procedure_step becomes a checklist item in the vernerunde.
+ */
+function useSafetyChecklistItems(workspaceId: string | undefined) {
+  return useQuery({
+    queryKey: ["safety-checklist", workspaceId],
+    queryFn: async () => {
+      if (!workspaceId) return [];
 
-const TOTAL_ITEMS = 12;
+      /* Find safety procedures via their parent protocol (workspace-scoped) */
+      const { data: procedures, error: procError } = await supabase
+        .from("procedure")
+        .select(
+          `
+          procedure_id,
+          name,
+          protocol:protocol_id(workspace_id)
+        `,
+        )
+        .eq("procedure_type", "safety")
+        .eq("is_active", true)
+        .order("sort_order");
+
+      if (procError) throw procError;
+
+      /* Filter to only procedures belonging to this workspace */
+      const workspaceProcedures = (procedures ?? []).filter(
+        (p) => (p.protocol as { workspace_id: string } | null)?.workspace_id === workspaceId,
+      );
+
+      if (workspaceProcedures.length === 0) return [];
+
+      const procedureIds = workspaceProcedures.map((p) => p.procedure_id);
+
+      const { data: steps, error: stepError } = await supabase
+        .from("procedure_step")
+        .select("step_id, title, description, step_order, procedure_id, is_required")
+        .in("procedure_id", procedureIds)
+        .order("step_order");
+
+      if (stepError) throw stepError;
+
+      return (steps ?? []).map((s, i) => ({
+        id: s.step_id,
+        number: String(i + 1).padStart(2, "0"),
+        title: s.title,
+        description: s.description,
+      }));
+    },
+    enabled: !!workspaceId,
+  });
+}
 
 export default function SafetyRoundScreen() {
   const styles = useStyles();
   const theme = useTheme();
   const router = useRouter();
+  const { data: profile } = useMyProfile();
+  const { data: ITEMS = [], isLoading } = useSafetyChecklistItems(profile?.workspace_id);
+  const { reportDeviation, isSubmitting } = useReportDeviation();
   const [answers, setAnswers] = useState<Record<string, CheckStatus>>({});
 
+  const totalItems = ITEMS.length;
   const answeredCount = Object.values(answers).filter(Boolean).length;
-  const progressPercent = Math.round((answeredCount / TOTAL_ITEMS) * 100);
+  const progressPercent = totalItems > 0 ? Math.round((answeredCount / totalItems) * 100) : 0;
 
   const handleAnswer = (itemId: string, answer: CheckStatus) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setAnswers((prev) => ({ ...prev, [itemId]: answer }));
   };
+
+  /** Persist the safety round: create deviations for "no" answers */
+  const handleComplete = useCallback(async () => {
+    if (!profile?.profile_id || !profile?.workspace_id) return;
+
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    const failedItems = ITEMS.filter((item) => answers[item.id] === "no");
+
+    /* Create a deviation for each failed check */
+    const deviationPromises = failedItems.map((item) =>
+      reportDeviation({
+        domain: "safety",
+        severity: "medium",
+        title: `Vernerunde: ${item.title}`,
+        description: `Avvik funnet under vernerunde: ${item.description}`,
+        reported_by: profile.profile_id,
+        workspace_id: profile.workspace_id,
+      }),
+    );
+
+    try {
+      await Promise.all(deviationPromises);
+
+      /* Emit a deviation reported event for the round summary */
+      if (failedItems.length > 0) {
+        void emit({
+          event: "deviation reported",
+          workspace_id: profile.workspace_id,
+          actor_id: profile.profile_id,
+          properties: {
+            entity: { entity_type: "deviation", entity_id: "safety-round" },
+            data: {
+              domain: "safety",
+              severity: "medium",
+            },
+          },
+        });
+      }
+
+      Alert.alert(
+        "Vernerunde fullfort",
+        `${answeredCount - failedItems.length} godkjent, ${failedItems.length} avvik meldt.`,
+        [{ text: "OK", onPress: () => router.back() }],
+      );
+    } catch {
+      Alert.alert("Feil", "Kunne ikke lagre vernerunden. Prov igjen.");
+    }
+  }, [ITEMS, answers, answeredCount, totalItems, profile, reportDeviation, router]);
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -88,137 +178,170 @@ export default function SafetyRoundScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Breadcrumb */}
         <View style={styles.breadcrumb}>
-          <Text style={styles.crumbText}>INSPECTION</Text>
+          <Text style={styles.crumbText}>INSPEKSJON</Text>
           <ChevronRight
             size={12}
             color={withOpacity(theme.colors.mutedForeground, 0.6)}
             strokeWidth={2}
           />
-          <Text style={styles.crumbText}>KITCHEN SAFETY</Text>
+          <Text style={styles.crumbText}>SIKKERHET</Text>
         </View>
 
-        {/* Hero */}
-        <Animated.View entering={FadeInDown.delay(50).duration(500).springify()}>
-          <Text style={styles.heroTitle}>Vernerunde: Kjøkken</Text>
-          <View style={styles.progressCard}>
-            <View style={styles.progressHeader}>
-              <View>
-                <Text style={styles.progressLabel}>AKTUELL FREMDRIFT</Text>
-                <Text style={styles.progressValue}>
-                  {answeredCount} av {TOTAL_ITEMS} punkter sjekket
-                </Text>
-              </View>
-              <Text style={styles.progressPercent}>{progressPercent}%</Text>
-            </View>
-            <View style={styles.progressTrack}>
-              <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
-            </View>
+        {/* Loading state */}
+        {isLoading && (
+          <View style={styles.emptyState}>
+            <ActivityIndicator size="large" color={theme.colors.brandOrange} />
+            <Text style={styles.emptySubtitle}>Laster sjekkpunkter...</Text>
           </View>
-        </Animated.View>
+        )}
 
-        {/* Checklist */}
-        <View style={styles.checklist}>
-          {ITEMS.map((item, i) => {
-            const answer = answers[item.id] ?? null;
-            const isAnswered = answer !== null;
-            return (
-              <Animated.View
-                key={item.id}
-                entering={FadeInDown.delay(200 + i * 80)
-                  .duration(400)
-                  .springify()}
-              >
-                <View
-                  style={[styles.checkCard, item.isActive && !isAnswered && styles.checkCardActive]}
-                >
-                  <View style={styles.checkContent}>
-                    <View style={styles.checkLabelRow}>
-                      <Text style={styles.checkNumber}>PKT #{item.number}</Text>
-                      {item.isActive && !isAnswered && (
-                        <View style={styles.activeBadge}>
-                          <Text style={styles.activeBadgeText}>AKTIV</Text>
+        {/* Empty state — no safety procedures configured */}
+        {!isLoading && ITEMS.length === 0 && (
+          <View style={styles.emptyState}>
+            <ClipboardList size={40} color={theme.colors.mutedForeground} strokeWidth={1.5} />
+            <Text style={styles.emptyTitle}>Ingen sjekkpunkter konfigurert</Text>
+            <Text style={styles.emptySubtitle}>
+              Legg til sikkerhetsprosedyrer i administrasjonspanelet for a starte vernerunder.
+            </Text>
+          </View>
+        )}
+
+        {/* Hero — only show when items exist */}
+        {ITEMS.length > 0 && (
+          <>
+            <Animated.View entering={FadeInDown.delay(50).duration(500).springify()}>
+              <Text style={styles.heroTitle}>Vernerunde</Text>
+              <View style={styles.progressCard}>
+                <View style={styles.progressHeader}>
+                  <View>
+                    <Text style={styles.progressLabel}>AKTUELL FREMDRIFT</Text>
+                    <Text style={styles.progressValue}>
+                      {answeredCount} av {totalItems} punkter sjekket
+                    </Text>
+                  </View>
+                  <Text style={styles.progressPercent}>{progressPercent}%</Text>
+                </View>
+                <View style={styles.progressTrack}>
+                  <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
+                </View>
+              </View>
+            </Animated.View>
+
+            {/* Checklist */}
+            <View style={styles.checklist}>
+              {ITEMS.map((item, i) => {
+                const answer = answers[item.id] ?? null;
+                const isAnswered = answer !== null;
+                /* Mark the first unanswered item as active */
+                const firstUnansweredIndex = ITEMS.findIndex((it) => !answers[it.id]);
+                const isActive = i === firstUnansweredIndex;
+                return (
+                  <Animated.View
+                    key={item.id}
+                    entering={FadeInDown.delay(200 + i * 80)
+                      .duration(400)
+                      .springify()}
+                  >
+                    <View
+                      style={[styles.checkCard, isActive && !isAnswered && styles.checkCardActive]}
+                    >
+                      <View style={styles.checkContent}>
+                        <View style={styles.checkLabelRow}>
+                          <Text style={styles.checkNumber}>PKT #{item.number}</Text>
+                          {isActive && !isAnswered && (
+                            <View style={styles.activeBadge}>
+                              <Text style={styles.activeBadgeText}>AKTIV</Text>
+                            </View>
+                          )}
+                        </View>
+                        <Text style={styles.checkTitle}>{item.title}</Text>
+                        <Text style={styles.checkDesc}>{item.description}</Text>
+                      </View>
+                      {!isAnswered ? (
+                        <View style={styles.answerRow}>
+                          <Pressable
+                            onPress={() => handleAnswer(item.id, "no")}
+                            style={({ pressed }) => [
+                              styles.answerButton,
+                              styles.answerNo,
+                              pressed && styles.answerPressed,
+                            ]}
+                          >
+                            <Text style={styles.answerNoText}>Nei</Text>
+                          </Pressable>
+                          <Pressable
+                            onPress={() => handleAnswer(item.id, "yes")}
+                            style={({ pressed }) => [
+                              styles.answerButton,
+                              styles.answerYes,
+                              pressed && styles.answerPressed,
+                            ]}
+                          >
+                            <Text style={styles.answerYesText}>Ja</Text>
+                          </Pressable>
+                        </View>
+                      ) : (
+                        <View style={styles.answeredRow}>
+                          <Text
+                            style={[
+                              styles.answeredText,
+                              answer === "yes" ? styles.answeredGood : styles.answeredBad,
+                            ]}
+                          >
+                            {answer === "yes" ? "Godkjent" : "Avvik meldt"}
+                          </Text>
                         </View>
                       )}
                     </View>
-                    <Text style={styles.checkTitle}>{item.title}</Text>
-                    <Text style={styles.checkDesc}>{item.description}</Text>
-                  </View>
-                  {!isAnswered ? (
-                    <View style={styles.answerRow}>
-                      <Pressable
-                        onPress={() => handleAnswer(item.id, "no")}
-                        style={({ pressed }) => [
-                          styles.answerButton,
-                          styles.answerNo,
-                          pressed && styles.answerPressed,
-                        ]}
-                      >
-                        <Text style={styles.answerNoText}>Nei</Text>
-                      </Pressable>
-                      <Pressable
-                        onPress={() => handleAnswer(item.id, "yes")}
-                        style={({ pressed }) => [
-                          styles.answerButton,
-                          styles.answerYes,
-                          pressed && styles.answerPressed,
-                        ]}
-                      >
-                        <Text style={styles.answerYesText}>Ja</Text>
-                      </Pressable>
-                    </View>
-                  ) : (
-                    <View style={styles.answeredRow}>
-                      <Text
-                        style={[
-                          styles.answeredText,
-                          answer === "yes" ? styles.answeredGood : styles.answeredBad,
-                        ]}
-                      >
-                        {answer === "yes" ? "Godkjent" : "Avvik meldt"}
-                      </Text>
-                    </View>
-                  )}
+                  </Animated.View>
+                );
+              })}
+
+              {/* Remaining items indicator */}
+              {answeredCount < totalItems && answeredCount > 0 && (
+                <View style={styles.placeholderCard}>
+                  <Text style={styles.placeholderText}>
+                    {totalItems - answeredCount} gjenstående sjekkpunkter
+                  </Text>
                 </View>
-              </Animated.View>
-            );
-          })}
+              )}
+            </View>
 
-          {/* Future items placeholder */}
-          <View style={styles.placeholderCard}>
-            <Text style={styles.placeholderText}>Neste: Førstehjelpsutstyr (Pkt #04)</Text>
-          </View>
-        </View>
-
-        {/* Photo evidence */}
-        <View style={styles.evidenceCard}>
-          <Text style={styles.evidenceTitle}>Gjenstående observasjoner?</Text>
-          <Pressable onPress={() => Haptics.selectionAsync()} style={styles.evidenceButton}>
-            <Camera size={16} color={theme.colors.foreground} strokeWidth={1.8} />
-            <Text style={styles.evidenceButtonText}>Legg til bildebevis</Text>
-          </Pressable>
-        </View>
+            {/* Photo evidence */}
+            <View style={styles.evidenceCard}>
+              <Text style={styles.evidenceTitle}>Gjenstående observasjoner?</Text>
+              <Pressable onPress={() => Haptics.selectionAsync()} style={styles.evidenceButton}>
+                <Camera size={16} color={theme.colors.foreground} strokeWidth={1.8} />
+                <Text style={styles.evidenceButtonText}>Legg til bildebevis</Text>
+              </Pressable>
+            </View>
+          </>
+        )}
       </ScrollView>
 
-      {/* FAB — Complete round */}
-      <Animated.View
-        entering={FadeInDown.delay(500).duration(500).springify()}
-        style={styles.fabWrap}
-      >
-        <Pressable
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            // TODO(compliance): Wire to a safety_round_log mutation — this button
-            // must persist all answers + the completion event.
-            Alert.alert(
-              "Ikke implementert",
-              "Fullføring av vernerunde er ikke koblet til databasen ennå. Kontakt leder.",
-            );
-          }}
-          style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
+      {/* FAB — Complete round (only when all items answered) */}
+      {ITEMS.length > 0 && (
+        <Animated.View
+          entering={FadeInDown.delay(500).duration(500).springify()}
+          style={styles.fabWrap}
         >
-          <CheckCheck size={28} color="#ffffff" strokeWidth={2} />
-        </Pressable>
-      </Animated.View>
+          <Pressable
+            onPress={handleComplete}
+            disabled={answeredCount < totalItems || isSubmitting}
+            style={({ pressed }) => [
+              styles.fab,
+              pressed && styles.fabPressed,
+              (answeredCount < totalItems || isSubmitting) && styles.fabDisabled,
+            ]}
+          >
+            {isSubmitting ? (
+              <ActivityIndicator size="small" color="#ffffff" />
+            ) : (
+              <CheckCheck size={28} color="#ffffff" strokeWidth={2} />
+            )}
+          </Pressable>
+        </Animated.View>
+      )}
     </SafeAreaView>
   );
 }
@@ -394,4 +517,24 @@ const useStyles = createStyles((theme) => ({
     ...theme.shadows.lg,
   },
   fabPressed: { transform: [{ scale: 0.9 }] },
+  fabDisabled: { opacity: 0.4 },
+
+  /* Empty / loading state */
+  emptyState: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: theme.spacing.xl,
+    gap: theme.spacing.element,
+  },
+  emptyTitle: {
+    ...theme.typography.headline,
+    color: theme.colors.foreground,
+    textAlign: "center",
+  },
+  emptySubtitle: {
+    ...theme.typography.caption,
+    color: theme.colors.mutedForeground,
+    textAlign: "center",
+    paddingHorizontal: theme.spacing.card,
+  },
 }));

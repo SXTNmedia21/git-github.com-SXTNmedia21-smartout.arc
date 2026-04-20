@@ -1,0 +1,324 @@
+---
+title: Module — Billing Engine
+status: in_progress
+updated: 2026-04-17
+created: 2026-04-17
+module: billing
+tags: [module, billing, invoice, faktura, c3-commercial, adr-0118, adr-0122]
+---
+
+# Module — Billing Engine
+
+## 1. Overview
+
+The Billing Engine is Smartout's internal invoice system ("fakturamotor"). It generates monthly invoice drafts from cascade-derived usage data, exposes platform-admin surfaces for review and dispatch, and holds the legal record of what was billed and when.
+
+The engine is a **C3 Commercial Control Plane consumer** per ADR-0118: it reads from other cascade dimensions (D2 Resource via `schedule_shift`, D1 Envelope via `department`, D4 Demand via `planning_cycle`) but does not produce cascade coefficients itself. Every mutation emits to the telemetry pipeline and is auditable through `billing_activity_log`.
+
+Fase 1 delivers the data model, pgTAP tests, and Phase 0 ADR foundation. External dispatch (Stripe/EHF/Peppol) is out of scope and deferred to Fase 2.
+
+**Primary entry points (when built):**
+- Route: `/admin/billing` (platform-admin; workspace-admin surface arrives in Phase 9)
+- Cron: Edge Function `billing-generate-monthly` (Phase 4)
+- AI tools: `get_invoice_basis`, `preview_current_plan` (Phase 11)
+
+**Database migration ref:** `supabase/migrations/20260417*_invoice_*.sql` (Phase 1), `supabase/migrations/20260417*_billing_*.sql` (Phase 1 views, RLS, activity log)
+
+---
+
+## 2. Placement — Why C3, Not D6
+
+C3 Commercial is the correct home for invoice state because the question it answers is **"what value, what cost?"** — an outcome layer on top of the other dimensions. The alternative placements are all wrong for specific reasons:
+
+| Placement | Why Rejected |
+|-----------|--------------|
+| D6 Production | D6 owns live operational state (sessions, shifts). Invoices are ex-post settlement, not production state. Conflating the two would put closed-month accounting in a live-mutation table. |
+| K1a Industry Knowledge | Pricing *templates* live in K1a (platform-wide baselines). Actual invoices are workspace/company-specific derived data, not knowledge. |
+| Standalone domain outside cascade | The engine reads cascade-derived coefficients (active users per ADR-0119, pricing_terms history). Placing it outside cascade would force duplicating the read-path logic. |
+
+The C3 placement was decided in **ADR-0118 — Invoice Engine as C3 Commercial Consumer**. Invariants that follow:
+
+- The engine reads `schedule_shift` (D6) for usage counts, `pricing_terms` (C3), `company` (identity), `workspace` (D1) — never writes back to these tables.
+- C3 never produces cascade coefficients. If billing ever needs to drive scheduling or resource allocation, that is a new control plane contract, not a C3 extension.
+- The engine emits events; C2 (the AI agent) consumes them for narration. No inverse coupling.
+
+---
+
+## 3. company_id Scope — The Billing Exception
+
+Smartout's universal scoping rule (per CLAUDE.md and the cascade model) is `workspace_id` on every domain table. **Billing is the documented exception.** Invoices are company-scoped, not workspace-scoped.
+
+### Why
+
+A single customer entity (`company`) can operate multiple workspaces (restaurant chain, multi-brand hospitality, franchise). The billing contract is with the company, not with each workspace:
+
+- Pricing tier and agreement period sit on `pricing_terms.company_id`.
+- Active-user counting aggregates across ALL workspaces owned by the company (ADR-0119 predicate).
+- Invoices are issued TO the company (legal entity), not to individual workspaces.
+- Payment reconciliation, dunning, and bokføringslov compliance all operate at company level.
+
+Putting `workspace_id` on `invoice` would either (a) force splitting a single billing cycle into N invoices per company (operationally wrong) or (b) leave `workspace_id` always NULL for invoices (schema lie).
+
+### Exception Bounds
+
+The company_id exception applies to **billing domain tables only**:
+
+- `invoice`
+- `invoice_line_item` (scoped via invoice FK)
+- `usage_snapshot` — has BOTH `company_id` AND `workspace_id` (usage is rolled up per workspace then aggregated per company)
+- `pricing_terms` — extended in Task 1.2 with billing columns
+- `basis_drift_event` — company-scoped, platform-admin only
+- `billing_activity_log` — company-scoped, see §5
+
+Every other domain table stays workspace-scoped. If a new billing-adjacent feature surfaces a table, the author MUST document why company-scoping is required (or demonstrate workspace-scoping is correct and use it).
+
+---
+
+## 4. Usage Reproducibility (ADR-0119 Predicate)
+
+Active users for a billing period are counted by this deterministic predicate:
+
+```sql
+SELECT count(DISTINCT employee_id)
+FROM public.schedule_shift
+WHERE workspace_id = <workspace>
+  AND status = 'completed'
+  AND employee_id IS NOT NULL
+  AND shift_date >= <period_from>
+  AND shift_date <  <period_to + 1 day>;
+```
+
+Per ADR-0119:
+- Only **completed** shifts count (no-shows, cancellations, future shifts excluded).
+- Only shifts with a **real employee_id** count (open shifts, unassigned shifts excluded).
+- The predicate is **reproducible** — `usage_snapshot` stores a `source_query_hash` of the exact query text that produced the count, so a replay can detect drift.
+- `usage_snapshot.counted_profile_ids` stores the DISTINCT `employee_id` set as jsonb — the receipt, not just the total.
+
+`basis_drift_event` captures retroactive edits to `schedule_shift` rows that would change a previously-frozen snapshot count. The row records both old and new values; platform admins review and either reissue the invoice (via credit note + new invoice) or acknowledge the drift as non-material.
+
+---
+
+## 5. Activity Log — Why Billing Has Its Own Audit Table
+
+`billing_activity_log` (created in Task 1.7.5 per ADR-0125) is the billing domain's audit and event-recording surface. It exists because neither `activity_trail` nor `telemetry.event_log` can host billing events without semantic compromise.
+
+### The Gap in activity_trail
+
+`activity_trail.actor_id` is a FK to `profile` (workspace-scoped). Platform admins (`is_godmode = true` on `user_identity`) do NOT have profile rows in most customer workspaces — and must not be forced to, since that would couple platform-admin access to a workspace membership. Routing billing events through `activity_trail` would either:
+
+1. Force fake "system" profiles per workspace (schema lie, authority confusion), OR
+2. Leave `actor_id` NULL for all platform-admin-driven events (breaks the audit contract).
+
+ADR-0118 originally proposed activity_trail; **ADR-0125 supersedes that** with a dedicated table.
+
+### billing_activity_log Schema
+
+```sql
+CREATE TABLE public.billing_activity_log (
+  id             bigserial PRIMARY KEY,
+  company_id     uuid NOT NULL REFERENCES public.company(company_id),
+  invoice_id     uuid REFERENCES public.invoice(invoice_id),
+  event          text NOT NULL,            -- 'invoice issued', 'dunning_note added', etc.
+  entity_type    text NOT NULL,            -- 'invoice', 'usage_snapshot', 'pricing_terms'
+  entity_id      uuid NOT NULL,
+  data           jsonb NOT NULL DEFAULT '{}'::jsonb,
+  changes        jsonb NOT NULL DEFAULT '{}'::jsonb,
+  actor_user_id  uuid REFERENCES public.user_identity(user_id),  -- platform-level actor
+  source         text NOT NULL DEFAULT 'web'
+                 CHECK (source IN ('web','mobile','api','cron','system')),
+  created_at     timestamptz NOT NULL DEFAULT now()
+);
+```
+
+Key properties:
+- `actor_user_id` references `user_identity` (platform-wide) — admits platform admins without requiring workspace profiles.
+- `company_id` is the scoping axis — RLS policy `billing_log_company_admin_read` uses `is_admin_in_company(auth.uid(), company_id)`.
+- `source` discriminates between web UI, mobile, API key, cron job, and system-internal events.
+- `event` uses **space-separated verb phrasing** (`invoice issued`, `dunning_note added`) to match Smartout's telemetry convention — not dot-separated.
+
+### Views That Read From It
+
+- `v_invoice_dunning_notes` — dunning notes filtered from billing_activity_log where `event = 'dunning_note added' AND entity_type = 'invoice'`.
+
+---
+
+## 6. Invoice Lifecycle
+
+Invoices move through this state machine:
+
+```
+  draft  →  issued  →  sent  →  paid
+             ↘         ↓
+              void    overdue  →  uncollectible
+                       ↓
+                      paid (late)
+```
+
+Additional terminal forms:
+- `void` (from any non-terminal state before paid — voids are themselves immutable)
+- `uncollectible` (written off after dunning exhaustion)
+
+### Immutability Contract (ADR-0120, bokføringslov §5)
+
+- `draft` → no number, no legal commitment, freely editable.
+- `issued` → `invoice_number_seq` assigns a continuous number (`BEFORE INSERT` + `BEFORE UPDATE OF status` triggers); row becomes immutable except for status progression and dunning metadata.
+- No DELETE path for non-draft invoices. Corrections via `credit_note` invoices only (`invoice_type = 'credit_note' AND credits_invoice_id IS NOT NULL`).
+- Nested credit notes (credit note crediting another credit note) blocked by `prevent_nested_credit_notes` trigger.
+
+### Pricing Terms Snapshot (Phase 1.5)
+
+`invoice.pricing_terms_id` is a nullable FK to `pricing_terms(pricing_terms_id)`. The Phase 4 generator MUST populate this column at INSERT time with the exact `pricing_terms` row used to compute the invoice amount. Rationale:
+
+- Protects audit integrity against retroactive `pricing_terms.effective_from` edits.
+- `get_invoice_basis()` prefers the FK when set (authoritative) and falls back to date-range lookup only for legacy rows.
+- FK is `ON DELETE RESTRICT` — pricing_terms rows referenced by invoices cannot be deleted.
+
+### Dunning State Machine
+
+`dunning_status` enum: `{none, in_negotiation, reminder_sent, escalated}`. Progression is orthogonal to `invoice_status`:
+
+- Terminal `invoice_status` (`draft`, `paid`, `void`, `uncollectible`) → `dunning_status IS NULL` (CHECK enforced).
+- Active `invoice_status` (`issued`, `sent`, `overdue`) → any `dunning_status` enum value or NULL.
+
+The CHECK was relaxed in Phase 1.5 (code-reviewer important #4) because the original tight form blocked the real dunning flow `sent + reminder_sent`. Typical trajectory:
+
+```
+sent + none            -- delivered, not yet overdue
+sent + in_negotiation  -- customer disputes or arranges payment plan
+sent + reminder_sent   -- first reminder issued after due_at
+sent + escalated       -- final notice / collections handoff
+overdue + escalated    -- explicit overdue flag + ongoing collections
+paid + NULL            -- settled, dunning metadata cleared
+```
+
+Dunning age is computed deterministically as `CURRENT_DATE - due_at::date` (ADR-0120 §7) — no external system query required.
+
+---
+
+## 7. Phase 2 Emit Contract
+
+Every billing mutation MUST emit via `@smartout/telemetry`. Fase 2 Task 2.1 extends the `EventDestination` union with `'billing_activity_log'`; Task 2.1.5 ships the `writeBillingActivityLog` provider. The contract:
+
+### Event Registry
+
+Billing events live in `packages/telemetry/src/registry.ts`. Each entry declares:
+
+```ts
+{
+  name: 'invoice issued',
+  destinations: ['posthog', 'logger', 'activity_trail', 'billing_activity_log'],
+  payload: z.object({
+    invoice_id: z.string().uuid(),
+    company_id: z.string().uuid(),
+    invoice_number: z.number().int(),
+    amount_incl_vat: z.number(),
+    currency: z.string(),
+  }),
+}
+```
+
+### Routing Rules
+
+| Event destination | When Routed | Provider |
+|------------------|-------------|----------|
+| `posthog` | Always (analytics). | `packages/telemetry/src/providers/posthog.ts` |
+| `logger` | Always (stdout observability). | `packages/telemetry/src/providers/logger.ts` |
+| `activity_trail` | If event has a workspace-scoped actor (profile-based). | `packages/telemetry/src/providers/activity-trail.ts` |
+| `billing_activity_log` | Billing mutations (platform-level actors admitted). | `packages/telemetry/src/providers/billing-activity-log.ts` — **new in Phase 2** |
+| `engine_event` | Events that trigger automation (Event Engine processes). | `packages/telemetry/src/providers/engine-event.ts` |
+
+An event can have multiple destinations — `invoice issued` routes to posthog + logger + billing_activity_log + engine_event (the latter triggers the `invoice_lifecycle` process seeded in Task 1.10).
+
+### Canonical Billing Events (Fase 2 registry)
+
+| Event Name | Trigger | Destinations |
+|------------|---------|--------------|
+| `invoice generated` | Cron writes draft invoice | posthog, logger, billing_activity_log, engine_event |
+| `invoice issued` | draft → issued status transition | posthog, logger, billing_activity_log, engine_event |
+| `invoice sent` | Delivery confirmation | logger, billing_activity_log, engine_event |
+| `invoice marked_paid` | Payment reconciled | posthog, logger, billing_activity_log, engine_event |
+| `invoice voided` | Status → void | logger, billing_activity_log, engine_event |
+| `invoice overdue_detected` | Cron flips issued/sent → overdue past due_at | logger, billing_activity_log, engine_event |
+| `invoice credit_note_issued` | Credit note created against original | logger, billing_activity_log, engine_event |
+| `invoice basis_drift_detected` | `detect_billing_basis_drift` trigger fires on `schedule_shift` UPDATE/DELETE after snapshot | logger, billing_activity_log, engine_event |
+| `usage_snapshot created` | Cron freezes per-workspace billable users | logger, billing_activity_log |
+| `pricing_terms updated` | Admin edits pricing via Phase 4 UI | posthog, logger, billing_activity_log |
+| `dunning_note added` | Manual dunning note from platform-admin | logger, billing_activity_log |
+
+### Rule
+
+No billing mutation bypasses `emit()`. No direct INSERT to `billing_activity_log` from domain code — the telemetry provider is the only writer. This keeps the single-source-of-truth guarantee and ensures PostHog + logger + engine_event all stay in sync.
+
+---
+
+## 8. Cascade Dimension Dependencies
+
+| Dimension | What Billing Consumes | How |
+|-----------|----------------------|-----|
+| **Identity** (company, user_identity) | Billed entity, platform-admin actor | Direct FK |
+| **D1 Envelope** (workspace) | Sub-scope for usage rollup | Direct FK on `usage_snapshot.workspace_id` |
+| **D2 Resource** (profile, schedule_shift) | Active-user source data | Read-only via ADR-0119 predicate |
+| **D4 Demand** (planning_cycle) | Period boundaries for billing cycles | Consulted but not stored on invoice |
+| **D6 Production** (schedule_shift) | Completion facts for usage count | `basis_drift_event` trigger watches UPDATE/DELETE |
+| **C3 Commercial** (pricing_terms) | Rate card, agreement terms | Direct FK on `invoice.pricing_terms_id` + date-range fallback |
+| **C4 Governance** (is_admin_in_company) | RLS authorization | Helper function used in every billing RLS policy |
+
+Billing writes to: `invoice`, `invoice_line_item`, `usage_snapshot`, `basis_drift_event`, `billing_activity_log` (via telemetry provider). Billing does NOT write to D1–D6 or C1 tables.
+
+---
+
+## 9. RLS Posture
+
+### Tables with RLS + Policies
+
+| Table | Policy | Scoping |
+|-------|--------|---------|
+| `invoice` | `invoice_company_admin_read` | `is_admin_in_company(auth.uid(), company_id)` |
+| `invoice_line_item` | `invoice_line_item_company_admin_read` | EXISTS join to parent invoice |
+| `usage_snapshot` | `usage_snapshot_company_admin_read` | `is_admin_in_company(auth.uid(), company_id)` |
+| `billing_activity_log` | `billing_log_company_admin_read` | `is_admin_in_company(auth.uid(), company_id)` |
+
+### Tables with RLS Enabled + No Policies (Platform-Admin Only)
+
+| Table | Reason |
+|-------|--------|
+| `basis_drift_event` | Drift review is a platform-admin responsibility; no customer-side visibility. |
+
+### Views
+
+`v_current_plan_preview` and `v_invoice_dunning_notes` had default GRANTs revoked in Phase 1.5 (migration `20260417125541_billing_view_rls_hardening.sql`). They are `service_role` + `postgres` only. Billing UI consumers must read through Server Actions that use `createAdminClient()` and apply explicit `company_id` filtering from the authenticated request context.
+
+### API Key Access
+
+Billing tables do NOT have API key RLS policies. Billing is an internal platform surface; no workspace API key should read invoice data. This is intentional.
+
+---
+
+## 10. Reference Files
+
+- **ADRs:** `docs/decisions/0118-invoice-engine-as-c3-commercial-consumer.md`, `0119-usage-snapshot-reproducibility.md`, `0120-invoice-immutability-credit-note-policy.md`, `0121-pricing-terms-billing-engine-extension.md`, `0125-billing-activity-log-as-platform-scoped-audit.md`
+- **Spec:** `docs/superpowers/specs/2026-04-17-billing-engine-fase-1-design.md`
+- **Plan:** `docs/superpowers/plans/2026-04-17-billing-engine-fase-1.md`
+- **B1 verdict:** `docs/superpowers/plans/2026-04-17-billing-engine-fase-1-B1-COUNCIL-VERDICT.md`
+- **Migrations (Phase 1):** `supabase/migrations/20260417*_invoice_*.sql`, `20260417*_billing_*.sql`
+- **pgTAP tests:** `supabase/tests/migrations/20260417_billing_rls.spec.sql`, `20260417_billing_constraints.spec.sql`
+
+---
+
+## 11. What Exists Today (Fase 1 — 2026-04-17)
+
+- Schema: 11 migrations, 5 billing tables, 4 enums, 3 views, 3 functions, 5 triggers.
+- RLS: 4 policies + 1 platform-admin table, 2 views revoked from anon/authenticated.
+- Tests: 20 pgTAP assertions (13 RLS structure + 7 CHECK/trigger/column).
+- ADRs: 0118–0122 accepted; MODULE_BILLING.md (this file) written.
+- Engine seed: `invoice_lifecycle` process + 2 steps (`wait_for_event` on `invoice issued` and `invoice marked_paid`) ready for Phase 4 cron.
+
+## 12. What Comes Next
+
+- **Fase 2 (B2):** telemetry provider (Task 2.1.5) + `@smartout/billing` package (pricing math, usage counting, generator core) + shadcn `InvoiceStatusBadge`.
+- **Fase 2 (B3):** cron generator (Edge Function `billing-generate-monthly`) writing invoice drafts + usage snapshots per month.
+- **Fase 2 (B4):** platform-admin UI (`/admin/billing/*`) + Server Actions (single read/write surface for the UI).
+- **Fase 2 (B5):** dunning workflow + drift review UI + EHF/Peppol export + workspace-admin self-serve read.
+- **Fase 2 (B6):** i18n, end-to-end tests, closure.
+
+Everything in Fase 2 flows through this module. If a new billing-adjacent concept appears, update this doc before writing code.

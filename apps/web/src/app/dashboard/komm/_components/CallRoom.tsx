@@ -20,27 +20,41 @@ import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
 import { MessageTimeline } from "./MessageTimeline";
 import { MessageInput } from "./MessageInput";
+import { cn } from "@/lib/utils";
 
 type Props = {
   serverUrl: string;
   token: string;
   channelId: string;
+  channelName?: string;
   profileId: string;
   audioPolicy: string;
   onDisconnect: () => void;
   onParticipantCountChange?: (count: number) => void;
+  startWithVideo?: boolean;
 };
 
+type RoomMode = "pip" | "focused";
+
+/**
+ * CallRoom renders as a fixed-position overlay so the call keeps running
+ * while the user scrolls messages, switches channels, or navigates within
+ * the dashboard. Two modes:
+ *   - pip     : small bottom-right tile, minimal controls
+ *   - focused : centered modal, full controls + chat panel
+ */
 export function CallRoom({
   serverUrl,
   token,
   channelId,
+  channelName,
   profileId,
   audioPolicy,
   onDisconnect,
   onParticipantCountChange,
+  startWithVideo = false,
 }: Props) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [mode, setMode] = useState<RoomMode>(startWithVideo ? "focused" : "pip");
   const [showChat, setShowChat] = useState(true);
 
   return (
@@ -50,15 +64,16 @@ export function CallRoom({
       connect={true}
       onDisconnected={onDisconnect}
       audio={true}
-      video={false}
+      video={startWithVideo}
       onConnected={() => onParticipantCountChange?.(1)}
     >
       <CallRoomInner
-        isExpanded={isExpanded}
-        setIsExpanded={setIsExpanded}
+        mode={mode}
+        setMode={setMode}
         showChat={showChat}
         setShowChat={setShowChat}
         channelId={channelId}
+        channelName={channelName}
         profileId={profileId}
         audioPolicy={audioPolicy}
         onDisconnect={onDisconnect}
@@ -69,21 +84,23 @@ export function CallRoom({
 }
 
 function CallRoomInner({
-  isExpanded,
-  setIsExpanded,
+  mode,
+  setMode,
   showChat,
   setShowChat,
   channelId,
+  channelName,
   profileId,
   audioPolicy,
   onDisconnect,
   onParticipantCountChange,
 }: {
-  isExpanded: boolean;
-  setIsExpanded: (v: boolean) => void;
+  mode: RoomMode;
+  setMode: (v: RoomMode) => void;
   showChat: boolean;
   setShowChat: (v: boolean) => void;
   channelId: string;
+  channelName?: string;
   profileId: string;
   audioPolicy: string;
   onDisconnect: () => void;
@@ -111,7 +128,6 @@ function CallRoomInner({
     const currentIdentities = new Set(participants.map((p) => p.identity));
     const prev = prevIdentitiesRef.current;
 
-    // Skip first render (initial connect)
     if (prev.size > 0) {
       for (const p of participants) {
         if (!prev.has(p.identity)) {
@@ -128,80 +144,230 @@ function CallRoomInner({
     prevIdentitiesRef.current = currentIdentities;
   }, [participants]);
 
+  // --- Idle auto-disconnect ---------------------------------------------
+  // 15 min of no local activity (speaking + user input) disconnects the
+  // call. A warning toast fires 1 min before the cutoff with a "Stay"
+  // action the user can click to reset the timer.
+  const IDLE_WARN_MS = 14 * 60_000;
+  const IDLE_DISCONNECT_MS = 15 * 60_000;
+  const lastActiveRef = useRef<number>(Date.now());
+  const warningToastIdRef = useRef<string | number | null>(null);
+
+  // Reset the timer when the local participant speaks
+  useEffect(() => {
+    const local = participants.find((p) => p.isLocal);
+    if (local?.isSpeaking) {
+      lastActiveRef.current = Date.now();
+      if (warningToastIdRef.current !== null) {
+        toast.dismiss(warningToastIdRef.current);
+        warningToastIdRef.current = null;
+      }
+    }
+  }, [participants]);
+
+  // Reset the timer on any user input — background tabs stop firing these,
+  // which is exactly the "forgotten call" signal we want to catch.
+  useEffect(() => {
+    const mark = () => {
+      lastActiveRef.current = Date.now();
+      if (warningToastIdRef.current !== null) {
+        toast.dismiss(warningToastIdRef.current);
+        warningToastIdRef.current = null;
+      }
+    };
+    window.addEventListener("mousemove", mark);
+    window.addEventListener("keydown", mark);
+    window.addEventListener("click", mark);
+    return () => {
+      window.removeEventListener("mousemove", mark);
+      window.removeEventListener("keydown", mark);
+      window.removeEventListener("click", mark);
+    };
+  }, []);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      const idle = Date.now() - lastActiveRef.current;
+      if (idle >= IDLE_DISCONNECT_MS) {
+        if (warningToastIdRef.current !== null) {
+          toast.dismiss(warningToastIdRef.current);
+          warningToastIdRef.current = null;
+        }
+        toast.info(t("call.idle_disconnected"));
+        onDisconnect();
+      } else if (idle >= IDLE_WARN_MS && warningToastIdRef.current === null) {
+        warningToastIdRef.current = toast.warning(t("call.idle_title"), {
+          description: t("call.idle_body"),
+          duration: IDLE_DISCONNECT_MS - IDLE_WARN_MS,
+          action: {
+            label: t("call.idle_stay"),
+            onClick: () => {
+              lastActiveRef.current = Date.now();
+              if (warningToastIdRef.current !== null) {
+                toast.dismiss(warningToastIdRef.current);
+                warningToastIdRef.current = null;
+              }
+            },
+          },
+        });
+      }
+    }, 5_000);
+    return () => {
+      clearInterval(id);
+      if (warningToastIdRef.current !== null) {
+        toast.dismiss(warningToastIdRef.current);
+        warningToastIdRef.current = null;
+      }
+    };
+  }, [IDLE_DISCONNECT_MS, IDLE_WARN_MS, t, onDisconnect]);
+
   const hasVideoTracks = tracks.some(
     (t) => t.publication?.isSubscribed && t.publication.track?.kind === Track.Kind.Video,
   );
-  const showVideo = isExpanded || hasVideoTracks;
+
+  const isFocused = mode === "focused";
 
   return (
-    <div
-      className={isExpanded ? "bg-background fixed inset-0 z-40 flex flex-col" : "bg-card border-t"}
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between border-b px-3 py-2">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">{t("call.header")}</span>
-          <span className="text-muted-foreground flex items-center gap-1 text-xs">
-            <Users className="h-3 w-3" />
-            {participantCount}
-          </span>
-        </div>
-        <div className="flex items-center gap-1">
-          {isExpanded && (
+    <>
+      {/* Backdrop only in focused mode */}
+      {isFocused && (
+        <div
+          className="animate-in fade-in fixed inset-0 z-40 bg-black/60 backdrop-blur-sm duration-150"
+          onClick={() => setMode("pip")}
+          aria-hidden
+        />
+      )}
+
+      <div
+        className={cn(
+          "bg-card fixed z-50 flex flex-col overflow-hidden rounded-2xl border shadow-2xl",
+          isFocused ? "inset-4 md:inset-8" : "right-4 bottom-4 w-[360px] max-w-[calc(100vw-2rem)]",
+        )}
+      >
+        {/* Header — prominent LIVE indicator always visible */}
+        <div className="bg-background/95 flex items-center justify-between gap-2 border-b px-3 py-2 backdrop-blur">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            {/* Pulsing LIVE badge */}
+            <span className="relative flex h-2.5 w-2.5 shrink-0">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
+            </span>
+            <span className="text-xs font-bold tracking-wider text-red-500 uppercase">
+              {t("call.live")}
+            </span>
+            {channelName && (
+              <span className="text-foreground/80 truncate text-sm font-medium">
+                · {channelName}
+              </span>
+            )}
+            <span className="text-muted-foreground flex shrink-0 items-center gap-1 text-xs">
+              <Users className="h-3 w-3" />
+              {participantCount}
+            </span>
+          </div>
+          <div className="flex shrink-0 items-center gap-1">
+            {isFocused && (
+              <Button
+                variant={showChat ? "secondary" : "ghost"}
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => setShowChat(!showChat)}
+                aria-label={showChat ? t("call.hide_chat") : t("call.show_chat")}
+                aria-pressed={showChat}
+              >
+                <MessageSquare className="h-3.5 w-3.5" />
+              </Button>
+            )}
             <Button
-              variant={showChat ? "secondary" : "ghost"}
+              variant="ghost"
               size="icon"
               className="h-7 w-7"
-              onClick={() => setShowChat(!showChat)}
-              aria-label={showChat ? t("call.hide_chat") : t("call.show_chat")}
-              aria-pressed={showChat}
+              onClick={() => setMode(isFocused ? "pip" : "focused")}
+              aria-label={isFocused ? t("call.minimize") : t("call.expand")}
             >
-              <MessageSquare className="h-3.5 w-3.5" />
-            </Button>
-          )}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={() => setIsExpanded(!isExpanded)}
-            aria-label={isExpanded ? t("call.minimize") : t("call.expand")}
-          >
-            {isExpanded ? (
-              <Minimize2 className="h-3.5 w-3.5" />
-            ) : (
-              <Maximize2 className="h-3.5 w-3.5" />
-            )}
-          </Button>
-          <Button
-            variant="destructive"
-            size="icon"
-            className="h-7 w-7 rounded-full"
-            onClick={onDisconnect}
-            aria-label={t("call.disconnect")}
-          >
-            <PhoneOff className="h-3.5 w-3.5" />
-          </Button>
-        </div>
-      </div>
-
-      {/* Main area — video + chat, stacked on mobile, side-by-side on desktop */}
-      {isExpanded ? (
-        <div className="flex flex-1 flex-col overflow-hidden md:flex-row">
-          {/* Video area */}
-          <div className="flex min-h-0 flex-1 flex-col">
-            <div className="flex-1 bg-black">
-              {tracks.length <= 2 ? (
-                <GridLayout tracks={tracks}>
-                  <ParticipantTile />
-                </GridLayout>
+              {isFocused ? (
+                <Minimize2 className="h-3.5 w-3.5" />
               ) : (
-                <FocusLayoutContainer>
-                  <CarouselLayout tracks={tracks}>
-                    <ParticipantTile />
-                  </CarouselLayout>
-                </FocusLayoutContainer>
+                <Maximize2 className="h-3.5 w-3.5" />
               )}
+            </Button>
+            <Button
+              variant="destructive"
+              size="icon"
+              className="h-7 w-7 rounded-full"
+              onClick={onDisconnect}
+              aria-label={t("call.disconnect")}
+            >
+              <PhoneOff className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Body — video + (optional) chat */}
+        {isFocused ? (
+          <div className="flex min-h-0 flex-1 flex-col md:flex-row">
+            <div className="flex min-h-0 flex-1 flex-col">
+              <div className="flex-1 bg-black">
+                {tracks.length <= 2 ? (
+                  <GridLayout tracks={tracks}>
+                    <ParticipantTile />
+                  </GridLayout>
+                ) : (
+                  <FocusLayoutContainer>
+                    <CarouselLayout tracks={tracks}>
+                      <ParticipantTile />
+                    </CarouselLayout>
+                  </FocusLayoutContainer>
+                )}
+              </div>
+              <ControlBar
+                variation="minimal"
+                controls={{
+                  microphone: true,
+                  camera: true,
+                  screenShare: true,
+                  leave: false,
+                  chat: false,
+                  settings: false,
+                }}
+              />
             </div>
+
+            {showChat && (
+              <div className="flex h-1/2 flex-col border-t md:h-auto md:w-80 md:border-t-0 md:border-l lg:w-96">
+                <div className="flex items-center justify-between border-b px-3 py-2">
+                  <span className="text-sm font-medium">{t("call.chat_panel")}</span>
+                </div>
+                <MessageTimeline channelId={channelId} profileId={profileId} onReply={() => {}} />
+                <MessageInput
+                  channelId={channelId}
+                  profileId={profileId}
+                  replyToId={null}
+                  onCancelReply={() => {}}
+                  audioPolicy={audioPolicy}
+                  pttProps={undefined}
+                />
+              </div>
+            )}
+          </div>
+        ) : (
+          <>
+            {/* PiP video tile only when someone has video on */}
+            {hasVideoTracks && (
+              <div className="h-48 bg-black">
+                {tracks.length <= 2 ? (
+                  <GridLayout tracks={tracks}>
+                    <ParticipantTile />
+                  </GridLayout>
+                ) : (
+                  <FocusLayoutContainer>
+                    <CarouselLayout tracks={tracks}>
+                      <ParticipantTile />
+                    </CarouselLayout>
+                  </FocusLayoutContainer>
+                )}
+              </div>
+            )}
             <ControlBar
               variation="minimal"
               controls={{
@@ -213,68 +379,11 @@ function CallRoomInner({
                 settings: false,
               }}
             />
-          </div>
+          </>
+        )}
 
-          {/* Chat panel — full width on mobile, fixed width on desktop */}
-          {showChat && (
-            <div className="flex h-1/2 flex-col border-t md:h-auto md:w-80 md:border-t-0 md:border-l lg:w-96">
-              <div className="flex items-center justify-between border-b px-3 py-2">
-                <span className="text-sm font-medium">{t("call.chat_panel")}</span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 md:hidden"
-                  onClick={() => setShowChat(false)}
-                  aria-label={t("call.close_chat")}
-                >
-                  <Minimize2 className="h-3 w-3" />
-                </Button>
-              </div>
-              <MessageTimeline channelId={channelId} profileId={profileId} onReply={() => {}} />
-              <MessageInput
-                channelId={channelId}
-                profileId={profileId}
-                replyToId={null}
-                onCancelReply={() => {}}
-                audioPolicy={audioPolicy}
-                pttProps={undefined}
-              />
-            </div>
-          )}
-        </div>
-      ) : (
-        <>
-          {/* Collapsed: show video only if someone has camera on */}
-          {showVideo && (
-            <div className="h-48 bg-black">
-              {tracks.length <= 2 ? (
-                <GridLayout tracks={tracks}>
-                  <ParticipantTile />
-                </GridLayout>
-              ) : (
-                <FocusLayoutContainer>
-                  <CarouselLayout tracks={tracks}>
-                    <ParticipantTile />
-                  </CarouselLayout>
-                </FocusLayoutContainer>
-              )}
-            </div>
-          )}
-          <ControlBar
-            variation="minimal"
-            controls={{
-              microphone: true,
-              camera: true,
-              screenShare: true,
-              leave: false,
-              chat: false,
-              settings: false,
-            }}
-          />
-        </>
-      )}
-
-      <RoomAudioRenderer />
-    </div>
+        <RoomAudioRenderer />
+      </div>
+    </>
   );
 }

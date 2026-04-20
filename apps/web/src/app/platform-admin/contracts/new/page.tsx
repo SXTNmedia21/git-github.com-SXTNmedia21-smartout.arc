@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,7 +20,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { ArrowLeft, Send } from "lucide-react";
+import { ArrowLeft, FilePlus } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 
@@ -44,18 +44,19 @@ type Workspace = {
 
 export default function NewContractPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [templates, setTemplates] = useState<Template[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     template_id: "",
-    company_id: "",
-    workspace_id: "",
-    recipient_name: "",
-    recipient_email: "",
-    title: "",
-    notes: "",
+    company_id: searchParams.get("company_id") ?? "",
+    workspace_id: searchParams.get("workspace_id") ?? "",
+    recipient_name: searchParams.get("recipient_name") ?? "",
+    recipient_email: searchParams.get("recipient_email") ?? "",
+    title: searchParams.get("title") ?? "",
+    notes: searchParams.get("notes") ?? "",
   });
 
   useEffect(() => {
@@ -78,6 +79,7 @@ export default function NewContractPage() {
   }, []);
 
   // Load workspaces when company changes
+  const prefillWorkspaceId = searchParams.get("workspace_id") ?? "";
   useEffect(() => {
     if (!formData.company_id) {
       setWorkspaces([]);
@@ -93,8 +95,13 @@ export default function NewContractPage() {
         const { data } = await res.json();
         const ws = data ?? [];
         setWorkspaces(ws);
-        // Auto-select if only one workspace
-        if (ws.length === 1) {
+        // Keep URL-prefilled workspace if it exists in the list
+        if (
+          prefillWorkspaceId &&
+          ws.some((w: Workspace) => w.workspace_id === prefillWorkspaceId)
+        ) {
+          setFormData((prev) => ({ ...prev, workspace_id: prefillWorkspaceId }));
+        } else if (ws.length === 1) {
           setFormData((prev) => ({ ...prev, workspace_id: ws[0].workspace_id }));
         } else {
           setFormData((prev) => ({ ...prev, workspace_id: "" }));
@@ -102,7 +109,7 @@ export default function NewContractPage() {
       }
     }
     loadWorkspaces();
-  }, [formData.company_id]);
+  }, [formData.company_id, prefillWorkspaceId]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -129,17 +136,15 @@ export default function NewContractPage() {
       }
 
       const result = await res.json();
-      const status = result.data?.status;
+      const contractId = result.data?.contract_id;
 
-      if (status === "sent") {
-        toast.success("Kontrakt opprettet og sendt");
-      } else {
-        toast.success("Kontrakt opprettet som utkast", {
-          description: result.warning || "Kontrakten kan sendes manuelt fra kontraktsiden.",
-        });
-      }
+      toast.success("Kontrakt opprettet", {
+        description: "Gjennomga og send fra kontraktsiden.",
+      });
 
-      router.push("/platform-admin/contracts");
+      router.push(
+        contractId ? `/platform-admin/contracts/${contractId}` : "/platform-admin/contracts",
+      );
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Noe gikk galt");
     } finally {
@@ -307,8 +312,8 @@ export default function NewContractPage() {
                 </Button>
               </Link>
               <Button type="submit" disabled={loading}>
-                <Send className="mr-2 h-4 w-4" />
-                {loading ? "Oppretter..." : "Opprett og send"}
+                <FilePlus className="mr-2 h-4 w-4" />
+                {loading ? "Oppretter..." : "Opprett"}
               </Button>
             </CardFooter>
           </Card>

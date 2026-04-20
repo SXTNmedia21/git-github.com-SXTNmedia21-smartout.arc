@@ -14,9 +14,10 @@ import { loadAuthorizedSession } from "../core/session-manager.js";
 import { validateStoreData, writeToInbox } from "../core/inbox-writer.js";
 import { emitGuardianEvent } from "../core/guardian-bus.js";
 import { evaluateSession } from "../core/guardian-evaluator.js";
+import type { AppVariables } from "../types/app-env.js";
 import type { AuthContext } from "../types/auth.js";
 
-const store = new Hono<{ Variables: { auth: AuthContext } }>();
+const store = new Hono<{ Variables: AppVariables & { auth: AuthContext } }>();
 
 const storeSchema = z.object({
   entity_type: z.string().min(1),

@@ -89,7 +89,8 @@ export class SyncWorker {
 
         try {
           const payload = JSON.parse(write.payload) as Record<string, unknown>;
-          const handler = actionMap[write.action];
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- handler dispatch is action-keyed
+          const handler = actionMap[write.action] as (p: any) => Promise<void>;
           await handler(payload);
           await markSynced(write.id);
         } catch (err: unknown) {
@@ -106,7 +107,9 @@ export class SyncWorker {
               /* Retry the write after token refresh */
               try {
                 const payload = JSON.parse(write.payload) as Record<string, unknown>;
-                await actionMap[write.action](payload);
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- handler dispatch is action-keyed
+                const handler = actionMap[write.action] as (p: any) => Promise<void>;
+                await handler(payload);
                 await markSynced(write.id);
               } catch {
                 await markFailed(write.id, MAX_RETRIES);

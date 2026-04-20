@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
+import { useTranslation } from "@smartout/i18n";
 import { emit } from "@smartout/telemetry";
 import { channelKeys } from "./channel-keys";
 import type { ChannelMemberWithProfile } from "./channel-types";
@@ -34,6 +35,7 @@ export function useAddChannelMember(channelId: string | null, profileId: string)
   const queryClient = useQueryClient();
   const { workspace } = useWorkspace();
   const workspaceId = workspace.workspace_id;
+  const { t } = useTranslation("komm");
 
   return useMutation({
     mutationFn: async ({ memberProfileId }: { memberProfileId: string }) => {
@@ -68,7 +70,7 @@ export function useAddChannelMember(channelId: string | null, profileId: string)
     },
 
     onError: () => {
-      toast.error("Kunne ikke legge til medlem");
+      toast.error(t("member.add_error"));
     },
   });
 }
@@ -77,6 +79,7 @@ export function useRemoveChannelMember(channelId: string | null, profileId: stri
   const queryClient = useQueryClient();
   const { workspace } = useWorkspace();
   const workspaceId = workspace.workspace_id;
+  const { t } = useTranslation("komm");
 
   return useMutation({
     mutationFn: async ({ memberProfileId }: { memberProfileId: string }) => {
@@ -111,7 +114,7 @@ export function useRemoveChannelMember(channelId: string | null, profileId: stri
     },
 
     onError: () => {
-      toast.error("Kunne ikke fjerne medlem");
+      toast.error(t("member.remove_error"));
     },
   });
 }

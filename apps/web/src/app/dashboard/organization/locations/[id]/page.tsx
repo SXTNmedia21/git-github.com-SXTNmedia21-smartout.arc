@@ -646,7 +646,6 @@ export default function LocationDetailPage() {
       {editZone && (
         <EditZoneDialog
           zone={editZone}
-          isDark={isDark}
           open={!!editZone}
           onOpenChange={(open) => {
             if (!open) setEditZone(null);

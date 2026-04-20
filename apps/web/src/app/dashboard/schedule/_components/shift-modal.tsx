@@ -11,6 +11,7 @@ import {
   Calendar,
   Check,
   Clock,
+  Lock,
   Mail,
   MessageSquare,
   Smartphone,
@@ -55,11 +56,15 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 
+import { useWorkspaceOptional } from "@/lib/workspace-context";
+
 import { useScheduleUI } from "./schedule-ui-context";
 import { useShifts, useCreateShift, useUpdateShift, useDeleteShift } from "../_hooks/use-shifts";
+import { isShiftTemporallyLocked } from "../_hooks/schedule-shift-lock";
 import { useWeekRange } from "../_hooks/use-week-range";
 import { useEmployees, type ScheduleEmployee } from "../_hooks/use-employees";
 import { useShiftRuleCheck } from "../_hooks/use-shift-rule-check";
+import { useShiftTypeConfigs } from "../_hooks/use-shift-type-configs";
 import { useAuditLog, type AuditLogEntry } from "../_hooks/use-audit-log";
 import { AVAILABLE_ZONES } from "./schedule-data";
 import type { DayCategory, ShiftStatus, Shift } from "./schedule-types";
@@ -423,6 +428,7 @@ function ShiftHistoryTimeline({
 type ShiftFormState = {
   employeeId: string;
   role: string;
+  shiftTypeId: string;
   team: string;
   startTime: string;
   endTime: string;
@@ -457,10 +463,12 @@ export function ShiftModal() {
     [auditLogQuery.data],
   );
 
-  const availableRoles = useMemo(
-    () => [...new Set(employees.map((e) => e.jobTitle || e.role).filter((v): v is string => !!v))],
-    [employees],
+  const shiftTypeConfigsQuery = useShiftTypeConfigs();
+  const shiftTypeConfigs = useMemo(
+    () => shiftTypeConfigsQuery.data ?? [],
+    [shiftTypeConfigsQuery.data],
   );
+
   const availableTeams = useMemo(
     () => [...new Set(employees.map((e) => e.team).filter((v): v is string => !!v))],
     [employees],
@@ -469,10 +477,19 @@ export function ShiftModal() {
   const isOpen = selectedShiftId !== null || createShiftContext !== null;
   const isEditMode = selectedShiftId !== null;
   const existingShift = isEditMode ? shifts.find((s: Shift) => s.id === selectedShiftId) : null;
+  // Temporal lock: shift has started or date has passed. Mirrors the
+  // database trigger in workspace timezone (fallback Europe/Oslo when no
+  // workspace context, e.g. shared storybook). Server-side is still truth.
+  const workspaceContext = useWorkspaceOptional();
+  const workspaceTimezone = workspaceContext?.workspace.timezone ?? "Europe/Oslo";
+  const isLocked = existingShift
+    ? isShiftTemporallyLocked(existingShift, workspaceTimezone)
+    : false;
 
   const [form, setForm] = useState<ShiftFormState>({
     employeeId: "",
     role: "",
+    shiftTypeId: "",
     team: "",
     startTime: "08:00",
     endTime: "16:00",
@@ -492,6 +509,7 @@ export function ShiftModal() {
       setForm({
         employeeId: existingShift.employeeId ?? "",
         role: existingShift.role,
+        shiftTypeId: existingShift.shiftTypeId ?? "",
         team: emp?.team ?? "",
         startTime: existingShift.startTime,
         endTime: existingShift.endTime,
@@ -510,6 +528,7 @@ export function ShiftModal() {
       setForm({
         employeeId: createShiftContext.employeeId ?? "",
         role: (employee?.jobTitle || employee?.role) ?? "",
+        shiftTypeId: "",
         team: employee?.team ?? "",
         startTime: "08:00",
         endTime: "16:00",
@@ -562,13 +581,13 @@ export function ShiftModal() {
 
   const handleEmployeeChange = useCallback(
     (employeeId: string) => {
-      // Treat the magic "none" string as clearing the employee selection (open shift)
       const targetId = employeeId === "none" ? "" : employeeId;
       const employee = employees.find((e) => e.id === targetId);
       setForm((prev) => ({
         ...prev,
         employeeId: targetId,
-        role: (employee?.jobTitle || employee?.role) ?? prev.role,
+        // Only override role from employee if no shift type is selected
+        role: prev.shiftTypeId ? prev.role : ((employee?.jobTitle || employee?.role) ?? prev.role),
         team: employee?.team ?? prev.team,
       }));
     },
@@ -612,6 +631,7 @@ export function ShiftModal() {
           patch: {
             employeeId: form.employeeId || null,
             role: form.role,
+            shiftTypeId: form.shiftTypeId || undefined,
             startTime: form.startTime,
             endTime: form.endTime,
             workHours: hours,
@@ -624,11 +644,14 @@ export function ShiftModal() {
           },
         });
       } else if (dateId) {
+        const selectedConfig = shiftTypeConfigs.find((c) => c.shiftTypeId === form.shiftTypeId);
         createShiftMutation.mutate({
           id: crypto.randomUUID(),
           employeeId: form.employeeId || null,
           dateId,
           role: form.role,
+          shiftTypeId: form.shiftTypeId || undefined,
+          departmentId: selectedConfig?.departmentId ?? undefined,
           startTime: form.startTime,
           endTime: form.endTime,
           workHours: hours,
@@ -648,6 +671,7 @@ export function ShiftModal() {
       isEditMode,
       existingShift,
       dateId,
+      shiftTypeConfigs,
       createShiftMutation,
       updateShiftMutation,
       handleClose,
@@ -769,7 +793,8 @@ export function ShiftModal() {
                       <DropdownMenuSeparator className="bg-border/40" />
                       <DropdownMenuItem
                         onClick={handleDelete}
-                        className="rounded-lg text-xs font-bold text-red-600 focus:bg-red-500/10 focus:text-red-700"
+                        disabled={isLocked}
+                        className="rounded-lg text-xs font-bold text-red-600 focus:bg-red-500/10 focus:text-red-700 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50"
                       >
                         <Trash2 className="mr-2 h-3.5 w-3.5" />
                         Slett vakt
@@ -781,6 +806,22 @@ export function ShiftModal() {
             </div>
           </DialogHeader>
         </div>
+
+        {isLocked && (
+          <div
+            id="shift-temporal-lock-banner"
+            role="status"
+            aria-live="polite"
+            className="border-border/40 flex shrink-0 items-center gap-2 border-b bg-amber-500/10 px-6 py-2.5 text-xs font-semibold text-amber-600 dark:text-amber-400"
+            data-testid="shift-temporal-lock-banner"
+          >
+            <Lock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            <span>
+              Vakten er låst — den har startet eller datoen er passert. Endringer må gjøres av
+              admin/eier.
+            </span>
+          </div>
+        )}
 
         {/* Content with Tabs */}
         <Tabs defaultValue="vakt" className="flex flex-1 flex-col overflow-hidden">
@@ -1028,22 +1069,59 @@ export function ShiftModal() {
                 <div className="grid grid-cols-2 gap-5">
                   <div className="space-y-2">
                     <Label
-                      htmlFor="role"
+                      htmlFor="shiftType"
                       className="text-muted-foreground text-[11px] font-semibold"
                     >
-                      Rolle
+                      Vakttype
                     </Label>
-                    <Select value={form.role} onValueChange={(v) => updateField("role", v)}>
+                    <Select
+                      value={form.shiftTypeId || "none"}
+                      onValueChange={(v) => {
+                        const typeId = v === "none" ? "" : v;
+                        const config = shiftTypeConfigs.find((c) => c.shiftTypeId === typeId);
+                        if (config) {
+                          setForm((prev) => ({
+                            ...prev,
+                            shiftTypeId: typeId,
+                            role: config.shiftTypeName,
+                            startTime: config.startTime,
+                            endTime: config.endTime,
+                            breaks: config.breakMinutes,
+                            dayCategory: inferDayCategory(config.startTime),
+                          }));
+                        } else {
+                          updateField("shiftTypeId", typeId);
+                        }
+                      }}
+                    >
                       <SelectTrigger
-                        id="role"
+                        id="shiftType"
                         className="bg-card/40 border-border/60 h-10 rounded-xl font-medium shadow-sm backdrop-blur-sm transition-all focus:ring-2 focus:ring-emerald-500/20"
                       >
-                        <SelectValue placeholder="Velg rolle" />
+                        <SelectValue placeholder="Velg vakttype" />
                       </SelectTrigger>
                       <SelectContent className="rounded-xl">
-                        {availableRoles.map((r) => (
-                          <SelectItem key={r} value={r} className="rounded-lg text-sm">
-                            {r}
+                        <SelectItem value="none" className="rounded-lg text-sm">
+                          Ingen (manuell)
+                        </SelectItem>
+                        {shiftTypeConfigs.map((config) => (
+                          <SelectItem
+                            key={config.configId}
+                            value={config.shiftTypeId}
+                            className="rounded-lg text-sm"
+                          >
+                            <span className="flex items-center gap-2">
+                              {config.shiftTypeColor && (
+                                <span
+                                  className="inline-block h-2.5 w-2.5 rounded-full"
+                                  style={{ backgroundColor: config.shiftTypeColor }}
+                                />
+                              )}
+                              {config.label}
+                              <span className="text-muted-foreground text-xs">
+                                {config.startTime}–{config.endTime}
+                              </span>
+                            </span>
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -1271,7 +1349,10 @@ export function ShiftModal() {
                   {isEditMode && (
                     <Button
                       variant="outline"
-                      className="h-11 w-full justify-start gap-3 rounded-xl border-red-500/20 bg-red-500/5 font-bold text-red-600 backdrop-blur-sm transition-all hover:bg-red-500/10 hover:text-red-700 active:scale-[0.98]"
+                      disabled={isLocked}
+                      aria-disabled={isLocked || undefined}
+                      aria-describedby={isLocked ? "shift-temporal-lock-banner" : undefined}
+                      className="h-11 w-full justify-start gap-3 rounded-xl border-red-500/20 bg-red-500/5 font-bold text-red-600 backdrop-blur-sm transition-all hover:bg-red-500/10 hover:text-red-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
                       onClick={handleDelete}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -1336,8 +1417,11 @@ export function ShiftModal() {
                 <Button
                   type="button"
                   size="sm"
+                  disabled={isLocked}
+                  aria-disabled={isLocked || undefined}
+                  aria-describedby={isLocked ? "shift-temporal-lock-banner" : undefined}
                   onClick={() => handleSave(false)}
-                  className="h-10 rounded-xl bg-orange-500 px-5 text-xs font-bold text-white shadow-[0_2px_12px_rgba(249,115,22,0.25)] transition-all hover:bg-orange-600 hover:shadow-[0_4px_16px_rgba(249,115,22,0.3)] active:scale-[0.98]"
+                  className="h-10 rounded-xl bg-orange-500 px-5 text-xs font-bold text-white shadow-[0_2px_12px_rgba(249,115,22,0.25)] transition-all hover:bg-orange-600 hover:shadow-[0_4px_16px_rgba(249,115,22,0.3)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-orange-500"
                 >
                   Lagre endringer
                 </Button>
@@ -1347,16 +1431,22 @@ export function ShiftModal() {
                     type="button"
                     variant="outline"
                     size="sm"
+                    disabled={isLocked}
+                    aria-disabled={isLocked || undefined}
+                    aria-describedby={isLocked ? "shift-temporal-lock-banner" : undefined}
                     onClick={() => handleSave(false)}
-                    className="bg-background/50 border-border/60 hover:bg-muted h-10 rounded-xl px-4 text-xs font-bold backdrop-blur-sm transition-all active:scale-[0.98]"
+                    className="bg-background/50 border-border/60 hover:bg-muted h-10 rounded-xl px-4 text-xs font-bold backdrop-blur-sm transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Lagre utkast
                   </Button>
                   <Button
                     type="button"
                     size="sm"
+                    disabled={isLocked}
+                    aria-disabled={isLocked || undefined}
+                    aria-describedby={isLocked ? "shift-temporal-lock-banner" : undefined}
                     onClick={() => handleSave(true)}
-                    className="h-10 rounded-xl bg-emerald-500 px-5 text-xs font-bold text-white shadow-[0_2px_12px_rgba(16,185,129,0.25)] transition-all hover:bg-emerald-600 hover:shadow-[0_4px_16px_rgba(16,185,129,0.3)] active:scale-[0.98]"
+                    className="h-10 rounded-xl bg-emerald-500 px-5 text-xs font-bold text-white shadow-[0_2px_12px_rgba(16,185,129,0.25)] transition-all hover:bg-emerald-600 hover:shadow-[0_4px_16px_rgba(16,185,129,0.3)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-emerald-500"
                   >
                     Lagre og publiser
                   </Button>

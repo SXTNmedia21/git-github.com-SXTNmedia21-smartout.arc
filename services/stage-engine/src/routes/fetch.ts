@@ -10,9 +10,10 @@ import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { loadAuthorizedSession, loadMission } from "../core/session-manager.js";
 import { supabaseAdmin } from "../lib/supabase.js";
+import type { AppVariables } from "../types/app-env.js";
 import type { AuthContext } from "../types/auth.js";
 
-const fetchRoute = new Hono<{ Variables: { auth: AuthContext } }>();
+const fetchRoute = new Hono<{ Variables: AppVariables & { auth: AuthContext } }>();
 
 const fetchSchema = z.object({
   query_type: z.enum(["context", "inbox", "stage", "history"]),

@@ -4,7 +4,6 @@ import { z } from "zod";
 import { createAdminClient } from "@smartout/supabase/admin";
 import type { Json } from "@smartout/supabase";
 import { getSuperAdminId, logPlatformAction } from "@/lib/platform-admin";
-import { callContractService, isContractServiceConfigured } from "@/lib/contract-service";
 import { emit } from "@smartout/telemetry";
 
 const CreateContractSchema = z.object({
@@ -108,28 +107,34 @@ export async function POST(request: NextRequest) {
   let resolvedValues: Record<string, string> = {};
 
   if (workspaceId && placeholders.length > 0) {
-    const { data: wsData } = await admin
+    const { data: wsData, error: wsError } = await admin
       .from("workspace")
       .select("*, company:company_id(*)")
       .eq("workspace_id", workspaceId)
       .single();
 
-    const company = (wsData?.company ?? null) as Record<string, unknown> | null;
+    if (wsError) {
+      console.error("[contract-create] Failed to fetch workspace for autofill:", wsError.message);
+    }
 
-    const { buildAutofillMap, resolvePlaceholders } = await import("@smartout/utils");
-    const autofillMap = buildAutofillMap(wsData, company, {
-      companyName: process.env.PLATFORM_COMPANY_NAME ?? "",
-      orgNumber: process.env.PLATFORM_ORG_NUMBER ?? "",
-      contactEmail: process.env.PLATFORM_CONTACT_EMAIL ?? "",
-      contactName: process.env.PLATFORM_CONTACT_NAME ?? "",
-    });
+    if (wsData) {
+      const company = (wsData.company ?? null) as Record<string, unknown> | null;
 
-    const result = resolvePlaceholders(resolvedHtml, placeholders, autofillMap, {
-      recipient_name: body.data.recipient_name,
-      recipient_email: body.data.recipient_email,
-    });
-    resolvedHtml = result.resolved_html;
-    resolvedValues = result.resolved_values;
+      const { buildAutofillMap, resolvePlaceholders } = await import("@smartout/utils");
+      const autofillMap = buildAutofillMap(wsData as Record<string, unknown>, company, {
+        companyName: process.env.PLATFORM_COMPANY_NAME ?? "",
+        orgNumber: process.env.PLATFORM_ORG_NUMBER ?? "",
+        contactEmail: process.env.PLATFORM_CONTACT_EMAIL ?? "",
+        contactName: process.env.PLATFORM_CONTACT_NAME ?? "",
+      });
+
+      const result = resolvePlaceholders(resolvedHtml, placeholders, autofillMap, {
+        recipient_name: body.data.recipient_name,
+        recipient_email: body.data.recipient_email,
+      });
+      resolvedHtml = result.resolved_html;
+      resolvedValues = result.resolved_values;
+    }
   }
 
   // Create the contract record as draft
@@ -189,48 +194,9 @@ export async function POST(request: NextRequest) {
     },
   });
 
-  // Try to send via contract microservice (if configured)
-  let sendStatus: "draft" | "sent" = "draft";
-  let sendWarning: string | undefined;
-
-  if (isContractServiceConfigured()) {
-    try {
-      const sendRes = await callContractService(`/contracts/${contract.contract_id}/send`, {
-        method: "POST",
-        headers: { "X-User-Id": adminId },
-      });
-
-      if (sendRes.ok) {
-        sendStatus = "sent";
-        void emit({
-          event: "contract sent",
-          workspace_id: workspaceId ?? "",
-          actor_id: adminId,
-          properties: {
-            entity: {
-              entity_type: "contract",
-              entity_id: contract.contract_id,
-              entity_label: contractTitle,
-            },
-            data: { recipient_email: body.data.recipient_email, expires_at: expiresAt },
-          },
-        });
-      } else {
-        const sendBody = await sendRes.json();
-        sendWarning = sendBody.error ?? "Failed to send via microservice";
-      }
-    } catch {
-      sendWarning = "Contract microservice unreachable";
-    }
-  } else {
-    sendWarning = "Contract microservice not configured — saved as draft";
-  }
-
+  // Contract is created as draft — sending is a separate action from the contract detail page
   return NextResponse.json(
-    {
-      data: { contract_id: contract.contract_id, status: sendStatus },
-      ...(sendWarning ? { warning: sendWarning } : {}),
-    },
+    { data: { contract_id: contract.contract_id, status: "draft" } },
     { status: 201 },
   );
 }

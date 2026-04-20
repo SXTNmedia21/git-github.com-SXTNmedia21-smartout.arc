@@ -14,6 +14,7 @@ import { useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { enqueue } from "@/lib/sync/queue";
+import { emit } from "@smartout/telemetry";
 import type { AbsenceRequestsResult } from "@/hooks/queries/use-my-absence-requests";
 
 /**
@@ -62,6 +63,16 @@ export function useCancelAbsence() {
       // Invalidate balance — the cancelled request is no longer pending approval,
       // so the projected balance should be recalculated
       void queryClient.invalidateQueries({ queryKey: ["absence-balance"] });
+
+      void emit({
+        event: "absence cancelled",
+        workspace_id: null,
+        actor_id: "",
+        properties: {
+          entity: { entity_type: "absence", entity_id: scheduleAbsenceId },
+          data: { absence_id: scheduleAbsenceId },
+        },
+      });
     },
     [queryClient],
   );

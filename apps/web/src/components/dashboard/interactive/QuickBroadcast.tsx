@@ -10,7 +10,8 @@ import { Send } from "lucide-react";
 import { useTranslation } from "@smartout/i18n";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { useBroadcastRecipients, useSendBroadcast } from "@/app/dashboard/_hooks";
+import { useBroadcastRecipients } from "@/app/dashboard/_hooks/use-broadcast-recipients";
+import { useSendBroadcast } from "@/app/dashboard/_hooks/use-send-broadcast";
 
 // Ambient spring — Nordic Split spec
 const AMBIENT_SPRING = {

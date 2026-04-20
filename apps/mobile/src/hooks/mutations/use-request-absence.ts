@@ -13,7 +13,8 @@ import { randomUUID } from "expo-crypto";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { enqueue } from "@/lib/sync/queue";
-import { supabase } from "@/lib/supabase";
+import { getProfileContext } from "@/lib/profile-context";
+import { emit } from "@smartout/telemetry";
 import type { Database } from "@smartout/supabase/database.types";
 import type { AbsenceRequestsResult } from "@/hooks/queries/use-my-absence-requests";
 
@@ -32,34 +33,6 @@ export type RequestAbsencePayload = {
   endDate: string;
   comment?: string;
 };
-
-/**
- * Fetches profile_id and workspace_id for the current user.
- * Same pattern as use-punch.ts — reused to avoid a shared helper dependency.
- */
-async function getProfileContext(): Promise<{
-  profileId: string;
-  workspaceId: string;
-}> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
-
-  const { data: profile, error } = await supabase
-    .from("profile")
-    .select("profile_id, workspace_id")
-    .eq("user_id", user.id)
-    .limit(1)
-    .single();
-
-  if (error || !profile) throw error ?? new Error("Profile not found");
-
-  return {
-    profileId: profile.profile_id,
-    workspaceId: profile.workspace_id,
-  };
-}
 
 /**
  * Hook that returns a requestAbsence function.
@@ -117,6 +90,20 @@ export function useRequestAbsence() {
       // Invalidate balance — it will update once the request is approved,
       // but a proactive refetch avoids stale data if the server responds fast
       void queryClient.invalidateQueries({ queryKey: ["absence-balance"] });
+
+      void emit({
+        event: "absence requested",
+        workspace_id: workspaceId,
+        actor_id: profileId,
+        properties: {
+          entity: { entity_type: "absence", entity_id: absenceId },
+          data: {
+            absence_type: input.absenceType,
+            start_date: input.startDate,
+            end_date: input.endDate,
+          },
+        },
+      });
     },
     [queryClient],
   );

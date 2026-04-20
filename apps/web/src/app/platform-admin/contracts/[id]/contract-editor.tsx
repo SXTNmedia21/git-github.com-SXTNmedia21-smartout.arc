@@ -237,31 +237,46 @@ export function ContractEditor({
   }, []);
 
   const previewHtml = useMemo(() => {
-    let html: string;
+    let html = editedHtml;
+
     if (showPlaceholders) {
-      html = templateHtml;
+      // Show variable names inside spans: replace span content with {{key}}
       for (const p of placeholders) {
-        const val = values[p.key];
-        if (val) {
-          html = html.replace(new RegExp(escapeRegex(val), "g"), `{{${p.key}}}`);
-        }
+        html = html.replace(
+          new RegExp(`(<span[^>]*data-key="${escapeRegex(p.key)}"[^>]*>)[^<]*(</span>)`, "gi"),
+          `$1{{${p.key}}}$2`,
+        );
       }
     } else {
-      html = editedHtml;
+      // Inject current form values into spans by targeting data-key attribute
       for (const [key, value] of Object.entries(values)) {
+        if (!value) continue;
+        html = html.replace(
+          new RegExp(`(<span[^>]*data-key="${escapeRegex(key)}"[^>]*>)[^<]*(</span>)`, "gi"),
+          `$1${value.replace(/\$/g, "$$$$")}$2`,
+        );
+        // Also handle {{key}} mustache format for backward compatibility
         html = html.replace(new RegExp(`\\{\\{${escapeRegex(key)}\\}\\}`, "g"), value);
       }
     }
+
     // Strip inline SVG logos from contract HTML (they belong in PDF, not in editor)
     html = html.replace(/<svg[^>]*class="logo-mark"[^>]*>[\s\S]*?<\/svg>/gi, "");
     return html;
-  }, [showPlaceholders, templateHtml, editedHtml, values, placeholders]);
+  }, [showPlaceholders, editedHtml, values, placeholders]);
 
   async function handleSave() {
     setSaving(true);
     try {
       let resolved = editedHtml;
       for (const [key, value] of Object.entries(values)) {
+        if (!value) continue;
+        // Update span-based placeholders by targeting data-key attribute
+        resolved = resolved.replace(
+          new RegExp(`(<span[^>]*data-key="${escapeRegex(key)}"[^>]*>)[^<]*(</span>)`, "gi"),
+          `$1${value.replace(/\$/g, "$$$$")}$2`,
+        );
+        // Also handle {{key}} mustache format for backward compatibility
         resolved = resolved.replace(new RegExp(`\\{\\{${escapeRegex(key)}\\}\\}`, "g"), value);
       }
 

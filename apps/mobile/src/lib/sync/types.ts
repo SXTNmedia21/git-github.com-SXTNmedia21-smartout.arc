@@ -22,7 +22,12 @@ export type WriteAction =
   | "break_start"
   | "break_end"
   | "supplement_claim"
-  | "shift_note_add";
+  | "shift_note_add"
+  | "create_shift"
+  | "create_task"
+  | "create_day_info"
+  | "complete_checkpoint"
+  | "sign_checklist";
 
 /** Lifecycle states for a pending write in the SQLite queue. */
 export type WriteStatus = "pending" | "syncing" | "synced" | "failed";

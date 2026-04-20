@@ -74,11 +74,28 @@ Note: `tsc --noEmit` passes — this is a RUNTIME error only. tsx dev mode works
 - No Stage Engine stages for onboarding - it's a monolithic prompt with embedded flow
 - `onboarding_session` table (separate from engine_sessions) tracks state
 
-## Only 1 Capability Built
+## Capability Registry State (verified 2026-04-13)
 
-- `profile` capability with 3 read-only tools (getProfile, getTeam, getContractStatus)
-- 8 capabilities declared in types: knowledge, schedule, training, operations, profile, communication, memory, payroll
-- Only profile is registered in the registry
+9 capabilities registered: profile, ui, guardian, schedule, operations, communication, contract, contract_intake, shift_swap.
+12 CapabilityName values in types: knowledge, schedule, training, operations, profile, communication, memory, payroll, ui, guardian, contract, contract_intake, shift_swap.
+**No `season` capability exists** — neither in CapabilityName type nor registry.
+Intent classifier has 12 values + "general". No "season" in classifier enum.
+
+## Season Tools — Orphaned (verified 2026-04-13)
+
+5 tools in `packages/ai/src/tools/season/`: create_season, set_revenue, get_readiness, learn_factors, save_playbook.
+Context type: `SeasonToolContext` (supabase, workspaceId, sessionId, collectedData?) — **INCOMPATIBLE** with `AgentToolContext` (supabaseAdmin, profileId, userId, channel, processId, engineStateId, actingOnBehalfOf).
+These tools were built for mission mode (Stage Engine) not agent mode (chat). Wiring them into a capability requires refactoring to accept `AgentToolContext`.
+
+## Calendar Guardian — Single Season Bug (verified 2026-04-13)
+
+`calendar-guardian.ts` line 91-98: queries `season` table with `.limit(1).single()` filtering by `status IN ('draft','active')` ordered by `created_at DESC`. If multiple seasons exist (which the "max 1 active" policy should prevent), it picks the newest one. But: there's no enforcement of "max 1 active" at the DB level — the governance policy (ADR-0085) is UI-only. A race condition or direct DB insert could create two active seasons, and the guardian would only evaluate one.
+
+## Page Tools Bridge Pattern (verified 2026-04-13)
+
+Schedule page uses: `use-schedule-voice-tools.ts` hook → `ScheduleVoiceToolsBridge` component → `useRegisterTools("schedule", voiceTools)` from tool-registry.
+Year Wheel has ZERO equivalent — no voice tools hook, no bridge component, no tool registration.
+Tool registry is in `apps/web/src/app/Botsson/_components/tool-registry.ts`.
 
 ## Authority Levels
 

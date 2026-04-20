@@ -2,6 +2,7 @@
 
 import { FlowPlayer, type FlowResult, type FlowEvent } from "@smartout/ui";
 import { emit } from "@smartout/telemetry";
+import { useFlowContext } from "../_hooks/use-flow-context";
 import {
   Shield,
   Users,
@@ -39,18 +40,16 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   message: <MessageSquare className="h-5 w-5" />,
 };
 
-// TODO: Replace with real workspace/profile context when integrated
-const WORKSPACE_ID = null;
-const ACTOR_ID = "anonymous";
-
 export default function AlkoholFlowPage() {
+  const { workspaceId, actorId } = useFlowContext();
+
   function handleEvent(event: FlowEvent) {
     switch (event.type) {
       case "flow:started":
         void emit({
           event: "flow started",
-          workspace_id: WORKSPACE_ID,
-          actor_id: ACTOR_ID,
+          workspace_id: workspaceId,
+          actor_id: actorId,
           properties: {
             data: {
               flow_id: FLOW_ID,
@@ -63,8 +62,8 @@ export default function AlkoholFlowPage() {
       case "flow:slide_viewed":
         void emit({
           event: "flow slide_viewed",
-          workspace_id: WORKSPACE_ID,
-          actor_id: ACTOR_ID,
+          workspace_id: workspaceId,
+          actor_id: actorId,
           properties: {
             data: {
               flow_id: FLOW_ID,
@@ -79,8 +78,8 @@ export default function AlkoholFlowPage() {
       case "flow:answer_submitted":
         void emit({
           event: "flow answer_submitted",
-          workspace_id: WORKSPACE_ID,
-          actor_id: ACTOR_ID,
+          workspace_id: workspaceId,
+          actor_id: actorId,
           properties: {
             data: {
               flow_id: FLOW_ID,
@@ -95,8 +94,8 @@ export default function AlkoholFlowPage() {
       case "flow:skipped":
         void emit({
           event: "flow skipped",
-          workspace_id: WORKSPACE_ID,
-          actor_id: ACTOR_ID,
+          workspace_id: workspaceId,
+          actor_id: actorId,
           properties: {
             data: {
               flow_id: FLOW_ID,
@@ -111,8 +110,8 @@ export default function AlkoholFlowPage() {
       case "flow:completed":
         void emit({
           event: "flow completed",
-          workspace_id: WORKSPACE_ID,
-          actor_id: ACTOR_ID,
+          workspace_id: workspaceId,
+          actor_id: actorId,
           properties: {
             data: {
               flow_id: FLOW_ID,

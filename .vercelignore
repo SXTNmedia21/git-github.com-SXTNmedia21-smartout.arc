@@ -12,7 +12,11 @@
 # Use Ignored Build Step in Vercel dashboard per project instead.
 /apps/e2e/
 
-# ── Backend services — deployed separately (DigitalOcean) ──
+# ── Backend services + migration tooling — not deployed to Vercel ──
+# Covered: services/contract-service, services/stage-engine, services/shift-mcp,
+# services/scrapling (DigitalOcean), services/strike-mcp (local migration tool
+# integrated from separate repo 2026-04-17, admin-run via `pnpm tsx …`, never
+# part of web build).
 /services/
 
 # ── Supabase — deployed via Supabase CLI ──

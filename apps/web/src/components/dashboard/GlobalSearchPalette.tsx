@@ -42,26 +42,10 @@ import {
 } from "@/components/ui/command";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { parseSearchPrefix, type SearchMode } from "@/lib/search/query-prefix";
+import { useSearch, type SearchGroup, type SearchResult } from "@/lib/search/use-search";
 
 // ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-type SearchResult = {
-  id: string;
-  title: string;
-  subtitle: string;
-  deepLink: string;
-  icon: "page" | "person" | "knowledge" | "policy" | "command";
-};
-
-type SearchGroup = {
-  label: string;
-  results: SearchResult[];
-};
-
-// ---------------------------------------------------------------------------
-// Mock data — replaced by /api/search when available
+// Static navigation data — used as fallback when query is empty
 // ---------------------------------------------------------------------------
 
 const COMMAND_RESULTS: SearchResult[] = [
@@ -95,9 +79,9 @@ const COMMAND_RESULTS: SearchResult[] = [
   },
   {
     id: "cmd-season",
-    title: "Sesong",
-    subtitle: "Ga til sesongplanlegging",
-    deepLink: "/dashboard/season",
+    title: "Årshjul",
+    subtitle: "Gå til årshjul og sesongplanlegging",
+    deepLink: "/dashboard/year-wheel",
     icon: "command",
   },
   {
@@ -112,6 +96,13 @@ const COMMAND_RESULTS: SearchResult[] = [
     title: "Innstillinger",
     subtitle: "Ga til innstillinger",
     deepLink: "/dashboard/settings",
+    icon: "command",
+  },
+  {
+    id: "cmd-contracts",
+    title: "Kontrakter",
+    subtitle: "Ga til kontrakter og brev",
+    deepLink: "/dashboard/contracts",
     icon: "command",
   },
   {
@@ -210,7 +201,7 @@ function filterResults(results: SearchResult[], query: string): SearchResult[] {
 }
 
 function getGroupedResults(mode: SearchMode, query: string): SearchGroup[] {
-  // TODO: Replace with /api/search fetch + TanStack Query when API is ready
+  // Static navigation + mock results — used as fallback when query is empty
   switch (mode) {
     case "knowledge":
       return [{ label: "Kunnskap", results: filterResults(KNOWLEDGE_RESULTS, query) }];
@@ -252,7 +243,12 @@ export function GlobalSearchPalette() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const parsed = parseSearchPrefix(rawValue);
-  const groups = getGroupedResults(parsed.mode, parsed.query);
+  const { data: liveGroups } = useSearch(parsed.query, parsed.mode, open);
+  // Live API results when user types a query; static navigation commands as fallback when empty
+  const groups =
+    parsed.query.length > 0 && liveGroups
+      ? liveGroups
+      : getGroupedResults(parsed.mode, parsed.query);
   const ModeIcon = MODE_ICONS[parsed.mode];
 
   // Keyboard shortcut: Cmd+K / Ctrl+K.

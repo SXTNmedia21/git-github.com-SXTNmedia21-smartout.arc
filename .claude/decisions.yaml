@@ -195,3 +195,14 @@
   reason: "Cuts repeated event subscription overhead and reduces drag-time state churn."
   reversible: true
   user_impact: "Smoother drag-and-drop interactions in schedule grid."
+
+- id: DEC-020
+  timestamp: 2026-04-10T12:07:21Z
+  session: "2026-04-10-dashboard-settings-i18n"
+  plan: null
+  type: implementation
+  context: "Dashboard settings page showed hardcoded English labels despite Norwegian locale."
+  decision: "Migrate settings page header and sidebar tabs to dashboard i18n keys and add `settings_page` locale blocks for nb/en."
+  reason: "Ensures locale-driven rendering and removes language drift from hardcoded UI copy."
+  reversible: true
+  user_impact: "Settings page now shows Norwegian labels when workspace locale is nb."

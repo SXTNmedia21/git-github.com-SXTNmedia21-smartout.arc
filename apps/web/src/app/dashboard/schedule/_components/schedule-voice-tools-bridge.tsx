@@ -16,11 +16,6 @@ import type { ScheduleComputed } from "../_hooks/use-schedule-computed";
 import type { ScheduleEmployee } from "../_hooks/use-employees";
 import type { Absence, Shift } from "./schedule-types";
 
-type UseDeleteShift = ReturnType<typeof import("../_hooks/use-shifts").useDeleteShift>;
-type UsePublishShifts = ReturnType<typeof import("../_hooks/use-shifts").usePublishShifts>;
-type UseCreateShift = ReturnType<typeof import("../_hooks/use-shifts").useCreateShift>;
-type UseUpdateShift = ReturnType<typeof import("../_hooks/use-shifts").useUpdateShift>;
-
 type ScheduleVoiceToolsBridgeProps = {
   weekStart: string;
   weekEnd: string;
@@ -32,10 +27,11 @@ type ScheduleVoiceToolsBridgeProps = {
   computed: ScheduleComputed;
   focusDayInUI: (dateId: string, openPlanner: boolean) => void;
   setSelectedDate: (date: string | null) => void;
-  createShift: UseCreateShift;
-  updateShift: UseUpdateShift;
-  deleteShift: UseDeleteShift;
-  publishShifts: UsePublishShifts;
+  switchScheduleView?: (view: string) => void;
+  setTimePeriod?: (weeks: number) => void;
+  setFilterSituation?: (filter: string) => void;
+  navigateToDate?: (weekOffset: number) => void;
+  switchLayout?: (layout: string) => void;
 };
 
 /**
@@ -54,10 +50,11 @@ export function ScheduleVoiceToolsBridge({
   computed,
   focusDayInUI,
   setSelectedDate,
-  createShift,
-  updateShift,
-  deleteShift,
-  publishShifts,
+  switchScheduleView,
+  setTimePeriod,
+  setFilterSituation,
+  navigateToDate,
+  switchLayout,
 }: ScheduleVoiceToolsBridgeProps) {
   const { addProposal, pendingConfirmation, resolveConfirmation } = useAgentProposals();
 
@@ -74,15 +71,14 @@ export function ScheduleVoiceToolsBridge({
       focusDay: (dateId: string) => focusDayInUI(dateId, false),
       openDayPlanner: (dateId: string) => focusDayInUI(dateId, true),
       closeDayPlanner: () => setSelectedDate(null),
+      switchScheduleView,
+      setTimePeriod,
+      setSelectedDate,
+      setFilterSituation,
+      navigateToDate,
+      switchLayout,
     },
-    mutations: {
-      createShift: (input) =>
-        createShift.mutateAsync(input as Parameters<typeof createShift.mutateAsync>[0]),
-      updateShift: (input) => updateShift.mutateAsync(input),
-      deleteShift: (id) => deleteShift.mutateAsync(id),
-      publishShifts: (ids) => publishShifts.mutateAsync(ids),
-    },
-    // Ghost mode — all create/update go through proposals
+    // All write ops go through proposals — Botsson never mutates shifts directly
     addProposal,
   });
 

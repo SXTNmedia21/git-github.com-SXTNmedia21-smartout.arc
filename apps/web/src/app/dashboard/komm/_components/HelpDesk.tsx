@@ -23,28 +23,28 @@ const QUICK_ACTIONS = [
     labelKey: "helpdesk.ask_botsson",
     subKey: "helpdesk.ai_assistant",
     icon: Bot,
-    color: "bg-amber-500/15 text-amber-500",
+    color: "bg-komm-ai/15 text-komm-ai",
   },
   {
     key: "problem",
     labelKey: "helpdesk.report_problem",
     subKey: "helpdesk.to_manager",
     icon: AlertTriangle,
-    color: "bg-red-500/15 text-red-500",
+    color: "bg-komm-problem/15 text-komm-problem",
   },
   {
     key: "manual",
     labelKey: "helpdesk.find_manual",
     subKey: "helpdesk.search_handbook",
     icon: BookOpen,
-    color: "bg-blue-500/15 text-blue-500",
+    color: "bg-komm-manual/15 text-komm-manual",
   },
   {
     key: "call",
     labelKey: "helpdesk.call_manager",
     subKey: "helpdesk.direct_contact",
     icon: Phone,
-    color: "bg-green-500/15 text-green-500",
+    color: "bg-komm-call-active/15 text-komm-call-active",
   },
 ] as const;
 
@@ -172,8 +172,8 @@ export function HelpDesk({ profileId, onClose }: Props) {
                             className={cn(
                               "rounded px-1.5 py-0.5 text-[9px] font-bold uppercase",
                               req.status === "resolved" || req.status === "closed"
-                                ? "bg-green-500/15 text-green-500"
-                                : "bg-amber-500/15 text-amber-500",
+                                ? "bg-komm-summary/15 text-komm-summary"
+                                : "bg-komm-ai/15 text-komm-ai",
                             )}
                           >
                             {req.status === "open"

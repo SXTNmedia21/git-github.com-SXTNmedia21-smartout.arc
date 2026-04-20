@@ -62,6 +62,14 @@
       "types": "./dist/agents/contract.d.ts",
       "default": "./dist/agents/contract.js"
     },
+    "./agents/botsson": {
+      "types": "./dist/agents/botsson.d.ts",
+      "default": "./dist/agents/botsson.js"
+    },
+    "./primitives/input-request": {
+      "types": "./dist/primitives/input-request/index.d.ts",
+      "default": "./dist/primitives/input-request/index.js"
+    },
     "./tools/report": {
       "types": "./dist/tools/report/index.d.ts",
       "default": "./dist/tools/report/index.js"
@@ -102,6 +110,14 @@
       "types": "./dist/capabilities/guardian/index.d.ts",
       "default": "./dist/capabilities/guardian/index.js"
     },
+    "./capabilities/shift-lifecycle": {
+      "types": "./dist/capabilities/shift-lifecycle/index.d.ts",
+      "default": "./dist/capabilities/shift-lifecycle/index.js"
+    },
+    "./capabilities/governance": {
+      "types": "./dist/capabilities/governance/index.d.ts",
+      "default": "./dist/capabilities/governance/index.js"
+    },
     "./router/intent-classifier": {
       "types": "./dist/router/intent-classifier.d.ts",
       "default": "./dist/router/intent-classifier.js"
@@ -109,6 +125,10 @@
     "./router/tool-selector": {
       "types": "./dist/router/tool-selector.d.ts",
       "default": "./dist/router/tool-selector.js"
+    },
+    "./router/min-role": {
+      "types": "./dist/router/min-role.d.ts",
+      "default": "./dist/router/min-role.js"
     },
     "./prompts/mr-botsson": {
       "types": "./dist/prompts/mr-botsson.d.ts",

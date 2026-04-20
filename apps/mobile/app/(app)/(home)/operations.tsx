@@ -11,7 +11,7 @@
  */
 
 import React, { useMemo, useState } from "react";
-import { View, Text, Pressable, ScrollView, Alert } from "react-native";
+import { View, Text, Pressable, ScrollView, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -24,8 +24,12 @@ import {
   Users,
   UtensilsCrossed,
   StickyNote,
+  RefreshCw,
+  Plus,
 } from "lucide-react-native";
 import { createStyles, useTheme, withOpacity } from "@/theme";
+import { useOperationsFeed } from "@/hooks/queries/use-operations-feed";
+import type { FeedItem, FeedItemType } from "@/hooks/queries/use-operations-feed";
 
 /* ── Constants ── */
 
@@ -76,71 +80,6 @@ function isSameDay(a: Date, b: Date): boolean {
     a.getDate() === b.getDate()
   );
 }
-
-/* ── Mock Data ── */
-
-type FeedItemType = "overdue" | "task" | "shift" | "team" | "booking" | "note";
-
-type FeedItem = {
-  id: string;
-  type: FeedItemType;
-  title: string;
-  subtitle: string;
-  time?: string;
-  done?: boolean;
-};
-
-const MOCK_FEED: FeedItem[] = [
-  {
-    id: "ov1",
-    type: "overdue",
-    title: "HACCP Temperaturkontroll",
-    subtitle: "Frist utløpt i går kl. 14:00",
-  },
-  {
-    id: "t1",
-    type: "task",
-    title: "Klargjør bord 1–6",
-    subtitle: "Før åpning · Sjøhuset Hovedsal",
-    time: "15:30",
-    done: false,
-  },
-  {
-    id: "t2",
-    type: "task",
-    title: "Mottakskontroll leveranse",
-    subtitle: "Kjøkken · Sjømat + grønnsaker",
-    time: "14:00",
-    done: true,
-  },
-  {
-    id: "s1",
-    type: "shift",
-    title: "Servitør — Sjøhuset",
-    subtitle: "Kveldsskift · Hovedsal",
-    time: "16:00 – 23:00",
-  },
-  {
-    id: "tm1",
-    type: "team",
-    title: "Teamvakt: Sara, Erik, Mona",
-    subtitle: "Sjøhuset Hovedsal + Bar",
-    time: "16:00",
-  },
-  {
-    id: "b1",
-    type: "booking",
-    title: "Firma Julebord — 20 gjester",
-    subtitle: "Bord 1–4 · Forhåndsbestilt meny",
-    time: "19:00",
-  },
-  {
-    id: "n1",
-    type: "note",
-    title: "Ny vinmeny fra onsdag",
-    subtitle: "Se oppdatert PDF i dokumenter",
-  },
-];
 
 const ICON_MAP: Record<FeedItemType, typeof Clock> = {
   overdue: AlertTriangle,
@@ -196,15 +135,17 @@ export default function OperationsScreen() {
   const [filter, setFilter] = useState<FilterKey>("all");
   const [viewMode, setViewMode] = useState<"week" | "month">("week");
 
+  const { data: feed, isLoading, isError, refetch } = useOperationsFeed(selected);
+
   const monthLabel = `${MONTH_NAMES[selected.getMonth()]} ${selected.getFullYear()}`;
 
-  const taskCount = MOCK_FEED.filter((f) => f.type === "task" || f.type === "overdue").length;
-  const doneCount = MOCK_FEED.filter((f) => f.type === "task" && f.done).length;
+  const taskCount = feed.filter((f) => f.type === "task" || f.type === "overdue").length;
+  const doneCount = feed.filter((f) => f.type === "task" && f.done).length;
 
   const filtered =
     filter === "all"
-      ? MOCK_FEED
-      : MOCK_FEED.filter((f) => {
+      ? feed
+      : feed.filter((f) => {
           if (filter === "tasks") return f.type === "task" || f.type === "overdue";
           if (filter === "shifts") return f.type === "shift" || f.type === "team";
           if (filter === "bookings") return f.type === "booking";
@@ -246,34 +187,19 @@ export default function OperationsScreen() {
           <ChevronLeft size={24} color={theme.colors.foreground} strokeWidth={1.8} />
         </Pressable>
         <Text style={s.headerTitle}>Oppgaver</Text>
-        <View style={{ width: 40 }} />
+        <Pressable
+          onPress={() => {
+            Haptics.selectionAsync();
+            router.push("/(app)/(home)/create-task");
+          }}
+          hitSlop={12}
+          style={s.addBtn}
+        >
+          <Plus size={22} color={theme.colors.brandOrange} strokeWidth={2} />
+        </Pressable>
       </View>
 
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
-        {/* Demo Banner */}
-        <View
-          style={{
-            backgroundColor: "#fef3cd",
-            paddingVertical: 8,
-            paddingHorizontal: 16,
-            borderRadius: 8,
-            marginHorizontal: 16,
-            marginTop: 8,
-            marginBottom: 8,
-          }}
-        >
-          <Text
-            style={{
-              color: "#856404",
-              fontSize: 13,
-              fontWeight: "600",
-              textAlign: "center",
-            }}
-          >
-            Demo — denne siden er under utvikling
-          </Text>
-        </View>
-
         {/* Month + toggle */}
         <View style={s.monthRow}>
           <Text style={s.monthLabel}>{monthLabel}</Text>
@@ -322,20 +248,59 @@ export default function OperationsScreen() {
           ))}
         </ScrollView>
 
-        {/* Summary hero */}
-        <View style={s.summaryCard}>
-          <View>
-            <Text style={s.summaryCount}>{taskCount} oppgaver</Text>
-            <Text style={s.summarySubtitle}>
-              {doneCount} fullført · {taskCount - doneCount} gjenstår
-            </Text>
+        {/* Loading state */}
+        {isLoading && (
+          <View style={s.emptyState}>
+            <ActivityIndicator size="large" color={theme.colors.brandOrange} />
+            <Text style={s.emptyText}>Laster oppgaver...</Text>
           </View>
-          <View style={s.summaryRing}>
-            <Text style={s.summaryRingText}>
-              {Math.round((doneCount / Math.max(taskCount, 1)) * 100)}%
-            </Text>
+        )}
+
+        {/* Error state */}
+        {isError && !isLoading && (
+          <Pressable
+            onPress={() => {
+              Haptics.selectionAsync();
+              void refetch();
+            }}
+            style={s.errorCard}
+          >
+            <AlertTriangle size={20} color={theme.colors.destructive} strokeWidth={1.5} />
+            <Text style={s.errorText}>Kunne ikke laste data</Text>
+            <View style={s.retryRow}>
+              <RefreshCw size={14} color={theme.colors.mutedForeground} strokeWidth={1.5} />
+              <Text style={s.retryText}>Trykk for å prøve igjen</Text>
+            </View>
+          </Pressable>
+        )}
+
+        {/* Summary hero — only show when we have data */}
+        {!isLoading && !isError && (
+          <View style={s.summaryCard}>
+            <View>
+              <Text style={s.summaryCount}>
+                {feed.length === 0 ? "Ingen oppgaver" : `${taskCount} oppgaver`}
+              </Text>
+              <Text style={s.summarySubtitle}>
+                {feed.length === 0
+                  ? "Ingen hendelser denne dagen"
+                  : `${doneCount} fullført · ${taskCount - doneCount} gjenstår`}
+              </Text>
+            </View>
+            <View style={s.summaryRing}>
+              <Text style={s.summaryRingText}>
+                {Math.round((doneCount / Math.max(taskCount, 1)) * 100)}%
+              </Text>
+            </View>
           </View>
-        </View>
+        )}
+
+        {/* Empty state — no items for the selected day after filtering */}
+        {!isLoading && !isError && filtered.length === 0 && feed.length > 0 && (
+          <View style={s.emptyState}>
+            <Text style={s.emptyText}>Ingen treff for dette filteret</Text>
+          </View>
+        )}
 
         {/* Feed */}
         {filtered.map((item) => {
@@ -412,6 +377,13 @@ const useStyles = createStyles((theme) => ({
     height: 40,
     alignItems: "center" as const,
     justifyContent: "center" as const,
+  },
+  addBtn: {
+    width: 40,
+    height: 40,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    borderRadius: 20,
   },
   headerTitle: {
     fontSize: 22,
@@ -587,4 +559,41 @@ const useStyles = createStyles((theme) => ({
   },
   feedSub: { fontSize: 12, color: theme.colors.mutedForeground },
   feedTime: { fontSize: 12, fontWeight: "500" as const, color: theme.colors.mutedForeground },
+
+  /* Empty & error states */
+  emptyState: {
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    paddingVertical: 40,
+    gap: 12,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: theme.colors.mutedForeground,
+    fontWeight: "500" as const,
+  },
+  errorCard: {
+    alignItems: "center" as const,
+    backgroundColor: theme.isDark ? "rgba(186,26,26,0.06)" : "rgba(186,26,26,0.03)",
+    borderRadius: theme.radius.lg,
+    borderWidth: 1,
+    borderColor: withOpacity(theme.colors.destructive, 0.12),
+    padding: theme.spacing.page,
+    marginBottom: theme.spacing.section,
+    gap: 8,
+  },
+  errorText: {
+    fontSize: 14,
+    fontWeight: "600" as const,
+    color: theme.colors.destructive,
+  },
+  retryRow: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 6,
+  },
+  retryText: {
+    fontSize: 12,
+    color: theme.colors.mutedForeground,
+  },
 }));

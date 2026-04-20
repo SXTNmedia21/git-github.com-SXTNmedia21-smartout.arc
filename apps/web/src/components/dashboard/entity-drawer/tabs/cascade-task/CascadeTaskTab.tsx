@@ -7,23 +7,60 @@
 
 import { useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { AlertCircle, Clock, Info, ExternalLink } from "lucide-react";
+import { AlertCircle, Clock, Info, ArrowRight, Loader2 } from "lucide-react";
+import { motion } from "framer-motion";
 import { useTranslation } from "@smartout/i18n";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useCascadeTasks } from "@/app/dashboard/_hooks/use-cascade-tasks";
 import { resolveKey, interpolateParams } from "@/app/dashboard/_components/todo/translate-todo";
 import type { CascadeTask, TaskUrgency } from "@smartout/types";
 import { useEntityDrawer } from "../../EntityDrawerContext";
 
-const urgencyIcons: Record<TaskUrgency, typeof AlertCircle> = {
-  critical: AlertCircle,
-  should: Clock,
-  can_wait: Info,
+const urgencyConfig: Record<
+  TaskUrgency,
+  {
+    Icon: typeof AlertCircle;
+    iconClass: string;
+    badgeVariant: "destructive" | "outline" | "secondary";
+    glowClass: string;
+    borderClass: string;
+  }
+> = {
+  critical: {
+    Icon: AlertCircle,
+    iconClass: "text-destructive",
+    badgeVariant: "destructive",
+    glowClass: "shadow-[0_0_12px_oklch(0.65_0.25_25/0.15)]",
+    borderClass: "border-l-destructive",
+  },
+  should: {
+    Icon: Clock,
+    iconClass: "text-warning",
+    badgeVariant: "outline",
+    glowClass: "",
+    borderClass: "border-l-warning",
+  },
+  can_wait: {
+    Icon: Info,
+    iconClass: "text-muted-foreground",
+    badgeVariant: "secondary",
+    glowClass: "",
+    borderClass: "border-l-border",
+  },
 };
 
-const urgencyColors: Record<TaskUrgency, string> = {
-  critical: "text-destructive",
-  should: "text-warning",
-  can_wait: "text-muted-foreground",
+const fadeUp = {
+  initial: { opacity: 0, y: 8 },
+  animate: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: {
+      delay: i * 0.06,
+      duration: 0.35,
+      ease: [0.25, 0.1, 0.25, 1] as [number, number, number, number],
+    },
+  }),
 };
 
 export function CascadeTaskTab({ entityId }: { entityId: string }) {
@@ -49,95 +86,100 @@ export function CascadeTaskTab({ entityId }: { entityId: string }) {
 
   if (isLoading) {
     return (
-      <div className="text-muted-foreground/30 flex items-center justify-center py-12 text-sm">
-        {t("entity_drawer.task_loading")}
+      <div className="flex items-center justify-center py-16">
+        <Loader2 className="text-muted-foreground h-5 w-5 animate-spin" />
       </div>
     );
   }
 
   if (isError) {
     return (
-      <div className="space-y-3 p-4">
-        <div className="text-muted-foreground bg-card/40 rounded-xl p-3 text-xs">
-          {t("entity_drawer.task_load_failed")}
-        </div>
-        <button
-          onClick={() => void refetch()}
-          className="border-border text-foreground/80 hover:bg-card/60 flex w-full items-center justify-center gap-2 rounded-[10px] border px-4 py-2.5 text-xs font-semibold transition-colors"
-        >
+      <div className="space-y-3 p-5">
+        <p className="text-muted-foreground text-sm">{t("entity_drawer.task_load_failed")}</p>
+        <Button variant="outline" size="sm" className="w-full" onClick={() => void refetch()}>
           {t("entity_drawer.task_retry")}
-        </button>
+        </Button>
       </div>
     );
   }
 
   if (!task) {
     return (
-      <div className="space-y-3 p-4">
-        <div className="text-muted-foreground bg-card/40 rounded-xl p-3 text-xs">
-          {t("entity_drawer.task_not_found")}
-        </div>
-        <button
-          onClick={handleOpenDashboard}
-          className="border-border text-foreground/80 hover:bg-card/60 flex w-full items-center justify-center gap-2 rounded-[10px] border px-4 py-2.5 text-xs font-semibold transition-colors"
-        >
+      <div className="space-y-3 p-5">
+        <p className="text-muted-foreground text-sm">{t("entity_drawer.task_not_found")}</p>
+        <Button variant="outline" size="sm" className="w-full" onClick={handleOpenDashboard}>
           {t("entity_drawer.task_open_dashboard")}
-        </button>
+        </Button>
       </div>
     );
   }
 
-  const Icon = urgencyIcons[task.urgency];
-  const iconColor = urgencyColors[task.urgency];
+  const { Icon, iconClass, badgeVariant, glowClass, borderClass } = urgencyConfig[task.urgency];
 
   return (
-    <div className="space-y-4 p-4">
-      {/* Title + urgency */}
-      <div className="flex items-start gap-3">
-        <Icon className={`mt-0.5 h-5 w-5 shrink-0 ${iconColor}`} />
-        <div>
-          <h3 className="text-foreground text-sm font-bold">
+    <div className="space-y-5 p-5">
+      {/* Header — icon, title, urgency badge */}
+      <motion.div
+        variants={fadeUp}
+        initial="initial"
+        animate="animate"
+        custom={0}
+        className={`flex items-start gap-3 rounded-xl border-l-[3px] py-1 pl-3 ${borderClass} ${glowClass}`}
+      >
+        <Icon className={`mt-0.5 h-5 w-5 shrink-0 ${iconClass}`} aria-hidden="true" />
+        <div className="min-w-0 flex-1 space-y-1.5">
+          <h3 className="text-foreground text-sm leading-snug font-semibold">
             {interpolateParams(t(resolveKey(task.title_key)), task.title_params)}
           </h3>
-          <div className="mt-1 flex items-center gap-2">
-            <span className="text-muted-foreground/30 text-[9px] font-bold tracking-wider uppercase">
-              {t("entity_drawer.task_urgency")}
-            </span>
-            <span className={`text-[10px] font-bold ${iconColor}`}>
-              {t(`entity_drawer.urgency_${task.urgency}`)}
-            </span>
-          </div>
+          <Badge variant={badgeVariant} className="text-[10px] tracking-wide uppercase">
+            {t(`entity_drawer.urgency_${task.urgency}`)}
+          </Badge>
         </div>
-      </div>
+      </motion.div>
 
-      {/* Description — why it matters */}
-      <div className="bg-card/40 rounded-xl p-3">
-        <div className="text-muted-foreground/30 mb-1.5 text-[9px] font-bold tracking-wider uppercase">
+      {/* Description card */}
+      <motion.div
+        variants={fadeUp}
+        initial="initial"
+        animate="animate"
+        custom={1}
+        className="bg-card/60 border-border/40 rounded-xl border p-4 backdrop-blur-sm"
+      >
+        <p className="text-muted-foreground text-[11px] font-medium tracking-wider uppercase">
           {t("entity_drawer.task_why")}
-        </div>
-        <p className="text-muted-foreground text-xs leading-relaxed">
+        </p>
+        <p className="text-foreground/80 mt-2 text-sm leading-relaxed">
           {interpolateParams(t(resolveKey(task.description_key)), task.description_params)}
         </p>
-      </div>
+      </motion.div>
 
       {/* Dimension badge */}
-      <div className="flex items-center gap-2">
-        <span className="text-muted-foreground/30 text-[9px] font-bold tracking-wider uppercase">
+      <motion.div
+        variants={fadeUp}
+        initial="initial"
+        animate="animate"
+        custom={2}
+        className="flex items-center gap-2.5"
+      >
+        <span className="text-muted-foreground text-[11px] font-medium tracking-wider uppercase">
           {t("entity_drawer.task_dimension")}
         </span>
-        <span className="text-muted-foreground bg-card/60 rounded-md px-2 py-0.5 font-mono text-[11px]">
+        <span className="bg-muted text-foreground rounded-md px-2.5 py-1 font-mono text-xs font-semibold">
           {task.dimension}
         </span>
-      </div>
+      </motion.div>
 
       {/* Action button */}
-      <button
-        onClick={handleNavigate}
-        className="bg-brand-orange flex w-full items-center justify-center gap-2 rounded-[10px] px-4 py-2.5 text-xs font-semibold text-white shadow-[0_2px_8px_oklch(0.65_0.22_40/0.25)] transition-all hover:brightness-110"
-      >
-        {t("entity_drawer.task_go_to")}
-        <ExternalLink className="h-3 w-3" />
-      </button>
+      <motion.div variants={fadeUp} initial="initial" animate="animate" custom={3}>
+        <Button
+          onClick={handleNavigate}
+          className="bg-brand-orange hover:bg-brand-orange/90 w-full gap-2 text-white"
+          size="default"
+        >
+          {t("entity_drawer.task_go_to")}
+          <ArrowRight className="h-4 w-4" />
+        </Button>
+      </motion.div>
     </div>
   );
 }

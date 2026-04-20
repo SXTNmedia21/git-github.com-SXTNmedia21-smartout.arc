@@ -200,3 +200,55 @@ describe("selectTools — fallback path", () => {
     ]);
   });
 });
+
+describe("selectTools — channel filtering (ADR-0078)", () => {
+  it("excludes capability when channel is not in allowedChannels", () => {
+    const original = scheduleCapability.allowedChannels;
+    (scheduleCapability as { allowedChannels?: string[] }).allowedChannels = ["chat"];
+
+    const auth: AuthorityConfig = { schedule: "autonomous" };
+    const tools = selectTools(intent("schedule", 0.9), auth, "voice");
+    expect(tools).toEqual([]);
+
+    (scheduleCapability as { allowedChannels?: string[] }).allowedChannels = original;
+  });
+
+  it("includes capability when channel matches allowedChannels", () => {
+    const original = scheduleCapability.allowedChannels;
+    (scheduleCapability as { allowedChannels?: string[] }).allowedChannels = ["chat"];
+
+    const auth: AuthorityConfig = { schedule: "autonomous" };
+    const tools = selectTools(intent("schedule", 0.9), auth, "chat");
+    expect(names(tools)).toEqual(["schedule.read", "schedule.suggest", "schedule.write"]);
+
+    (scheduleCapability as { allowedChannels?: string[] }).allowedChannels = original;
+  });
+
+  it("includes capability when no allowedChannels is defined (backwards compat)", () => {
+    const auth: AuthorityConfig = { schedule: "autonomous" };
+    const tools = selectTools(intent("schedule", 0.9), auth, "voice");
+    expect(names(tools)).toEqual(["schedule.read", "schedule.suggest", "schedule.write"]);
+  });
+
+  it("includes capability when no channel is provided (backwards compat)", () => {
+    const original = scheduleCapability.allowedChannels;
+    (scheduleCapability as { allowedChannels?: string[] }).allowedChannels = ["chat"];
+
+    const auth: AuthorityConfig = { schedule: "autonomous" };
+    const tools = selectTools(intent("schedule", 0.9), auth);
+    expect(names(tools)).toEqual(["schedule.read", "schedule.suggest", "schedule.write"]);
+
+    (scheduleCapability as { allowedChannels?: string[] }).allowedChannels = original;
+  });
+
+  it("filters by channel in fallback path (low confidence)", () => {
+    const original = scheduleCapability.allowedChannels;
+    (scheduleCapability as { allowedChannels?: string[] }).allowedChannels = ["chat"];
+
+    const auth: AuthorityConfig = { schedule: "autonomous", training: "autonomous" };
+    const tools = selectTools(intent("general", 0.5), auth, "voice");
+    expect(names(tools)).toEqual(["training.read", "training.write"]);
+
+    (scheduleCapability as { allowedChannels?: string[] }).allowedChannels = original;
+  });
+});

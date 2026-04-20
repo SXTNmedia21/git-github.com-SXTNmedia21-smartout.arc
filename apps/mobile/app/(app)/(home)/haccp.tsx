@@ -4,7 +4,8 @@
  * Displays a checklist of cooling units to inspect. Employee taps each unit
  * to log the temperature reading. Units over threshold trigger a deviation alert.
  *
- * For now uses demo data — will connect to haccp_log table in V2.
+ * Queries the `asset` table for cooling units (asset_type = "storage").
+ * If no assets are registered, shows an empty state instead of fake data.
  */
 
 import React, { useState, useCallback } from "react";
@@ -29,13 +30,6 @@ type CoolingUnit = {
   temperature: number;
   threshold: number;
 };
-
-/** Demo data used as fallback when no cooling units are registered in the asset table */
-const DEMO_UNITS: CoolingUnit[] = [
-  { id: "u1", name: "Kjoleskap 1", location: "Hovedkjokken", temperature: 3.2, threshold: 4 },
-  { id: "u2", name: "Kjolerom", location: "Lager B", temperature: 9.1, threshold: 4 },
-  { id: "u3", name: "Fryser", location: "Hovedkjokken", temperature: -18.5, threshold: -15 },
-];
 
 /** Fetches cooling units from the asset table for the current workspace */
 function useHaccpUnits(workspaceId: string | undefined) {
@@ -100,8 +94,7 @@ export default function HaccpScreen() {
   const theme = useTheme();
   const router = useRouter();
   const { data: profile } = useMyProfile();
-  const { data: fetchedUnits = [] } = useHaccpUnits(profile?.workspace_id);
-  const UNITS = fetchedUnits.length > 0 ? fetchedUnits : DEMO_UNITS;
+  const { data: UNITS = [], isLoading: unitsLoading } = useHaccpUnits(profile?.workspace_id);
   const { logHaccp } = useLogHaccp();
   const [checkedCount, setCheckedCount] = useState(0);
   const [resolved, setResolved] = useState(false);
@@ -155,7 +148,9 @@ export default function HaccpScreen() {
     [checkedCount, UNITS, profile, logHaccp],
   );
 
-  const hasAvvik = checkedCount >= 2; // Unit 2 is over threshold
+  /** Check whether any already-inspected unit exceeded its threshold */
+  const avvikUnits = UNITS.slice(0, checkedCount).filter((u) => u.temperature > u.threshold);
+  const hasAvvik = avvikUnits.length > 0;
   const allDone = checkedCount >= UNITS.length;
   const progress = Math.min(checkedCount, UNITS.length) / UNITS.length;
 
@@ -188,6 +183,17 @@ export default function HaccpScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Empty state — no cooling units registered */}
+        {!unitsLoading && UNITS.length === 0 && (
+          <View style={styles.emptyState}>
+            <Thermometer size={40} color={theme.colors.mutedForeground} strokeWidth={1.5} />
+            <Text style={styles.emptyTitle}>Ingen kjoleenheter registrert</Text>
+            <Text style={styles.emptySubtitle}>
+              Legg til kjoleenheter i administrasjonspanelet for a starte HACCP-kontroll.
+            </Text>
+          </View>
+        )}
+
         {/* Progress bar */}
         <Animated.View entering={FadeInDown.delay(100).duration(300)} style={styles.progressCard}>
           <View style={styles.progressHeader}>
@@ -294,7 +300,13 @@ export default function HaccpScreen() {
             <View style={styles.alertText}>
               <Text style={styles.alertTitle}>Temperaturavvik registrert</Text>
               <Text style={styles.alertSubtitle}>
-                Kjolerom (Lager B) — +9.1°C — Varslet avdelingsleder
+                {avvikUnits
+                  .map(
+                    (u) =>
+                      `${u.name} (${u.location}) — ${u.temperature > 0 ? "+" : ""}${u.temperature}°C`,
+                  )
+                  .join(", ")}{" "}
+                — Varslet avdelingsleder
               </Text>
             </View>
           </Animated.View>
@@ -307,7 +319,8 @@ export default function HaccpScreen() {
             <View style={styles.alertText}>
               <Text style={styles.successTitle}>HACCP-kontroll fullfort</Text>
               <Text style={styles.alertSubtitle}>
-                2 godkjent, 1 avvik meldt og handtert. Logg lagret.
+                {UNITS.length - avvikUnits.length} godkjent, {avvikUnits.length} avvik meldt og
+                handtert. Logg lagret.
               </Text>
             </View>
           </Animated.View>
@@ -371,6 +384,25 @@ const useStyles = createStyles((theme) => ({
     padding: theme.spacing.card,
     paddingBottom: theme.spacing.xl,
     gap: theme.spacing.element,
+  },
+
+  /* Empty state */
+  emptyState: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: theme.spacing.xl,
+    gap: theme.spacing.element,
+  },
+  emptyTitle: {
+    ...theme.typography.headline,
+    color: theme.colors.foreground,
+    textAlign: "center",
+  },
+  emptySubtitle: {
+    ...theme.typography.caption,
+    color: theme.colors.mutedForeground,
+    textAlign: "center",
+    paddingHorizontal: theme.spacing.card,
   },
 
   /* Progress */

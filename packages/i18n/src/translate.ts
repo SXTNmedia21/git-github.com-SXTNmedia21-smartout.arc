@@ -10,6 +10,12 @@ import nbDashboard from "../locales/nb/dashboard.json";
 import nbMobile from "../locales/nb/mobile.json";
 import nbNotifications from "../locales/nb/notifications.json";
 import nbAuth from "../locales/nb/auth.json";
+import nbSwap from "../locales/nb/swap.json";
+import nbContracts from "../locales/nb/contracts.json";
+import nbKomm from "../locales/nb/komm.json";
+import nbShift from "../locales/nb/shift.json";
+import nbBilling from "../locales/nb/billing.json";
+import nbHelpdesk from "../locales/nb/helpdesk.json";
 import enCommon from "../locales/en/common.json";
 import enLanding from "../locales/en/landing.json";
 import enDocs from "../locales/en/docs.json";
@@ -20,6 +26,12 @@ import enDashboard from "../locales/en/dashboard.json";
 import enMobile from "../locales/en/mobile.json";
 import enNotifications from "../locales/en/notifications.json";
 import enAuth from "../locales/en/auth.json";
+import enSwap from "../locales/en/swap.json";
+import enContracts from "../locales/en/contracts.json";
+import enKomm from "../locales/en/komm.json";
+import enShift from "../locales/en/shift.json";
+import enBilling from "../locales/en/billing.json";
+import enHelpdesk from "../locales/en/helpdesk.json";
 
 type MessageValue = string | Record<string, string | Record<string, string>>;
 type Messages = Record<string, MessageValue>;
@@ -36,6 +48,12 @@ const localeModules: Record<string, Record<string, Messages>> = {
     mobile: nbMobile,
     notifications: nbNotifications,
     auth: nbAuth,
+    swap: nbSwap,
+    contracts: nbContracts,
+    komm: nbKomm,
+    shift: nbShift,
+    billing: nbBilling,
+    helpdesk: nbHelpdesk,
   },
   en: {
     common: enCommon,
@@ -48,6 +66,12 @@ const localeModules: Record<string, Record<string, Messages>> = {
     mobile: enMobile,
     notifications: enNotifications,
     auth: enAuth,
+    swap: enSwap,
+    contracts: enContracts,
+    komm: enKomm,
+    shift: enShift,
+    billing: enBilling,
+    helpdesk: enHelpdesk,
   },
 };
 

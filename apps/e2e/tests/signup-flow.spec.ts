@@ -30,6 +30,11 @@ function restoreWorkspaceData() {
   sql(`UPDATE policy SET workspace_id = '${WS_ID}' WHERE workspace_id = '${TEMP_WS_ID}'`);
   sql(`UPDATE profile SET is_active = true WHERE workspace_id = '${WS_ID}' AND is_active = false`);
   sql(`UPDATE schedule_shift SET workspace_id = '${WS_ID}' WHERE workspace_id = '${TEMP_WS_ID}'`);
+  // Delete existing engine_events to avoid idempotency constraint violation
+  // when the season trigger fires on status change back to active
+  sql(
+    `DELETE FROM engine_event WHERE idempotency_key LIKE 'season_activated_%' AND workspace_id = '${WS_ID}'`,
+  );
   sql(`UPDATE season SET status = 'active' WHERE workspace_id = '${WS_ID}' AND status = 'draft'`);
   // Mark setup as complete so DashboardShell skips the redirect
   sql(`UPDATE workspace SET setup_guide_completed = true WHERE workspace_id = '${WS_ID}'`);
@@ -94,16 +99,17 @@ test.describe("signup-flow", () => {
 
     await loginAsAdmin(page, { skipOnboarding: false });
 
-    // Wizard should show
-    const wizardHeader = page.locator('text="Oppsett av arbeidsrom"');
-    await expect(wizardHeader).toBeVisible({ timeout: 15_000 });
+    // Wizard should show — DashboardShell redirects to /dashboard/setup
+    await page.waitForURL("**/dashboard/setup**", { timeout: 15_000 });
 
     // StrategicView should NOT be visible
     await expect(page.locator('text="Strategisk oversikt"')).not.toBeVisible();
 
-    // Wizard first step should be visible
-    await expect(page.locator('h1:has-text("Velkommen til Smartout")')).toBeVisible({
-      timeout: 5_000,
+    // Wizard step should be visible — loadState auto-advances past the welcome
+    // step to the first incomplete module step (document-drop). The wizard
+    // progress nav and a step h1 should be rendered.
+    await expect(page.locator('nav[aria-label="Wizard progress"]')).toBeVisible({
+      timeout: 15_000,
     });
 
     // Restore data for other tests

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import type { PublicSectionProps } from "./types";
 
 export function GalleryPublic({ content, assets }: PublicSectionProps) {
@@ -22,15 +23,15 @@ export function GalleryPublic({ content, assets }: PublicSectionProps) {
             return (
               <div
                 key={assetId}
-                className="aspect-square overflow-hidden"
+                className="relative aspect-square overflow-hidden"
                 style={{ borderRadius: "var(--site-radius)" }}
               >
-                <img
+                <Image
                   src={`${assets.storageBaseUrl}/${image.storagePath}`}
                   alt={image.alt}
-                  className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
-                  width={image.width ?? undefined}
-                  height={image.height ?? undefined}
+                  fill
+                  sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                  className="object-cover transition-transform duration-300 hover:scale-105"
                 />
               </div>
             );

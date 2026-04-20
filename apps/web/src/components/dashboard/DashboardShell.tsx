@@ -8,9 +8,23 @@ import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { FEATURE_FLAGS } from "@/lib/feature-flags";
 import { createClient } from "@smartout/supabase/client";
 import { useCascadeTaskCount } from "@/app/dashboard/_hooks/use-cascade-task-count";
+import { useChannels } from "@/app/dashboard/komm/_hooks/use-channels";
+import { useUnreadCounts } from "@/app/dashboard/komm/_hooks/use-unread-counts";
+import { useWorkspaceActiveCalls } from "@/app/dashboard/komm/_hooks/use-workspace-active-calls";
 import { EntityDrawerProvider } from "./entity-drawer/EntityDrawerContext";
 import { EntityDrawer } from "./entity-drawer/EntityDrawer";
 import { ChatPanelProvider } from "./ChatPanel";
+import { ActiveCallProvider } from "./ActiveCallProvider";
+import { NavBadgePill, NavBadgeDot, type NavBadgeVariant } from "./NavBadge";
+import {
+  AdminProvider,
+  ScheduleCoordinationProvider,
+  ThemeProvider,
+  WorkspaceProvider,
+  useDashboard,
+  useThemeContext,
+  type WorkspaceSlice,
+} from "./contexts";
 
 const GlobalCallAlert = dynamic(
   () => import("./GlobalCallAlert").then((m) => ({ default: m.GlobalCallAlert })),
@@ -50,7 +64,7 @@ const ROUTE_MISSION_MAP: Record<string, MissionId> = {
   "/dashboard/komm": "mr-botsson",
   "/dashboard/people": "mr-botsson",
   "/dashboard/reports": "mr-botsson",
-  "/dashboard/season": "mr-botsson",
+  "/dashboard/year-wheel": "mr-botsson",
   "/dashboard/organization": "mr-botsson",
   "/dashboard/onboarding-assistant": "onboarding-interview",
   "/dashboard/ai": "mr-botsson",
@@ -60,6 +74,8 @@ const ROUTE_MISSION_MAP: Record<string, MissionId> = {
   "/dashboard/my-training": "mr-botsson",
   "/dashboard/my-cv": "mr-botsson",
   "/dashboard/my-salary": "mr-botsson",
+  "/dashboard/my-contract": "mr-botsson",
+  "/dashboard/my-profile": "mr-botsson",
   "/dashboard/reconciliation": "mr-botsson",
 };
 
@@ -72,7 +88,14 @@ function resolveMissionForRoute(pathname: string): MissionId {
   return (match !== undefined ? ROUTE_MISSION_MAP[match] : undefined) ?? "mr-botsson";
 }
 
-export type AdminViewType = "tactical" | "strategic" | "reconciliation" | "activity" | "todo";
+export type AdminViewType =
+  | "oversikt"
+  | "oversikt-interactive"
+  | "oversikt-pipeline"
+  | "strategic"
+  | "reconciliation"
+  | "activity"
+  | "todo";
 export type ScheduleLayoutMode = "daily" | "weekly" | "monthly" | "list" | "grid";
 export type ScheduleViewMode = "ansatt" | "jobb" | "team" | "lokasjon";
 type VoiceSessionContext = {
@@ -201,6 +224,16 @@ function buildVoiceSessionContext(pathname: string, adminView: AdminViewType): V
   };
 }
 
+/**
+ * @deprecated Per ADR-0113, this monolithic context has been split into
+ * four focused providers (`ThemeProvider`, `WorkspaceProvider`,
+ * `AdminProvider`, `ScheduleCoordinationProvider`) exported from
+ * `./contexts`. New code MUST use the targeted slice hooks
+ * (`useThemeContext`, `useWorkspaceContext`, `useAdminContext`,
+ * `useScheduleCoordinationContext`). This export is retained only so
+ * the 155 existing `useContext(DashboardContext)` consumer sites keep
+ * working during their staged migration.
+ */
 export const DashboardContext = createContext({
   isAdminMode: true,
   setIsAdminMode: (_val: boolean) => {
@@ -210,7 +243,7 @@ export const DashboardContext = createContext({
   setIsDark: (_val: boolean) => {
     void _val;
   },
-  adminView: "tactical" as AdminViewType,
+  adminView: "oversikt" as AdminViewType,
   setAdminView: (_val: AdminViewType) => {
     void _val;
   },
@@ -235,7 +268,7 @@ export const DashboardContext = createContext({
     void _val;
   },
   scheduleDateOffset: 0,
-  setScheduleDateOffset: (_val: number) => {
+  setScheduleDateOffset: (_val: number | ((prev: number) => number)) => {
     void _val;
   },
   onPublishAll: null as (() => void) | null,
@@ -272,12 +305,16 @@ import {
   Moon,
   Gamepad2,
   MessageSquare,
-  Radio,
+  MessageCircle,
+  Hash,
+  Newspaper,
+  BarChart3,
   Bot,
   HelpCircle,
   Building2,
   GraduationCap,
   Banknote,
+  FileSignature,
   FileText,
   CalendarDays,
   ListChecks,
@@ -290,6 +327,10 @@ import {
   BookOpen,
   Globe,
   Receipt,
+  Clock,
+  Gavel,
+  UserCircle,
+  FileCheck,
 } from "lucide-react";
 
 import { ContractPendingBanner } from "./ContractPendingBanner";
@@ -335,38 +376,92 @@ function VoiceAssistantWithTools({
   );
 }
 
-export function DashboardShell({
+/**
+ * Inner shell — runs inside the four split providers introduced by
+ * ADR-0113. Reads its slice state via the deprecated `useDashboard()`
+ * facade so this large component body did not need to be rewritten as
+ * part of the split PR. New code should migrate call sites to targeted
+ * slice hooks (see `./contexts/index.ts`).
+ */
+function DashboardShellInner({
   children,
   profileId = null,
 }: {
   children: React.ReactNode;
   profileId?: string | null;
 }) {
-  const [isDark, setIsDarkRaw] = useState(false); // SSR-safe default
-  const [themeReady, setThemeReady] = useState(false);
-  useEffect(() => {
-    const stored = localStorage.getItem("smartout-theme");
-    if (stored === "dark") setIsDarkRaw(true);
-    setThemeReady(true);
-  }, []);
-  const setIsDark = useCallback((val: boolean) => {
-    setIsDarkRaw(val);
-    localStorage.setItem("smartout-theme", val ? "dark" : "light");
-  }, []);
+  // Theme-ready flag is only needed here (not part of the facade shape).
+  const { themeReady } = useThemeContext();
+
+  // Sidebar alert indicators for komm — feeds "Kanaler" + "Chat" NavItems
+  // with unread totals and a live-call pulse.
+  const { data: channelGroupsForNav } = useChannels();
+  const { data: unreadForNav } = useUnreadCounts();
+  const { data: activeCallsForNav } = useWorkspaceActiveCalls();
+  const { kanalerUnread, chatUnread, hasKanalerCall, hasChatCall } = useMemo(() => {
+    const typeById = new Map<string, string>();
+    for (const g of channelGroupsForNav ?? []) {
+      for (const c of g.channels) {
+        typeById.set(c.channel_id, c.channel_type);
+      }
+    }
+    let kanaler = 0;
+    let chat = 0;
+    for (const u of unreadForNav ?? []) {
+      if (typeById.get(u.channel_id) === "direct") chat += u.unread_count;
+      else kanaler += u.unread_count;
+    }
+    const activeIds = Object.keys(activeCallsForNav ?? {});
+    let kanalerLive = false;
+    let chatLive = false;
+    for (const id of activeIds) {
+      if (typeById.get(id) === "direct") chatLive = true;
+      else kanalerLive = true;
+    }
+    return {
+      kanalerUnread: kanaler,
+      chatUnread: chat,
+      hasKanalerCall: kanalerLive,
+      hasChatCall: chatLive,
+    };
+  }, [channelGroupsForNav, unreadForNav, activeCallsForNav]);
+
+  // All previously-local, now-provider-owned state is read via the
+  // compatibility facade. The destructured names match the pre-split
+  // locals so the rest of this component body works unchanged.
+  const {
+    isDark,
+    setIsDark,
+    isAdminMode,
+    setIsAdminMode,
+    adminView,
+    setAdminView,
+    scheduleLayout,
+    setScheduleLayout: switchScheduleLayout,
+    scheduleView,
+    setScheduleView,
+    activeDepartment,
+    setActiveDepartment,
+    isSidebarCollapsed,
+    setIsSidebarCollapsed,
+    weeklyPeriodCount,
+    setWeeklyPeriodCount,
+    scheduleDateOffset,
+    setScheduleDateOffset,
+    onPublishAll: onPublishAllStable,
+    setOnPublishAll,
+    scheduleDraftCount: scheduleDraftCountDisplay,
+    setScheduleDraftCount,
+    scheduleCompactMode,
+    setScheduleCompactMode,
+    workspaceData,
+    isSetupMode,
+    isSetupLoading,
+    dismissSetup,
+  } = useDashboard();
+
   const [isDemoMode, setIsDemoMode] = useState(false);
-  const [isAdminMode, setIsAdminMode] = useState(true);
-  const [adminView, setAdminView] = useState<AdminViewType>("tactical");
-  const [scheduleLayout, setScheduleLayout] = useState<ScheduleLayoutMode>("daily");
-  const [scheduleView, setScheduleView] = useState<ScheduleViewMode>("ansatt");
-  const [activeDepartment, setActiveDepartment] = useState("Alle avdelinger");
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [weeklyPeriodCount, setWeeklyPeriodCount] = useState(4);
-  const [scheduleDateOffset, setScheduleDateOffset] = useState(0);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const onPublishAllRef = useRef<(() => void) | null>(null);
-  const scheduleDraftCountRef = useRef(0);
-  const [scheduleDraftCountDisplay, setScheduleDraftCountDisplay] = useState(0);
-  const [scheduleCompactMode, setScheduleCompactMode] = useState(false);
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
   const [voiceSessionOverride, setVoiceSessionOverride] = useState<VoiceSessionContext | null>(
     null,
@@ -386,14 +481,6 @@ export function DashboardShell({
     isSettling: false,
     notices: [],
   });
-  const [setupDismissed, setSetupDismissed] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return sessionStorage.getItem("setup_dismissed") === "1";
-  });
-  const dismissSetup = useCallback(() => {
-    setSetupDismissed(true);
-    sessionStorage.setItem("setup_dismissed", "1");
-  }, []);
   const [isDocumentMode, setIsDocumentMode] = useState(false);
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -402,22 +489,12 @@ export function DashboardShell({
   const hasShowcaseQuery = searchParams?.get("showcase") === "1";
   const autoplayStartedRef = useRef(false);
   const noticeIdRef = useRef(0);
+  // The setup-redirect effect below still needs to distinguish "not
+  // completed" from "dismissed-for-session". WorkspaceProvider merges
+  // those two into `isSetupMode`, so here we rederive the raw flag
+  // from the root workspace context.
   const workspaceCtx = useWorkspaceOptional();
-  // Derive setup mode from the DB flag rather than cascade task count.
-  // Defaults to true (no redirect) when workspace context is not yet available.
   const setupGuideCompleted = workspaceCtx?.workspace.setup_guide_completed ?? true;
-  const isSetupMode = !setupGuideCompleted && !setupDismissed;
-  const workspaceData = useMemo(
-    () =>
-      workspaceCtx
-        ? {
-            workspace_id: workspaceCtx.workspace.workspace_id,
-            company_id: workspaceCtx.workspace.company_id,
-            name: workspaceCtx.workspace.name,
-          }
-        : null,
-    [workspaceCtx],
-  );
 
   // Live inbound join request count for the Ansatte nav badge
   const [inboundRequestCount, setInboundRequestCount] = useState(0);
@@ -457,21 +534,9 @@ export function DashboardShell({
     };
   }, [workspaceData?.workspace_id]);
 
-  /** Stable setter that schedule page calls to register the publish callback */
-  const setOnPublishAll = useCallback((fn: (() => void) | null) => {
-    onPublishAllRef.current = fn;
-  }, []);
-  /** Stable callback that reads ref at call-time (event handler), not render-time */
-  const onPublishAllStable = useCallback(() => {
-    onPublishAllRef.current?.();
-  }, []);
-  /** Stable setter — writes to ref + state, avoids infinite loops via guard */
-  const setScheduleDraftCount = useCallback((count: number) => {
-    if (scheduleDraftCountRef.current !== count) {
-      scheduleDraftCountRef.current = count;
-      setScheduleDraftCountDisplay(count);
-    }
-  }, []);
+  // Rebuild the old `DashboardContext` value from the facade slice so
+  // the 155 existing `useContext(DashboardContext)` call sites continue
+  // to work without modification (ADR-0113 stage-1 compatibility).
   const dashboardContextValue = useMemo(
     () => ({
       isAdminMode,
@@ -481,7 +546,7 @@ export function DashboardShell({
       adminView,
       setAdminView,
       scheduleLayout,
-      setScheduleLayout,
+      setScheduleLayout: switchScheduleLayout,
       scheduleView,
       setScheduleView,
       activeDepartment,
@@ -501,29 +566,38 @@ export function DashboardShell({
       workspaceData,
       profileId,
       isSetupMode,
-      // isSetupLoading is no longer used — setup is now flag-driven, not
-      // cascade-task-driven. Kept as false for context shape compatibility.
-      isSetupLoading: false,
+      isSetupLoading,
       dismissSetup,
     }),
     [
       isAdminMode,
+      setIsAdminMode,
       isDark,
+      setIsDark,
       adminView,
+      setAdminView,
       scheduleLayout,
+      switchScheduleLayout,
       scheduleView,
+      setScheduleView,
       activeDepartment,
+      setActiveDepartment,
       isSidebarCollapsed,
+      setIsSidebarCollapsed,
       weeklyPeriodCount,
+      setWeeklyPeriodCount,
       scheduleDateOffset,
+      setScheduleDateOffset,
       onPublishAllStable,
       setOnPublishAll,
-      setScheduleDraftCount,
       scheduleDraftCountDisplay,
+      setScheduleDraftCount,
       scheduleCompactMode,
+      setScheduleCompactMode,
       workspaceData,
       profileId,
       isSetupMode,
+      isSetupLoading,
       dismissSetup,
     ],
   );
@@ -765,8 +839,8 @@ export function DashboardShell({
       {
         id: "season",
         label: "Open season planning",
-        selector: '[data-autoplay="nav-/dashboard/season"]',
-        expectedPathname: "/dashboard/season",
+        selector: '[data-autoplay="nav-/dashboard/year-wheel"]',
+        expectedPathname: "/dashboard/year-wheel",
       },
       {
         id: "organization",
@@ -973,19 +1047,20 @@ export function DashboardShell({
   // Redirect to setup guide on page load when setup is incomplete.
   // Only fires once per mount (not on in-app navigation) via ref guard.
   // Uses window.location.href for hard navigation to force server layout re-fetch.
+  // `isSetupMode` = !setupGuideCompleted && !setupDismissed (derived in WorkspaceProvider).
   const setupRedirectFired = useRef(false);
   useEffect(() => {
     if (setupRedirectFired.current) return;
-    if (isSetupPage || setupGuideCompleted || setupDismissed) return;
+    if (isSetupPage || !isSetupMode) return;
     setupRedirectFired.current = true;
     window.location.href = "/dashboard/setup";
-  }, [isSetupPage, setupGuideCompleted, setupDismissed]);
+  }, [isSetupPage, isSetupMode]);
 
   // Helper to determine if a link is active
   const isActive = (path: string) => {
-    // Exact match for dashboard root, otherwise starts with
-    if (path === "/dashboard") {
-      return pathname === "/dashboard";
+    // Exact match for dashboard root and komm root, otherwise starts with
+    if (path === "/dashboard" || path === "/dashboard/komm") {
+      return pathname === path;
     }
     return pathname.startsWith(path);
   };
@@ -1037,7 +1112,7 @@ export function DashboardShell({
                     <span
                       className={isDark ? "text-muted-foreground" : "text-[oklch(0.52_0.02_50)]"}
                     >
-                      Sesong:
+                      Aktiv sesong:
                     </span>
                     <span
                       className={`font-semibold ${isDark ? "text-foreground" : "text-[oklch(0.25_0.01_50)]"}`}
@@ -1303,7 +1378,6 @@ export function DashboardShell({
                               active={isDashboardPage && adminView === "todo"}
                               isCollapsed={isSidebarCollapsed}
                               onClick={() => setAdminView("todo")}
-                              useButton
                             />
                             <NavItem
                               href="/dashboard/schedule"
@@ -1354,14 +1428,40 @@ export function DashboardShell({
                               icon={Users}
                               label="Ansatte"
                               isDark={isDark}
-                              badge={
+                              indicators={
                                 inboundRequestCount > 0
-                                  ? `${inboundRequestCount} Forespørsler`
+                                  ? [
+                                      {
+                                        type: "warning",
+                                        value: inboundRequestCount,
+                                        label: `${inboundRequestCount} Forespørsler`,
+                                      },
+                                    ]
                                   : undefined
                               }
-                              active={isActive("/dashboard/people")}
+                              active={
+                                isActive("/dashboard/people") || isActive("/dashboard/contracts")
+                              }
                               isCollapsed={isSidebarCollapsed}
                             />
+                            {(isActive("/dashboard/people") || isActive("/dashboard/contracts")) &&
+                              !isSidebarCollapsed && (
+                                <Link
+                                  href="/dashboard/contracts"
+                                  className={`ml-8 flex items-center gap-2 rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
+                                    isActive("/dashboard/contracts")
+                                      ? isDark
+                                        ? "text-white"
+                                        : "text-foreground font-semibold"
+                                      : isDark
+                                        ? "text-zinc-500 hover:text-zinc-300"
+                                        : "text-muted-foreground hover:text-foreground"
+                                  }`}
+                                >
+                                  <FileSignature className="h-3.5 w-3.5" />
+                                  Kontrakter
+                                </Link>
+                              )}
                             <NavItem
                               href="/dashboard/schedule"
                               icon={CalendarDays}
@@ -1405,6 +1505,14 @@ export function DashboardShell({
                               active={isActive("/dashboard/reconciliation")}
                               isCollapsed={isSidebarCollapsed}
                             />
+                            <NavItem
+                              href="/dashboard/cost"
+                              icon={Banknote}
+                              label="Lønnskostnad"
+                              isDark={isDark}
+                              active={isActive("/dashboard/cost")}
+                              isCollapsed={isSidebarCollapsed}
+                            />
 
                             {!isSidebarCollapsed && (
                               <div
@@ -1425,11 +1533,11 @@ export function DashboardShell({
                               isCollapsed={isSidebarCollapsed}
                             />
                             <NavItem
-                              href="/dashboard/season"
+                              href="/dashboard/year-wheel"
                               icon={Gamepad2}
-                              label="Sesong"
+                              label="Årshjul"
                               isDark={isDark}
-                              active={isActive("/dashboard/season")}
+                              active={isActive("/dashboard/year-wheel")}
                               isCollapsed={isSidebarCollapsed}
                             />
                             <NavItem
@@ -1446,6 +1554,14 @@ export function DashboardShell({
                               label="Nettside"
                               isDark={isDark}
                               active={isActive("/dashboard/website")}
+                              isCollapsed={isSidebarCollapsed}
+                            />
+                            <NavItem
+                              href="/dashboard/shift-clock"
+                              icon={Clock}
+                              label="Stempling"
+                              isDark={isDark}
+                              active={isActive("/dashboard/shift-clock")}
                               isCollapsed={isSidebarCollapsed}
                             />
                             <NavItem
@@ -1491,7 +1607,7 @@ export function DashboardShell({
                             icon={GraduationCap}
                             label="Min opplæring"
                             isDark={isDark}
-                            badge="1 forfalt"
+                            indicators={[{ type: "warning", label: "1 forfalt" }]}
                             active={isActive("/dashboard/my-training")}
                             isCollapsed={isSidebarCollapsed}
                           />
@@ -1513,6 +1629,22 @@ export function DashboardShell({
                             active={isActive("/dashboard/my-salary")}
                             isCollapsed={isSidebarCollapsed}
                           />
+                          <NavItem
+                            href="/dashboard/my-contract"
+                            icon={FileCheck}
+                            label="Min kontrakt"
+                            isDark={isDark}
+                            active={isActive("/dashboard/my-contract")}
+                            isCollapsed={isSidebarCollapsed}
+                          />
+                          <NavItem
+                            href="/dashboard/my-profile"
+                            icon={UserCircle}
+                            label="Min profil"
+                            isDark={isDark}
+                            active={isActive("/dashboard/my-profile")}
+                            isCollapsed={isSidebarCollapsed}
+                          />
                         </>
                       )}
 
@@ -1530,10 +1662,46 @@ export function DashboardShell({
                           {isSidebarCollapsed && <div className="mt-2" />}
                           <NavItem
                             href="/dashboard/komm"
-                            icon={Radio}
-                            label="Komm"
+                            icon={Hash}
+                            label="Kanaler"
                             isDark={isDark}
-                            active={isActive("/dashboard/komm")}
+                            active={pathname === "/dashboard/komm"}
+                            isCollapsed={isSidebarCollapsed}
+                            indicators={[
+                              ...(hasKanalerCall ? ([{ type: "live" }] as NavBadgeVariant[]) : []),
+                              ...(kanalerUnread > 0
+                                ? ([{ type: "count", value: kanalerUnread }] as NavBadgeVariant[])
+                                : []),
+                            ]}
+                          />
+                          <NavItem
+                            href="/dashboard/komm/chat"
+                            icon={MessageCircle}
+                            label="Chat"
+                            isDark={isDark}
+                            active={isActive("/dashboard/komm/chat")}
+                            isCollapsed={isSidebarCollapsed}
+                            indicators={[
+                              ...(hasChatCall ? ([{ type: "live" }] as NavBadgeVariant[]) : []),
+                              ...(chatUnread > 0
+                                ? ([{ type: "count", value: chatUnread }] as NavBadgeVariant[])
+                                : []),
+                            ]}
+                          />
+                          <NavItem
+                            href="/dashboard/komm/nyheter"
+                            icon={Newspaper}
+                            label="Nyheter"
+                            isDark={isDark}
+                            active={isActive("/dashboard/komm/nyheter")}
+                            isCollapsed={isSidebarCollapsed}
+                          />
+                          <NavItem
+                            href="/dashboard/komm/oversikt"
+                            icon={BarChart3}
+                            label="Oversikt"
+                            isDark={isDark}
+                            active={isActive("/dashboard/komm/oversikt")}
                             isCollapsed={isSidebarCollapsed}
                           />
                           {FEATURE_FLAGS.AI_CHAT && (
@@ -1664,11 +1832,11 @@ export function DashboardShell({
                                 operations: "Drift",
                                 hms: "HMS",
                                 governance: "HMS",
-                                season: "Sesong",
+                                "year-wheel": "Årshjul",
                                 organization: "Organisasjon",
                                 settings: "Innstillinger",
                                 help: "Hjelp",
-                                komm: "Komm",
+                                komm: "Kanaler",
                                 ai: "Mr. Botsson",
                                 "onboarding-assistant": "Onboarding-assistent",
                                 "my-schedule": "Min vaktplan",
@@ -1689,33 +1857,32 @@ export function DashboardShell({
                             className={`hidden rounded-xl border p-1 shadow-sm md:flex ${isDark ? "border-zinc-800 bg-[#0a0a0c]" : "border-zinc-200 bg-zinc-100"} mr-2`}
                           >
                             <button
-                              onClick={() => setScheduleLayout("daily")}
+                              onClick={() => switchScheduleLayout("daily")}
                               data-autoplay="schedule-layout-daily"
                               className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "daily" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : isDark ? "text-zinc-500 hover:text-white" : "text-zinc-500 hover:text-zinc-900"}`}
                             >
-                              Uke
+                              Ukeplan
                             </button>
-                            {/* Rullerende — hidden until implemented */}
                             <button
-                              onClick={() => setScheduleLayout("monthly")}
+                              onClick={() => switchScheduleLayout("monthly")}
                               data-autoplay="schedule-layout-monthly"
                               className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "monthly" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : isDark ? "text-zinc-500 hover:text-white" : "text-zinc-500 hover:text-zinc-900"}`}
                             >
                               Måned
                             </button>
                             <button
-                              onClick={() => setScheduleLayout("list")}
+                              onClick={() => switchScheduleLayout("list")}
                               data-autoplay="schedule-layout-list"
                               className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "list" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : isDark ? "text-zinc-500 hover:text-white" : "text-zinc-500 hover:text-zinc-900"}`}
                             >
                               Vaktliste
                             </button>
                             <button
-                              onClick={() => setScheduleLayout("grid")}
+                              onClick={() => switchScheduleLayout("grid")}
                               data-autoplay="schedule-layout-grid"
                               className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "grid" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : isDark ? "text-zinc-500 hover:text-white" : "text-zinc-500 hover:text-zinc-900"}`}
                             >
-                              Vaktgrid
+                              Bemanning
                             </button>
                           </div>
 
@@ -1762,7 +1929,11 @@ export function DashboardShell({
                                   } text-[13px] font-bold`}
                                 >
                                   {(() => {
-                                    if (scheduleLayout === "daily") {
+                                    if (
+                                      scheduleLayout === "daily" ||
+                                      scheduleLayout === "list" ||
+                                      scheduleLayout === "grid"
+                                    ) {
                                       const now = new Date();
                                       now.setDate(
                                         now.getDate() -
@@ -1778,6 +1949,7 @@ export function DashboardShell({
                                         ? "Aktiv syklus"
                                         : `Syklus ${scheduleDateOffset > 0 ? "+" : ""}${scheduleDateOffset}`;
                                     }
+                                    // monthly only
                                     const now = new Date();
                                     now.setMonth(now.getMonth() + scheduleDateOffset);
                                     const months = [
@@ -1882,67 +2054,48 @@ export function DashboardShell({
                         </>
                       )}
 
-                      {/* Tactical/Strategic Switcher (Only on Dashboard) */}
+                      {/* Dashboard variant switcher — flat tab bar per Pontus 2026-04-19.
+                          The Interactive tab is gated on
+                          NEXT_PUBLIC_INTERACTIVE_DASHBOARD=true so it only shows up
+                          for developers who have opted in; in all other builds it
+                          is invisible and unreachable. */}
                       {!isDocumentMode && isDashboardPage && isAdminMode && (
                         <div
-                          className={`hidden rounded-xl border p-1 shadow-sm md:flex ${isDark ? "border-zinc-800 bg-[#0a0a0c]" : "border-zinc-200 bg-zinc-100"} mr-2`}
+                          className={`hidden flex-wrap rounded-xl border p-1 shadow-sm md:flex ${isDark ? "border-zinc-800 bg-[#0a0a0c]" : "border-zinc-200 bg-zinc-100"} mr-2`}
                         >
-                          <button
-                            onClick={() => setAdminView("tactical")}
-                            className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
-                              adminView === "tactical"
-                                ? isDark
-                                  ? "bg-zinc-800 text-white shadow-sm"
-                                  : "bg-white text-zinc-900 shadow-sm"
-                                : isDark
-                                  ? "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200"
-                                  : "text-zinc-500 hover:bg-zinc-200/50 hover:text-zinc-700"
-                            }`}
-                          >
-                            Taktisk
-                          </button>
-                          <button
-                            onClick={() => setAdminView("strategic")}
-                            className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
-                              adminView === "strategic"
-                                ? isDark
-                                  ? "bg-zinc-800 text-white shadow-sm"
-                                  : "bg-white text-zinc-900 shadow-sm"
-                                : isDark
-                                  ? "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200"
-                                  : "text-zinc-500 hover:bg-zinc-200/50 hover:text-zinc-700"
-                            }`}
-                          >
-                            Strategisk
-                          </button>
-                          <button
-                            onClick={() => setAdminView("reconciliation")}
-                            className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
-                              adminView === "reconciliation"
-                                ? isDark
-                                  ? "bg-zinc-800 text-white shadow-sm"
-                                  : "bg-white text-zinc-900 shadow-sm"
-                                : isDark
-                                  ? "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200"
-                                  : "text-zinc-500 hover:bg-zinc-200/50 hover:text-zinc-700"
-                            }`}
-                          >
-                            Avstemming
-                          </button>
-                          <button
-                            onClick={() => setAdminView("activity")}
-                            className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
-                              adminView === "activity"
-                                ? isDark
-                                  ? "bg-zinc-800 text-white shadow-sm"
-                                  : "bg-white text-zinc-900 shadow-sm"
-                                : isDark
-                                  ? "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200"
-                                  : "text-zinc-500 hover:bg-zinc-200/50 hover:text-zinc-700"
-                            }`}
-                          >
-                            Aktivitet
-                          </button>
+                          {(
+                            [
+                              { id: "oversikt", label: "Oversikt" },
+                              ...(process.env.NEXT_PUBLIC_INTERACTIVE_DASHBOARD === "true"
+                                ? ([{ id: "oversikt-interactive", label: "Interactive" }] as const)
+                                : ([] as const)),
+                              { id: "oversikt-pipeline", label: "Pipeline" },
+                              { id: "strategic", label: "Strategic" },
+                              { id: "reconciliation", label: "Avstemming" },
+                              { id: "activity", label: "Aktivitet" },
+                            ] as const
+                          ).map((tab) => {
+                            const isActive = adminView === tab.id;
+                            return (
+                              <button
+                                key={tab.id}
+                                type="button"
+                                onClick={() => setAdminView(tab.id)}
+                                aria-pressed={isActive}
+                                className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+                                  isActive
+                                    ? isDark
+                                      ? "bg-zinc-800 text-white shadow-sm"
+                                      : "bg-white text-zinc-900 shadow-sm"
+                                    : isDark
+                                      ? "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200"
+                                      : "text-zinc-500 hover:bg-zinc-200/50 hover:text-zinc-700"
+                                }`}
+                              >
+                                {tab.label}
+                              </button>
+                            );
+                          })}
                           <TodoTabButton
                             adminView={adminView}
                             isDark={isDark}
@@ -2000,7 +2153,9 @@ export function DashboardShell({
                       <DocumentModeShell isDark={isDark} />
                     ) : (
                       <div className="flex min-h-0 flex-1 overflow-hidden">
-                        <div className="scroll-overlay flex min-h-0 flex-1 flex-col overflow-hidden p-6 md:p-8 print:block print:h-auto print:overflow-visible print:p-0">
+                        <div
+                          className={`scroll-overlay flex min-h-0 flex-1 flex-col overflow-hidden print:block print:h-auto print:overflow-visible print:p-0 ${isDashboardPage ? "p-2" : "p-6 md:p-8"}`}
+                        >
                           {isAdminMode && isDashboardPage && (
                             <>
                               <div className="mb-4 flex-shrink-0">
@@ -2029,6 +2184,57 @@ export function DashboardShell({
         </EntityDrawerProvider>
       </VoiceToolsProvider>
     </DocumentModeProvider>
+  );
+}
+
+/**
+ * DashboardShell — root wrapper for every authenticated dashboard route.
+ *
+ * Per ADR-0113, this component hoists the four focused context providers
+ * (Theme, Workspace, Admin, ScheduleCoordination) above the inner shell
+ * so that state mutations in one slice no longer re-render consumers of
+ * the others. The inner shell still publishes a combined value to the
+ * legacy `DashboardContext` so existing `useContext(DashboardContext)`
+ * call sites continue to work while they are migrated one-by-one.
+ */
+export function DashboardShell({
+  children,
+  profileId = null,
+}: {
+  children: React.ReactNode;
+  profileId?: string | null;
+}) {
+  const workspaceCtx = useWorkspaceOptional();
+  const setupGuideCompleted = workspaceCtx?.workspace.setup_guide_completed ?? true;
+
+  const workspaceData = useMemo<WorkspaceSlice>(
+    () =>
+      workspaceCtx
+        ? {
+            workspace_id: workspaceCtx.workspace.workspace_id,
+            company_id: workspaceCtx.workspace.company_id,
+            name: workspaceCtx.workspace.name,
+          }
+        : null,
+    [workspaceCtx],
+  );
+
+  return (
+    <ThemeProvider>
+      <WorkspaceProvider
+        workspaceData={workspaceData}
+        profileId={profileId}
+        isSetupMode={!setupGuideCompleted}
+      >
+        <AdminProvider>
+          <ScheduleCoordinationProvider>
+            <ActiveCallProvider profileId={profileId}>
+              <DashboardShellInner profileId={profileId}>{children}</DashboardShellInner>
+            </ActiveCallProvider>
+          </ScheduleCoordinationProvider>
+        </AdminProvider>
+      </WorkspaceProvider>
+    </ThemeProvider>
   );
 }
 
@@ -2080,7 +2286,13 @@ interface NavItemProps {
   label: string;
   href: string;
   active?: boolean;
+  /** Stackable right-aligned badges (NavBadge variants). First item wins
+   *  priority for the collapsed-mode dot overlay. */
+  indicators?: NavBadgeVariant[];
+  /** @deprecated pass `{ type: "text", label }` via `indicators` instead */
   badge?: string;
+  /** @deprecated pass `{ type: "live" }` via `indicators` instead */
+  liveIndicator?: boolean;
   isDark?: boolean;
   ai?: boolean;
   isCollapsed?: boolean;
@@ -2093,13 +2305,24 @@ function NavItem({
   label,
   href,
   active,
+  indicators,
   badge,
+  liveIndicator,
   isDark,
   ai,
   isCollapsed,
   onClick,
   useButton,
 }: NavItemProps) {
+  // Fold legacy props into the indicators array so rendering has a
+  // single source of truth. Live ranks first so it wins the collapsed dot.
+  const resolvedIndicators: NavBadgeVariant[] = [
+    ...(liveIndicator ? ([{ type: "live" }] as NavBadgeVariant[]) : []),
+    ...(indicators ?? []),
+    ...(badge ? ([{ type: "text", label: badge }] as NavBadgeVariant[]) : []),
+  ];
+  const hasIndicators = resolvedIndicators.length > 0;
+  const topIndicator = resolvedIndicators[0];
   const normalizedLabel = label.toLowerCase().replace(/\s+/g, "-");
   const navAutoplayId = `nav-${href}`;
   const navButtonAutoplayId = `navbtn-${normalizedLabel}`;
@@ -2137,7 +2360,16 @@ function NavItem({
           </span>
         )}
       </div>
-      {!isCollapsed && active && !badge && (
+      {/* Expanded: right-aligned stack of badges. Active-route dot is
+       *  suppressed when indicators are present so the row stays clean. */}
+      {!isCollapsed && hasIndicators && (
+        <div className="flex shrink-0 items-center gap-1">
+          {resolvedIndicators.map((variant, i) => (
+            <NavBadgePill key={`${variant.type}-${i}`} variant={variant} />
+          ))}
+        </div>
+      )}
+      {!isCollapsed && !hasIndicators && active && (
         <div
           className={`h-1.5 w-1.5 rounded-full ${
             isDark
@@ -2146,18 +2378,11 @@ function NavItem({
           }`}
         />
       )}
-      {isCollapsed && badge && (
-        <div className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-orange-500" />
-      )}
-      {!isCollapsed && badge && (
-        <span
-          className={`rounded border px-1.5 py-0.5 text-[8px] font-bold ${
-            isDark
-              ? "border-orange-500/20 bg-orange-500/10 text-orange-400"
-              : "border-orange-200 bg-orange-50 text-orange-600"
-          }`}
-        >
-          {badge}
+      {/* Collapsed: single dot overlay on the icon corner using the
+       *  highest-priority indicator (live > warning > count/text). */}
+      {isCollapsed && topIndicator && (
+        <span className="absolute top-0.5 right-0.5">
+          <NavBadgeDot variant={topIndicator} />
         </span>
       )}
     </>

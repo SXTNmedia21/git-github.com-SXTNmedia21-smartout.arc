@@ -14,7 +14,7 @@ import {
   BookOpen,
 } from "lucide-react";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import { useMyShifts, useMyReadiness, type MyShift } from "@/app/dashboard/_hooks";
+import { useMyShifts, useMyReadiness, type MyShift } from "@/app/dashboard/_hooks/use-my-dashboard";
 import { useWorkspace } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
 import { useQuery } from "@tanstack/react-query";

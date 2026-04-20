@@ -12,6 +12,7 @@ export const navigateTool = defineTool({
   name: "navigate_to",
   description:
     "Navigate the user's screen to a specific section or step. Use when the user should move to a different part of the interface.",
+  capability: "ui",
   schema: z.object({
     target: z
       .string()
@@ -32,6 +33,7 @@ export const fillFieldTool = defineTool({
   name: "fill_field",
   description:
     "Fill a form field on the user's screen with a value. Use when you have information to populate into the UI.",
+  capability: "ui",
   schema: z.object({
     field: z.string().describe("The field name to fill, e.g. 'businessName', 'orgNumber'"),
     value: z.string().describe("The value to set"),
@@ -51,6 +53,7 @@ export const highlightTool = defineTool({
   name: "highlight_element",
   description:
     "Highlight a UI element to draw the user's attention. Use to guide the user visually.",
+  capability: "ui",
   schema: z.object({
     target: z.string().describe("CSS selector or element ID to highlight"),
     duration: z.number().optional().describe("Duration in milliseconds (default: 3000)"),
@@ -70,6 +73,7 @@ export const showPanelTool = defineTool({
   name: "show_panel",
   description:
     "Show a UI panel with data. Use for key facts, help text, or contextual information.",
+  capability: "ui",
   schema: z.object({
     panel: z.string().describe("Panel name, e.g. 'keyFacts', 'help', 'contract'"),
     data: z.record(z.unknown()).optional().describe("Data to display in the panel"),
@@ -88,6 +92,7 @@ export const showPanelTool = defineTool({
 export const toastTool = defineTool({
   name: "show_toast",
   description: "Show a brief notification message on the user's screen.",
+  capability: "ui",
   schema: z.object({
     message: z.string().describe("The notification text"),
     variant: z

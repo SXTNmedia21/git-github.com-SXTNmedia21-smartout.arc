@@ -7,15 +7,34 @@ export type CapabilityName =
   | "schedule"
   | "training"
   | "operations"
+  | "operations_intelligence" // ADR-0088: manager/system-scoped intelligence
   | "profile"
   | "communication"
   | "memory"
   | "payroll"
   | "ui"
   | "guardian"
-  | "contract";
+  | "contract"
+  | "contract_intake"
+  | "shift_swap"
+  | "shift_lifecycle"
+  | "governance"
+  | "billing_query" // ADR-0118 — read-only billing surface, chat-only
+  | "helpdesk_query"; // ADR-0162 — helpdesk ticket lifecycle, chat-only PII
 
 export type AuthorityLevel = "autonomous" | "confirm" | "suggest" | "read_only" | "disabled";
+
+export type SessionChannel =
+  | "chat"
+  | "voice"
+  | "sms"
+  | "email"
+  | "autonomous"
+  | "telegram"
+  // ADR-0099: originating_channel for DB-trigger / cron / engine-dispatch paths.
+  // Used by gate_action to permit internal/system-only capabilities
+  // (e.g. shift_lifecycle.interpret, shift_lifecycle.settle).
+  | "system";
 
 export type AgentToolContext = {
   workspaceId: string;
@@ -23,6 +42,17 @@ export type AgentToolContext = {
   userId?: string;
   sessionId: string;
   supabaseAdmin: SupabaseClient;
+  /** Employee-scoped Supabase client (RLS-enforced via user JWT).
+   *  Used for self-service PII writes (submit_own_pii) where auth.uid() must resolve. */
+  supabaseUser?: SupabaseClient;
+  /** ADR-0078: current session channel for defence-in-depth PII restriction */
+  channel?: SessionChannel;
+  /** Active engine_process ID if this session is running a process */
+  processId?: string;
+  /** Active engine_state ID for step tracking */
+  engineStateId?: string;
+  /** Admin acting on behalf of employee (dashboard flows only, never agent) */
+  actingOnBehalfOf?: string;
 };
 
 export type CapabilityDefinition = {
@@ -31,6 +61,8 @@ export type CapabilityDefinition = {
   tools: ReadonlyArray<SmartoutTool<AgentToolContext>>;
   readOnlyTools: ReadonlyArray<SmartoutTool<AgentToolContext>>;
   suggestTools?: ReadonlyArray<SmartoutTool<AgentToolContext>>;
+  /** ADR-0078: if set, capability is only available when session.channel is in this list */
+  allowedChannels?: SessionChannel[];
 };
 
 // -- Personality & Posture --
@@ -52,6 +84,7 @@ export type Situation =
   | "training"
   | "operations"
   | "guardian"
+  | "communication"
   | "general";
 
 export type PostureAdaptFlags = {

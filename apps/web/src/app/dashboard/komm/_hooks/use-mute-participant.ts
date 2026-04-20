@@ -4,6 +4,7 @@ import { useMutation } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
 import { emit } from "@smartout/telemetry";
 import { useWorkspace } from "@/lib/workspace-context";
+import { useTranslation } from "@smartout/i18n";
 import { muteParticipant } from "@smartout/walkie-talkie";
 import { toast } from "sonner";
 
@@ -17,6 +18,7 @@ type MuteParams = {
 export function useMuteParticipant(profileId: string) {
   const { workspace } = useWorkspace();
   const workspaceId = workspace.workspace_id;
+  const { t } = useTranslation("komm");
 
   return useMutation({
     mutationFn: async ({ channelId, targetIdentity, trackSid, muted }: MuteParams) => {
@@ -46,7 +48,7 @@ export function useMuteParticipant(profileId: string) {
       });
     },
     onError: () => {
-      toast.error("Kunne ikke dempe deltaker");
+      toast.error(t("call.mute_error"));
     },
   });
 }

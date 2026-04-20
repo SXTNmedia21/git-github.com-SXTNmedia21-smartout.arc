@@ -1,0 +1,92 @@
+{
+  "page": {
+    "desks_title": "Helpdesk · Desks",
+    "desks_lede": "Desks connect employees to the person who answers.",
+    "desks_create": "New desk",
+    "desks_empty_title": "No desks yet",
+    "desks_empty_body": "A desk is a door to a responsible colleague. Create one when you know who answers what.",
+    "desks_empty_cta": "Create first desk"
+  },
+  "desk_card": {
+    "open_count_one": "{count} open ticket",
+    "open_count_other": "{count} open tickets",
+    "new_badge": "{count} new",
+    "orphan_label": "No responsible",
+    "orphan_cta": "Assign responsible",
+    "last_active": "Last active {rel}",
+    "open_queue": "Open queue"
+  },
+  "desk_dialog": {
+    "title": "Create desk",
+    "field_name": "Name",
+    "field_name_placeholder": "e.g. \"HR\"",
+    "field_description": "Short description (optional)",
+    "field_responsible": "Responsible",
+    "submit": "Create desk",
+    "submit_pending": "Creating…",
+    "cancel": "Cancel"
+  },
+  "desk_combobox": {
+    "placeholder": "Choose responsible",
+    "empty": "No available managers"
+  },
+  "desk_queue_sheet": {
+    "title": "Desk queue",
+    "view_all": "View all in Channels"
+  },
+  "ticket_status": {
+    "waiting": "Waiting",
+    "active": "Active",
+    "complete": "Resolved",
+    "waiting_upper": "WAITING",
+    "active_upper": "ACTIVE",
+    "complete_upper": "RESOLVED"
+  },
+  "ticket_header": {
+    "back": "Back to channels",
+    "reassign": "Reassign",
+    "resolved_at": "Resolved {time}"
+  },
+  "ticket_action": {
+    "resolve": "Resolve",
+    "resolve_pending": "Resolving…"
+  },
+  "ticket_empty": {
+    "title": "{name} just opened this ticket.",
+    "body": "No messages yet. Reply to get started."
+  },
+  "ticket_resolve_dialog": {
+    "title": "Resolve ticket",
+    "lede": "{name} — this closes the ticket for {requester}.",
+    "field_label": "What was the resolution? (optional)",
+    "field_placeholder": "e.g. \"Clarified — doesn't apply 24–26 Dec.\"",
+    "submit": "Resolve"
+  },
+  "ticket_composer": {
+    "locked": "The ticket is resolved. Botsson closed the channel."
+  },
+  "mobile_tab": {
+    "queue": "My queue"
+  },
+  "mobile_queue": {
+    "subcount_no_waiting": "{count} open",
+    "subcount_with_waiting": "{open} open · {waiting} waiting",
+    "empty_title": "No open tickets",
+    "empty_body": "All clear. Enjoy the break.",
+    "error_title": "Couldn't load queue",
+    "error_retry": "Try again"
+  },
+  "mobile_ticket_forbidden": {
+    "title": "This ticket isn't yours",
+    "body": "Ask your admin to assign it to you."
+  },
+  "mobile_fab": {
+    "resolve": "Resolve"
+  },
+  "toast": {
+    "desk_created": "Desk \"{name}\" created.",
+    "desks_forbidden": "Only admins can manage desks.",
+    "ticket_resolved": "Ticket resolved. {requester} is notified.",
+    "ticket_resolve_failed": "Couldn't resolve ticket. Try again."
+  }
+}

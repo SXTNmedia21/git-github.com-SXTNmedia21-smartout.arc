@@ -9,7 +9,9 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
-import { FileSignature, MoreHorizontal, RefreshCw } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { FileSignature, MoreHorizontal, RefreshCw, UserPlus } from "lucide-react";
+import { useTranslation } from "@smartout/i18n";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,6 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -38,16 +41,26 @@ import {
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-type ContractStatus = "draft" | "sent" | "viewed" | "signed" | "expired" | "cancelled";
+type ContractStatus =
+  | "draft"
+  | "sent"
+  | "viewed"
+  | "signed"
+  | "expired"
+  | "pending_data"
+  | "declined"
+  | "cancelled";
 
 type Contract = {
   contract_id: string;
-  recipient_name: string;
-  recipient_email: string;
+  profile_id: string | null;
   status: ContractStatus;
+  position_title: string | null;
+  employment_category: string | null;
+  employment_percentage: number | null;
   created_at: string;
   signed_at: string | null;
-  sent_at: string | null;
+  profile: { display_name: string } | null;
 };
 
 type ApiResponse = {
@@ -61,27 +74,32 @@ type StatusFilter = ContractStatus | "all";
 
 // ── Status badge config ────────────────────────────────────────────────────
 
-const STATUS_CONFIG: Record<
+const STATUS_VARIANT: Record<
   ContractStatus,
   {
-    label: string;
     variant: "default" | "secondary" | "destructive" | "outline";
     className?: string;
   }
 > = {
-  draft: { label: "Utkast", variant: "secondary" },
-  sent: { label: "Sendt", variant: "outline", className: "border-primary/40 text-primary" },
-  viewed: { label: "Åpnet", variant: "outline", className: "border-primary/60 text-primary" },
-  signed: { label: "Signert", variant: "default" },
-  expired: { label: "Utløpt", variant: "destructive" },
-  cancelled: { label: "Avbrutt", variant: "secondary", className: "line-through opacity-60" },
+  draft: { variant: "secondary" },
+  sent: { variant: "outline", className: "border-primary/40 text-primary" },
+  viewed: { variant: "outline", className: "border-primary/60 text-primary" },
+  signed: { variant: "default" },
+  expired: { variant: "destructive" },
+  pending_data: {
+    variant: "outline",
+    className: "border-warning text-warning-foreground",
+  },
+  declined: { variant: "destructive" },
+  cancelled: { variant: "secondary", className: "line-through opacity-60" },
 };
 
 function StatusBadge({ status }: { status: ContractStatus }) {
-  const config = STATUS_CONFIG[status] ?? { label: status, variant: "secondary" as const };
+  const { t } = useTranslation("contracts");
+  const config = STATUS_VARIANT[status] ?? { variant: "secondary" as const };
   return (
     <Badge variant={config.variant} className={config.className}>
-      {config.label}
+      {t(`status.${status}`)}
     </Badge>
   );
 }
@@ -89,7 +107,7 @@ function StatusBadge({ status }: { status: ContractStatus }) {
 // ── Date formatting helpers ────────────────────────────────────────────────
 
 function formatDate(iso: string | null): string {
-  if (!iso) return "—";
+  if (!iso) return "\u2014";
   return new Date(iso).toLocaleDateString("nb-NO", {
     day: "2-digit",
     month: "short",
@@ -126,18 +144,17 @@ function SkeletonRows() {
 // ── Empty state ────────────────────────────────────────────────────────────
 
 function EmptyState({ hasFilter }: { hasFilter: boolean }) {
+  const { t } = useTranslation("contracts");
   return (
     <TableRow>
       <TableCell colSpan={5} className="py-16 text-center">
         <div className="text-muted-foreground flex flex-col items-center gap-2">
           <FileSignature className="h-8 w-8 opacity-40" />
           <p className="font-medium">
-            {hasFilter ? "Ingen kontrakter med valgt status" : "Ingen kontrakter ennå"}
+            {hasFilter ? t("table.empty_filtered_title") : t("table.empty_title")}
           </p>
           <p className="text-sm">
-            {hasFilter
-              ? "Prøv et annet filter for å se kontrakter."
-              : "Send din første kontrakt fra ansattprofilen."}
+            {hasFilter ? t("table.empty_filtered_description") : t("table.empty_description")}
           </p>
         </div>
       </TableCell>
@@ -148,11 +165,17 @@ function EmptyState({ hasFilter }: { hasFilter: boolean }) {
 // ── Main component ─────────────────────────────────────────────────────────
 
 export function ContractsDataTable({ workspaceId }: { workspaceId: string }) {
+  const { t } = useTranslation("contracts");
+  const router = useRouter();
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [loading, setLoading] = useState(true);
+  const [detailId, setDetailId] = useState<string | null>(null);
+
+  /** The contract currently shown in the detail sheet */
+  const detailContract = detailId ? contracts.find((c) => c.contract_id === detailId) : null;
 
   const pageSize = 20;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -162,22 +185,21 @@ export function ContractsDataTable({ workspaceId }: { workspaceId: string }) {
     try {
       const params = new URLSearchParams({
         workspace_id: workspaceId,
-        page: String(page),
       });
       if (statusFilter !== "all") params.set("status", statusFilter);
 
-      const res = await fetch(`/api/contracts?${params.toString()}`);
-      if (!res.ok) throw new Error("Kunne ikke hente kontrakter");
+      const res = await fetch(`/api/employment-contracts/list?${params.toString()}`);
+      if (!res.ok) throw new Error(t("errors.fetch_contracts"));
 
       const json: ApiResponse = await res.json();
       setContracts(json.data ?? []);
-      setTotal(json.total ?? 0);
+      setTotal(json.data?.length ?? 0);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Noe gikk galt");
+      toast.error(err instanceof Error ? err.message : t("toast.something_went_wrong"));
     } finally {
       setLoading(false);
     }
-  }, [workspaceId, page, statusFilter]);
+  }, [workspaceId, statusFilter, t]);
 
   // Refetch when page or filter changes
   useEffect(() => {
@@ -191,29 +213,28 @@ export function ContractsDataTable({ workspaceId }: { workspaceId: string }) {
   }
 
   function handleViewDetails(contractId: string) {
-    // TODO: open contract detail panel/drawer (Task 12)
-    console.log("View contract:", contractId);
+    setDetailId(contractId);
   }
 
   async function handleResend(contractId: string) {
     try {
       const res = await fetch(`/api/contracts/${contractId}/send`, { method: "POST" });
-      if (!res.ok) throw new Error("Kunne ikke sende kontrakt på nytt");
-      toast.success("Kontrakt sendt på nytt");
+      if (!res.ok) throw new Error(t("errors.resend_failed"));
+      toast.success(t("toast.contract_resent"));
       void fetchContracts();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Noe gikk galt");
+      toast.error(err instanceof Error ? err.message : t("toast.something_went_wrong"));
     }
   }
 
   async function handleCancel(contractId: string) {
     try {
       const res = await fetch(`/api/contracts/${contractId}/cancel`, { method: "POST" });
-      if (!res.ok) throw new Error("Kunne ikke avbryte kontrakt");
-      toast.success("Kontrakt avbrutt");
+      if (!res.ok) throw new Error(t("errors.cancel_failed"));
+      toast.success(t("toast.contract_cancelled"));
       void fetchContracts();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Noe gikk galt");
+      toast.error(err instanceof Error ? err.message : t("toast.something_went_wrong"));
     }
   }
 
@@ -223,23 +244,25 @@ export function ContractsDataTable({ workspaceId }: { workspaceId: string }) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <FileSignature className="text-muted-foreground h-5 w-5" />
-          <h1 className="text-lg font-semibold">Kontrakter</h1>
+          <h1 className="text-lg font-semibold">{t("table.title")}</h1>
           {!loading && <span className="text-muted-foreground text-sm">({total})</span>}
         </div>
 
         <div className="flex items-center gap-2">
           <Select value={statusFilter} onValueChange={handleStatusChange}>
             <SelectTrigger className="w-[160px]">
-              <SelectValue placeholder="Alle statuser" />
+              <SelectValue placeholder={t("table.all_statuses")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Alle statuser</SelectItem>
-              <SelectItem value="draft">Utkast</SelectItem>
-              <SelectItem value="sent">Sendt</SelectItem>
-              <SelectItem value="viewed">Åpnet</SelectItem>
-              <SelectItem value="signed">Signert</SelectItem>
-              <SelectItem value="expired">Utløpt</SelectItem>
-              <SelectItem value="cancelled">Avbrutt</SelectItem>
+              <SelectItem value="all">{t("table.all_statuses")}</SelectItem>
+              <SelectItem value="draft">{t("status.draft")}</SelectItem>
+              <SelectItem value="sent">{t("status.sent")}</SelectItem>
+              <SelectItem value="viewed">{t("status.viewed")}</SelectItem>
+              <SelectItem value="signed">{t("status.signed")}</SelectItem>
+              <SelectItem value="expired">{t("status.expired")}</SelectItem>
+              <SelectItem value="pending_data">{t("status.pending_data")}</SelectItem>
+              <SelectItem value="declined">{t("status.declined")}</SelectItem>
+              <SelectItem value="cancelled">{t("status.cancelled")}</SelectItem>
             </SelectContent>
           </Select>
 
@@ -247,7 +270,7 @@ export function ContractsDataTable({ workspaceId }: { workspaceId: string }) {
             variant="ghost"
             size="icon"
             onClick={() => void fetchContracts()}
-            title="Oppdater"
+            title={t("table.refresh")}
           >
             <RefreshCw className="h-4 w-4" />
           </Button>
@@ -259,10 +282,10 @@ export function ContractsDataTable({ workspaceId }: { workspaceId: string }) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Ansatt</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Sendt</TableHead>
-              <TableHead>Signert</TableHead>
+              <TableHead>{t("table.employee")}</TableHead>
+              <TableHead>{t("table.status")}</TableHead>
+              <TableHead>{t("table.sent")}</TableHead>
+              <TableHead>{t("table.signed")}</TableHead>
               <TableHead className="w-[48px]" />
             </TableRow>
           </TableHeader>
@@ -280,9 +303,9 @@ export function ContractsDataTable({ workspaceId }: { workspaceId: string }) {
                 >
                   <TableCell className="font-medium">
                     <div className="flex flex-col">
-                      <span>{contract.recipient_name || "—"}</span>
+                      <span>{contract.profile?.display_name || "\u2014"}</span>
                       <span className="text-muted-foreground text-xs">
-                        {contract.recipient_email}
+                        {contract.position_title || "\u2014"}
                       </span>
                     </div>
                   </TableCell>
@@ -290,7 +313,7 @@ export function ContractsDataTable({ workspaceId }: { workspaceId: string }) {
                     <StatusBadge status={contract.status} />
                   </TableCell>
                   <TableCell className="text-muted-foreground font-mono text-sm">
-                    {formatDate(contract.sent_at ?? contract.created_at)}
+                    {formatDate(contract.created_at)}
                   </TableCell>
                   <TableCell className="text-muted-foreground font-mono text-sm">
                     {formatDate(contract.signed_at)}
@@ -303,25 +326,35 @@ export function ContractsDataTable({ workspaceId }: { workspaceId: string }) {
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-8 w-8">
                           <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Handlinger</span>
+                          <span className="sr-only">{t("table.actions_label")}</span>
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => handleViewDetails(contract.contract_id)}>
-                          Vis detaljer
+                          {t("table.view_details")}
                         </DropdownMenuItem>
+                        {contract.status === "pending_data" && contract.profile_id && (
+                          <DropdownMenuItem
+                            onClick={() =>
+                              router.push(`/dashboard/people/${contract.profile_id}/complete-data`)
+                            }
+                          >
+                            <UserPlus className="mr-2 h-3.5 w-3.5" />
+                            {t("table.complete_data")}
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem
                           onClick={() => void handleResend(contract.contract_id)}
                           disabled={contract.status === "signed" || contract.status === "cancelled"}
                         >
-                          Send på nytt
+                          {t("table.resend")}
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => void handleCancel(contract.contract_id)}
                           disabled={contract.status === "signed" || contract.status === "cancelled"}
                           className="text-destructive focus:text-destructive"
                         >
-                          Avbryt
+                          {t("table.cancel")}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -336,9 +369,7 @@ export function ContractsDataTable({ workspaceId }: { workspaceId: string }) {
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="text-muted-foreground flex items-center justify-between text-sm">
-          <span>
-            Side {page} av {totalPages}
-          </span>
+          <span>{t("table.page_of", { page: String(page), total: String(totalPages) })}</span>
           <div className="flex gap-2">
             <Button
               variant="outline"
@@ -346,7 +377,7 @@ export function ContractsDataTable({ workspaceId }: { workspaceId: string }) {
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1 || loading}
             >
-              Forrige
+              {t("table.previous")}
             </Button>
             <Button
               variant="outline"
@@ -354,11 +385,111 @@ export function ContractsDataTable({ workspaceId }: { workspaceId: string }) {
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page === totalPages || loading}
             >
-              Neste
+              {t("table.next")}
             </Button>
           </div>
         </div>
       )}
+
+      {/* Contract detail sheet */}
+      <Sheet open={!!detailContract} onOpenChange={(open) => !open && setDetailId(null)}>
+        <SheetContent className="sm:max-w-md">
+          <SheetHeader>
+            <SheetTitle>{t("detail.title")}</SheetTitle>
+          </SheetHeader>
+
+          {detailContract && (
+            <div className="mt-6 space-y-6">
+              {/* Employee info */}
+              <div className="space-y-1">
+                <p className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
+                  {t("detail.employee")}
+                </p>
+                <p className="text-sm font-medium">
+                  {detailContract.profile?.display_name || "\u2014"}
+                </p>
+                <p className="text-muted-foreground text-sm">
+                  {detailContract.position_title || "\u2014"}
+                </p>
+              </div>
+
+              {/* Status */}
+              <div className="space-y-1">
+                <p className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
+                  {t("detail.status")}
+                </p>
+                <StatusBadge status={detailContract.status} />
+              </div>
+
+              {/* Dates */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <p className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
+                    {t("detail.created")}
+                  </p>
+                  <p className="font-mono text-sm">{formatDate(detailContract.created_at)}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
+                    {t("detail.signed")}
+                  </p>
+                  <p className="font-mono text-sm">{formatDate(detailContract.signed_at)}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
+                    {t("detail.employment_percentage")}
+                  </p>
+                  <p className="font-mono text-sm">
+                    {detailContract.employment_percentage
+                      ? `${detailContract.employment_percentage}%`
+                      : "\u2014"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-2 border-t pt-4">
+                {detailContract.status === "pending_data" && detailContract.profile_id && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5"
+                    onClick={() =>
+                      router.push(`/dashboard/people/${detailContract.profile_id}/complete-data`)
+                    }
+                  >
+                    <UserPlus className="h-3.5 w-3.5" />
+                    {t("table.complete_data")}
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={
+                    detailContract.status === "signed" || detailContract.status === "cancelled"
+                  }
+                  onClick={() => void handleResend(detailContract.contract_id)}
+                >
+                  {t("detail.resend")}
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  disabled={
+                    detailContract.status === "signed" || detailContract.status === "cancelled"
+                  }
+                  onClick={() => {
+                    void handleCancel(detailContract.contract_id);
+                    setDetailId(null);
+                  }}
+                >
+                  {t("detail.cancel_contract")}
+                </Button>
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

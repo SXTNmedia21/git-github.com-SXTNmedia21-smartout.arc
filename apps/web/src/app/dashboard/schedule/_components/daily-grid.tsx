@@ -19,10 +19,23 @@ import { GhostShiftCard } from "./ghost-shift-card";
 import type { DayColumn } from "./schedule-data";
 import { useScheduleUI } from "./schedule-ui-context";
 import type { ScheduleEmployee } from "../_hooks/use-employees";
+import type { ShiftReadinessEntry } from "../_hooks/use-shift-readiness-check";
 import { DayContextMenu } from "./day-context-menu";
 import type { Shift as ScheduleShift, Absence, ShiftProposal } from "./schedule-types";
 import { SCHEDULE_LAYERS } from "./schedule-layers";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { ShiftUnlockHint, type MissingProtocol } from "./ShiftUnlockHint";
+
+/** Maps hook rows into the slimmer `MissingProtocol` list for the unlock hint. */
+function pendingToMissing(entry: ShiftReadinessEntry | undefined): MissingProtocol[] {
+  return (entry?.pendingProtocols ?? []).map((p) => ({
+    protocol_id: p.protocol_id,
+    name: p.name,
+    steps_remaining: p.steps_remaining,
+    test_pending: p.test_pending,
+    confirmation_pending: p.confirmation_pending,
+  }));
+}
 
 // ---------------------------------------------------------------------------
 // GridContent — daily schedule grid (the perf-critical DnD subtree)
@@ -62,7 +75,7 @@ export function GridContent({
   onApproveProposal?: (id: string) => Promise<void>;
   onRejectProposal?: (id: string) => void;
   conflictedShiftIds?: Set<string>;
-  readinessMap?: Map<string, { readinessPercent: number }>;
+  readinessMap?: Map<string, ShiftReadinessEntry>;
 }) {
   const { isDark, scheduleView, scheduleCompactMode } = useContext(DashboardContext);
   const { active } = useDndContext();
@@ -350,6 +363,7 @@ export function GridContent({
                       enableDroppable={enableDroppable}
                       conflictedShiftIds={conflictedShiftIds}
                       readinessPercent={readinessMap?.get(employee.id)?.readinessPercent}
+                      missingProtocols={pendingToMissing(readinessMap?.get(employee.id))}
                     />
                   </div>
                 );
@@ -406,6 +420,7 @@ export function GridContent({
                       enableDroppable={enableDroppable}
                       subtitle={emp.team}
                       readinessPercent={readinessMap?.get(emp.id)?.readinessPercent}
+                      missingProtocols={pendingToMissing(readinessMap?.get(emp.id))}
                     />
                   ))}
                 </React.Fragment>
@@ -439,6 +454,7 @@ export function GridContent({
                       enableDroppable={enableDroppable}
                       subtitle={emp.jobTitle || emp.role}
                       readinessPercent={readinessMap?.get(emp.id)?.readinessPercent}
+                      missingProtocols={pendingToMissing(readinessMap?.get(emp.id))}
                     />
                   ))}
                 </React.Fragment>
@@ -476,6 +492,7 @@ export function GridContent({
                       enableDroppable={enableDroppable}
                       subtitle={emp.departmentName}
                       readinessPercent={readinessMap?.get(emp.id)?.readinessPercent}
+                      missingProtocols={pendingToMissing(readinessMap?.get(emp.id))}
                     />
                   ))}
                 </React.Fragment>
@@ -700,6 +717,7 @@ type SortableEmployeeRowProps = {
   enableDroppable: boolean;
   conflictedShiftIds?: Set<string>;
   readinessPercent?: number;
+  missingProtocols?: MissingProtocol[];
 };
 
 function SortableEmployeeRow(props: SortableEmployeeRowProps) {
@@ -745,6 +763,7 @@ export const EmployeeRow = React.memo(function EmployeeRow({
   enableDroppable,
   conflictedShiftIds,
   readinessPercent,
+  missingProtocols,
 }: {
   employee: ScheduleEmployee;
   employeeStats?: { hours: number; shiftCount: number };
@@ -764,6 +783,7 @@ export const EmployeeRow = React.memo(function EmployeeRow({
   enableDroppable: boolean;
   conflictedShiftIds?: Set<string>;
   readinessPercent?: number;
+  missingProtocols?: MissingProtocol[];
 }) {
   const { isDark, scheduleCompactMode: isCompact } = useContext(DashboardContext);
   const scheduledHours = employeeStats?.hours ?? 0;
@@ -778,151 +798,158 @@ export const EmployeeRow = React.memo(function EmployeeRow({
   else if (percentage >= 70) barColor = "bg-zinc-500";
 
   return (
-    <div className="group/row flex w-full">
-      {/* Sticky employee info panel — clickable to open drawer */}
-      <div
-        className={`border-border bg-background group-hover/row:bg-muted/50 sticky left-0 flex w-[260px] shrink-0 cursor-pointer items-center border-r border-b shadow-[2px_0_8px_-6px_rgba(0,0,0,0.35)] transition-colors ${isCompact ? "h-[52px] min-h-0 gap-2 p-2" : "h-[100px] gap-3 p-3"}`}
-        style={{ zIndex: SCHEDULE_LAYERS.stickyHeaders }}
-        onClick={() => onSelectEmployee?.(employee.id)}
-      >
-        {/* Drag handle + avatar */}
-        <div className="relative flex shrink-0 items-center">
-          {dragHandleListeners && (
-            <div
-              {...dragHandleListeners}
-              onClick={(e) => e.stopPropagation()}
-              className="absolute -left-1 flex h-full cursor-grab items-center text-zinc-600 opacity-0 transition-opacity group-hover/row:opacity-100 active:cursor-grabbing"
-            >
-              <GripVertical className="h-3 w-3" />
-            </div>
-          )}
-          <div
-            className={`flex items-center justify-center rounded-lg border font-black ${employee.avatarColor} ${isCompact ? "h-6 w-6 text-[8px]" : "h-8 w-8 text-[10px]"} ${dragHandleListeners ? "ml-2.5" : ""}`}
-          >
-            {employee.initials}
-          </div>
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5">
-            <h3
-              className={`text-foreground group-hover/row:text-foreground/80 truncate text-[13px] leading-tight font-bold transition-colors`}
-            >
-              {employee.name}
-            </h3>
-            {readinessPercent !== undefined && readinessPercent < 100 && (
-              <span
-                className="inline-flex shrink-0 items-center rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-bold text-amber-400"
-                title={`${readinessPercent}% opplæring fullført`}
+    <div className="flex w-full flex-col">
+      <div className="group/row flex w-full">
+        {/* Sticky employee info panel — clickable to open drawer */}
+        <div
+          className={`border-border bg-background group-hover/row:bg-muted/50 sticky left-0 flex w-[260px] shrink-0 cursor-pointer items-center border-r border-b shadow-[2px_0_8px_-6px_rgba(0,0,0,0.35)] transition-colors ${isCompact ? "h-[52px] min-h-0 gap-2 p-2" : "h-[100px] gap-3 p-3"}`}
+          style={{ zIndex: SCHEDULE_LAYERS.stickyHeaders }}
+          onClick={() => onSelectEmployee?.(employee.id)}
+        >
+          {/* Drag handle + avatar */}
+          <div className="relative flex shrink-0 items-center">
+            {dragHandleListeners && (
+              <div
+                {...dragHandleListeners}
+                onClick={(e) => e.stopPropagation()}
+                className="absolute -left-1 flex h-full cursor-grab items-center text-zinc-600 opacity-0 transition-opacity group-hover/row:opacity-100 active:cursor-grabbing"
               >
-                {readinessPercent}%
-              </span>
+                <GripVertical className="h-3 w-3" />
+              </div>
+            )}
+            <div
+              className={`flex items-center justify-center rounded-lg border font-black ${employee.avatarColor} ${isCompact ? "h-6 w-6 text-[8px]" : "h-8 w-8 text-[10px]"} ${dragHandleListeners ? "ml-2.5" : ""}`}
+            >
+              {employee.initials}
+            </div>
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5">
+              <h3
+                className={`text-foreground group-hover/row:text-foreground/80 truncate text-[13px] leading-tight font-bold transition-colors`}
+              >
+                {employee.name}
+              </h3>
+              {readinessPercent !== undefined && readinessPercent < 100 && (
+                <span
+                  className="inline-flex shrink-0 items-center rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-bold text-amber-400"
+                  title={`${readinessPercent}% opplæring fullført`}
+                >
+                  {readinessPercent}%
+                </span>
+              )}
+            </div>
+            <p className="text-muted-foreground mt-0.5 truncate text-[11px] leading-tight">
+              {subtitle || employee.jobTitle || employee.role}
+            </p>
+            {!isCompact && (
+              <div className="mt-1.5 space-y-1 pr-1">
+                <div className="flex items-center justify-between text-[10px] font-bold tracking-widest uppercase">
+                  <span className="text-muted-foreground">{shiftCount}v</span>
+                  <span className={isOvertime ? "text-red-400" : "text-muted-foreground"}>
+                    {scheduledHours.toFixed(1)}
+                    <span className="text-muted-foreground/70">/{contractedHours}</span>
+                  </span>
+                </div>
+                <div className={`bg-muted h-1 w-full overflow-hidden rounded-full`}>
+                  <div
+                    className={`h-full ${barColor} rounded-full transition-all`}
+                    style={{ width: `${percentage}%` }}
+                  />
+                </div>
+              </div>
             )}
           </div>
-          <p className="text-muted-foreground mt-0.5 truncate text-[11px] leading-tight">
-            {subtitle || employee.jobTitle || employee.role}
-          </p>
-          {!isCompact && (
-            <div className="mt-1.5 space-y-1 pr-1">
-              <div className="flex items-center justify-between text-[10px] font-bold tracking-widest uppercase">
-                <span className="text-muted-foreground">{shiftCount}v</span>
-                <span className={isOvertime ? "text-red-400" : "text-muted-foreground"}>
-                  {scheduledHours.toFixed(1)}
-                  <span className="text-muted-foreground/70">/{contractedHours}</span>
-                </span>
-              </div>
-              <div className={`bg-muted h-1 w-full overflow-hidden rounded-full`}>
-                <div
-                  className={`h-full ${barColor} rounded-full transition-all`}
-                  style={{ width: `${percentage}%` }}
-                />
-              </div>
-            </div>
-          )}
         </div>
+
+        {/* Day cells — fixed width for horizontal scroll */}
+        {days.map((day) => {
+          const cellShifts = shiftsByEmployeeDay.get(`${employee.id}::${day.id}`) ?? [];
+          const cellAbsences = absencesByEmployeeDay.get(`${employee.id}::${day.id}`) ?? [];
+          const cellProposals = proposalsByEmployeeDay?.get(`${employee.id}::${day.id}`) ?? [];
+          const hasContent =
+            cellShifts.length > 0 || cellAbsences.length > 0 || cellProposals.length > 0;
+
+          const absenceLabel = (type: string): "Sykdom" | "Ferie" | "Avspasering" => {
+            switch (type) {
+              case "sick_leave":
+                return "Sykdom";
+              case "vacation":
+                return "Ferie";
+              default:
+                return "Avspasering";
+            }
+          };
+
+          return (
+            <MatrixCell
+              key={day.id}
+              isToday={day.isToday}
+              id={`cell::${employee.id}::${day.id}`}
+              isCompact={isCompact}
+              dimmed={day.situation === "__dimmed__"}
+              enableDroppable={enableDroppable}
+              onAddClick={() => onCreateShift({ dateId: day.id, employeeId: employee.id })}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                onAbsencePopover({ employeeId: employee.id, dateId: day.id });
+              }}
+            >
+              {hasContent ? (
+                <div
+                  className={`flex h-full w-full flex-col pb-1 ${isCompact ? "gap-0.5" : "gap-1.5"}`}
+                >
+                  {cellAbsences.map((absence) => (
+                    <AbsenceCard
+                      key={absence.id}
+                      type={absenceLabel(absence.type)}
+                      reason={absence.reason}
+                      isCompact={isCompact}
+                    />
+                  ))}
+                  {cellShifts.map((shift) => (
+                    <ShiftCard
+                      key={shift.id}
+                      role={shift.role}
+                      time={shift.time}
+                      status={shift.status}
+                      indicator={shift.indicator}
+                      zone={shift.zone}
+                      id={shift.id}
+                      startTime={shift.startTime}
+                      endTime={shift.endTime}
+                      isCompact={isCompact}
+                      confirmedAt={shift.confirmedAt}
+                      hasConflict={conflictedShiftIds?.has(shift.id)}
+                      onClick={() => onSelectShift(shift.id)}
+                      onTimeChange={
+                        onTimeChange
+                          ? (newStart, newEnd) => onTimeChange(shift.id, newStart, newEnd)
+                          : undefined
+                      }
+                    />
+                  ))}
+                  {cellProposals
+                    .filter((p) => p.type !== "delete")
+                    .map((proposal) => (
+                      <GhostShiftCard
+                        key={proposal.id}
+                        proposal={proposal as Exclude<typeof proposal, { type: "delete" }>}
+                        employeeName={employee.name}
+                        isCompact={isCompact}
+                        onApprove={() => void onApproveProposal?.(proposal.id)}
+                        onReject={() => onRejectProposal?.(proposal.id)}
+                      />
+                    ))}
+                </div>
+              ) : null}
+            </MatrixCell>
+          );
+        })}
       </div>
-
-      {/* Day cells — fixed width for horizontal scroll */}
-      {days.map((day) => {
-        const cellShifts = shiftsByEmployeeDay.get(`${employee.id}::${day.id}`) ?? [];
-        const cellAbsences = absencesByEmployeeDay.get(`${employee.id}::${day.id}`) ?? [];
-        const cellProposals = proposalsByEmployeeDay?.get(`${employee.id}::${day.id}`) ?? [];
-        const hasContent =
-          cellShifts.length > 0 || cellAbsences.length > 0 || cellProposals.length > 0;
-
-        const absenceLabel = (type: string): "Sykdom" | "Ferie" | "Avspasering" => {
-          switch (type) {
-            case "sick_leave":
-              return "Sykdom";
-            case "vacation":
-              return "Ferie";
-            default:
-              return "Avspasering";
-          }
-        };
-
-        return (
-          <MatrixCell
-            key={day.id}
-            isToday={day.isToday}
-            id={`cell::${employee.id}::${day.id}`}
-            isCompact={isCompact}
-            dimmed={day.situation === "__dimmed__"}
-            enableDroppable={enableDroppable}
-            onAddClick={() => onCreateShift({ dateId: day.id, employeeId: employee.id })}
-            onContextMenu={(e) => {
-              e.preventDefault();
-              onAbsencePopover({ employeeId: employee.id, dateId: day.id });
-            }}
-          >
-            {hasContent ? (
-              <div
-                className={`flex h-full w-full flex-col pb-1 ${isCompact ? "gap-0.5" : "gap-1.5"}`}
-              >
-                {cellAbsences.map((absence) => (
-                  <AbsenceCard
-                    key={absence.id}
-                    type={absenceLabel(absence.type)}
-                    reason={absence.reason}
-                    isCompact={isCompact}
-                  />
-                ))}
-                {cellShifts.map((shift) => (
-                  <ShiftCard
-                    key={shift.id}
-                    role={shift.role}
-                    time={shift.time}
-                    status={shift.status}
-                    indicator={shift.indicator}
-                    zone={shift.zone}
-                    id={shift.id}
-                    startTime={shift.startTime}
-                    endTime={shift.endTime}
-                    isCompact={isCompact}
-                    confirmedAt={shift.confirmedAt}
-                    hasConflict={conflictedShiftIds?.has(shift.id)}
-                    onClick={() => onSelectShift(shift.id)}
-                    onTimeChange={
-                      onTimeChange
-                        ? (newStart, newEnd) => onTimeChange(shift.id, newStart, newEnd)
-                        : undefined
-                    }
-                  />
-                ))}
-                {cellProposals.map((proposal) => (
-                  <GhostShiftCard
-                    key={proposal.id}
-                    proposal={proposal}
-                    employeeName={employee.name}
-                    isCompact={isCompact}
-                    onApprove={() => void onApproveProposal?.(proposal.id)}
-                    onReject={() => onRejectProposal?.(proposal.id)}
-                  />
-                ))}
-              </div>
-            ) : null}
-          </MatrixCell>
-        );
-      })}
+      {missingProtocols && missingProtocols.length > 0 && (
+        <ShiftUnlockHint missingProtocols={missingProtocols} />
+      )}
     </div>
   );
 });

@@ -33,8 +33,14 @@ function getServiceClient(): ReturnType<typeof createClient> {
   return _client;
 }
 
-/** Build the engine-dispatch payload from a telemetry event */
-function buildPayload(event: SmartoutEvent) {
+/**
+ * Build the engine-dispatch payload from a telemetry event.
+ * Exported for contract testing (see __tests__/engine-event-contract.test.ts).
+ * Shape MUST match what supabase/functions/engine-dispatch/index.ts reads:
+ * engine-dispatch reads `payload.entity_id` and `payload.entity_type`
+ * directly from the top of the payload to populate engine_state.
+ */
+export function buildPayload(event: SmartoutEvent) {
   const eventType = toDotNotation(event.event);
   return {
     event_type: eventType,

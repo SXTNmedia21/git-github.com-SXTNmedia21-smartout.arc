@@ -10,18 +10,22 @@
  * Data: useMyShifts() for shift data.
  */
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import { View, Text, Pressable, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import Animated, { FadeIn } from "react-native-reanimated";
-import { Menu, Calendar, MoreHorizontal } from "lucide-react-native";
+import { Menu, MoreHorizontal, Plus, StickyNote } from "lucide-react-native";
 import { createStyles, useTheme, withOpacity } from "@/theme";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { ActionBar } from "@/components/navigation/ActionBar";
 import { useMyShifts } from "@/hooks/queries/use-my-shifts";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
+import { useSwapRequests } from "@/hooks/queries/use-swap-requests";
+import { useRespondToSwap, useCancelSwap } from "@/hooks/mutations/use-swap";
+import { SwapInboxCard } from "@/components/shift/SwapInboxCard";
+import { CreateDayInfoSheet } from "@/components/schedule/CreateDayInfoSheet";
 import type { Database } from "@smartout/supabase/database.types";
 
 type ScheduleShift = Database["public"]["Tables"]["schedule_shift"]["Row"];
@@ -94,6 +98,31 @@ export default function MyShiftsScreen() {
   const router = useRouter();
   const { data: shifts = [] } = useMyShifts();
   const { data: profile } = useMyProfile();
+  const { data: swapRequests = [] } = useSwapRequests();
+  const { respondToSwap } = useRespondToSwap();
+  const { cancelSwap } = useCancelSwap();
+
+  const handleSwapAccept = useCallback(
+    async (engineStateId: string) => {
+      await respondToSwap({ engine_state_id: engineStateId, accepted: true });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    },
+    [respondToSwap],
+  );
+
+  const handleSwapReject = useCallback(
+    async (engineStateId: string) => {
+      await respondToSwap({ engine_state_id: engineStateId, accepted: false });
+    },
+    [respondToSwap],
+  );
+
+  const handleSwapCancel = useCallback(
+    async (engineStateId: string) => {
+      await cancelSwap({ engine_state_id: engineStateId });
+    },
+    [cancelSwap],
+  );
 
   const weekGroups = useMemo((): WeekGroup[] => {
     const groups = new Map<number, ScheduleShift[]>();
@@ -112,6 +141,15 @@ export default function MyShiftsScreen() {
       ),
     }));
   }, [shifts]);
+
+  const [dayInfoSheetVisible, setDayInfoSheetVisible] = useState(false);
+  const [dayInfoDate, setDayInfoDate] = useState(() => new Date().toISOString().split("T")[0]);
+
+  const handleAddDayInfo = useCallback((date: string) => {
+    Haptics.selectionAsync();
+    setDayInfoDate(date);
+    setDayInfoSheetVisible(true);
+  }, []);
 
   const nextShift = shifts[0] ?? null;
   const thisWeekHours = weekGroups[0]?.totalHours ?? 0;
@@ -166,6 +204,31 @@ export default function MyShiftsScreen() {
           </View>
         </View>
 
+        {/* Swap Inbox */}
+        {swapRequests.length > 0 && (
+          <View style={styles.swapInbox}>
+            <Text style={styles.swapInboxTitle}>Bytteforespørsler</Text>
+            {swapRequests.map((swap) => {
+              const ctx = swap.context;
+              const isTarget = ctx.target_profile_id === profile?.profile_id;
+              const isRequester = ctx.requester_profile_id === profile?.profile_id;
+              return (
+                <SwapInboxCard
+                  key={swap.id}
+                  swap={swap}
+                  isTarget={isTarget}
+                  isRequester={isRequester}
+                  requesterName={ctx.requester_profile_id.slice(0, 8)}
+                  targetName={ctx.target_profile_id.slice(0, 8)}
+                  onAccept={handleSwapAccept}
+                  onReject={handleSwapReject}
+                  onCancel={handleSwapCancel}
+                />
+              );
+            })}
+          </View>
+        )}
+
         {/* Week Sections */}
         {weekGroups.map((group, gi) => (
           <View
@@ -174,7 +237,16 @@ export default function MyShiftsScreen() {
           >
             <View style={styles.weekHeader}>
               <Text style={styles.weekTitle}>Uke {group.weekNumber}</Text>
-              <Text style={styles.weekRange}>{group.dateRange}</Text>
+              <View style={styles.weekHeaderRight}>
+                <Pressable
+                  onPress={() => handleAddDayInfo(group.shifts[0].shift_date)}
+                  hitSlop={8}
+                  style={styles.addNoteBtn}
+                >
+                  <StickyNote size={14} color={theme.colors.mutedForeground} strokeWidth={1.5} />
+                </Pressable>
+                <Text style={styles.weekRange}>{group.dateRange}</Text>
+              </View>
             </View>
 
             {group.shifts.map((shift) => {
@@ -237,6 +309,24 @@ export default function MyShiftsScreen() {
           <Text style={styles.emptyText}>Ingen flere vakter planlagt</Text>
         </View>
       </ScrollView>
+
+      {/* Day info bottom sheet */}
+      <CreateDayInfoSheet
+        date={dayInfoDate}
+        visible={dayInfoSheetVisible}
+        onDismiss={() => setDayInfoSheetVisible(false)}
+      />
+
+      {/* Floating Action Button — create new shift */}
+      <Pressable
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          router.push("/(app)/(shifts)/create");
+        }}
+        style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
+      >
+        <Plus size={24} color="#ffffff" strokeWidth={2} />
+      </Pressable>
     </SafeAreaView>
   );
 }
@@ -336,6 +426,20 @@ const useStyles = createStyles((theme) => ({
     color: withOpacity(theme.colors.mutedForeground, 0.6),
   },
 
+  /* Swap Inbox */
+  swapInbox: {
+    gap: 8,
+    marginBottom: theme.spacing.page,
+  },
+  swapInboxTitle: {
+    fontSize: 12,
+    fontWeight: "600" as const,
+    letterSpacing: 1.5,
+    textTransform: "uppercase" as const,
+    color: withOpacity(theme.colors.brandOrange, 0.7),
+    marginBottom: 4,
+  },
+
   /* Week Section */
   weekSection: {
     marginBottom: theme.spacing.section,
@@ -354,6 +458,19 @@ const useStyles = createStyles((theme) => ({
     fontWeight: "300" as const,
     fontStyle: "italic" as const,
     color: theme.colors.foreground,
+  },
+  weekHeaderRight: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 8,
+  },
+  addNoteBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: theme.isDark ? "rgba(255,255,255,0.06)" : theme.colors.muted,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
   },
   weekRange: {
     fontSize: 10,
@@ -459,5 +576,23 @@ const useStyles = createStyles((theme) => ({
     letterSpacing: 2,
     textTransform: "uppercase" as const,
     color: withOpacity(theme.colors.mutedForeground, 0.4),
+  },
+
+  /* Floating Action Button */
+  fab: {
+    position: "absolute" as const,
+    bottom: 100,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: theme.colors.brandOrange,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    ...theme.shadows.lg,
+  },
+  fabPressed: {
+    transform: [{ scale: 0.92 }],
+    opacity: 0.9,
   },
 }));

@@ -35,18 +35,28 @@ export function useGovernanceOverview() {
 
       const protocolIds = protocols.map((p: { protocol_id: string }) => p.protocol_id);
 
-      // Fetch all assignments for these protocols (workspace-scoped via protocol)
+      // Fetch all assignments for these protocols with progress columns
       const { data: assignments, error: assignmentError } = await supabase
         .from("protocol_assignment")
-        .select("protocol_id, status")
+        .select(
+          "protocol_id, status, procedures_total, procedures_completed, tests_total, tests_passed, confirmations_total, confirmations_signed",
+        )
         .in("protocol_id", protocolIds);
 
       if (assignmentError) throw assignmentError;
 
-      // Aggregate counts per protocol
+      // Aggregate counts per protocol (all 6 statuses)
       const countMap = new Map<
         string,
-        { completed: number; pending: number; expired: number; total: number }
+        {
+          completed: number;
+          pending: number;
+          expired: number;
+          not_started: number;
+          in_progress: number;
+          waived: number;
+          total: number;
+        }
       >();
 
       for (const a of assignments ?? []) {
@@ -54,13 +64,33 @@ export function useGovernanceOverview() {
           completed: 0,
           pending: 0,
           expired: 0,
+          not_started: 0,
+          in_progress: 0,
+          waived: 0,
           total: 0,
         };
         existing.total++;
-        if (a.status === "completed") existing.completed++;
-        else if (a.status === "pending") existing.pending++;
-        else if (a.status === "expired") existing.expired++;
+        const status = a.status as string;
+        if (status === "completed") existing.completed++;
+        else if (status === "pending") existing.pending++;
+        else if (status === "expired") existing.expired++;
+        else if (status === "not_started") existing.not_started++;
+        else if (status === "in_progress") existing.in_progress++;
+        else if (status === "waived") existing.waived++;
         countMap.set(a.protocol_id, existing);
+      }
+
+      // Build progress-weighted completion map
+      const progressMap = new Map<string, { totalSteps: number; completedSteps: number }>();
+      for (const a of assignments ?? []) {
+        const existing = progressMap.get(a.protocol_id) ?? { totalSteps: 0, completedSteps: 0 };
+        const total =
+          (a.procedures_total ?? 0) + (a.tests_total ?? 0) + (a.confirmations_total ?? 0);
+        const done =
+          (a.procedures_completed ?? 0) + (a.tests_passed ?? 0) + (a.confirmations_signed ?? 0);
+        existing.totalSteps += total;
+        existing.completedSteps += done;
+        progressMap.set(a.protocol_id, existing);
       }
 
       // Build overview items
@@ -76,8 +106,19 @@ export function useGovernanceOverview() {
             completed: 0,
             pending: 0,
             expired: 0,
+            not_started: 0,
+            in_progress: 0,
+            waived: 0,
             total: 0,
           };
+          const progress = progressMap.get(p.protocol_id);
+          const completionPercent =
+            progress && progress.totalSteps > 0
+              ? Math.round((progress.completedSteps / progress.totalSteps) * 100)
+              : counts.total > 0
+                ? Math.round((counts.completed / counts.total) * 100)
+                : 0;
+
           return {
             protocolId: p.protocol_id,
             protocolName: p.name,
@@ -87,8 +128,10 @@ export function useGovernanceOverview() {
             completedCount: counts.completed,
             pendingCount: counts.pending,
             expiredCount: counts.expired,
-            completionPercent:
-              counts.total > 0 ? Math.round((counts.completed / counts.total) * 100) : 0,
+            notStartedCount: counts.not_started,
+            inProgressCount: counts.in_progress,
+            waivedCount: counts.waived,
+            completionPercent,
           };
         },
       );

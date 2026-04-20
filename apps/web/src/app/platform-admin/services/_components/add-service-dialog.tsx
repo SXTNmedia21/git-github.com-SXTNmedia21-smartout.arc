@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { emit } from "@smartout/telemetry";
 import { toast } from "sonner";
 
 import {
@@ -74,6 +75,19 @@ export function AddServiceDialog({ open, onOpenChange }: Props) {
       return res.json();
     },
     onSuccess: () => {
+      void emit({
+        event: "service_config created",
+        workspace_id: null,
+        actor_id: "",
+        properties: {
+          entity: {
+            entity_type: "service_config",
+            entity_id: slug || slugify(name),
+            entity_label: name,
+          },
+          data: { slug: slug || slugify(name), type },
+        },
+      });
       queryClient.invalidateQueries({
         queryKey: ["platform-admin", "services", "config"],
       });

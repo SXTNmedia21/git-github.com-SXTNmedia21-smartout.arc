@@ -129,7 +129,7 @@ export async function contractRoutes(app: FastifyInstance) {
     const { data: contract, error } = await supabase
       .from("contract")
       .select(
-        "*, template:template_id(content_html, placeholders, header_html, footer_html, content_css, accent_color)",
+        "*, template:template_id(content_html, placeholders, header_html, footer_html, content_css, accent_color, attachments)",
       )
       .eq("contract_id", id)
       .single();
@@ -160,6 +160,16 @@ export async function contractRoutes(app: FastifyInstance) {
           source: string;
           default_value?: string;
           required: boolean;
+        }> | null;
+        attachments: Array<{
+          id: string;
+          title?: string;
+          file_name?: string;
+          file_path?: string;
+          file_size?: number;
+          mime_type?: string;
+          content_html?: string;
+          uploaded_at?: string;
         }> | null;
       } | null;
 
@@ -248,6 +258,83 @@ export async function contractRoutes(app: FastifyInstance) {
         html: fullHtml,
         name: contract.title ?? "Smartout Contract",
       });
+
+      // Attach template attachments as additional documents in DocuSeal.
+      // Two variants: HTML content (inline vedlegg) or file storage (PDF uploads).
+      const templateAttachments = template?.attachments ?? [];
+      if (templateAttachments.length > 0) {
+        const attachmentDocs: Array<{ name: string; html?: string; file?: string }> = [];
+
+        for (const att of templateAttachments) {
+          if (att.content_html) {
+            // HTML vedlegg — wrap in a styled document matching the contract branding
+            const attHtml = `<!DOCTYPE html>
+<html lang="no"><head><meta charset="UTF-8">
+<style>
+  body { font-family: Inter, sans-serif; margin: 0; padding: 40px; color: #1a1a2e; }
+  h2, h3 { color: ${accent}; }
+  table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+  th, td { border: 1px solid #e5e7eb; padding: 8px 12px; text-align: left; font-size: 0.9em; }
+  th { background: #f9fafb; font-weight: 600; }
+  ul { padding-left: 1.5em; }
+  li { margin-bottom: 0.3em; }
+</style></head>
+<body>${att.content_html}</body></html>`;
+            attachmentDocs.push({
+              name: att.title ?? att.id,
+              html: attHtml,
+            });
+          } else if (att.file_path) {
+            // File vedlegg — generate a signed URL for DocuSeal to download
+            const { data: signedUrl } = await supabase.storage
+              .from("contract-attachments")
+              .createSignedUrl(att.file_path, 300);
+
+            if (signedUrl?.signedUrl) {
+              attachmentDocs.push({
+                name: att.file_name ?? att.title ?? att.id,
+                file: signedUrl.signedUrl,
+              });
+            }
+          }
+        }
+
+        if (attachmentDocs.length > 0) {
+          await getDocuseal().updateTemplateDocuments(dsTemplate.id, {
+            documents: attachmentDocs,
+          });
+        }
+      }
+
+      // Also attach per-contract attachments (uploaded specifically for this contract)
+      const { data: contractAttachments } = await supabase
+        .from("contract_attachment")
+        .select("filename, storage_path, mime_type")
+        .eq("contract_id", id)
+        .order("display_order");
+
+      if (contractAttachments && contractAttachments.length > 0) {
+        const perContractDocs: Array<{ name: string; file: string }> = [];
+
+        for (const att of contractAttachments) {
+          const { data: signedUrl } = await supabase.storage
+            .from("contract-attachments")
+            .createSignedUrl(att.storage_path, 300);
+
+          if (signedUrl?.signedUrl) {
+            perContractDocs.push({
+              name: att.filename,
+              file: signedUrl.signedUrl,
+            });
+          }
+        }
+
+        if (perContractDocs.length > 0) {
+          await getDocuseal().updateTemplateDocuments(dsTemplate.id, {
+            documents: perContractDocs,
+          });
+        }
+      }
 
       // Fallback to config values if sender/recipient not set on contract
       const senderEmail = contract.sender_email || config.SMARTOUT_CONTACT_EMAIL;

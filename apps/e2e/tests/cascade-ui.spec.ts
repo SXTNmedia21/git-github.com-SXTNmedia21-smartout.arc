@@ -92,30 +92,36 @@ test.describe("Cascade UI — Season Planning", () => {
   });
 
   test("should navigate to season page", async ({ page }) => {
-    await page.goto("/dashboard/season");
+    await page.goto("/dashboard/year-wheel");
     await page.waitForLoadState("networkidle", { timeout: 15000 }).catch(() => {});
-    expect(page.url()).toContain("/dashboard/season");
+    expect(page.url()).toContain("/dashboard/year-wheel");
 
-    // Should show the page header
-    await expect(page.locator("text=Sesongplanlegging").first()).toBeVisible({ timeout: 10000 });
+    // The page was refactored to a timeline-first layout. The "Sesonger" section
+    // heading (h3) is always rendered below the timeline canvas, replacing the
+    // old "Sesongplanlegging" page header.
+    await expect(page.locator('h3:has-text("Sesonger")').first()).toBeVisible({ timeout: 10000 });
   });
 
   test("should show planning cycle selector", async ({ page }) => {
-    await page.goto("/dashboard/season", { waitUntil: "domcontentloaded" });
+    await page.goto("/dashboard/year-wheel", { waitUntil: "domcontentloaded" });
     await page.waitForTimeout(3000);
 
-    // The planning cycle selector or season heading should be visible
-    const cycleLabel = page.locator("text=Planperiode").first();
-    const seasonHeading = page.locator("text=Sesongplanlegging").first();
+    // The dedicated PlanningCycleSelector (with "Planperiode" label) was removed
+    // in the timeline refactor. Season management is now handled via the timeline
+    // canvas and the "Sesonger" list panel below it. We verify the page is
+    // functional by checking either the "Sesonger" panel or the date picker
+    // input (always rendered on page load).
+    const seasonsHeading = page.locator('h3:has-text("Sesonger")').first();
+    const datePicker = page.locator('input[type="date"]').first();
 
-    const cycleVisible = await cycleLabel.isVisible({ timeout: 10000 }).catch(() => false);
-    const headingVisible = await seasonHeading.isVisible({ timeout: 3000 }).catch(() => false);
+    const seasonsVisible = await seasonsHeading.isVisible({ timeout: 10000 }).catch(() => false);
+    const datePickerVisible = await datePicker.isVisible({ timeout: 3000 }).catch(() => false);
 
-    expect(cycleVisible || headingVisible).toBe(true);
+    expect(seasonsVisible || datePickerVisible).toBe(true);
   });
 
   test("should show Hendelser tab in season page", async ({ page }) => {
-    await page.goto("/dashboard/season");
+    await page.goto("/dashboard/year-wheel");
     await page.waitForLoadState("networkidle", { timeout: 15000 }).catch(() => {});
 
     // Select a season first if there is one
@@ -141,7 +147,9 @@ test.describe("Cascade UI — Season Planning", () => {
 
       // Look for calendar navigation or empty state
       const calendarOrEmpty = page
-        .locator("text=Man, text=Ny hendelse, text=Ingen hendelser")
+        .locator("text=Man")
+        .or(page.locator("text=Ny hendelse"))
+        .or(page.locator("text=Ingen hendelser"))
         .first();
       await expect(calendarOrEmpty)
         .toBeVisible({ timeout: 5000 })
@@ -152,7 +160,7 @@ test.describe("Cascade UI — Season Planning", () => {
   });
 
   test("should open planning cycle dropdown", async ({ page }) => {
-    await page.goto("/dashboard/season");
+    await page.goto("/dashboard/year-wheel");
     await page.waitForLoadState("networkidle", { timeout: 15000 }).catch(() => {});
 
     // Find the cycle selector trigger

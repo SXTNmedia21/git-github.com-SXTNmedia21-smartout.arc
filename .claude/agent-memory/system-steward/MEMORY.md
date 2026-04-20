@@ -11,6 +11,11 @@
 
 - [test-coverage-map.md](test-coverage-map.md) — Playwright E2E test coverage map: what's tested, what's missing, known fake tests, seed helper gaps.
 
+### Council History
+
+- [gate-migration-council-wave-2.md](gate-migration-council-wave-2.md) — 2026-04-18. APPROVE WITH CHANGES, rescoped to Season-only. Waves 2B/2C blocked on P1-P3 / Q1-Q3. Chair reversed Phase 3 on ordering + Trust Gate + shared-fn scope.
+- [learning_audit_inflation_pattern.md](learning_audit_inflation_pattern.md) — Grep-based briefings inflate scope + miss integrity breaches. Verified twice (Web Perf 2026-04-16, Gate Migration 2026-04-18). Always pair with code-trace.
+
 ## Quick Reference: Cascade Red Flags
 
 - **Side logic**: Any plan creating business logic beside cascade → reject unless ADR-justified

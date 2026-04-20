@@ -14,6 +14,7 @@ import { View, Text, Pressable, ScrollView } from "react-native";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
+import { useQuery } from "@tanstack/react-query";
 import {
   CalendarDays,
   BookOpen,
@@ -25,6 +26,7 @@ import {
 } from "lucide-react-native";
 import { createStyles, useTheme, withOpacity } from "@/theme";
 import { Avatar } from "@/components/common/Avatar";
+import { supabase } from "@/lib/supabase";
 import type { Colleague } from "@/hooks/queries/use-shift-colleagues";
 import type { DayInfo } from "@/hooks/queries/use-day-info";
 import type { Database } from "@smartout/supabase/database.types";
@@ -81,10 +83,36 @@ function hoursUntilShift(shift: ScheduleShift): string {
   return `Live om ${mins}m`;
 }
 
+/**
+ * Fetches the handoff note from department_session for this shift's
+ * department + date. This is the leader's prep note for the day.
+ */
+function useLeaderNote(shift: ScheduleShift) {
+  return useQuery({
+    queryKey: ["leader-note", shift.department_id, shift.shift_date],
+    queryFn: async () => {
+      if (!shift.department_id) return null;
+
+      const { data, error } = await supabase
+        .from("department_session")
+        .select("handoff_notes")
+        .eq("department_id", shift.department_id)
+        .eq("session_date", shift.shift_date)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data?.handoff_notes ?? null;
+    },
+    enabled: !!shift.department_id,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
 export function BeforeShiftView({ shift, colleagues = [], dayInfo }: BeforeShiftViewProps) {
   const styles = useStyles();
   const theme = useTheme();
   const router = useRouter();
+  const { data: leaderNote } = useLeaderNote(shift);
 
   const dateLabel = useMemo(() => formatDateLabel(shift.shift_date), [shift.shift_date]);
   const countdown = useMemo(() => hoursUntilShift(shift), [shift]);
@@ -130,14 +158,16 @@ export function BeforeShiftView({ shift, colleagues = [], dayInfo }: BeforeShift
               {formatShiftTime(shift.start_time)} — {formatShiftTime(shift.end_time)}
             </Text>
 
-            {/* Leader note — placeholder for now */}
-            <View style={styles.leaderNote}>
-              <UserRound size={16} color="rgba(255,219,204,0.8)" strokeWidth={1.5} />
-              <View>
-                <Text style={styles.leaderNoteLabel}>LEADER NOTE</Text>
-                <Text style={styles.leaderNoteText}>Husk bordoppsett før åpning</Text>
+            {/* Leader note — from department_session.handoff_notes */}
+            {leaderNote ? (
+              <View style={styles.leaderNote}>
+                <UserRound size={16} color="rgba(255,219,204,0.8)" strokeWidth={1.5} />
+                <View>
+                  <Text style={styles.leaderNoteLabel}>LEADER NOTE</Text>
+                  <Text style={styles.leaderNoteText}>{leaderNote}</Text>
+                </View>
               </View>
-            </View>
+            ) : null}
           </View>
         </Pressable>
       </Animated.View>

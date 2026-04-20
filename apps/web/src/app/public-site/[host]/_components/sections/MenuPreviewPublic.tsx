@@ -1,3 +1,4 @@
+import Image from "next/image";
 import type { PublicSectionProps } from "./types";
 
 type PreviewItem = {
@@ -35,11 +36,15 @@ export function MenuPreviewPublic({ content, assets }: PublicSectionProps) {
                 style={{ borderRadius: "var(--site-radius)", boxShadow: "var(--site-shadow)" }}
               >
                 {image && (
-                  <img
-                    src={`${assets.storageBaseUrl}/${image.storagePath}`}
-                    alt={image.alt}
-                    className="h-48 w-full object-cover"
-                  />
+                  <div className="relative h-48 w-full">
+                    <Image
+                      src={`${assets.storageBaseUrl}/${image.storagePath}`}
+                      alt={image.alt}
+                      fill
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      className="object-cover"
+                    />
+                  </div>
                 )}
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-2">

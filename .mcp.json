@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "strike-mcp": {
+      "command": "node",
+      "args": ["${CLAUDE_PROJECT_DIR}/services/strike-mcp/dist/index.js"],
+      "env": {
+        "BUBBLE_APP_URL": "https://smartout.io",
+        "BUBBLE_API_TOKEN": "${BUBBLE_API_TOKEN}",
+        "STRIKE_STAGING_DIR": "${CLAUDE_PROJECT_DIR}/supabase/bubble-data"
+      }
+    }
+  }
+}

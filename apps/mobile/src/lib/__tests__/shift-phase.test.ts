@@ -31,6 +31,7 @@ function makeShift(overrides: Partial<ScheduleShift> = {}): ScheduleShift {
     role: "server",
     status: "published",
     is_published: true,
+    source: "human",
     breaks: 0,
     work_hours: 7,
     day_category: "morning",
@@ -127,7 +128,8 @@ describe("calculateShiftPhase", () => {
     });
 
     it("returns no_shift with nextShift when shift is within 24h but outside beforeShiftHours", () => {
-      // Shift at 16:00 UTC, now is 08:00 UTC → 8h away, outside default 4h window
+      // Shift at 16:00 UTC, now is 08:00 UTC → 8h away. Pass explicit
+      // beforeShiftHours=4 so assertion is independent of DEFAULT_BEFORE_SHIFT_HOURS.
       const shift = makeShift();
       const now = new Date("2026-03-18T08:00:00Z");
 
@@ -135,6 +137,7 @@ describe("calculateShiftPhase", () => {
         shifts: [shift],
         activeTimeEntry: null,
         now,
+        beforeShiftHours: 4,
       });
 
       expect(result.phase).toBe("no_shift");

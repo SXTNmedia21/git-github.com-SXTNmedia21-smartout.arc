@@ -9,14 +9,23 @@
     },
     "typecheck": {
       "dependsOn": ["^build"],
-      "outputs": []
+      "outputs": [],
+      "inputs": [
+        "src/**/*.ts",
+        "src/**/*.tsx",
+        "src/**/*.d.ts",
+        "tsconfig.json",
+        "tsconfig.*.json",
+        "package.json"
+      ]
     },
     "lint": {
       "outputs": []
     },
     "test": {
-      "dependsOn": ["build"],
-      "outputs": ["coverage/**"]
+      "dependsOn": ["^typecheck"],
+      "outputs": ["coverage/**"],
+      "inputs": ["src/**", "vitest.config.ts", "vitest.config.mts", "tsconfig.json", "package.json"]
     },
     "dev": {
       "cache": false,

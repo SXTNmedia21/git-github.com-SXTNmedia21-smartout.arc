@@ -1,14 +1,16 @@
 /**
- * LiveKit call adapter for React Native.
+ * LiveKit call adapter for React Native AND Expo Web.
  * Manages Room lifecycle, AudioSession, mic toggle, and active speaker detection.
- * Platform-specific: uses @livekit/react-native AudioSession for audio routing.
+ * Native routes audio via @livekit/react-native AudioSession; web uses the
+ * browser's built-in WebRTC + autoplay rules, so AudioSession is a no-op stub.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Platform } from "react-native";
 import { Room, RoomEvent, type Participant } from "livekit-client";
 import type { CallSession } from "@smartout/walkie-talkie";
+import { emit } from "@smartout/telemetry";
 
-// AudioSession uses native WebRTC modules — only available on iOS/Android, crashes on web
+// AudioSession uses native WebRTC modules — only available on iOS/Android
 const AudioSession =
   Platform.OS !== "web"
     ? require("@livekit/react-native").AudioSession
@@ -38,9 +40,9 @@ export function useLiveKitCall({
   callSession,
   onDisconnected,
 }: UseLiveKitCallParams): LiveKitCallState {
-  // On web, Room is not created — all hooks still run unconditionally (Rules of Hooks).
-  // The room value is null on web, and effects that reference it are safely no-ops.
-  const [room] = useState<Room | null>(() => (Platform.OS !== "web" ? new Room() : null));
+  // Room is created on both native and web. livekit-client's Room works in any
+  // environment with WebRTC — the browser provides it natively.
+  const [room] = useState<Room | null>(() => new Room());
   const [isConnected, setIsConnected] = useState(false);
   const [isMicEnabled, setIsMicEnabled] = useState(false);
   const [activeSpeakers, setActiveSpeakers] = useState<string[]>([]);
@@ -115,14 +117,44 @@ export function useLiveKitCall({
 
     setIsConnected(true);
     setParticipantCount(room.remoteParticipants.size + 1);
-  }, [token, serverUrl, callSession?.audioPolicy, room]);
+
+    if (callSession) {
+      void emit({
+        event: "channel.call.started",
+        workspace_id: callSession.workspaceId,
+        actor_id: callSession.startedBy ?? "",
+        properties: {
+          channel_id: callSession.channelId,
+          call_type: callSession.callType,
+          call_session_id: callSession.id,
+        },
+        entity: { entity_type: "channel", entity_id: callSession.channelId },
+      });
+    }
+  }, [token, serverUrl, callSession, room]);
 
   const disconnect = useCallback(async () => {
     if (!room) return;
     await room.disconnect();
     setIsConnected(false);
     setIsMicEnabled(false);
-  }, [room]);
+
+    if (callSession) {
+      void emit({
+        event: "channel.call.ended",
+        workspace_id: callSession.workspaceId,
+        actor_id: callSession.startedBy ?? "",
+        properties: {
+          channel_id: callSession.channelId,
+          call_type: callSession.callType,
+          call_session_id: callSession.id,
+          duration_seconds: 0,
+          max_participants: 0,
+        },
+        entity: { entity_type: "channel", entity_id: callSession.channelId },
+      });
+    }
+  }, [room, callSession]);
 
   const toggleMic = useCallback(async () => {
     if (!room?.localParticipant) return;
@@ -138,22 +170,6 @@ export function useLiveKitCall({
       room.disconnect();
     };
   }, [room]);
-
-  // Calls are disabled on web — return a safe no-op stub so web bundles don't
-  // need to negotiate WebRTC/AudioSession availability at runtime.
-  // All hooks above have already run unconditionally (Rules of Hooks compliant).
-  if (Platform.OS === "web") {
-    return {
-      room: null,
-      isConnected: false,
-      isMicEnabled: false,
-      activeSpeakers: [],
-      participantCount: 0,
-      connect: async () => {},
-      disconnect: async () => {},
-      toggleMic: async () => {},
-    };
-  }
 
   return {
     room,

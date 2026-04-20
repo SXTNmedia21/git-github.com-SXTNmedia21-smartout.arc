@@ -1,5 +1,5 @@
 {
-  "last_sync": "2026-03-06T12:00:00Z",
+  "last_sync": "2026-04-10T12:07:21Z",
   "sync_status": "complete",
-  "notes": "Schedule voice assistant: chat-first model, agent controls, ghost cards design captured."
+  "notes": "Dashboard settings shell localization captured; settings title/sidebar now locale-driven with nb/en keys."
 }

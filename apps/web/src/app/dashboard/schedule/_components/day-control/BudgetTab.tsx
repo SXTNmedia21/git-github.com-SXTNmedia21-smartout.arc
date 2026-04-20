@@ -37,7 +37,7 @@ export function BudgetTab({ dateId }: { dateId: string | null }) {
     return (
       <div className="flex h-40 items-center justify-center">
         <p className="text-muted-foreground text-sm">
-          Ingen budsjett satt for denne dagen. Sett opp sesongbudsjett under Sesong-fanen.
+          Ingen budsjett satt for denne dagen. Sett opp sesongbudsjett under Årshjul.
         </p>
       </div>
     );

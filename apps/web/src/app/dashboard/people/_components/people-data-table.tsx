@@ -18,6 +18,7 @@ import {
   Download,
 } from "lucide-react";
 import { toast } from "sonner";
+import { handleGatedResult } from "@/lib/gated-result";
 import { EmployeeProfileCard } from "./employee-profile-card";
 import { InviteMemberDialog } from "./invite-member-dialog";
 import { PeopleRowActions } from "./people-row-actions";
@@ -36,6 +37,7 @@ import {
   resendInvitation,
   reactivateProfile,
   bulkUpdateProfiles,
+  sendLoginCode,
 } from "../_actions/people-actions";
 import type { Enums } from "@smartout/supabase";
 
@@ -170,23 +172,29 @@ export function PeopleDataTable({
   }
 
   async function handleRoleChange(profileId: string, newRole: string) {
-    try {
-      await updateProfileRole(profileId, workspaceId, newRole as Enums<"profile_role">);
-      toast.success(`Role updated to ${newRole}`);
-      onRefresh();
-    } catch {
-      toast.error("Failed to update role");
-    }
+    const result = await updateProfileRole(
+      profileId,
+      workspaceId,
+      newRole as Enums<"profile_role">,
+    );
+    handleGatedResult(result, {
+      appliedMessage: `Rolle oppdatert til ${newRole}`,
+      proposedMessage: "Rolleendring sendt til godkjenning",
+      deniedMessage: () => "Kunne ikke oppdatere rolle",
+      onApplied: onRefresh,
+      onProposed: onRefresh,
+    });
   }
 
   async function handleDepartmentChange(profileId: string, departmentId: string) {
-    try {
-      await updateProfileDepartment(profileId, workspaceId, departmentId);
-      toast.success("Department updated");
-      onRefresh();
-    } catch {
-      toast.error("Failed to update department");
-    }
+    const result = await updateProfileDepartment(profileId, workspaceId, departmentId);
+    handleGatedResult(result, {
+      appliedMessage: "Avdeling oppdatert",
+      proposedMessage: "Avdelingsendring sendt til godkjenning",
+      deniedMessage: () => "Kunne ikke oppdatere avdeling",
+      onApplied: onRefresh,
+      onProposed: onRefresh,
+    });
   }
 
   function handleConfirmAction(action: ConfirmAction) {
@@ -199,13 +207,14 @@ export function PeopleDataTable({
           confirmLabel: "Deactivate",
           variant: "destructive",
           onConfirm: async () => {
-            try {
-              await deactivateProfile(action.profileId, workspaceId);
-              toast.success(`${action.name} has been deactivated`);
-              onRefresh();
-            } catch {
-              toast.error("Failed to deactivate employee");
-            }
+            const result = await deactivateProfile(action.profileId, workspaceId);
+            handleGatedResult(result, {
+              appliedMessage: `${action.name} er deaktivert`,
+              proposedMessage: "Deaktivering sendt til godkjenning",
+              deniedMessage: () => "Kunne ikke deaktivere ansatt",
+              onApplied: onRefresh,
+              onProposed: onRefresh,
+            });
             setConfirmDialog((prev) => ({ ...prev, open: false }));
           },
         });
@@ -255,13 +264,14 @@ export function PeopleDataTable({
           confirmLabel: "Reactivate",
           variant: "default",
           onConfirm: async () => {
-            try {
-              await reactivateProfile(action.profileId, workspaceId);
-              toast.success(`${action.name} has been reactivated`);
-              onRefresh();
-            } catch {
-              toast.error("Failed to reactivate employee");
-            }
+            const result = await reactivateProfile(action.profileId, workspaceId);
+            handleGatedResult(result, {
+              appliedMessage: `${action.name} er reaktivert`,
+              proposedMessage: "Reaktivering sendt til godkjenning",
+              deniedMessage: () => "Kunne ikke reaktivere ansatt",
+              onApplied: onRefresh,
+              onProposed: onRefresh,
+            });
             setConfirmDialog((prev) => ({ ...prev, open: false }));
           },
         });
@@ -277,6 +287,17 @@ export function PeopleDataTable({
       onRefresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to resend invitation");
+    }
+  }
+
+  async function handleSendLoginCode(profileId: string, channel: "email" | "sms") {
+    if (!workspaceId) return;
+    try {
+      await sendLoginCode(profileId, workspaceId, channel);
+      const label = channel === "sms" ? "SMS" : "e-post";
+      toast.success(`Innloggingskode sendt via ${label}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Kunne ikke sende innloggingskode");
     }
   }
 
@@ -584,14 +605,23 @@ export function PeopleDataTable({
                 const profileIds = Array.from(selectedIds)
                   .map((id) => employees.find((emp) => emp.id === id)?.profileId)
                   .filter((pid): pid is string => !!pid);
-                try {
-                  await bulkUpdateProfiles(profileIds, workspaceId, { department_id: value });
-                  toast.success(`Updated department for ${profileIds.length} profiles`);
-                  setSelectedIds(new Set());
-                  onRefresh();
-                } catch {
-                  toast.error("Failed to update departments");
-                }
+                const result = await bulkUpdateProfiles(profileIds, workspaceId, {
+                  department_id: value,
+                });
+                const proposalCount = result.ok ? result.proposalIds.length : 0;
+                handleGatedResult(result, {
+                  appliedMessage: `Oppdaterte avdeling for ${profileIds.length} ansatte`,
+                  proposedMessage: `${proposalCount} avdelingsendring(er) sendt til godkjenning`,
+                  deniedMessage: () => "Kunne ikke oppdatere avdelinger",
+                  onApplied: () => {
+                    setSelectedIds(new Set());
+                    onRefresh();
+                  },
+                  onProposed: () => {
+                    setSelectedIds(new Set());
+                    onRefresh();
+                  },
+                });
                 e.target.value = "";
               }}
               className="border-border bg-card text-foreground rounded-lg border px-2 py-1.5 text-xs"
@@ -611,14 +641,21 @@ export function PeopleDataTable({
                 const profileIds = Array.from(selectedIds)
                   .map((id) => employees.find((emp) => emp.id === id)?.profileId)
                   .filter((pid): pid is string => !!pid);
-                try {
-                  await bulkUpdateProfiles(profileIds, workspaceId, { role: value });
-                  toast.success(`Updated role for ${profileIds.length} profiles`);
-                  setSelectedIds(new Set());
-                  onRefresh();
-                } catch {
-                  toast.error("Failed to update roles");
-                }
+                const result = await bulkUpdateProfiles(profileIds, workspaceId, { role: value });
+                const proposalCount = result.ok ? result.proposalIds.length : 0;
+                handleGatedResult(result, {
+                  appliedMessage: `Oppdaterte rolle for ${profileIds.length} ansatte`,
+                  proposedMessage: `${proposalCount} rolleendring(er) sendt til godkjenning`,
+                  deniedMessage: () => "Kunne ikke oppdatere roller",
+                  onApplied: () => {
+                    setSelectedIds(new Set());
+                    onRefresh();
+                  },
+                  onProposed: () => {
+                    setSelectedIds(new Set());
+                    onRefresh();
+                  },
+                });
                 e.target.value = "";
               }}
               className="border-border bg-card text-foreground rounded-lg border px-2 py-1.5 text-xs"
@@ -637,17 +674,24 @@ export function PeopleDataTable({
                   .map((id) => employees.find((emp) => emp.id === id)?.profileId)
                   .filter((pid): pid is string => !!pid);
                 const isActive = value === "active" || value === "trainee";
-                try {
-                  await bulkUpdateProfiles(profileIds, workspaceId, {
-                    status: value,
-                    is_active: isActive,
-                  });
-                  toast.success(`Updated status for ${profileIds.length} profiles`);
-                  setSelectedIds(new Set());
-                  onRefresh();
-                } catch {
-                  toast.error("Failed to update statuses");
-                }
+                const result = await bulkUpdateProfiles(profileIds, workspaceId, {
+                  status: value,
+                  is_active: isActive,
+                });
+                const proposalCount = result.ok ? result.proposalIds.length : 0;
+                handleGatedResult(result, {
+                  appliedMessage: `Oppdaterte status for ${profileIds.length} ansatte`,
+                  proposedMessage: `${proposalCount} statusendring(er) sendt til godkjenning`,
+                  deniedMessage: () => "Kunne ikke oppdatere statuser",
+                  onApplied: () => {
+                    setSelectedIds(new Set());
+                    onRefresh();
+                  },
+                  onProposed: () => {
+                    setSelectedIds(new Set());
+                    onRefresh();
+                  },
+                });
                 e.target.value = "";
               }}
               className="border-border bg-card text-foreground rounded-lg border px-2 py-1.5 text-xs"
@@ -678,17 +722,24 @@ export function PeopleDataTable({
                   confirmLabel: "Deactivate All",
                   variant: "destructive",
                   onConfirm: async () => {
-                    try {
-                      await bulkUpdateProfiles(profileIds, workspaceId, {
-                        status: "offboarding",
-                        is_active: false,
-                      });
-                      toast.success(`Deactivated ${profileIds.length} employees`);
-                      setSelectedIds(new Set());
-                      onRefresh();
-                    } catch {
-                      toast.error("Failed to deactivate employees");
-                    }
+                    const result = await bulkUpdateProfiles(profileIds, workspaceId, {
+                      status: "offboarding",
+                      is_active: false,
+                    });
+                    const proposalCount = result.ok ? result.proposalIds.length : 0;
+                    handleGatedResult(result, {
+                      appliedMessage: `Deaktiverte ${profileIds.length} ansatte`,
+                      proposedMessage: `${proposalCount} deaktivering(er) sendt til godkjenning`,
+                      deniedMessage: () => "Kunne ikke deaktivere ansatte",
+                      onApplied: () => {
+                        setSelectedIds(new Set());
+                        onRefresh();
+                      },
+                      onProposed: () => {
+                        setSelectedIds(new Set());
+                        onRefresh();
+                      },
+                    });
                     setConfirmDialog((prev) => ({ ...prev, open: false }));
                   },
                 });
@@ -837,6 +888,7 @@ export function PeopleDataTable({
                       onConfirmAction={handleConfirmAction}
                       onResendInvite={handleResendInvite}
                       onSendContract={setContractProfileId}
+                      onSendLoginCode={handleSendLoginCode}
                     />
                   </td>
                 </tr>
@@ -853,6 +905,7 @@ export function PeopleDataTable({
         isOpen={!!selectedEmployee}
         onClose={() => setSelectedEmployee(null)}
         onRefresh={onRefresh}
+        onSendContract={setContractProfileId}
       />
 
       {/* Invite Modal */}

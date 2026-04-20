@@ -1,0 +1,240 @@
+{
+  "entity": "swaprecords",
+  "bubble_type": "⏱️swaprecord",
+  "target_table": null,
+  "field_map": {
+    "Modified Date": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 18,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "Start date": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 18,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "Created By": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 18,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "Wanted by?": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "array"
+      ],
+      "occurrence_count": 15,
+      "sample_values": [
+        "array<1>",
+        "array<2>",
+        "array<1>"
+      ]
+    },
+    "Created Date": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 18,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "🏠 Department": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 18,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "Declined date?": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 21,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "🗓️ Shift": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 17,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "_id": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 18,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "Claimd by": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 3,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "Given to?": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 44,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "Approved by": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 3,
+      "sample_values": [
+        "string<32>"
+      ]
+    },
+    "_marketStatus": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 17,
+      "sample_values": [
+        "string<7>",
+        "string<7>",
+        "string<8>"
+      ]
+    },
+    "Reason": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 2,
+      "sample_values": [
+        "string<18>",
+        "string<33>"
+      ]
+    },
+    "🗓️ Shift satellite": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 18,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "🏰 Workspace": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 18,
+      "sample_values": [
+        "string<32>"
+      ]
+    }
+  },
+  "required_source_fields": [],
+  "skip_if_missing": [],
+  "known_quirks": [
+    "Council 2026-04-15 verdict: drop all 18 swaprecords. v3 swaps are engine_process workflow instances, not table rows.",
+    "Cutover notice REQUIRED: 14 pending swaps in Bubble are silently lost at migration. Employees affected: review with HR before cutover and either resolve in Bubble (approve/reject) OR notify employees to re-initiate in v3 day 1.",
+    "Apply step: do nothing for swaprecords. No engine_process instances are pre-seeded for migrated workspaces — they're created on demand by employee swap actions.",
+    "Future audit of dropped swaprecord IDs lives in raw Bubble export (out of strike-mcp scope); not preserved in v3."
+  ],
+  "last_verified": "2026-04-16T12:16:59.655Z",
+  "sample_record_count": 18,
+  "total_record_count": 18,
+  "v3_schema_hash": null,
+  "known_empty_source": true,
+  "approval_hash": "4b90f0cf61ada451d24e54d6a7c48f4d156323e664ba0eb0e1f951b9bc03bf4d"
+}

@@ -230,7 +230,8 @@ export function useShiftClock() {
         workspace_id: workspace.workspace_id,
         actor_id: profileId ?? "",
         properties: {
-          entity: { entity_type: "shift" as const, entity_id: shiftId },
+          entity_type: "shift" as const,
+          entity_id: shiftId,
           data: {
             shift_id: shiftId,
             time_entry_id: entry.time_entry_id,
@@ -327,7 +328,8 @@ export function useShiftClock() {
         workspace_id: workspace.workspace_id,
         actor_id: profileId ?? "",
         properties: {
-          entity: { entity_type: "shift" as const, entity_id: state.shiftId },
+          entity_type: "shift" as const,
+          entity_id: state.shiftId,
           data: {
             shift_id: state.shiftId,
             time_entry_id: state.timeEntryId,
@@ -339,7 +341,9 @@ export function useShiftClock() {
         },
       });
 
-      // Notify department managers (fire-and-forget)
+      // Notify department managers + emit "shift completed" (fire-and-forget).
+      // The admin-side completeShift mutation emits "shift completed" but the
+      // employee punch-out path was missing it — both paths set status=completed.
       const workMinutes = totalMinutes - breakMinutes;
       const hours = (workMinutes / 60).toFixed(1);
       void (async () => {
@@ -349,6 +353,20 @@ export function useShiftClock() {
           .eq("schedule_shift_id", state.shiftId!)
           .single();
         if (shift?.department_id) {
+          void emit({
+            event: "shift completed",
+            workspace_id: workspace.workspace_id,
+            actor_id: profileId ?? "",
+            properties: {
+              entity_type: "shift" as const,
+              entity_id: state.shiftId!,
+              data: {
+                shift_ids: [state.shiftId!],
+                department_id: shift.department_id,
+              },
+            },
+          });
+
           // SAFETY: Supabase join returns a union type; runtime shape matches { display_name: string }
           const profile = shift.profile as unknown as { display_name: string } | null; // SAFETY: Supabase join returns union type; runtime shape matches the cast
           void notifyDepartmentManagers(supabase, {
@@ -408,7 +426,8 @@ export function useShiftClock() {
         workspace_id: workspace.workspace_id,
         actor_id: profileId ?? "",
         properties: {
-          entity: { entity_type: "shift" as const, entity_id: state.shiftId },
+          entity_type: "shift" as const,
+          entity_id: state.shiftId,
           data: {
             shift_id: state.shiftId,
             time_entry_id: state.timeEntryId,
@@ -467,7 +486,8 @@ export function useShiftClock() {
         workspace_id: workspace.workspace_id,
         actor_id: profileId ?? "",
         properties: {
-          entity: { entity_type: "shift" as const, entity_id: state.shiftId },
+          entity_type: "shift" as const,
+          entity_id: state.shiftId,
           data: {
             shift_id: state.shiftId,
             time_entry_id: state.timeEntryId,
@@ -575,7 +595,8 @@ export function useShiftClock() {
         workspace_id: workspace.workspace_id,
         actor_id: profileId ?? "",
         properties: {
-          entity: { entity_type: "shift" as const, entity_id: shiftId },
+          entity_type: "shift" as const,
+          entity_id: shiftId,
           data: {
             shift_id: shiftId,
             department_id: departmentId ?? workspace.workspace_id,
@@ -589,7 +610,8 @@ export function useShiftClock() {
         workspace_id: workspace.workspace_id,
         actor_id: profileId ?? "",
         properties: {
-          entity: { entity_type: "shift" as const, entity_id: shiftId },
+          entity_type: "shift" as const,
+          entity_id: shiftId,
           data: {
             shift_id: shiftId,
             time_entry_id: entry.time_entry_id,
@@ -704,7 +726,8 @@ export function useShiftClock() {
         workspace_id: workspace.workspace_id,
         actor_id: profileId ?? "",
         properties: {
-          entity: { entity_type: "shift" as const, entity_id: shiftId },
+          entity_type: "shift" as const,
+          entity_id: shiftId,
           data: {
             shift_id: shiftId,
             time_entry_id: entry.time_entry_id,

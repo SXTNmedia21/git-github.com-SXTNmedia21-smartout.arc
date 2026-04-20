@@ -169,13 +169,16 @@ export function useSupplements(shiftId: string, workspaceId: string): Supplement
         return old ? [optimistic, ...old] : [optimistic];
       });
 
+      // Column names per packages/supabase manual_supplement Insert type:
+      // id, added_by, schedule_shift_id (not manual_supplement_id/profile_id/shift_id).
+      // Fix surfaced 2026-04-17 by ADR-0134 schema validation at enqueue.
       await enqueue("supplement_claim", {
-        manual_supplement_id: claimId,
+        id: claimId,
+        added_by: profileId,
+        schedule_shift_id: shiftId,
         supplement_rule_id: supplementRuleId,
-        shift_id: shiftId,
-        profile_id: profileId,
         workspace_id: claimWorkspaceId,
-        comment: comment ?? null,
+        employee_comment: comment ?? null,
         created_at: now,
         updated_at: now,
       });

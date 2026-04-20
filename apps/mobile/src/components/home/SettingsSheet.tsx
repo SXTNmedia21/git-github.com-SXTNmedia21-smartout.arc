@@ -148,16 +148,16 @@ export const SettingsSheet = forwardRef<GorhomBottomSheet>(function SettingsShee
             router.push("/(app)/(me)");
             break;
           case "navigate-absence":
-            router.push("/(app)/(payroll)/absence-request");
+            router.push("/(app)/(me)/payroll/absence-request");
             break;
           case "navigate-absence-balance":
-            router.push("/(app)/(payroll)/absence-balance");
+            router.push("/(app)/(me)/payroll/absence-balance");
             break;
           case "navigate-timebank":
-            router.push("/(app)/(payroll)/timebank");
+            router.push("/(app)/(me)/payroll/timebank");
             break;
           case "navigate-pay":
-            router.push("/(app)/(payroll)/payslip");
+            router.push("/(app)/(me)/payroll/payslip");
             break;
           case "logout":
             supabase.auth.signOut();

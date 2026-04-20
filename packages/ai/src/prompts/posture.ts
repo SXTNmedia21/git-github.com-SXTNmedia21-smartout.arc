@@ -24,6 +24,7 @@ const SITUATION_ADJUSTMENTS: Record<Situation, PostureAdjustment> = {
   training: { warmth: 0.1, verbosity: 0.1 },
   operations: { assertiveness: 0.1 },
   guardian: { formality: 0.1, assertiveness: 0.1 },
+  communication: { formality: -0.2, warmth: 0.3, humor: 0.1, verbosity: -0.2 },
   general: {},
 };
 

@@ -11,6 +11,8 @@ import { test, expect, type Page } from "@playwright/test";
  * - Sidebar (WizardSidebar) renders step labels from i18n (join.json).
  * - Brand panel no longer exists — replaced by WizardSidebar (lg+ only).
  * - Step content renders inside a <main> element with data-botsson-id attributes.
+ * - Each step has a Zod validation schema validated against its substate
+ *   (via validationKey). Steps with required fields must be filled before navigating.
  */
 
 /**
@@ -34,6 +36,38 @@ async function clickNextNTimes(page: Page, n: number) {
     }
     await page.waitForTimeout(300);
   }
+}
+
+/**
+ * Fill step 1 (account) with valid data so validation passes.
+ * Password fields are local component state and not part of wizard validation,
+ * so we skip them here — only wizard-persisted fields are required.
+ *
+ * Industry uses a shadcn Select (Radix), so we click the trigger then pick an option.
+ */
+async function fillStep1(page: Page) {
+  await page.locator('input[id="companyName"]').fill("Strøm Mat & Bar");
+  // shadcn Select — click trigger to open popover, then pick option
+  await page.locator('[id="industry"]').click();
+  await page.getByRole("option").first().click();
+  await page.locator('input[id="city"]').fill("Skien");
+  await page.locator('input[id="email"]').fill("test@example.com");
+  await page.locator('input[id="firstName"]').fill("Test");
+  await page.locator('input[id="lastName"]').fill("Bruker");
+  // Wait for useEffect to sync local state → wizard state
+  await page.waitForTimeout(300);
+}
+
+/**
+ * Fill step 2 (business) with valid data so validation passes.
+ * Org number 911722267 passes the MOD-11 check digit validator.
+ */
+async function fillStep2(page: Page) {
+  await page.locator('input[id="street"]').fill("Langbrygga 5");
+  await page.locator('input[id="postalCode"]').fill("3724");
+  await page.locator('input[id="city"]').fill("Skien");
+  await page.locator('input[id="orgNumber"]').fill("911 722 267");
+  await page.waitForTimeout(200);
 }
 
 test.describe("join-wizard", () => {
@@ -65,16 +99,10 @@ test.describe("join-wizard", () => {
 
   // ─── Test 2: Navigate to Step 3 via button clicks ───────
   // WizardShell does not support ?step=N URL navigation.
-  // We navigate forward by clicking "Neste" twice (step 1 → 2 → 3).
-  //
-  // FIXME: WizardShell.useWizardState.next() validates step.validation against the
-  // full nested state (JoinState), but step schemas (step1Schema, step2Schema) expect
-  // flat keys (email, companyName). This mismatch means next() always fails validation
-  // for steps with required fields, blocking forward navigation. Once the validation
-  // is fixed (either remove step.validation from definition or validate substates),
-  // un-fixme these tests.
+  // We navigate forward by filling required fields then clicking "Neste".
+  // Each step validates its own substate via validationKey (e.g. "account", "business").
 
-  test.fixme("can navigate to step 3 (about) via Neste buttons", async ({ page }) => {
+  test("can navigate to step 3 (about) via Neste buttons", async ({ page }) => {
     test.setTimeout(30_000);
     await page.goto("/join");
 
@@ -82,8 +110,13 @@ test.describe("join-wizard", () => {
       timeout: 10_000,
     });
 
-    // Navigate: step 1 → 2 → 3
-    await clickNextNTimes(page, 2);
+    // Fill step 1 required fields, then advance
+    await fillStep1(page);
+    await clickNextNTimes(page, 1);
+
+    // Fill step 2 required fields, then advance
+    await fillStep2(page);
+    await clickNextNTimes(page, 1);
 
     // Step 3 heading
     await expect(page.getByRole("heading", { name: /Fortell om bedriften/ })).toBeVisible({
@@ -98,16 +131,18 @@ test.describe("join-wizard", () => {
 
   // ─── Test 3: Step 3 gear menu works for AI actions ──────
 
-  // FIXME: Requires navigating to step 3 — blocked by validation schema mismatch (see test 2)
-  test.fixme("step 3 shows AI action menu for filled fields", async ({ page }) => {
+  test("step 3 shows AI action menu for filled fields", async ({ page }) => {
     test.setTimeout(30_000);
     await page.goto("/join");
     await expect(page.getByRole("heading", { name: /Opprett din konto/ })).toBeVisible({
       timeout: 10_000,
     });
 
-    // Navigate to step 3
-    await clickNextNTimes(page, 2);
+    // Navigate to step 3 (fill steps 1 + 2 first)
+    await fillStep1(page);
+    await clickNextNTimes(page, 1);
+    await fillStep2(page);
+    await clickNextNTimes(page, 1);
     await expect(page.getByRole("heading", { name: /Fortell om bedriften/ })).toBeVisible({
       timeout: 5_000,
     });
@@ -130,16 +165,18 @@ test.describe("join-wizard", () => {
 
   // ─── Test 4: Step 3 navigation buttons work ─────────────
 
-  // FIXME: Requires navigating to step 3 — blocked by validation schema mismatch (see test 2)
-  test.fixme("step 3 has back and next buttons", async ({ page }) => {
+  test("step 3 has back and next buttons", async ({ page }) => {
     test.setTimeout(30_000);
     await page.goto("/join");
     await expect(page.getByRole("heading", { name: /Opprett din konto/ })).toBeVisible({
       timeout: 10_000,
     });
 
-    // Navigate to step 3
-    await clickNextNTimes(page, 2);
+    // Navigate to step 3 (fill steps 1 + 2 first)
+    await fillStep1(page);
+    await clickNextNTimes(page, 1);
+    await fillStep2(page);
+    await clickNextNTimes(page, 1);
     await expect(page.getByRole("heading", { name: /Fortell om bedriften/ })).toBeVisible({
       timeout: 5_000,
     });
@@ -165,16 +202,18 @@ test.describe("join-wizard", () => {
 
   // ─── Test 5: Step 3 textareas are editable ──────────────
 
-  // FIXME: Requires navigating to step 3 — blocked by validation schema mismatch (see test 2)
-  test.fixme("step 3 textareas accept user input", async ({ page }) => {
+  test("step 3 textareas accept user input", async ({ page }) => {
     test.setTimeout(30_000);
     await page.goto("/join");
     await expect(page.getByRole("heading", { name: /Opprett din konto/ })).toBeVisible({
       timeout: 10_000,
     });
 
-    // Navigate to step 3
-    await clickNextNTimes(page, 2);
+    // Navigate to step 3 (fill steps 1 + 2 first)
+    await fillStep1(page);
+    await clickNextNTimes(page, 1);
+    await fillStep2(page);
+    await clickNextNTimes(page, 1);
     await expect(page.getByRole("heading", { name: /Fortell om bedriften/ })).toBeVisible({
       timeout: 5_000,
     });
@@ -194,16 +233,18 @@ test.describe("join-wizard", () => {
 
   // ─── Test 6: Step 3 → Step 4 navigation works ──────────
 
-  // FIXME: Requires navigating to step 3 — blocked by validation schema mismatch (see test 2)
-  test.fixme("can advance from step 3 to step 4", async ({ page }) => {
+  test("can advance from step 3 to step 4", async ({ page }) => {
     test.setTimeout(30_000);
     await page.goto("/join");
     await expect(page.getByRole("heading", { name: /Opprett din konto/ })).toBeVisible({
       timeout: 10_000,
     });
 
-    // Navigate to step 3 (about — skippable)
-    await clickNextNTimes(page, 2);
+    // Navigate to step 3 (fill steps 1 + 2 first, step 3 is skippable)
+    await fillStep1(page);
+    await clickNextNTimes(page, 1);
+    await fillStep2(page);
+    await clickNextNTimes(page, 1);
     await expect(page.getByRole("heading", { name: /Fortell om bedriften/ })).toBeVisible({
       timeout: 5_000,
     });
@@ -219,10 +260,9 @@ test.describe("join-wizard", () => {
     });
   });
 
-  // ─── Test 7: Full wizard step flow (7 steps) ─────────────
+  // ─── Test 7: Full wizard step flow (6 steps) ─────────────
 
-  // FIXME: Requires navigating through all 7 steps — blocked by validation schema mismatch (see test 2)
-  test.fixme("full wizard flow navigates through all steps", async ({ page }) => {
+  test("full wizard flow navigates through all steps", async ({ page }) => {
     test.setTimeout(60_000);
 
     await page.goto("/join");
@@ -232,34 +272,47 @@ test.describe("join-wizard", () => {
       timeout: 10_000,
     });
 
-    // The join wizard has 7 steps: account, business, about, hours, menu, create_account, team
-    const stepIds = ["account", "business", "about", "hours", "menu", "create_account", "team"];
+    // The join wizard has 6 steps: account, business, about, hours, menu, summary
+    const stepIds = ["account", "business", "about", "hours", "menu", "summary"];
 
     // Verify step 1 data attribute
     await expect(page.locator(`[data-botsson-id="join-${stepIds[0]}-step"]`)).toBeVisible();
 
-    // Navigate forward through remaining steps using the helper
-    for (let i = 1; i < stepIds.length; i++) {
+    // Step 1 → 2: fill required account fields
+    await fillStep1(page);
+    await clickNextNTimes(page, 1);
+    await expect(page.locator(`[data-botsson-id="join-${stepIds[1]}-step"]`)).toBeVisible({
+      timeout: 5_000,
+    });
+
+    // Step 2 → 3: fill required business fields
+    await fillStep2(page);
+    await clickNextNTimes(page, 1);
+    await expect(page.locator(`[data-botsson-id="join-${stepIds[2]}-step"]`)).toBeVisible({
+      timeout: 5_000,
+    });
+
+    // Steps 3-5 → navigate forward (about + menu are skippable, hours needs phone)
+    for (let i = 3; i < stepIds.length; i++) {
+      // Step 4 (hours) requires a valid phone number — fill it.
+      // The openingHours array is auto-populated with 7 default entries by Step4Hours.
+      if (stepIds[i - 1] === "hours") {
+        // Wait for Step4Hours component to mount and sync defaults to wizard state
+        await page.waitForTimeout(500);
+        await page.locator('input[id="phone"]').fill("+47 35 52 61 00");
+        await page.waitForTimeout(300);
+      }
       await clickNextNTimes(page, 1);
       await expect(page.locator(`[data-botsson-id="join-${stepIds[i]}-step"]`)).toBeVisible({
         timeout: 5_000,
       });
     }
 
-    // Last step — WizardNavBar shows "Fullfør" instead of "Neste"
+    // Last step (summary) — WizardNavBar shows "Fullfør" instead of "Neste"
     await expect(page.locator("button", { hasText: "Fullfør" })).toBeVisible();
   });
 
-  // ─── Test 8: Brand panel → SKIPPED ─────────────────────
-  // Brand panel no longer exists in WizardShell. Replaced by WizardSidebar
-  // which shows step labels (visible on lg+ screens only).
-
-  test.skip("brand panel shows step-specific messages", async () => {
-    // WizardShell replaced brand panel with WizardSidebar.
-    // Sidebar shows step labels, not contextual brand messages.
-  });
-
-  // ─── Test 9: Sidebar progress labels match join steps ───
+  // ─── Test 8: Sidebar progress labels match join steps ───
 
   test("sidebar progress labels match the actual join steps", async ({ page }) => {
     await page.goto("/join");

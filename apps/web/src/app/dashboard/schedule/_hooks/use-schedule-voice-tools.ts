@@ -27,15 +27,16 @@ type ScheduleVoiceToolsInput = {
     focusDay: (dateId: string) => void;
     openDayPlanner: (dateId: string) => void;
     closeDayPlanner: () => void;
+    switchScheduleView?: (view: string) => void;
+    setTimePeriod?: (weeks: number) => void;
+    setSelectedDate?: (date: string | null) => void;
+    setFilterSituation?: (filter: string) => void;
+    navigateToDate?: (weekOffset: number) => void;
+    switchLayout?: (layout: string) => void;
   };
-  mutations?: {
-    createShift: (input: Record<string, unknown>) => Promise<unknown>;
-    updateShift: (input: { id: string; patch: Record<string, unknown> }) => Promise<unknown>;
-    deleteShift: (id: string) => Promise<unknown>;
-    publishShifts: (ids: string[]) => Promise<unknown>;
-  };
-  /** When provided, write tools create ghost proposals instead of real shifts */
-  addProposal?: (proposal: ShiftProposal) => void;
+  /** All write operations go through proposals — ghost cards that require human approval.
+   *  This is REQUIRED, not optional. Botsson can never mutate shifts directly. */
+  addProposal: (proposal: ShiftProposal) => void;
   /** When provided, voice tools prompt for confirmation before creating proposals */
   requestConfirmation?: (title: string, description: string) => Promise<boolean>;
 };
@@ -463,34 +464,10 @@ export function useScheduleVoiceTools(input: ScheduleVoiceToolsInput): ClientToo
         });
       }
 
-      // Direct mode — no proposal context, create real shift
-      if (!d.mutations?.createShift) return JSON.stringify({ error: "Mutations not available" });
-
-      try {
-        await d.mutations.createShift({
-          id: crypto.randomUUID(),
-          employeeId: employee.id,
-          dateId,
-          role,
-          startTime,
-          endTime,
-          workHours,
-          status: "created",
-          dayCategory,
-          indicator: "blue",
-          isPublished: false,
-          breaks: 0,
-        });
-
-        return JSON.stringify({
-          success: true,
-          message: `Shift created for ${employee.name} on ${dayLabel} ${startTime}-${endTime} as ${role}`,
-        });
-      } catch (err: unknown) {
-        return JSON.stringify({
-          error: `Failed to create shift: ${err instanceof Error ? err.message : "unknown"}`,
-        });
-      }
+      // Ghost mode is mandatory — Botsson can never create real shifts directly
+      return JSON.stringify({
+        error: "Forslag-modus er ikke tilgjengelig. Kan ikke opprette vakter uten godkjenning.",
+      });
     };
 
     const updateShiftTool: ClientToolImplementation = async (params) => {
@@ -549,31 +526,14 @@ export function useScheduleVoiceTools(input: ScheduleVoiceToolsInput): ClientToo
         });
       }
 
-      // Direct mode
-      if (!d.mutations?.updateShift) return JSON.stringify({ error: "Mutations not available" });
-
-      try {
-        await d.mutations.updateShift({ id: shift.id, patch });
-        return JSON.stringify({
-          success: true,
-          message: `Updated shift for ${employee.name}: ${JSON.stringify(patch)}`,
-        });
-      } catch (err: unknown) {
-        if (isShiftLockedMutationError(err)) {
-          return JSON.stringify({
-            error:
-              "Kan ikke endre vakt: vakten er låst fordi den har startet eller datoen er passert.",
-          });
-        }
-        return JSON.stringify({
-          error: `Failed to update: ${err instanceof Error ? err.message : "unknown"}`,
-        });
-      }
+      // Ghost mode is mandatory — Botsson can never modify real shifts directly
+      return JSON.stringify({
+        error: "Forslag-modus er ikke tilgjengelig. Kan ikke endre vakter uten godkjenning.",
+      });
     };
 
     const deleteShiftTool: ClientToolImplementation = async (params) => {
       const d = dataRef.current;
-      if (!d.mutations) return JSON.stringify({ error: "Mutations not available" });
 
       const rawNameQuery = (params.employeeName as string) ?? "";
       const employee = findEmployeeByName(d.employees, rawNameQuery);
@@ -597,64 +557,34 @@ export function useScheduleVoiceTools(input: ScheduleVoiceToolsInput): ClientToo
         if (match) shift = match;
       }
 
-      try {
-        await d.mutations.deleteShift(shift.id);
+      // Ghost mode — create delete proposal instead of actually deleting
+      if (d.addProposal) {
         const dayLabel = d.days.find((day) => day.id === dateId)?.label ?? dateId;
+        d.addProposal({
+          id: `proposal-${crypto.randomUUID()}`,
+          type: "delete",
+          shiftId: shift.id,
+          employeeId: employee.id,
+          dateId,
+        });
         return JSON.stringify({
           success: true,
-          message: `Deleted ${employee.name}'s shift on ${dayLabel} (${shift.time})`,
-        });
-      } catch (err) {
-        if (isShiftLockedMutationError(err)) {
-          return JSON.stringify({
-            error:
-              "Kan ikke slette vakt: vakten er låst fordi den har startet eller datoen er passert.",
-          });
-        }
-        return JSON.stringify({
-          error: `Failed to delete: ${err instanceof Error ? err.message : "unknown"}`,
+          ghost: true,
+          message: `Sletteforslag: ${employee.name} sin vakt pa ${dayLabel} (${shift.time}). Venter pa godkjenning.`,
         });
       }
+
+      // Ghost mode is mandatory — Botsson can never delete real shifts directly
+      return JSON.stringify({
+        error: "Forslag-modus er ikke tilgjengelig. Kan ikke slette vakter uten godkjenning.",
+      });
     };
 
-    const publishShiftsTool: ClientToolImplementation = async (params) => {
-      const d = dataRef.current;
-      if (!d.mutations) return JSON.stringify({ error: "Mutations not available" });
-
-      const dayInput = (params.day as string) ?? "all";
-      let draftShifts: typeof d.shifts;
-
-      if (dayInput.toLowerCase() === "all" || dayInput.toLowerCase() === "alle") {
-        draftShifts = d.shifts.filter((s) => !s.isPublished);
-      } else {
-        const dateId = resolveDateId(dayInput, d.days);
-        if (!dateId) {
-          return JSON.stringify({ error: `Could not resolve day "${dayInput}"` });
-        }
-        draftShifts = d.computed.getShiftsForDay(dateId).filter((s) => !s.isPublished);
-      }
-
-      if (draftShifts.length === 0) {
-        return JSON.stringify({ message: "No draft shifts to publish" });
-      }
-
-      try {
-        await d.mutations.publishShifts(draftShifts.map((s) => s.id));
-        return JSON.stringify({
-          success: true,
-          message: `Published ${draftShifts.length} shift(s)`,
-        });
-      } catch (err) {
-        if (isShiftLockedMutationError(err)) {
-          return JSON.stringify({
-            error:
-              "Kan ikke publisere vakter: en eller flere vakter er låst fordi de har startet eller datoen er passert.",
-          });
-        }
-        return JSON.stringify({
-          error: `Failed to publish: ${err instanceof Error ? err.message : "unknown"}`,
-        });
-      }
+    const publishShiftsTool: ClientToolImplementation = async () => {
+      // Botsson can never publish shifts directly — admin must approve and publish manually
+      return JSON.stringify({
+        error: "Publisering krever manuell godkjenning. Be admin publisere fra vaktplanen.",
+      });
     };
 
     const focusDayTool: ClientToolImplementation = (params) => {
@@ -970,6 +900,213 @@ export function useScheduleVoiceTools(input: ScheduleVoiceToolsInput): ClientToo
       }
     };
 
+    // -- View switching tool implementations ---------------------------
+
+    const switchScheduleViewTool: ClientToolImplementation = (params) => {
+      const d = dataRef.current;
+      const view = (params.view as string) ?? "ansatt";
+      const valid = ["ansatt", "jobb", "team", "lokasjon"];
+      if (!valid.includes(view)) {
+        return JSON.stringify({ error: `Ugyldig visning "${view}". Bruk: ${valid.join(", ")}` });
+      }
+      if (!d.uiActions?.switchScheduleView) {
+        return JSON.stringify({ error: "View switching not available" });
+      }
+      d.uiActions.switchScheduleView(view);
+      const labels: Record<string, string> = {
+        ansatt: "ansatt",
+        jobb: "jobbroller",
+        team: "team",
+        lokasjon: "lokasjon",
+      };
+      return JSON.stringify({
+        success: true,
+        message: `Byttet til ${labels[view] ?? view}-visning.`,
+      });
+    };
+
+    const setTimePeriodTool: ClientToolImplementation = (params) => {
+      const d = dataRef.current;
+      const weeks = Number(params.weeks ?? 4);
+      const valid = [1, 2, 4, 8];
+      if (!valid.includes(weeks)) {
+        return JSON.stringify({ error: `Ugyldig periode. Bruk: ${valid.join(", ")} uker` });
+      }
+      if (!d.uiActions?.setTimePeriod) {
+        return JSON.stringify({ error: "Time period switching not available" });
+      }
+      d.uiActions.setTimePeriod(weeks);
+      const labels: Record<number, string> = {
+        1: "1 uke",
+        2: "2 uker",
+        4: "manedsoversikt (4 uker)",
+        8: "2 maneder",
+      };
+      return JSON.stringify({
+        success: true,
+        message: `Viser ${labels[weeks] ?? weeks + " uker"}.`,
+      });
+    };
+
+    const showSingleDayTool: ClientToolImplementation = (params) => {
+      const d = dataRef.current;
+      const dayInput = (params.day as string) ?? "";
+      const dateId = resolveDateId(dayInput, d.days);
+      if (!dateId) {
+        return JSON.stringify({ error: `Kunne ikke finne dag "${dayInput}"` });
+      }
+      if (!d.uiActions?.setSelectedDate) {
+        return JSON.stringify({ error: "Day selection not available" });
+      }
+      d.uiActions.setSelectedDate(dateId);
+      if (d.uiActions.focusDay) d.uiActions.focusDay(dateId);
+      const dayLabel = d.days.find((day) => day.id === dateId)?.label ?? dateId;
+      return JSON.stringify({ success: true, message: `Viser ${dayLabel}.` });
+    };
+
+    const filterScheduleTool: ClientToolImplementation = (params) => {
+      const d = dataRef.current;
+      const filter = (params.filter as string) ?? "Alle";
+      if (!d.uiActions?.setFilterSituation) {
+        return JSON.stringify({ error: "Filtering not available" });
+      }
+      d.uiActions.setFilterSituation(filter);
+      return JSON.stringify({
+        success: true,
+        message: filter === "Alle" ? "Filter fjernet — viser alle." : `Filtrert pa: ${filter}.`,
+      });
+    };
+
+    const switchLayoutTool: ClientToolImplementation = (params) => {
+      const d = dataRef.current;
+      const layout = (params.layout as string) ?? "daily";
+      // Map Norwegian aliases to layout modes
+      const aliases: Record<string, string> = {
+        uke: "daily",
+        dag: "daily",
+        daily: "daily",
+        weekly: "daily",
+        maned: "monthly",
+        maaned: "monthly",
+        monthly: "monthly",
+        month: "monthly",
+        vaktliste: "list",
+        liste: "list",
+        list: "list",
+        vaktgrid: "grid",
+        grid: "grid",
+        rutenett: "grid",
+      };
+      const resolved = aliases[layout.toLowerCase()] ?? layout.toLowerCase();
+      const valid = ["daily", "monthly", "list", "grid"];
+      if (!valid.includes(resolved)) {
+        return JSON.stringify({
+          error: `Ugyldig layout "${layout}". Bruk: uke, maned, vaktliste, vaktgrid`,
+        });
+      }
+      if (!d.uiActions?.switchLayout) {
+        return JSON.stringify({ error: "Layout switching not available" });
+      }
+      d.uiActions.switchLayout(resolved);
+      const labels: Record<string, string> = {
+        daily: "Ukeplan",
+        monthly: "Manedsvisning",
+        list: "Vaktliste",
+        grid: "Bemanning",
+      };
+      return JSON.stringify({
+        success: true,
+        message: `Byttet til ${labels[resolved] ?? resolved}.`,
+      });
+    };
+
+    const navigateToDateTool: ClientToolImplementation = (params) => {
+      const d = dataRef.current;
+      const target = ((params.target as string) ?? "").toLowerCase().trim();
+      if (!d.uiActions?.navigateToDate) {
+        return JSON.stringify({ error: "Navigation not available" });
+      }
+
+      // Relative navigation
+      if (target === "neste uke" || target === "next week") {
+        d.uiActions.navigateToDate(1); // relative +1
+        return JSON.stringify({ success: true, message: "Navigert til neste uke." });
+      }
+      if (target === "forrige uke" || target === "last week" || target === "previous week") {
+        d.uiActions.navigateToDate(-1); // relative -1
+        return JSON.stringify({ success: true, message: "Navigert til forrige uke." });
+      }
+      if (
+        target === "denne uke" ||
+        target === "this week" ||
+        target === "i dag" ||
+        target === "today"
+      ) {
+        d.uiActions.navigateToDate(0); // reset to current week (absolute 0)
+        return JSON.stringify({ success: true, message: "Navigert til denne uken." });
+      }
+
+      // Week number: "uke 17", "17", "week 17"
+      const weekMatch = target.match(/(?:uke|week)\s*(\d{1,2})/i) ?? target.match(/^(\d{1,2})$/);
+      if (weekMatch) {
+        const targetWeek = Number(weekMatch[1]);
+        const now = new Date();
+        // Calculate current ISO week number
+        const jan1 = new Date(now.getFullYear(), 0, 1);
+        const currentDay = Math.floor((now.getTime() - jan1.getTime()) / 86400000);
+        const currentWeek = Math.ceil((currentDay + jan1.getDay() + 1) / 7);
+        const weekDiff = targetWeek - currentWeek;
+        d.uiActions.navigateToDate(weekDiff);
+        return JSON.stringify({ success: true, message: `Navigert til uke ${targetWeek}.` });
+      }
+
+      // Date: "2026-04-16" or "16. april" / "april 16"
+      const isoMatch = target.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      const norwegianMonths: Record<string, number> = {
+        januar: 0,
+        februar: 1,
+        mars: 2,
+        april: 3,
+        mai: 4,
+        juni: 5,
+        juli: 6,
+        august: 7,
+        september: 8,
+        oktober: 9,
+        november: 10,
+        desember: 11,
+      };
+      let targetDate: Date | null = null;
+
+      if (isoMatch) {
+        targetDate = new Date(Number(isoMatch[1]), Number(isoMatch[2]) - 1, Number(isoMatch[3]));
+      } else {
+        // "16. april" or "16 april"
+        const norMatch = target.match(/(\d{1,2})\.?\s*([a-zæøå]+)/);
+        if (norMatch?.[1] && norMatch[2]) {
+          const dayNum = Number(norMatch[1]);
+          const monthNum = norwegianMonths[norMatch[2] as string];
+          if (monthNum !== undefined) {
+            const year = new Date().getFullYear();
+            targetDate = new Date(year, monthNum, dayNum);
+          }
+        }
+      }
+
+      if (targetDate && !isNaN(targetDate.getTime())) {
+        const now = new Date();
+        const diffMs = targetDate.getTime() - now.getTime();
+        const diffWeeks = Math.round(diffMs / (7 * 24 * 60 * 60 * 1000));
+        d.uiActions.navigateToDate(diffWeeks);
+        const label = targetDate.toLocaleDateString("no-NO", { day: "numeric", month: "long" });
+        return JSON.stringify({ success: true, message: `Navigert til uken med ${label}.` });
+      }
+
+      return JSON.stringify({
+        error: `Kunne ikke tolke "${target}". Bruk f.eks. "uke 17", "16. april", eller "neste uke".`,
+      });
+    };
+
     // -- Combine definitions and implementations ----------------------
 
     const allDefinitions = [...TOOL_DEFINITIONS];
@@ -989,6 +1126,12 @@ export function useScheduleVoiceTools(input: ScheduleVoiceToolsInput): ClientToo
       addReservation: addReservationTool,
       updateReservation: updateReservationTool,
       addSessionTask: addSessionTaskTool,
+      switchScheduleView: switchScheduleViewTool,
+      setTimePeriod: setTimePeriodTool,
+      showSingleDay: showSingleDayTool,
+      filterSchedule: filterScheduleTool,
+      navigateToDate: navigateToDateTool,
+      switchLayout: switchLayoutTool,
     };
 
     return {

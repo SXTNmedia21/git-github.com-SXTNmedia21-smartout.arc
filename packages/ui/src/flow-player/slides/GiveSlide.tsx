@@ -1,13 +1,33 @@
 "use client";
 
+import type { ComponentType, ImgHTMLAttributes } from "react";
 import { motion } from "framer-motion";
 import { TemplateText } from "../primitives/TemplateText";
 import type { GiveSlideConfig } from "../types";
+
+// Platform-agnostic Image prop. Web consumers pass next/image; RN consumers
+// pass expo-image or React Native's Image. Default: plain <img> so the slide
+// still renders in environments without either framework.
+type ImageLikeProps = ImgHTMLAttributes<HTMLImageElement> & {
+  width?: number | string;
+  height?: number | string;
+};
+
+// GiveSlide is platform-agnostic; web consumers inject next/image via ImageComponent prop.
+// Default `<img>` here is only used in RN/Storybook/non-Next environments.
+const DefaultImg: ComponentType<ImageLikeProps> = ({ alt, ...props }) => (
+  <img {...props} alt={alt ?? ""} />
+);
 
 interface GiveSlideProps {
   config: GiveSlideConfig;
   context: Record<string, string>;
   onContinue: () => void;
+  /**
+   * Optional Image component (e.g. `next/image`'s `Image`). Defaults to plain
+   * `<img>` so this package stays usable in RN, Storybook, or non-Next web.
+   */
+  ImageComponent?: ComponentType<ImageLikeProps>;
 }
 
 const stagger = {
@@ -31,7 +51,12 @@ function resolveTemplate(template: string, ctx: Record<string, string>): string 
   return template.replace(/\{\{(\w+)\}\}/g, (_, key: string) => ctx[key] ?? "");
 }
 
-export function GiveSlide({ config, context, onContinue }: GiveSlideProps) {
+export function GiveSlide({
+  config,
+  context,
+  onContinue,
+  ImageComponent = DefaultImg,
+}: GiveSlideProps) {
   const isSplit = config.layout === "split" && config.media;
 
   if (isSplit) {
@@ -46,9 +71,11 @@ export function GiveSlide({ config, context, onContinue }: GiveSlideProps) {
             transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
           >
             {config.media?.type === "image" && (
-              <img
+              <ImageComponent
                 src={resolveTemplate(config.media.src, context)}
                 alt={config.media.alt ?? ""}
+                width={480}
+                height={480}
                 className="w-full rounded-2xl object-cover shadow-[0_8px_40px_-8px_rgba(0,0,0,0.1)]"
               />
             )}
@@ -104,12 +131,15 @@ export function GiveSlide({ config, context, onContinue }: GiveSlideProps) {
         animate="visible"
       >
         {config.media?.type === "image" && (
-          <motion.img
-            variants={fadeUp}
-            src={resolveTemplate(config.media.src, context)}
-            alt={config.media.alt ?? ""}
-            className="h-40 w-40 rounded-2xl object-cover shadow-[0_8px_32px_-8px_rgba(0,0,0,0.12)]"
-          />
+          <motion.div variants={fadeUp}>
+            <ImageComponent
+              src={resolveTemplate(config.media.src, context)}
+              alt={config.media.alt ?? ""}
+              width={160}
+              height={160}
+              className="h-40 w-40 rounded-2xl object-cover shadow-[0_8px_32px_-8px_rgba(0,0,0,0.12)]"
+            />
+          </motion.div>
         )}
         <motion.div variants={fadeUp}>
           <TemplateText

@@ -27,7 +27,11 @@ import { toast } from "sonner";
 import { createClient } from "@smartout/supabase/client";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 
-import { cancelInvitation } from "../_actions/people-actions";
+import {
+  cancelInvitation,
+  updateEmergencyContact,
+  sendProtocolReminder,
+} from "../_actions/people-actions";
 import type { Employee, Department } from "./types";
 
 interface EmployeeProfileCardProps {
@@ -36,6 +40,7 @@ interface EmployeeProfileCardProps {
   isOpen: boolean;
   onClose: () => void;
   onRefresh: () => void;
+  onSendContract?: (profileId: string) => void;
 }
 
 export function EmployeeProfileCard({
@@ -44,6 +49,7 @@ export function EmployeeProfileCard({
   isOpen,
   onClose,
   onRefresh,
+  onSendContract,
 }: EmployeeProfileCardProps) {
   const { workspaceData } = useContext(DashboardContext);
   const [activeTab, setActiveTab] = useState<"overview" | "competence" | "hr" | "settings">(
@@ -156,7 +162,7 @@ export function EmployeeProfileCard({
     const supabase = createClient();
 
     const addressParts = hrAddress.split(",").map((s) => s.trim());
-    const { error } = await supabase
+    const { error: profileError } = await supabase
       .from("profile")
       .update({
         address_line_1: addressParts[0] || null,
@@ -167,13 +173,28 @@ export function EmployeeProfileCard({
       })
       .eq("profile_id", employee.profileId);
 
-    if (error) {
-      toast.error(error.message);
-    } else {
-      toast.success("Personlig info oppdatert");
-      setEditingHr(false);
-      onRefresh();
+    if (profileError) {
+      toast.error(profileError.message);
+      setSaving(false);
+      return;
     }
+
+    // Update emergency contact on user_identity via server action
+    try {
+      await updateEmergencyContact(
+        employee.profileId,
+        hrEmergencyName || null,
+        hrEmergencyPhone || null,
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update emergency contact");
+      setSaving(false);
+      return;
+    }
+
+    toast.success("Personlig info oppdatert");
+    setEditingHr(false);
+    onRefresh();
     setSaving(false);
   }
 
@@ -500,7 +521,24 @@ export function EmployeeProfileCard({
                     <p className="mb-3 text-xs leading-relaxed text-rose-500/80">
                       Ansatt har uferdig opplæring for {employee.department || "sin avdeling"}.
                     </p>
-                    <button className="rounded-md bg-rose-500 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-rose-600">
+                    <button
+                      onClick={async () => {
+                        if (!employee?.profileId || !workspaceData?.workspace_id) return;
+                        const incomplete = protocols.find((p) => p.status !== "completed");
+                        if (!incomplete) return;
+                        try {
+                          await sendProtocolReminder(
+                            employee.profileId,
+                            incomplete.assignment_id,
+                            workspaceData.workspace_id,
+                          );
+                          toast.success("Påminnelse sendt");
+                        } catch {
+                          toast.error("Kunne ikke sende påminnelse");
+                        }
+                      }}
+                      className="rounded-md bg-rose-500 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-rose-600"
+                    >
                       Send påminnelse
                     </button>
                   </div>
@@ -604,8 +642,11 @@ export function EmployeeProfileCard({
                       </p>
                     </div>
                   </div>
-                  {!employee.hasContract && (
-                    <button className="bg-foreground text-background hover:bg-foreground/80 rounded-lg px-3 py-1.5 text-xs font-bold transition-all">
+                  {!employee.hasContract && onSendContract && employee.profileId && (
+                    <button
+                      onClick={() => onSendContract(employee.profileId!)}
+                      className="bg-foreground text-background hover:bg-foreground/80 rounded-lg px-3 py-1.5 text-xs font-bold transition-all"
+                    >
                       Opprett
                     </button>
                   )}

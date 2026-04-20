@@ -22,7 +22,7 @@ import { toast } from "sonner";
 import { useTranslation } from "@smartout/i18n";
 import { useMutation } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
-import { useDepartmentShifts } from "@/app/dashboard/_hooks";
+import { useDepartmentShifts } from "@/app/dashboard/_hooks/use-department-shifts";
 import {
   useApproveReconciliation,
   useRejectReconciliation,

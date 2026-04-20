@@ -1,0 +1,164 @@
+{
+  "entity": "employee_types",
+  "bubble_type": "⏱️employee_type",
+  "target_table": "public.employee_type",
+  "field_map": {
+    "Fixed salary?": {
+      "target": "fixed_salary",
+      "transform": null,
+      "needs_review": false,
+      "source_value_types": [
+        "boolean"
+      ],
+      "occurrence_count": 3,
+      "sample_values": [
+        "boolean",
+        "boolean"
+      ]
+    },
+    "days_trailPeriod": {
+      "target": "days_trial_period",
+      "transform": null,
+      "needs_review": false,
+      "source_value_types": [
+        "number"
+      ],
+      "occurrence_count": 2,
+      "sample_values": [
+        "number"
+      ]
+    },
+    "Accounting_Account_Code": {
+      "target": "accounting_account_code",
+      "transform": "trim",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 2,
+      "sample_values": [
+        "string<4>",
+        "string<4>"
+      ]
+    },
+    "_id": {
+      "target": "employee_type_id",
+      "transform": "fk_uuid:employee_type",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 3,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "Modified Date": {
+      "target": "updated_at",
+      "transform": "bubble_date_to_tstz",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 3,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "max_hours_week": {
+      "target": "max_hours_week",
+      "transform": null,
+      "needs_review": false,
+      "source_value_types": [
+        "number"
+      ],
+      "occurrence_count": 2,
+      "sample_values": [
+        "number"
+      ]
+    },
+    "🏰 Workspace": {
+      "target": "workspace_id",
+      "transform": "fk_uuid:workspace",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 3,
+      "sample_values": [
+        "string<32>"
+      ]
+    },
+    "Created Date": {
+      "target": "created_at",
+      "transform": "bubble_date_to_tstz",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 3,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "max_vacation_days": {
+      "target": "max_vacation_days",
+      "transform": null,
+      "needs_review": false,
+      "source_value_types": [
+        "number"
+      ],
+      "occurrence_count": 2,
+      "sample_values": [
+        "number"
+      ]
+    },
+    "Title": {
+      "target": "title",
+      "transform": "trim",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 3,
+      "sample_values": [
+        "string<10>",
+        "string<26>",
+        "string<9>"
+      ]
+    },
+    " _colorPallet": {
+      "target": "color_pallet",
+      "transform": "trim",
+      "needs_review": false,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 1,
+      "sample_values": [
+        "string<12>"
+      ]
+    }
+  },
+  "required_source_fields": [],
+  "skip_if_missing": [],
+  "known_quirks": [
+    "workspace_id scoped to Wrightegaarden (not platform-NULL) per Q1 verdict 2026-04-16.",
+    "_employementCategory enum dropped pending enum_value_map transform; nullable in v3 = 'do not sync to Tripletex'.",
+    "employee_type excluded from M7 source discriminator per council Q2; no constant_columns.source needed.",
+    "color_pallet stored as text, not enum — v3 column accepts free text per K1a migration.",
+    "Sweep 2026-04-16: 4 fields locked needs_review=false (target+transform already set by prior patch); 0 unmapped+unreviewed fields silently dropped (auto-sweeper consensus). Triggered by emit-SQL verification surfacing align.ts/engine.ts attestation gap. See align.ts buildAlignedFieldMap fix (preserves human approval).",
+    "Sweep 2026-04-16: 4 fields locked needs_review=false (target+transform already set by prior patch); 0 unmapped+unreviewed fields silently dropped (auto-sweeper consensus). Triggered by emit-SQL verification surfacing align.ts/engine.ts attestation gap. See align.ts buildAlignedFieldMap fix (preserves human approval)."
+  ],
+  "last_verified": "2026-04-16T13:12:40.372Z",
+  "sample_record_count": 3,
+  "total_record_count": 3,
+  "v3_schema_hash": null,
+  "approval_hash": "c9c892106f878a3794e86984dbdf81a9a4861cf12912e420c238151489f6335f"
+}

@@ -11,23 +11,32 @@ import { supabase } from "@/lib/supabase";
 import { useWorkspaceStore } from "@/hooks/stores/use-workspace-store";
 import type { Database } from "@smartout/supabase/database.types";
 
-type Profile = Database["public"]["Tables"]["profile"]["Row"];
+type ProfileRow = Database["public"]["Tables"]["profile"]["Row"];
+
+/** Profile with joined workspace and department names */
+export type ProfileWithJoins = ProfileRow & {
+  workspace: { name: string } | null;
+  department: { name: string } | null;
+};
+
+/** Select string that joins workspace and department names onto the profile */
+const PROFILE_SELECT = "*, workspace:workspace_id(name), department:department_id(name)" as const;
 
 const CACHE_KEY = "cache:profile";
 const STALE_TIME_MS = 30 * 60 * 1000;
 
-function getPlaceholderData(): Profile | undefined {
+function getPlaceholderData(): ProfileWithJoins | undefined {
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { mmkvStorage } = require("@/lib/cache/persister");
     const cached = mmkvStorage?.getString(CACHE_KEY);
-    return cached ? (JSON.parse(cached) as Profile) : undefined;
+    return cached ? (JSON.parse(cached) as ProfileWithJoins) : undefined;
   } catch {
     return undefined;
   }
 }
 
-function persistToCache(data: Profile): void {
+function persistToCache(data: ProfileWithJoins): void {
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { mmkvStorage } = require("@/lib/cache/persister");
@@ -37,18 +46,19 @@ function persistToCache(data: Profile): void {
   }
 }
 
-async function fetchMyProfile(selectedProfileId: string | null): Promise<Profile> {
+async function fetchMyProfile(selectedProfileId: string | null): Promise<ProfileWithJoins> {
   // If we have a selected profile (from workspace-select), fetch that specific one
   if (selectedProfileId) {
     const { data, error } = await supabase
       .from("profile")
-      .select("*")
+      .select(PROFILE_SELECT)
       .eq("profile_id", selectedProfileId)
       .single();
 
     if (error) throw error;
-    persistToCache(data);
-    return data;
+    const profile = data as unknown as ProfileWithJoins;
+    persistToCache(profile);
+    return profile;
   }
 
   // Fallback: fetch first active profile for the user
@@ -59,7 +69,7 @@ async function fetchMyProfile(selectedProfileId: string | null): Promise<Profile
 
   const { data, error } = await supabase
     .from("profile")
-    .select("*")
+    .select(PROFILE_SELECT)
     .eq("user_id", user.id)
     .eq("is_active", true)
     .limit(1)
@@ -68,8 +78,9 @@ async function fetchMyProfile(selectedProfileId: string | null): Promise<Profile
   if (error) throw error;
   if (!data) throw new Error("No active profile found. Your account may have been deactivated.");
 
-  persistToCache(data);
-  return data;
+  const profile = data as unknown as ProfileWithJoins;
+  persistToCache(profile);
+  return profile;
 }
 
 /**
@@ -80,7 +91,7 @@ async function fetchMyProfile(selectedProfileId: string | null): Promise<Profile
 export function useMyProfile() {
   const selectedProfileId = useWorkspaceStore((s) => s.selectedProfileId);
 
-  return useQuery<Profile>({
+  return useQuery<ProfileWithJoins>({
     queryKey: ["my-profile", selectedProfileId],
     queryFn: () => fetchMyProfile(selectedProfileId),
     staleTime: STALE_TIME_MS,

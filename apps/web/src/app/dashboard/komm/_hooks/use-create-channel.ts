@@ -3,6 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
+import { useTranslation } from "@smartout/i18n";
 import { emit } from "@smartout/telemetry";
 import { channelKeys } from "./channel-keys";
 import type { ChannelType } from "./channel-types";
@@ -18,6 +19,7 @@ export function useCreateChannel(profileId: string) {
   const queryClient = useQueryClient();
   const { workspace } = useWorkspace();
   const workspaceId = workspace.workspace_id;
+  const { t } = useTranslation("komm");
 
   return useMutation({
     mutationFn: async ({ channelType, name, memberProfileIds }: CreateChannelParams) => {
@@ -56,7 +58,7 @@ export function useCreateChannel(profileId: string) {
     },
 
     onError: (error) => {
-      const msg = error instanceof Error ? error.message : "Kunne ikke opprette kanal";
+      const msg = error instanceof Error ? error.message : t("create.error");
       toast.error(msg);
     },
   });

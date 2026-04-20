@@ -22,6 +22,7 @@ import {
   GraduationCap,
   Info,
   CheckCheck,
+  FileText,
 } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import {
@@ -46,6 +47,7 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   deviation: AlertTriangle,
   approval: ThumbsUp,
   training: GraduationCap,
+  contract: FileText,
 };
 
 /* ------------------------------------------------------------------ */

@@ -50,6 +50,7 @@ export default async function DashboardLayout({
   const isShowcaseMode = headersList.get("x-showcase-mode") === "1";
   // Local dev: support ?ws=<workspace_id> to select a specific workspace
   const wsParam = headersList.get("x-workspace-id-param");
+  const pathname = headersList.get("x-pathname");
 
   const user = await getUser();
 
@@ -68,6 +69,7 @@ export default async function DashboardLayout({
 
   let workspace: WorkspaceData | null = null;
   let profileId: string | null = null;
+  let profileStatus: string | null = null;
 
   if (slug) {
     // Workspace subdomain: query workspace by slug (cached)
@@ -85,16 +87,18 @@ export default async function DashboardLayout({
     }
 
     profileId = profile.profile_id;
+    profileStatus = profile.status;
     workspace = wsData;
   } else if (wsParam) {
     // Local dev: specific workspace selected via ?ws= query param
-    const profile = await getProfileInWorkspace(user.id, wsParam);
-    if (profile) {
+    const [profile, wsData] = await Promise.all([
+      getProfileInWorkspace(user.id, wsParam),
+      getWorkspaceById(wsParam),
+    ]);
+    if (profile && wsData) {
       profileId = profile.profile_id;
-      const wsData = await getWorkspaceById(wsParam);
-      if (wsData) {
-        workspace = wsData;
-      }
+      profileStatus = profile.status;
+      workspace = wsData;
     }
   }
 
@@ -104,12 +108,19 @@ export default async function DashboardLayout({
 
     if (profileData?.workspace_id) {
       profileId = profileData.profile_id;
+      profileStatus = profileData.status;
       const wsData = await getWorkspaceById(profileData.workspace_id);
 
       if (wsData) {
         workspace = wsData;
       }
     }
+  }
+
+  // Trainee redirect: employees with trainee status land on my-training
+  // instead of the general dashboard. Avoids redirect loop by checking pathname.
+  if (profileStatus === "trainee" && pathname && !pathname.startsWith("/dashboard/my-training")) {
+    redirect("/dashboard/my-training");
   }
 
   if (workspace) {

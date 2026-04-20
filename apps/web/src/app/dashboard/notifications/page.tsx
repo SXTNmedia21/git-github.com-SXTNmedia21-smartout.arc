@@ -20,6 +20,7 @@ import {
   GraduationCap,
   Info,
   CheckCheck,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
@@ -43,6 +44,7 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   deviation: AlertTriangle,
   approval: ThumbsUp,
   training: GraduationCap,
+  contract: FileText,
 };
 
 /* ------------------------------------------------------------------ */
@@ -57,7 +59,8 @@ type FilterId =
   | "task"
   | "deviation"
   | "approval"
-  | "training";
+  | "training"
+  | "contract";
 
 const FILTER_IDS: FilterId[] = [
   "all",
@@ -68,6 +71,7 @@ const FILTER_IDS: FilterId[] = [
   "deviation",
   "approval",
   "training",
+  "contract",
 ];
 
 /* ------------------------------------------------------------------ */
@@ -102,6 +106,7 @@ export default function NotificationsPage() {
     deviation: t("filter.deviation"),
     approval: t("filter.approval"),
     training: t("filter.training"),
+    contract: t("filter.contract"),
   };
 
   // Build filter params for useNotifications based on active tab

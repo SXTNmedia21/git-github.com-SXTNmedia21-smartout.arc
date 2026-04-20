@@ -13,9 +13,10 @@ import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { createSession, loadAuthorizedSession, abandonSession } from "../core/session-manager.js";
 import { sendWebhook } from "../core/webhook-sender.js";
+import type { AppVariables } from "../types/app-env.js";
 import type { AuthContext } from "../types/auth.js";
 
-const sessions = new Hono<{ Variables: { auth: AuthContext } }>();
+const sessions = new Hono<{ Variables: AppVariables & { auth: AuthContext } }>();
 
 // -- Schemas --
 

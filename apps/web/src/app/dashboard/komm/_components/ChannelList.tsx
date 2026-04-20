@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useUnreadCounts } from "../_hooks/use-unread-counts";
+import { useWorkspaceActiveCalls } from "../_hooks/use-workspace-active-calls";
 import { ChannelItem } from "./ChannelItem";
 import { CreateChannel } from "./CreateChannel";
 import type { ChannelGroup } from "../_hooks/channel-types";
@@ -27,6 +28,7 @@ export function ChannelList({
 }: Props) {
   const { t } = useTranslation("komm");
   const { data: unreadCounts } = useUnreadCounts();
+  const { data: activeCalls } = useWorkspaceActiveCalls();
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
 
@@ -44,26 +46,26 @@ export function ChannelList({
     : channelGroups;
 
   return (
-    <div className="bg-card flex w-80 flex-shrink-0 flex-col border-r">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b p-3">
-        <h2 className="text-sm font-semibold">{t("channel.header")}</h2>
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowCreate(true)}>
-          <Plus className="h-4 w-4" />
-        </Button>
-      </div>
-
-      {/* Search */}
-      <div className="border-b p-2">
-        <div className="relative">
-          <Search className="text-muted-foreground absolute top-2.5 left-2.5 h-3.5 w-3.5" />
+    <div className="flex flex-1 flex-col">
+      {/* Search + create */}
+      <div className="flex items-center gap-1.5 border-b p-2">
+        <div className="relative flex-1">
+          <Search className="text-muted-foreground absolute top-2 left-2.5 h-3.5 w-3.5" />
           <Input
             placeholder={t("channel.search_placeholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="h-8 pl-8 text-xs"
+            className="h-7 pl-8 text-xs"
           />
         </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 shrink-0"
+          onClick={() => setShowCreate(true)}
+        >
+          <Plus className="h-4 w-4" />
+        </Button>
       </div>
 
       {/* Channel groups */}
@@ -93,6 +95,7 @@ export function ChannelList({
                   channel={ch}
                   isActive={ch.channel_id === activeChannelId}
                   unreadCount={unreadMap.get(ch.channel_id) ?? 0}
+                  activeCall={activeCalls?.[ch.channel_id]}
                   onClick={() => onSelectChannel(ch.channel_id)}
                 />
               ))}

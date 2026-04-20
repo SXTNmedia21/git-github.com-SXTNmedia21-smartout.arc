@@ -25,6 +25,8 @@ export type Shift = {
   employeeId: string | null;
   dateId: string;
   role: string;
+  /** FK to payroll.shift_type — links to canonical shift type */
+  shiftTypeId?: string;
   /** FK to department (cascade A1) */
   departmentId?: string;
   /** FK to location (cascade A1) */
@@ -199,4 +201,12 @@ export type ShiftProposalUpdate = {
   patch: Record<string, unknown>;
 };
 
-export type ShiftProposal = ShiftProposalCreate | ShiftProposalUpdate;
+export type ShiftProposalDelete = {
+  id: string;
+  type: "delete";
+  shiftId: string;
+  employeeId: string;
+  dateId: string;
+};
+
+export type ShiftProposal = ShiftProposalCreate | ShiftProposalUpdate | ShiftProposalDelete;

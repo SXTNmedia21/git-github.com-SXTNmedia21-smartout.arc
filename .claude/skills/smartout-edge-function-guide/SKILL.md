@@ -1,6 +1,21 @@
 ---
 name: smartout-edge-function-guide
-description: Authoritative guide for Supabase Edge Functions — auth patterns, dual-auth, scopes, gateway, config.toml. Use when creating or modifying Edge Functions, API endpoints, or scope guards.
+description: |
+  AUTHORITATIVE guide for Supabase Edge Functions — auth patterns, dual-auth (JWT + API key), scope guards, the workspace-api gateway, and config.toml. MUST be loaded before creating, editing, or deploying any Edge Function or when designing a new API endpoint.
+
+  Triggers (English): Edge Function, edge-function, supabase/functions, workspace-api, scope guard, scope_guard, ensureScope, requireScope, dual-auth, dual auth, verify_jwt, JWT verify, anon key, service role, config.toml, Deno, Deno.serve, Hono router, CORS, API gateway, public API, internal API, webhook endpoint, signature verification.
+
+  Triggers (Norwegian): edge-funksjon, API-endepunkt, portvokter.
+
+  Triggers (files/paths): supabase/functions/**, supabase/functions/_shared/**, supabase/functions/workspace-api/**, supabase/config.toml, apps/web/src/lib/api-client.ts, any `supabase.functions.invoke` call site.
+
+  Triggers (specific functions to watch): workspace-api, engine-dispatch, contract-*, docuseal-*, stripe-webhook, sendgrid-webhook, twilio-webhook, any `*-webhook` endpoint.
+
+  Triggers (patterns): `scope_guard`, `ensureScope`, `requireScope`, `supabase.functions.invoke`, `new Hono()`, `Deno.serve`, `verify_jwt = false`, `createClient` inside an Edge Function.
+
+  Traps to remember: workspace-scoped data endpoints route through the workspace-api gateway, not standalone functions (ADR-0039). Dual-auth is required when the endpoint is called from BOTH browser (JWT) and external integrations (API key). Public/webhook endpoints MUST set `verify_jwt=false` AND validate request signatures. Never skip Zod validation on request bodies. User ops use anon key; admin/service ops use service role.
+
+  ALWAYS load when creating a new function, editing supabase/config.toml, adding a scope guard, or designing any `/api/*` route that fronts an Edge Function.
 tools: Read, Grep, Glob, Bash
 ---
 
@@ -67,6 +82,29 @@ External consumers get one API key → validated by Edge Functions → services 
 3. Add to API registry
 4. Add scope to canonical list above
 5. Update preset bundles
+
+## Pre-workspace check (ADR-0123)
+
+When creating a new Edge Function, ask: does the caller have an active workspace at call time?
+
+- **Yes** → must route through `workspace-api` gateway per ADR-0029.
+- **No (pre-workspace flow — invite tokens, signup, identity-link callbacks)** → MAY stay standalone per ADR-0123.
+
+If the answer is "no", count the current set of pre-workspace endpoints before proceeding:
+
+```bash
+# Current pre-workspace exceptions (as of 2026-04-17): accept-invitation, create-invitation
+ls supabase/functions/ | grep -E 'invitation'
+```
+
+If this would be the **3rd** pre-workspace endpoint, **stop** and open an `identity-api` gateway ADR before implementation. Two endpoints is an exception; three is a pattern that deserves its own gateway tier.
+
+Document the new endpoint's pre-workspace status in its `config.toml` entry with a comment:
+
+```toml
+[functions.<name>]
+verify_jwt = false  # Pre-workspace — auth via token per ADR-0123.
+```
 
 ## New Table Checklist (workspace-scoped)
 

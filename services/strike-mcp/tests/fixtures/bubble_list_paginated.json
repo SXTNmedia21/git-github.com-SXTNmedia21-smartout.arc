@@ -1,0 +1,11 @@
+{
+  "response": {
+    "results": [
+      { "_id": "a1", "name_text": "A" },
+      { "_id": "a2", "name_text": "B" }
+    ],
+    "cursor": 0,
+    "count": 2,
+    "remaining": 3
+  }
+}

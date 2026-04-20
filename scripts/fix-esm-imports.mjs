@@ -42,23 +42,27 @@ async function fixFile(filePath) {
   }
 }
 
-// Simpler approach: collect all .js files, build a set, then fix imports
+// Collect all .js and .d.ts files, build a set keyed on .js paths
 async function collectFiles(dir, files = []) {
   const entries = await readdir(dir, { withFileTypes: true });
   for (const e of entries) {
     const full = join(dir, e.name);
     if (e.isDirectory()) await collectFiles(full, files);
-    else if (e.name.endsWith(".js")) files.push(full);
+    else if (e.name.endsWith(".js") || e.name.endsWith(".d.ts")) files.push(full);
   }
   return files;
 }
 
 const allFiles = await collectFiles(DIST);
-const fileSet = new Set(allFiles);
+// Resolution set uses .js paths (both .js and .d.ts resolve to the same module)
+const jsFileSet = new Set(allFiles.filter((f) => f.endsWith(".js")));
 
 let fixCount = 0;
 
 for (const filePath of allFiles) {
+  // Skip .d.ts.map files
+  if (filePath.endsWith(".d.ts.map")) continue;
+
   const content = await readFile(filePath, "utf-8");
   const dir = dirname(filePath);
 
@@ -69,9 +73,9 @@ for (const filePath of allFiles) {
     const asIndex = resolve(dir, specifier, "index.js");
 
     let resolved;
-    if (fileSet.has(asFile)) {
+    if (jsFileSet.has(asFile)) {
       resolved = specifier + ".js";
-    } else if (fileSet.has(asIndex)) {
+    } else if (jsFileSet.has(asIndex)) {
       resolved = specifier + "/index.js";
     } else {
       return match; // external or already resolved

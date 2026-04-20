@@ -41,6 +41,15 @@ export const strings = {
     dueSoon: "Forfaller snart",
     completed: "Fullført",
   },
+  cleaning: {
+    title: "Renholdssjekk",
+    signAndComplete: "Signer og fullfør",
+    progress: (done: number, total: number) => `${done} av ${total} fullført`,
+    flagDeviation: "Rapporter avvik",
+    takePhoto: "Ta bilde",
+    completed: "Fullført",
+    required: "Påkrevd",
+  },
   chat: {
     channels: "Kanaler",
     directMessages: "Direktmeldinger",
@@ -131,6 +140,7 @@ export const strings = {
     participants: "deltakere",
     minimize: "Minimer",
     camera: "Kamera",
+    flipCamera: "Snu kamera",
     endCall: "Avslutt",
     mute: "Demp",
     unmute: "Lyd p\u00e5",
@@ -230,6 +240,74 @@ export const strings = {
     fromDate: "Fra dato",
     toDate: "Til dato",
     commentPlaceholder: "F.eks. planlagt ferie uke 28-30",
+  },
+  contract: {
+    // Header / navigation
+    headerFallback: "Kontrakt",
+    back: "Tilbake",
+    fillInfo: "Fyll ut informasjon",
+
+    // Segmented tabs
+    tabKontrakt: "Kontrakt",
+    tabRettigheter: "Rettigheter",
+    tabForklart: "Forklart",
+
+    // Loading / empty states
+    loading: "Laster...",
+    notFound: "Kontrakten ble ikke funnet.",
+    rightsComingSoon: "Rettigheter og tariffinfo kommer snart.",
+
+    // Status labels
+    statusDraft: "Utkast",
+    statusSent: "Sendt",
+    statusViewed: "Sett",
+    statusSigned: "Signert",
+    statusExpired: "Utløpt",
+    statusTerminated: "Oppsagt",
+    statusPendingData: "Venter på data",
+    statusDeclined: "Avslått",
+    statusMigrationIncomplete: "Importert — mangler data",
+
+    // Info row labels
+    labelPosition: "Stilling",
+    labelCompensation: "Kompensasjon",
+    labelEmploymentShare: "Stillingsandel",
+    labelStartDate: "Startdato",
+    labelEndDate: "Sluttdato",
+    labelCategory: "Kategori",
+    notSet: "Ikke satt",
+    hourlyRateSuffix: "kr/t",
+    monthlySuffix: "kr/mnd",
+
+    // Signing banner
+    awaitingSignature: "Denne kontrakten venter på din signatur.",
+    signContract: "Signer kontrakt",
+
+    // Pending data banner
+    pendingDataNotice: "Vi trenger noe informasjon fra deg før kontrakten kan sendes.",
+    fillInfoButton: "Fyll ut informasjon",
+
+    // Complete-data screen
+    infoText:
+      "Vi trenger litt informasjon for å kunne opprette arbeidskontrakten din. Fyll inn det du kan — du kan fylle inn resten senere.",
+    fieldPersonalNumber: "Personnummer",
+    fieldAddress: "Adresse",
+    fieldPostalCode: "Postnummer",
+    fieldCity: "By",
+    placeholderPersonalNumber: "11 siffer",
+    placeholderAddress: "Gateadresse",
+    placeholderPostalCode: "0000",
+    placeholderCity: "Poststed",
+    submitButton: "Send inn",
+    validationPersonalNumber: "Personnummer må være nøyaktig 11 siffer.",
+    validationPostalCode: "Postnummer må være nøyaktig 4 siffer.",
+    validationAtLeastOne: "Fyll inn minst ett felt.",
+    errorPrefix: "Feil: ",
+    genericError: "Noe gikk galt. Prøv igjen.",
+
+    // Success state
+    successTitle: "Takk!",
+    successBody: "Informasjonen er lagret. Kontrakten din vil bli oppdatert snart.",
   },
 } as const;
 

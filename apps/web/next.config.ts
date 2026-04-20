@@ -20,6 +20,42 @@ if (existsSync(rootEnvPath)) {
 
 const nextConfig: NextConfig = {
   ...(process.env.NEXT_DIST_DIR ? { distDir: process.env.NEXT_DIST_DIR } : {}),
+  images: {
+    remotePatterns: [
+      // Supabase Storage (public-site assets, avatars)
+      {
+        protocol: "https",
+        hostname: "*.supabase.co",
+        pathname: "/storage/v1/object/**",
+      },
+      // External host-provided URLs (onboarding scraped logos, public-site
+      // operator-controlled images). Wide by design — public-site is
+      // operator-controlled, not user-submitted; onboarding logos come from
+      // the prospect's own website scrape.
+      {
+        protocol: "https",
+        hostname: "**",
+        pathname: "/**",
+      },
+    ],
+  },
+  experimental: {
+    optimizePackageImports: [
+      "lucide-react",
+      "framer-motion",
+      "recharts",
+      "@dnd-kit/core",
+      "@dnd-kit/sortable",
+      "@smartout/ui",
+      "@smartout/types",
+      "@smartout/telemetry",
+      "date-fns",
+      "posthog-js",
+      "@tiptap/react",
+      "@tiptap/starter-kit",
+      "sonner",
+    ],
+  },
   serverExternalPackages: ["posthog-node"],
   transpilePackages: [
     "@smartout/ai",
@@ -31,6 +67,7 @@ const nextConfig: NextConfig = {
     "@smartout/design-tokens",
     "@smartout/utils",
     "@smartout/agent-sdk",
+    "@smartout/training",
   ],
   webpack: (config, { dir, isServer }) => {
     // posthog-node (via @smartout/telemetry dynamic import) uses node:fs and
@@ -78,6 +115,14 @@ const nextConfig: NextConfig = {
     );
 
     return config;
+  },
+  async redirects() {
+    // 2026-04-10 rename (season/ → year-wheel/) redirects were removed
+    // on 2026-04-20 because /dashboard/season/[seasonId] is now the
+    // canonical season-editing route per the year-wheel redesign spec.
+    // Old deep-links into /dashboard/season/<something> that expected
+    // the year-wheel page are not expected to exist outside dev tools.
+    return [];
   },
   async rewrites() {
     return [

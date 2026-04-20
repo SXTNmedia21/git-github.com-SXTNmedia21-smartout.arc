@@ -1,0 +1,325 @@
+{
+  "entity": "training",
+  "bubble_type": "🎎training",
+  "target_table": null,
+  "field_map": {
+    "Created By": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "validated_date": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 52,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "_id": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "list of handbook.Logs": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "array"
+      ],
+      "occurrence_count": 20,
+      "sample_values": [
+        "array<2>",
+        "array<5>",
+        "array<1>"
+      ]
+    },
+    "🚀 trainginDone": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "array"
+      ],
+      "occurrence_count": 48,
+      "sample_values": [
+        "array<20>",
+        "array<11>",
+        "array<7>"
+      ]
+    },
+    "🎎 Profile": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "Active flowLog": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 4,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "Created Date": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "🏰 workspace": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "Modified Date": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "active 🕹️ playerProfiles": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "array"
+      ],
+      "occurrence_count": 2,
+      "sample_values": [
+        "array<1>",
+        "array<1>"
+      ]
+    },
+    "🎎 notifyMe": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 3,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "UID_earned 🎖️ badge": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "array"
+      ],
+      "occurrence_count": 4,
+      "sample_values": [
+        "array<2>",
+        "array<1>",
+        "array<1>"
+      ]
+    },
+    "UID_completed_❓quiz ": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "array"
+      ],
+      "occurrence_count": 4,
+      "sample_values": [
+        "array<4>",
+        "array<3>",
+        "array<3>"
+      ]
+    },
+    "UID_completed_🚀manuals": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "array"
+      ],
+      "occurrence_count": 7,
+      "sample_values": [
+        "array<4>",
+        "array<3>",
+        "array<4>"
+      ]
+    },
+    "list of 🎖️ challenges UID": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "array"
+      ],
+      "occurrence_count": 6,
+      "sample_values": [
+        "array<9>",
+        "array<2>",
+        "array<5>"
+      ]
+    },
+    "onboardingWorkspace": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 2,
+      "sample_values": [
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "_status": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 2,
+      "sample_values": [
+        "string<6>"
+      ]
+    },
+    "List of 📚Learning": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "array"
+      ],
+      "occurrence_count": 2,
+      "sample_values": [
+        "array<1>",
+        "array<1>"
+      ]
+    },
+    "UID_completed_📚course": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "array"
+      ],
+      "occurrence_count": 2,
+      "sample_values": [
+        "array<1>"
+      ]
+    },
+    "elo_Json": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 50,
+      "sample_values": [
+        "string<281>"
+      ]
+    },
+    "Progression": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "number"
+      ],
+      "occurrence_count": 50,
+      "sample_values": [
+        "number"
+      ]
+    },
+    "profile.json": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 2,
+      "sample_values": [
+        "string<690>",
+        "string<542>"
+      ]
+    }
+  },
+  "required_source_fields": [],
+  "skip_if_missing": [],
+  "known_quirks": [],
+  "last_verified": "2026-04-08",
+  "sample_record_count": 100,
+  "total_record_count": 706,
+  "v3_schema_hash": null,
+  "approval_hash": "e677911e16893e2e10b75068e8b14b4c6dbab2285f8ac200d3e0d3332122336e"
+}

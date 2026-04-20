@@ -2,14 +2,17 @@
 // publish-overview-dialog.tsx
 // Confirmation dialog showing a summary of all draft shifts
 // that will be published. Groups shifts by day with employee
-// name, time, and role details.
+// name, time, and role details. Runs cascade rule validation
+// before confirming publish — blocked shifts require explicit
+// acknowledgment ("Publiser likevel") before proceeding.
 // Connected to: use-shifts.ts (usePublishShifts mutation)
 // Connected to: schedule-types.ts (Shift type)
+// Connected to: use-publish-validation.ts (cascade rule gate)
 // ============================================
 "use client";
 
-import { useMemo, useState } from "react";
-import { Send, Clock, Users, X, ChevronRight } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Send, Clock, Users, X, ChevronRight, AlertTriangle, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -26,6 +29,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 import type { Shift } from "./schedule-types";
 import type { ScheduleEmployee } from "../_hooks/use-employees";
+import { usePublishValidation } from "../_hooks/use-publish-validation";
 
 // ── Day labels for formatting ────────────────────────────────
 const DAY_LABELS = ["Søn", "Man", "Tir", "Ons", "Tor", "Fre", "Lør"];
@@ -53,7 +57,10 @@ type PublishOverviewDialogProps = {
 /**
  * Shows a grouped summary of all draft shifts before publishing.
  * Groups shifts by day, displaying employee name, time, and role.
- * Offers "Publiser alle" and "Avbryt" buttons.
+ * Runs cascade rule validation and shows a warning/blocked banner
+ * when framework rules are violated. Blocked shifts require the
+ * user to click "Publiser likevel" once to acknowledge before the
+ * actual publish fires on a second click.
  */
 export function PublishOverviewDialog({
   open,
@@ -65,6 +72,18 @@ export function PublishOverviewDialog({
   onEditShift,
 }: PublishOverviewDialogProps) {
   const [discardedIds, setDiscardedIds] = useState<Set<string>>(new Set());
+  const [showHits, setShowHits] = useState(false);
+  // Tracks whether the user has acknowledged blocked shifts once
+  const [acknowledged, setAcknowledged] = useState(false);
+
+  // Reset per-dialog UI state whenever the dialog is opened/closed
+  useEffect(() => {
+    if (!open) {
+      setDiscardedIds(new Set());
+      setShowHits(false);
+      setAcknowledged(false);
+    }
+  }, [open]);
 
   const draftShifts = useMemo(
     () =>
@@ -99,12 +118,47 @@ export function PublishOverviewDialog({
     return sorted;
   }, [draftShifts]);
 
+  // ── Cascade rule validation ──────────────────────────────
+  const shiftsForValidation = useMemo(
+    () =>
+      draftShifts.map((s) => {
+        const emp = s.employeeId ? employeeMap.get(s.employeeId) : undefined;
+        return {
+          id: s.id,
+          employeeId: s.employeeId,
+          employeeName: emp?.name ?? "Ikke tildelt",
+          dateId: s.dateId,
+          startTime: s.startTime,
+          endTime: s.endTime,
+        };
+      }),
+    [draftShifts, employeeMap],
+  );
+
+  const { result: validation, isLoading: validationLoading } = usePublishValidation(
+    shiftsForValidation,
+    open && draftShifts.length > 0,
+  );
+
+  const hasIssues = validation.warnings > 0 || validation.blocked > 0;
+
+  // ── Publish handler ──────────────────────────────────────
   function handlePublish() {
+    // First click when blocked: only acknowledge, do not publish yet
+    if (validation.blocked > 0 && !acknowledged) {
+      setAcknowledged(true);
+      return;
+    }
     const ids = draftShifts.map((s) => s.id);
     onPublish(ids);
     toast.success(`${ids.length} vakter publisert`);
     onOpenChange(false);
   }
+
+  // ── Determine publish button appearance ─────────────────
+  const publishButtonIsRed = validation.blocked > 0;
+  const publishLabel =
+    validation.blocked > 0 && !acknowledged ? "Publiser likevel" : "Publiser alle";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -208,6 +262,79 @@ export function PublishOverviewDialog({
           </ScrollArea>
         )}
 
+        {/* ── Validation summary ─────────────────────────────── */}
+        {draftShifts.length > 0 && !validationLoading && (
+          <div className="border-border border-t px-6 py-3">
+            {hasIssues ? (
+              <div
+                className={`rounded-lg px-3 py-2 ${
+                  validation.blocked > 0 ? "bg-red-500/10" : "bg-yellow-500/10"
+                }`}
+              >
+                {/* Summary row — clickable to expand */}
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-2 text-left"
+                  onClick={() => setShowHits((v) => !v)}
+                >
+                  <AlertTriangle
+                    className={`h-3.5 w-3.5 shrink-0 ${
+                      validation.blocked > 0 ? "text-red-500" : "text-yellow-500"
+                    }`}
+                  />
+                  <span
+                    className={`flex-1 text-xs font-medium ${
+                      validation.blocked > 0 ? "text-red-600" : "text-yellow-600"
+                    }`}
+                  >
+                    {validation.blocked > 0 && <>{validation.blocked} blokkert</>}
+                    {validation.blocked > 0 && validation.warnings > 0 && ", "}
+                    {validation.warnings > 0 && (
+                      <>
+                        {validation.warnings} advarsel{validation.warnings !== 1 ? "er" : ""}
+                      </>
+                    )}
+                    {" – regelbrudd"}
+                  </span>
+                  <ChevronRight
+                    className={`text-muted-foreground h-3.5 w-3.5 shrink-0 transition-transform ${
+                      showHits ? "rotate-90" : ""
+                    }`}
+                  />
+                </button>
+
+                {/* Expandable hit list */}
+                {showHits && validation.hits.length > 0 && (
+                  <ul className="mt-2 space-y-1 pl-5">
+                    {validation.hits.map((hit, idx) => (
+                      <li key={`${hit.shiftId}-${idx}`} className="flex items-start gap-1.5">
+                        <span
+                          className={`mt-0.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full ${
+                            hit.outcome === "blocked" ? "bg-red-500" : "bg-yellow-500"
+                          }`}
+                        />
+                        <span className="text-foreground text-xs">
+                          <span className="font-medium">{hit.employeeName}</span>
+                          {" — "}
+                          {hit.reason}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 rounded-lg bg-emerald-500/10 px-3 py-2">
+                <CheckCircle className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
+                <span className="text-xs font-medium text-emerald-600">
+                  {validation.totalShifts} {validation.totalShifts === 1 ? "vakt" : "vakter"} klar,
+                  ingen regelbrudd
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
         <DialogFooter className="border-border flex-row gap-2 border-t px-6 py-4 sm:justify-end">
           <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
             Avbryt
@@ -215,11 +342,15 @@ export function PublishOverviewDialog({
           <Button
             size="sm"
             onClick={handlePublish}
-            disabled={draftShifts.length === 0 || isPublishing}
-            className="bg-emerald-600 text-white hover:bg-emerald-700"
+            disabled={draftShifts.length === 0 || isPublishing || validationLoading}
+            className={
+              publishButtonIsRed
+                ? "bg-red-600 text-white hover:bg-red-700"
+                : "bg-emerald-600 text-white hover:bg-emerald-700"
+            }
           >
             <Send className="mr-1.5 h-3.5 w-3.5" />
-            Publiser alle
+            {publishLabel}
           </Button>
         </DialogFooter>
       </DialogContent>

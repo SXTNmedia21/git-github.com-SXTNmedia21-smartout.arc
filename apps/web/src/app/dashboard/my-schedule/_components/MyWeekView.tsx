@@ -12,7 +12,11 @@
 import { useContext, useEffect, useState, useMemo } from "react";
 import { Calendar, ChevronLeft, ChevronRight, Clock, MapPin, Loader2 } from "lucide-react";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import { useMyScheduleShifts, type MyScheduleShift } from "../_hooks/use-my-shifts";
+import {
+  useMyScheduleShifts,
+  useMyShiftsRealtime,
+  type MyScheduleShift,
+} from "../_hooks/use-my-shifts";
 import { markShiftListViewed, markShiftDetailViewed } from "../actions";
 
 function getWeekRange(offset: number) {
@@ -79,6 +83,10 @@ export function MyWeekView() {
   const days = useMemo(() => getDaysInWeek(weekStart), [weekStart]);
 
   const { data: shifts, isLoading } = useMyScheduleShifts(profileId, weekStart, weekEnd);
+
+  // Subscribe to Realtime changes so the schedule refreshes automatically
+  // when shifts are published, updated, or deleted by a manager.
+  useMyShiftsRealtime(profileId);
 
   // Journey 03 (Sjekke vakter) — emit shift list_viewed via Server Action
   // whenever the visible week changes. Goes through a Server Action because

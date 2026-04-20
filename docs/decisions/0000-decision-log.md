@@ -1,7 +1,7 @@
 ---
 title: Decision Log
 status: canonical
-updated: 2026-04-07
+updated: 2026-04-19
 created: 2026-02-27
 module: meta
 tags: [decisions, adr, index]
@@ -19,10 +19,106 @@ tags: [decisions, adr, index]
 > **Per-feature decision tables** (previously embedded here) have been removed. They live in
 > `docs/handoffs/HANDOFF-<feature>.md` and in `activity-log.md` (per ADR-0075).
 >
+> **2026-04-10 note:** ADR-0037 received an addendum clarifying expanded landing event taxonomy,
+> Supabase operational source-of-truth, and Phase 1 Platform Admin -> PostHog bridge ID contract.
+>
 > Ordered newest first.
 
 | ADR | Date | Title | Status |
 |-----|------|-------|--------|
+| [ADR-0158](0158-packages-ui-dual-platform-strategy.md) | 2026-04-19 | packages/ui Dual-Platform Consumption Strategy — `.web.tsx` + `.native.tsx` platform extensions with shared TS logic primitives. Preserves current apps/web path; mobile adoption additive. Rejects NativeWind + full-separate-package approaches. First consumer: day-control widgets (ADR-0156 §8 Phase 2 complete). | proposed |
+| [ADR-0157](0157-server-actions-scope-amendment-adr-0114.md) | 2026-04-19 | Server Actions Scope — Amendment to ADR-0114: new mutations only, existing TanStack mutations grandfathered until scheduled migration. (Council 2026-04-19) | accepted |
+| [ADR-0156](0156-day-control-panel-canonical-admin-surface.md) | 2026-04-19 | Day-Control Panel as Canonical D6 Admin Surface — replace `OversiktView` with `WebDayControl`, staged widget placement (apps/web → packages/ui when mobile lands), `locked` phase derived via helper, broadcast type in komm `channel_message.system_data`. (Council 2026-04-19) | accepted |
+| [ADR-0163](0163-adr-0078-amendment-pii-allowedchannels-mandatory.md) | 2026-04-19 | ADR-0078 amendment — `allowedChannels` mandatory for PII-handling capabilities; fail-closed at capability registration; documents Layer 1 silence for ad-hoc agent-router path. (Council 2026-04-19 kanaler-som-helpdesk; accepted 2026-04-20 after 8-capability retrofit) | accepted |
+| [ADR-0162](0162-helpdesk-query-capability-placement.md) | 2026-04-19 | `helpdesk_query` capability placement — new isolated capability with explicit `allowedChannels: ['chat']` rather than extending `communication` (which has undefined allowedChannels). Five-touchpoint registration template. (Council 2026-04-19; accepted 2026-04-20 via targeted acceptance council — steward + supervisor) | accepted |
+| [ADR-0161](0161-helpdesk-ontology-ticket-as-engine-state.md) | 2026-04-19 | Helpdesk ontology — ticket as `engine_state` (Alt D), not a channel with extra columns. Desk = `channel_type='desk'` with `responsible_profile_id` FK; ticket lifecycle = `engine_state(process='helpdesk_query_lifecycle')`; conversation = linked channel thread. Rejects original "desk_query as channel row" proposal and `channel_access_rule` table. (Council 2026-04-19; accepted 2026-04-20) | accepted |
+| [ADR-0160](0160-channel-event-vs-engine-event-boundary.md) | 2026-04-19 | `channel_event` vs `engine_event` boundary — `channel_event` is the trigger-populated projection of `engine_event` into Komm UI space; `engine_event` remains single source of truth. Closes 2026-04-13 dead-infra deadline for `channel_event`. (Council 2026-04-19 kanaler-som-helpdesk; accepted 2026-04-20) | accepted |
+| [ADR-0164](0164-season-namespace-unification-telemetry.md) | 2026-04-20 | Season-namespace unification for year-wheel telemetry events. All canvas-interaction events use `"season "` prefix; UI widget does not define telemetry namespace. (Year Wheel Redesign Council 2026-04-20) | accepted |
+| [ADR-0155](0155-livekit-calls-in-expo-web.md) | 2026-04-19 | LiveKit calls are supported in Expo-web via shared `livekit-client` Room lifecycle. Supersedes the "LiveKit voice calls" incapacity clause of ADR-0153. Background Web Push for closed-tab alerts is a follow-up. | proposed |
+| [ADR-0153](0153-expo-web-surface-classification.md) | 2026-04-19 | Expo-web classified as third surface; mobile verb boundary applies, native-only features require `isSupported()` capability checks, SDK bumps must be isolated commits. (Council 2026-04-19 null.dispatchEvent audit) | proposed |
+| [ADR-0152](0152-activity-trail-fail-fast-contract.md) | 2026-04-19 | activity-trail provider must fail-fast on missing IDs (close L-0038 recurrence) | proposed |
+| [ADR-0151](0151-stage-engine-profile-id-server-derivation.md) | 2026-04-19 | Stage-engine must re-derive profile_id server-side (no trust in request body) | proposed |
+| [ADR-0154](0154-unified-overlay-system.md) | 2026-04-19 | Unified Overlay System — EntityDrawer (inspect) + EntityFormDialog (write), with Sheet / AlertDialog / WizardForm as narrow-purpose supplements. Five-primitive decision matrix; reviewer-enforceable; ADR-gated against new bespoke overlays. Blocks page-by-page UX pass on `apps/web/`. | proposed |
+| [ADR-0140](0140-governance-provenance-jsonb.md) | 2026-04-18 | Governance table provenance convention via `provenance JSONB` — five governance tables; renumbered from 0126 to avoid collision with ADR-0126 (billing integration sync). | accepted |
+| [ADR-0150](0150-source-discriminator-trigger-filters.md) | 2026-04-18 | Source Discriminator Pattern + Trigger Filters (renumbered from 0108) | accepted |
+| [ADR-0149](0149-strike-mcp-telemetry-boundary.md) | 2026-04-18 | Strike-MCP Telemetry Boundary (renumbered from 0107) | accepted |
+| [ADR-0144](0144-invoice-delivery-columns-drop-gate.md) | 2026-04-18 | invoice.delivery_* DROP COLUMN Lifecycle Gate (amends ADR-0128; renumbered from 0135 to avoid collision with mobile ADR-0135) | accepted |
+| [ADR-0143](0143-dunning-via-engine-process.md) | 2026-04-18 | Automated Dunning via engine_process, Not n8n (renumbered from 0134 to avoid collision with mobile ADR-0134) | accepted |
+| [ADR-0142](0142-invoice-refund-flow-adr-0120-amendment.md) | 2026-04-18 | Invoice Refund Flow — ADR-0120 Amendment for Stripe Refunds (renumbered from 0133 to avoid collision with mobile ADR-0133) | accepted |
+| [ADR-0141](0141-payment-attempt-pii-redaction-retention.md) | 2026-04-18 | payment_attempt PII Redaction + Retention Policy (renumbered from 0132 to avoid collision with mobile ADR-0132) | accepted |
+| [ADR-0148](0148-ehf-export-csv-pdf-platform-admin.md) | 2026-04-18 | EHF-leveranse via månedlig CSV/PDF-eksport fra platform-admin (renumbered from 0139; supersedes ADR-0145–0147) | accepted |
+| [ADR-0147](0147-integration-poll-payments-separate-engine-process.md) | 2026-04-17 | integration_poll_payments as separate engine_process (renumbered from 0138; superseded by ADR-0148) | superseded |
+| [ADR-0146](0146-peppol-ehf-transport-via-tickstar.md) | 2026-04-17 | Peppol EHF via Tickstar (renumbered from 0137; superseded by ADR-0148) | superseded |
+| [ADR-0145](0145-workspace-oauth-token-storage-supabase-vault.md) | 2026-04-17 | Workspace OAuth — Supabase Vault (renumbered from 0136; superseded by ADR-0148) | superseded |
+| [ADR-0139](0139-color-proposed-pending-state-ux.md) | 2026-04-18 | `--color-proposed` Token + Pending-State UX Contract — amber OKLCH (hue ~90) outside brand chroma, mandatory `<PendingBadge />` ("Venter") for WCAG AA + color-blind safety, three-motion contract (commit/hover/lava-lamp retreat), `pendingProposalId: string \| null` on optimistic rows, toast suppression for visual-primary surfaces. Blocks Wave 2C schedule TanStack migration. (Council 2026-04-18 gate-client wave 2) | draft |
+| [ADR-0138](0138-agent-tool-result-gate-outcome.md) | 2026-04-18 | Agent Tool Result Contract with Gate Outcomes — discriminated union `ToolGateResult<T>` with four variants (applied / applied_with_exception / proposed / blocked), mandatory Norwegian `user_message` as authoritative LLM copy, `allowed: boolean` for fast branching, prompt-template contract for all four cases. Blocks Wave 2B capability migration. (Council 2026-04-18 gate-client wave 2) | draft |
+| [ADR-0137](0137-gate-action-stacking-semantics.md) | 2026-04-18 | Gate Action Stacking Semantics — `gate_action` (ADR-0099) × `cascade_gate_write` (ADR-0091) sequential stacking for capability tool writes to governance-gated entities. Authority deny short-circuits; both gates fire on success; distinct failure semantics per axis. Blocks Wave 2B capability migration. (Council 2026-04-18 gate-client wave 2) | draft |
+| [ADR-0136](0136-witness-with-camera-evidence-model.md) | 2026-04-17 | Witness-with-Camera Evidence Model — `evidence_storage_path` + `evidence_kind` on completion entities; Supabase Storage workspace-scoped RLS; PII guidance baked into capture UI; optional by default. (Council 2026-04-17 mobile strategy) | proposed |
+| [ADR-0135](0135-mobile-voice-via-livekit-not-ultravox.md) | 2026-04-17 | Mobile Voice via LiveKit (Not Ultravox) — Ultravox lacks RN build path; LiveKit already installed; `packages/agent-sdk/src/providers/livekit.ts` exists. Voice transport = LiveKit; agent control plane = BFF (ADR-0132). (Council 2026-04-17) | proposed |
+| [ADR-0134](0134-mobile-telemetry-contract-enforcement.md) | 2026-04-17 | Mobile Telemetry Contract Enforcement — runtime assertion in `emit()` blocks empty-string `workspace_id`/`actor_id`; lint rule + unit tests; backfills 6 broken sites in `use-punch.ts`, `use-swap.ts`, `use-create-shift.ts`. Companions ADR-0116. (Council 2026-04-17) | accepted |
+| [ADR-0133](0133-web-composes-mobile-executes.md) | 2026-04-17 | Web Composes, Mobile Executes — Cascade Surface Boundary. Web owns D1–D5 authoring; mobile owns D6 production + C4 acceptance. Verb table codifies in/out-of-scope per surface. Drives MOBILE_IA_CONTRACT.md. (Council 2026-04-17 — two-reviewer convergence) | accepted |
+| [ADR-0132](0132-mobile-thin-client-via-web-bff.md) | 2026-04-17 | Mobile is a Thin Client; AI/Capabilities Route Through Web BFF — mobile POSTs to `/api/emma/chat` with JWT; BFF forwards to stage-engine; channel pinning server-side. Companions ADR-0114. Deprecates legacy `chat_message`-direct Botsson by week 6. (Council 2026-04-17) | accepted |
+| [ADR-0131](0131-stripe-connect-platform-model.md) | 2026-04-17 | Stripe Connect Platform Model — Smartout-Owned (merchant-of-record for 3A; ingen workspace Connect Accounts; revurderes 3B+ om workspaces etterspør direkte payouts) | accepted |
+| [ADR-0130](0130-fase-2-scope-exclusion-contract-onboarding.md) | 2026-04-17 | Fase 2 Scope Exclusion — Contract Onboarding Extracted to Fase 2.5 (billing Fase 2 ships without automatic onboarding provisioning; manual flow in Fase 2, automated flow in Fase 2.5 mini-spec) | accepted |
+| [ADR-0129](0129-billing-integration-adapter-pattern.md) | 2026-04-17 | Billing Integration Adapter Pattern + Placeholder Audit-Safety (`IntegrationAdapter` interface + `is_placeholder` column + `integration sync mocked` event gate) | accepted |
+| [ADR-0128](0128-invoice-delivery-columns-deprecation-lifecycle.md) | 2026-04-17 | invoice.delivery_* Columns Deprecation Lifecycle (dual-write in B2, read from invoice_dispatch from B3, DROP COLUMN by 2026-07-01 or Fase 3 close) | accepted |
+| [ADR-0127](0127-billing-dispatch-rule-2-level-evaluation.md) | 2026-04-17 | Billing Dispatch Rule 2-Level Evaluation with Suppress Semantics (platform ∪ workspace with canonical_json dedup key + `action='suppress'` override primitive) | accepted |
+| [ADR-0126](0126-integration-sync-as-event-engine-process.md) | 2026-04-17 | Integration Sync as Event Engine Process, Not Parallel Motor (subsumes proposed billing_integration_sync into engine_process; retry via engine_delayed_trigger; no new Edge Function) | accepted |
+| [ADR-0124](0124-polymorphic-fk-documentation-convention.md) | 2026-04-17 | Polymorphic FK Documentation Convention (SQL COMMENT ON for intentional no-FK refs) | proposed |
+| [ADR-0123](0123-adr-0029-amendment-pre-workspace-exceptions.md) | 2026-04-17 | ADR-0029 Amendment — Pre-Workspace Edge Function Exceptions + Identity-Boundary Tripwire | proposed |
+| [ADR-0122](0122-governance-telemetry-quad-destination.md) | 2026-04-17 | Governance Telemetry Quad-Destination Routing (7 domain events replace "button clicked") | proposed |
+| [ADR-0125](0125-billing-activity-log-as-platform-scoped-audit.md) | 2026-04-17 | `billing_activity_log` as platform-scoped audit trail for billing (supersedes ADR-0118's activity_trail dunning claim; company-scoped, `actor_user_id → user_identity` nullable for cron/system, immutable; new telemetry destination + provider) | accepted |
+| [ADR-0121](0121-pricing-terms-billing-engine-extension.md) | 2026-04-17 | `pricing_terms` Extension for Billing Engine (amends ADR-0027) — 5 additive columns: `free_users int DEFAULT 10`, `overage_price_per_user decimal(12,2)` nullable, `delivery_channel text DEFAULT 'manual' CHECK IN ('manual','stripe','ehf')`, `invoice_format text DEFAULT 'pdf' CHECK IN ('pdf','ehf')`, `agreement_period daterange` nullable; `agreement_period` = contract duration (display only) vs `effective_from/until` = price validity (computation engine) — must not be collapsed | accepted |
+| [ADR-0120](0120-invoice-immutability-credit-note-policy.md) | 2026-04-17 | Invoice Immutability + Credit Note Policy — continuous numbering via `invoice_number_seq` (assigned on `draft → issued`); no DELETE on issued invoices; corrections via credit notes only (`invoice_type = 'credit_note'` + `credits_invoice_id` FK); no nested credit notes; `(status, dunning_status)` CHECK (~8 legal combos); `invoice_id` vs `invoice_number` identity contract; dunning age from `due_at`; credit note amounts positive with explicit type | accepted |
+| [ADR-0119](0119-usage-snapshot-reproducibility.md) | 2026-04-17 | Usage Snapshot Reproducibility + active-user = `shift_status = 'completed'`; `counted_profile_ids` + `source_query_hash` on snapshot; drift detection emits `invoice.basis_drift_detected`; platform-admin resolves via ignore/credit-note/reinvoice | accepted |
+| [ADR-0118](0118-invoice-engine-as-c3-commercial-consumer.md) | 2026-04-17 | Invoice Engine as C3 Commercial Consumer (reads D6 + K1b, writes invoice/invoice_line_item/usage_snapshot, dunning via `billing_activity_log` — ADR-0125 supersedes the original activity_trail routing) | accepted |
+| [ADR-0117](0117-authority-model-after-phase-4.md) | 2026-04-16 | Authority Model after Phase 4 (gate_action as single source) | accepted |
+| [ADR-0116](0116-runtime-telemetry-standard.md) | 2026-04-16 | Runtime Telemetry Standard for services/ (pino logger, requestId middleware, typed errors, mandatory emit() via toVercelTools adapter) | accepted |
+| [ADR-0115](0115-rsc-migration-pattern-dashboard-routes.md) | 2026-04-16 | RSC Migration Pattern for Dashboard Routes — streaming boundary, NordicSkeleton pairing, ambience invariant, first-chunk heading rule, schedule excluded. **Pattern proven** by Sprint 2 migration (people, handbook, hms, reports). | accepted |
+| [ADR-0114](0114-server-actions-canonical-mutation-primitive.md) | 2026-04-16 | Server Actions as Canonical User-Initiated Mutation Primitive + Capability Authority Relation — three-path divergence closed via shared gate RPC + explicit emit contract. **Accepted 2026-04-17** — WP3 prerequisite (`gate-client.ts` + ESLint rule) shipped in `b90dc1f5`. R3 unblocked 2026-04-18 (ADR-0091 WP2 shipped); call-site migration follows. | accepted |
+| [ADR-0113](0113-dashboard-context-decomposition-completion.md) | 2026-04-16 | DashboardContext Decomposition Completion — facade `useDashboard()` hook, ThemeContext hoist with synchronous data-theme flip, BotssonProvider above shell split. | accepted |
+| [ADR-0111](0111-employment-contract-detail-versioning.md) | 2026-04-15 | Employment Contract Detail — Append-Only Versioning of Tripletex-Canonical Fields (surrogate PK + UNIQUE; 5-column scope; deferred runtime mechanism) | accepted |
+| [ADR-0110](0110-payroll-ledger-archive-semantics.md) | 2026-04-15 | Payroll Ledger Archive — Read-Only Bubble Historical Semantics (lean typed columns + raw_json; RLS USING(false) UPDATE/DELETE; operational table deferred) | accepted |
+| [ADR-0109](0109-migrated-contract-shell-block-and-supersede.md) | 2026-04-15 | Migrated Contract Shell — Block-and-Supersede Rule (UPDATE on source='bubble_migration' blocked; admin must issue new contract via composition; 'migration_incomplete' enum value) | accepted |
+| [ADR-0106](0106-effective-dating-governance-content.md) | 2026-04-15 | Effective-Dating Strategy for Governance Content (valid_from/valid_to on protocol/procedure/knowledge_test/confirmation; no *_version tables) | accepted |
+| [ADR-0105](0105-inspection-link-public-access-pattern.md) | 2026-04-15 | inspection_link Public-Access Pattern (hashed token, scope JSONB, justification, default anonymization; MVP schema, UI deferred to Phase 4) | accepted |
+| [ADR-0104](0104-notification-consolidation-roadmap.md) | 2026-04-15 | Notification Consolidation Roadmap (notification_policy + notification_sent_log with domain column; consolidation M+3/M+6/M+12) | accepted |
+| [ADR-0103](0103-observer-request-c4-decision-layer.md) | 2026-04-15 | observer_request in C4 Decision Layer (parallel to shift_approval, claim/approve/reject via gate_action) | accepted |
+| [ADR-0102](0102-evidence-tier-enum.md) | 2026-04-15 | evidence_tier Enum for Protocol Proof Requirements (replaces protocol.risk_level; orthogonal to rule/deviation severity) | accepted |
+| [ADR-0101](0101-four-eyes-extension-gate-action.md) | 2026-04-15 | Four-Eyes Extension of gate_action RPC (requires_four_eyes column + extended return shape; UI renders, never re-evaluates) | accepted |
+| [ADR-0112](0112-intent-classifier-coverage-invariant.md) | 2026-04-15 | Intent Classifier Coverage Invariant — every registered capability must have an intent-schema entry (Council R2 F5 follow-up) | accepted |
+| ADR-0109 | 2026-04-15 | *reserved — Four-Eyes Extension of gate_action RPC (claimed by PR #197 pending rename from 0101)* | reserved |
+| ADR-0101 | 2026-04-15 | *reserved — Governance/Training Council ADR (PR #200). Previously also claimed by PR #197; collision resolved by renumbering PR #197 to ADR-0109.* | reserved |
+| [ADR-0107](0107-botsson-provider-channel-derivation.md) | 2026-04-15 | BotssonProvider Channel Derivation (closes ADR-0078 mobile gap — derive from session mode, never platform label) | accepted |
+| [ADR-0108](0108-use-shift-lifecycle-platform-neutral.md) | 2026-04-15 | useShiftLifecycle Platform-Neutral Contract (web wrapper + DI, closes Council 6.4 audit) | accepted |
+| [ADR-0107](0107-botsson-provider-channel-derivation.md) | 2026-04-15 | BotssonProvider Channel Derivation (closes ADR-0078 mobile gap — derive from session mode, never platform label) | accepted |
+| [ADR-0108](0108-use-shift-lifecycle-platform-neutral.md) | 2026-04-15 | useShiftLifecycle Platform-Neutral Contract (web wrapper + DI, closes Council 6.4 audit) | accepted |
+| [ADR-0101](0101-four-eyes-extension-gate-action.md) | 2026-04-15 | Four-Eyes Extension to gate_action (History-Based) | accepted |
+| [ADR-0100](0100-daily-close-as-aggregate-consumer.md) | 2026-04-15 | daily_close as Department-Aggregate Consumer of Settled Shifts | accepted |
+| [ADR-0099](0099-unified-authority-gate.md) | 2026-04-15 | Unified Authority-Gate Across agent-router and engine-dispatch (closes ADR-0077/0078 violation) | accepted |
+| [ADR-0098](0098-engine-state-as-coordination-spor.md) | 2026-04-15 | engine_state as Coordination Spor, Not Truth Owner | accepted |
+| [ADR-0097](0097-time-entry-as-reality-source.md) | 2026-04-15 | time_entry as D6 Reality Source (Immutable) | accepted |
+| [ADR-0096](0096-schedule-shift-vs-department-session.md) | 2026-04-15 | schedule_shift vs department_session — 1:N Formal Relation | accepted |
+| [ADR-0095](0095-shift-lifecycle-five-layer-architecture.md) | 2026-04-15 | Shift Lifecycle Five-Layer Architecture (Reality/Interpretation/Derivation/Decision/Execution) | accepted |
+| [ADR-0094](0094-framework-rule-severity-enum.md) | 2026-04-14 | Framework Rule Severity as Enum (info/warning/hard_block, WP1 retrofit) | accepted |
+| [ADR-0093](0093-contract-draft-proposals-unified-cascade.md) | 2026-04-14 | Contract Draft Proposals Flow Through Unified apply_cascade() (amends ADR-0076) | accepted |
+| ADR-0092 | — | *reserved — Monitor Mode Graduation Criteria (Phase E / WP6)* | reserved |
+| [ADR-0091](0091-governance-gate-placement-postgres-rpc.md) | 2026-04-14 | Governance Gate Placement — Postgres RPC (SECURITY DEFINER), covers service-role. WP2 shipped 2026-04-18 (Option B Smart Trigger Check, commits `2278ef52` + `6a431ce2`); WP3 TS wrapper at `packages/supabase/src/gate-client.ts` now functional end-to-end. WP1 deep rule evaluation still pending. | accepted |
+| [ADR-0090](0090-framework-rule-evaluation-config-schema.md) | 2026-04-14 | Framework Rule Evaluation Config JSON Schema (Phase E / WP1 foundation) | accepted |
+| [ADR-0089](0089-walkai-bridge-architecture.md) | 2026-04-14 | WalkAi Bridge Architecture — Client vs Server Tools | accepted |
+| [ADR-0088](0088-ai-operations-intelligence-capability.md) | 2026-04-14 | AI Operations Intelligence as Capability, Not Daemon | accepted |
+| [ADR-0087](0087-communications-as-cascade-consumer.md) | 2026-04-13 | Communications as Cascade Consumer — C2 Contract | accepted |
+| [ADR-0086](0086-entity-drawer-surface-pattern.md) | 2026-04-13 | Entity Drawer Surface Pattern (renumbered from ADR-0068 collision on 2026-04-13) | accepted |
+| [ADR-0085](0085-year-wheel-governance-policy.md) | 2026-04-10 | Year Wheel Governance Policy — single active cycle per workspace, max 1 active season | accepted |
+| [ADR-0084](0084-telemetry-conditional-exports.md) | 2026-04-09 | Telemetry package conditional exports — react-server/default split to isolate posthog-node from client bundle, /api/telemetry proxy for server-only destinations | accepted |
+| [ADR-0083](0083-strike-mcp-registration.md) | 2026-04-08 | Strike MCP Registered as Dev-Only Data Source — repo-level .mcp.json with .env.local token, 1Password deferred as debt | accepted |
+| [ADR-0082](0082-contract-drafts-are-not-versions.md) | 2026-04-08 | Contract Drafts Are Not Versions — versioning starts at send, idempotency on send endpoint | accepted |
+| [ADR-0081](0081-admin-pii-bypass-security-definer-rpc.md) | 2026-04-08 | Admin PII Bypass via SECURITY DEFINER RPC — dashboard-only, never via agent, with employee notification | accepted |
+| [ADR-0080](0080-compliance-drift-signal-read-only.md) | 2026-04-08 | Compliance Drift Signal — read-only materialized view, not a cascade derivation | accepted |
+| [ADR-0079](0079-adr-0024-amendment-employment-vs-platform-contracts.md) | 2026-04-08 | ADR-0024 Amendment — employment_contract vs contract system separation | accepted |
+| [ADR-0078](0078-engine-process-channel-restriction.md) | 2026-04-08 | Engine Process Channel Restriction — allowed_channels + defence in depth for PII | accepted |
+| [ADR-0077](0077-contract-intake-pii-handling.md) | 2026-04-08 | Contract Intake PII Handling — personnummer/bank encryption, no-echo, engine_memory sensitivity | accepted |
+| [ADR-0076](0076-contract-composition-as-cascade-derivation.md) | 2026-04-08 | Contract Composition as Cascade Derivation — compliance via change_proposal, overrides as JSONB provenance | accepted |
 | [ADR-0075](0075-knowledge-system-consolidation.md) | 2026-04-07 | Knowledge System Consolidation — slim DASHBOARD, delete SESSION.md, migrate narrative to activity-log + claude-mem | accepted |
 | [ADR-0074](0074-protocol-verification-engine.md) | 2026-03-29 | Protocol Verification Engine Architecture (renumbered from 0071 on 2026-04-07) | accepted |
 | [ADR-0073](0073-ai-eval-harness.md) | 2026-04-06 | AI Eval Harness for `packages/ai` — two-layer test surface (unit mocked + evals gated) | accepted |
@@ -101,8 +197,13 @@ tags: [decisions, adr, index]
 
 ## Integrity
 
-- **74 ADRs** (0001-0075, ADR-0000 is this index)
-- **0 number collisions** (verified 2026-04-07 by pre-commit hook + manual audit)
+- **96 ADRs** (0001-0139 with 0092 reserved, ADR-0000 is this index) — 2026-04-18 added ADR-0137/0138/0139 (gate-client wave 2 prereqs, status: draft)
+- **98 ADRs** (0001-0111 with 0092 reserved, ADR-0000 is this index)
+- **0 number collisions** (verified 2026-04-13 — ADR-0068 entity-drawer collision resolved by renumbering to 0086)
+- **1 reserved slot:** 0092 — Monitor Mode Graduation Criteria (Phase E / WP6), to be written when WP6 lands
 - **0 number gaps** (0052/0053/0054 previously gaps, now occupied by renumbered collision resolvers)
 - **Renumbered 2026-04-07:** 0049 guardian-ws → 0052, 0058 simulation → 0053, 0059 edge-functions → 0054, 0071 protocol-verification → 0074 (see ADR-0075 context)
+- **Renumbered 2026-04-13:** ADR-0068-entity-drawer-surface-pattern → 0086 (collision with 0068-simulation-schema-and-service)
+- **Reserved 2026-04-15 (Council R2 F11):** ADR-0101 double-claimed by PR #197 (`feat/shift-lifecycle-capability-wiring` — Four-Eyes Extension of gate_action) and PR #200 (governance/training council). PR #200 keeps the 0101 slot; PR #197 must rename its ADR file `0101-four-eyes-extension-gate-action.md` → `0109-four-eyes-extension-gate-action.md` during rebase, update its own front-matter and any cross-references, then drop the 0101 placeholder row from this log when it lands on 0109.
+- **Archived 2026-04-13:** ADR-DRAFT-core-hierarchy-cascade — superseded by cascade spec
 - **Superseded:** 0035 (→0039), 0046 (→0064), 0055 (→0071)

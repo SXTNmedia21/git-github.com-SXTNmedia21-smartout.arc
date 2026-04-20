@@ -21,6 +21,8 @@ export default async function WorkspaceDetailPage({ params }: { params: Promise<
     { data: commHistory },
     { data: docChunks },
     { data: memories },
+    { data: contracts },
+    { data: pricingTerms },
   ] = await Promise.all([
     admin.from("workspace").select("*, company:company_id (*)").eq("workspace_id", id).single(),
     admin.from("profile").select("*", { count: "exact", head: true }).eq("workspace_id", id),
@@ -66,6 +68,24 @@ export default async function WorkspaceDetailPage({ params }: { params: Promise<
       .eq("workspace_id", id)
       .order("created_at", { ascending: false })
       .limit(50),
+    admin
+      .from("contract")
+      .select(
+        `contract_id, title, status, contract_type, recipient_name, recipient_email,
+         sent_at, signed_at, expires_at, created_at, signed_pdf_url,
+         template:template_id (name, contract_type)`,
+      )
+      .eq("workspace_id", id)
+      .order("created_at", { ascending: false })
+      .limit(20),
+    admin
+      .from("pricing_terms")
+      .select("*")
+      .eq("workspace_id", id)
+      .is("effective_until", null)
+      .order("effective_from", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ]);
 
   if (!workspace) redirect("/platform-admin/workspaces");
@@ -125,6 +145,10 @@ export default async function WorkspaceDetailPage({ params }: { params: Promise<
         googlePriceLevel: workspace.google_price_level ?? "",
         latitude: workspace.latitude,
         longitude: workspace.longitude,
+        contractStatus: (workspace.contract_status as string) ?? "none",
+        activeContractId: (workspace.active_contract_id as string) ?? null,
+        trialStartedAt: (workspace.trial_started_at as string) ?? null,
+        wsTrialEndsAt: (workspace.trial_ends_at as string) ?? null,
       }}
       company={
         company
@@ -186,6 +210,46 @@ export default async function WorkspaceDetailPage({ params }: { params: Promise<
           createdAt: f.created_at,
         })),
       }}
+      contracts={(contracts ?? []).map((c: Record<string, unknown>) => ({
+        contract_id: c.contract_id as string,
+        title: c.title as string,
+        status: (c.status as string) ?? "draft",
+        contract_type: (c.contract_type as string) ?? "custom",
+        recipient_name: (c.recipient_name as string) ?? "",
+        recipient_email: (c.recipient_email as string) ?? "",
+        sent_at: c.sent_at as string | null,
+        viewed_at: null,
+        signed_at: c.signed_at as string | null,
+        expires_at: c.expires_at as string | null,
+        created_at: c.created_at as string,
+        signed_pdf_url: c.signed_pdf_url as string | null,
+        company: null,
+        template: c.template as { name: string; contract_type: string } | null,
+        events: [],
+      }))}
+      pricingTerms={
+        pricingTerms
+          ? {
+              pricingTermsId: pricingTerms.pricing_terms_id,
+              companyId: pricingTerms.company_id,
+              workspaceId: pricingTerms.workspace_id,
+              monthlyCost: pricingTerms.monthly_cost,
+              pricePerEmployee: pricingTerms.price_per_employee,
+              billingInterval: pricingTerms.billing_interval,
+              currency: pricingTerms.currency,
+              discountPercent: pricingTerms.discount_percent,
+              discountLabel: pricingTerms.discount_label,
+              onboardingPackage: pricingTerms.onboarding_package,
+              onboardingCost: pricingTerms.onboarding_cost,
+              trialDays: pricingTerms.trial_days,
+              effectiveFrom: pricingTerms.effective_from,
+              effectiveUntil: pricingTerms.effective_until,
+              notes: pricingTerms.notes,
+              contractId: pricingTerms.contract_id,
+              updatedAt: pricingTerms.updated_at,
+            }
+          : null
+      }
     />
   );
 }

@@ -8,6 +8,7 @@ export const getProfile = defineTool({
   name: "get_profile",
   description:
     "Get the current employee's profile information including name, role, department, team, and status.",
+  capability: "profile",
   schema: z.object({}),
   execute: async (_params, ctx: AgentToolContext) => {
     const supabase = ctx.supabaseAdmin as SupabaseClient;
@@ -27,6 +28,7 @@ export const getProfile = defineTool({
 export const getTeam = defineTool({
   name: "get_team",
   description: "Get information about the employee's team including team members and team leader.",
+  capability: "profile",
   schema: z.object({}),
   execute: async (_params, ctx: AgentToolContext) => {
     const supabase = ctx.supabaseAdmin as SupabaseClient;
@@ -60,6 +62,7 @@ export const getTeam = defineTool({
 export const getContractStatus = defineTool({
   name: "get_contract_status",
   description: "Get the current status of the employee's employment contract.",
+  capability: "profile",
   schema: z.object({}),
   execute: async (_params, ctx: AgentToolContext) => {
     const supabase = ctx.supabaseAdmin as SupabaseClient;
@@ -72,6 +75,39 @@ export const getContractStatus = defineTool({
       .single();
 
     if (error || !data) return "No contract found for this employee.";
+    return JSON.stringify(data);
+  },
+});
+
+export const searchProfilesByName = defineTool({
+  name: "search_profiles_by_name",
+  description:
+    "Search for employees by name (partial match). Returns profile IDs, display names, roles, " +
+    "statuses, and department names. Use to resolve a human name to a profile UUID before " +
+    "opening entity drawers or creating contracts. Max 10 results. No PII returned.",
+  capability: "profile",
+  schema: z.object({
+    query: z
+      .string()
+      .min(1)
+      .describe("Name or partial name to search for, e.g. 'Lise' or 'Hansen'"),
+  }),
+  execute: async (params, ctx: AgentToolContext) => {
+    const supabase = ctx.supabaseAdmin as SupabaseClient;
+
+    const { data, error } = await supabase
+      .from("profile")
+      .select("profile_id, display_name, role, status, department:department_id(name)")
+      .eq("workspace_id", ctx.workspaceId)
+      .eq("is_active", true)
+      .ilike("display_name", `%${params.query}%`)
+      .order("display_name")
+      .limit(10);
+
+    if (error) return `Error searching profiles: ${error.message}`;
+    if (!data || data.length === 0) {
+      return `No employees found matching "${params.query}" in this workspace.`;
+    }
     return JSON.stringify(data);
   },
 });

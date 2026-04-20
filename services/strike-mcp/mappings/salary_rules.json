@@ -1,0 +1,15 @@
+{
+  "entity": "salary_rules",
+  "bubble_type": "⏱️salary_rule",
+  "target_table": null,
+  "field_map": {},
+  "required_source_fields": [],
+  "skip_if_missing": [],
+  "known_quirks": [],
+  "last_verified": "2026-04-08",
+  "sample_record_count": 0,
+  "total_record_count": 0,
+  "v3_schema_hash": null,
+  "known_empty_source": true,
+  "approval_hash": "2badcf3bf0fc32747bf675c2f77289f33288b7a2c7798a036b59e8d44825fca6"
+}

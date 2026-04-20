@@ -1,0 +1,632 @@
+{
+  "entity": "handbooks",
+  "bubble_type": "handbook",
+  "status": "superseded",
+  "superseded_by": "Tier 2 content-extraction (scripts/tier2_extract.ts)",
+  "superseded_date": "2026-04-17",
+  "supersession_reason": "Original mapping targeted public.runbook but runbook requires NOT NULL trigger_event/escalation_chain/control_list_id that handbooks cannot satisfy. Tier 2 re-emits handbooks as public.protocol rows via content-extraction approach (Pontus reframe 2026-04-17, Learning 0034). Tier 1 never emitted any runbook rows from this mapping — no runtime conflict.",
+  "known_empty_source": true,
+  "attestation": "mapping_attested_empty",
+  "target_table": null,
+  "_original_target_table": "public.runbook",
+  "field_map": {
+    "Created By": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 26,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "- Can be completed by badge quiz?": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "boolean"
+      ],
+      "occurrence_count": 26,
+      "sample_values": [
+        "boolean",
+        "boolean"
+      ]
+    },
+    "_status": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 26,
+      "sample_values": [
+        "string<5>",
+        "string<9>"
+      ]
+    },
+    "coverImage": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 12,
+      "sample_values": [
+        "string<115>",
+        "string<99>",
+        "string<115>"
+      ]
+    },
+    "badgeImageUrl": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 10,
+      "sample_values": [
+        "string<123>",
+        "string<101>",
+        "string<123>"
+      ]
+    },
+    "Modified Date": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 26,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "badgeImage": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 10,
+      "sample_values": [
+        "string<115>",
+        "string<93>",
+        "string<115>"
+      ]
+    },
+    "Created Date": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 26,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "_id": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 26,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "Title": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 26,
+      "sample_values": [
+        "string<7>",
+        "string<14>",
+        "string<14>"
+      ]
+    },
+    "workspace": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 26,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "- Must be completed in order?": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "boolean"
+      ],
+      "occurrence_count": 26,
+      "sample_values": [
+        "boolean",
+        "boolean"
+      ]
+    },
+    "handbook.challenges": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "array"
+      ],
+      "occurrence_count": 17,
+      "sample_values": [
+        "array<4>",
+        "array<3>",
+        "array<2>"
+      ]
+    },
+    "Est. time (min)": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "number"
+      ],
+      "occurrence_count": 17,
+      "sample_values": [
+        "number",
+        "number",
+        "number"
+      ]
+    },
+    "Post": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 5,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "rating": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "number"
+      ],
+      "occurrence_count": 7,
+      "sample_values": [
+        "number",
+        "number",
+        "number"
+      ]
+    },
+    "enrolledCount": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "number"
+      ],
+      "occurrence_count": 20,
+      "sample_values": [
+        "number",
+        "number",
+        "number"
+      ]
+    },
+    "achievedBy": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "array"
+      ],
+      "occurrence_count": 7,
+      "sample_values": [
+        "array<3>",
+        "array<1>",
+        "array<1>"
+      ]
+    },
+    "log_search": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 9,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "list of 📚category": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "array"
+      ],
+      "occurrence_count": 9,
+      "sample_values": [
+        "array<1>",
+        "array<2>",
+        "array<2>"
+      ]
+    },
+    "_colorPallet": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 21,
+      "sample_values": [
+        "string<8>",
+        "string<16>",
+        "string<12>"
+      ]
+    },
+    "_handbookType": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 21,
+      "sample_values": [
+        "string<3>",
+        "string<9>",
+        "string<9>"
+      ]
+    },
+    "daysToComplete": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "number"
+      ],
+      "occurrence_count": 18,
+      "sample_values": [
+        "number",
+        "number",
+        "number"
+      ]
+    },
+    "validPeriod_days": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "number"
+      ],
+      "occurrence_count": 5,
+      "sample_values": [
+        "number",
+        "number"
+      ]
+    },
+    "description": {
+      "target": "description",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 9,
+      "sample_values": [
+        "string<315>",
+        "string<19>",
+        "string<358>"
+      ]
+    },
+    "listofcontents": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "array"
+      ],
+      "occurrence_count": 9,
+      "sample_values": [
+        "array<1>",
+        "array<1>",
+        "array<1>"
+      ]
+    },
+    "subTitle": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 13,
+      "sample_values": [
+        "string<118>",
+        "string<30>",
+        "string<61>"
+      ]
+    },
+    "handbook.stages": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "array"
+      ],
+      "occurrence_count": 11,
+      "sample_values": [
+        "array<3>",
+        "array<1>",
+        "array<5>"
+      ]
+    },
+    "enrolled handbooks.logs": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "array"
+      ],
+      "occurrence_count": 13,
+      "sample_values": [
+        "array<3>",
+        "array<4>",
+        "array<1>"
+      ]
+    },
+    "_dataType": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 12,
+      "sample_values": [
+        "string<12>",
+        "string<24>",
+        "string<13>"
+      ]
+    },
+    "🏳️‍🌈 titles": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "array"
+      ],
+      "occurrence_count": 8,
+      "sample_values": [
+        "array<8>",
+        "array<3>",
+        "array<8>"
+      ]
+    },
+    "priority": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "number"
+      ],
+      "occurrence_count": 8,
+      "sample_values": [
+        "number",
+        "number",
+        "number"
+      ]
+    },
+    "_userRole": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 8,
+      "sample_values": [
+        "string<7>",
+        "string<8>"
+      ]
+    },
+    "- mandatory": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "boolean"
+      ],
+      "occurrence_count": 9,
+      "sample_values": [
+        "boolean",
+        "boolean"
+      ]
+    },
+    "- Global?": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "boolean"
+      ],
+      "occurrence_count": 9,
+      "sample_values": [
+        "boolean",
+        "boolean"
+      ]
+    },
+    "🏳️‍🌈 descriptions": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "array"
+      ],
+      "occurrence_count": 8,
+      "sample_values": [
+        "array<8>",
+        "array<3>",
+        "array<8>"
+      ]
+    },
+    "list of teams": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "array"
+      ],
+      "occurrence_count": 1,
+      "sample_values": [
+        "array<15>"
+      ]
+    },
+    "department": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 1,
+      "sample_values": [
+        "string<32>"
+      ]
+    },
+    "parantId": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 8,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "🏳️‍🌈 subTitles": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "array"
+      ],
+      "occurrence_count": 7,
+      "sample_values": [
+        "array<3>",
+        "array<8>",
+        "array<8>"
+      ]
+    },
+    "- Certification?": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "boolean"
+      ],
+      "occurrence_count": 7,
+      "sample_values": [
+        "boolean"
+      ]
+    },
+    "version": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "number"
+      ],
+      "occurrence_count": 6,
+      "sample_values": [
+        "number",
+        "number"
+      ]
+    },
+    "access🔑key": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 1,
+      "sample_values": [
+        "string<32>"
+      ]
+    },
+    "job": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 1,
+      "sample_values": [
+        "string<32>"
+      ]
+    },
+    "View count": {
+      "target": null,
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "number"
+      ],
+      "occurrence_count": 5,
+      "sample_values": [
+        "number"
+      ]
+    }
+  },
+  "required_source_fields": [],
+  "skip_if_missing": [],
+  "known_quirks": [],
+  "last_verified": "2026-04-08",
+  "sample_record_count": 26,
+  "total_record_count": 26,
+  "v3_schema_hash": null,
+  "approval_hash": "a4ec1678c3faf04015847a4b49bbf6dc17d4f936f1295b05bedfa3ef65fbe942"
+}

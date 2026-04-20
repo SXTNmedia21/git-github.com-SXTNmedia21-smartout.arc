@@ -99,6 +99,7 @@ export function fromDbShift(row: ShiftRow): Shift {
     employeeId: row.employee_id,
     dateId: row.shift_date,
     role: row.role,
+    shiftTypeId: row.shift_type_id ?? undefined,
     departmentId: row.department_id ?? undefined,
     locationId: row.location_id ?? undefined,
     positionId: row.position_id ?? undefined,
@@ -130,6 +131,7 @@ export function toDbShiftInsert(
     employee_id: shift.employeeId,
     shift_date: shift.dateId,
     role: shift.role,
+    shift_type_id: shift.shiftTypeId ?? null,
     department_id: shift.departmentId ?? null,
     location_id: shift.locationId ?? null,
     position_id: shift.positionId ?? null,
@@ -156,6 +158,7 @@ export function toDbShiftUpdate(
   if (patch.employeeId !== undefined) update.employee_id = patch.employeeId;
   if (patch.dateId !== undefined) update.shift_date = patch.dateId;
   if (patch.role !== undefined) update.role = patch.role;
+  if (patch.shiftTypeId !== undefined) update.shift_type_id = patch.shiftTypeId ?? null;
   if (patch.departmentId !== undefined) update.department_id = patch.departmentId ?? null;
   if (patch.locationId !== undefined) update.location_id = patch.locationId ?? null;
   if (patch.positionId !== undefined) update.position_id = patch.positionId ?? null;

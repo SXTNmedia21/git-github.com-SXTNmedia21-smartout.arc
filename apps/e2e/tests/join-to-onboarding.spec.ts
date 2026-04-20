@@ -39,19 +39,21 @@ test("join → onboarding redirect and load", async ({ page }) => {
   await page.reload();
   await waitForStepHeading(page, /Opprett din konto/);
 
-  // Step 1
-  await page.locator("#email").fill(TEST_EMAIL);
+  // Step 1 — auth (signUp) happens silently here.
+  // firstName, lastName, password, confirmPassword are all on step 1 now.
   await page.locator("#companyName").fill("Overgangstest AS");
   await page.locator("#industry").click();
   await page.getByRole("option", { name: /Restaurant/i }).click();
   await page.locator("#city").fill("Bergen");
-  await page.locator("#websiteUrl").fill("https://example.com");
-  await clickNeste(page);
-
-  // Step 2
-  await waitForStepHeading(page, /Bedriftsinformasjon/, 30_000);
+  await page.locator("#email").fill(TEST_EMAIL);
+  await page.locator("#password").fill(TEST_PASSWORD);
+  await page.locator("#confirmPassword").fill(TEST_PASSWORD);
   await page.locator("#firstName").fill("Ola");
   await page.locator("#lastName").fill("Nordmann");
+  await clickNeste(page);
+
+  // Step 2 — business info only (no firstName/lastName, those moved to step 1)
+  await waitForStepHeading(page, /Bedriftsinformasjon/, 30_000);
   await page.locator("#street").fill("Bryggen 1");
   await page.locator("#postalCode").fill("5003");
   await page.locator("#city").fill("Bergen");
@@ -71,10 +73,9 @@ test("join → onboarding redirect and load", async ({ page }) => {
   await waitForStepHeading(page, /Meny/, 15_000);
   await skipOrNext(page);
 
-  // Step 6 — signup
-  await waitForStepHeading(page, /Opprett konto/, 15_000);
-  await page.locator("#password").fill(TEST_PASSWORD);
-  await page.locator("#confirmPassword").fill(TEST_PASSWORD);
+  // Step 6 — summary/review step. Auth already done in step 1.
+  // "Fullfør" is in the wizard nav bar (isLast=true) and triggers onComplete.
+  await waitForStepHeading(page, /Alt ser bra ut/, 15_000);
   await page.locator("button:has-text('Fullf')").click();
 
   console.log("Join complete, waiting for /onboarding redirect...");

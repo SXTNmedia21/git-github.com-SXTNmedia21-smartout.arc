@@ -43,7 +43,7 @@ type PayrollHomeCardProps = {
 };
 
 // UI Events:
-// - nav: /(app)/(payroll)/payslip ("Se alt" link in no_shift mode)
+// - nav: /(app)/(me)/payroll/payslip ("Se alt" link in no_shift mode)
 // - display: supplement badges (before_shift, during_shift, after_shift)
 // - display: pulsing dot (during_shift live indicator)
 // - color-regime: phase-based stripe (green/blue=no_shift, purple/orange=before, orange=during, green=after)
@@ -145,7 +145,7 @@ function NoShiftContent({ summary }: { summary: PayrollSummary }) {
       <Pressable
         onPress={() => {
           Haptics.selectionAsync();
-          router.push("/(app)/(payroll)");
+          router.push("/(app)/(me)/payroll");
         }}
         style={({ pressed }) => [styles.seeAllRow, pressed && styles.seeAllPressed]}
         accessibilityRole="link"

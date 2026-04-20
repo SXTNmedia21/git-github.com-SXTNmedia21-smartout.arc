@@ -306,7 +306,7 @@ Deno.serve(async (req: Request) => {
         profile_code: generateProfileCode(),
         display_name: `${first_name} ${last_name}`,
         role: invitation.role,
-        status: "active",
+        status: invitation.role === "employee" ? "trainee" : "active",
         department_id: departmentIds.length > 0 ? departmentIds[0] : null,
         departments: departmentIds,
       })

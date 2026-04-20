@@ -48,6 +48,12 @@ export const dashboardKeys = {
   seasonBudget: (workspaceId: string, seasonId: string) =>
     ["dashboard", "season-budget", workspaceId, seasonId] as const,
 
+  seasonGoals: (workspaceId: string, seasonId: string) =>
+    ["dashboard", "season-goals", workspaceId, seasonId] as const,
+
+  seasonPolicyBindings: (workspaceId: string, seasonId: string) =>
+    ["dashboard", "season-policy-bindings", workspaceId, seasonId] as const,
+
   dayFactors: (workspaceId: string, seasonBudgetId: string) =>
     ["dashboard", "day-factors", workspaceId, seasonBudgetId] as const,
 

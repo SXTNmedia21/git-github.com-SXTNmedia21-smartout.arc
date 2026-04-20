@@ -1,6 +1,21 @@
 ---
 name: smartout-database-guide
-description: Authoritative guide for Smartout database work — schemas, tables, enums, RLS, migrations, traps. Use when touching any database table, schema, enum, RLS policy, or migration.
+description: |
+  AUTHORITATIVE guide for Smartout database work. MUST be loaded before any SQL, migration, schema, table, enum, RLS, Supabase, or type-regen work.
+
+  Triggers (English): database, db, SQL, Supabase, Postgres, schema, table, column, enum, RLS, row-level security, policy, migration, workspace_id, auth.uid, service role, anon key, pgvector, btree_gist, types, database.types.ts, seed, fixture, JWT, foreign key, trigger, constraint, index.
+
+  Triggers (Norwegian): skjema, tabell, kolonne, migrasjon, database, regel, policy, nøkkel.
+
+  Triggers (files/paths): supabase/migrations/**, supabase/seed.sql, supabase/functions/**, packages/supabase/src/**, packages/supabase/src/database.types.ts.
+
+  Triggers (specific tables to watch): user_identity, company, company_member, workspace, profile, employment_contract, employee_payroll_profile, schedule_shift, schedule_absence, department, department_operating_hours, department_session, session_hook, session_task, regulatory_framework, framework_rule, tariff_rate_table, team, planning_cycle, policy, protocol, engine_process, engine_state, engine_authority_config, engine_memory, workspace_doc_chunk, activity_trail.
+
+  Triggers (schemas): public (169 tables), payroll (23), websites (13), timesheet (1).
+
+  Traps to remember: table is user_identity NOT user; profile has display_name only; 72 enums exist — ALWAYS check database.types.ts before creating new ones; subscription on company table; contract_status enum is taken.
+
+  ALWAYS load when writing SQL, editing a file under supabase/, changing a table, or regenerating types.
 tools: Read, Grep, Glob, Bash
 ---
 
@@ -72,6 +87,31 @@ ALDRI kjør ALTER TABLE direkte. ALLTID lag migrasjonsfil først.
 1. Create: `supabase/migrations/YYYYMMDDHHMMSS_description.sql`
 2. Run: `docker exec -i $(docker ps -q -f name=supabase_db) psql -U postgres < supabase/migrations/<file>.sql`
 3. Regenerate: `npx supabase gen types typescript --local > packages/supabase/src/database.types.ts`
+
+## Migration Timestamp Ordering (CRITICAL — L-0042)
+
+**Migration timestamps are CAUSAL order in a dependency DAG, not chronological markers.** `supabase db reset` applies migrations in lexicographic timestamp order. A migration dated `20260417120000` runs **before** a migration dated `20260421100200`, regardless of when each file was written.
+
+**Before choosing a timestamp, always run:**
+
+```bash
+# 1. Find the current repo tip (max timestamp)
+ls supabase/migrations/ | tail -1
+
+# 2. For EVERY table/column/enum/function your migration references,
+#    find its creation migration
+grep -l "<referenced_identifier>" supabase/migrations/ | tail -1
+```
+
+**Your new migration's timestamp MUST be strictly greater than:**
+- The current repo tip (from step 1), AND
+- Every dependency's creation timestamp (from step 2).
+
+**Common trap:** The repo routinely has future-dated migrations (e.g. `20260421*`, `20260510*`). Picking "today's wall-clock date" is WRONG if the tip is already in the future. Pick at least one HHMM slot after the tip.
+
+**Do NOT use runtime guards** (`DO $$ IF NOT EXISTS ...`) to mask ordering bugs — retimestamp the file instead. Runtime guards are for production backfill anomalies, not developer-time ordering discipline.
+
+**See L-0042** for empirical basis (two occurrences on 2026-04-17: PR #216 gate_action_accept_entity_id, and Audit Remediation Week 1 Task 1 — both caught by Supabase Preview failure or council review).
 
 ## Common Joins
 

@@ -12,16 +12,16 @@ const getCommunicationsData = unstable_cache(
       admin
         .from("platform_communication_log")
         .select(
-          "communication_id, subject, template, classification, audience_filter, recipient_count, sent_count, failed_count, opened_count, clicked_count, status, created_at",
+          "communication_id, subject, template, classification, channel, campaign_id, audience_filter, recipient_count, sent_count, failed_count, opened_count, clicked_count, status, created_at",
         )
         .order("created_at", { ascending: false })
-        .limit(50),
+        .limit(100),
       admin.from("platform_email_suppression").select("*", { count: "exact", head: true }),
     ]);
 
     return { communications, suppressionCount };
   },
-  ["platform-admin-communications-v1"],
+  ["platform-admin-communications-v3"],
   { revalidate: 60 },
 );
 
@@ -32,27 +32,14 @@ export default async function CommunicationsPage() {
   ]);
   if (!adminId) redirect("/dashboard");
 
-  type CommRow = {
-    communication_id: string;
-    subject: string;
-    template: string;
-    classification: string;
-    audience_filter: Record<string, unknown> | null;
-    recipient_count: number;
-    sent_count: number;
-    failed_count: number;
-    opened_count: number | null;
-    clicked_count: number | null;
-    status: string;
-    created_at: string | null;
-  };
-
-  const history = ((communications ?? []) as CommRow[]).map((c) => ({
+  const history = (communications ?? []).map((c) => ({
     id: c.communication_id,
     subject: c.subject,
     template: c.template,
     classification: c.classification,
-    audienceFilter: c.audience_filter,
+    channel: c.channel,
+    campaignId: c.campaign_id,
+    audienceFilter: c.audience_filter as Record<string, unknown> | null,
     recipientCount: c.recipient_count,
     sentCount: c.sent_count,
     failedCount: c.failed_count,
@@ -67,7 +54,7 @@ export default async function CommunicationsPage() {
       <div>
         <h1 className="text-2xl font-semibold">Communications</h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          Send platform emails and view communication history
+          Send messages to users and workspaces via email, SMS, push, and in-app notifications
           {suppressionCount ? (
             <span className="ml-2 text-orange-500">
               ({suppressionCount} suppressed email{suppressionCount !== 1 ? "s" : ""})

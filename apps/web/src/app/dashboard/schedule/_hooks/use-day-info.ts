@@ -33,63 +33,8 @@ export type DayInfo = {
   createdAt: string;
 };
 
-type DayInfoInsert = {
-  workspace_id: string;
-  date: string;
-  title: string;
-  content?: string | null;
-  scope_type: DayInfoScopeType;
-  scope_id?: string | null;
-  category: DayInfoCategory;
-  created_by?: string | null;
-};
-
-// DB row shape (snake_case from Supabase)
-type DayInfoRow = {
-  id: string;
-  workspace_id: string;
-  date: string;
-  title: string;
-  content: string | null;
-  scope_type: string;
-  scope_id: string | null;
-  category: string;
-  created_by: string | null;
-  created_at: string;
-  updated_at: string;
-};
-
-// ── Untyped from() helper ────────────────────────────────────
-// schedule_day_info is not yet in database.types.ts (migration exists,
-// types not regenerated). Cast through Function to bypass type check.
-// TODO: Remove cast after running `npx supabase gen types typescript`
-
-type UntypedFrom = (table: string) => {
-  select: (columns: string) => {
-    eq: (
-      col: string,
-      val: string,
-    ) => {
-      gte: (
-        col: string,
-        val: string,
-      ) => {
-        lte: (
-          col: string,
-          val: string,
-        ) => {
-          order: (
-            col: string,
-            opts?: { ascending?: boolean },
-          ) => Promise<{ data: DayInfoRow[] | null; error: { message: string } | null }>;
-        };
-      };
-    };
-  };
-  insert: (
-    row: DayInfoInsert,
-  ) => Promise<{ data: DayInfoRow | null; error: { message: string } | null }>;
-};
+// Row and Insert types come from Supabase-generated database.types.ts
+// via the typed createClient() — no manual definitions needed
 
 // ── Query key ────────────────────────────────────────────────
 
@@ -99,7 +44,17 @@ function dayInfoKey(workspaceId: string, weekStart: string) {
 
 // ── Mapper ───────────────────────────────────────────────────
 
-function fromDbDayInfo(row: DayInfoRow): DayInfo {
+function fromDbDayInfo(row: {
+  id: string;
+  date: string;
+  title: string;
+  content: string | null;
+  scope_type: string;
+  scope_id: string | null;
+  category: string;
+  created_by: string | null;
+  created_at: string;
+}): DayInfo {
   return {
     id: row.id,
     date: row.date,
@@ -123,9 +78,9 @@ export function useDayInfo(weekStart: string, weekEnd: string, options?: { enabl
     queryKey: dayInfoKey(workspaceId, weekStart),
     queryFn: async () => {
       const supabase = createClient();
-      const from = supabase.from.bind(supabase) as unknown as UntypedFrom; // SAFETY: Supabase join returns union type; runtime shape matches the cast
 
-      const { data, error } = await from("schedule_day_info")
+      const { data, error } = await supabase
+        .from("schedule_day_info")
         .select("*")
         .eq("workspace_id", workspaceId)
         .gte("date", weekStart)
@@ -165,9 +120,8 @@ export function useCreateDayInfo(weekStart: string) {
   return useMutation({
     mutationFn: async (info: Omit<DayInfo, "id" | "createdAt">) => {
       const supabase = createClient();
-      const from = supabase.from.bind(supabase) as unknown as UntypedFrom; // SAFETY: Supabase join returns union type; runtime shape matches the cast
 
-      const { error } = await from("schedule_day_info").insert({
+      const { error } = await supabase.from("schedule_day_info").insert({
         workspace_id: workspaceId,
         date: info.date,
         title: info.title,

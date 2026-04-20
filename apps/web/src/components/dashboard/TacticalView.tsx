@@ -23,17 +23,18 @@ import { ShiftStatusWidget } from "./ShiftStatusWidget";
 import {
   useStaffingCoverage,
   getCurrentWeekStart,
-  useTrainingReadiness,
-  useActionItems,
-  useGovernanceOverview,
-  useWorkforcePipeline,
-  useActiveSeason,
-  type DayCoverage,
-  type ActionCounts,
-  type ProtocolOverviewItem,
-  type PipelineData,
-  type ActiveSeasonData,
-} from "@/app/dashboard/_hooks";
+} from "@/app/dashboard/_hooks/use-staffing-coverage";
+import { useTrainingReadiness } from "@/app/dashboard/_hooks/use-training-readiness";
+import { useActionItems } from "@/app/dashboard/_hooks/use-action-items";
+import { useGovernanceOverview } from "@/app/dashboard/_hooks/use-governance-overview";
+import { useWorkforcePipeline } from "@/app/dashboard/_hooks/use-workforce-pipeline";
+import { useActiveSeason, type ActiveSeasonData } from "@/app/dashboard/_hooks/use-active-season";
+import type {
+  DayCoverage,
+  ActionCounts,
+  ProtocolOverviewItem,
+  PipelineData,
+} from "@/app/dashboard/_hooks/dashboard-types";
 
 // UI Events:
 // - nav: onDateClick(date) — opens DayControlSheet via parent
@@ -474,7 +475,7 @@ function SeasonCard({ season }: { season: ActiveSeasonData }) {
     <div className="border-border bg-card overflow-hidden rounded-xl border">
       <div className="border-border/50 flex items-center gap-2 border-b px-4 py-2.5">
         <Calendar className="text-muted-foreground h-4 w-4" />
-        <h3 className="text-foreground text-sm font-bold">Sesong</h3>
+        <h3 className="text-foreground text-sm font-bold">Årshjul</h3>
         <span className="text-muted-foreground ml-auto text-[10px] font-semibold capitalize">
           {season.type.replace(/_/g, " ")}
         </span>

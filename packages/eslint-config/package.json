@@ -6,7 +6,8 @@
   "exports": {
     "./base": "./base.mjs",
     "./react": "./react.mjs",
-    "./next": "./next.mjs"
+    "./next": "./next.mjs",
+    "./plugins/smartout": "./plugins/smartout/index.mjs"
   },
   "dependencies": {
     "@typescript-eslint/eslint-plugin": "^8.0.0",

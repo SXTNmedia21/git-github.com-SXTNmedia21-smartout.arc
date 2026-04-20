@@ -122,6 +122,9 @@ test.describe("journey:admin-creates-website-from-template", () => {
     await login(page);
     await page.goto("/dashboard/website", { waitUntil: "domcontentloaded" });
 
+    // Wait for the page to render (either an h1 or a redirect)
+    await page.waitForTimeout(2000);
+
     // Should either redirect to /setup or show "Opprett nettside" link
     const setupLink = page.locator("text=Opprett nettside");
     const setupUrl = page.url().includes("/setup");
@@ -247,8 +250,8 @@ test.describe("journey:admin-edits-section-content", () => {
     await login(page);
     await page.goto("/dashboard/website", { waitUntil: "domcontentloaded" });
 
-    // Wait for the "Nettside" heading to confirm we're on the right page
-    await expect(page.locator("h1:has-text('Nettside')")).toBeVisible({ timeout: 15000 });
+    // Wait for the page heading — text is "Nettside" (empty state) or the website name
+    await expect(page.locator("h1").first()).toBeVisible({ timeout: 15000 });
 
     // Should show page list with "Hjem" OR setup prompt if website not visible via RLS
     const homePage = page.locator("text=Hjem").first();
@@ -281,7 +284,8 @@ test.describe("journey:admin-manages-pages", () => {
     await login(page);
     await page.goto("/dashboard/website", { waitUntil: "domcontentloaded" });
 
-    await expect(page.locator("h1:has-text('Nettside')")).toBeVisible({ timeout: 15000 });
+    // Wait for the page heading — text is "Nettside" (empty state) or the website name
+    await expect(page.locator("h1").first()).toBeVisible({ timeout: 15000 });
 
     const addBtn = page.locator("text=Legg til side").first();
     const setupPrompt = page.locator("text=Opprett nettside").first();
@@ -385,7 +389,8 @@ test.describe("journey:admin-publishes-website", () => {
     await login(page);
     await page.goto("/dashboard/website", { waitUntil: "domcontentloaded" });
 
-    await expect(page.locator("h1:has-text('Nettside')")).toBeVisible({ timeout: 15000 });
+    // Wait for the page heading — text is "Nettside" (empty state) or the website name
+    await expect(page.locator("h1").first()).toBeVisible({ timeout: 15000 });
 
     const publishBtn = page.locator("text=Publiser").first();
     const setupPrompt = page.locator("text=Opprett nettside").first();
@@ -421,7 +426,14 @@ test.describe("journey:admin-publishes-website", () => {
 // Verifies database state is consistent with what the UI shows.
 
 test.describe("journey:website-db-verification", () => {
-  const WS_ID = "e2e00000-0000-0000-0000-000000000002";
+  // Resolve workspace dynamically — the seed workspace ID varies per environment
+  let WS_ID = "";
+
+  test.beforeAll(async () => {
+    const { data: ws } = await supabase.from("workspace").select("workspace_id").limit(1).single();
+    if (!ws) throw new Error("No workspace found for DB verification tests");
+    WS_ID = ws.workspace_id;
+  });
 
   test("workspace has_website flag matches website existence", async () => {
     const { data: ws } = await supabase

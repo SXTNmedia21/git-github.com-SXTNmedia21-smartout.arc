@@ -45,6 +45,7 @@ type AgentProposalsProviderProps = {
   children: ReactNode;
   createShift: (input: Record<string, unknown>) => Promise<unknown>;
   updateShift: (input: { id: string; patch: Record<string, unknown> }) => Promise<unknown>;
+  deleteShift: (id: string) => Promise<unknown>;
 };
 
 /**
@@ -56,6 +57,7 @@ export function AgentProposalsProvider({
   children,
   createShift,
   updateShift,
+  deleteShift,
 }: AgentProposalsProviderProps) {
   const [proposals, setProposals] = useState<ShiftProposal[]>([]);
   const [pendingConfirmation, setPendingConfirmation] = useState<ConfirmationRequest | null>(null);
@@ -113,13 +115,15 @@ export function AgentProposalsProvider({
           isPublished: false,
           breaks: proposal.breaks,
         });
-      } else {
+      } else if (proposal.type === "update") {
         await updateShift({ id: proposal.shiftId, patch: proposal.patch });
+      } else if (proposal.type === "delete") {
+        await deleteShift(proposal.shiftId);
       }
 
       setProposals((prev) => prev.filter((candidate) => candidate.id !== id));
     },
-    [proposals, createShift, updateShift],
+    [proposals, createShift, updateShift, deleteShift],
   );
 
   const rejectProposal = useCallback((id: string) => {
@@ -162,12 +166,14 @@ export function AgentProposalsProvider({
           isPublished: false,
           breaks: proposal.breaks,
         });
-      } else {
+      } else if (proposal.type === "update") {
         await updateShift({ id: proposal.shiftId, patch: proposal.patch });
+      } else if (proposal.type === "delete") {
+        await deleteShift(proposal.shiftId);
       }
     }
     setProposals([]);
-  }, [proposals, createShift, updateShift]);
+  }, [proposals, createShift, updateShift, deleteShift]);
 
   const clearAllProposals = useCallback(() => {
     setProposals([]);

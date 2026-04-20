@@ -1,0 +1,94 @@
+{
+  "mission": {
+    "name": "Admin Onboarding Mission",
+    "description": "AI-assisted guide for: Admin Onboarding. Generated from protocol run.",
+    "system_prompt": "Du er en AI-assistent som hjelper brukeren gjennom Admin Onboarding.\nDenne misjonen har 9 steg. Guide brukeren gjennom hvert steg.\n\n[HUMAN REVIEW REQUIRED: Enrich with domain knowledge, tone, and tool instructions]",
+    "mode": "sequential",
+    "language": "no",
+    "is_active": false
+  },
+  "stages": [
+    {
+      "stage_order": 1,
+      "name": "Innlogging",
+      "goal": "Admin logger inn med e-post og passord. Systemet autentiserer brukeren.",
+      "instructions": "Guide brukeren gjennom: Innlogging.\n[HUMAN REVIEW REQUIRED]",
+      "success_criteria": "URL matches pattern: /(dashboard|onboarding|setup|select-workspace)",
+      "is_required": true,
+      "creative_freedom": 0.3
+    },
+    {
+      "stage_order": 2,
+      "name": "Naviger til onboarding",
+      "goal": "Systemet dirigerer til onboarding-flyten for nye workspaces.",
+      "instructions": "Guide brukeren gjennom: Naviger til onboarding.\n[HUMAN REVIEW REQUIRED]",
+      "success_criteria": "URL matches pattern: /onboarding",
+      "is_required": true,
+      "creative_freedom": 0.3
+    },
+    {
+      "stage_order": 3,
+      "name": "Velkomstskjerm",
+      "goal": "Bruker ser velkomstskjermen med valg mellom assistert og manuelt oppsett. Velger manuelt.",
+      "instructions": "Guide brukeren gjennom: Velkomstskjerm.\n[HUMAN REVIEW REQUIRED]",
+      "success_criteria": "Element [data-testid=\"onboarding-step-business\"] is visible",
+      "is_required": true,
+      "creative_freedom": 0.3
+    },
+    {
+      "stage_order": 4,
+      "name": "Bedriftsinformasjon",
+      "goal": "Admin fyller inn bedriftsnavn og by. Systemet soker i Bronnysund.",
+      "instructions": "Guide brukeren gjennom: Bedriftsinformasjon.\n[HUMAN REVIEW REQUIRED]",
+      "success_criteria": "Element [data-testid=\"onboarding-step-season\"] is visible",
+      "is_required": true,
+      "creative_freedom": 0.3
+    },
+    {
+      "stage_order": 5,
+      "name": "Sesongoppsett",
+      "goal": "System foreslaar sesong basert paa bransje. Admin bekrefter eller justerer.",
+      "instructions": "Guide brukeren gjennom: Sesongoppsett.\n[HUMAN REVIEW REQUIRED]",
+      "success_criteria": "Element [data-testid=\"onboarding-step-departments\"] is visible",
+      "is_required": true,
+      "creative_freedom": 0.3
+    },
+    {
+      "stage_order": 6,
+      "name": "Avdelinger",
+      "goal": "System genererer bransjetilpassede avdelinger. Admin bekrefter.",
+      "instructions": "Guide brukeren gjennom: Avdelinger.\n[HUMAN REVIEW REQUIRED]",
+      "success_criteria": "Element [data-testid=\"onboarding-step-locations\"] is visible",
+      "is_required": true,
+      "creative_freedom": 0.3
+    },
+    {
+      "stage_order": 7,
+      "name": "Lokasjoner og soner",
+      "goal": "Admin bekrefter lokasjoner funnet via scraping eller legger til manuelt.",
+      "instructions": "Guide brukeren gjennom: Lokasjoner og soner.\n[HUMAN REVIEW REQUIRED]",
+      "success_criteria": "Element [data-testid=\"onboarding-step-procedures\"] is visible",
+      "is_required": true,
+      "creative_freedom": 0.3
+    },
+    {
+      "stage_order": 8,
+      "name": "Prosedyrer",
+      "goal": "System foreslaar standard prosedyrer for bransjen. Admin bekrefter.",
+      "instructions": "Guide brukeren gjennom: Prosedyrer.\n[HUMAN REVIEW REQUIRED]",
+      "success_criteria": "Element [data-testid=\"onboarding-step-final\"] is visible",
+      "is_required": true,
+      "creative_freedom": 0.3
+    },
+    {
+      "stage_order": 9,
+      "name": "Ferdigstilling",
+      "goal": "Admin aktiverer workspace. System oppretter alle entiteter og navigerer til dashboard.",
+      "instructions": "Guide brukeren gjennom: Ferdigstilling.\n[HUMAN REVIEW REQUIRED]",
+      "success_criteria": "URL matches pattern: /dashboard",
+      "is_required": true,
+      "creative_freedom": 0.3
+    }
+  ],
+  "guardrails": []
+}

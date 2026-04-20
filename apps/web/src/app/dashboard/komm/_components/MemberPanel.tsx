@@ -74,7 +74,7 @@ export function MemberPanel({
                       )}
                     </div>
                     {isAi && (
-                      <div className="absolute -right-0.5 -bottom-0.5 rounded-full bg-amber-500 p-0.5">
+                      <div className="bg-komm-ai absolute -right-0.5 -bottom-0.5 rounded-full p-0.5">
                         <Bot className="h-2.5 w-2.5 text-white" />
                       </div>
                     )}
@@ -90,7 +90,7 @@ export function MemberPanel({
                       )}
                     </p>
                   </div>
-                  {isAdmin && <Shield className="h-3.5 w-3.5 shrink-0 text-amber-500" />}
+                  {isAdmin && <Shield className="text-komm-ai h-3.5 w-3.5 shrink-0" />}
                   {isCallActive && !isSelf && !isAi && onMuteParticipant && (
                     <Button
                       variant="ghost"

@@ -9,6 +9,7 @@
  */
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Building2, Globe, Mail, Phone, MapPin, Hash } from "lucide-react";
@@ -76,9 +77,11 @@ export function ConfirmBusiness({
       {/* Logo preview if available */}
       {state.business.logoUrl && (
         <div className="flex items-center gap-3">
-          <img
+          <Image
             src={state.business.logoUrl}
             alt={state.business.name || "Logo"}
+            width={48}
+            height={48}
             className="border-border h-12 w-12 rounded-lg border object-contain"
           />
           <div>

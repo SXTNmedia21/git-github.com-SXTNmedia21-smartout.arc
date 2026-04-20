@@ -16,6 +16,7 @@ export const getMyShifts = defineTool({
   name: "get_my_shifts",
   description:
     "Get the current employee's upcoming shifts for the next N days. Returns shift times, positions, departments, and status.",
+  capability: "schedule",
   schema: z.object({
     days: z
       .number()
@@ -56,6 +57,7 @@ export const getShiftColleagues = defineTool({
   name: "get_shift_colleagues",
   description:
     "Get colleagues working the same shift (who else is scheduled at the same time in the same department)",
+  capability: "schedule",
   schema: z.object({
     shift_id: z.string().uuid().describe("The shift ID to check colleagues for"),
   }),
@@ -96,6 +98,7 @@ export const getShiftColleagues = defineTool({
 export const getTodaySchedule = defineTool({
   name: "get_today_schedule",
   description: "Get the full department schedule for today (all shifts across all employees)",
+  capability: "schedule",
   schema: z.object({
     department_id: z
       .string()
@@ -146,6 +149,7 @@ export const getShiftDetail = defineTool({
   name: "get_shift_detail",
   description:
     "Get full details for a specific shift including time, position, department, location, and notes",
+  capability: "schedule",
   schema: z.object({
     shift_id: z.string().uuid().describe("The shift ID to get details for"),
   }),

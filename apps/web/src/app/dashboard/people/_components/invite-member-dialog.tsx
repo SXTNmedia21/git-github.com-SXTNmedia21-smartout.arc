@@ -96,6 +96,73 @@ function validateEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+// ─── Draft persistence ──────────────────────────────────────
+// Preserves the single-invite form between dialog opens and page reloads,
+// so accidental close (click-outside, X, Avbryt) never loses typed data.
+
+const DRAFT_KEY_PREFIX = "smartout:invite-draft:";
+
+type InviteDraft = {
+  row: Omit<InviteRow, "id" | "errors">;
+  channels: InviteChannel[];
+};
+
+function isRowEmpty(row: InviteRow): boolean {
+  return (
+    !row.firstName.trim() &&
+    !row.lastName.trim() &&
+    !row.email.trim() &&
+    !row.phone.trim() &&
+    !row.departmentId &&
+    !row.employmentCategory &&
+    !row.salaryType &&
+    !row.intendedWeeklyHours &&
+    !row.startDate &&
+    !row.payrollTemplateId
+  );
+}
+
+function loadDraft(workspaceId: string): InviteDraft | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(`${DRAFT_KEY_PREFIX}${workspaceId}`);
+    if (!raw) return null;
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return null;
+    const draft = parsed as Partial<InviteDraft>;
+    if (!draft.row || typeof draft.row !== "object") return null;
+    return {
+      row: draft.row as InviteDraft["row"],
+      channels: Array.isArray(draft.channels) ? (draft.channels as InviteChannel[]) : ["link"],
+    };
+  } catch {
+    return null;
+  }
+}
+
+function saveDraft(workspaceId: string, row: InviteRow, channels: Set<InviteChannel>): void {
+  if (typeof window === "undefined") return;
+  try {
+    const { id: _id, errors: _errors, ...rest } = row;
+    const payload: InviteDraft = {
+      row: rest,
+      channels: Array.from(channels),
+    };
+    window.localStorage.setItem(`${DRAFT_KEY_PREFIX}${workspaceId}`, JSON.stringify(payload));
+  } catch {
+    // quota exceeded or storage disabled — draft loss is acceptable
+  }
+}
+
+function clearDraft(workspaceId: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(`${DRAFT_KEY_PREFIX}${workspaceId}`);
+  } catch {
+    // ignore
+  }
+}
+
 function validateRow(row: InviteRow, channels: Set<InviteChannel>): string[] {
   const errors: string[] = [];
   if (!row.firstName.trim()) errors.push("Fornavn mangler");
@@ -176,21 +243,71 @@ export function InviteMemberDialog({
       });
   }, [isOpen, workspaceData?.workspace_id]);
 
-  // Reset on close
+  // Clear only transient UI state on close — draft (singleRow, channels, csvRows, mode)
+  // is intentionally preserved so accidental close never loses user input.
   useEffect(() => {
     if (!isOpen) {
-      setMode("single");
-      setChannels(new Set(["link"]));
       setGeneratedLink(null);
       setLinkCopied(false);
-      setSingleRow(createEmptyRow());
-      setCsvRows([]);
-      setCsvHeaders([]);
-      setCsvPreviewRows([]);
-      setCsvRawData([]);
-      setCsvTotalCount(0);
+      setCsvMappingOpen(false);
     }
   }, [isOpen]);
+
+  // Hydrate draft once workspace is known. Ref prevents overwriting
+  // user input if workspace_id changes mid-session (rare but possible).
+  const draftHydratedRef = useRef(false);
+  useEffect(() => {
+    if (draftHydratedRef.current) return;
+    const workspaceId = workspaceData?.workspace_id;
+    if (!workspaceId) return;
+    const draft = loadDraft(workspaceId);
+    if (draft) {
+      setSingleRow({
+        id: crypto.randomUUID(),
+        errors: [],
+        firstName: draft.row.firstName ?? "",
+        lastName: draft.row.lastName ?? "",
+        email: draft.row.email ?? "",
+        phone: draft.row.phone ?? "",
+        departmentId: draft.row.departmentId ?? "",
+        role: draft.row.role ?? "employee",
+        inviteEmploymentType: draft.row.inviteEmploymentType ?? "employee",
+        employmentCategory: draft.row.employmentCategory ?? "",
+        salaryType: draft.row.salaryType ?? "",
+        intendedWeeklyHours: draft.row.intendedWeeklyHours ?? "",
+        startDate: draft.row.startDate ?? "",
+        payrollTemplateId: draft.row.payrollTemplateId ?? "",
+        extraData: draft.row.extraData ?? {},
+      });
+      setChannels(new Set(draft.channels.length ? draft.channels : (["link"] as InviteChannel[])));
+    }
+    draftHydratedRef.current = true;
+  }, [workspaceData?.workspace_id]);
+
+  // Autosave draft whenever the single-invite form changes.
+  useEffect(() => {
+    const workspaceId = workspaceData?.workspace_id;
+    if (!workspaceId) return;
+    if (!draftHydratedRef.current) return; // don't save before initial hydration
+    if (isRowEmpty(singleRow) && channels.size === 1 && channels.has("link")) {
+      clearDraft(workspaceId);
+      return;
+    }
+    saveDraft(workspaceId, singleRow, channels);
+  }, [singleRow, channels, workspaceData?.workspace_id]);
+
+  const resetAfterSuccess = useCallback(() => {
+    const workspaceId = workspaceData?.workspace_id;
+    if (workspaceId) clearDraft(workspaceId);
+    setSingleRow(createEmptyRow());
+    setChannels(new Set(["link"]));
+    setCsvRows([]);
+    setCsvHeaders([]);
+    setCsvPreviewRows([]);
+    setCsvRawData([]);
+    setCsvTotalCount(0);
+    setMode("single");
+  }, [workspaceData?.workspace_id]);
 
   // ── CSV file handling ──
 
@@ -398,6 +515,7 @@ export function InviteMemberDialog({
           if (effectiveChannels.has("sms")) parts.push("SMS");
           parts.push("lenke");
           toast.success(`Invitasjon opprettet (${parts.join(" + ")})`);
+          resetAfterSuccess();
           onRefresh();
           return;
         }
@@ -419,6 +537,7 @@ export function InviteMemberDialog({
           toast.success(dispatched === 1 ? "Invitasjon sendt" : `${dispatched} invitasjoner sendt`);
         }
       }
+      resetAfterSuccess();
       onRefresh();
       onClose();
     } catch (error: unknown) {
@@ -427,7 +546,17 @@ export function InviteMemberDialog({
     } finally {
       setIsSubmitting(false);
     }
-  }, [mode, channels, singleRow, csvRows, workspaceData, profileId, onRefresh, onClose]);
+  }, [
+    mode,
+    channels,
+    singleRow,
+    csvRows,
+    workspaceData,
+    profileId,
+    onRefresh,
+    onClose,
+    resetAfterSuccess,
+  ]);
 
   if (!isOpen || !workspaceData) return null;
 

@@ -12,7 +12,7 @@ import { createClient } from "@smartout/supabase/client";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
-export type StressLabel = "Lav" | "Middels" | "Høy";
+export type StressLabel = "low" | "medium" | "high";
 
 export type HourlyBar = {
   time: string;
@@ -24,6 +24,37 @@ export type HourlyBar = {
   revenue: number;
   cost: number;
   isFuture: boolean;
+};
+
+export type HaccpReading = {
+  temperature: number;
+  is_within_range: boolean;
+  logged_at: string;
+  ccp_reference: string;
+};
+
+export type CleaningStatus = {
+  done: number;
+  total: number;
+};
+
+export type DeviationBreakdown = {
+  critical: number;
+  high: number;
+  medium: number;
+  low: number;
+  total: number;
+};
+
+/** Shape of the joined cleaning task row from the session_task query. */
+type CleaningTaskRow = {
+  id: string;
+  status: string;
+  completed_at: string | null;
+  session_hook: {
+    linked_procedure_id: string;
+    procedure: { procedure_type: string } | null;
+  } | null;
 };
 
 export type OperationsData = {
@@ -39,6 +70,17 @@ export type OperationsData = {
   hourlyData: HourlyBar[];
   /** True when labor costs are estimated (no real shift_cost_snapshot data) */
   laborCostEstimated: boolean;
+
+  // HACCP temperature status
+  haccpReadings: HaccpReading[];
+  haccpStatus: "ok" | "deviation" | "stale" | "none";
+  lastHaccpTime: string | null;
+
+  // Cleaning checklist status
+  cleaningStatus: CleaningStatus;
+
+  // Deviation severity breakdown
+  deviationBreakdown: DeviationBreakdown;
 };
 
 // ─── Query key ─────────────────────────────────────────────────────────────
@@ -97,7 +139,7 @@ export function useOperationsData() {
       // ── 4. Fetch today's deviations ───────────────────────────────────
       const deviationsPromise = supabase
         .from("deviation")
-        .select("deviation_id, status")
+        .select("deviation_id, status, severity")
         .eq("workspace_id", wsId)
         // Deviations don't have a date column — filter by created_at for today
         .gte("created_at", `${today}T00:00:00.000Z`)
@@ -131,7 +173,15 @@ export function useOperationsData() {
         .eq("workspace_id", wsId)
         .maybeSingle();
 
-      // ── 8. Fetch today's shift cost snapshots (real labor cost) ───────
+      // ── 8. Fetch today's HACCP temperature readings ──────────────────
+      const haccpPromise = supabase
+        .from("haccp_log")
+        .select("temperature, is_within_range, logged_at, ccp_reference")
+        .eq("workspace_id", wsId)
+        .gte("logged_at", `${today}T00:00:00.000Z`)
+        .order("logged_at", { ascending: false });
+
+      // ── 9. Fetch today's shift cost snapshots (real labor cost) ───────
       const shiftCostPromise = supabase
         .from("shift_cost_snapshot")
         .select("total_cost, effective_start, base_rate")
@@ -148,6 +198,7 @@ export function useOperationsData() {
         { data: reconciliation, error: reconciliationError },
         { data: hourlyBudgets },
         ,
+        { data: haccpData },
         { data: shiftCosts },
       ] = await Promise.all([
         sessionsPromise,
@@ -156,6 +207,7 @@ export function useOperationsData() {
         reconciliationPromise,
         hourlyBudgetPromise,
         payrollSettingsPromise,
+        haccpPromise,
         shiftCostPromise,
       ]);
 
@@ -170,19 +222,54 @@ export function useOperationsData() {
       const shiftList = shifts ?? [];
       const deviationList = deviations ?? [];
 
-      // ── Fetch tasks for today's sessions (step 2, needs session IDs) ──
-      let taskList: Array<{ status: string; session_hook_id: string | null }> = [];
-      if (sessionList.length > 0) {
-        const sessionIds = sessionList.map((s) => s.department_session_id);
-        const { data: tasks, error: tasksError } = await supabase
-          .from("session_task")
-          .select("status, session_hook_id")
-          .in("department_session_id", sessionIds)
-          .eq("workspace_id", wsId);
+      // ── Prepare data needed for the second batch of queries ──────────
+      const assignedShifts = shiftList.filter((s) => !!s.employee_id);
+      const presentCount = assignedShifts.length;
+      const expectedCount = shiftList.length;
+      const assignedEmployeeIds = [
+        ...new Set(assignedShifts.map((s) => s.employee_id).filter((id): id is string => !!id)),
+      ];
+      const sessionIds = sessionList.map((s) => s.department_session_id);
 
-        if (tasksError) console.error("[operations] tasks error:", tasksError.message);
-        taskList = tasks ?? [];
-      }
+      // ── Second batch: tasks, profiles, cleaning — all depend on first
+      //    batch results but are independent of each other ───────────────
+      const [taskResult, profileResult, cleaningResult] = await Promise.all([
+        // Tasks query (depends on sessionIds)
+        sessionIds.length > 0
+          ? supabase
+              .from("session_task")
+              .select("status, session_hook_id")
+              .in("department_session_id", sessionIds)
+              .eq("workspace_id", wsId)
+          : Promise.resolve({ data: null, error: null }),
+
+        // Profile names query (depends on assignedEmployeeIds from shifts)
+        assignedEmployeeIds.length > 0
+          ? supabase
+              .from("profile")
+              .select("profile_id, display_name")
+              .in("profile_id", assignedEmployeeIds)
+              .eq("workspace_id", wsId)
+          : Promise.resolve({ data: null, error: null }),
+
+        // Cleaning tasks query (depends on sessionIds)
+        sessionIds.length > 0
+          ? supabase
+              .from("session_task")
+              .select(
+                "id, status, completed_at, session_hook:session_hook_id(linked_procedure_id, procedure:linked_procedure_id(procedure_type))",
+              )
+              .in("department_session_id", sessionIds)
+              .eq("workspace_id", wsId)
+              .not("session_hook_id", "is", null)
+          : Promise.resolve({ data: null, error: null }),
+      ]);
+
+      if (taskResult.error) console.error("[operations] tasks error:", taskResult.error.message);
+      if (profileResult.error)
+        console.error("[operations] profiles error:", profileResult.error.message);
+
+      const taskList = taskResult.data ?? [];
 
       // ── Derive task completion metrics ────────────────────────────────
       const totalTasks = taskList.length;
@@ -196,46 +283,69 @@ export function useOperationsData() {
       const completionPct = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
 
       // ── Derive staff presence metrics ─────────────────────────────────
-      // Shifts with an employee assigned = present. Total shifts = expected.
-      const assignedShifts = shiftList.filter((s) => !!s.employee_id);
-      const presentCount = assignedShifts.length;
-      const expectedCount = shiftList.length;
-
-      // Look up display names for assigned employees in a dedicated query.
-      // We avoid the embedded join on schedule_shift because Supabase's type
-      // generator flags the profile FK as ambiguous (multiple relationships exist).
-      const assignedEmployeeIds = [
-        ...new Set(assignedShifts.map((s) => s.employee_id).filter((id): id is string => !!id)),
-      ];
-
-      let staffNames: string[] = [];
-      if (assignedEmployeeIds.length > 0) {
-        const { data: profiles } = await supabase
-          .from("profile")
-          .select("profile_id, display_name")
-          .in("profile_id", assignedEmployeeIds)
-          .eq("workspace_id", wsId);
-
-        staffNames = (profiles ?? [])
-          .map((p) => p.display_name)
-          .filter(Boolean)
-          .slice(0, 6); // Cap at 6 names for the sub-label display
-      }
+      const staffNames = (profileResult.data ?? [])
+        .map((p) => p.display_name)
+        .filter(Boolean)
+        .slice(0, 6); // Cap at 6 names for the sub-label display
 
       // ── Derive stress level ───────────────────────────────────────────
       const capacityPct = expectedCount > 0 ? Math.round((presentCount / expectedCount) * 100) : 0;
       const shortStaff = Math.max(0, expectedCount - presentCount);
       let stressLabel: StressLabel;
       if (capacityPct >= 90) {
-        stressLabel = "Lav";
+        stressLabel = "low";
       } else if (capacityPct >= 70) {
-        stressLabel = "Middels";
+        stressLabel = "medium";
       } else {
-        stressLabel = "Høy";
+        stressLabel = "high";
+      }
+
+      // ── Derive cleaning status from cleaning query results ───────────
+      // Cleaning tasks are session_task rows linked via session_hook to a
+      // procedure with procedure_type = "maintenance".
+      const maintenanceTasks = ((cleaningResult.data ?? []) as CleaningTaskRow[]).filter((t) => {
+        return t.session_hook?.procedure?.procedure_type === "maintenance";
+      });
+      const cleaningTotal = maintenanceTasks.length;
+      const cleaningDone = maintenanceTasks.filter((t) => t.status === "completed").length;
+
+      // ── Derive HACCP temperature status ──────────────────────────────
+      const haccpReadings: HaccpReading[] = (haccpData ?? []).map((r) => ({
+        temperature: r.temperature,
+        is_within_range: r.is_within_range,
+        logged_at: r.logged_at,
+        ccp_reference: r.ccp_reference,
+      }));
+      const latestHaccp = haccpReadings[0];
+      let haccpStatus: "ok" | "deviation" | "stale" | "none" = "none";
+      let lastHaccpTime: string | null = null;
+
+      if (latestHaccp) {
+        lastHaccpTime = latestHaccp.logged_at;
+        const hoursSince = (Date.now() - new Date(latestHaccp.logged_at).getTime()) / 3_600_000;
+        if (hoursSince > 2) {
+          haccpStatus = "stale";
+        } else if (haccpReadings.some((r) => !r.is_within_range)) {
+          haccpStatus = "deviation";
+        } else {
+          haccpStatus = "ok";
+        }
       }
 
       // ── Derive deviation counts ───────────────────────────────────────
       const openDeviations = deviationList.filter((d) => d.status !== "resolved").length;
+
+      // ── Derive deviation severity breakdown ──────────────────────────
+      const openDevs = deviationList.filter(
+        (d) => d.status === "open" || d.status === "acknowledged",
+      );
+      const deviationBreakdown: DeviationBreakdown = {
+        critical: openDevs.filter((d) => d.severity === "critical").length,
+        high: openDevs.filter((d) => d.severity === "high").length,
+        medium: openDevs.filter((d) => d.severity === "medium").length,
+        low: openDevs.filter((d) => d.severity === "low").length,
+        total: openDevs.length,
+      };
 
       // ── Build hourly revenue vs cost chart ────────────────────────────
       // We show a fixed window: 09:00–22:00 (14 hourly bars) to cover typical
@@ -327,6 +437,11 @@ export function useOperationsData() {
         activeTasks,
         hourlyData,
         laborCostEstimated: !hasRealCosts,
+        haccpReadings,
+        haccpStatus,
+        lastHaccpTime,
+        cleaningStatus: { done: cleaningDone, total: cleaningTotal },
+        deviationBreakdown,
       };
     },
   });

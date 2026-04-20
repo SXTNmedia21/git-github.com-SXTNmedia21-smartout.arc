@@ -36,10 +36,10 @@ Deno.serve(async (req) => {
     return new Response("Unauthorized", { status: 401 });
   }
 
-  const anthropicApiKey = Deno.env.get("ANTHROPIC_API_KEY");
-  if (!anthropicApiKey) {
-    console.error("ANTHROPIC_API_KEY not set");
-    return new Response(JSON.stringify({ error: "ANTHROPIC_API_KEY not configured" }), {
+  const openRouterKey = Deno.env.get("OPENROUTER_API_KEY");
+  if (!openRouterKey) {
+    console.error("OPENROUTER_API_KEY not set");
+    return new Response(JSON.stringify({ error: "OPENROUTER_API_KEY not configured" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
     });
@@ -179,7 +179,7 @@ Deno.serve(async (req) => {
           season_intensity: seasonIntensity,
         };
 
-        const question = await generateQuestion(anthropicApiKey, context);
+        const question = await generateQuestion(openRouterKey, context);
         if (!question) {
           errors.push(
             `ws=${ws.workspace_id} profile=${leader.profile_id}: question generation failed`,
@@ -223,7 +223,7 @@ Deno.serve(async (req) => {
   });
 });
 
-// ── Claude Haiku question generation ─────────────────────
+// ── Question generation via OpenRouter ────────────────────
 
 async function generateQuestion(apiKey: string, context: LeaderContext): Promise<string | null> {
   const systemPrompt = `You are a workplace coach for Norwegian shift-based businesses. Generate ONE short, specific question (max 2 sentences) that would help this leader reflect on their team's performance and engagement. The question should be actionable — something they can think about or act on today. Write in Norwegian (bokmål). Never use generic questions — make it specific to the data provided.`;
@@ -240,37 +240,36 @@ async function generateQuestion(apiKey: string, context: LeaderContext): Promise
   ].join("\n");
 
   try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
+    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
+        Authorization: `Bearer ${apiKey}`,
+        "X-Title": "Smartout Leader Pulse",
       },
       body: JSON.stringify({
-        model: "claude-haiku-4-5-20251001",
+        model: "anthropic/claude-haiku-4-5-20251001",
         max_tokens: 200,
         messages: [
+          { role: "system", content: systemPrompt },
           {
             role: "user",
             content: `Given this leader's context, generate ONE reflective question:\n\n${contextSummary}`,
           },
         ],
-        system: systemPrompt,
       }),
     });
 
     if (!res.ok) {
       const errBody = await res.text();
-      console.error("Anthropic API error", res.status, errBody);
+      console.error("OpenRouter API error", res.status, errBody);
       return null;
     }
 
     const data = await res.json();
-    const textBlock = data.content?.find((b: { type: string; text?: string }) => b.type === "text");
-    return textBlock?.text?.trim() ?? null;
+    return data.choices?.[0]?.message?.content?.trim() ?? null;
   } catch (err) {
-    console.error("Failed to call Anthropic API", err);
+    console.error("Failed to call OpenRouter API", err);
     return null;
   }
 }

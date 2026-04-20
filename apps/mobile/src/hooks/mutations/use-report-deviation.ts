@@ -11,6 +11,7 @@ import { useCallback, useState } from "react";
 import { randomUUID } from "expo-crypto";
 
 import { enqueue } from "@/lib/sync/queue";
+import { emit } from "@smartout/telemetry";
 
 /** Deviation domains from the deviation_domain enum */
 export type DeviationDomain = "safety" | "customer" | "procedure" | "system" | "material";
@@ -60,6 +61,16 @@ export function useReportDeviation(): UseReportDeviationReturn {
         requires_action: true,
         blocks_day_approval: false,
         payroll_impact: false,
+      });
+
+      void emit({
+        event: "deviation reported",
+        workspace_id: payload.workspace_id,
+        actor_id: payload.reported_by,
+        properties: {
+          entity: { entity_type: "deviation", entity_id: deviationId },
+          data: { domain: payload.domain, severity: payload.severity },
+        },
       });
 
       return rowId;

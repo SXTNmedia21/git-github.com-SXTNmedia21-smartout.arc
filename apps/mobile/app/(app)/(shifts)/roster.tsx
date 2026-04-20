@@ -9,18 +9,19 @@
  * 5. Today column highlighted with accent ring
  * 6. Weekend columns dimmed
  *
- * Placeholder data until schedule_shift hooks support team-wide queries.
+ * Wired to useTeamShifts() hook for real schedule_shift data.
  */
 
-import React, { useMemo } from "react";
-import { View, Text, ScrollView, Pressable } from "react-native";
+import React from "react";
+import { View, Text, ScrollView, Pressable, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { CalendarRange, SlidersHorizontal } from "lucide-react-native";
 import { createStyles, useTheme, withOpacity } from "@/theme";
 import { Avatar } from "@/components/common/Avatar";
+import { useTeamShifts } from "@/hooks/queries/use-team-shifts";
+import type { RosterWeek, RosterDay } from "@/hooks/queries/use-team-shifts";
 
 const DAY_HEADERS = ["Man", "Tir", "Ons", "Tor", "Fre", "Lør", "Søn"];
 
@@ -28,74 +29,6 @@ type ShiftSlot = {
   name: string;
   time: string;
 };
-
-type DayCell = {
-  dayIndex: number;
-  isToday?: boolean;
-  isWeekend?: boolean;
-  shifts: ShiftSlot[];
-};
-
-type WeekBlock = {
-  weekNumber: number;
-  dateRange: string;
-  days: DayCell[];
-};
-
-// Placeholder data
-const WEEKS: WeekBlock[] = [
-  {
-    weekNumber: 42,
-    dateRange: "16 Okt — 22 Okt",
-    days: [
-      {
-        dayIndex: 0,
-        shifts: [
-          { name: "Erik H.", time: "07:00" },
-          { name: "Maria S.", time: "08:30" },
-        ],
-      },
-      {
-        dayIndex: 1,
-        shifts: [
-          { name: "Jonas K.", time: "07:00" },
-          { name: "Lina T.", time: "07:00" },
-          { name: "Per O.", time: "15:00" },
-        ],
-      },
-      { dayIndex: 2, shifts: [{ name: "Kari N.", time: "09:00" }] },
-      {
-        dayIndex: 3,
-        isToday: true,
-        shifts: [
-          { name: "Erik H.", time: "07:00" },
-          { name: "Maria S.", time: "07:00" },
-          { name: "Jonas K.", time: "07:00" },
-          { name: "Lina T.", time: "14:00" },
-          { name: "Per O.", time: "22:00" },
-        ],
-      },
-      { dayIndex: 4, shifts: [{ name: "Kari N.", time: "07:00" }] },
-      { dayIndex: 5, isWeekend: true, shifts: [] },
-      { dayIndex: 6, isWeekend: true, shifts: [] },
-    ],
-  },
-  {
-    weekNumber: 43,
-    dateRange: "23 Okt — 29 Okt",
-    days: [
-      { dayIndex: 0, shifts: [{ name: "Erik H.", time: "07:00" }] },
-      { dayIndex: 1, shifts: [{ name: "Maria S.", time: "07:00" }] },
-      { dayIndex: 2, shifts: [{ name: "Jonas K.", time: "07:00" }] },
-      { dayIndex: 3, shifts: [{ name: "Lina T.", time: "07:00" }] },
-      { dayIndex: 4, shifts: [{ name: "Per O.", time: "07:00" }] },
-      { dayIndex: 5, isWeekend: true, shifts: [] },
-      { dayIndex: 6, isWeekend: true, shifts: [] },
-    ],
-  },
-];
-
-const FILTERS = ["Denne uken", "Okt 2023", "Nov 2023"];
 
 /** Single avatar + time slot inside a day cell */
 function ShiftSlotItem({ slot }: { slot: ShiftSlot }) {
@@ -122,7 +55,7 @@ const useSlotStyles = createStyles((theme) => ({
 }));
 
 /** Single day column in the grid */
-function DayColumn({ day }: { day: DayCell }) {
+function DayColumn({ day }: { day: RosterDay }) {
   const styles = useDayStyles();
   const theme = useTheme();
 
@@ -174,7 +107,7 @@ const useDayStyles = createStyles((theme) => ({
 }));
 
 /** Week section — sticky header + 7-col grid */
-function WeekSection({ week, index }: { week: WeekBlock; index: number }) {
+function WeekSection({ week, index }: { week: RosterWeek; index: number }) {
   const styles = useWeekStyles();
   const theme = useTheme();
   const hasToday = week.days.some((d) => d.isToday);
@@ -281,7 +214,7 @@ const useWeekStyles = createStyles((theme) => ({
 export default function RosterScreen() {
   const styles = useStyles();
   const theme = useTheme();
-  const router = useRouter();
+  const { weeks, isLoading } = useTeamShifts();
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -301,30 +234,19 @@ export default function RosterScreen() {
         </Pressable>
       </Animated.View>
 
-      {/* Filter pills */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filterRow}
-      >
-        {FILTERS.map((label, i) => (
-          <Pressable
-            key={label}
-            onPress={() => Haptics.selectionAsync()}
-            style={[styles.filterPill, i === 0 && styles.filterPillActive]}
-          >
-            <Text style={[styles.filterPillText, i === 0 && styles.filterPillTextActive]}>
-              {label}
-            </Text>
-          </Pressable>
-        ))}
-      </ScrollView>
-
       {/* Week blocks */}
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {WEEKS.map((week, i) => (
-          <WeekSection key={week.weekNumber} week={week} index={i} />
-        ))}
+        {isLoading ? (
+          <View style={styles.centeredState}>
+            <ActivityIndicator size="large" color={theme.colors.brandOrange} />
+          </View>
+        ) : weeks.length === 0 ? (
+          <View style={styles.centeredState}>
+            <Text style={styles.emptyText}>Ingen vakter å vise</Text>
+          </View>
+        ) : (
+          weeks.map((week, i) => <WeekSection key={week.weekNumber} week={week} index={i} />)
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -362,28 +284,16 @@ const useStyles = createStyles((theme) => ({
     borderRadius: 20,
   },
 
-  /* Filters */
-  filterRow: {
-    paddingHorizontal: theme.spacing.section,
-    paddingVertical: theme.spacing.element,
-    gap: theme.spacing.element,
+  /* States */
+  centeredState: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 120,
   },
-  filterPill: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: theme.radius.full,
-    backgroundColor: theme.isDark ? withOpacity(theme.colors.card, 0.6) : theme.colors.muted,
-  },
-  filterPillActive: {
-    backgroundColor: theme.colors.brandOrange,
-  },
-  filterPillText: {
+  emptyText: {
     ...theme.typography.subheadline,
-    fontWeight: "500",
     color: theme.colors.mutedForeground,
-  },
-  filterPillTextActive: {
-    color: "#ffffff",
   },
 
   /* Scroll */

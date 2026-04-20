@@ -66,6 +66,7 @@ import {
   type EmployeeGroupMemberWithProfile,
   type WageType,
 } from "../_hooks/use-employee-groups";
+import { TemplateBindingsPanel } from "./template-bindings-settings";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -750,6 +751,7 @@ function GroupCard({
         {/* Expandable member area */}
         <CollapsibleContent>
           <MemberTable groupId={group.id} onAddMember={onAddMember} onEditMember={onEditMember} />
+          <TemplateBindingsPanel groupId={group.id} />
         </CollapsibleContent>
       </Card>
     </Collapsible>

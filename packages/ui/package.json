@@ -6,6 +6,8 @@
   "scripts": {
     "lint": "eslint src/",
     "typecheck": "npx tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "clean": "rimraf dist .turbo"
   },
   "dependencies": {
@@ -25,14 +27,46 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "expo-linear-gradient": "~15.0.5",
+    "react-native": "0.83.4",
+    "react-native-reanimated": "~4.2.1",
+    "react-native-svg": "^15.15.3",
     "typescript": "^5.9.0",
+    "vitest": "^4.0.18",
     "zod": "^3.25.0"
   },
   "peerDependencies": {
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "expo-linear-gradient": ">=15.0.0",
     "framer-motion": ">=11.0.0",
+    "react-native": ">=0.76.0",
+    "react-native-reanimated": ">=4.0.0",
+    "react-native-svg": ">=15.0.0",
     "tailwindcss": "^4.0.0",
     "zod": "^3.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react-dom": {
+      "optional": true
+    },
+    "framer-motion": {
+      "optional": true
+    },
+    "tailwindcss": {
+      "optional": true
+    },
+    "react-native": {
+      "optional": true
+    },
+    "react-native-reanimated": {
+      "optional": true
+    },
+    "react-native-svg": {
+      "optional": true
+    },
+    "expo-linear-gradient": {
+      "optional": true
+    }
   }
 }

@@ -1,0 +1,13 @@
+{
+  "entity": "questions",
+  "bubble_type": "question",
+  "target_table": null,
+  "field_map": {},
+  "required_source_fields": [],
+  "skip_if_missing": [],
+  "known_quirks": [],
+  "last_verified": "2026-04-17",
+  "sample_record_count": 0,
+  "total_record_count": 0,
+  "v3_schema_hash": null
+}

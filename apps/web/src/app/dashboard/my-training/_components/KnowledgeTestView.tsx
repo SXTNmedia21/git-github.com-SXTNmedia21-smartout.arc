@@ -39,7 +39,9 @@ export function KnowledgeTestView({ tests, assignmentId, isDark }: KnowledgeTest
 
   if (tests.length === 0) {
     return (
-      <p className={`py-4 text-center text-sm ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+      <p
+        className={`py-4 text-center text-sm ${isDark ? "text-muted-foreground" : "text-muted-foreground"}`}
+      >
         Ingen kunnskapstester i denne protokollen.
       </p>
     );
@@ -92,8 +94,8 @@ export function KnowledgeTestView({ tests, assignmentId, isDark }: KnowledgeTest
             }}
             className={`flex w-full items-center gap-3 rounded-lg border px-3 py-3 text-left transition-colors ${
               isDark
-                ? "border-zinc-800 bg-zinc-900/30 hover:border-zinc-700"
-                : "border-zinc-100 bg-zinc-50 hover:border-zinc-200"
+                ? "border-border bg-muted hover:border-border"
+                : "border-border bg-muted hover:border-border"
             }`}
           >
             <div
@@ -103,20 +105,22 @@ export function KnowledgeTestView({ tests, assignmentId, isDark }: KnowledgeTest
                     ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
                     : "border-emerald-200 bg-emerald-50 text-emerald-600"
                   : isDark
-                    ? "border-zinc-700 bg-zinc-800 text-zinc-400"
-                    : "border-zinc-200 bg-zinc-100 text-zinc-500"
+                    ? "border-border bg-muted text-muted-foreground"
+                    : "border-border bg-muted text-muted-foreground"
               }`}
             >
               {test.passed ? <Trophy className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
             </div>
 
             <div className="min-w-0 flex-1">
-              <p className={`text-sm font-semibold ${isDark ? "text-zinc-200" : "text-zinc-800"}`}>
+              <p
+                className={`text-sm font-semibold ${isDark ? "text-foreground" : "text-foreground"}`}
+              >
                 {test.name}
               </p>
               {test.description && (
                 <p
-                  className={`mt-0.5 truncate text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+                  className={`mt-0.5 truncate text-xs ${isDark ? "text-muted-foreground" : "text-muted-foreground"}`}
                 >
                   {test.description}
                 </p>
@@ -130,21 +134,23 @@ export function KnowledgeTestView({ tests, assignmentId, isDark }: KnowledgeTest
                 {test.attemptCount > 0 && !test.passed && (
                   <span
                     className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${
-                      isDark ? "bg-zinc-800 text-zinc-400" : "bg-zinc-100 text-zinc-500"
+                      isDark ? "bg-muted text-muted-foreground" : "bg-muted text-muted-foreground"
                     }`}
                   >
                     {test.attemptCount} forsok
                   </span>
                 )}
                 <span
-                  className={`text-[10px] font-medium ${isDark ? "text-zinc-600" : "text-zinc-400"}`}
+                  className={`text-[10px] font-medium ${isDark ? "text-muted-foreground" : "text-muted-foreground"}`}
                 >
                   Krav: {test.passThreshold}%
                 </span>
               </div>
             </div>
 
-            <ChevronRight className={`h-4 w-4 ${isDark ? "text-zinc-600" : "text-zinc-400"}`} />
+            <ChevronRight
+              className={`h-4 w-4 ${isDark ? "text-muted-foreground" : "text-muted-foreground"}`}
+            />
           </button>
         ))}
       </div>
@@ -162,13 +168,15 @@ export function KnowledgeTestView({ tests, assignmentId, isDark }: KnowledgeTest
             resetQuiz();
           }}
           className={`rounded-lg px-2 py-1 text-xs font-bold transition-colors ${
-            isDark ? "text-zinc-400 hover:text-white" : "text-zinc-500 hover:text-zinc-900"
+            isDark
+              ? "text-muted-foreground hover:text-foreground"
+              : "text-muted-foreground hover:text-foreground"
           }`}
         >
           Tilbake
         </button>
-        <div className={`h-4 w-px ${isDark ? "bg-zinc-800" : "bg-zinc-200"}`} />
-        <h4 className={`text-sm font-bold ${isDark ? "text-zinc-200" : "text-zinc-800"}`}>
+        <div className={`h-4 w-px ${isDark ? "bg-border" : "bg-border"}`} />
+        <h4 className={`text-sm font-bold ${isDark ? "text-foreground" : "text-foreground"}`}>
           {activeTest?.name}
         </h4>
       </div>
@@ -205,8 +213,8 @@ export function KnowledgeTestView({ tests, assignmentId, isDark }: KnowledgeTest
               onClick={resetQuiz}
               className={`flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${
                 isDark
-                  ? "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
-                  : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
+                  ? "bg-muted text-foreground hover:bg-muted"
+                  : "bg-muted text-foreground hover:bg-muted"
               }`}
             >
               <RotateCcw className="h-3 w-3" />
@@ -227,14 +235,14 @@ export function KnowledgeTestView({ tests, assignmentId, isDark }: KnowledgeTest
             <div
               key={q.id}
               className={`rounded-lg border p-3 ${
-                isDark ? "border-zinc-800 bg-zinc-900/30" : "border-zinc-100 bg-zinc-50"
+                isDark ? "border-border bg-muted" : "border-border bg-muted"
               }`}
             >
               <p
-                className={`mb-2 text-sm font-semibold ${isDark ? "text-zinc-200" : "text-zinc-800"}`}
+                className={`mb-2 text-sm font-semibold ${isDark ? "text-foreground" : "text-foreground"}`}
               >
                 <span
-                  className={`mr-2 text-xs font-bold ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+                  className={`mr-2 text-xs font-bold ${isDark ? "text-muted-foreground" : "text-muted-foreground"}`}
                 >
                   {idx + 1}.
                 </span>
@@ -264,8 +272,8 @@ export function KnowledgeTestView({ tests, assignmentId, isDark }: KnowledgeTest
                                 ? "border-orange-500/30 bg-orange-500/10 text-orange-400"
                                 : "border-orange-200 bg-orange-50 text-orange-600"
                               : isDark
-                                ? "border-zinc-800 text-zinc-300 hover:border-zinc-700"
-                                : "border-zinc-200 text-zinc-700 hover:border-zinc-300"
+                                ? "border-border text-foreground hover:border-border"
+                                : "border-border text-foreground hover:border-border"
                       } disabled:cursor-default`}
                     >
                       <div
@@ -277,8 +285,8 @@ export function KnowledgeTestView({ tests, assignmentId, isDark }: KnowledgeTest
                                 ? "border-red-500 bg-red-500"
                                 : "border-orange-500 bg-orange-500"
                             : isDark
-                              ? "border-zinc-700"
-                              : "border-zinc-300"
+                              ? "border-border"
+                              : "border-border"
                         }`}
                       >
                         {isSelected && <div className="h-2 w-2 rounded-full bg-white" />}

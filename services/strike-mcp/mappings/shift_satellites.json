@@ -1,0 +1,352 @@
+{
+  "entity": "shift_satellites",
+  "bubble_type": "shift_satellite",
+  "target_table": "public.shift_note",
+  "field_map": {
+    "durationsSeconds": {
+      "target": "durationsseconds",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "number"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "number",
+        "number",
+        "number"
+      ]
+    },
+    "workspace": {
+      "target": "workspace",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<32>"
+      ]
+    },
+    "team.title": {
+      "target": "team_title",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<4>",
+        "string<7>",
+        "string<8>"
+      ]
+    },
+    "Modified Date": {
+      "target": "modified_date",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "teamId": {
+      "target": "teamid",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 99,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "date.start": {
+      "target": "date_start",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "isLive?": {
+      "target": "islive",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "boolean"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "boolean",
+        "boolean"
+      ]
+    },
+    "_id": {
+      "target": "id",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "salary.int": {
+      "target": "salary_int",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "number"
+      ],
+      "occurrence_count": 97,
+      "sample_values": [
+        "number",
+        "number",
+        "number"
+      ]
+    },
+    "Created By": {
+      "target": "created_by",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    " profileName": {
+      "target": "profilename",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 99,
+      "sample_values": [
+        "string<14>",
+        "string<19>",
+        "string<16>"
+      ]
+    },
+    "profileId": {
+      "target": "profileid",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 98,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "_shiftStatus": {
+      "target": "shiftstatus",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<8>",
+        "string<11>",
+        "string<4>"
+      ]
+    },
+    "department.title": {
+      "target": "department_title",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<5>",
+        "string<10>",
+        "string<22>"
+      ]
+    },
+    "Created Date": {
+      "target": "created_date",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "shift": {
+      "target": "shift",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "departmentId": {
+      "target": "departmentid",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 100,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "shiftType": {
+      "target": "shifttype",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 44,
+      "sample_values": [
+        "string<32>",
+        "string<32>",
+        "string<32>"
+      ]
+    },
+    "date.end": {
+      "target": "date_end",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 50,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "jobTitle": {
+      "target": "jobtitle",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 41,
+      "sample_values": [
+        "string<8>",
+        "string<9>",
+        "string<15>"
+      ]
+    },
+    "_shiftType_color": {
+      "target": "shifttype_color",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 43,
+      "sample_values": [
+        "string<10>",
+        "string<16>",
+        "string<13>"
+      ]
+    },
+    "Show in market?": {
+      "target": "show_in_market",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "boolean"
+      ],
+      "occurrence_count": 50,
+      "sample_values": [
+        "boolean",
+        "boolean"
+      ]
+    },
+    "date.punchout": {
+      "target": "date_punchout",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 9,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    },
+    "date.punchin": {
+      "target": "date_punchin",
+      "transform": null,
+      "needs_review": true,
+      "source_value_types": [
+        "string"
+      ],
+      "occurrence_count": 9,
+      "sample_values": [
+        "string<24>",
+        "string<24>",
+        "string<24>"
+      ]
+    }
+  },
+  "required_source_fields": [],
+  "skip_if_missing": [],
+  "known_quirks": [
+    "ADR-0003 conflict_strategy='folded': no v3 target table; no SQL emitted.",
+    "Bubble shift_satellite has 100/2750 sample rows. If satellite-specific data is needed in v3 (notes, custom_rate, custom_rate_type), extend mappings/shifts.json with derived_columns reading the relevant satellite fields rather than reactivating this mapping.",
+    "Apply step: do nothing for shift_satellites. The schedule_shift INSERTs already cover all migrated shift data."
+  ],
+  "last_verified": "2026-04-16T12:16:59.650Z",
+  "sample_record_count": 100,
+  "total_record_count": 2204,
+  "v3_schema_hash": null,
+  "known_empty_source": true,
+  "approval_hash": "999d54b103675c7bb254cefd259a29e9cbb481f22bb28e1acacf0ec153805049"
+}

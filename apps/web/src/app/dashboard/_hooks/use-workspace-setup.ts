@@ -82,7 +82,7 @@ export function useWorkspaceSetup() {
           id: "season",
           label: "Aktiver sesong",
           description: "Sett budsjettmal og start sesongen",
-          href: "/dashboard/season",
+          href: "/dashboard/year-wheel",
           isComplete: hasActiveSeason,
         },
       ];

@@ -13,105 +13,118 @@
  */
 
 import React from "react";
-import { View, Text, ScrollView, Pressable } from "react-native";
+import { View, Text, ScrollView, Pressable, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import {
-  Wine,
-  UtensilsCrossed,
-  Flame,
-  Star,
+  BookOpen,
   BadgeCheck,
   ChevronRight,
   ChevronLeft,
   Download,
+  FileText,
 } from "lucide-react-native";
 import { createStyles, useTheme, withOpacity } from "@/theme";
-import type { LucideIcon } from "lucide-react-native";
+import { useTrainingData } from "@/hooks/queries/use-training-data";
+import type {
+  TrainingCourse,
+  TrainingProcedure,
+  TrainingCertificate,
+} from "@/hooks/queries/use-training-data";
 
 // ── Types ──
 
-type CourseStatus = "expiring" | "high_priority" | "in_progress";
+type CourseStatus = "not_started" | "in_progress" | "completed" | "expired" | "waived";
 
-type Course = {
-  id: string;
-  title: string;
-  subtitle: string;
-  icon: LucideIcon;
-  progress: number;
-  status: CourseStatus;
-  statusLabel: string;
+type StatusColorKey = "not_started" | "in_progress" | "completed" | "expired" | "waived";
+
+/** Map assignment status to a display label (Norwegian) */
+function getStatusDisplay(status: CourseStatus): { label: string; colorKey: StatusColorKey } {
+  switch (status) {
+    case "not_started":
+      return { label: "Ikke startet", colorKey: "not_started" };
+    case "in_progress":
+      return { label: "Pågående", colorKey: "in_progress" };
+    case "completed":
+      return { label: "Fullført", colorKey: "completed" };
+    case "expired":
+      return { label: "Utløpt", colorKey: "expired" };
+    case "waived":
+      return { label: "Fritatt", colorKey: "waived" };
+  }
+}
+
+/** Norwegian labels for assignment_source enum values */
+const SOURCE_LABELS: Record<string, string> = {
+  workspace: "Bedrift",
+  department: "Avdeling",
+  team: "Team",
+  location: "Lokasjon",
+  position: "Stilling",
+  manual: "Manuell",
+  season: "Sesong",
 };
 
-type Procedure = {
-  id: string;
-  title: string;
-  icon: LucideIcon;
-  isNew: boolean;
-};
-
-type Certificate = {
-  id: string;
-  title: string;
-  completedDate: string;
-};
-
-// ── Placeholder data — replace with hooks when training tables are wired ──
-
-const COURSES: Course[] = [
-  {
-    id: "1",
-    title: "Skjenkeansvarlig",
-    subtitle: "Obligatorisk for alle servitører",
-    icon: Wine,
-    progress: 80,
-    status: "expiring",
-    statusLabel: "Utløper om 30 dager",
-  },
-  {
-    id: "2",
-    title: "Mattrygghet & HACCP",
-    subtitle: "Sikre trygg matopplevelse",
-    icon: UtensilsCrossed,
-    progress: 20,
-    status: "high_priority",
-    statusLabel: "Høy prioritet",
-  },
-];
-
-const PROCEDURES: Procedure[] = [
-  { id: "1", title: "Stenging av uteservering", icon: Flame, isNew: true },
-  { id: "2", title: "Håndtering av VIP-gjester", icon: Star, isNew: true },
-];
-
-const CERTIFICATES: Certificate[] = [{ id: "1", title: "Brannvern", completedDate: "Jan 2024" }];
-
-const READINESS_PERCENT = 62;
+/** Format date to "MMM YYYY" for certificate display */
+function formatCertDate(dateStr: string): string {
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "Mai",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Okt",
+    "Nov",
+    "Des",
+  ];
+  const d = new Date(dateStr);
+  return `${months[d.getMonth()]} ${d.getFullYear()}`;
+}
 
 // ── Components ──
 
-/** Readiness progress card with gradient bar */
-function ReadinessCard() {
+/** Readiness progress card with gradient bar and completion counts */
+function ReadinessCard({
+  percent,
+  completed,
+  total,
+}: {
+  percent: number;
+  completed?: number;
+  total?: number;
+}) {
   const styles = useReadinessStyles();
-  const _theme = useTheme();
+
+  const subtitle =
+    percent === 0
+      ? "Du har ingen aktive kurs ennå."
+      : percent >= 100
+        ? "Gratulerer! Du er fullsertifisert."
+        : "Du er godt på vei til å bli fullsertifisert for sesongen.";
+
+  const countText =
+    completed !== undefined && total !== undefined ? `${completed} av ${total} fullført` : null;
 
   return (
     <Animated.View entering={FadeInDown.delay(100).duration(500).springify()} style={styles.card}>
       <View style={styles.headerRow}>
         <View style={styles.headerText}>
-          <Text style={styles.title}>Din beredskap: {READINESS_PERCENT}%</Text>
-          <Text style={styles.subtitle}>
-            Du er godt på vei til å bli fullsertifisert for sesongen.
-          </Text>
+          <Text style={styles.title}>Din beredskap: {percent}%</Text>
+          <Text style={styles.subtitle}>{subtitle}</Text>
+          {countText && <Text style={styles.countText}>{countText}</Text>}
         </View>
         <Text style={styles.decorNumber}>01</Text>
       </View>
 
       {/* Progress bar */}
       <View style={styles.barTrack}>
-        <View style={[styles.barFill, { width: `${READINESS_PERCENT}%` }]} />
+        <View style={[styles.barFill, { width: `${percent}%` }]} />
       </View>
       <View style={styles.barLabels}>
         <Text style={styles.barLabel}>BEGYNNER</Text>
@@ -146,6 +159,12 @@ const useReadinessStyles = createStyles((theme) => ({
     ...theme.typography.subheadline,
     color: theme.colors.mutedForeground,
   },
+  countText: {
+    ...theme.typography.caption,
+    color: theme.colors.brandOrange,
+    fontWeight: "500",
+    marginTop: 2,
+  },
   decorNumber: {
     fontSize: 36,
     fontStyle: "italic",
@@ -179,32 +198,47 @@ const useReadinessStyles = createStyles((theme) => ({
   },
 }));
 
-/** Single course card with progress bar and urgency tag */
-function CourseCard({ course, index }: { course: Course; index: number }) {
+/** Single course card with real progress bar, status badge, and source badge */
+function CourseCard({ course, index }: { course: TrainingCourse; index: number }) {
   const styles = useCourseStyles();
   const theme = useTheme();
   const router = useRouter();
 
-  const tagColors = {
-    expiring: {
-      bg: withOpacity(theme.colors.destructive, 0.06),
-      border: withOpacity(theme.colors.destructive, 0.2),
-      text: theme.colors.destructive,
-    },
-    high_priority: {
-      bg: withOpacity(theme.colors.brandOrange, 0.06),
-      border: withOpacity(theme.colors.brandOrange, 0.2),
-      text: theme.colors.brandOrange,
+  const { label, colorKey } = getStatusDisplay(course.status);
+  const progress = course.progress.percent;
+
+  const tagColors: Record<StatusColorKey, { bg: string; border: string; text: string }> = {
+    not_started: {
+      bg: withOpacity(theme.colors.mutedForeground, 0.06),
+      border: withOpacity(theme.colors.mutedForeground, 0.2),
+      text: theme.colors.mutedForeground,
     },
     in_progress: {
       bg: withOpacity(theme.colors.info, 0.06),
       border: withOpacity(theme.colors.info, 0.2),
       text: theme.colors.info,
     },
+    completed: {
+      bg: withOpacity(theme.colors.success, 0.06),
+      border: withOpacity(theme.colors.success, 0.2),
+      text: theme.colors.success,
+    },
+    expired: {
+      bg: withOpacity(theme.colors.destructive, 0.06),
+      border: withOpacity(theme.colors.destructive, 0.2),
+      text: theme.colors.destructive,
+    },
+    waived: {
+      bg: withOpacity(theme.colors.warning, 0.06),
+      border: withOpacity(theme.colors.warning, 0.2),
+      text: theme.colors.warning,
+    },
   };
 
-  const tag = tagColors[course.status];
-  const IconComponent = course.icon;
+  const tag = tagColors[colorKey];
+  const title = course.protocol?.name ?? "Ukjent kurs";
+  const subtitle = course.protocol?.description ?? "";
+  const sourceLabel = course.assigned_via ? SOURCE_LABELS[course.assigned_via] : null;
 
   return (
     <Animated.View
@@ -215,38 +249,51 @@ function CourseCard({ course, index }: { course: Course; index: number }) {
       <Pressable
         onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          router.push("/(app)/(home)/course-detail");
+          router.push({
+            pathname: "/(app)/(home)/course-detail",
+            params: { protocolId: course.protocol_id },
+          });
         }}
         style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
         accessibilityRole="button"
-        accessibilityLabel={course.title}
+        accessibilityLabel={title}
       >
-        {/* Top row: icon + tag */}
+        {/* Top row: icon + badges */}
         <View style={styles.topRow}>
           <View style={styles.iconBox}>
-            <IconComponent size={20} color={theme.colors.brandOrange} strokeWidth={1.6} />
+            <BookOpen size={20} color={theme.colors.brandOrange} strokeWidth={1.6} />
           </View>
-          <View style={[styles.tag, { backgroundColor: tag.bg, borderColor: tag.border }]}>
-            <Text style={[styles.tagText, { color: tag.text }]}>{course.statusLabel}</Text>
+          <View style={styles.badgeRow}>
+            {sourceLabel && (
+              <View style={styles.sourceBadge}>
+                <Text style={styles.sourceBadgeText}>{sourceLabel}</Text>
+              </View>
+            )}
+            <View style={[styles.tag, { backgroundColor: tag.bg, borderColor: tag.border }]}>
+              <Text style={[styles.tagText, { color: tag.text }]}>{label}</Text>
+            </View>
           </View>
         </View>
 
-        {/* Title + subtitle */}
+        {/* Title + subtitle + version */}
         <View style={styles.textBlock}>
           <Text style={styles.title} numberOfLines={2}>
-            {course.title}
+            {title}
           </Text>
           <Text style={styles.subtitle} numberOfLines={1}>
-            {course.subtitle}
+            {subtitle}
           </Text>
+          {course.protocol_version && (
+            <Text style={styles.versionText}>v{course.protocol_version}</Text>
+          )}
         </View>
 
-        {/* Progress bar */}
+        {/* Progress bar — now uses real progress from shared hook */}
         <View style={styles.progressRow}>
           <View style={styles.progressTrack}>
-            <View style={[styles.progressFill, { width: `${course.progress}%` }]} />
+            <View style={[styles.progressFill, { width: `${progress}%` }]} />
           </View>
-          <Text style={styles.progressLabel}>{course.progress}%</Text>
+          <Text style={styles.progressLabel}>{progress}%</Text>
         </View>
       </Pressable>
     </Animated.View>
@@ -283,6 +330,11 @@ const useCourseStyles = createStyles((theme) => ({
     alignItems: "center",
     justifyContent: "center",
   },
+  badgeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
   tag: {
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -295,6 +347,21 @@ const useCourseStyles = createStyles((theme) => ({
     letterSpacing: 0.3,
     textTransform: "uppercase",
   },
+  sourceBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: theme.radius.sm,
+    backgroundColor: theme.isDark
+      ? withOpacity(theme.colors.muted, 0.5)
+      : withOpacity(theme.colors.muted, 0.8),
+  },
+  sourceBadgeText: {
+    fontSize: 9,
+    fontWeight: "500",
+    letterSpacing: 0.5,
+    color: theme.colors.mutedForeground,
+    textTransform: "uppercase",
+  },
   textBlock: {
     gap: 4,
   },
@@ -305,6 +372,12 @@ const useCourseStyles = createStyles((theme) => ({
   subtitle: {
     ...theme.typography.caption,
     color: withOpacity(theme.colors.mutedForeground, 0.7),
+  },
+  versionText: {
+    fontSize: 10,
+    fontWeight: "400",
+    color: withOpacity(theme.colors.mutedForeground, 0.5),
+    fontStyle: "italic",
   },
   progressRow: {
     flexDirection: "row",
@@ -331,11 +404,13 @@ const useCourseStyles = createStyles((theme) => ({
 }));
 
 /** Single procedure row */
-function ProcedureRow({ procedure, index }: { procedure: Procedure; index: number }) {
+function ProcedureRow({ procedure, index }: { procedure: TrainingProcedure; index: number }) {
   const styles = useProcedureStyles();
   const theme = useTheme();
   const router = useRouter();
-  const IconComponent = procedure.icon;
+
+  // Procedures created within the last 7 days are considered "new"
+  const isNew = Date.now() - new Date(procedure.created_at).getTime() < 7 * 24 * 60 * 60 * 1000;
 
   return (
     <Animated.View
@@ -350,17 +425,17 @@ function ProcedureRow({ procedure, index }: { procedure: Procedure; index: numbe
         }}
         style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
         accessibilityRole="button"
-        accessibilityLabel={procedure.title}
+        accessibilityLabel={procedure.name}
       >
         <View style={styles.rowLeft}>
           <View style={styles.iconCircle}>
-            <IconComponent size={18} color={theme.colors.mutedForeground} strokeWidth={1.6} />
+            <FileText size={18} color={theme.colors.mutedForeground} strokeWidth={1.6} />
           </View>
           <View style={styles.textBlock}>
             <Text style={styles.title} numberOfLines={1}>
-              {procedure.title}
+              {procedure.name}
             </Text>
-            {procedure.isNew && <Text style={styles.newBadge}>NY</Text>}
+            {isNew && <Text style={styles.newBadge}>NY</Text>}
           </View>
         </View>
         <ChevronRight
@@ -420,7 +495,7 @@ const useProcedureStyles = createStyles((theme) => ({
 }));
 
 /** Single certificate row */
-function CertificateRow({ cert, index }: { cert: Certificate; index: number }) {
+function CertificateRow({ cert, index }: { cert: TrainingCertificate; index: number }) {
   const styles = useCertStyles();
   const theme = useTheme();
 
@@ -436,15 +511,15 @@ function CertificateRow({ cert, index }: { cert: Certificate; index: number }) {
             <BadgeCheck size={20} color={theme.colors.success} strokeWidth={2} />
           </View>
           <View style={styles.textBlock}>
-            <Text style={styles.title}>{cert.title}</Text>
-            <Text style={styles.date}>FULLFØRT {cert.completedDate.toUpperCase()}</Text>
+            <Text style={styles.title}>{cert.confirmation_name}</Text>
+            <Text style={styles.date}>FULLFØRT {formatCertDate(cert.signed_at).toUpperCase()}</Text>
           </View>
         </View>
         <Pressable
           onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
           hitSlop={12}
           accessibilityRole="button"
-          accessibilityLabel={`Last ned ${cert.title}`}
+          accessibilityLabel={`Last ned ${cert.confirmation_name}`}
         >
           <Download size={18} color={theme.colors.brandOrange} strokeWidth={1.8} />
         </Pressable>
@@ -496,6 +571,15 @@ export default function TrainingScreen() {
   const styles = useStyles();
   const theme = useTheme();
   const router = useRouter();
+  const { data, isLoading, isError } = useTrainingData();
+
+  const courses = data?.courses ?? [];
+  const procedures = data?.procedures ?? [];
+  const certificates = data?.certificates ?? [];
+  const readinessPercent = data?.readinessPercent ?? 0;
+
+  const completedCount = courses.filter((c) => c.status === "completed").length;
+  const totalCount = courses.length;
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -515,45 +599,74 @@ export default function TrainingScreen() {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* ── Readiness Progress ── */}
-        <View style={styles.section}>
-          <ReadinessCard />
+      {isLoading ? (
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color={theme.colors.brandOrange} />
         </View>
-
-        {/* ── Active Courses ── */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Aktive kurs</Text>
-            <Pressable onPress={() => Haptics.selectionAsync()} hitSlop={8}>
-              <Text style={styles.seeAll}>Se alle</Text>
-            </Pressable>
+      ) : isError ? (
+        <View style={styles.centered}>
+          <Text style={styles.emptyText}>Kunne ikke laste opplæringsdata.</Text>
+        </View>
+      ) : (
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* ── Readiness Progress ── */}
+          <View style={styles.section}>
+            <ReadinessCard
+              percent={readinessPercent}
+              completed={completedCount}
+              total={totalCount}
+            />
           </View>
-          <View style={styles.courseGrid}>
-            {COURSES.map((course, i) => (
-              <CourseCard key={course.id} course={course} index={i} />
-            ))}
-          </View>
-        </View>
 
-        {/* ── New Procedures ── */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Nye prosedyrer</Text>
-          {PROCEDURES.map((proc, i) => (
-            <ProcedureRow key={proc.id} procedure={proc} index={i} />
-          ))}
-        </View>
-
-        {/* ── Certificates ── */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Mine sertifikater</Text>
-          <View style={styles.certCard}>
-            {CERTIFICATES.map((cert, i) => (
-              <CertificateRow key={cert.id} cert={cert} index={i} />
-            ))}
+          {/* ── Active Courses ── */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Aktive kurs</Text>
+              <Pressable onPress={() => Haptics.selectionAsync()} hitSlop={8}>
+                <Text style={styles.seeAll}>Se alle</Text>
+              </Pressable>
+            </View>
+            {courses.length > 0 ? (
+              <View style={styles.courseGrid}>
+                {courses.map((course, i) => (
+                  <CourseCard key={course.assignment_id} course={course} index={i} />
+                ))}
+              </View>
+            ) : (
+              <Text style={styles.emptyText}>Ingen kurs tilgjengelig</Text>
+            )}
           </View>
-        </View>
-      </ScrollView>
+
+          {/* ── Procedures ── */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Prosedyrer</Text>
+            {procedures.length > 0 ? (
+              procedures.map((proc, i) => (
+                <ProcedureRow key={proc.procedure_id} procedure={proc} index={i} />
+              ))
+            ) : (
+              <Text style={styles.emptyText}>Ingen prosedyrer tilgjengelig</Text>
+            )}
+          </View>
+
+          {/* ── Certificates ── */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Mine sertifikater</Text>
+            {certificates.length > 0 ? (
+              <View style={styles.certCard}>
+                {certificates.map((cert, i) => (
+                  <CertificateRow key={cert.id} cert={cert} index={i} />
+                ))}
+              </View>
+            ) : (
+              <Text style={styles.emptyText}>Ingen sertifikater ennå</Text>
+            )}
+          </View>
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 }
@@ -618,6 +731,19 @@ const useStyles = createStyles((theme) => ({
   /* Course grid */
   courseGrid: {
     gap: theme.spacing.md,
+  },
+
+  /* Centered loading / error state */
+  centered: {
+    flex: 1,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+  },
+  emptyText: {
+    ...theme.typography.body,
+    color: theme.colors.mutedForeground,
+    textAlign: "center" as const,
+    paddingVertical: theme.spacing.md,
   },
 
   /* Certificates card */

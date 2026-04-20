@@ -26,7 +26,7 @@ async function warmupDashboardRoutes(browser: Browser): Promise<void> {
       "/dashboard/schedule",
       "/dashboard/website",
       "/dashboard/website/setup",
-      "/dashboard/season",
+      "/dashboard/year-wheel",
     ]) {
       await page.goto(route, { waitUntil: "commit" }).catch(() => {});
     }
@@ -104,11 +104,11 @@ test.describe("Performance Gates — Login to Dashboard", () => {
     const start = Date.now();
     await page.click('button[type="submit"]');
 
-    // Wait for any post-login content (login animation, dashboard, or wizard)
+    // Wait for any post-login content (login animation, dashboard sidebar, or setup wizard)
     await page
       .locator("text=Der er du jo")
-      .or(page.locator("[data-sidebar]"))
-      .or(page.locator("text=Oppsett av arbeidsrom"))
+      .or(page.locator("aside"))
+      .or(page.locator("text=Last opp dokumenter"))
       .first()
       .waitFor({ state: "visible", timeout: PERF_GATES.loginToDashboard + 1000 });
 
@@ -200,7 +200,7 @@ test.describe("Performance Gates — Page Navigation", () => {
   });
 
   test("sidebar → season within 1s", async ({ page }) => {
-    const link = page.locator('a[href*="/dashboard/season"]').first();
+    const link = page.locator('a[href*="/dashboard/year-wheel"]').first();
     if (!(await link.isVisible({ timeout: 3000 }).catch(() => false))) {
       test.skip(true, "Season link not visible");
       return;
@@ -259,12 +259,15 @@ test.describe("Performance Gates — API Content", () => {
   });
 
   test("season page renders within 2s", async ({ page }) => {
-    await page.goto("/dashboard/season", { waitUntil: "commit" });
+    await page.goto("/dashboard/year-wheel", { waitUntil: "commit" });
+    // The year-wheel page no longer has a "Sesongplanlegging" heading — it was
+    // replaced with a timeline-first layout. The "Sesonger" section heading (h3)
+    // is the first stable landmark rendered after client hydration.
     await expectVisibleWithin(
       page,
-      "text=Sesongplanlegging",
+      'h3:has-text("Sesonger")',
       PERF_GATES.apiContent,
-      "Season page heading",
+      "Season page — Sesonger section heading",
     );
   });
 });

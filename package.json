@@ -21,6 +21,7 @@
     "check": "turbo run lint typecheck",
     "clean": "turbo run clean && rimraf node_modules/.cache",
     "db:start": "npx supabase start",
+    "infra:start": "./infra/scripts/start.sh",
     "db:stop": "npx supabase stop",
     "db:reset": "npx supabase db reset",
     "db:gen-types": "npx supabase gen types typescript --local > packages/supabase/src/database.types.ts",

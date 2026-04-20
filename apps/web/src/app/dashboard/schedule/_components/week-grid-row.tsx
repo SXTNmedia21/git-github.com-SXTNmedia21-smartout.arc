@@ -63,19 +63,16 @@ export function MalGridRow({
   return (
     // display: contents lets each child cell sit directly in the parent CSS Grid
     <div style={{ display: "contents" }}>
-      {/* Day label — sticky first column, highlights weekends in orange */}
+      {/* Day label — sticky first column, day name large + date small */}
       <div
-        className={`border-border bg-card sticky left-0 z-[5] flex items-center gap-1.5 border-r border-b px-3 py-0 text-xs font-bold ${day.isWeekend ? "text-orange-500" : ""}`}
+        className={`border-border bg-card sticky left-0 z-[5] flex flex-col justify-center border-r border-b px-3 py-1.5 ${day.isWeekend ? "text-orange-500" : ""}`}
       >
-        {/* Short label (e.g. "MAN", "LOR") — fixed width for alignment */}
+        <span className="text-[13px] leading-tight font-bold">{day.label}</span>
         <span
-          className={`w-[26px] text-[10px] font-bold tracking-[1px] ${day.isWeekend ? "text-orange-500 opacity-60" : "text-muted-foreground"}`}
+          className={`text-[10px] leading-tight ${day.isWeekend ? "text-orange-500/60" : "text-muted-foreground"}`}
         >
           {day.shortLabel}
         </span>
-
-        {/* Full date label */}
-        {day.label}
       </div>
 
       {/* One cell per shift type config column */}

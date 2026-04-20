@@ -2,15 +2,20 @@
 
 /**
  * MalEmployeeTag — Compact inline tag representing an assigned employee in the Mal-modus grid.
- * Shows avatar, name, and trailing status icons (published, swap request, unread message).
+ * Shows avatar, name, trailing status icons, and a hover tooltip with shift details
+ * (time window, role, status) so managers can quickly assess placement.
  */
 
 import { ArrowLeftRight, Check, Circle, MessageCircle } from "lucide-react";
+import { useDraggable } from "@dnd-kit/core";
 import type { MalEmployeeAssignment } from "@smartout/schedule";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 type MalEmployeeTagProps = {
   assignment: MalEmployeeAssignment;
   onClick?: () => void;
+  /** When true, the tag can be dragged to a different column */
+  draggable?: boolean;
 };
 
 // Six deterministic color variants based on a hash of the employeeId.
@@ -59,18 +64,43 @@ function pickColorVariant(id: string): (typeof COLOR_VARIANTS)[number] {
   return COLOR_VARIANTS[index] ?? COLOR_VARIANTS[0];
 }
 
-export function MalEmployeeTag({ assignment, onClick }: MalEmployeeTagProps) {
+/** Status label mapping for the tooltip */
+const STATUS_LABELS: Record<string, string> = {
+  created: "Opprettet",
+  assigned: "Tildelt",
+  published: "Publisert",
+  active: "Aktiv",
+  completed: "Fullført",
+  unpublished: "Upublisert",
+};
+
+export function MalEmployeeTag({ assignment, onClick, draggable = false }: MalEmployeeTagProps) {
   const variant = pickColorVariant(assignment.employeeId);
   const isPublished = assignment.status === "published";
+  const hasShiftDetails = assignment.startTime || assignment.role;
 
-  return (
+  const { attributes, listeners, setNodeRef, isDragging, transform } = useDraggable({
+    id: `shift-${assignment.shiftId}`,
+    data: { assignment },
+    disabled: !draggable,
+  });
+
+  const dragStyle = transform
+    ? {
+        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+        backgroundColor: variant.bg,
+      }
+    : { backgroundColor: variant.bg };
+
+  const tag = (
     <button
+      ref={draggable ? setNodeRef : undefined}
       type="button"
-      onClick={onClick}
-      className="inline-flex cursor-pointer items-center gap-[3px] rounded-lg py-[3px] pr-[6px] pl-[3px] transition-all duration-[250ms] ease-[cubic-bezier(0.25,0.1,0.25,1)] hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-6px_oklch(0_0_0/0.1)]"
-      style={{ backgroundColor: variant.bg }}
+      onClick={isDragging ? undefined : onClick}
+      className={`inline-flex items-center gap-[3px] rounded-lg py-[3px] pr-[6px] pl-[3px] transition-shadow duration-[250ms] ease-[cubic-bezier(0.25,0.1,0.25,1)] hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-6px_oklch(0_0_0/0.1)] ${isDragging ? "relative z-50 scale-105 opacity-90 shadow-2xl ring-2 ring-orange-500/40" : ""} ${draggable ? "cursor-grab touch-none active:cursor-grabbing" : "cursor-pointer"}`}
+      style={dragStyle}
+      {...(draggable ? { ...attributes, ...listeners } : {})}
     >
-      {/* Avatar circle with initials */}
       <span
         className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full text-[7px] font-extrabold"
         style={{ backgroundColor: variant.avatarBg, color: variant.color }}
@@ -78,7 +108,6 @@ export function MalEmployeeTag({ assignment, onClick }: MalEmployeeTagProps) {
         {assignment.initials}
       </span>
 
-      {/* Employee name — truncated at 60px */}
       <span
         className="max-w-[60px] overflow-hidden text-[10px] font-semibold text-ellipsis whitespace-nowrap"
         style={{ color: variant.color }}
@@ -86,9 +115,7 @@ export function MalEmployeeTag({ assignment, onClick }: MalEmployeeTagProps) {
         {assignment.employeeName}
       </span>
 
-      {/* Trailing status icons — only rendered when relevant */}
       <span className="ml-[2px] flex gap-[1px]">
-        {/* Published = green check, otherwise muted circle indicating draft/assigned state */}
         {isPublished ? (
           <Check
             className="h-3 w-3 opacity-60 transition-opacity hover:opacity-100"
@@ -97,16 +124,12 @@ export function MalEmployeeTag({ assignment, onClick }: MalEmployeeTagProps) {
         ) : (
           <Circle className="text-muted-foreground h-3 w-3 opacity-60 transition-opacity hover:opacity-100" />
         )}
-
-        {/* Swap request indicator */}
         {assignment.hasSwapRequest && (
           <ArrowLeftRight
             className="h-3 w-3 opacity-60 transition-opacity hover:opacity-100"
             style={{ color: "#f97316" }}
           />
         )}
-
-        {/* Unread message indicator */}
         {assignment.hasUnreadMessage && (
           <MessageCircle
             className="h-3 w-3 opacity-60 transition-opacity hover:opacity-100"
@@ -115,5 +138,30 @@ export function MalEmployeeTag({ assignment, onClick }: MalEmployeeTagProps) {
         )}
       </span>
     </button>
+  );
+
+  if (!hasShiftDetails) return tag;
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{tag}</TooltipTrigger>
+      <TooltipContent
+        side="top"
+        className="rounded-xl border-none bg-zinc-900 px-3 py-2 text-white shadow-xl"
+      >
+        <div className="flex flex-col gap-0.5">
+          <span className="text-[11px] font-bold">{assignment.employeeName}</span>
+          {assignment.role && <span className="text-[10px] text-zinc-400">{assignment.role}</span>}
+          {assignment.startTime && assignment.endTime && (
+            <span className="font-mono text-[10px] text-zinc-300">
+              {assignment.startTime} – {assignment.endTime}
+            </span>
+          )}
+          <span className="text-[9px] text-zinc-500">
+            {STATUS_LABELS[assignment.status] ?? assignment.status}
+          </span>
+        </div>
+      </TooltipContent>
+    </Tooltip>
   );
 }

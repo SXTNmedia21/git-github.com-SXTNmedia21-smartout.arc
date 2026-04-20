@@ -2,6 +2,7 @@
 
 import { FlowPlayer, type SlideConfig, type FlowResult, type FlowEvent } from "@smartout/ui";
 import { emit } from "@smartout/telemetry";
+import { useFlowContext } from "./_hooks/use-flow-context";
 import {
   Shield,
   Users,
@@ -145,94 +146,92 @@ const demoSlides: SlideConfig[] = [
   },
 ];
 
-// TODO: Replace with real workspace/profile context
-const WORKSPACE_ID = null;
-const ACTOR_ID = "anonymous";
-
-function emitFlowEvent(event: FlowEvent) {
-  switch (event.type) {
-    case "flow:started":
-      void emit({
-        event: "flow started",
-        workspace_id: WORKSPACE_ID,
-        actor_id: ACTOR_ID,
-        properties: {
-          data: {
-            flow_id: FLOW_ID,
-            total_slides: (event.data?.totalSlides as number) ?? 0,
-          },
-        },
-      });
-      break;
-
-    case "flow:slide_viewed":
-      void emit({
-        event: "flow slide_viewed",
-        workspace_id: WORKSPACE_ID,
-        actor_id: ACTOR_ID,
-        properties: {
-          data: {
-            flow_id: FLOW_ID,
-            slide_index: event.slideIndex,
-            slide_type: event.slideType,
-            duration_ms: event.durationMs,
-          },
-        },
-      });
-      break;
-
-    case "flow:answer_submitted":
-      void emit({
-        event: "flow answer_submitted",
-        workspace_id: WORKSPACE_ID,
-        actor_id: ACTOR_ID,
-        properties: {
-          data: {
-            flow_id: FLOW_ID,
-            slide_index: event.slideIndex,
-            answer_key: (event.data?.answerKey as string) ?? "",
-            answer_value: (event.data?.optionId as string) ?? "",
-          },
-        },
-      });
-      break;
-
-    case "flow:skipped":
-      void emit({
-        event: "flow skipped",
-        workspace_id: WORKSPACE_ID,
-        actor_id: ACTOR_ID,
-        properties: {
-          data: {
-            flow_id: FLOW_ID,
-            slide_index: event.slideIndex,
-            slide_type: event.slideType,
-            duration_ms: event.durationMs,
-          },
-        },
-      });
-      break;
-
-    case "flow:completed":
-      void emit({
-        event: "flow completed",
-        workspace_id: WORKSPACE_ID,
-        actor_id: ACTOR_ID,
-        properties: {
-          data: {
-            flow_id: FLOW_ID,
-            total_slides: demoSlides.length,
-            duration_ms: (event.data?.totalDurationMs as number) ?? 0,
-            action: (event.data?.action as string) ?? undefined,
-            answers: (event.data?.answers as Record<string, string | string[]>) ?? {},
-          },
-        },
-      });
-      break;
-  }
-}
-
 export default function FlowPage() {
+  const { workspaceId, actorId } = useFlowContext();
+
+  function emitFlowEvent(event: FlowEvent) {
+    switch (event.type) {
+      case "flow:started":
+        void emit({
+          event: "flow started",
+          workspace_id: workspaceId,
+          actor_id: actorId,
+          properties: {
+            data: {
+              flow_id: FLOW_ID,
+              total_slides: (event.data?.totalSlides as number) ?? 0,
+            },
+          },
+        });
+        break;
+
+      case "flow:slide_viewed":
+        void emit({
+          event: "flow slide_viewed",
+          workspace_id: workspaceId,
+          actor_id: actorId,
+          properties: {
+            data: {
+              flow_id: FLOW_ID,
+              slide_index: event.slideIndex,
+              slide_type: event.slideType,
+              duration_ms: event.durationMs,
+            },
+          },
+        });
+        break;
+
+      case "flow:answer_submitted":
+        void emit({
+          event: "flow answer_submitted",
+          workspace_id: workspaceId,
+          actor_id: actorId,
+          properties: {
+            data: {
+              flow_id: FLOW_ID,
+              slide_index: event.slideIndex,
+              answer_key: (event.data?.answerKey as string) ?? "",
+              answer_value: (event.data?.optionId as string) ?? "",
+            },
+          },
+        });
+        break;
+
+      case "flow:skipped":
+        void emit({
+          event: "flow skipped",
+          workspace_id: workspaceId,
+          actor_id: actorId,
+          properties: {
+            data: {
+              flow_id: FLOW_ID,
+              slide_index: event.slideIndex,
+              slide_type: event.slideType,
+              duration_ms: event.durationMs,
+            },
+          },
+        });
+        break;
+
+      case "flow:completed":
+        void emit({
+          event: "flow completed",
+          workspace_id: workspaceId,
+          actor_id: actorId,
+          properties: {
+            data: {
+              flow_id: FLOW_ID,
+              total_slides: demoSlides.length,
+              duration_ms: (event.data?.totalDurationMs as number) ?? 0,
+              action: (event.data?.action as string) ?? undefined,
+              answers: (event.data?.answers as Record<string, string | string[]>) ?? {},
+            },
+          },
+        });
+        break;
+    }
+  }
+
   function handleComplete(result: FlowResult) {
     const timeSeconds = Math.round(result.durationMs / 1000);
     alert(

@@ -9,6 +9,7 @@
   "scripts": {
     "lint": "eslint src/",
     "typecheck": "npx tsc --noEmit",
+    "test": "vitest run",
     "clean": "rimraf dist .turbo"
   },
   "dependencies": {
@@ -23,6 +24,7 @@
   "devDependencies": {
     "@smartout/eslint-config": "workspace:^",
     "@smartout/typescript-config": "workspace:*",
-    "typescript": "^5.9.0"
+    "typescript": "^5.9.0",
+    "vitest": "^4.0.18"
   }
 }

@@ -199,6 +199,44 @@ export type PlanningCycleRow = {
 };
 
 // --------------------------------------------------------
+// Season Goal (governance metadata — season-scoped targets)
+// --------------------------------------------------------
+
+export type SeasonGoalStatus = "active" | "completed" | "cancelled";
+
+export type SeasonGoalRow = {
+  season_goal_id: string;
+  workspace_id: string;
+  season_id: string;
+  title: string;
+  description: string | null;
+  metric_key: string | null;
+  target_value: number | null;
+  target_unit: string | null;
+  status: SeasonGoalStatus;
+  sort_order: number;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+// --------------------------------------------------------
+// Season Policy Binding (governance — per-season HMS activation)
+// --------------------------------------------------------
+
+export type SeasonPolicyBindingRow = {
+  season_policy_binding_id: string;
+  workspace_id: string;
+  season_id: string;
+  policy_id: string;
+  is_active: boolean;
+  notes: string | null;
+  activated_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+// --------------------------------------------------------
 // Bootstrap Types (I1 → workspace seeding)
 // --------------------------------------------------------
 

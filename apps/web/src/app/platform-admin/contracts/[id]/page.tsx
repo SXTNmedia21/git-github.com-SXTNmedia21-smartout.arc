@@ -1,6 +1,7 @@
 import { createAdminClient } from "@smartout/supabase/admin";
 import { getSuperAdminId } from "@/lib/platform-admin";
 import { redirect, notFound } from "next/navigation";
+import { buildAutofillMap } from "@smartout/utils";
 import { ContractEditor } from "./contract-editor";
 
 export default async function ContractDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -67,6 +68,37 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
   const attachments = template?.attachments ?? [];
   const contentCss = template?.content_css ?? "";
 
+  // Re-populate empty placeholder values from workspace/company data.
+  // Handles cases where the contract was created before placeholders were added
+  // to the template, or when the initial autofill failed silently.
+  const resolvedValues = (contract.resolved_values ?? {}) as Record<string, string>;
+  const hasEmptyPlaceholders = placeholders.some((p) => !resolvedValues[p.key]);
+
+  if (contract.workspace_id && hasEmptyPlaceholders) {
+    const { data: wsData } = await admin
+      .from("workspace")
+      .select("*, company:company_id(*)")
+      .eq("workspace_id", contract.workspace_id)
+      .single();
+
+    if (wsData) {
+      const company = (wsData.company ?? null) as Record<string, unknown> | null;
+      const autofillMap = buildAutofillMap(wsData as Record<string, unknown>, company, {
+        companyName: process.env.PLATFORM_COMPANY_NAME ?? "",
+        orgNumber: process.env.PLATFORM_ORG_NUMBER ?? "",
+        contactEmail: process.env.PLATFORM_CONTACT_EMAIL ?? "",
+        contactName: process.env.PLATFORM_CONTACT_NAME ?? "",
+      });
+
+      for (const p of placeholders) {
+        const autofillValue = autofillMap[p.key];
+        if (!resolvedValues[p.key] && autofillValue) {
+          resolvedValues[p.key] = autofillValue;
+        }
+      }
+    }
+  }
+
   return (
     <ContractEditor
       contract={{
@@ -81,7 +113,7 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
         recipient_name: contract.recipient_name,
         recipient_email: contract.recipient_email,
         resolved_html: contract.resolved_html,
-        resolved_values: (contract.resolved_values ?? {}) as Record<string, string>,
+        resolved_values: resolvedValues,
         created_at: contract.created_at,
         sent_at: contract.sent_at,
         viewed_at: contract.viewed_at,

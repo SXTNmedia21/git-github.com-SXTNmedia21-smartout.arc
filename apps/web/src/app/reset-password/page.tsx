@@ -88,7 +88,14 @@ export default function ResetPasswordPage() {
     setIsLoading(true);
 
     const supabase = createClient();
-    const { error } = await supabase.auth.updateUser({ password });
+    // Also clear the migration force_password_reset flag if it was set.
+    // Users pre-created by strike-auth-bridge carry this flag in user_metadata;
+    // the middleware gate (apps/web/src/middleware.ts §4b) redirects them here
+    // until the flag is false. Clearing it on successful update lifts the gate.
+    const { error } = await supabase.auth.updateUser({
+      password,
+      data: { force_password_reset: false },
+    });
 
     setIsLoading(false);
 

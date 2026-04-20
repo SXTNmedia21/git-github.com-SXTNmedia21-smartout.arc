@@ -53,6 +53,8 @@ Deno.serve(async (req: Request) => {
         return await handleRespond(supabase, user.id, body);
       case "mute_participant":
         return await handleMuteParticipant(supabase, user.id, body);
+      case "end":
+        return await handleEnd(supabase, user.id, body);
       default:
         return errorResponse(`Unknown action: ${action}`, 400);
     }
@@ -153,6 +155,29 @@ async function handleStart(
   }
 
   const roomName = `${workspaceId}:${channelId}`;
+
+  // Create the LiveKit room with auto-close policy before handing out tokens.
+  // emptyTimeout fires room_finished ~30s after the last participant leaves,
+  // which cleans up the DB session via the webhook. maxParticipants caps the
+  // room to sane limits. Idempotent — re-creating an existing room is a no-op
+  // and retains its existing config.
+  const livekitUrl = Deno.env.get("LIVEKIT_URL") ?? Deno.env.get("NEXT_PUBLIC_LIVEKIT_URL");
+  const livekitKey = Deno.env.get("LIVEKIT_API_KEY");
+  const livekitSecret = Deno.env.get("LIVEKIT_API_SECRET");
+  if (livekitUrl && livekitKey && livekitSecret) {
+    try {
+      const roomService = new RoomServiceClient(livekitUrl, livekitKey, livekitSecret);
+      await roomService.createRoom({
+        name: roomName,
+        emptyTimeout: 30,
+        maxParticipants: 50,
+      });
+    } catch (err) {
+      // Non-fatal — room will be created implicitly on first join, just without
+      // our configured timeouts. Log so we notice if it happens often.
+      console.error("[call-command] roomService.createRoom failed:", err);
+    }
+  }
 
   // Create call session (service role for insert reliability)
   const serviceSupabase = createClient(
@@ -380,4 +405,83 @@ async function handleMuteParticipant(
   }
 
   return jsonResponse({ ok: true, muted: muted ?? true, targetIdentity });
+}
+
+/**
+ * handleEnd — caller explicitly ends the call. Used as primary end in dev
+ * (where LiveKit Cloud webhooks can't reach localhost) and as a safety
+ * net in prod. Only marks the session ended if the caller is the starter
+ * OR there are no other remaining active participants — otherwise a
+ * single user hanging up doesn't kill a group call in progress.
+ */
+async function handleEnd(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  body: Record<string, unknown>,
+) {
+  const channelId = body.channelId as string | undefined;
+  const workspaceId = body.workspaceId as string | undefined;
+
+  if (!channelId || !workspaceId) {
+    return errorResponse("Missing required fields: channelId, workspaceId", 400);
+  }
+
+  const { data: profile } = await supabase
+    .from("profile")
+    .select("profile_id")
+    .eq("user_id", userId)
+    .eq("workspace_id", workspaceId)
+    .in("status", ["active", "trainee"])
+    .single();
+
+  if (!profile) {
+    return errorResponse("No active profile", 403);
+  }
+
+  const serviceSupabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  );
+
+  // Find the latest active session for this channel
+  const { data: session } = await serviceSupabase
+    .from("channel_call_session")
+    .select("id, started_by, status")
+    .eq("channel_id", channelId)
+    .eq("workspace_id", workspaceId)
+    .eq("status", "active")
+    .order("started_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!session) {
+    return jsonResponse({ ok: true, status: "no_active_session" });
+  }
+
+  // Mark this caller as left
+  await serviceSupabase
+    .from("channel_call_participant")
+    .update({ left_at: new Date().toISOString() })
+    .eq("call_session_id", session.id)
+    .eq("profile_id", profile.profile_id)
+    .is("left_at", null);
+
+  // If the starter hangs up OR the room has no remaining active participants,
+  // end the session. Otherwise leave it running for the others.
+  const isStarter = session.started_by === profile.profile_id;
+  const { count: remaining } = await serviceSupabase
+    .from("channel_call_participant")
+    .select("id", { count: "exact", head: true })
+    .eq("call_session_id", session.id)
+    .is("left_at", null);
+
+  if (isStarter || (remaining ?? 0) === 0) {
+    await serviceSupabase
+      .from("channel_call_session")
+      .update({ status: "ended", ended_at: new Date().toISOString() })
+      .eq("id", session.id);
+    return jsonResponse({ ok: true, status: "ended" });
+  }
+
+  return jsonResponse({ ok: true, status: "left", remaining });
 }

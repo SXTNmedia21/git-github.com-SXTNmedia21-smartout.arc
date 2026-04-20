@@ -1,10 +1,27 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { CheckCircle2, Clock, Circle, ChevronDown } from "lucide-react";
-import { useProtocolAssignees } from "@/app/dashboard/_hooks";
-import type { ProtocolAssignee } from "@/app/dashboard/_hooks";
+import {
+  CheckCircle2,
+  Clock,
+  Circle,
+  ChevronDown,
+  MoreHorizontal,
+  ShieldOff,
+  Trash2,
+} from "lucide-react";
+import { useProtocolAssignees } from "@/app/dashboard/_hooks/use-protocol-assignees";
+import type { ProtocolAssignee } from "@/app/dashboard/_hooks/dashboard-types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useRevokeAssignment } from "../_hooks/use-assignment-mutations";
+import { WaiveAssignmentDialog } from "./WaiveAssignmentDialog";
 import { EmployeeJourneyMap } from "./EmployeeJourneyMap";
 
 // UI Events:
@@ -67,6 +84,11 @@ export function ProtocolEmployeeList({ protocolId }: ProtocolEmployeeListProps) 
   const { data: assignees, isLoading } = useProtocolAssignees(protocolId);
   const [activeTab, setActiveTab] = useState<FilterTab>("alle");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const revoke = useRevokeAssignment();
+  const [waiveTarget, setWaiveTarget] = useState<{
+    assignmentId: string;
+    displayName: string;
+  } | null>(null);
 
   const stableAssignees = useMemo(() => assignees ?? [], [assignees]);
 
@@ -162,6 +184,49 @@ export function ProtocolEmployeeList({ protocolId }: ProtocolEmployeeListProps) 
                   </span>
                 </div>
 
+                {/* Row actions */}
+                {assignee.status !== "completed" && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 shrink-0"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <MoreHorizontal className="h-3.5 w-3.5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setWaiveTarget({
+                            assignmentId: assignee.assignmentId,
+                            displayName: assignee.displayName,
+                          });
+                        }}
+                      >
+                        <ShieldOff className="mr-2 h-3.5 w-3.5" />
+                        Frafalle
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          revoke.mutate({
+                            assignmentId: assignee.assignmentId,
+                            protocolId,
+                          });
+                        }}
+                      >
+                        <Trash2 className="mr-2 h-3.5 w-3.5" />
+                        Fjern tildeling
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+
                 <ChevronDown
                   className={`text-muted-foreground h-3.5 w-3.5 shrink-0 transition-transform duration-200 ${
                     isExpanded ? "rotate-180" : ""
@@ -191,6 +256,18 @@ export function ProtocolEmployeeList({ protocolId }: ProtocolEmployeeListProps) 
           );
         })}
       </div>
+
+      {/* Waive dialog */}
+      {waiveTarget && (
+        <WaiveAssignmentDialog
+          assignmentId={waiveTarget.assignmentId}
+          employeeName={waiveTarget.displayName}
+          open={!!waiveTarget}
+          onOpenChange={(open) => {
+            if (!open) setWaiveTarget(null);
+          }}
+        />
+      )}
     </div>
   );
 }

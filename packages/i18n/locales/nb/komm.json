@@ -1,12 +1,13 @@
 {
   "shell": {
-    "title": "Komm",
+    "title": "Kanaler",
     "empty_state": "Velg en kanal eller person for å begynne",
     "connection_error": "Kunne ikke koble til samtale",
     "retry": "Prøv igjen",
     "loading_profile": "Laster profil..."
   },
   "tabs": {
+    "overview": "Oversikt",
     "channels": "Kanaler",
     "chat": "Chat",
     "news": "Nyheter"
@@ -59,6 +60,8 @@
     "reply_to": "Svarer {{name}}",
     "empty_state": "Ingen meldinger ennå. Start samtalen!",
     "send_error": "Kunne ikke sende melding",
+    "send": "Send",
+    "draft_placeholder": "Skriv første melding...",
     "attachment_coming_soon": "{{key}} — kommer snart!"
   },
   "member": {
@@ -70,9 +73,19 @@
     "add_error": "Kunne ikke legge til medlem",
     "remove_error": "Kunne ikke fjerne medlem"
   },
+  "chat": {
+    "active_conversations": "Aktive samtaler",
+    "empty_state": "Velg en samtale eller start en ny",
+    "draft_prompt": "Start en samtale med {{name}} — skriv en melding og trykk send.",
+    "menu": "Meny",
+    "new_dm": "Ny samtale",
+    "shared_conversations": "Felles samtaler",
+    "no_shared": "Ingen felles samtaler ennå"
+  },
   "chat_list": {
     "filter_placeholder": "Filtrer etter navn...",
-    "all_members": "Alle medarbeidere",
+    "all_members": "Alle personer",
+    "empty": "Ingen personer å vise",
     "unknown": "Ukjent"
   },
   "call": {
@@ -88,6 +101,12 @@
     "participant_left": "{{name}} forlot samtalen",
     "join_call": "Bli med i samtale",
     "start_call": "Start samtale",
+    "start_video_call": "Start videosamtale",
+    "join_video_call": "Bli med i videosamtale",
+    "live": "Live",
+    "alert_title": "Samtale starter",
+    "alert_body": "{{caller}} startet en samtale i {{channel}}",
+    "active_in_channel": "Samtale pågår",
     "active_call": "Pågående samtale ({{count}} deltakere)",
     "join": "Bli med",
     "start_error": "Kunne ikke starte samtale",
@@ -95,7 +114,11 @@
     "loading_history": "Laster samtalehistorikk...",
     "no_history": "Ingen tidligere samtaler",
     "in_call": "{{count}} i samtale",
-    "mute_error": "Kunne ikke dempe deltaker"
+    "mute_error": "Kunne ikke dempe deltaker",
+    "idle_title": "Er du fortsatt her?",
+    "idle_body": "Samtalen lukkes om 1 minutt hvis det ikke er aktivitet.",
+    "idle_stay": "Bli",
+    "idle_disconnected": "Samtale avsluttet pga inaktivitet"
   },
   "incoming_call": {
     "ringing": "Ringer deg...",
@@ -131,6 +154,33 @@
   "news": {
     "empty_no_channel": "Ingen nyhetskanal ennå",
     "empty_no_messages": "Ingen nyheter ennå"
+  },
+  "nyheter": {
+    "title": "Nyheter",
+    "compose_button": "Ny kunngjoring",
+    "compose_title": "Ny kunngjoring",
+    "compose_description": "Skriv en kunngjoring som vises i nyhetsfeeden.",
+    "field_title": "Tittel",
+    "field_title_placeholder": "f.eks. Nye rutiner for lunsj",
+    "field_body": "Innhold",
+    "field_body_placeholder": "Skriv kunngoringens innhold...",
+    "field_audience": "Mottakere",
+    "audience_all": "Alle",
+    "publish": "Publiser",
+    "publishing": "Publiserer...",
+    "publish_success": "Kunngjoring publisert",
+    "publish_error": "Kunne ikke publisere kunngjoring",
+    "empty_title": "Ingen nyheter enna",
+    "empty_subtitle": "Kunngoringer fra ledelsen vises her",
+    "add_reaction": "Legg til reaksjon",
+    "read_placeholder": "Sett",
+    "filter_all": "Alle",
+    "load_more": "Last inn flere",
+    "loading_more": "Laster...",
+    "role_employee": "Ansatt",
+    "role_manager": "Leder",
+    "role_admin": "Administrator",
+    "role_owner": "Eier"
   },
   "time": {
     "just_now": "Akkurat nå",
@@ -168,5 +218,39 @@
     "announcement": "Kunngjøring",
     "reminder": "Påminnelse",
     "summary": "Oppsummering"
+  },
+  "overview": {
+    "filter_all": "Alle",
+    "filter_announcement": "Kunngjøringer",
+    "filter_brief": "Briefinger",
+    "filter_handoff": "Overleveringer",
+    "filter_reminder": "Påminnelser",
+    "filter_event": "Hendelser",
+    "empty": "Ingen kommunikasjon registrert ennå"
+  },
+  "visibility": {
+    "all_members": "Alle medlemmer",
+    "admins": "Kun ledere",
+    "targeted_members": "Utvalgte"
+  },
+  "dates": {
+    "today": "I dag",
+    "yesterday": "I går",
+    "days_ago": "{{count}} dager siden"
+  },
+  "oversikt": {
+    "stat_channels": "Kanaler",
+    "stat_conversations_today": "Samtaler i dag",
+    "stat_unread": "Uleste meldinger",
+    "stat_pending_help": "Ventende hjelp",
+    "quick_actions": "Hurtighandlinger",
+    "action_botsson": "Spor Botsson",
+    "action_report": "Rapporter problem",
+    "action_manual": "Finn manual",
+    "action_call": "Ring leder",
+    "recent_activity": "Siste aktivitet",
+    "empty_activity": "Ingen aktivitet registrert ennå",
+    "coming_soon": "Kommer snart",
+    "call_coming_soon": "Ringefunksjon kommer snart"
   }
 }

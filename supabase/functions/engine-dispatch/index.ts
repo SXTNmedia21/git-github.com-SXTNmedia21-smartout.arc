@@ -1,4 +1,6 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { handleSyncIntegration } from "./handlers/sync-integration.ts";
+import { handleScanOverdueInvoices } from "./handlers/scan-overdue-invoices.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -306,7 +308,15 @@ Deno.serve(async (req) => {
           .eq("process_id", processId)
           .order("step_order");
 
-        // Create engine state
+        // Create engine state.
+        // ADR-0099: stamp originating_channel for every new engine_state. Trigger-dispatched
+        // runs default to 'system'; callers can override via payload.originating_channel.
+        const payloadObj = (payload ?? {}) as Record<string, unknown>;
+        const stateContext: Record<string, unknown> = {
+          ...payloadObj,
+          originating_channel:
+            (payloadObj.originating_channel as string | undefined) ?? "system",
+        };
         const { data: state, error: stateErr } = await supabase
           .from("engine_state")
           .insert({
@@ -315,11 +325,9 @@ Deno.serve(async (req) => {
             workspace_id,
             status: "active",
             current_step: 1,
-            entity_type:
-              ((payload as Record<string, unknown>)?.entity_type as string | undefined) ?? null,
-            entity_id:
-              ((payload as Record<string, unknown>)?.entity_id as string | undefined) ?? null,
-            context: payload ?? {},
+            entity_type: (payloadObj.entity_type as string | undefined) ?? null,
+            entity_id: (payloadObj.entity_id as string | undefined) ?? null,
+            context: stateContext,
             steps_snapshot: steps ?? [],
             result: {},
           })
@@ -488,6 +496,10 @@ const ENTITY_PK: Record<string, string> = {
   department_session: "department_session_id",
   profile: "profile_id",
   protocol_assignment: "assignment_id",
+  // Added 2026-04-17 to match allowlist — both tables use domain PK columns.
+  // Refs: ultrareview rp6ofqyfv bug_013, migrations 20260421100200 + 20260415120300.
+  change_proposal: "change_proposal_id",
+  observer_request: "observer_request_id",
 };
 
 /**
@@ -580,6 +592,61 @@ async function executeStep(
     return;
   }
 
+  // ADR-0099: unified authority gate. Call public.gate_action before every mutation step.
+  // Non-mutation step types (wait_for_event, generate_steps, cascade_*, check_readiness, ops_*)
+  // are pure flow control and bypass the gate.
+  const GATED_MUTATION_TYPES = new Set([
+    "assign_task",
+    "send_notification",
+    "update_entity",
+    "create_deviation",
+    "validate_settlement",
+    "lock_checkout",
+    "start_process",
+  ]);
+  if (GATED_MUTATION_TYPES.has(step.action_type)) {
+    const originatingChannel =
+      ((state.context as Record<string, unknown> | null)?.originating_channel as
+        | string
+        | undefined) ?? "system";
+    const { data: gateResult, error: gateError } = await supabase.rpc("gate_action", {
+      p_workspace_id: state.workspace_id,
+      p_capability: state.process_id,
+      p_channel: originatingChannel,
+      p_actor_profile_id: state.assignee_id ?? null,
+      p_action_type: step.action_type,
+      p_engine_process_id: state.process_id,
+      p_engine_state_id: state.id,
+    });
+    if (gateError) {
+      await supabase
+        .from("engine_state")
+        .update({
+          status: "blocked",
+          last_error: `gate_action RPC failed: ${gateError.message}`,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", state.id);
+      return;
+    }
+    const gate = gateResult as {
+      allow: boolean;
+      reason: string | null;
+      gate_evaluation_id: string;
+    } | null;
+    if (gate && !gate.allow) {
+      await supabase
+        .from("engine_state")
+        .update({
+          status: "blocked",
+          last_error: `gate_denied:${gate.reason ?? "unknown"} (eval=${gate.gate_evaluation_id})`,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", state.id);
+      return;
+    }
+  }
+
   switch (step.action_type) {
     case "wait_for_event":
       // Set state to waiting — will be resumed when matching event arrives
@@ -596,6 +663,7 @@ async function executeStep(
       const ap = step.action_payload as Record<string, unknown>;
       // Create session_task if department_session context exists
       if (state.entity_type === "department_session" && state.entity_id) {
+        const ctxOrigin = (state.context as Record<string, unknown>).origin as string | undefined;
         await supabase.from("session_task").insert({
           workspace_id: state.workspace_id,
           department_session_id: state.entity_id,
@@ -604,6 +672,7 @@ async function executeStep(
           status: "available",
           assigned_to: state.assignee_id ?? null,
           is_compliance_required: false,
+          metadata: ctxOrigin === "system" ? { origin: "system" } : {},
         });
       }
       await advanceToNextStep(supabase, state, step);
@@ -653,16 +722,33 @@ async function executeStep(
         "department_session",
         "profile",
         "protocol_assignment",
+        "change_proposal",
+        "observer_request",
       ];
       if (allowed.includes(entity) && state.entity_id) {
         const pkColumn = ENTITY_PK[entity] ?? "id";
-        await supabase
+        const { error: updateError } = await supabase
           .from(entity)
           .update({
             ...setValues,
             updated_at: new Date().toISOString(),
           })
           .eq(pkColumn, state.entity_id);
+
+        // Silent no-op is the worst failure mode — block the engine run on
+        // update error so the domain row and engine_state don't diverge.
+        // Mirrors the gate_action error-handling pattern earlier in this file.
+        // Refs: ultrareview rp6ofqyfv bug_013.
+        if (updateError) {
+          await supabase
+            .from("engine_state")
+            .update({
+              status: "blocked",
+              last_error: updateError.message,
+            })
+            .eq("id", state.id);
+          return;
+        }
       }
       await advanceToNextStep(supabase, state, step);
       break;
@@ -710,7 +796,71 @@ async function executeStep(
     }
 
     case "schedule_control": {
-      // Reserved for future schedule automation
+      const ctx = state.context as Record<string, unknown>;
+      const ctxData = (ctx.data as Record<string, unknown>) ?? {};
+      const dates = (ctxData.dates as string[]) ?? (ctx.dates as string[]) ?? [];
+      const deptIds =
+        (ctxData.department_ids as string[]) ?? (ctx.department_ids as string[]) ?? [];
+
+      const ap = step.action_payload as Record<string, unknown>;
+      const hookTypes = (ap.hooks as string[]) ?? [];
+
+      // Timing config: offset in minutes relative to the anchor time
+      const hookOffsets: Record<string, { anchor: "open" | "close"; offset: number }> = {
+        pre_open: { anchor: "open", offset: -30 },
+        open: { anchor: "open", offset: 0 },
+        pre_close: { anchor: "close", offset: -30 },
+        close: { anchor: "close", offset: 0 },
+      };
+
+      // Look up department_sessions for each date × department
+      const { data: sessions } = await supabase
+        .from("department_session")
+        .select("id, workspace_id, department_id, session_date, planned_open, planned_close")
+        .eq("workspace_id", state.workspace_id)
+        .in("department_id", deptIds)
+        .in("session_date", dates);
+
+      const hookRows: Array<{
+        workspace_id: string;
+        department_id: string;
+        hook_type: string;
+        trigger_offset_min: number;
+        is_active: boolean;
+      }> = [];
+
+      for (const session of sessions ?? []) {
+        for (const hookType of hookTypes) {
+          const config = hookOffsets[hookType];
+          if (!config) continue;
+
+          hookRows.push({
+            workspace_id: session.workspace_id,
+            department_id: session.department_id,
+            hook_type: hookType,
+            trigger_offset_min: config.offset,
+            is_active: true,
+          });
+        }
+      }
+
+      if (hookRows.length > 0) {
+        // Delete existing hooks for these departments to make re-runs idempotent,
+        // then insert fresh rows. No unique constraint exists on (workspace_id, department_id, hook_type).
+        await supabase
+          .from("session_hook")
+          .delete()
+          .eq("workspace_id", state.workspace_id)
+          .in("department_id", deptIds)
+          .in("hook_type", hookTypes);
+
+        await supabase.from("session_hook").insert(hookRows);
+      }
+
+      console.log(
+        `[engine-dispatch] schedule_control: created ${hookRows.length} hooks for ${(sessions ?? []).length} sessions`,
+      );
+
       await advanceToNextStep(supabase, state, step);
       break;
     }
@@ -1045,6 +1195,7 @@ async function executeStep(
       const hookId = (state.context as Record<string, unknown>).session_hook_id as
         | string
         | undefined;
+      const ctxOrigin = (state.context as Record<string, unknown>).origin as string | undefined;
 
       if (sessionId) {
         await supabase.from("session_task").insert({
@@ -1056,6 +1207,7 @@ async function executeStep(
           status: "available",
           assigned_to: state.assignee_id ?? null,
           is_compliance_required: (ap.compliance_required as boolean) ?? false,
+          metadata: ctxOrigin === "system" ? { origin: "system" } : {},
         });
       }
       await advanceToNextStep(supabase, state, step);
@@ -1327,6 +1479,556 @@ async function executeStep(
       break;
     }
 
+    case "ops_escalate": {
+      // ADR-0088 Phase 2 ACT: escalate an operational alert through the chain.
+      const ap = step.action_payload as Record<string, unknown>;
+      const alertRule = (ap.alert_rule as string) ?? "escalation";
+      const severity = (ap.severity as string) ?? "warning";
+      const message = (ap.message as string) ?? `Escalation: ${alertRule}`;
+      const deptId = (ap.department_id as string) ?? null;
+
+      await supabase.from("notification").insert({
+        workspace_id: state.workspace_id,
+        title: `[ESCALATION] ${alertRule.replace(/_/g, " ")}`,
+        body: message,
+        icon_type: severity === "critical" ? "alert" : "warning",
+        priority: severity === "critical" ? "critical" : "high",
+        target_type: deptId ? "department" : "workspace",
+        target_id: deptId ?? state.workspace_id,
+        metadata: {
+          type: "ops_escalation",
+          alert_rule: alertRule,
+          session_id: (ap.session_id as string) ?? state.entity_id,
+          origin: "system",
+        },
+      });
+
+      await supabase.from("engine_event").insert({
+        workspace_id: state.workspace_id,
+        event_type: "ops.act.escalated",
+        payload: {
+          alert_rule: alertRule,
+          department_id: deptId,
+          session_id: (ap.session_id as string) ?? state.entity_id,
+          severity,
+          origin: "system",
+        },
+      });
+
+      await advanceToNextStep(supabase, state, step);
+      break;
+    }
+
+    case "ops_redistribute_tasks": {
+      // ADR-0088 Phase 2 ACT: redistribute tasks from a no-show employee
+      const ap = step.action_payload as Record<string, unknown>;
+      const absentId = ap.absent_employee_id as string;
+      const sessionId = (ap.session_id as string) ?? state.entity_id;
+      const deptId = ap.department_id as string;
+      const today = new Date().toISOString().slice(0, 10);
+
+      if (absentId && sessionId) {
+        const { data: orphanedTasks } = await supabase
+          .from("session_task")
+          .select("id, title, priority")
+          .eq("department_session_id", sessionId)
+          .eq("assigned_to", absentId)
+          .in("status", ["pending", "available"]);
+
+        if (orphanedTasks && orphanedTasks.length > 0) {
+          const taskIds = orphanedTasks.map((t: { id: string }) => t.id);
+          await supabase
+            .from("session_task")
+            .update({
+              assigned_to: null,
+              status: "available",
+              metadata: { origin: "system", redistributed_from: absentId },
+              updated_at: new Date().toISOString(),
+            })
+            .in("id", taskIds);
+        }
+
+        if (deptId) {
+          const { data: onShift } = await supabase
+            .from("schedule_shift")
+            .select("employee_id")
+            .eq("workspace_id", state.workspace_id)
+            .eq("department_id", deptId)
+            .eq("shift_date", today)
+            .in("status", ["published", "confirmed"])
+            .neq("employee_id", absentId);
+
+          for (const shift of onShift ?? []) {
+            if (!shift.employee_id) continue;
+            await supabase.from("notification_outbox").insert({
+              workspace_id: state.workspace_id,
+              recipient_id: shift.employee_id,
+              mode: "work",
+              priority: 1,
+              title: "Tasks redistributed",
+              body: `${orphanedTasks?.length ?? 0} tasks need pickup due to absent colleague`,
+              action_url: null,
+              metadata: {
+                event_key: "ops.act.tasks_redistributed",
+                session_id: sessionId,
+                origin: "system",
+              },
+              allowed_channels: ["push", "in_app"],
+            });
+          }
+        }
+
+        await supabase.from("engine_event").insert({
+          workspace_id: state.workspace_id,
+          event_type: "ops.act.tasks_redistributed",
+          payload: {
+            absent_employee_id: absentId,
+            department_id: deptId,
+            session_id: sessionId,
+            tasks_redistributed: orphanedTasks?.length ?? 0,
+            origin: "system",
+          },
+        });
+      }
+
+      await advanceToNextStep(supabase, state, step);
+      break;
+    }
+
+    case "ops_freeze_session": {
+      // ADR-0088 Phase 2 ACT: freeze session task statuses and prepare handoff.
+      const ap = step.action_payload as Record<string, unknown>;
+      const sessionId = (ap.session_id as string) ?? state.entity_id;
+
+      if (sessionId) {
+        const { data: activeTasks } = await supabase
+          .from("session_task")
+          .select("id, status")
+          .eq("department_session_id", sessionId)
+          .in("status", ["pending", "in_progress", "available"]);
+
+        if (activeTasks && activeTasks.length > 0) {
+          const taskIds = activeTasks.map((t: { id: string }) => t.id);
+          await supabase
+            .from("session_task")
+            .update({
+              status: "skipped",
+              metadata: { origin: "system", frozen_at: new Date().toISOString() },
+              updated_at: new Date().toISOString(),
+            })
+            .in("id", taskIds);
+        }
+
+        const { count: totalCount } = await supabase
+          .from("session_task")
+          .select("id", { count: "exact", head: true })
+          .eq("department_session_id", sessionId);
+
+        const { count: completedCount } = await supabase
+          .from("session_task")
+          .select("id", { count: "exact", head: true })
+          .eq("department_session_id", sessionId)
+          .eq("status", "completed");
+
+        await supabase
+          .from("department_session")
+          .update({
+            tasks_total: totalCount ?? 0,
+            tasks_completed: completedCount ?? 0,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("department_session_id", sessionId);
+
+        await supabase.from("engine_event").insert({
+          workspace_id: state.workspace_id,
+          event_type: "ops.act.session_frozen",
+          payload: {
+            session_id: sessionId,
+            tasks_total: totalCount ?? 0,
+            tasks_completed: completedCount ?? 0,
+            tasks_frozen: activeTasks?.length ?? 0,
+            origin: "system",
+          },
+        });
+      }
+
+      await advanceToNextStep(supabase, state, step);
+      break;
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // call_rpc — invoke a Postgres RPC and merge its result into
+    // engine_state.context. Used by shift_lifecycle_v1 to call
+    // derive_shift_hours / snapshot_shift_cost per ADR-0095 +
+    // ADR-0110.
+    //
+    // Payload schema:
+    //   {
+    //     rpc_name: string,
+    //     args_from_context: string[],   // context keys to read
+    //     args_param_names: string[],    // matching RPC arg names
+    //     output_key: string             // legacy: where to stash scalar
+    //                                     result when RPC returns UUID
+    //   }
+    //
+    // Result handling (ADR-0110, Council R2 BREAK 2 fix):
+    //   - If the RPC returns a JSON object, the whole object is merged
+    //     into engine_state.context. This lets RPCs surface ancillary
+    //     context (session_date, department_id, …) alongside the
+    //     primary key without requiring a second read step. Fixes the
+    //     silent shift.settled handoff failure where session_date +
+    //     department_id were missing from the downstream emit payload.
+    //   - If the RPC returns a scalar (UUID or primitive), the value
+    //     is stored under output_key — backward-compatible with the
+    //     pre-ADR-0110 contract.
+    //
+    // ADR-0099 note: call_rpc is a gated mutation type. Once
+    // gate_action() is landed, add "call_rpc" to GATED_MUTATION_TYPES
+    // and check engine_authority_config before invoking. For now the
+    // seeded shift_lifecycle_v1 process runs with
+    // allowed_channels=['system'] so the gate is trivially satisfied.
+    // ──────────────────────────────────────────────────────────
+    case "call_rpc": {
+      const ap = step.action_payload as Record<string, unknown>;
+      const rpcName = ap.rpc_name as string | undefined;
+      const argsFromContext = (ap.args_from_context as string[] | undefined) ?? [];
+      const argsParamNames = (ap.args_param_names as string[] | undefined) ?? argsFromContext;
+      const outputKey = (ap.output_key as string | undefined) ?? `${rpcName}_result`;
+
+      if (!rpcName) {
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "failed",
+            last_error: "call_rpc: rpc_name missing in action_payload",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+        break;
+      }
+
+      // Special case: entity_id comes from state (not context body).
+      // The shift_lifecycle_v1 process uses args_from_context=['entity_id']
+      // to pass the shift_id.
+      const ctx = state.context as Record<string, unknown>;
+      const rpcArgs: Record<string, unknown> = {};
+      for (let i = 0; i < argsFromContext.length; i++) {
+        const ctxKey = argsFromContext[i];
+        const paramName = argsParamNames[i] ?? ctxKey;
+        rpcArgs[paramName] =
+          ctxKey === "entity_id" ? state.entity_id : (ctx[ctxKey] ?? null);
+      }
+
+      try {
+        // @ts-expect-error supabase-js rpc typing is narrow; our RPCs
+        // are plpgsql and return scalar UUIDs or jsonb objects.
+        const { data: rpcResult, error: rpcErr } = await supabase.rpc(rpcName, rpcArgs);
+        if (rpcErr) {
+          console.error(`[engine-dispatch] call_rpc ${rpcName} failed:`, rpcErr);
+          await supabase
+            .from("engine_state")
+            .update({
+              status: "failed",
+              last_error: `call_rpc ${rpcName}: ${rpcErr.message}`,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", state.id);
+          break;
+        }
+
+        // ADR-0110: if the RPC returned a JSON object, merge the whole
+        // object into context (so session_date / department_id reach
+        // shift.settled downstream). Otherwise fall back to the legacy
+        // scalar-under-output_key behaviour.
+        const isPlainObject =
+          rpcResult !== null &&
+          typeof rpcResult === "object" &&
+          !Array.isArray(rpcResult);
+        const nextContext = isPlainObject
+          ? { ...ctx, ...(rpcResult as Record<string, unknown>) }
+          : { ...ctx, [outputKey]: rpcResult };
+        await supabase
+          .from("engine_state")
+          .update({
+            context: nextContext,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+
+        // Telemetry: emit a synthetic engine event so observers see
+        // the RPC invocation.
+        await supabase.from("engine_event").insert({
+          workspace_id: state.workspace_id,
+          event_type: "engine.call_rpc",
+          payload: {
+            state_id: state.id,
+            rpc_name: rpcName,
+            output_key: outputKey,
+            result: rpcResult,
+            origin: "system",
+          },
+        });
+
+        await advanceToNextStep(
+          supabase,
+          { ...state, context: nextContext },
+          step,
+        );
+      } catch (err) {
+        console.error(`[engine-dispatch] call_rpc ${rpcName} threw:`, err);
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "failed",
+            last_error: `call_rpc ${rpcName}: ${String(err)}`,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+      }
+      break;
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // emit_event — write a new row to engine_event. Used by
+    // shift_lifecycle_v1 to emit shift.settled (ADR-0100) and by
+    // department_session_lifecycle to emit pending_signoff.
+    //
+    // Payload schema:
+    //   {
+    //     event_type: string,
+    //     payload_from_context: string[],   // context keys to copy
+    //     include_entity: boolean           // also copy entity_type/id
+    //   }
+    // ──────────────────────────────────────────────────────────
+    case "emit_event": {
+      const ap = step.action_payload as Record<string, unknown>;
+      const eventType = ap.event_type as string | undefined;
+      const keys = (ap.payload_from_context as string[] | undefined) ?? [];
+      const includeEntity = ap.include_entity === true;
+
+      if (!eventType) {
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "failed",
+            last_error: "emit_event: event_type missing",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+        break;
+      }
+
+      const ctx = state.context as Record<string, unknown>;
+      const emitPayload: Record<string, unknown> = {
+        origin: "system",
+      };
+      for (const k of keys) {
+        if (ctx[k] !== undefined) emitPayload[k] = ctx[k];
+      }
+      if (includeEntity) {
+        emitPayload.entity_type = state.entity_type;
+        emitPayload.entity_id = state.entity_id;
+      }
+
+      await supabase.from("engine_event").insert({
+        workspace_id: state.workspace_id,
+        event_type: eventType,
+        payload: emitPayload,
+      });
+
+      await advanceToNextStep(supabase, state, step);
+      break;
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // queue_shift_approval — Decision-layer handoff (ADR-0095).
+    // Ensures a pending shift_approval row exists for this shift
+    // linked to the day's daily_reconciliation. Idempotent:
+    // re-runs find the existing row and do not duplicate.
+    //
+    // Assumes state.entity_type === 'schedule_shift' and
+    // state.entity_id is the shift id. For unattached shifts (no
+    // session/recon yet) the step creates a placeholder recon row.
+    // ──────────────────────────────────────────────────────────
+    case "queue_shift_approval": {
+      if (state.entity_type !== "schedule_shift" || !state.entity_id) {
+        console.warn(
+          `[engine-dispatch] queue_shift_approval: skipped — entity_type=${state.entity_type} entity_id=${state.entity_id}`,
+        );
+        await advanceToNextStep(supabase, state, step);
+        break;
+      }
+
+      const { data: shift } = await supabase
+        .from("schedule_shift")
+        .select("schedule_shift_id, workspace_id, shift_date, position_id, employee_id")
+        .eq("schedule_shift_id", state.entity_id)
+        .maybeSingle();
+
+      if (!shift) {
+        console.warn(`[engine-dispatch] queue_shift_approval: shift ${state.entity_id} not found`);
+        await advanceToNextStep(supabase, state, step);
+        break;
+      }
+
+      // Resolve department via position (schedule_shift has no
+      // department_id directly). If unknown, the recon lookup is
+      // skipped and we exit gracefully — a later re-run will retry.
+      let departmentId: string | null = null;
+      if (shift.position_id) {
+        const { data: pos } = await supabase
+          .from("position")
+          .select("department_id")
+          .eq("position_id", shift.position_id)
+          .maybeSingle();
+        departmentId = (pos?.department_id as string | undefined) ?? null;
+      }
+
+      // Find the matching daily_reconciliation (workspace + dept + date).
+      let reconciliationId: string | null = null;
+      if (departmentId) {
+        const { data: recon } = await supabase
+          .from("daily_reconciliation")
+          .select("reconciliation_id")
+          .eq("workspace_id", shift.workspace_id)
+          .eq("department_id", departmentId)
+          .eq("reconciliation_date", shift.shift_date)
+          .maybeSingle();
+        reconciliationId = (recon?.reconciliation_id as string | undefined) ?? null;
+
+        if (!reconciliationId) {
+          // Create a placeholder reconciliation. Status starts as
+          // 'open'; daily_close will transition it later.
+          const { data: newRecon } = await supabase
+            .from("daily_reconciliation")
+            .insert({
+              workspace_id: shift.workspace_id,
+              department_id: departmentId,
+              reconciliation_date: shift.shift_date,
+              status: "open",
+            })
+            .select("reconciliation_id")
+            .single();
+          reconciliationId = (newRecon?.reconciliation_id as string | undefined) ?? null;
+        }
+      }
+
+      if (!reconciliationId) {
+        console.warn(
+          `[engine-dispatch] queue_shift_approval: no reconciliation resolvable for shift ${shift.schedule_shift_id}`,
+        );
+        await advanceToNextStep(supabase, state, step);
+        break;
+      }
+
+      // Idempotent upsert of shift_approval.
+      const { data: existing } = await supabase
+        .from("shift_approval")
+        .select("approval_id")
+        .eq("shift_id", shift.schedule_shift_id)
+        .eq("reconciliation_id", reconciliationId)
+        .maybeSingle();
+
+      if (!existing) {
+        await supabase.from("shift_approval").insert({
+          reconciliation_id: reconciliationId,
+          shift_id: shift.schedule_shift_id,
+          workspace_id: shift.workspace_id,
+          planned_hours: 0, // will be backfilled by reporting queries
+          status: "pending",
+        });
+      }
+
+      await advanceToNextStep(supabase, state, step);
+      break;
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // dispatch_invoice — Billing Fase 2 Spor A (B2).
+    //
+    // Expects state.context to carry invoice_dispatch_id (child mode).
+    // Fan-out (reading effective_dispatch_rules + creating invoice_dispatch
+    // rows + spawning child states) is done on the Node side by the
+    // Server Action enqueueDispatchesForInvoice — see
+    // packages/billing/src/actions/dispatch/. This keeps Deno code narrow
+    // and reuses the canonical adapter contract on the web/mobile side.
+    //
+    // Retry: on retryable failure, inserts an engine_delayed_trigger
+    // pointing at the 'invoice dispatch retry_requested' trigger with
+    // backoff per action_payload.retry.backoff_seconds. The subsequent
+    // fire re-enters engine-dispatch and spawns a fresh engine_state for
+    // the SAME invoice_dispatch_id — attempts column on the row records
+    // the total, independent of engine_state.retry_count.
+    //
+    // Ref: ADR-0126 (engine-orchestrated), ADR-0128 (dual-write bridge).
+    // ──────────────────────────────────────────────────────────
+    case "dispatch_invoice": {
+      const ctx = state.context as Record<string, unknown>;
+      const invoiceDispatchId =
+        (ctx.invoice_dispatch_id as string | undefined) ??
+        ((step.action_payload as Record<string, unknown>).invoice_dispatch_id as
+          | string
+          | undefined);
+
+      if (!invoiceDispatchId) {
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "failed",
+            last_error:
+              "dispatch_invoice: invoice_dispatch_id missing from context. Fan-out must run enqueueDispatchesForInvoice first.",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+        break;
+      }
+
+      await handleDispatchInvoice(supabase, state, step, invoiceDispatchId);
+      break;
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // sync_integration — Billing Fase 2 Spor B (B4/B6).
+    //
+    // Runs outbound sync to a billing_integration row (customer, invoice,
+    // contract, product, plan). Handler is in handlers/sync-integration.ts
+    // — kept separate because B4 shipped it ahead of the switch wiring.
+    //
+    // Expects state.context to carry integration_id + entity_type +
+    // entity_id_synced. Fan-out pre-populates these when the parent process
+    // (e.g. 'integration_sync') spawns a child state per integration row.
+    //
+    // ADR-0126: engine-orchestrated sync state (no parallel motor).
+    // ADR-0129: is_placeholder gates audit semantics — PlaceholderAdapter
+    //           reports 'mocked', real adapters report 'succeeded'.
+    // ──────────────────────────────────────────────────────────
+    case "sync_integration": {
+      await handleSyncIntegration(supabase, state, step);
+      break;
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // scan_overdue_invoices — Billing Fase 3A Spor C (B4).
+    //
+    // Daily dunning scan. Walks action_payload.stages and escalates any
+    // overdue invoice that crossed the boundary. Uses
+    // dunning_escalation_log UNIQUE(invoice_id, to_stage) for
+    // idempotency so the daily cron can re-fire harmlessly. Handler is
+    // in handlers/scan-overdue-invoices.ts — the same split pattern as
+    // sync_integration (Fase 2 B4).
+    //
+    // Trigger source: pg_cron 'smartout-dunning-daily' emits a
+    // 'dunning_daily_tick' engine_event at 07:00 UTC; the platform-
+    // scoped engine_trigger spawns this state.
+    //
+    // Ref: ADR-0143 (dunning via engine_process), ADR-0127
+    //      (workspace opt-out via suppress rule), spec §4.2.
+    // ──────────────────────────────────────────────────────────
+    case "scan_overdue_invoices": {
+      await handleScanOverdueInvoices(supabase, state, step);
+      break;
+    }
+
     default:
       // Unknown action type — fail
       await supabase
@@ -1338,4 +2040,652 @@ async function executeStep(
         })
         .eq("id", state.id);
   }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// Billing Fase 2 Spor A — dispatch_invoice action handler
+// ══════════════════════════════════════════════════════════════════
+//
+// Lives outside executeStep so the switch stays readable. Deno can't
+// import @smartout/billing — the adapter logic below is a minimal
+// inline mirror of the Node-side adapters. If we ever need to share
+// implementation, the path is to extract a shared `_shared/` module
+// with no package-manager dependencies.
+
+// Minimal invoice + template shape the inline adapters rely on. Kept
+// narrow so drift between Node and Deno surfaces as a type error on
+// the Server Action side (which reads the canonical billing types).
+interface MinimalInvoice {
+  invoice_id: string;
+  invoice_number: number | null;
+  company_id: string;
+  status: string;
+  invoice_type: string;
+  period_from: string;
+  period_to: string;
+  issued_at: string | null;
+  due_at: string | null;
+  amount_excl_vat: number | string;
+  vat_amount: number | string;
+  amount_incl_vat: number | string;
+  currency: string;
+}
+
+interface MinimalTemplate {
+  subject_template: string | null;
+  body_template: string;
+}
+
+type InlineDispatchResult =
+  | { status: "delivered"; external_reference: string }
+  | {
+      status: "failed";
+      error_code: string;
+      error_message: string;
+      retryable: boolean;
+    };
+
+const HTML_ESCAPES: Record<string, string> = {
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  '"': "&quot;",
+  "'": "&#39;",
+};
+
+function escapeHtml(input: string): string {
+  return input.replace(/[&<>"']/g, (ch) => HTML_ESCAPES[ch] ?? ch);
+}
+
+function renderTemplate(
+  template: string,
+  context: Record<string, unknown>,
+  options: { escape?: boolean } = {},
+): string {
+  const escape = options.escape ?? true;
+  return template.replace(/\{\{\s*([^}\s]+)\s*\}\}/g, (_, path: string) => {
+    const parts = path.split(".");
+    let cursor: unknown = context;
+    for (const part of parts) {
+      if (cursor === null || cursor === undefined || typeof cursor !== "object") {
+        return "";
+      }
+      cursor = (cursor as Record<string, unknown>)[part];
+    }
+    if (cursor === null || cursor === undefined) return "";
+    const raw = String(cursor);
+    return escape ? escapeHtml(raw) : raw;
+  });
+}
+
+function buildTemplateContext(invoice: MinimalInvoice): Record<string, unknown> {
+  return {
+    invoice: {
+      number: invoice.invoice_number,
+      invoice_id: invoice.invoice_id,
+      amount_incl_vat: invoice.amount_incl_vat,
+      amount_excl_vat: invoice.amount_excl_vat,
+      vat_amount: invoice.vat_amount,
+      period_from: invoice.period_from,
+      period_to: invoice.period_to,
+      due_at: invoice.due_at,
+      status: invoice.status,
+    },
+  };
+}
+
+const DEFAULT_EMAIL_CUSTOMER_SUBJECT = "Faktura {{invoice.number}} fra Smartout";
+const DEFAULT_EMAIL_CUSTOMER_BODY = `
+<div style="font-family: system-ui, sans-serif; max-width: 560px; margin: 0 auto; padding: 24px;">
+  <h2 style="color: #1a1a1a;">Faktura {{invoice.number}}</h2>
+  <p style="color: #444; line-height: 1.5;">Hei! Her er fakturaen din fra Smartout.</p>
+  <p style="color: #666; font-size: 14px;">
+    Periode: {{invoice.period_from}} – {{invoice.period_to}}. Forfall: {{invoice.due_at}}.
+  </p>
+</div>`;
+
+const DEFAULT_EMAIL_INTERNAL_SUBJECT = "[Smartout audit] Faktura {{invoice.number}}";
+const DEFAULT_EMAIL_INTERNAL_BODY = `
+<div style="font-family: system-ui, sans-serif; max-width: 520px; margin: 0 auto; padding: 20px;">
+  <h3>Faktura {{invoice.number}}</h3>
+  <p>Invoice ID: {{invoice.invoice_id}} | Status: {{invoice.status}}</p>
+  <p>Periode: {{invoice.period_from}} – {{invoice.period_to}} | Beløp: {{invoice.amount_incl_vat}} NOK</p>
+</div>`;
+
+async function sendViaSendGrid(params: {
+  to: string;
+  subject: string;
+  html: string;
+  invoiceDispatchId: string;
+}): Promise<InlineDispatchResult> {
+  const apiKey = Deno.env.get("SENDGRID_API_KEY");
+  if (!apiKey) {
+    return {
+      status: "failed",
+      error_code: "sendgrid_not_configured",
+      error_message: "SENDGRID_API_KEY is not set.",
+      retryable: false,
+    };
+  }
+  const sender = Deno.env.get("SENDGRID_SENDER_EMAIL") ?? "hello@smartout.no";
+
+  let response: Response;
+  try {
+    response = await fetch("https://api.sendgrid.com/v3/mail/send", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        personalizations: [{ to: [{ email: params.to }] }],
+        from: { email: sender, name: "Smartout" },
+        subject: params.subject,
+        content: [{ type: "text/html", value: params.html }],
+        custom_args: { invoice_dispatch_id: params.invoiceDispatchId },
+      }),
+    });
+  } catch (error) {
+    return {
+      status: "failed",
+      error_code: "network_error",
+      error_message: error instanceof Error ? error.message : String(error),
+      retryable: true,
+    };
+  }
+
+  if (response.status >= 200 && response.status < 300) {
+    const messageId =
+      response.headers.get("x-message-id") ??
+      response.headers.get("X-Message-Id") ??
+      `sendgrid-${params.invoiceDispatchId}`;
+    return { status: "delivered", external_reference: messageId };
+  }
+
+  let detail = "";
+  try {
+    detail = await response.text();
+  } catch {
+    detail = "";
+  }
+  return {
+    status: "failed",
+    error_code: `sendgrid_${response.status}`,
+    error_message: detail.slice(0, 500) || `SendGrid HTTP ${response.status}`,
+    retryable: response.status === 429 || response.status >= 500,
+  };
+}
+
+async function hmacSha256Hex(secret: string, message: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(message));
+  return Array.from(new Uint8Array(sig))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+async function sendViaHttpApi(params: {
+  invoice: MinimalInvoice;
+  target: Record<string, unknown>;
+  invoiceDispatchId: string;
+}): Promise<InlineDispatchResult> {
+  const endpoint = params.target.endpoint;
+  if (typeof endpoint !== "string" || !endpoint.startsWith("https://")) {
+    return {
+      status: "failed",
+      error_code: "invalid_target",
+      error_message: "http_api target.endpoint must be an https:// URL.",
+      retryable: false,
+    };
+  }
+  const envName =
+    typeof params.target.signing_key_env === "string"
+      ? (params.target.signing_key_env as string)
+      : "HTTP_DISPATCH_SIGNING_KEY";
+  const secret = Deno.env.get(envName);
+  if (!secret) {
+    return {
+      status: "failed",
+      error_code: "signing_key_missing",
+      error_message: `Signing key env ${envName} not configured.`,
+      retryable: false,
+    };
+  }
+
+  const payload = {
+    version: 1,
+    invoice_dispatch_id: params.invoiceDispatchId,
+    invoice: {
+      invoice_id: params.invoice.invoice_id,
+      invoice_number: params.invoice.invoice_number,
+      company_id: params.invoice.company_id,
+      status: params.invoice.status,
+      invoice_type: params.invoice.invoice_type,
+      period_from: params.invoice.period_from,
+      period_to: params.invoice.period_to,
+      issued_at: params.invoice.issued_at,
+      due_at: params.invoice.due_at,
+      amount_excl_vat: params.invoice.amount_excl_vat,
+      vat_amount: params.invoice.vat_amount,
+      amount_incl_vat: params.invoice.amount_incl_vat,
+      currency: params.invoice.currency,
+    },
+  };
+  const body = JSON.stringify(payload);
+  const signature = await hmacSha256Hex(secret, body);
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10_000);
+
+  let response: Response;
+  try {
+    response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Smartout-Signature": `sha256=${signature}`,
+        "X-Smartout-Invoice-Dispatch-Id": params.invoiceDispatchId,
+      },
+      body,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    clearTimeout(timer);
+    const name = error instanceof Error ? error.name : "";
+    return {
+      status: "failed",
+      error_code: name === "AbortError" ? "timeout" : "network_error",
+      error_message: error instanceof Error ? error.message : String(error),
+      retryable: true,
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+
+  if (response.status >= 200 && response.status < 300) {
+    let externalId = params.invoiceDispatchId;
+    try {
+      const json = (await response.json()) as Record<string, unknown>;
+      if (typeof json.id === "string") externalId = json.id;
+    } catch {
+      // non-JSON body is fine
+    }
+    return { status: "delivered", external_reference: externalId };
+  }
+
+  let detail = "";
+  try {
+    detail = await response.text();
+  } catch {
+    detail = "";
+  }
+  return {
+    status: "failed",
+    error_code: `http_${response.status}`,
+    error_message: detail.slice(0, 500) || `Remote HTTP ${response.status}`,
+    retryable: response.status === 429 || response.status >= 500,
+  };
+}
+
+async function runAdapter(
+  channel: string,
+  target: Record<string, unknown>,
+  template: MinimalTemplate | null,
+  invoice: MinimalInvoice,
+  invoiceDispatchId: string,
+): Promise<InlineDispatchResult> {
+  const context = buildTemplateContext(invoice);
+
+  switch (channel) {
+    case "email_customer":
+    case "email_internal": {
+      const to = target.email;
+      if (typeof to !== "string" || !to.includes("@")) {
+        return {
+          status: "failed",
+          error_code: "invalid_target",
+          error_message: `${channel} target.email must be a valid email string.`,
+          retryable: false,
+        };
+      }
+      const defaults =
+        channel === "email_customer"
+          ? { subject: DEFAULT_EMAIL_CUSTOMER_SUBJECT, body: DEFAULT_EMAIL_CUSTOMER_BODY }
+          : { subject: DEFAULT_EMAIL_INTERNAL_SUBJECT, body: DEFAULT_EMAIL_INTERNAL_BODY };
+      const subject = renderTemplate(
+        template?.subject_template ?? defaults.subject,
+        context,
+        { escape: false },
+      );
+      const html = renderTemplate(template?.body_template ?? defaults.body, context, {
+        escape: true,
+      });
+      return sendViaSendGrid({
+        to,
+        subject,
+        html,
+        invoiceDispatchId,
+      });
+    }
+    case "http_api":
+      return sendViaHttpApi({ invoice, target, invoiceDispatchId });
+    case "peppol_ehf":
+      return {
+        status: "failed",
+        error_code: "unsupported_channel",
+        error_message:
+          "peppol_ehf adapter is not implemented in Fase 2 (ADR-0129 — Fase 3 carry-over).",
+        retryable: false,
+      };
+    default:
+      return {
+        status: "failed",
+        error_code: "unknown_channel",
+        error_message: `No adapter registered for channel '${channel}'.`,
+        retryable: false,
+      };
+  }
+}
+
+async function emitViaBridge(event: {
+  event: string;
+  actor_id: string | null;
+  workspace_id: string | null;
+  properties: Record<string, unknown>;
+}): Promise<void> {
+  const url = Deno.env.get("INTERNAL_EMIT_URL");
+  const secret = Deno.env.get("WATCHDOG_CRON_SECRET");
+  if (!url || !secret) {
+    console.error(
+      `[dispatch_invoice] emit bridge not configured — skipping '${event.event}'`,
+    );
+    return;
+  }
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${secret}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(event),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      console.error(
+        `[dispatch_invoice] emit bridge returned ${res.status} for '${event.event}': ${body}`,
+      );
+    }
+  } catch (error) {
+    console.error(
+      `[dispatch_invoice] emit bridge failed for '${event.event}':`,
+      error instanceof Error ? error.message : String(error),
+    );
+  }
+}
+
+async function handleDispatchInvoice(
+  supabase: ReturnType<typeof createClient>,
+  state: EngineState,
+  step: EngineStep,
+  invoiceDispatchId: string,
+): Promise<void> {
+  // 1. Load the invoice_dispatch row + associated invoice + optional template.
+  const { data: dispatch, error: dispatchErr } = await supabase
+    .from("invoice_dispatch")
+    .select("*")
+    .eq("invoice_dispatch_id", invoiceDispatchId)
+    .maybeSingle();
+
+  if (dispatchErr || !dispatch) {
+    await supabase
+      .from("engine_state")
+      .update({
+        status: "failed",
+        last_error: `dispatch_invoice: invoice_dispatch ${invoiceDispatchId} not found: ${dispatchErr?.message ?? "missing"}`,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", state.id);
+    return;
+  }
+
+  // If the dispatch has already been delivered, this is a late re-run from
+  // the engine retry loop — complete the state without touching anything.
+  if (dispatch.status === "delivered") {
+    await supabase
+      .from("engine_state")
+      .update({
+        status: "complete",
+        completed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", state.id);
+    return;
+  }
+
+  const { data: invoice, error: invoiceErr } = await supabase
+    .from("invoice")
+    .select(
+      "invoice_id, invoice_number, company_id, status, invoice_type, period_from, period_to, issued_at, due_at, amount_excl_vat, vat_amount, amount_incl_vat, currency",
+    )
+    .eq("invoice_id", dispatch.invoice_id)
+    .single();
+
+  if (invoiceErr || !invoice) {
+    await supabase
+      .from("engine_state")
+      .update({
+        status: "failed",
+        last_error: `dispatch_invoice: invoice ${dispatch.invoice_id} not found`,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", state.id);
+    return;
+  }
+
+  let template: MinimalTemplate | null = null;
+  // Resolve template via dispatch_rule → template_id (snapshot not stored
+  // on invoice_dispatch; rules are stable enough for Fase 2).
+  if (dispatch.dispatch_rule_id) {
+    const { data: rule } = await supabase
+      .from("billing_dispatch_rule")
+      .select("template_id")
+      .eq("dispatch_rule_id", dispatch.dispatch_rule_id)
+      .maybeSingle();
+    if (rule?.template_id) {
+      const { data: tmpl } = await supabase
+        .from("billing_dispatch_template")
+        .select("subject_template, body_template")
+        .eq("template_id", rule.template_id)
+        .maybeSingle();
+      if (tmpl) template = tmpl;
+    }
+  }
+
+  // 2. Mark in_flight + bump attempts BEFORE calling the adapter so a
+  //    double-invocation collision is visible in the row.
+  const attempt = (dispatch.attempts as number) + 1;
+  await supabase
+    .from("invoice_dispatch")
+    .update({
+      status: "in_flight",
+      attempts: attempt,
+      engine_state_id: state.id,
+      last_attempt_at: new Date().toISOString(),
+    })
+    .eq("invoice_dispatch_id", invoiceDispatchId);
+
+  // 3. Run the adapter.
+  const result = await runAdapter(
+    dispatch.channel,
+    (dispatch.target ?? {}) as Record<string, unknown>,
+    template,
+    invoice as MinimalInvoice,
+    invoiceDispatchId,
+  );
+
+  // 4. Persist result to invoice_dispatch.
+  if (result.status === "delivered") {
+    await supabase
+      .from("invoice_dispatch")
+      .update({
+        status: "delivered",
+        delivered_at: new Date().toISOString(),
+        external_reference: result.external_reference,
+        error_code: null,
+        error_message: null,
+      })
+      .eq("invoice_dispatch_id", invoiceDispatchId);
+
+    // 5. ADR-0128 dual-write block REMOVED in Fase 3A B6 — invoice.delivery_*
+    //    columns were DROPped. invoice_dispatch is now the sole source of truth.
+
+    // 6. Emit 'invoice dispatched' via HTTP bridge (Deno → Node).
+    await emitViaBridge({
+      event: "invoice dispatched",
+      actor_id: null,
+      workspace_id: state.workspace_id,
+      properties: {
+        entity_type: "invoice_dispatch",
+        entity_id: invoiceDispatchId,
+        data: {
+          invoice_id: dispatch.invoice_id,
+          channel: dispatch.channel,
+          external_reference: result.external_reference,
+        },
+      },
+    });
+
+    await supabase
+      .from("engine_state")
+      .update({
+        status: "complete",
+        completed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", state.id);
+    return;
+  }
+
+  // Failure path — check retry policy.
+  const retryConfig = ((step.action_payload as Record<string, unknown>).retry ??
+    {}) as {
+    max_attempts?: number;
+    backoff_seconds?: number[];
+  };
+  const maxAttempts = retryConfig.max_attempts ?? 5;
+  const backoff = retryConfig.backoff_seconds ?? [60, 300, 900, 3600, 21600];
+
+  const isFinal = !result.retryable || attempt >= maxAttempts;
+
+  await supabase
+    .from("invoice_dispatch")
+    .update({
+      status: isFinal ? "failed" : "pending",
+      error_code: result.error_code,
+      error_message: result.error_message,
+    })
+    .eq("invoice_dispatch_id", invoiceDispatchId);
+
+  if (isFinal) {
+    await emitViaBridge({
+      event: "invoice dispatch failed",
+      actor_id: null,
+      workspace_id: state.workspace_id,
+      properties: {
+        entity_type: "invoice_dispatch",
+        entity_id: invoiceDispatchId,
+        data: {
+          invoice_id: dispatch.invoice_id,
+          channel: dispatch.channel,
+          error_code: result.error_code,
+          error_message: result.error_message,
+          attempts: attempt,
+        },
+      },
+    });
+
+    await supabase
+      .from("engine_state")
+      .update({
+        status: "failed",
+        last_error: `${result.error_code}: ${result.error_message}`,
+        completed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", state.id);
+    return;
+  }
+
+  // Retryable — schedule a delayed re-fire via engine_delayed_trigger.
+  const backoffSeconds = backoff[Math.min(attempt - 1, backoff.length - 1)];
+
+  // Find the retry trigger row (seeded in B1 migration 20260511200008).
+  const { data: retryTrigger } = await supabase
+    .from("engine_trigger")
+    .select("id")
+    .eq("event_type", "invoice dispatch retry_requested")
+    .eq("process_id", "invoice_dispatch_delivery")
+    .is("workspace_id", null)
+    .maybeSingle();
+
+  // Record the retry event so engine_delayed_trigger has something to
+  // reference (engine_delayed_trigger.event_id FK is required).
+  const { data: retryEvent } = await supabase
+    .from("engine_event")
+    .insert({
+      event_type: "invoice dispatch retry_requested",
+      workspace_id: state.workspace_id,
+      payload: {
+        entity_type: "invoice_dispatch",
+        entity_id: invoiceDispatchId,
+        invoice_dispatch_id: invoiceDispatchId,
+        invoice_id: dispatch.invoice_id,
+        attempt,
+      },
+    })
+    .select("id")
+    .single();
+
+  if (retryTrigger && retryEvent) {
+    await supabase.from("engine_delayed_trigger").insert({
+      trigger_id: retryTrigger.id,
+      event_id: retryEvent.id,
+      workspace_id: state.workspace_id,
+      fire_at: new Date(Date.now() + backoffSeconds * 1000).toISOString(),
+    });
+  }
+
+  // Low-volume debug-only emit — helps reconstruct retry cycles.
+  await emitViaBridge({
+    event: "invoice dispatch retried",
+    actor_id: null,
+    workspace_id: state.workspace_id,
+    properties: {
+      entity_type: "invoice_dispatch",
+      entity_id: invoiceDispatchId,
+      data: {
+        invoice_id: dispatch.invoice_id,
+        channel: dispatch.channel,
+        attempt,
+      },
+    },
+  });
+
+  // Mark this engine_state complete — a fresh state will spin up when the
+  // delayed trigger fires. attempts lives on invoice_dispatch.
+  await supabase
+    .from("engine_state")
+    .update({
+      status: "complete",
+      completed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", state.id);
 }

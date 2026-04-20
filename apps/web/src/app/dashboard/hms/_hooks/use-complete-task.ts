@@ -35,10 +35,15 @@ export function useCompleteTask() {
     },
     onSuccess: (_data, variables) => {
       void emit({
-        event: "session task_completed",
+        event: "session_task completed",
         workspace_id: workspace.workspace_id,
         actor_id: profileId ?? "",
         properties: {
+          entity: {
+            entity_type: "session_task",
+            entity_id: variables.taskId,
+            entity_label: variables.taskId,
+          },
           data: { task_id: variables.taskId, profile_id: profileId ?? "" },
         },
       });

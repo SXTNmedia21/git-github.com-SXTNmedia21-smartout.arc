@@ -1,6 +1,17 @@
 ---
 name: smartout-nordic-split
-description: Authoritative guide for Smartout's Nordic Split design system — OKLCH colors, spring physics, fonts, glassmorphism, orbs, Tailwind v4. Use when building UI components, animations, styling, or design work.
+description: |
+  AUTHORITATIVE guide for Smartout's "Nordic Split" design system. MUST be loaded before any UI, styling, component, animation, theme, farge-, eller design-arbeid.
+
+  Triggers (English): UI, component, styling, design, theme, dark mode, light mode, color, colors, Tailwind, shadcn, Geist, Instrument Serif, OKLCH, orb, glassmorphism, animation, framer-motion, spring physics, dashboard layout, page layout, CSS variable, zinc, slate, gray, hardcoded color.
+
+  Triggers (Norwegian): farge, farger, komponent, design, tema, mørk modus, lys modus, knapp, dashboard, skjerm, layout, style, stil, utseende.
+
+  Triggers (files/paths): apps/web/src/app/dashboard/**, apps/web/src/components/**, apps/web/src/app/**/page.tsx, packages/design-tokens/**, globals.css, tokens.ts, tokens.css, native.ts, components.json, DashboardShell.tsx.
+
+  Triggers (keywords from spec): Ren og Varm, Nordic Split, warm OKLCH, hue 40-60, CSS variable, bg-background, text-foreground, border-border, bg-muted, focus-ring.
+
+  ALWAYS load when editing .tsx/.css in apps/web/ or apps/mobile/ that touches visual output.
 tools: Read, Glob
 ---
 

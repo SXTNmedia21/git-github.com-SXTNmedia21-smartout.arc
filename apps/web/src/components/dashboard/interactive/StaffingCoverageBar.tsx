@@ -9,7 +9,10 @@ import { motion, useReducedMotion } from "framer-motion";
 import { RefreshCw } from "lucide-react";
 import { useTranslation } from "@smartout/i18n";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { useStaffingCoverage, getCurrentWeekStart } from "@/app/dashboard/_hooks";
+import {
+  useStaffingCoverage,
+  getCurrentWeekStart,
+} from "@/app/dashboard/_hooks/use-staffing-coverage";
 
 // Ambient spring — Nordic Split spec
 const AMBIENT_SPRING = {

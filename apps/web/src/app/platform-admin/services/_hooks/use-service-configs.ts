@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { emit } from "@smartout/telemetry";
 // TODO: Remove manual type once service_config migration is applied and types regenerated
 export type ServiceConfigRow = {
   service_id: string;
@@ -65,7 +66,20 @@ export function useUpdateServiceConfig(slug: string) {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return (await res.json()).data as ServiceConfigRow;
     },
-    onSuccess: () => {
+    onSuccess: (data, updates) => {
+      void emit({
+        event: "service_config updated",
+        workspace_id: null,
+        actor_id: "",
+        properties: {
+          entity: {
+            entity_type: "service_config",
+            entity_id: data.service_id,
+            entity_label: data.name,
+          },
+          data: { slug, fields: Object.keys(updates) },
+        },
+      });
       queryClient.invalidateQueries({ queryKey: QUERY_KEY });
     },
   });
@@ -83,6 +97,17 @@ export function useRestartService(slug: string) {
       }
       return res.json();
     },
+    onSuccess: () => {
+      void emit({
+        event: "service_config restarted",
+        workspace_id: null,
+        actor_id: "",
+        properties: {
+          entity: { entity_type: "service_config", entity_id: slug, entity_label: slug },
+          data: { slug },
+        },
+      });
+    },
   });
 }
 
@@ -98,6 +123,15 @@ export function useDeleteService(slug: string) {
       return res.json();
     },
     onSuccess: () => {
+      void emit({
+        event: "service_config deleted",
+        workspace_id: null,
+        actor_id: "",
+        properties: {
+          entity: { entity_type: "service_config", entity_id: slug, entity_label: slug },
+          data: { slug },
+        },
+      });
       queryClient.invalidateQueries({ queryKey: QUERY_KEY });
     },
   });

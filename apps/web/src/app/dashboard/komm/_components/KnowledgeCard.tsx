@@ -7,17 +7,21 @@ import { cn } from "@/lib/utils";
 const TYPE_CONFIG: Record<string, { icon: typeof FileText; color: string; labelKey: string }> = {
   procedure: {
     icon: FileText,
-    color: "bg-orange-500/15 text-orange-500",
+    color: "bg-komm-announcement/15 text-komm-announcement",
     labelKey: "knowledge.procedure",
   },
-  manual: { icon: BookOpen, color: "bg-blue-500/15 text-blue-500", labelKey: "knowledge.manual" },
-  quiz: { icon: HelpCircle, color: "bg-pink-500/15 text-pink-500", labelKey: "knowledge.quiz" },
+  manual: {
+    icon: BookOpen,
+    color: "bg-komm-manual/15 text-komm-manual",
+    labelKey: "knowledge.manual",
+  },
+  quiz: { icon: HelpCircle, color: "bg-komm-quiz/15 text-komm-quiz", labelKey: "knowledge.quiz" },
   training: {
     icon: GraduationCap,
-    color: "bg-cyan-500/15 text-cyan-500",
+    color: "bg-komm-training/15 text-komm-training",
     labelKey: "knowledge.training",
   },
-  task: { icon: CheckSquare, color: "bg-green-500/15 text-green-500", labelKey: "knowledge.task" },
+  task: { icon: CheckSquare, color: "bg-komm-task/15 text-komm-task", labelKey: "knowledge.task" },
   roadmap: { icon: Map, color: "bg-muted text-muted-foreground", labelKey: "knowledge.roadmap" },
 };
 

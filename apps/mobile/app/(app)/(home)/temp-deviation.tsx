@@ -1,61 +1,201 @@
 /**
  * Temperature Deviation — HACCP temp control handling screen.
  *
+ * Queries the most recent open safety deviation for the workspace. Shows the
+ * deviation details, corrective action steps based on severity, last successful
+ * HACCP log, and a CTA to resolve the deviation.
+ *
  * Layout:
  * 1. Context header — "Håndter avvik" label
- * 2. Hero — "Temp-avvik: Walk-in Kjøkken" + temp badge (6.2°C > 4.0°C)
- * 3. Action steps checklist — step-by-step corrective actions
- * 4. System status info card
- * 5. CTA — "Bekreft tiltak utført"
+ * 2. Hero — deviation title + temp badge (from HACCP log)
+ * 3. Action steps checklist — dynamic based on severity
+ * 4. System status info card — last successful HACCP log
+ * 5. CTA — "Bekreft tiltak utført" (resolves deviation)
  */
 
-import React, { useState } from "react";
-import { View, Text, ScrollView, Pressable, Alert } from "react-native";
+import React, { useState, useCallback, useMemo } from "react";
+import { View, Text, ScrollView, Pressable, Alert, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
-import { ChevronLeft, Check, Clock, Wrench, BadgeCheck } from "lucide-react-native";
+import { ChevronLeft, Check, Clock, Wrench, BadgeCheck, AlertTriangle } from "lucide-react-native";
+import { useQuery } from "@tanstack/react-query";
 import { createStyles, useTheme, withOpacity } from "@/theme";
-
-type StepStatus = "done" | "pending";
+import { supabase } from "@/lib/supabase";
+import { useMyProfile } from "@/hooks/queries/use-my-profile";
+import { emit } from "@smartout/telemetry";
 
 type ActionStep = {
   id: string;
   title: string;
   subtitle: string;
-  status: StepStatus;
   icon?: React.ComponentType<{ size: number; color: string; strokeWidth: number }>;
 };
 
-const STEPS: ActionStep[] = [
-  { id: "1", title: "Nullstill kompressor", subtitle: "Fullført 09:12", status: "done" },
-  {
-    id: "2",
-    title: "Mål på nytt etter 30 min",
-    subtitle: "Anbefalt tid: 09:42",
-    status: "pending",
-    icon: Clock,
-  },
-  {
-    id: "3",
-    title: "Meld fra til tekniker om temp ikke synker",
-    subtitle: "Eskaleringsprosedyre",
-    status: "pending",
-    icon: Wrench,
-  },
-];
+/**
+ * Returns corrective action steps based on deviation severity.
+ * Higher severity = more escalation steps.
+ */
+function getCorrectiveSteps(severity: string): ActionStep[] {
+  const baseSteps: ActionStep[] = [
+    { id: "1", title: "Kontroller temperaturen manuelt", subtitle: "Bruk kalibrert termometer" },
+    { id: "2", title: "Mal pa nytt etter 30 min", subtitle: "Vent og mal igjen", icon: Clock },
+  ];
+
+  if (severity === "high" || severity === "critical") {
+    baseSteps.push(
+      { id: "3", title: "Nullstill kompressor", subtitle: "Sjekk stroemforsyning og termostat" },
+      {
+        id: "4",
+        title: "Meld fra til tekniker",
+        subtitle: "Eskaleringsprosedyre",
+        icon: Wrench,
+      },
+    );
+  }
+
+  if (severity === "critical") {
+    baseSteps.push({
+      id: "5",
+      title: "Flytt matvarer til alternativ kjoeling",
+      subtitle: "Forebygg matsvinn og helserisiko",
+    });
+  }
+
+  return baseSteps;
+}
+
+/** Fetches the most recent open safety deviation for the workspace */
+function useOpenSafetyDeviation(workspaceId: string | undefined) {
+  return useQuery({
+    queryKey: ["open-safety-deviation", workspaceId],
+    queryFn: async () => {
+      if (!workspaceId) return null;
+      const { data, error } = await supabase
+        .from("deviation")
+        .select("*")
+        .eq("workspace_id", workspaceId)
+        .eq("domain", "safety")
+        .in("status", ["open", "acknowledged"])
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!workspaceId,
+  });
+}
+
+/** Fetches the last successful (within range) HACCP log for context */
+function useLastSuccessfulHaccpLog(workspaceId: string | undefined) {
+  return useQuery({
+    queryKey: ["last-haccp-success", workspaceId],
+    queryFn: async () => {
+      if (!workspaceId) return null;
+      const { data, error } = await supabase
+        .from("haccp_log")
+        .select("logged_at, temperature, unit")
+        .eq("workspace_id", workspaceId)
+        .eq("is_within_range", true)
+        .order("logged_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!workspaceId,
+  });
+}
 
 export default function TempDeviationScreen() {
   const styles = useStyles();
   const theme = useTheme();
   const router = useRouter();
-  const [completed, setCompleted] = useState<Record<string, boolean>>({ "1": true });
+  const { data: profile } = useMyProfile();
+  const { data: deviation, isLoading: deviationLoading } = useOpenSafetyDeviation(
+    profile?.workspace_id,
+  );
+  const { data: lastLog } = useLastSuccessfulHaccpLog(profile?.workspace_id);
+  const [completed, setCompleted] = useState<Record<string, boolean>>({});
+  const [isResolving, setIsResolving] = useState(false);
+
+  /** Dynamic steps based on deviation severity */
+  const STEPS = useMemo(
+    () => getCorrectiveSteps(deviation?.severity ?? "medium"),
+    [deviation?.severity],
+  );
+
+  const allStepsCompleted = STEPS.length > 0 && STEPS.every((s) => completed[s.id]);
 
   const handleToggle = (stepId: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setCompleted((prev) => ({ ...prev, [stepId]: !prev[stepId] }));
   };
+
+  /** Format the last successful log timestamp for display */
+  const lastLogText = useMemo(() => {
+    if (!lastLog) return "Ingen tidligere vellykkede logger funnet.";
+    const logDate = new Date(lastLog.logged_at);
+    const now = new Date();
+    const diffMs = now.getTime() - logDate.getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+
+    if (diffHours < 1)
+      return `Siste vellykkede logg: for ${Math.floor(diffMs / 60000)} min siden (${lastLog.unit}).`;
+    if (diffHours < 24)
+      return `Siste vellykkede logg: for ${diffHours} timer siden kl. ${logDate.toLocaleTimeString("nb-NO", { hour: "2-digit", minute: "2-digit" })} (${lastLog.unit}).`;
+    return `Siste vellykkede logg: ${logDate.toLocaleDateString("nb-NO")} kl. ${logDate.toLocaleTimeString("nb-NO", { hour: "2-digit", minute: "2-digit" })} (${lastLog.unit}).`;
+  }, [lastLog]);
+
+  /** Resolve the deviation by updating its status */
+  const handleResolve = useCallback(async () => {
+    if (!deviation || !profile?.profile_id || !profile?.workspace_id) return;
+
+    setIsResolving(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    try {
+      const completedStepNames = STEPS.filter((s) => completed[s.id]).map((s) => s.title);
+
+      const { error: updateError } = await supabase
+        .from("deviation")
+        .update({
+          status: "resolved",
+          resolved_by: profile.profile_id,
+          resolved_at: new Date().toISOString(),
+          resolution_notes: `Tiltak utfort: ${completedStepNames.join(", ")}`,
+        })
+        .eq("deviation_id", deviation.deviation_id);
+
+      if (updateError) throw updateError;
+
+      void emit({
+        event: "deviation updated",
+        workspace_id: profile.workspace_id,
+        actor_id: profile.profile_id,
+        properties: {
+          entity: { entity_type: "deviation", entity_id: deviation.deviation_id },
+          data: {
+            status: "resolved",
+          },
+        },
+      });
+
+      Alert.alert("Avvik lukket", "Tiltakene er bekreftet og avviket er markert som lost.", [
+        { text: "OK", onPress: () => router.back() },
+      ]);
+    } catch {
+      Alert.alert("Feil", "Kunne ikke lukke avviket. Prov igjen.");
+    } finally {
+      setIsResolving(false);
+    }
+  }, [deviation, profile, STEPS, completed, router]);
+
+  /** Extract deviation title for display — falls back to generic text */
+  const deviationTitle = deviation?.title ?? "Temperaturavvik";
+  const deviationDescription = deviation?.description ?? "";
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -76,99 +216,136 @@ export default function TempDeviationScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Context */}
-        <Animated.View entering={FadeIn.delay(50).duration(400)} style={styles.contextRow}>
-          <Text style={styles.contextLabel}>HÅNDTER AVVIK</Text>
-        </Animated.View>
-
-        {/* Hero */}
-        <Animated.View entering={FadeInDown.delay(100).duration(500).springify()}>
-          <Text style={styles.heroTitle}>
-            Temp-avvik:{"\n"}
-            <Text style={styles.heroAccent}>Walk-in Kjøkken</Text>
-          </Text>
-          <View style={styles.tempBadge}>
-            <Text style={styles.tempValue}>6.2°C</Text>
-            <View style={styles.tempDivider} />
-            <Text style={styles.tempLimit}>Grense: &lt; 4.0°C</Text>
+        {/* Loading state */}
+        {deviationLoading && (
+          <View style={styles.emptyState}>
+            <ActivityIndicator size="large" color={theme.colors.brandOrange} />
+            <Text style={styles.emptySubtitle}>Laster avvik...</Text>
           </View>
-        </Animated.View>
+        )}
 
-        {/* Action Steps */}
-        <View style={styles.stepsSection}>
-          <Text style={styles.stepsSectionTitle}>TILTAKSTRINN</Text>
-          {STEPS.map((step, i) => {
-            const isDone = completed[step.id] ?? false;
-            const IconComponent = step.icon;
-            return (
-              <Animated.View
-                key={step.id}
-                entering={FadeInDown.delay(250 + i * 80)
-                  .duration(400)
-                  .springify()}
+        {/* Empty state — no open deviation */}
+        {!deviationLoading && !deviation && (
+          <View style={styles.emptyState}>
+            <AlertTriangle size={40} color={theme.colors.mutedForeground} strokeWidth={1.5} />
+            <Text style={styles.emptyTitle}>Ingen aktive temperaturavvik</Text>
+            <Text style={styles.emptySubtitle}>
+              Det finnes ingen apne sikkerhetsavvik for denne arbeidsplassen.
+            </Text>
+          </View>
+        )}
+
+        {/* Deviation content */}
+        {deviation && (
+          <>
+            {/* Context */}
+            <Animated.View entering={FadeIn.delay(50).duration(400)} style={styles.contextRow}>
+              <Text style={styles.contextLabel}>HANDTER AVVIK</Text>
+            </Animated.View>
+
+            {/* Hero */}
+            <Animated.View entering={FadeInDown.delay(100).duration(500).springify()}>
+              <Text style={styles.heroTitle}>
+                {deviationTitle}
+                {deviationDescription ? (
+                  <>
+                    {"\n"}
+                    <Text style={styles.heroAccent}>{deviationDescription}</Text>
+                  </>
+                ) : null}
+              </Text>
+              <View style={styles.tempBadge}>
+                <Text style={styles.tempValue}>
+                  {deviation.severity === "critical"
+                    ? "Kritisk"
+                    : deviation.severity === "high"
+                      ? "Hoy"
+                      : deviation.severity === "medium"
+                        ? "Medium"
+                        : "Lav"}
+                </Text>
+                <View style={styles.tempDivider} />
+                <Text style={styles.tempLimit}>Alvorlighetsgrad: {deviation.severity}</Text>
+              </View>
+            </Animated.View>
+
+            {/* Action Steps */}
+            <View style={styles.stepsSection}>
+              <Text style={styles.stepsSectionTitle}>TILTAKSTRINN</Text>
+              {STEPS.map((step, i) => {
+                const isDone = completed[step.id] ?? false;
+                const IconComponent = step.icon;
+                return (
+                  <Animated.View
+                    key={step.id}
+                    entering={FadeInDown.delay(250 + i * 80)
+                      .duration(400)
+                      .springify()}
+                  >
+                    <Pressable
+                      onPress={() => handleToggle(step.id)}
+                      style={({ pressed }) => [
+                        styles.stepRow,
+                        isDone && styles.stepRowDone,
+                        pressed && styles.stepRowPressed,
+                      ]}
+                    >
+                      <View style={[styles.stepCircle, isDone && styles.stepCircleDone]}>
+                        {isDone && <Check size={14} color="#ffffff" strokeWidth={2.5} />}
+                      </View>
+                      <View style={styles.stepContent}>
+                        <Text style={styles.stepTitle}>{step.title}</Text>
+                        <Text style={styles.stepSubtitle}>{step.subtitle}</Text>
+                      </View>
+                      {!isDone && IconComponent && (
+                        <IconComponent
+                          size={18}
+                          color={withOpacity(theme.colors.mutedForeground, 0.3)}
+                          strokeWidth={1.5}
+                        />
+                      )}
+                    </Pressable>
+                  </Animated.View>
+                );
+              })}
+            </View>
+
+            {/* System Status — last successful HACCP log */}
+            <Animated.View
+              entering={FadeInDown.delay(500).duration(400).springify()}
+              style={styles.statusCard}
+            >
+              <Text style={styles.statusLabel}>SYSTEMSTATUS</Text>
+              <Text style={styles.statusText}>{lastLogText}</Text>
+            </Animated.View>
+
+            {/* CTA */}
+            <Animated.View
+              entering={FadeInDown.delay(600).duration(500).springify()}
+              style={styles.ctaSection}
+            >
+              <Pressable
+                onPress={handleResolve}
+                disabled={!allStepsCompleted || isResolving}
+                style={({ pressed }) => [
+                  styles.ctaButton,
+                  pressed && styles.ctaPressed,
+                  (!allStepsCompleted || isResolving) && styles.ctaDisabled,
+                ]}
               >
-                <Pressable
-                  onPress={() => handleToggle(step.id)}
-                  style={({ pressed }) => [
-                    styles.stepRow,
-                    isDone && styles.stepRowDone,
-                    pressed && styles.stepRowPressed,
-                  ]}
-                >
-                  <View style={[styles.stepCircle, isDone && styles.stepCircleDone]}>
-                    {isDone && <Check size={14} color="#ffffff" strokeWidth={2.5} />}
-                  </View>
-                  <View style={styles.stepContent}>
-                    <Text style={styles.stepTitle}>{step.title}</Text>
-                    <Text style={styles.stepSubtitle}>{step.subtitle}</Text>
-                  </View>
-                  {!isDone && IconComponent && (
-                    <IconComponent
-                      size={18}
-                      color={withOpacity(theme.colors.mutedForeground, 0.3)}
-                      strokeWidth={1.5}
-                    />
-                  )}
-                </Pressable>
-              </Animated.View>
-            );
-          })}
-        </View>
-
-        {/* System Status */}
-        <Animated.View
-          entering={FadeInDown.delay(500).duration(400).springify()}
-          style={styles.statusCard}
-        >
-          <Text style={styles.statusLabel}>SYSTEMSTATUS</Text>
-          <Text style={styles.statusText}>
-            Siste vellykkede logg var i går kl. 23:45. Sensoren rapporterer stabil spenning, noe som
-            tyder på mekanisk svikt eller åpen dør.
-          </Text>
-        </Animated.View>
-
-        {/* CTA */}
-        <Animated.View
-          entering={FadeInDown.delay(600).duration(500).springify()}
-          style={styles.ctaSection}
-        >
-          <Pressable
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              // TODO(compliance): Wire to useReportDeviation mutation — this button
-              // must persist the corrective action to the deviation record.
-              Alert.alert(
-                "Ikke implementert",
-                "Bekreftelse av tiltak er ikke koblet til databasen ennå. Kontakt leder.",
-              );
-            }}
-            style={({ pressed }) => [styles.ctaButton, pressed && styles.ctaPressed]}
-          >
-            <BadgeCheck size={20} color="#ffffff" strokeWidth={2} />
-            <Text style={styles.ctaText}>Bekreft tiltak utført</Text>
-          </Pressable>
-          <Text style={styles.ctaId}>ID: HSE-2023-09412-KJK</Text>
-        </Animated.View>
+                {isResolving ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <BadgeCheck size={20} color="#ffffff" strokeWidth={2} />
+                )}
+                <Text style={styles.ctaText}>Bekreft tiltak utfort</Text>
+              </Pressable>
+              <Text style={styles.ctaId}>
+                ID: {deviation.deviation_id.slice(0, 8).toUpperCase()}
+              </Text>
+            </Animated.View>
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -320,5 +497,25 @@ const useStyles = createStyles((theme) => ({
     textAlign: "center",
     marginTop: theme.spacing.md,
     textTransform: "uppercase",
+  },
+  ctaDisabled: { opacity: 0.4 },
+
+  /* Empty / loading state */
+  emptyState: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: theme.spacing.xl,
+    gap: theme.spacing.element,
+  },
+  emptyTitle: {
+    ...theme.typography.headline,
+    color: theme.colors.foreground,
+    textAlign: "center",
+  },
+  emptySubtitle: {
+    ...theme.typography.caption,
+    color: theme.colors.mutedForeground,
+    textAlign: "center",
+    paddingHorizontal: theme.spacing.card,
   },
 }));

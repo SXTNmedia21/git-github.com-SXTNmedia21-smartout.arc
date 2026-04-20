@@ -37,6 +37,8 @@ COPY services/stage-engine/src ./services/stage-engine/src
 
 # Build workspace deps in order, then stage-engine
 RUN pnpm --filter @smartout/types build && \
+    pnpm --filter @smartout/utils build && \
+    pnpm --filter @smartout/telemetry build && \
     pnpm --filter @smartout/ai build && \
     pnpm --filter @smartout/stage-engine build
 
@@ -59,9 +61,11 @@ RUN pnpm install --frozen-lockfile --filter @smartout/stage-engine... --ignore-s
 COPY --from=builder /app/packages/types/dist ./packages/types/dist
 COPY --from=builder /app/packages/ai/dist ./packages/ai/dist
 COPY --from=builder /app/packages/supabase/src ./packages/supabase/src
-COPY --from=builder /app/packages/utils/src ./packages/utils/src
-COPY --from=builder /app/packages/telemetry/src ./packages/telemetry/src
+COPY --from=builder /app/packages/utils/dist ./packages/utils/dist
+COPY --from=builder /app/packages/telemetry/dist ./packages/telemetry/dist
 COPY --from=builder /app/services/stage-engine/dist ./services/stage-engine/dist
+RUN sed -i 's|"main": "src/index.ts"|"main": "dist/index.js"|' packages/utils/package.json
+RUN node -e "const fs=require('fs'); const p='packages/telemetry/package.json'; const j=JSON.parse(fs.readFileSync(p,'utf8')); j.main='dist/index.js'; j.types='dist/index.d.ts'; if(j.exports&&j.exports['.']){ j.exports['.'].types='./dist/index.d.ts'; j.exports['.']['react-native']='./dist/index.native.js'; j.exports['.']['react-server']='./dist/index.js'; j.exports['.'].default='./dist/index.js'; } if(j.exports){ j.exports['./server']='./dist/index.js'; j.exports['./react']='./dist/react.js'; } fs.writeFileSync(p, JSON.stringify(j, null, 2));"
 
 WORKDIR /app/services/stage-engine
 EXPOSE 5010

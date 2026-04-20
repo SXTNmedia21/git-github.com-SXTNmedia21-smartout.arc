@@ -1,0 +1,32 @@
+{
+  "name": "@smartout/training",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./hooks": "./src/hooks/index.ts",
+    "./types": "./src/types.ts"
+  },
+  "scripts": {
+    "lint": "eslint src/",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@smartout/supabase": "workspace:*",
+    "@smartout/telemetry": "workspace:*",
+    "zod": "^3.0.0"
+  },
+  "devDependencies": {
+    "@smartout/eslint-config": "workspace:^",
+    "@smartout/typescript-config": "workspace:*",
+    "@types/react": "^19.2.14"
+  },
+  "peerDependencies": {
+    "@supabase/supabase-js": "^2.0.0",
+    "@tanstack/react-query": "^5.0.0",
+    "react": "^19.0.0",
+    "sonner": "^1.0.0"
+  }
+}

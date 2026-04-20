@@ -18,7 +18,7 @@ import * as ImagePicker from "expo-image-picker";
 import { ChevronLeft, Camera, Check } from "lucide-react-native";
 import { createStyles } from "@/theme";
 import { Avatar } from "@/components/common/Avatar";
-import { useMyProfile } from "@/hooks/queries/use-my-profile";
+import { useMyProfile, type ProfileWithJoins } from "@/hooks/queries/use-my-profile";
 import { supabase } from "@/lib/supabase";
 import type { Database } from "@smartout/supabase/database.types";
 
@@ -120,7 +120,7 @@ export default function EditProfileScreen() {
         if (updateError) throw updateError;
 
         // Optimistic cache update
-        queryClient.setQueryData<Profile>(["my-profile"], (old) =>
+        queryClient.setQueryData<ProfileWithJoins>(["my-profile"], (old) =>
           old ? { ...old, ...updates } : old,
         );
       }
@@ -227,11 +227,8 @@ export default function EditProfileScreen() {
         style={styles.fieldSection}
       >
         <Text style={styles.fieldLabel}>Avdeling</Text>
-        {/* TODO: profile has department_id but no department name — needs a join to the
-            department table (department.name) to show the actual department name here.
-            Showing job_title as a placeholder until that join is added. */}
         <View style={styles.readOnlyField}>
-          <Text style={styles.readOnlyText}>{profile?.job_title ?? "—"}</Text>
+          <Text style={styles.readOnlyText}>{profile?.department?.name ?? "—"}</Text>
         </View>
       </Animated.View>
     </SafeAreaView>

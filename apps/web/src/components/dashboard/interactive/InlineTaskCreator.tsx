@@ -14,7 +14,7 @@ import { useWorkspace } from "@/lib/workspace-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AssignPopover } from "./AssignPopover";
-import { useCreateQuickTask } from "@/app/dashboard/_hooks";
+import { useCreateQuickTask } from "@/app/dashboard/_hooks/use-create-quick-task";
 
 // Ambient spring — Nordic Split spec
 const AMBIENT_SPRING = {

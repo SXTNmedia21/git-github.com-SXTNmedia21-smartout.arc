@@ -96,7 +96,7 @@ export default function MeScreen() {
           <Pressable
             onPress={() => {
               Haptics.selectionAsync();
-              router.push("/(app)/(payroll)");
+              router.push("/(app)/(me)/payroll");
             }}
             style={({ pressed }) => [styles.statCard, pressed && styles.cardPressed]}
           >
@@ -114,7 +114,7 @@ export default function MeScreen() {
           <Pressable
             onPress={() => {
               Haptics.selectionAsync();
-              router.push("/(app)/(payroll)/timebank");
+              router.push("/(app)/(me)/payroll/timebank");
             }}
             style={({ pressed }) => [styles.statCard, pressed && styles.cardPressed]}
           >
@@ -132,7 +132,7 @@ export default function MeScreen() {
           <Pressable
             onPress={() => {
               Haptics.selectionAsync();
-              router.push("/(app)/(payroll)/absence-balance");
+              router.push("/(app)/(me)/payroll/absence-balance");
             }}
             style={({ pressed }) => [styles.statCard, pressed && styles.cardPressed]}
           >
@@ -150,7 +150,7 @@ export default function MeScreen() {
           <Pressable
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              router.push("/(app)/(payroll)/absence-request");
+              router.push("/(app)/(me)/payroll/absence-request");
             }}
             style={({ pressed }) => [styles.statCardCta, pressed && styles.cardPressed]}
           >
@@ -172,7 +172,7 @@ export default function MeScreen() {
             <Pressable
               onPress={() => {
                 Haptics.selectionAsync();
-                router.push("/(app)/(payroll)/payslip");
+                router.push("/(app)/(me)/payroll/payslip");
               }}
             >
               <Text style={styles.seeAll}>Se alle</Text>
@@ -183,7 +183,7 @@ export default function MeScreen() {
               key={slip.id}
               onPress={() => {
                 Haptics.selectionAsync();
-                router.push("/(app)/(payroll)/payslip");
+                router.push("/(app)/(me)/payroll/payslip");
               }}
               style={({ pressed }) => [styles.payslipRow, pressed && styles.cardPressed]}
             >
@@ -207,7 +207,10 @@ export default function MeScreen() {
         {/* Quick Access */}
         <View style={styles.section}>
           <Pressable
-            onPress={() => Haptics.selectionAsync()}
+            onPress={() => {
+              Haptics.selectionAsync();
+              router.push("/(app)/(me)/contract");
+            }}
             style={({ pressed }) => [styles.quickLink, pressed && styles.cardPressed]}
           >
             <View style={styles.quickLinkLeft}>

@@ -20,7 +20,17 @@ import {
   AudienceSelector,
   type AudienceFilter,
 } from "@/components/platform-admin/audience-selector";
-import { EmailRichEditor } from "./email-rich-editor";
+import dynamic from "next/dynamic";
+import { withEntrance } from "@smartout/ui";
+import { EditorSkeleton } from "@/components/ui/editor-skeleton";
+
+const EmailRichEditor = dynamic(
+  () =>
+    import("./email-rich-editor").then((m) => ({
+      default: withEntrance(m.EmailRichEditor),
+    })),
+  { ssr: false, loading: () => <EditorSkeleton /> },
+);
 import { ItemsBuilder } from "./items-builder";
 import { EmailPreview } from "./email-preview";
 import type { SendGridTemplateData } from "@smartout/notifications";

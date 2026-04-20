@@ -1,0 +1,4 @@
+email,user_id,status,recovery_link,error_message
+anneli@sf-nett.no,69d30a6f-170a-545d-af11-13306e5fbc77,created,http://127.0.0.1:54321/auth/v1/verify?token=cd226d2d280b0346b1c36a671147155c672c5d8f1880132a5e318fc8&type=recovery&redirect_to=http://localhost:3050,
+nataliewille@live.no,216ea491-9507-5c26-bc59-3ec2a410364e,created,http://127.0.0.1:54321/auth/v1/verify?token=fe9252d65789a5b130b96ad91cf757850a7779ea8ccd166dd010c0da&type=recovery&redirect_to=http://localhost:3050,
+erikoverbo@icloud.com,58a79d96-7d03-5f49-9696-ac5eb1d851df,created,http://127.0.0.1:54321/auth/v1/verify?token=31ab4819b95f8039f34b9dc27dce8696bcf7d5f45e39757d2c022814&type=recovery&redirect_to=http://localhost:3050,

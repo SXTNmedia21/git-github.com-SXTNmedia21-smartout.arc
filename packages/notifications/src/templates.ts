@@ -92,6 +92,25 @@ ${v.ctaUrl ? `<p style="margin:24px 0;"><a href="${v.ctaUrl}" style="display:inl
 ${v.signUrl ? `<p style="margin:24px 0;"><a href="${v.signUrl}" style="display:inline-block;padding:12px 24px;background-color:#2563eb;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;">Signer na</a></p>` : ""}`,
   },
 
+  "contract-lifecycle": {
+    subject: (v) => interpolate(v.subject ?? "Kontraktoppdatering — {{employeeName}}", v),
+    body: (v) => `
+<h2 style="margin:0 0 16px;font-size:20px;color:#1a1a2e;">${interpolate(v.title ?? "Kontraktoppdatering", v)}</h2>
+<p style="margin:0 0 16px;">Hei {{recipientName}},</p>
+<p style="margin:0 0 16px;">${interpolate(v.message ?? "", v)}</p>
+${v.ctaUrl ? `<p style="margin:24px 0;"><a href="${v.ctaUrl}" style="display:inline-block;padding:12px 24px;background-color:#2563eb;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;">${v.ctaLabel ?? "Se kontrakt"}</a></p>` : ""}`,
+  },
+
+  "contract-reminder-due": {
+    subject: (v) =>
+      interpolate(v.subject ?? "Paminnelse: Signer kontrakten din — {{companyName}}", v),
+    body: (v) => `
+<h2 style="margin:0 0 16px;font-size:20px;color:#1a1a2e;">Paminnelse om signering</h2>
+<p style="margin:0 0 16px;">Hei {{recipientName}},</p>
+<p style="margin:0 0 16px;">Du har fortsatt en usignert kontrakt hos <strong>{{companyName}}</strong>. Vennligst signer sa snart som mulig.</p>
+${v.signUrl ? `<p style="margin:24px 0;"><a href="${v.signUrl}" style="display:inline-block;padding:12px 24px;background-color:#2563eb;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;">Signer na</a></p>` : ""}`,
+  },
+
   // Dynamic templates are rendered by SendGrid — this is a no-op fallback
   "sendgrid-dynamic": {
     subject: (v) => v.subject ?? "",

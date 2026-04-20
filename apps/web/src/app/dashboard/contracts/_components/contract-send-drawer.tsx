@@ -11,9 +11,24 @@
  * On success: toasts, closes drawer, calls onSuccess callback.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { toast } from "sonner";
 import { CheckCircle2, ChevronRight, FileText, Loader2, Send } from "lucide-react";
+import { useTranslation } from "@smartout/i18n";
+
+import dynamic from "next/dynamic";
+import { withEntrance } from "@smartout/ui";
+import { EditorSkeleton } from "@/components/ui/editor-skeleton";
+
+const ContractPreviewEditor = dynamic(
+  () =>
+    import("./contract-preview-editor").then((m) => ({
+      default: withEntrance(m.ContractPreviewEditor),
+    })),
+  { ssr: false, loading: () => <EditorSkeleton /> },
+);
+import { resolvePlaceholders } from "@smartout/utils";
+import type { PlaceholderDef } from "@smartout/utils";
 
 import {
   AlertDialog,
@@ -77,12 +92,24 @@ export function ContractSendDrawer({
   onOpenChange,
   onSuccess,
 }: ContractSendDrawerProps) {
+  const { t } = useTranslation("contracts");
   const [step, setStep] = useState<Step>("template");
   const [selectedTemplate, setSelectedTemplate] = useState<ContractTemplate | null>(null);
-  // User overrides for placeholder fields — key → value
+  // User overrides for placeholder fields — key -> value
   const [overrides, setOverrides] = useState<Record<string, string>>({});
+  // Pre-resolved values from profile/contract/workspace
+  const [resolvedMap, setResolvedMap] = useState<Record<string, string>>({});
+  const [isResolving, setIsResolving] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  // Template HTML fetched when entering preview step
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
+  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
+  // Tracks the admin's edits in the Tiptap editor
+  const editedHtmlRef = useRef<string | null>(null);
+  // Tracks whether the admin has modified the document in the preview editor
+  const [isDocumentEdited, setIsDocumentEdited] = useState(false);
+  const originalHtmlRef = useRef<string | null>(null);
 
   // Reset all local state when drawer closes
   function handleOpenChange(next: boolean) {
@@ -90,17 +117,80 @@ export function ContractSendDrawer({
       setStep("template");
       setSelectedTemplate(null);
       setOverrides({});
+      setResolvedMap({});
       setShowConfirm(false);
+      setPreviewHtml(null);
+      editedHtmlRef.current = null;
+      setIsDocumentEdited(false);
+      originalHtmlRef.current = null;
     }
     onOpenChange(next);
   }
 
-  // Merge template defaults with user overrides to get the final field values
+  // Fetch resolved placeholder values from profile/contract/workspace,
+  // then transition to the review step with pre-filled data.
+  async function goToReview() {
+    setIsResolving(true);
+    try {
+      const res = await fetch("/api/contracts/resolve-placeholders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profile_id: profileId, workspace_id: workspaceId }),
+      });
+      if (res.ok) {
+        const map = (await res.json()) as Record<string, string>;
+        setResolvedMap(map);
+      }
+    } catch {
+      // Non-blocking — fields will show as empty and admin can fill manually
+    } finally {
+      setIsResolving(false);
+      setStep("review");
+    }
+  }
+
+  // Fetch template content_html, resolve placeholders, and transition to preview step.
+  async function goToPreview() {
+    if (!selectedTemplate) return;
+    setIsLoadingPreview(true);
+    try {
+      const res = await fetch(
+        `/api/contracts/templates/${selectedTemplate.template_id}?workspace_id=${workspaceId}`,
+      );
+      if (!res.ok) throw new Error(t("errors.load_template_content"));
+      const json = (await res.json()) as {
+        data: { content_html: string; placeholders: PlaceholderDef[] };
+      };
+      const contentHtml = json.data.content_html ?? "";
+      const placeholders = json.data.placeholders ?? [];
+
+      // Use canonical resolver that handles both {{key}} and Tiptap span format
+      const { resolved_html } = resolvePlaceholders(
+        contentHtml,
+        placeholders,
+        resolvedMap,
+        overrides,
+      );
+
+      setPreviewHtml(resolved_html);
+      editedHtmlRef.current = resolved_html;
+      originalHtmlRef.current = resolved_html;
+      setIsDocumentEdited(false);
+      setStep("preview");
+    } catch {
+      toast.error(t("errors.load_preview"));
+    } finally {
+      setIsLoadingPreview(false);
+    }
+  }
+
+  // Merge template placeholders with resolved values and user overrides
   function resolvedFields(): PlaceholderField[] {
     if (!selectedTemplate) return [];
     return selectedTemplate.placeholders.map((f) => ({
       ...f,
-      value: overrides[f.key] ?? f.value,
+      value: overrides[f.key] ?? resolvedMap[f.key] ?? f.value,
+      editable: true,
     }));
   }
 
@@ -122,12 +212,14 @@ export function ContractSendDrawer({
             acc[f.key] = f.value;
             return acc;
           }, {}),
+          // Pass the admin-edited HTML from the preview editor
+          resolved_html: editedHtmlRef.current ?? undefined,
         }),
       });
 
       if (!createRes.ok) {
         const err = await createRes.json().catch(() => ({}));
-        throw new Error((err as { message?: string }).message ?? "Kunne ikke opprette kontrakt");
+        throw new Error((err as { message?: string }).message ?? t("errors.create_failed"));
       }
 
       const { contract_id: contractId, recipient_name: employeeName } =
@@ -141,14 +233,27 @@ export function ContractSendDrawer({
 
       if (!sendRes.ok) {
         const err = await sendRes.json().catch(() => ({}));
-        throw new Error((err as { message?: string }).message ?? "Kunne ikke sende kontrakt");
+        throw new Error((err as { message?: string }).message ?? t("errors.send_failed"));
       }
 
-      toast.success(`Kontrakt sendt til ${employeeName ?? "ansatt"}`);
+      const sendResult = (await sendRes.json()) as {
+        status: "sent" | "queued";
+        message: string;
+      };
+
+      if (sendResult.status === "queued") {
+        toast.warning(sendResult.message);
+      } else {
+        toast.success(
+          employeeName
+            ? t("send_drawer.contract_sent_to", { name: employeeName })
+            : t("send_drawer.contract_sent_to_employee"),
+        );
+      }
       handleOpenChange(false);
       onSuccess();
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Noe gikk galt";
+      const message = err instanceof Error ? err.message : t("toast.something_went_wrong");
       toast.error(message);
     } finally {
       setIsSending(false);
@@ -158,15 +263,13 @@ export function ContractSendDrawer({
   return (
     <>
       <Sheet open={open} onOpenChange={handleOpenChange}>
-        <SheetContent className="border-border bg-background w-full p-0 sm:max-w-[500px]">
+        <SheetContent className="border-border bg-background w-full p-0 sm:max-w-[640px]">
           <SheetHeader className="border-border border-b px-6 pt-6 pb-4">
             <SheetTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              Send kontrakt
+              {t("send_drawer.title")}
             </SheetTitle>
-            <SheetDescription>
-              Velg mal, gjennomgå data og send til ansatt for signering.
-            </SheetDescription>
+            <SheetDescription>{t("send_drawer.description")}</SheetDescription>
           </SheetHeader>
 
           {/* Step indicator */}
@@ -178,28 +281,33 @@ export function ContractSendDrawer({
                 <TemplateStep
                   workspaceId={workspaceId}
                   selected={selectedTemplate}
-                  onSelect={(t) => {
-                    setSelectedTemplate(t);
+                  onSelect={(tmpl) => {
+                    setSelectedTemplate(tmpl);
                     setOverrides({});
                   }}
-                  onNext={() => setStep("review")}
+                  onNext={goToReview}
                 />
               )}
 
               {step === "review" && selectedTemplate && (
                 <ReviewStep
                   fields={resolvedFields()}
+                  isLoadingPreview={isLoadingPreview}
                   onOverride={(key, value) => setOverrides((prev) => ({ ...prev, [key]: value }))}
                   onBack={() => setStep("template")}
-                  onNext={() => setStep("preview")}
+                  onNext={goToPreview}
                 />
               )}
 
-              {step === "preview" && selectedTemplate && (
+              {step === "preview" && selectedTemplate && previewHtml && (
                 <PreviewStep
-                  template={selectedTemplate}
-                  fields={resolvedFields()}
+                  contentHtml={previewHtml}
                   isSending={isSending}
+                  isEdited={isDocumentEdited}
+                  onContentChange={(html) => {
+                    editedHtmlRef.current = html;
+                    setIsDocumentEdited(html !== originalHtmlRef.current);
+                  }}
                   onBack={() => setStep("review")}
                   onSend={() => setShowConfirm(true)}
                 />
@@ -213,24 +321,30 @@ export function ContractSendDrawer({
       <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Send kontrakt?</AlertDialogTitle>
+            <AlertDialogTitle>{t("send_drawer.confirm_title")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Kontrakten sendes til den ansatte for elektronisk signering via DocuSeal. Du kan ikke
-              angre etter sending.
+              {t("send_drawer.confirm_description")}
+              {isDocumentEdited && (
+                <span className="mt-1 block text-xs font-medium text-amber-600">
+                  {t("send_drawer.confirm_edited_warning")}
+                </span>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isSending}>Avbryt</AlertDialogCancel>
+            <AlertDialogCancel disabled={isSending}>
+              {t("send_drawer.confirm_cancel")}
+            </AlertDialogCancel>
             <AlertDialogAction onClick={handleSend} disabled={isSending}>
               {isSending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Sender...
+                  {t("send_drawer.sending")}
                 </>
               ) : (
                 <>
                   <Send className="mr-2 h-4 w-4" />
-                  Send kontrakt
+                  {t("send_drawer.send_contract")}
                 </>
               )}
             </AlertDialogAction>
@@ -243,19 +357,20 @@ export function ContractSendDrawer({
 
 // ── StepIndicator ─────────────────────────────────────────────
 
-const STEPS: { id: Step; label: string }[] = [
-  { id: "template", label: "Mal" },
-  { id: "review", label: "Data" },
-  { id: "preview", label: "Send" },
-];
-
 function StepIndicator({ current }: { current: Step }) {
-  const currentIndex = STEPS.findIndex((s) => s.id === current);
+  const { t } = useTranslation("contracts");
+  const steps: { id: Step; label: string }[] = [
+    { id: "template", label: t("send_drawer.step_template") },
+    { id: "review", label: t("send_drawer.step_data") },
+    { id: "preview", label: t("send_drawer.step_review") },
+  ];
+
+  const currentIndex = steps.findIndex((s) => s.id === current);
 
   return (
     <div className="border-border border-b px-6 py-3">
       <ol className="flex items-center gap-2">
-        {STEPS.map((step, i) => {
+        {steps.map((step, i) => {
           const isDone = i < currentIndex;
           const isActive = i === currentIndex;
 
@@ -277,7 +392,7 @@ function StepIndicator({ current }: { current: Step }) {
               >
                 {step.label}
               </span>
-              {i < STEPS.length - 1 && <ChevronRight className="text-muted-foreground h-3 w-3" />}
+              {i < steps.length - 1 && <ChevronRight className="text-muted-foreground h-3 w-3" />}
             </li>
           );
         })}
@@ -296,6 +411,7 @@ type TemplateStepProps = {
 };
 
 function TemplateStep({ workspaceId, selected, onSelect, onNext }: TemplateStepProps) {
+  const { t } = useTranslation("contracts");
   const [templates, setTemplates] = useState<ContractTemplate[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -306,14 +422,14 @@ function TemplateStep({ workspaceId, selected, onSelect, onNext }: TemplateStepP
     setLoading(true);
     fetch(`/api/contracts/templates?workspace_id=${workspaceId}`)
       .then(async (res) => {
-        if (!res.ok) throw new Error("Kunne ikke laste maler");
-        return res.json() as Promise<ContractTemplate[]>;
+        if (!res.ok) throw new Error(t("errors.load_templates"));
+        return res.json() as Promise<{ data: ContractTemplate[] }>;
       })
-      .then((data) => {
-        if (!cancelled) setTemplates(data);
+      .then((json) => {
+        if (!cancelled) setTemplates(json.data ?? []);
       })
       .catch((err: unknown) => {
-        if (!cancelled) setFetchError(err instanceof Error ? err.message : "Feil ved lasting");
+        if (!cancelled) setFetchError(err instanceof Error ? err.message : t("errors.load_error"));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -321,14 +437,16 @@ function TemplateStep({ workspaceId, selected, onSelect, onNext }: TemplateStepP
     return () => {
       cancelled = true;
     };
-  }, [workspaceId]);
+  }, [workspaceId, t]);
 
   return (
     <div className="space-y-5">
       <div>
-        <h3 className="text-foreground text-sm font-semibold">Velg kontraktsmal</h3>
+        <h3 className="text-foreground text-sm font-semibold">
+          {t("send_drawer.select_template")}
+        </h3>
         <p className="text-muted-foreground mt-0.5 text-xs">
-          Malen avgjør hvilke felter og vilkår som brukes.
+          {t("send_drawer.select_template_description")}
         </p>
       </div>
 
@@ -345,34 +463,34 @@ function TemplateStep({ workspaceId, selected, onSelect, onNext }: TemplateStepP
       {!loading && templates && templates.length === 0 && (
         <div className="border-border bg-muted/30 flex flex-col items-center justify-center rounded-lg border py-10 text-center">
           <FileText className="text-muted-foreground mb-2 h-8 w-8" />
-          <p className="text-muted-foreground text-sm">Ingen maler tilgjengelig</p>
+          <p className="text-muted-foreground text-sm">{t("send_drawer.no_templates")}</p>
           <p className="text-muted-foreground mt-1 text-xs">
-            Opprett en kontraktsmal i innstillingene for å komme i gang.
+            {t("send_drawer.no_templates_description")}
           </p>
         </div>
       )}
 
-      {/* Card grid for ≤3 templates, radio list for more */}
+      {/* Card grid for <=3 templates, radio list for more */}
       {!loading && templates && templates.length > 0 && (
         <>
           {templates.length <= 3 ? (
             <div className="grid grid-cols-1 gap-3">
-              {templates.map((t) => (
+              {templates.map((tmpl) => (
                 <TemplateCard
-                  key={t.template_id}
-                  template={t}
-                  isSelected={selected?.template_id === t.template_id}
+                  key={tmpl.template_id}
+                  template={tmpl}
+                  isSelected={selected?.template_id === tmpl.template_id}
                   onSelect={onSelect}
                 />
               ))}
             </div>
           ) : (
             <div className="space-y-1.5">
-              {templates.map((t) => (
+              {templates.map((tmpl) => (
                 <TemplateRadioRow
-                  key={t.template_id}
-                  template={t}
-                  isSelected={selected?.template_id === t.template_id}
+                  key={tmpl.template_id}
+                  template={tmpl}
+                  isSelected={selected?.template_id === tmpl.template_id}
                   onSelect={onSelect}
                 />
               ))}
@@ -383,7 +501,7 @@ function TemplateStep({ workspaceId, selected, onSelect, onNext }: TemplateStepP
 
       <div className="flex justify-end pt-2">
         <Button onClick={onNext} disabled={!selected}>
-          Neste: gjennomgå data
+          {t("send_drawer.next_review_data")}
           <ChevronRight className="ml-2 h-4 w-4" />
         </Button>
       </div>
@@ -400,6 +518,7 @@ function TemplateCard({
   isSelected: boolean;
   onSelect: (t: ContractTemplate) => void;
 }) {
+  const { t } = useTranslation("contracts");
   return (
     <button
       type="button"
@@ -417,7 +536,7 @@ function TemplateCard({
             <div className="text-muted-foreground mt-0.5 text-xs">{template.description}</div>
           )}
           <div className="text-muted-foreground mt-1 text-xs">
-            {template.placeholders.length} felter
+            {t("send_drawer.fields_count", { count: String(template.placeholders.length) })}
           </div>
         </div>
         {isSelected && <CheckCircle2 className="text-primary mt-0.5 h-4 w-4 shrink-0" />}
@@ -467,19 +586,20 @@ function TemplateRadioRow({
 
 type ReviewStepProps = {
   fields: PlaceholderField[];
+  isLoadingPreview: boolean;
   onOverride: (key: string, value: string) => void;
   onBack: () => void;
   onNext: () => void;
 };
 
-function ReviewStep({ fields, onOverride, onBack, onNext }: ReviewStepProps) {
+function ReviewStep({ fields, isLoadingPreview, onOverride, onBack, onNext }: ReviewStepProps) {
+  const { t } = useTranslation("contracts");
   return (
     <div className="space-y-5">
       <div>
-        <h3 className="text-foreground text-sm font-semibold">Gjennomgå kontraktsdata</h3>
+        <h3 className="text-foreground text-sm font-semibold">{t("send_drawer.review_title")}</h3>
         <p className="text-muted-foreground mt-0.5 text-xs">
-          Feltene er fylt ut automatisk fra profil og arbeidsavtale. Du kan overstyre verdier ved
-          behov.
+          {t("send_drawer.review_description")}
         </p>
       </div>
 
@@ -503,7 +623,7 @@ function ReviewStep({ fields, onOverride, onBack, onNext }: ReviewStepProps) {
               />
             ) : (
               <div className="border-border bg-muted/40 rounded-md border px-3 py-1.5">
-                <span className="text-foreground text-sm">{field.value || "—"}</span>
+                <span className="text-foreground text-sm">{field.value || "\u2014"}</span>
               </div>
             )}
           </div>
@@ -511,18 +631,27 @@ function ReviewStep({ fields, onOverride, onBack, onNext }: ReviewStepProps) {
       </div>
 
       {fields.length === 0 && (
-        <p className="text-muted-foreground text-sm">Ingen felter i denne malen.</p>
+        <p className="text-muted-foreground text-sm">{t("send_drawer.no_fields")}</p>
       )}
 
       <Separator />
 
       <div className="flex items-center justify-between pt-1">
         <Button variant="ghost" onClick={onBack} size="sm">
-          Tilbake
+          {t("send_drawer.back")}
         </Button>
-        <Button onClick={onNext} size="sm">
-          Neste: forhåndsvisning
-          <ChevronRight className="ml-2 h-4 w-4" />
+        <Button onClick={onNext} size="sm" disabled={isLoadingPreview}>
+          {isLoadingPreview ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              {t("send_drawer.loading")}
+            </>
+          ) : (
+            <>
+              {t("send_drawer.next_preview")}
+              <ChevronRight className="ml-2 h-4 w-4" />
+            </>
+          )}
         </Button>
       </div>
     </div>
@@ -532,78 +661,64 @@ function ReviewStep({ fields, onOverride, onBack, onNext }: ReviewStepProps) {
 // ── PreviewStep ───────────────────────────────────────────────
 
 type PreviewStepProps = {
-  template: ContractTemplate;
-  fields: PlaceholderField[];
+  /** Resolved HTML with placeholders replaced — ready for Tiptap rendering */
+  contentHtml: string;
   isSending: boolean;
+  isEdited: boolean;
+  onContentChange: (html: string) => void;
   onBack: () => void;
   onSend: () => void;
 };
 
-function PreviewStep({ template, fields, isSending, onBack, onSend }: PreviewStepProps) {
-  // Find the employee name field if present — used in the summary line
-  const employeeName = fields.find(
-    (f) => f.key === "employee_name" || f.key === "full_name",
-  )?.value;
-
+function PreviewStep({
+  contentHtml,
+  isSending,
+  isEdited,
+  onContentChange,
+  onBack,
+  onSend,
+}: PreviewStepProps) {
+  const { t } = useTranslation("contracts");
   return (
     <div className="space-y-5">
-      <div>
-        <h3 className="text-foreground text-sm font-semibold">Klar til å sende</h3>
-        <p className="text-muted-foreground mt-0.5 text-xs">
-          Kontroller oppsummeringen nedenfor før du sender.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-foreground text-sm font-semibold">
+            {t("send_drawer.preview_title")}
+          </h3>
+          <p className="text-muted-foreground mt-0.5 text-xs">
+            {t("send_drawer.preview_description")}
+          </p>
+        </div>
+        {isEdited && (
+          <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-600">
+            {t("send_drawer.edited_badge")}
+          </span>
+        )}
       </div>
 
-      {/* Summary card */}
-      <div className="border-border bg-card space-y-3 rounded-lg border p-4">
-        <div className="flex items-center gap-3">
-          <div className="bg-primary/10 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg">
-            <FileText className="text-primary h-5 w-5" />
-          </div>
-          <div>
-            <div className="text-foreground text-sm font-semibold">{template.name}</div>
-            {employeeName && (
-              <div className="text-muted-foreground text-xs">Til: {employeeName}</div>
-            )}
-          </div>
-        </div>
-
-        <Separator />
-
-        <div className="space-y-1.5">
-          {fields.slice(0, 6).map((f) => (
-            <div key={f.key} className="flex items-center justify-between gap-2 text-xs">
-              <span className="text-muted-foreground shrink-0">{f.label}</span>
-              <span className="text-foreground truncate font-medium">{f.value || "—"}</span>
-            </div>
-          ))}
-          {fields.length > 6 && (
-            <p className="text-muted-foreground pt-1 text-xs">+{fields.length - 6} flere felter</p>
-          )}
-        </div>
-      </div>
+      <ContractPreviewEditor contentHtml={contentHtml} onContentChange={onContentChange} />
 
       <div className="bg-muted/60 text-muted-foreground rounded-lg border px-4 py-3 text-xs">
-        Kontrakten sendes til den ansattes e-post for elektronisk signering. Du mottar en kopi etter
-        signering.
+        {t("send_drawer.preview_info")}
       </div>
 
       <Separator />
 
       <div className="flex items-center justify-between pt-1">
         <Button variant="ghost" onClick={onBack} size="sm" disabled={isSending}>
-          Tilbake
+          {t("send_drawer.back")}
         </Button>
         <Button onClick={onSend} disabled={isSending}>
           {isSending ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Sender...
+              {t("send_drawer.sending")}
             </>
           ) : (
             <>
               <Send className="mr-2 h-4 w-4" />
-              Send kontrakt
+              {t("send_drawer.send_contract")}
             </>
           )}
         </Button>

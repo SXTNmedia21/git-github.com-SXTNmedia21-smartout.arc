@@ -7,6 +7,7 @@
     "loading_profile": "Loading profile..."
   },
   "tabs": {
+    "overview": "Overview",
     "channels": "Channels",
     "chat": "Chat",
     "news": "News"
@@ -59,6 +60,8 @@
     "reply_to": "Replying to {{name}}",
     "empty_state": "No messages yet. Start the conversation!",
     "send_error": "Could not send message",
+    "send": "Send",
+    "draft_placeholder": "Write your first message...",
     "attachment_coming_soon": "{{key}} — coming soon!"
   },
   "member": {
@@ -70,9 +73,19 @@
     "add_error": "Could not add member",
     "remove_error": "Could not remove member"
   },
+  "chat": {
+    "active_conversations": "Active conversations",
+    "empty_state": "Select a conversation or start a new one",
+    "draft_prompt": "Start a conversation with {{name}} — type a message and hit send.",
+    "menu": "Menu",
+    "new_dm": "New conversation",
+    "shared_conversations": "Shared conversations",
+    "no_shared": "No shared conversations yet"
+  },
   "chat_list": {
     "filter_placeholder": "Filter by name...",
-    "all_members": "All members",
+    "all_members": "All people",
+    "empty": "No people to show",
     "unknown": "Unknown"
   },
   "call": {
@@ -88,6 +101,12 @@
     "participant_left": "{{name}} left the call",
     "join_call": "Join call",
     "start_call": "Start call",
+    "start_video_call": "Start video call",
+    "join_video_call": "Join video call",
+    "live": "Live",
+    "alert_title": "Incoming call",
+    "alert_body": "{{caller}} started a call in {{channel}}",
+    "active_in_channel": "Call in progress",
     "active_call": "Active call ({{count}} participants)",
     "join": "Join",
     "start_error": "Could not start call",
@@ -95,7 +114,11 @@
     "loading_history": "Loading call history...",
     "no_history": "No previous calls",
     "in_call": "{{count}} in call",
-    "mute_error": "Could not mute participant"
+    "mute_error": "Could not mute participant",
+    "idle_title": "Still there?",
+    "idle_body": "The call will end in 1 minute if there's no activity.",
+    "idle_stay": "Stay",
+    "idle_disconnected": "Call ended due to inactivity"
   },
   "incoming_call": {
     "ringing": "Calling you...",
@@ -131,6 +154,33 @@
   "news": {
     "empty_no_channel": "No news channel yet",
     "empty_no_messages": "No news yet"
+  },
+  "nyheter": {
+    "title": "News",
+    "compose_button": "New announcement",
+    "compose_title": "New announcement",
+    "compose_description": "Write an announcement that appears in the news feed.",
+    "field_title": "Title",
+    "field_title_placeholder": "e.g. New lunch routines",
+    "field_body": "Content",
+    "field_body_placeholder": "Write your announcement...",
+    "field_audience": "Audience",
+    "audience_all": "Everyone",
+    "publish": "Publish",
+    "publishing": "Publishing...",
+    "publish_success": "Announcement published",
+    "publish_error": "Could not publish announcement",
+    "empty_title": "No news yet",
+    "empty_subtitle": "Announcements from management will appear here",
+    "add_reaction": "Add reaction",
+    "read_placeholder": "Seen",
+    "filter_all": "All",
+    "load_more": "Load more",
+    "loading_more": "Loading...",
+    "role_employee": "Employee",
+    "role_manager": "Manager",
+    "role_admin": "Admin",
+    "role_owner": "Owner"
   },
   "time": {
     "just_now": "Just now",
@@ -168,5 +218,39 @@
     "announcement": "Announcement",
     "reminder": "Reminder",
     "summary": "Summary"
+  },
+  "overview": {
+    "filter_all": "All",
+    "filter_announcement": "Announcements",
+    "filter_brief": "Briefings",
+    "filter_handoff": "Handovers",
+    "filter_reminder": "Reminders",
+    "filter_event": "Events",
+    "empty": "No communication recorded yet"
+  },
+  "visibility": {
+    "all_members": "All members",
+    "admins": "Leaders only",
+    "targeted_members": "Selected"
+  },
+  "dates": {
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "days_ago": "{{count}} days ago"
+  },
+  "oversikt": {
+    "stat_channels": "Channels",
+    "stat_conversations_today": "Conversations today",
+    "stat_unread": "Unread messages",
+    "stat_pending_help": "Pending help",
+    "quick_actions": "Quick actions",
+    "action_botsson": "Ask Botsson",
+    "action_report": "Report problem",
+    "action_manual": "Find manual",
+    "action_call": "Call manager",
+    "recent_activity": "Recent activity",
+    "empty_activity": "No activity recorded yet",
+    "coming_soon": "Coming soon",
+    "call_coming_soon": "Call feature coming soon"
   }
 }

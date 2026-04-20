@@ -767,19 +767,39 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
       }));
 
       const workspacePayload = {
+        // Core company fields
         name: business.name || "Min bedrift",
         legalName: business.legalName,
         orgNumber: business.orgNumber,
         email: business.email,
         phone: business.phone,
-        address: [business.address, [business.postalCode, business.city].filter(Boolean).join(" ")]
-          .filter(Boolean)
-          .join(", "),
+        website: business.website,
+        ceo: business.ceo,
+
+        // Address — separate fields for company + workspace columns
+        addressLine1: business.address,
+        postalCode: business.postalCode,
+        city: business.city,
+
+        // Industry
         industry: business.industry,
         industryCode: business.industryCode,
         employeeCount: business.employeeCount,
+
+        // Description + branding
         summary: business.description,
-        website: business.website,
+        logoUrl: business.logoUrl,
+
+        // Google Places data — workspace columns
+        googleRating: business.googleRating,
+        googleRatingCount: business.googleRatingCount,
+        googleMapsUrl: business.googleMapsUrl,
+        googlePlaceId: business.googlePlaceId,
+        latitude: business.latitude,
+        longitude: business.longitude,
+        googlePriceLevel: business.priceLevel,
+
+        // Structure
         departments: selectedDepts,
         locations: locationPayload,
         procedures: selectedProcs,
@@ -788,7 +808,8 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
         seasonStartDate: season.startDate,
         seasonEndDate: season.endDate,
         contractId: contract?.contractId ?? null,
-        // Business narrative + menu data for company_details upsert
+
+        // Business narrative + menu data (company_details upsert)
         aboutUs: business.description,
         ourHistory: business.ourHistory,
         ourConcept: business.ourConcept,
@@ -797,7 +818,6 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
         priceCategory: business.priceCategory,
         menuDescription: business.menuDescription,
         socialLinks: business.socialLinks,
-        logoUrl: business.logoUrl,
       };
 
       const finalizationRequest = buildWorkspaceFinalizationRequest(

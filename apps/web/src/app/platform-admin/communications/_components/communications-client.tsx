@@ -12,6 +12,13 @@ import {
   PenLine,
   ChevronDown,
   FileText,
+  Mail,
+  MessageSquare,
+  Bell,
+  BellRing,
+  Hash,
+  Clock,
+  ShieldX,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -28,6 +35,8 @@ type CommunicationEntry = {
   subject: string;
   template: string;
   classification: string;
+  channel: string;
+  campaignId: string | null;
   audienceFilter: Record<string, unknown> | null;
   recipientCount: number;
   sentCount: number;
@@ -42,6 +51,35 @@ type CommunicationsClientProps = {
   history: CommunicationEntry[];
 };
 
+const channelIcons: Record<string, typeof Mail> = {
+  email: Mail,
+  sms: MessageSquare,
+  push: Bell,
+  in_app: BellRing,
+  channel_message: Hash,
+};
+
+const channelLabels: Record<string, string> = {
+  email: "Email",
+  sms: "SMS",
+  push: "Push",
+  in_app: "In-App",
+  channel_message: "Channel",
+};
+
+function ChannelIcon({ channel }: { channel: string }) {
+  const Icon = channelIcons[channel] ?? Mail;
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 text-xs"
+      title={channelLabels[channel] ?? channel}
+    >
+      <Icon className="h-3.5 w-3.5" />
+      <span className="text-muted-foreground">{channelLabels[channel] ?? channel}</span>
+    </span>
+  );
+}
+
 function formatAudienceSummary(filter: Record<string, unknown> | null): string {
   if (!filter) return "Unknown";
   const type = filter.type as string;
@@ -52,6 +90,8 @@ function formatAudienceSummary(filter: Record<string, unknown> | null): string {
       return "Super Admins";
     case "workspace":
       return "Workspace";
+    case "department":
+      return "Department";
     case "role":
       return `Role: ${String(filter.role ?? "")}`;
     case "status":
@@ -83,24 +123,32 @@ const columns: ColumnDef<CommunicationEntry, unknown>[] = [
       }),
   },
   {
+    accessorKey: "channel",
+    header: "Channel",
+    cell: ({ row }) => <ChannelIcon channel={row.original.channel} />,
+  },
+  {
     accessorKey: "subject",
     header: "Subject",
-    cell: ({ row }) => <span className="font-medium">{row.original.subject}</span>,
+    cell: ({ row }) => (
+      <div className="flex items-center gap-1.5">
+        <span className="font-medium">{row.original.subject}</span>
+        {row.original.campaignId && (
+          <span
+            className="bg-muted text-muted-foreground rounded px-1 py-0.5 text-[9px]"
+            title="Part of multi-channel campaign"
+          >
+            multi
+          </span>
+        )}
+      </div>
+    ),
   },
   {
     accessorKey: "template",
     header: "Template",
     cell: ({ row }) => (
       <span className="text-muted-foreground text-xs">{formatTemplate(row.original.template)}</span>
-    ),
-  },
-  {
-    accessorKey: "classification",
-    header: "Type",
-    cell: ({ row }) => (
-      <span className="text-muted-foreground text-xs capitalize">
-        {row.original.classification}
-      </span>
     ),
   },
   {
@@ -140,7 +188,8 @@ const columns: ColumnDef<CommunicationEntry, unknown>[] = [
       const opened = row.original.openedCount;
       const clicked = row.original.clickedCount;
 
-      if (total === 0 || (opened === 0 && clicked === 0)) {
+      // Only email has engagement tracking
+      if (row.original.channel !== "email" || total === 0 || (opened === 0 && clicked === 0)) {
         return <span className="text-muted-foreground text-xs">&mdash;</span>;
       }
 
@@ -167,11 +216,23 @@ const columns: ColumnDef<CommunicationEntry, unknown>[] = [
   },
 ];
 
+type ChannelTab = "all" | "email" | "sms" | "push" | "in_app";
+
 export function CommunicationsClient({ history }: CommunicationsClientProps) {
   const router = useRouter();
   const [composeOpen, setComposeOpen] = useState(false);
   const [defaultAudience, setDefaultAudience] = useState<AudienceFilter | undefined>(undefined);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [channelFilter, setChannelFilter] = useState<ChannelTab>("all");
+
+  const filteredHistory =
+    channelFilter === "all" ? history : history.filter((h) => h.channel === channelFilter);
+
+  // Channel counts for tabs
+  const channelCounts = history.reduce<Record<string, number>>((acc, h) => {
+    acc[h.channel] = (acc[h.channel] ?? 0) + 1;
+    return acc;
+  }, {});
 
   function openQuickSend(audience?: AudienceFilter) {
     setDefaultAudience(audience);
@@ -237,6 +298,22 @@ export function CommunicationsClient({ history }: CommunicationsClientProps) {
             <Button
               variant="outline"
               size="sm"
+              onClick={() => router.push("/platform-admin/communications/suppressions")}
+            >
+              <ShieldX className="mr-1.5 h-3.5 w-3.5" />
+              Suppressions
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push("/platform-admin/communications/scheduled")}
+            >
+              <Clock className="mr-1.5 h-3.5 w-3.5" />
+              Scheduled
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => router.push("/platform-admin/communications/templates")}
             >
               <FileText className="mr-1.5 h-3.5 w-3.5" />
@@ -256,7 +333,28 @@ export function CommunicationsClient({ history }: CommunicationsClientProps) {
         <TabsContent value="history">
           <Card>
             <CardContent className="pt-6">
-              <DataTable columns={columns} data={history} onRowClick={handleRowClick} />
+              {/* Channel filter tabs */}
+              <div className="mb-4 flex gap-1">
+                {(["all", "email", "sms", "push", "in_app"] as const).map((ch) => {
+                  const Icon = ch === "all" ? undefined : channelIcons[ch];
+                  const count = ch === "all" ? history.length : (channelCounts[ch] ?? 0);
+                  return (
+                    <Button
+                      key={ch}
+                      variant={channelFilter === ch ? "default" : "ghost"}
+                      size="sm"
+                      className="h-7 gap-1.5 px-2.5 text-xs"
+                      onClick={() => setChannelFilter(ch)}
+                    >
+                      {Icon && <Icon className="h-3 w-3" />}
+                      {ch === "all" ? "All" : channelLabels[ch]}
+                      <span className="text-muted-foreground ml-0.5 text-[10px]">({count})</span>
+                    </Button>
+                  );
+                })}
+              </div>
+
+              <DataTable columns={columns} data={filteredHistory} onRowClick={handleRowClick} />
               {expandedId && (
                 <div className="border-border bg-muted/30 rounded-b-md border-x border-b p-4">
                   <div className="mb-2 flex items-center justify-between">
@@ -280,7 +378,7 @@ export function CommunicationsClient({ history }: CommunicationsClientProps) {
         <TabsContent value="reports">
           <Card>
             <CardContent className="pt-6">
-              <EngagementReport communications={history} />
+              <EngagementReport communications={filteredHistory} />
             </CardContent>
           </Card>
         </TabsContent>
