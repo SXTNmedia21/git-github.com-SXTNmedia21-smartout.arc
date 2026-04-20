@@ -42,25 +42,22 @@ test.describe("Season Planning — Critical Flows", () => {
     await expect(sidebar).toBeVisible({ timeout: 8000 });
   });
 
-  test.skip(
-    true,
-    "P2 deferred per 2026-04-20 year-wheel redesign council — Goals tab moved to _deferred/",
-  );
-  test("should switch to goals tab and show create button", async ({ page: _page }) => {
-    // Deferred until the Goals tab is re-wired to the new season page route
-    // (`/dashboard/season/[seasonId]?tab=goals`). See
+  // Per-test skip modifier — uses `test.skip("name", ...)` variant so the
+  // surrounding describe's shell-render + sidebar tests still run. Top-level
+  // `test.skip(true, reason)` would skip the WHOLE describe.
+  test.skip("should switch to goals tab and show create button", async ({ page: _page }) => {
+    // P2 deferred per 2026-04-20 year-wheel redesign council — Goals tab
+    // moved to _deferred/. Re-enable when the tab is re-wired to the new
+    // season page route (`/dashboard/season/[seasonId]?tab=goals`). See
     // docs/superpowers/specs/2026-04-20-year-wheel-redesign-design.md §11.5.
   });
 
-  test.skip(
-    true,
-    "P2 deferred per 2026-04-20 year-wheel redesign council — Procedures tab moved to _deferred/",
-  );
-  test("should switch to procedures tab and show policy list or empty state", async ({
+  test.skip("should switch to procedures tab and show policy list or empty state", async ({
     page: _page,
   }) => {
-    // Deferred until the Procedures tab is re-wired to the new season page
-    // route (`/dashboard/season/[seasonId]?tab=procedures`). See
+    // P2 deferred per 2026-04-20 year-wheel redesign council — Procedures
+    // tab moved to _deferred/. Re-enable when re-wired to the new season
+    // page route (`/dashboard/season/[seasonId]?tab=procedures`). See
     // docs/superpowers/specs/2026-04-20-year-wheel-redesign-design.md §11.5.
   });
 });
