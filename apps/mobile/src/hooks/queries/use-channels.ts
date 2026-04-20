@@ -42,6 +42,7 @@ const TYPE_LABELS: Record<ChannelType, string> = {
   direct: "Direktemeldinger",
   news: "Nyheter",
   skill: "Ferdigheter",
+  desk: "Helpdesk", // ADR-0161
 };
 
 const TYPE_ORDER: ChannelType[] = [

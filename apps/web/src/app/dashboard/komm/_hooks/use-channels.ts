@@ -14,6 +14,7 @@ const TYPE_LABEL_KEYS: Record<ChannelType, string> = {
   direct: "channel_type.direct",
   news: "channel_type.news",
   skill: "channel_type.skill",
+  desk: "channel_type.desk", // ADR-0161
 };
 
 const TYPE_ORDER: ChannelType[] = [
