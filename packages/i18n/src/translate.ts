@@ -15,6 +15,7 @@ import nbContracts from "../locales/nb/contracts.json";
 import nbKomm from "../locales/nb/komm.json";
 import nbShift from "../locales/nb/shift.json";
 import nbBilling from "../locales/nb/billing.json";
+import nbHelpdesk from "../locales/nb/helpdesk.json";
 import enCommon from "../locales/en/common.json";
 import enLanding from "../locales/en/landing.json";
 import enDocs from "../locales/en/docs.json";
@@ -30,6 +31,7 @@ import enContracts from "../locales/en/contracts.json";
 import enKomm from "../locales/en/komm.json";
 import enShift from "../locales/en/shift.json";
 import enBilling from "../locales/en/billing.json";
+import enHelpdesk from "../locales/en/helpdesk.json";
 
 type MessageValue = string | Record<string, string | Record<string, string>>;
 type Messages = Record<string, MessageValue>;
@@ -51,6 +53,7 @@ const localeModules: Record<string, Record<string, Messages>> = {
     komm: nbKomm,
     shift: nbShift,
     billing: nbBilling,
+    helpdesk: nbHelpdesk,
   },
   en: {
     common: enCommon,
@@ -68,6 +71,7 @@ const localeModules: Record<string, Record<string, Messages>> = {
     komm: enKomm,
     shift: enShift,
     billing: enBilling,
+    helpdesk: enHelpdesk,
   },
 };
 
