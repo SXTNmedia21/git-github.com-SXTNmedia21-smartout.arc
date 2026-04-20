@@ -151,12 +151,12 @@ export const listMyQueue = defineTool({
 
     const { data, error } = await supabase
       .from("engine_state")
-      .select("id, entity_id, status, current_step, context, created_at")
+      .select("id, entity_id, status, current_step, context, started_at")
       .eq("workspace_id", ctx.workspaceId)
       .eq("process_id", "helpdesk_query_lifecycle")
       .eq("assignee_id", ctx.profileId)
       .in("status", ["waiting", "active"])
-      .order("created_at", { ascending: false })
+      .order("started_at", { ascending: false })
       .limit(params.limit);
 
     if (error) {
@@ -170,7 +170,7 @@ export const listMyQueue = defineTool({
         channel_id: row.entity_id,
         status: row.status,
         summary: (row.context as { summary?: string })?.summary ?? null,
-        opened_at: row.created_at,
+        opened_at: row.started_at,
       })),
     });
   },
@@ -192,7 +192,7 @@ export const getTicket = defineTool({
 
     const { data, error } = await supabase
       .from("engine_state")
-      .select("id, entity_id, status, assignee_id, context, created_at, updated_at")
+      .select("id, entity_id, status, assignee_id, context, started_at, updated_at")
       .eq("id", params.ticket_id)
       .eq("workspace_id", ctx.workspaceId)
       .eq("process_id", "helpdesk_query_lifecycle")
@@ -217,7 +217,7 @@ export const getTicket = defineTool({
       requester_profile_id: context.requester_profile_id ?? null,
       desk_channel_id: context.desk_channel_id ?? null,
       summary: context.summary ?? null,
-      opened_at: data.created_at,
+      opened_at: data.started_at,
       updated_at: data.updated_at,
     });
   },
