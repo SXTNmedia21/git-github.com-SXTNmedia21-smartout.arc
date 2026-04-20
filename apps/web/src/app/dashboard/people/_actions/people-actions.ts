@@ -247,6 +247,52 @@ export async function resetUserPassword(email: string) {
   if (error) throw new Error(error.message);
 }
 
+/**
+ * Row shape for the admin InvitationStatusList. Includes every column the
+ * UI needs for `deriveDisplayStatus`, sorting, filtering, and row actions.
+ *
+ * `token` is intentionally NOT exposed here — admins see status, not the
+ * credential. The "kopier lenke" action calls a dedicated server helper
+ * (or re-uses the existing `/invite/[token]` continuation URL construction
+ * at row-emit time) — not a field on this row.
+ */
+export type AdminInvitationRow = {
+  invitation_id: string;
+  workspace_id: string;
+  email: string | null;
+  role: string;
+  status: "pending" | "accepted" | "expired" | "cancelled";
+  opened_at: string | null;
+  expires_at: string;
+  created_at: string;
+  invited_by: string | null;
+  invite_type: string | null;
+};
+
+/**
+ * Fetches every invitation for the given workspace — all statuses, ordered
+ * by `created_at desc`. Used by the admin InvitationStatusList. RLS on
+ * `public.invitation` already constrains visibility to admins/managers of
+ * the workspace, so we do NOT bypass with service role.
+ */
+export async function listWorkspaceInvitations(workspaceId: string): Promise<AdminInvitationRow[]> {
+  const supabase = await getClient();
+  const { data, error } = await supabase
+    .from("invitation")
+    .select(
+      "invitation_id, workspace_id, email, role, status, opened_at, expires_at, created_at, invited_by, invite_type",
+    )
+    .eq("workspace_id", workspaceId)
+    .order("created_at", { ascending: false })
+    .returns<AdminInvitationRow[]>();
+
+  if (error) {
+    console.warn("[invitations] listWorkspaceInvitations failed:", error.message);
+    return [];
+  }
+  return data ?? [];
+}
+
 export async function cancelInvitation(invitationId: string) {
   const supabase = await getClient();
   const { error } = await supabase
@@ -265,6 +311,79 @@ export async function cancelInvitation(invitationId: string) {
       data: { invitation_id: invitationId },
     },
   });
+}
+
+/**
+ * Lazily marks a `pending` invitation as `expired` when its `expires_at`
+ * has already passed. Called by the admin `InvitationStatusList` on mount
+ * (one call per row that looks expired-in-UI but still shows status='pending'
+ * in the DB).
+ *
+ * Design — Auth Spec Council Q7 = b, L-0083:
+ *   - No cron job. Expiry is detected lazily when an admin opens the list
+ *     or an invitee opens the link. This avoids a scheduled Edge Function
+ *     in P1 (deferred to P2) while keeping the enum truthful for consumers
+ *     of `invitation.status`.
+ *   - The single-row UPDATE is idempotent: the WHERE clause filters on
+ *     `status='pending' AND expires_at < now()`, so concurrent admin tabs
+ *     racing the same row will result in exactly one successful UPDATE.
+ *   - We emit "invitation expired" ONLY when the UPDATE actually flipped
+ *     a row (rowCount > 0). This prevents double-emit spam across tabs and
+ *     satisfies L-0083: exactly one producer per event.
+ *
+ * ADR-0167 — the raw token never leaves the server; only the first 8 chars
+ * are emitted as `token_preview`. The token is fetched here solely so we
+ * can build that preview; the value is NOT returned to the client, logged,
+ * or stored anywhere downstream.
+ *
+ * RLS applies: the action uses the user's auth context (no service role).
+ * If the caller cannot UPDATE this invitation per policy, the UPDATE will
+ * simply affect zero rows — safe degraded behaviour.
+ */
+export async function markInvitationExpired(invitationId: string): Promise<{ expired: boolean }> {
+  const supabase = await getClient();
+
+  // Single round-trip: conditional UPDATE with RETURNING. The WHERE clause
+  // is the idempotency guard — duplicate calls from parallel tabs no-op.
+  const { data: updated, error } = await supabase
+    .from("invitation")
+    .update({ status: "expired" } satisfies TablesUpdate<"invitation">)
+    .eq("invitation_id", invitationId)
+    .eq("status", "pending")
+    .lt("expires_at", new Date().toISOString())
+    .select("invitation_id, workspace_id, token, expires_at, invited_by")
+    .maybeSingle();
+
+  if (error) {
+    // Never log the token. We don't have it here (we SELECTed it but bail
+    // before using it on error), so the console path is safe regardless.
+    console.warn("[invitations] markInvitationExpired failed:", error.message);
+    return { expired: false };
+  }
+
+  // Zero rows affected → already marked expired/accepted/cancelled, or the
+  // expires_at has been pushed forward. No emit fires — this is the correct
+  // idempotent path per L-0083.
+  if (!updated) return { expired: false };
+
+  const actorId = await resolveActorId(supabase);
+
+  void emit({
+    event: "invitation expired",
+    workspace_id: updated.workspace_id,
+    actor_id: actorId,
+    properties: {
+      entity: { entity_type: "invitation", entity_id: updated.invitation_id },
+      data: {
+        invitation_id: updated.invitation_id,
+        workspace_id: updated.workspace_id,
+        // First 8 chars only — per ADR-0167 invitation-tokens-as-credentials.
+        token_preview: updated.token.slice(0, 8),
+      },
+    },
+  });
+
+  return { expired: true };
 }
 
 export async function resendInvitation(workspaceId: string, invitationId: string) {
