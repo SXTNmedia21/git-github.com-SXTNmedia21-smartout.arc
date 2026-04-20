@@ -271,7 +271,8 @@
       "explain_exceptions": "Forklar unntak...",
       "optional_notes": "Valgfrie notater...",
       "sign_with_exceptions": "Signer med unntak",
-      "sign_session": "Signer økt"
+      "sign_session": "Signer økt",
+      "sent_to_review": "Sendt til oppgjør"
     }
   },
   "setup": {
