@@ -14,6 +14,7 @@ import { trainingCapability } from "./training/index.js";
 import { shiftLifecycleCapability } from "./shift-lifecycle/index.js";
 import { governanceCapability } from "./governance/index.js";
 import { billingQueryCapability } from "./billing-query/index.js";
+import { helpdeskQueryCapability } from "./helpdesk_query/index.js";
 
 const capabilities: Record<string, CapabilityDefinition> = {
   profile: profileCapability,
@@ -30,6 +31,7 @@ const capabilities: Record<string, CapabilityDefinition> = {
   shift_lifecycle: shiftLifecycleCapability,
   governance: governanceCapability,
   billing_query: billingQueryCapability,
+  helpdesk_query: helpdeskQueryCapability,
 };
 
 export function getCapability(name: CapabilityName): CapabilityDefinition | undefined {

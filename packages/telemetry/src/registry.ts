@@ -38,7 +38,8 @@ export type EventCategory =
   | "security"
   | "enrichment"
   | "ops_intelligence" // ADR-0088
-  | "billing"; // ADR-0118 / ADR-0125
+  | "billing" // ADR-0118 / ADR-0125
+  | "helpdesk"; // ADR-0160 / ADR-0161 / ADR-0162
 
 // ─── Entity Reference (for robust UI audit trails) ─
 export interface EntityRef {
@@ -2679,6 +2680,40 @@ export interface ChannelArchived extends BaseEvent {
   entity: EntityRef;
 }
 
+// ────────────── Helpdesk (ADR-0160/0161/0162) ──────────────
+// channel_event projection trigger (20260515120000) whitelists event_type
+// LIKE 'helpdesk.%' — these events appear in Komm UI automatically.
+
+export interface HelpdeskQueryOpened extends BaseEvent {
+  event: "helpdesk.query.opened";
+  properties: {
+    channel_id: string;
+    desk_channel_id: string;
+    assignee_profile_id: string;
+    origin_type: "chat" | "voice";
+  };
+  entity: EntityRef;
+}
+
+export interface HelpdeskQueryResolved extends BaseEvent {
+  event: "helpdesk.query.resolved";
+  properties: {
+    channel_id: string;
+    has_resolution_note: boolean;
+  };
+  entity: EntityRef;
+}
+
+export interface HelpdeskQueryReassigned extends BaseEvent {
+  event: "helpdesk.query.reassigned";
+  properties: {
+    channel_id: string;
+    from_profile_id: string;
+    to_profile_id: string;
+  };
+  entity: EntityRef;
+}
+
 export interface ChannelMessageSent extends BaseEvent {
   event: "channel.message.sent";
   properties: { channel_id: string; origin_type: string; message_type: string };
@@ -4607,6 +4642,9 @@ export type SmartoutEvent =
   | ButtonClicked
   | ChannelCreated
   | ChannelArchived
+  | HelpdeskQueryOpened
+  | HelpdeskQueryResolved
+  | HelpdeskQueryReassigned
   | ChannelMessageSent
   | ChannelMessageEdited
   | ChannelMessageDeleted
@@ -5697,6 +5735,21 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "channels",
   },
+
+  // Helpdesk (ADR-0160 — projected to channel_event via trigger; ADR-0161 ontology)
+  "helpdesk.query.opened": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "helpdesk",
+  },
+  "helpdesk.query.resolved": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "helpdesk",
+  },
+  "helpdesk.query.reassigned": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "helpdesk",
+  },
+
   "channel.message.sent": {
     destinations: ["posthog", "logger"],
     category: "channels",

@@ -19,7 +19,8 @@ export type CapabilityName =
   | "shift_swap"
   | "shift_lifecycle"
   | "governance"
-  | "billing_query"; // ADR-0118 — read-only billing surface, chat-only
+  | "billing_query" // ADR-0118 — read-only billing surface, chat-only
+  | "helpdesk_query"; // ADR-0162 — helpdesk ticket lifecycle, chat-only PII
 
 export type AuthorityLevel = "autonomous" | "confirm" | "suggest" | "read_only" | "disabled";
 
