@@ -1,0 +1,92 @@
+{
+  "page": {
+    "desks_title": "Helpdesk · Skranker",
+    "desks_lede": "Skranker binder ansatte til den som svarer.",
+    "desks_create": "Ny skranke",
+    "desks_empty_title": "Ingen skranker ennå",
+    "desks_empty_body": "En skranke er en dør til en ansvarlig kollega. Opprett en når dere vet hvem som svarer på hva.",
+    "desks_empty_cta": "Opprett første skranke"
+  },
+  "desk_card": {
+    "open_count_one": "{count} åpen sak",
+    "open_count_other": "{count} åpne saker",
+    "new_badge": "{count} nye",
+    "orphan_label": "Ingen ansvarlig",
+    "orphan_cta": "Tildel ansvarlig",
+    "last_active": "Sist aktiv {rel}",
+    "open_queue": "Åpne kø"
+  },
+  "desk_dialog": {
+    "title": "Opprett skranke",
+    "field_name": "Navn",
+    "field_name_placeholder": "f.eks. «HR»",
+    "field_description": "Kort beskrivelse (valgfritt)",
+    "field_responsible": "Ansvarlig",
+    "submit": "Opprett skranke",
+    "submit_pending": "Oppretter…",
+    "cancel": "Avbryt"
+  },
+  "desk_combobox": {
+    "placeholder": "Velg ansvarlig",
+    "empty": "Ingen tilgjengelige ledere"
+  },
+  "desk_queue_sheet": {
+    "title": "Skrankekø",
+    "view_all": "Vis alle i Kanaler"
+  },
+  "ticket_status": {
+    "waiting": "Venter",
+    "active": "Aktiv",
+    "complete": "Løst",
+    "waiting_upper": "VENTER",
+    "active_upper": "AKTIV",
+    "complete_upper": "LØST"
+  },
+  "ticket_header": {
+    "back": "Tilbake til kanaler",
+    "reassign": "Tildel på nytt",
+    "resolved_at": "Løst {time}"
+  },
+  "ticket_action": {
+    "resolve": "Løs sak",
+    "resolve_pending": "Løser…"
+  },
+  "ticket_empty": {
+    "title": "{name} åpnet denne saken nettopp.",
+    "body": "Ingen meldinger ennå. Skriv et svar for å komme i gang."
+  },
+  "ticket_resolve_dialog": {
+    "title": "Løs saken",
+    "lede": "{name} — dette lukker saken for {requester}.",
+    "field_label": "Hva var løsningen? (valgfritt)",
+    "field_placeholder": "f.eks. «Avklart — gjelder ikke romjul 24.–26.»",
+    "submit": "Løs sak"
+  },
+  "ticket_composer": {
+    "locked": "Saken er løst. Botsson har stengt kanalen."
+  },
+  "mobile_tab": {
+    "queue": "Min kø"
+  },
+  "mobile_queue": {
+    "subcount_no_waiting": "{count} åpne",
+    "subcount_with_waiting": "{open} åpne · {waiting} venter",
+    "empty_title": "Ingen åpne saker",
+    "empty_body": "Alt er løst. Nyt pausen.",
+    "error_title": "Kunne ikke hente kø",
+    "error_retry": "Prøv igjen"
+  },
+  "mobile_ticket_forbidden": {
+    "title": "Denne saken er ikke din",
+    "body": "Be administratoren om å tildele den til deg."
+  },
+  "mobile_fab": {
+    "resolve": "Løs saken"
+  },
+  "toast": {
+    "desk_created": "Skranken «{name}» ble opprettet.",
+    "desks_forbidden": "Bare administratorer kan endre skranker.",
+    "ticket_resolved": "Saken er løst. {requester} får beskjed.",
+    "ticket_resolve_failed": "Kunne ikke løse saken. Prøv igjen."
+  }
+}
