@@ -128,6 +128,11 @@
     --glow-warm: oklch(0.45 0.18 40);
     --glow-deep: oklch(0.35 0.14 35);
 
+    /* Workspace Accent — SSR default (brand-orange neighbourhood).
+       Runtime components (InvitationContextHeader, WorkspaceCard) override
+       this with workspaceAccentOklch(slug) via inline style or root style var. */
+    --workspace-accent: oklch(0.62 0.14 40);
+
     /* Scrollbar — Light */
     --scrollbar-thumb: oklch(0.78 0 0);
     --scrollbar-thumb-hover: oklch(0.65 0 0);
