@@ -26,6 +26,7 @@ tags: [decisions, adr, index]
 
 | ADR | Date | Title | Status |
 |-----|------|-------|--------|
+| [ADR-0158](0158-packages-ui-dual-platform-strategy.md) | 2026-04-19 | packages/ui Dual-Platform Consumption Strategy — `.web.tsx` + `.native.tsx` platform extensions with shared TS logic primitives. Preserves current apps/web path; mobile adoption additive. Rejects NativeWind + full-separate-package approaches. First consumer: day-control widgets (ADR-0156 §8 Phase 2 complete). | proposed |
 | [ADR-0157](0157-server-actions-scope-amendment-adr-0114.md) | 2026-04-19 | Server Actions Scope — Amendment to ADR-0114: new mutations only, existing TanStack mutations grandfathered until scheduled migration. (Council 2026-04-19) | accepted |
 | [ADR-0156](0156-day-control-panel-canonical-admin-surface.md) | 2026-04-19 | Day-Control Panel as Canonical D6 Admin Surface — replace `OversiktView` with `WebDayControl`, staged widget placement (apps/web → packages/ui when mobile lands), `locked` phase derived via helper, broadcast type in komm `channel_message.system_data`. (Council 2026-04-19) | accepted |
 | [ADR-0155](0155-livekit-calls-in-expo-web.md) | 2026-04-19 | LiveKit calls are supported in Expo-web via shared `livekit-client` Room lifecycle. Supersedes the "LiveKit voice calls" incapacity clause of ADR-0153. Background Web Push for closed-tab alerts is a follow-up. | proposed |
