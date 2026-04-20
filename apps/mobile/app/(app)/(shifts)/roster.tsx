@@ -245,9 +245,7 @@ export default function RosterScreen() {
             <Text style={styles.emptyText}>Ingen vakter å vise</Text>
           </View>
         ) : (
-          weeks.map((week, i) => (
-            <WeekSection key={week.weekNumber} week={week} index={i} />
-          ))
+          weeks.map((week, i) => <WeekSection key={week.weekNumber} week={week} index={i} />)
         )}
       </ScrollView>
     </SafeAreaView>

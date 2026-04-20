@@ -30,7 +30,9 @@ export function ProcedureStepper({ procedures, assignmentId, isDark }: Procedure
 
   if (procedures.length === 0) {
     return (
-      <p className={`py-4 text-center text-sm ${isDark ? "text-muted-foreground" : "text-muted-foreground"}`}>
+      <p
+        className={`py-4 text-center text-sm ${isDark ? "text-muted-foreground" : "text-muted-foreground"}`}
+      >
         Ingen prosedyrer i denne protokollen.
       </p>
     );
@@ -88,9 +90,7 @@ export function ProcedureStepper({ procedures, assignmentId, isDark }: Procedure
 
             {/* Steps */}
             {isExpanded && (
-              <div
-                className={`border-t px-3 py-2 ${isDark ? "border-border" : "border-border"}`}
-              >
+              <div className={`border-t px-3 py-2 ${isDark ? "border-border" : "border-border"}`}>
                 <div className="space-y-1">
                   {proc.steps.map((step, idx) => {
                     const isNext =

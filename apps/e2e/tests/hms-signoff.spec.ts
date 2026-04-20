@@ -34,9 +34,9 @@ test.describe("HMS Session Sign-off", () => {
       await signoffBtn.click();
 
       // Sign-off drawer should open
-      await expect(
-        page.locator("text=Signering").or(page.locator("text=Sign-off")),
-      ).toBeVisible({ timeout: 3000 });
+      await expect(page.locator("text=Signering").or(page.locator("text=Sign-off"))).toBeVisible({
+        timeout: 3000,
+      });
 
       // Should show compliance task status
       await expect(

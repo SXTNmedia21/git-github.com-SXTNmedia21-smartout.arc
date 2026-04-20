@@ -39,7 +39,9 @@ export function KnowledgeTestView({ tests, assignmentId, isDark }: KnowledgeTest
 
   if (tests.length === 0) {
     return (
-      <p className={`py-4 text-center text-sm ${isDark ? "text-muted-foreground" : "text-muted-foreground"}`}>
+      <p
+        className={`py-4 text-center text-sm ${isDark ? "text-muted-foreground" : "text-muted-foreground"}`}
+      >
         Ingen kunnskapstester i denne protokollen.
       </p>
     );
@@ -111,7 +113,9 @@ export function KnowledgeTestView({ tests, assignmentId, isDark }: KnowledgeTest
             </div>
 
             <div className="min-w-0 flex-1">
-              <p className={`text-sm font-semibold ${isDark ? "text-foreground" : "text-foreground"}`}>
+              <p
+                className={`text-sm font-semibold ${isDark ? "text-foreground" : "text-foreground"}`}
+              >
                 {test.name}
               </p>
               {test.description && (
@@ -144,7 +148,9 @@ export function KnowledgeTestView({ tests, assignmentId, isDark }: KnowledgeTest
               </div>
             </div>
 
-            <ChevronRight className={`h-4 w-4 ${isDark ? "text-muted-foreground" : "text-muted-foreground"}`} />
+            <ChevronRight
+              className={`h-4 w-4 ${isDark ? "text-muted-foreground" : "text-muted-foreground"}`}
+            />
           </button>
         ))}
       </div>
@@ -162,7 +168,9 @@ export function KnowledgeTestView({ tests, assignmentId, isDark }: KnowledgeTest
             resetQuiz();
           }}
           className={`rounded-lg px-2 py-1 text-xs font-bold transition-colors ${
-            isDark ? "text-muted-foreground hover:text-foreground" : "text-muted-foreground hover:text-foreground"
+            isDark
+              ? "text-muted-foreground hover:text-foreground"
+              : "text-muted-foreground hover:text-foreground"
           }`}
         >
           Tilbake

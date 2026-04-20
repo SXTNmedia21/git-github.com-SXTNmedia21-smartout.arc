@@ -92,9 +92,7 @@ export function ShiftClockView() {
     if (isClockedIn) {
       setViewPhase(isOnBreak ? "on_break" : "clocked_in");
     } else if (phase === "no_shift" || phase === "before_shift") {
-      setViewPhase((prev) =>
-        prev === "summary" || prev === "after_shift" ? prev : "idle",
-      );
+      setViewPhase((prev) => (prev === "summary" || prev === "after_shift" ? prev : "idle"));
     }
   }, [isClockedIn, isOnBreak, phase]);
 

@@ -93,8 +93,7 @@ ${v.signUrl ? `<p style="margin:24px 0;"><a href="${v.signUrl}" style="display:i
   },
 
   "contract-lifecycle": {
-    subject: (v) =>
-      interpolate(v.subject ?? "Kontraktoppdatering — {{employeeName}}", v),
+    subject: (v) => interpolate(v.subject ?? "Kontraktoppdatering — {{employeeName}}", v),
     body: (v) => `
 <h2 style="margin:0 0 16px;font-size:20px;color:#1a1a2e;">${interpolate(v.title ?? "Kontraktoppdatering", v)}</h2>
 <p style="margin:0 0 16px;">Hei {{recipientName}},</p>

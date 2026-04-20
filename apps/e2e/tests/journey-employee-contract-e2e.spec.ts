@@ -72,10 +72,7 @@ async function cleanupTrackedContracts(
     await supabase.from("contract").delete().in("contract_id", contractIds);
   }
   if (employmentContractIds.length > 0) {
-    await supabase
-      .from("employment_contract")
-      .delete()
-      .in("contract_id", employmentContractIds);
+    await supabase.from("employment_contract").delete().in("contract_id", employmentContractIds);
   }
 }
 
@@ -190,7 +187,8 @@ test.describe("Journey — Employee employment contract end-to-end", () => {
     } catch (err) {
       test.info().annotations.push({
         type: "telemetry-gap",
-        description: `"contract created" telemetry not landed in activity_trail within 5s. ` +
+        description:
+          `"contract created" telemetry not landed in activity_trail within 5s. ` +
           `This may indicate the registry does not route emit()→activity_trail for this event. ` +
           `Error: ${err instanceof Error ? err.message : String(err)}`,
       });
@@ -345,7 +343,8 @@ test.describe("Journey — Employee employment contract end-to-end", () => {
     } catch (err) {
       test.info().annotations.push({
         type: "telemetry-gap",
-        description: `"contract sent" telemetry not in activity_trail within 5s. ` +
+        description:
+          `"contract sent" telemetry not in activity_trail within 5s. ` +
           `Error: ${err instanceof Error ? err.message : String(err)}`,
       });
     }
@@ -447,8 +446,14 @@ test.describe("Journey — Employee employment contract end-to-end", () => {
 
     // Either the "Min kontrakt" h1 (contract present) OR the "Ingen kontrakter" h2
     // (empty state) is acceptable — both prove the page loads correctly.
-    const present = page.locator("h1").filter({ hasText: /Min kontrakt/i }).first();
-    const empty = page.locator("h2").filter({ hasText: /Ingen kontrakter/i }).first();
+    const present = page
+      .locator("h1")
+      .filter({ hasText: /Min kontrakt/i })
+      .first();
+    const empty = page
+      .locator("h2")
+      .filter({ hasText: /Ingen kontrakter/i })
+      .first();
 
     const [hasPresent, hasEmpty] = await Promise.all([
       present

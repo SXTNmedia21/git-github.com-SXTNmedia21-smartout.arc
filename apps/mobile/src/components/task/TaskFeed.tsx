@@ -103,8 +103,7 @@ export function TaskFeed({ tasks, profileId }: TaskFeedProps) {
       if (pendingTasks.length > 0) {
         const allTasks = fullHookGroups.get(hookId) ?? pendingTasks;
         const firstTask = allTasks[0];
-        const derivedName =
-          firstTask?.procedure_name ?? firstTask?.title ?? strings.cleaning.title;
+        const derivedName = firstTask?.procedure_name ?? firstTask?.title ?? strings.cleaning.title;
 
         items.push({
           type: "checklist",

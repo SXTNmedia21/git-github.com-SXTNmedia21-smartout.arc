@@ -28,7 +28,9 @@ export function ConfirmationSign({ confirmations, assignmentId, isDark }: Confir
 
   if (confirmations.length === 0) {
     return (
-      <p className={`py-4 text-center text-sm ${isDark ? "text-muted-foreground" : "text-muted-foreground"}`}>
+      <p
+        className={`py-4 text-center text-sm ${isDark ? "text-muted-foreground" : "text-muted-foreground"}`}
+      >
         Ingen bekreftelser i denne protokollen.
       </p>
     );
@@ -57,11 +59,17 @@ export function ConfirmationSign({ confirmations, assignmentId, isDark }: Confir
               {conf.isSigned ? (
                 <CheckCircle2 className="h-4 w-4 text-emerald-500" />
               ) : (
-                <PenTool className={`h-4 w-4 ${isDark ? "text-muted-foreground" : "text-muted-foreground"}`} />
+                <PenTool
+                  className={`h-4 w-4 ${isDark ? "text-muted-foreground" : "text-muted-foreground"}`}
+                />
               )}
               <h4
                 className={`text-sm font-bold ${
-                  conf.isSigned ? "text-emerald-500" : isDark ? "text-foreground" : "text-foreground"
+                  conf.isSigned
+                    ? "text-emerald-500"
+                    : isDark
+                      ? "text-foreground"
+                      : "text-foreground"
                 }`}
               >
                 {conf.name}

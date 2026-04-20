@@ -106,11 +106,12 @@ export function ChampionsTab({ profiles, onOpenCompose }: Props) {
                     variant="ghost"
                     size="sm"
                     className="h-7 text-xs"
-                    onClick={() =>
-                      onOpenCompose({
-                        type: "user_ids",
-                        userIds: [p.userId],
-                      } as unknown as AudienceFilter) // SAFETY: Supabase join returns union type; runtime shape matches the cast
+                    onClick={
+                      () =>
+                        onOpenCompose({
+                          type: "user_ids",
+                          userIds: [p.userId],
+                        } as unknown as AudienceFilter) // SAFETY: Supabase join returns union type; runtime shape matches the cast
                     }
                   >
                     <Send className="mr-1 h-3 w-3" /> Email

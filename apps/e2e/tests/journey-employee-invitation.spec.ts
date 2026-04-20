@@ -98,10 +98,7 @@ async function cleanupInvitation(email: string): Promise<void> {
   await supabase.from("invitation").delete().eq("email", email);
   // Also delete any auth user that acceptance may have created.
   // Service-role key is required (present via helpers/seed.ts).
-  const { data: users } = await supabase
-    .from("user_identity")
-    .select("user_id")
-    .eq("email", email);
+  const { data: users } = await supabase.from("user_identity").select("user_id").eq("email", email);
   if (users && users.length > 0) {
     for (const u of users) {
       // profile rows cascade on user_identity delete? No — delete profile first.
@@ -142,9 +139,7 @@ test.describe("Journey — Employee invitation lifecycle", () => {
       // Verify DB row shape
       const { data: row, error } = await supabase
         .from("invitation")
-        .select(
-          "invitation_id, workspace_id, company_id, email, role, status, token, expires_at",
-        )
+        .select("invitation_id, workspace_id, company_id, email, role, status, token, expires_at")
         .eq("invitation_id", body.invitation_id as string)
         .single();
 
@@ -157,9 +152,7 @@ test.describe("Journey — Employee invitation lifecycle", () => {
       expect(row?.status).toBe("pending");
       expect(row?.token).toBeTruthy();
       // Token is a uuid
-      expect(row?.token).toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
-      );
+      expect(row?.token).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
       // expires_at is in the future
       expect(new Date(row!.expires_at).getTime()).toBeGreaterThan(Date.now());
 
@@ -181,7 +174,8 @@ test.describe("Journey — Employee invitation lifecycle", () => {
       } catch (err) {
         test.info().annotations.push({
           type: "telemetry-gap",
-          description: `No "invitation created" activity_trail row found within 5s. ` +
+          description:
+            `No "invitation created" activity_trail row found within 5s. ` +
             `Either the registry/trigger does not emit on invitation insert, or the ` +
             `Edge Function writes it async. This is a finding, not a test bug. ` +
             `Original error: ${err instanceof Error ? err.message : String(err)}`,
@@ -250,24 +244,36 @@ test.describe("Journey — Employee invitation lifecycle", () => {
       await inviteBtn.click();
 
       // Fill single invite form. Fields: Fornavn, Etternavn, E-post (at minimum).
-      await page.locator('input[placeholder*="Fornavn"], input[name*="firstName"]')
+      await page
+        .locator('input[placeholder*="Fornavn"], input[name*="firstName"]')
         .first()
         .fill("E2E")
         .catch(async () => {
           // Fallback: find by label text
-          await page.getByLabel(/Fornavn/i).first().fill("E2E");
+          await page
+            .getByLabel(/Fornavn/i)
+            .first()
+            .fill("E2E");
         });
-      await page.locator('input[placeholder*="Etternavn"], input[name*="lastName"]')
+      await page
+        .locator('input[placeholder*="Etternavn"], input[name*="lastName"]')
         .first()
         .fill("UITest")
         .catch(async () => {
-          await page.getByLabel(/Etternavn/i).first().fill("UITest");
+          await page
+            .getByLabel(/Etternavn/i)
+            .first()
+            .fill("UITest");
         });
-      await page.locator('input[type="email"], input[placeholder*="post"]')
+      await page
+        .locator('input[type="email"], input[placeholder*="post"]')
         .first()
         .fill(email)
         .catch(async () => {
-          await page.getByLabel(/e-post/i).first().fill(email);
+          await page
+            .getByLabel(/e-post/i)
+            .first()
+            .fill(email);
         });
 
       // Submit. Expect a Send / Inviter button.

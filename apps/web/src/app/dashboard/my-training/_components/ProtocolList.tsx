@@ -106,7 +106,9 @@ function ProtocolCard({ protocol, isDark }: { protocol: AssignedProtocol; isDark
             {protocol.protocolName}
           </h3>
           {protocol.protocolDescription && (
-            <p className={`mt-0.5 truncate text-xs ${isDark ? "text-muted-foreground" : "text-muted-foreground"}`}>
+            <p
+              className={`mt-0.5 truncate text-xs ${isDark ? "text-muted-foreground" : "text-muted-foreground"}`}
+            >
               {protocol.protocolDescription}
             </p>
           )}
@@ -236,8 +238,12 @@ export function ProtocolList() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className={`h-6 w-6 animate-spin ${isDark ? "text-muted-foreground" : "text-muted-foreground"}`} />
-        <span className={`ml-3 text-sm ${isDark ? "text-muted-foreground" : "text-muted-foreground"}`}>
+        <Loader2
+          className={`h-6 w-6 animate-spin ${isDark ? "text-muted-foreground" : "text-muted-foreground"}`}
+        />
+        <span
+          className={`ml-3 text-sm ${isDark ? "text-muted-foreground" : "text-muted-foreground"}`}
+        >
           Laster opplaering...
         </span>
       </div>
@@ -267,12 +273,16 @@ export function ProtocolList() {
             isDark ? "bg-muted" : "bg-muted"
           }`}
         >
-          <ClipboardList className={`h-8 w-8 ${isDark ? "text-muted-foreground" : "text-muted-foreground"}`} />
+          <ClipboardList
+            className={`h-8 w-8 ${isDark ? "text-muted-foreground" : "text-muted-foreground"}`}
+          />
         </div>
         <h2 className={`mb-2 text-xl font-bold ${isDark ? "text-foreground" : "text-foreground"}`}>
           Ingen protokoller tildelt
         </h2>
-        <p className={`max-w-sm text-center text-sm ${isDark ? "text-muted-foreground" : "text-muted-foreground"}`}>
+        <p
+          className={`max-w-sm text-center text-sm ${isDark ? "text-muted-foreground" : "text-muted-foreground"}`}
+        >
           Du har ingen aktive opplaeringsprotokoller. Kontakt din leder for mer informasjon.
         </p>
       </div>

@@ -51,8 +51,9 @@ describe("loadConfig research fields", () => {
 
   it("defaults vaultBubbleShapesDir to the second-brain bubble-shapes path", () => {
     const config = loadConfig({ ...baseEnv });
+    const home = process.env.HOME ?? "/home/sxtnl";
     expect(config.vaultBubbleShapesDir).toBe(
-      "/home/sxtnl/dev/second-brain-v2/wiki/migration/bubble-shapes",
+      `${home}/dev/second-brain-v2/wiki/migration/bubble-shapes`,
     );
   });
 
