@@ -5224,7 +5224,7 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   // emit site: on-read expiration check in apps/web/src/app/invite/[token]/page.tsx
   //            (status transition pending → expired)
   "invitation expired": {
-    destinations: ["logger", "activity_trail"],
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "auth",
   },
 
@@ -6430,7 +6430,7 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   // emit site: apps/web/src/app/reset-password/page.tsx post-updateUser success handler
   "auth password_reset_completed": {
-    destinations: ["posthog", "logger", "activity_trail"],
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "auth",
   },
   // ─── Security ─────────────────────────────────
