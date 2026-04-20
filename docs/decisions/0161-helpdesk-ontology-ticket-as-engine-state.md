@@ -1,10 +1,10 @@
 ---
 title: "Helpdesk ontology — ticket as engine_state"
 id: ADR_0161
-status: proposed
+status: accepted
 layer: decision
 created: 2026-04-19
-updated: 2026-04-19
+updated: 2026-04-20
 ---
 
 # ADR-0161: Helpdesk ontology — ticket as `engine_state`, channel as conversation projection

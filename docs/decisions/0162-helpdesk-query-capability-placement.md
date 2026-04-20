@@ -1,10 +1,10 @@
 ---
 title: "helpdesk_query capability placement and isolation"
 id: ADR_0162
-status: proposed
+status: accepted
 layer: decision
 created: 2026-04-19
-updated: 2026-04-19
+updated: 2026-04-20
 ---
 
 # ADR-0162: `helpdesk_query` capability placement and isolation

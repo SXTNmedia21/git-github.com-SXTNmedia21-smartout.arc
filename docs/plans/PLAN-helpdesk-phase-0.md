@@ -1,16 +1,18 @@
 ---
 title: "Helpdesk Phase 0 — Foundations (4 ADRs + Dead-Infra Wiring + Schema Sequencing)"
 id: PLAN_HELPDESK_PHASE_0
-status: draft
+status: in_progress
 layer: plan
 created: 2026-04-19
-updated: 2026-04-19
+updated: 2026-04-20
 depends_on:
   - ADR_0160
   - ADR_0161
   - ADR_0162
   - ADR_0163
 ---
+
+> **Week 1 status (2026-04-20):** All 4 ADRs accepted. Task 1.1 (acceptance council) and Task 1.2 (status flip) COMPLETE. Week 2 (dead-infra wiring) is now unblocked.
 
 # Helpdesk Phase 0 — Foundations
 

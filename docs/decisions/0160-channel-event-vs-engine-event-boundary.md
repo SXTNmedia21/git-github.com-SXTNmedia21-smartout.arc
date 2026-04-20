@@ -1,10 +1,10 @@
 ---
 title: "channel_event vs engine_event boundary"
 id: ADR_0160
-status: proposed
+status: accepted
 layer: decision
 created: 2026-04-19
-updated: 2026-04-19
+updated: 2026-04-20
 ---
 
 # ADR-0160: `channel_event` vs `engine_event` boundary
