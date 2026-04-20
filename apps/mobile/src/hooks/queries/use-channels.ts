@@ -42,7 +42,8 @@ const TYPE_LABELS: Record<ChannelType, string> = {
   direct: "Direktemeldinger",
   news: "Nyheter",
   skill: "Ferdigheter",
-  desk: "Helpdesk", // ADR-0161
+  desk: "Helpdesk", // ADR-0161 — rendered in dedicated desk admin, NOT the Kanaler sidebar (not in TYPE_ORDER)
+  query_thread: "Henvendelser", // ADR-0161 — dedicated type for helpdesk conversations, filtered out of Kanaler
 };
 
 const TYPE_ORDER: ChannelType[] = [

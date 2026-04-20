@@ -97,6 +97,8 @@ Capabilities:
 - shift_lifecycle: Publishing, approving, interpreting, or settling a shift (write-side lifecycle actions on the employee's own shift). Examples: "godkjenn vakten min" (approve), "publiser vakten" (publish), "avslutte oppgjøret" / "gjør opp vakten" (settle), "tolk timene på nytt" (interpret). Use shift_lifecycle for mutating actions on a shift; use schedule for read-only queries like "når jobber jeg?"
 - operations_intelligence: Manager/system-scoped operational intelligence queries (occupancy, demand, readiness trends across teams)
 - governance: Authority, approval gates, change proposals, policy-level decisions
+- billing_query: Read-only billing questions — invoice status, pricing terms, payment history. (ADR-0118)
+- helpdesk_query: Opening, listing, viewing, or resolving a help-desk ticket routed to a responsible representative. Examples: "jeg har et spørsmål til HR" (open ticket), "vis meg åpne henvendelser" (list queue), "marker som løst" (resolve). Use helpdesk_query for anything routed to a desk; use communication for general channel messaging.
 - general: Greetings, small talk, unclear intent, meta-questions
 
 The user writes in Norwegian or English. Classify based on intent, not language.

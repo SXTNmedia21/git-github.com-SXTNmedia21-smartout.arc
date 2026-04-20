@@ -18333,6 +18333,7 @@ export type Database = {
         | "news"
         | "skill"
         | "desk"
+        | "query_thread"
       communication_channel: "email" | "sms" | "push" | "in_app"
       communication_status:
         | "pending"
@@ -19823,6 +19824,7 @@ export const Constants = {
         "news",
         "skill",
         "desk",
+        "query_thread",
       ],
       communication_channel: ["email", "sms", "push", "in_app"],
       communication_status: [

@@ -47,13 +47,15 @@ export const openTicket = defineTool({
       return "Desk has no responsible representative — cannot route query.";
     }
 
-    // 2. Create the conversation thread (channel_type='custom' for now;
-    //    a future migration may add 'query_thread' enum value).
+    // 2. Create the conversation thread. channel_type='query_thread'
+    //    (migration 20260515130400) keeps helpdesk threads out of the
+    //    generic Kanaler sidebar — they belong under desks, not alongside
+    //    user-created custom channels.
     const { data: thread, error: threadErr } = await supabase
       .from("channel")
       .insert({
         workspace_id: ctx.workspaceId,
-        channel_type: "custom",
+        channel_type: "query_thread",
         name: `Henvendelse: ${params.summary.slice(0, 60)}`,
         description: `Helpdesk-tråd på ${desk.name ?? "desk"}`,
         created_by: ctx.profileId,
@@ -261,14 +263,36 @@ export const resolveTicket = defineTool({
       return "Ticket is already resolved.";
     }
 
-    // Authorization: assignee OR admin/owner via company_member.
-    // Representative role on the channel also passes (they can resolve
-    // tickets on desks they own, even after reassignment).
+    // Authorization: assignee OR admin/owner in the ticket workspace's company.
+    // Representative-role authorization via channel_member is deferred to Phase 2
+    // (currently reps that aren't also the assignee cannot resolve — document this
+    // boundary if/when reassignment is implemented).
     if (ticket.assignee_id !== ctx.profileId) {
+      // Hard-fail on missing session user — silent empty-string match would
+      // grant admin to nobody but looks like a valid "not admin" result,
+      // confusing the caller. Explicit error instead.
+      if (!ctx.userId) {
+        return "Cannot authorize admin override — session has no user identity.";
+      }
+
+      // Scope admin lookup to the ticket's workspace's company. Without this
+      // scope, a user who is admin in Company A could resolve tickets in
+      // Workspace Y owned by Company B (cross-tenant privilege escalation).
+      const { data: workspace, error: workspaceErr } = await supabase
+        .from("workspace")
+        .select("company_id")
+        .eq("workspace_id", ticket.workspace_id)
+        .single();
+
+      if (workspaceErr || !workspace?.company_id) {
+        return "Failed to resolve ticket workspace — cannot authorize admin override.";
+      }
+
       const { data: adminCheck } = await supabase
         .from("company_member")
         .select("role")
-        .eq("user_id", ctx.userId ?? "")
+        .eq("user_id", ctx.userId)
+        .eq("company_id", workspace.company_id)
         .maybeSingle();
 
       const isAdmin = adminCheck?.role === "owner" || adminCheck?.role === "admin";

@@ -290,6 +290,9 @@ describe("resolveTicket", () => {
           error: null,
         });
       }
+      if (name === "workspace") {
+        return chainable({ data: { company_id: "company-1" }, error: null });
+      }
       if (name === "company_member") {
         return chainable({ data: { role: "member" }, error: null });
       }
@@ -300,6 +303,59 @@ describe("resolveTicket", () => {
       makeCtx({ supabaseAdmin: sb, userId: "user-1" }),
     );
     expect(result).toContain("Only the assignee");
+  });
+
+  it("hard-fails when caller is not assignee and has no userId", async () => {
+    const sb = mockSupabase({
+      engine_state: {
+        data: {
+          id: TICKET_ID,
+          workspace_id: WORKSPACE_ID,
+          entity_id: THREAD_CHANNEL_ID,
+          assignee_id: REP_PROFILE_ID,
+          status: "waiting",
+          context: {},
+        },
+        error: null,
+      },
+    });
+    const result = await resolveTicket.execute(
+      { ticket_id: TICKET_ID },
+      makeCtx({ supabaseAdmin: sb }), // userId undefined
+    );
+    expect(result).toContain("session has no user identity");
+  });
+
+  it("rejects cross-company admin privilege escalation", async () => {
+    const sb = mockSupabase({});
+    (sb.from as unknown as ReturnType<typeof vi.fn>).mockImplementation((name: string) => {
+      if (name === "engine_state") {
+        return chainable({
+          data: {
+            id: TICKET_ID,
+            workspace_id: WORKSPACE_ID,
+            entity_id: THREAD_CHANNEL_ID,
+            assignee_id: REP_PROFILE_ID,
+            status: "waiting",
+            context: {},
+          },
+          error: null,
+        });
+      }
+      if (name === "workspace") {
+        return chainable({ data: { company_id: "ticket-company" }, error: null });
+      }
+      if (name === "company_member") {
+        // User IS admin — but in a DIFFERENT company. Scoped query returns null.
+        return chainable({ data: null, error: null });
+      }
+      return chainable({ data: null, error: { message: "unknown" } });
+    });
+    const result = await resolveTicket.execute(
+      { ticket_id: TICKET_ID },
+      makeCtx({ supabaseAdmin: sb, userId: "user-1" }),
+    );
+    expect(result).toContain("Only the assignee or an admin");
   });
 
   it("rejects cross-workspace ticket", async () => {
