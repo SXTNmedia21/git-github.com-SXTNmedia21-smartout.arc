@@ -249,8 +249,20 @@ export async function updateDeskResponsible(
 
   if (updateErr) return { ok: false, error: updateErr.message };
 
-  // Ensure the new rep is a channel_member with 'representative' role.
-  // If they were already a member, upsert silently; if not, insert.
+  // Demote the previous rep so desks don't accrete ghost representatives
+  // across reassignments. Only touch the prior holder when they differ from
+  // the new one — upserting the same profile_id twice would race on the
+  // PK. Leave them as role='member' instead of deleting so historical
+  // channel-membership (message authorship, reactions, etc.) stays intact.
+  if (previousResponsibleId && previousResponsibleId !== parsed.data.responsible_profile_id) {
+    await supabase
+      .from("channel_member")
+      .update({ role: "member" })
+      .eq("channel_id", desk.id)
+      .eq("profile_id", previousResponsibleId);
+  }
+
+  // Upsert the new rep as a channel_member with 'representative' role.
   await supabase.from("channel_member").upsert(
     {
       channel_id: desk.id,

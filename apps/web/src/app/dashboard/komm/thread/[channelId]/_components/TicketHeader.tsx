@@ -105,13 +105,17 @@ export function TicketHeader({
           ) : null}
           {assignee ? (
             <>
+              {/*
+                Pulse-budget dedupe: the 48px status orb already pulses on
+                waiting tickets. Keeping the 20px assignee halo calm avoids
+                two pulsing elements co-located in the same header band
+                (Nordic Split: max 3 pulses per viewport).
+              */}
               <LighthouseAvatar
                 avatarUrl={assignee.avatar_url}
                 name={assignee.display_name}
                 size={20}
-                haloState={
-                  status === "waiting" ? "waiting" : status === "active" ? "active" : "idle"
-                }
+                haloState={status === "complete" ? "idle" : "active"}
               />
               <span className="text-muted-foreground text-xs">{assignee.display_name}</span>
             </>

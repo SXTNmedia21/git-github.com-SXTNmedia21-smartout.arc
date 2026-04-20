@@ -103,9 +103,17 @@ export async function resolveTicketAction(
     resolved_by: ctx.profileId,
   };
 
+  // completed_at mirrors engine-dispatch/index.ts — any terminal transition
+  // to 'complete' must stamp completed_at or SLA/reporting queries fall off.
+  const nowIso = new Date().toISOString();
   const { error: updateErr } = await supabase
     .from("engine_state")
-    .update({ status: "complete", context: nextContext, updated_at: new Date().toISOString() })
+    .update({
+      status: "complete",
+      context: nextContext,
+      updated_at: nowIso,
+      completed_at: nowIso,
+    })
     .eq("id", parsed.data.ticket_id);
 
   if (updateErr) return { ok: false, error: updateErr.message };
