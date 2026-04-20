@@ -2768,6 +2768,35 @@ export interface HelpdeskQueryReassigned extends BaseEvent {
   entity: EntityRef;
 }
 
+export interface HelpdeskDeskCreated extends BaseEvent {
+  event: "helpdesk.desk.created";
+  properties: {
+    desk_channel_id: string;
+    responsible_profile_id: string;
+    has_description: boolean;
+  };
+  entity: EntityRef;
+}
+
+export interface HelpdeskDeskResponsibleAssigned extends BaseEvent {
+  event: "helpdesk.desk.responsible_assigned";
+  properties: {
+    desk_channel_id: string;
+    new_responsible_profile_id: string;
+    previous_responsible_profile_id: string | null;
+    was_orphan: boolean;
+  };
+  entity: EntityRef;
+}
+
+export interface HelpdeskDeskArchived extends BaseEvent {
+  event: "helpdesk.desk.archived";
+  properties: {
+    desk_channel_id: string;
+  };
+  entity: EntityRef;
+}
+
 export interface ChannelMessageSent extends BaseEvent {
   event: "channel.message.sent";
   properties: { channel_id: string; origin_type: string; message_type: string };
@@ -4705,6 +4734,9 @@ export type SmartoutEvent =
   | HelpdeskQueryOpened
   | HelpdeskQueryResolved
   | HelpdeskQueryReassigned
+  | HelpdeskDeskCreated
+  | HelpdeskDeskResponsibleAssigned
+  | HelpdeskDeskArchived
   | ChannelMessageSent
   | ChannelMessageEdited
   | ChannelMessageDeleted
@@ -5830,6 +5862,18 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "helpdesk",
   },
   "helpdesk.query.reassigned": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "helpdesk",
+  },
+  "helpdesk.desk.created": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "helpdesk",
+  },
+  "helpdesk.desk.responsible_assigned": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "helpdesk",
+  },
+  "helpdesk.desk.archived": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "helpdesk",
   },
