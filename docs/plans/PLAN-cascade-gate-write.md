@@ -1,19 +1,37 @@
 ---
-title: "Plan — cascade-gate-write (ADR-0091 WP2)"
-status: exploration
-updated: 2026-04-18
+title: "Plan — cascade-gate-write (ADR-0091 WP2) — SHIPPED"
+status: done
+updated: 2026-04-20
 created: 2026-04-18
+closed: 2026-04-20
 module: governance
-tags: [plan, adr-0091, cascade_gate_write, governance, c4]
+tags: [plan, adr-0091, cascade_gate_write, governance, c4, shipped]
 ---
 
-# Plan — cascade-gate-write (ADR-0091 WP2)
+# Plan — cascade-gate-write (ADR-0091 WP2) — SHIPPED
 
-## Executive Summary
+> **Status update 2026-04-20 (council verdict):** This plan is closed. WP2 has shipped. This file is kept for history per L-0078 (plan-file decay pattern). Next WPs (Wave 2B/2C) are tracked in separate plans.
 
-**WP2 Status:** Not shipped. No `public.cascade_gate_write()` function exists in `supabase/migrations/`. The TS wrapper (`packages/supabase/src/gate-client.ts`) was added 2026-04-17, but it calls a non-existent RPC, making all `gatedInsert/Update/Delete` calls fail with `42883 function does not exist`.
+## Shipped artifacts (verified 2026-04-20)
 
-**Key Blocker:** WP1 (`evaluate_framework_rules`) does not exist. However, WP2 can **proceed independently** by stubbing WP1 as a pass-through evaluator (returns `outcome='proposed'` for any governance-gated entity type).
+- `supabase/migrations/20260512100000_cascade_gate_write.sql` — `public.cascade_gate_write()` RPC with Option B (trigger-match check, deep rule evaluation deferred to WP1)
+- `supabase/migrations/20260512100200_cascade_gate_write_assert.sql` — assertion tests
+- `packages/supabase/src/gate-client.ts:183` — TS wrapper invoking the RPC successfully
+- Production call sites: `apps/web/src/app/dashboard/setup/_actions/season-actions.ts`, `apps/web/src/app/dashboard/people/_actions/people-actions.ts`
+
+## Next Work (separate plans)
+
+- **Wave 2B** (capability dual-gate) — blocked on P1-P3 prereqs per council 2026-04-18
+- **Wave 2C** (schedule TanStack migration) — blocked on Q1-Q3 prereqs, /dashboard/schedule excluded per ADR-0032
+- **Reconciliation ADR** — agent tools still use old `gate_action` while Server Actions use new `cascade_gate_write`; same mutation via different paths may yield different outcomes
+
+---
+
+## Original executive summary (superseded — kept for history)
+
+**WP2 Status (as of 2026-04-18):** Not shipped. No `public.cascade_gate_write()` function exists in `supabase/migrations/`. The TS wrapper (`packages/supabase/src/gate-client.ts`) was added 2026-04-17, but it calls a non-existent RPC, making all `gatedInsert/Update/Delete` calls fail with `42883 function does not exist`.
+
+**Key Blocker (as of 2026-04-18):** WP1 (`evaluate_framework_rules`) does not exist. However, WP2 can **proceed independently** by stubbing WP1 as a pass-through evaluator (returns `outcome='proposed'` for any governance-gated entity type).
 
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: "STATE Summary — Quick Session Start"
-updated: 2026-04-17
+updated: 2026-04-20
 derived-from: docs/STATE.md (82KB full version)
 ---
 
@@ -44,13 +44,19 @@ No critical gaps. Next focus areas:
 - ~~my-schedule realtime~~ — DONE. `useMyShiftsRealtime()` called in MyWeekView.tsx:85.
 - ~~AI classifier gaps~~ — NOT A GAP. `contract_intake` and `shift_swap` are chat-only by design (ADR-0078).
 
-## Cascade Status (~80% complete)
+## Cascade Status (~85% complete — re-scoped 2026-04-20)
 
 - Phase A (Schema): DONE
 - Phase B (Pure Functions): DONE — 10 functions, 8 test files
 - Phase C (Bootstrap): DONE — framework seeded, I1 wired, rates corrected, 10 verification tests
 - Phase D (Operational Layer): DONE — hooks, panels, engine actions, publish validation all wired
-- Phase E (Control Planes): NOT STARTED — C4 governance first
+- Phase E (Control Planes / C4 governance): **PARTIALLY SHIPPED** (verified 2026-04-20 per L-0078)
+  - WP1 `engine_authority_config` schema + pilot RPC — **SHIPPED**
+  - WP2 `cascade_gate_write` RPC + `gate-client.ts` wrapper — **SHIPPED** (migrations `20260512100000_cascade_gate_write.sql` + `20260512100200_cascade_gate_write_assert.sql`)
+  - WP3 Wave 2A Server Actions — **SHIPPED** (`season-actions.ts`, `people-actions.ts`)
+  - WP4 Wave 2B capability dual-gate — BLOCKED on P1-P3 prereqs (council 2026-04-18)
+  - WP5 Wave 2C schedule TanStack migration — BLOCKED on Q1-Q3 prereqs, also /dashboard/schedule excluded per ADR-0032
+  - Known dual-gate risk: agent tools call old `gate_action`, Server Actions call new `cascade_gate_write` — same mutation via different paths may yield different outcomes. Needs reconciliation ADR.
 - Phase F (External Adapters): NOT STARTED — Tripletex first target
 
 ## Recent Merges (last 2 weeks)
