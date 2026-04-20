@@ -259,6 +259,30 @@ export interface LoginCodeSent extends BaseEvent {
   };
 }
 
+// Password reset lifecycle.
+export interface AuthPasswordResetRequested extends BaseEvent {
+  event: "auth password_reset_requested";
+  properties: {
+    data: {
+      // SHA-256 or similar — never the raw email. Used to dedupe/rate-limit.
+      email_hash: string;
+      // True when a user_identity row exists; false otherwise (enumeration-safe).
+      user_exists: boolean;
+    };
+  };
+}
+
+export interface AuthPasswordResetCompleted extends BaseEvent {
+  event: "auth password_reset_completed";
+  properties: {
+    data: {
+      user_id: string;
+      // "migration" = force_password_reset flag cleared; "self_service" = normal reset flow.
+      context: "migration" | "self_service";
+    };
+  };
+}
+
 // ─── Navigation / UI Rules ──────────────────────
 export interface PageViewed extends BaseEvent {
   event: "page viewed";
@@ -914,6 +938,66 @@ export interface InvitationAccepted extends BaseEvent {
     data: {
       profile_id: string;
       workspace_id: string;
+    };
+  };
+}
+
+// Invitation lifecycle events (ADR-0167 — tokens are credentials,
+// never log full values; use token.substring(0, 8) + "..." for
+// token_preview fields).
+export interface InvitationCreated extends BaseEvent {
+  event: "invitation created";
+  properties: {
+    entity: EntityRef;
+    data: {
+      invitation_id: string;
+      workspace_id: string;
+      role: string;
+      // First 8 chars only — never full token.
+      token_preview: string;
+      employment_type?: string;
+      bulk_count?: number;
+    };
+  };
+}
+
+export interface InvitationDispatched extends BaseEvent {
+  event: "invitation dispatched";
+  properties: {
+    entity: EntityRef;
+    data: {
+      invitation_id: string;
+      channel: "email" | "sms" | "link_only" | "whatsapp";
+      outcome: "sent" | "failed";
+      reason?: string;
+      // First 8 chars only — never full token.
+      token_preview: string;
+    };
+  };
+}
+
+export interface InvitationOpened extends BaseEvent {
+  event: "invitation opened";
+  properties: {
+    entity: EntityRef;
+    data: {
+      invitation_id: string;
+      workspace_id: string;
+      // First 8 chars only — never full token.
+      token_preview: string;
+    };
+  };
+}
+
+export interface InvitationExpired extends BaseEvent {
+  event: "invitation expired";
+  properties: {
+    entity: EntityRef;
+    data: {
+      invitation_id: string;
+      workspace_id: string;
+      // First 8 chars only — never full token.
+      token_preview: string;
     };
   };
 }
@@ -4840,6 +4924,10 @@ export type SmartoutEvent =
   | ProfileLoginCodeSent
   | InvitationCancelled
   | InvitationResent
+  | InvitationCreated
+  | InvitationDispatched
+  | InvitationOpened
+  | InvitationExpired
   | OnboardingProfessionsConfirmed
   | TelegramSessionCreated
   | TelegramMessageReceived
@@ -4859,6 +4947,8 @@ export type SmartoutEvent =
   | AuthOtpFailed
   | AuthLoggedIn
   | LoginCodeSent
+  | AuthPasswordResetRequested
+  | AuthPasswordResetCompleted
   | SecurityRateLimited
   | SecurityLockoutTriggered
   | SecuritySandboxBlocked
@@ -5114,6 +5204,28 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "invitation accepted": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "onboarding",
+  },
+
+  // emit site: supabase/functions/create-invitation/index.ts (post-insert, direct insert pattern)
+  "invitation created": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "auth",
+  },
+  // emit site: supabase/functions/create-invitation/index.ts (per-channel dispatch loop, direct insert pattern)
+  "invitation dispatched": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "auth",
+  },
+  // emit site: RPC track_invitation_opened call path from apps/web/src/app/invite/[token]/page.tsx
+  "invitation opened": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "auth",
+  },
+  // emit site: on-read expiration check in apps/web/src/app/invite/[token]/page.tsx
+  //            (status transition pending → expired)
+  "invitation expired": {
+    destinations: ["logger", "activity_trail"],
+    category: "auth",
   },
 
   "protocol assigned": {
@@ -6311,6 +6423,16 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "auth otp_failed": { destinations: ["posthog", "logger"], category: "auth" },
   "auth logged_in": { destinations: ["posthog", "logger"], category: "auth" },
   "login_code sent": { destinations: ["posthog", "logger", "activity_trail"], category: "auth" },
+  // emit site: apps/web/src/app/reset-password/page.tsx submit handler (password-reset form)
+  "auth password_reset_requested": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "auth",
+  },
+  // emit site: apps/web/src/app/reset-password/page.tsx post-updateUser success handler
+  "auth password_reset_completed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "auth",
+  },
   // ─── Security ─────────────────────────────────
   "security rate_limited": { destinations: ["logger", "activity_trail"], category: "security" },
   "security lockout_triggered": {
